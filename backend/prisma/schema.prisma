@@ -1,0 +1,715 @@
+// Beauty Salon Nejra v2 - Prisma Schema
+// MySQL database - modularna, proširiva šema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ============ AUTH & USERS ============
+
+model User {
+  id            String    @id @default(uuid())
+  username      String    @unique
+  email         String    @unique
+  passwordHash  String?   @map("password_hash")
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  phone         String?
+  avatar        String?
+  isActive      Boolean   @default(true) @map("is_active")
+  isEmailVerified Boolean @default(false) @map("is_email_verified")
+  googleId      String?   @unique @map("google_id")
+  facebookId    String?   @unique @map("facebook_id")
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  userRoles           UserRole[]
+  stylistProfile      StylistProfile?
+  reservationsAsClient Reservation[]         @relation("ClientReservations")
+  reviews              Review[]
+  blogComments        BlogComment[]
+  pushTokens           PushToken[]
+  notificationPreferences NotificationPreference[]
+  notifications       Notification[]
+  loyaltyAccount      LoyaltyAccount?
+  uploads             Upload[]               @relation("UploadedBy")
+  expenseCreatedBy    Expense[]              @relation("ExpenseCreatedBy")
+  blogPosts           BlogPost[]             @relation("BlogAuthor")
+  cancellationCount  ClientCancellationCount[]
+  dailyLogEntriesAsClient DailyLogEntry[]      @relation("DailyLogClient")
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique // SYSTEM_ADMIN | OWNER | STYLIST | CLIENT
+  description String?
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+// Penalty za česta otkazivanja - broj otkazivanja po klijentu
+model ClientCancellationCount {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  cancellationCount Int    @default(0) @map("cancellation_count")
+  penaltyUntil    DateTime? @map("penalty_until")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("client_cancellation_counts")
+}
+
+// ============ SALON ============
+
+model SalonSettings {
+  id                         String   @id @default(uuid())
+  name                       String
+  address                    String?
+  phone                      String?
+  email                      String?
+  description                String?  @db.Text
+  logo                       String?
+  pauseBetweenServices       Int      @default(10) @map("pause_between_services") // minuta
+  cancellationDeadlineHours Int      @default(24) @map("cancellation_deadline_hours")
+  maxCancellationsBeforePenalty Int   @default(3) @map("max_cancellations_before_penalty")
+  penaltyDurationDays        Int      @default(30) @map("penalty_duration_days")
+  reservationLockMinutes     Int      @default(15) @map("reservation_lock_minutes") // koliko dugo stilist drži lock
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+
+  workingHours SalonWorkingHours[]
+  holidays     Holiday[]
+
+  @@map("salon_settings")
+}
+
+model SalonWorkingHours {
+  id              String   @id @default(uuid())
+  salonSettingsId String   @map("salon_settings_id")
+  dayOfWeek       Int      @map("day_of_week") // 0-6
+  openTime        String   @map("open_time")   // "09:00"
+  closeTime       String   @map("close_time")  // "17:00"
+  isWorkingDay    Boolean  @default(true) @map("is_working_day")
+
+  salonSettings SalonSettings @relation(fields: [salonSettingsId], references: [id], onDelete: Cascade)
+
+  @@unique([salonSettingsId, dayOfWeek])
+  @@map("salon_working_hours")
+}
+
+model Holiday {
+  id              String    @id @default(uuid())
+  salonSettingsId String    @map("salon_settings_id")
+  date            DateTime  @db.Date
+  name            String
+  message         String?   @db.Text
+  sendPush        Boolean   @default(false) @map("send_push")
+  pushSentAt      DateTime? @map("push_sent_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  salonSettings SalonSettings @relation(fields: [salonSettingsId], references: [id], onDelete: Cascade)
+
+  @@map("holidays")
+}
+
+// ============ STYLISTS ============
+
+model StylistProfile {
+  id            String    @id @default(uuid())
+  userId        String    @unique @map("user_id")
+  bio           String?   @db.Text
+  specialization String?
+  isActive      Boolean   @default(true) @map("is_active")
+  hireDate      DateTime? @map("hire_date")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workingHours            StylistWorkingHours[]
+  stylistServices         StylistService[]
+  dailyLogEntries         DailyLogEntry[]
+  reservationResponses    ReservationStylistResponse[]
+  reservationsConfirmed   Reservation[]              @relation("ConfirmedByStylist")
+  reviews                 Review[]
+
+  @@map("stylist_profiles")
+}
+
+model StylistWorkingHours {
+  id              String    @id @default(uuid())
+  stylistProfileId String   @map("stylist_profile_id")
+  dayOfWeek       Int       @map("day_of_week") // 0-6
+  dateOverride    DateTime? @map("date_override") @db.Date // opciono override za pojedinačni dan
+  startTime       String    @map("start_time")
+  endTime         String    @map("end_time")
+  isWorkingDay    Boolean   @default(true) @map("is_working_day")
+
+  stylistProfile StylistProfile @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
+
+  @@map("stylist_working_hours")
+}
+
+// ============ SERVICES ============
+
+model ServiceCategory {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  subcategories ServiceSubcategory[]
+
+  @@map("service_categories")
+}
+
+model ServiceSubcategory {
+  id         String   @id @default(uuid())
+  categoryId String   @map("category_id")
+  name       String
+  description String? @db.Text
+  sortOrder  Int      @default(0) @map("sort_order")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  category  ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  services  Service[]
+
+  @@map("service_subcategories")
+}
+
+model Service {
+  id               String   @id @default(uuid())
+  subcategoryId    String   @map("subcategory_id")
+  name             String
+  shortDescription String?  @map("short_description") @db.Text
+  heroImage        String?   @map("hero_image")
+  durationMinutes  Int      @map("duration_minutes")
+  price            Decimal  @db.Decimal(10, 2)
+  isActive         Boolean  @default(true) @map("is_active")
+  sortOrder        Int      @default(0) @map("sort_order")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  subcategory    ServiceSubcategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+  images         ServiceImage[]
+  stylistServices StylistService[]
+  reservations   Reservation[]
+  dailyLogEntries DailyLogEntry[]
+  reviews        Review[]
+
+  @@map("services")
+}
+
+model ServiceImage {
+  id          String   @id @default(uuid())
+  serviceId   String   @map("service_id")
+  uploadId    String   @map("upload_id")
+  isBefore    Boolean  @default(false) @map("is_before")
+  isAfter     Boolean  @default(false) @map("is_after")
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  upload  Upload  @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
+  @@map("service_images")
+}
+
+model StylistService {
+  id              String   @id @default(uuid())
+  stylistProfileId String @map("stylist_profile_id")
+  serviceId       String  @map("service_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  stylistProfile StylistProfile @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
+  service        Service        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([stylistProfileId, serviceId])
+  @@map("stylist_services")
+}
+
+// ============ RESERVATIONS ============
+
+model Reservation {
+  id                   String    @id @default(uuid())
+  clientId             String    @map("client_id")
+  serviceId            String    @map("service_id")
+  reservationDate      DateTime  @map("reservation_date") @db.Date
+  startTime            String    @map("start_time")  // "09:00"
+  endTime              String    @map("end_time")   // "10:00"
+  status               String    // PENDING | STYLIST_REVIEW | CONFIRMED | ATTENDANCE_CONFIRMED | IN_PROGRESS | COMPLETED | CANCELLED_BY_CLIENT | CANCELLED_BY_STYLISTS | NO_SHOW
+  clientNotes          String?   @map("client_notes") @db.Text
+  confirmedStylistId   String?   @map("confirmed_stylist_id")
+  attendanceConfirmedAt DateTime? @map("attendance_confirmed_at")
+  cancelledAt          DateTime? @map("cancelled_at")
+  cancelReason         String?   @map("cancel_reason") @db.Text
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  client       User                       @relation("ClientReservations", fields: [clientId], references: [id], onDelete: Cascade)
+  service      Service                    @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  confirmedStylist StylistProfile?         @relation("ConfirmedByStylist", fields: [confirmedStylistId], references: [id], onDelete: SetNull)
+  stylistResponses ReservationStylistResponse[]
+  images       ReservationImage[]
+  dailyLogEntry DailyLogEntry[]
+  reviews      Review[]
+
+  @@map("reservations")
+}
+
+model ReservationStylistResponse {
+  id              String    @id @default(uuid())
+  reservationId   String    @map("reservation_id")
+  stylistProfileId String   @map("stylist_profile_id")
+  status          String    // PENDING | LOCKED | ACCEPTED | REJECTED
+  lockedAt        DateTime? @map("locked_at")
+  lockExpiresAt   DateTime? @map("lock_expires_at")
+  rejectionReason String?   @map("rejection_reason") @db.Text
+  respondedAt     DateTime? @map("responded_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  reservation    Reservation   @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  stylistProfile StylistProfile @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([reservationId, stylistProfileId])
+  @@map("reservation_stylist_responses")
+}
+
+model ReservationImage {
+  id            String   @id @default(uuid())
+  reservationId String   @map("reservation_id")
+  uploadId      String   @map("upload_id")
+  isBefore      Boolean  @default(false) @map("is_before")
+  isAfter       Boolean  @default(false) @map("is_after")
+  description   String?  @db.Text
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  upload      Upload      @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
+  @@map("reservation_images")
+}
+
+// ============ DAILY LOG ============
+
+model DailyLogEntry {
+  id              String    @id @default(uuid())
+  stylistProfileId String   @map("stylist_profile_id")
+  reservationId    String?   @map("reservation_id")
+  serviceId       String    @map("service_id")
+  clientId        String?   @map("client_id")
+  date            DateTime  @db.Date
+  actualPrice     Decimal   @map("actual_price") @db.Decimal(10, 2)
+  tipAmount       Decimal   @default(0) @map("tip_amount") @db.Decimal(10, 2)
+  isManual        Boolean   @default(false) @map("is_manual")
+  notes           String?   @db.Text
+  status          String    @default("PENDING") // PENDING | COMPLETED
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  stylistProfile StylistProfile @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
+  reservation    Reservation?   @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  service        Service       @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  client         User?         @relation("DailyLogClient", fields: [clientId], references: [id], onDelete: SetNull)
+  images         DailyLogImage[]
+  incomeEntries  IncomeBookEntry[]
+
+  @@map("daily_log_entries")
+}
+
+model DailyLogImage {
+  id              String   @id @default(uuid())
+  dailyLogEntryId  String   @map("daily_log_entry_id")
+  uploadId        String   @map("upload_id")
+  isBefore        Boolean  @default(false) @map("is_before")
+  isAfter         Boolean  @default(false) @map("is_after")
+  description     String?  @db.Text
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  dailyLogEntry DailyLogEntry @relation(fields: [dailyLogEntryId], references: [id], onDelete: Cascade)
+  upload        Upload        @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
+  @@map("daily_log_images")
+}
+
+// ============ EXPENSES (KUF) ============
+
+model ExpenseBook {
+  id        String    @id @default(uuid())
+  year      Int
+  month     Int
+  openedAt  DateTime  @default(now()) @map("opened_at")
+  closedAt  DateTime? @map("closed_at")
+  isClosed  Boolean   @default(false) @map("is_closed")
+  closedBy  String?   @map("closed_by")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  expenses Expense[]
+
+  @@unique([year, month])
+  @@map("expense_books")
+}
+
+model ExpenseCategoryTemplate {
+  id                     String   @id @default(uuid())
+  name                   String
+  description            String?  @db.Text
+  requiresAttachmentPerItem Boolean @default(false) @map("requires_attachment_per_item")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  fields   ExpenseTemplateField[]
+  categories ExpenseCategory[]
+
+  @@map("expense_category_templates")
+}
+
+model ExpenseTemplateField {
+  id           String   @id @default(uuid())
+  templateId   String   @map("template_id")
+  fieldName    String   @map("field_name")
+  fieldType    String   @map("field_type") // TEXT | NUMBER | CURRENCY | DATE | FILE
+  isRequired   Boolean  @default(false) @map("is_required")
+  sortOrder    Int      @default(0) @map("sort_order")
+  defaultValue String?  @map("default_value") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  template ExpenseCategoryTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  values   ExpenseFieldValue[]
+
+  @@map("expense_template_fields")
+}
+
+model ExpenseCategory {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  templateId  String   @map("template_id")
+  isActive    Boolean  @default(true) @map("is_active")
+  isFixed     Boolean  @default(false) @map("is_fixed")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  template ExpenseCategoryTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  expenses Expense[]
+
+  @@map("expense_categories")
+}
+
+model Expense {
+  id             String    @id @default(uuid())
+  bookId         String    @map("book_id")
+  categoryId     String    @map("category_id")
+  title          String
+  totalAmount    Decimal   @map("total_amount") @db.Decimal(12, 2)
+  invoiceUploadId String?  @map("invoice_upload_id")
+  notes          String?   @db.Text
+  createdById    String    @map("created_by_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  book       ExpenseBook   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdBy  User          @relation("ExpenseCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  fieldValues ExpenseFieldValue[]
+  attachments ExpenseAttachment[]
+
+  @@map("expenses")
+}
+
+model ExpenseFieldValue {
+  id        String   @id @default(uuid())
+  expenseId String   @map("expense_id")
+  fieldId   String   @map("field_id")
+  value     String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  field   ExpenseTemplateField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([expenseId, fieldId])
+  @@map("expense_field_values")
+}
+
+model ExpenseAttachment {
+  id          String   @id @default(uuid())
+  expenseId   String   @map("expense_id")
+  uploadId    String   @map("upload_id")
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  upload  Upload  @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
+  @@map("expense_attachments")
+}
+
+// ============ INCOME (KIF) ============
+
+model IncomeBook {
+  id           String    @id @default(uuid())
+  year         Int
+  month        Int
+  openedAt     DateTime  @default(now()) @map("opened_at")
+  closedAt     DateTime? @map("closed_at")
+  totalRevenue Decimal   @default(0) @map("total_revenue") @db.Decimal(12, 2)
+  totalTips    Decimal   @default(0) @map("total_tips") @db.Decimal(12, 2)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  entries IncomeBookEntry[]
+
+  @@unique([year, month])
+  @@map("income_books")
+}
+
+model IncomeBookEntry {
+  id              String   @id @default(uuid())
+  bookId          String   @map("book_id")
+  dailyLogEntryId String   @map("daily_log_entry_id")
+  amount          Decimal  @db.Decimal(10, 2)
+  tipAmount       Decimal  @default(0) @map("tip_amount") @db.Decimal(10, 2)
+  date            DateTime @db.Date
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  book         IncomeBook    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  dailyLogEntry DailyLogEntry @relation(fields: [dailyLogEntryId], references: [id], onDelete: Cascade)
+
+  @@unique([bookId, dailyLogEntryId])
+  @@map("income_book_entries")
+}
+
+// ============ BLOG ============
+
+model BlogPost {
+  id          String    @id @default(uuid())
+  authorId    String    @map("author_id")
+  title       String
+  slug        String    @unique
+  content     String    @db.LongText
+  heroImage   String?   @map("hero_image")
+  isPublished Boolean   @default(false) @map("is_published")
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  author   User         @relation("BlogAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  comments BlogComment[]
+
+  @@map("blog_posts")
+}
+
+model BlogComment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  content   String   @db.Text
+  isApproved Boolean @default(false) @map("is_approved")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  post BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("blog_comments")
+}
+
+// ============ GALLERY ============
+
+model GalleryCategory {
+  id          String   @id @default(uuid())
+  name        String
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  images GalleryImage[]
+
+  @@map("gallery_categories")
+}
+
+model GalleryImage {
+  id          String   @id @default(uuid())
+  categoryId  String   @map("category_id")
+  uploadId    String   @map("upload_id")
+  title       String?
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  category GalleryCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  upload   Upload          @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
+  @@map("gallery_images")
+}
+
+// ============ REVIEWS ============
+
+model Review {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  serviceId        String   @map("service_id")
+  stylistProfileId String?  @map("stylist_profile_id")
+  reservationId    String?  @map("reservation_id")
+  serviceRating    Int      @map("service_rating") // 1-5
+  stylistRating    Int?     @map("stylist_rating") // 1-5
+  comment          String?  @db.Text
+  isApproved       Boolean  @default(false) @map("is_approved")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service  Service        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  stylist  StylistProfile? @relation(fields: [stylistProfileId], references: [id], onDelete: SetNull)
+  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  @@map("reviews")
+}
+
+// ============ UPLOADS ============
+
+model Upload {
+  id           String   @id @default(uuid())
+  originalName String   @map("original_name")
+  mimeType     String   @map("mime_type")
+  sizeBytes    Int      @map("size_bytes")
+  pathOriginal String   @map("path_original")
+  pathThumb    String?  @map("path_thumb")
+  pathSmall    String?  @map("path_small")
+  pathMedium   String?  @map("path_medium")
+  uploadedById String?  @map("uploaded_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  uploadedBy       User?               @relation("UploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  serviceImages   ServiceImage[]
+  reservationImages ReservationImage[]
+  dailyLogImages  DailyLogImage[]
+  expenseAttachments ExpenseAttachment[]
+  galleryImages   GalleryImage[]
+
+  @@map("uploads")
+}
+
+// ============ NOTIFICATIONS ============
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  title     String
+  body      String    @db.Text
+  type      String
+  data      Json?
+  channel   String    // PUSH | EMAIL | BOTH
+  isRead    Boolean   @default(false) @map("is_read")
+  sentAt    DateTime  @default(now()) @map("sent_at")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  type         String   // reservation_confirmed, reservation_cancelled, etc.
+  pushEnabled  Boolean  @default(true) @map("push_enabled")
+  emailEnabled Boolean  @default(true) @map("email_enabled")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@map("notification_preferences")
+}
+
+model PushToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  platform  String   // IOS | ANDROID | WEB
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("push_tokens")
+}
+
+// ============ APP SETTINGS ============
+
+model AppSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String   @db.Text
+  description String?  @db.Text
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedBy   String?   @map("updated_by")
+
+  @@map("app_settings")
+}
+
+// ============ LOYALTY (neaktivno do aktivacije) ============
+
+model LoyaltyAccount {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  points    Int      @default(0)
+  tier      String?
+  isActive  Boolean  @default(false) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions LoyaltyTransaction[]
+
+  @@map("loyalty_accounts")
+}
+
+model LoyaltyTransaction {
+  id        String   @id @default(uuid())
+  accountId String   @map("account_id")
+  points    Int
+  type      String   // EARN | REDEEM
+  source    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  account LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("loyalty_transactions")
+}

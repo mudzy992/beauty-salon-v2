@@ -1,0 +1,70 @@
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { UsersService } from './users.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { AssignRoleDto } from './dto/assign-role.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+
+@Controller('api/users')
+@UseGuards(JwtAuthGuard)
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Get()
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findAll(@CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.findAll(user.roles);
+  }
+
+  @Get('profile')
+  getProfile(@CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.getProfile(user.sub);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.findOne(id, user);
+  }
+
+  @Get(':id/analytics')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getClientAnalytics(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.getClientAnalytics(id, user.roles);
+  }
+
+  @Post()
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  create(@Body() dto: CreateUserDto, @CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.create(dto, user.roles);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.update(id, dto, user);
+  }
+
+  @Post(':id/roles')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  assignRole(@Param('id') id: string, @Body() dto: AssignRoleDto, @CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.assignRole(id, dto, user.roles);
+  }
+
+  @Delete(':id/roles/:roleName')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  removeRole(
+    @Param('id') id: string,
+    @Param('roleName') roleName: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.usersService.removeRole(id, roleName, user.roles);
+  }
+}

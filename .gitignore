@@ -1,0 +1,7 @@
+node_modules
+dist
+test
+.cursor
+.cursorrules
+.cursorignore
+SOURCE_OF_TRUTH.md
