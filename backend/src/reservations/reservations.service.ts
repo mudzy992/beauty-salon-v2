@@ -133,7 +133,7 @@ export class ReservationsService {
     return this.prisma.reservation.findMany({
       where,
       include: {
-        service: { select: { id: true, name: true, durationMinutes: true } },
+        service: { select: { id: true, name: true, durationMinutes: true, price: true } },
         client: { select: { id: true, firstName: true, lastName: true } },
         confirmedStylist: {
           include: { user: { select: { firstName: true, lastName: true } } },
@@ -269,7 +269,7 @@ export class ReservationsService {
     });
     if (!response) throw new NotFoundException('Odgovor za ovog stilista nije pronađen.');
     if (response.status === 'LOCKED' && response.lockExpiresAt && new Date() < response.lockExpiresAt) {
-      return this.findOne(reservationId, { sub: '', roles: [], username: '', email: '' });
+      return this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
     }
     if (response.status === 'ACCEPTED' || response.status === 'REJECTED') {
       throw new BadRequestException('Već ste odgovorili na ovu rezervaciju.');
@@ -293,7 +293,7 @@ export class ReservationsService {
       }),
     ]);
 
-    const locked = await this.findOne(reservationId, { sub: '', roles: [], username: '', email: '' });
+    const locked = await this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
     this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_STYLIST_RESPONSE, locked);
     this.events.emitToUser(res.clientId, SOCKET_EVENTS.RESERVATION_UPDATED, locked);
     return locked;
@@ -359,7 +359,7 @@ export class ReservationsService {
       );
     }
 
-    const accepted = await this.findOne(reservationId, { sub: '', roles: [], username: '', email: '' });
+    const accepted = await this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
     this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CONFIRMED, accepted);
     if (resWithClient?.clientId) {
       this.events.emitToUser(resWithClient.clientId, SOCKET_EVENTS.RESERVATION_CONFIRMED, accepted);
@@ -424,7 +424,7 @@ export class ReservationsService {
       }
     }
 
-    const result = await this.findOne(reservationId, { sub: '', roles: [], username: '', email: '' });
+    const result = await this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
     this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_STYLIST_RESPONSE, result);
     if (stillPendingOrLocked.length === 0) {
       this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
@@ -461,6 +461,26 @@ export class ReservationsService {
       create: { userId: clientId, cancellationCount: count, penaltyUntil },
       update: { cancellationCount: count, penaltyUntil },
     });
+  }
+
+  /** Stilist označava rezervaciju kao završenu (nakon što je upisao u dnevnu knjigu). */
+  async stylistMarkComplete(reservationId: string, userId: string) {
+    const stylistProfileId = await this.getStylistProfileIdByUserId(userId);
+    if (!stylistProfileId) throw new ForbiddenException('Nemate profil stilista.');
+    const r = await this.prisma.reservation.findUnique({ where: { id: reservationId } });
+    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (r.confirmedStylistId !== stylistProfileId) {
+      throw new ForbiddenException('Samo potvrđeni stilist može označiti rezervaciju kao završenu.');
+    }
+    const allowed = [RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.ATTENDANCE_CONFIRMED, RESERVATION_STATUS.IN_PROGRESS];
+    if (!allowed.includes(r.status as any)) {
+      throw new BadRequestException('Rezervacija mora biti potvrđena ili u toku da bi se označila završenom.');
+    }
+    await this.prisma.reservation.update({
+      where: { id: reservationId },
+      data: { status: RESERVATION_STATUS.COMPLETED },
+    });
+    return this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
   }
 
   private async getStylistProfileIdByUserId(userId: string): Promise<string | null> {

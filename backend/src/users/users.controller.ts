@@ -21,6 +21,13 @@ export class UsersController {
     return this.usersService.findAll(user.roles);
   }
 
+  @Get('for-daily-log')
+  @UseGuards(RolesGuard)
+  @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
+  findForDailyLog(@CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.findForDailyLog(user.roles);
+  }
+
   @Get('profile')
   getProfile(@CurrentUser() user: CurrentUserPayload) {
     return this.usersService.getProfile(user.sub);

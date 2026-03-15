@@ -11,7 +11,7 @@ services:
       - ./frontend/.env
     restart: unless-stopped
     networks:
-      - traefik-public
+      - web
 
   backend:
     build: ./backend
@@ -31,8 +31,8 @@ services:
       - ./backend/.env
     restart: unless-stopped
     networks:
-      - traefik-public
+      - web
 
 networks:
-  traefik-public:
+  web:
     external: true

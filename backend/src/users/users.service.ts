@@ -15,6 +15,18 @@ import { CurrentUserPayload } from '../common/decorators/current-user.decorator'
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** Lista korisnika za odabir klijenta u dnevnoj knjizi (stilist ili admin). */
+  async findForDailyLog(roles: string[]) {
+    if (!this.isAdminOrOwner(roles) && !roles.includes('STYLIST')) {
+      throw new ForbiddenException('Nemate dozvolu.');
+    }
+    return this.prisma.user.findMany({
+      where: { isActive: true },
+      select: { id: true, username: true, firstName: true, lastName: true },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    });
+  }
+
   async findAll(roles: string[]) {
     this.requireAdminOrOwner(roles);
     return this.prisma.user.findMany({

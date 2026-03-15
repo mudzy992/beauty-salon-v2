@@ -135,4 +135,11 @@ export class ReservationsController {
   ) {
     return this.reservations.stylistReject(id, stylistProfileId, user.sub, dto);
   }
+
+  @Post(':id/stylist-mark-complete')
+  @UseGuards(RolesGuard)
+  @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
+  stylistMarkComplete(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.reservations.stylistMarkComplete(id, user.sub);
+  }
 }
