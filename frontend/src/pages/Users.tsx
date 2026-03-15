@@ -27,7 +27,6 @@ interface UserRow {
   userRoles?: UserRole[];
 }
 
-const AVAILABLE_ROLES = ['SYSTEM_ADMIN', 'OWNER', 'STYLIST', 'CLIENT'] as const;
 /** Uloge koje admin može ručno dodavati/uklanjati. STYLIST se dodjeljuje automatski u Stylists modulu. */
 const ROLES_MANAGED_IN_UI = ['SYSTEM_ADMIN', 'OWNER', 'CLIENT'] as const;
 const roleColorMap: Record<string, string> = {
