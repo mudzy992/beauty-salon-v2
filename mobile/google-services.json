@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "886915194656",
+    "project_id": "beauty-salon-v2",
+    "storage_bucket": "beauty-salon-v2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:886915194656:android:746f863d78dbb355d9c145",
+        "android_client_info": {
+          "package_name": "com.beautysalon.nejra"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5_NikaPBx8G4QwLj7gDEHsAtfBMaKM20"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

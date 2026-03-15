@@ -1,0 +1,272 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+} from 'react-native';
+import { useTheme } from '../../hooks/useTheme';
+import { useStylistProfile } from '../../hooks/useStylistProfile';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import api from '../../services/api';
+import { spacing } from '../../theme';
+import type { Service } from '../../types';
+
+type ClientOption = { id: string; username: string; firstName: string | null; lastName: string | null };
+
+type DailyLogNewEntryScreenProps = {
+  navigation: { goBack: () => void; navigate: (screen: 'DailyLogDetail', params: { entryId: string }) => void };
+};
+
+export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenProps) {
+  const { colors } = useTheme();
+  const { profileId, loading: profileLoading } = useStylistProfile();
+  const [services, setServices] = useState<Service[]>([]);
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [serviceId, setServiceId] = useState('');
+  const [clientId, setClientId] = useState('');
+  const [actualPrice, setActualPrice] = useState('');
+  const [tipAmount, setTipAmount] = useState('');
+  const [notes, setNotes] = useState('');
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [clientSearch, setClientSearch] = useState('');
+  const [showServicePicker, setShowServicePicker] = useState(false);
+  const [showClientPicker, setShowClientPicker] = useState(false);
+
+  const fetchOptions = useCallback(async () => {
+    try {
+      const [svcRes, cliRes] = await Promise.all([
+        api.get<Service[]>('/api/services', { params: { activeOnly: true } }),
+        api.get<ClientOption[]>('/api/users/for-daily-log'),
+      ]);
+      setServices(Array.isArray(svcRes.data) ? svcRes.data : []);
+      setClients(Array.isArray(cliRes.data) ? cliRes.data : []);
+    } catch {
+      setServices([]);
+      setClients([]);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchOptions();
+  }, [fetchOptions]);
+
+  const selectedService = services.find((s) => s.id === serviceId);
+  const selectedClient = clients.find((c) => c.id === clientId);
+  const filteredServices = serviceSearch.trim()
+    ? services.filter((s) => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+    : services;
+  const filteredClients = clientSearch.trim()
+    ? clients.filter(
+        (c) =>
+          (c.firstName?.toLowerCase().includes(clientSearch.toLowerCase())) ||
+          (c.lastName?.toLowerCase().includes(clientSearch.toLowerCase())) ||
+          c.username.toLowerCase().includes(clientSearch.toLowerCase()),
+      )
+    : clients;
+
+  const selectService = (s: Service) => {
+    setServiceId(s.id);
+    setActualPrice(String(Number(s.price) ?? 0));
+    setServiceSearch(s.name);
+    setShowServicePicker(false);
+  };
+
+  const selectClient = (c: ClientOption) => {
+    setClientId(c.id);
+    const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.username;
+    setClientSearch(name);
+    setShowClientPicker(false);
+  };
+
+  const handleSubmit = useCallback(async () => {
+    if (!profileId) {
+      Alert.alert('Greška', 'Profil stilista nije pronađen.');
+      return;
+    }
+    if (!serviceId || !clientId) {
+      Alert.alert('Greška', 'Odaberite servis i klijenta.');
+      return;
+    }
+    const price = parseFloat(actualPrice.replace(',', '.'));
+    if (isNaN(price) || price < 0) {
+      Alert.alert('Greška', 'Unesite ispravnu cijenu.');
+      return;
+    }
+    const tip = parseFloat(tipAmount.replace(',', '.')) || 0;
+    setSaving(true);
+    try {
+      const { data: entry } = await api.post<{ id: string }>('/api/daily-log', {
+        stylistProfileId: profileId,
+        serviceId,
+        clientId,
+        date,
+        actualPrice: price,
+        tipAmount: tip >= 0 ? tip : 0,
+        notes: notes.trim() || undefined,
+        isManual: true,
+      });
+      navigation.navigate('DailyLogDetail', { entryId: entry.id });
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as any).response?.data?.message
+          : 'Greška pri kreiranju zapisa.';
+      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+    } finally {
+      setSaving(false);
+    }
+  }, [profileId, serviceId, clientId, date, actualPrice, tipAmount, notes, navigation]);
+
+  if (profileLoading || (loading && !profileId)) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (!profileId) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <Text style={{ color: colors.text }}>Profil stilista nije pronađen.</Text>
+        <Button title="Nazad" onPress={() => navigation.goBack()} variant="outline" style={{ marginTop: spacing.md }} />
+      </View>
+    );
+  }
+
+  return (
+    <>
+      <ScrollView
+        style={{ backgroundColor: colors.background }}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Card style={styles.card}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Servis</Text>
+          <TouchableOpacity
+            style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}
+            onPress={() => setShowServicePicker(true)}
+          >
+            <Text style={[styles.pickerText, { color: selectedService ? colors.text : colors.textMuted }]}>
+              {selectedService ? selectedService.name : 'Odaberi servis'}
+            </Text>
+          </TouchableOpacity>
+        </Card>
+
+        <Card style={styles.card}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Klijent</Text>
+          <TouchableOpacity
+            style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}
+            onPress={() => setShowClientPicker(true)}
+          >
+            <Text style={[styles.pickerText, { color: selectedClient ? colors.text : colors.textMuted }]}>
+              {selectedClient
+                ? [selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ') || selectedClient.username
+                : 'Odaberi klijenta'}
+            </Text>
+          </TouchableOpacity>
+        </Card>
+
+        <Card style={styles.card}>
+          <Input label="Datum" value={date} onChangeText={setDate} />
+          <Input label="Cijena (KM)" value={actualPrice} onChangeText={setActualPrice} keyboardType="decimal-pad" />
+          <Input label="Napojnica (KM)" value={tipAmount} onChangeText={setTipAmount} keyboardType="decimal-pad" />
+          <Input label="Napomena (opciono)" value={notes} onChangeText={setNotes} multiline />
+        </Card>
+
+        <Button title="Kreiraj zapis" onPress={handleSubmit} loading={saving} />
+        <Text style={[styles.hint, { color: colors.textMuted }]}>
+          Nakon kreiranja možete dodati before/after slike i završiti zapis u detalju.
+        </Text>
+        <View style={{ height: spacing.xxl }} />
+      </ScrollView>
+
+      <Modal visible={showServicePicker} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <Card style={{ ...styles.pickerModal, backgroundColor: colors.surface }}>
+            <Text style={[styles.pickerModalTitle, { color: colors.text }]}>Odaberi servis</Text>
+            <Input
+              placeholder="Pretraži..."
+              value={serviceSearch}
+              onChangeText={setServiceSearch}
+              style={{ marginBottom: spacing.sm }}
+            />
+            <FlatList
+              data={filteredServices}
+              keyExtractor={(s) => s.id}
+              style={styles.pickerList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.pickerItem, { borderColor: colors.border }]}
+                  onPress={() => selectService(item)}
+                >
+                  <Text style={{ color: colors.text }}>{item.name}</Text>
+                  <Text style={{ color: colors.textSecondary }}>{Number(item.price).toFixed(2)} KM</Text>
+                </TouchableOpacity>
+              )}
+            />
+            <Button title="Zatvori" variant="outline" onPress={() => setShowServicePicker(false)} />
+          </Card>
+        </View>
+      </Modal>
+
+      <Modal visible={showClientPicker} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <Card style={{ ...styles.pickerModal, backgroundColor: colors.surface }}>
+            <Text style={[styles.pickerModalTitle, { color: colors.text }]}>Odaberi klijenta</Text>
+            <Input
+              placeholder="Pretraži..."
+              value={clientSearch}
+              onChangeText={setClientSearch}
+              style={{ marginBottom: spacing.sm }}
+            />
+            <FlatList
+              data={filteredClients.slice(0, 50)}
+              keyExtractor={(c) => c.id}
+              style={styles.pickerList}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[styles.pickerItem, { borderColor: colors.border }]}
+                  onPress={() => selectClient(item)}
+                >
+                  <Text style={{ color: colors.text }}>
+                    {[item.firstName, item.lastName].filter(Boolean).join(' ') || item.username}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+            <Button title="Zatvori" variant="outline" onPress={() => setShowClientPicker(false)} />
+          </Card>
+        </View>
+      </Modal>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  content: { padding: spacing.md, paddingBottom: spacing.xxl },
+  card: { marginBottom: spacing.md },
+  label: { fontSize: 13, marginBottom: 4, fontWeight: '600' },
+  pickerBtn: { borderWidth: 1, borderRadius: 8, padding: 14 },
+  pickerText: { fontSize: 16 },
+  hint: { fontSize: 12, marginTop: spacing.sm, textAlign: 'center' },
+  modalOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: spacing.md },
+  pickerModal: { padding: spacing.md, maxHeight: '80%' },
+  pickerModalTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.sm },
+  pickerList: { maxHeight: 300, marginBottom: spacing.sm },
+  pickerItem: { padding: 12, borderBottomWidth: 1 },
+});

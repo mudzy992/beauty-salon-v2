@@ -1,0 +1,214 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SectionList,
+  ActivityIndicator,
+  TouchableOpacity,
+  ImageBackground,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../hooks/useTheme';
+import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
+import api, { getUploadUrl } from '../../services/api';
+import { spacing } from '../../theme';
+import type { ServicesScreenProps } from '../../navigation/types';
+import type { ServiceCategory, ServiceSubcategory, Service } from '../../types';
+
+interface Section {
+  title: string;
+  data: Service[];
+}
+
+export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'ServiceDetail'>) {
+  const { categoryId, categoryName } = route.params;
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const [sections, setSections] = useState<Section[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    navigation.setOptions({ title: categoryName });
+  }, [navigation, categoryName]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get<ServiceCategory>(`/api/services/categories/${categoryId}`);
+        const sectionData: Section[] = (data.subcategories || [])
+          .filter((sub) => sub.services && sub.services.length > 0)
+          .map((sub) => ({
+            title: sub.name,
+            data: sub.services!,
+          }));
+        setSections(sectionData);
+      } catch { /* silent */ }
+      setLoading(false);
+    })();
+  }, [categoryId]);
+
+  if (loading) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <SectionList
+      sections={sections}
+      keyExtractor={(item) => item.id}
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={styles.list}
+      renderSectionHeader={({ section: { title } }) => (
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+          {title}
+        </Text>
+      )}
+      renderItem={({ item }) => {
+        const heroUri = item.heroImage ? getUploadUrl(item.heroImage) : null;
+        return (
+          <Card style={{ ...styles.card, ...styles.cardBackdrop }}>
+            {heroUri ? (
+              <ImageBackground
+                source={{ uri: heroUri }}
+                style={styles.cardBackdropImage}
+                imageStyle={styles.cardBackdropImageStyle}
+              >
+                <View style={[styles.cardBackdropOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+                <View style={styles.serviceRow}>
+                  <TouchableOpacity
+                    style={styles.serviceInfo}
+                    onPress={() =>
+                      navigation.navigate('ServiceSingleDetail', {
+                        serviceId: item.id,
+                        serviceName: item.name,
+                      })
+                    }
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.serviceName, styles.serviceNameOverlay]}>
+                      {item.name}
+                    </Text>
+                    {item.shortDescription && (
+                      <Text
+                        style={[styles.serviceDesc, styles.serviceDescOverlay]}
+                        numberOfLines={2}
+                      >
+                        {item.shortDescription}
+                      </Text>
+                    )}
+                    <View style={styles.meta}>
+                      <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.95)" />
+                      <Text style={styles.metaTextOverlay}>
+                        {item.durationMinutes} min
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  <Button
+                    title={t('services.bookService')}
+                    onPress={() =>
+                      navigation.navigate('Reservation', {
+                        serviceId: item.id,
+                        serviceName: item.name,
+                      })
+                    }
+                    size="sm"
+                    variant="outline"
+                  />
+                </View>
+              </ImageBackground>
+            ) : (
+              <View style={[styles.cardBackdropPlaceholder, { backgroundColor: colors.surface }]}>
+                <View style={styles.serviceRow}>
+                  <TouchableOpacity
+                    style={styles.serviceInfo}
+                    onPress={() =>
+                      navigation.navigate('ServiceSingleDetail', {
+                        serviceId: item.id,
+                        serviceName: item.name,
+                      })
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.serviceName, { color: colors.text }]}>
+                      {item.name}
+                    </Text>
+                    {item.shortDescription && (
+                      <Text
+                        style={[styles.serviceDesc, { color: colors.textSecondary }]}
+                        numberOfLines={2}
+                      >
+                        {item.shortDescription}
+                      </Text>
+                    )}
+                    <View style={styles.meta}>
+                      <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                      <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+                        {item.durationMinutes} min
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  <Button
+                    title={t('services.bookService')}
+                    onPress={() =>
+                      navigation.navigate('Reservation', {
+                        serviceId: item.id,
+                        serviceName: item.name,
+                      })
+                    }
+                    size="sm"
+                    variant="outline"
+                  />
+                </View>
+              </View>
+            )}
+          </Card>
+        );
+      }}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  list: { padding: spacing.md },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+    paddingLeft: spacing.xs,
+  },
+  card: { marginBottom: spacing.sm },
+  serviceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  serviceInfo: { flex: 1, marginRight: spacing.md },
+  serviceName: { fontSize: 16, fontWeight: '600' },
+  serviceDesc: { fontSize: 13, marginTop: 2 },
+  meta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.sm,
+    gap: spacing.md,
+  },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { fontSize: 13 },
+  cardBackdrop: { overflow: 'hidden', padding: 0 },
+  cardBackdropImage: { minHeight: 100, padding: spacing.md, justifyContent: 'flex-end' },
+  cardBackdropImageStyle: { borderRadius: 12 },
+  cardBackdropOverlay: { ...StyleSheet.absoluteFillObject, borderRadius: 12 },
+  cardBackdropPlaceholder: { padding: spacing.md, borderRadius: 12 },
+  serviceNameOverlay: { color: '#fff', textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
+  serviceDescOverlay: { color: 'rgba(255,255,255,0.9)', marginTop: 2 },
+  metaTextOverlay: { fontSize: 13, color: 'rgba(255,255,255,0.95)' },
+});

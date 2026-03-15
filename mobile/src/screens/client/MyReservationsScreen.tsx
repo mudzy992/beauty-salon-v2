@@ -1,0 +1,311 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SectionList,
+  RefreshControl,
+  Alert,
+  ActivityIndicator,
+  Modal,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../hooks/useTheme';
+import { Card } from '../../components/ui/Card';
+import { Badge, getStatusVariant } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
+import { EmptyState } from '../../components/ui/EmptyState';
+import api from '../../services/api';
+import { spacing, borderRadius } from '../../theme';
+import { formatDate, formatTime, isUpcoming } from '../../utils/date';
+import type { ReservationsScreenProps } from '../../navigation/types';
+import type { Reservation, ReservationStatus } from '../../types';
+
+interface Section {
+  title: string;
+  data: Reservation[];
+}
+
+const CANCELABLE: ReservationStatus[] = ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED'];
+const CONFIRMABLE: ReservationStatus[] = ['CONFIRMED'];
+
+export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'MyReservations'>) {
+  const { t } = useTranslation();
+  const { colors } = useTheme();
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [cancelModalReservation, setCancelModalReservation] = useState<Reservation | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+
+  const fetchReservations = useCallback(async () => {
+    try {
+      const { data } = await api.get<Reservation[]>('/api/reservations', {
+        params: { asClient: true },
+      });
+      setReservations(data);
+    } catch { /* silent */ }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchReservations(); }, [fetchReservations]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchReservations();
+    setRefreshing(false);
+  }, [fetchReservations]);
+
+  const openCancelModal = (reservation: Reservation) => {
+    setCancelModalReservation(reservation);
+    setCancelReason('');
+  };
+
+  const closeCancelModal = useCallback(() => {
+    setCancelModalReservation(null);
+    setCancelReason('');
+  }, []);
+
+  const submitCancel = useCallback(async () => {
+    if (!cancelModalReservation) return;
+    setCancelSubmitting(true);
+    try {
+      await api.post(`/api/reservations/${cancelModalReservation.id}/cancel`, {
+        cancelReason: cancelReason.trim() || undefined,
+      });
+      closeCancelModal();
+      fetchReservations();
+    } catch (error: unknown) {
+      const msg =
+        error && typeof error === 'object' && 'response' in error
+          ? (error as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
+          : t('common.error');
+      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? 'Greška'));
+    } finally {
+      setCancelSubmitting(false);
+    }
+  }, [cancelModalReservation, cancelReason, closeCancelModal, fetchReservations, t]);
+
+  const handleConfirmAttendance = async (reservation: Reservation) => {
+    try {
+      await api.post(`/api/reservations/${reservation.id}/confirm-attendance`);
+      fetchReservations();
+    } catch (error: any) {
+      Alert.alert(t('common.error'), error.response?.data?.message || 'Greška');
+    }
+  };
+
+  const sections: Section[] = [];
+  const upcoming = reservations.filter((r) => isUpcoming(r.reservationDate) && !['COMPLETED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_STYLISTS', 'NO_SHOW'].includes(r.status));
+  const past = reservations.filter((r) => !upcoming.includes(r));
+
+  if (upcoming.length > 0) sections.push({ title: t('myReservations.upcoming'), data: upcoming });
+  if (past.length > 0) sections.push({ title: t('myReservations.past'), data: past });
+
+  if (loading) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  return (
+    <>
+    <SectionList
+      sections={sections}
+      keyExtractor={(item) => item.id}
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={[
+        styles.list,
+        reservations.length === 0 && styles.emptyList,
+      ]}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+      }
+      stickySectionHeadersEnabled={false}
+      ListEmptyComponent={
+        <EmptyState
+          icon="calendar-outline"
+          title={t('myReservations.noReservations')}
+          actionLabel={t('home.bookNow')}
+          onAction={() => navigation.getParent()?.navigate('ServicesTab', { screen: 'Reservation' })}
+        />
+      }
+      renderSectionHeader={({ section: { title } }) => (
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+          {title}
+        </Text>
+      )}
+      renderItem={({ item }) => (
+        <Card style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={[styles.serviceName, { color: colors.text }]}>
+              {item.service?.name || 'Usluga'}
+            </Text>
+            <Badge
+              label={t(`myReservations.status.${item.status}` as any)}
+              variant={getStatusVariant(item.status)}
+              status={item.status}
+            />
+          </View>
+
+          <View style={styles.cardBody}>
+            <View style={styles.infoRow}>
+              <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                {formatDate(item.reservationDate)}
+              </Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                {formatTime(item.startTime)} - {formatTime(item.endTime)}
+              </Text>
+            </View>
+            {item.clientNotes && (
+              <View style={styles.infoRow}>
+                <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
+                <Text style={[styles.infoText, { color: colors.textSecondary }]} numberOfLines={2}>
+                  {item.clientNotes}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View style={styles.actions}>
+            {CONFIRMABLE.includes(item.status) && !item.attendanceConfirmedAt && (
+              <Button
+                title={t('myReservations.confirmAttendance')}
+                onPress={() => handleConfirmAttendance(item)}
+                size="sm"
+                variant="primary"
+              />
+            )}
+            {item.attendanceConfirmedAt && item.status === 'ATTENDANCE_CONFIRMED' && (
+              <View style={styles.confirmedBadge}>
+                <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                <Text style={[styles.confirmedText, { color: colors.success }]}>
+                  {t('myReservations.attendanceConfirmed')}
+                </Text>
+              </View>
+            )}
+            {CANCELABLE.includes(item.status) && (
+              <Button
+                title={t('myReservations.cancelReservation')}
+                onPress={() => openCancelModal(item)}
+                size="sm"
+                variant="ghost"
+                textStyle={{ color: colors.error }}
+              />
+            )}
+            {item.status === 'COMPLETED' && (
+              <Button
+                title={t('reviews.writeReview')}
+                onPress={() =>
+                  navigation.navigate('WriteReview', {
+                    reservationId: item.id,
+                    serviceId: item.serviceId,
+                  })
+                }
+                size="sm"
+                variant="outline"
+              />
+            )}
+          </View>
+        </Card>
+      )}
+    />
+
+    <Modal visible={!!cancelModalReservation} animationType="slide" transparent>
+      <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalContentWrap}
+        >
+          <Card style={[styles.modalCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              {t('myReservations.cancelReservation')}
+            </Text>
+            <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
+              {t('myReservations.cancelConfirm')}
+            </Text>
+            <Input
+              label={t('myReservations.cancelReason')}
+              value={cancelReason}
+              onChangeText={setCancelReason}
+              placeholder={t('myReservations.cancelReason')}
+              multiline
+            />
+            <View style={styles.modalActions}>
+              <Button
+                title={t('common.cancel')}
+                onPress={closeCancelModal}
+                variant="outline"
+                style={styles.modalBtn}
+              />
+              <Button
+                title={t('common.confirm')}
+                onPress={submitCancel}
+                loading={cancelSubmitting}
+                style={[styles.modalBtn, { borderColor: colors.error }]}
+                textStyle={{ color: colors.error }}
+                variant="outline"
+              />
+            </View>
+          </Card>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  list: { padding: spacing.md },
+  emptyList: { flex: 1 },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  card: { marginBottom: spacing.sm },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  serviceName: { fontSize: 17, fontWeight: '600', flex: 1, marginRight: spacing.sm },
+  cardBody: { gap: spacing.xs },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  infoText: { fontSize: 14 },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: spacing.sm,
+  },
+  confirmedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  confirmedText: { fontSize: 13, fontWeight: '500' },
+  modalOverlay: { flex: 1, justifyContent: 'center', padding: spacing.md },
+  modalContentWrap: { maxHeight: '80%' },
+  modalCard: { padding: spacing.lg },
+  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  modalMessage: { fontSize: 14, marginBottom: spacing.md },
+  modalActions: { flexDirection: 'row', gap: 8, marginTop: spacing.md },
+  modalBtn: { flex: 1 },
+});
