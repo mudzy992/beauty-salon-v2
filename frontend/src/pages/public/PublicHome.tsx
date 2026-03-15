@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -10,11 +11,15 @@ import {
   Flex,
   Image,
   Icon,
+  Spinner,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { CheckCircleIcon, TimeIcon, StarIcon } from '@chakra-ui/icons';
 import { useSettings } from '../../context/SettingsContext';
+import api from '../../api/client';
+import { getUploadUrl } from '../../utils/uploadUrl';
+import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 
 const MotionBox = motion(Box as any);
 const MotionFlex = motion(Flex as any);
@@ -29,9 +34,25 @@ const staggerContainer = {
   visible: { opacity: 1, transition: { staggerChildren: 0.2 } },
 };
 
+interface BeforeAfterPair {
+  id: string;
+  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
+  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
+}
+
 export default function PublicHome() {
   const { t } = useTranslation();
   const { getSetting } = useSettings();
+  const [beforeAfterPairs, setBeforeAfterPairs] = useState<BeforeAfterPair[]>([]);
+  const [beforeAfterLoading, setBeforeAfterLoading] = useState(true);
+
+  useEffect(() => {
+    api
+      .get<BeforeAfterPair[]>('/api/daily-log/before-after')
+      .then((r) => setBeforeAfterPairs(Array.isArray(r.data) ? r.data : []))
+      .catch(() => setBeforeAfterPairs([]))
+      .finally(() => setBeforeAfterLoading(false));
+  }, []);
 
   const heroImage = getSetting('public_hero_image', 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=2000');
   const heroTitle = getSetting('public_hero_title', 'Otkrijte Svoju\\nSavršenu Ljepotu');
@@ -316,6 +337,52 @@ export default function PublicHome() {
               Pregledajte Sve Usluge
             </Button>
           </Box>
+        </Container>
+      </Box>
+
+      {/* ZADOVOLJNI KLIJENTI – Before/After */}
+      <Box py={24} bg="gray.50">
+        <Container maxW="container.xl">
+          <MotionBox
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={staggerContainer}
+            textAlign="center"
+            mb={12}
+          >
+            <Text color="brand.500" fontWeight="bold" textTransform="uppercase" letterSpacing="widest" mb={2}>
+              Transformacije
+            </Text>
+            <Heading size="2xl" color="brand.900">
+              Zadovoljni klijenti
+            </Heading>
+            <Text color="gray.600" mt={2} maxW="xl" mx="auto">
+              Povucite sliku lijevo ili desno da vidite prije i poslije.
+            </Text>
+          </MotionBox>
+          {beforeAfterLoading ? (
+            <Flex justify="center" py={12}>
+              <Spinner size="xl" color="brand.500" thickness="4px" />
+            </Flex>
+          ) : beforeAfterPairs.length === 0 ? (
+            <Text textAlign="center" color="gray.500" py={8}>
+              Nema još prikazanih prije/poslije slika.
+            </Text>
+          ) : (
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
+              {beforeAfterPairs.map((pair) => (
+                <MotionBox key={pair.id} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+                  <BeforeAfterSlider
+                    beforeSrc={getUploadUrl(pair.before.pathMedium ?? pair.before.pathThumb ?? pair.before.pathOriginal)}
+                    afterSrc={getUploadUrl(pair.after.pathMedium ?? pair.after.pathThumb ?? pair.after.pathOriginal)}
+                    alt="Prije / Poslije"
+                    aspectRatio={1}
+                  />
+                </MotionBox>
+              ))}
+            </SimpleGrid>
+          )}
         </Container>
       </Box>
 

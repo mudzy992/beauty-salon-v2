@@ -171,4 +171,39 @@ export class DailyLogService {
   private async ensureStylistOrAdmin(stylistProfileId: string, user: CurrentUserPayload) {
     await this.ensureStylistAccess(stylistProfileId, user);
   }
+
+  /** Javni endpoint: parovi before/after slika iz završenih zapisa (Zadovoljni klijenti). */
+  async findBeforeAfterPairs(): Promise<
+    { id: string; before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }; after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null } }[]
+  > {
+    const entries = await this.prisma.dailyLogEntry.findMany({
+      where: { status: 'COMPLETED' },
+      include: {
+        images: { include: { upload: true }, orderBy: { sortOrder: 'asc' } },
+      },
+      orderBy: { completedAt: 'desc' },
+      take: 50,
+    });
+    const pairs: { id: string; before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }; after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null } }[] = [];
+    for (const entry of entries) {
+      const beforeImg = entry.images.find((i) => i.isBefore);
+      const afterImg = entry.images.find((i) => i.isAfter);
+      if (beforeImg?.upload && afterImg?.upload) {
+        pairs.push({
+          id: entry.id,
+          before: {
+            pathOriginal: beforeImg.upload.pathOriginal,
+            pathMedium: beforeImg.upload.pathMedium,
+            pathThumb: beforeImg.upload.pathThumb,
+          },
+          after: {
+            pathOriginal: afterImg.upload.pathOriginal,
+            pathMedium: afterImg.upload.pathMedium,
+            pathThumb: afterImg.upload.pathThumb,
+          },
+        });
+      }
+    }
+    return pairs;
+  }
 }

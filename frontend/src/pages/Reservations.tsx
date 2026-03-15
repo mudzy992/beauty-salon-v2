@@ -1,15 +1,26 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Box, Heading, Table, Thead, Tbody, Tr, Th, Td, Spinner, Text,
   Badge, Flex, Select, Input, Button, useToast, useDisclosure,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
   ModalCloseButton, ModalFooter, VStack, HStack, Divider,
-  IconButton, Textarea,
+  IconButton, Textarea, Link,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { ViewIcon } from '@chakra-ui/icons';
 import api from '../api/client';
 import { useSocketEvent } from '../context/SocketContext';
+
+/** Klijent u rezervaciji – backend vraća User direktno (client: { id, firstName, lastName, ... }) */
+interface ReservationClient {
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  username?: string;
+  email?: string;
+  phone?: string | null;
+}
 
 interface Reservation {
   id: string;
@@ -20,7 +31,7 @@ interface Reservation {
   clientNotes: string | null;
   cancelReason: string | null;
   createdAt: string;
-  client?: { id: string; user?: { username: string; firstName: string | null; lastName: string | null; phone: string | null } };
+  client?: ReservationClient;
   service?: { id: string; name: string; durationMinutes: number; price: number | string };
   confirmedStylist?: { id: string; user?: { username: string; firstName: string | null; lastName: string | null } };
   stylistResponses?: {
@@ -173,9 +184,20 @@ export default function Reservations() {
                     <Td>{String(r.reservationDate).slice(0, 10)}</Td>
                     <Td>{r.startTime} – {r.endTime}</Td>
                     <Td>
-                      {r.client?.user
-                        ? `${r.client.user.firstName ?? ''} ${r.client.user.lastName ?? ''}`.trim() || r.client.user.username
-                        : '-'}
+                      {r.client ? (
+                        <Link
+                          as={RouterLink}
+                          to={`/admin/client-analytics?userId=${r.client.id}`}
+                          color="brand.600"
+                          fontWeight="medium"
+                          _hover={{ textDecoration: 'underline' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {(`${r.client.firstName ?? ''} ${r.client.lastName ?? ''}`.trim() || r.client.username) || '-'}
+                        </Link>
+                      ) : (
+                        '-'
+                      )}
                     </Td>
                     <Td>{r.service?.name ?? '-'}</Td>
                     <Td>
@@ -233,11 +255,13 @@ export default function Reservations() {
                 <Box>
                   <Text fontSize="xs" color="gray.500">Klijent</Text>
                   <Text fontWeight="medium">
-                    {detail.client?.user
-                      ? `${detail.client.user.firstName ?? ''} ${detail.client.user.lastName ?? ''} (${detail.client.user.username})`.trim()
+                    {detail.client
+                      ? (`${detail.client.firstName ?? ''} ${detail.client.lastName ?? ''}`.trim() || detail.client.username || '-')
                       : '-'}
                   </Text>
-                  {detail.client?.user?.phone && <Text fontSize="sm" color="gray.600">Tel: {detail.client.user.phone}</Text>}
+                  {detail.client?.phone && (
+                    <Text fontSize="sm" color="gray.600" mt={1}>Tel: {detail.client.phone}</Text>
+                  )}
                 </Box>
                 <Box>
                   <Text fontSize="xs" color="gray.500">Servis</Text>

@@ -6,6 +6,7 @@ import { AddDailyLogImageDto } from './dto/add-daily-log-image.dto';
 import { CreateFromReservationDto } from './dto/create-from-reservation.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { Public } from '../common/decorators/public.decorator';
 
 @Controller('api/daily-log')
 export class DailyLogController {
@@ -39,6 +40,12 @@ export class DailyLogController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.dailyLog.findAll({ fromDate, toDate, stylistProfileId }, user);
+  }
+
+  @Get('before-after')
+  @Public()
+  getBeforeAfterPairs() {
+    return this.dailyLog.findBeforeAfterPairs();
   }
 
   @Get(':id')
