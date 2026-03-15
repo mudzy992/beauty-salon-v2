@@ -12,6 +12,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { AddIcon, EditIcon, DeleteIcon, LockIcon, ViewIcon, ArrowBackIcon } from '@chakra-ui/icons';
 import api from '../api/client';
+import { getUploadUrl } from '../utils/uploadUrl';
 
 /* ── Types ── */
 interface IncomeBook {
@@ -200,8 +201,6 @@ interface LineItem { name: string; qty: number; price: number; }
 function ExpenseBooksTab() {
   const { t } = useTranslation();
   const toast = useToast();
-  const apiBase = import.meta.env.VITE_API_URL || '';
-
   const [books, setBooks] = useState<ExpenseBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBook, setSelectedBook] = useState<ExpenseBook | null>(null);
@@ -261,11 +260,6 @@ function ExpenseBooksTab() {
   const closeBook = async (id: string) => {
     if (!window.confirm('Zatvoriti knjigu?')) return;
     try { await api.post(`/api/expense-books/${id}/close`); toast({ title: 'Knjiga zatvorena', status: 'success', isClosable: true }); loadData(); } catch { toast({ title: 'Greška', status: 'error', isClosable: true }); }
-  };
-
-  const getFileUrl = (path?: string) => {
-    if (!path) return '';
-    return path.startsWith('http') ? path : `${apiBase}/${path.replace(/^\//, '')}`;
   };
 
   // Create expense within book
@@ -381,10 +375,10 @@ function ExpenseBooksTab() {
               {selectedExpense.attachments.map((att) => (
                 <Flex key={att.id} align="center" gap={3} p={2} bg="gray.50" rounded="md">
                   {att.upload?.originalName?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                    <Image src={getFileUrl(att.upload.pathThumb || att.upload.pathOriginal)} alt="" boxSize="50px" objectFit="cover" rounded="md" />
+                    <Image src={getUploadUrl(att.upload.pathThumb || att.upload.pathOriginal)} alt="" boxSize="50px" objectFit="cover" rounded="md" />
                   ) : <Box w="50px" h="50px" bg="gray.200" rounded="md" display="flex" alignItems="center" justifyContent="center"><Text fontSize="xs">FILE</Text></Box>}
                   <Box flex={1}><Text fontSize="sm" fontWeight="medium">{att.upload?.originalName ?? 'Prilog'}</Text></Box>
-                  <Button size="xs" as="a" href={getFileUrl(att.upload?.pathOriginal)} target="_blank">Preuzmi</Button>
+                  <Button size="xs" as="a" href={getUploadUrl(att.upload?.pathOriginal)} target="_blank">Preuzmi</Button>
                 </Flex>
               ))}
             </VStack>

@@ -51,6 +51,7 @@ export class AuthService {
         firstName: dto.firstName,
         lastName: dto.lastName,
         phone: dto.phone ?? null,
+        avatar: dto.avatar ?? null,
       },
       include: {
         userRoles: { include: { role: true } },
@@ -72,6 +73,7 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        avatar: user.avatar ?? undefined,
         roles: ['CLIENT'],
       },
     };
@@ -114,6 +116,7 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        avatar: user.avatar ?? undefined,
         roles,
       },
     };

@@ -9,6 +9,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { AddIcon, DeleteIcon, EditIcon } from '@chakra-ui/icons';
 import api from '../api/client';
+import { getUploadUrl } from '../utils/uploadUrl';
 
 interface GalleryImage {
   id: string;
@@ -47,8 +48,6 @@ export default function Gallery() {
   const [imgForm, setImgForm] = useState({ title: '', description: '', sortOrder: 0 });
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const apiBase = import.meta.env.VITE_API_URL || '';
 
   const loadCategories = useCallback(() => {
     setLoading(true);
@@ -175,12 +174,6 @@ export default function Gallery() {
     }
   };
 
-  const getImageUrl = (path?: string) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    return `${apiBase}/${path.replace(/^\//, '')}`;
-  };
-
   return (
     <Box>
       <Flex justify="space-between" align="center" mb={6}>
@@ -269,7 +262,7 @@ export default function Gallery() {
                   {catImages.map((img) => (
                     <Card key={img.id} overflow="hidden">
                       <Image
-                        src={getImageUrl(img.upload?.pathMedium || img.upload?.pathOriginal)}
+                        src={getUploadUrl(img.upload?.pathMedium || img.upload?.pathOriginal)}
                         alt={img.title ?? 'Gallery image'}
                         h="180px"
                         w="100%"

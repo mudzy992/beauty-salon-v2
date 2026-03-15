@@ -1,16 +1,18 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useRef } from 'react';
 import {
   Box, Heading, Table, Thead, Tbody, Tr, Th, Td, Spinner, Text,
   Badge, IconButton, Flex, useDisclosure, Modal, ModalOverlay,
   ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
   FormControl, FormLabel, Input, Button, useToast, Switch, Select,
   Menu, MenuButton, MenuList, MenuItem, InputGroup, InputLeftElement,
-  HStack, Tag, TagLabel, TagCloseButton,
+  HStack, Tag, TagLabel, TagCloseButton, Avatar,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { EditIcon, DeleteIcon, AddIcon, SearchIcon, ViewIcon } from '@chakra-ui/icons';
 import api from '../api/client';
+import { getUploadUrl } from '../utils/uploadUrl';
 
 interface UserRole { role: { name: string } }
 
@@ -21,6 +23,7 @@ interface UserRow {
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
+  avatar: string | null;
   isActive: boolean;
   isEmailVerified: boolean;
   createdAt: string;
@@ -47,12 +50,16 @@ export default function Users() {
   const [editUser, setEditUser] = useState<UserRow | null>(null);
 
   const [formData, setFormData] = useState({
-    username: '', email: '', firstName: '', lastName: '', phone: '', isActive: true,
+    username: '', email: '', firstName: '', lastName: '', phone: '', isActive: true, avatar: '' as string | null,
   });
 
   const [createData, setCreateData] = useState({
-    username: '', email: '', password: '', firstName: '', lastName: '', phone: '', role: 'CLIENT' as string,
+    username: '', email: '', password: '', firstName: '', lastName: '', phone: '', role: 'CLIENT' as string, avatar: '' as string,
   });
+
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarEditRef = useRef<HTMLInputElement>(null);
+  const avatarCreateRef = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -82,15 +89,55 @@ export default function Users() {
       lastName: u.lastName ?? '',
       phone: u.phone ?? '',
       isActive: u.isActive,
+      avatar: u.avatar ?? null,
     });
     onOpen();
+  };
+
+  const handleUploadAvatarEdit = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    setUploadingAvatar(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('entity', 'avatars');
+      const { data } = await api.post<{ pathThumb?: string; pathSmall?: string; pathOriginal: string }>('/api/uploads', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const path = data.pathThumb || data.pathSmall || data.pathOriginal;
+      setFormData((prev) => ({ ...prev, avatar: path }));
+      toast({ title: 'Avatar uploadovan', status: 'success', isClosable: true, duration: 2000 });
+    } catch {
+      toast({ title: 'Greška pri uploadu', status: 'error', isClosable: true });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleUploadAvatarCreate = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    setUploadingAvatar(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('entity', 'avatars');
+      const { data } = await api.post<{ pathThumb?: string; pathSmall?: string; pathOriginal: string }>('/api/uploads', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const path = data.pathThumb || data.pathSmall || data.pathOriginal;
+      setCreateData((prev) => ({ ...prev, avatar: path }));
+      toast({ title: 'Avatar uploadovan', status: 'success', isClosable: true, duration: 2000 });
+    } catch {
+      toast({ title: 'Greška pri uploadu', status: 'error', isClosable: true });
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const handleSave = async () => {
     if (!editUser) return;
     setSaving(true);
     try {
-      await api.patch(`/api/users/${editUser.id}`, formData);
+      await api.patch(`/api/users/${editUser.id}`, {
+        ...formData,
+        avatar: formData.avatar || null,
+      });
       toast({ title: 'Korisnik ažuriran', status: 'success', isClosable: true });
       loadData();
       onClose();
@@ -108,11 +155,14 @@ export default function Users() {
     }
     setSaving(true);
     try {
-      await api.post('/api/users', createData);
+      await api.post('/api/users', {
+        ...createData,
+        ...(createData.avatar && { avatar: createData.avatar }),
+      });
       toast({ title: 'Korisnik kreiran', status: 'success', isClosable: true });
       loadData();
       onCreateClose();
-      setCreateData({ username: '', email: '', password: '', firstName: '', lastName: '', phone: '', role: 'CLIENT' });
+      setCreateData({ username: '', email: '', password: '', firstName: '', lastName: '', phone: '', role: 'CLIENT', avatar: '' });
     } catch (err: any) {
       const msg = err?.response?.data?.message;
       toast({ title: msg || 'Greška pri kreiranju', status: 'error', isClosable: true });
@@ -181,6 +231,7 @@ export default function Users() {
           <Table size="sm">
             <Thead>
               <Tr>
+                <Th w="56px">Avatar</Th>
                 <Th>Korisničko ime</Th>
                 <Th>Email</Th>
                 <Th>Ime i Prezime</Th>
@@ -192,9 +243,10 @@ export default function Users() {
             </Thead>
             <Tbody>
               {filteredUsers.length === 0 ? (
-                <Tr><Td colSpan={7}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
+                <Tr><Td colSpan={8}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
               ) : filteredUsers.map((u) => (
                 <Tr key={u.id}>
+                  <Td><Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" /></Td>
                   <Td fontWeight="medium">{u.username}</Td>
                   <Td>{u.email ?? '-'}</Td>
                   <Td>{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Td>
@@ -271,6 +323,16 @@ export default function Users() {
               <FormLabel>Telefon</FormLabel>
               <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
             </FormControl>
+            <FormControl mb={4}>
+              <FormLabel>Avatar</FormLabel>
+              <Flex align="center" gap={3}>
+                <Avatar size="lg" src={getUploadUrl(formData.avatar ?? undefined)} name={[formData.firstName, formData.lastName].filter(Boolean).join(' ')} bg="brand.100" />
+                <Box>
+                  <input type="file" accept="image/*" ref={avatarEditRef} style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && handleUploadAvatarEdit(e.target.files[0])} />
+                  <Button size="sm" onClick={() => avatarEditRef.current?.click()} isLoading={uploadingAvatar}>{(formData.avatar ? 'Promijeni' : 'Dodaj') + ' avatar'}</Button>
+                </Box>
+              </Flex>
+            </FormControl>
             <FormControl display="flex" alignItems="center">
               <FormLabel mb="0">Aktivan</FormLabel>
               <Switch isChecked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} colorScheme="brand" />
@@ -329,6 +391,16 @@ export default function Users() {
                 <Text fontSize="xs" color="gray.500" mt={1}>Uloga Stylist se dodjeljuje u Stylists (dodaj korisnika kao stilista).</Text>
               </FormControl>
             </Flex>
+            <FormControl mb={4}>
+              <FormLabel>Avatar (opciono)</FormLabel>
+              <Flex align="center" gap={3}>
+                <Avatar size="lg" src={createData.avatar ? getUploadUrl(createData.avatar) : undefined} name={[createData.firstName, createData.lastName].filter(Boolean).join(' ')} bg="brand.100" />
+                <Box>
+                  <input type="file" accept="image/*" ref={avatarCreateRef} style={{ display: 'none' }} onChange={(e) => e.target.files?.[0] && handleUploadAvatarCreate(e.target.files[0])} />
+                  <Button size="sm" onClick={() => avatarCreateRef.current?.click()} isLoading={uploadingAvatar}>{createData.avatar ? 'Promijeni avatar' : 'Dodaj avatar'}</Button>
+                </Box>
+              </Flex>
+            </FormControl>
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onCreateClose}>{t('common.cancel')}</Button>

@@ -9,6 +9,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { EditIcon, DeleteIcon, AddIcon, ChatIcon, CheckIcon } from '@chakra-ui/icons';
 import api from '../api/client';
+import { getUploadUrl } from '../utils/uploadUrl';
 
 interface BlogComment {
   id: string;
@@ -44,8 +45,6 @@ export default function Blog() {
   const [heroImage, setHeroImage] = useState('');
   const [uploadingImg, setUploadingImg] = useState(false);
   const heroFileRef = useRef<HTMLInputElement>(null);
-  const apiBase = import.meta.env.VITE_API_URL || '';
-
   const { isOpen: isCommentsOpen, onOpen: onCommentsOpen, onClose: onCommentsClose } = useDisclosure();
   const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
   const [commentsPostTitle, setCommentsPostTitle] = useState('');
@@ -61,12 +60,6 @@ export default function Blog() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
-
-  const getImgUrl = (path?: string | null) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    return `${apiBase}/${path.replace(/^\//, '')}`;
-  };
 
   const handleUploadHero = async (file: File) => {
     setUploadingImg(true);
@@ -244,7 +237,7 @@ export default function Blog() {
             <FormControl mb={4}>
               <FormLabel>Hero slika</FormLabel>
               {heroImage && (
-                <Image src={getImgUrl(heroImage)} alt="Hero" maxH="150px" rounded="md" mb={2} objectFit="cover" w="100%" />
+                <Image src={getUploadUrl(heroImage)} alt="Hero" maxH="150px" rounded="md" mb={2} objectFit="cover" w="100%" />
               )}
               <input type="file" accept="image/*" ref={heroFileRef} style={{ display: 'none' }}
                 onChange={(e) => e.target.files?.[0] && handleUploadHero(e.target.files[0])} />

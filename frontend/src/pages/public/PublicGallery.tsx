@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import api from '../../api/client';
 import { useSettings } from '../../context/SettingsContext';
-
-const baseUrl = import.meta.env.VITE_API_URL || '';
+import { getUploadUrl } from '../../utils/uploadUrl';
 
 interface GalleryImage {
   id: string;
@@ -55,7 +54,6 @@ export default function PublicGallery() {
       .finally(() => setLoading(false));
   }, []);
 
-  const imgUrl = (path: string) => (path.startsWith('http') ? path : `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`);
 
   return (
     <Box bg="gray.50" minH="100vh" pt={10} pb={20}>
@@ -112,7 +110,7 @@ export default function PublicGallery() {
                         >
                           {(img.upload?.pathOriginal || img.upload?.pathThumb) ? (
                             <Image
-                              src={imgUrl(img.upload.pathThumb || img.upload.pathOriginal)}
+                              src={getUploadUrl(img.upload.pathThumb || img.upload.pathOriginal)}
                               alt=""
                               objectFit="cover"
                               w="full"

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ChakraProvider } from '@chakra-ui/react';
 import theme from './theme';
 import { AuthProvider } from './context/AuthContext';
@@ -30,6 +30,7 @@ import Reviews from './pages/Reviews';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import ClientAnalytics from './pages/ClientAnalytics';
+import NotFound from './pages/NotFound';
 import './i18n';
 
 function AppRoutes() {
@@ -69,7 +70,7 @@ function AppRoutes() {
         <Route path="notifications" element={<Notifications />} />
         <Route path="client-analytics" element={<ClientAnalytics />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

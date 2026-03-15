@@ -102,6 +102,7 @@ export class UsersService {
         firstName: dto.firstName,
         lastName: dto.lastName,
         phone: dto.phone ?? null,
+        avatar: dto.avatar ?? null,
       },
       include: { userRoles: { include: { role: true } } },
     });

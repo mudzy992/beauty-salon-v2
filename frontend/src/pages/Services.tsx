@@ -11,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
 import api from '../api/client';
+import { getUploadUrl } from '../utils/uploadUrl';
 
 interface Service {
   id: string;
@@ -62,7 +63,6 @@ export default function Services() {
   });
   const [uploadingImg, setUploadingImg] = useState(false);
   const svcFileRef = useRef<HTMLInputElement>(null);
-  const apiBase = import.meta.env.VITE_API_URL || '';
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -143,12 +143,6 @@ export default function Services() {
       setUploadingImg(false);
       if (svcFileRef.current) svcFileRef.current.value = '';
     }
-  };
-
-  const getImgUrl = (path?: string | null) => {
-    if (!path) return '';
-    if (path.startsWith('http')) return path;
-    return `${apiBase}/${path.replace(/^\//, '')}`;
   };
 
   const handleSave = async () => {
@@ -388,7 +382,7 @@ export default function Services() {
                 <FormControl mb={4}>
                   <FormLabel>Hero slika</FormLabel>
                   {svcForm.heroImage && (
-                    <Image src={getImgUrl(svcForm.heroImage)} alt="Hero" maxH="120px" rounded="md" mb={2} objectFit="cover" />
+                    <Image src={getUploadUrl(svcForm.heroImage)} alt="Hero" maxH="120px" rounded="md" mb={2} objectFit="cover" />
                   )}
                   <input type="file" accept="image/*" ref={svcFileRef} style={{ display: 'none' }}
                     onChange={(e) => e.target.files?.[0] && handleUploadHeroImage(e.target.files[0])} />

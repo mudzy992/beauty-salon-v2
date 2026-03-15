@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useRef, FormEvent } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -14,6 +14,7 @@ import {
   Image,
   Link,
   SimpleGrid,
+  Avatar,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -34,19 +35,36 @@ export default function Register() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    } else {
+      setAvatarFile(null);
+      setAvatarPreview(null);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/auth/register', {
-        username,
-        email,
-        password,
-        firstName,
-        lastName,
-        ...(phone.trim() && { phone: phone.trim() }),
+      const formData = new FormData();
+      formData.append('username', username);
+      formData.append('email', email);
+      formData.append('password', password);
+      formData.append('firstName', firstName);
+      formData.append('lastName', lastName);
+      if (phone.trim()) formData.append('phone', phone.trim());
+      if (avatarFile) formData.append('avatar', avatarFile);
+      await api.post('/auth/register', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       toast({ title: t('public.registerSuccess'), status: 'success', isClosable: true });
       navigate('/login', { replace: true });
@@ -172,6 +190,37 @@ export default function Register() {
                     autoComplete="new-password"
                     focusBorderColor="brand.400"
                   />
+                </FormControl>
+
+                <FormControl>
+                  <FormLabel color="gray.700">Avatar (opciono)</FormLabel>
+                  <Flex align="center" gap={4}>
+                    <Avatar
+                      size="xl"
+                      src={avatarPreview ?? undefined}
+                      name={firstName && lastName ? `${firstName} ${lastName}` : undefined}
+                      bg="brand.100"
+                      cursor="pointer"
+                      onClick={() => avatarInputRef.current?.click()}
+                    />
+                    <Box>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        ref={avatarInputRef}
+                        onChange={handleAvatarChange}
+                        style={{ display: 'none' }}
+                      />
+                      <Button size="sm" variant="outline" onClick={() => avatarInputRef.current?.click()}>
+                        {avatarFile ? 'Promijeni sliku' : 'Dodaj sliku'}
+                      </Button>
+                      {avatarFile && (
+                        <Text fontSize="sm" color="gray.500" mt={1}>
+                          {avatarFile.name}
+                        </Text>
+                      )}
+                    </Box>
+                  </Flex>
                 </FormControl>
 
                 <Button

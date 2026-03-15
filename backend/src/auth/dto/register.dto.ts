@@ -23,4 +23,9 @@ export class RegisterDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  /** Avatar path (set by server after upload; do not send from client). */
+  @IsString()
+  @IsOptional()
+  avatar?: string;
 }
