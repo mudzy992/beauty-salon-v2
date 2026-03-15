@@ -1,91 +1,122 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import api from '../services/api';
+import { useAuthStore } from '../store/authStore';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+function resolveProjectId(): string | undefined {
+  const fromEnv = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
+  const fromExpoConfig = (Constants?.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId;
+  const fromEasConfig = (Constants as { easConfig?: { projectId?: string } })?.easConfig?.projectId;
+  const fromManifest2 = (Constants as { manifest2?: { extra?: { eas?: { projectId?: string } } } })?.manifest2?.extra?.eas?.projectId;
+  return fromEnv || fromEasConfig || fromExpoConfig || fromManifest2;
+}
+
+function configureNotificationHandler() {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
+
+async function configureChannels() {
+  if (Platform.OS !== 'android') return;
+
+  await Notifications.setNotificationChannelAsync('default', {
+    name: 'Opće obavijesti',
+    importance: Notifications.AndroidImportance.MAX,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: '#D4A843',
+  });
+}
 
 async function registerForPushNotificationsAsync(): Promise<string | null> {
-  if (!Device.isDevice) {
-    console.log('Push notifications require a physical device');
-    return null;
-  }
+  configureNotificationHandler();
+  await configureChannels();
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
-
   if (existingStatus !== 'granted') {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
-
   if (finalStatus !== 'granted') {
-    console.log('Push notification permission not granted');
+    console.warn('[Push] Permission not granted:', finalStatus);
     return null;
   }
 
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-  const tokenData = await Notifications.getExpoPushTokenAsync({
-    projectId,
-  });
-
-  if (Platform.OS === 'android') {
-    Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#D4A843',
-    });
+  if (!Device.isDevice) {
+    console.warn('[Push] Not registering token on simulator/emulator.');
+    return null;
   }
 
-  return tokenData.data;
+  const projectId = resolveProjectId();
+  if (!projectId) {
+    console.error('[Push] Missing EAS projectId for push token generation.');
+    return null;
+  }
+
+  try {
+    const tokenResponse = await Notifications.getExpoPushTokenAsync({ projectId });
+    const token = tokenResponse?.data;
+    if (!token) {
+      console.error('[Push] Expo push token was not returned by getExpoPushTokenAsync.');
+      return null;
+    }
+    return token;
+  } catch (e: unknown) {
+    const msg = e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : e;
+    console.error('[Push] getExpoPushTokenAsync failed:', msg);
+    return null;
+  }
 }
 
 export function usePushNotifications() {
-  const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
-  const notificationListener = useRef<Notifications.Subscription | null>(null);
-  const responseListener = useRef<Notifications.Subscription | null>(null);
+  const user = useAuthStore((s) => s.user);
+  const responseListener = useRef<Notifications.EventSubscription | null>(null);
 
   useEffect(() => {
-    registerForPushNotificationsAsync().then(async (token) => {
-      if (token) {
-        setExpoPushToken(token);
-        try {
-          await api.post('/api/notifications/push-token', {
-            token,
-            platform: Platform.OS === 'ios' ? 'IOS' : 'ANDROID',
-          });
-        } catch {
-          // Token registration endpoint may not exist yet
-        }
+    if (!user) {
+      return;
+    }
+
+    let isMounted = true;
+
+    (async () => {
+      const token = await registerForPushNotificationsAsync();
+      if (!isMounted || !token) return;
+
+      try {
+        await api.post('/api/notifications/push-token', {
+          token,
+          platform: Platform.OS === 'ios' ? 'IOS' : 'ANDROID',
+        });
+      } catch (e: unknown) {
+        const err = e as { response?: { status?: number; data?: unknown } };
+        console.warn(
+          '[Push] Push token register failed:',
+          err?.response?.status,
+          err?.response?.data ?? err,
+        );
       }
+    })();
+
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((_response) => {
+      // Deep link po data može se dodati kada je routing po tipu notifikacije definiran
     });
 
-    notificationListener.current =
-      Notifications.addNotificationReceivedListener((_notification) => {
-        // Handle foreground notification
-      });
-
-    responseListener.current =
-      Notifications.addNotificationResponseReceivedListener((_response) => {
-        // Handle notification tap (deep linking)
-      });
-
     return () => {
-      notificationListener.current?.remove();
+      isMounted = false;
       responseListener.current?.remove();
     };
-  }, []);
+  }, [user]);
 
-  return { expoPushToken };
+  return { expoPushToken: null as string | null };
 }
