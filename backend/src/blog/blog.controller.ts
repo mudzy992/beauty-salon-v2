@@ -53,6 +53,7 @@ export class BlogController {
   }
 
   @Get(':postId/comments')
+  @Public()
   getComments(@Param('postId') postId: string, @Query('approved') approved: string) {
     return this.comments.findAllForPost(postId, approved === 'true');
   }

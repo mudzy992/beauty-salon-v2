@@ -96,7 +96,7 @@ export default function PublicServices() {
                 <Heading size="xl" mb={8} color="brand.800" borderBottomWidth="2px" borderColor="brand.200" pb={2} display="inline-block">
                   {cat.name}
                 </Heading>
-                
+
                 {cat.subcategories?.length ? (
                   <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
                     {cat.subcategories.map((sub) => (

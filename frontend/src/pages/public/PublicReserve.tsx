@@ -38,7 +38,6 @@ import { motion } from 'framer-motion';
 import api from '../../api/client';
 import { useSettings } from '../../context/SettingsContext';
 import { useSocketEvent } from '../../context/SocketContext';
-
 interface ServiceOption {
   id: string;
   name: string;
@@ -120,9 +119,6 @@ function ServiceAutocomplete({
             <Badge colorScheme="brand" fontSize="xs">
               <Icon as={TimeIcon} mr={1} />{selected.durationMinutes} min
             </Badge>
-            {selected.price && (
-              <Badge colorScheme="green" fontSize="xs">{selected.price} KM</Badge>
-            )}
             {selected.subcategory?.category && (
               <Text fontSize="xs" color="gray.500">
                 {selected.subcategory.category.name} → {selected.subcategory.name}
@@ -196,10 +192,7 @@ function ServiceAutocomplete({
                       </Text>
                     )}
                   </Box>
-                  <HStack spacing={2}>
-                    <Badge colorScheme="brand" fontSize="xs">{s.durationMinutes} min</Badge>
-                    {s.price && <Badge colorScheme="green" fontSize="xs">{s.price} KM</Badge>}
-                  </HStack>
+                  <Badge colorScheme="brand" fontSize="xs">{s.durationMinutes} min</Badge>
                 </Flex>
               </ListItem>
             ))

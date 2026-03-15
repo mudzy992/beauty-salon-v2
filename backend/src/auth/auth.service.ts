@@ -122,6 +122,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         avatar: user.avatar ?? undefined,
+        isEmailVerified: user.isEmailVerified,
         roles,
       },
     };

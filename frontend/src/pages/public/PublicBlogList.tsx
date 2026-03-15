@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Container, Heading, Spinner, Text, SimpleGrid, Link, Flex, Icon } from '@chakra-ui/react';
+import { Box, Container, Heading, Spinner, Text, SimpleGrid, Link, Flex, Icon, Image } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { ArrowForwardIcon, CalendarIcon } from '@chakra-ui/icons';
 import api from '../../api/client';
 import { useSettings } from '../../context/SettingsContext';
+import { getUploadUrl } from '../../utils/uploadUrl';
 
 interface BlogPost {
   id: string;
@@ -14,6 +15,7 @@ interface BlogPost {
   isPublished: boolean;
   publishedAt: string | null;
   createdAt: string;
+  heroImage?: string | null;
 }
 
 const MotionBox = motion(Box as any);
@@ -84,17 +86,34 @@ export default function PublicBlogList() {
                   _hover={{ shadow: 'lg', transform: 'translateY(-4px)' }}
                   transition="all 0.3s"
                 >
-                  <Link as={RouterLink} to={`/blog/${p.slug}`} _hover={{ textDecoration: 'none' }} display="block" p={8}>
-                    <Flex align="center" gap={2} color="gray.500" fontSize="sm" mb={3}>
-                      <Icon as={CalendarIcon} />
-                      <Text>{p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('bs-BA') : ''}</Text>
-                    </Flex>
-                    <Heading size="md" mb={4} color="gray.800" lineHeight="tall">
-                      {p.title}
-                    </Heading>
-                    <Flex align="center" color="brand.500" fontWeight="semibold" fontSize="sm">
-                      Pročitaj više <Icon as={ArrowForwardIcon} ml={2} />
-                    </Flex>
+                  <Link as={RouterLink} to={`/blog/${p.slug}`} _hover={{ textDecoration: 'none' }} display="block">
+                    <Box h="180px" bg="gray.200" position="relative" overflow="hidden">
+                      {p.heroImage ? (
+                        <Image
+                          src={getUploadUrl(p.heroImage)}
+                          alt={p.title}
+                          w="full"
+                          h="full"
+                          objectFit="cover"
+                          transition="transform 0.3s ease"
+                          _hover={{ transform: 'scale(1.03)' }}
+                        />
+                      ) : (
+                        <Box w="full" h="full" bgGradient="linear(to-br, brand.400, brand.600)" opacity={0.85} />
+                      )}
+                    </Box>
+                    <Box p={6}>
+                      <Flex align="center" gap={2} color="gray.500" fontSize="sm" mb={3}>
+                        <Icon as={CalendarIcon} />
+                        <Text>{p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('bs-BA') : ''}</Text>
+                      </Flex>
+                      <Heading size="md" mb={4} color="gray.800" lineHeight="tall">
+                        {p.title}
+                      </Heading>
+                      <Flex align="center" color="brand.500" fontWeight="semibold" fontSize="sm">
+                        Pročitaj više <Icon as={ArrowForwardIcon} ml={2} />
+                      </Flex>
+                    </Box>
                   </Link>
                 </MotionBox>
               ))}

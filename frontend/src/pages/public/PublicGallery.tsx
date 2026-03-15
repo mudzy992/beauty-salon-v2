@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, Container, Heading, Spinner, Text, SimpleGrid, Image, Flex } from '@chakra-ui/react';
+import { Box, Container, Heading, Spinner, Text, SimpleGrid, Image, Flex, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, Link } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import api from '../../api/client';
@@ -10,7 +10,7 @@ interface GalleryImage {
   id: string;
   uploadId: string;
   sortOrder: number;
-  upload?: { pathOriginal: string; pathThumb?: string | null };
+  upload?: { pathOriginal: string; pathThumb?: string | null; pathMedium?: string | null };
 }
 
 interface GalleryCategory {
@@ -37,6 +37,8 @@ export default function PublicGallery() {
   const { getSetting } = useSettings();
   const [categories, setCategories] = useState<GalleryCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   useEffect(() => {
     api
@@ -95,44 +97,56 @@ export default function PublicGallery() {
                   <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={6}>
                     {cat.images
                       .sort((a, b) => a.sortOrder - b.sortOrder)
-                      .map((img) => (
-                        <MotionBox
-                          key={img.id}
-                          variants={fadeScale}
-                          overflow="hidden"
-                          rounded="xl"
-                          bg="gray.100"
-                          aspectRatio={1}
-                          shadow="sm"
-                          role="group"
-                          position="relative"
-                          cursor="pointer"
-                        >
-                          {(img.upload?.pathOriginal || img.upload?.pathThumb) ? (
-                            <Image
-                              src={getUploadUrl(img.upload.pathThumb || img.upload.pathOriginal)}
-                              alt=""
-                              objectFit="cover"
-                              w="full"
-                              h="full"
-                              transition="transform 0.5s ease"
-                              _groupHover={{ transform: 'scale(1.05)' }}
+                      .map((img) => {
+                        const thumbUrl = img.upload
+                          ? getUploadUrl(img.upload.pathMedium || img.upload.pathThumb || img.upload.pathOriginal)
+                          : '';
+                        const originalUrl = img.upload ? getUploadUrl(img.upload.pathOriginal) : '';
+                        return (
+                          <MotionBox
+                            key={img.id}
+                            variants={fadeScale}
+                            overflow="hidden"
+                            rounded="xl"
+                            bg="gray.100"
+                            aspectRatio={1}
+                            shadow="sm"
+                            role="group"
+                            position="relative"
+                            cursor="pointer"
+                            onClick={() => {
+                              if (originalUrl) {
+                                setLightboxSrc(originalUrl);
+                                onOpen();
+                              }
+                            }}
+                          >
+                            {thumbUrl ? (
+                              <Image
+                                src={thumbUrl}
+                                alt=""
+                                objectFit="cover"
+                                w="full"
+                                h="full"
+                                transition="transform 0.5s ease"
+                                _groupHover={{ transform: 'scale(1.05)' }}
+                              />
+                            ) : (
+                              <Box w="full" h="full" display="flex" alignItems="center" justifyContent="center">
+                                <Text color="gray.400">—</Text>
+                              </Box>
+                            )}
+                            <Box
+                              position="absolute"
+                              inset={0}
+                              bg="blackAlpha.400"
+                              opacity={0}
+                              transition="opacity 0.3s"
+                              _groupHover={{ opacity: 1 }}
                             />
-                          ) : (
-                            <Box w="full" h="full" display="flex" alignItems="center" justifyContent="center">
-                              <Text color="gray.400">—</Text>
-                            </Box>
-                          )}
-                          <Box
-                            position="absolute"
-                            inset={0}
-                            bg="blackAlpha.400"
-                            opacity={0}
-                            transition="opacity 0.3s"
-                            _groupHover={{ opacity: 1 }}
-                          />
-                        </MotionBox>
-                      ))}
+                          </MotionBox>
+                        );
+                      })}
                   </SimpleGrid>
                 ) : (
                   <Text color="gray.400" fontStyle="italic">{t('common.noData')}</Text>
@@ -142,6 +156,38 @@ export default function PublicGallery() {
           </MotionBox>
         )}
       </Container>
+
+      <Modal isOpen={isOpen} onClose={onClose} size="6xl" isCentered>
+        <ModalOverlay bg="blackAlpha.800" />
+        <ModalContent bg="transparent" boxShadow="none" maxW="90vw" maxH="90vh">
+          <ModalCloseButton color="white" size="lg" zIndex={2} _hover={{ bg: 'whiteAlpha.200' }} />
+          <ModalBody p={0} display="flex" flexDir="column" alignItems="center" justifyContent="center">
+            {lightboxSrc && (
+              <>
+                <Image
+                  src={lightboxSrc}
+                  alt=""
+                  maxW="full"
+                  maxH="85vh"
+                  objectFit="contain"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <Link
+                  href={lightboxSrc}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  color="white"
+                  fontSize="sm"
+                  mt={2}
+                  _hover={{ textDecoration: 'underline' }}
+                >
+                  Otvori original u novom prozoru
+                </Link>
+              </>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }
