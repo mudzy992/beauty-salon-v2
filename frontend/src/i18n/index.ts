@@ -20,6 +20,7 @@ const resources = {
         settings: 'Postavke',
         notifications: 'Notifikacije',
         clientAnalytics: 'Analitika klijenata',
+        stylistAnalytics: 'Analitika stiliste',
         analytics: 'Analitika',
         loyalty: 'Loyalty program',
         sectionOperational: 'Operativno',

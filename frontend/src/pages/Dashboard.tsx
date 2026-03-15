@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Box, Heading, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText,
   Text, Spinner, Card, CardBody, Table, Thead, Tbody, Tr, Th, Td,
-  Badge,
+  Badge, Link,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -28,7 +29,7 @@ interface RecentReservation {
   reservationDate: string;
   startTime: string;
   status: string;
-  client?: { user?: { username: string } };
+  client?: { id: string; firstName?: string | null; lastName?: string | null; username?: string };
   service?: { name: string };
 }
 
@@ -183,15 +184,28 @@ export default function Dashboard() {
                 {recentReservations.length === 0 ? (
                   <Tr><Td colSpan={5}><Text color="gray.500">Nema rezervacija.</Text></Td></Tr>
                 ) : (
-                  recentReservations.map((r) => (
-                    <Tr key={r.id}>
-                      <Td>{String(r.reservationDate).slice(0, 10)}</Td>
-                      <Td>{r.startTime}</Td>
-                      <Td>{r.client?.user?.username ?? '-'}</Td>
-                      <Td>{r.service?.name ?? '-'}</Td>
-                      <Td><Badge colorScheme={statusColorMap[r.status] ?? 'gray'}>{r.status}</Badge></Td>
-                    </Tr>
-                  ))
+                  recentReservations.map((r) => {
+                    const clientName = r.client
+                      ? [r.client.firstName, r.client.lastName].filter(Boolean).join(' ') || r.client.username || `#${r.client.id.slice(0, 8)}`
+                      : '-';
+                    return (
+                      <Tr key={r.id}>
+                        <Td>{String(r.reservationDate).slice(0, 10)}</Td>
+                        <Td>{r.startTime}</Td>
+                        <Td>
+                          {r.client ? (
+                            <Link as={RouterLink} to={`/admin/client-analytics?userId=${r.client.id}`} color="brand.600" _hover={{ textDecoration: 'underline' }}>
+                              {clientName}
+                            </Link>
+                          ) : (
+                            '-'
+                          )}
+                        </Td>
+                        <Td>{r.service?.name ?? '-'}</Td>
+                        <Td><Badge colorScheme={statusColorMap[r.status] ?? 'gray'}>{r.status}</Badge></Td>
+                      </Tr>
+                    );
+                  })
                 )}
               </Tbody>
             </Table>

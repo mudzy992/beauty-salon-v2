@@ -46,6 +46,22 @@ export class ReviewsService {
     });
   }
 
+  async findOneRandomApproved() {
+    const count = await this.prisma.review.count({ where: { isApproved: true } });
+    if (count === 0) return null;
+    const skip = Math.floor(Math.random() * count);
+    const review = await this.prisma.review.findMany({
+      where: { isApproved: true },
+      take: 1,
+      skip,
+      include: {
+        user: { select: { firstName: true, lastName: true } },
+        service: { select: { name: true } },
+      },
+    });
+    return review[0] ?? null;
+  }
+
   async findAll(query: { serviceId?: string; stylistProfileId?: string; approvedOnly?: boolean }) {
     const where: { serviceId?: string; stylistProfileId?: string; isApproved?: boolean } = {};
     if (query.serviceId) where.serviceId = query.serviceId;

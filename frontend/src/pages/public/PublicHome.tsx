@@ -40,11 +40,21 @@ interface BeforeAfterPair {
   after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
 }
 
+interface FeaturedReview {
+  id: string;
+  serviceRating: number;
+  stylistRating: number | null;
+  comment: string | null;
+  user?: { firstName: string | null; lastName: string | null };
+  service?: { name: string };
+}
+
 export default function PublicHome() {
   const { t } = useTranslation();
   const { getSetting } = useSettings();
   const [beforeAfterPairs, setBeforeAfterPairs] = useState<BeforeAfterPair[]>([]);
   const [beforeAfterLoading, setBeforeAfterLoading] = useState(true);
+  const [featuredReview, setFeaturedReview] = useState<FeaturedReview | null>(null);
 
   useEffect(() => {
     api
@@ -56,6 +66,10 @@ export default function PublicHome() {
       })
       .catch(() => setBeforeAfterPairs([]))
       .finally(() => setBeforeAfterLoading(false));
+  }, []);
+
+  useEffect(() => {
+    api.get<FeaturedReview | null>('/api/reviews/featured/random').then((r) => setFeaturedReview(r.data ?? null)).catch(() => setFeaturedReview(null));
   }, []);
 
   const heroImage = getSetting('public_hero_image', 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=2000');
@@ -344,7 +358,7 @@ export default function PublicHome() {
         </Container>
       </Box>
 
-      {/* ZADOVOLJNI KLIJENTI – Before/After */}
+      {/* ZADOVOLJNI KLIJENTI – 1 featured + CTA */}
       <Box py={24} bg="gray.50">
         <Container maxW="container.xl">
           <MotionBox
@@ -362,37 +376,80 @@ export default function PublicHome() {
               Zadovoljni klijenti
             </Heading>
             <Text color="gray.600" mt={2} maxW="xl" mx="auto">
-              Povucite sliku lijevo ili desno da vidite prije i poslije.
+              Ono što naši klijenti kažu o nama i prije/poslije rezultati.
             </Text>
           </MotionBox>
-          {beforeAfterLoading ? (
+
+          {(beforeAfterLoading && !featuredReview) ? (
             <Flex justify="center" py={12}>
               <Spinner size="xl" color="brand.500" thickness="4px" />
             </Flex>
-          ) : beforeAfterPairs.length === 0 ? (
-            <Text textAlign="center" color="gray.500" py={8}>
-              Nema još prikazanih prije/poslije slika.
-            </Text>
           ) : (
-            <>
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
-                {beforeAfterPairs.map((pair) => (
-                  <MotionBox key={pair.id} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-                    <BeforeAfterSlider
-                      beforeSrc={getUploadUrl(pair.before.pathMedium ?? pair.before.pathThumb ?? pair.before.pathOriginal)}
-                      afterSrc={getUploadUrl(pair.after.pathMedium ?? pair.after.pathThumb ?? pair.after.pathOriginal)}
-                      alt="Prije / Poslije"
-                      aspectRatio={1}
-                    />
-                  </MotionBox>
-                ))}
-              </SimpleGrid>
-              <Box textAlign="center" mt={8}>
-                <Button as={RouterLink} to="/zadovoljni-klijenti" size="lg" colorScheme="brand" variant="outline">
-                  Vidi više
+            <MotionBox
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeUp}
+              as={Flex}
+              direction={{ base: 'column', lg: 'row' }}
+              gap={8}
+              align="center"
+              justify="center"
+              bg="white"
+              rounded="2xl"
+              shadow="lg"
+              overflow="hidden"
+              p={{ base: 6, md: 10 }}
+              maxW="4xl"
+              mx="auto"
+            >
+              {beforeAfterPairs.length > 0 && (
+                <Box flex="0 0 280px" w="full" maxW="280px" rounded="xl" overflow="hidden" bg="gray.100">
+                  <BeforeAfterSlider
+                    beforeSrc={getUploadUrl(beforeAfterPairs[0].before.pathMedium ?? beforeAfterPairs[0].before.pathThumb ?? beforeAfterPairs[0].before.pathOriginal)}
+                    afterSrc={getUploadUrl(beforeAfterPairs[0].after.pathMedium ?? beforeAfterPairs[0].after.pathThumb ?? beforeAfterPairs[0].after.pathOriginal)}
+                    alt="Prije / Poslije"
+                    aspectRatio={1}
+                  />
+                </Box>
+              )}
+              <Flex flex={1} direction="column" align={{ base: 'center', lg: 'flex-start' }} textAlign={{ base: 'center', lg: 'left' }}>
+                {featuredReview ? (
+                  <>
+                    <Flex gap={1} mb={3} justify={{ base: 'center', lg: 'flex-start' }}>
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <Icon key={i} as={StarIcon} color={i <= featuredReview.serviceRating ? 'brand.400' : 'gray.200'} w={5} h={5} />
+                      ))}
+                    </Flex>
+                    <Text fontSize="lg" fontStyle="italic" color="gray.700" mb={4}>
+                      „{featuredReview.comment || 'Odličan servis i atmosfera, preporučujem!'}"
+                    </Text>
+                    <Text fontWeight="semibold" color="brand.700">
+                      — {featuredReview.user?.firstName
+                        ? `${featuredReview.user.firstName}${featuredReview.user.lastName ? ` ${featuredReview.user.lastName[0]}.` : ''}`
+                        : 'Zadovoljni klijent'}
+                      {featuredReview.service?.name && (
+                        <Text as="span" fontWeight="normal" color="gray.500" fontSize="sm" ml={2}>
+                          ({featuredReview.service.name})
+                        </Text>
+                      )}
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Text fontSize="lg" color="gray.600" mb={2}>
+                      Naši klijenti dijele iskustva i transformacije. Pogledajte galeriju prije/poslije i recenzije.
+                    </Text>
+                    <Text fontWeight="semibold" color="brand.700">
+                      Budite sljedeći zadovoljni klijent.
+                    </Text>
+                  </>
+                )}
+                <Button as={RouterLink} to="/zadovoljni-klijenti" size="lg" colorScheme="brand" mt={6} alignSelf={{ base: 'center', lg: 'flex-start' }}>
+                  Pogledaj sve transformacije
                 </Button>
-              </Box>
-            </>
+              </Flex>
+            </MotionBox>
           )}
         </Container>
       </Box>

@@ -5,10 +5,12 @@ import {
   ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
   FormControl, FormLabel, Input, Button, useToast, Switch, Select,
   Tabs, TabList, Tab, TabPanels, TabPanel, Textarea,
-  Checkbox, VStack,
+  Checkbox, VStack, Link, HStack,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
-import { AddIcon, EditIcon } from '@chakra-ui/icons';
+import { Link as RouterLink } from 'react-router-dom';
+import { AddIcon, EditIcon, ViewIcon } from '@chakra-ui/icons';
+import { Link } from '@chakra-ui/react';
 import api from '../api/client';
 
 interface StylistProfile {
@@ -236,7 +238,12 @@ export default function Stylists() {
                       </Badge>
                     </Td>
                     <Td textAlign="right" onClick={(e) => e.stopPropagation()}>
-                      <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEditForm(s)} />
+                      <HStack spacing={1} justify="flex-end">
+                        <Link as={RouterLink} to={`/admin/stylist-analytics?stylistId=${s.id}`}>
+                          <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" />
+                        </Link>
+                        <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEditForm(s)} />
+                      </HStack>
                     </Td>
                   </Tr>
                 ))

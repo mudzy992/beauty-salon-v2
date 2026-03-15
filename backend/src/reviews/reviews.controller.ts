@@ -17,6 +17,12 @@ export class ReviewsController {
     return this.reviews.create(dto, user.sub);
   }
 
+  @Get('featured/random')
+  @Public()
+  findOneRandomApproved() {
+    return this.reviews.findOneRandomApproved();
+  }
+
   @Get()
   @Public()
   findAll(

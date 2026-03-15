@@ -217,6 +217,7 @@ export default function DashboardLayout() {
     '/admin/settings': t('nav.settings'),
     '/admin/notifications': t('nav.notifications'),
     '/admin/client-analytics': t('nav.clientAnalytics'),
+    '/admin/stylist-analytics': t('nav.stylistAnalytics'),
     '/admin/analytics': t('nav.analytics'),
     '/admin/loyalty': t('nav.loyalty'),
   };

@@ -174,6 +174,75 @@ export class StylistsService {
     });
   }
 
+  async getStylistAnalytics(
+    stylistProfileId: string,
+    roles: string[],
+    fromDate?: string,
+    toDate?: string,
+  ) {
+    this.requireAdminOrOwner(roles);
+    const profile = await this.prisma.stylistProfile.findUnique({
+      where: { id: stylistProfileId },
+      include: { user: { select: { id: true, username: true, firstName: true, lastName: true, email: true } } },
+    });
+    if (!profile) throw new NotFoundException('Stilist nije pronađen.');
+
+    let dateFilter: { gte?: Date; lte?: Date } = {};
+    if (fromDate && toDate) {
+      dateFilter = { gte: new Date(fromDate), lte: new Date(toDate) };
+    }
+
+    const entries = await this.prisma.dailyLogEntry.findMany({
+      where: { stylistProfileId, status: 'COMPLETED', ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}) },
+      include: {
+        service: { select: { id: true, name: true } },
+        client: { select: { id: true, firstName: true, lastName: true } },
+      },
+      orderBy: { date: 'desc' },
+      take: 100,
+    });
+
+    const completedCount = entries.length;
+    const revenue = entries.reduce((s, e) => s + Number(e.actualPrice ?? 0), 0);
+    const tips = entries.reduce((s, e) => s + Number(e.tipAmount ?? 0), 0);
+
+    const byService = new Map<string, { name: string; count: number; revenue: number }>();
+    for (const e of entries) {
+      const id = e.serviceId;
+      const name = e.service?.name ?? '—';
+      const amt = Number(e.actualPrice ?? 0);
+      if (!byService.has(id)) byService.set(id, { name, count: 0, revenue: 0 });
+      const row = byService.get(id)!;
+      row.count++;
+      row.revenue += amt;
+    }
+    const topServices = Array.from(byService.entries())
+      .map(([serviceId, v]) => ({ serviceId, serviceName: v.name, count: v.count, revenue: Math.round(v.revenue * 100) / 100 }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    const stylistName =
+      [profile.user?.firstName, profile.user?.lastName].filter(Boolean).join(' ') || profile.user?.username || '—';
+
+    return {
+      stylist: { id: profile.id, name: stylistName, user: profile.user },
+      fromDate: fromDate ?? null,
+      toDate: toDate ?? null,
+      completedCount,
+      revenue: Math.round(revenue * 100) / 100,
+      tips: Math.round(tips * 100) / 100,
+      topServices,
+      recentEntries: entries.slice(0, 20).map((e) => ({
+        id: e.id,
+        date: e.date,
+        serviceName: e.service?.name,
+        clientName: [e.client?.firstName, e.client?.lastName].filter(Boolean).join(' ') || null,
+        actualPrice: e.actualPrice,
+        tipAmount: e.tipAmount,
+      })),
+    };
+  }
+
   private isAdminOrOwner(roles: string[]) {
     return roles.includes('SYSTEM_ADMIN') || roles.includes('OWNER');
   }

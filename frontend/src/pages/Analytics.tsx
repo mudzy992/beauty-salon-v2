@@ -23,6 +23,7 @@ import {
   Input,
   FormControl,
   FormLabel,
+  Link,
 } from '@chakra-ui/react';
 import {
   Bar,
@@ -34,6 +35,7 @@ import {
   ResponsiveContainer,
   ComposedChart,
 } from 'recharts';
+import { Link as RouterLink } from 'react-router-dom';
 import api from '../api/client';
 
 interface MonthlyFinance {
@@ -265,7 +267,11 @@ export default function Analytics() {
                   ) : (
                     data.stylistPerformance.map((s) => (
                       <Tr key={s.stylistProfileId}>
-                        <Td>{s.stylistName}</Td>
+                        <Td>
+                          <Link as={RouterLink} to={`/admin/stylist-analytics?stylistId=${s.stylistProfileId}`} color="brand.600" _hover={{ textDecoration: 'underline' }}>
+                            {s.stylistName}
+                          </Link>
+                        </Td>
                         <Td isNumeric>{s.completedCount}</Td>
                         <Td isNumeric>{s.revenue.toFixed(2)}</Td>
                         <Td isNumeric>{s.tips.toFixed(2)}</Td>

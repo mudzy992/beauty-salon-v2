@@ -7,9 +7,10 @@ import {
   NumberInput, NumberInputField, NumberInputStepper,
   NumberIncrementStepper, NumberDecrementStepper, Textarea, HStack,
   IconButton, Stat, StatLabel, StatNumber, SimpleGrid, Card, CardBody,
-  InputGroup, InputLeftElement, List, ListItem,
+  InputGroup, InputLeftElement, List, ListItem, Link,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
+import { Link as RouterLink } from 'react-router-dom';
 import { AddIcon, CheckIcon, EditIcon, SearchIcon } from '@chakra-ui/icons';
 import api from '../api/client';
 
@@ -245,9 +246,25 @@ export default function DailyLog() {
               ) : entries.map((e) => (
                 <Tr key={e.id}>
                   <Td>{e.date?.slice(0, 10)}</Td>
-                  <Td>{getStylistName(e.stylistProfile)}</Td>
+                  <Td>
+                    {e.stylistProfile?.id ? (
+                      <Link as={RouterLink} to={`/admin/stylist-analytics?stylistId=${e.stylistProfile.id}`} color="brand.600" _hover={{ textDecoration: 'underline' }}>
+                        {getStylistName(e.stylistProfile)}
+                      </Link>
+                    ) : (
+                      getStylistName(e.stylistProfile)
+                    )}
+                  </Td>
                   <Td>{e.service?.name ?? '-'}</Td>
-                  <Td>{e.client?.user?.username ?? e.client ? [e.client?.firstName, e.client?.lastName].filter(Boolean).join(' ') || '-' : '-'}</Td>
+                  <Td>
+                    {e.client ? (
+                      <Link as={RouterLink} to={`/admin/client-analytics?userId=${e.client.id}`} color="brand.600" _hover={{ textDecoration: 'underline' }}>
+                        {[e.client.firstName, e.client.lastName].filter(Boolean).join(' ') || e.client.user?.username || '-'}
+                      </Link>
+                    ) : (
+                      '-'
+                    )}
+                  </Td>
                   <Td isNumeric fontWeight="medium">{Number(e.actualPrice).toFixed(2)}</Td>
                   <Td isNumeric>{Number(e.tipAmount).toFixed(2)}</Td>
                   <Td><Badge colorScheme={e.isManual ? 'orange' : 'blue'} variant="subtle">{e.isManual ? 'Ručno' : 'Rezervacija'}</Badge></Td>

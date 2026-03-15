@@ -134,7 +134,7 @@ export class ReservationsService {
       where,
       include: {
         service: { select: { id: true, name: true, durationMinutes: true, price: true } },
-        client: { select: { id: true, firstName: true, lastName: true } },
+        client: { select: { id: true, firstName: true, lastName: true, username: true } },
         confirmedStylist: {
           include: { user: { select: { firstName: true, lastName: true } } },
         },

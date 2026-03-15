@@ -78,6 +78,18 @@ export class StylistsController {
     return this.stylistsService.setWorkingHours(id, body.workingHours);
   }
 
+  @Get(':id/analytics')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getStylistAnalytics(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+  ) {
+    return this.stylistsService.getStylistAnalytics(id, user.roles, fromDate, toDate);
+  }
+
   @Get(':id/services')
   @Public()
   getServices(@Param('id') id: string) {

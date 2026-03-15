@@ -296,15 +296,15 @@ export default function Salon() {
   return (
     <Box>
       <Heading size="lg" mb={6}>{t('nav.salon')}</Heading>
-      <Tabs>
+      <Tabs width="100%">
         <TabList>
           <Tab>Osnovne Postavke</Tab>
           <Tab>Radno Vrijeme</Tab>
           <Tab>Praznici</Tab>
         </TabList>
-        <TabPanels>
-          <TabPanel>
-            <Box bg="white" p={6} rounded="xl" shadow="sm" maxW="2xl">
+        <TabPanels width="100%" px={0}>
+          <TabPanel px={0} maxW="100%">
+            <Box bg="white" p={6} rounded="xl" shadow="sm" maxW="full" w="100%">
               <VStack spacing={4} align="stretch">
                 <FormControl isRequired>
                   <FormLabel>Naziv salona</FormLabel>
@@ -361,8 +361,8 @@ export default function Salon() {
             </Box>
           </TabPanel>
 
-          <TabPanel>
-            <Box bg="white" p={6} rounded="xl" shadow="sm" maxW="3xl">
+          <TabPanel px={0} maxW="100%">
+            <Box bg="white" p={6} rounded="xl" shadow="sm" maxW="full" w="100%">
               <Table size="sm" mb={4}>
                 <Thead><Tr><Th>Dan</Th><Th>Radni dan</Th><Th>Otvaranje</Th><Th>Zatvaranje</Th></Tr></Thead>
                 <Tbody>
@@ -380,7 +380,7 @@ export default function Salon() {
             </Box>
           </TabPanel>
 
-          <TabPanel>
+          <TabPanel px={0} maxW="100%">
             <Flex justify="flex-end" mb={4}>
               <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openHolForm()}>Novi Praznik</Button>
             </Flex>

@@ -201,9 +201,21 @@ export default function Reservations() {
                     </Td>
                     <Td>{r.service?.name ?? '-'}</Td>
                     <Td>
-                      {r.confirmedStylist?.user
-                        ? `${r.confirmedStylist.user.firstName ?? ''} ${r.confirmedStylist.user.lastName ?? ''}`.trim() || r.confirmedStylist.user.username
-                        : '-'}
+                      {r.confirmedStylist ? (
+                        <Link
+                          as={RouterLink}
+                          to={`/admin/stylist-analytics?stylistId=${r.confirmedStylist.id}`}
+                          color="brand.600"
+                          _hover={{ textDecoration: 'underline' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {r.confirmedStylist.user
+                            ? `${r.confirmedStylist.user.firstName ?? ''} ${r.confirmedStylist.user.lastName ?? ''}`.trim() || r.confirmedStylist.user.username
+                            : 'Stilista'}
+                        </Link>
+                      ) : (
+                        '-'
+                      )}
                     </Td>
                     <Td>
                       <Badge colorScheme={statusColorMap[r.status] ?? 'gray'}>
