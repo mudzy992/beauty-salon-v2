@@ -10,7 +10,6 @@ import {
   Stat,
   StatLabel,
   StatNumber,
-  StatHelpText,
   Table,
   Thead,
   Tbody,

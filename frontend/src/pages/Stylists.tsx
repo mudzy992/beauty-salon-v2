@@ -10,7 +10,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router-dom';
 import { AddIcon, EditIcon, ViewIcon } from '@chakra-ui/icons';
-import { Link } from '@chakra-ui/react';
 import api from '../api/client';
 
 interface StylistProfile {
