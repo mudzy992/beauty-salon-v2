@@ -148,7 +148,7 @@ export class ReservationsController {
   @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
   stylistCancel(
     @Param('id') id: string,
-    @Body() dto: { cancelReason?: string },
+    @Body() dto: CancelReservationDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.reservations.stylistCancel(id, user.sub, dto);

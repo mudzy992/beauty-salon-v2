@@ -80,8 +80,8 @@ jobs:
           echo "Working directory: \$(pwd)"
 
           echo "Pulling latest code..."
-          git fetch origin main
-          git reset --hard origin/main
+          git fetch origin master
+          git reset --hard origin/master
 
           echo "Checking existing containers (including stopped)..."
           BACKEND_CONTAINER_ID=\$(docker compose ps -a -q backend || true)
