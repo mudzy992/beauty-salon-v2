@@ -1,25 +1,22 @@
 /**
- * Root backenda (npr. https://nejra-v2.ba101.top/backend).
- * Ako je postavljen URL koji završava s /uploads, uklanjamo ga da base uvijek bude backend root.
+ * Base za fajlove iz .env: VITE_API_FILES_URL (npr. https://nejra-v2.ba101.top/backend/uploads).
+ * U njemu je već backend + prefix /uploads, ništa se ne uklanja.
  */
-const getBackendRoot = (): string => {
+const getFilesBase = (): string => {
   const filesUrl = (import.meta.env.VITE_API_FILES_URL || '').replace(/\/$/, '');
   const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-  const raw = filesUrl || apiUrl || '';
-  return raw.replace(/\/uploads\/?$/i, '');
+  return filesUrl || apiUrl || '';
 };
 
 /**
- * Puni URL za fajl: backendRoot + /uploads/ + path iz baze.
- * Prefiks "uploads" je OBAVEZAN – API URL je .../backend, na to ide /uploads pa putanja iz baze.
- * Path iz baze može biti "uploads/2026/03/xxx" ili "2026/03/xxx" – normaliziramo da ne dupliciramo "uploads".
+ * Puni URL za fajl: base iz .env + putanja iz baze. Ništa se ne uklanja i ne dodaje.
+ * base = https://nejra-v2.ba101.top/backend/uploads, path = uploads/2026/03/xxx ili gallery/2026/...
+ * → https://nejra-v2.ba101.top/backend/uploads/uploads/2026/03/xxx ili .../backend/uploads/gallery/...
  */
 export function getUploadUrl(path: string | undefined | null): string {
   if (!path) return '';
   if (path.startsWith('http')) return path;
-  const base = getBackendRoot();
-  let normalized = path.replace(/^\//, '');
-  if (normalized.toLowerCase().startsWith('uploads/')) normalized = normalized.slice(8);
-  const uploadsPath = `uploads/${normalized}`;
-  return base ? `${base}/${uploadsPath}` : `/${uploadsPath}`;
+  const base = getFilesBase();
+  const normalized = path.replace(/^\//, '');
+  return base ? `${base}/${normalized}` : `/${normalized}`;
 }

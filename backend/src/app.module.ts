@@ -20,6 +20,8 @@ import { BlogModule } from './blog/blog.module';
 import { GalleryModule } from './gallery/gallery.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { EventsModule } from './events/events.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { LoyaltyModule } from './loyalty/loyalty.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 
 @Module({
@@ -42,6 +44,8 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     GalleryModule,
     ReviewsModule,
     EventsModule,
+    AnalyticsModule,
+    LoyaltyModule,
   ],
   controllers: [AppController],
   providers: [

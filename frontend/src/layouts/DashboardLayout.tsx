@@ -23,44 +23,83 @@ import { HamburgerIcon } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 
-const navItems = [
-  { path: '/admin', labelKey: 'nav.home' },
-  { path: '/admin/users', labelKey: 'nav.users' },
-  { path: '/admin/salon', labelKey: 'nav.salon' },
-  { path: '/admin/services', labelKey: 'nav.services' },
-  { path: '/admin/stylists', labelKey: 'nav.stylists' },
-  { path: '/admin/reservations', labelKey: 'nav.reservations' },
-  { path: '/admin/daily-log', labelKey: 'nav.dailyLog' },
-  { path: '/admin/finance', labelKey: 'nav.finance' },
-  { path: '/admin/blog', labelKey: 'nav.blog' },
-  { path: '/admin/gallery', labelKey: 'nav.gallery' },
-  { path: '/admin/reviews', labelKey: 'nav.reviews' },
-  { path: '/admin/settings', labelKey: 'nav.settings' },
-  { path: '/admin/notifications', labelKey: 'nav.notifications' },
-  { path: '/admin/client-analytics', labelKey: 'nav.clientAnalytics' },
+// Grupisana navigacija: sekcija (opciono) + linkovi
+const navSections: { sectionKey?: string; items: { path: string; labelKey: string }[] }[] = [
+  { items: [{ path: '/admin', labelKey: 'nav.home' }] },
+  {
+    sectionKey: 'nav.sectionOperational',
+    items: [
+      { path: '/admin/reservations', labelKey: 'nav.reservations' },
+      { path: '/admin/daily-log', labelKey: 'nav.dailyLog' },
+    ],
+  },
+  {
+    sectionKey: 'nav.sectionSalon',
+    items: [
+      { path: '/admin/salon', labelKey: 'nav.salon' },
+      { path: '/admin/services', labelKey: 'nav.services' },
+      { path: '/admin/stylists', labelKey: 'nav.stylists' },
+    ],
+  },
+  { items: [{ path: '/admin/finance', labelKey: 'nav.finance' }] },
+  {
+    sectionKey: 'nav.sectionContent',
+    items: [
+      { path: '/admin/blog', labelKey: 'nav.blog' },
+      { path: '/admin/gallery', labelKey: 'nav.gallery' },
+      { path: '/admin/reviews', labelKey: 'nav.reviews' },
+    ],
+  },
+  {
+    sectionKey: 'nav.sectionPeople',
+    items: [
+      { path: '/admin/users', labelKey: 'nav.users' },
+      { path: '/admin/client-analytics', labelKey: 'nav.clientAnalytics' },
+    ],
+  },
+  { items: [{ path: '/admin/analytics', labelKey: 'nav.analytics' }] },
+  {
+    sectionKey: 'nav.sectionSettings',
+    items: [
+      { path: '/admin/settings', labelKey: 'nav.settings' },
+      { path: '/admin/notifications', labelKey: 'nav.notifications' },
+      { path: '/admin/loyalty', labelKey: 'nav.loyalty' },
+    ],
+  },
 ];
 
 function SidebarNav({ onClose }: { onClose?: () => void }) {
   const { t } = useTranslation();
   const location = useLocation();
   return (
-    <VStack align="stretch" spacing={1}>
-      {navItems.map((item) => (
-        <Link
-          key={item.path}
-          as={RouterLink}
-          to={item.path}
-          onClick={onClose}
-          px={4}
-          py={2}
-          rounded="md"
-          bg={location.pathname === item.path ? 'brand.100' : 'transparent'}
-          color={location.pathname === item.path ? 'brand.800' : 'gray.700'}
-          _hover={{ bg: 'brand.50' }}
-          fontWeight={location.pathname === item.path ? 600 : 400}
-        >
-          {t(item.labelKey)}
-        </Link>
+    <VStack align="stretch" spacing={3}>
+      {navSections.map((section, idx) => (
+        <Box key={idx}>
+          {section.sectionKey && (
+            <Text px={4} py={1} fontSize="xs" fontWeight={600} color="gray.500" textTransform="uppercase" letterSpacing="wider">
+              {t(section.sectionKey)}
+            </Text>
+          )}
+          <VStack align="stretch" spacing={0}>
+            {section.items.map((item) => (
+              <Link
+                key={item.path}
+                as={RouterLink}
+                to={item.path}
+                onClick={onClose}
+                px={4}
+                py={2}
+                rounded="md"
+                bg={location.pathname === item.path ? 'brand.100' : 'transparent'}
+                color={location.pathname === item.path ? 'brand.800' : 'gray.700'}
+                _hover={{ bg: 'brand.50' }}
+                fontWeight={location.pathname === item.path ? 600 : 400}
+              >
+                {t(item.labelKey)}
+              </Link>
+            ))}
+          </VStack>
+        </Box>
       ))}
     </VStack>
   );
@@ -87,6 +126,8 @@ export default function DashboardLayout() {
     '/admin/settings': t('nav.settings'),
     '/admin/notifications': t('nav.notifications'),
     '/admin/client-analytics': t('nav.clientAnalytics'),
+    '/admin/analytics': t('nav.analytics'),
+    '/admin/loyalty': t('nav.loyalty'),
   };
   const currentLabel = pathNames[location.pathname] ?? location.pathname;
 

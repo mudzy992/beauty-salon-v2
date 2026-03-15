@@ -31,6 +31,8 @@ import Reviews from './pages/Reviews';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
 import ClientAnalytics from './pages/ClientAnalytics';
+import Analytics from './pages/Analytics';
+import Loyalty from './pages/Loyalty';
 import NotFound from './pages/NotFound';
 import './i18n';
 
@@ -71,6 +73,8 @@ function AppRoutes() {
         <Route path="settings" element={<Settings />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="client-analytics" element={<ClientAnalytics />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="loyalty" element={<Loyalty />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
