@@ -48,8 +48,12 @@ export default function PublicHome() {
 
   useEffect(() => {
     api
-      .get<BeforeAfterPair[]>('/api/daily-log/before-after')
-      .then((r) => setBeforeAfterPairs(Array.isArray(r.data) ? r.data : []))
+      .get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', { params: { limit: 20, offset: 0 } })
+      .then((r) => {
+        const list = Array.isArray(r.data?.items) ? r.data.items : [];
+        const shuffled = [...list].sort(() => Math.random() - 0.5);
+        setBeforeAfterPairs(shuffled.slice(0, 3));
+      })
       .catch(() => setBeforeAfterPairs([]))
       .finally(() => setBeforeAfterLoading(false));
   }, []);
@@ -370,18 +374,25 @@ export default function PublicHome() {
               Nema još prikazanih prije/poslije slika.
             </Text>
           ) : (
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
-              {beforeAfterPairs.map((pair) => (
-                <MotionBox key={pair.id} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-                  <BeforeAfterSlider
-                    beforeSrc={getUploadUrl(pair.before.pathMedium ?? pair.before.pathThumb ?? pair.before.pathOriginal)}
-                    afterSrc={getUploadUrl(pair.after.pathMedium ?? pair.after.pathThumb ?? pair.after.pathOriginal)}
-                    alt="Prije / Poslije"
-                    aspectRatio={1}
-                  />
-                </MotionBox>
-              ))}
-            </SimpleGrid>
+            <>
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
+                {beforeAfterPairs.map((pair) => (
+                  <MotionBox key={pair.id} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+                    <BeforeAfterSlider
+                      beforeSrc={getUploadUrl(pair.before.pathMedium ?? pair.before.pathThumb ?? pair.before.pathOriginal)}
+                      afterSrc={getUploadUrl(pair.after.pathMedium ?? pair.after.pathThumb ?? pair.after.pathOriginal)}
+                      alt="Prije / Poslije"
+                      aspectRatio={1}
+                    />
+                  </MotionBox>
+                ))}
+              </SimpleGrid>
+              <Box textAlign="center" mt={8}>
+                <Button as={RouterLink} to="/zadovoljni-klijenti" size="lg" colorScheme="brand" variant="outline">
+                  Vidi više
+                </Button>
+              </Box>
+            </>
           )}
         </Container>
       </Box>

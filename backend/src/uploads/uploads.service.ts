@@ -42,7 +42,11 @@ export class UploadsService {
     const ext = path.extname(file.originalname) || '.bin';
     const baseName = `${path.basename(file.originalname, ext)}-${Date.now()}`;
 
-    const relDir = path.join(entity, year, month);
+    // Pod uploads root: opći uploadi u 2026/03, daily-log u daily-log/2026/03 (u bazi bez "uploads/" prefiksa)
+    const relDir =
+      entity === 'uploads'
+        ? path.join(year, month)
+        : path.join(entity, year, month);
     const absDir = path.join(this.uploadRoot, relDir);
     await fs.mkdir(absDir, { recursive: true });
 

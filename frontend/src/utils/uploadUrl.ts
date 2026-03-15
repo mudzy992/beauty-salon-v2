@@ -1,27 +1,25 @@
 /**
- * Base URL za uploadane fajlove (slike, PDF).
- * Koristi VITE_API_FILES_URL ako je postavljen (npr. .../backend/uploads), inače VITE_API_URL.
+ * Root backenda (npr. https://nejra-v2.ba101.top/backend).
+ * Ako je postavljen URL koji završava s /uploads, uklanjamo ga da base uvijek bude backend root.
  */
-const getFilesBase = (): string => {
+const getBackendRoot = (): string => {
   const filesUrl = (import.meta.env.VITE_API_FILES_URL || '').replace(/\/$/, '');
-  if (filesUrl) return filesUrl;
   const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-  return apiUrl ? `${apiUrl}/uploads` : '';
+  const raw = filesUrl || apiUrl || '';
+  return raw.replace(/\/uploads\/?$/i, '');
 };
 
 /**
- * Vraća puni URL za putanju iz baze (npr. "uploads/2025/03/xxx.webp" ili "avatars/2025/03/xxx.webp").
- * Koristi prefix VITE_API_FILES_URL kada je postavljen, da slike/fajlovi učitavaju s ispravnog hosta.
- * Za img src, download linkove, itd.
+ * Puni URL za fajl: backendRoot + /uploads/ + path iz baze.
+ * Prefiks "uploads" je OBAVEZAN – API URL je .../backend, na to ide /uploads pa putanja iz baze.
+ * Path iz baze može biti "uploads/2026/03/xxx" ili "2026/03/xxx" – normaliziramo da ne dupliciramo "uploads".
  */
 export function getUploadUrl(path: string | undefined | null): string {
   if (!path) return '';
   if (path.startsWith('http')) return path;
-  const base = getFilesBase();
+  const base = getBackendRoot();
   let normalized = path.replace(/^\//, '');
-  // Base završava s /uploads, path može biti "uploads/..." ili "avatars/..." – izbjegni dupli "uploads/"
-  if (base && normalized.toLowerCase().startsWith('uploads/')) {
-    normalized = normalized.slice(7); // "uploads/".length
-  }
-  return base ? `${base}/${normalized}` : `/${path.replace(/^\//, '')}`;
+  if (normalized.toLowerCase().startsWith('uploads/')) normalized = normalized.slice(8);
+  const uploadsPath = `uploads/${normalized}`;
+  return base ? `${base}/${uploadsPath}` : `/${uploadsPath}`;
 }

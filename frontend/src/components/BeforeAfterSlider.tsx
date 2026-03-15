@@ -8,6 +8,10 @@ interface BeforeAfterSliderProps {
   aspectRatio?: number;
 }
 
+/**
+ * Before/After slider: vertikalna linija (handle) se pomiče lijevo/desno.
+ * "After" slika je fiksirana (clip se širi/sužava), bez klizanja jedne preko druge.
+ */
 export function BeforeAfterSlider({ beforeSrc, afterSrc, alt = '', aspectRatio = 4 / 3 }: BeforeAfterSliderProps) {
   const [position, setPosition] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,8 +49,6 @@ export function BeforeAfterSlider({ beforeSrc, afterSrc, alt = '', aspectRatio =
     [handleMove],
   );
 
-  const afterImageWidth = position > 0 ? 10000 / position + '%' : '100%';
-
   return (
     <Box
       ref={containerRef}
@@ -63,21 +65,36 @@ export function BeforeAfterSlider({ beforeSrc, afterSrc, alt = '', aspectRatio =
       sx={{ touchAction: 'none' }}
       aspectRatio={aspectRatio}
     >
-      {/* Before (background) */}
+      {/* Before – cijela slika u pozadini */}
       <Box position="absolute" inset={0}>
         <Image src={beforeSrc} alt={alt} w="full" h="full" objectFit="cover" />
       </Box>
-      {/* After (clipped) */}
-      <Box position="absolute" top={0} left={0} w={`${position}%`} h="full" overflow="hidden">
-        <Image
-          src={afterSrc}
-          alt={alt}
+      {/* After – samo clip po širini (position%); slika fiksirana backgroundom da ne klizi */}
+      <Box
+        position="absolute"
+        top={0}
+        left={0}
+        w={`${position}%`}
+        h="full"
+        overflow="hidden"
+        zIndex={1}
+      >
+        <Box
+          position="absolute"
+          top={0}
+          left={0}
           h="full"
-          objectFit="cover"
-          style={{ width: afterImageWidth, minWidth: '100%' }}
+          sx={{
+            width: position > 0 ? `${10000 / position}%` : '100%',
+            backgroundImage: `url(${afterSrc})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'left center',
+            backgroundRepeat: 'no-repeat',
+          }}
+          aria-hidden
         />
       </Box>
-      {/* Slider handle */}
+      {/* Slider handle – vertikalna linija */}
       <Box
         position="absolute"
         top={0}

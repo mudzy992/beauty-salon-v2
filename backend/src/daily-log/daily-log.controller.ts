@@ -44,8 +44,14 @@ export class DailyLogController {
 
   @Get('before-after')
   @Public()
-  getBeforeAfterPairs() {
-    return this.dailyLog.findBeforeAfterPairs();
+  getBeforeAfterPairs(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    return this.dailyLog.findBeforeAfterPairs({
+      limit: limit != null ? parseInt(limit, 10) : undefined,
+      offset: offset != null ? parseInt(offset, 10) : undefined,
+    });
   }
 
   @Get(':id')

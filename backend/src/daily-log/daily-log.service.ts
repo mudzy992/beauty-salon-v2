@@ -172,20 +172,24 @@ export class DailyLogService {
     await this.ensureStylistAccess(stylistProfileId, user);
   }
 
-  /** Javni endpoint: parovi before/after slika iz završenih zapisa (Zadovoljni klijenti). */
-  async findBeforeAfterPairs(): Promise<
-    { id: string; before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }; after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null } }[]
+  /** Javni endpoint: parovi before/after slika iz završenih zapisa (Zadovoljni klijenti). Paginacija: limit (1–50), offset u broju zapisa. */
+  async findBeforeAfterPairs(opts?: { limit?: number; offset?: number }): Promise<
+    { items: { id: string; before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }; after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null } }[]; hasMore: boolean; nextOffset: number }
   > {
+    const limit = Math.min(Math.max(opts?.limit ?? 20, 1), 50);
+    const offset = Math.max(opts?.offset ?? 0, 0);
     const entries = await this.prisma.dailyLogEntry.findMany({
       where: { status: 'COMPLETED' },
       include: {
         images: { include: { upload: true }, orderBy: { sortOrder: 'asc' } },
       },
       orderBy: { completedAt: 'desc' },
-      take: 50,
+      skip: offset,
+      take: limit + 10,
     });
     const pairs: { id: string; before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }; after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null } }[] = [];
     for (const entry of entries) {
+      if (pairs.length >= limit) break;
       const beforeImg = entry.images.find((i) => i.isBefore);
       const afterImg = entry.images.find((i) => i.isAfter);
       if (beforeImg?.upload && afterImg?.upload) {
@@ -204,6 +208,10 @@ export class DailyLogService {
         });
       }
     }
-    return pairs;
+    return {
+      items: pairs,
+      hasMore: pairs.length >= limit,
+      nextOffset: offset + entries.length,
+    };
   }
 }

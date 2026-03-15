@@ -16,6 +16,7 @@ import PublicBlogPost from './pages/public/PublicBlogPost';
 import PublicGallery from './pages/public/PublicGallery';
 import PublicContact from './pages/public/PublicContact';
 import PublicReserve from './pages/public/PublicReserve';
+import PublicSatisfiedClients from './pages/public/PublicSatisfiedClients';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Salon from './pages/Salon';
@@ -46,6 +47,7 @@ function AppRoutes() {
         <Route path="galerija" element={<PublicGallery />} />
         <Route path="kontakt" element={<PublicContact />} />
         <Route path="rezervacija" element={<PublicReserve />} />
+        <Route path="zadovoljni-klijenti" element={<PublicSatisfiedClients />} />
       </Route>
       <Route
         path="/admin"
