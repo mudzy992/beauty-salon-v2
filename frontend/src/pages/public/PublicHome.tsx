@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -12,6 +12,7 @@ import {
   Image,
   Icon,
   Spinner,
+  Link,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
@@ -23,6 +24,40 @@ import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 
 const MotionBox = motion(Box as any);
 const MotionFlex = motion(Flex as any);
+
+/** Defaultni parovi prije/poslije (s interneta) dok aplikacija nema dovoljno vlastitih. */
+const DEFAULT_BEFORE_AFTER_PAIRS: BeforeAfterPair[] = [
+  {
+    id: 'default-1',
+    before: { pathOriginal: 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=400&q=80', pathMedium: null, pathThumb: null },
+    after: { pathOriginal: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80', pathMedium: null, pathThumb: null },
+  },
+  {
+    id: 'default-2',
+    before: { pathOriginal: 'https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?w=400&q=80', pathMedium: null, pathThumb: null },
+    after: { pathOriginal: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=400&q=80', pathMedium: null, pathThumb: null },
+  },
+  {
+    id: 'default-3',
+    before: { pathOriginal: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=400&q=80', pathMedium: null, pathThumb: null },
+    after: { pathOriginal: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80', pathMedium: null, pathThumb: null },
+  },
+  {
+    id: 'default-4',
+    before: { pathOriginal: 'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400&q=80', pathMedium: null, pathThumb: null },
+    after: { pathOriginal: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=400&q=80', pathMedium: null, pathThumb: null },
+  },
+  {
+    id: 'default-5',
+    before: { pathOriginal: 'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=400&q=80', pathMedium: null, pathThumb: null },
+    after: { pathOriginal: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&q=80', pathMedium: null, pathThumb: null },
+  },
+];
+
+/** Vraća puni URL: ako je path već apsolutan (http), vraća ga; inače getUploadUrl. */
+function getImageUrl(path: string): string {
+  return path.startsWith('http') ? path : getUploadUrl(path);
+}
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -55,6 +90,7 @@ export default function PublicHome() {
   const [beforeAfterPairs, setBeforeAfterPairs] = useState<BeforeAfterPair[]>([]);
   const [beforeAfterLoading, setBeforeAfterLoading] = useState(true);
   const [featuredReview, setFeaturedReview] = useState<FeaturedReview | null>(null);
+  const [featuredPairIndex, setFeaturedPairIndex] = useState(0);
 
   useEffect(() => {
     api
@@ -62,7 +98,7 @@ export default function PublicHome() {
       .then((r) => {
         const list = Array.isArray(r.data?.items) ? r.data.items : [];
         const shuffled = [...list].sort(() => Math.random() - 0.5);
-        setBeforeAfterPairs(shuffled.slice(0, 3));
+        setBeforeAfterPairs(shuffled.slice(0, 6));
       })
       .catch(() => setBeforeAfterPairs([]))
       .finally(() => setBeforeAfterLoading(false));
@@ -71,6 +107,12 @@ export default function PublicHome() {
   useEffect(() => {
     api.get<FeaturedReview | null>('/api/reviews/featured/random').then((r) => setFeaturedReview(r.data ?? null)).catch(() => setFeaturedReview(null));
   }, []);
+
+  /** Parovi za prikaz: iz API-ja ako ima dovoljno (≥5), inače dopunjeno defaultima s interneta. */
+  const displayPairs = useMemo(() => {
+    if (beforeAfterPairs.length >= 5) return beforeAfterPairs.slice(0, 6);
+    return [...beforeAfterPairs, ...DEFAULT_BEFORE_AFTER_PAIRS].slice(0, 6);
+  }, [beforeAfterPairs]);
 
   const heroImage = getSetting('public_hero_image', 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=2000');
   const heroTitle = getSetting('public_hero_title', 'Otkrijte Svoju\\nSavršenu Ljepotu');
@@ -358,97 +400,140 @@ export default function PublicHome() {
         </Container>
       </Box>
 
-      {/* ZADOVOLJNI KLIJENTI – 1 featured + CTA */}
-      <Box py={24} bg="gray.50">
-        <Container maxW="container.xl">
-          <MotionBox
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={staggerContainer}
-            textAlign="center"
-            mb={12}
-          >
-            <Text color="brand.500" fontWeight="bold" textTransform="uppercase" letterSpacing="widest" mb={2}>
-              Transformacije
-            </Text>
-            <Heading size="2xl" color="brand.900">
-              Zadovoljni klijenti
-            </Heading>
-            <Text color="gray.600" mt={2} maxW="xl" mx="auto">
-              Ono što naši klijenti kažu o nama i prije/poslije rezultati.
-            </Text>
-          </MotionBox>
-
-          {(beforeAfterLoading && !featuredReview) ? (
-            <Flex justify="center" py={12}>
-              <Spinner size="xl" color="brand.500" thickness="4px" />
+      {/* ZADOVOLJNI KLIJENTI – V3 cinematic traka; defaultne slike s interneta dok nema dovoljno iz aplikacije */}
+      <Box
+        py={{ base: 20, md: 28 }}
+        position="relative"
+        overflow="hidden"
+        bg="brand.900"
+        _before={{
+          content: '""',
+          position: 'absolute',
+          inset: 0,
+          bgGradient: 'radial(ellipse 80% 50% at 50% 20%, rgba(154,123,40,0.08), transparent 60%)',
+          pointerEvents: 'none',
+        }}
+      >
+        <Container maxW="container.xl" position="relative" zIndex={1}>
+          {(beforeAfterLoading && !featuredReview && beforeAfterPairs.length === 0) ? (
+            <Flex justify="center" py={16}>
+              <Spinner size="xl" color="brand.400" thickness="4px" />
             </Flex>
           ) : (
-            <MotionBox
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={fadeUp}
-              as={Flex}
-              direction={{ base: 'column', lg: 'row' }}
-              gap={8}
-              align="center"
-              justify="center"
-              bg="white"
-              rounded="2xl"
-              shadow="lg"
-              overflow="hidden"
-              p={{ base: 6, md: 10 }}
-              maxW="4xl"
-              mx="auto"
-            >
-              {beforeAfterPairs.length > 0 && (
-                <Box flex="0 0 280px" w="full" maxW="280px" rounded="xl" overflow="hidden" bg="gray.100">
-                  <BeforeAfterSlider
-                    beforeSrc={getUploadUrl(beforeAfterPairs[0].before.pathMedium ?? beforeAfterPairs[0].before.pathThumb ?? beforeAfterPairs[0].before.pathOriginal)}
-                    afterSrc={getUploadUrl(beforeAfterPairs[0].after.pathMedium ?? beforeAfterPairs[0].after.pathThumb ?? beforeAfterPairs[0].after.pathOriginal)}
-                    alt="Prije / Poslije"
-                    aspectRatio={1}
-                  />
-                </Box>
+            <MotionBox initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}>
+              {/* Traka: [mala] [mala] [VELIKA] [mala] [mala] — displayPairs = API + defaulti ako treba */}
+              {displayPairs.length > 0 && (
+                <Flex
+                  align="center"
+                  justify="center"
+                  gap={{ base: 2, sm: 4 }}
+                  mb={{ base: 12, md: 16 }}
+                  flexWrap={{ base: 'wrap', lg: 'nowrap' }}
+                >
+                  {[0, 1, 2, 3, 4].map((i) => {
+                    const pair = displayPairs[i];
+                    if (!pair) return null;
+                    const isCenter = i === 2;
+                    if (isCenter) {
+                      const idx = Math.min(featuredPairIndex, displayPairs.length - 1);
+                      const mainPair = displayPairs[idx] ?? displayPairs[0];
+                      return (
+                        <Box
+                          key={`center-${mainPair.id}`}
+                          w={{ base: '100%', sm: '280px', md: '320px', lg: '380px' }}
+                          flexShrink={0}
+                          rounded="2xl"
+                          overflow="hidden"
+                          boxShadow="0 30px 60px -15px rgba(0,0,0,0.6)"
+                          borderWidth="2px"
+                          borderColor="brand.500"
+                        >
+                          <BeforeAfterSlider
+                            beforeSrc={getImageUrl(mainPair.before.pathMedium ?? mainPair.before.pathThumb ?? mainPair.before.pathOriginal)}
+                            afterSrc={getImageUrl(mainPair.after.pathMedium ?? mainPair.after.pathThumb ?? mainPair.after.pathOriginal)}
+                            alt="Transformacija"
+                            aspectRatio={1}
+                          />
+                        </Box>
+                      );
+                    }
+                    const thumbIndex = i < 2 ? i : i === 3 ? 3 : 4;
+                    const pairForThumb = displayPairs[thumbIndex];
+                    if (!pairForThumb) return null;
+                    const isSelected = featuredPairIndex === thumbIndex;
+                    return (
+                      <Box
+                        key={pairForThumb.id}
+                        w={{ base: '72px', sm: '88px', md: '100px' }}
+                        h={{ base: '72px', sm: '88px', md: '100px' }}
+                        rounded="xl"
+                        overflow="hidden"
+                        flexShrink={0}
+                        cursor="pointer"
+                        onClick={() => setFeaturedPairIndex(thumbIndex)}
+                        borderWidth="2px"
+                        borderColor={isSelected ? 'brand.400' : 'whiteAlpha.200'}
+                        _hover={{ borderColor: 'brand.400', transform: 'scale(1.05)' }}
+                        transition="all 0.2s"
+                      >
+                        <Image
+                          src={getImageUrl(pairForThumb.after.pathThumb ?? pairForThumb.after.pathMedium ?? pairForThumb.after.pathOriginal)}
+                          alt=""
+                          w="full"
+                          h="full"
+                          objectFit="cover"
+                        />
+                      </Box>
+                    );
+                  })}
+                </Flex>
               )}
-              <Flex flex={1} direction="column" align={{ base: 'center', lg: 'flex-start' }} textAlign={{ base: 'center', lg: 'left' }}>
-                {featuredReview ? (
-                  <>
-                    <Flex gap={1} mb={3} justify={{ base: 'center', lg: 'flex-start' }}>
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <Icon key={i} as={StarIcon} color={i <= featuredReview.serviceRating ? 'brand.400' : 'gray.200'} w={5} h={5} />
-                      ))}
-                    </Flex>
-                    <Text fontSize="lg" fontStyle="italic" color="gray.700" mb={4}>
-                      „{featuredReview.comment || 'Odličan servis i atmosfera, preporučujem!'}"
-                    </Text>
-                    <Text fontWeight="semibold" color="brand.700">
-                      — {featuredReview.user?.firstName
-                        ? `${featuredReview.user.firstName}${featuredReview.user.lastName ? ` ${featuredReview.user.lastName[0]}.` : ''}`
-                        : 'Zadovoljni klijent'}
-                      {featuredReview.service?.name && (
-                        <Text as="span" fontWeight="normal" color="gray.500" fontSize="sm" ml={2}>
-                          ({featuredReview.service.name})
-                        </Text>
-                      )}
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Text fontSize="lg" color="gray.600" mb={2}>
-                      Naši klijenti dijele iskustva i transformacije. Pogledajte galeriju prije/poslije i recenzije.
-                    </Text>
-                    <Text fontWeight="semibold" color="brand.700">
-                      Budite sljedeći zadovoljni klijent.
-                    </Text>
-                  </>
+              {/* Citat ispod trake */}
+              <Box textAlign="center" maxW="3xl" mx="auto">
+                {featuredReview && (
+                  <Flex justify="center" gap={1} mb={4}>
+                    {[1, 2, 3, 4, 5].map((j) => (
+                      <Icon key={j} as={StarIcon} color={j <= featuredReview.serviceRating ? 'brand.300' : 'whiteAlpha.300'} w={5} h={5} />
+                    ))}
+                  </Flex>
                 )}
-                <Button as={RouterLink} to="/zadovoljni-klijenti" size="lg" colorScheme="brand" mt={6} alignSelf={{ base: 'center', lg: 'flex-start' }}>
-                  Pogledaj sve transformacije
-                </Button>
-              </Flex>
+                <Text
+                  as="blockquote"
+                  fontSize={{ base: '1.35rem', md: '1.75rem', lg: '2rem' }}
+                  color="white"
+                  fontStyle="italic"
+                  fontFamily="Georgia, serif"
+                  lineHeight="1.4"
+                  mb={4}
+                >
+                  <Text as="span" color="brand.400">„</Text>
+                  {featuredReview?.comment || 'Naši klijenti dijele iskustva i transformacije. Pogledajte galeriju — budite sljedeći koji će nas preporučiti.'}
+                  <Text as="span" color="brand.400">"</Text>
+                </Text>
+                <Box w="32px" h="1px" bg="brand.500" mx="auto" mb={3} />
+                <Text color="brand.200" fontSize="sm" fontWeight="500">
+                  — {featuredReview?.user?.firstName
+                    ? `${featuredReview.user.firstName}${featuredReview.user.lastName ? ` ${featuredReview.user.lastName[0]}.` : ''}`
+                    : 'Zadovoljni klijent'}
+                  {featuredReview?.service?.name && (
+                    <Text as="span" color="brand.400" fontWeight="400"> · {featuredReview.service.name}</Text>
+                  )}
+                </Text>
+                <Link
+                  as={RouterLink}
+                  to="/zadovoljni-klijenti"
+                  display="inline-flex"
+                  alignItems="center"
+                  gap={2}
+                  mt={6}
+                  color="brand.300"
+                  fontSize="md"
+                  fontWeight="500"
+                  _hover={{ color: 'white' }}
+                >
+                  Pogledaj sve transformacije →
+                </Link>
+              </Box>
             </MotionBox>
           )}
         </Container>

@@ -21,7 +21,7 @@ import {
   Text,
   Collapse,
 } from '@chakra-ui/react';
-import { HamburgerIcon, ChevronDownIcon, ChevronRightIcon } from '@chakra-ui/icons';
+import { HamburgerIcon, ChevronDownIcon, ChevronRightIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 
@@ -278,7 +278,20 @@ export default function DashboardLayout() {
               <BreadcrumbLink isCurrentPage>{currentLabel}</BreadcrumbLink>
             </BreadcrumbItem>
           </Breadcrumb>
-          <Flex align="center" gap={2}>
+          <Flex align="center" gap={3}>
+            <Link
+              as={RouterLink}
+              to="/"
+              fontSize="sm"
+              color="brand.600"
+              _hover={{ color: 'brand.700', textDecoration: 'underline' }}
+              display="flex"
+              alignItems="center"
+              gap={1}
+            >
+              <ExternalLinkIcon boxSize={4} />
+              Pogledaj stranicu
+            </Link>
             <Text fontSize="sm" color="gray.600">
               {user?.username}
             </Text>
