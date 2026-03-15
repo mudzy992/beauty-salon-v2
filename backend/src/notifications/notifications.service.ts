@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import Expo from 'expo-server-sdk';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
@@ -110,6 +111,15 @@ export class NotificationsService {
     });
   }
 
+  async registerPushToken(userId: string, token: string, platform: string) {
+    await this.prisma.pushToken.upsert({
+      where: { token },
+      create: { userId, token, platform },
+      update: { userId, platform, updatedAt: new Date() },
+    });
+    return { ok: true };
+  }
+
   private async getEffectivePreferences(
     userId: string,
     type: NotificationType,
@@ -129,16 +139,30 @@ export class NotificationsService {
     body: string,
     data?: Record<string, unknown>,
   ): Promise<void> {
-    const tokens = await this.prisma.pushToken.findMany({
+    const rows = await this.prisma.pushToken.findMany({
       where: { userId },
       select: { token: true },
     });
+    const tokens = rows.map((r) => r.token).filter((t) => Expo.isExpoPushToken(t));
     if (tokens.length === 0) return;
-    // FCM: ako je konfigurisan firebase-admin, pošalji; inače samo log (za development).
-    const fcmKey = this.config.get<string>('FCM_PROJECT_ID') || this.config.get<string>('GOOGLE_APPLICATION_CREDENTIALS');
-    if (fcmKey) {
-      // TODO: integracija firebase-admin.getMessaging().sendEachForMulticast(...)
-      // Za sada preskačemo stvarni push ako nije postavljen poseban FCM modul.
+
+    const expo = new Expo({
+      accessToken: this.config.get<string>('EXPO_ACCESS_TOKEN'),
+    });
+    const messages = tokens.map((token) => ({
+      to: token,
+      title,
+      body,
+      data: data ?? undefined,
+      sound: 'default' as const,
+    }));
+    const chunks = expo.chunkPushNotifications(messages);
+    for (const chunk of chunks) {
+      try {
+        await expo.sendPushNotificationsAsync(chunk);
+      } catch (err) {
+        console.error('Expo push send error:', err);
+      }
     }
   }
 

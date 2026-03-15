@@ -3,10 +3,19 @@ import { NotificationsService } from './notifications.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { SetPreferenceDto } from './dto/set-preference.dto';
+import { RegisterPushTokenDto } from './dto/register-push-token.dto';
 
 @Controller('api/notifications')
 export class NotificationsController {
   constructor(private readonly notifications: NotificationsService) {}
+
+  @Post('push-token')
+  registerPushToken(
+    @Body() dto: RegisterPushTokenDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.notifications.registerPushToken(user.sub, dto.token, dto.platform);
+  }
 
   @Get()
   findMine(
