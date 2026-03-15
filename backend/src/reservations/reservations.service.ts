@@ -472,15 +472,46 @@ export class ReservationsService {
     if (r.confirmedStylistId !== stylistProfileId) {
       throw new ForbiddenException('Samo potvrđeni stilist može označiti rezervaciju kao završenu.');
     }
-    const allowed = [RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.ATTENDANCE_CONFIRMED, RESERVATION_STATUS.IN_PROGRESS];
-    if (!allowed.includes(r.status as any)) {
-      throw new BadRequestException('Rezervacija mora biti potvrđena ili u toku da bi se označila završenom.');
+    if (r.status !== RESERVATION_STATUS.ATTENDANCE_CONFIRMED) {
+      throw new BadRequestException('Samo rezervacije s potvrđenim dolaskom klijenta mogu se označiti završenim.');
     }
     await this.prisma.reservation.update({
       where: { id: reservationId },
       data: { status: RESERVATION_STATUS.COMPLETED },
     });
     return this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
+  }
+
+  /** Stilist otkazuje rezervaciju (CONFIRMED ili IN_PROGRESS) uz obrazloženje. */
+  async stylistCancel(reservationId: string, userId: string, dto: { cancelReason?: string }) {
+    const stylistProfileId = await this.getStylistProfileIdByUserId(userId);
+    if (!stylistProfileId) throw new ForbiddenException('Nemate profil stilista.');
+    const r = await this.prisma.reservation.findUnique({ where: { id: reservationId } });
+    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (r.confirmedStylistId !== stylistProfileId) {
+      throw new ForbiddenException('Samo potvrđeni stilist može otkazati ovu rezervaciju.');
+    }
+    const cancellableByStylist = [RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.IN_PROGRESS];
+    if (!cancellableByStylist.includes(r.status as any)) {
+      throw new BadRequestException(
+        'Samo potvrđene ili u toku rezervacije mogu se otkazati. Završene označite preko "Završi i upiši u dnevnu knjigu".',
+      );
+    }
+    const reason = (dto?.cancelReason ?? '').trim();
+    if (!reason) throw new BadRequestException('Obrazloženje otkazivanja je obavezno.');
+    await this.prisma.reservation.update({
+      where: { id: reservationId },
+      data: {
+        status: RESERVATION_STATUS.CANCELLED_BY_STYLISTS,
+        cancelledAt: new Date(),
+        cancelReason: reason,
+      },
+    });
+    const cancelled = await this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
+    this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CANCELLED, cancelled);
+    this.events.emitToUser(r.clientId, SOCKET_EVENTS.RESERVATION_UPDATED, cancelled);
+    this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, { serviceId: r.serviceId, date: r.reservationDate });
+    return cancelled;
   }
 
   private async getStylistProfileIdByUserId(userId: string): Promise<string | null> {
