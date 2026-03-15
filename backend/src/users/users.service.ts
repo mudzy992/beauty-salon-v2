@@ -180,7 +180,12 @@ export class UsersService {
     });
   }
 
-  async getClientAnalytics(userId: string, roles: string[]) {
+  async getClientAnalytics(
+    userId: string,
+    roles: string[],
+    fromDate?: string,
+    toDate?: string,
+  ) {
     this.requireAdminOrOwner(roles);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -192,9 +197,24 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
 
+    const dateFilter =
+      fromDate && toDate
+        ? {
+            reservationDate: { gte: new Date(fromDate), lte: new Date(toDate) } as const,
+          }
+        : {};
+    const dailyLogDateFilter =
+      fromDate && toDate
+        ? { date: { gte: new Date(fromDate), lte: new Date(toDate) } as const }
+        : {};
+    const reviewDateFilter =
+      fromDate && toDate
+        ? { createdAt: { gte: new Date(fromDate), lte: new Date(toDate) } as const }
+        : {};
+
     const [reservations, reviews, cancellationData, manualEntries] = await Promise.all([
       this.prisma.reservation.findMany({
-        where: { clientId: userId },
+        where: { clientId: userId, ...dateFilter },
         include: {
           service: { select: { id: true, name: true, price: true } },
           confirmedStylist: { include: { user: { select: { firstName: true, lastName: true, username: true } } } },
@@ -202,7 +222,7 @@ export class UsersService {
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.review.findMany({
-        where: { userId },
+        where: { userId, ...reviewDateFilter },
         include: {
           service: { select: { name: true } },
           stylist: { include: { user: { select: { firstName: true, lastName: true, username: true } } } },
@@ -211,7 +231,7 @@ export class UsersService {
       }),
       this.prisma.clientCancellationCount.findUnique({ where: { userId } }),
       this.prisma.dailyLogEntry.findMany({
-        where: { clientId: userId },
+        where: { clientId: userId, ...dailyLogDateFilter },
         include: {
           service: { select: { id: true, name: true, price: true } },
           stylistProfile: { include: { user: { select: { firstName: true, lastName: true, username: true } } } },
@@ -253,6 +273,8 @@ export class UsersService {
 
     return {
       user,
+      fromDate: fromDate ?? null,
+      toDate: toDate ?? null,
       stats: {
         totalReservations,
         completedReservations,

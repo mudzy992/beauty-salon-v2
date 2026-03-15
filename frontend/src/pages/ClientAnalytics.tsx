@@ -7,6 +7,7 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
   ModalCloseButton, useDisclosure, VStack, Progress, IconButton,
   Tabs, TabList, TabPanels, TabPanel, Tab,
+  FormControl, FormLabel,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { SearchIcon, StarIcon, ViewIcon, WarningIcon, ArrowBackIcon, ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
@@ -28,6 +29,8 @@ interface ManualEntry {
 }
 
 interface ClientAnalyticsData {
+  fromDate: string | null;
+  toDate: string | null;
   user: {
     id: string; username: string; email: string | null; firstName: string | null;
     lastName: string | null; phone: string | null; isActive: boolean; createdAt: string;
@@ -78,6 +81,8 @@ export default function ClientAnalytics() {
   const [analytics, setAnalytics] = useState<ClientAnalyticsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [listLoading, setListLoading] = useState(true);
+  const [dateFrom, setDateFrom] = useState(searchParams.get('fromDate') ?? '');
+  const [dateTo, setDateTo] = useState(searchParams.get('toDate') ?? '');
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [detailReservation, setDetailReservation] = useState<ClientAnalyticsData['reservations'][0] | null>(null);
@@ -93,7 +98,9 @@ export default function ClientAnalytics() {
 
   useEffect(() => {
     const uid = searchParams.get('userId');
-    if (uid && !analytics) selectUser(uid);
+    const from = searchParams.get('fromDate') ?? undefined;
+    const to = searchParams.get('toDate') ?? undefined;
+    if (uid && !analytics) selectUser(uid, from, to);
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filteredUsers = useMemo(() => {
@@ -113,12 +120,18 @@ export default function ClientAnalytics() {
 
   useEffect(() => { setPage(0); }, [search]);
 
-  const selectUser = async (userId: string) => {
+  const selectUser = async (userId: string, from?: string, to?: string) => {
     setSelectedUserId(userId);
-    setSearchParams({ userId });
+    if (from) setDateFrom(from);
+    if (to) setDateTo(to);
+    const params: Record<string, string> = { userId };
+    if (from) params.fromDate = from;
+    if (to) params.toDate = to;
+    setSearchParams(params);
     setLoading(true);
     try {
-      const { data } = await api.get<ClientAnalyticsData>(`/api/users/${userId}/analytics`);
+      const queryParams = (from && to) ? { fromDate: from, toDate: to } : {};
+      const { data } = await api.get<ClientAnalyticsData>(`/api/users/${userId}/analytics`, { params: queryParams });
       setAnalytics(data);
     } catch {
       toast({ title: 'Greška pri učitavanju analitike', status: 'error', isClosable: true });
@@ -126,6 +139,16 @@ export default function ClientAnalytics() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyDateFilter = () => {
+    if (selectedUserId && dateFrom && dateTo) selectUser(selectedUserId, dateFrom, dateTo);
+  };
+
+  const clearDateFilter = () => {
+    setDateFrom('');
+    setDateTo('');
+    if (selectedUserId) selectUser(selectedUserId);
   };
 
   const goBack = () => { setSelectedUserId(null); setAnalytics(null); setSearchParams({}); };
@@ -222,6 +245,28 @@ export default function ClientAnalytics() {
 
       {analytics && !loading && (
         <>
+          <Flex mb={4} gap={3} wrap="wrap" align="flex-end">
+            <FormControl w="auto" maxW="160px">
+              <FormLabel fontSize="sm">Od datuma</FormLabel>
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} size="sm" />
+            </FormControl>
+            <FormControl w="auto" maxW="160px">
+              <FormLabel fontSize="sm">Do datuma</FormLabel>
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} size="sm" />
+            </FormControl>
+            <Button size="sm" colorScheme="brand" onClick={applyDateFilter} isDisabled={!dateFrom || !dateTo}>
+              Primijeni period
+            </Button>
+            <Button size="sm" variant="outline" onClick={clearDateFilter}>
+              Cijeli period
+            </Button>
+            {(analytics.fromDate || analytics.toDate) && (
+              <Text fontSize="sm" color="gray.500" alignSelf="center">
+                Prikaz: {analytics.fromDate} – {analytics.toDate}
+              </Text>
+            )}
+          </Flex>
+
           {/* Client header */}
           <Card mb={6} bg="white">
             <CardBody>

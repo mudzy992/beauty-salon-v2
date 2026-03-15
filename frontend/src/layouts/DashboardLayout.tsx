@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Outlet, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -18,49 +19,59 @@ import {
   VStack,
   Link,
   Text,
+  Collapse,
 } from '@chakra-ui/react';
-import { HamburgerIcon } from '@chakra-ui/icons';
+import { HamburgerIcon, ChevronDownIcon, ChevronRightIcon } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 
-// Grupisana navigacija: sekcija (opciono) + linkovi
-const navSections: { sectionKey?: string; items: { path: string; labelKey: string }[] }[] = [
-  { items: [{ path: '/admin', labelKey: 'nav.home' }] },
+type NavItem = { path: string; labelKey: string };
+type NavEntry =
+  | { type: 'link'; path: string; labelKey: string }
+  | { type: 'submenu'; labelKey: string; children: NavItem[] };
+
+const navConfig: NavEntry[] = [
+  { type: 'link', path: '/admin', labelKey: 'nav.home' },
   {
-    sectionKey: 'nav.sectionOperational',
-    items: [
+    type: 'submenu',
+    labelKey: 'nav.sectionOperational',
+    children: [
       { path: '/admin/reservations', labelKey: 'nav.reservations' },
       { path: '/admin/daily-log', labelKey: 'nav.dailyLog' },
     ],
   },
   {
-    sectionKey: 'nav.sectionSalon',
-    items: [
+    type: 'submenu',
+    labelKey: 'nav.sectionSalon',
+    children: [
       { path: '/admin/salon', labelKey: 'nav.salon' },
       { path: '/admin/services', labelKey: 'nav.services' },
       { path: '/admin/stylists', labelKey: 'nav.stylists' },
     ],
   },
-  { items: [{ path: '/admin/finance', labelKey: 'nav.finance' }] },
+  { type: 'link', path: '/admin/finance', labelKey: 'nav.finance' },
   {
-    sectionKey: 'nav.sectionContent',
-    items: [
+    type: 'submenu',
+    labelKey: 'nav.sectionContent',
+    children: [
       { path: '/admin/blog', labelKey: 'nav.blog' },
       { path: '/admin/gallery', labelKey: 'nav.gallery' },
       { path: '/admin/reviews', labelKey: 'nav.reviews' },
     ],
   },
   {
-    sectionKey: 'nav.sectionPeople',
-    items: [
+    type: 'submenu',
+    labelKey: 'nav.sectionPeople',
+    children: [
       { path: '/admin/users', labelKey: 'nav.users' },
       { path: '/admin/client-analytics', labelKey: 'nav.clientAnalytics' },
     ],
   },
-  { items: [{ path: '/admin/analytics', labelKey: 'nav.analytics' }] },
+  { type: 'link', path: '/admin/analytics', labelKey: 'nav.analytics' },
   {
-    sectionKey: 'nav.sectionSettings',
-    items: [
+    type: 'submenu',
+    labelKey: 'nav.sectionSettings',
+    children: [
       { path: '/admin/settings', labelKey: 'nav.settings' },
       { path: '/admin/notifications', labelKey: 'nav.notifications' },
       { path: '/admin/loyalty', labelKey: 'nav.loyalty' },
@@ -68,39 +79,119 @@ const navSections: { sectionKey?: string; items: { path: string; labelKey: strin
   },
 ];
 
+function isPathInSubmenu(path: string, children: NavItem[]): boolean {
+  return children.some((c) => c.path === path || path.startsWith(c.path + '/'));
+}
+
 function SidebarNav({ onClose }: { onClose?: () => void }) {
   const { t } = useTranslation();
   const location = useLocation();
+  const path = location.pathname;
+
+  const [openKeys, setOpenKeys] = useState<Set<number>>(() => {
+    const initial = new Set<number>();
+    navConfig.forEach((entry, idx) => {
+      if (entry.type === 'submenu' && isPathInSubmenu(path, entry.children)) {
+        initial.add(idx);
+      }
+    });
+    return initial;
+  });
+
+  useEffect(() => {
+    const next = new Set<number>();
+    navConfig.forEach((entry, idx) => {
+      if (entry.type === 'submenu' && isPathInSubmenu(path, entry.children)) {
+        next.add(idx);
+      }
+    });
+    setOpenKeys((prev) => (next.size > 0 ? next : prev));
+  }, [path]);
+
+  const toggle = (idx: number) => {
+    setOpenKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
   return (
-    <VStack align="stretch" spacing={3}>
-      {navSections.map((section, idx) => (
-        <Box key={idx}>
-          {section.sectionKey && (
-            <Text px={4} py={1} fontSize="xs" fontWeight={600} color="gray.500" textTransform="uppercase" letterSpacing="wider">
-              {t(section.sectionKey)}
-            </Text>
-          )}
-          <VStack align="stretch" spacing={0}>
-            {section.items.map((item) => (
-              <Link
-                key={item.path}
-                as={RouterLink}
-                to={item.path}
-                onClick={onClose}
-                px={4}
-                py={2}
-                rounded="md"
-                bg={location.pathname === item.path ? 'brand.100' : 'transparent'}
-                color={location.pathname === item.path ? 'brand.800' : 'gray.700'}
-                _hover={{ bg: 'brand.50' }}
-                fontWeight={location.pathname === item.path ? 600 : 400}
-              >
-                {t(item.labelKey)}
-              </Link>
-            ))}
-          </VStack>
-        </Box>
-      ))}
+    <VStack align="stretch" spacing={0}>
+      {navConfig.map((entry, idx) => {
+        if (entry.type === 'link') {
+          const isActive = path === entry.path;
+          return (
+            <Link
+              key={idx}
+              as={RouterLink}
+              to={entry.path}
+              onClick={onClose}
+              px={4}
+              py={2}
+              rounded="md"
+              mx={1}
+              bg={isActive ? 'brand.100' : 'transparent'}
+              color={isActive ? 'brand.800' : 'gray.700'}
+              _hover={{ bg: 'brand.50' }}
+              fontWeight={isActive ? 600 : 400}
+            >
+              {t(entry.labelKey)}
+            </Link>
+          );
+        }
+        const isOpen = openKeys.has(idx);
+        const hasActiveChild = isPathInSubmenu(path, entry.children);
+        return (
+          <Box key={idx}>
+            <Flex
+              align="center"
+              px={4}
+              py={2}
+              mx={1}
+              rounded="md"
+              cursor="pointer"
+              onClick={() => toggle(idx)}
+              _hover={{ bg: 'brand.50' }}
+              color={hasActiveChild ? 'brand.800' : 'gray.700'}
+              fontWeight={hasActiveChild ? 600 : 400}
+            >
+              {isOpen ? (
+                <ChevronDownIcon boxSize={4} mr={2} />
+              ) : (
+                <ChevronRightIcon boxSize={4} mr={2} />
+              )}
+              <Text as="span">{t(entry.labelKey)}</Text>
+            </Flex>
+            <Collapse in={isOpen} animateOpacity>
+              <VStack align="stretch" spacing={0} pl={6} borderLeft="2px" borderColor="gray.200" ml={4} my={1}>
+                {entry.children.map((item) => {
+                  const isActive = path === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      as={RouterLink}
+                      to={item.path}
+                      onClick={onClose}
+                      px={3}
+                      py={1.5}
+                      rounded="md"
+                      fontSize="sm"
+                      bg={isActive ? 'brand.100' : 'transparent'}
+                      color={isActive ? 'brand.800' : 'gray.600'}
+                      _hover={{ bg: 'brand.50' }}
+                      fontWeight={isActive ? 600 : 400}
+                    >
+                      {t(item.labelKey)}
+                    </Link>
+                  );
+                })}
+              </VStack>
+            </Collapse>
+          </Box>
+        );
+      })}
     </VStack>
   );
 }

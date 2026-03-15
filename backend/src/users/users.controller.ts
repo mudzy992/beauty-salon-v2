@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -41,8 +41,13 @@ export class UsersController {
   @Get(':id/analytics')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  getClientAnalytics(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
-    return this.usersService.getClientAnalytics(id, user.roles);
+  getClientAnalytics(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+  ) {
+    return this.usersService.getClientAnalytics(id, user.roles, fromDate, toDate);
   }
 
   @Post()

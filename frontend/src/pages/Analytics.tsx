@@ -17,6 +17,12 @@ import {
   Th,
   Td,
   Spinner,
+  Flex,
+  Select,
+  Button,
+  Input,
+  FormControl,
+  FormLabel,
 } from '@chakra-ui/react';
 import {
   Bar,
@@ -61,20 +67,42 @@ interface AnalyticsDashboard {
   conversionRate: number | null;
   totalPending: number;
   totalCompleted: number;
+  fromDate: string;
+  toDate: string;
+}
+
+type PeriodPreset = '12' | 'thisMonth' | 'lastMonth' | 'custom';
+
+function getPresetParams(preset: PeriodPreset, customFrom?: string, customTo?: string): Record<string, string> {
+  const now = new Date();
+  if (preset === '12') return { monthsBack: '12' };
+  if (preset === 'thisMonth') {
+    return { year: String(now.getFullYear()), month: String(now.getMonth() + 1) };
+  }
+  if (preset === 'lastMonth') {
+    const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return { year: String(last.getFullYear()), month: String(last.getMonth() + 1) };
+  }
+  if (preset === 'custom' && customFrom && customTo) return { fromDate: customFrom, toDate: customTo };
+  return { monthsBack: '12' };
 }
 
 export default function Analytics() {
   const [data, setData] = useState<AnalyticsDashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<PeriodPreset>('12');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
 
   const load = useCallback(() => {
     setLoading(true);
+    const params = getPresetParams(period, customFrom, customTo);
     api
-      .get<AnalyticsDashboard>('/api/analytics/dashboard')
+      .get<AnalyticsDashboard>('/api/analytics/dashboard', { params })
       .then((res) => setData(res.data))
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, []);
+  }, [period, customFrom, customTo]);
 
   useEffect(() => {
     load();
@@ -101,14 +129,63 @@ export default function Analytics() {
     net: m.income - m.expenses,
   }));
 
+  const periodLabel =
+    data?.fromDate && data?.toDate
+      ? `Za period ${data.fromDate} – ${data.toDate}`
+      : 'Prihod, rashodi, performanse stilista i top usluge';
+
   return (
     <Box>
       <Heading size="lg" mb={2}>
         Analitika
       </Heading>
-      <Text color="gray.600" mb={6}>
-        Prihod, rashodi, performanse stilista i top usluge
-      </Text>
+
+      <Flex direction={{ base: 'column', md: 'row' }} gap={4} mb={6} flexWrap="wrap" align="flex-end">
+        <FormControl w={{ base: '100%', md: 'auto' }}>
+          <FormLabel fontSize="sm">Period</FormLabel>
+          <Select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as PeriodPreset)}
+            w="full"
+            maxW="220px"
+          >
+            <option value="12">Zadnjih 12 mjeseci</option>
+            <option value="thisMonth">Ovaj mjesec</option>
+            <option value="lastMonth">Prošli mjesec</option>
+            <option value="custom">Od datuma – Do datuma</option>
+          </Select>
+        </FormControl>
+        {period === 'custom' && (
+          <>
+            <FormControl w={{ base: '100%', md: 'auto' }}>
+              <FormLabel fontSize="sm">Od</FormLabel>
+              <Input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                maxW="180px"
+              />
+            </FormControl>
+            <FormControl w={{ base: '100%', md: 'auto' }}>
+              <FormLabel fontSize="sm">Do</FormLabel>
+              <Input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                maxW="180px"
+              />
+            </FormControl>
+            <Button colorScheme="brand" onClick={load} isDisabled={!customFrom || !customTo}>
+              Primijeni
+            </Button>
+          </>
+        )}
+        {period !== 'custom' && (
+          <Text color="gray.600" fontSize="sm" alignSelf="center" pb={1}>
+            {periodLabel}
+          </Text>
+        )}
+      </Flex>
 
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={6}>
         <Card>
@@ -125,7 +202,7 @@ export default function Analytics() {
         <Card>
           <CardBody>
             <Stat>
-              <StatLabel>Završene rezervacije (ova godina)</StatLabel>
+              <StatLabel>Završene rezervacije (u periodu)</StatLabel>
               <StatNumber color="green.600">{data.totalCompleted}</StatNumber>
             </Stat>
           </CardBody>
@@ -143,7 +220,7 @@ export default function Analytics() {
       <Card mb={6}>
         <CardBody>
           <Heading size="sm" mb={4}>
-            Prihod i rashodi po mjesecima (zadnjih 12)
+            Prihod i rashodi po mjesecima {data.fromDate && data.toDate ? `(${data.fromDate} – ${data.toDate})` : '(zadnjih 12 mj.)'}
           </Heading>
           <Box h="320px">
             <ResponsiveContainer width="100%" height="100%">
@@ -166,7 +243,7 @@ export default function Analytics() {
         <Card>
           <CardBody>
             <Heading size="sm" mb={3}>
-              Performanse stilista (ova godina)
+              Performanse stilista
             </Heading>
             <Box overflowX="auto">
               <Table size="sm">
@@ -204,7 +281,7 @@ export default function Analytics() {
         <Card>
           <CardBody>
             <Heading size="sm" mb={3}>
-              Top usluge (ova godina)
+              Top usluge
             </Heading>
             <Box overflowX="auto">
               <Table size="sm">

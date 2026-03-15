@@ -32,26 +32,78 @@ export interface AnalyticsDashboard {
   conversionRate: number | null;
   totalPending: number;
   totalCompleted: number;
+  fromDate: string;
+  toDate: string;
+}
+
+export interface AnalyticsDashboardParams {
+  fromDate?: string; // YYYY-MM-DD
+  toDate?: string;
+  year?: number;
+  month?: number; // 1-12
+  monthsBack?: number; // default 12
+}
+
+function toDateOnly(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+/** Iz parametara izračunaj [fromDate, toDate] i listu mjeseci { year, month } za prikaz. */
+function resolveDateRange(params: AnalyticsDashboardParams): {
+  fromDate: Date;
+  toDate: Date;
+  fromDateStr: string;
+  toDateStr: string;
+  months: { year: number; month: number }[];
+} {
+  const now = new Date();
+  let fromDate: Date;
+  let toDate: Date;
+
+  if (params.fromDate && params.toDate) {
+    fromDate = new Date(params.fromDate);
+    toDate = new Date(params.toDate);
+    if (fromDate > toDate) [fromDate, toDate] = [toDate, fromDate];
+  } else if (params.year != null && params.month != null) {
+    const y = Number(params.year);
+    const m = Number(params.month);
+    fromDate = new Date(y, m - 1, 1);
+    toDate = new Date(y, m, 0);
+  } else {
+    const back = Math.min(Number(params.monthsBack) || 12, 60);
+    toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    fromDate = new Date(toDate);
+    fromDate.setMonth(fromDate.getMonth() - back);
+    fromDate.setDate(1);
+  }
+
+  const fromDateStr = toDateOnly(fromDate);
+  const toDateStr = toDateOnly(toDate);
+
+  const months: { year: number; month: number }[] = [];
+  const cur = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+  const end = new Date(toDate.getFullYear(), toDate.getMonth(), 1);
+  while (cur <= end) {
+    months.push({ year: cur.getFullYear(), month: cur.getMonth() + 1 });
+    cur.setMonth(cur.getMonth() + 1);
+  }
+
+  return { fromDate, toDate, fromDateStr, toDateStr, months };
 }
 
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getDashboard(roles: string[]): Promise<AnalyticsDashboard> {
+  async getDashboard(roles: string[], params: AnalyticsDashboardParams = {}): Promise<AnalyticsDashboard> {
     if (!roles.includes('SYSTEM_ADMIN') && !roles.includes('OWNER')) {
       throw new ForbiddenException('Samo admin ili vlasnik mogu pristupiti analitici.');
     }
 
-    const now = new Date();
-    const monthsToFetch = 12;
+    const { fromDate, toDate, fromDateStr, toDateStr, months } = resolveDateRange(params);
     const monthlyFinance: MonthlyFinance[] = [];
 
-    for (let i = 0; i < monthsToFetch; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const year = d.getFullYear();
-      const month = d.getMonth() + 1;
-
+    for (const { year, month } of months) {
       const [incomeBook, expenseBook] = await Promise.all([
         this.prisma.incomeBook.findUnique({
           where: { year_month: { year, month } },
@@ -78,15 +130,14 @@ export class AnalyticsService {
       });
     }
 
-    monthlyFinance.reverse();
-
     const [stylistAgg, topServicesRaw, reservationCounts] = await Promise.all([
-      this.getStylistPerformance(),
-      this.getTopServices(),
+      this.getStylistPerformance(fromDate, toDate),
+      this.getTopServices(fromDate, toDate),
       this.prisma.reservation.groupBy({
         by: ['status'],
         _count: { id: true },
         where: {
+          reservationDate: { gte: fromDate, lte: toDate },
           status: { in: ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED', 'IN_PROGRESS', 'COMPLETED'] },
         },
       }),
@@ -106,14 +157,14 @@ export class AnalyticsService {
       conversionRate: conversionRate != null ? Math.round(conversionRate * 10) / 10 : null,
       totalPending,
       totalCompleted,
+      fromDate: fromDateStr,
+      toDate: toDateStr,
     };
   }
 
-  private async getStylistPerformance(): Promise<StylistPerformance[]> {
-    const startOfYear = new Date(new Date().getFullYear(), 0, 1);
-
+  private async getStylistPerformance(fromDate: Date, toDate: Date): Promise<StylistPerformance[]> {
     const entries = await this.prisma.dailyLogEntry.findMany({
-      where: { status: 'COMPLETED', date: { gte: startOfYear } },
+      where: { status: 'COMPLETED', date: { gte: fromDate, lte: toDate } },
       include: {
         stylistProfile: {
           include: {
@@ -152,16 +203,14 @@ export class AnalyticsService {
     }));
   }
 
-  private async getTopServices(): Promise<TopServiceRow[]> {
-    const startOfYear = new Date(new Date().getFullYear(), 0, 1);
-
+  private async getTopServices(fromDate: Date, toDate: Date): Promise<TopServiceRow[]> {
     const [fromReservations, fromDailyLog] = await Promise.all([
       this.prisma.reservation.findMany({
-        where: { status: 'COMPLETED', reservationDate: { gte: startOfYear } },
+        where: { status: 'COMPLETED', reservationDate: { gte: fromDate, lte: toDate } },
         include: { service: { select: { id: true, name: true, price: true } } },
       }),
       this.prisma.dailyLogEntry.findMany({
-        where: { status: 'COMPLETED', date: { gte: startOfYear } },
+        where: { status: 'COMPLETED', date: { gte: fromDate, lte: toDate } },
         include: { service: { select: { id: true, name: true, price: true } } },
       }),
     ]);
