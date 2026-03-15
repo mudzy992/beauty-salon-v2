@@ -18,7 +18,6 @@ import {
   useToast,
   Badge,
 } from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
 import api from '../api/client';
 
 const LOYALTY_ENABLED_KEY = 'loyalty_enabled';
@@ -34,7 +33,6 @@ interface LoyaltyAccountRow {
 }
 
 export default function Loyalty() {
-  const { t } = useTranslation();
   const toast = useToast();
   const [programEnabled, setProgramEnabled] = useState<boolean>(false);
   const [accounts, setAccounts] = useState<LoyaltyAccountRow[]>([]);

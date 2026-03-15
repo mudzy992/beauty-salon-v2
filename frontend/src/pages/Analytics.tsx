@@ -151,7 +151,7 @@ export default function Analytics() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="label" fontSize={12} />
                 <YAxis fontSize={12} tickFormatter={(v) => `${v} KM`} />
-                <Tooltip formatter={(value: number) => [`${Number(value).toFixed(2)} KM`, '']} />
+                <Tooltip formatter={(value: unknown) => [`${Number(value ?? 0).toFixed(2)} KM`, '']} />
                 <Legend />
                 <Bar dataKey="income" name="Prihod" fill="#38A169" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="expenses" name="Rashodi" fill="#E53E3E" radius={[4, 4, 0, 0]} />
