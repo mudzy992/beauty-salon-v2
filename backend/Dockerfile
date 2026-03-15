@@ -33,4 +33,4 @@ ENV JWT_EXPIRES_IN=7d
 
 EXPOSE 10001
 
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/src/main.js"]
