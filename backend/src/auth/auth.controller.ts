@@ -1,9 +1,14 @@
-import { Body, Controller, Post, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Post, UseInterceptors, UploadedFile, BadRequestException, UseGuards } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 import { Public } from '../common/decorators/public.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { UploadsService } from '../uploads/uploads.service';
 
 const AVATAR_MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -46,5 +51,26 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(
+    @Body() dto: ChangePasswordDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.authService.changePassword(user.sub, dto);
+  }
+
+  @Post('send-verification-email')
+  @UseGuards(JwtAuthGuard)
+  async sendVerificationEmail(@CurrentUser() user: CurrentUserPayload) {
+    return this.authService.sendVerificationEmail(user.sub);
+  }
+
+  @Public()
+  @Post('verify-email')
+  async verifyEmail(@Body() dto: VerifyEmailDto) {
+    return this.authService.verifyEmail(dto.token);
   }
 }

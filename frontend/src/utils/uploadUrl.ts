@@ -1,17 +1,27 @@
 /**
- * Base URL for API (and thus for uploaded files served at /uploads/...).
- * Set VITE_API_URL so image paths resolve to the backend (e.g. http://localhost:10001).
+ * Base URL za uploadane fajlove (slike, PDF).
+ * Koristi VITE_API_FILES_URL ako je postavljen (npr. .../backend/uploads), inače VITE_API_URL.
  */
-const getApiBase = (): string => (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const getFilesBase = (): string => {
+  const filesUrl = (import.meta.env.VITE_API_FILES_URL || '').replace(/\/$/, '');
+  if (filesUrl) return filesUrl;
+  const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+  return apiUrl ? `${apiUrl}/uploads` : '';
+};
 
 /**
- * Returns full URL for an upload path stored in DB (e.g. "uploads/2025/03/xxx.webp").
- * Use for img src, download links, etc. Backend serves these at GET /uploads/...
+ * Vraća puni URL za putanju iz baze (npr. "uploads/2025/03/xxx.webp" ili "avatars/2025/03/xxx.webp").
+ * Koristi prefix VITE_API_FILES_URL kada je postavljen, da slike/fajlovi učitavaju s ispravnog hosta.
+ * Za img src, download linkove, itd.
  */
 export function getUploadUrl(path: string | undefined | null): string {
   if (!path) return '';
   if (path.startsWith('http')) return path;
-  const base = getApiBase();
-  const normalized = path.replace(/^\//, '');
-  return base ? `${base}/${normalized}` : `/${normalized}`;
+  const base = getFilesBase();
+  let normalized = path.replace(/^\//, '');
+  // Base završava s /uploads, path može biti "uploads/..." ili "avatars/..." – izbjegni dupli "uploads/"
+  if (base && normalized.toLowerCase().startsWith('uploads/')) {
+    normalized = normalized.slice(7); // "uploads/".length
+  }
+  return base ? `${base}/${normalized}` : `/${path.replace(/^\//, '')}`;
 }

@@ -22,6 +22,8 @@ model User {
   avatar        String?
   isActive      Boolean   @default(true) @map("is_active")
   isEmailVerified Boolean @default(false) @map("is_email_verified")
+  emailVerificationToken   String?   @map("email_verification_token")
+  emailVerificationExpiresAt DateTime? @map("email_verification_expires_at")
   googleId      String?   @unique @map("google_id")
   facebookId    String?   @unique @map("facebook_id")
   lastLoginAt   DateTime? @map("last_login_at")
