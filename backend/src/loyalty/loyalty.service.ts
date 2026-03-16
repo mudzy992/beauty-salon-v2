@@ -329,7 +329,24 @@ export class LoyaltyService {
       throw new BadRequestException('Nemate dovoljno bodova za odabrani popust.');
     }
 
-    return this.redeemPoints(account.id, neededPoints, `Reservation ${reservationId} (${desiredPercent}%)`);
+    // Upis u loyalty račun i transakciju
+    const updatedAccount = await this.redeemPoints(
+      account.id,
+      neededPoints,
+      `Reservation ${reservationId} (${desiredPercent}%)`,
+    );
+
+    // Informativni upis popusta na rezervaciju (za prikaz u adminu)
+    await this.prisma.reservation.update({
+      where: { id: reservationId },
+      data: {
+        loyaltyDiscountPercent: Math.round(desiredPercent),
+        loyaltyDiscountAmount: desiredDiscountAmount,
+        loyaltyPointsUsed: neededPoints,
+      },
+    });
+
+    return updatedAccount;
   }
 
   async adjustPoints(accountId: string, pointsDelta: number, note?: string) {

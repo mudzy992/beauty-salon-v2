@@ -44,6 +44,18 @@ interface LoyaltyAccountRow {
   _count: { transactions: number };
 }
 
+interface AppSetting {
+  key: string;
+  value: string | null;
+}
+
+interface LoyaltyTierRow {
+  id: string;
+  name: string;
+  minPoints: number;
+  maxDiscountPercent?: number;
+}
+
 export default function Loyalty() {
   const toast = useToast();
   const [programEnabled, setProgramEnabled] = useState<boolean>(false);
@@ -61,9 +73,9 @@ export default function Loyalty() {
   const loadSettings = useCallback(() => {
     setLoadingSettings(true);
     api
-      .get<{ key: string; value: string | null } | { key: string; value: string | null }[]>(`/api/loyalty/settings`)
+      .get<AppSetting[] | AppSetting>(`/api/loyalty/settings`)
       .then((res) => {
-        const list = Array.isArray(res.data) ? res.data : [res.data];
+        const list: AppSetting[] = Array.isArray(res.data) ? res.data : [res.data];
         const enabled = list.find((s) => s.key === LOYALTY_ENABLED_KEY)?.value === 'true';
         setProgramEnabled(enabled);
       })
@@ -201,11 +213,12 @@ export default function Loyalty() {
           {!loadingSettings && (
             <Box mt={4}>
               <Text fontSize="sm" fontWeight="semibold" mb={1}>
-                Osnovne postavke bodovanja
+                Gdje podesiti loyalty pravila
               </Text>
               <Text fontSize="xs" color="gray.600">
-                Detaljna konfiguracija (bodovi po valuti, tierovi, pravila za redeem) se uređuje kroz sistemske postavke
-                pod ključevima koji počinju sa `loyalty_`. Ova stranica prikazuje račune i omogućava ručne akcije.
+                Detaljna konfiguracija (bodovi po valuti, tierovi, pravila za korištenje bodova) se uređuje kroz
+                stranicu Postavke → Sistem → "Loyalty program". Ovdje vidite račune i možete ručno koristiti ili
+                korigovati bodove.
               </Text>
             </Box>
           )}
