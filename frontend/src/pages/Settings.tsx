@@ -161,6 +161,32 @@ const SYSTEM_GROUPS: SettingGroup[] = [
       { key: 'system_app_version', desc: 'Trenutna verzija aplikacije (informativno)', type: 'text', placeholder: '2.0.0' },
     ],
   },
+  {
+    label: 'Loyalty program',
+    prefix: 'loyalty_',
+    description:
+      'Pravila bodovanja, nivoa i korištenja bodova za loyalty program. Ove postavke primjenjuju se globalno na sve klijente.',
+    icon: StarIcon,
+    color: 'green',
+    defaults: [
+      { key: 'loyalty_enabled', desc: 'Loyalty program uključen (osnovni switch je i na stranici Loyalty)', type: 'boolean' },
+      { key: 'loyalty_points_per_currency', desc: 'Broj bodova po 1 KM stvarne cijene usluge', type: 'number', min: 0, max: 100, suffix: 'bodova / KM' },
+      { key: 'loyalty_earn_on_tip', desc: 'Računati bodove i na iznos napojnice (tip)', type: 'boolean' },
+      { key: 'loyalty_min_amount_for_earn', desc: 'Minimalni iznos usluge za dodjelu bodova', type: 'number', min: 0, max: 10000, suffix: 'KM' },
+      { key: 'loyalty_excluded_services', desc: 'JSON lista ID-ova servisa koji su isključeni iz bodovanja', type: 'textarea', placeholder: '["service-id-1","service-id-2"]' },
+      { key: 'loyalty_redeem_enabled', desc: 'Dopustiti korištenje (redeem) bodova', type: 'boolean' },
+      { key: 'loyalty_redeem_rate', desc: 'Informativno: vrijednost 1 boda u KM (trenutno za prikaz / buduće feature-e)', type: 'number', min: 0, max: 10, suffix: 'KM / bod' },
+      { key: 'loyalty_min_points_to_redeem', desc: 'Minimalan broj bodova za jedno korištenje (redeem)', type: 'number', min: 0, max: 100000, suffix: 'bodova' },
+      { key: 'loyalty_max_discount_percent', desc: 'Maksimalni procenat računa koji se može platiti bodovima (za buduću validaciju)', type: 'number', min: 0, max: 100, suffix: '%' },
+      {
+        key: 'loyalty_tiers',
+        desc: 'JSON definicija nivoa (tierova) po ukupnim bodovima (Silver/Gold/Platinum...)',
+        type: 'textarea',
+        placeholder:
+          '[{"id":"silver","name":"Silver","minPoints":0},{"id":"gold","name":"Gold","minPoints":500},{"id":"platinum","name":"Platinum","minPoints":1500}]',
+      },
+    ],
+  },
 ];
 
 function SettingEditor({

@@ -4,12 +4,14 @@ import { CreateDailyLogEntryDto } from './dto/create-daily-log-entry.dto';
 import { UpdateDailyLogEntryDto } from './dto/update-daily-log-entry.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { IncomeBooksService } from '../finance/income-books.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 @Injectable()
 export class DailyLogService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly incomeBooks: IncomeBooksService,
+    private readonly loyalty: LoyaltyService,
   ) {}
 
   async create(dto: CreateDailyLogEntryDto, user: CurrentUserPayload) {
@@ -130,6 +132,17 @@ export class DailyLogService {
       include: this.entryInclude(),
     });
     await this.incomeBooks.addEntryFromDailyLog(id).catch(() => {});
+    if (updated.clientId) {
+      await this.loyalty
+        .earnFromDailyLog({
+          id: updated.id,
+          clientId: updated.clientId,
+          actualPrice: Number(updated.actualPrice),
+          tipAmount: Number(updated.tipAmount),
+          serviceId: updated.serviceId,
+        })
+        .catch(() => {});
+    }
     return updated;
   }
 

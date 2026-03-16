@@ -18,6 +18,7 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 import { NotificationsService } from '../notifications/notifications.service';
 import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 @Injectable()
 export class ReservationsService {
@@ -26,6 +27,7 @@ export class ReservationsService {
     private readonly availability: AvailabilityService,
     private readonly notifications: NotificationsService,
     private readonly events: EventsGateway,
+    private readonly loyalty: LoyaltyService,
   ) {}
 
   async create(dto: CreateReservationDto, clientId: string) {
@@ -479,6 +481,9 @@ export class ReservationsService {
       where: { id: reservationId },
       data: { status: RESERVATION_STATUS.COMPLETED },
     });
+    // Minimalna Loyalty implementacija:
+    // ako je program uključen, osiguraj da klijent ima loyalty račun.
+    await this.loyalty.ensureAccountForUser(r.clientId);
     return this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
   }
 

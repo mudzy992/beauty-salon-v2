@@ -17,6 +17,18 @@ import {
   Spinner,
   useToast,
   Badge,
+  HStack,
+  Button,
+  NumberInput,
+  NumberInputField,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  Textarea,
 } from '@chakra-ui/react';
 import api from '../api/client';
 
@@ -36,16 +48,31 @@ export default function Loyalty() {
   const toast = useToast();
   const [programEnabled, setProgramEnabled] = useState<boolean>(false);
   const [accounts, setAccounts] = useState<LoyaltyAccountRow[]>([]);
+  const [settings, setSettings] = useState<{ key: string; value: string | null }[]>([]);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [redeemTarget, setRedeemTarget] = useState<LoyaltyAccountRow | null>(null);
+  const [adjustTarget, setAdjustTarget] = useState<LoyaltyAccountRow | null>(null);
+  const [redeemPoints, setRedeemPoints] = useState<number>(0);
+  const [redeemReason, setRedeemReason] = useState('');
+  const [adjustDelta, setAdjustDelta] = useState<number>(0);
+  const [adjustNote, setAdjustNote] = useState('');
 
   const loadSettings = useCallback(() => {
     setLoadingSettings(true);
     api
-      .get<{ key: string; value: string | null }>(`/api/settings/${LOYALTY_ENABLED_KEY}`)
-      .then((res) => setProgramEnabled(res.data.value === 'true'))
-      .catch(() => setProgramEnabled(false))
+      .get<{ key: string; value: string | null } | { key: string; value: string | null }[]>(`/api/loyalty/settings`)
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [res.data];
+        setSettings(list);
+        const enabled = list.find((s) => s.key === LOYALTY_ENABLED_KEY)?.value === 'true';
+        setProgramEnabled(enabled);
+      })
+      .catch(() => {
+        setProgramEnabled(false);
+        setSettings([]);
+      })
       .finally(() => setLoadingSettings(false));
   }, []);
 
@@ -75,6 +102,10 @@ export default function Loyalty() {
       })
       .then(() => {
         setProgramEnabled(checked);
+        setSettings((prev) => {
+          const existing = prev.filter((s) => s.key !== LOYALTY_ENABLED_KEY);
+          return [...existing, { key: LOYALTY_ENABLED_KEY, value: checked ? 'true' : 'false' }];
+        });
         toast({ title: checked ? 'Program uključen' : 'Program isključen', status: 'success', isClosable: true });
       })
       .catch(() => toast({ title: 'Greška pri spremanju', status: 'error', isClosable: true }))
@@ -95,6 +126,60 @@ export default function Loyalty() {
 
   const userName = (u: LoyaltyAccountRow['user']) =>
     [u.firstName, u.lastName].filter(Boolean).join(' ') || u.username || u.email;
+
+  const openRedeem = (account: LoyaltyAccountRow) => {
+    setRedeemTarget(account);
+    setRedeemPoints(0);
+    setRedeemReason('');
+  };
+
+  const openAdjust = (account: LoyaltyAccountRow) => {
+    setAdjustTarget(account);
+    setAdjustDelta(0);
+    setAdjustNote('');
+  };
+
+  const handleRedeemConfirm = () => {
+    if (!redeemTarget || redeemPoints <= 0) return;
+    setUpdating(`redeem-${redeemTarget.id}`);
+    api
+      .post(`/api/loyalty/accounts/${redeemTarget.id}/redeem`, { points: redeemPoints, reason: redeemReason })
+      .then((res) => {
+        setAccounts((prev) => prev.map((a) => (a.id === redeemTarget.id ? { ...a, points: res.data.points } : a)));
+        toast({ title: 'Bodovi iskorišteni', status: 'success', isClosable: true });
+        setRedeemTarget(null);
+      })
+      .catch((err) => {
+        toast({
+          title: 'Greška pri korištenju bodova',
+          description: err.response?.data?.message ?? undefined,
+          status: 'error',
+          isClosable: true,
+        });
+      })
+      .finally(() => setUpdating(null));
+  };
+
+  const handleAdjustConfirm = () => {
+    if (!adjustTarget || adjustDelta === 0) return;
+    setUpdating(`adjust-${adjustTarget.id}`);
+    api
+      .post(`/api/loyalty/accounts/${adjustTarget.id}/adjust`, { pointsDelta: adjustDelta, note: adjustNote })
+      .then((res) => {
+        setAccounts((prev) => prev.map((a) => (a.id === adjustTarget.id ? { ...a, points: res.data.points } : a)));
+        toast({ title: 'Bodovi ažurirani', status: 'success', isClosable: true });
+        setAdjustTarget(null);
+      })
+      .catch((err) => {
+        toast({
+          title: 'Greška pri ažuriranju bodova',
+          description: err.response?.data?.message ?? undefined,
+          status: 'error',
+          isClosable: true,
+        });
+      })
+      .finally(() => setUpdating(null));
+  };
 
   return (
     <Box>
@@ -120,6 +205,17 @@ export default function Loyalty() {
             </FormLabel>
           </FormControl>
           {loadingSettings && <Spinner size="sm" ml={4} />}
+          {!loadingSettings && (
+            <Box mt={4}>
+              <Text fontSize="sm" fontWeight="semibold" mb={1}>
+                Osnovne postavke bodovanja
+              </Text>
+              <Text fontSize="xs" color="gray.600">
+                Detaljna konfiguracija (bodovi po valuti, tierovi, pravila za redeem) se uređuje kroz sistemske postavke
+                pod ključevima koji počinju sa `loyalty_`. Ova stranica prikazuje račune i omogućava ručne akcije.
+              </Text>
+            </Box>
+          )}
         </CardBody>
       </Card>
 
@@ -133,7 +229,10 @@ export default function Loyalty() {
               <Spinner />
             </Box>
           ) : accounts.length === 0 ? (
-            <Text color="gray.500">Nema loyalty računa. Računi se kreiraju kada se program aktivira i klijenti ispune uvjete (buduća implementacija).</Text>
+            <Text color="gray.500">
+              Nema loyalty računa. Kada je program uključen i klijent ima barem jednu završenu rezervaciju, račun će se
+              automatski kreirati.
+            </Text>
           ) : (
             <Box overflowX="auto">
               <Table size="sm">
@@ -142,9 +241,10 @@ export default function Loyalty() {
                     <Th>Korisnik</Th>
                     <Th>Email</Th>
                     <Th isNumeric>Bodovi</Th>
+                    <Th>Tier</Th>
                     <Th>Status</Th>
                     <Th>Transakcije</Th>
-                    <Th>Aktivnost</Th>
+                    <Th>Akcije</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -153,18 +253,27 @@ export default function Loyalty() {
                       <Td>{userName(a.user)}</Td>
                       <Td>{a.user.email}</Td>
                       <Td isNumeric>{a.points}</Td>
+                      <Td>{a.tier ?? '-'}</Td>
                       <Td>
                         <Badge colorScheme={a.isActive ? 'green' : 'gray'}>{a.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
                       </Td>
                       <Td>{a._count.transactions}</Td>
                       <Td>
-                        <Switch
-                          size="sm"
-                          isChecked={a.isActive}
-                          isDisabled={updating === a.id}
-                          onChange={(e) => handleAccountActiveToggle(a.id, e.target.checked)}
-                          colorScheme="green"
-                        />
+                        <HStack spacing={2}>
+                          <Switch
+                            size="sm"
+                            isChecked={a.isActive}
+                            isDisabled={updating === a.id}
+                            onChange={(e) => handleAccountActiveToggle(a.id, e.target.checked)}
+                            colorScheme="green"
+                          />
+                          <Button size="xs" variant="outline" onClick={() => openRedeem(a)}>
+                            Redeem
+                          </Button>
+                          <Button size="xs" variant="outline" onClick={() => openAdjust(a)}>
+                            Adjust
+                          </Button>
+                        </HStack>
                       </Td>
                     </Tr>
                   ))}
@@ -174,6 +283,68 @@ export default function Loyalty() {
           )}
         </CardBody>
       </Card>
+
+      <Modal isOpen={!!redeemTarget} onClose={() => setRedeemTarget(null)} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Iskoristi bodove</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text fontSize="sm" mb={3}>
+              Račun: {redeemTarget && userName(redeemTarget.user)} (dostupno {redeemTarget?.points} bodova)
+            </Text>
+            <FormControl mb={3}>
+              <FormLabel>Broj bodova za korištenje</FormLabel>
+              <NumberInput min={1} max={redeemTarget?.points ?? undefined} value={redeemPoints} onChange={(_, v) => setRedeemPoints(v || 0)}>
+                <NumberInputField />
+              </NumberInput>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Napomena (opcionalno)</FormLabel>
+              <Textarea value={redeemReason} onChange={(e) => setRedeemReason(e.target.value)} />
+            </FormControl>
+          </ModalBody>
+          <ModalFooter>
+            <Button mr={3} onClick={() => setRedeemTarget(null)}>
+              Zatvori
+            </Button>
+            <Button colorScheme="green" onClick={handleRedeemConfirm} isLoading={updating === `redeem-${redeemTarget?.id}`}>
+              Potvrdi
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={!!adjustTarget} onClose={() => setAdjustTarget(null)} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Ručna korekcija bodova</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text fontSize="sm" mb={3}>
+              Račun: {adjustTarget && userName(adjustTarget.user)} (trenutno {adjustTarget?.points} bodova)
+            </Text>
+            <FormControl mb={3}>
+              <FormLabel>Promjena bodova (+ ili -)</FormLabel>
+              <NumberInput value={adjustDelta} onChange={(_, v) => setAdjustDelta(v || 0)}>
+                <NumberInputField />
+              </NumberInput>
+            </FormControl>
+            <FormControl>
+              <FormLabel>Napomena (preporučeno)</FormLabel>
+              <Textarea value={adjustNote} onChange={(e) => setAdjustNote(e.target.value)} />
+            </FormControl>
+          </ModalBody>
+          <ModalFooter>
+            <Button mr={3} onClick={() => setAdjustTarget(null)}>
+              Zatvori
+            </Button>
+            <Button colorScheme="blue" onClick={handleAdjustConfirm} isLoading={updating === `adjust-${adjustTarget?.id}`}>
+              Spremi
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }
