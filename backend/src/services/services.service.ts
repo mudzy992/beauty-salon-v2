@@ -147,6 +147,8 @@ export class ServicesService {
         price: new Prisma.Decimal(dto.price),
         isActive: dto.isActive ?? true,
         sortOrder: dto.sortOrder ?? 0,
+        loyaltyEnabled: dto.loyaltyEnabled ?? false,
+        loyaltyMaxDiscountPercent: dto.loyaltyMaxDiscountPercent ?? 0,
       },
     });
   }
@@ -164,6 +166,10 @@ export class ServicesService {
         ...(dto.price != null && { price: new Prisma.Decimal(dto.price) }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         ...(dto.sortOrder != null && { sortOrder: dto.sortOrder }),
+        ...(dto.loyaltyEnabled !== undefined && { loyaltyEnabled: dto.loyaltyEnabled }),
+        ...(dto.loyaltyMaxDiscountPercent != null && {
+          loyaltyMaxDiscountPercent: dto.loyaltyMaxDiscountPercent,
+        }),
       },
     });
   }
