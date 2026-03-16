@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { DailyLogService } from './daily-log.service';
 import { CreateDailyLogEntryDto } from './dto/create-daily-log-entry.dto';
 import { UpdateDailyLogEntryDto } from './dto/update-daily-log-entry.dto';
@@ -13,7 +21,10 @@ export class DailyLogController {
   constructor(private readonly dailyLog: DailyLogService) {}
 
   @Post()
-  create(@Body() dto: CreateDailyLogEntryDto, @CurrentUser() user: CurrentUserPayload) {
+  create(
+    @Body() dto: CreateDailyLogEntryDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.dailyLog.create(dto, user);
   }
 

@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { GalleryService } from './gallery.service';
 import { CreateGalleryCategoryDto } from './dto/create-category.dto';
 import { CreateGalleryImageDto } from './dto/create-image.dto';
@@ -33,7 +41,10 @@ export class GalleryController {
   @Patch('categories/:id')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  updateCategory(@Param('id') id: string, @Body() dto: { name?: string; description?: string; sortOrder?: number }) {
+  updateCategory(
+    @Param('id') id: string,
+    @Body() dto: { name?: string; description?: string; sortOrder?: number },
+  ) {
     return this.gallery.updateCategory(id, dto);
   }
 
@@ -54,7 +65,10 @@ export class GalleryController {
   @Patch('images/:id')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  updateImage(@Param('id') id: string, @Body() dto: { title?: string; description?: string; sortOrder?: number }) {
+  updateImage(
+    @Param('id') id: string,
+    @Body() dto: { title?: string; description?: string; sortOrder?: number },
+  ) {
     return this.gallery.updateImage(id, dto);
   }
 

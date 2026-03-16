@@ -34,7 +34,9 @@ describe('IncomeBooksService', () => {
 
   it('addEntryFromDailyLog baca NotFoundException kada daily log zapis ne postoji', async () => {
     mockPrisma.dailyLogEntry.findUnique.mockResolvedValue(null);
-    await expect(service.addEntryFromDailyLog('nope')).rejects.toThrow(NotFoundException);
+    await expect(service.addEntryFromDailyLog('nope')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('addEntryFromDailyLog baca kada status nije COMPLETED', async () => {

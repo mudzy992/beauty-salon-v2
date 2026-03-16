@@ -1,4 +1,11 @@
-import { IsBoolean, IsOptional, IsString, IsArray, ValidateNested, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsOptional,
+  IsString,
+  IsArray,
+  ValidateNested,
+  MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateTemplateFieldDto {

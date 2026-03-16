@@ -24,7 +24,12 @@ const mockIncomeBooks = {
 describe('DailyLogService', () => {
   let service: DailyLogService;
 
-  const user = { sub: 'user-1', username: 'u', email: 'e@e.com', roles: ['STYLIST'] };
+  const user = {
+    sub: 'user-1',
+    username: 'u',
+    email: 'e@e.com',
+    roles: ['STYLIST'],
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -40,7 +45,9 @@ describe('DailyLogService', () => {
   });
 
   it('create baca ForbiddenException kada user nije stilist tog profila', async () => {
-    mockPrisma.stylistProfile.findUnique.mockResolvedValue({ userId: 'other-user' });
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      userId: 'other-user',
+    });
     await expect(
       service.create(
         {
@@ -67,14 +74,21 @@ describe('DailyLogService', () => {
       images: [],
     };
     mockPrisma.dailyLogEntry.findUnique.mockResolvedValue(entry);
-    mockPrisma.stylistProfile.findUnique.mockResolvedValue({ userId: 'user-1' });
-    mockPrisma.dailyLogEntry.update.mockResolvedValue({ ...entry, status: 'COMPLETED' });
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      userId: 'user-1',
+    });
+    mockPrisma.dailyLogEntry.update.mockResolvedValue({
+      ...entry,
+      status: 'COMPLETED',
+    });
     await service.complete('e1', user as any);
     expect(mockIncomeBooks.addEntryFromDailyLog).toHaveBeenCalledWith('e1');
   });
 
   it('findOne baca NotFoundException kada zapis ne postoji', async () => {
     mockPrisma.dailyLogEntry.findUnique.mockResolvedValue(null);
-    await expect(service.findOne('nope', user as any)).rejects.toThrow(NotFoundException);
+    await expect(service.findOne('nope', user as any)).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

@@ -11,7 +11,8 @@ export const RESERVATION_STATUS = {
   NO_SHOW: 'NO_SHOW',
 } as const;
 
-export type ReservationStatus = (typeof RESERVATION_STATUS)[keyof typeof RESERVATION_STATUS];
+export type ReservationStatus =
+  (typeof RESERVATION_STATUS)[keyof typeof RESERVATION_STATUS];
 
 // Statusi odgovora stilista
 export const STYLIST_RESPONSE_STATUS = {
@@ -21,11 +22,18 @@ export const STYLIST_RESPONSE_STATUS = {
   REJECTED: 'REJECTED',
 } as const;
 
-export type StylistResponseStatus = (typeof STYLIST_RESPONSE_STATUS)[keyof typeof STYLIST_RESPONSE_STATUS];
+export type StylistResponseStatus =
+  (typeof STYLIST_RESPONSE_STATUS)[keyof typeof STYLIST_RESPONSE_STATUS];
 
 // Dozvoljeni prijelazi FSM
-export const RESERVATION_TRANSITIONS: Record<ReservationStatus, ReservationStatus[]> = {
-  [RESERVATION_STATUS.PENDING]: [RESERVATION_STATUS.STYLIST_REVIEW, RESERVATION_STATUS.CANCELLED_BY_CLIENT],
+export const RESERVATION_TRANSITIONS: Record<
+  ReservationStatus,
+  ReservationStatus[]
+> = {
+  [RESERVATION_STATUS.PENDING]: [
+    RESERVATION_STATUS.STYLIST_REVIEW,
+    RESERVATION_STATUS.CANCELLED_BY_CLIENT,
+  ],
   [RESERVATION_STATUS.STYLIST_REVIEW]: [
     RESERVATION_STATUS.CONFIRMED,
     RESERVATION_STATUS.CANCELLED_BY_STYLISTS,

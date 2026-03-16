@@ -44,7 +44,9 @@ export class AuthService {
       where: { name: CLIENT_ROLE_NAME },
     });
     if (!clientRole) {
-      throw new BadRequestException('Rola CLIENT nije pronađena. Pokrenite seed.');
+      throw new BadRequestException(
+        'Rola CLIENT nije pronađena. Pokrenite seed.',
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
@@ -69,7 +71,12 @@ export class AuthService {
 
     // TODO: send verification email with token (Phase 3 - notifications)
     // For now we can auto-verify or use a simple token in DB
-    const token = await this.createAccessToken(user.id, user.email, user.username, ['CLIENT']);
+    const token = await this.createAccessToken(
+      user.id,
+      user.email,
+      user.username,
+      ['CLIENT'],
+    );
     return {
       access_token: token,
       user: {
@@ -111,7 +118,12 @@ export class AuthService {
     });
 
     const roles = user.userRoles.map((ur) => ur.role.name);
-    const access_token = await this.createAccessToken(user.id, user.email, user.username, roles);
+    const access_token = await this.createAccessToken(
+      user.id,
+      user.email,
+      user.username,
+      roles,
+    );
 
     return {
       access_token,
@@ -142,17 +154,23 @@ export class AuthService {
     };
   }
 
-  async changePassword(userId: string, dto: ChangePasswordDto): Promise<{ message: string }> {
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+  ): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, passwordHash: true },
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
     if (!user.passwordHash) {
-      throw new BadRequestException('Promjena lozinke nije moguća za ovaj nalog (prijava putem društvene mreže).');
+      throw new BadRequestException(
+        'Promjena lozinke nije moguća za ovaj nalog (prijava putem društvene mreže).',
+      );
     }
     const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
-    if (!valid) throw new UnauthorizedException('Trenutna lozinka nije ispravna.');
+    if (!valid)
+      throw new UnauthorizedException('Trenutna lozinka nije ispravna.');
     const newHash = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
     await this.prisma.user.update({
       where: { id: userId },
@@ -170,7 +188,8 @@ export class AuthService {
     if (user.isEmailVerified) {
       throw new BadRequestException('Email adresa je već potvrđena.');
     }
-    const code = crypto.randomInt(0, 10 ** VERIFICATION_CODE_LENGTH)
+    const code = crypto
+      .randomInt(0, 10 ** VERIFICATION_CODE_LENGTH)
       .toString()
       .padStart(VERIFICATION_CODE_LENGTH, '0');
     const expiresAt = new Date();
@@ -184,7 +203,10 @@ export class AuthService {
     });
     // TODO: poslati email s kodom (npr. preko NotificationsService). Za sada samo log u dev.
     // await this.notificationsService.sendVerificationEmail(user.email, code);
-    return { message: 'Verifikacijski kod je poslan na vašu email adresu. Kod vrijedi 24 sata.' };
+    return {
+      message:
+        'Verifikacijski kod je poslan na vašu email adresu. Kod vrijedi 24 sata.',
+    };
   }
 
   async verifyEmail(token: string): Promise<{ message: string }> {
@@ -195,7 +217,9 @@ export class AuthService {
       },
     });
     if (!user) {
-      throw new BadRequestException('Kod nije ispravan ili je istekao. Zatražite novi kod.');
+      throw new BadRequestException(
+        'Kod nije ispravan ili je istekao. Zatražite novi kod.',
+      );
     }
     await this.prisma.user.update({
       where: { id: user.id },

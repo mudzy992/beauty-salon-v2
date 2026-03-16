@@ -17,7 +17,10 @@ export class IncomeController {
 
   @Get('month/:year/:month')
   getOrCreate(@Param('year') year: string, @Param('month') month: string) {
-    return this.incomeBooks.getOrCreateForMonth(parseInt(year, 10), parseInt(month, 10));
+    return this.incomeBooks.getOrCreateForMonth(
+      parseInt(year, 10),
+      parseInt(month, 10),
+    );
   }
 
   @Get(':id')

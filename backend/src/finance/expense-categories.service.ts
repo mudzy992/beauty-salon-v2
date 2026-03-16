@@ -19,14 +19,18 @@ export class ExpenseCategoriesService {
         isActive: dto.isActive ?? true,
         isFixed: dto.isFixed ?? false,
       },
-      include: { template: { include: { fields: { orderBy: { sortOrder: 'asc' } } } } },
+      include: {
+        template: { include: { fields: { orderBy: { sortOrder: 'asc' } } } },
+      },
     });
   }
 
   async findAll(activeOnly = false) {
     return this.prisma.expenseCategory.findMany({
       where: activeOnly ? { isActive: true } : undefined,
-      include: { template: { include: { fields: { orderBy: { sortOrder: 'asc' } } } } },
+      include: {
+        template: { include: { fields: { orderBy: { sortOrder: 'asc' } } } },
+      },
       orderBy: { name: 'asc' },
     });
   }
@@ -34,7 +38,9 @@ export class ExpenseCategoriesService {
   async findOne(id: string) {
     const c = await this.prisma.expenseCategory.findUnique({
       where: { id },
-      include: { template: { include: { fields: { orderBy: { sortOrder: 'asc' } } } } },
+      include: {
+        template: { include: { fields: { orderBy: { sortOrder: 'asc' } } } },
+      },
     });
     if (!c) throw new NotFoundException('Kategorija nije pronađena.');
     return c;
@@ -51,7 +57,9 @@ export class ExpenseCategoriesService {
         ...(dto.isFixed !== undefined && { isFixed: dto.isFixed }),
         ...(dto.templateId !== undefined && { templateId: dto.templateId }),
       },
-      include: { template: { include: { fields: { orderBy: { sortOrder: 'asc' } } } } },
+      include: {
+        template: { include: { fields: { orderBy: { sortOrder: 'asc' } } } },
+      },
     });
   }
 }

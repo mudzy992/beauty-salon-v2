@@ -23,12 +23,16 @@ describe('HolidayNotificationsService', () => {
         { provide: NotificationsService, useValue: mockNotifications },
       ],
     }).compile();
-    service = module.get<HolidayNotificationsService>(HolidayNotificationsService);
+    service = module.get<HolidayNotificationsService>(
+      HolidayNotificationsService,
+    );
   });
 
   it('sendForHoliday baca NotFoundException kada praznik ne postoji', async () => {
     mockPrisma.holiday.findUnique.mockResolvedValue(null);
-    await expect(service.sendForHoliday('nope')).rejects.toThrow(NotFoundException);
+    await expect(service.sendForHoliday('nope')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('sendForHoliday baca BadRequestException kada sendPush je false', async () => {
@@ -39,7 +43,9 @@ describe('HolidayNotificationsService', () => {
       sendPush: false,
       pushSentAt: null,
     });
-    await expect(service.sendForHoliday('h1')).rejects.toThrow(BadRequestException);
+    await expect(service.sendForHoliday('h1')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('sendForHoliday baca BadRequestException kada je pushSentAt već postavljen', async () => {
@@ -49,6 +55,8 @@ describe('HolidayNotificationsService', () => {
       sendPush: true,
       pushSentAt: new Date(),
     });
-    await expect(service.sendForHoliday('h1')).rejects.toThrow(BadRequestException);
+    await expect(service.sendForHoliday('h1')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 });

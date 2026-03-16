@@ -1,4 +1,10 @@
-import { IsArray, IsBoolean, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { StylistWorkingHoursDto } from './stylist-working-hours.dto';
 

@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -47,7 +57,12 @@ export class UsersController {
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
   ) {
-    return this.usersService.getClientAnalytics(id, user.roles, fromDate, toDate);
+    return this.usersService.getClientAnalytics(
+      id,
+      user.roles,
+      fromDate,
+      toDate,
+    );
   }
 
   @Post()
@@ -58,14 +73,22 @@ export class UsersController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto, @CurrentUser() user: CurrentUserPayload) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.usersService.update(id, dto, user);
   }
 
   @Post(':id/roles')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  assignRole(@Param('id') id: string, @Body() dto: AssignRoleDto, @CurrentUser() user: CurrentUserPayload) {
+  assignRole(
+    @Param('id') id: string,
+    @Body() dto: AssignRoleDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.usersService.assignRole(id, dto, user.roles);
   }
 

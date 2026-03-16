@@ -11,7 +11,12 @@ const IMAGE_SIZES = {
   medium: { width: 600, height: 600 },
 } as const;
 
-const IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const IMAGE_MIMES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
 const DOC_MIMES = new Set([
   'application/pdf',
   'application/msword',
@@ -28,14 +33,23 @@ export class UploadsService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {
-    this.uploadRoot = this.config.get<string>('UPLOAD_ROOT', '/usr/app/uploads');
+    this.uploadRoot = this.config.get<string>(
+      'UPLOAD_ROOT',
+      '/usr/app/uploads',
+    );
   }
 
   async saveFile(
     file: Express.Multer.File,
     entity: string,
     uploadedById?: string,
-  ): Promise<{ id: string; pathOriginal: string; pathThumb?: string; pathSmall?: string; pathMedium?: string }> {
+  ): Promise<{
+    id: string;
+    pathOriginal: string;
+    pathThumb?: string;
+    pathSmall?: string;
+    pathMedium?: string;
+  }> {
     const now = new Date();
     const year = now.getFullYear().toString();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -56,8 +70,15 @@ export class UploadsService {
       throw new BadRequestException('Tip datoteke nije dozvoljen.');
     }
 
-    const paths: { pathOriginal: string; pathThumb?: string; pathSmall?: string; pathMedium?: string } = {
-      pathOriginal: path.join(relDir, `${baseName}-original${ext}`).replace(/\\/g, '/'),
+    const paths: {
+      pathOriginal: string;
+      pathThumb?: string;
+      pathSmall?: string;
+      pathMedium?: string;
+    } = {
+      pathOriginal: path
+        .join(relDir, `${baseName}-original${ext}`)
+        .replace(/\\/g, '/'),
     };
 
     const originalPath = path.join(absDir, `${baseName}-original${ext}`);
@@ -74,7 +95,9 @@ export class UploadsService {
           .resize(size.width, size.height, { fit: 'cover' })
           .webp({ quality: 85 })
           .toFile(absPath);
-        (paths as Record<string, string>)[`path${sizeName.charAt(0).toUpperCase() + sizeName.slice(1)}`] = relPath;
+        (paths as Record<string, string>)[
+          `path${sizeName.charAt(0).toUpperCase() + sizeName.slice(1)}`
+        ] = relPath;
       }
     }
 

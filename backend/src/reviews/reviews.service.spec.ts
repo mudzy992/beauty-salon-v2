@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -7,7 +11,13 @@ const mockPrisma = {
   service: { findUniqueOrThrow: jest.fn() },
   stylistProfile: { findUniqueOrThrow: jest.fn() },
   reservation: { findUnique: jest.fn() },
-  review: { findFirst: jest.fn(), create: jest.fn(), findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
+  review: {
+    findFirst: jest.fn(),
+    create: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
 };
 
 describe('ReviewsService', () => {
@@ -48,8 +58,15 @@ describe('ReviewsService', () => {
 
   it('approve baca ForbiddenException kada user nije admin/owner', async () => {
     mockPrisma.review.findUnique.mockResolvedValue({ id: 'rev-1' });
-    const user = { sub: 'u1', username: 'u', email: 'e@e.com', roles: ['CLIENT'] };
-    await expect(service.approve('rev-1', user as any)).rejects.toThrow(ForbiddenException);
+    const user = {
+      sub: 'u1',
+      username: 'u',
+      email: 'e@e.com',
+      roles: ['CLIENT'],
+    };
+    await expect(service.approve('rev-1', user as any)).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('findOne baca NotFoundException kada recenzija ne postoji', async () => {

@@ -41,6 +41,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0);
 
   // Load all services for step 1
   useEffect(() => {
@@ -167,6 +168,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
         startTime: selectedSlot.startTime,
         endTime: selectedSlot.endTime,
         clientNotes: notes.trim() || undefined,
+        ...(desiredLoyaltyPercent > 0 ? { desiredLoyaltyPercent } : {}),
       });
       Alert.alert(t('reservation.success'), t('reservation.successMessage'), [
         {
@@ -398,6 +400,40 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             </View>
           </Card>
 
+          <Card style={{ marginBottom: spacing.md }}>
+            <Text style={[styles.selectedLabel, { color: colors.textSecondary }]}>
+              Loyalty popust (opciono)
+            </Text>
+            <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: spacing.sm }}>
+              Ako imate dovoljno loyalty bodova, možete odabrati procenat popusta koji želite iskoristiti za ovu
+              rezervaciju. Maksimalni dozvoljeni procenat ovisit će o vašem nivou i postavkama salona – backend će
+              odbiti zahtjev ako je prevelik.
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <TextInput
+                style={[
+                  styles.loyaltyInput,
+                  {
+                    color: colors.inputText,
+                    backgroundColor: colors.inputBg,
+                    borderColor: colors.inputBorder,
+                  },
+                ]}
+                keyboardType="number-pad"
+                value={String(desiredLoyaltyPercent || 0)}
+                onChangeText={(text) => {
+                  const n = parseInt(text.replace(/[^0-9]/g, ''), 10);
+                  if (isNaN(n) || n < 0) {
+                    setDesiredLoyaltyPercent(0);
+                  } else {
+                    setDesiredLoyaltyPercent(Math.min(100, n));
+                  }
+                }}
+              />
+              <Text style={{ color: colors.textSecondary }}>%</Text>
+            </View>
+          </Card>
+
           <Text style={[styles.notesLabel, { color: colors.textSecondary }]}>
             {t('reservation.addNotes')}
           </Text>
@@ -521,5 +557,15 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     fontSize: 15,
     minHeight: 80,
+  },
+  loyaltyInput: {
+    flex: 0,
+    width: 80,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    fontSize: 16,
+    textAlign: 'center',
   },
 });

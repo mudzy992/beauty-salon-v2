@@ -51,7 +51,10 @@ export class EventsGateway
       client.data.roles = payload.roles || [];
 
       client.join(`user:${userId}`);
-      if (payload.roles?.includes('SYSTEM_ADMIN') || payload.roles?.includes('OWNER')) {
+      if (
+        payload.roles?.includes('SYSTEM_ADMIN') ||
+        payload.roles?.includes('OWNER')
+      ) {
         client.join('admin');
       }
       if (payload.roles?.includes('STYLIST')) {

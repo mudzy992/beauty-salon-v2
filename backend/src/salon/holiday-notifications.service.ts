@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -15,13 +19,21 @@ export class HolidayNotificationsService {
       where: { id: holidayId },
     });
     if (!holiday) throw new NotFoundException('Praznik nije pronađen.');
-    if (!holiday.sendPush) throw new BadRequestException('Za ovaj praznik nije uključeno slanje obavijesti.');
-    if (holiday.pushSentAt) throw new BadRequestException('Obavijest za ovaj praznik je već poslata.');
+    if (!holiday.sendPush)
+      throw new BadRequestException(
+        'Za ovaj praznik nije uključeno slanje obavijesti.',
+      );
+    if (holiday.pushSentAt)
+      throw new BadRequestException(
+        'Obavijest za ovaj praznik je već poslata.',
+      );
 
-    const userIds = await this.prisma.user.findMany({
-      where: { isActive: true },
-      select: { id: true },
-    }).then((r) => r.map((u) => u.id));
+    const userIds = await this.prisma.user
+      .findMany({
+        where: { isActive: true },
+        select: { id: true },
+      })
+      .then((r) => r.map((u) => u.id));
 
     const title = holiday.name;
     const body = holiday.message ?? `Obavještavamo vas da ${holiday.name}.`;

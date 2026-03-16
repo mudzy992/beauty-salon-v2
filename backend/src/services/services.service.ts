@@ -24,7 +24,10 @@ export class ServicesService {
     const cat = await this.prisma.serviceCategory.findUnique({
       where: { id },
       include: {
-        subcategories: { include: { services: { orderBy: { sortOrder: 'asc' } } }, orderBy: { sortOrder: 'asc' } },
+        subcategories: {
+          include: { services: { orderBy: { sortOrder: 'asc' } } },
+          orderBy: { sortOrder: 'asc' },
+        },
       },
     });
     if (!cat) throw new NotFoundException('Kategorija nije pronađena.');
@@ -62,7 +65,9 @@ export class ServicesService {
   }
 
   async findAllSubcategories(categoryId?: string, activeOnly = false) {
-    const where: Prisma.ServiceSubcategoryWhereInput = activeOnly ? { isActive: true } : {};
+    const where: Prisma.ServiceSubcategoryWhereInput = activeOnly
+      ? { isActive: true }
+      : {};
     if (categoryId) where.categoryId = categoryId;
     return this.prisma.serviceSubcategory.findMany({
       where,
@@ -81,7 +86,9 @@ export class ServicesService {
   }
 
   async createSubcategory(dto: CreateSubcategoryDto) {
-    await this.prisma.serviceCategory.findUniqueOrThrow({ where: { id: dto.categoryId } });
+    await this.prisma.serviceCategory.findUniqueOrThrow({
+      where: { id: dto.categoryId },
+    });
     return this.prisma.serviceSubcategory.create({
       data: {
         categoryId: dto.categoryId,
@@ -114,7 +121,9 @@ export class ServicesService {
   }
 
   async findAllServices(subcategoryId?: string, activeOnly = false) {
-    const where: Prisma.ServiceWhereInput = activeOnly ? { isActive: true } : {};
+    const where: Prisma.ServiceWhereInput = activeOnly
+      ? { isActive: true }
+      : {};
     if (subcategoryId) where.subcategoryId = subcategoryId;
     return this.prisma.service.findMany({
       where,
@@ -136,7 +145,9 @@ export class ServicesService {
   }
 
   async createService(dto: CreateServiceDto) {
-    await this.prisma.serviceSubcategory.findUniqueOrThrow({ where: { id: dto.subcategoryId } });
+    await this.prisma.serviceSubcategory.findUniqueOrThrow({
+      where: { id: dto.subcategoryId },
+    });
     return this.prisma.service.create({
       data: {
         subcategoryId: dto.subcategoryId,
@@ -160,13 +171,19 @@ export class ServicesService {
       data: {
         ...(dto.subcategoryId != null && { subcategoryId: dto.subcategoryId }),
         ...(dto.name != null && { name: dto.name }),
-        ...(dto.shortDescription !== undefined && { shortDescription: dto.shortDescription }),
+        ...(dto.shortDescription !== undefined && {
+          shortDescription: dto.shortDescription,
+        }),
         ...(dto.heroImage !== undefined && { heroImage: dto.heroImage }),
-        ...(dto.durationMinutes != null && { durationMinutes: dto.durationMinutes }),
+        ...(dto.durationMinutes != null && {
+          durationMinutes: dto.durationMinutes,
+        }),
         ...(dto.price != null && { price: new Prisma.Decimal(dto.price) }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         ...(dto.sortOrder != null && { sortOrder: dto.sortOrder }),
-        ...(dto.loyaltyEnabled !== undefined && { loyaltyEnabled: dto.loyaltyEnabled }),
+        ...(dto.loyaltyEnabled !== undefined && {
+          loyaltyEnabled: dto.loyaltyEnabled,
+        }),
         ...(dto.loyaltyMaxDiscountPercent != null && {
           loyaltyMaxDiscountPercent: dto.loyaltyMaxDiscountPercent,
         }),

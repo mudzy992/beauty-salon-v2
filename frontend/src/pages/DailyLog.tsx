@@ -7,7 +7,7 @@ import {
   NumberInput, NumberInputField, NumberInputStepper,
   NumberIncrementStepper, NumberDecrementStepper, Textarea, HStack,
   IconButton, Stat, StatLabel, StatNumber, SimpleGrid, Card, CardBody,
-  InputGroup, InputLeftElement, List, ListItem, Link,
+  InputGroup, InputLeftElement, List, ListItem, Link, VStack,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router-dom';
@@ -26,6 +26,11 @@ interface DailyLogEntry {
   stylistProfile?: { id: string; user?: { username: string; firstName: string | null; lastName: string | null } };
   service?: { id: string; name: string };
   client?: { id: string; firstName: string | null; lastName: string | null; user?: { username: string } };
+  reservation?: {
+    id: string;
+    loyaltyDiscountPercent: number;
+    loyaltyDiscountAmount: number | string;
+  } | null;
 }
 
 interface StylistOption {
@@ -255,7 +260,17 @@ export default function DailyLog() {
                       getStylistName(e.stylistProfile)
                     )}
                   </Td>
-                  <Td>{e.service?.name ?? '-'}</Td>
+                  <Td>
+                    <VStack align="flex-start" spacing={0}>
+                      <Text>{e.service?.name ?? '-'}</Text>
+                      {e.reservation && e.reservation.loyaltyDiscountPercent > 0 && (
+                        <Text fontSize="xs" color="green.600">
+                          Loyalty popust: {e.reservation.loyaltyDiscountPercent}% (
+                          {Number(e.reservation.loyaltyDiscountAmount ?? 0).toFixed(2)} KM)
+                        </Text>
+                      )}
+                    </VStack>
+                  </Td>
                   <Td>
                     {e.client ? (
                       <Link as={RouterLink} to={`/admin/client-analytics?userId=${e.client.id}`} color="brand.600" _hover={{ textDecoration: 'underline' }}>

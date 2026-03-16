@@ -33,7 +33,13 @@ export class SalonService {
 
   async findFirst() {
     const salon = await this.prisma.salonSettings.findFirst({
-      include: { workingHours: true, holidays: { where: { date: { gte: new Date() } }, orderBy: { date: 'asc' } } },
+      include: {
+        workingHours: true,
+        holidays: {
+          where: { date: { gte: new Date() } },
+          orderBy: { date: 'asc' },
+        },
+      },
     });
     return salon;
   }
@@ -67,7 +73,10 @@ export class SalonService {
       where: { salonSettingsId },
     });
     if (existing === 0) {
-      await this.setWorkingHours(salonSettingsId, this.getDefaultWorkingHours());
+      await this.setWorkingHours(
+        salonSettingsId,
+        this.getDefaultWorkingHours(),
+      );
     }
     return this.getWorkingHours(salonSettingsId);
   }
@@ -92,11 +101,21 @@ export class SalonService {
         ...(dto.email !== undefined && { email: dto.email }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.logo !== undefined && { logo: dto.logo }),
-        ...(dto.pauseBetweenServices != null && { pauseBetweenServices: dto.pauseBetweenServices }),
-        ...(dto.cancellationDeadlineHours != null && { cancellationDeadlineHours: dto.cancellationDeadlineHours }),
-        ...(dto.maxCancellationsBeforePenalty != null && { maxCancellationsBeforePenalty: dto.maxCancellationsBeforePenalty }),
-        ...(dto.penaltyDurationDays != null && { penaltyDurationDays: dto.penaltyDurationDays }),
-        ...(dto.reservationLockMinutes != null && { reservationLockMinutes: dto.reservationLockMinutes }),
+        ...(dto.pauseBetweenServices != null && {
+          pauseBetweenServices: dto.pauseBetweenServices,
+        }),
+        ...(dto.cancellationDeadlineHours != null && {
+          cancellationDeadlineHours: dto.cancellationDeadlineHours,
+        }),
+        ...(dto.maxCancellationsBeforePenalty != null && {
+          maxCancellationsBeforePenalty: dto.maxCancellationsBeforePenalty,
+        }),
+        ...(dto.penaltyDurationDays != null && {
+          penaltyDurationDays: dto.penaltyDurationDays,
+        }),
+        ...(dto.reservationLockMinutes != null && {
+          reservationLockMinutes: dto.reservationLockMinutes,
+        }),
       },
     });
     if (dto.workingHours) {
@@ -109,7 +128,9 @@ export class SalonService {
 
   async setWorkingHours(salonSettingsId: string, hours: WorkingHoursDto[]) {
     await this.findOne(salonSettingsId);
-    await this.prisma.salonWorkingHours.deleteMany({ where: { salonSettingsId } });
+    await this.prisma.salonWorkingHours.deleteMany({
+      where: { salonSettingsId },
+    });
     if (hours.length) {
       await this.prisma.salonWorkingHours.createMany({
         data: hours.map((h) => ({
@@ -121,7 +142,10 @@ export class SalonService {
         })),
       });
     }
-    return this.prisma.salonWorkingHours.findMany({ where: { salonSettingsId }, orderBy: { dayOfWeek: 'asc' } });
+    return this.prisma.salonWorkingHours.findMany({
+      where: { salonSettingsId },
+      orderBy: { dayOfWeek: 'asc' },
+    });
   }
 
   async getWorkingHours(salonSettingsId: string) {
@@ -146,7 +170,9 @@ export class SalonService {
   }
 
   async updateHoliday(holidayId: string, dto: UpdateHolidayDto) {
-    const holiday = await this.prisma.holiday.findUnique({ where: { id: holidayId } });
+    const holiday = await this.prisma.holiday.findUnique({
+      where: { id: holidayId },
+    });
     if (!holiday) throw new NotFoundException('Praznik nije pronađen.');
     return this.prisma.holiday.update({
       where: { id: holidayId },
@@ -160,7 +186,9 @@ export class SalonService {
   }
 
   async removeHoliday(holidayId: string) {
-    const holiday = await this.prisma.holiday.findUnique({ where: { id: holidayId } });
+    const holiday = await this.prisma.holiday.findUnique({
+      where: { id: holidayId },
+    });
     if (!holiday) throw new NotFoundException('Praznik nije pronađen.');
     await this.prisma.holiday.delete({ where: { id: holidayId } });
     return { deleted: true };

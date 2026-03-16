@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { BlogService } from './blog.service';
 import { BlogCommentsService } from './blog-comments.service';
 import { CreateBlogPostDto } from './dto/create-blog-post.dto';
@@ -21,7 +30,10 @@ export class BlogController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  create(@Body() dto: CreateBlogPostDto, @CurrentUser() user: CurrentUserPayload) {
+  create(
+    @Body() dto: CreateBlogPostDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.blog.create(dto, user.sub);
   }
 
@@ -43,7 +55,11 @@ export class BlogController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateBlogPostDto, @CurrentUser() user: CurrentUserPayload) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateBlogPostDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.blog.update(id, dto, user);
   }
 
@@ -54,7 +70,10 @@ export class BlogController {
 
   @Get(':postId/comments')
   @Public()
-  getComments(@Param('postId') postId: string, @Query('approved') approved: string) {
+  getComments(
+    @Param('postId') postId: string,
+    @Query('approved') approved: string,
+  ) {
     return this.comments.findAllForPost(postId, approved === 'true');
   }
 
@@ -70,12 +89,18 @@ export class BlogController {
   @Patch('comments/:commentId/approve')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  approveComment(@Param('commentId') commentId: string, @CurrentUser() user: CurrentUserPayload) {
+  approveComment(
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.comments.approve(commentId, user);
   }
 
   @Delete('comments/:commentId')
-  removeComment(@Param('commentId') commentId: string, @CurrentUser() user: CurrentUserPayload) {
+  removeComment(
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.comments.remove(commentId, user);
   }
 }

@@ -1,5 +1,8 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { AnalyticsService, AnalyticsDashboardParams } from './analytics.service';
+import {
+  AnalyticsService,
+  AnalyticsDashboardParams,
+} from './analytics.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';

@@ -53,13 +53,22 @@ export class ExpenseTemplatesService {
       data: {
         ...(dto.name != null && { name: dto.name }),
         ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.requiresAttachmentPerItem !== undefined && { requiresAttachmentPerItem: dto.requiresAttachmentPerItem }),
+        ...(dto.requiresAttachmentPerItem !== undefined && {
+          requiresAttachmentPerItem: dto.requiresAttachmentPerItem,
+        }),
       },
       include: { fields: { orderBy: { sortOrder: 'asc' } } },
     });
   }
 
-  async addField(templateId: string, fieldName: string, fieldType: string, isRequired?: boolean, sortOrder?: number, defaultValue?: string) {
+  async addField(
+    templateId: string,
+    fieldName: string,
+    fieldType: string,
+    isRequired?: boolean,
+    sortOrder?: number,
+    defaultValue?: string,
+  ) {
     await this.findOne(templateId);
     return this.prisma.expenseTemplateField.create({
       data: {
@@ -74,7 +83,9 @@ export class ExpenseTemplatesService {
   }
 
   async removeField(fieldId: string) {
-    const f = await this.prisma.expenseTemplateField.findUnique({ where: { id: fieldId } });
+    const f = await this.prisma.expenseTemplateField.findUnique({
+      where: { id: fieldId },
+    });
     if (!f) throw new NotFoundException('Polje nije pronađeno.');
     await this.prisma.expenseTemplateField.delete({ where: { id: fieldId } });
     return { deleted: true };

@@ -95,12 +95,18 @@ function resolveDateRange(params: AnalyticsDashboardParams): {
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getDashboard(roles: string[], params: AnalyticsDashboardParams = {}): Promise<AnalyticsDashboard> {
+  async getDashboard(
+    roles: string[],
+    params: AnalyticsDashboardParams = {},
+  ): Promise<AnalyticsDashboard> {
     if (!roles.includes('SYSTEM_ADMIN') && !roles.includes('OWNER')) {
-      throw new ForbiddenException('Samo admin ili vlasnik mogu pristupiti analitici.');
+      throw new ForbiddenException(
+        'Samo admin ili vlasnik mogu pristupiti analitici.',
+      );
     }
 
-    const { fromDate, toDate, fromDateStr, toDateStr, months } = resolveDateRange(params);
+    const { fromDate, toDate, fromDateStr, toDateStr, months } =
+      resolveDateRange(params);
     const monthlyFinance: MonthlyFinance[] = [];
 
     for (const { year, month } of months) {
@@ -118,7 +124,11 @@ export class AnalyticsService {
 
       const income = Number(incomeBook?.totalRevenue ?? 0);
       const tips = Number(incomeBook?.totalTips ?? 0);
-      const expenses = expenseBook?.expenses?.reduce((s, e) => s + Number(e.totalAmount ?? 0), 0) ?? 0;
+      const expenses =
+        expenseBook?.expenses?.reduce(
+          (s, e) => s + Number(e.totalAmount ?? 0),
+          0,
+        ) ?? 0;
 
       monthlyFinance.push({
         year,
@@ -138,23 +148,43 @@ export class AnalyticsService {
         _count: { id: true },
         where: {
           reservationDate: { gte: fromDate, lte: toDate },
-          status: { in: ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED', 'IN_PROGRESS', 'COMPLETED'] },
+          status: {
+            in: [
+              'PENDING',
+              'STYLIST_REVIEW',
+              'CONFIRMED',
+              'ATTENDANCE_CONFIRMED',
+              'IN_PROGRESS',
+              'COMPLETED',
+            ],
+          },
         },
       }),
     ]);
 
     const totalPending = reservationCounts
-      .filter((r) => ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED', 'IN_PROGRESS'].includes(r.status))
+      .filter((r) =>
+        [
+          'PENDING',
+          'STYLIST_REVIEW',
+          'CONFIRMED',
+          'ATTENDANCE_CONFIRMED',
+          'IN_PROGRESS',
+        ].includes(r.status),
+      )
       .reduce((s, r) => s + r._count.id, 0);
-    const totalCompleted = reservationCounts.find((r) => r.status === 'COMPLETED')?._count.id ?? 0;
+    const totalCompleted =
+      reservationCounts.find((r) => r.status === 'COMPLETED')?._count.id ?? 0;
     const totalReservations = totalPending + totalCompleted;
-    const conversionRate = totalReservations > 0 ? (totalCompleted / totalReservations) * 100 : null;
+    const conversionRate =
+      totalReservations > 0 ? (totalCompleted / totalReservations) * 100 : null;
 
     return {
       monthlyFinance,
       stylistPerformance: stylistAgg,
       topServices: topServicesRaw,
-      conversionRate: conversionRate != null ? Math.round(conversionRate * 10) / 10 : null,
+      conversionRate:
+        conversionRate != null ? Math.round(conversionRate * 10) / 10 : null,
       totalPending,
       totalCompleted,
       fromDate: fromDateStr,
@@ -162,13 +192,18 @@ export class AnalyticsService {
     };
   }
 
-  private async getStylistPerformance(fromDate: Date, toDate: Date): Promise<StylistPerformance[]> {
+  private async getStylistPerformance(
+    fromDate: Date,
+    toDate: Date,
+  ): Promise<StylistPerformance[]> {
     const entries = await this.prisma.dailyLogEntry.findMany({
       where: { status: 'COMPLETED', date: { gte: fromDate, lte: toDate } },
       include: {
         stylistProfile: {
           include: {
-            user: { select: { firstName: true, lastName: true, username: true } },
+            user: {
+              select: { firstName: true, lastName: true, username: true },
+            },
           },
         },
       },
@@ -182,7 +217,9 @@ export class AnalyticsService {
     for (const e of entries) {
       const id = e.stylistProfileId;
       const name =
-        [e.stylistProfile?.user?.firstName, e.stylistProfile?.user?.lastName].filter(Boolean).join(' ') ||
+        [e.stylistProfile?.user?.firstName, e.stylistProfile?.user?.lastName]
+          .filter(Boolean)
+          .join(' ') ||
         e.stylistProfile?.user?.username ||
         '—';
       if (!byStylist.has(id)) {
@@ -203,10 +240,16 @@ export class AnalyticsService {
     }));
   }
 
-  private async getTopServices(fromDate: Date, toDate: Date): Promise<TopServiceRow[]> {
+  private async getTopServices(
+    fromDate: Date,
+    toDate: Date,
+  ): Promise<TopServiceRow[]> {
     const [fromReservations, fromDailyLog] = await Promise.all([
       this.prisma.reservation.findMany({
-        where: { status: 'COMPLETED', reservationDate: { gte: fromDate, lte: toDate } },
+        where: {
+          status: 'COMPLETED',
+          reservationDate: { gte: fromDate, lte: toDate },
+        },
         include: { service: { select: { id: true, name: true, price: true } } },
       }),
       this.prisma.dailyLogEntry.findMany({
@@ -215,7 +258,10 @@ export class AnalyticsService {
       }),
     ]);
 
-    const byService = new Map<string, { name: string; count: number; revenue: number }>();
+    const byService = new Map<
+      string,
+      { name: string; count: number; revenue: number }
+    >();
 
     for (const r of fromReservations) {
       const id = r.serviceId;

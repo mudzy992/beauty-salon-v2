@@ -1,4 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { SettingsService } from './settings.service';
 import { SetSettingDto } from './dto/set-setting.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -26,7 +34,11 @@ export class SettingsController {
   }
 
   @Put(':key')
-  set(@Param('key') key: string, @Body() dto: SetSettingDto, @CurrentUser() user: CurrentUserPayload) {
+  set(
+    @Param('key') key: string,
+    @Body() dto: SetSettingDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.settingsService.set(key, dto, user.sub);
   }
 

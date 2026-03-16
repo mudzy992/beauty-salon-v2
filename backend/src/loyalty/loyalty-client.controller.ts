@@ -30,13 +30,16 @@ export class LoyaltyClientController {
     }
 
     const tiers = await (this as any).loyalty['getTiers']();
-    const tier = tiers
-      .filter((t: any) => account.points >= t.minPoints)
-      .sort((a: any, b: any) => a.minPoints - b.minPoints)
-      .slice(-1)[0] ?? null;
+    const tier =
+      tiers
+        .filter((t: any) => account.points >= t.minPoints)
+        .sort((a: any, b: any) => a.minPoints - b.minPoints)
+        .slice(-1)[0] ?? null;
 
     const redeemEnabled = (this as any).loyalty['parseBoolean'](
-      await (this as any).loyalty['settings'].getValue('loyalty_redeem_enabled'),
+      await (this as any).loyalty['settings'].getValue(
+        'loyalty_redeem_enabled',
+      ),
       false,
     );
     const redeemRate = (this as any).loyalty['parseNumber'](
@@ -44,18 +47,26 @@ export class LoyaltyClientController {
       0.1,
     );
     const minPoints = (this as any).loyalty['parseNumber'](
-      await (this as any).loyalty['settings'].getValue('loyalty_min_points_to_redeem'),
+      await (this as any).loyalty['settings'].getValue(
+        'loyalty_min_points_to_redeem',
+      ),
       0,
     );
     const globalMaxPercent = (this as any).loyalty['parseNumber'](
-      await (this as any).loyalty['settings'].getValue('loyalty_max_discount_percent'),
+      await (this as any).loyalty['settings'].getValue(
+        'loyalty_max_discount_percent',
+      ),
       100,
     );
 
     if (serviceId) {
       const service = await this.prisma.service.findUnique({
         where: { id: serviceId },
-        select: { price: true, loyaltyEnabled: true, loyaltyMaxDiscountPercent: true },
+        select: {
+          price: true,
+          loyaltyEnabled: true,
+          loyaltyMaxDiscountPercent: true,
+        },
       });
       if (!service || !service.loyaltyEnabled) {
         return {
@@ -84,10 +95,7 @@ export class LoyaltyClientController {
         if (maxPercentForService > 0 && redeemRate > 0) {
           maxDiscountAmount = (servicePrice * maxPercentForService) / 100;
           const maxByPercent = Math.floor(maxDiscountAmount / redeemRate);
-          maxUsablePoints = Math.max(
-            0,
-            Math.min(maxByPercent, account.points),
-          );
+          maxUsablePoints = Math.max(0, Math.min(maxByPercent, account.points));
         }
       }
 
@@ -125,4 +133,3 @@ export class LoyaltyClientController {
     };
   }
 }
-

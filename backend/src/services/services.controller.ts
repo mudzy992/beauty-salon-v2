@@ -64,7 +64,10 @@ export class ServicesController {
     @Query('categoryId') categoryId?: string,
     @Query('activeOnly') activeOnly?: string,
   ) {
-    return this.servicesService.findAllSubcategories(categoryId, activeOnly === 'true');
+    return this.servicesService.findAllSubcategories(
+      categoryId,
+      activeOnly === 'true',
+    );
   }
 
   @Get('subcategories/:id')
@@ -83,7 +86,10 @@ export class ServicesController {
   @Patch('subcategories/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  updateSubcategory(@Param('id') id: string, @Body() dto: UpdateSubcategoryDto) {
+  updateSubcategory(
+    @Param('id') id: string,
+    @Body() dto: UpdateSubcategoryDto,
+  ) {
     return this.servicesService.updateSubcategory(id, dto);
   }
 
@@ -100,7 +106,10 @@ export class ServicesController {
     @Query('subcategoryId') subcategoryId?: string,
     @Query('activeOnly') activeOnly?: string,
   ) {
-    return this.servicesService.findAllServices(subcategoryId, activeOnly === 'true');
+    return this.servicesService.findAllServices(
+      subcategoryId,
+      activeOnly === 'true',
+    );
   }
 
   @Get(':id')

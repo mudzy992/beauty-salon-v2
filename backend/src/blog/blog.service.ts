@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBlogPostDto } from './dto/create-blog-post.dto';
 import { UpdateBlogPostDto } from './dto/update-blog-post.dto';
@@ -22,14 +26,19 @@ export class BlogService {
         isPublished,
         publishedAt: isPublished ? new Date() : null,
       },
-      include: { author: { select: { id: true, firstName: true, lastName: true } } },
+      include: {
+        author: { select: { id: true, firstName: true, lastName: true } },
+      },
     });
   }
 
   async findAll(publishedOnly = false) {
     return this.prisma.blogPost.findMany({
       where: publishedOnly ? { isPublished: true } : undefined,
-      include: { author: { select: { id: true, firstName: true, lastName: true } }, _count: { select: { comments: true } } },
+      include: {
+        author: { select: { id: true, firstName: true, lastName: true } },
+        _count: { select: { comments: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -40,7 +49,9 @@ export class BlogService {
       include: {
         author: { select: { id: true, firstName: true, lastName: true } },
         comments: {
-          include: { user: { select: { id: true, firstName: true, lastName: true } } },
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true } },
+          },
           orderBy: { createdAt: 'asc' },
         },
       },
@@ -56,7 +67,9 @@ export class BlogService {
         author: { select: { id: true, firstName: true, lastName: true } },
         comments: {
           where: { isApproved: true },
-          include: { user: { select: { id: true, firstName: true, lastName: true } } },
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true } },
+          },
           orderBy: { createdAt: 'asc' },
         },
       },
@@ -68,15 +81,23 @@ export class BlogService {
   async update(id: string, dto: UpdateBlogPostDto, user: CurrentUserPayload) {
     const post = await this.prisma.blogPost.findUnique({ where: { id } });
     if (!post) throw new NotFoundException('Članak nije pronađen.');
-    if (post.authorId !== user.sub && !user.roles.includes('SYSTEM_ADMIN') && !user.roles.includes('OWNER')) {
+    if (
+      post.authorId !== user.sub &&
+      !user.roles.includes('SYSTEM_ADMIN') &&
+      !user.roles.includes('OWNER')
+    ) {
       throw new ForbiddenException('Nemate dozvolu za izmjenu ovog članka.');
     }
     let slug = post.slug;
     if (dto.slug != null || dto.title != null) {
-      slug = await this.ensureUniqueSlug(dto.slug ?? slugify(dto.title ?? post.title), id);
+      slug = await this.ensureUniqueSlug(
+        dto.slug ?? slugify(dto.title ?? post.title),
+        id,
+      );
     }
     const isPublished = dto.isPublished ?? post.isPublished;
-    const publishedAt = isPublished && !post.publishedAt ? new Date() : post.publishedAt;
+    const publishedAt =
+      isPublished && !post.publishedAt ? new Date() : post.publishedAt;
     return this.prisma.blogPost.update({
       where: { id },
       data: {
@@ -87,21 +108,30 @@ export class BlogService {
         isPublished,
         publishedAt,
       },
-      include: { author: { select: { id: true, firstName: true, lastName: true } } },
+      include: {
+        author: { select: { id: true, firstName: true, lastName: true } },
+      },
     });
   }
 
   async remove(id: string, user: CurrentUserPayload) {
     const post = await this.prisma.blogPost.findUnique({ where: { id } });
     if (!post) throw new NotFoundException('Članak nije pronađen.');
-    if (post.authorId !== user.sub && !user.roles.includes('SYSTEM_ADMIN') && !user.roles.includes('OWNER')) {
+    if (
+      post.authorId !== user.sub &&
+      !user.roles.includes('SYSTEM_ADMIN') &&
+      !user.roles.includes('OWNER')
+    ) {
       throw new ForbiddenException('Nemate dozvolu za brisanje ovog članka.');
     }
     await this.prisma.blogPost.delete({ where: { id } });
     return { deleted: true };
   }
 
-  private async ensureUniqueSlug(base: string, excludeId?: string): Promise<string> {
+  private async ensureUniqueSlug(
+    base: string,
+    excludeId?: string,
+  ): Promise<string> {
     let slug = base;
     let n = 0;
     for (;;) {

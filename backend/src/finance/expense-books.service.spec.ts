@@ -47,7 +47,9 @@ describe('ExpenseBooksService', () => {
       id: 'b1',
       isClosed: true,
     });
-    await expect(service.close('b1', 'user-1')).rejects.toThrow(BadRequestException);
+    await expect(service.close('b1', 'user-1')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('findOne baca NotFoundException kada knjiga ne postoji', async () => {

@@ -43,7 +43,12 @@ describe('BlogService', () => {
       id: 'p1',
       authorId: 'other-author',
     });
-    const user = { sub: 'user-1', username: 'u', email: 'e@e.com', roles: ['CLIENT'] };
+    const user = {
+      sub: 'user-1',
+      username: 'u',
+      email: 'e@e.com',
+      roles: ['CLIENT'],
+    };
     await expect(
       service.update('p1', { title: 'Novi naslov' }, user as any),
     ).rejects.toThrow(ForbiddenException);

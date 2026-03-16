@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
@@ -8,16 +13,23 @@ export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateReviewDto, userId: string) {
-    await this.prisma.service.findUniqueOrThrow({ where: { id: dto.serviceId } });
+    await this.prisma.service.findUniqueOrThrow({
+      where: { id: dto.serviceId },
+    });
     if (dto.stylistProfileId) {
-      await this.prisma.stylistProfile.findUniqueOrThrow({ where: { id: dto.stylistProfileId } });
+      await this.prisma.stylistProfile.findUniqueOrThrow({
+        where: { id: dto.stylistProfileId },
+      });
     }
     if (dto.reservationId) {
       const res = await this.prisma.reservation.findUnique({
         where: { id: dto.reservationId },
       });
       if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
-      if (res.clientId !== userId) throw new ForbiddenException('Samo klijent rezervacije može ostaviti recenziju.');
+      if (res.clientId !== userId)
+        throw new ForbiddenException(
+          'Samo klijent rezervacije može ostaviti recenziju.',
+        );
     }
     const existing = await this.prisma.review.findFirst({
       where: {
@@ -26,7 +38,10 @@ export class ReviewsService {
         ...(dto.reservationId ? { reservationId: dto.reservationId } : {}),
       },
     });
-    if (existing) throw new BadRequestException('Već ste ostavili recenziju za ovaj servis.');
+    if (existing)
+      throw new BadRequestException(
+        'Već ste ostavili recenziju za ovaj servis.',
+      );
     return this.prisma.review.create({
       data: {
         userId,
@@ -40,14 +55,18 @@ export class ReviewsService {
       },
       include: {
         service: { select: { id: true, name: true } },
-        stylist: { include: { user: { select: { firstName: true, lastName: true } } } },
+        stylist: {
+          include: { user: { select: { firstName: true, lastName: true } } },
+        },
         user: { select: { id: true, firstName: true, lastName: true } },
       },
     });
   }
 
   async findOneRandomApproved() {
-    const count = await this.prisma.review.count({ where: { isApproved: true } });
+    const count = await this.prisma.review.count({
+      where: { isApproved: true },
+    });
     if (count === 0) return null;
     const skip = Math.floor(Math.random() * count);
     const review = await this.prisma.review.findMany({
@@ -62,8 +81,16 @@ export class ReviewsService {
     return review[0] ?? null;
   }
 
-  async findAll(query: { serviceId?: string; stylistProfileId?: string; approvedOnly?: boolean }) {
-    const where: { serviceId?: string; stylistProfileId?: string; isApproved?: boolean } = {};
+  async findAll(query: {
+    serviceId?: string;
+    stylistProfileId?: string;
+    approvedOnly?: boolean;
+  }) {
+    const where: {
+      serviceId?: string;
+      stylistProfileId?: string;
+      isApproved?: boolean;
+    } = {};
     if (query.serviceId) where.serviceId = query.serviceId;
     if (query.stylistProfileId) where.stylistProfileId = query.stylistProfileId;
     if (query.approvedOnly) where.isApproved = true;
@@ -72,7 +99,9 @@ export class ReviewsService {
       include: {
         user: { select: { id: true, firstName: true, lastName: true } },
         service: { select: { id: true, name: true } },
-        stylist: { include: { user: { select: { firstName: true, lastName: true } } } },
+        stylist: {
+          include: { user: { select: { firstName: true, lastName: true } } },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -108,7 +137,11 @@ export class ReviewsService {
   async remove(id: string, user: CurrentUserPayload) {
     const r = await this.prisma.review.findUnique({ where: { id } });
     if (!r) throw new NotFoundException('Recenzija nije pronađena.');
-    if (r.userId !== user.sub && !user.roles.includes('SYSTEM_ADMIN') && !user.roles.includes('OWNER')) {
+    if (
+      r.userId !== user.sub &&
+      !user.roles.includes('SYSTEM_ADMIN') &&
+      !user.roles.includes('OWNER')
+    ) {
       throw new ForbiddenException('Nemate dozvolu za brisanje.');
     }
     await this.prisma.review.delete({ where: { id } });

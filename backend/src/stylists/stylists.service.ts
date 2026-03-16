@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStylistProfileDto } from './dto/create-stylist-profile.dto';
 import { UpdateStylistProfileDto } from './dto/update-stylist-profile.dto';
@@ -14,7 +18,16 @@ export class StylistsService {
     return this.prisma.stylistProfile.findMany({
       where,
       include: {
-        user: { select: { id: true, username: true, email: true, firstName: true, lastName: true, avatar: true } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
+        },
         workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
         stylistServices: { include: { service: true } },
       },
@@ -26,9 +39,25 @@ export class StylistsService {
     const stylist = await this.prisma.stylistProfile.findUnique({
       where: { id },
       include: {
-        user: { select: { id: true, username: true, email: true, firstName: true, lastName: true, phone: true, avatar: true } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            avatar: true,
+          },
+        },
         workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
-        stylistServices: { include: { service: { include: { subcategory: { include: { category: true } } } } } },
+        stylistServices: {
+          include: {
+            service: {
+              include: { subcategory: { include: { category: true } } },
+            },
+          },
+        },
       },
     });
     if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
@@ -39,7 +68,16 @@ export class StylistsService {
     const stylist = await this.prisma.stylistProfile.findUnique({
       where: { userId },
       include: {
-        user: { select: { id: true, username: true, email: true, firstName: true, lastName: true, avatar: true } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+          },
+        },
         workingHours: { orderBy: [{ dayOfWeek: 'asc' }] },
         stylistServices: { include: { service: true } },
       },
@@ -50,10 +88,15 @@ export class StylistsService {
 
   async create(dto: CreateStylistProfileDto, roles: string[]) {
     this.requireAdminOrOwner(roles);
-    const user = await this.prisma.user.findUnique({ where: { id: dto.userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+    });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
-    const existing = await this.prisma.stylistProfile.findUnique({ where: { userId: dto.userId } });
-    if (existing) throw new ForbiddenException('Korisnik već ima profil stilista.');
+    const existing = await this.prisma.stylistProfile.findUnique({
+      where: { userId: dto.userId },
+    });
+    if (existing)
+      throw new ForbiddenException('Korisnik već ima profil stilista.');
     const stylist = await this.prisma.stylistProfile.create({
       data: {
         userId: dto.userId,
@@ -62,11 +105,15 @@ export class StylistsService {
         isActive: dto.isActive ?? true,
         hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
       },
-      include: { user: { select: { id: true, firstName: true, lastName: true } } },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true } },
+      },
     });
 
     // Automatski dodjeli STYLIST rolu korisniku (ne može se ručno u User managementu)
-    const stylistRole = await this.prisma.role.findUnique({ where: { name: 'STYLIST' } });
+    const stylistRole = await this.prisma.role.findUnique({
+      where: { name: 'STYLIST' },
+    });
     if (stylistRole) {
       const existingUserRole = await this.prisma.userRole.findFirst({
         where: { userId: dto.userId, roleId: stylistRole.id },
@@ -87,19 +134,33 @@ export class StylistsService {
     return this.findOne(stylist.id);
   }
 
-  async update(id: string, dto: UpdateStylistProfileDto, currentUser: CurrentUserPayload) {
-    const stylist = await this.prisma.stylistProfile.findUnique({ where: { id } });
+  async update(
+    id: string,
+    dto: UpdateStylistProfileDto,
+    currentUser: CurrentUserPayload,
+  ) {
+    const stylist = await this.prisma.stylistProfile.findUnique({
+      where: { id },
+    });
     if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
-    if (currentUser.sub !== stylist.userId && !this.isAdminOrOwner(currentUser.roles)) {
+    if (
+      currentUser.sub !== stylist.userId &&
+      !this.isAdminOrOwner(currentUser.roles)
+    ) {
       throw new ForbiddenException('Nemate dozvolu za izmjenu ovog profila.');
     }
     await this.prisma.stylistProfile.update({
       where: { id },
       data: {
         ...(dto.bio !== undefined && { bio: dto.bio }),
-        ...(dto.specialization !== undefined && { specialization: dto.specialization }),
-        ...(this.isAdminOrOwner(currentUser.roles) && dto.isActive !== undefined && { isActive: dto.isActive }),
-        ...(dto.hireDate !== undefined && { hireDate: dto.hireDate ? new Date(dto.hireDate) : null }),
+        ...(dto.specialization !== undefined && {
+          specialization: dto.specialization,
+        }),
+        ...(this.isAdminOrOwner(currentUser.roles) &&
+          dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(dto.hireDate !== undefined && {
+          hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
+        }),
       },
     });
     if (dto.serviceIds) await this.setServices(id, dto.serviceIds);
@@ -109,12 +170,16 @@ export class StylistsService {
 
   async remove(id: string, roles: string[]) {
     this.requireAdminOrOwner(roles);
-    const stylist = await this.prisma.stylistProfile.findUnique({ where: { id } });
+    const stylist = await this.prisma.stylistProfile.findUnique({
+      where: { id },
+    });
     if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
     const userId = stylist.userId;
     await this.prisma.stylistProfile.delete({ where: { id } });
     // Ukloni STYLIST rolu korisniku kad više nema profil stilista
-    const stylistRole = await this.prisma.role.findUnique({ where: { name: 'STYLIST' } });
+    const stylistRole = await this.prisma.role.findUnique({
+      where: { name: 'STYLIST' },
+    });
     if (stylistRole) {
       await this.prisma.userRole.deleteMany({
         where: { userId, roleId: stylistRole.id },
@@ -123,9 +188,14 @@ export class StylistsService {
     return { deleted: true };
   }
 
-  async setWorkingHours(stylistProfileId: string, hours: StylistWorkingHoursDto[]) {
+  async setWorkingHours(
+    stylistProfileId: string,
+    hours: StylistWorkingHoursDto[],
+  ) {
     await this.findOne(stylistProfileId);
-    await this.prisma.stylistWorkingHours.deleteMany({ where: { stylistProfileId } });
+    await this.prisma.stylistWorkingHours.deleteMany({
+      where: { stylistProfileId },
+    });
     if (hours.length) {
       await this.prisma.stylistWorkingHours.createMany({
         data: hours.map((h) => ({
@@ -154,7 +224,9 @@ export class StylistsService {
 
   async setServices(stylistProfileId: string, serviceIds: string[]) {
     await this.findOne(stylistProfileId);
-    await this.prisma.stylistService.deleteMany({ where: { stylistProfileId } });
+    await this.prisma.stylistService.deleteMany({
+      where: { stylistProfileId },
+    });
     if (serviceIds.length) {
       await this.prisma.stylistService.createMany({
         data: serviceIds.map((serviceId) => ({ stylistProfileId, serviceId })),
@@ -170,7 +242,9 @@ export class StylistsService {
     await this.findOne(stylistProfileId);
     return this.prisma.stylistService.findMany({
       where: { stylistProfileId },
-      include: { service: { include: { subcategory: { include: { category: true } } } } },
+      include: {
+        service: { include: { subcategory: { include: { category: true } } } },
+      },
     });
   }
 
@@ -183,7 +257,17 @@ export class StylistsService {
     this.requireAdminOrOwner(roles);
     const profile = await this.prisma.stylistProfile.findUnique({
       where: { id: stylistProfileId },
-      include: { user: { select: { id: true, username: true, firstName: true, lastName: true, email: true } } },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
     });
     if (!profile) throw new NotFoundException('Stilist nije pronađen.');
 
@@ -193,7 +277,11 @@ export class StylistsService {
     }
 
     const entries = await this.prisma.dailyLogEntry.findMany({
-      where: { stylistProfileId, status: 'COMPLETED', ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}) },
+      where: {
+        stylistProfileId,
+        status: 'COMPLETED',
+        ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}),
+      },
       include: {
         service: { select: { id: true, name: true } },
         client: { select: { id: true, firstName: true, lastName: true } },
@@ -206,7 +294,10 @@ export class StylistsService {
     const revenue = entries.reduce((s, e) => s + Number(e.actualPrice ?? 0), 0);
     const tips = entries.reduce((s, e) => s + Number(e.tipAmount ?? 0), 0);
 
-    const byService = new Map<string, { name: string; count: number; revenue: number }>();
+    const byService = new Map<
+      string,
+      { name: string; count: number; revenue: number }
+    >();
     for (const e of entries) {
       const id = e.serviceId;
       const name = e.service?.name ?? '—';
@@ -217,12 +308,21 @@ export class StylistsService {
       row.revenue += amt;
     }
     const topServices = Array.from(byService.entries())
-      .map(([serviceId, v]) => ({ serviceId, serviceName: v.name, count: v.count, revenue: Math.round(v.revenue * 100) / 100 }))
+      .map(([serviceId, v]) => ({
+        serviceId,
+        serviceName: v.name,
+        count: v.count,
+        revenue: Math.round(v.revenue * 100) / 100,
+      }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
     const stylistName =
-      [profile.user?.firstName, profile.user?.lastName].filter(Boolean).join(' ') || profile.user?.username || '—';
+      [profile.user?.firstName, profile.user?.lastName]
+        .filter(Boolean)
+        .join(' ') ||
+      profile.user?.username ||
+      '—';
 
     return {
       stylist: { id: profile.id, name: stylistName, user: profile.user },
@@ -236,7 +336,9 @@ export class StylistsService {
         id: e.id,
         date: e.date,
         serviceName: e.service?.name,
-        clientName: [e.client?.firstName, e.client?.lastName].filter(Boolean).join(' ') || null,
+        clientName:
+          [e.client?.firstName, e.client?.lastName].filter(Boolean).join(' ') ||
+          null,
         actualPrice: e.actualPrice,
         tipAmount: e.tipAmount,
       })),
@@ -248,6 +350,7 @@ export class StylistsService {
   }
 
   private requireAdminOrOwner(roles: string[]) {
-    if (!this.isAdminOrOwner(roles)) throw new ForbiddenException('Samo administrator ili vlasnik.');
+    if (!this.isAdminOrOwner(roles))
+      throw new ForbiddenException('Samo administrator ili vlasnik.');
   }
 }

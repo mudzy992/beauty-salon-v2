@@ -46,8 +46,12 @@ describe('SalonService', () => {
 
   it('findOne baca NotFoundException kada salon ne postoji', async () => {
     mockPrisma.salonSettings.findUnique.mockResolvedValue(null);
-    await expect(service.findOne('non-existent')).rejects.toThrow(NotFoundException);
-    await expect(service.findOne('non-existent')).rejects.toThrow('Salon nije pronađen.');
+    await expect(service.findOne('non-existent')).rejects.toThrow(
+      NotFoundException,
+    );
+    await expect(service.findOne('non-existent')).rejects.toThrow(
+      'Salon nije pronađen.',
+    );
   });
 
   it('setWorkingHours briše stare i kreira nove sate', async () => {
@@ -65,11 +69,21 @@ describe('SalonService', () => {
       { dayOfWeek: 2, openTime: '09:00', closeTime: '17:00' },
     ]);
 
-    expect(mockPrisma.salonWorkingHours.deleteMany).toHaveBeenCalledWith({ where: { salonSettingsId: salonId } });
+    expect(mockPrisma.salonWorkingHours.deleteMany).toHaveBeenCalledWith({
+      where: { salonSettingsId: salonId },
+    });
     expect(mockPrisma.salonWorkingHours.createMany).toHaveBeenCalledWith({
       data: expect.arrayContaining([
-        expect.objectContaining({ dayOfWeek: 1, openTime: '09:00', closeTime: '17:00' }),
-        expect.objectContaining({ dayOfWeek: 2, openTime: '09:00', closeTime: '17:00' }),
+        expect.objectContaining({
+          dayOfWeek: 1,
+          openTime: '09:00',
+          closeTime: '17:00',
+        }),
+        expect.objectContaining({
+          dayOfWeek: 2,
+          openTime: '09:00',
+          closeTime: '17:00',
+        }),
       ]),
     });
     expect(result).toHaveLength(2);

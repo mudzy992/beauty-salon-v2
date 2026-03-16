@@ -12,7 +12,10 @@ import { UploadsModule } from '../uploads/uploads.module';
 @Module({
   imports: [
     UploadsModule,
-    MulterModule.register({ storage: memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }),
+    MulterModule.register({
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+    }),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

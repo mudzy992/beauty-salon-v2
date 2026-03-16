@@ -10,7 +10,8 @@ export class IncomeBooksService {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1; // 1-12
-    const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
+    const prev =
+      month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 };
 
     const prevBook = await this.prisma.incomeBook.findUnique({
       where: { year_month: { year: prev.year, month: prev.month } },
@@ -59,7 +60,14 @@ export class IncomeBooksService {
       where: { id },
       include: {
         entries: {
-          include: { dailyLogEntry: { include: { service: true, stylistProfile: { include: { user: true } } } } },
+          include: {
+            dailyLogEntry: {
+              include: {
+                service: true,
+                stylistProfile: { include: { user: true } },
+              },
+            },
+          },
         },
       },
     });
@@ -73,7 +81,8 @@ export class IncomeBooksService {
       where: { id: dailyLogEntryId },
     });
     if (!entry) throw new NotFoundException('Zapis dnevnika nije pronađen.');
-    if (entry.status !== 'COMPLETED') throw new Error('Samo završeni zapisi se dodaju u knjigu prihoda.');
+    if (entry.status !== 'COMPLETED')
+      throw new Error('Samo završeni zapisi se dodaju u knjigu prihoda.');
     const d = new Date(entry.date);
     const year = d.getFullYear();
     const month = d.getMonth() + 1;

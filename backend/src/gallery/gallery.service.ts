@@ -27,13 +27,18 @@ export class GalleryService {
   async findOneCategory(id: string) {
     const c = await this.prisma.galleryCategory.findUnique({
       where: { id },
-      include: { images: { include: { upload: true }, orderBy: { sortOrder: 'asc' } } },
+      include: {
+        images: { include: { upload: true }, orderBy: { sortOrder: 'asc' } },
+      },
     });
     if (!c) throw new NotFoundException('Kategorija nije pronađena.');
     return c;
   }
 
-  async updateCategory(id: string, dto: { name?: string; description?: string; sortOrder?: number }) {
+  async updateCategory(
+    id: string,
+    dto: { name?: string; description?: string; sortOrder?: number },
+  ) {
     await this.findOneCategory(id);
     return this.prisma.galleryCategory.update({
       where: { id },
@@ -52,7 +57,9 @@ export class GalleryService {
   }
 
   async addImage(dto: CreateGalleryImageDto) {
-    await this.prisma.galleryCategory.findUniqueOrThrow({ where: { id: dto.categoryId } });
+    await this.prisma.galleryCategory.findUniqueOrThrow({
+      where: { id: dto.categoryId },
+    });
     return this.prisma.galleryImage.create({
       data: {
         categoryId: dto.categoryId,
@@ -65,7 +72,10 @@ export class GalleryService {
     });
   }
 
-  async updateImage(id: string, dto: { title?: string; description?: string; sortOrder?: number }) {
+  async updateImage(
+    id: string,
+    dto: { title?: string; description?: string; sortOrder?: number },
+  ) {
     const img = await this.prisma.galleryImage.findUnique({ where: { id } });
     if (!img) throw new NotFoundException('Slika nije pronađena.');
     return this.prisma.galleryImage.update({

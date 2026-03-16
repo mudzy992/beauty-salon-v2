@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ExpenseTemplatesService } from './expense-templates.service';
 import { ExpenseCategoriesService } from './expense-categories.service';
 import { ExpenseBooksService } from './expense-books.service';
@@ -44,9 +53,23 @@ export class ExpenseTemplatesController {
   @Post(':id/fields')
   addField(
     @Param('id') id: string,
-    @Body() body: { fieldName: string; fieldType: string; isRequired?: boolean; sortOrder?: number; defaultValue?: string },
+    @Body()
+    body: {
+      fieldName: string;
+      fieldType: string;
+      isRequired?: boolean;
+      sortOrder?: number;
+      defaultValue?: string;
+    },
   ) {
-    return this.templates.addField(id, body.fieldName, body.fieldType, body.isRequired, body.sortOrder, body.defaultValue);
+    return this.templates.addField(
+      id,
+      body.fieldName,
+      body.fieldType,
+      body.isRequired,
+      body.sortOrder,
+      body.defaultValue,
+    );
   }
 
   @Delete('fields/:fieldId')
@@ -95,7 +118,10 @@ export class ExpenseBooksController {
 
   @Get('month/:year/:month')
   getOrCreate(@Param('year') year: string, @Param('month') month: string) {
-    return this.books.getOrCreateForMonth(parseInt(year, 10), parseInt(month, 10));
+    return this.books.getOrCreateForMonth(
+      parseInt(year, 10),
+      parseInt(month, 10),
+    );
   }
 
   @Get(':id')
@@ -116,7 +142,10 @@ export class ExpensesController {
   constructor(private readonly expenses: ExpensesService) {}
 
   @Post()
-  create(@Body() dto: CreateExpenseDto, @CurrentUser() user: CurrentUserPayload) {
+  create(
+    @Body() dto: CreateExpenseDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.expenses.create(dto, user);
   }
 
@@ -131,7 +160,11 @@ export class ExpensesController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateExpenseDto, @CurrentUser() user: CurrentUserPayload) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateExpenseDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.expenses.update(id, dto, user);
   }
 

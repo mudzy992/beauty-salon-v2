@@ -49,13 +49,6 @@ interface AppSetting {
   value: string | null;
 }
 
-interface LoyaltyTierRow {
-  id: string;
-  name: string;
-  minPoints: number;
-  maxDiscountPercent?: number;
-}
-
 export default function Loyalty() {
   const toast = useToast();
   const [programEnabled, setProgramEnabled] = useState<boolean>(false);

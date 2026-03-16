@@ -104,7 +104,12 @@ export class ReservationsService {
       });
     }
 
-    const full = await this.findOne(reservation.id, { sub: clientId, roles: ['CLIENT'], username: '', email: '' });
+    const full = await this.findOne(reservation.id, {
+      sub: clientId,
+      roles: ['CLIENT'],
+      username: '',
+      email: '',
+    });
     this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CREATED, full);
     this.events.emitToStylists(SOCKET_EVENTS.RESERVATION_CREATED, full);
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
@@ -115,20 +120,35 @@ export class ReservationsService {
   }
 
   async findAll(
-    query: { fromDate?: string; toDate?: string; status?: string; asClient?: boolean; asStylist?: boolean },
+    query: {
+      fromDate?: string;
+      toDate?: string;
+      status?: string;
+      asClient?: boolean;
+      asStylist?: boolean;
+    },
     user: CurrentUserPayload,
   ) {
     const where: {
       reservationDate?: { gte?: Date; lte?: Date };
       status?: string;
       clientId?: string;
-      OR?: Array<{ confirmedStylistId?: string; stylistResponses?: { some: { stylistProfileId: string } } }>;
+      OR?: Array<{
+        confirmedStylistId?: string;
+        stylistResponses?: { some: { stylistProfileId: string } };
+      }>;
     } = {};
     if (query.fromDate) {
-      where.reservationDate = { ...where.reservationDate, gte: new Date(query.fromDate) };
+      where.reservationDate = {
+        ...where.reservationDate,
+        gte: new Date(query.fromDate),
+      };
     }
     if (query.toDate) {
-      where.reservationDate = { ...where.reservationDate, lte: new Date(query.toDate) };
+      where.reservationDate = {
+        ...where.reservationDate,
+        lte: new Date(query.toDate),
+      };
     }
     if (query.status) where.status = query.status;
     if (query.asClient) where.clientId = user.sub;
@@ -145,13 +165,23 @@ export class ReservationsService {
     return this.prisma.reservation.findMany({
       where,
       include: {
-        service: { select: { id: true, name: true, durationMinutes: true, price: true } },
-        client: { select: { id: true, firstName: true, lastName: true, username: true } },
+        service: {
+          select: { id: true, name: true, durationMinutes: true, price: true },
+        },
+        client: {
+          select: { id: true, firstName: true, lastName: true, username: true },
+        },
         confirmedStylist: {
           include: { user: { select: { firstName: true, lastName: true } } },
         },
         stylistResponses: {
-          include: { stylistProfile: { include: { user: { select: { firstName: true, lastName: true } } } } },
+          include: {
+            stylistProfile: {
+              include: {
+                user: { select: { firstName: true, lastName: true } },
+              },
+            },
+          },
         },
       },
       orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
@@ -163,12 +193,28 @@ export class ReservationsService {
       where: { id },
       include: {
         service: { include: { subcategory: { include: { category: true } } } },
-        client: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
+        client: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true,
+          },
+        },
         confirmedStylist: {
-          include: { user: { select: { id: true, firstName: true, lastName: true } } },
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true } },
+          },
         },
         stylistResponses: {
-          include: { stylistProfile: { include: { user: { select: { id: true, firstName: true, lastName: true } } } } },
+          include: {
+            stylistProfile: {
+              include: {
+                user: { select: { id: true, firstName: true, lastName: true } },
+              },
+            },
+          },
         },
       },
     });
@@ -180,14 +226,20 @@ export class ReservationsService {
       r.stylistResponses.some((sr) => sr.stylistProfile.userId === user.sub) ||
       user.roles.includes('SYSTEM_ADMIN') ||
       user.roles.includes('OWNER');
-    if (!canAccess) throw new ForbiddenException('Nemate pristup ovoj rezervaciji.');
+    if (!canAccess)
+      throw new ForbiddenException('Nemate pristup ovoj rezervaciji.');
     return r;
   }
 
-  async cancelByClient(id: string, clientId: string, dto?: CancelReservationDto) {
+  async cancelByClient(
+    id: string,
+    clientId: string,
+    dto?: CancelReservationDto,
+  ) {
     const r = await this.prisma.reservation.findUnique({ where: { id } });
     if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
-    if (r.clientId !== clientId) throw new ForbiddenException('Samo klijent može otkazati rezervaciju.');
+    if (r.clientId !== clientId)
+      throw new ForbiddenException('Samo klijent može otkazati rezervaciju.');
     const cancellableStatuses: string[] = [
       RESERVATION_STATUS.PENDING,
       RESERVATION_STATUS.STYLIST_REVIEW,
@@ -217,7 +269,12 @@ export class ReservationsService {
     });
 
     await this.incrementCancellationCount(clientId, salon);
-    const cancelled = await this.findOne(id, { sub: clientId, roles: ['CLIENT'], username: '', email: '' });
+    const cancelled = await this.findOne(id, {
+      sub: clientId,
+      roles: ['CLIENT'],
+      username: '',
+      email: '',
+    });
     this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CANCELLED, cancelled);
     this.events.emitToStylists(SOCKET_EVENTS.RESERVATION_CANCELLED, cancelled);
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
@@ -230,18 +287,25 @@ export class ReservationsService {
   async confirmAttendance(id: string, clientId: string) {
     const r = await this.prisma.reservation.findUnique({ where: { id } });
     if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
-    if (r.clientId !== clientId) throw new ForbiddenException('Samo klijent može potvrditi dolazak.');
+    if (r.clientId !== clientId)
+      throw new ForbiddenException('Samo klijent može potvrditi dolazak.');
     if (r.status !== RESERVATION_STATUS.CONFIRMED) {
-      throw new BadRequestException('Rezervacija mora biti potvrđena od strane stilista.');
+      throw new BadRequestException(
+        'Rezervacija mora biti potvrđena od strane stilista.',
+      );
     }
 
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
     const minConfirmTime = new Date(r.reservationDate);
     minConfirmTime.setHours(0, 0, 0, 0);
-    minConfirmTime.setHours(minConfirmTime.getHours() - salon.cancellationDeadlineHours);
+    minConfirmTime.setHours(
+      minConfirmTime.getHours() - salon.cancellationDeadlineHours,
+    );
     if (new Date() < minConfirmTime) {
-      throw new BadRequestException('Dolazak se može potvrditi najranije 24h prije termina.');
+      throw new BadRequestException(
+        'Dolazak se može potvrditi najranije 24h prije termina.',
+      );
     }
 
     await this.prisma.reservation.update({
@@ -251,12 +315,21 @@ export class ReservationsService {
         attendanceConfirmedAt: new Date(),
       },
     });
-    const confirmed = await this.findOne(id, { sub: clientId, roles: ['CLIENT'], username: '', email: '' });
+    const confirmed = await this.findOne(id, {
+      sub: clientId,
+      roles: ['CLIENT'],
+      username: '',
+      email: '',
+    });
     this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_UPDATED, confirmed);
     return confirmed;
   }
 
-  async stylistLock(reservationId: string, stylistProfileId: string, userId: string) {
+  async stylistLock(
+    reservationId: string,
+    stylistProfileId: string,
+    userId: string,
+  ) {
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
     const lockMinutes = salon.reservationLockMinutes;
@@ -266,22 +339,42 @@ export class ReservationsService {
       include: { stylistResponses: true },
     });
     if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
-    if (res.status !== RESERVATION_STATUS.PENDING && res.status !== RESERVATION_STATUS.STYLIST_REVIEW) {
-      throw new BadRequestException('Rezervacija nije u fazi odgovora stilista.');
+    if (
+      res.status !== RESERVATION_STATUS.PENDING &&
+      res.status !== RESERVATION_STATUS.STYLIST_REVIEW
+    ) {
+      throw new BadRequestException(
+        'Rezervacija nije u fazi odgovora stilista.',
+      );
     }
 
     const stylist = await this.prisma.stylistProfile.findUnique({
       where: { id: stylistProfileId },
       select: { userId: true },
     });
-    if (!stylist || stylist.userId !== userId) throw new ForbiddenException('Možete raditi samo na vlastitom profilu stilista.');
+    if (!stylist || stylist.userId !== userId)
+      throw new ForbiddenException(
+        'Možete raditi samo na vlastitom profilu stilista.',
+      );
 
     const response = await this.prisma.reservationStylistResponse.findUnique({
-      where: { reservationId_stylistProfileId: { reservationId, stylistProfileId } },
+      where: {
+        reservationId_stylistProfileId: { reservationId, stylistProfileId },
+      },
     });
-    if (!response) throw new NotFoundException('Odgovor za ovog stilista nije pronađen.');
-    if (response.status === 'LOCKED' && response.lockExpiresAt && new Date() < response.lockExpiresAt) {
-      return this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
+    if (!response)
+      throw new NotFoundException('Odgovor za ovog stilista nije pronađen.');
+    if (
+      response.status === 'LOCKED' &&
+      response.lockExpiresAt &&
+      new Date() < response.lockExpiresAt
+    ) {
+      return this.findOne(reservationId, {
+        sub: userId,
+        roles: ['STYLIST'],
+        username: '',
+        email: '',
+      });
     }
     if (response.status === 'ACCEPTED' || response.status === 'REJECTED') {
       throw new BadRequestException('Već ste odgovorili na ovu rezervaciju.');
@@ -296,7 +389,9 @@ export class ReservationsService {
         data: { status: 'PENDING', lockedAt: null, lockExpiresAt: null },
       }),
       this.prisma.reservationStylistResponse.update({
-        where: { reservationId_stylistProfileId: { reservationId, stylistProfileId } },
+        where: {
+          reservationId_stylistProfileId: { reservationId, stylistProfileId },
+        },
         data: { status: 'LOCKED', lockedAt: now, lockExpiresAt },
       }),
       this.prisma.reservation.update({
@@ -305,18 +400,37 @@ export class ReservationsService {
       }),
     ]);
 
-    const locked = await this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
-    this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_STYLIST_RESPONSE, locked);
-    this.events.emitToUser(res.clientId, SOCKET_EVENTS.RESERVATION_UPDATED, locked);
+    const locked = await this.findOne(reservationId, {
+      sub: userId,
+      roles: ['STYLIST'],
+      username: '',
+      email: '',
+    });
+    this.events.emitToAdmins(
+      SOCKET_EVENTS.RESERVATION_STYLIST_RESPONSE,
+      locked,
+    );
+    this.events.emitToUser(
+      res.clientId,
+      SOCKET_EVENTS.RESERVATION_UPDATED,
+      locked,
+    );
     return locked;
   }
 
-  async stylistAccept(reservationId: string, stylistProfileId: string, userId: string) {
+  async stylistAccept(
+    reservationId: string,
+    stylistProfileId: string,
+    userId: string,
+  ) {
     const stylist = await this.prisma.stylistProfile.findUnique({
       where: { id: stylistProfileId },
       select: { userId: true },
     });
-    if (!stylist || stylist.userId !== userId) throw new ForbiddenException('Možete raditi samo na vlastitom profilu stilista.');
+    if (!stylist || stylist.userId !== userId)
+      throw new ForbiddenException(
+        'Možete raditi samo na vlastitom profilu stilista.',
+      );
 
     const res = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
@@ -324,8 +438,11 @@ export class ReservationsService {
     });
     if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
 
-    const response = res.stylistResponses.find((r) => r.stylistProfileId === stylistProfileId);
-    if (!response) throw new NotFoundException('Odgovor za ovog stilista nije pronađen.');
+    const response = res.stylistResponses.find(
+      (r) => r.stylistProfileId === stylistProfileId,
+    );
+    if (!response)
+      throw new NotFoundException('Odgovor za ovog stilista nije pronađen.');
     if (response.status !== 'LOCKED') {
       throw new BadRequestException('Prvo zaključajte rezervaciju (lock).');
     }
@@ -342,7 +459,9 @@ export class ReservationsService {
         },
       }),
       this.prisma.reservationStylistResponse.update({
-        where: { reservationId_stylistProfileId: { reservationId, stylistProfileId } },
+        where: {
+          reservationId_stylistProfileId: { reservationId, stylistProfileId },
+        },
         data: { status: 'ACCEPTED', respondedAt: new Date() },
       }),
       this.prisma.reservationStylistResponse.updateMany({
@@ -357,24 +476,36 @@ export class ReservationsService {
 
     const resWithClient = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
-      select: { clientId: true, service: { select: { name: true } }, reservationDate: true, startTime: true },
+      select: {
+        clientId: true,
+        service: { select: { name: true } },
+        reservationDate: true,
+        startTime: true,
+      },
     });
     if (resWithClient?.clientId) {
-      await this.notifications.send(
-        {
-          userId: resWithClient.clientId,
-          title: 'Rezervacija potvrđena',
-          body: `Vaša rezervacija za ${resWithClient.service.name} je potvrđena.`,
-          type: 'reservation_confirmed',
-          data: { reservationId },
-        },
-      );
+      await this.notifications.send({
+        userId: resWithClient.clientId,
+        title: 'Rezervacija potvrđena',
+        body: `Vaša rezervacija za ${resWithClient.service.name} je potvrđena.`,
+        type: 'reservation_confirmed',
+        data: { reservationId },
+      });
     }
 
-    const accepted = await this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
+    const accepted = await this.findOne(reservationId, {
+      sub: userId,
+      roles: ['STYLIST'],
+      username: '',
+      email: '',
+    });
     this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CONFIRMED, accepted);
     if (resWithClient?.clientId) {
-      this.events.emitToUser(resWithClient.clientId, SOCKET_EVENTS.RESERVATION_CONFIRMED, accepted);
+      this.events.emitToUser(
+        resWithClient.clientId,
+        SOCKET_EVENTS.RESERVATION_CONFIRMED,
+        accepted,
+      );
     }
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
       serviceId: accepted.serviceId,
@@ -383,12 +514,20 @@ export class ReservationsService {
     return accepted;
   }
 
-  async stylistReject(reservationId: string, stylistProfileId: string, userId: string, dto?: StylistRejectDto) {
+  async stylistReject(
+    reservationId: string,
+    stylistProfileId: string,
+    userId: string,
+    dto?: StylistRejectDto,
+  ) {
     const stylist = await this.prisma.stylistProfile.findUnique({
       where: { id: stylistProfileId },
       select: { userId: true },
     });
-    if (!stylist || stylist.userId !== userId) throw new ForbiddenException('Možete raditi samo na vlastitom profilu stilista.');
+    if (!stylist || stylist.userId !== userId)
+      throw new ForbiddenException(
+        'Možete raditi samo na vlastitom profilu stilista.',
+      );
 
     const res = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
@@ -396,21 +535,33 @@ export class ReservationsService {
     });
     if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
 
-    const response = res.stylistResponses.find((r) => r.stylistProfileId === stylistProfileId);
-    if (!response) throw new NotFoundException('Odgovor za ovog stilista nije pronađen.');
+    const response = res.stylistResponses.find(
+      (r) => r.stylistProfileId === stylistProfileId,
+    );
+    if (!response)
+      throw new NotFoundException('Odgovor za ovog stilista nije pronađen.');
     if (response.status !== 'LOCKED' && response.status !== 'PENDING') {
       throw new BadRequestException('Već ste odgovorili.');
     }
 
     await this.prisma.reservationStylistResponse.update({
-      where: { reservationId_stylistProfileId: { reservationId, stylistProfileId } },
-      data: { status: 'REJECTED', rejectionReason: dto?.rejectionReason, respondedAt: new Date() },
+      where: {
+        reservationId_stylistProfileId: { reservationId, stylistProfileId },
+      },
+      data: {
+        status: 'REJECTED',
+        rejectionReason: dto?.rejectionReason,
+        respondedAt: new Date(),
+      },
     });
 
     const stillPendingOrLocked = res.stylistResponses.filter(
       (r) =>
         r.stylistProfileId !== stylistProfileId &&
-        (r.status === 'PENDING' || (r.status === 'LOCKED' && r.lockExpiresAt && new Date() < r.lockExpiresAt)),
+        (r.status === 'PENDING' ||
+          (r.status === 'LOCKED' &&
+            r.lockExpiresAt &&
+            new Date() < r.lockExpiresAt)),
     );
     if (stillPendingOrLocked.length === 0) {
       await this.prisma.reservation.update({
@@ -436,8 +587,16 @@ export class ReservationsService {
       }
     }
 
-    const result = await this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
-    this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_STYLIST_RESPONSE, result);
+    const result = await this.findOne(reservationId, {
+      sub: userId,
+      roles: ['STYLIST'],
+      username: '',
+      email: '',
+    });
+    this.events.emitToAdmins(
+      SOCKET_EVENTS.RESERVATION_STYLIST_RESPONSE,
+      result,
+    );
     if (stillPendingOrLocked.length === 0) {
       this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
         serviceId: res.serviceId,
@@ -458,7 +617,13 @@ export class ReservationsService {
     }
   }
 
-  private async incrementCancellationCount(clientId: string, salon: { maxCancellationsBeforePenalty: number; penaltyDurationDays: number }) {
+  private async incrementCancellationCount(
+    clientId: string,
+    salon: {
+      maxCancellationsBeforePenalty: number;
+      penaltyDurationDays: number;
+    },
+  ) {
     const existing = await this.prisma.clientCancellationCount.findUnique({
       where: { userId: clientId },
     });
@@ -478,14 +643,21 @@ export class ReservationsService {
   /** Stilist označava rezervaciju kao završenu (nakon što je upisao u dnevnu knjigu). */
   async stylistMarkComplete(reservationId: string, userId: string) {
     const stylistProfileId = await this.getStylistProfileIdByUserId(userId);
-    if (!stylistProfileId) throw new ForbiddenException('Nemate profil stilista.');
-    const r = await this.prisma.reservation.findUnique({ where: { id: reservationId } });
+    if (!stylistProfileId)
+      throw new ForbiddenException('Nemate profil stilista.');
+    const r = await this.prisma.reservation.findUnique({
+      where: { id: reservationId },
+    });
     if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
     if (r.confirmedStylistId !== stylistProfileId) {
-      throw new ForbiddenException('Samo potvrđeni stilist može označiti rezervaciju kao završenu.');
+      throw new ForbiddenException(
+        'Samo potvrđeni stilist može označiti rezervaciju kao završenu.',
+      );
     }
     if (r.status !== RESERVATION_STATUS.ATTENDANCE_CONFIRMED) {
-      throw new BadRequestException('Samo rezervacije s potvrđenim dolaskom klijenta mogu se označiti završenim.');
+      throw new BadRequestException(
+        'Samo rezervacije s potvrđenim dolaskom klijenta mogu se označiti završenim.',
+      );
     }
     await this.prisma.reservation.update({
       where: { id: reservationId },
@@ -494,26 +666,44 @@ export class ReservationsService {
     // Minimalna Loyalty implementacija:
     // ako je program uključen, osiguraj da klijent ima loyalty račun.
     await this.loyalty.ensureAccountForUser(r.clientId);
-    return this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
+    return this.findOne(reservationId, {
+      sub: userId,
+      roles: ['STYLIST'],
+      username: '',
+      email: '',
+    });
   }
 
   /** Stilist otkazuje rezervaciju (CONFIRMED ili IN_PROGRESS) uz obrazloženje. */
-  async stylistCancel(reservationId: string, userId: string, dto: { cancelReason?: string }) {
+  async stylistCancel(
+    reservationId: string,
+    userId: string,
+    dto: { cancelReason?: string },
+  ) {
     const stylistProfileId = await this.getStylistProfileIdByUserId(userId);
-    if (!stylistProfileId) throw new ForbiddenException('Nemate profil stilista.');
-    const r = await this.prisma.reservation.findUnique({ where: { id: reservationId } });
+    if (!stylistProfileId)
+      throw new ForbiddenException('Nemate profil stilista.');
+    const r = await this.prisma.reservation.findUnique({
+      where: { id: reservationId },
+    });
     if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
     if (r.confirmedStylistId !== stylistProfileId) {
-      throw new ForbiddenException('Samo potvrđeni stilist može otkazati ovu rezervaciju.');
+      throw new ForbiddenException(
+        'Samo potvrđeni stilist može otkazati ovu rezervaciju.',
+      );
     }
-    const cancellableByStylist = [RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.IN_PROGRESS];
+    const cancellableByStylist = [
+      RESERVATION_STATUS.CONFIRMED,
+      RESERVATION_STATUS.IN_PROGRESS,
+    ];
     if (!cancellableByStylist.includes(r.status as any)) {
       throw new BadRequestException(
         'Samo potvrđene ili u toku rezervacije mogu se otkazati. Završene označite preko "Završi i upiši u dnevnu knjigu".',
       );
     }
     const reason = (dto?.cancelReason ?? '').trim();
-    if (!reason) throw new BadRequestException('Obrazloženje otkazivanja je obavezno.');
+    if (!reason)
+      throw new BadRequestException('Obrazloženje otkazivanja je obavezno.');
     await this.prisma.reservation.update({
       where: { id: reservationId },
       data: {
@@ -522,14 +712,28 @@ export class ReservationsService {
         cancelReason: reason,
       },
     });
-    const cancelled = await this.findOne(reservationId, { sub: userId, roles: ['STYLIST'], username: '', email: '' });
+    const cancelled = await this.findOne(reservationId, {
+      sub: userId,
+      roles: ['STYLIST'],
+      username: '',
+      email: '',
+    });
     this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CANCELLED, cancelled);
-    this.events.emitToUser(r.clientId, SOCKET_EVENTS.RESERVATION_UPDATED, cancelled);
-    this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, { serviceId: r.serviceId, date: r.reservationDate });
+    this.events.emitToUser(
+      r.clientId,
+      SOCKET_EVENTS.RESERVATION_UPDATED,
+      cancelled,
+    );
+    this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
+      serviceId: r.serviceId,
+      date: r.reservationDate,
+    });
     return cancelled;
   }
 
-  private async getStylistProfileIdByUserId(userId: string): Promise<string | null> {
+  private async getStylistProfileIdByUserId(
+    userId: string,
+  ): Promise<string | null> {
     const p = await this.prisma.stylistProfile.findUnique({
       where: { userId },
       select: { id: true },

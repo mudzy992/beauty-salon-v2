@@ -1,6 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { generateSlots, timeToMinutes, intervalsOverlap } from './utils/time-slot.utils';
+import {
+  generateSlots,
+  timeToMinutes,
+  intervalsOverlap,
+} from './utils/time-slot.utils';
 
 export interface AvailableSlotDto {
   startTime: string;
@@ -84,9 +88,12 @@ export class AvailabilityService {
 
     this.logger.debug(
       `Availability check: service=${serviceId}, stylists=${stylistIds.length}, ` +
-      `salonHoursDays=[${[...salonHoursByDay.entries()].filter(([,v]) => v.isWorkingDay).map(([k]) => k).join(',')}], ` +
-      `stylistRegularDays=[${[...stylistRegularDays].join(',')}], ` +
-      `stylistOverrides=[${[...stylistOverrideDates].join(',')}]`,
+        `salonHoursDays=[${[...salonHoursByDay.entries()]
+          .filter(([, v]) => v.isWorkingDay)
+          .map(([k]) => k)
+          .join(',')}], ` +
+        `stylistRegularDays=[${[...stylistRegularDays].join(',')}], ` +
+        `stylistOverrides=[${[...stylistOverrideDates].join(',')}]`,
     );
 
     const results: AvailableDateDto[] = [];
@@ -252,7 +259,9 @@ export class AvailabilityService {
             id: true,
             isActive: true,
             userId: true,
-            user: { select: { username: true, firstName: true, lastName: true } },
+            user: {
+              select: { username: true, firstName: true, lastName: true },
+            },
           },
         },
       },
@@ -265,7 +274,15 @@ export class AvailabilityService {
       orderBy: { dayOfWeek: 'asc' },
     });
 
-    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const DAYS = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
 
     let stylistWorkingHours: any[] = [];
     if (stylistIds.length > 0) {
@@ -300,15 +317,17 @@ export class AvailabilityService {
         isActive: r.stylistProfile.isActive,
         user: r.stylistProfile.user,
       })),
-      stylistWorkingHoursForLinkedStylists: stylistWorkingHours.map((wh: any) => ({
-        stylistProfileId: wh.stylistProfileId,
-        day: DAYS[wh.dayOfWeek],
-        dayOfWeek: wh.dayOfWeek,
-        startTime: wh.startTime,
-        endTime: wh.endTime,
-        isWorkingDay: wh.isWorkingDay,
-        dateOverride: wh.dateOverride,
-      })),
+      stylistWorkingHoursForLinkedStylists: stylistWorkingHours.map(
+        (wh: any) => ({
+          stylistProfileId: wh.stylistProfileId,
+          day: DAYS[wh.dayOfWeek],
+          dayOfWeek: wh.dayOfWeek,
+          startTime: wh.startTime,
+          endTime: wh.endTime,
+          isWorkingDay: wh.isWorkingDay,
+          dateOverride: wh.dateOverride,
+        }),
+      ),
       allStylistProfiles: allStylistProfiles.map((sp) => ({
         id: sp.id,
         username: sp.user.username,
@@ -320,7 +339,9 @@ export class AvailabilityService {
         hasSalon: true,
         hasService: true,
         hasSalonWorkingHours: salonHours.length > 0,
-        salonWorkingDays: salonHours.filter((wh) => wh.isWorkingDay).map((wh) => DAYS[wh.dayOfWeek]),
+        salonWorkingDays: salonHours
+          .filter((wh) => wh.isWorkingDay)
+          .map((wh) => DAYS[wh.dayOfWeek]),
         stylistsForThisService: stylistIds.length,
         stylistWorkingHoursCount: stylistWorkingHours.length,
         stylistWorkingDays: [
@@ -339,16 +360,15 @@ export class AvailabilityService {
                 ? 'NO_STYLISTS_FOR_SERVICE'
                 : stylistWorkingHours.length === 0
                   ? 'NO_STYLIST_WORKING_HOURS'
-                  : stylistWorkingHours.filter((wh: any) => wh.isWorkingDay).length === 0
+                  : stylistWorkingHours.filter((wh: any) => wh.isWorkingDay)
+                        .length === 0
                     ? 'ALL_STYLIST_DAYS_DISABLED'
                     : 'NONE_DETECTED',
       },
     };
   }
 
-  private async getStylistIdsForService(
-    serviceId: string,
-  ): Promise<string[]> {
+  private async getStylistIdsForService(serviceId: string): Promise<string[]> {
     const rows = await this.prisma.stylistService.findMany({
       where: { serviceId },
       select: { stylistProfileId: true },

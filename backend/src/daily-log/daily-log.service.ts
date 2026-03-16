@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDailyLogEntryDto } from './dto/create-daily-log-entry.dto';
 import { UpdateDailyLogEntryDto } from './dto/update-daily-log-entry.dto';
@@ -22,7 +27,8 @@ export class DailyLogService {
         include: { service: true },
       });
       if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
-      if (res.serviceId !== dto.serviceId) throw new BadRequestException('Servis se ne podudara s rezervacijom.');
+      if (res.serviceId !== dto.serviceId)
+        throw new BadRequestException('Servis se ne podudara s rezervacijom.');
     }
     const date = new Date(dto.date);
     date.setHours(0, 0, 0, 0);
@@ -56,15 +62,25 @@ export class DailyLogService {
       include: { service: true, confirmedStylist: true },
     });
     if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
-    if (res.status !== 'COMPLETED' && res.status !== 'ATTENDANCE_CONFIRMED' && res.status !== 'IN_PROGRESS') {
-      throw new BadRequestException('Rezervacija mora biti završena ili u toku.');
+    if (
+      res.status !== 'COMPLETED' &&
+      res.status !== 'ATTENDANCE_CONFIRMED' &&
+      res.status !== 'IN_PROGRESS'
+    ) {
+      throw new BadRequestException(
+        'Rezervacija mora biti završena ili u toku.',
+      );
     }
-    if (!res.confirmedStylistId) throw new BadRequestException('Rezervacija nema potvrđenog stilista.');
+    if (!res.confirmedStylistId)
+      throw new BadRequestException('Rezervacija nema potvrđenog stilista.');
     await this.ensureStylistAccess(res.confirmedStylistId, user);
     const existing = await this.prisma.dailyLogEntry.findFirst({
       where: { reservationId },
     });
-    if (existing) throw new BadRequestException('Za ovu rezervaciju već postoji zapis u dnevnoj knjizi.');
+    if (existing)
+      throw new BadRequestException(
+        'Za ovu rezervaciju već postoji zapis u dnevnoj knjizi.',
+      );
     const date = new Date(res.reservationDate);
     date.setHours(0, 0, 0, 0);
     return this.prisma.dailyLogEntry.create({
@@ -84,10 +100,18 @@ export class DailyLogService {
     });
   }
 
-  async findAll(query: { fromDate?: string; toDate?: string; stylistProfileId?: string }, user: CurrentUserPayload) {
-    const where: { date?: { gte?: Date; lte?: Date }; stylistProfileId?: string } = {};
-    if (query.fromDate) where.date = { ...where.date, gte: new Date(query.fromDate) };
-    if (query.toDate) where.date = { ...where.date, lte: new Date(query.toDate) };
+  async findAll(
+    query: { fromDate?: string; toDate?: string; stylistProfileId?: string },
+    user: CurrentUserPayload,
+  ) {
+    const where: {
+      date?: { gte?: Date; lte?: Date };
+      stylistProfileId?: string;
+    } = {};
+    if (query.fromDate)
+      where.date = { ...where.date, gte: new Date(query.fromDate) };
+    if (query.toDate)
+      where.date = { ...where.date, lte: new Date(query.toDate) };
     if (query.stylistProfileId) {
       await this.ensureStylistOrAdmin(query.stylistProfileId, user);
       where.stylistProfileId = query.stylistProfileId;
@@ -109,9 +133,14 @@ export class DailyLogService {
     return entry;
   }
 
-  async update(id: string, dto: UpdateDailyLogEntryDto, user: CurrentUserPayload) {
+  async update(
+    id: string,
+    dto: UpdateDailyLogEntryDto,
+    user: CurrentUserPayload,
+  ) {
     const entry = await this.findOne(id, user);
-    if (entry.status === 'COMPLETED') throw new BadRequestException('Završeni zapis nije moguće mijenjati.');
+    if (entry.status === 'COMPLETED')
+      throw new BadRequestException('Završeni zapis nije moguće mijenjati.');
     return this.prisma.dailyLogEntry.update({
       where: { id },
       data: {
@@ -125,7 +154,8 @@ export class DailyLogService {
 
   async complete(id: string, user: CurrentUserPayload) {
     const entry = await this.findOne(id, user);
-    if (entry.status === 'COMPLETED') throw new BadRequestException('Zapis je već završen.');
+    if (entry.status === 'COMPLETED')
+      throw new BadRequestException('Zapis je već završen.');
     const updated = await this.prisma.dailyLogEntry.update({
       where: { id },
       data: { status: 'COMPLETED', completedAt: new Date() },
@@ -146,9 +176,22 @@ export class DailyLogService {
     return updated;
   }
 
-  async addImage(entryId: string, dto: { uploadId: string; isBefore?: boolean; isAfter?: boolean; description?: string; sortOrder?: number }, user: CurrentUserPayload) {
+  async addImage(
+    entryId: string,
+    dto: {
+      uploadId: string;
+      isBefore?: boolean;
+      isAfter?: boolean;
+      description?: string;
+      sortOrder?: number;
+    },
+    user: CurrentUserPayload,
+  ) {
     const entry = await this.findOne(entryId, user);
-    if (entry.status === 'COMPLETED') throw new BadRequestException('Ne možete dodavati slike završenom zapisu.');
+    if (entry.status === 'COMPLETED')
+      throw new BadRequestException(
+        'Ne možete dodavati slike završenom zapisu.',
+      );
     return this.prisma.dailyLogImage.create({
       data: {
         dailyLogEntryId: entryId,
@@ -163,7 +206,11 @@ export class DailyLogService {
 
   private entryInclude() {
     return {
-      stylistProfile: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+      stylistProfile: {
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true } },
+        },
+      },
       service: { select: { id: true, name: true } },
       client: { select: { id: true, firstName: true, lastName: true } },
       reservation: { select: { id: true } },
@@ -171,24 +218,49 @@ export class DailyLogService {
     };
   }
 
-  private async ensureStylistAccess(stylistProfileId: string, user: CurrentUserPayload) {
-    const isAdmin = user.roles.includes('SYSTEM_ADMIN') || user.roles.includes('OWNER');
+  private async ensureStylistAccess(
+    stylistProfileId: string,
+    user: CurrentUserPayload,
+  ) {
+    const isAdmin =
+      user.roles.includes('SYSTEM_ADMIN') || user.roles.includes('OWNER');
     if (isAdmin) return;
     const sp = await this.prisma.stylistProfile.findUnique({
       where: { id: stylistProfileId },
       select: { userId: true },
     });
-    if (!sp || sp.userId !== user.sub) throw new ForbiddenException('Nemate pristup ovom stilistu.');
+    if (!sp || sp.userId !== user.sub)
+      throw new ForbiddenException('Nemate pristup ovom stilistu.');
   }
 
-  private async ensureStylistOrAdmin(stylistProfileId: string, user: CurrentUserPayload) {
+  private async ensureStylistOrAdmin(
+    stylistProfileId: string,
+    user: CurrentUserPayload,
+  ) {
     await this.ensureStylistAccess(stylistProfileId, user);
   }
 
   /** Javni endpoint: parovi before/after slika iz završenih zapisa (Zadovoljni klijenti). Paginacija: limit (1–50), offset u broju zapisa. */
-  async findBeforeAfterPairs(opts?: { limit?: number; offset?: number }): Promise<
-    { items: { id: string; before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }; after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null } }[]; hasMore: boolean; nextOffset: number }
-  > {
+  async findBeforeAfterPairs(opts?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    items: {
+      id: string;
+      before: {
+        pathOriginal: string;
+        pathMedium?: string | null;
+        pathThumb?: string | null;
+      };
+      after: {
+        pathOriginal: string;
+        pathMedium?: string | null;
+        pathThumb?: string | null;
+      };
+    }[];
+    hasMore: boolean;
+    nextOffset: number;
+  }> {
     const limit = Math.min(Math.max(opts?.limit ?? 20, 1), 50);
     const offset = Math.max(opts?.offset ?? 0, 0);
     const entries = await this.prisma.dailyLogEntry.findMany({
@@ -200,7 +272,19 @@ export class DailyLogService {
       skip: offset,
       take: limit + 10,
     });
-    const pairs: { id: string; before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }; after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null } }[] = [];
+    const pairs: {
+      id: string;
+      before: {
+        pathOriginal: string;
+        pathMedium?: string | null;
+        pathThumb?: string | null;
+      };
+      after: {
+        pathOriginal: string;
+        pathMedium?: string | null;
+        pathThumb?: string | null;
+      };
+    }[] = [];
     for (const entry of entries) {
       if (pairs.length >= limit) break;
       const beforeImg = entry.images.find((i) => i.isBefore);

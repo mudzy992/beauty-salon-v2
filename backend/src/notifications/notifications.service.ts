@@ -36,9 +36,14 @@ export class NotificationsService {
    */
   async send(options: SendNotificationOptions): Promise<void> {
     const channel = options.channel ?? 'BOTH';
-    const prefs = await this.getEffectivePreferences(options.userId, options.type);
-    const doPush = (channel === 'PUSH' || channel === 'BOTH') && prefs.pushEnabled;
-    const doEmail = (channel === 'EMAIL' || channel === 'BOTH') && prefs.emailEnabled;
+    const prefs = await this.getEffectivePreferences(
+      options.userId,
+      options.type,
+    );
+    const doPush =
+      (channel === 'PUSH' || channel === 'BOTH') && prefs.pushEnabled;
+    const doEmail =
+      (channel === 'EMAIL' || channel === 'BOTH') && prefs.emailEnabled;
 
     const notification = await this.prisma.notification.create({
       data: {
@@ -52,10 +57,21 @@ export class NotificationsService {
       },
     });
 
-    this.events.emitToUser(options.userId, SOCKET_EVENTS.NOTIFICATION_NEW, notification);
+    this.events.emitToUser(
+      options.userId,
+      SOCKET_EVENTS.NOTIFICATION_NEW,
+      notification,
+    );
 
-    if (doPush) await this.sendPush(options.userId, options.title, options.body, options.data);
-    if (doEmail) await this.sendEmail(options.userId, options.title, options.body);
+    if (doPush)
+      await this.sendPush(
+        options.userId,
+        options.title,
+        options.body,
+        options.data,
+      );
+    if (doEmail)
+      await this.sendEmail(options.userId, options.title, options.body);
   }
 
   /**
@@ -143,7 +159,9 @@ export class NotificationsService {
       where: { userId },
       select: { token: true },
     });
-    const tokens = rows.map((r) => r.token).filter((t) => Expo.isExpoPushToken(t));
+    const tokens = rows
+      .map((r) => r.token)
+      .filter((t) => Expo.isExpoPushToken(t));
     if (tokens.length === 0) return;
 
     const expo = new Expo({
@@ -166,7 +184,11 @@ export class NotificationsService {
     }
   }
 
-  private async sendEmail(userId: string, title: string, body: string): Promise<void> {
+  private async sendEmail(
+    userId: string,
+    title: string,
+    body: string,
+  ): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { email: true },

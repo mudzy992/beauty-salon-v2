@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { SalonService } from './salon.service';
 import { HolidayNotificationsService } from './holiday-notifications.service';
 import { CreateSalonSettingsDto } from './dto/create-salon-settings.dto';
@@ -60,7 +69,10 @@ export class SalonController {
   @Post(':id/working-hours')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  setWorkingHours(@Param('id') id: string, @Body() body: { workingHours: WorkingHoursDto[] }) {
+  setWorkingHours(
+    @Param('id') id: string,
+    @Body() body: { workingHours: WorkingHoursDto[] },
+  ) {
     return this.salonService.setWorkingHours(id, body.workingHours);
   }
 
@@ -81,7 +93,10 @@ export class SalonController {
   @Patch('holidays/:holidayId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  updateHoliday(@Param('holidayId') holidayId: string, @Body() dto: UpdateHolidayDto) {
+  updateHoliday(
+    @Param('holidayId') holidayId: string,
+    @Body() dto: UpdateHolidayDto,
+  ) {
     return this.salonService.updateHoliday(holidayId, dto);
   }
 

@@ -36,11 +36,15 @@ describe('GalleryService', () => {
 
   it('findOneCategory baca NotFoundException kada kategorija ne postoji', async () => {
     mockPrisma.galleryCategory.findUnique.mockResolvedValue(null);
-    await expect(service.findOneCategory('nope')).rejects.toThrow(NotFoundException);
+    await expect(service.findOneCategory('nope')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('removeImage baca NotFoundException kada slika ne postoji', async () => {
     mockPrisma.galleryImage.findUnique.mockResolvedValue(null);
-    await expect(service.removeImage('nope')).rejects.toThrow(NotFoundException);
+    await expect(service.removeImage('nope')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

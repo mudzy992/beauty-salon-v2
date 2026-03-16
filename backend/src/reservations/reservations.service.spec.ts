@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import { AvailabilityService } from './availability.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -93,7 +97,9 @@ describe('ReservationsService', () => {
         { stylistProfileId: 'sp1' },
         { stylistProfileId: 'sp2' },
       ]);
-      mockPrisma.reservationStylistResponse.createMany.mockResolvedValue({ count: 2 });
+      mockPrisma.reservationStylistResponse.createMany.mockResolvedValue({
+        count: 2,
+      });
       mockPrisma.stylistProfile.findMany.mockResolvedValue([
         { userId: 'stylist-1' },
         { userId: 'stylist-2' },
@@ -117,7 +123,9 @@ describe('ReservationsService', () => {
       await service.create(dto as any, 'client-1');
 
       expect(mockPrisma.reservation.create).toHaveBeenCalled();
-      expect(mockPrisma.reservationStylistResponse.createMany).toHaveBeenCalledWith({
+      expect(
+        mockPrisma.reservationStylistResponse.createMany,
+      ).toHaveBeenCalledWith({
         data: expect.any(Array),
       });
       expect(mockNotifications.sendToMany).toHaveBeenCalledWith(
@@ -138,9 +146,9 @@ describe('ReservationsService', () => {
         status: 'CONFIRMED',
         reservationDate: new Date('2026-03-25'),
       });
-      await expect(
-        service.cancelByClient('res-1', 'client-1'),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.cancelByClient('res-1', 'client-1')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
 
     it('baca BadRequestException kada je rok za otkazivanje istekao', async () => {
@@ -158,12 +166,12 @@ describe('ReservationsService', () => {
         maxCancellationsBeforePenalty: 3,
         penaltyDurationDays: 30,
       });
-      await expect(
-        service.cancelByClient('res-1', 'client-1'),
-      ).rejects.toThrow(BadRequestException);
-      await expect(
-        service.cancelByClient('res-1', 'client-1'),
-      ).rejects.toThrow('Rok za otkazivanje');
+      await expect(service.cancelByClient('res-1', 'client-1')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.cancelByClient('res-1', 'client-1')).rejects.toThrow(
+        'Rok za otkazivanje',
+      );
     });
   });
 

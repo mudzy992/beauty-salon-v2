@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  ConflictException,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
@@ -26,7 +30,9 @@ const mockJwtService = {
 };
 
 const mockConfigService = {
-  get: jest.fn((key: string, defaultValue?: string) => defaultValue ?? 'test-secret'),
+  get: jest.fn(
+    (key: string, defaultValue?: string) => defaultValue ?? 'test-secret',
+  ),
 };
 
 describe('AuthService', () => {
@@ -56,27 +62,48 @@ describe('AuthService', () => {
     };
 
     it('baca ConflictException ako email već postoji', async () => {
-      mockPrisma.user.findFirst.mockResolvedValue({ id: '1', email: validDto.email });
-      await expect(service.register(validDto)).rejects.toThrow(ConflictException);
-      await expect(service.register(validDto)).rejects.toThrow('Email je već u upotrebi.');
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: '1',
+        email: validDto.email,
+      });
+      await expect(service.register(validDto)).rejects.toThrow(
+        ConflictException,
+      );
+      await expect(service.register(validDto)).rejects.toThrow(
+        'Email je već u upotrebi.',
+      );
     });
 
     it('baca ConflictException ako username već postoji', async () => {
-      mockPrisma.user.findFirst.mockResolvedValue({ id: '1', username: validDto.username });
-      await expect(service.register(validDto)).rejects.toThrow(ConflictException);
-      await expect(service.register(validDto)).rejects.toThrow('Korisničko ime je već u upotrebi.');
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: '1',
+        username: validDto.username,
+      });
+      await expect(service.register(validDto)).rejects.toThrow(
+        ConflictException,
+      );
+      await expect(service.register(validDto)).rejects.toThrow(
+        'Korisničko ime je već u upotrebi.',
+      );
     });
 
     it('baca BadRequestException ako rola CLIENT ne postoji', async () => {
       mockPrisma.user.findFirst.mockResolvedValue(null);
       mockPrisma.role.findUnique.mockResolvedValue(null);
-      await expect(service.register(validDto)).rejects.toThrow(BadRequestException);
-      await expect(service.register(validDto)).rejects.toThrow('Rola CLIENT nije pronađena');
+      await expect(service.register(validDto)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.register(validDto)).rejects.toThrow(
+        'Rola CLIENT nije pronađena',
+      );
     });
 
     it('registruje novog korisnika i vraća access_token i user', async () => {
       mockPrisma.user.findFirst.mockResolvedValue(null);
-      mockPrisma.role.findUnique.mockResolvedValue({ id: 'role-1', name: 'CLIENT' });
+      mockPrisma.role.findUnique.mockResolvedValue({
+        id: 'role-1',
+        name: 'CLIENT',
+      });
       (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
       const createdUser = {
         id: 'user-1',
@@ -106,7 +133,10 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    const loginDto: LoginDto = { login: 'test@example.com', password: 'password123' };
+    const loginDto: LoginDto = {
+      login: 'test@example.com',
+      password: 'password123',
+    };
     const dbUser = {
       id: 'user-1',
       email: 'test@example.com',
@@ -120,20 +150,31 @@ describe('AuthService', () => {
 
     it('baca UnauthorizedException ako korisnik ne postoji', async () => {
       mockPrisma.user.findFirst.mockResolvedValue(null);
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
-      await expect(service.login(loginDto)).rejects.toThrow('Pogrešno korisničko ime ili lozinka.');
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(service.login(loginDto)).rejects.toThrow(
+        'Pogrešno korisničko ime ili lozinka.',
+      );
     });
 
     it('baca UnauthorizedException ako lozinka nije ispravna', async () => {
       mockPrisma.user.findFirst.mockResolvedValue(dbUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
-      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
+      await expect(service.login(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('baca UnauthorizedException ako je nalog deaktiviran', async () => {
-      mockPrisma.user.findFirst.mockResolvedValue({ ...dbUser, isActive: false });
+      mockPrisma.user.findFirst.mockResolvedValue({
+        ...dbUser,
+        isActive: false,
+      });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-      await expect(service.login(loginDto)).rejects.toThrow('Nalog je deaktiviran.');
+      await expect(service.login(loginDto)).rejects.toThrow(
+        'Nalog je deaktiviran.',
+      );
     });
 
     it('vraća access_token i user kada su kredencijali ispravni', async () => {

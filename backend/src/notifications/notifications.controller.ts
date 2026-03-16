@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
@@ -14,7 +22,11 @@ export class NotificationsController {
     @Body() dto: RegisterPushTokenDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.notifications.registerPushToken(user.sub, dto.token, dto.platform);
+    return this.notifications.registerPushToken(
+      user.sub,
+      dto.token,
+      dto.platform,
+    );
   }
 
   @Get()
@@ -22,17 +34,11 @@ export class NotificationsController {
     @CurrentUser() user: CurrentUserPayload,
     @Query('unreadOnly') unreadOnly?: string,
   ) {
-    return this.notifications.findForUser(
-      user.sub,
-      unreadOnly === 'true',
-    );
+    return this.notifications.findForUser(user.sub, unreadOnly === 'true');
   }
 
   @Patch(':id/read')
-  markAsRead(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-  ) {
+  markAsRead(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.notifications.markAsRead(id, user.sub);
   }
 

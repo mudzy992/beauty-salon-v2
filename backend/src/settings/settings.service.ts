@@ -41,7 +41,10 @@ export class SettingsService {
         updatedBy: updatedBy ?? undefined,
       },
     });
-    this.events.emitToAll(SOCKET_EVENTS.SETTINGS_UPDATED, { key, value: dto.value });
+    this.events.emitToAll(SOCKET_EVENTS.SETTINGS_UPDATED, {
+      key,
+      value: dto.value,
+    });
     return result;
   }
 

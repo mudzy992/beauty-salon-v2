@@ -66,17 +66,28 @@ describe('UploadsService', () => {
 
     it('baca BadRequestException za nedozvoljen tip datoteke', async () => {
       const file = { ...validImageFile, mimetype: 'application/x-executable' };
-      await expect(service.saveFile(file, 'uploads')).rejects.toThrow(BadRequestException);
-      await expect(service.saveFile(file, 'uploads')).rejects.toThrow('Tip datoteke nije dozvoljen.');
+      await expect(service.saveFile(file, 'uploads')).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.saveFile(file, 'uploads')).rejects.toThrow(
+        'Tip datoteke nije dozvoljen.',
+      );
       expect(mockPrisma.upload.create).not.toHaveBeenCalled();
     });
 
     it('kreira direktorij i upisuje original za sliku', async () => {
-      const result = await service.saveFile(validImageFile, 'services', 'user-1');
+      const result = await service.saveFile(
+        validImageFile,
+        'services',
+        'user-1',
+      );
 
-      expect(fs.mkdir).toHaveBeenCalledWith(expect.stringContaining(path.join('services', '2026')), {
-        recursive: true,
-      });
+      expect(fs.mkdir).toHaveBeenCalledWith(
+        expect.stringContaining(path.join('services', '2026')),
+        {
+          recursive: true,
+        },
+      );
       expect(fs.writeFile).toHaveBeenCalled();
       expect(mockPrisma.upload.create).toHaveBeenCalledWith({
         data: expect.objectContaining({

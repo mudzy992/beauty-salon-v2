@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { StylistsService } from './stylists.service';
 import { CreateStylistProfileDto } from './dto/create-stylist-profile.dto';
 import { UpdateStylistProfileDto } from './dto/update-stylist-profile.dto';
@@ -41,7 +51,10 @@ export class StylistsController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  create(@Body() dto: CreateStylistProfileDto, @CurrentUser() user: CurrentUserPayload) {
+  create(
+    @Body() dto: CreateStylistProfileDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.stylistsService.create(dto, user.roles);
   }
 
@@ -87,7 +100,12 @@ export class StylistsController {
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
   ) {
-    return this.stylistsService.getStylistAnalytics(id, user.roles, fromDate, toDate);
+    return this.stylistsService.getStylistAnalytics(
+      id,
+      user.roles,
+      fromDate,
+      toDate,
+    );
   }
 
   @Get(':id/services')

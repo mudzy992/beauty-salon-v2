@@ -1,4 +1,13 @@
-import { IsNumber, IsOptional, IsString, IsUUID, IsArray, ValidateNested, MaxLength, Min } from 'class-validator';
+import {
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  IsArray,
+  ValidateNested,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ExpenseFieldValueDto } from './create-expense.dto';
 

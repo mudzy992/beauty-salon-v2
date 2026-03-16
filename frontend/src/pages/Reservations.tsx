@@ -40,6 +40,9 @@ interface Reservation {
     rejectionReason: string | null;
     stylistProfile?: { user?: { username: string } };
   }[];
+  loyaltyDiscountPercent?: number;
+  loyaltyDiscountAmount?: number | string;
+  loyaltyPointsUsed?: number;
 }
 
 const STATUS_OPTIONS = [
@@ -170,6 +173,7 @@ export default function Reservations() {
                 <Th>Vrijeme</Th>
                 <Th>Klijent</Th>
                 <Th>Servis</Th>
+                <Th isNumeric>Cijena / Loyalty</Th>
                 <Th>Stilista</Th>
                 <Th>Status</Th>
                 <Th textAlign="right">Akcije</Th>
@@ -200,6 +204,23 @@ export default function Reservations() {
                       )}
                     </Td>
                     <Td>{r.service?.name ?? '-'}</Td>
+                    <Td isNumeric>
+                      {r.service && (
+                        <VStack align="flex-end" spacing={0}>
+                          <Text fontSize="sm" fontWeight="medium">
+                            {Number(r.service.price).toFixed(2)} KM
+                          </Text>
+                          {(r.loyaltyDiscountPercent ?? 0) > 0 && (
+                            <Text fontSize="xs" color="green.600">
+                              -{r.loyaltyDiscountPercent}% ({Number(r.loyaltyDiscountAmount ?? 0).toFixed(2)} KM) →{' '}
+                              <strong>
+                                {(Number(r.service.price) - Number(r.loyaltyDiscountAmount ?? 0)).toFixed(2)} KM
+                              </strong>
+                            </Text>
+                          )}
+                        </VStack>
+                      )}
+                    </Td>
                     <Td>
                       {r.confirmedStylist ? (
                         <Link

@@ -1,4 +1,12 @@
-import { Body, Controller, Post, UseInterceptors, UploadedFile, BadRequestException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
+  UseGuards,
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -12,7 +20,12 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 import { UploadsService } from '../uploads/uploads.service';
 
 const AVATAR_MAX_SIZE = 5 * 1024 * 1024; // 5MB
-const AVATAR_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+const AVATAR_MIMES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
 
 @Controller('auth')
 export class AuthController {
@@ -29,7 +42,12 @@ export class AuthController {
       fileFilter: (_req, file, cb) => {
         if (!file) return cb(null, true);
         if (!AVATAR_MIMES.has(file.mimetype)) {
-          return cb(new BadRequestException('Avatar mora biti slika (JPEG, PNG, WebP ili GIF).'), false);
+          return cb(
+            new BadRequestException(
+              'Avatar mora biti slika (JPEG, PNG, WebP ili GIF).',
+            ),
+            false,
+          );
         }
         cb(null, true);
       },
