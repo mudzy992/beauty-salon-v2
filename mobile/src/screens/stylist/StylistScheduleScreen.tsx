@@ -37,7 +37,6 @@ export function StylistScheduleScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [completeModalReservation, setCompleteModalReservation] = useState<Reservation | null>(null);
   const [completeActualPrice, setCompleteActualPrice] = useState('');
-  const [completeTipAmount, setCompleteTipAmount] = useState('');
   const [completeNotes, setCompleteNotes] = useState('');
   const [completeSubmitting, setCompleteSubmitting] = useState(false);
   const [cancelModalReservation, setCancelModalReservation] = useState<Reservation | null>(null);
@@ -85,10 +84,13 @@ export function StylistScheduleScreen() {
     (r.status === 'CONFIRMED' || r.status === 'IN_PROGRESS') && r.confirmedStylistId === profileId;
 
   const openCompleteModal = useCallback((r: Reservation) => {
-    const price = r.service && 'price' in r.service ? Number((r.service as any).price) : 0;
+    const basePrice =
+      r.service && 'price' in r.service ? Number((r.service as any).price) : 0;
+    const loyaltyDiscountAmount =
+      'loyaltyDiscountAmount' in r ? Number((r as any).loyaltyDiscountAmount ?? 0) : 0;
+    const chargePrice = Math.max(0, basePrice - loyaltyDiscountAmount);
     setCompleteModalReservation(r);
-    setCompleteActualPrice(price ? String(price) : '');
-    setCompleteTipAmount('');
+    setCompleteActualPrice(chargePrice ? String(chargePrice) : '');
     setCompleteNotes('');
   }, []);
 
@@ -98,17 +100,37 @@ export function StylistScheduleScreen() {
 
   const submitComplete = useCallback(async () => {
     if (!completeModalReservation) return;
-    const actualPrice = parseFloat(completeActualPrice.replace(',', '.'));
-    if (isNaN(actualPrice) || actualPrice < 0) {
-      Alert.alert('Greška', 'Unesite ispravnu cijenu.');
+    const basePrice =
+      completeModalReservation.service && 'price' in completeModalReservation.service
+        ? Number((completeModalReservation.service as any).price)
+        : 0;
+    const loyaltyDiscountAmount =
+      'loyaltyDiscountAmount' in completeModalReservation
+        ? Number((completeModalReservation as any).loyaltyDiscountAmount ?? 0)
+        : 0;
+    const minCharge = Math.max(0, basePrice - loyaltyDiscountAmount);
+
+    const paidRaw = parseFloat(completeActualPrice.replace(',', '.'));
+    if (isNaN(paidRaw) || paidRaw < minCharge) {
+      Alert.alert(
+        'Greška',
+        minCharge > 0
+          ? `Naplaćeni iznos ne može biti manji od preporučene cijene za naplatu (${minCharge.toFixed(2)} KM).`
+          : 'Unesite ispravan iznos naplaćenog računa.',
+      );
       return;
     }
-    const tipAmount = parseFloat(completeTipAmount.replace(',', '.')) || 0;
+    const autoTip = paidRaw - minCharge;
+    const tipAmount = autoTip > 0 ? autoTip : 0;
     setCompleteSubmitting(true);
     try {
       const { data: entry } = await api.post<DailyLogEntry>(
         `/api/daily-log/from-reservation/${completeModalReservation.id}`,
-        { actualPrice, tipAmount: tipAmount >= 0 ? tipAmount : 0, notes: completeNotes.trim() || undefined },
+        {
+          actualPrice: paidRaw,
+          tipAmount: tipAmount >= 0 ? tipAmount : 0,
+          notes: completeNotes.trim() || undefined,
+        },
       );
       await api.post(`/api/reservations/${completeModalReservation.id}/stylist-mark-complete`);
       await fetchReservations();
@@ -126,7 +148,7 @@ export function StylistScheduleScreen() {
     } finally {
       setCompleteSubmitting(false);
     }
-  }, [completeModalReservation, completeActualPrice, completeTipAmount, completeNotes, fetchReservations, closeCompleteModal]);
+  }, [completeModalReservation, completeActualPrice, completeNotes, fetchReservations, closeCompleteModal]);
 
   const openCancelModal = useCallback((r: Reservation) => {
     setCancelModalReservation(r);
@@ -325,16 +347,51 @@ export function StylistScheduleScreen() {
                       ? `${completeModalReservation.client.firstName} ${completeModalReservation.client.lastName}`
                       : ''}
                   </Text>
+                  {(() => {
+                    const basePrice =
+                      completeModalReservation.service &&
+                      'price' in completeModalReservation.service
+                        ? Number((completeModalReservation.service as any).price)
+                        : 0;
+                    const loyaltyDiscountPercent =
+                      'loyaltyDiscountPercent' in completeModalReservation
+                        ? Number((completeModalReservation as any).loyaltyDiscountPercent ?? 0)
+                        : 0;
+                    const loyaltyDiscountAmount =
+                      'loyaltyDiscountAmount' in completeModalReservation
+                        ? Number((completeModalReservation as any).loyaltyDiscountAmount ?? 0)
+                        : 0;
+                    const chargePrice = Math.max(0, basePrice - loyaltyDiscountAmount);
+                    const paidRaw = parseFloat(completeActualPrice.replace(',', '.'));
+                    const autoTip = !isNaN(paidRaw) && paidRaw > chargePrice ? paidRaw - chargePrice : 0;
+                    return (
+                      <View style={{ marginBottom: spacing.sm }}>
+                        <Text style={[styles.modalInfo, { color: colors.textSecondary }]}>
+                          Cijena servisa: {basePrice.toFixed(2)} KM
+                        </Text>
+                        {loyaltyDiscountPercent > 0 && (
+                          <>
+                            <Text style={[styles.modalInfo, { color: colors.textSecondary }]}>
+                              Odabrani popust: {loyaltyDiscountPercent}% (
+                              {loyaltyDiscountAmount.toFixed(2)} KM)
+                            </Text>
+                            <Text style={[styles.modalInfo, { color: colors.text }]}>
+                              Za naplatu: {chargePrice.toFixed(2)} KM
+                            </Text>
+                          </>
+                        )}
+                        {autoTip > 0 && (
+                          <Text style={[styles.modalInfo, { color: colors.textSecondary }]}>
+                            Napojnica (računato): {autoTip.toFixed(2)} KM
+                          </Text>
+                        )}
+                      </View>
+                    );
+                  })()}
                   <Input
                     label="Cijena (KM)"
                     value={completeActualPrice}
                     onChangeText={setCompleteActualPrice}
-                    keyboardType="decimal-pad"
-                  />
-                  <Input
-                    label="Napojnica (KM)"
-                    value={completeTipAmount}
-                    onChangeText={setCompleteTipAmount}
                     keyboardType="decimal-pad"
                   />
                   <Input
@@ -379,6 +436,7 @@ const styles = StyleSheet.create({
   modalCard: { padding: spacing.lg },
   modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 4 },
   modalService: { fontSize: 14, marginBottom: spacing.md },
+  modalInfo: { fontSize: 13, marginTop: 2 },
   modalActions: { flexDirection: 'row', gap: 8, marginTop: spacing.md },
   modalBtn: { flex: 1 },
 });

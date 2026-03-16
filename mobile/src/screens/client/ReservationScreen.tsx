@@ -25,6 +25,24 @@ import type { Service, ServiceCategory, AvailableDate, TimeSlot } from '../../ty
 
 type Step = 1 | 2 | 3 | 4;
 
+type LoyaltyInfo = {
+  enabled: boolean;
+  hasAccount: boolean;
+  redeemEnabled?: boolean;
+  points?: number;
+  tier?: string | null;
+  tierMaxDiscountPercent?: number;
+  globalMaxDiscountPercent?: number;
+  minPointsToRedeem?: number;
+  service?: {
+    id: string;
+    price: number;
+    maxDiscountPercent: number;
+    maxDiscountAmount: number;
+    maxUsablePoints: number;
+  } | null;
+};
+
 export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Reservation'>) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
@@ -42,6 +60,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0);
+  const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
 
   // Load all services for step 1
   useEffect(() => {
@@ -156,7 +175,22 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const handleSelectSlot = useCallback((slot: TimeSlot) => {
     setSelectedSlot(slot);
     setStep(4);
-  }, []);
+    setDesiredLoyaltyPercent(0);
+    if (selectedService) {
+      (async () => {
+        try {
+          const { data } = await api.get<LoyaltyInfo>('/api/loyalty/client/me', {
+            params: { serviceId: selectedService.id },
+          });
+          setLoyaltyInfo(data);
+        } catch {
+          setLoyaltyInfo(null);
+        }
+      })();
+    } else {
+      setLoyaltyInfo(null);
+    }
+  }, [selectedService]);
 
   const handleSubmit = async () => {
     if (!selectedService || !selectedDate || !selectedSlot) return;
@@ -400,39 +434,57 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             </View>
           </Card>
 
-          <Card style={{ marginBottom: spacing.md }}>
-            <Text style={[styles.selectedLabel, { color: colors.textSecondary }]}>
-              Loyalty popust (opciono)
-            </Text>
-            <Text style={{ fontSize: 13, color: colors.textSecondary, marginBottom: spacing.sm }}>
-              Ako imate dovoljno loyalty bodova, možete odabrati procenat popusta koji želite iskoristiti za ovu
-              rezervaciju. Maksimalni dozvoljeni procenat ovisit će o vašem nivou i postavkama salona – backend će
-              odbiti zahtjev ako je prevelik.
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-              <TextInput
-                style={[
-                  styles.loyaltyInput,
-                  {
-                    color: colors.inputText,
-                    backgroundColor: colors.inputBg,
-                    borderColor: colors.inputBorder,
-                  },
-                ]}
-                keyboardType="number-pad"
-                value={String(desiredLoyaltyPercent || 0)}
-                onChangeText={(text) => {
-                  const n = parseInt(text.replace(/[^0-9]/g, ''), 10);
-                  if (isNaN(n) || n < 0) {
-                    setDesiredLoyaltyPercent(0);
-                  } else {
-                    setDesiredLoyaltyPercent(Math.min(100, n));
-                  }
-                }}
-              />
-              <Text style={{ color: colors.textSecondary }}>%</Text>
-            </View>
-          </Card>
+          {loyaltyInfo &&
+            loyaltyInfo.enabled &&
+            loyaltyInfo.redeemEnabled &&
+            loyaltyInfo.hasAccount &&
+            loyaltyInfo.service &&
+            loyaltyInfo.service.maxDiscountPercent > 0 && (
+              <Card style={{ marginBottom: spacing.md }}>
+                <Text style={[styles.selectedLabel, { color: colors.textSecondary }]}>
+                  Loyalty popust
+                </Text>
+                <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>
+                  Status: {loyaltyInfo.tier ?? 'Nema nivoa'} · Bodovi: {loyaltyInfo.points ?? 0}
+                </Text>
+                <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2 }}>
+                  Maks. popust za ovu uslugu: {loyaltyInfo.service.maxDiscountPercent}% (
+                  ≈ {loyaltyInfo.service.maxDiscountAmount.toFixed(2)} KM){' '}
+                  · Maks. bodova koje možete iskoristiti: {loyaltyInfo.service.maxUsablePoints}
+                </Text>
+                <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+                  (Stvarni limit zavisi i od globalnih postavki – backend će odbiti prevelik popust ili nedovoljan
+                  broj bodova.)
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
+                  <TextInput
+                    style={[
+                      styles.loyaltyInput,
+                      {
+                        color: colors.inputText,
+                        backgroundColor: colors.inputBg,
+                        borderColor: colors.inputBorder,
+                      },
+                    ]}
+                    keyboardType="number-pad"
+                    value={String(desiredLoyaltyPercent || 0)}
+                    onChangeText={(text) => {
+                      const n = parseInt(text.replace(/[^0-9]/g, ''), 10);
+                      if (isNaN(n) || n < 0) {
+                        setDesiredLoyaltyPercent(0);
+                      } else {
+                        const capped = Math.min(
+                          n,
+                          loyaltyInfo.service ? loyaltyInfo.service.maxDiscountPercent : 100,
+                        );
+                        setDesiredLoyaltyPercent(capped);
+                      }
+                    }}
+                  />
+                  <Text style={{ color: colors.textSecondary }}>%</Text>
+                </View>
+              </Card>
+            )}
 
           <Text style={[styles.notesLabel, { color: colors.textSecondary }]}>
             {t('reservation.addNotes')}
