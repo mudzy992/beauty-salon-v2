@@ -94,6 +94,16 @@ export class ReservationsService {
       );
     }
 
+    // Ako je klijent odabrao korištenje bodova, pokušaj redeem sa svim pravilima.
+    if (dto.desiredLoyaltyPoints && dto.desiredLoyaltyPoints > 0) {
+      await this.loyalty.redeemForReservation({
+        clientId,
+        reservationId: reservation.id,
+        serviceId: reservation.serviceId,
+        desiredPoints: dto.desiredLoyaltyPoints,
+      });
+    }
+
     const full = await this.findOne(reservation.id, { sub: clientId, roles: ['CLIENT'], username: '', email: '' });
     this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CREATED, full);
     this.events.emitToStylists(SOCKET_EVENTS.RESERVATION_CREATED, full);

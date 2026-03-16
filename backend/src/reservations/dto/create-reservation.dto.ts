@@ -1,4 +1,4 @@
-import { IsDateString, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsDateString, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
 export class CreateReservationDto {
   @IsUUID()
@@ -17,4 +17,11 @@ export class CreateReservationDto {
   @IsString()
   @MaxLength(2000)
   clientNotes?: string;
+
+  /** Opcionalno: broj loyalty bodova koje klijent želi iskoristiti za ovu rezervaciju. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(1000000)
+  desiredLoyaltyPoints?: number;
 }

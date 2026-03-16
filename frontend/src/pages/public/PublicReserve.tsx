@@ -24,6 +24,11 @@ import {
   HStack,
   Icon,
   Tooltip,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
 } from '@chakra-ui/react';
 import {
   SearchIcon,
@@ -56,6 +61,25 @@ interface SlotOption {
   startTime: string;
   endTime: string;
   availableStylistCount: number;
+}
+
+interface LoyaltyInfo {
+  enabled: boolean;
+  hasAccount: boolean;
+  redeemEnabled?: boolean;
+  points?: number;
+  tier?: string | null;
+  tierMaxDiscountPercent?: number;
+  globalMaxDiscountPercent?: number;
+  redeemRate?: number;
+  minPointsToRedeem?: number;
+  service?: {
+    id: string;
+    price: number | null;
+    maxDiscountPercent: number;
+    maxDiscountAmount: number;
+    maxUsablePoints: number;
+  } | null;
 }
 
 const MotionContainer = motion(Container as any);
@@ -385,6 +409,8 @@ export default function PublicReserve() {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState(1);
+  const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
+  const [desiredDiscountAmount, setDesiredDiscountAmount] = useState<number>(0);
 
   useEffect(() => {
     if (!user) {
@@ -442,6 +468,8 @@ export default function PublicReserve() {
     if (!selectedService || !selectedDate) {
       setSlots([]);
       setSelectedSlot(null);
+      setLoyaltyInfo(null);
+      setDesiredDiscountAmount(0);
       return;
     }
     setLoadingSlots(true);
@@ -478,12 +506,26 @@ export default function PublicReserve() {
     if (!selectedService || !selectedDate || !selectedSlot) return;
     setSubmitting(true);
     try {
+      const desiredPoints =
+        loyaltyInfo &&
+        loyaltyInfo.enabled &&
+        loyaltyInfo.redeemEnabled &&
+        loyaltyInfo.service &&
+        loyaltyInfo.service.maxUsablePoints > 0 &&
+        loyaltyInfo.redeemRate &&
+        desiredDiscountAmount > 0
+          ? Math.min(
+              loyaltyInfo.service.maxUsablePoints,
+              Math.floor(desiredDiscountAmount / loyaltyInfo.redeemRate),
+            )
+          : 0;
       await api.post('/api/reservations', {
         serviceId: selectedService.id,
         reservationDate: selectedDate,
         startTime: selectedSlot.start,
         endTime: selectedSlot.end,
         ...(notes.trim() && { clientNotes: notes.trim() }),
+        ...(desiredPoints > 0 && { desiredLoyaltyPoints: desiredPoints }),
       });
       toast({
         title: t('public.reserve.success'),
@@ -497,6 +539,8 @@ export default function PublicReserve() {
       setSelectedSlot(null);
       setNotes('');
       setStep(1);
+      setLoyaltyInfo(null);
+      setDesiredDiscountAmount(0);
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || t('common.error');
       toast({ title: message, status: 'error', isClosable: true });
@@ -650,8 +694,18 @@ export default function PublicReserve() {
                                   : { bg: 'brand.50', borderColor: 'brand.300' }
                               }
                               onClick={() => {
-                                setSelectedSlot({ start: slot.startTime, end: slot.endTime });
-                                setStep(4);
+                            setSelectedSlot({ start: slot.startTime, end: slot.endTime });
+                            setStep(4);
+                            if (selectedService) {
+                              // Učitaj loyalty info za ovu uslugu
+                              api
+                                .get<LoyaltyInfo>('/api/loyalty/client/me', {
+                                  params: { serviceId: selectedService.id },
+                                })
+                                .then((r) => setLoyaltyInfo(r.data))
+                                .catch(() => setLoyaltyInfo(null));
+                            }
+                            setDesiredDiscountAmount(0);
                               }}
                               position="relative"
                             >
@@ -690,6 +744,72 @@ export default function PublicReserve() {
                       _focus={{ borderColor: 'brand.400' }}
                     />
                   </FormControl>
+
+                  {loyaltyInfo &&
+                    loyaltyInfo.enabled &&
+                    loyaltyInfo.redeemEnabled &&
+                    loyaltyInfo.hasAccount &&
+                    loyaltyInfo.service &&
+                    loyaltyInfo.service.maxUsablePoints > 0 &&
+                    loyaltyInfo.redeemRate && (
+                      <Box
+                        mt={4}
+                        p={4}
+                        bg="purple.50"
+                        rounded="lg"
+                        borderWidth="1px"
+                        borderColor="purple.200"
+                      >
+                        <Text fontWeight="bold" color="purple.800" mb={2}>
+                          Loyalty popust
+                        </Text>
+                        <Text fontSize="sm" color="purple.800">
+                          Status: {loyaltyInfo.tier ?? 'Nema nivoa'} · Dostupno bodova:{' '}
+                          {loyaltyInfo.points ?? 0}
+                        </Text>
+                        <Text fontSize="sm" color="purple.800">
+                          Maksimalan popust za ovu uslugu:{' '}
+                          {loyaltyInfo.service.maxDiscountPercent}% (
+                          {loyaltyInfo.service.maxDiscountAmount.toFixed(2)} KM)
+                        </Text>
+                        <FormControl mt={3}>
+                          <FormLabel fontWeight="600" color="purple.800">
+                            Koliki popust želite iskoristiti za ovu rezervaciju?
+                          </FormLabel>
+                          <HStack align="center" spacing={3}>
+                            <NumberInput
+                              value={desiredDiscountAmount}
+                              min={0}
+                              max={loyaltyInfo.service.maxDiscountAmount}
+                              step={1}
+                              onChange={(_, val) =>
+                                setDesiredDiscountAmount(
+                                  Math.max(
+                                    0,
+                                    Math.min(val || 0, loyaltyInfo.service!.maxDiscountAmount),
+                                  ),
+                                )
+                              }
+                            >
+                              <NumberInputField bg="white" />
+                              <NumberInputStepper>
+                                <NumberIncrementStepper />
+                                <NumberDecrementStepper />
+                              </NumberInputStepper>
+                            </NumberInput>
+                            <Text fontSize="sm" color="purple.800">
+                              KM
+                            </Text>
+                          </HStack>
+                          {desiredDiscountAmount > 0 && loyaltyInfo.redeemRate && (
+                            <Text fontSize="xs" color="purple.700" mt={1}>
+                              Približno će se iskoristiti{' '}
+                              {Math.floor(desiredDiscountAmount / loyaltyInfo.redeemRate)} bodova.
+                            </Text>
+                          )}
+                        </FormControl>
+                      </Box>
+                    )}
 
                   <Box
                     mt={4}

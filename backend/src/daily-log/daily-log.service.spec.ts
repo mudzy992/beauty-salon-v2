@@ -3,6 +3,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { DailyLogService } from './daily-log.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { IncomeBooksService } from '../finance/income-books.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 const mockPrisma = {
   dailyLogEntry: {
@@ -32,6 +33,7 @@ describe('DailyLogService', () => {
         DailyLogService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: IncomeBooksService, useValue: mockIncomeBooks },
+        { provide: LoyaltyService, useValue: { earnFromDailyLog: jest.fn() } },
       ],
     }).compile();
     service = module.get<DailyLogService>(DailyLogService);
