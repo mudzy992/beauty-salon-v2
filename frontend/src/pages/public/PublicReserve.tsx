@@ -71,14 +71,9 @@ interface LoyaltyInfo {
   tier?: string | null;
   tierMaxDiscountPercent?: number;
   globalMaxDiscountPercent?: number;
-  redeemRate?: number;
-  minPointsToRedeem?: number;
   service?: {
     id: string;
-    price: number | null;
     maxDiscountPercent: number;
-    maxDiscountAmount: number;
-    maxUsablePoints: number;
   } | null;
 }
 
@@ -410,7 +405,7 @@ export default function PublicReserve() {
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState(1);
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
-  const [desiredDiscountAmount, setDesiredDiscountAmount] = useState<number>(0);
+  const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0);
 
   useEffect(() => {
     if (!user) {
@@ -469,7 +464,7 @@ export default function PublicReserve() {
       setSlots([]);
       setSelectedSlot(null);
       setLoyaltyInfo(null);
-      setDesiredDiscountAmount(0);
+      setDesiredLoyaltyPercent(0);
       return;
     }
     setLoadingSlots(true);
@@ -506,26 +501,13 @@ export default function PublicReserve() {
     if (!selectedService || !selectedDate || !selectedSlot) return;
     setSubmitting(true);
     try {
-      const desiredPoints =
-        loyaltyInfo &&
-        loyaltyInfo.enabled &&
-        loyaltyInfo.redeemEnabled &&
-        loyaltyInfo.service &&
-        loyaltyInfo.service.maxUsablePoints > 0 &&
-        loyaltyInfo.redeemRate &&
-        desiredDiscountAmount > 0
-          ? Math.min(
-              loyaltyInfo.service.maxUsablePoints,
-              Math.floor(desiredDiscountAmount / loyaltyInfo.redeemRate),
-            )
-          : 0;
       await api.post('/api/reservations', {
         serviceId: selectedService.id,
         reservationDate: selectedDate,
         startTime: selectedSlot.start,
         endTime: selectedSlot.end,
         ...(notes.trim() && { clientNotes: notes.trim() }),
-        ...(desiredPoints > 0 && { desiredLoyaltyPoints: desiredPoints }),
+        ...(desiredLoyaltyPercent > 0 && { desiredLoyaltyPercent }),
       });
       toast({
         title: t('public.reserve.success'),
@@ -540,7 +522,7 @@ export default function PublicReserve() {
       setNotes('');
       setStep(1);
       setLoyaltyInfo(null);
-      setDesiredDiscountAmount(0);
+      setDesiredLoyaltyPercent(0);
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || t('common.error');
       toast({ title: message, status: 'error', isClosable: true });
@@ -705,7 +687,7 @@ export default function PublicReserve() {
                                 .then((r) => setLoyaltyInfo(r.data))
                                 .catch(() => setLoyaltyInfo(null));
                             }
-                            setDesiredDiscountAmount(0);
+                            setDesiredLoyaltyPercent(0);
                               }}
                               position="relative"
                             >
@@ -750,8 +732,7 @@ export default function PublicReserve() {
                     loyaltyInfo.redeemEnabled &&
                     loyaltyInfo.hasAccount &&
                     loyaltyInfo.service &&
-                    loyaltyInfo.service.maxUsablePoints > 0 &&
-                    loyaltyInfo.redeemRate && (
+                    loyaltyInfo.service.maxDiscountPercent > 0 && (
                       <Box
                         mt={4}
                         p={4}
@@ -769,8 +750,7 @@ export default function PublicReserve() {
                         </Text>
                         <Text fontSize="sm" color="purple.800">
                           Maksimalan popust za ovu uslugu:{' '}
-                          {loyaltyInfo.service.maxDiscountPercent}% (
-                          {loyaltyInfo.service.maxDiscountAmount.toFixed(2)} KM)
+                          {loyaltyInfo.service.maxDiscountPercent}%
                         </Text>
                         <FormControl mt={3}>
                           <FormLabel fontWeight="600" color="purple.800">
@@ -778,15 +758,15 @@ export default function PublicReserve() {
                           </FormLabel>
                           <HStack align="center" spacing={3}>
                             <NumberInput
-                              value={desiredDiscountAmount}
+                              value={desiredLoyaltyPercent}
                               min={0}
-                              max={loyaltyInfo.service.maxDiscountAmount}
+                              max={loyaltyInfo.service.maxDiscountPercent}
                               step={1}
                               onChange={(_, val) =>
-                                setDesiredDiscountAmount(
+                                setDesiredLoyaltyPercent(
                                   Math.max(
                                     0,
-                                    Math.min(val || 0, loyaltyInfo.service!.maxDiscountAmount),
+                                    Math.min(val || 0, loyaltyInfo.service!.maxDiscountPercent),
                                   ),
                                 )
                               }
@@ -798,15 +778,9 @@ export default function PublicReserve() {
                               </NumberInputStepper>
                             </NumberInput>
                             <Text fontSize="sm" color="purple.800">
-                              KM
+                              %
                             </Text>
                           </HStack>
-                          {desiredDiscountAmount > 0 && loyaltyInfo.redeemRate && (
-                            <Text fontSize="xs" color="purple.700" mt={1}>
-                              Približno će se iskoristiti{' '}
-                              {Math.floor(desiredDiscountAmount / loyaltyInfo.redeemRate)} bodova.
-                            </Text>
-                          )}
                         </FormControl>
                       </Box>
                     )}

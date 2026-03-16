@@ -218,6 +218,10 @@ model Service {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
+  // Loyalty konfiguracija po servisu
+  loyaltyEnabled           Boolean @default(false) @map("loyalty_enabled")
+  loyaltyMaxDiscountPercent Int    @default(0)     @map("loyalty_max_discount_percent")
+
   subcategory    ServiceSubcategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
   images         ServiceImage[]
   stylistServices StylistService[]

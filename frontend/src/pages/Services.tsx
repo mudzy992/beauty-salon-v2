@@ -22,6 +22,8 @@ interface Service {
   price: number | string;
   isActive: boolean;
   sortOrder: number;
+  loyaltyEnabled?: boolean;
+  loyaltyMaxDiscountPercent?: number;
 }
 
 interface Subcategory {
@@ -59,7 +61,15 @@ export default function Services() {
   const [catForm, setCatForm] = useState({ name: '', description: '', sortOrder: 0, isActive: true });
   const [subForm, setSubForm] = useState({ name: '', description: '', sortOrder: 0, isActive: true });
   const [svcForm, setSvcForm] = useState({
-    name: '', shortDescription: '', durationMinutes: 30, price: 0, sortOrder: 0, isActive: true, heroImage: '',
+    name: '',
+    shortDescription: '',
+    durationMinutes: 30,
+    price: 0,
+    sortOrder: 0,
+    isActive: true,
+    heroImage: '',
+    loyaltyEnabled: false,
+    loyaltyMaxDiscountPercent: 0,
   });
   const [uploadingImg, setUploadingImg] = useState(false);
   const svcFileRef = useRef<HTMLInputElement>(null);
@@ -119,10 +129,22 @@ export default function Services() {
         sortOrder: svc.sortOrder,
         isActive: svc.isActive,
         heroImage: svc.heroImage ?? '',
+        loyaltyEnabled: svc.loyaltyEnabled ?? false,
+        loyaltyMaxDiscountPercent: svc.loyaltyMaxDiscountPercent ?? 0,
       });
     } else {
       setEditId(null);
-      setSvcForm({ name: '', shortDescription: '', durationMinutes: 30, price: 0, sortOrder: 0, isActive: true, heroImage: '' });
+      setSvcForm({
+        name: '',
+        shortDescription: '',
+        durationMinutes: 30,
+        price: 0,
+        sortOrder: 0,
+        isActive: true,
+        heroImage: '',
+        loyaltyEnabled: false,
+        loyaltyMaxDiscountPercent: 0,
+      });
     }
     onOpen();
   };
@@ -270,16 +292,17 @@ export default function Services() {
                       </Flex>
                       {sub.services?.length ? (
                         <Table size="sm" variant="simple">
-                          <Thead>
-                            <Tr>
-                              <Th>Usluga</Th>
-                              <Th>Opis</Th>
-                              <Th isNumeric>Trajanje (min)</Th>
-                              <Th isNumeric>Cijena (KM)</Th>
-                              <Th>Status</Th>
-                              <Th textAlign="right">Akcije</Th>
-                            </Tr>
-                          </Thead>
+                      <Thead>
+                        <Tr>
+                          <Th>Usluga</Th>
+                          <Th>Opis</Th>
+                          <Th isNumeric>Trajanje (min)</Th>
+                          <Th isNumeric>Cijena (KM)</Th>
+                          <Th>Loyalty</Th>
+                          <Th>Status</Th>
+                          <Th textAlign="right">Akcije</Th>
+                        </Tr>
+                      </Thead>
                           <Tbody>
                             {sub.services.map((s) => (
                               <Tr key={s.id}>
@@ -287,6 +310,15 @@ export default function Services() {
                                 <Td maxW="200px" isTruncated>{s.shortDescription ?? '-'}</Td>
                                 <Td isNumeric>{s.durationMinutes}</Td>
                                 <Td isNumeric>{Number(s.price).toFixed(2)}</Td>
+                                <Td>
+                                  {s.loyaltyEnabled ? (
+                                    <Badge colorScheme="purple">
+                                      Loyalty do {s.loyaltyMaxDiscountPercent ?? 0}%
+                                    </Badge>
+                                  ) : (
+                                    <Badge colorScheme="gray">Bez loyalty</Badge>
+                                  )}
+                                </Td>
                                 <Td><Badge colorScheme={s.isActive ? 'green' : 'gray'}>{s.isActive ? 'Aktivan' : 'Neaktivan'}</Badge></Td>
                                 <Td textAlign="right">
                                   <HStack spacing={1} justify="flex-end">
@@ -404,7 +436,7 @@ export default function Services() {
                     </NumberInput>
                   </FormControl>
                 </Flex>
-                <Flex gap={4}>
+                <Flex gap={4} mb={4}>
                   <FormControl flex={1}>
                     <FormLabel>Redoslijed</FormLabel>
                     <NumberInput value={svcForm.sortOrder} onChange={(_, v) => setSvcForm({ ...svcForm, sortOrder: v || 0 })} min={0}>
@@ -416,6 +448,33 @@ export default function Services() {
                     <Switch isChecked={svcForm.isActive} onChange={(e) => setSvcForm({ ...svcForm, isActive: e.target.checked })} colorScheme="brand" />
                   </FormControl>
                 </Flex>
+                <Box mt={2} p={3} bg="purple.50" rounded="md" borderWidth="1px" borderColor="purple.200">
+                  <FormControl display="flex" alignItems="center" mb={3}>
+                    <FormLabel mb="0" mr={3}>Uključi loyalty za ovaj servis</FormLabel>
+                    <Switch
+                      isChecked={svcForm.loyaltyEnabled}
+                      onChange={(e) => setSvcForm({ ...svcForm, loyaltyEnabled: e.target.checked })}
+                      colorScheme="purple"
+                    />
+                  </FormControl>
+                  {svcForm.loyaltyEnabled && (
+                    <FormControl>
+                      <FormLabel>Maksimalan loyalty popust za ovaj servis (%)</FormLabel>
+                      <NumberInput
+                        value={svcForm.loyaltyMaxDiscountPercent}
+                        min={0}
+                        max={100}
+                        onChange={(_, v) => setSvcForm({ ...svcForm, loyaltyMaxDiscountPercent: v || 0 })}
+                      >
+                        <NumberInputField />
+                        <NumberInputStepper>
+                          <NumberIncrementStepper />
+                          <NumberDecrementStepper />
+                        </NumberInputStepper>
+                      </NumberInput>
+                    </FormControl>
+                  )}
+                </Box>
               </>
             )}
           </ModalBody>

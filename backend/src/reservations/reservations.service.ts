@@ -94,13 +94,13 @@ export class ReservationsService {
       );
     }
 
-    // Ako je klijent odabrao korištenje bodova, pokušaj redeem sa svim pravilima.
-    if (dto.desiredLoyaltyPoints && dto.desiredLoyaltyPoints > 0) {
+    // Ako je klijent odabrao korištenje bodova (preko procenta popusta), pokušaj redeem sa svim pravilima.
+    if (dto.desiredLoyaltyPercent && dto.desiredLoyaltyPercent > 0) {
       await this.loyalty.redeemForReservation({
         clientId,
         reservationId: reservation.id,
         serviceId: reservation.serviceId,
-        desiredPoints: dto.desiredLoyaltyPoints,
+        desiredPercent: dto.desiredLoyaltyPercent,
       });
     }
 

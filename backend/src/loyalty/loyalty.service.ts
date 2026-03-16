@@ -254,11 +254,11 @@ export class LoyaltyService {
   }
 
   /**
-   * Redeem bodova za konkretnu rezervaciju, uz provjeru maksimalnog popusta po tieru i globalno.
+   * Redeem bodova za konkretnu rezervaciju, uz provjeru maksimalnog popusta po tieru, servisu i globalno.
    */
-  async redeemForReservation(args: { clientId: string; reservationId: string; serviceId: string; desiredPoints: number }) {
-    const { clientId, reservationId, serviceId, desiredPoints } = args;
-    if (desiredPoints <= 0) return null;
+  async redeemForReservation(args: { clientId: string; reservationId: string; serviceId: string; desiredPercent: number }) {
+    const { clientId, reservationId, serviceId, desiredPercent } = args;
+    if (desiredPercent <= 0) return null;
 
     const programEnabled = await this.isProgramEnabled();
     if (!programEnabled) {
@@ -277,21 +277,16 @@ export class LoyaltyService {
       throw new BadRequestException('Nemate aktivan loyalty račun.');
     }
 
-    if (account.points < desiredPoints) {
-      throw new BadRequestException('Nemate dovoljno bodova za odabrani popust.');
-    }
-
-    const minPoints = this.parseNumber(await this.settings.getValue('loyalty_min_points_to_redeem'), 0);
-    if (desiredPoints < minPoints) {
-      throw new BadRequestException('Broj bodova je ispod minimalnog za korištenje.');
-    }
-
     const service = await this.prisma.service.findUnique({
       where: { id: serviceId },
-      select: { price: true },
+      select: { price: true, loyaltyEnabled: true, loyaltyMaxDiscountPercent: true },
     });
     if (!service) {
       throw new NotFoundException('Servis nije pronađen.');
+    }
+
+    if (!service.loyaltyEnabled) {
+      throw new BadRequestException('Za ovaj servis nije dozvoljen loyalty popust.');
     }
 
     const price = Number(service.price);
@@ -301,11 +296,16 @@ export class LoyaltyService {
 
     const tier = await this.getTierForPoints(account.points);
     const tierMaxPercent = tier?.maxDiscountPercent ?? 0;
+    const serviceMaxPercent = service.loyaltyMaxDiscountPercent ?? 0;
     const globalMaxPercent = this.parseNumber(await this.settings.getValue('loyalty_max_discount_percent'), 100);
-    const allowedPercent = Math.min(tierMaxPercent, globalMaxPercent);
+    const allowedPercent = Math.min(tierMaxPercent, serviceMaxPercent, globalMaxPercent);
 
     if (allowedPercent <= 0) {
       throw new BadRequestException('Vaš nivo ne dozvoljava korištenje bodova za popust.');
+    }
+
+    if (desiredPercent > allowedPercent) {
+      throw new BadRequestException('Odabrani procenat popusta je veći od maksimalnog dozvoljenog.');
     }
 
     const redeemRate = this.parseNumber(await this.settings.getValue('loyalty_redeem_rate'), 0.1); // KM po bodu
@@ -313,19 +313,23 @@ export class LoyaltyService {
       throw new BadRequestException('Loyalty redeem stopa nije ispravno podešena.');
     }
 
-    const maxDiscountAmount = (price * allowedPercent) / 100;
-    const maxPointsByPercent = Math.floor(maxDiscountAmount / redeemRate);
-    const maxAllowedPoints = Math.min(maxPointsByPercent, account.points);
+    const desiredDiscountAmount = (price * desiredPercent) / 100;
+    const neededPoints = Math.floor(desiredDiscountAmount / redeemRate);
 
-    if (maxAllowedPoints <= 0) {
-      throw new BadRequestException('Za ovu uslugu trenutno nije moguće koristiti bodove.');
+    const minPoints = this.parseNumber(await this.settings.getValue('loyalty_min_points_to_redeem'), 0);
+    if (neededPoints < minPoints) {
+      throw new BadRequestException('Broj bodova koji bi se iskoristio je ispod minimalnog za korištenje.');
     }
 
-    if (desiredPoints > maxAllowedPoints) {
-      throw new BadRequestException('Odabrani broj bodova premašuje maksimalni dozvoljeni popust za vašu razinu.');
+    if (neededPoints <= 0) {
+      throw new BadRequestException('Odabrani popust je prenizak da bi se isplatilo koristiti bodove.');
     }
 
-    return this.redeemPoints(account.id, desiredPoints, `Reservation ${reservationId}`);
+    if (account.points < neededPoints) {
+      throw new BadRequestException('Nemate dovoljno bodova za odabrani popust.');
+    }
+
+    return this.redeemPoints(account.id, neededPoints, `Reservation ${reservationId} (${desiredPercent}%)`);
   }
 
   async adjustPoints(accountId: string, pointsDelta: number, note?: string) {

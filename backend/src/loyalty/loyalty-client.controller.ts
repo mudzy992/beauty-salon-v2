@@ -52,31 +52,63 @@ export class LoyaltyClientController {
       100,
     );
 
-    let servicePrice: number | null = null;
-    let maxPercentForService = 0;
-    let maxDiscountAmount = 0;
-    let maxUsablePoints = 0;
-
     if (serviceId) {
       const service = await this.prisma.service.findUnique({
         where: { id: serviceId },
-        select: { price: true },
+        select: { price: true, loyaltyEnabled: true, loyaltyMaxDiscountPercent: true },
       });
-      if (service) {
-        servicePrice = Number(service.price);
-        if (Number.isFinite(servicePrice) && servicePrice > 0) {
-          const tierMax = tier?.maxDiscountPercent ?? 0;
-          maxPercentForService = Math.min(tierMax, globalMaxPercent);
-          if (maxPercentForService > 0 && redeemRate > 0) {
-            maxDiscountAmount = (servicePrice * maxPercentForService) / 100;
-            const maxByPercent = Math.floor(maxDiscountAmount / redeemRate);
-            maxUsablePoints = Math.max(
-              0,
-              Math.min(maxByPercent, account.points),
-            );
-          }
+      if (!service || !service.loyaltyEnabled) {
+        return {
+          enabled,
+          hasAccount: true,
+          redeemEnabled,
+          points: account.points,
+          tier: tier?.name ?? null,
+          tierMaxDiscountPercent: tier?.maxDiscountPercent ?? 0,
+          globalMaxDiscountPercent: globalMaxPercent,
+          redeemRate,
+          minPointsToRedeem: minPoints,
+          service: null,
+        };
+      }
+
+      const servicePrice = Number(service.price);
+      let maxPercentForService = 0;
+      let maxDiscountAmount = 0;
+      let maxUsablePoints = 0;
+
+      if (Number.isFinite(servicePrice) && servicePrice > 0) {
+        const tierMax = tier?.maxDiscountPercent ?? 0;
+        const serviceMax = service.loyaltyMaxDiscountPercent ?? 0;
+        maxPercentForService = Math.min(tierMax, serviceMax, globalMaxPercent);
+        if (maxPercentForService > 0 && redeemRate > 0) {
+          maxDiscountAmount = (servicePrice * maxPercentForService) / 100;
+          const maxByPercent = Math.floor(maxDiscountAmount / redeemRate);
+          maxUsablePoints = Math.max(
+            0,
+            Math.min(maxByPercent, account.points),
+          );
         }
       }
+
+      return {
+        enabled,
+        hasAccount: true,
+        redeemEnabled,
+        points: account.points,
+        tier: tier?.name ?? null,
+        tierMaxDiscountPercent: tier?.maxDiscountPercent ?? 0,
+        globalMaxDiscountPercent: globalMaxPercent,
+        redeemRate,
+        minPointsToRedeem: minPoints,
+        service: {
+          id: serviceId,
+          price: servicePrice,
+          maxDiscountPercent: maxPercentForService,
+          maxDiscountAmount,
+          maxUsablePoints,
+        },
+      };
     }
 
     return {
@@ -89,15 +121,7 @@ export class LoyaltyClientController {
       globalMaxDiscountPercent: globalMaxPercent,
       redeemRate,
       minPointsToRedeem: minPoints,
-      service: serviceId
-        ? {
-            id: serviceId,
-            price: servicePrice,
-            maxDiscountPercent: maxPercentForService,
-            maxDiscountAmount,
-            maxUsablePoints,
-          }
-        : null,
+      service: null,
     };
   }
 }

@@ -18,10 +18,10 @@ export class CreateReservationDto {
   @MaxLength(2000)
   clientNotes?: string;
 
-  /** Opcionalno: broj loyalty bodova koje klijent želi iskoristiti za ovu rezervaciju. */
+  /** Opcionalno: procenat loyalty popusta koji klijent želi iskoristiti za ovu rezervaciju. */
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(1000000)
-  desiredLoyaltyPoints?: number;
+  @Max(100)
+  desiredLoyaltyPercent?: number;
 }
