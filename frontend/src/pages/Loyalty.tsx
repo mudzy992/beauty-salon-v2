@@ -48,7 +48,6 @@ export default function Loyalty() {
   const toast = useToast();
   const [programEnabled, setProgramEnabled] = useState<boolean>(false);
   const [accounts, setAccounts] = useState<LoyaltyAccountRow[]>([]);
-  const [settings, setSettings] = useState<{ key: string; value: string | null }[]>([]);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -65,13 +64,11 @@ export default function Loyalty() {
       .get<{ key: string; value: string | null } | { key: string; value: string | null }[]>(`/api/loyalty/settings`)
       .then((res) => {
         const list = Array.isArray(res.data) ? res.data : [res.data];
-        setSettings(list);
         const enabled = list.find((s) => s.key === LOYALTY_ENABLED_KEY)?.value === 'true';
         setProgramEnabled(enabled);
       })
       .catch(() => {
         setProgramEnabled(false);
-        setSettings([]);
       })
       .finally(() => setLoadingSettings(false));
   }, []);
@@ -102,10 +99,6 @@ export default function Loyalty() {
       })
       .then(() => {
         setProgramEnabled(checked);
-        setSettings((prev) => {
-          const existing = prev.filter((s) => s.key !== LOYALTY_ENABLED_KEY);
-          return [...existing, { key: LOYALTY_ENABLED_KEY, value: checked ? 'true' : 'false' }];
-        });
         toast({ title: checked ? 'Program uključen' : 'Program isključen', status: 'success', isClosable: true });
       })
       .catch(() => toast({ title: 'Greška pri spremanju', status: 'error', isClosable: true }))
