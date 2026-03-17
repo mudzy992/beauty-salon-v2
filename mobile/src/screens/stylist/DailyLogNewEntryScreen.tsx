@@ -55,8 +55,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [serviceId, setServiceId] = useState('');
   const [clientId, setClientId] = useState('');
-  const [actualPrice, setActualPrice] = useState('');
-  const [tipAmount, setTipAmount] = useState('');
+  const [paidAmount, setPaidAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState(0);
@@ -101,10 +100,10 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
 
   const selectService = (s: Service) => {
     setServiceId(s.id);
-    setActualPrice(String(Number(s.price) ?? 0));
     setServiceSearch(s.name);
     setShowServicePicker(false);
     setDesiredLoyaltyPercent(0);
+    setPaidAmount('');
   };
 
   const selectClient = (c: ClientOption) => {
@@ -113,7 +112,16 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     setClientSearch(name);
     setShowClientPicker(false);
     setDesiredLoyaltyPercent(0);
+    setPaidAmount('');
   };
+
+  const basePrice = selectedService ? Number((selectedService as any).price ?? 0) : 0;
+  const loyaltyPercent =
+    loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service
+      ? Math.max(0, Math.min(desiredLoyaltyPercent, loyaltyInfo.service.maxDiscountPercent))
+      : 0;
+  const loyaltyDiscountAmount = basePrice > 0 ? (basePrice * loyaltyPercent) / 100 : 0;
+  const chargeAmount = Math.max(0, basePrice - loyaltyDiscountAmount);
 
   useEffect(() => {
     if (!serviceId || !clientId) {
@@ -153,12 +161,21 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
       Alert.alert('Greška', 'Odaberite servis i klijenta.');
       return;
     }
-    const price = parseFloat(actualPrice.replace(',', '.'));
-    if (isNaN(price) || price < 0) {
-      Alert.alert('Greška', 'Unesite ispravnu cijenu.');
+    const paidRaw = paidAmount.trim()
+      ? parseFloat(paidAmount.replace(',', '.'))
+      : chargeAmount;
+    if (isNaN(paidRaw) || paidRaw < 0) {
+      Alert.alert('Greška', 'Unesite ispravan iznos naplaćenog računa.');
       return;
     }
-    const tip = parseFloat(tipAmount.replace(',', '.')) || 0;
+    if (paidRaw < chargeAmount) {
+      Alert.alert(
+        'Greška',
+        `Naplaćeni iznos ne može biti manji od iznosa za naplatu (${chargeAmount.toFixed(2)} KM).`,
+      );
+      return;
+    }
+    const tip = Math.max(0, paidRaw - chargeAmount);
     setSaving(true);
     try {
       const { data: entry } = await api.post<{ id: string }>('/api/daily-log', {
@@ -166,11 +183,11 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
         serviceId,
         clientId,
         date,
-        actualPrice: price,
-        tipAmount: tip >= 0 ? tip : 0,
+        actualPrice: paidRaw,
+        tipAmount: tip,
         notes: notes.trim() || undefined,
         isManual: true,
-        ...(desiredLoyaltyPercent > 0 ? { desiredLoyaltyPercent } : {}),
+        ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
       });
       navigation.navigate('DailyLogDetail', { entryId: entry.id });
     } catch (err: unknown) {
@@ -182,7 +199,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     } finally {
       setSaving(false);
     }
-  }, [profileId, serviceId, clientId, date, actualPrice, tipAmount, notes, desiredLoyaltyPercent, navigation]);
+  }, [profileId, serviceId, clientId, date, paidAmount, chargeAmount, notes, loyaltyPercent, navigation]);
 
   if (profileLoading || (loading && !profileId)) {
     return (
@@ -236,8 +253,24 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
 
         <Card style={styles.card}>
           <Input label="Datum" value={date} onChangeText={setDate} />
-          <Input label="Cijena (KM)" value={actualPrice} onChangeText={setActualPrice} keyboardType="decimal-pad" />
-          <Input label="Napojnica (KM)" value={tipAmount} onChangeText={setTipAmount} keyboardType="decimal-pad" />
+          <Input
+            label="Naplaćeno (KM)"
+            value={paidAmount}
+            onChangeText={setPaidAmount}
+            keyboardType="decimal-pad"
+            placeholder={chargeAmount > 0 ? chargeAmount.toFixed(2) : '0.00'}
+          />
+          <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
+            Servis: {Number.isFinite(basePrice) ? basePrice.toFixed(2) : '0.00'} KM
+          </Text>
+          {loyaltyPercent > 0 && (
+            <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
+              Loyalty popust: {loyaltyPercent}% ({loyaltyDiscountAmount.toFixed(2)} KM)
+            </Text>
+          )}
+          <Text style={{ color: colors.text, marginTop: 2, fontWeight: '700' }}>
+            Za naplatu: {chargeAmount.toFixed(2)} KM
+          </Text>
           <Input label="Napomena (opciono)" value={notes} onChangeText={setNotes} multiline />
         </Card>
 

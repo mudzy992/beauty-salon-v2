@@ -96,6 +96,7 @@ export default function DailyLog() {
     actualPrice: 0, tipAmount: 0, notes: '', isManual: true,
     desiredLoyaltyPercent: 0,
   });
+  const [paidAmount, setPaidAmount] = useState<string>('');
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
   const [loadingLoyalty, setLoadingLoyalty] = useState(false);
 
@@ -149,6 +150,7 @@ export default function DailyLog() {
     setForm((prev) => ({ ...prev, serviceId: svc.id, actualPrice: Number(svc.price) || 0, desiredLoyaltyPercent: 0 }));
     setServiceSearch(svc.name);
     setShowServiceDropdown(false);
+    setPaidAmount('');
   };
 
   const selectClient = (client: ClientOption) => {
@@ -156,6 +158,7 @@ export default function DailyLog() {
     const name = [client.firstName, client.lastName].filter(Boolean).join(' ') || client.username;
     setClientSearch(name);
     setShowClientDropdown(false);
+    setPaidAmount('');
   };
 
   const openCreateForm = () => {
@@ -168,6 +171,7 @@ export default function DailyLog() {
     setServiceSearch('');
     setClientSearch('');
     setLoyaltyInfo(null);
+    setPaidAmount('');
     onOpen();
   };
 
@@ -187,8 +191,21 @@ export default function DailyLog() {
     setServiceSearch(entry.service?.name ?? '');
     const clientName = entry.client ? [entry.client.firstName, entry.client.lastName].filter(Boolean).join(' ') || entry.client.user?.username || '' : '';
     setClientSearch(clientName);
+    setPaidAmount(entry.actualPrice != null ? String(Number(entry.actualPrice)) : '');
     onOpen();
   };
+
+  const selectedServiceObj = useMemo(
+    () => services.find((s) => s.id === form.serviceId) ?? null,
+    [services, form.serviceId],
+  );
+  const basePrice = selectedServiceObj ? Number(selectedServiceObj.price ?? 0) : 0;
+  const loyaltyPercent =
+    loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service
+      ? Math.max(0, Math.min(form.desiredLoyaltyPercent, loyaltyInfo.service.maxDiscountPercent))
+      : 0;
+  const loyaltyDiscountAmount = basePrice > 0 ? (basePrice * loyaltyPercent) / 100 : 0;
+  const chargeAmount = Math.max(0, basePrice - loyaltyDiscountAmount);
 
   useEffect(() => {
     if (!form.serviceId || !form.clientId) {
@@ -225,12 +242,24 @@ export default function DailyLog() {
     }
     setSaving(true);
     try {
+      const paidRaw =
+        paidAmount.trim().length > 0 ? Number(paidAmount.replace(',', '.')) : chargeAmount;
+      if (!Number.isFinite(paidRaw) || paidRaw < 0) {
+        toast({ title: 'Unesite ispravan iznos naplaćenog računa', status: 'warning', isClosable: true });
+        return;
+      }
+      if (paidRaw < chargeAmount) {
+        toast({ title: `Naplaćeno ne može biti manje od za naplatu (${chargeAmount.toFixed(2)} KM)`, status: 'warning', isClosable: true });
+        return;
+      }
+      const tipAuto = Math.max(0, paidRaw - chargeAmount);
+
       if (editId) {
         await api.patch(`/api/daily-log/${editId}`, {
-          actualPrice: form.actualPrice,
-          tipAmount: form.tipAmount,
+          actualPrice: paidRaw,
+          tipAmount: tipAuto,
           notes: form.notes || undefined,
-          ...(form.desiredLoyaltyPercent > 0 ? { desiredLoyaltyPercent: form.desiredLoyaltyPercent } : {}),
+          ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
         });
       } else {
         await api.post('/api/daily-log', {
@@ -238,11 +267,11 @@ export default function DailyLog() {
           serviceId: form.serviceId,
           clientId: form.clientId || undefined,
           date: form.date,
-          actualPrice: form.actualPrice,
-          tipAmount: form.tipAmount,
+          actualPrice: paidRaw,
+          tipAmount: tipAuto,
           notes: form.notes || undefined,
           isManual: true,
-          ...(form.desiredLoyaltyPercent > 0 ? { desiredLoyaltyPercent: form.desiredLoyaltyPercent } : {}),
+          ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
         });
       }
       toast({ title: 'Sačuvano', status: 'success', isClosable: true });
@@ -442,16 +471,19 @@ export default function DailyLog() {
             )}
             <Flex gap={4} mb={4}>
               <FormControl flex={1} isRequired>
-                <FormLabel>Cijena (KM)</FormLabel>
-                <NumberInput value={form.actualPrice} onChange={(_, v) => setForm({ ...form, actualPrice: v || 0 })} min={0} precision={2}>
-                  <NumberInputField /><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
-                </NumberInput>
-              </FormControl>
-              <FormControl flex={1}>
-                <FormLabel>Napojnica (KM)</FormLabel>
-                <NumberInput value={form.tipAmount} onChange={(_, v) => setForm({ ...form, tipAmount: v || 0 })} min={0} precision={2}>
-                  <NumberInputField /><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
-                </NumberInput>
+                <FormLabel>Naplaćeno (KM)</FormLabel>
+                <Input
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(e.target.value)}
+                  placeholder={chargeAmount > 0 ? chargeAmount.toFixed(2) : '0.00'}
+                />
+                <Text fontSize="xs" color="gray.600" mt={2}>
+                  Servis: {Number.isFinite(basePrice) ? basePrice.toFixed(2) : '0.00'} KM
+                  {loyaltyPercent > 0 ? ` · Loyalty: ${loyaltyPercent}% (${loyaltyDiscountAmount.toFixed(2)} KM)` : ''}
+                </Text>
+                <Text fontSize="sm" fontWeight="700" mt={1}>
+                  Za naplatu: {chargeAmount.toFixed(2)} KM
+                </Text>
               </FormControl>
             </Flex>
             <FormControl>
