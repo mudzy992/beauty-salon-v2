@@ -183,10 +183,20 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
               <Text style={[styles.serviceName, { color: colors.text }]}>
                 {item.service?.name ?? 'Usluga'}
               </Text>
-              <Badge
-                label={item.status === 'COMPLETED' ? 'Završeno' : 'Na čekanju'}
-                variant={item.status === 'COMPLETED' ? 'success' : 'warning'}
-              />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {(() => {
+                  const beforeCount = item.images?.filter((i) => i.isBefore).length ?? 0;
+                  const afterCount = item.images?.filter((i) => i.isAfter).length ?? 0;
+                  const hasBA = beforeCount > 0 && afterCount > 0;
+                  return hasBA ? (
+                    <Badge label="B/A" variant="info" />
+                  ) : null;
+                })()}
+                <Badge
+                  label={item.status === 'COMPLETED' ? 'Završeno' : 'Na čekanju'}
+                  variant={item.status === 'COMPLETED' ? 'success' : 'warning'}
+                />
+              </View>
             </View>
             <Text style={[styles.date, { color: colors.textSecondary }]}>
               {formatDate(item.date)}

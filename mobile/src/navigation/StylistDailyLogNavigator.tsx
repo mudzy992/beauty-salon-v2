@@ -4,6 +4,7 @@ import { useTheme } from '../hooks/useTheme';
 import { DailyLogListScreen } from '../screens/stylist/DailyLogListScreen';
 import { DailyLogDetailScreen } from '../screens/stylist/DailyLogDetailScreen';
 import { DailyLogNewEntryScreen } from '../screens/stylist/DailyLogNewEntryScreen';
+import { ReschedulePreviewScreen } from '../screens/stylist/ReschedulePreviewScreen';
 import type { StylistDailyLogStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<StylistDailyLogStackParamList>();
@@ -33,6 +34,11 @@ export function StylistDailyLogNavigator() {
         name="DailyLogNewEntry"
         component={DailyLogNewEntryScreen}
         options={{ title: 'Novi zapis (ručno)' }}
+      />
+      <Stack.Screen
+        name="ReschedulePreview"
+        component={ReschedulePreviewScreen}
+        options={{ title: 'Novi raspored' }}
       />
     </Stack.Navigator>
   );

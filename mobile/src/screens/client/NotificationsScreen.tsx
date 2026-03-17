@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useNotificationStore } from '../../store/notificationStore';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 import { spacing, borderRadius } from '../../theme';
 import type { Notification } from '../../types';
 
@@ -31,6 +32,7 @@ export function NotificationsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => { fetch(); }, [fetch]);
+  useAutoRefresh(fetch, { intervalMs: 30000 });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

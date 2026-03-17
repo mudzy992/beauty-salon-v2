@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp, FadeInRight } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -122,6 +123,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  useAutoRefresh(fetchData, { intervalMs: 60000 });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

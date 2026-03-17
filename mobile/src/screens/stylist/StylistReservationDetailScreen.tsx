@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
@@ -89,11 +90,14 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
   const canComplete = useMemo(() => {
     if (!reservation) return false;
     return (
-      (reservation.status === 'ATTENDANCE_CONFIRMED' ||
-        reservation.status === 'IN_PROGRESS') &&
+      reservation.status === 'IN_PROGRESS' &&
       reservation.confirmedStylistId === profileId
     );
   }, [reservation, profileId]);
+
+  const hasAnyAction = useMemo(() => {
+    return canStart || canComplete || canCancelByStylist;
+  }, [canStart, canComplete, canCancelByStylist]);
 
   const submitStart = useCallback(async () => {
     if (!reservation) return;
@@ -101,7 +105,8 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     try {
       await api.post(`/api/reservations/${reservation.id}/stylist-start`);
       await fetchReservation();
-      Alert.alert('Pokrenuto', 'Rezervacija je pokrenuta (u toku).');
+      // UX: vrati na raspored gdje se prikazuje aktivna kartica sa countdown + akcijama
+      navigation.goBack();
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
@@ -145,6 +150,7 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
 
   const openComplete = useCallback(() => {
     if (!reservation) return;
+    if (reservation.status !== 'IN_PROGRESS') return;
     const basePrice =
       reservation.service && 'price' in reservation.service ? Number((reservation.service as any).price) : 0;
     const loyaltyDiscountAmount = 'loyaltyDiscountAmount' in reservation ? Number((reservation as any).loyaltyDiscountAmount ?? 0) : 0;
@@ -176,49 +182,20 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
 
     setCompleteSubmitting(true);
     try {
-      await api.post<DailyLogEntry>(`/api/daily-log/from-reservation/${reservation.id}`, {
+      const { data: entry } = await api.post<DailyLogEntry>(`/api/daily-log/from-reservation/${reservation.id}`, {
         actualPrice: paidRaw,
         tipAmount: tipAmount >= 0 ? tipAmount : 0,
         notes: completeNotes.trim() || undefined,
       });
-      await api.post(`/api/reservations/${reservation.id}/stylist-mark-complete`);
       setCompleteModalOpen(false);
       await fetchReservation();
 
-      // Ako je termin probio planirano vrijeme, stilisti ponuditi rekalkulaciju budućih termina.
-      try {
-        const { data: proposal } = await api.post<{
-          delayMinutes: number;
-          shiftMinutes: number;
-          items: Array<{ id: string; shiftMinutes: number }>;
-        }>(`/api/reservations/${reservation.id}/reschedule/propose`, { includeBreaks: true });
-        if (proposal?.items?.length > 0 && (proposal.shiftMinutes ?? 0) > 0) {
-          Alert.alert(
-            'Rekalkulacija rasporeda',
-            `Termin je probio za ~${proposal.delayMinutes} min. Predlog: pomjeriti ${proposal.items.length} termina za ${proposal.shiftMinutes} min (uz uključene pauze). Obavijestiti klijente?`,
-            [
-              { text: 'Ne sada', style: 'cancel' },
-              {
-                text: 'Obavijesti',
-                onPress: async () => {
-                  await api.post(`/api/reservations/${reservation.id}/reschedule/commit`, { includeBreaks: true });
-                  Alert.alert('Poslano', 'Klijentima su poslane notifikacije za potvrdu novog termina.');
-                  navigation.goBack();
-                },
-              },
-            ],
-          );
-          return;
-        }
-      } catch {
-        // Ako predlog ne uspije, samo nastavi standardni flow.
-      }
-
-      Alert.alert(
-        'Završeno',
-        'Rezervacija je označena završenom i upisana u dnevnu knjigu. U Dnevnoj knjizi možete dodati before/after slike i završiti zapis.',
-      );
-      navigation.goBack();
+      // UX: nakon unosa naplate prebacujemo stilistu u Dnevnik -> detalji zapisa,
+      // gdje može dodati before/after i završiti zapis (što će i završiti rezervaciju).
+      navigation.getParent()?.navigate('DailyLogTab' as never, {
+        screen: 'DailyLogDetail',
+        params: { entryId: entry.id },
+      } as never);
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
@@ -258,58 +235,79 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
-        <Card style={styles.card}>
-          <View style={styles.row}>
-            <Text style={[styles.time, { color: colors.text }]}>
-              {formatTime(reservation.startTime)} – {formatTime(reservation.endTime)}
-            </Text>
-            <Badge label={statusLabel} variant={getStatusVariant(reservation.status)} status={reservation.status} />
+        <Card style={[styles.card, { borderWidth: 1, borderColor: colors.border }]}>
+          <View style={[styles.headerRow, { borderBottomColor: colors.border }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.serviceName, { color: colors.text }]}>
+                {reservation.service?.name ?? 'Usluga'}
+              </Text>
+              <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                {formatDate(reservation.reservationDate.slice(0, 10))} · {formatTime(reservation.startTime)} – {formatTime(reservation.endTime)}
+              </Text>
+            </View>
+            <Badge
+              label={statusLabel}
+              variant={getStatusVariant(reservation.status)}
+              status={reservation.status}
+            />
           </View>
-          <Text style={[styles.serviceName, { color: colors.text }]}>
-            {reservation.service?.name ?? 'Usluga'}
-          </Text>
-          <Text style={[styles.meta, { color: colors.textSecondary }]}>{formatDate(reservation.reservationDate.slice(0, 10))}</Text>
-          {reservation.client && (
-            <Text style={[styles.meta, { color: colors.textSecondary }]}>
-              Klijent: {reservation.client.firstName} {reservation.client.lastName}
-            </Text>
-          )}
-          {loyaltyPercent > 0 && (
-            <Text style={[styles.meta, { color: colors.success }]}>
-              Loyalty popust: {loyaltyPercent}% ({loyaltyAmount.toFixed(2)} KM)
-            </Text>
-          )}
-          {reservation.clientNotes ? (
-            <Text style={[styles.notes, { color: colors.text }]}>{reservation.clientNotes}</Text>
-          ) : null}
+
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Ionicons name="person-outline" size={16} color={colors.textSecondary} />
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                {reservation.client
+                  ? `${reservation.client.firstName} ${reservation.client.lastName}`
+                  : '—'}
+              </Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Ionicons name="pricetag-outline" size={16} color={colors.textSecondary} />
+              <Text style={[styles.infoText, { color: colors.text }]}>
+                {loyaltyPercent > 0
+                  ? `Loyalty: ${loyaltyPercent}% (${loyaltyAmount.toFixed(2)} KM)`
+                  : 'Loyalty: —'}
+              </Text>
+            </View>
+            {reservation.clientNotes ? (
+              <View style={[styles.infoItem, { alignItems: 'flex-start' }]}>
+                <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
+                <Text style={[styles.infoText, { color: colors.textSecondary, flex: 1 }]}>
+                  {reservation.clientNotes}
+                </Text>
+              </View>
+            ) : null}
+          </View>
         </Card>
 
-        <Card style={styles.card}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Akcije</Text>
-          {canStart && (
-            <Button
-              title="Startuj rezervaciju"
-              onPress={submitStart}
-              loading={startSubmitting}
-              style={{ marginBottom: spacing.sm }}
-            />
-          )}
-          {canComplete && (
-            <Button
-              title={t('stylist.schedule.completeSubmit')}
-              onPress={openComplete}
-              style={{ marginBottom: spacing.sm }}
-            />
-          )}
-          {canCancelByStylist && (
-            <Button
-              title={t('stylist.schedule.cancelWithReason')}
-              onPress={openCancel}
-              variant="outline"
-              textStyle={{ color: colors.error }}
-            />
-          )}
-        </Card>
+        {hasAnyAction ? (
+          <Card style={[styles.card, { borderWidth: 1, borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Akcije</Text>
+            {canStart && (
+              <Button
+                title="Startuj rezervaciju"
+                onPress={submitStart}
+                loading={startSubmitting}
+                style={{ marginBottom: spacing.sm }}
+              />
+            )}
+            {canComplete && (
+              <Button
+                title={t('stylist.schedule.completeSubmit')}
+                onPress={openComplete}
+                style={{ marginBottom: spacing.sm }}
+              />
+            )}
+            {canCancelByStylist && (
+              <Button
+                title={t('stylist.schedule.cancelWithReason')}
+                onPress={openCancel}
+                variant="outline"
+                textStyle={{ color: colors.error }}
+              />
+            )}
+          </Card>
+        ) : null}
       </ScrollView>
 
       <Modal visible={cancelModalOpen} animationType="slide" transparent>
@@ -396,10 +394,12 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content: { padding: spacing.md, paddingBottom: spacing.xxl },
   card: { marginBottom: spacing.md },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  time: { fontSize: 16, fontWeight: '700' },
-  serviceName: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
-  meta: { fontSize: 13, marginTop: 2 },
+  headerRow: { flexDirection: 'row', gap: 10, paddingBottom: spacing.sm, marginBottom: spacing.sm, borderBottomWidth: 1 },
+  serviceName: { fontSize: 18, fontWeight: '800' },
+  subtitle: { fontSize: 13, marginTop: 4 },
+  infoGrid: { gap: 10 },
+  infoItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  infoText: { fontSize: 14, flexShrink: 1 },
   notes: { fontSize: 13, marginTop: spacing.sm },
   sectionTitle: { fontSize: 15, fontWeight: '700', marginBottom: spacing.sm },
   modalOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: spacing.md },

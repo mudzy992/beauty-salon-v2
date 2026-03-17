@@ -1,0 +1,60 @@
+import { useCallback, useEffect, useRef } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+
+/**
+ * Periodično poziva callback dok je ekran fokusiran i aplikacija aktivna.
+ */
+export function useAutoRefresh(
+  callback: () => void | Promise<void>,
+  opts?: { intervalMs?: number },
+) {
+  const intervalMs = opts?.intervalMs ?? 30000;
+  const cbRef = useRef(callback);
+  cbRef.current = callback;
+
+  const run = useCallback(() => {
+    void cbRef.current();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let interval: ReturnType<typeof setInterval> | null = null;
+      let appState: AppStateStatus = AppState.currentState;
+
+      const start = () => {
+        if (interval) return;
+        interval = setInterval(run, intervalMs);
+      };
+      const stop = () => {
+        if (!interval) return;
+        clearInterval(interval);
+        interval = null;
+      };
+
+      const sub = AppState.addEventListener('change', (next) => {
+        appState = next;
+        if (appState === 'active') {
+          run();
+          start();
+        } else {
+          stop();
+        }
+      });
+
+      run();
+      if (appState === 'active') start();
+
+      return () => {
+        stop();
+        sub.remove();
+      };
+    }, [intervalMs, run]),
+  );
+
+  // Also run once on mount when used outside focus contexts
+  useEffect(() => {
+    run();
+  }, [run]);
+}
+

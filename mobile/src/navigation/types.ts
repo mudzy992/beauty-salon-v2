@@ -20,6 +20,7 @@ export type StylistDailyLogStackParamList = {
   DailyLogList: undefined;
   DailyLogDetail: { entryId: string };
   DailyLogNewEntry: undefined;
+  ReschedulePreview: { reservationId: string; includeBreaks?: boolean };
 };
 
 export type StylistScheduleStackParamList = {
@@ -55,7 +56,7 @@ export type ServicesStackParamList = {
 };
 
 export type ReservationsStackParamList = {
-  MyReservations: undefined;
+  MyReservations: { focusReservationId?: string } | undefined;
   ReservationDetail: { reservationId: string };
   WriteReview: { reservationId?: string; serviceId?: string };
 };

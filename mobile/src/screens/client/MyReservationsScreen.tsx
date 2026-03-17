@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 import { Card } from '../../components/ui/Card';
 import { Badge, getStatusVariant } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -43,6 +44,10 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
   const [cancelModalReservation, setCancelModalReservation] = useState<Reservation | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
+  const listRef = useRef<SectionList<Reservation>>(null);
+  const focusReservationId =
+    (navigation as any)?.getState?.()?.routes?.find?.((r: any) => r.name === 'MyReservations')?.params?.focusReservationId ??
+    undefined;
 
   const fetchReservations = useCallback(async () => {
     try {
@@ -55,6 +60,7 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
   }, []);
 
   useEffect(() => { fetchReservations(); }, [fetchReservations]);
+  useAutoRefresh(fetchReservations, { intervalMs: 30000 });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -140,6 +146,31 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
   if (upcoming.length > 0) sections.push({ title: t('myReservations.upcoming'), data: upcoming });
   if (past.length > 0) sections.push({ title: t('myReservations.past'), data: past });
 
+  const focusLocation = useMemo(() => {
+    if (!focusReservationId) return null;
+    for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
+      const itemIndex = sections[sectionIndex].data.findIndex((r) => r.id === focusReservationId);
+      if (itemIndex >= 0) return { sectionIndex, itemIndex };
+    }
+    return null;
+  }, [focusReservationId, sections]);
+
+  useEffect(() => {
+    if (!focusLocation) return;
+    // Sačekaj render liste
+    const tmr = setTimeout(() => {
+      try {
+        listRef.current?.scrollToLocation({
+          sectionIndex: focusLocation.sectionIndex,
+          itemIndex: focusLocation.itemIndex,
+          viewPosition: 0.2,
+          animated: true,
+        });
+      } catch { /* ignore */ }
+    }, 250);
+    return () => clearTimeout(tmr);
+  }, [focusLocation]);
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -151,6 +182,7 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
   return (
     <>
     <SectionList
+      ref={listRef}
       sections={sections}
       keyExtractor={(item) => item.id}
       style={{ backgroundColor: colors.background }}

@@ -286,6 +286,13 @@ model Reservation {
   rescheduleProposedEndTime   String? @map("reschedule_proposed_end_time")
   rescheduleStatus            String? @map("reschedule_status") // PENDING | ACCEPTED | DECLINED
 
+  // Auto delay upozorenja (da se push ne šalje više puta)
+  delayNotifiedAt DateTime? @map("delay_notified_at")
+
+  // Stilist može eksplicitno označiti da koristi pauzu nakon probijanja termina
+  useBreakAfterOverrun Boolean? @map("use_break_after_overrun")
+  useBreakDecidedAt    DateTime? @map("use_break_decided_at")
+
   // Loyalty popust po rezervaciji (informativno, ne mijenja automatski KIF)
   loyaltyDiscountPercent Int      @default(0)        @map("loyalty_discount_percent")
   loyaltyDiscountAmount  Decimal  @default(0)        @map("loyalty_discount_amount") @db.Decimal(10, 2)

@@ -9,6 +9,7 @@ import { AuthNavigator } from './AuthNavigator';
 import { MainNavigator } from './MainNavigator';
 import { StylistNavigator } from './StylistNavigator';
 import type { RootStackParamList } from './types';
+import { navigationRef } from './navigationRef';
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
@@ -33,7 +34,7 @@ export function RootNavigator() {
   };
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         {!user ? (
           <RootStack.Screen name="Auth" component={AuthNavigator} />

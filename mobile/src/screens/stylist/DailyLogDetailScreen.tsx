@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -19,7 +20,7 @@ import type { DailyLogEntry } from '../../types';
 
 type DailyLogDetailScreenProps = {
   route: { params: { entryId: string } };
-  navigation: { goBack: () => void };
+  navigation: { goBack: () => void; navigate: (name: string, params?: any) => void };
 };
 
 export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreenProps) {
@@ -47,7 +48,9 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const handleComplete = useCallback(() => {
     Alert.alert(
       'Završi zapis',
-      'Označiti zapis kao završen? Prihod će biti upisan u knjigu.',
+      entry?.reservationId
+        ? 'Označiti zapis kao završen? Ovo će završiti i rezervaciju, te upisati prihod u knjigu.'
+        : 'Označiti zapis kao završen? Prihod će biti upisan u knjigu.',
       [
         { text: 'Odustani', style: 'cancel' },
         {
@@ -55,8 +58,45 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           onPress: async () => {
             setActing(true);
             try {
+              const reservationId = entry?.reservationId ?? null;
               await api.post(`/api/daily-log/${entryId}/complete`);
               await fetchEntry();
+
+              if (reservationId) {
+                try {
+                  const { data } = await api.post<{ delayMinutes: number; items: any[] }>(
+                    `/api/reservations/${reservationId}/reschedule/propose`,
+                    { includeBreaks: false },
+                  );
+                  if ((data?.delayMinutes ?? 0) > 0 && (data?.items?.length ?? 0) > 0) {
+                    Alert.alert(
+                      'Kašnjenje termina',
+                      'Želiš li rekalkulaciju budućih termina i preview novog rasporeda?',
+                      [
+                        { text: 'Ne sada', style: 'cancel' },
+                        {
+                          text: 'Bez pauza',
+                          onPress: () =>
+                            navigation.navigate('ReschedulePreview', {
+                              reservationId,
+                              includeBreaks: false,
+                            }),
+                        },
+                        {
+                          text: 'Uključi pauze',
+                          onPress: () =>
+                            navigation.navigate('ReschedulePreview', {
+                              reservationId,
+                              includeBreaks: true,
+                            }),
+                        },
+                      ],
+                    );
+                  }
+                } catch {
+                  // ignore - preview je opcionalan korak
+                }
+              }
             } catch (err: unknown) {
               const msg =
                 err && typeof err === 'object' && 'response' in err
@@ -70,7 +110,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         },
       ],
     );
-  }, [entryId, fetchEntry]);
+  }, [entryId, fetchEntry, entry?.reservationId]);
 
   const addImage = useCallback(
     async (isBefore: boolean) => {
@@ -138,108 +178,131 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const canComplete = entry.status !== 'COMPLETED';
   const beforeImages = entry.images?.filter((i) => i.isBefore) ?? [];
   const afterImages = entry.images?.filter((i) => i.isAfter) ?? [];
+  const hasBeforeAfter = beforeImages.length > 0 || afterImages.length > 0;
 
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
     >
-      <Card style={styles.card}>
-        <Text style={[styles.title, { color: colors.text }]}>{entry.service?.name ?? 'Usluga'}</Text>
-        <Text style={[styles.date, { color: colors.textSecondary }]}>{formatDate(entry.date)}</Text>
-        {entry.client && (
-          <Text style={[styles.client, { color: colors.text }]}>
-            Klijent: {entry.client.firstName} {entry.client.lastName}
-          </Text>
-        )}
-        <View style={styles.priceRow}>
-          <Text style={[styles.price, { color: colors.primary }]}>
-            {Number(entry.actualPrice).toFixed(2)} KM
-          </Text>
-          {entry.tipAmount > 0 && (
-            <Text style={[styles.tip, { color: colors.textSecondary }]}>
-              + {Number(entry.tipAmount).toFixed(2)} KM napojnica
+      <Card style={[styles.card, { borderWidth: 1, borderColor: colors.border }]}>
+        <View style={[styles.headerRow, { borderBottomColor: colors.border }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {entry.service?.name ?? 'Usluga'}
             </Text>
-          )}
-        </View>
-        {entry.notes && (
-          <Text style={[styles.notes, { color: colors.textMuted }]}>{entry.notes}</Text>
-        )}
-        <View style={styles.statusRow}>
-          <Text style={[styles.statusLabel, { color: colors.textSecondary }]}>Status:</Text>
-          <Text style={[styles.status, { color: entry.status === 'COMPLETED' ? colors.success : colors.warning }]}>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              {formatDate(entry.date)} {entry.isManual ? '· Ručno' : '· Rezervacija'}
+            </Text>
+          </View>
+          <Text style={[styles.statusPill, { color: entry.status === 'COMPLETED' ? colors.success : colors.warning }]}>
             {entry.status === 'COMPLETED' ? 'Završeno' : 'Na čekanju'}
           </Text>
         </View>
-        {canComplete && (
-          <Button
-            title="Završi zapis (upis u knjigu)"
-            onPress={handleComplete}
-            loading={acting}
-            style={{ marginTop: spacing.md }}
-          />
-        )}
+
+        <View style={styles.infoGrid}>
+          <View style={styles.infoItem}>
+            <Ionicons name="person-outline" size={16} color={colors.textSecondary} />
+            <Text style={[styles.infoText, { color: colors.text }]}>
+              {entry.client ? `${entry.client.firstName} ${entry.client.lastName}` : '—'}
+            </Text>
+          </View>
+          <View style={styles.infoItem}>
+            <Ionicons name="cash-outline" size={16} color={colors.textSecondary} />
+            <Text style={[styles.infoText, { color: colors.text }]}>
+              Naplaćeno: {Number(entry.actualPrice).toFixed(2)} KM
+              {entry.tipAmount > 0 ? ` · Napojnica: ${Number(entry.tipAmount).toFixed(2)} KM` : ''}
+            </Text>
+          </View>
+          {entry.notes ? (
+            <View style={[styles.infoItem, { alignItems: 'flex-start' }]}>
+              <Ionicons name="document-text-outline" size={16} color={colors.textSecondary} />
+              <Text style={[styles.infoText, { color: colors.textSecondary, flex: 1 }]}>
+                {entry.notes}
+              </Text>
+            </View>
+          ) : null}
+
+          {canComplete ? (
+            <Button
+              title={entry.reservationId ? 'Završi zapis (završava i rezervaciju)' : 'Završi zapis (upis u knjigu)'}
+              onPress={handleComplete}
+              loading={acting}
+              style={{ marginTop: spacing.md }}
+            />
+          ) : null}
+        </View>
       </Card>
 
-      <Card style={styles.card}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Before / After</Text>
-        {beforeImages.length > 0 && (
-          <>
-            <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Prije</Text>
-            <View style={styles.imageRow}>
-              {beforeImages.map((img) => {
-                const uri = getUploadUrl(img.upload?.pathMedium ?? img.upload?.pathThumb ?? img.upload?.pathOriginal);
-                if (!uri) return null;
-                return (
-                  <Image
-                    key={img.id}
-                    source={{ uri }}
-                    style={styles.thumb}
-                    contentFit="cover"
-                  />
-                );
-              })}
+      {(canComplete || hasBeforeAfter) && (
+        <Card style={styles.card}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Before / After</Text>
+          {beforeImages.length > 0 && (
+            <>
+              <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Prije</Text>
+              <View style={styles.imageRow}>
+                {beforeImages.map((img) => {
+                  const uri = getUploadUrl(
+                    img.upload?.pathMedium ??
+                      img.upload?.pathThumb ??
+                      img.upload?.pathOriginal,
+                  );
+                  if (!uri) return null;
+                  return (
+                    <Image
+                      key={img.id}
+                      source={{ uri }}
+                      style={styles.thumb}
+                      contentFit="cover"
+                    />
+                  );
+                })}
+              </View>
+            </>
+          )}
+          {afterImages.length > 0 && (
+            <>
+              <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Poslije</Text>
+              <View style={styles.imageRow}>
+                {afterImages.map((img) => {
+                  const uri = getUploadUrl(
+                    img.upload?.pathMedium ??
+                      img.upload?.pathThumb ??
+                      img.upload?.pathOriginal,
+                  );
+                  if (!uri) return null;
+                  return (
+                    <Image
+                      key={img.id}
+                      source={{ uri }}
+                      style={styles.thumb}
+                      contentFit="cover"
+                    />
+                  );
+                })}
+              </View>
+            </>
+          )}
+          {canComplete && (
+            <View style={styles.addImageRow}>
+              <Button
+                title="Dodaj prije"
+                onPress={() => addImage(true)}
+                loading={uploading}
+                variant="outline"
+                size="sm"
+              />
+              <Button
+                title="Dodaj poslije"
+                onPress={() => addImage(false)}
+                loading={uploading}
+                variant="outline"
+                size="sm"
+              />
             </View>
-          </>
-        )}
-        {afterImages.length > 0 && (
-          <>
-            <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Poslije</Text>
-            <View style={styles.imageRow}>
-              {afterImages.map((img) => {
-                const uri = getUploadUrl(img.upload?.pathMedium ?? img.upload?.pathThumb ?? img.upload?.pathOriginal);
-                if (!uri) return null;
-                return (
-                  <Image
-                    key={img.id}
-                    source={{ uri }}
-                    style={styles.thumb}
-                    contentFit="cover"
-                  />
-                );
-              })}
-            </View>
-          </>
-        )}
-        {canComplete && (
-          <View style={styles.addImageRow}>
-            <Button
-              title="Dodaj prije"
-              onPress={() => addImage(true)}
-              loading={uploading}
-              variant="outline"
-              size="sm"
-            />
-            <Button
-              title="Dodaj poslije"
-              onPress={() => addImage(false)}
-              loading={uploading}
-              variant="outline"
-              size="sm"
-            />
-          </View>
-        )}
-      </Card>
+          )}
+        </Card>
+      )}
     </ScrollView>
   );
 }
@@ -248,16 +311,13 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content: { padding: spacing.md, paddingBottom: spacing.xxl },
   card: { marginBottom: spacing.md },
-  title: { fontSize: 20, fontWeight: '700' },
-  date: { fontSize: 14, marginTop: 4 },
-  client: { fontSize: 14, marginTop: 4 },
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
-  price: { fontSize: 18, fontWeight: '700' },
-  tip: { fontSize: 14 },
-  notes: { fontSize: 14, marginTop: 8, fontStyle: 'italic' },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
-  statusLabel: { fontSize: 14 },
-  status: { fontSize: 14, fontWeight: '600' },
+  headerRow: { flexDirection: 'row', gap: 10, paddingBottom: spacing.sm, marginBottom: spacing.sm, borderBottomWidth: 1 },
+  title: { fontSize: 18, fontWeight: '800' },
+  subtitle: { fontSize: 13, marginTop: 4 },
+  statusPill: { fontSize: 13, fontWeight: '800', marginTop: 2 },
+  infoGrid: { gap: 10 },
+  infoItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  infoText: { fontSize: 14, flexShrink: 1 },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
   subLabel: { fontSize: 13, marginTop: 6, marginBottom: 4 },
   imageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

@@ -727,6 +727,36 @@ export class ReservationsService {
     return updated;
   }
 
+  async setUseBreakAfterOverrun(
+    reservationId: string,
+    userId: string,
+    useBreak: boolean,
+  ) {
+    const stylistProfileId = await this.getStylistProfileIdByUserId(userId);
+    if (!stylistProfileId)
+      throw new ForbiddenException('Nemate profil stilista.');
+
+    const r = await this.prisma.reservation.findUnique({
+      where: { id: reservationId },
+      select: { id: true, confirmedStylistId: true, status: true },
+    });
+    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (r.confirmedStylistId !== stylistProfileId) {
+      throw new ForbiddenException(
+        'Samo potvrđeni stilist može označiti korištenje pauze.',
+      );
+    }
+    if (r.status !== RESERVATION_STATUS.IN_PROGRESS) {
+      throw new BadRequestException('Pauzu možete označiti samo dok je termin u toku.');
+    }
+
+    await this.prisma.reservation.update({
+      where: { id: reservationId },
+      data: { useBreakAfterOverrun: useBreak, useBreakDecidedAt: new Date() },
+    });
+    return { ok: true };
+  }
+
   /** Stilist otkazuje rezervaciju (CONFIRMED ili IN_PROGRESS) uz obrazloženje. */
   async stylistCancel(
     reservationId: string,
@@ -868,10 +898,26 @@ export class ReservationsService {
       orderBy: { startTime: 'asc' },
     });
 
-    const maxAbsorb = opts.includeBreaks ? (salon.pauseBetweenServices ?? 0) * future.length : 0;
-    const shiftMinutes = Math.max(0, delayMinutes - maxAbsorb);
+    const pause = salon.pauseBetweenServices ?? 0;
+    const breakCount = future.length; // pauze prije svake buduće rezervacije (nakon trenutne)
+    const maxAbsorb = opts.includeBreaks ? pause * breakCount : 0;
+    const absorbTotal = Math.min(delayMinutes, Math.max(0, maxAbsorb));
 
-    const items = future.map((fr) => {
+    // Ravnomjerno skidanje vremena iz budućih pauza (svaka pauza max = pause).
+    const reductions: number[] = [];
+    let remaining = absorbTotal;
+    for (let i = 0; i < breakCount; i++) {
+      const remainingBreaks = breakCount - i;
+      const target = Math.ceil(remaining / remainingBreaks);
+      const take = Math.min(pause, Math.max(0, target));
+      reductions.push(take);
+      remaining -= take;
+    }
+
+    const items = future.map((fr, idx) => {
+      const reductionUpToThis = reductions.slice(0, idx + 1).reduce((s, x) => s + x, 0);
+      const shiftMinutes = Math.max(0, delayMinutes - reductionUpToThis);
+
       const start = timeToMinutes(fr.startTime) + shiftMinutes;
       const end = timeToMinutes(fr.endTime) + shiftMinutes;
       return {
@@ -884,10 +930,12 @@ export class ReservationsService {
         newStartTime: minutesToTime(start),
         newEndTime: minutesToTime(end),
         shiftMinutes,
+        reducedBreakMinutes: reductions[idx] ?? 0,
       };
     });
 
-    return { delayMinutes, shiftMinutes, items };
+    const lastShift = items.length ? items[items.length - 1].shiftMinutes : 0;
+    return { delayMinutes, shiftMinutes: lastShift, items };
   }
 
   async commitReschedule(
@@ -903,8 +951,6 @@ export class ReservationsService {
         await tx.reservation.update({
           where: { id: item.id },
           data: {
-            startTime: item.newStartTime,
-            endTime: item.newEndTime,
             rescheduleProposedStartTime: item.newStartTime,
             rescheduleProposedEndTime: item.newEndTime,
             rescheduleStatus: 'PENDING',
@@ -938,9 +984,14 @@ export class ReservationsService {
     if (r.rescheduleStatus !== 'PENDING') {
       throw new BadRequestException('Nema aktivnog zahtjeva za potvrdu termina.');
     }
+    if (!r.rescheduleProposedStartTime || !r.rescheduleProposedEndTime) {
+      throw new BadRequestException('Nedostaju predloženi podaci za novi termin.');
+    }
     await this.prisma.reservation.update({
       where: { id: reservationId },
       data: {
+        startTime: r.rescheduleProposedStartTime,
+        endTime: r.rescheduleProposedEndTime,
         rescheduleStatus: 'ACCEPTED',
         rescheduleProposedStartTime: null,
         rescheduleProposedEndTime: null,

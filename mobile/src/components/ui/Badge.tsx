@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { borderRadius } from '../../theme';
-import { statusBadgeColors } from '../../theme/colors';
 import type { ReservationStatus } from '../../types';
 
 interface BadgeProps {
@@ -40,8 +39,9 @@ export function Badge({ label, variant = 'default', status, size = 'sm' }: Badge
     info: { bg: colors.infoLight, text: colors.info },
   };
 
-  const themeStatusColors = status ? statusBadgeColors[status] : null;
-  const v = themeStatusColors ?? variantColors[variant];
+  // Statusi koriste standardne boje (zelena/crvena/plava/narandžasta), ne salon brand paletu.
+  const effectiveVariant = status ? getStatusVariant(status) : variant;
+  const v = variantColors[effectiveVariant];
   const isSmall = size === 'sm';
 
   return (

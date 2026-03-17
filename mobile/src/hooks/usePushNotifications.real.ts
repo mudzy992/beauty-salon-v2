@@ -5,6 +5,7 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import api from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { navigateToClientReservations } from '../navigation/navigationRef';
 
 function resolveProjectId(): string | undefined {
   const fromEnv = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
@@ -109,7 +110,14 @@ export function usePushNotifications() {
     })();
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener((_response) => {
-      // Deep link po data može se dodati kada je routing po tipu notifikacije definiran
+      const data = (_response?.notification?.request?.content?.data ?? {}) as Record<string, unknown>;
+      const kind = (data.kind as string | undefined) ?? '';
+      const reservationId = (data.reservationId as string | undefined) ?? undefined;
+
+      // Minimalni routing: reschedule/delay warning vodi korisnika na listu rezervacija (gdje ima accept/decline).
+      if (kind === 'reservation_reschedule' || kind === 'delay_warning') {
+        navigateToClientReservations({ focusReservationId: reservationId });
+      }
     });
 
     return () => {

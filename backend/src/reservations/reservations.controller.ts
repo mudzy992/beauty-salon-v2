@@ -182,6 +182,17 @@ export class ReservationsController {
     });
   }
 
+  @Post(':id/use-break')
+  @UseGuards(RolesGuard)
+  @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
+  setUseBreakAfterOverrun(
+    @Param('id') id: string,
+    @Body() body: { useBreak: boolean },
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.setUseBreakAfterOverrun(id, user.sub, body?.useBreak === true);
+  }
+
   @Post(':id/reschedule/accept')
   acceptReschedule(
     @Param('id') id: string,
