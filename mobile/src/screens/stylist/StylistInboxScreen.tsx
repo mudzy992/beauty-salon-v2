@@ -196,9 +196,35 @@ export function StylistInboxScreen() {
               />
             </View>
             {item.client && (
-              <Text style={[styles.client, { color: colors.textSecondary }]}>
-                {item.client.firstName} {item.client.lastName}
-              </Text>
+              <View style={styles.clientRow}>
+                <Text style={[styles.client, { color: colors.textSecondary }]}>
+                  {item.client.firstName} {item.client.lastName}
+                </Text>
+                {(() => {
+                  const rec = item.client?.cancellationCount?.[0];
+                  const count = rec?.cancellationCount ?? 0;
+                  const until = rec?.penaltyUntil ? new Date(rec.penaltyUntil) : null;
+                  const isPenalized = !!until && until.getTime() > Date.now();
+                  return (
+                    <>
+                      {count > 0 ? (
+                        <Badge
+                          label={`CXL: ${count}`}
+                          variant="warning"
+                          status={'CANCELLED_BY_CLIENT' as any}
+                        />
+                      ) : null}
+                      {isPenalized ? (
+                        <Badge
+                          label={`PENAL do ${until!.toISOString().slice(0, 10)}`}
+                          variant="error"
+                          status={'NO_SHOW' as any}
+                        />
+                      ) : null}
+                    </>
+                  );
+                })()}
+              </View>
             )}
             <Text style={[styles.date, { color: colors.textSecondary }]}>
               {formatDate(item.reservationDate)} · {formatTime(item.startTime)}
@@ -258,6 +284,7 @@ const styles = StyleSheet.create({
   },
   serviceName: { fontSize: 16, fontWeight: '600', flex: 1, marginRight: spacing.sm },
   client: { fontSize: 13, marginBottom: 2 },
+  clientRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   date: { fontSize: 14 },
   notes: { fontSize: 13, marginTop: spacing.xs },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: spacing.sm, alignItems: 'center' },

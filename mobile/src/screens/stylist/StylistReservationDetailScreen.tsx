@@ -45,6 +45,11 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
   const [cancelReason, setCancelReason] = useState('');
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
 
+  const [noShowModalOpen, setNoShowModalOpen] = useState(false);
+  const [noShowReason, setNoShowReason] = useState('');
+  const [noShowApplyPenalty, setNoShowApplyPenalty] = useState(true);
+  const [noShowSubmitting, setNoShowSubmitting] = useState(false);
+
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [completeActualPrice, setCompleteActualPrice] = useState('');
   const [completeNotes, setCompleteNotes] = useState('');
@@ -79,6 +84,14 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     );
   }, [reservation, profileId]);
 
+  const canMarkNoShow = useMemo(() => {
+    if (!reservation) return false;
+    return (
+      (reservation.status === 'CONFIRMED' || reservation.status === 'ATTENDANCE_CONFIRMED') &&
+      reservation.confirmedStylistId === profileId
+    );
+  }, [reservation, profileId]);
+
   const canStart = useMemo(() => {
     if (!reservation) return false;
     return (
@@ -96,8 +109,8 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
   }, [reservation, profileId]);
 
   const hasAnyAction = useMemo(() => {
-    return canStart || canComplete || canCancelByStylist;
-  }, [canStart, canComplete, canCancelByStylist]);
+    return canStart || canComplete || canCancelByStylist || canMarkNoShow;
+  }, [canStart, canComplete, canCancelByStylist, canMarkNoShow]);
 
   const submitStart = useCallback(async () => {
     if (!reservation) return;
@@ -121,6 +134,12 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
   const openCancel = useCallback(() => {
     setCancelReason('');
     setCancelModalOpen(true);
+  }, []);
+
+  const openNoShow = useCallback(() => {
+    setNoShowReason('');
+    setNoShowApplyPenalty(true);
+    setNoShowModalOpen(true);
   }, []);
 
   const submitCancel = useCallback(async () => {
@@ -147,6 +166,34 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
       setCancelSubmitting(false);
     }
   }, [reservation, cancelReason, fetchReservation, navigation]);
+
+  const submitNoShow = useCallback(async () => {
+    if (!reservation) return;
+    const reason = noShowReason.trim();
+    if (!reason) {
+      Alert.alert('Greška', 'Unesite obrazloženje.');
+      return;
+    }
+    setNoShowSubmitting(true);
+    try {
+      await api.post(`/api/reservations/${reservation.id}/stylist-no-show`, {
+        reason,
+        applyPenalty: noShowApplyPenalty,
+      });
+      setNoShowModalOpen(false);
+      await fetchReservation();
+      Alert.alert('Označeno', 'Rezervacija je označena kao no-show.');
+      navigation.goBack();
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as any).response?.data?.message
+          : 'Greška pri označavanju.';
+      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+    } finally {
+      setNoShowSubmitting(false);
+    }
+  }, [reservation, noShowReason, noShowApplyPenalty, fetchReservation, navigation]);
 
   const openComplete = useCallback(() => {
     if (!reservation) return;
@@ -298,6 +345,15 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
                 style={{ marginBottom: spacing.sm }}
               />
             )}
+            {canMarkNoShow && (
+              <Button
+                title="Klijent se nije pojavio (no-show)"
+                onPress={openNoShow}
+                variant="outline"
+                textStyle={{ color: colors.error }}
+                style={{ marginBottom: spacing.sm }}
+              />
+            )}
             {canCancelByStylist && (
               <Button
                 title={t('stylist.schedule.cancelWithReason')}
@@ -341,6 +397,49 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
                   style={styles.modalBtn}
                 />
               </View>
+            </Card>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      <Modal visible={noShowModalOpen} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.modalContentWrap}
+          >
+            <Card style={{ ...styles.modalCard, backgroundColor: colors.surface }}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                Klijent se nije pojavio
+              </Text>
+              <Input
+                label="Obrazloženje"
+                value={noShowReason}
+                onChangeText={setNoShowReason}
+                placeholder="Npr. Klijent se nije pojavio na termin"
+                multiline
+              />
+              <View style={styles.modalActions}>
+                <Button
+                  title={noShowApplyPenalty ? 'Penal: DA' : 'Penal: NE'}
+                  onPress={() => setNoShowApplyPenalty((v) => !v)}
+                  variant={noShowApplyPenalty ? 'primary' : 'outline'}
+                  style={styles.modalBtn}
+                />
+                <Button
+                  title="Označi no-show"
+                  onPress={submitNoShow}
+                  loading={noShowSubmitting}
+                  style={styles.modalBtn}
+                />
+              </View>
+              <Button
+                title={t('common.cancel')}
+                onPress={() => setNoShowModalOpen(false)}
+                variant="ghost"
+                textStyle={{ color: colors.textSecondary }}
+                style={{ marginTop: spacing.sm }}
+              />
             </Card>
           </KeyboardAvoidingView>
         </View>

@@ -98,7 +98,12 @@ export interface Reservation {
   createdAt: string;
   service?: Service;
   confirmedStylist?: StylistProfile;
-  client?: { id: string; firstName: string; lastName: string };
+  client?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    cancellationCount?: Array<{ cancellationCount: number; penaltyUntil?: string | null }>;
+  };
   stylistResponses?: StylistResponse[];
 }
 

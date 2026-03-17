@@ -9,6 +9,7 @@ import { AvailabilityService } from './availability.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
 import { StylistRejectDto } from './dto/stylist-respond.dto';
+import type { StylistNoShowDto } from './dto/stylist-no-show.dto';
 import {
   RESERVATION_STATUS,
   RESERVATION_TRANSITIONS,
@@ -46,6 +47,32 @@ export class ReservationsService {
 
     const reservationDate = new Date(dto.reservationDate);
     reservationDate.setHours(0, 0, 0, 0);
+
+    // Guard: klijent ne može imati više od jedne aktivne rezervacije na isti dan.
+    const dayStart = new Date(reservationDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(reservationDate);
+    dayEnd.setHours(23, 59, 59, 999);
+    const activeStatuses: string[] = [
+      RESERVATION_STATUS.PENDING,
+      RESERVATION_STATUS.STYLIST_REVIEW,
+      RESERVATION_STATUS.CONFIRMED,
+      RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
+      RESERVATION_STATUS.IN_PROGRESS,
+    ];
+    const existingSameDay = await this.prisma.reservation.findFirst({
+      where: {
+        clientId,
+        reservationDate: { gte: dayStart, lte: dayEnd },
+        status: { in: activeStatuses as any },
+      },
+      select: { id: true, startTime: true, status: true },
+    });
+    if (existingSameDay) {
+      throw new BadRequestException(
+        'Već imate aktivnu rezervaciju za odabrani dan. Molimo otkažite postojeću ili odaberite drugi dan.',
+      );
+    }
 
     const reservation = await this.prisma.reservation.create({
       data: {
@@ -176,7 +203,16 @@ export class ReservationsService {
           },
         },
         client: {
-          select: { id: true, firstName: true, lastName: true, username: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            username: true,
+            cancellationCount: {
+              select: { cancellationCount: true, penaltyUntil: true },
+              take: 1,
+            },
+          },
         },
         confirmedStylist: {
           include: { user: { select: { firstName: true, lastName: true } } },
@@ -812,6 +848,94 @@ export class ReservationsService {
       date: r.reservationDate,
     });
     return cancelled;
+  }
+
+  /** Stilist označava da se klijent nije pojavio (NO_SHOW). */
+  async stylistMarkNoShow(
+    reservationId: string,
+    userId: string,
+    dto: StylistNoShowDto,
+  ) {
+    const stylistProfileId = await this.getStylistProfileIdByUserId(userId);
+    if (!stylistProfileId) {
+      throw new ForbiddenException('Nemate profil stilista.');
+    }
+
+    const r = await this.prisma.reservation.findUnique({
+      where: { id: reservationId },
+      select: {
+        id: true,
+        clientId: true,
+        serviceId: true,
+        reservationDate: true,
+        confirmedStylistId: true,
+        status: true,
+      },
+    });
+    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (r.confirmedStylistId !== stylistProfileId) {
+      throw new ForbiddenException('Samo potvrđeni stilist može označiti no-show.');
+    }
+
+    const allowedStatuses: string[] = [
+      RESERVATION_STATUS.CONFIRMED,
+      RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
+    ];
+    if (!allowedStatuses.includes(r.status)) {
+      throw new BadRequestException(
+        'No-show možete označiti samo za potvrđene termine (prije startovanja).',
+      );
+    }
+
+    const reason = (dto?.reason ?? '').trim();
+    if (!reason) throw new BadRequestException('Obrazloženje je obavezno.');
+
+    await this.prisma.reservation.update({
+      where: { id: reservationId },
+      data: {
+        status: RESERVATION_STATUS.NO_SHOW,
+        cancelledAt: new Date(),
+        cancelReason: reason,
+        rescheduleStatus: null,
+        rescheduleProposedStartTime: null,
+        rescheduleProposedEndTime: null,
+      },
+    });
+
+    if (dto?.applyPenalty !== false) {
+      const salon = await this.prisma.salonSettings.findFirst();
+      if (salon) {
+        await this.incrementCancellationCount(r.clientId, {
+          maxCancellationsBeforePenalty: salon.maxCancellationsBeforePenalty,
+          penaltyDurationDays: salon.penaltyDurationDays,
+        });
+      }
+    }
+
+    const updated = await this.findOne(reservationId, {
+      sub: userId,
+      roles: ['STYLIST'],
+      username: '',
+      email: '',
+    });
+
+    this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CANCELLED, updated);
+    this.events.emitToUser(r.clientId, SOCKET_EVENTS.RESERVATION_UPDATED, updated);
+    this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
+      serviceId: r.serviceId,
+      date: r.reservationDate,
+    });
+
+    await this.notifications.send({
+      userId: r.clientId,
+      title: 'No-show',
+      body: 'Rezervacija je označena kao “nije se pojavio/la”. Ako je greška, kontaktirajte salon.',
+      type: 'reservation_cancelled',
+      data: { reservationId },
+      channel: 'PUSH',
+    });
+
+    return updated;
   }
 
   private async getStylistProfileIdByUserId(

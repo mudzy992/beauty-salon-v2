@@ -13,6 +13,7 @@ import { CreateReservationDto } from './dto/create-reservation.dto';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
 import { StylistRejectDto } from './dto/stylist-respond.dto';
 import { QueryReservationsDto } from './dto/query-reservations.dto';
+import { StylistNoShowDto } from './dto/stylist-no-show.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -218,5 +219,16 @@ export class ReservationsController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.reservations.stylistCancel(id, user.sub, dto);
+  }
+
+  @Post(':id/stylist-no-show')
+  @UseGuards(RolesGuard)
+  @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
+  stylistNoShow(
+    @Param('id') id: string,
+    @Body() dto: StylistNoShowDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.stylistMarkNoShow(id, user.sub, dto);
   }
 }
