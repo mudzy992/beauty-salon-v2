@@ -167,7 +167,13 @@ export class ReservationsService {
       where,
       include: {
         service: {
-          select: { id: true, name: true, durationMinutes: true, price: true },
+          select: {
+            id: true,
+            name: true,
+            durationMinutes: true,
+            price: true,
+            heroImage: true,
+          },
         },
         client: {
           select: { id: true, firstName: true, lastName: true, username: true },
