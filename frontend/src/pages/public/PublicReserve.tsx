@@ -390,7 +390,7 @@ export default function PublicReserve() {
   const { getSetting } = useSettings();
   const navigate = useNavigate();
   const toast = useToast();
-  const { user } = useAuth();
+  const { user, token, isReady } = useAuth();
 
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [selectedService, setSelectedService] = useState<ServiceOption | null>(null);
@@ -408,8 +408,9 @@ export default function PublicReserve() {
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login', { state: { from: '/rezervacija' } });
+    if (!isReady) return;
+    if (!token) {
+      navigate('/login', { state: { from: '/rezervacija' }, replace: true });
       return;
     }
     api
@@ -417,7 +418,7 @@ export default function PublicReserve() {
       .then((r) => setServices(Array.isArray(r.data) ? r.data : []))
       .catch(() => setServices([]))
       .finally(() => setLoadingServices(false));
-  }, [user, navigate]);
+  }, [isReady, token, navigate, user]);
 
   const loadAvailability = useCallback((serviceId: string) => {
     setLoadingDates(true);

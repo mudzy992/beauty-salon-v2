@@ -195,6 +195,33 @@ export class DailyLogService {
       data: { status: 'COMPLETED', completedAt: new Date() },
       include: this.entryInclude(),
     });
+
+    // Ako je zapis vezan za rezervaciju, završavamo i rezervaciju u istom trenutku.
+    // Stilist realno "završava posao" tek nakon naplate + before/after.
+    if (updated.reservationId) {
+      const res = await this.prisma.reservation.findUnique({
+        where: { id: updated.reservationId },
+        select: { id: true, confirmedStylistId: true, status: true },
+      });
+      if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
+      if (res.confirmedStylistId !== updated.stylistProfileId) {
+        throw new ForbiddenException(
+          'Samo potvrđeni stilist može završiti ovu rezervaciju.',
+        );
+      }
+      if (res.status !== 'IN_PROGRESS' && res.status !== 'ATTENDANCE_CONFIRMED') {
+        throw new BadRequestException(
+          'Rezervaciju nije moguće završiti u trenutnom statusu.',
+        );
+      }
+      await this.prisma.reservation.update({
+        where: { id: res.id },
+        data: { status: 'COMPLETED', completedAt: new Date() },
+      });
+      // Minimalna loyalty implementacija: osiguraj account
+      await this.loyalty.ensureAccountForUser(updated.clientId ?? '').catch(() => {});
+    }
+
     await this.incomeBooks.addEntryFromDailyLog(id).catch(() => {});
     if (updated.clientId) {
       await this.loyalty
