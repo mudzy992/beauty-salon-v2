@@ -365,15 +365,29 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             <View style={styles.slotsGrid}>
               {slots.map((slot, idx) => {
                 const isSelected = selectedSlot?.startTime === slot.startTime;
+                const now = new Date();
+                const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                const isPastSlot = selectedDate === todayLocal && slot.startTime.slice(0, 5) < nowHHMM;
                 return (
                   <TouchableOpacity
                     key={idx}
-                    onPress={() => handleSelectSlot(slot)}
+                    onPress={() => !isPastSlot && handleSelectSlot(slot)}
+                    disabled={isPastSlot}
                     style={[
                       styles.slotChip,
                       {
-                        backgroundColor: isSelected ? colors.primary : colors.surface,
-                        borderColor: isSelected ? colors.primary : colors.border,
+                        backgroundColor: isPastSlot
+                          ? colors.background
+                          : isSelected
+                            ? colors.primary
+                            : colors.surface,
+                        borderColor: isPastSlot
+                          ? colors.border
+                          : isSelected
+                            ? colors.primary
+                            : colors.border,
+                        opacity: isPastSlot ? 0.5 : 1,
                       },
                     ]}
                   >

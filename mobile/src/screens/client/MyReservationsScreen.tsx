@@ -101,6 +101,38 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
     }
   };
 
+  const handleAcceptReschedule = async (reservation: Reservation) => {
+    try {
+      await api.post(`/api/reservations/${reservation.id}/reschedule/accept`);
+      fetchReservations();
+      Alert.alert('Potvrđeno', 'Potvrdili ste novi termin.');
+    } catch (error: any) {
+      Alert.alert(t('common.error'), error.response?.data?.message || 'Greška');
+    }
+  };
+
+  const handleDeclineReschedule = async (reservation: Reservation) => {
+    Alert.alert(
+      'Odbij novi termin?',
+      'Ovim ćete otkazati rezervaciju.',
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: 'Odbij',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.post(`/api/reservations/${reservation.id}/reschedule/decline`);
+              fetchReservations();
+            } catch (error: any) {
+              Alert.alert(t('common.error'), error.response?.data?.message || 'Greška');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const sections: Section[] = [];
   const upcoming = reservations.filter((r) => isUpcoming(r.reservationDate) && !['COMPLETED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_STYLISTS', 'NO_SHOW'].includes(r.status));
   const past = reservations.filter((r) => !upcoming.includes(r));
@@ -169,6 +201,14 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
                 {formatTime(item.startTime)} - {formatTime(item.endTime)}
               </Text>
             </View>
+            {item.rescheduleStatus === 'PENDING' && (
+              <View style={styles.infoRow}>
+                <Ionicons name="alert-circle-outline" size={16} color={colors.warning} />
+                <Text style={[styles.infoText, { color: colors.warning }]}>
+                  Novi termin čeka potvrdu.
+                </Text>
+              </View>
+            )}
             {item.clientNotes && (
               <View style={styles.infoRow}>
                 <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
@@ -180,6 +220,23 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
           </View>
 
           <View style={styles.actions}>
+            {item.rescheduleStatus === 'PENDING' && (
+              <>
+                <Button
+                  title="Potvrdi termin"
+                  onPress={() => handleAcceptReschedule(item)}
+                  size="sm"
+                  variant="primary"
+                />
+                <Button
+                  title="Odbij"
+                  onPress={() => handleDeclineReschedule(item)}
+                  size="sm"
+                  variant="ghost"
+                  textStyle={{ color: colors.error }}
+                />
+              </>
+            )}
             {CONFIRMABLE.includes(item.status) && !item.attendanceConfirmedAt && (
               <Button
                 title={t('myReservations.confirmAttendance')}

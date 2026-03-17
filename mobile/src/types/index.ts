@@ -85,8 +85,16 @@ export interface Reservation {
   clientNotes?: string;
   confirmedStylistId?: string;
   attendanceConfirmedAt?: string;
+  startedAt?: string;
+  completedAt?: string;
   cancelledAt?: string;
   cancelReason?: string;
+  rescheduleProposedStartTime?: string | null;
+  rescheduleProposedEndTime?: string | null;
+  rescheduleStatus?: 'PENDING' | 'ACCEPTED' | 'DECLINED' | null;
+  loyaltyDiscountPercent?: number;
+  loyaltyDiscountAmount?: number;
+  loyaltyPointsUsed?: number;
   createdAt: string;
   service?: Service;
   confirmedStylist?: StylistProfile;
@@ -115,6 +123,9 @@ export interface DailyLogEntry {
   date: string;
   actualPrice: number;
   tipAmount: number;
+  loyaltyDiscountPercent?: number;
+  loyaltyDiscountAmount?: number;
+  loyaltyPointsUsed?: number;
   notes?: string;
   status: 'PENDING' | 'COMPLETED';
   completedAt?: string;

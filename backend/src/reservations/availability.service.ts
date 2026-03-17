@@ -178,6 +178,16 @@ export class AvailabilityService {
       salon.pauseBetweenServices,
     );
 
+    // Za današnji dan: slotovi koji su već prošli ne trebaju biti dostupni.
+    const todayStr = localDateStr(new Date());
+    const nowMinutes = timeToMinutes(
+      `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`,
+    );
+    const filteredSlots =
+      dateStr === todayStr
+        ? slots.filter((s) => timeToMinutes(s.startTime) >= nowMinutes)
+        : slots;
+
     const dateStart = new Date(
       date.getFullYear(),
       date.getMonth(),
@@ -212,7 +222,7 @@ export class AvailabilityService {
       select: { startTime: true, endTime: true, confirmedStylistId: true },
     });
 
-    return slots
+    return filteredSlots
       .map((slot) => {
         const slotStart = timeToMinutes(slot.startTime);
         const slotEnd = timeToMinutes(slot.endTime);

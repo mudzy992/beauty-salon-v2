@@ -32,7 +32,7 @@ export class DailyLogService {
     }
     const date = new Date(dto.date);
     date.setHours(0, 0, 0, 0);
-    return this.prisma.dailyLogEntry.create({
+    const created = await this.prisma.dailyLogEntry.create({
       data: {
         stylistProfileId: dto.stylistProfileId,
         reservationId: dto.reservationId,
@@ -47,6 +47,23 @@ export class DailyLogService {
       },
       include: this.entryInclude(),
     });
+
+    if (
+      created.clientId &&
+      dto.desiredLoyaltyPercent &&
+      dto.desiredLoyaltyPercent > 0
+    ) {
+      await this.loyalty.redeemForDailyLog({
+        clientId: created.clientId,
+        dailyLogEntryId: created.id,
+        serviceId: created.serviceId,
+        desiredPercent: dto.desiredLoyaltyPercent,
+        actualPrice: Number(created.actualPrice),
+      });
+      return this.findOne(created.id, user);
+    }
+
+    return created;
   }
 
   /** Kreira zapis iz rezervacije (nakon COMPLETED ili ručno povezivanje). */
@@ -141,7 +158,7 @@ export class DailyLogService {
     const entry = await this.findOne(id, user);
     if (entry.status === 'COMPLETED')
       throw new BadRequestException('Završeni zapis nije moguće mijenjati.');
-    return this.prisma.dailyLogEntry.update({
+    const updated = await this.prisma.dailyLogEntry.update({
       where: { id },
       data: {
         ...(dto.actualPrice != null && { actualPrice: dto.actualPrice }),
@@ -150,6 +167,23 @@ export class DailyLogService {
       },
       include: this.entryInclude(),
     });
+
+    if (
+      updated.clientId &&
+      dto.desiredLoyaltyPercent != null &&
+      dto.desiredLoyaltyPercent > 0
+    ) {
+      await this.loyalty.redeemForDailyLog({
+        clientId: updated.clientId,
+        dailyLogEntryId: updated.id,
+        serviceId: updated.serviceId,
+        desiredPercent: dto.desiredLoyaltyPercent,
+        actualPrice: Number(updated.actualPrice),
+      });
+      return this.findOne(updated.id, user);
+    }
+
+    return updated;
   }
 
   async complete(id: string, user: CurrentUserPayload) {

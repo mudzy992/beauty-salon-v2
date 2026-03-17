@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
+  SectionList,
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
@@ -18,6 +18,14 @@ import api from '../../services/api';
 import { spacing } from '../../theme';
 import { formatDate } from '../../utils/date';
 import type { DailyLogEntry } from '../../types';
+import {
+  endOfWeek,
+  isSameDay,
+  isWithinInterval,
+  parseISO,
+  startOfWeek,
+  subWeeks,
+} from 'date-fns';
 
 type DailyLogListScreenProps = {
   navigation: {
@@ -25,6 +33,8 @@ type DailyLogListScreenProps = {
     setOptions: (opts: { headerRight?: () => React.ReactNode }) => void;
   };
 };
+
+type Section = { title: string; data: DailyLogEntry[] };
 
 export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
   const { colors } = useTheme();
@@ -81,6 +91,49 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
     setRefreshing(false);
   }, [fetchEntries]);
 
+  const sections: Section[] = React.useMemo(() => {
+    const today = new Date();
+    const thisWeekStart = startOfWeek(today, { weekStartsOn: 1 });
+    const thisWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
+    const lastWeekDate = subWeeks(today, 1);
+    const lastWeekStart = startOfWeek(lastWeekDate, { weekStartsOn: 1 });
+    const lastWeekEnd = endOfWeek(lastWeekDate, { weekStartsOn: 1 });
+
+    const buckets: Record<'today' | 'thisWeek' | 'lastWeek' | 'other', DailyLogEntry[]> = {
+      today: [],
+      thisWeek: [],
+      lastWeek: [],
+      other: [],
+    };
+
+    for (const e of entries) {
+      const d = parseISO(e.date);
+      if (isSameDay(d, today)) buckets.today.push(e);
+      else if (isWithinInterval(d, { start: thisWeekStart, end: thisWeekEnd })) buckets.thisWeek.push(e);
+      else if (isWithinInterval(d, { start: lastWeekStart, end: lastWeekEnd })) buckets.lastWeek.push(e);
+      else buckets.other.push(e);
+    }
+
+    const sortInGroup = (a: DailyLogEntry, b: DailyLogEntry) => {
+      const aPending = a.status !== 'COMPLETED';
+      const bPending = b.status !== 'COMPLETED';
+      if (aPending !== bPending) return aPending ? -1 : 1;
+      const ad = a.date;
+      const bd = b.date;
+      if (ad === bd) return 0;
+      return ad > bd ? -1 : 1;
+    };
+
+    (Object.keys(buckets) as Array<keyof typeof buckets>).forEach((k) => buckets[k].sort(sortInGroup));
+
+    const result: Section[] = [];
+    if (buckets.today.length) result.push({ title: 'Danas', data: buckets.today });
+    if (buckets.thisWeek.length) result.push({ title: 'Ova sedmica', data: buckets.thisWeek });
+    if (buckets.lastWeek.length) result.push({ title: 'Prošla sedmica', data: buckets.lastWeek });
+    if (buckets.other.length) result.push({ title: 'Ostalo', data: buckets.other });
+    return result;
+  }, [entries]);
+
   if (profileLoading || (loading && !profileId)) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -102,10 +155,10 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
   }
 
   return (
-    <FlatList
-      data={entries}
+    <SectionList
+      sections={sections}
       keyExtractor={(e) => e.id}
-      contentContainerStyle={[styles.list, entries.length === 0 && styles.emptyList]}
+      contentContainerStyle={[styles.list, sections.length === 0 && styles.emptyList]}
       style={{ backgroundColor: colors.background }}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -117,6 +170,9 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
           message="Zapisi iz rezervacija ili ručno dodani pojavit će se ovdje. Završite zapis i dodajte before/after slike."
         />
       }
+      renderSectionHeader={({ section }) => (
+        <Text style={[styles.sectionHeader, { color: colors.primary }]}>{section.title}</Text>
+      )}
       renderItem={({ item }) => (
         <TouchableOpacity
           activeOpacity={0.7}
@@ -155,6 +211,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: spacing.md },
   emptyList: { flex: 1 },
+  sectionHeader: { fontSize: 16, fontWeight: '700', marginTop: spacing.md, marginBottom: spacing.xs },
   card: { marginBottom: spacing.sm },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   serviceName: { fontSize: 16, fontWeight: '600', flex: 1, marginRight: spacing.sm },

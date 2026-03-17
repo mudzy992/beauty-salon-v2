@@ -11,6 +11,7 @@ export type NotificationType =
   | 'reservation_confirmed'
   | 'reservation_cancelled'
   | 'reservation_reminder'
+  | 'reservation_reschedule'
   | 'holiday'
   | 'general';
 

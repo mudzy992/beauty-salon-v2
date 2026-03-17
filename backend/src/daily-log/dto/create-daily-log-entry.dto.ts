@@ -1,9 +1,11 @@
 import {
   IsDateString,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
   IsUUID,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -39,6 +41,13 @@ export class CreateDailyLogEntryDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  /** Opcionalno: procenat loyalty popusta koji klijent želi iskoristiti za ovaj zapis. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  desiredLoyaltyPercent?: number;
 
   @IsOptional()
   isManual?: boolean;

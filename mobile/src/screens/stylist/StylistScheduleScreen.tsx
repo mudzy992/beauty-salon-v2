@@ -6,42 +6,32 @@ import {
   RefreshControl,
   ActivityIndicator,
   SectionList,
-  Modal,
   TouchableOpacity,
-  Alert,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { Card } from '../../components/ui/Card';
 import { Badge, getStatusVariant } from '../../components/ui/Badge';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
 import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
 import { spacing } from '../../theme';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatTime } from '../../utils/date';
 import type { Reservation, DailyLogEntry } from '../../types';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { StylistScheduleStackParamList } from '../../navigation/types';
 
 type Section = { title: string; data: Reservation[] };
 
-export function StylistScheduleScreen() {
+type Props = NativeStackScreenProps<StylistScheduleStackParamList, 'ScheduleList'>;
+
+export function StylistScheduleScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const { profileId, loading: profileLoading } = useStylistProfile();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [completeModalReservation, setCompleteModalReservation] = useState<Reservation | null>(null);
-  const [completeActualPrice, setCompleteActualPrice] = useState('');
-  const [completeNotes, setCompleteNotes] = useState('');
-  const [completeSubmitting, setCompleteSubmitting] = useState(false);
-  const [cancelModalReservation, setCancelModalReservation] = useState<Reservation | null>(null);
-  const [cancelReason, setCancelReason] = useState('');
-  const [cancelSubmitting, setCancelSubmitting] = useState(false);
 
   const fetchReservations = useCallback(async () => {
     if (!profileId) {
@@ -77,115 +67,6 @@ export function StylistScheduleScreen() {
     setRefreshing(false);
   }, [fetchReservations]);
 
-  const canComplete = (r: Reservation) =>
-    r.status === 'ATTENDANCE_CONFIRMED' && r.confirmedStylistId === profileId;
-
-  const canCancelByStylist = (r: Reservation) =>
-    (r.status === 'CONFIRMED' || r.status === 'IN_PROGRESS') && r.confirmedStylistId === profileId;
-
-  const openCompleteModal = useCallback((r: Reservation) => {
-    const basePrice =
-      r.service && 'price' in r.service ? Number((r.service as any).price) : 0;
-    const loyaltyDiscountAmount =
-      'loyaltyDiscountAmount' in r ? Number((r as any).loyaltyDiscountAmount ?? 0) : 0;
-    const chargePrice = Math.max(0, basePrice - loyaltyDiscountAmount);
-    setCompleteModalReservation(r);
-    setCompleteActualPrice(chargePrice ? String(chargePrice) : '');
-    setCompleteNotes('');
-  }, []);
-
-  const closeCompleteModal = useCallback(() => {
-    setCompleteModalReservation(null);
-  }, []);
-
-  const submitComplete = useCallback(async () => {
-    if (!completeModalReservation) return;
-    const basePrice =
-      completeModalReservation.service && 'price' in completeModalReservation.service
-        ? Number((completeModalReservation.service as any).price)
-        : 0;
-    const loyaltyDiscountAmount =
-      'loyaltyDiscountAmount' in completeModalReservation
-        ? Number((completeModalReservation as any).loyaltyDiscountAmount ?? 0)
-        : 0;
-    const minCharge = Math.max(0, basePrice - loyaltyDiscountAmount);
-
-    const paidRaw = parseFloat(completeActualPrice.replace(',', '.'));
-    if (isNaN(paidRaw) || paidRaw < minCharge) {
-      Alert.alert(
-        'Greška',
-        minCharge > 0
-          ? `Naplaćeni iznos ne može biti manji od preporučene cijene za naplatu (${minCharge.toFixed(2)} KM).`
-          : 'Unesite ispravan iznos naplaćenog računa.',
-      );
-      return;
-    }
-    const autoTip = paidRaw - minCharge;
-    const tipAmount = autoTip > 0 ? autoTip : 0;
-    setCompleteSubmitting(true);
-    try {
-      const { data: entry } = await api.post<DailyLogEntry>(
-        `/api/daily-log/from-reservation/${completeModalReservation.id}`,
-        {
-          actualPrice: paidRaw,
-          tipAmount: tipAmount >= 0 ? tipAmount : 0,
-          notes: completeNotes.trim() || undefined,
-        },
-      );
-      await api.post(`/api/reservations/${completeModalReservation.id}/stylist-mark-complete`);
-      await fetchReservations();
-      closeCompleteModal();
-      Alert.alert(
-        'Završeno',
-        'Rezervacija je označena završenom i upisana u dnevnu knjigu. U Dnevnoj knjizi možete dodati before/after slike i završiti zapis.',
-      );
-    } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as any).response?.data?.message
-          : 'Greška pri upisu.';
-      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
-    } finally {
-      setCompleteSubmitting(false);
-    }
-  }, [completeModalReservation, completeActualPrice, completeNotes, fetchReservations, closeCompleteModal]);
-
-  const openCancelModal = useCallback((r: Reservation) => {
-    setCancelModalReservation(r);
-    setCancelReason('');
-  }, []);
-
-  const closeCancelModal = useCallback(() => {
-    setCancelModalReservation(null);
-    setCancelReason('');
-  }, []);
-
-  const submitCancel = useCallback(async () => {
-    if (!cancelModalReservation) return;
-    const reason = cancelReason.trim();
-    if (!reason) {
-      Alert.alert('Greška', 'Unesite obrazloženje otkazivanja.');
-      return;
-    }
-    setCancelSubmitting(true);
-    try {
-      await api.post(`/api/reservations/${cancelModalReservation.id}/stylist-cancel`, {
-        cancelReason: reason,
-      });
-      await fetchReservations();
-      closeCancelModal();
-      Alert.alert('Otkazano', 'Rezervacija je otkazana.');
-    } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as any).response?.data?.message
-          : 'Greška pri otkazivanju.';
-      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
-    } finally {
-      setCancelSubmitting(false);
-    }
-  }, [cancelModalReservation, cancelReason, fetchReservations, closeCancelModal]);
-
   const sections: Section[] = React.useMemo(() => {
     const byDate: Record<string, Reservation[]> = {};
     for (const r of reservations) {
@@ -194,7 +75,23 @@ export function StylistScheduleScreen() {
       byDate[d].push(r);
     }
     for (const arr of Object.values(byDate)) {
-      arr.sort((a, b) => (a.startTime < b.startTime ? -1 : 1));
+      const statusOrder: Record<string, number> = {
+        IN_PROGRESS: 0,
+        ATTENDANCE_CONFIRMED: 1,
+        CONFIRMED: 2,
+        STYLIST_REVIEW: 3,
+        PENDING: 4,
+        COMPLETED: 5,
+        CANCELLED_BY_CLIENT: 6,
+        CANCELLED_BY_STYLISTS: 7,
+        NO_SHOW: 8,
+      };
+      arr.sort((a, b) => {
+        const ao = statusOrder[a.status] ?? 99;
+        const bo = statusOrder[b.status] ?? 99;
+        if (ao !== bo) return ao - bo;
+        return a.startTime < b.startTime ? -1 : 1;
+      });
     }
     const sortedDates = Object.keys(byDate).sort();
     return sortedDates.map((date) => ({
@@ -202,6 +99,14 @@ export function StylistScheduleScreen() {
       data: byDate[date],
     }));
   }, [reservations]);
+
+  const activeReservation = React.useMemo(() => {
+    return (
+      reservations.find(
+        (r) => r.status === 'IN_PROGRESS' && r.confirmedStylistId === profileId,
+      ) ?? null
+    );
+  }, [reservations, profileId]);
 
   if (profileLoading || (loading && !profileId)) {
     return (
@@ -233,6 +138,39 @@ export function StylistScheduleScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
+        ListHeaderComponent={
+          activeReservation ? (
+            <Card style={[styles.card, { borderWidth: 1, borderColor: colors.primary }]}>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() =>
+                  navigation.navigate('StylistReservationDetail', {
+                    reservationId: activeReservation.id,
+                  })
+                }
+              >
+                <View style={styles.row}>
+                  <Text style={[styles.time, { color: colors.text }]}>
+                    Aktivno: {formatTime(activeReservation.startTime)} – {formatTime(activeReservation.endTime)}
+                  </Text>
+                  <Badge
+                    label={t(`myReservations.status.${activeReservation.status}` as any)}
+                    variant={getStatusVariant(activeReservation.status)}
+                    status={activeReservation.status}
+                  />
+                </View>
+                <Text style={[styles.serviceName, { color: colors.text }]}>
+                  {activeReservation.service?.name ?? 'Usluga'}
+                </Text>
+                {activeReservation.client && (
+                  <Text style={[styles.client, { color: colors.textSecondary }]}>
+                    {activeReservation.client.firstName} {activeReservation.client.lastName}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </Card>
+          ) : null
+        }
         ListEmptyComponent={
           <EmptyState
             icon="calendar-outline"
@@ -247,8 +185,11 @@ export function StylistScheduleScreen() {
           <Card style={styles.card}>
             <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() => canComplete(item) && openCompleteModal(item)}
-              disabled={!canComplete(item)}
+              onPress={() =>
+                navigation.navigate('StylistReservationDetail', {
+                  reservationId: item.id,
+                })
+              }
             >
               <View style={styles.row}>
                 <Text style={[styles.time, { color: colors.text }]}>
@@ -268,153 +209,10 @@ export function StylistScheduleScreen() {
                   {item.client.firstName} {item.client.lastName}
                 </Text>
               )}
-              {canComplete(item) && (
-                <Text style={[styles.hint, { color: colors.primary }]}>
-                  {t('stylist.schedule.completeHint')}
-                </Text>
-              )}
             </TouchableOpacity>
-            {canCancelByStylist(item) && (
-              <Button
-                title={t('stylist.schedule.cancelWithReason')}
-                onPress={() => openCancelModal(item)}
-                size="sm"
-                variant="outline"
-                textStyle={{ color: colors.error }}
-                style={styles.cancelBtn}
-              />
-            )}
           </Card>
         )}
       />
-
-      <Modal visible={!!cancelModalReservation} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.modalContentWrap}
-          >
-            <Card style={{ ...styles.modalCard, backgroundColor: colors.surface }}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {t('stylist.schedule.cancelTitle')}
-              </Text>
-              {cancelModalReservation && (
-                <>
-                  <Text style={[styles.modalService, { color: colors.textSecondary }]}>
-                    {cancelModalReservation.service?.name} ·{' '}
-                    {cancelModalReservation.client
-                      ? `${cancelModalReservation.client.firstName} ${cancelModalReservation.client.lastName}`
-                      : ''}
-                  </Text>
-                  <Input
-                    label={t('stylist.schedule.cancelReasonLabel')}
-                    value={cancelReason}
-                    onChangeText={setCancelReason}
-                    placeholder={t('stylist.schedule.cancelReasonPlaceholder')}
-                    multiline
-                  />
-                </>
-              )}
-              <View style={styles.modalActions}>
-                <Button title={t('common.cancel')} onPress={closeCancelModal} variant="outline" style={styles.modalBtn} />
-                <Button
-                  title={t('stylist.schedule.cancelConfirm')}
-                  onPress={submitCancel}
-                  loading={cancelSubmitting}
-                  style={styles.modalBtn}
-                />
-              </View>
-            </Card>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-
-      <Modal visible={!!completeModalReservation} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.modalContentWrap}
-          >
-            <Card style={{ ...styles.modalCard, backgroundColor: colors.surface }}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {t('stylist.schedule.completeTitle')}
-              </Text>
-              {completeModalReservation && (
-                <>
-                  <Text style={[styles.modalService, { color: colors.textSecondary }]}>
-                    {completeModalReservation.service?.name} ·{' '}
-                    {completeModalReservation.client
-                      ? `${completeModalReservation.client.firstName} ${completeModalReservation.client.lastName}`
-                      : ''}
-                  </Text>
-                  {(() => {
-                    const basePrice =
-                      completeModalReservation.service &&
-                      'price' in completeModalReservation.service
-                        ? Number((completeModalReservation.service as any).price)
-                        : 0;
-                    const loyaltyDiscountPercent =
-                      'loyaltyDiscountPercent' in completeModalReservation
-                        ? Number((completeModalReservation as any).loyaltyDiscountPercent ?? 0)
-                        : 0;
-                    const loyaltyDiscountAmount =
-                      'loyaltyDiscountAmount' in completeModalReservation
-                        ? Number((completeModalReservation as any).loyaltyDiscountAmount ?? 0)
-                        : 0;
-                    const chargePrice = Math.max(0, basePrice - loyaltyDiscountAmount);
-                    const paidRaw = parseFloat(completeActualPrice.replace(',', '.'));
-                    const autoTip = !isNaN(paidRaw) && paidRaw > chargePrice ? paidRaw - chargePrice : 0;
-                    return (
-                      <View style={{ marginBottom: spacing.sm }}>
-                        <Text style={[styles.modalInfo, { color: colors.textSecondary }]}>
-                          Cijena servisa: {basePrice.toFixed(2)} KM
-                        </Text>
-                        {loyaltyDiscountPercent > 0 && (
-                          <>
-                            <Text style={[styles.modalInfo, { color: colors.textSecondary }]}>
-                              Odabrani popust: {loyaltyDiscountPercent}% (
-                              {loyaltyDiscountAmount.toFixed(2)} KM)
-                            </Text>
-                            <Text style={[styles.modalInfo, { color: colors.text }]}>
-                              Za naplatu: {chargePrice.toFixed(2)} KM
-                            </Text>
-                          </>
-                        )}
-                        {autoTip > 0 && (
-                          <Text style={[styles.modalInfo, { color: colors.textSecondary }]}>
-                            Napojnica (računato): {autoTip.toFixed(2)} KM
-                          </Text>
-                        )}
-                      </View>
-                    );
-                  })()}
-                  <Input
-                    label="Cijena (KM)"
-                    value={completeActualPrice}
-                    onChangeText={setCompleteActualPrice}
-                    keyboardType="decimal-pad"
-                  />
-                  <Input
-                    label="Napomena (opciono)"
-                    value={completeNotes}
-                    onChangeText={setCompleteNotes}
-                    multiline
-                  />
-                </>
-              )}
-              <View style={styles.modalActions}>
-                <Button title={t('common.cancel')} onPress={closeCompleteModal} variant="outline" style={styles.modalBtn} />
-                <Button
-                  title={t('stylist.schedule.completeSubmit')}
-                  onPress={submitComplete}
-                  loading={completeSubmitting}
-                  style={styles.modalBtn}
-                />
-              </View>
-            </Card>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
     </>
   );
 }
@@ -430,13 +228,4 @@ const styles = StyleSheet.create({
   serviceName: { fontSize: 15 },
   client: { fontSize: 13, marginTop: 2 },
   hint: { fontSize: 12, marginTop: 6, fontWeight: '600' },
-  cancelBtn: { marginTop: 8 },
-  modalOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: spacing.md },
-  modalContentWrap: { maxHeight: '80%' },
-  modalCard: { padding: spacing.lg },
-  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: 4 },
-  modalService: { fontSize: 14, marginBottom: spacing.md },
-  modalInfo: { fontSize: 13, marginTop: 2 },
-  modalActions: { flexDirection: 'row', gap: 8, marginTop: spacing.md },
-  modalBtn: { flex: 1 },
 });

@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { StylistInboxScreen } from '../screens/stylist/StylistInboxScreen';
 import { StylistProfileScreen } from '../screens/stylist/StylistProfileScreen';
-import { StylistScheduleScreen } from '../screens/stylist/StylistScheduleScreen';
 import { StylistStatsScreen } from '../screens/stylist/StylistStatsScreen';
 import { StylistDailyLogNavigator } from './StylistDailyLogNavigator';
+import { StylistScheduleNavigator } from './StylistScheduleNavigator';
 import type { StylistTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<StylistTabParamList>();
@@ -56,9 +56,9 @@ export function StylistNavigator() {
       />
       <Tab.Screen
         name="ScheduleTab"
-        component={StylistScheduleScreen}
+        component={StylistScheduleNavigator}
         options={{
-          title: 'Raspored',
+          headerShown: false,
           tabBarLabel: 'Raspored',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="calendar-outline" size={size} color={color} />

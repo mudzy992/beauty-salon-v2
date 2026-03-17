@@ -274,10 +274,17 @@ model Reservation {
   clientNotes          String?   @map("client_notes") @db.Text
   confirmedStylistId   String?   @map("confirmed_stylist_id")
   attendanceConfirmedAt DateTime? @map("attendance_confirmed_at")
+  startedAt            DateTime? @map("started_at")
+  completedAt          DateTime? @map("completed_at")
   cancelledAt          DateTime? @map("cancelled_at")
   cancelReason         String?   @map("cancel_reason") @db.Text
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  // Reschedule potvrda klijenta (obavezna) nakon pomjeranja termina
+  rescheduleProposedStartTime String? @map("reschedule_proposed_start_time")
+  rescheduleProposedEndTime   String? @map("reschedule_proposed_end_time")
+  rescheduleStatus            String? @map("reschedule_status") // PENDING | ACCEPTED | DECLINED
 
   // Loyalty popust po rezervaciji (informativno, ne mijenja automatski KIF)
   loyaltyDiscountPercent Int      @default(0)        @map("loyalty_discount_percent")
@@ -341,6 +348,12 @@ model DailyLogEntry {
   date            DateTime  @db.Date
   actualPrice     Decimal   @map("actual_price") @db.Decimal(10, 2)
   tipAmount       Decimal   @default(0) @map("tip_amount") @db.Decimal(10, 2)
+
+  // Loyalty popust (ako je klijent iskoristio bodove pri ručnom unosu)
+  loyaltyDiscountPercent Int     @default(0) @map("loyalty_discount_percent")
+  loyaltyDiscountAmount  Decimal @default(0) @map("loyalty_discount_amount") @db.Decimal(10, 2)
+  loyaltyPointsUsed      Int     @default(0) @map("loyalty_points_used")
+
   isManual        Boolean   @default(false) @map("is_manual")
   notes           String?   @db.Text
   status          String    @default("PENDING") // PENDING | COMPLETED

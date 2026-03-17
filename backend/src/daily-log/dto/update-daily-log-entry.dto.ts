@@ -1,4 +1,6 @@
 import {
+  IsInt,
+  Max,
   IsNumber,
   IsOptional,
   IsString,
@@ -21,4 +23,11 @@ export class UpdateDailyLogEntryDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  /** Opcionalno: procenat loyalty popusta koji klijent želi iskoristiti za ovaj zapis. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  desiredLoyaltyPercent?: number;
 }

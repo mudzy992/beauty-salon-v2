@@ -660,6 +660,10 @@ export default function PublicReserve() {
                           const isSelected =
                             selectedSlot?.start === slot.startTime &&
                             selectedSlot?.end === slot.endTime;
+                          const now = new Date();
+                          const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                          const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                          const isPastSlot = selectedDate === todayLocal && slot.startTime < nowHHMM;
                           return (
                             <Button
                               key={`${slot.startTime}-${slot.endTime}`}
@@ -670,12 +674,14 @@ export default function PublicReserve() {
                               bg={isSelected ? 'brand.500' : 'white'}
                               color={isSelected ? 'white' : 'gray.700'}
                               borderColor={isSelected ? 'brand.500' : 'gray.200'}
+                              isDisabled={isPastSlot}
                               _hover={
                                 isSelected
                                   ? { bg: 'brand.600' }
                                   : { bg: 'brand.50', borderColor: 'brand.300' }
                               }
                               onClick={() => {
+                            if (isPastSlot) return;
                             setSelectedSlot({ start: slot.startTime, end: slot.endTime });
                             setStep(4);
                             if (selectedService) {

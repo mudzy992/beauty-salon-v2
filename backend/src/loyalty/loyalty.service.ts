@@ -262,6 +262,111 @@ export class LoyaltyService {
     return settings;
   }
 
+  /**
+   * Vraća loyalty info koji frontend može prikazati (limit/cap) za određenog korisnika.
+   * Koristi se i za klijenta (me) i za stilistu/admin (odabrani klijent).
+   */
+  async getClientLoyaltyInfo(userId: string, serviceId?: string) {
+    const enabled = await this.isProgramEnabled();
+    const account = await this.prisma.loyaltyAccount.findUnique({
+      where: { userId },
+    });
+    if (!enabled || !account) {
+      return { enabled, hasAccount: false };
+    }
+
+    const tier = await this.getTierForPoints(account.points);
+    const redeemEnabled = this.parseBoolean(
+      await this.settings.getValue('loyalty_redeem_enabled'),
+      false,
+    );
+    const redeemRate = this.parseNumber(
+      await this.settings.getValue('loyalty_redeem_rate'),
+      0.1,
+    );
+    const minPoints = this.parseNumber(
+      await this.settings.getValue('loyalty_min_points_to_redeem'),
+      0,
+    );
+    const globalMaxPercent = this.parseNumber(
+      await this.settings.getValue('loyalty_max_discount_percent'),
+      100,
+    );
+
+    if (serviceId) {
+      const service = await this.prisma.service.findUnique({
+        where: { id: serviceId },
+        select: {
+          price: true,
+          loyaltyEnabled: true,
+          loyaltyMaxDiscountPercent: true,
+        },
+      });
+      if (!service || !service.loyaltyEnabled) {
+        return {
+          enabled,
+          hasAccount: true,
+          redeemEnabled,
+          points: account.points,
+          tier: tier?.name ?? null,
+          tierMaxDiscountPercent: tier?.maxDiscountPercent ?? 0,
+          globalMaxDiscountPercent: globalMaxPercent,
+          redeemRate,
+          minPointsToRedeem: minPoints,
+          service: null,
+        };
+      }
+
+      const servicePrice = Number(service.price);
+      let maxPercentForService = 0;
+      let maxDiscountAmount = 0;
+      let maxUsablePoints = 0;
+
+      if (Number.isFinite(servicePrice) && servicePrice > 0) {
+        const tierMax = tier?.maxDiscountPercent ?? 0;
+        const serviceMax = service.loyaltyMaxDiscountPercent ?? 0;
+        maxPercentForService = Math.min(tierMax, serviceMax, globalMaxPercent);
+        if (maxPercentForService > 0 && redeemRate > 0) {
+          maxDiscountAmount = (servicePrice * maxPercentForService) / 100;
+          const maxByPercent = Math.floor(maxDiscountAmount / redeemRate);
+          maxUsablePoints = Math.max(0, Math.min(maxByPercent, account.points));
+        }
+      }
+
+      return {
+        enabled,
+        hasAccount: true,
+        redeemEnabled,
+        points: account.points,
+        tier: tier?.name ?? null,
+        tierMaxDiscountPercent: tier?.maxDiscountPercent ?? 0,
+        globalMaxDiscountPercent: globalMaxPercent,
+        redeemRate,
+        minPointsToRedeem: minPoints,
+        service: {
+          id: serviceId,
+          price: servicePrice,
+          maxDiscountPercent: maxPercentForService,
+          maxDiscountAmount,
+          maxUsablePoints,
+        },
+      };
+    }
+
+    return {
+      enabled,
+      hasAccount: true,
+      redeemEnabled,
+      points: account.points,
+      tier: tier?.name ?? null,
+      tierMaxDiscountPercent: tier?.maxDiscountPercent ?? 0,
+      globalMaxDiscountPercent: globalMaxPercent,
+      redeemRate,
+      minPointsToRedeem: minPoints,
+      service: null,
+    };
+  }
+
   async redeemPoints(accountId: string, points: number, reason?: string) {
     if (points <= 0 || !Number.isFinite(points)) {
       throw new BadRequestException('Broj bodova mora biti pozitivan.');
@@ -454,6 +559,162 @@ export class LoyaltyService {
     // Informativni upis popusta na rezervaciju (za prikaz u adminu)
     await this.prisma.reservation.update({
       where: { id: reservationId },
+      data: {
+        loyaltyDiscountPercent: Math.round(desiredPercent),
+        loyaltyDiscountAmount: desiredDiscountAmount,
+        loyaltyPointsUsed: neededPoints,
+      },
+    });
+
+    return updatedAccount;
+  }
+
+  /**
+   * Redeem bodova za ručni zapis u dnevnoj knjizi, uz pravila identična rezervaciji.
+   * Popust se računa na osnovu cijene servisa, a zapis u dnevniku mora imati actualPrice >= (price - popust).
+   */
+  async redeemForDailyLog(args: {
+    clientId: string;
+    dailyLogEntryId: string;
+    serviceId: string;
+    desiredPercent: number;
+    actualPrice: number;
+  }) {
+    const { clientId, dailyLogEntryId, serviceId, desiredPercent, actualPrice } =
+      args;
+    if (desiredPercent <= 0) return null;
+
+    const existingEntry = await this.prisma.dailyLogEntry.findUnique({
+      where: { id: dailyLogEntryId },
+      select: { loyaltyPointsUsed: true },
+    });
+    if (!existingEntry) {
+      throw new BadRequestException(
+        'Zapis u dnevnoj knjizi nije pronađen za loyalty popust.',
+      );
+    }
+    if (existingEntry.loyaltyPointsUsed > 0) {
+      throw new BadRequestException(
+        'Za ovaj zapis su već iskorišteni loyalty bodovi.',
+      );
+    }
+
+    const programEnabled = await this.isProgramEnabled();
+    if (!programEnabled) {
+      throw new BadRequestException('Loyalty program trenutno nije aktivan.');
+    }
+
+    const redeemEnabled = this.parseBoolean(
+      await this.settings.getValue('loyalty_redeem_enabled'),
+      false,
+    );
+    if (!redeemEnabled) {
+      throw new BadRequestException(
+        'Korištenje bodova trenutno nije omogućeno.',
+      );
+    }
+
+    const account = await this.prisma.loyaltyAccount.findUnique({
+      where: { userId: clientId },
+    });
+    if (!account || !account.isActive) {
+      throw new BadRequestException('Nemate aktivan loyalty račun.');
+    }
+
+    const service = await this.prisma.service.findUnique({
+      where: { id: serviceId },
+      select: {
+        price: true,
+        loyaltyEnabled: true,
+        loyaltyMaxDiscountPercent: true,
+      },
+    });
+    if (!service) {
+      throw new NotFoundException('Servis nije pronađen.');
+    }
+    if (!service.loyaltyEnabled) {
+      throw new BadRequestException(
+        'Za ovaj servis nije dozvoljen loyalty popust.',
+      );
+    }
+
+    const price = Number(service.price);
+    if (!Number.isFinite(price) || price <= 0) {
+      throw new BadRequestException(
+        'Cijena usluge nije validna za loyalty popust.',
+      );
+    }
+
+    const tier = await this.getTierForPoints(account.points);
+    const tierMaxPercent = tier?.maxDiscountPercent ?? 0;
+    const serviceMaxPercent = service.loyaltyMaxDiscountPercent ?? 0;
+    const globalMaxPercent = this.parseNumber(
+      await this.settings.getValue('loyalty_max_discount_percent'),
+      100,
+    );
+    const allowedPercent = Math.min(
+      tierMaxPercent,
+      serviceMaxPercent,
+      globalMaxPercent,
+    );
+    if (allowedPercent <= 0) {
+      throw new BadRequestException(
+        'Vaš nivo ne dozvoljava korištenje bodova za popust.',
+      );
+    }
+    if (desiredPercent > allowedPercent) {
+      throw new BadRequestException(
+        'Odabrani procenat popusta je veći od maksimalnog dozvoljenog.',
+      );
+    }
+
+    const redeemRate = this.parseNumber(
+      await this.settings.getValue('loyalty_redeem_rate'),
+      0.1,
+    ); // KM po bodu
+    if (redeemRate <= 0) {
+      throw new BadRequestException(
+        'Loyalty redeem stopa nije ispravno podešena.',
+      );
+    }
+
+    const desiredDiscountAmount = (price * desiredPercent) / 100;
+    const minCharge = Math.max(0, price - desiredDiscountAmount);
+    if (!Number.isFinite(actualPrice) || actualPrice < minCharge) {
+      throw new BadRequestException(
+        `Naplaćeni iznos ne može biti manji od preporučene cijene za naplatu (${minCharge.toFixed(2)} KM).`,
+      );
+    }
+
+    const neededPoints = Math.floor(desiredDiscountAmount / redeemRate);
+    const minPoints = this.parseNumber(
+      await this.settings.getValue('loyalty_min_points_to_redeem'),
+      0,
+    );
+    if (neededPoints < minPoints) {
+      throw new BadRequestException(
+        'Broj bodova koji bi se iskoristio je ispod minimalnog za korištenje.',
+      );
+    }
+    if (neededPoints <= 0) {
+      throw new BadRequestException(
+        'Odabrani popust je prenizak da bi se isplatilo koristiti bodove.',
+      );
+    }
+    if (account.points < neededPoints) {
+      throw new BadRequestException(
+        'Nemate dovoljno bodova za odabrani popust.',
+      );
+    }
+
+    const updatedAccount = await this.redeemPoints(
+      account.id,
+      neededPoints,
+      `DailyLog ${dailyLogEntryId} (${desiredPercent}%)`,
+    );
+
+    await this.prisma.dailyLogEntry.update({
+      where: { id: dailyLogEntryId },
       data: {
         loyaltyDiscountPercent: Math.round(desiredPercent),
         loyaltyDiscountAmount: desiredDiscountAmount,

@@ -11,7 +11,7 @@ export type RootStackParamList = {
 export type StylistTabParamList = {
   InboxTab: undefined;
   DailyLogTab: NavigatorScreenParams<StylistDailyLogStackParamList>;
-  ScheduleTab: undefined;
+  ScheduleTab: NavigatorScreenParams<StylistScheduleStackParamList>;
   StatsTab: undefined;
   ProfileTab: undefined;
 };
@@ -20,6 +20,11 @@ export type StylistDailyLogStackParamList = {
   DailyLogList: undefined;
   DailyLogDetail: { entryId: string };
   DailyLogNewEntry: undefined;
+};
+
+export type StylistScheduleStackParamList = {
+  ScheduleList: undefined;
+  StylistReservationDetail: { reservationId: string };
 };
 
 export type AuthStackParamList = {

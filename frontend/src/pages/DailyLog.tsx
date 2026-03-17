@@ -19,6 +19,9 @@ interface DailyLogEntry {
   date: string;
   actualPrice: number | string;
   tipAmount: number | string;
+  loyaltyDiscountPercent?: number;
+  loyaltyDiscountAmount?: number | string;
+  loyaltyPointsUsed?: number;
   isManual: boolean;
   notes: string | null;
   status: string;
@@ -51,6 +54,25 @@ interface ClientOption {
   lastName: string | null;
 }
 
+type LoyaltyInfo = {
+  enabled: boolean;
+  hasAccount: boolean;
+  redeemEnabled?: boolean;
+  points?: number;
+  tier?: string | null;
+  tierMaxDiscountPercent?: number;
+  globalMaxDiscountPercent?: number;
+  minPointsToRedeem?: number;
+  redeemRate?: number;
+  service?: {
+    id: string;
+    price: number;
+    maxDiscountPercent: number;
+    maxDiscountAmount: number;
+    maxUsablePoints: number;
+  } | null;
+};
+
 export default function DailyLog() {
   const { t } = useTranslation();
   const toast = useToast();
@@ -72,7 +94,10 @@ export default function DailyLog() {
   const [form, setForm] = useState({
     stylistProfileId: '', serviceId: '', clientId: '', date: new Date().toISOString().slice(0, 10),
     actualPrice: 0, tipAmount: 0, notes: '', isManual: true,
+    desiredLoyaltyPercent: 0,
   });
+  const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
+  const [loadingLoyalty, setLoadingLoyalty] = useState(false);
 
   // Autocomplete state
   const [serviceSearch, setServiceSearch] = useState('');
@@ -121,13 +146,13 @@ export default function DailyLog() {
   }, [clients, clientSearch]);
 
   const selectService = (svc: ServiceOption) => {
-    setForm((prev) => ({ ...prev, serviceId: svc.id, actualPrice: Number(svc.price) || 0 }));
+    setForm((prev) => ({ ...prev, serviceId: svc.id, actualPrice: Number(svc.price) || 0, desiredLoyaltyPercent: 0 }));
     setServiceSearch(svc.name);
     setShowServiceDropdown(false);
   };
 
   const selectClient = (client: ClientOption) => {
-    setForm((prev) => ({ ...prev, clientId: client.id }));
+    setForm((prev) => ({ ...prev, clientId: client.id, desiredLoyaltyPercent: 0 }));
     const name = [client.firstName, client.lastName].filter(Boolean).join(' ') || client.username;
     setClientSearch(name);
     setShowClientDropdown(false);
@@ -138,9 +163,11 @@ export default function DailyLog() {
     setForm({
       stylistProfileId: '', serviceId: '', clientId: '', date: new Date().toISOString().slice(0, 10),
       actualPrice: 0, tipAmount: 0, notes: '', isManual: true,
+      desiredLoyaltyPercent: 0,
     });
     setServiceSearch('');
     setClientSearch('');
+    setLoyaltyInfo(null);
     onOpen();
   };
 
@@ -155,12 +182,41 @@ export default function DailyLog() {
       tipAmount: Number(entry.tipAmount),
       notes: entry.notes ?? '',
       isManual: entry.isManual,
+      desiredLoyaltyPercent: Number(entry.loyaltyDiscountPercent ?? 0),
     });
     setServiceSearch(entry.service?.name ?? '');
     const clientName = entry.client ? [entry.client.firstName, entry.client.lastName].filter(Boolean).join(' ') || entry.client.user?.username || '' : '';
     setClientSearch(clientName);
     onOpen();
   };
+
+  useEffect(() => {
+    if (!form.serviceId || !form.clientId) {
+      setLoyaltyInfo(null);
+      return;
+    }
+    let isMounted = true;
+    setLoadingLoyalty(true);
+    api
+      .get<LoyaltyInfo>(`/api/loyalty/stylist/client/${form.clientId}`, {
+        params: { serviceId: form.serviceId },
+      })
+      .then((r) => {
+        if (!isMounted) return;
+        setLoyaltyInfo(r.data);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setLoyaltyInfo(null);
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setLoadingLoyalty(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [form.serviceId, form.clientId]);
 
   const handleSave = async () => {
     if (!form.stylistProfileId || !form.serviceId) {
@@ -174,6 +230,7 @@ export default function DailyLog() {
           actualPrice: form.actualPrice,
           tipAmount: form.tipAmount,
           notes: form.notes || undefined,
+          ...(form.desiredLoyaltyPercent > 0 ? { desiredLoyaltyPercent: form.desiredLoyaltyPercent } : {}),
         });
       } else {
         await api.post('/api/daily-log', {
@@ -185,6 +242,7 @@ export default function DailyLog() {
           tipAmount: form.tipAmount,
           notes: form.notes || undefined,
           isManual: true,
+          ...(form.desiredLoyaltyPercent > 0 ? { desiredLoyaltyPercent: form.desiredLoyaltyPercent } : {}),
         });
       }
       toast({ title: 'Sačuvano', status: 'success', isClosable: true });
@@ -267,6 +325,12 @@ export default function DailyLog() {
                         <Text fontSize="xs" color="green.600">
                           Loyalty popust: {e.reservation.loyaltyDiscountPercent}% (
                           {Number(e.reservation.loyaltyDiscountAmount ?? 0).toFixed(2)} KM)
+                        </Text>
+                      )}
+                      {!e.reservation && Number(e.loyaltyDiscountPercent ?? 0) > 0 && (
+                        <Text fontSize="xs" color="green.600">
+                          Loyalty popust: {Number(e.loyaltyDiscountPercent)}% (
+                          {Number(e.loyaltyDiscountAmount ?? 0).toFixed(2)} KM)
                         </Text>
                       )}
                     </VStack>
@@ -394,6 +458,49 @@ export default function DailyLog() {
               <FormLabel>Bilješke</FormLabel>
               <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
             </FormControl>
+
+            <Box mt={4} pt={3} borderTop="1px" borderColor="gray.200">
+              <FormLabel mb={2}>Loyalty</FormLabel>
+              {loadingLoyalty ? (
+                <Spinner size="sm" />
+              ) : loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service ? (
+                <VStack align="stretch" spacing={2}>
+                  <Text fontSize="sm">
+                    Bodovi: {loyaltyInfo.points ?? 0} · Max popust: {loyaltyInfo.service.maxDiscountPercent}%
+                  </Text>
+                  <FormControl>
+                    <FormLabel fontSize="sm">Popust (%)</FormLabel>
+                    <NumberInput
+                      value={form.desiredLoyaltyPercent}
+                      onChange={(_, v) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          desiredLoyaltyPercent: Math.max(
+                            0,
+                            Math.min(v || 0, loyaltyInfo.service?.maxDiscountPercent ?? 0),
+                          ),
+                        }))
+                      }
+                      min={0}
+                      max={loyaltyInfo.service.maxDiscountPercent}
+                    >
+                      <NumberInputField />
+                      <NumberInputStepper>
+                        <NumberIncrementStepper />
+                        <NumberDecrementStepper />
+                      </NumberInputStepper>
+                    </NumberInput>
+                  </FormControl>
+                  <Text fontSize="xs" color="gray.600">
+                    Max iznos popusta: {Number(loyaltyInfo.service.maxDiscountAmount ?? 0).toFixed(2)} KM
+                  </Text>
+                </VStack>
+              ) : (
+                <Text fontSize="sm" color="gray.600">
+                  Loyalty nije dostupan za odabranog klijenta ili servis.
+                </Text>
+              )}
+            </Box>
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onClose}>{t('common.cancel')}</Button>

@@ -146,6 +146,58 @@ export class ReservationsController {
     return this.reservations.stylistMarkComplete(id, user.sub);
   }
 
+  @Post(':id/stylist-start')
+  @UseGuards(RolesGuard)
+  @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
+  stylistStart(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.stylistStart(id, user.sub);
+  }
+
+  @Post(':id/reschedule/propose')
+  @UseGuards(RolesGuard)
+  @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
+  proposeReschedule(
+    @Param('id') id: string,
+    @Body() body: { includeBreaks?: boolean },
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.proposeReschedule(id, user.sub, {
+      includeBreaks: body?.includeBreaks === true,
+    });
+  }
+
+  @Post(':id/reschedule/commit')
+  @UseGuards(RolesGuard)
+  @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
+  commitReschedule(
+    @Param('id') id: string,
+    @Body() body: { includeBreaks?: boolean },
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.commitReschedule(id, user.sub, {
+      includeBreaks: body?.includeBreaks === true,
+    });
+  }
+
+  @Post(':id/reschedule/accept')
+  acceptReschedule(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.acceptReschedule(id, user.sub);
+  }
+
+  @Post(':id/reschedule/decline')
+  declineReschedule(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.declineReschedule(id, user.sub);
+  }
+
   @Post(':id/stylist-cancel')
   @UseGuards(RolesGuard)
   @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')

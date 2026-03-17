@@ -4,10 +4,11 @@ import { LoyaltyService } from './loyalty.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { SettingsModule } from '../settings/settings.module';
 import { LoyaltyClientController } from './loyalty-client.controller';
+import { LoyaltyStylistController } from './loyalty-stylist.controller';
 
 @Module({
   imports: [PrismaModule, SettingsModule],
-  controllers: [LoyaltyController, LoyaltyClientController],
+  controllers: [LoyaltyController, LoyaltyClientController, LoyaltyStylistController],
   providers: [LoyaltyService],
   exports: [LoyaltyService],
 })

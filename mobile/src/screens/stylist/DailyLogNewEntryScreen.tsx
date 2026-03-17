@@ -21,6 +21,25 @@ import type { Service } from '../../types';
 
 type ClientOption = { id: string; username: string; firstName: string | null; lastName: string | null };
 
+type LoyaltyInfo = {
+  enabled: boolean;
+  hasAccount: boolean;
+  redeemEnabled?: boolean;
+  points?: number;
+  tier?: string | null;
+  tierMaxDiscountPercent?: number;
+  globalMaxDiscountPercent?: number;
+  minPointsToRedeem?: number;
+  redeemRate?: number;
+  service?: {
+    id: string;
+    price: number;
+    maxDiscountPercent: number;
+    maxDiscountAmount: number;
+    maxUsablePoints: number;
+  } | null;
+};
+
 type DailyLogNewEntryScreenProps = {
   navigation: { goBack: () => void; navigate: (screen: 'DailyLogDetail', params: { entryId: string }) => void };
 };
@@ -39,6 +58,9 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
   const [actualPrice, setActualPrice] = useState('');
   const [tipAmount, setTipAmount] = useState('');
   const [notes, setNotes] = useState('');
+  const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
+  const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState(0);
+  const [loadingLoyalty, setLoadingLoyalty] = useState(false);
   const [serviceSearch, setServiceSearch] = useState('');
   const [clientSearch, setClientSearch] = useState('');
   const [showServicePicker, setShowServicePicker] = useState(false);
@@ -82,6 +104,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     setActualPrice(String(Number(s.price) ?? 0));
     setServiceSearch(s.name);
     setShowServicePicker(false);
+    setDesiredLoyaltyPercent(0);
   };
 
   const selectClient = (c: ClientOption) => {
@@ -89,7 +112,37 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.username;
     setClientSearch(name);
     setShowClientPicker(false);
+    setDesiredLoyaltyPercent(0);
   };
+
+  useEffect(() => {
+    if (!serviceId || !clientId) {
+      setLoyaltyInfo(null);
+      setDesiredLoyaltyPercent(0);
+      return;
+    }
+    let isMounted = true;
+    setLoadingLoyalty(true);
+    api
+      .get<LoyaltyInfo>(`/api/loyalty/stylist/client/${clientId}`, {
+        params: { serviceId },
+      })
+      .then((r) => {
+        if (!isMounted) return;
+        setLoyaltyInfo(r.data);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setLoyaltyInfo(null);
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setLoadingLoyalty(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [serviceId, clientId]);
 
   const handleSubmit = useCallback(async () => {
     if (!profileId) {
@@ -117,6 +170,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
         tipAmount: tip >= 0 ? tip : 0,
         notes: notes.trim() || undefined,
         isManual: true,
+        ...(desiredLoyaltyPercent > 0 ? { desiredLoyaltyPercent } : {}),
       });
       navigation.navigate('DailyLogDetail', { entryId: entry.id });
     } catch (err: unknown) {
@@ -128,7 +182,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     } finally {
       setSaving(false);
     }
-  }, [profileId, serviceId, clientId, date, actualPrice, tipAmount, notes, navigation]);
+  }, [profileId, serviceId, clientId, date, actualPrice, tipAmount, notes, desiredLoyaltyPercent, navigation]);
 
   if (profileLoading || (loading && !profileId)) {
     return (
@@ -185,6 +239,35 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
           <Input label="Cijena (KM)" value={actualPrice} onChangeText={setActualPrice} keyboardType="decimal-pad" />
           <Input label="Napojnica (KM)" value={tipAmount} onChangeText={setTipAmount} keyboardType="decimal-pad" />
           <Input label="Napomena (opciono)" value={notes} onChangeText={setNotes} multiline />
+        </Card>
+
+        <Card style={styles.card}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Loyalty</Text>
+          {loadingLoyalty ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service ? (
+            <>
+              <Text style={{ color: colors.text }}>
+                Bodovi: {loyaltyInfo.points ?? 0} · Max popust: {loyaltyInfo.service.maxDiscountPercent}%
+              </Text>
+              <Input
+                label="Popust (%)"
+                value={String(desiredLoyaltyPercent)}
+                onChangeText={(v) => {
+                  const n = Math.max(0, Math.min(parseInt(v || '0', 10) || 0, loyaltyInfo.service?.maxDiscountPercent ?? 0));
+                  setDesiredLoyaltyPercent(n);
+                }}
+                keyboardType="number-pad"
+              />
+              <Text style={{ color: colors.textMuted, marginTop: spacing.xs }}>
+                Max iznos popusta: {Number(loyaltyInfo.service.maxDiscountAmount ?? 0).toFixed(2)} KM
+              </Text>
+            </>
+          ) : (
+            <Text style={{ color: colors.textMuted }}>
+              Loyalty nije dostupan za odabranog klijenta ili servis.
+            </Text>
+          )}
         </Card>
 
         <Button title="Kreiraj zapis" onPress={handleSubmit} loading={saving} />
