@@ -2,8 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
-import { spacing } from '../../theme';
+import { borderRadius, spacing } from '../../theme';
 import { Button } from './Button';
+import { subtleShadow } from '../../theme/shadows';
 
 interface EmptyStateProps {
   icon?: keyof typeof Ionicons.glyphMap;
@@ -18,13 +19,25 @@ export function EmptyState({ icon = 'albums-outline', title, message, actionLabe
 
   return (
     <View style={styles.container}>
-      <Ionicons name={icon} size={64} color={colors.textMuted} />
-      <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+      <View
+        style={[
+          styles.iconWrap,
+          { backgroundColor: colors.surface },
+          subtleShadow(),
+        ]}
+      >
+        <Ionicons name={icon} size={40} color={colors.primary} />
+      </View>
+      <Text style={[styles.title, { color: colors.text }]} selectable>
+        {title}
+      </Text>
       {message && (
-        <Text style={[styles.message, { color: colors.textSecondary }]}>{message}</Text>
+        <Text style={[styles.message, { color: colors.textSecondary }]} selectable>
+          {message}
+        </Text>
       )}
       {actionLabel && onAction && (
-        <Button title={actionLabel} onPress={onAction} variant="outline" size="sm" style={{ marginTop: spacing.md }} />
+        <Button title={actionLabel} onPress={onAction} variant="outline" size="sm" style={{ marginTop: spacing.lg }} />
       )}
     </View>
   );
@@ -36,17 +49,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
+    gap: spacing.sm,
+  },
+  iconWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: borderRadius.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderCurve: 'continuous',
+    marginBottom: spacing.sm,
   },
   title: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '600',
-    marginTop: spacing.md,
     textAlign: 'center',
+    letterSpacing: -0.2,
   },
   message: {
-    fontSize: 14,
-    marginTop: spacing.sm,
+    fontSize: 15,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
+    maxWidth: 300,
   },
 });

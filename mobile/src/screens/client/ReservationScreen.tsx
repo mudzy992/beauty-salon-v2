@@ -11,6 +11,7 @@ import {
   FlatList,
   ImageBackground,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -46,6 +47,7 @@ type LoyaltyInfo = {
 export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Reservation'>) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const initialServiceId = route.params?.serviceId;
 
   const [step, setStep] = useState<Step>(initialServiceId ? 2 : 1);
@@ -261,7 +263,8 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
           <FlatList
             data={filteredServices}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: spacing.lg + insets.bottom + 8 }]}
+            contentInsetAdjustmentBehavior="automatic"
             renderItem={({ item }) => {
               const heroUri = item.heroImage ? getUploadUrl(item.heroImage) : null;
               return (
@@ -295,7 +298,11 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
       {/* Step 2: Select Date */}
       {step === 2 && (
-        <ScrollView contentContainerStyle={styles.stepContent}>
+        <ScrollView
+          contentContainerStyle={[styles.stepContent, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+        >
           <Card>
             <Text style={[styles.selectedLabel, { color: colors.textSecondary }]}>
               {t('reservation.service')}
@@ -323,6 +330,10 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
                 textDisabledColor: colors.textMuted,
                 monthTextColor: colors.text,
                 arrowColor: colors.primary,
+                dotColor: colors.primary,
+                selectedDotColor: colors.primaryText,
+                textDayFontWeight: '500',
+                textMonthFontWeight: '700',
               }}
               style={styles.calendar}
             />
@@ -339,7 +350,11 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
       {/* Step 3: Select Time Slot */}
       {step === 3 && (
-        <ScrollView contentContainerStyle={styles.stepContent}>
+        <ScrollView
+          contentContainerStyle={[styles.stepContent, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+        >
           <Card>
             <Text style={[styles.selectedLabel, { color: colors.textSecondary }]}>
               {t('reservation.service')}
@@ -416,7 +431,11 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
       {/* Step 4: Review & Submit */}
       {step === 4 && (
-        <ScrollView contentContainerStyle={styles.stepContent}>
+        <ScrollView
+          contentContainerStyle={[styles.stepContent, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={[styles.reviewTitle, { color: colors.text }]}>
             {t('reservation.review')}
           </Text>

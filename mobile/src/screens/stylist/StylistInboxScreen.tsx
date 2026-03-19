@@ -9,6 +9,7 @@ import {
   Alert,
   AlertButton,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { Card } from '../../components/ui/Card';
@@ -26,6 +27,7 @@ function getMyResponse(reservation: Reservation, profileId: string): StylistResp
 
 export function StylistInboxScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { profileId, loading: profileLoading, refetch: refetchProfile } = useStylistProfile();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,7 +161,12 @@ export function StylistInboxScreen() {
     <FlatList
       data={pending}
       keyExtractor={(item) => item.id}
-      contentContainerStyle={[styles.list, pending.length === 0 && styles.emptyList]}
+      contentContainerStyle={[
+        styles.list,
+        pending.length === 0 && styles.emptyList,
+        { paddingBottom: spacing.lg + insets.bottom + 8 },
+      ]}
+      contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: colors.background }}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />

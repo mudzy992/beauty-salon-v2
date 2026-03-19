@@ -1,0 +1,42 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+
+@import "nativewind/theme";
+
+@layer theme {
+  @theme {
+    /* Brand — aligned with src/theme/colors.ts palette */
+    --color-brand-gold: #d4a843;
+    --color-brand-gold-light: #e8c98b;
+    --color-brand-gold-dark: #b8922f;
+    --color-brand-black: #1a1a1a;
+    --color-brand-rose: #c98ba0;
+    --color-brand-champagne: #f5e6cc;
+    --color-brand-champagne-light: #fbf6eb;
+
+    --color-surface-light: #fafafa;
+    --color-surface-dark: #2d2d2d;
+    --color-text-primary-light: #212121;
+    --color-text-primary-dark: #f5f5f5;
+    --color-text-muted-light: #757575;
+    --color-text-muted-dark: #9e9e9e;
+
+    --font-sans: "Inter_400Regular", system-ui, sans-serif;
+    --font-display: "PlayfairDisplay_700Bold", ui-serif, Georgia, serif;
+  }
+}
+
+@media ios {
+  :root {
+    --font-sans: system-ui;
+    --font-display: ui-serif;
+  }
+}
+
+@media android {
+  :root {
+    --font-sans: sans-serif;
+    --font-display: serif;
+  }
+}

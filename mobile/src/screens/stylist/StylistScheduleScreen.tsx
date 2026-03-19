@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   ImageBackground,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
@@ -32,6 +33,7 @@ type Props = NativeStackScreenProps<StylistScheduleStackParamList, 'ScheduleList
 export function StylistScheduleScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const gold = '#D4AF37';
   const { profileId, loading: profileLoading } = useStylistProfile();
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -199,7 +201,12 @@ export function StylistScheduleScreen({ navigation }: Props) {
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.list, sections.length === 0 && styles.emptyList]}
+        contentContainerStyle={[
+          styles.list,
+          sections.length === 0 && styles.emptyList,
+          { paddingBottom: spacing.lg + insets.bottom + 8 },
+        ]}
+        contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: colors.background }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />

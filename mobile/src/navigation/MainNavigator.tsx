@@ -3,9 +3,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
 import { useNotificationStore } from '../store/notificationStore';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 
 import { HomeScreen } from '../screens/client/HomeScreen';
 import { BlogListScreen } from '../screens/client/BlogListScreen';
@@ -133,7 +134,11 @@ function TabBarBadge({ count }: { count: number }) {
 export function MainNavigator() {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
+
+  const bottomPad = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 6);
+  const tabBarHeight = 52 + bottomPad;
 
   return (
     <Tab.Navigator
@@ -142,12 +147,15 @@ export function MainNavigator() {
         tabBarStyle: {
           backgroundColor: colors.tabBar,
           borderTopColor: colors.tabBarBorder,
-          paddingBottom: 4,
-          height: 60,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          paddingTop: 8,
+          paddingBottom: bottomPad,
+          height: tabBarHeight,
         },
         tabBarActiveTintColor: colors.tabActive,
         tabBarInactiveTintColor: colors.tabInactive,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarItemStyle: { paddingTop: 2 },
       }}
     >
       <Tab.Screen
@@ -155,8 +163,8 @@ export function MainNavigator() {
         component={HomeStackNavigator}
         options={{
           tabBarLabel: t('tabs.home'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={size} color={color} />
           ),
         }}
       />
@@ -165,8 +173,8 @@ export function MainNavigator() {
         component={ServicesStackNavigator}
         options={{
           tabBarLabel: t('tabs.services'),
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cut-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'cut' : 'cut-outline'} size={size} color={color} />
           ),
         }}
       />
@@ -185,9 +193,9 @@ export function MainNavigator() {
         component={ProfileStackNavigator}
         options={{
           tabBarLabel: t('tabs.profile'),
-          tabBarIcon: ({ color, size }) => (
+          tabBarIcon: ({ color, size, focused }) => (
             <View>
-              <Ionicons name="person-outline" size={size} color={color} />
+              <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
               <TabBarBadge count={unreadCount} />
             </View>
           ),

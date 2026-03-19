@@ -5,12 +5,14 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
-  Dimensions,
+  useWindowDimensions,
   ListRenderItem,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import api, { getUploadUrl } from '../../services/api';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { spacing } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
 import type { HomeScreenProps } from '../../navigation/types';
@@ -22,11 +24,12 @@ interface BeforeAfterPair {
 }
 
 const PAGE_SIZE = 10;
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SLIDER_SIZE = SCREEN_WIDTH - spacing.md * 2;
 
 export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) {
   const { colors } = useTheme();
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const sliderSize = width - spacing.md * 2;
   const [items, setItems] = useState<BeforeAfterPair[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -69,12 +72,12 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
         <BeforeAfterSlider
           beforeSrc={getUploadUrl(item.before.pathMedium ?? item.before.pathThumb ?? item.before.pathOriginal)}
           afterSrc={getUploadUrl(item.after.pathMedium ?? item.after.pathThumb ?? item.after.pathOriginal)}
-          width={SLIDER_SIZE}
-          height={SLIDER_SIZE}
+          width={sliderSize}
+          height={sliderSize}
         />
       </View>
     ),
-    [],
+    [sliderSize],
   );
 
   const keyExtractor = useCallback((item: BeforeAfterPair) => item.id, []);
@@ -106,13 +109,12 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
         data={items}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: spacing.lg + insets.bottom + 8 }]}
+        contentInsetAdjustmentBehavior="automatic"
         onEndReached={onEndReached}
         onEndReachedThreshold={0.4}
         ListEmptyComponent={
-          <Text style={[styles.empty, { color: colors.textSecondary }]}>
-            Nema prikazanih transformacija.
-          </Text>
+          <EmptyState icon="images-outline" title="Nema transformacija" message="Kada budu dostupne, pojaviće se ovdje." />
         }
         ListFooterComponent={ListFooter}
       />

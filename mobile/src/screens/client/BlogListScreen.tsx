@@ -7,7 +7,9 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
@@ -20,6 +22,7 @@ import type { BlogPost } from '../../types';
 export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,7 +63,8 @@ export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
       ListEmptyComponent={
         <EmptyState icon="newspaper-outline" title={t('blog.noPosts')} />
       }
-      renderItem={({ item }) => (
+      renderItem={({ item, index }) => (
+        <Animated.View entering={FadeInUp.delay(Math.min(index, 10) * 55).duration(340).springify()}>
         <Card
           onPress={() => navigation.navigate('BlogPost', { slug: item.slug })}
           style={styles.card}
@@ -91,6 +95,7 @@ export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
             </Text>
           </View>
         </Card>
+        </Animated.View>
       )}
     />
   );

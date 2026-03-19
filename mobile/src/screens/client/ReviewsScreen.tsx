@@ -9,6 +9,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
@@ -40,6 +41,7 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
   const { reservationId, serviceId } = route.params || {};
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [services, setServices] = useState<Service[]>([]);
   const [selectedServiceId, setSelectedServiceId] = useState(serviceId || '');
@@ -100,8 +102,10 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+      contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
       {!serviceId && services.length > 0 && (
         <Card style={{ marginBottom: spacing.md }}>

@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInRight } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -28,6 +30,7 @@ const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
 export function NotificationsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { notifications, isLoading, fetch, markAsRead } = useNotificationStore();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -44,7 +47,8 @@ export function NotificationsScreen() {
     return ICON_MAP[type] || 'notifications-outline';
   };
 
-  const renderItem = ({ item }: { item: Notification }) => (
+  const renderItem = ({ item, index }: { item: Notification; index: number }) => (
+    <Animated.View entering={FadeInRight.delay(Math.min(index, 14) * 40).duration(280).springify()}>
     <TouchableOpacity
       onPress={() => !item.isRead && markAsRead(item.id)}
       style={[
@@ -52,6 +56,7 @@ export function NotificationsScreen() {
         {
           backgroundColor: item.isRead ? colors.background : colors.accentLight,
           borderBottomColor: colors.borderLight,
+          borderCurve: 'continuous',
         },
       ]}
     >
@@ -78,6 +83,7 @@ export function NotificationsScreen() {
         <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />
       )}
     </TouchableOpacity>
+    </Animated.View>
   );
 
   if (isLoading && notifications.length === 0) {
@@ -94,7 +100,12 @@ export function NotificationsScreen() {
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={notifications.length === 0 ? styles.emptyList : undefined}
+      contentContainerStyle={
+        notifications.length === 0
+          ? styles.emptyList
+          : { paddingBottom: spacing.md + insets.bottom + 8 }
+      }
+      contentInsetAdjustmentBehavior="automatic"
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }

@@ -7,7 +7,9 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
@@ -20,6 +22,7 @@ import type { ServiceCategory } from '../../types';
 export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,7 +60,9 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
       contentContainerStyle={[
         styles.list,
         categories.length === 0 && styles.emptyList,
+        { paddingBottom: spacing.lg + insets.bottom + 8 },
       ]}
+      contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: colors.background }}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -68,36 +73,38 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
           title={t('services.noServices')}
         />
       }
-      renderItem={({ item }) => (
-        <Card
-          onPress={() =>
-            navigation.navigate('ServiceDetail', {
-              categoryId: item.id,
-              categoryName: item.name,
-            })
-          }
-          style={styles.card}
-        >
-          <View style={styles.cardContent}>
-            <View style={[styles.iconContainer, { backgroundColor: colors.accent }]}>
-              <Ionicons name="cut" size={24} color={colors.primary} />
-            </View>
-            <View style={styles.cardText}>
-              <Text style={[styles.categoryName, { color: colors.text }]}>
-                {item.name}
-              </Text>
-              {item.description && (
-                <Text
-                  style={[styles.categoryDesc, { color: colors.textSecondary }]}
-                  numberOfLines={2}
-                >
-                  {item.description}
+      renderItem={({ item, index }) => (
+        <Animated.View entering={FadeInDown.delay(Math.min(index, 12) * 50).duration(320).springify()}>
+          <Card
+            onPress={() =>
+              navigation.navigate('ServiceDetail', {
+                categoryId: item.id,
+                categoryName: item.name,
+              })
+            }
+            style={styles.card}
+          >
+            <View style={styles.cardContent}>
+              <View style={[styles.iconContainer, { backgroundColor: colors.accent }]}>
+                <Ionicons name="cut" size={24} color={colors.primary} />
+              </View>
+              <View style={styles.cardText}>
+                <Text style={[styles.categoryName, { color: colors.text }]}>
+                  {item.name}
                 </Text>
-              )}
+                {item.description && (
+                  <Text
+                    style={[styles.categoryDesc, { color: colors.textSecondary }]}
+                    numberOfLines={2}
+                  >
+                    {item.description}
+                  </Text>
+                )}
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-          </View>
-        </Card>
+          </Card>
+        </Animated.View>
       )}
     />
   );
@@ -116,6 +123,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
+    borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,

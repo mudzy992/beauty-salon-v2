@@ -34,6 +34,7 @@ module.exports = {
       favicon: './assets/icon.png',
     },
     plugins: [
+      'react-native-edge-to-edge',
       'expo-secure-store',
       'expo-localization',
       [

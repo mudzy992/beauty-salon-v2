@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { Card } from '../../components/ui/Card';
@@ -10,6 +11,7 @@ import type { Reservation, DailyLogEntry } from '../../types';
 
 export function StylistStatsScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { profileId, loading: profileLoading } = useStylistProfile();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [dailyLog, setDailyLog] = useState<DailyLogEntry[]>([]);
@@ -94,7 +96,8 @@ export function StylistStatsScreen() {
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+      contentInsetAdjustmentBehavior="automatic"
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
@@ -130,9 +133,9 @@ export function StylistStatsScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { padding: spacing.md, paddingBottom: spacing.xxl },
+  content: { padding: spacing.md },
   period: { fontSize: 14, marginBottom: spacing.md, textTransform: 'capitalize' },
   card: { marginBottom: spacing.sm },
-  statValue: { fontSize: 28, fontWeight: '700' },
+  statValue: { fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] },
   statLabel: { fontSize: 14, marginTop: 4 },
 });

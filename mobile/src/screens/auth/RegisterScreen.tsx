@@ -9,19 +9,22 @@ import {
   Alert,
   TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
 import { spacing } from '../../theme';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import type { AuthScreenProps } from '../../navigation/types';
 import { AxiosError } from 'axios';
 
 export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { register, isLoading } = useAuthStore();
 
   const [form, setForm] = useState({
@@ -79,16 +82,20 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
         style={styles.flex}
       >
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+          contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.title, { color: colors.text }]}>
+          <Text style={[styles.title, { color: colors.text }]} selectable>
             {t('auth.registerTitle')}
           </Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]} selectable>
             {t('auth.registerSubtitle')}
           </Text>
 
+          <Animated.View entering={FadeInUp.duration(400).springify()}>
+            <Card style={{ marginBottom: spacing.md }}>
           <View style={styles.row}>
             <View style={styles.halfInput}>
               <Input
@@ -161,6 +168,8 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
             fullWidth
             style={{ marginTop: spacing.sm }}
           />
+            </Card>
+          </Animated.View>
 
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: colors.textSecondary }]}>

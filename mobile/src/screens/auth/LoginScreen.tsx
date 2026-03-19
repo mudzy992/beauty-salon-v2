@@ -9,10 +9,11 @@ import {
   Alert,
   TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
@@ -20,6 +21,7 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import api, { getImageUrl } from '../../services/api';
 import { spacing, borderRadius } from '../../theme';
+import { cardElevationStyle } from '../../theme/shadows';
 import { fontFamily } from '../../theme/fonts';
 import type { AuthScreenProps } from '../../navigation/types';
 import { AxiosError } from 'axios';
@@ -56,7 +58,8 @@ function getLoginErrorMessage(error: unknown): string {
 
 export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { login, isLoading } = useAuthStore();
 
   const [settings, setSettings] = useState<{ key: string; value: string }[] | null>(null);
@@ -104,7 +107,8 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
           style={styles.flex}
         >
           <ScrollView
-            contentContainerStyle={styles.scroll}
+            contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxl + insets.bottom + 12 }]}
+            contentInsetAdjustmentBehavior="automatic"
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
@@ -124,7 +128,19 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
             </View>
 
             {/* Form card */}
-            <View style={[styles.formCard, { backgroundColor: colors.surface }]}>
+            <Animated.View
+              entering={FadeInDown.duration(420).springify()}
+              style={[
+                styles.formCard,
+                {
+                  backgroundColor: colors.card,
+                  borderCurve: 'continuous',
+                  borderWidth: isDark ? 0 : 1,
+                  borderColor: colors.borderLight,
+                },
+                cardElevationStyle(isDark),
+              ]}
+            >
               <Text style={[styles.formLabel, { color: colors.textSecondary }]}>
                 {t('auth.login')}
               </Text>
@@ -155,7 +171,7 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
                 fullWidth
                 style={{ marginTop: spacing.sm }}
               />
-            </View>
+            </Animated.View>
 
             <View style={styles.footer}>
               <Text style={[styles.footerText, { color: colors.champagne }]}>
@@ -224,7 +240,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: borderRadius.xl,
     marginBottom: spacing.xl,
-    overflow: 'hidden',
   },
   formLabel: {
     fontSize: 13,

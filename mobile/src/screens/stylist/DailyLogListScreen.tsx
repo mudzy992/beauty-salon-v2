@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
@@ -38,6 +39,7 @@ type Section = { title: string; data: DailyLogEntry[] };
 
 export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { profileId, loading: profileLoading } = useStylistProfile();
   const [entries, setEntries] = useState<DailyLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -158,7 +160,12 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
     <SectionList
       sections={sections}
       keyExtractor={(e) => e.id}
-      contentContainerStyle={[styles.list, sections.length === 0 && styles.emptyList]}
+      contentContainerStyle={[
+        styles.list,
+        sections.length === 0 && styles.emptyList,
+        { paddingBottom: spacing.lg + insets.bottom + 8 },
+      ]}
+      contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: colors.background }}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />

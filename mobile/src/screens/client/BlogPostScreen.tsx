@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useTheme } from '../../hooks/useTheme';
 import api, { getImageUrl } from '../../services/api';
@@ -17,6 +18,7 @@ import type { BlogPost } from '../../types';
 export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'>) {
   const { slug } = route.params;
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const { width } = useWindowDimensions();
@@ -51,7 +53,9 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: spacing.xxl + insets.bottom + 8 }]}
+      contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}
     >
       {post.heroImage && (
         <Image
@@ -74,7 +78,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
           {post.author && ` · ${post.author.firstName} ${post.author.lastName}`}
         </Text>
 
-        <Text style={[styles.contentText, { color: colors.text }]}>
+        <Text style={[styles.contentText, { color: colors.text }]} selectable>
           {post.content.replace(/<[^>]+>/g, '')}
         </Text>
       </View>
@@ -84,8 +88,8 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { paddingBottom: spacing.xxl },
-  hero: { height: 220 },
+  content: {},
+  hero: { height: 220, borderCurve: 'continuous' },
   body: { padding: spacing.lg },
   title: { fontSize: 24, fontWeight: '700', lineHeight: 32 },
   date: { fontSize: 13, marginTop: spacing.sm, marginBottom: spacing.lg },

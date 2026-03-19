@@ -1,9 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { View, Image, StyleSheet, PanResponder, Dimensions } from 'react-native';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SLIDER_WIDTH = SCREEN_WIDTH * 0.85;
-const SLIDER_HEIGHT = SLIDER_WIDTH;
+import { View, StyleSheet, PanResponder, useWindowDimensions } from 'react-native';
+import { Image } from 'expo-image';
+import { useTheme } from '../hooks/useTheme';
+import { borderRadius } from '../theme';
 
 interface BeforeAfterSliderProps {
   beforeSrc: string;
@@ -12,12 +11,19 @@ interface BeforeAfterSliderProps {
   height?: number;
 }
 
+const HANDLE_HIT = 44;
+
 export function BeforeAfterSlider({
   beforeSrc,
   afterSrc,
-  width = SLIDER_WIDTH,
-  height = SLIDER_HEIGHT,
+  width: widthProp,
+  height: heightProp,
 }: BeforeAfterSliderProps) {
+  const { width: winW } = useWindowDimensions();
+  const { colors, isDark } = useTheme();
+  const width = widthProp ?? winW * 0.85;
+  const height = heightProp ?? width;
+
   const [position, setPosition] = useState(0.5);
 
   const panResponder = useRef(
@@ -36,21 +42,26 @@ export function BeforeAfterSlider({
     }),
   ).current;
 
+  const lineColor = isDark ? colors.gray100 : colors.white;
+  const knobBorder = colors.border;
+
   return (
     <View
-      style={[styles.container, { width, height }]}
+      style={[styles.container, { width, height, borderRadius: borderRadius.lg }]}
       {...panResponder.panHandlers}
     >
-      <Image source={{ uri: beforeSrc }} style={styles.beforeImage} resizeMode="cover" />
+      <Image source={{ uri: beforeSrc }} style={styles.beforeImage} contentFit="cover" />
       <View style={[styles.afterClip, { width: width * position }]}>
         <Image
           source={{ uri: afterSrc }}
           style={[styles.afterImage, { width }]}
-          resizeMode="cover"
+          contentFit="cover"
         />
       </View>
-      <View style={[styles.handle, { left: width * position - 2 }]}>
-        <View style={styles.handleKnob} />
+      <View style={[styles.handleLine, { left: width * position - 2, backgroundColor: lineColor }]}>
+        <View style={[styles.handleKnob, { borderColor: knobBorder, backgroundColor: colors.card }]}>
+          <View style={[styles.handleGrip, { backgroundColor: colors.primary }]} />
+        </View>
       </View>
     </View>
   );
@@ -59,7 +70,6 @@ export function BeforeAfterSlider({
 const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
-    borderRadius: 16,
     backgroundColor: '#eee',
   },
   beforeImage: {
@@ -80,26 +90,27 @@ const styles = StyleSheet.create({
     left: 0,
     height: '100%',
   },
-  handle: {
+  handleLine: {
     position: 'absolute',
     top: 0,
     width: 4,
     height: '100%',
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    boxShadow: '0 0 10px rgba(0,0,0,0.25)',
+  },
+  handleKnob: {
+    width: HANDLE_HIT,
+    height: HANDLE_HIT,
+    borderRadius: HANDLE_HIT / 2,
+    borderWidth: 2,
+    borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  handleKnob: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#eee',
+  handleGrip: {
+    width: 4,
+    height: 22,
+    borderRadius: 2,
   },
 });

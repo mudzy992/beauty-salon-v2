@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   ImageBackground,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeInRight } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
@@ -27,6 +29,7 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
   const { categoryId, categoryName } = route.params;
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -63,15 +66,17 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
       sections={sections}
       keyExtractor={(item) => item.id}
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.list}
+      contentContainerStyle={[styles.list, { paddingBottom: spacing.md + insets.bottom + 8 }]}
+      contentInsetAdjustmentBehavior="automatic"
       renderSectionHeader={({ section: { title } }) => (
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
           {title}
         </Text>
       )}
-      renderItem={({ item }) => {
+      renderItem={({ item, index }) => {
         const heroUri = item.heroImage ? getUploadUrl(item.heroImage) : null;
         return (
+          <Animated.View entering={FadeInRight.delay(Math.min(index, 8) * 45).duration(320).springify()}>
           <Card style={{ ...styles.card, ...styles.cardBackdrop }}>
             {heroUri ? (
               <ImageBackground
@@ -168,6 +173,7 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
               </View>
             )}
           </Card>
+          </Animated.View>
         );
       }}
     />
@@ -205,9 +211,9 @@ const styles = StyleSheet.create({
   metaText: { fontSize: 13 },
   cardBackdrop: { overflow: 'hidden', padding: 0 },
   cardBackdropImage: { minHeight: 100, padding: spacing.md, justifyContent: 'flex-end' },
-  cardBackdropImageStyle: { borderRadius: 12 },
-  cardBackdropOverlay: { ...StyleSheet.absoluteFillObject, borderRadius: 12 },
-  cardBackdropPlaceholder: { padding: spacing.md, borderRadius: 12 },
+  cardBackdropImageStyle: { borderRadius: 16, borderCurve: 'continuous' },
+  cardBackdropOverlay: { ...StyleSheet.absoluteFillObject, borderRadius: 16, borderCurve: 'continuous' },
+  cardBackdropPlaceholder: { padding: spacing.md, borderRadius: 16, borderCurve: 'continuous' },
   serviceNameOverlay: { color: '#fff', textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
   serviceDescOverlay: { color: 'rgba(255,255,255,0.9)', marginTop: 2 },
   metaTextOverlay: { fontSize: 13, color: 'rgba(255,255,255,0.95)' },

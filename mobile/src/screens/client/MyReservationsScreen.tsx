@@ -12,6 +12,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
@@ -38,6 +40,7 @@ const CONFIRMABLE: ReservationStatus[] = ['CONFIRMED'];
 export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'MyReservations'>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -189,7 +192,9 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
       contentContainerStyle={[
         styles.list,
         reservations.length === 0 && styles.emptyList,
+        { paddingBottom: spacing.lg + insets.bottom + 8 },
       ]}
+      contentInsetAdjustmentBehavior="automatic"
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
@@ -208,6 +213,7 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
         </Text>
       )}
       renderItem={({ item }) => (
+        <Animated.View layout={LinearTransition.springify().damping(18)}>
         <Card style={styles.card}>
           <View style={styles.cardHeader}>
             <Text style={[styles.serviceName, { color: colors.text }]}>
@@ -251,7 +257,7 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
             )}
           </View>
 
-          <View style={styles.actions}>
+          <View style={[styles.actions, { borderTopColor: colors.borderLight }]}>
             {item.rescheduleStatus === 'PENDING' && (
               <>
                 <Button
@@ -309,6 +315,7 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
             )}
           </View>
         </Card>
+        </Animated.View>
       )}
     />
 
@@ -384,8 +391,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
     marginTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: spacing.sm,
   },
   confirmedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },

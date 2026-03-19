@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Switch, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { Card } from '../../components/ui/Card';
@@ -34,6 +35,7 @@ type Props = {
 export function ReschedulePreviewScreen({ route, navigation }: Props) {
   const { reservationId } = route.params;
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [includeBreaks, setIncludeBreaks] = useState(route.params.includeBreaks === true);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -101,7 +103,12 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
   }
 
   return (
-    <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
+    <ScrollView
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={[styles.container, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+      contentInsetAdjustmentBehavior="automatic"
+      showsVerticalScrollIndicator={false}
+    >
       <Card style={[styles.card, { borderColor: colors.border }]}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>

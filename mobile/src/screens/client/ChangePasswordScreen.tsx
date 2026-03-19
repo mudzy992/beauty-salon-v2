@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
@@ -12,6 +13,7 @@ import type { ProfileScreenProps } from '../../navigation/types';
 export function ChangePasswordScreen({ navigation }: ProfileScreenProps<'ChangePassword'>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -56,8 +58,10 @@ export function ChangePasswordScreen({ navigation }: ProfileScreenProps<'ChangeP
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxl + insets.bottom + 8 }]}
+        contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <Card style={[styles.card, { backgroundColor: colors.surface }]}>
           <Input

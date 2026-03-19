@@ -1,6 +1,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../hooks/useTheme';
 import { StylistInboxScreen } from '../screens/stylist/StylistInboxScreen';
 import { StylistProfileScreen } from '../screens/stylist/StylistProfileScreen';
@@ -13,6 +15,9 @@ const Tab = createBottomTabNavigator<StylistTabParamList>();
 
 export function StylistNavigator() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomPad = Math.max(insets.bottom, Platform.OS === 'android' ? 8 : 6);
+  const tabBarHeight = 52 + bottomPad;
 
   return (
     <Tab.Navigator
@@ -21,15 +26,19 @@ export function StylistNavigator() {
         headerStyle: { backgroundColor: colors.headerBg },
         headerTintColor: colors.headerText,
         headerTitleStyle: { fontWeight: '600' },
+        headerShadowVisible: false,
         tabBarStyle: {
           backgroundColor: colors.tabBar,
           borderTopColor: colors.tabBarBorder,
-          paddingBottom: 4,
-          height: 60,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          paddingTop: 6,
+          paddingBottom: bottomPad,
+          height: tabBarHeight,
         },
         tabBarActiveTintColor: colors.tabActive,
         tabBarInactiveTintColor: colors.tabInactive,
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '500' },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
+        tabBarItemStyle: { paddingTop: 2 },
       }}
     >
       <Tab.Screen
@@ -38,8 +47,8 @@ export function StylistNavigator() {
         options={{
           title: 'Zahtjevi',
           tabBarLabel: 'Inbox',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="mail-unread-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'mail-unread' : 'mail-unread-outline'} size={size} color={color} />
           ),
         }}
       />
@@ -49,8 +58,8 @@ export function StylistNavigator() {
         options={{
           headerShown: false,
           tabBarLabel: 'Dnevnik',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="document-text-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'document-text' : 'document-text-outline'} size={size} color={color} />
           ),
         }}
       />
@@ -60,8 +69,8 @@ export function StylistNavigator() {
         options={{
           headerShown: false,
           tabBarLabel: 'Raspored',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={size} color={color} />
           ),
         }}
       />
@@ -71,8 +80,8 @@ export function StylistNavigator() {
         options={{
           title: 'Statistika',
           tabBarLabel: 'Statistika',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="stats-chart-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'stats-chart' : 'stats-chart-outline'} size={size} color={color} />
           ),
         }}
       />
@@ -82,8 +91,8 @@ export function StylistNavigator() {
         options={{
           title: 'Profil',
           tabBarLabel: 'Profil',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={size} color={color} />
           ),
         }}
       />

@@ -6,9 +6,9 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,8 +32,6 @@ interface BeforeAfterPair {
   after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_WIDTH = SCREEN_WIDTH * 0.42;
 const HERO_HEIGHT = 300;
 
 const DEFAULT_HERO_IMAGE = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=2000';
@@ -58,8 +56,11 @@ function resolveHeroImageUrl(value: string): string {
 
 export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const { t } = useTranslation();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+  const { width: screenWidth } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
+  const cardWidth = screenWidth * 0.42;
 
   const [settings, setSettings] = useState<{ key: string; value: string }[] | null>(null);
   const [categoriesWithServices, setCategoriesWithServices] = useState<CategoryWithServices[]>([]);
@@ -139,12 +140,13 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxl + insets.bottom + 8 }]}
+        contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
         {/* Hero with image from settings */}
         <Animated.View entering={FadeInDown.duration(500).springify()} style={styles.heroWrap}>
-          <View style={[styles.hero, { minHeight: HERO_HEIGHT }]}>
+          <View style={[styles.hero, { minHeight: HERO_HEIGHT, borderCurve: 'continuous' }]}>
             <Image
               source={{ uri: heroImageUrl }}
               style={StyleSheet.absoluteFill}
@@ -223,7 +225,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     }
                     style={styles.serviceCardWrap}
                   >
-                    <View style={[styles.serviceCard, { width: CARD_WIDTH }]}>
+                    <View style={[styles.serviceCard, { width: cardWidth }]}>
                       {service.heroImage ? (
                         <Image
                           source={{ uri: getImageUrl(service.heroImage) }}
@@ -273,7 +275,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 <BeforeAfterSlider
                   beforeSrc={getUploadUrl(beforeAfterPairs[0].before.pathMedium ?? beforeAfterPairs[0].before.pathThumb ?? beforeAfterPairs[0].before.pathOriginal)}
                   afterSrc={getUploadUrl(beforeAfterPairs[0].after.pathMedium ?? beforeAfterPairs[0].after.pathThumb ?? beforeAfterPairs[0].after.pathOriginal)}
-                  width={SCREEN_WIDTH - spacing.md * 4}
+                  width={screenWidth - spacing.md * 4}
                   height={180}
                 />
               </View>
@@ -363,7 +365,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  scroll: { paddingBottom: spacing.xxl },
+  scroll: {},
   heroWrap: { marginBottom: spacing.lg },
   hero: {
     overflow: 'hidden',

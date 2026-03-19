@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Pressable, type StyleProp, type ViewStyle } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { borderRadius, spacing } from '../../theme';
+import { cardElevationStyle } from '../../theme/shadows';
 
 interface CardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   padded?: boolean;
 }
@@ -18,32 +19,19 @@ export function Card({ children, style, onPress, padded = true }: CardProps) {
     borderRadius: borderRadius.lg,
     borderWidth: isDark ? 0 : 1,
     borderColor: colors.borderLight,
-    ...(isDark
-      ? {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.3,
-          shadowRadius: 4,
-          elevation: 4,
-        }
-      : {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.08,
-          shadowRadius: 3,
-          elevation: 2,
-        }),
+    borderCurve: 'continuous',
+    ...cardElevationStyle(isDark),
   };
 
   if (onPress) {
     return (
-      <TouchableOpacity
-        activeOpacity={0.7}
+      <Pressable
+        accessibilityRole="button"
         onPress={onPress}
-        style={[cardStyle, padded && styles.padded, style]}
+        style={({ pressed }) => [cardStyle, padded && styles.padded, { opacity: pressed ? 0.92 : 1 }, style]}
       >
         {children}
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 

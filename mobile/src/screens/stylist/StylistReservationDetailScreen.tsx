@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
@@ -34,6 +35,7 @@ type Props = NativeStackScreenProps<
 export function StylistReservationDetailScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { profileId } = useStylistProfile();
   const reservationId = route.params.reservationId;
 
@@ -239,10 +241,10 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
 
       // UX: nakon unosa naplate prebacujemo stilistu u Dnevnik -> detalji zapisa,
       // gdje može dodati before/after i završiti zapis (što će i završiti rezervaciju).
-      navigation.getParent()?.navigate('DailyLogTab' as never, {
-        screen: 'DailyLogDetail',
-        params: { entryId: entry.id },
-      } as never);
+      (navigation.getParent() as { navigate: (name: string, params: object) => void } | undefined)?.navigate(
+        'DailyLogTab',
+        { screen: 'DailyLogDetail', params: { entryId: entry.id } },
+      );
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
@@ -279,8 +281,10 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     <>
       <ScrollView
         style={{ backgroundColor: colors.background }}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+        contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        showsVerticalScrollIndicator={false}
       >
         <Card style={[styles.card, { borderWidth: 1, borderColor: colors.border }]}>
           <View style={[styles.headerRow, { borderBottomColor: colors.border }]}>
@@ -491,7 +495,7 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { padding: spacing.md, paddingBottom: spacing.xxl },
+  content: { padding: spacing.md },
   card: { marginBottom: spacing.md },
   headerRow: { flexDirection: 'row', gap: 10, paddingBottom: spacing.sm, marginBottom: spacing.sm, borderBottomWidth: 1 },
   serviceName: { fontSize: 18, fontWeight: '800' },

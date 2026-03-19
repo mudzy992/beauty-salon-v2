@@ -1,5 +1,8 @@
+import './global.css';
 import React, { useEffect } from 'react';
-import { LogBox } from 'react-native';
+import { LogBox, Platform } from 'react-native';
+import * as SystemUI from 'expo-system-ui';
+import * as NavigationBar from 'expo-navigation-bar';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -22,11 +25,21 @@ import './src/i18n';
 LogBox.ignoreLogs(['ExpoKeepAwake', 'current activity is no longer available']);
 
 function AppContent() {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
   const { isInitialized, initialize, user } = useAuthStore();
   const fetchNotifications = useNotificationStore((s) => s.fetch);
 
   usePushNotifications();
+
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(colors.background);
+  }, [colors.background]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    void NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
+    void NavigationBar.setBackgroundColorAsync(colors.background);
+  }, [isDark, colors.background]);
 
   useEffect(() => {
     initialize();

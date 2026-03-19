@@ -10,6 +10,7 @@ import {
   FlatList,
   Modal,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { Card } from '../../components/ui/Card';
@@ -46,6 +47,7 @@ type DailyLogNewEntryScreenProps = {
 
 export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { profileId, loading: profileLoading } = useStylistProfile();
   const [services, setServices] = useState<Service[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
@@ -222,8 +224,10 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     <>
       <ScrollView
         style={{ backgroundColor: colors.background }}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: spacing.xxl + insets.bottom + 8 }]}
+        contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <Card style={styles.card}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Servis</Text>
@@ -307,7 +311,6 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
         <Text style={[styles.hint, { color: colors.textMuted }]}>
           Nakon kreiranja možete dodati before/after slike i završiti zapis u detalju.
         </Text>
-        <View style={{ height: spacing.xxl }} />
       </ScrollView>
 
       <Modal visible={showServicePicker} animationType="slide" transparent>

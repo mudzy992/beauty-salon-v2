@@ -11,21 +11,29 @@ interface InputProps extends TextInputProps {
   isPassword?: boolean;
 }
 
-export function Input({ label, error, leftIcon, isPassword, style, ...props }: InputProps) {
+export function Input({ label, error, leftIcon, isPassword, style, onFocus, onBlur, ...props }: InputProps) {
   const { colors } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
+  const [focused, setFocused] = useState(false);
+
+  const borderColor = error ? colors.error : focused ? colors.primary : colors.inputBorder;
+  const borderWidth = focused && !error ? 2 : 1;
 
   return (
     <View style={styles.container}>
       {label && (
-        <Text style={[styles.label, { color: colors.textSecondary }]}>{label}</Text>
+        <Text style={[styles.label, { color: colors.textSecondary }]} selectable>
+          {label}
+        </Text>
       )}
       <View
         style={[
           styles.inputContainer,
           {
             backgroundColor: colors.inputBg,
-            borderColor: error ? colors.error : colors.inputBorder,
+            borderColor,
+            borderWidth,
+            borderCurve: 'continuous',
           },
         ]}
       >
@@ -33,11 +41,12 @@ export function Input({ label, error, leftIcon, isPassword, style, ...props }: I
           <Ionicons
             name={leftIcon}
             size={20}
-            color={colors.textMuted}
+            color={focused ? colors.primary : colors.textMuted}
             style={styles.leftIcon}
           />
         )}
         <TextInput
+          {...props}
           style={[
             styles.input,
             { color: colors.inputText },
@@ -46,12 +55,21 @@ export function Input({ label, error, leftIcon, isPassword, style, ...props }: I
           ]}
           placeholderTextColor={colors.inputPlaceholder}
           secureTextEntry={isPassword && !showPassword}
-          {...props}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
         />
         {isPassword && (
           <TouchableOpacity
             onPress={() => setShowPassword(!showPassword)}
             style={styles.eyeIcon}
+            accessibilityRole="button"
+            accessibilityLabel={showPassword ? 'Sakrij lozinku' : 'Prikaži lozinku'}
           >
             <Ionicons
               name={showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -61,7 +79,11 @@ export function Input({ label, error, leftIcon, isPassword, style, ...props }: I
           </TouchableOpacity>
         )}
       </View>
-      {error && <Text style={[styles.error, { color: colors.error }]}>{error}</Text>}
+      {error && (
+        <Text style={[styles.error, { color: colors.error }]} selectable>
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
@@ -78,7 +100,6 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
   },

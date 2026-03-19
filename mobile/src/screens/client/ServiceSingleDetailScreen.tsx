@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   ImageBackground,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
@@ -25,6 +26,7 @@ export function ServiceSingleDetailScreen({
   const { serviceId, serviceName } = route.params;
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const [service, setService] = useState<Service | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +76,8 @@ export function ServiceSingleDetailScreen({
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+      contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
       {/* Hero / backdrop */}
@@ -175,18 +178,20 @@ export function ServiceSingleDetailScreen({
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  container: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
+  container: { padding: spacing.md },
   heroWrap: {
     borderRadius: 16,
+    borderCurve: 'continuous',
     overflow: 'hidden',
     marginBottom: spacing.md,
     minHeight: 180,
   },
   heroImage: { flex: 1, minHeight: 180, justifyContent: 'flex-end' },
-  heroImageStyle: { borderRadius: 16 },
+  heroImageStyle: { borderRadius: 16, borderCurve: 'continuous' },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 16,
+    borderCurve: 'continuous',
   },
   heroContent: {
     padding: spacing.lg,
