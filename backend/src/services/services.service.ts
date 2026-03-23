@@ -12,6 +12,31 @@ import { Prisma } from '@prisma/client';
 export class ServicesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getPublicHomeStats() {
+    const [servicesCount, clientsCount] = await Promise.all([
+      this.prisma.service.count({
+        where: { isActive: true },
+      }),
+      this.prisma.user.count({
+        where: {
+          isActive: true,
+          userRoles: {
+            some: {
+              role: {
+                name: 'CLIENT',
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      servicesCount,
+      clientsCount,
+    };
+  }
+
   async findAllCategories(activeOnly = false) {
     return this.prisma.serviceCategory.findMany({
       where: activeOnly ? { isActive: true } : undefined,

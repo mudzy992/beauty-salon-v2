@@ -25,6 +25,12 @@ import { Public } from '../common/decorators/public.decorator';
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
+  @Get('home-stats')
+  @Public()
+  getPublicHomeStats() {
+    return this.servicesService.getPublicHomeStats();
+  }
+
   @Get('categories')
   @Public()
   findAllCategories(@Query('activeOnly') activeOnly?: string) {
