@@ -49,6 +49,7 @@ const PRESS_SPRING = { damping: 15, stiffness: 400 };
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const DEFAULT_HERO_IMAGE = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=2000';
+const DEFAULT_BLOG_IMAGE = 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&q=80&w=1200';
 
 interface CategoryWithServices {
   category: ServiceCategory;
@@ -66,6 +67,31 @@ function resolveHeroImageUrl(value: string): string {
   const v = value.trim();
   if (v.startsWith('http')) return v;
   return getImageUrl(v) || DEFAULT_HERO_IMAGE;
+}
+
+function resolveBlogImageUrl(value?: string): string {
+  if (!value?.trim()) return DEFAULT_BLOG_IMAGE;
+  const v = value.trim();
+  if (v.startsWith('http')) return v;
+  return getImageUrl(v) || DEFAULT_BLOG_IMAGE;
+}
+
+function formatBlogDate(value?: string): string {
+  if (!value) return '';
+  return new Date(value).toLocaleDateString('bs-BA', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function getBlogExcerpt(content: string, max = 110): string {
+  const plain = (content || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!plain) return 'Savjeti i inspiracija iz svijeta njege i frizerskih trendova.';
+  return plain.length > max ? `${plain.slice(0, max).trimEnd()}...` : plain;
 }
 
 function ServiceTilePress({
@@ -217,14 +243,6 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               pointerEvents="none"
             />
             <View style={[styles.heroContent, { paddingTop: insets.top }]}>
-              <Animated.View
-                entering={FadeInDown.delay(80).duration(480).springify()}
-                style={styles.heroDecoration}
-              >
-                <Ionicons name="sparkles" size={20} color={colors.primary} style={styles.heroSparkLeft} />
-                <View style={[styles.heroLine, { backgroundColor: colors.primary }]} />
-                <Ionicons name="sparkles" size={20} color={colors.primary} style={styles.heroSparkRight} />
-              </Animated.View>
               {user ? (
                 <Animated.View
                   entering={FadeInDown.delay(140).duration(400).springify()}
@@ -430,17 +448,37 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                   style={styles.blogCard}
                   onPress={() => navigation.navigate('BlogPost', { slug: post.slug })}
                 >
+                  <View style={styles.blogCoverWrap}>
+                    <Image
+                      source={{ uri: resolveBlogImageUrl(post.heroImage) }}
+                      style={styles.blogCover}
+                      contentFit="cover"
+                      transition={120}
+                    />
+                    <LinearGradient
+                      colors={['rgba(0,0,0,0.02)', 'rgba(0,0,0,0.5)']}
+                      style={styles.blogCoverOverlay}
+                      pointerEvents="none"
+                    />
+                    <View style={styles.blogTag}>
+                      <Ionicons name="newspaper-outline" size={12} color="#fff" />
+                      <Text style={styles.blogTagText}>Blog</Text>
+                    </View>
+                    {!!post.publishedAt && (
+                      <View style={styles.blogDatePill}>
+                        <Ionicons name="calendar-outline" size={11} color="#fff" />
+                        <Text style={styles.blogDatePillText}>{formatBlogDate(post.publishedAt)}</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text style={[styles.blogTitle, { color: colors.text }]} numberOfLines={2}>
                     {post.title}
                   </Text>
+                  <Text style={[styles.blogExcerpt, { color: colors.textSecondary }]} numberOfLines={2}>
+                    {getBlogExcerpt(post.content)}
+                  </Text>
                   <Text style={[styles.blogDate, { color: colors.textSecondary }]}>
-                    {post.publishedAt
-                      ? new Date(post.publishedAt).toLocaleDateString('bs-BA', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })
-                      : ''}
+                    {formatBlogDate(post.publishedAt)}
                   </Text>
                 </Card>
               </Animated.View>
@@ -536,7 +574,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   welcome: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: fontFamily.bodyMedium,
     letterSpacing: 0.45,
     lineHeight: 15,
@@ -625,15 +663,70 @@ const styles = StyleSheet.create({
   reviewQuote: { fontStyle: 'italic', fontSize: 15, lineHeight: 22, marginBottom: spacing.xs },
   reviewAuthor: { fontSize: 14, fontWeight: '600' },
   satisfiedCta: { paddingTop: spacing.sm, alignItems: 'center' },
-  blogCard: { marginBottom: spacing.sm },
+  blogCard: { marginBottom: spacing.sm, overflow: 'hidden' },
+  blogCoverWrap: {
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+  },
+  blogCover: {
+    width: '100%',
+    height: 158,
+    backgroundColor: 'rgba(0,0,0,0.08)',
+  },
+  blogCoverOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  blogTag: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  blogTagText: {
+    color: '#fff',
+    fontSize: 11,
+    fontFamily: fontFamily.bodySemiBold,
+    letterSpacing: 0.25,
+  },
+  blogDatePill: {
+    position: 'absolute',
+    right: spacing.sm,
+    bottom: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  blogDatePillText: {
+    color: '#fff',
+    fontSize: 11,
+    fontFamily: fontFamily.bodyMedium,
+    letterSpacing: 0.2,
+  },
   blogTitle: {
     fontSize: 17,
     fontFamily: fontFamily.bodySemiBold,
     lineHeight: 24,
   },
+  blogExcerpt: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: fontFamily.body,
+  },
   blogDate: {
     fontSize: 13,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
     fontFamily: fontFamily.body,
   },
 });
