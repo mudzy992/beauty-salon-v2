@@ -31,6 +31,12 @@ export class ServicesController {
     return this.servicesService.getPublicHomeStats();
   }
 
+  @Get('popular')
+  @Public()
+  getMostPopularService() {
+    return this.servicesService.getMostPopularService();
+  }
+
   @Get('categories')
   @Public()
   findAllCategories(@Query('activeOnly') activeOnly?: string) {

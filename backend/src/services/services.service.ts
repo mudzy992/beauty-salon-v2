@@ -37,6 +37,46 @@ export class ServicesService {
     };
   }
 
+  async getMostPopularService() {
+    const popular = await this.prisma.reservation.groupBy({
+      by: ['serviceId'],
+      where: {
+        status: {
+          notIn: ['CANCELLED_BY_CLIENT', 'CANCELLED_BY_STYLISTS', 'NO_SHOW'],
+        },
+      },
+      _count: {
+        serviceId: true,
+      },
+      orderBy: {
+        _count: {
+          serviceId: 'desc',
+        },
+      },
+      take: 1,
+    });
+
+    const top = popular[0];
+    if (!top) return null;
+
+    const service = await this.prisma.service.findFirst({
+      where: {
+        id: top.serviceId,
+        isActive: true,
+      },
+      include: {
+        subcategory: { include: { category: true } },
+      },
+    });
+
+    if (!service) return null;
+
+    return {
+      ...service,
+      reservationsCount: top._count.serviceId,
+    };
+  }
+
   async findAllCategories(activeOnly = false) {
     return this.prisma.serviceCategory.findMany({
       where: activeOnly ? { isActive: true } : undefined,
