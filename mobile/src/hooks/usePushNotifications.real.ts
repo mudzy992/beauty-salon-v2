@@ -5,7 +5,7 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import api from '../services/api';
 import { useAuthStore } from '../store/authStore';
-import { navigateToClientReservations } from '../navigation/navigationRef';
+import { useRouter } from 'expo-router';
 
 function resolveProjectId(): string | undefined {
   const fromEnv = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
@@ -82,6 +82,7 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
 export function usePushNotifications() {
   const user = useAuthStore((s) => s.user);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!user) {
@@ -116,7 +117,11 @@ export function usePushNotifications() {
 
       // Minimalni routing: reschedule/delay warning vodi korisnika na listu rezervacija (gdje ima accept/decline).
       if (kind === 'reservation_reschedule' || kind === 'delay_warning') {
-        navigateToClientReservations({ focusReservationId: reservationId });
+        if (reservationId) {
+          router.push({ pathname: '/reservations', params: { focusReservationId: reservationId } } as any);
+        } else {
+          router.push('/reservations');
+        }
       }
     });
 

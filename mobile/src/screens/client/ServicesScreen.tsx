@@ -7,7 +7,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +22,7 @@ import type { ServiceCategory } from '../../types';
 export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,7 +60,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
       contentContainerStyle={[
         styles.list,
         categories.length === 0 && styles.emptyList,
-        { paddingBottom: spacing.lg + insets.bottom + 8 },
+        { paddingBottom: spacing.lg + tabBarBottom },
       ]}
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: colors.background }}

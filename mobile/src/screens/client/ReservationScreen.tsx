@@ -11,7 +11,7 @@ import {
   FlatList,
   ImageBackground,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -47,7 +47,7 @@ type LoyaltyInfo = {
 export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Reservation'>) {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const initialServiceId = route.params?.serviceId;
 
   const [step, setStep] = useState<Step>(initialServiceId ? 2 : 1);
@@ -263,7 +263,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
           <FlatList
             data={filteredServices}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={[styles.listContent, { paddingBottom: spacing.lg + insets.bottom + 8 }]}
+            contentContainerStyle={[styles.listContent, { paddingBottom: spacing.lg + tabBarBottom }]}
             contentInsetAdjustmentBehavior="automatic"
             renderItem={({ item }) => {
               const heroUri = item.heroImage ? getUploadUrl(item.heroImage) : null;
@@ -299,7 +299,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       {/* Step 2: Select Date */}
       {step === 2 && (
         <ScrollView
-          contentContainerStyle={[styles.stepContent, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+          contentContainerStyle={[styles.stepContent, { paddingBottom: spacing.xl + tabBarBottom }]}
           contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
         >
@@ -351,7 +351,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       {/* Step 3: Select Time Slot */}
       {step === 3 && (
         <ScrollView
-          contentContainerStyle={[styles.stepContent, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+          contentContainerStyle={[styles.stepContent, { paddingBottom: spacing.xl + tabBarBottom }]}
           contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
         >
@@ -432,7 +432,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       {/* Step 4: Review & Submit */}
       {step === 4 && (
         <ScrollView
-          contentContainerStyle={[styles.stepContent, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+          contentContainerStyle={[styles.stepContent, { paddingBottom: spacing.xl + tabBarBottom }]}
           contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
         >
@@ -599,7 +599,7 @@ const styles = StyleSheet.create({
   serviceItemBackdrop: { minHeight: 80 },
   serviceItemBackdropImage: { minHeight: 80, padding: spacing.md, justifyContent: 'flex-end' },
   serviceItemBackdropImageStyle: { borderRadius: borderRadius.lg },
-  serviceItemBackdropOverlay: { ...StyleSheet.absoluteFillObject, borderRadius: borderRadius.lg },
+  serviceItemBackdropOverlay: { ...StyleSheet.absoluteFill, borderRadius: borderRadius.lg },
   serviceItemBackdropContent: { paddingTop: spacing.sm },
   serviceItemNameOverlay: { fontSize: 16, fontWeight: '600', color: '#fff', textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
   serviceItemDurationOverlay: { fontSize: 13, color: 'rgba(255,255,255,0.95)', marginTop: 2 },

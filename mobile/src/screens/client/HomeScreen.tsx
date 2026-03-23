@@ -7,12 +7,23 @@ import {
   RefreshControl,
   TouchableOpacity,
   useWindowDimensions,
+  Pressable,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { colorWithAlpha } from '../../theme/colorAlpha';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown, FadeInUp, FadeInRight } from 'react-native-reanimated';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  FadeInRight,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
@@ -23,6 +34,7 @@ import api, { getImageUrl, getUploadUrl } from '../../services/api';
 import { spacing, borderRadius } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import type { HomeScreenProps } from '../../navigation/types';
 import type { Service, BlogPost, ServiceCategory } from '../../types';
 
@@ -33,6 +45,8 @@ interface BeforeAfterPair {
 }
 
 const HERO_HEIGHT = 300;
+const PRESS_SPRING = { damping: 15, stiffness: 400 };
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const DEFAULT_HERO_IMAGE = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=2000';
 
@@ -54,11 +68,42 @@ function resolveHeroImageUrl(value: string): string {
   return getImageUrl(v) || DEFAULT_HERO_IMAGE;
 }
 
+function ServiceTilePress({
+  children,
+  onPress,
+  style,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  return (
+    <AnimatedPressable
+      accessibilityRole="button"
+      onPress={onPress}
+      onPressIn={() => {
+        scale.value = withSpring(0.97, PRESS_SPRING);
+      }}
+      onPressOut={() => {
+        scale.value = withSpring(1, { damping: 14, stiffness: 320 });
+      }}
+      style={[style, animatedStyle]}
+    >
+      {children}
+    </AnimatedPressable>
+  );
+}
+
 export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const user = useAuthStore((s) => s.user);
   const cardWidth = screenWidth * 0.42;
 
@@ -136,53 +181,91 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const heroTitle = getSettingValue(settings, 'public_hero_title', t('home.heroTitle'));
   const heroSubtitle = getSettingValue(settings, 'public_hero_subtitle', t('home.heroSubtitle'));
 
+  const heroBg = colors.background;
+  const heroBottomBlend: [string, string, string, string] = [
+    colorWithAlpha(heroBg, 0),
+    colorWithAlpha(heroBg, 0),
+    colorWithAlpha(heroBg, 0.88),
+    heroBg,
+  ];
+
+  const heroBlockHeight = insets.top + HERO_HEIGHT;
+
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]} edges={['top']}>
+    <View style={styles.safe}>
       <ScrollView
+        style={styles.scrollView}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-        contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxl + insets.bottom + 8 }]}
+        contentContainerStyle={styles.scroll}
         contentInsetAdjustmentBehavior="automatic"
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero with image from settings */}
-        <Animated.View entering={FadeInDown.duration(500).springify()} style={styles.heroWrap}>
-          <View style={[styles.hero, { minHeight: HERO_HEIGHT, borderCurve: 'continuous' }]}>
+        <View style={styles.heroWrap}>
+          <View style={[styles.hero, { height: heroBlockHeight, borderCurve: 'continuous' }]}>
             <Image
               source={{ uri: heroImageUrl }}
               style={StyleSheet.absoluteFill}
               contentFit="cover"
             />
+            <View style={styles.heroDim} pointerEvents="none" />
             <LinearGradient
-              colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.75)']}
+              colors={heroBottomBlend}
+              locations={[0, 0.38, 0.78, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
               style={StyleSheet.absoluteFill}
+              pointerEvents="none"
             />
-            <View style={styles.heroContent}>
-              <View style={styles.heroDecoration}>
+            <View style={[styles.heroContent, { paddingTop: insets.top }]}>
+              <Animated.View
+                entering={FadeInDown.delay(80).duration(480).springify()}
+                style={styles.heroDecoration}
+              >
                 <Ionicons name="sparkles" size={20} color={colors.primary} style={styles.heroSparkLeft} />
                 <View style={[styles.heroLine, { backgroundColor: colors.primary }]} />
                 <Ionicons name="sparkles" size={20} color={colors.primary} style={styles.heroSparkRight} />
-              </View>
-              <Text style={[styles.heroTitle, { color: colors.primary }]}>
+              </Animated.View>
+              {user ? (
+                <Animated.View
+                  entering={FadeInDown.delay(140).duration(400).springify()}
+                  style={styles.heroWelcomeAbove}
+                >
+                  <Text style={styles.welcome}>
+                    {t('home.welcome')}, {user.firstName}!
+                  </Text>
+                </Animated.View>
+              ) : null}
+              <Animated.Text
+                entering={FadeInDown.delay(220).duration(520).springify()}
+                style={styles.heroTitle}
+              >
                 {heroTitle.replace(/\\n/g, '\n')}
-              </Text>
-              <Text style={[styles.heroSubtitle, { color: colors.champagne }]} numberOfLines={2}>
+              </Animated.Text>
+              <Animated.Text
+                entering={FadeInDown.delay(360).duration(500).springify()}
+                style={styles.heroSubtitle}
+                numberOfLines={2}
+              >
                 {heroSubtitle}
-              </Text>
-              {user && (
-                <Text style={[styles.welcome, { color: colors.gray400 }]}>
-                  {t('home.welcome')}, {user.firstName}!
-                </Text>
-              )}
-              <Button
-                title={getSettingValue(settings, 'public_hero_cta_text', t('home.bookNow'))}
-                onPress={() => navigation.getParent()?.navigate('ServicesTab', { screen: 'Reservation' })}
-                style={styles.heroCta}
-                icon={<Ionicons name="calendar-outline" size={18} color={colors.primaryText} />}
-              />
+              </Animated.Text>
+              <Animated.View entering={FadeInDown.delay(520).duration(480).springify()} style={styles.heroCta}>
+                <Button
+                  title={getSettingValue(settings, 'public_hero_cta_text', t('home.bookNow'))}
+                  onPress={() => navigation.getParent()?.navigate('ServicesTab', { screen: 'Reservation' })}
+                  icon={<Ionicons name="calendar-outline" size={18} color={colors.primaryText} />}
+                />
+              </Animated.View>
             </View>
           </View>
-        </Animated.View>
-
+        </View>
+        <View style={styles.homeBelowHero}>
+        <View style={styles.homeBelowHeroSurface}>
+        <LinearGradient
+          colors={['transparent', colors.background]}
+          style={styles.homeBelowHeroFade}
+          pointerEvents="none"
+        />
+        <View style={{ backgroundColor: colors.background, paddingBottom: spacing.xxl, paddingTop: spacing.xs }}>
         {/* Services by category */}
         {categoriesWithServices.map(({ category, services }, sectionIndex) => (
           <Animated.View
@@ -205,57 +288,63 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 <Text style={[styles.seeAll, { color: colors.primary }]}>{t('common.seeAll')}</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.hScroll}
-            >
-              {services.map((service, index) => (
-                <Animated.View
-                  key={service.id}
-                  entering={FadeInRight.delay(300 + sectionIndex * 80 + index * 60).duration(350).springify()}
-                >
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    onPress={() =>
-                      navigation.getParent()?.navigate('ServicesTab', {
-                        screen: 'Reservation',
-                        params: { serviceId: service.id, serviceName: service.name },
-                      })
-                    }
-                    style={styles.serviceCardWrap}
+            <View style={styles.hScrollOuter}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.hScroll}
+              >
+                {services.map((service, index) => (
+                  <Animated.View
+                    key={service.id}
+                    entering={FadeInRight.delay(300 + sectionIndex * 80 + index * 60).duration(350).springify()}
                   >
-                    <View style={[styles.serviceCard, { width: cardWidth }]}>
-                      {service.heroImage ? (
-                        <Image
-                          source={{ uri: getImageUrl(service.heroImage) }}
+                    <ServiceTilePress
+                      style={styles.serviceCardWrap}
+                      onPress={() =>
+                        navigation.getParent()?.navigate('ServicesTab', {
+                          screen: 'Reservation',
+                          params: { serviceId: service.id, serviceName: service.name },
+                        })
+                      }
+                    >
+                      <View
+                        style={[
+                          styles.serviceCard,
+                          { width: cardWidth, borderRadius: borderRadius.xxl },
+                        ]}
+                      >
+                        {service.heroImage ? (
+                          <Image
+                            source={{ uri: getImageUrl(service.heroImage) }}
+                            style={StyleSheet.absoluteFill}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <View style={[styles.serviceCardPlaceholder, { backgroundColor: colors.accent }]}>
+                            <Ionicons name="cut" size={36} color={colors.primary} />
+                          </View>
+                        )}
+                        <LinearGradient
+                          colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.06)', 'rgba(0,0,0,0.42)']}
+                          locations={[0, 0.5, 1]}
                           style={StyleSheet.absoluteFill}
-                          contentFit="cover"
+                          pointerEvents="none"
                         />
-                      ) : (
-                        <View style={[styles.serviceCardPlaceholder, { backgroundColor: colors.accent }]}>
-                          <Ionicons name="cut" size={36} color={colors.primary} />
-                        </View>
-                      )}
-                      <LinearGradient
-                        colors={['transparent', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.85)']}
-                        style={styles.serviceCardOverlay}
-                      />
-                      <View style={styles.serviceCardContent}>
-                        <Text style={styles.serviceName} numberOfLines={2}>
-                          {service.name}
-                        </Text>
-                        <View style={styles.serviceInfo}>
-                          <Text style={styles.serviceMeta}>
-                            {service.durationMinutes} min
+                        <View style={styles.serviceLabels}>
+                          <Text style={styles.serviceName} numberOfLines={2}>
+                            {service.name}
                           </Text>
+                          <View style={styles.serviceInfo}>
+                            <Text style={styles.serviceMeta}>{service.durationMinutes} min</Text>
+                          </View>
                         </View>
                       </View>
-                    </View>
-                  </TouchableOpacity>
-                </Animated.View>
-              ))}
-            </ScrollView>
+                    </ServiceTilePress>
+                  </Animated.View>
+                ))}
+              </ScrollView>
+            </View>
           </Animated.View>
         ))}
 
@@ -358,31 +447,62 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             ))}
           </Animated.View>
         )}
+        </View>
+        </View>
+        <View style={{ height: tabBarBottom }} />
+        </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
-  scroll: {},
-  heroWrap: { marginBottom: spacing.lg },
+  safe: { flex: 1, backgroundColor: 'transparent' },
+  scrollView: { flex: 1, backgroundColor: 'transparent' },
+  scroll: {
+    paddingTop: 0,
+    flexGrow: 1,
+  },
+  homeBelowHero: {
+    marginTop: -50,
+  },
+  homeBelowHeroSurface: {
+    position: 'relative',
+    backgroundColor: 'transparent',
+  },
+  homeBelowHeroFade: {
+    height: 24,
+    width: '100%',
+  },
+  heroWrap: {
+    marginTop: 0,
+    marginBottom: 0,
+  },
   hero: {
     overflow: 'hidden',
+    borderCurve: 'continuous',
+    width: '100%',
+  },
+  heroDim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   heroContent: {
     flex: 1,
-    minHeight: HERO_HEIGHT,
-    padding: spacing.xl,
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.lg,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  heroWelcomeAbove: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    marginBottom: 2,
   },
   heroDecoration: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
   },
   heroLine: {
     width: 40,
@@ -392,25 +512,42 @@ const styles = StyleSheet.create({
   heroSparkLeft: { opacity: 0.9 },
   heroSparkRight: { opacity: 0.9, transform: [{ scaleX: -1 }] },
   heroTitle: {
-    fontSize: 28,
+    fontSize: 36,
     fontFamily: fontFamily.heading,
-    letterSpacing: 0.5,
+    letterSpacing: 1.8,
+    lineHeight: 42,
     textAlign: 'center',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   heroSubtitle: {
     fontSize: 15,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
     fontFamily: fontFamily.body,
+    letterSpacing: 0.35,
+    lineHeight: 23,
     textAlign: 'center',
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   welcome: {
-    fontSize: 14,
-    marginTop: spacing.md,
-    fontFamily: fontFamily.body,
+    fontSize: 11,
+    fontFamily: fontFamily.bodyMedium,
+    letterSpacing: 0.45,
+    lineHeight: 15,
+    textAlign: 'center',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
-  heroCta: { marginTop: spacing.md },
-  section: { marginTop: spacing.lg, paddingHorizontal: spacing.md },
+  heroCta: { marginTop: spacing.md, width: '100%', alignItems: 'center' },
+  section: { marginTop: spacing.md, paddingHorizontal: spacing.md },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -418,44 +555,67 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontFamily: fontFamily.heading,
-    letterSpacing: 0.3,
+    fontSize: 19,
+    fontFamily: fontFamily.bodySemiBold,
+    letterSpacing: 0.35,
+    lineHeight: 26,
   },
-  seeAll: { fontSize: 14, fontWeight: '600', fontFamily: fontFamily.bodySemiBold },
-  hScroll: { gap: spacing.md, paddingRight: spacing.md },
-  serviceCardWrap: { marginBottom: spacing.xs },
+  seeAll: {
+    fontSize: 14,
+    fontFamily: fontFamily.bodySemiBold,
+    letterSpacing: 0.35,
+  },
+  hScrollOuter: {},
+  hScroll: {
+    gap: spacing.md,
+    paddingLeft: spacing.md,
+    paddingRight: spacing.md,
+    paddingVertical: spacing.xs,
+    alignItems: 'flex-start',
+  },
+  serviceCardWrap: {
+    marginBottom: spacing.xs,
+  },
   serviceCard: {
     height: 160,
-    borderRadius: borderRadius.lg,
     overflow: 'hidden',
+    borderCurve: 'continuous',
   },
-  serviceCardOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  serviceCardPlaceholder: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  serviceCardContent: {
+  serviceLabels: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    padding: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingBottom: spacing.sm,
+    paddingTop: spacing.md,
+  },
+  serviceCardPlaceholder: {
+    ...StyleSheet.absoluteFill,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   serviceName: {
     fontSize: 15,
     fontFamily: fontFamily.bodySemiBold,
+    letterSpacing: 0.2,
+    lineHeight: 20,
     color: '#fff',
+    textShadowColor: 'rgba(0,0,0,0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   serviceInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 2,
   },
-  serviceMeta: { fontSize: 12, color: 'rgba(255,255,255,0.9)', fontFamily: fontFamily.body },
+  serviceMeta: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.92)',
+    fontFamily: fontFamily.body,
+    letterSpacing: 0.35,
+  },
   beforeAfterHint: { fontSize: 13, marginBottom: spacing.sm },
   beforeAfterEmpty: { fontSize: 14, marginBottom: spacing.sm },
   satisfiedCard: { overflow: 'hidden', marginBottom: spacing.sm, padding: spacing.md },

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Switch, ActivityIndicator } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { Card } from '../../components/ui/Card';
@@ -35,7 +35,7 @@ type Props = {
 export function ReschedulePreviewScreen({ route, navigation }: Props) {
   const { reservationId } = route.params;
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const [includeBreaks, setIncludeBreaks] = useState(route.params.includeBreaks === true);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -105,7 +105,7 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={[styles.container, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+      contentContainerStyle={[styles.container, { paddingBottom: spacing.xl + tabBarBottom }]}
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >

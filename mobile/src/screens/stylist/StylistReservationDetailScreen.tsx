@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
@@ -35,7 +35,7 @@ type Props = NativeStackScreenProps<
 export function StylistReservationDetailScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const { profileId } = useStylistProfile();
   const reservationId = route.params.reservationId;
 
@@ -281,7 +281,7 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     <>
       <ScrollView
         style={{ backgroundColor: colors.background }}
-        contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + tabBarBottom }]}
         contentInsetAdjustmentBehavior="automatic"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         showsVerticalScrollIndicator={false}

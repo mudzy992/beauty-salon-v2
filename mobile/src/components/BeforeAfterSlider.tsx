@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#eee',
   },
   beforeImage: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     width: undefined,
     height: undefined,
   },

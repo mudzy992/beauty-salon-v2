@@ -12,7 +12,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
@@ -56,7 +56,7 @@ function MenuItem({ icon, label, onPress, rightText, danger }: MenuItemProps) {
 export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const { t } = useTranslation();
   const { colors, mode, toggle } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const { user, logout, refreshProfile } = useAuthStore();
   const setMode = useAppModeStore((s) => s.setMode);
   const canSwitchToStylist = user && isStylist(user);
@@ -164,7 +164,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+      contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + tabBarBottom }]}
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   avatarImage: { width: 72, height: 72, borderRadius: 36 },
   avatarText: { fontSize: 28, fontWeight: '700' },
   avatarOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',

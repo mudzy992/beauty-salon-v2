@@ -1,6 +1,8 @@
 export const fontFamily = {
-  heading: 'PlayfairDisplay_700Bold',
-  headingItalic: 'PlayfairDisplay_600SemiBold_Italic',
+  /** Display / hero — Inter Bold, same family as UI, stronger weight */
+  heading: 'Inter_700Bold',
+  /** Rare accent (quotes, labels); same sans stack */
+  headingItalic: 'Inter_500Medium',
   body: 'Inter_400Regular',
   bodyMedium: 'Inter_500Medium',
   bodySemiBold: 'Inter_600SemiBold',

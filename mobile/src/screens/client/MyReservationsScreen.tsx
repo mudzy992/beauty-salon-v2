@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -40,7 +40,7 @@ const CONFIRMABLE: ReservationStatus[] = ['CONFIRMED'];
 export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'MyReservations'>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -192,7 +192,7 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
       contentContainerStyle={[
         styles.list,
         reservations.length === 0 && styles.emptyList,
-        { paddingBottom: spacing.lg + insets.bottom + 8 },
+        { paddingBottom: spacing.lg + tabBarBottom },
       ]}
       contentInsetAdjustmentBehavior="automatic"
       refreshControl={

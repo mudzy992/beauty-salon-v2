@@ -10,7 +10,7 @@ import {
   FlatList,
   Modal,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { Card } from '../../components/ui/Card';
@@ -47,7 +47,7 @@ type DailyLogNewEntryScreenProps = {
 
 export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenProps) {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const { profileId, loading: profileLoading } = useStylistProfile();
   const [services, setServices] = useState<Service[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
@@ -224,7 +224,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     <>
       <ScrollView
         style={{ backgroundColor: colors.background }}
-        contentContainerStyle={[styles.content, { paddingBottom: spacing.xxl + insets.bottom + 8 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: spacing.xxl + tabBarBottom }]}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

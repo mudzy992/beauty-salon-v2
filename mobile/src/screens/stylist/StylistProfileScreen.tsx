@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { useAppModeStore } from '../../store/appModeStore';
@@ -11,7 +11,7 @@ import { spacing } from '../../theme';
 
 export function StylistProfileScreen() {
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const { user, logout } = useAuthStore();
   const setMode = useAppModeStore((s) => s.setMode);
   const canSwitchToClient = user && isClient(user);
@@ -30,7 +30,7 @@ export function StylistProfileScreen() {
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={[styles.content, { paddingBottom: spacing.xxl + insets.bottom + 8 }]}
+      contentContainerStyle={[styles.content, { paddingBottom: spacing.xxl + tabBarBottom }]}
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >

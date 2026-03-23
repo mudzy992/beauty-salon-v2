@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   ImageBackground,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
@@ -33,7 +33,7 @@ type Props = NativeStackScreenProps<StylistScheduleStackParamList, 'ScheduleList
 export function StylistScheduleScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const gold = '#D4AF37';
   const { profileId, loading: profileLoading } = useStylistProfile();
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -204,7 +204,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
         contentContainerStyle={[
           styles.list,
           sections.length === 0 && styles.emptyList,
-          { paddingBottom: spacing.lg + insets.bottom + 8 },
+          { paddingBottom: spacing.lg + tabBarBottom },
         ]}
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: colors.background }}
@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
   cardBackdrop: { overflow: 'hidden', padding: 0 },
   cardBackdropImage: { minHeight: 100, justifyContent: 'flex-end' },
   cardBackdropImageStyle: { borderRadius: 16 },
-  cardBackdropOverlay: { ...StyleSheet.absoluteFillObject, borderRadius: 16 },
+  cardBackdropOverlay: { ...StyleSheet.absoluteFill, borderRadius: 16 },
   cardBackdropContent: { padding: spacing.md },
   cardBackdropActions: { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
 

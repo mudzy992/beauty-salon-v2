@@ -7,7 +7,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Image } from 'expo-image';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -22,7 +22,7 @@ import type { BlogPost } from '../../types';
 export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -56,7 +56,11 @@ export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
       data={posts}
       keyExtractor={(item) => item.id}
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={[styles.list, posts.length === 0 && styles.emptyList]}
+      contentContainerStyle={[
+        styles.list,
+        posts.length === 0 && styles.emptyList,
+        { paddingBottom: tabBarBottom },
+      ]}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }

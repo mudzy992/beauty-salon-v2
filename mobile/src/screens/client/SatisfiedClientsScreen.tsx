@@ -8,7 +8,7 @@ import {
   useWindowDimensions,
   ListRenderItem,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTheme } from '../../hooks/useTheme';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import api, { getUploadUrl } from '../../services/api';
@@ -28,7 +28,7 @@ const PAGE_SIZE = 10;
 export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const sliderSize = width - spacing.md * 2;
   const [items, setItems] = useState<BeforeAfterPair[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,7 +109,7 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
         data={items}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
-        contentContainerStyle={[styles.list, { paddingBottom: spacing.lg + insets.bottom + 8 }]}
+        contentContainerStyle={[styles.list, { paddingBottom: spacing.lg + tabBarBottom }]}
         contentInsetAdjustmentBehavior="automatic"
         onEndReached={onEndReached}
         onEndReachedThreshold={0.4}

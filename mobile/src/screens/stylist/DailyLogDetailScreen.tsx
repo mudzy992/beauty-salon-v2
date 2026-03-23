@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +27,7 @@ type DailyLogDetailScreenProps = {
 export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreenProps) {
   const { entryId } = route.params;
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const [entry, setEntry] = useState<DailyLogEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
@@ -185,7 +185,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+      contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + tabBarBottom }]}
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >

@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   ImageBackground,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -29,7 +29,7 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
   const { categoryId, categoryName } = route.params;
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -66,7 +66,7 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
       sections={sections}
       keyExtractor={(item) => item.id}
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={[styles.list, { paddingBottom: spacing.md + insets.bottom + 8 }]}
+      contentContainerStyle={[styles.list, { paddingBottom: spacing.md + tabBarBottom }]}
       contentInsetAdjustmentBehavior="automatic"
       renderSectionHeader={({ section: { title } }) => (
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   cardBackdrop: { overflow: 'hidden', padding: 0 },
   cardBackdropImage: { minHeight: 100, padding: spacing.md, justifyContent: 'flex-end' },
   cardBackdropImageStyle: { borderRadius: 16, borderCurve: 'continuous' },
-  cardBackdropOverlay: { ...StyleSheet.absoluteFillObject, borderRadius: 16, borderCurve: 'continuous' },
+  cardBackdropOverlay: { ...StyleSheet.absoluteFill, borderRadius: 16, borderCurve: 'continuous' },
   cardBackdropPlaceholder: { padding: spacing.md, borderRadius: 16, borderCurve: 'continuous' },
   serviceNameOverlay: { color: '#fff', textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
   serviceDescOverlay: { color: 'rgba(255,255,255,0.9)', marginTop: 2 },

@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +30,7 @@ const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
 export function NotificationsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const { notifications, isLoading, fetch, markAsRead } = useNotificationStore();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -102,8 +102,8 @@ export function NotificationsScreen() {
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={
         notifications.length === 0
-          ? styles.emptyList
-          : { paddingBottom: spacing.md + insets.bottom + 8 }
+          ? [styles.emptyList, { paddingBottom: tabBarBottom }]
+          : { paddingBottom: spacing.md + tabBarBottom }
       }
       contentInsetAdjustmentBehavior="automatic"
       refreshControl={

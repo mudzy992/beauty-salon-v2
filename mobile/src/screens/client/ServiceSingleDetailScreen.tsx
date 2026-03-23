@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   ImageBackground,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
@@ -26,7 +26,7 @@ export function ServiceSingleDetailScreen({
   const { serviceId, serviceName } = route.params;
   const { t } = useTranslation();
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const [service, setService] = useState<Service | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +76,7 @@ export function ServiceSingleDetailScreen({
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={[styles.container, { paddingBottom: spacing.xl + insets.bottom + 8 }]}
+      contentContainerStyle={[styles.container, { paddingBottom: spacing.xl + tabBarBottom }]}
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   heroImage: { flex: 1, minHeight: 180, justifyContent: 'flex-end' },
   heroImageStyle: { borderRadius: 16, borderCurve: 'continuous' },
   heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 16,
     borderCurve: 'continuous',
   },

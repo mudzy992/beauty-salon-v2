@@ -8,6 +8,7 @@ module.exports = {
   expo: {
     name: 'Beauty Salon Nejra',
     slug: 'beauty-salon-nejra',
+    scheme: 'beauty-salon-nejra',
     version: '1.0.0',
     orientation: 'portrait',
     icon: './assets/icon.png',
@@ -29,12 +30,26 @@ module.exports = {
       },
       package: 'com.beautysalon.nejra',
       googleServicesFile: './google-services.json',
+      softwareKeyboardLayoutMode: 'pan',
     },
+    /** `androidNavigationBar` uklonjen — zastarjelo (Android 15 edge-to-edge / Expo SDK); koristi `expo-navigation-bar` + `react-native-edge-to-edge` + App `SystemBars`. */
     web: {
       favicon: './assets/icon.png',
     },
     plugins: [
       'react-native-edge-to-edge',
+      'expo-router',
+      [
+        'expo-navigation-bar',
+        {
+          enforceContrast: false,
+          // expo-navigation-bar expects `barStyle` to be either `light` or `dark`
+          // (button foreground color), not `*-content` values.
+          barStyle: 'light',
+          /* Ne koristiti `backgroundColor` ovdje — Expo SDK prijavljuje deprecation (isti kao androidNavigationBar). Transparentan nav bar i dalje dolazi iz plugin stilova (`navigationBarColor` = transparent) + edge-to-edge. */
+          visibility: 'visible',
+        },
+      ],
       'expo-secure-store',
       'expo-localization',
       [

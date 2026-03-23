@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Image } from 'expo-image';
 import { useTheme } from '../../hooks/useTheme';
 import api, { getImageUrl } from '../../services/api';
@@ -18,7 +18,7 @@ import type { BlogPost } from '../../types';
 export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'>) {
   const { slug } = route.params;
   const { colors } = useTheme();
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useFloatingTabBarTotalHeight();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const { width } = useWindowDimensions();
@@ -53,7 +53,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={[styles.content, { paddingBottom: spacing.xxl + insets.bottom + 8 }]}
+      contentContainerStyle={[styles.content, { paddingBottom: spacing.xxl + tabBarBottom }]}
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
