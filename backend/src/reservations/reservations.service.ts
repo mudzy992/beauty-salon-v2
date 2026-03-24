@@ -1142,6 +1142,7 @@ export class ReservationsService {
         reservationDate: true,
         startTime: true,
         endTime: true,
+        startedAt: true,
         completedAt: true,
         status: true,
       },
@@ -1156,8 +1157,19 @@ export class ReservationsService {
     const plannedEnd = this.combineDateAndTime(r.reservationDate, r.endTime);
     const now = new Date();
     const referenceTime = r.completedAt ?? now;
-    // "Stvarni overrun" za dnevni raspored treba biti stabilan na timezone razlike:
-    // računamo primarno po satu/minuti (HH:mm), a timestamp koristimo samo kao zaštitni fallback.
+    // "Stvarni overrun" mora biti stabilan i bez timezone drift-a.
+    // Primarno računamo preko lifecycle-a (startedAt -> now/completedAt - planirano trajanje),
+    // a clock/timestamp ostaju fallback.
+    const plannedDuration = Math.max(
+      0,
+      timeToMinutes(r.endTime) - timeToMinutes(r.startTime),
+    );
+    const lifecycleMinutes =
+      r.startedAt instanceof Date
+        ? Math.floor((referenceTime.getTime() - r.startedAt.getTime()) / 60000) -
+          plannedDuration
+        : Number.NEGATIVE_INFINITY;
+
     const diffByClock =
       referenceTime.getHours() * 60 +
       referenceTime.getMinutes() -
@@ -1165,8 +1177,7 @@ export class ReservationsService {
     const diffByTimestamp = Math.floor(
       (referenceTime.getTime() - plannedEnd.getTime()) / 60000,
     );
-    const overrunMinutes =
-      diffByClock > 0 ? diffByClock : Math.max(0, diffByTimestamp);
+    const overrunMinutes = Math.max(0, lifecycleMinutes, diffByClock, diffByTimestamp);
     const mode = opts.mode ?? 'actual_overrun';
     const manualShift = Math.max(0, Math.floor(opts.manualShiftMinutes ?? 0));
 
