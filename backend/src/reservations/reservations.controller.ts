@@ -162,11 +162,18 @@ export class ReservationsController {
   @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
   proposeReschedule(
     @Param('id') id: string,
-    @Body() body: { includeBreaks?: boolean },
+    @Body()
+    body: {
+      includeBreaks?: boolean;
+      mode?: 'actual_overrun' | 'manual_minutes' | 'use_break_only';
+      manualShiftMinutes?: number;
+    },
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.reservations.proposeReschedule(id, user.sub, {
       includeBreaks: body?.includeBreaks === true,
+      mode: body?.mode,
+      manualShiftMinutes: body?.manualShiftMinutes,
     });
   }
 
@@ -175,11 +182,32 @@ export class ReservationsController {
   @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
   commitReschedule(
     @Param('id') id: string,
-    @Body() body: { includeBreaks?: boolean },
+    @Body()
+    body: {
+      includeBreaks?: boolean;
+      mode?: 'actual_overrun' | 'manual_minutes' | 'use_break_only';
+      manualShiftMinutes?: number;
+    },
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.reservations.commitReschedule(id, user.sub, {
       includeBreaks: body?.includeBreaks === true,
+      mode: body?.mode,
+      manualShiftMinutes: body?.manualShiftMinutes,
+    });
+  }
+
+  @Post(':id/reorder/request')
+  @UseGuards(RolesGuard)
+  @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
+  requestReorder(
+    @Param('id') id: string,
+    @Body() body: { targetStartTime: string; targetEndTime: string },
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.requestReorder(id, user.sub, {
+      targetStartTime: body?.targetStartTime,
+      targetEndTime: body?.targetEndTime,
     });
   }
 

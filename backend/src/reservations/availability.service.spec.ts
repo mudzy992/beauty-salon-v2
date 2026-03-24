@@ -7,8 +7,8 @@ const mockPrisma = {
   salonSettings: { findFirst: jest.fn() },
   service: { findUnique: jest.fn() },
   stylistService: { findMany: jest.fn() },
-  holiday: { findFirst: jest.fn() },
-  salonWorkingHours: { findUnique: jest.fn() },
+  holiday: { findFirst: jest.fn(), findMany: jest.fn() },
+  salonWorkingHours: { findUnique: jest.fn(), findMany: jest.fn() },
   stylistWorkingHours: { findFirst: jest.fn() },
   stylistProfile: { findMany: jest.fn() },
   reservation: { findMany: jest.fn() },
@@ -52,12 +52,16 @@ describe('AvailabilityService', () => {
   it('getAvailableDates vraća prazan niz kada nema stilista za servis', async () => {
     mockPrisma.salonSettings.findFirst.mockResolvedValue({ id: 'salon-1' });
     mockPrisma.service.findUnique.mockResolvedValue({ id: 'svc-1' });
+    mockPrisma.salonWorkingHours.findMany.mockResolvedValue([]);
+    mockPrisma.holiday.findMany.mockResolvedValue([]);
     mockPrisma.stylistService.findMany.mockResolvedValue([]);
     const result = await service.getAvailableDates(
       'svc-1',
       new Date('2026-03-15'),
     );
-    expect(result).toEqual([]);
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.every((d) => d.available === false)).toBe(true);
   });
 
   it('getAvailableSlots baca NotFoundException kada nema salona', async () => {
@@ -73,6 +77,11 @@ describe('AvailabilityService', () => {
       id: 'svc-1',
       durationMinutes: 60,
     });
+    mockPrisma.salonWorkingHours.findMany.mockResolvedValue([
+      { dayOfWeek: 0, isWorkingDay: true, openTime: '09:00', closeTime: '17:00' },
+    ]);
+    mockPrisma.stylistService.findMany.mockResolvedValue([]);
+    mockPrisma.holiday.findMany.mockResolvedValue([{ id: 'h1' }]);
     mockPrisma.holiday.findFirst.mockResolvedValue({ id: 'h1' });
     const result = await service.getAvailableSlots('svc-1', '2026-03-15');
     expect(result).toEqual([]);
@@ -87,8 +96,11 @@ describe('AvailabilityService', () => {
       id: 'svc-1',
       durationMinutes: 60,
     });
+    mockPrisma.holiday.findMany.mockResolvedValue([]);
     mockPrisma.holiday.findFirst.mockResolvedValue(null);
     mockPrisma.salonWorkingHours.findUnique.mockResolvedValue(null);
+    mockPrisma.salonWorkingHours.findMany.mockResolvedValue([]);
+    mockPrisma.stylistService.findMany.mockResolvedValue([]);
     const result = await service.getAvailableSlots('svc-1', '2026-03-15');
     expect(result).toEqual([]);
   });

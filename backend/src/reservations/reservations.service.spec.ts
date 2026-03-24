@@ -8,13 +8,34 @@ import { ReservationsService } from './reservations.service';
 import { AvailabilityService } from './availability.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { EventsGateway } from '../events/events.gateway';
+import { LoyaltyService } from '../loyalty/loyalty.service';
+
+jest.mock('expo-server-sdk', () => {
+  class MockExpo {
+    static isExpoPushToken() {
+      return true;
+    }
+    chunkPushNotifications(messages: unknown[]) {
+      return [messages];
+    }
+    async sendPushNotificationsAsync() {
+      return [];
+    }
+  }
+  return { __esModule: true, default: MockExpo };
+});
 
 const mockPrisma = {
   reservation: {
     create: jest.fn(),
     findUnique: jest.fn(),
     findMany: jest.fn(),
+    findFirst: jest.fn(),
     update: jest.fn(),
+  },
+  notification: {
+    findFirst: jest.fn(),
   },
   reservationStylistResponse: {
     createMany: jest.fn(),
@@ -27,6 +48,7 @@ const mockPrisma = {
   stylistProfile: { findUnique: jest.fn(), findMany: jest.fn() },
   salonSettings: { findFirst: jest.fn() },
   clientCancellationCount: { findUnique: jest.fn(), upsert: jest.fn() },
+  $transaction: jest.fn(async (cb: any) => (typeof cb === 'function' ? cb(mockPrisma) : undefined)),
 };
 
 const mockAvailability = {
@@ -36,6 +58,16 @@ const mockAvailability = {
 const mockNotifications = {
   sendToMany: jest.fn(),
   send: jest.fn(),
+};
+const mockEvents = {
+  emitToAdmins: jest.fn(),
+  emitToStylists: jest.fn(),
+  emitToAll: jest.fn(),
+  emitToUser: jest.fn(),
+};
+const mockLoyalty = {
+  ensureAccountForUser: jest.fn(),
+  redeemForReservation: jest.fn(),
 };
 
 describe('ReservationsService', () => {
@@ -56,6 +88,8 @@ describe('ReservationsService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: AvailabilityService, useValue: mockAvailability },
         { provide: NotificationsService, useValue: mockNotifications },
+        { provide: EventsGateway, useValue: mockEvents },
+        { provide: LoyaltyService, useValue: mockLoyalty },
       ],
     }).compile();
     service = module.get<ReservationsService>(ReservationsService);
@@ -204,6 +238,248 @@ describe('ReservationsService', () => {
       await expect(
         service.stylistLock('res-1', 'stylist-1', 'user-1'),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('declineReschedule', () => {
+    it('za reorder decline ne otkazuje rezervaciju', async () => {
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-1',
+        clientId: 'client-1',
+        serviceId: 'svc-1',
+        reservationDate: new Date('2026-03-25'),
+        rescheduleStatus: 'PENDING',
+      });
+      mockPrisma.notification.findFirst.mockResolvedValue({
+        type: 'reservation_reminder',
+        data: { kind: 'reservation_reorder', reservationId: 'res-1' },
+      });
+      mockPrisma.reservation.update.mockResolvedValue({});
+      mockPrisma.reservation.findUnique.mockResolvedValueOnce({
+        id: 'res-1',
+        clientId: 'client-1',
+        serviceId: 'svc-1',
+        reservationDate: new Date('2026-03-25'),
+        rescheduleStatus: 'PENDING',
+      });
+      mockPrisma.reservation.findUnique.mockResolvedValueOnce({
+        id: 'res-1',
+        clientId: 'client-1',
+        confirmedStylistId: null,
+        stylistResponses: [],
+        service: {},
+        client: {},
+        confirmedStylist: null,
+      });
+      await service.declineReschedule('res-1', 'client-1');
+      expect(mockPrisma.reservation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            rescheduleStatus: 'DECLINED',
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('processPendingRescheduleTimeouts', () => {
+    it('auto-otkazuje timeout pending reschedule i dodaje penal', async () => {
+      const oldSent = new Date(Date.now() - 60 * 60 * 1000);
+      mockPrisma.reservation.findMany.mockResolvedValue([
+        {
+          id: 'res-timeout',
+          clientId: 'client-1',
+          serviceId: 'svc-1',
+          reservationDate: new Date('2026-03-25'),
+          startTime: '12:00',
+          rescheduleProposedStartTime: '12:30',
+          rescheduleProposedEndTime: '13:00',
+        },
+      ]);
+      mockPrisma.notification.findFirst.mockResolvedValue({
+        sentAt: oldSent,
+        data: { kind: 'reservation_reschedule', reservationId: 'res-timeout' },
+      });
+      mockPrisma.salonSettings.findFirst.mockResolvedValue({
+        maxCancellationsBeforePenalty: 3,
+        penaltyDurationDays: 30,
+      });
+      mockPrisma.clientCancellationCount.findUnique.mockResolvedValue(null);
+      mockPrisma.clientCancellationCount.upsert.mockResolvedValue({});
+      mockPrisma.reservation.update.mockResolvedValue({});
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-timeout',
+        confirmedStylist: { userId: 'stylist-user' },
+        service: { name: 'Šišanje' },
+      });
+
+      await service.processPendingRescheduleTimeouts();
+
+      expect(mockPrisma.reservation.update).toHaveBeenCalled();
+      expect(mockPrisma.clientCancellationCount.upsert).toHaveBeenCalled();
+      expect(mockNotifications.send).toHaveBeenCalled();
+    });
+
+    it('za reorder timeout ne dodaje penal i ne otkazuje rezervaciju', async () => {
+      const oldSent = new Date(Date.now() - 60 * 60 * 1000);
+      mockPrisma.reservation.findMany.mockResolvedValue([
+        {
+          id: 'res-timeout-reorder',
+          clientId: 'client-1',
+          serviceId: 'svc-1',
+          reservationDate: new Date('2026-03-25'),
+          startTime: '12:00',
+          rescheduleProposedStartTime: '12:30',
+          rescheduleProposedEndTime: '13:00',
+        },
+      ]);
+      mockPrisma.notification.findFirst.mockResolvedValue({
+        sentAt: oldSent,
+        data: { kind: 'reservation_reorder', reservationId: 'res-timeout-reorder' },
+      });
+      mockPrisma.reservation.update.mockResolvedValue({});
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-timeout-reorder',
+        confirmedStylist: { userId: 'stylist-user' },
+        service: { name: 'Šišanje' },
+      });
+
+      await service.processPendingRescheduleTimeouts();
+
+      expect(mockPrisma.clientCancellationCount.upsert).not.toHaveBeenCalled();
+      expect(mockPrisma.reservation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            rescheduleStatus: 'DECLINED',
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('proposeReschedule', () => {
+    it('manual_minutes koristi ručni unos pomaka', async () => {
+      mockPrisma.stylistProfile.findUnique.mockResolvedValue({ id: 'sp-1' });
+      mockPrisma.salonSettings.findFirst.mockResolvedValue({ pauseBetweenServices: 10 });
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-main',
+        clientId: 'client-1',
+        confirmedStylistId: 'sp-1',
+        reservationDate: new Date('2026-03-25'),
+        startTime: '11:00',
+        endTime: '11:05',
+        status: 'IN_PROGRESS',
+      });
+      mockPrisma.reservation.findMany.mockResolvedValue([
+        {
+          id: 'res-future',
+          clientId: 'client-2',
+          startTime: '11:15',
+          endTime: '11:45',
+          service: { name: 'Test' },
+          client: { firstName: 'A', lastName: 'B' },
+        },
+      ]);
+
+      const result = await service.proposeReschedule('res-main', 'user-1', {
+        includeBreaks: false,
+        mode: 'manual_minutes',
+        manualShiftMinutes: 8,
+      });
+
+      expect(result.delayMinutes).toBe(8);
+      expect(result.items[0].newStartTime).toBe('11:23');
+    });
+
+    it('use_break_only vraća prazan proposal', async () => {
+      mockPrisma.stylistProfile.findUnique.mockResolvedValue({ id: 'sp-1' });
+      mockPrisma.salonSettings.findFirst.mockResolvedValue({ pauseBetweenServices: 10 });
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-main',
+        clientId: 'client-1',
+        confirmedStylistId: 'sp-1',
+        reservationDate: new Date('2026-03-25'),
+        startTime: '11:00',
+        endTime: '11:05',
+        status: 'IN_PROGRESS',
+      });
+
+      const result = await service.proposeReschedule('res-main', 'user-1', {
+        includeBreaks: false,
+        mode: 'use_break_only',
+      });
+
+      expect(result.items).toEqual([]);
+      expect(result.shiftMinutes).toBe(0);
+    });
+  });
+
+  describe('acceptReschedule', () => {
+    it('baca grešku ako postoji konflikt sa drugim terminom', async () => {
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-1',
+        clientId: 'client-1',
+        confirmedStylistId: 'sp-1',
+        reservationDate: new Date('2026-03-25'),
+        rescheduleStatus: 'PENDING',
+        rescheduleProposedStartTime: '11:30',
+        rescheduleProposedEndTime: '12:00',
+      });
+      mockPrisma.reservation.findFirst.mockResolvedValue({ id: 'conflict-1' });
+
+      await expect(service.acceptReschedule('res-1', 'client-1')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('requestReorder', () => {
+    it('odbija reorder za različito trajanje', async () => {
+      mockPrisma.stylistProfile.findUnique.mockResolvedValue({ id: 'sp-1' });
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-1',
+        clientId: 'client-1',
+        confirmedStylistId: 'sp-1',
+        reservationDate: new Date('2026-03-25'),
+        startTime: '11:00',
+        endTime: '11:30',
+        status: 'CONFIRMED',
+        serviceId: 'svc-1',
+        rescheduleStatus: null,
+        rescheduleProposedStartTime: null,
+        rescheduleProposedEndTime: null,
+      });
+
+      await expect(
+        service.requestReorder('res-1', 'user-1', {
+          targetStartTime: '12:00',
+          targetEndTime: '12:45',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('autoStartUpcomingReservations', () => {
+    it('auto-starta due termin kada nema aktivnog termina', async () => {
+      mockPrisma.reservation.findMany.mockResolvedValue([
+        {
+          id: 'res-due',
+          clientId: 'client-1',
+          confirmedStylistId: 'sp-1',
+          reservationDate: new Date(),
+        },
+      ]);
+      mockPrisma.reservation.findFirst.mockResolvedValue(null);
+      mockPrisma.reservation.update.mockResolvedValue({});
+
+      await service.autoStartUpcomingReservations();
+
+      expect(mockPrisma.reservation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'res-due' },
+          data: expect.objectContaining({ status: 'IN_PROGRESS' }),
+        }),
+      );
     });
   });
 });

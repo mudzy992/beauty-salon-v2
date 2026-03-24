@@ -4,12 +4,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RESERVATION_STATUS } from './constants';
 import { timeToMinutes } from './utils/time-slot.utils';
+import { ReservationsService } from './reservations.service';
 
 @Injectable()
 export class ReservationDelayCron {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly reservations: ReservationsService,
   ) {}
 
   /**
@@ -18,6 +20,11 @@ export class ReservationDelayCron {
    */
   @Cron('*/1 * * * *')
   async tick() {
+    // 1) Auto-start nadolazećih potvrđenih termina (ako stilist nema aktivan termin)
+    await this.reservations.autoStartUpcomingReservations();
+    // 2) Timeout za pending potvrde nakon rekalkulacije/reorder zahtjeva
+    await this.reservations.processPendingRescheduleTimeouts();
+
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) return;
     const pause = salon.pauseBetweenServices ?? 0;
