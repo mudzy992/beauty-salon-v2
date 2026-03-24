@@ -1123,17 +1123,18 @@ export class ReservationsService {
 
     const plannedEnd = this.combineDateAndTime(r.reservationDate, r.endTime);
     const now = new Date();
-    // Timezone-safe kašnjenje za isti dan: računamo preko minuta u danu.
-    // Time-based fallback ostaje za ostale slučajeve.
     const referenceTime = r.completedAt ?? now;
-    const reservationDay = this.toLocalDateStr(r.reservationDate);
-    const referenceDay = this.toLocalDateStr(referenceTime);
+    // Primarni izvor je stvarna vremenska razlika.
+    // Ako zbog timezone/DATE-only čuvanja ispadne <= 0, fallback je sat:min razlika.
+    const diffByTimestamp = Math.floor(
+      (referenceTime.getTime() - plannedEnd.getTime()) / 60000,
+    );
+    const diffByClock =
+      referenceTime.getHours() * 60 +
+      referenceTime.getMinutes() -
+      timeToMinutes(r.endTime);
     const overrunMinutes =
-      reservationDay === referenceDay
-        ? referenceTime.getHours() * 60 +
-          referenceTime.getMinutes() -
-          timeToMinutes(r.endTime)
-        : Math.floor((referenceTime.getTime() - plannedEnd.getTime()) / 60000);
+      diffByTimestamp > 0 ? diffByTimestamp : Math.max(0, diffByClock);
     const mode = opts.mode ?? 'actual_overrun';
     const manualShift = Math.max(0, Math.floor(opts.manualShiftMinutes ?? 0));
 
@@ -1624,7 +1625,12 @@ export class ReservationsService {
 
     const candidates = await this.prisma.reservation.findMany({
       where: {
-        status: RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
+        status: {
+          in: [
+            RESERVATION_STATUS.CONFIRMED,
+            RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
+          ] as any,
+        },
         confirmedStylistId: { not: null },
         startTime: { lte: nowHHMM },
       },
