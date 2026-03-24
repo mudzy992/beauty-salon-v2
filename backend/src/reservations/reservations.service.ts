@@ -847,6 +847,39 @@ export class ReservationsService {
         'Samo rezervacije s potvrđenim dolaskom klijenta mogu se startovati.',
       );
     }
+
+    const now = new Date();
+    const plannedStart = this.combineDateAndTime(r.reservationDate, r.startTime);
+    if (now.getTime() < plannedStart.getTime()) {
+      throw new BadRequestException(
+        'Termin još nije počeo. Start je dozvoljen tek od planiranog vremena početka.',
+      );
+    }
+
+    const dayStart = this.parseDateOnly(r.reservationDate);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setHours(23, 59, 59, 999);
+    const earlierPending = await this.prisma.reservation.findFirst({
+      where: {
+        id: { not: r.id },
+        confirmedStylistId: stylistProfileId,
+        reservationDate: { gte: dayStart, lte: dayEnd },
+        startTime: { lt: r.startTime },
+        status: {
+          in: [
+            RESERVATION_STATUS.CONFIRMED,
+            RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
+          ] as any,
+        },
+      },
+      select: { id: true, startTime: true, endTime: true, status: true },
+      orderBy: { startTime: 'asc' },
+    });
+    if (earlierPending) {
+      throw new BadRequestException(
+        `Postoji raniji termin (${earlierPending.startTime}–${earlierPending.endTime}) koji prvo morate obraditi.`,
+      );
+    }
     if (
       r.rescheduleStatus === 'PENDING' &&
       r.rescheduleProposedStartTime &&
@@ -857,7 +890,6 @@ export class ReservationsService {
       );
     }
 
-    const now = new Date();
     const plannedEnd = this.combineDateAndTime(r.reservationDate, r.endTime);
     if (now.getTime() > plannedEnd.getTime()) {
       throw new BadRequestException(
@@ -1124,17 +1156,17 @@ export class ReservationsService {
     const plannedEnd = this.combineDateAndTime(r.reservationDate, r.endTime);
     const now = new Date();
     const referenceTime = r.completedAt ?? now;
-    // Primarni izvor je stvarna vremenska razlika.
-    // Ako zbog timezone/DATE-only čuvanja ispadne <= 0, fallback je sat:min razlika.
-    const diffByTimestamp = Math.floor(
-      (referenceTime.getTime() - plannedEnd.getTime()) / 60000,
-    );
+    // "Stvarni overrun" za dnevni raspored treba biti stabilan na timezone razlike:
+    // računamo primarno po satu/minuti (HH:mm), a timestamp koristimo samo kao zaštitni fallback.
     const diffByClock =
       referenceTime.getHours() * 60 +
       referenceTime.getMinutes() -
       timeToMinutes(r.endTime);
+    const diffByTimestamp = Math.floor(
+      (referenceTime.getTime() - plannedEnd.getTime()) / 60000,
+    );
     const overrunMinutes =
-      diffByTimestamp > 0 ? diffByTimestamp : Math.max(0, diffByClock);
+      diffByClock > 0 ? diffByClock : Math.max(0, diffByTimestamp);
     const mode = opts.mode ?? 'actual_overrun';
     const manualShift = Math.max(0, Math.floor(opts.manualShiftMinutes ?? 0));
 

@@ -81,8 +81,10 @@ export class ReservationDelayCron {
         orderBy: { startTime: 'asc' },
       });
 
-      if (future.length > 0) {
-        for (const f of future) {
+      // Upozorenje šaljemo svim budućim klijentima osim prvog sljedećeg termina.
+      const warningTargets = future.slice(1);
+      if (warningTargets.length > 0) {
+        for (const f of warningTargets) {
           await this.notifications.send({
             userId: f.clientId,
             title: 'Moguće kašnjenje',
