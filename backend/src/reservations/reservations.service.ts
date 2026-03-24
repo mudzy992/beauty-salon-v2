@@ -81,7 +81,7 @@ export class ReservationsService {
       where: {
         type: { in: ['reservation_reschedule', 'reservation_reminder'] as any },
         data: {
-          path: ['reservationId'],
+          path: '$.reservationId',
           equals: reservationId,
         },
       },
@@ -1432,6 +1432,9 @@ export class ReservationsService {
         endTime: true,
         status: true,
         serviceId: true,
+        rescheduleStatus: true,
+        rescheduleProposedStartTime: true,
+        rescheduleProposedEndTime: true,
       },
     });
     if (!reservation) throw new NotFoundException('Rezervacija nije pronađena.');
@@ -1560,7 +1563,7 @@ export class ReservationsService {
           userId: r.clientId,
           type: { in: ['reservation_reschedule', 'reservation_reminder'] as any },
           data: {
-            path: ['reservationId'],
+            path: '$.reservationId',
             equals: r.id,
           },
         },
