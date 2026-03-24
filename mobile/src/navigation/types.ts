@@ -20,7 +20,12 @@ export type StylistDailyLogStackParamList = {
   DailyLogList: undefined;
   DailyLogDetail: { entryId: string };
   DailyLogNewEntry: undefined;
-  ReschedulePreview: { reservationId: string; includeBreaks?: boolean };
+  ReschedulePreview: {
+    reservationId: string;
+    includeBreaks?: boolean;
+    mode?: 'actual_overrun' | 'manual_minutes' | 'use_break_only';
+    manualShiftMinutes?: number;
+  };
 };
 
 export type StylistScheduleStackParamList = {

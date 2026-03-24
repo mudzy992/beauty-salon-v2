@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,7 @@ import { spacing } from '../../theme';
 import { formatDate, formatTime } from '../../utils/date';
 import type { StylistScheduleStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import type { DailyLogEntry, Reservation } from '../../types';
 
 type Props = NativeStackScreenProps<
@@ -57,6 +58,13 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
   const [completeNotes, setCompleteNotes] = useState('');
   const [completeSubmitting, setCompleteSubmitting] = useState(false);
   const [startSubmitting, setStartSubmitting] = useState(false);
+  const [startBlockedReason, setStartBlockedReason] = useState<string | null>(null);
+  const [overrunModalOpen, setOverrunModalOpen] = useState(false);
+  const [manualShiftMinutes, setManualShiftMinutes] = useState('5');
+  const [reorderModalOpen, setReorderModalOpen] = useState(false);
+  const [reorderStartTime, setReorderStartTime] = useState('');
+  const [reorderEndTime, setReorderEndTime] = useState('');
+  const [reorderSubmitting, setReorderSubmitting] = useState(false);
 
   const fetchReservation = useCallback(async () => {
     try {
@@ -102,6 +110,83 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     );
   }, [reservation, profileId]);
 
+  const isStartOverdue = useMemo(() => {
+    if (!reservation) return false;
+    if (reservation.status !== 'ATTENDANCE_CONFIRMED') return false;
+    const [y, m, d] = reservation.reservationDate.slice(0, 10).split('-').map(Number);
+    const [eh, em] = reservation.endTime.slice(0, 5).split(':').map(Number);
+    const plannedEnd = new Date(y ?? 0, (m ?? 1) - 1, d ?? 1, eh ?? 0, em ?? 0, 0, 0);
+    return Date.now() > plannedEnd.getTime();
+  }, [reservation]);
+
+  const [timeTick, setTimeTick] = useState(0);
+  const overrunPopupShownForRef = useRef<string | null>(null);
+  const isFocused = useIsFocused();
+
+  useFocusEffect(
+    useCallback(() => {
+      const id = setInterval(() => setTimeTick((v) => v + 1), 30000);
+      void fetchReservation();
+      return () => {
+        clearInterval(id);
+        overrunPopupShownForRef.current = null;
+      };
+    }, [fetchReservation]),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function resolveStartBlockReason() {
+      if (!reservation || !profileId || reservation.status !== 'ATTENDANCE_CONFIRMED') {
+        if (!cancelled) setStartBlockedReason(null);
+        return;
+      }
+
+      const [y, m, d] = reservation.reservationDate.slice(0, 10).split('-').map(Number);
+      const [sh, sm] = reservation.startTime.slice(0, 5).split(':').map(Number);
+      const plannedStart = new Date(y ?? 0, (m ?? 1) - 1, d ?? 1, sh ?? 0, sm ?? 0, 0, 0);
+      if (Date.now() < plannedStart.getTime()) {
+        if (!cancelled) {
+          setStartBlockedReason(
+            `Termin još nije počeo. Start je dozvoljen od ${formatTime(reservation.startTime)}.`,
+          );
+        }
+        return;
+      }
+
+      try {
+        const day = reservation.reservationDate.slice(0, 10);
+        const { data } = await api.get<Reservation[]>('/api/reservations', {
+          params: { asStylist: true, fromDate: day, toDate: day },
+        });
+        const list = Array.isArray(data) ? data : [];
+        const earlierPending = list
+          .filter((r) => r.id !== reservation.id)
+          .filter((r) => r.confirmedStylistId === profileId)
+          .filter((r) => r.startTime < reservation.startTime)
+          .find(
+            (r) => r.status === 'CONFIRMED' || r.status === 'ATTENDANCE_CONFIRMED',
+          );
+
+        if (!cancelled) {
+          setStartBlockedReason(
+            earlierPending
+              ? `Postoji raniji termin (${formatTime(earlierPending.startTime)}–${formatTime(earlierPending.endTime)}) koji prvo treba obraditi.`
+              : null,
+          );
+        }
+      } catch {
+        if (!cancelled) setStartBlockedReason(null);
+      }
+    }
+
+    resolveStartBlockReason();
+    return () => {
+      cancelled = true;
+    };
+  }, [reservation, profileId]);
+
   const canComplete = useMemo(() => {
     if (!reservation) return false;
     return (
@@ -113,6 +198,63 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
   const hasAnyAction = useMemo(() => {
     return canStart || canComplete || canCancelByStylist || canMarkNoShow;
   }, [canStart, canComplete, canCancelByStylist, canMarkNoShow]);
+
+  const navigateToReschedulePreview = useCallback(
+    (mode: 'actual_overrun' | 'manual_minutes' | 'use_break_only') => {
+      if (!reservation) return;
+      (navigation.getParent() as { navigate: (name: string, params: object) => void } | undefined)?.navigate(
+        'DailyLogTab',
+        {
+          screen: 'ReschedulePreview',
+          params: {
+            reservationId: reservation.id,
+            includeBreaks: false,
+            mode,
+            manualShiftMinutes:
+              mode === 'manual_minutes'
+                ? Math.max(0, parseInt(manualShiftMinutes || '0', 10) || 0)
+                : undefined,
+          },
+        },
+      );
+    },
+    [navigation, reservation, manualShiftMinutes],
+  );
+
+  useEffect(() => {
+    if (reservation?.status !== 'IN_PROGRESS') {
+      overrunPopupShownForRef.current = null;
+    }
+  }, [reservation?.status]);
+
+  useEffect(() => {
+    if (!isFocused) return;
+    if (!reservation) return;
+    if (reservation.status !== 'IN_PROGRESS') return;
+    if (reservation.confirmedStylistId !== profileId) return;
+
+    const [y, m, d] = reservation.reservationDate.slice(0, 10).split('-').map(Number);
+    const [eh, em] = reservation.endTime.slice(0, 5).split(':').map(Number);
+    const plannedEnd = new Date(y ?? 0, (m ?? 1) - 1, d ?? 1, eh ?? 0, em ?? 0, 0, 0);
+    const overrunMinutes = Math.floor((Date.now() - plannedEnd.getTime()) / 60000);
+    if (overrunMinutes < 5) return;
+
+    const popupKey = `${reservation.id}:5`;
+    if (overrunPopupShownForRef.current === popupKey) return;
+    overrunPopupShownForRef.current = popupKey;
+
+    Alert.alert(
+      'Termin je probijen',
+      `Termin je probijen ${overrunMinutes} min. Želite li odmah otvoriti rekalkulaciju i poslati obavijesti klijentima?`,
+      [
+        { text: 'Kasnije', style: 'cancel' },
+        {
+          text: 'Otvori rekalkulaciju',
+          onPress: () => navigateToReschedulePreview('actual_overrun'),
+        },
+      ],
+    );
+  }, [isFocused, reservation, profileId, navigateToReschedulePreview, timeTick]);
 
   const submitStart = useCallback(async () => {
     if (!reservation) return;
@@ -132,6 +274,36 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
       setStartSubmitting(false);
     }
   }, [reservation, fetchReservation]);
+
+  const submitReorderRequest = useCallback(async () => {
+    if (!reservation) return;
+    const start = reorderStartTime.trim();
+    const end = reorderEndTime.trim();
+    if (!start || !end) {
+      Alert.alert('Greška', 'Unesite početak i kraj novog termina.');
+      return;
+    }
+    setReorderSubmitting(true);
+    try {
+      await api.post(`/api/reservations/${reservation.id}/reorder/request`, {
+        targetStartTime: start,
+        targetEndTime: end,
+      });
+      setReorderModalOpen(false);
+      setReorderStartTime('');
+      setReorderEndTime('');
+      await fetchReservation();
+      Alert.alert('Poslano', 'Klijentu je poslan prijedlog pomjeranja termina.');
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as any).response?.data?.message
+          : 'Greška pri slanju prijedloga.';
+      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+    } finally {
+      setReorderSubmitting(false);
+    }
+  }, [reservation, reorderStartTime, reorderEndTime, fetchReservation]);
 
   const openCancel = useCallback(() => {
     setCancelReason('');
@@ -328,6 +500,14 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
                 </Text>
               </View>
             ) : null}
+            {reservation.rescheduleStatus === 'PENDING' ? (
+              <View style={[styles.infoItem, { alignItems: 'flex-start' }]}>
+                <Ionicons name="alert-circle-outline" size={16} color={colors.warning} />
+                <Text style={[styles.infoText, { color: colors.warning, flex: 1 }]}>
+                  Klijent treba potvrditi predloženi termin.
+                </Text>
+              </View>
+            ) : null}
           </View>
         </Card>
 
@@ -336,12 +516,21 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Akcije</Text>
             {canStart && (
               <Button
-                title="Startuj rezervaciju"
-                onPress={submitStart}
+                title={isStartOverdue ? 'Obradi kašnjenje termina' : 'Startuj rezervaciju'}
+                onPress={isStartOverdue ? () => setOverrunModalOpen(true) : submitStart}
                 loading={startSubmitting}
+                disabled={!!startBlockedReason}
                 style={{ marginBottom: spacing.sm }}
               />
             )}
+            {canStart && startBlockedReason ? (
+              <View style={[styles.infoItem, { alignItems: 'flex-start', marginTop: -4 }]}>
+                <Ionicons name="lock-closed-outline" size={16} color={colors.warning} />
+                <Text style={[styles.infoText, { color: colors.warning, flex: 1 }]}>
+                  {startBlockedReason}
+                </Text>
+              </View>
+            ) : null}
             {canComplete && (
               <Button
                 title={t('stylist.schedule.completeSubmit')}
@@ -366,6 +555,16 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
                 textStyle={{ color: colors.error }}
               />
             )}
+            {(reservation.status === 'CONFIRMED' || reservation.status === 'ATTENDANCE_CONFIRMED') &&
+            reservation.confirmedStylistId === profileId &&
+            !isStartOverdue ? (
+              <Button
+                title="Predloži pomjeranje termina (reorder)"
+                onPress={() => setReorderModalOpen(true)}
+                variant="outline"
+                style={{ marginTop: spacing.sm }}
+              />
+            ) : null}
           </Card>
         ) : null}
       </ScrollView>
@@ -482,6 +681,95 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
                   title={t('stylist.schedule.completeSubmit')}
                   onPress={submitComplete}
                   loading={completeSubmitting}
+                  style={styles.modalBtn}
+                />
+              </View>
+            </Card>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      <Modal visible={overrunModalOpen} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.modalContentWrap}
+          >
+            <Card style={{ ...styles.modalCard, backgroundColor: colors.surface }}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                Kašnjenje termina
+              </Text>
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                Odaberite kako želite obraditi kašnjenje prije nastavka rada.
+              </Text>
+              <Button
+                title="Rekalkuliši po stvarnom kašnjenju"
+                onPress={() => {
+                  setOverrunModalOpen(false);
+                  navigateToReschedulePreview('actual_overrun');
+                }}
+                style={{ marginTop: spacing.md }}
+              />
+              <Input
+                label="Ručni unos minuta"
+                value={manualShiftMinutes}
+                onChangeText={setManualShiftMinutes}
+                keyboardType="number-pad"
+              />
+              <Button
+                title="Rekalkuliši po ručnom unosu"
+                onPress={() => {
+                  setOverrunModalOpen(false);
+                  navigateToReschedulePreview('manual_minutes');
+                }}
+                variant="outline"
+              />
+              <Button
+                title="Ne pomjeraj termine (iskoristi kraću pauzu)"
+                onPress={() => {
+                  setOverrunModalOpen(false);
+                  navigateToReschedulePreview('use_break_only');
+                }}
+                variant="ghost"
+              />
+            </Card>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      <Modal visible={reorderModalOpen} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={styles.modalContentWrap}
+          >
+            <Card style={{ ...styles.modalCard, backgroundColor: colors.surface }}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>
+                Reorder termina
+              </Text>
+              <Input
+                label="Novi početak (HH:mm)"
+                value={reorderStartTime}
+                onChangeText={setReorderStartTime}
+                placeholder="11:15"
+              />
+              <Input
+                label="Novi kraj (HH:mm)"
+                value={reorderEndTime}
+                onChangeText={setReorderEndTime}
+                placeholder="11:45"
+              />
+              <View style={styles.modalActions}>
+                <Button
+                  title={t('common.cancel')}
+                  onPress={() => setReorderModalOpen(false)}
+                  variant="outline"
+                  style={styles.modalBtn}
+                />
+                <Button
+                  title="Pošalji klijentu"
+                  onPress={submitReorderRequest}
+                  loading={reorderSubmitting}
                   style={styles.modalBtn}
                 />
               </View>

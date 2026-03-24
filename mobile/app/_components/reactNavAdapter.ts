@@ -177,7 +177,12 @@ export function useReactNavAdapter(ctx: ReactNavAdapterContext) {
               case 'ReschedulePreview':
                 return {
                   pathname: '/stylist/daily-log/reschedule-preview/[reservationId]',
-                  params: { reservationId: params?.reservationId, includeBreaks: params?.includeBreaks },
+                  params: {
+                    reservationId: params?.reservationId,
+                    includeBreaks: params?.includeBreaks,
+                    mode: params?.mode,
+                    manualShiftMinutes: params?.manualShiftMinutes,
+                  },
                 };
             }
             return null;
@@ -238,6 +243,8 @@ export function useReactNavAdapter(ctx: ReactNavAdapterContext) {
                 params: {
                   reservationId: nested?.params?.reservationId,
                   includeBreaks: nested?.params?.includeBreaks,
+                  mode: nested?.params?.mode,
+                  manualShiftMinutes: nested?.params?.manualShiftMinutes,
                 },
               });
               return;

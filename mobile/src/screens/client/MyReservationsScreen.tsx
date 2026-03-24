@@ -124,7 +124,7 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
   const handleDeclineReschedule = async (reservation: Reservation) => {
     Alert.alert(
       'Odbij novi termin?',
-      'Ovim ćete otkazati rezervaciju.',
+      'Ako je ovo rekalkulacija termina, rezervacija se otkazuje. Ako je reorder prijedlog, ostaje vaš postojeći termin.',
       [
         { text: t('common.cancel'), style: 'cancel' },
         {

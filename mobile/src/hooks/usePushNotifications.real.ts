@@ -115,8 +115,12 @@ export function usePushNotifications() {
       const kind = (data.kind as string | undefined) ?? '';
       const reservationId = (data.reservationId as string | undefined) ?? undefined;
 
-      // Minimalni routing: reschedule/delay warning vodi korisnika na listu rezervacija (gdje ima accept/decline).
-      if (kind === 'reservation_reschedule' || kind === 'delay_warning') {
+      // Routing: reschedule/reorder/delay warning vodi korisnika na listu rezervacija (accept/decline).
+      if (
+        kind === 'reservation_reschedule' ||
+        kind === 'reservation_reorder' ||
+        kind === 'delay_warning'
+      ) {
         if (reservationId) {
           router.push({ pathname: '/reservations', params: { focusReservationId: reservationId } } as any);
         } else {

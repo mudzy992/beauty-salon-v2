@@ -58,11 +58,15 @@ export function StylistScheduleScreen({ navigation }: Props) {
           toDate: to.toISOString().slice(0, 10),
         },
       });
-      const filtered = (Array.isArray(data) ? data : []).filter(
-        (r) =>
-          r.status !== 'CANCELLED_BY_CLIENT' && r.status !== 'CANCELLED_BY_STYLISTS',
-      );
-      setReservations(filtered.filter((r) => r.status !== 'COMPLETED'));
+      const filtered = (Array.isArray(data) ? data : [])
+        .filter((r) => r.status !== 'CANCELLED_BY_CLIENT' && r.status !== 'CANCELLED_BY_STYLISTS')
+        // Raspored prikazuje samo termine koje je stilist zaista preuzeo
+        // (ili aktivni termin), a ne sve koji su mu samo stigli u inbox.
+        .filter(
+          (r) =>
+            r.confirmedStylistId === profileId || r.status === 'IN_PROGRESS',
+        );
+      setReservations(filtered);
     } catch {
       setReservations([]);
     }
@@ -83,12 +87,22 @@ export function StylistScheduleScreen({ navigation }: Props) {
 
   const sections: Section[] = useMemo(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
-    const today: Reservation[] = [];
+    const todayActive: Reservation[] = [];
+    const todayCompletedLike: Reservation[] = [];
     const futureByDate: Record<string, Reservation[]> = {};
+    const completedLikeStatuses = new Set([
+      'COMPLETED',
+      'NO_SHOW',
+      'CANCELLED_BY_CLIENT',
+      'CANCELLED_BY_STYLISTS',
+    ]);
 
     for (const r of reservations) {
       const d = r.reservationDate.slice(0, 10);
-      if (d === todayStr) today.push(r);
+      if (d === todayStr) {
+        if (completedLikeStatuses.has(r.status)) todayCompletedLike.push(r);
+        else todayActive.push(r);
+      }
       else if (d > todayStr) {
         if (!futureByDate[d]) futureByDate[d] = [];
         futureByDate[d].push(r);
@@ -116,7 +130,8 @@ export function StylistScheduleScreen({ navigation }: Props) {
       return a.startTime < b.startTime ? -1 : 1;
     };
 
-    today.sort(sortFn);
+    todayActive.sort(sortFn);
+    todayCompletedLike.sort(sortFn);
     Object.values(futureByDate).forEach((arr) => arr.sort(sortFn));
 
     const dayAbbrev = (dateStr: string) => {
@@ -127,7 +142,13 @@ export function StylistScheduleScreen({ navigation }: Props) {
     };
 
     const result: Section[] = [];
-    result.push({ title: 'Danas', data: today });
+    result.push({ title: 'Danas', data: todayActive });
+    if (todayCompletedLike.length > 0) {
+      result.push({
+        title: 'Završeni / otkazani (danas)',
+        data: todayCompletedLike,
+      });
+    }
     const sortedFutureDates = Object.keys(futureByDate).sort();
     for (const dateStr of sortedFutureDates) {
       result.push({
@@ -476,6 +497,14 @@ export function StylistScheduleScreen({ navigation }: Props) {
                         </Text>
                       </View>
                     )}
+                    {item.rescheduleStatus === 'PENDING' && (
+                      <View style={[styles.inlineRow, { marginTop: 6 }]}>
+                        <Ionicons name="alert-circle-outline" size={15} color={gold} />
+                        <Text style={[styles.client, styles.subtleOverlay]}>
+                          Klijent treba potvrditi novi termin
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </ImageBackground>
               ) : (
@@ -504,6 +533,14 @@ export function StylistScheduleScreen({ navigation }: Props) {
                       <Ionicons name="person-outline" size={16} color={gold} />
                       <Text style={[styles.client, { color: colors.textSecondary }]}>
                         {item.client.firstName} {item.client.lastName}
+                      </Text>
+                    </View>
+                  )}
+                  {item.rescheduleStatus === 'PENDING' && (
+                    <View style={[styles.inlineRow, { marginTop: 6 }]}>
+                      <Ionicons name="alert-circle-outline" size={15} color={colors.warning} />
+                      <Text style={[styles.client, { color: colors.warning }]}>
+                        Klijent treba potvrditi novi termin
                       </Text>
                     </View>
                   )}

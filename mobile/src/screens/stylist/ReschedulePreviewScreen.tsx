@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 import { useTheme } from '../../hooks/useTheme';
 import { spacing, borderRadius } from '../../theme';
 
@@ -22,13 +23,23 @@ type ProposalItem = {
 };
 
 type Proposal = {
+  mode?: 'actual_overrun' | 'manual_minutes' | 'use_break_only';
+  overrunMinutes?: number;
   delayMinutes: number;
   shiftMinutes: number;
+  includeBreaks?: boolean;
   items: ProposalItem[];
 };
 
 type Props = {
-  route: { params: { reservationId: string; includeBreaks?: boolean } };
+  route: {
+    params: {
+      reservationId: string;
+      includeBreaks?: boolean;
+      mode?: 'actual_overrun' | 'manual_minutes' | 'use_break_only';
+      manualShiftMinutes?: number;
+    };
+  };
   navigation: { goBack: () => void };
 };
 
@@ -37,6 +48,12 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const [includeBreaks, setIncludeBreaks] = useState(route.params.includeBreaks === true);
+  const [mode, setMode] = useState<'actual_overrun' | 'manual_minutes' | 'use_break_only'>(
+    route.params.mode ?? 'actual_overrun',
+  );
+  const [manualShiftMinutes, setManualShiftMinutes] = useState(
+    route.params.manualShiftMinutes ? String(route.params.manualShiftMinutes) : '5',
+  );
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [proposal, setProposal] = useState<Proposal | null>(null);
@@ -46,6 +63,11 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
     try {
       const { data } = await api.post<Proposal>(`/api/reservations/${reservationId}/reschedule/propose`, {
         includeBreaks,
+        mode,
+        manualShiftMinutes:
+          mode === 'manual_minutes'
+            ? Math.max(0, parseInt(manualShiftMinutes || '0', 10) || 0)
+            : undefined,
       });
       setProposal(data);
     } catch (err: any) {
@@ -54,7 +76,7 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [includeBreaks, reservationId]);
+  }, [includeBreaks, mode, manualShiftMinutes, reservationId]);
 
   useEffect(() => {
     fetchProposal();
@@ -69,7 +91,7 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
   }, [items]);
 
   const submitNotify = useCallback(async () => {
-    if (!hasChanges) return;
+    if (!hasChanges && mode !== 'use_break_only') return;
     Alert.alert(
       'Obavijestiti klijente?',
       'Klijenti će dobiti push i moraju potvrditi novi termin. Do tada rezervacije ostaju “na čekanju”.',
@@ -80,8 +102,20 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
           onPress: async () => {
             setSubmitting(true);
             try {
-              await api.post(`/api/reservations/${reservationId}/reschedule/commit`, { includeBreaks });
-              Alert.alert('Poslano', 'Obavijesti su poslane klijentima.');
+              await api.post(`/api/reservations/${reservationId}/reschedule/commit`, {
+                includeBreaks,
+                mode,
+                manualShiftMinutes:
+                  mode === 'manual_minutes'
+                    ? Math.max(0, parseInt(manualShiftMinutes || '0', 10) || 0)
+                    : undefined,
+              });
+              Alert.alert(
+                'Poslano',
+                mode === 'use_break_only'
+                  ? 'Odabrano je korištenje pauze bez pomjeranja termina.'
+                  : 'Obavijesti su poslane klijentima.',
+              );
               navigation.goBack();
             } catch (err: any) {
               Alert.alert('Greška', err?.response?.data?.message || 'Greška pri slanju obavijesti.');
@@ -92,7 +126,7 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
         },
       ],
     );
-  }, [hasChanges, includeBreaks, navigation, reservationId]);
+  }, [hasChanges, includeBreaks, mode, manualShiftMinutes, navigation, reservationId]);
 
   if (loading) {
     return (
@@ -114,11 +148,44 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
           <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: colors.text }]}>Rekalkulacija termina</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Kašnjenje: {proposal?.delayMinutes ?? 0} min · Ukupno pomjeranje: {totalShift} min
+              Kašnjenje: {proposal?.overrunMinutes ?? proposal?.delayMinutes ?? 0} min · Ukupno pomjeranje: {totalShift} min
             </Text>
           </View>
           <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
         </View>
+
+        <View style={styles.modeRow}>
+          <Button
+            title="Stvarni overrun"
+            onPress={() => setMode('actual_overrun')}
+            size="sm"
+            variant={mode === 'actual_overrun' ? 'primary' : 'outline'}
+            style={styles.modeBtn}
+          />
+          <Button
+            title="Ručni unos"
+            onPress={() => setMode('manual_minutes')}
+            size="sm"
+            variant={mode === 'manual_minutes' ? 'primary' : 'outline'}
+            style={styles.modeBtn}
+          />
+          <Button
+            title="Bez pomjeranja"
+            onPress={() => setMode('use_break_only')}
+            size="sm"
+            variant={mode === 'use_break_only' ? 'primary' : 'outline'}
+            style={styles.modeBtn}
+          />
+        </View>
+
+        {mode === 'manual_minutes' && (
+          <Input
+            label="Ručni pomak (min)"
+            value={manualShiftMinutes}
+            onChangeText={setManualShiftMinutes}
+            keyboardType="number-pad"
+          />
+        )}
 
         <View style={styles.toggleRow}>
           <View style={{ flex: 1 }}>
@@ -148,8 +215,18 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
         <Card style={styles.card}>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>Nema promjena</Text>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-            Nema kašnjenja ili nema budućih termina za pomjeranje.
+            {mode === 'use_break_only'
+              ? 'Odabran je način bez pomjeranja termina (korištenje pauze).'
+              : 'Nema kašnjenja ili nema budućih termina za pomjeranje.'}
           </Text>
+          {mode === 'use_break_only' ? (
+            <Button
+              title="Primijeni bez pomjeranja"
+              onPress={submitNotify}
+              loading={submitting}
+              style={{ marginTop: spacing.md }}
+            />
+          ) : null}
         </Card>
       ) : (
         <>
@@ -195,6 +272,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '700' },
   subtitle: { marginTop: 4, fontSize: 13 },
   toggleRow: { marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  modeRow: { marginTop: spacing.md, gap: spacing.xs },
+  modeBtn: { width: '100%' },
   toggleTitle: { fontSize: 14, fontWeight: '600' },
   toggleHint: { marginTop: 2, fontSize: 12 },
   emptyTitle: { fontSize: 16, fontWeight: '700' },

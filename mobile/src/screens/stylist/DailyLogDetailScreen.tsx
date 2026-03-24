@@ -66,11 +66,18 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
 
               if (reservationId) {
                 try {
-                  const { data } = await api.post<{ delayMinutes: number; items: any[] }>(
-                    `/api/reservations/${reservationId}/reschedule/propose`,
-                    { includeBreaks: false },
-                  );
-                  if ((data?.delayMinutes ?? 0) > 0 && (data?.items?.length ?? 0) > 0) {
+                  const { data } = await api.post<{
+                    delayMinutes: number;
+                    overrunMinutes?: number;
+                    items: unknown[];
+                  }>(`/api/reservations/${reservationId}/reschedule/propose`, {
+                    includeBreaks: false,
+                    mode: 'actual_overrun',
+                  });
+                  const delay = data?.delayMinutes ?? 0;
+                  const itemCount = data?.items?.length ?? 0;
+                  const overrunLabel = data?.overrunMinutes ?? delay;
+                  if (delay > 0 && itemCount > 0) {
                     Alert.alert(
                       'Kašnjenje termina',
                       'Želiš li rekalkulaciju budućih termina i preview novog rasporeda?',
@@ -94,6 +101,12 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                         },
                       ],
                     );
+                  } else if (delay > 0 && itemCount === 0) {
+                    Alert.alert(
+                      'Kašnjenje termina',
+                      `Ovaj termin je kasnio ${overrunLabel} min. Nema drugih potvrđenih termina danas za pomjeranje — rekalkulacija rasporeda nije potrebna.`,
+                      [{ text: 'U redu' }],
+                    );
                   }
                 } catch {
                   // ignore - preview je opcionalan korak
@@ -112,7 +125,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         },
       ],
     );
-  }, [entryId, fetchEntry, entry?.reservationId]);
+  }, [entryId, fetchEntry, entry?.reservationId, navigation]);
 
   const addImage = useCallback(
     async (isBefore: boolean) => {
