@@ -467,6 +467,7 @@ describe('ReservationsService', () => {
           clientId: 'client-1',
           confirmedStylistId: 'sp-1',
           reservationDate: new Date(),
+          startTime: '09:00',
         },
       ]);
       mockPrisma.reservation.findFirst.mockResolvedValue(null);

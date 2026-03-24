@@ -1639,12 +1639,19 @@ export class ReservationsService {
         clientId: true,
         confirmedStylistId: true,
         reservationDate: true,
+        startTime: true,
       },
       orderBy: { startTime: 'asc' },
     });
 
     for (const r of candidates) {
-      if (this.toLocalDateStr(r.reservationDate) !== todayStr) continue;
+      const plannedStart = this.combineDateAndTime(r.reservationDate, r.startTime);
+      // Ne oslanjamo se na string poređenje datuma zbog mogućeg tz pomaka.
+      if (plannedStart.getTime() > now.getTime()) continue;
+      // Sigurnosna ograda: ne auto-startamo stare termine od ranijih dana.
+      const ageMinutes = Math.floor((now.getTime() - plannedStart.getTime()) / 60000);
+      if (ageMinutes > 24 * 60) continue;
+      if (this.toLocalDateStr(plannedStart) !== todayStr) continue;
       const dayStart = this.parseDateOnly(r.reservationDate);
       const dayEnd = new Date(dayStart);
       dayEnd.setHours(23, 59, 59, 999);
