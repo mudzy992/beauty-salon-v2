@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -56,8 +56,29 @@ interface CategoryWithServices {
   services: Service[];
 }
 
-function getSettingValue(settings: { key: string; value: string }[] | null, key: string, fallback: string): string {
-  if (!settings) return fallback;
+interface PublicSetting {
+  key: string;
+  value: string;
+}
+
+function isPublicSetting(value: unknown): value is PublicSetting {
+  if (!value || typeof value !== 'object') return false;
+  const setting = value as Record<string, unknown>;
+  return typeof setting.key === 'string' && typeof setting.value === 'string';
+}
+
+function normalizeSettings(input: unknown): PublicSetting[] {
+  if (Array.isArray(input)) return input.filter(isPublicSetting);
+  if (input && typeof input === 'object') {
+    const payload = input as { items?: unknown; settings?: unknown };
+    if (Array.isArray(payload.items)) return payload.items.filter(isPublicSetting);
+    if (Array.isArray(payload.settings)) return payload.settings.filter(isPublicSetting);
+  }
+  return [];
+}
+
+function getSettingValue(settings: PublicSetting[] | null | undefined, key: string, fallback: string): string {
+  if (!Array.isArray(settings)) return fallback;
   const item = settings.find((s) => s.key === key);
   return item?.value?.trim() || fallback;
 }
@@ -94,6 +115,34 @@ function getBlogExcerpt(content: string, max = 110): string {
   return plain.length > max ? `${plain.slice(0, max).trimEnd()}...` : plain;
 }
 
+function formatServicePrice(amount?: number): string {
+  if (typeof amount !== 'number' || Number.isNaN(amount)) return '';
+  return `${Math.round(amount)} KM`;
+}
+
+/** Tačan broj za hero metrike (bez skraćivanja tipa 1.2k+). */
+function formatExactStatCount(value?: number | null): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
+  const n = Math.max(0, Math.round(value));
+  return n.toLocaleString('bs-BA');
+}
+
+function extractHomeStatsPayload(
+  input: unknown,
+): { servicesCount?: unknown; clientsCount?: unknown } | null {
+  if (!input || typeof input !== 'object') return null;
+  const direct = input as { servicesCount?: unknown; clientsCount?: unknown };
+  if ('servicesCount' in direct || 'clientsCount' in direct) return direct;
+
+  const nested = input as {
+    data?: { servicesCount?: unknown; clientsCount?: unknown };
+    items?: { servicesCount?: unknown; clientsCount?: unknown };
+  };
+  if (nested.data && typeof nested.data === 'object') return nested.data;
+  if (nested.items && typeof nested.items === 'object') return nested.items;
+  return null;
+}
+
 function ServiceTilePress({
   children,
   onPress,
@@ -126,15 +175,18 @@ function ServiceTilePress({
 
 export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const { t } = useTranslation();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const user = useAuthStore((s) => s.user);
-  const cardWidth = screenWidth * 0.42;
+  const serviceCardWidth = Math.min(screenWidth * 0.66, 300);
+  const sectionScrollRefs = useRef<Record<number, ScrollView | null>>({});
+  const sectionInitOffsetApplied = useRef<Record<number, boolean>>({});
 
-  const [settings, setSettings] = useState<{ key: string; value: string }[] | null>(null);
+  const [settings, setSettings] = useState<PublicSetting[] | null>(null);
   const [categoriesWithServices, setCategoriesWithServices] = useState<CategoryWithServices[]>([]);
+  const [homeStats, setHomeStats] = useState<{ servicesCount: number; clientsCount: number } | null>(null);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [beforeAfterPairs, setBeforeAfterPairs] = useState<BeforeAfterPair[]>([]);
   const [featuredReview, setFeaturedReview] = useState<{
@@ -145,15 +197,25 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const parseStatCount = (value: unknown): number | null => {
+    if (typeof value === 'number' && Number.isFinite(value)) return Math.max(0, Math.round(value));
+    if (typeof value === 'string' && value.trim()) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return Math.max(0, Math.round(parsed));
+    }
+    return null;
+  };
+
   const fetchData = useCallback(async () => {
     try {
-      const [settingsRes, catRes, blogRes] = await Promise.all([
-        api.get<{ key: string; value: string }[]>('/api/settings'),
+      const [settingsRes, catRes, blogRes, homeStatsRes] = await Promise.all([
+        api.get<unknown>('/api/settings'),
         api.get<ServiceCategory[]>('/api/services/categories', { params: { activeOnly: true } }),
         api.get<BlogPost[]>('/api/blog', { params: { published: true } }),
+        api.get<{ servicesCount: number; clientsCount: number }>('/api/services/home-stats').catch(() => null),
       ]);
 
-      setSettings(settingsRes.data);
+      setSettings(normalizeSettings(settingsRes.data));
 
       const withServices: CategoryWithServices[] = [];
       for (const cat of catRes.data) {
@@ -170,6 +232,29 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
       }
       setCategoriesWithServices(withServices);
       setBlogPosts(blogRes.data.slice(0, 3));
+      if (homeStatsRes?.data) {
+        const statsPayload = extractHomeStatsPayload(homeStatsRes.data);
+        const servicesCount = parseStatCount(statsPayload?.servicesCount);
+        const clientsCount = parseStatCount(statsPayload?.clientsCount);
+        if (servicesCount !== null && clientsCount !== null) {
+          setHomeStats({ servicesCount, clientsCount });
+        } else {
+          // Fallback: servis count iz trenutno učitanih kategorija, klijenti ostaju nepoznati.
+          const fallbackServicesCount = withServices.reduce((sum, item) => sum + item.services.length, 0);
+          setHomeStats(
+            fallbackServicesCount > 0
+              ? { servicesCount: fallbackServicesCount, clientsCount: Number.NaN }
+              : null,
+          );
+        }
+      } else {
+        const fallbackServicesCount = withServices.reduce((sum, item) => sum + item.services.length, 0);
+        setHomeStats(
+          fallbackServicesCount > 0
+            ? { servicesCount: fallbackServicesCount, clientsCount: Number.NaN }
+            : null,
+        );
+      }
       try {
         const { data } = await api.get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
           params: { limit: 6, offset: 0 },
@@ -206,6 +291,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const heroImageUrl = resolveHeroImageUrl(getSettingValue(settings, 'public_hero_image', ''));
   const heroTitle = getSettingValue(settings, 'public_hero_title', t('home.heroTitle'));
   const heroSubtitle = getSettingValue(settings, 'public_hero_subtitle', t('home.heroSubtitle'));
+  const servicesCountLabel = homeStats ? formatExactStatCount(homeStats.servicesCount) : '—';
+  const clientsCountLabel = homeStats ? formatExactStatCount(homeStats.clientsCount) : '—';
 
   const heroBg = colors.background;
   const heroBottomBlend: [string, string, string, string] = [
@@ -269,9 +356,38 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               <Animated.View entering={FadeInDown.delay(520).duration(480).springify()} style={styles.heroCta}>
                 <Button
                   title={getSettingValue(settings, 'public_hero_cta_text', t('home.bookNow'))}
-                  onPress={() => navigation.getParent()?.navigate('ServicesTab', { screen: 'Reservation' })}
+                  onPress={() =>
+                    navigation.getParent()?.navigate('ServicesTab', {
+                      screen: 'Reservation',
+                      params: { origin: 'home' },
+                    })
+                  }
                   icon={<Ionicons name="calendar-outline" size={18} color={colors.primaryText} />}
                 />
+              </Animated.View>
+              <Animated.View entering={FadeInDown.delay(620).duration(480).springify()} style={styles.heroStatsRow}>
+                <View
+                  style={[
+                    styles.heroStatChip,
+                    isDark
+                      ? styles.heroStatChipDark
+                      : { backgroundColor: 'rgba(0,0,0,0.36)', borderColor: 'rgba(0,0,0,0.48)' },
+                  ]}
+                >
+                  <Ionicons name="diamond-outline" size={13} color="#fff" />
+                  <Text style={styles.heroStatText}>{servicesCountLabel} servisa</Text>
+                </View>
+                <View
+                  style={[
+                    styles.heroStatChip,
+                    isDark
+                      ? styles.heroStatChipDark
+                      : { backgroundColor: 'rgba(0,0,0,0.36)', borderColor: 'rgba(0,0,0,0.48)' },
+                  ]}
+                >
+                  <Ionicons name="people-outline" size={13} color="#fff" />
+                  <Text style={styles.heroStatText}>{clientsCountLabel} klijenata</Text>
+                </View>
               </Animated.View>
             </View>
           </View>
@@ -285,7 +401,12 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         />
         <View style={{ backgroundColor: colors.background, paddingBottom: spacing.xxl, paddingTop: spacing.xs }}>
         {/* Services by category */}
-        {categoriesWithServices.map(({ category, services }, sectionIndex) => (
+        {categoriesWithServices.map(({ category, services }, sectionIndex) => {
+          const isMenRow = sectionIndex % 2 === 0;
+          // Muškarci: inicijalno prikaz sa kraja liste (zadnji servis prvi vidljiv).
+          // Žene: normalan početak (prvi servis prvi vidljiv).
+          const displayedServices = services;
+          return (
           <Animated.View
             key={category.id}
             entering={FadeInUp.delay(200 + sectionIndex * 100).duration(400).springify()}
@@ -308,28 +429,52 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             </View>
             <View style={styles.hScrollOuter}>
               <ScrollView
+                ref={(node) => {
+                  sectionScrollRefs.current[sectionIndex] = node;
+                }}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.hScroll}
+                snapToInterval={serviceCardWidth + spacing.md + 1}
+                snapToAlignment="start"
+                decelerationRate="fast"
+                disableIntervalMomentum
+                onContentSizeChange={() => {
+                  if (!isMenRow) return;
+                  if (sectionInitOffsetApplied.current[sectionIndex]) return;
+                  sectionInitOffsetApplied.current[sectionIndex] = true;
+                  sectionScrollRefs.current[sectionIndex]?.scrollToEnd({ animated: false });
+                }}
               >
-                {services.map((service, index) => (
+                {displayedServices.map((service, index) => (
                   <Animated.View
                     key={service.id}
                     entering={FadeInRight.delay(300 + sectionIndex * 80 + index * 60).duration(350).springify()}
                   >
+                    {(() => {
+                      const variant = index % 3;
+                      const cardHeight = variant === 0 ? 182 : variant === 1 ? 158 : 170;
+                      const verticalOffset = variant === 1 ? 14 : 0;
+                      const isFeatured = variant === 0;
+                      return (
                     <ServiceTilePress
-                      style={styles.serviceCardWrap}
+                      style={[styles.serviceCardWrap, { marginTop: verticalOffset }]}
                       onPress={() =>
                         navigation.getParent()?.navigate('ServicesTab', {
                           screen: 'Reservation',
-                          params: { serviceId: service.id, serviceName: service.name },
+                          params: {
+                            serviceId: service.id,
+                            serviceName: service.name,
+                            origin: 'home',
+                            requestId: `${Date.now()}-${service.id}`,
+                          },
                         })
                       }
                     >
                       <View
                         style={[
                           styles.serviceCard,
-                          { width: cardWidth, borderRadius: borderRadius.xxl },
+                          { width: serviceCardWidth, height: cardHeight, borderRadius: borderRadius.xxl },
                         ]}
                       >
                         {service.heroImage ? (
@@ -349,22 +494,32 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                           style={StyleSheet.absoluteFill}
                           pointerEvents="none"
                         />
+                        {isFeatured ? (
+                          <View style={styles.serviceFeaturedBadge}>
+                            <Ionicons name="sparkles-outline" size={11} color="#fff" />
+                            <Text style={styles.serviceFeaturedBadgeText}>Istaknuto</Text>
+                          </View>
+                        ) : null}
                         <View style={styles.serviceLabels}>
                           <Text style={styles.serviceName} numberOfLines={2}>
                             {service.name}
                           </Text>
                           <View style={styles.serviceInfo}>
                             <Text style={styles.serviceMeta}>{service.durationMinutes} min</Text>
+                            <Text style={styles.servicePrice}>{formatServicePrice(service.price)}</Text>
                           </View>
                         </View>
                       </View>
                     </ServiceTilePress>
+                      );
+                    })()}
                   </Animated.View>
                 ))}
               </ScrollView>
             </View>
           </Animated.View>
-        ))}
+          );
+        })}
 
         {/* Zadovoljni klijenti – 1 featured recenzija + prije/poslije + CTA */}
         <Animated.View
@@ -585,6 +740,32 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   heroCta: { marginTop: spacing.md, width: '100%', alignItems: 'center' },
+  heroStatsRow: {
+    marginTop: spacing.md,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  heroStatChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  heroStatChipDark: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(255,255,255,0.28)',
+  },
+  heroStatText: {
+    color: '#fff',
+    fontSize: 11,
+    fontFamily: fontFamily.bodyMedium,
+    letterSpacing: 0.25,
+  },
   section: { marginTop: spacing.md, paddingHorizontal: spacing.md },
   sectionHeader: {
     flexDirection: 'row',
@@ -628,6 +809,24 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
     paddingTop: spacing.md,
   },
+  serviceFeaturedBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  serviceFeaturedBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontFamily: fontFamily.bodySemiBold,
+    letterSpacing: 0.2,
+  },
   serviceCardPlaceholder: {
     ...StyleSheet.absoluteFill,
     justifyContent: 'center',
@@ -653,6 +852,12 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.92)',
     fontFamily: fontFamily.body,
     letterSpacing: 0.35,
+  },
+  servicePrice: {
+    fontSize: 12,
+    color: '#fff',
+    fontFamily: fontFamily.bodySemiBold,
+    letterSpacing: 0.25,
   },
   beforeAfterHint: { fontSize: 13, marginBottom: spacing.sm },
   beforeAfterEmpty: { fontSize: 14, marginBottom: spacing.sm },

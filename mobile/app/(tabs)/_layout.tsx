@@ -1,15 +1,20 @@
 import React, { useRef } from 'react';
 import { View } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useNotificationStore } from '../../src/store/notificationStore';
 import { BottomNavMenu } from '../../src/navigation/BottomNavMenu';
 import { BlurTargetView } from 'expo-blur';
+import { useAuthStore } from '../../src/store/authStore';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
   const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const { user, isInitialized } = useAuthStore();
   const blurTargetRef = useRef<View | null>(null);
+
+  if (!isInitialized) return null;
+  if (!user) return <Redirect href="/login" />;
 
   return (
     <View style={{ flex: 1 }}>

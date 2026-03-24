@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { router } from 'expo-router';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
@@ -18,6 +19,7 @@ export function StylistProfileScreen() {
 
   const handleSwitchToClient = () => {
     setMode('client');
+    router.replace('/');
   };
 
   const handleLogout = () => {

@@ -47,6 +47,7 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
   const [cancelModalReservation, setCancelModalReservation] = useState<Reservation | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(4);
   const listRef = useRef<SectionList<Reservation>>(null);
   const focusReservationId =
     (navigation as any)?.getState?.()?.routes?.find?.((r: any) => r.name === 'MyReservations')?.params?.focusReservationId ??
@@ -143,20 +144,45 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
   };
 
   const sections: Section[] = [];
-  const upcoming = reservations.filter((r) => isUpcoming(r.reservationDate) && !['COMPLETED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_STYLISTS', 'NO_SHOW'].includes(r.status));
-  const past = reservations.filter((r) => !upcoming.includes(r));
+  const activeReservation = reservations
+    .filter((r) =>
+      isUpcoming(r.reservationDate) &&
+      !['COMPLETED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_STYLISTS', 'NO_SHOW'].includes(r.status),
+    )
+    .sort((a, b) => {
+      const ad = new Date(`${a.reservationDate}T${a.startTime}`).getTime();
+      const bd = new Date(`${b.reservationDate}T${b.startTime}`).getTime();
+      return ad - bd;
+    })[0];
+
+  const listSource = activeReservation
+    ? reservations.filter((r) => r.id !== activeReservation.id)
+    : reservations;
+  const upcoming = listSource.filter((r) => isUpcoming(r.reservationDate) && !['COMPLETED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_STYLISTS', 'NO_SHOW'].includes(r.status));
+  const past = listSource.filter((r) => !upcoming.includes(r));
 
   if (upcoming.length > 0) sections.push({ title: t('myReservations.upcoming'), data: upcoming });
   if (past.length > 0) sections.push({ title: t('myReservations.past'), data: past });
 
+  const totalListItems = sections.reduce((sum, s) => sum + s.data.length, 0);
+  let remaining = visibleCount;
+  const visibleSections: Section[] = sections
+    .map((section) => {
+      if (remaining <= 0) return { ...section, data: [] };
+      const sliced = section.data.slice(0, remaining);
+      remaining -= sliced.length;
+      return { ...section, data: sliced };
+    })
+    .filter((section) => section.data.length > 0);
+
   const focusLocation = useMemo(() => {
     if (!focusReservationId) return null;
-    for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
-      const itemIndex = sections[sectionIndex].data.findIndex((r) => r.id === focusReservationId);
+    for (let sectionIndex = 0; sectionIndex < visibleSections.length; sectionIndex++) {
+      const itemIndex = visibleSections[sectionIndex].data.findIndex((r) => r.id === focusReservationId);
       if (itemIndex >= 0) return { sectionIndex, itemIndex };
     }
     return null;
-  }, [focusReservationId, sections]);
+  }, [focusReservationId, visibleSections]);
 
   useEffect(() => {
     if (!focusLocation) return;
@@ -174,6 +200,112 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
     return () => clearTimeout(tmr);
   }, [focusLocation]);
 
+  const renderReservationCard = (item: Reservation, featured = false) => (
+    <Animated.View layout={LinearTransition.springify().damping(18)}>
+      <Card style={[styles.card, featured ? styles.featuredCard : undefined]}>
+        <View style={styles.cardHeader}>
+          <Text style={[styles.serviceName, { color: colors.text }]}>
+            {item.service?.name || 'Usluga'}
+          </Text>
+          <Badge
+            label={t(`myReservations.status.${item.status}` as any)}
+            variant={getStatusVariant(item.status)}
+            status={item.status}
+          />
+        </View>
+
+        <View style={styles.cardBody}>
+          <View style={styles.infoRow}>
+            <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+            <Text style={[styles.infoText, { color: colors.text }]}>
+              {formatDate(item.reservationDate)}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
+            <Text style={[styles.infoText, { color: colors.text }]}>
+              {formatTime(item.startTime)} - {formatTime(item.endTime)}
+            </Text>
+          </View>
+          {item.rescheduleStatus === 'PENDING' && (
+            <View style={styles.infoRow}>
+              <Ionicons name="alert-circle-outline" size={16} color={colors.warning} />
+              <Text style={[styles.infoText, { color: colors.warning }]}>
+                Novi termin čeka potvrdu.
+              </Text>
+            </View>
+          )}
+          {item.clientNotes && (
+            <View style={styles.infoRow}>
+              <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
+              <Text style={[styles.infoText, { color: colors.textSecondary }]} numberOfLines={2}>
+                {item.clientNotes}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={[styles.actions, { borderTopColor: colors.borderLight }]}>
+          {item.rescheduleStatus === 'PENDING' && (
+            <>
+              <Button
+                title="Potvrdi termin"
+                onPress={() => handleAcceptReschedule(item)}
+                size="sm"
+                variant="primary"
+              />
+              <Button
+                title="Odbij"
+                onPress={() => handleDeclineReschedule(item)}
+                size="sm"
+                variant="ghost"
+                textStyle={{ color: colors.error }}
+              />
+            </>
+          )}
+          {CONFIRMABLE.includes(item.status) && !item.attendanceConfirmedAt && (
+            <Button
+              title={t('myReservations.confirmAttendance')}
+              onPress={() => handleConfirmAttendance(item)}
+              size="sm"
+              variant="primary"
+            />
+          )}
+          {item.attendanceConfirmedAt && item.status === 'ATTENDANCE_CONFIRMED' && (
+            <View style={styles.confirmedBadge}>
+              <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+              <Text style={[styles.confirmedText, { color: colors.success }]}>
+                {t('myReservations.attendanceConfirmed')}
+              </Text>
+            </View>
+          )}
+          {CANCELABLE.includes(item.status) && (
+            <Button
+              title={t('myReservations.cancelReservation')}
+              onPress={() => openCancelModal(item)}
+              size="sm"
+              variant="ghost"
+              textStyle={{ color: colors.error }}
+            />
+          )}
+          {item.status === 'COMPLETED' && (
+            <Button
+              title={t('reviews.writeReview')}
+              onPress={() =>
+                navigation.navigate('WriteReview', {
+                  reservationId: item.id,
+                  serviceId: item.serviceId,
+                })
+              }
+              size="sm"
+              variant="outline"
+            />
+          )}
+        </View>
+      </Card>
+    </Animated.View>
+  );
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -186,12 +318,12 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
     <>
     <SectionList
       ref={listRef}
-      sections={sections}
+      sections={visibleSections}
       keyExtractor={(item) => item.id}
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={[
         styles.list,
-        reservations.length === 0 && styles.emptyList,
+        listSource.length === 0 && !activeReservation && styles.emptyList,
         { paddingBottom: spacing.lg + tabBarBottom },
       ]}
       contentInsetAdjustmentBehavior="automatic"
@@ -199,124 +331,64 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
       stickySectionHeadersEnabled={false}
+      ListHeaderComponent={
+        <View>
+          {activeReservation ? (
+            <View style={styles.featuredWrap}>
+              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+                Trenutna rezervacija
+              </Text>
+              {renderReservationCard(activeReservation, true)}
+            </View>
+          ) : (
+            <Card style={styles.featuredCtaCard}>
+              <Text style={[styles.featuredCtaTitle, { color: colors.text }]}>
+                Nemate aktivnu rezervaciju
+              </Text>
+              <Text style={[styles.featuredCtaDesc, { color: colors.textSecondary }]}>
+                Rezervišite termin i pratite status na jednom mjestu.
+              </Text>
+              <Button
+                title={t('home.bookNow')}
+                onPress={() =>
+                  navigation.getParent()?.navigate('ServicesTab', {
+                    screen: 'Reservation',
+                    params: { origin: 'reservations' },
+                  })
+                }
+                size="sm"
+              />
+            </Card>
+          )}
+        </View>
+      }
       ListEmptyComponent={
-        <EmptyState
-          icon="calendar-outline"
-          title={t('myReservations.noReservations')}
-          actionLabel={t('home.bookNow')}
-          onAction={() => navigation.getParent()?.navigate('ServicesTab', { screen: 'Reservation' })}
-        />
+        !activeReservation ? (
+          <EmptyState
+            icon="calendar-outline"
+            title={t('myReservations.noReservations')}
+            actionLabel={t('home.bookNow')}
+            onAction={() =>
+              navigation.getParent()?.navigate('ServicesTab', {
+                screen: 'Reservation',
+                params: { origin: 'reservations' },
+              })
+            }
+          />
+        ) : null
       }
       renderSectionHeader={({ section: { title } }) => (
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
           {title}
         </Text>
       )}
-      renderItem={({ item }) => (
-        <Animated.View layout={LinearTransition.springify().damping(18)}>
-        <Card style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={[styles.serviceName, { color: colors.text }]}>
-              {item.service?.name || 'Usluga'}
-            </Text>
-            <Badge
-              label={t(`myReservations.status.${item.status}` as any)}
-              variant={getStatusVariant(item.status)}
-              status={item.status}
-            />
-          </View>
-
-          <View style={styles.cardBody}>
-            <View style={styles.infoRow}>
-              <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
-              <Text style={[styles.infoText, { color: colors.text }]}>
-                {formatDate(item.reservationDate)}
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
-              <Text style={[styles.infoText, { color: colors.text }]}>
-                {formatTime(item.startTime)} - {formatTime(item.endTime)}
-              </Text>
-            </View>
-            {item.rescheduleStatus === 'PENDING' && (
-              <View style={styles.infoRow}>
-                <Ionicons name="alert-circle-outline" size={16} color={colors.warning} />
-                <Text style={[styles.infoText, { color: colors.warning }]}>
-                  Novi termin čeka potvrdu.
-                </Text>
-              </View>
-            )}
-            {item.clientNotes && (
-              <View style={styles.infoRow}>
-                <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
-                <Text style={[styles.infoText, { color: colors.textSecondary }]} numberOfLines={2}>
-                  {item.clientNotes}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          <View style={[styles.actions, { borderTopColor: colors.borderLight }]}>
-            {item.rescheduleStatus === 'PENDING' && (
-              <>
-                <Button
-                  title="Potvrdi termin"
-                  onPress={() => handleAcceptReschedule(item)}
-                  size="sm"
-                  variant="primary"
-                />
-                <Button
-                  title="Odbij"
-                  onPress={() => handleDeclineReschedule(item)}
-                  size="sm"
-                  variant="ghost"
-                  textStyle={{ color: colors.error }}
-                />
-              </>
-            )}
-            {CONFIRMABLE.includes(item.status) && !item.attendanceConfirmedAt && (
-              <Button
-                title={t('myReservations.confirmAttendance')}
-                onPress={() => handleConfirmAttendance(item)}
-                size="sm"
-                variant="primary"
-              />
-            )}
-            {item.attendanceConfirmedAt && item.status === 'ATTENDANCE_CONFIRMED' && (
-              <View style={styles.confirmedBadge}>
-                <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-                <Text style={[styles.confirmedText, { color: colors.success }]}>
-                  {t('myReservations.attendanceConfirmed')}
-                </Text>
-              </View>
-            )}
-            {CANCELABLE.includes(item.status) && (
-              <Button
-                title={t('myReservations.cancelReservation')}
-                onPress={() => openCancelModal(item)}
-                size="sm"
-                variant="ghost"
-                textStyle={{ color: colors.error }}
-              />
-            )}
-            {item.status === 'COMPLETED' && (
-              <Button
-                title={t('reviews.writeReview')}
-                onPress={() =>
-                  navigation.navigate('WriteReview', {
-                    reservationId: item.id,
-                    serviceId: item.serviceId,
-                  })
-                }
-                size="sm"
-                variant="outline"
-              />
-            )}
-          </View>
-        </Card>
-        </Animated.View>
-      )}
+      renderItem={({ item }) => renderReservationCard(item)}
+      onEndReachedThreshold={0.35}
+      onEndReached={() => {
+        if (totalListItems > visibleCount) {
+          setVisibleCount((prev) => prev + 4);
+        }
+      }}
     />
 
     <Modal visible={!!cancelModalReservation} animationType="slide" transparent>
@@ -367,6 +439,19 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: spacing.md },
   emptyList: { flex: 1 },
+  featuredWrap: { marginBottom: spacing.sm },
+  featuredCard: {
+    borderWidth: 1,
+    borderColor: 'rgba(212,168,67,0.45)',
+  },
+  featuredCtaCard: {
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    borderRadius: borderRadius.xl,
+    gap: spacing.sm,
+  },
+  featuredCtaTitle: { fontSize: 17, fontWeight: '700' },
+  featuredCtaDesc: { fontSize: 14, lineHeight: 20 },
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',

@@ -120,6 +120,9 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
                       navigation.navigate('Reservation', {
                         serviceId: item.id,
                         serviceName: item.name,
+                        origin: 'service-detail',
+                        originCategoryId: categoryId,
+                        originCategoryName: categoryName,
                       })
                     }
                     size="sm"
@@ -164,6 +167,9 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
                       navigation.navigate('Reservation', {
                         serviceId: item.id,
                         serviceName: item.name,
+                        origin: 'service-detail',
+                        originCategoryId: categoryId,
+                        originCategoryName: categoryName,
                       })
                     }
                     size="sm"

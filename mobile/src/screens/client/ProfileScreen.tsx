@@ -16,6 +16,7 @@ import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
+import { router } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { useAppModeStore } from '../../store/appModeStore';
@@ -271,7 +272,10 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
           <MenuItem
             icon="person-outline"
             label="Prebaci na Stylist app"
-            onPress={() => setMode('stylist')}
+            onPress={() => {
+              setMode('stylist');
+              router.replace('/');
+            }}
             rightText="Inbox, profil"
           />
         </Card>

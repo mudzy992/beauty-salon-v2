@@ -52,7 +52,14 @@ export type ServicesStackParamList = {
   Services: undefined;
   ServiceDetail: { categoryId: string; categoryName: string };
   ServiceSingleDetail: { serviceId: string; serviceName?: string };
-  Reservation: { serviceId?: string; serviceName?: string };
+  Reservation: {
+    serviceId?: string;
+    serviceName?: string;
+    origin?: 'home' | 'services-list' | 'service-detail' | 'service-single' | 'reservations' | 'other';
+    requestId?: string;
+    originCategoryId?: string;
+    originCategoryName?: string;
+  };
 };
 
 export type ReservationsStackParamList = {

@@ -1,11 +1,18 @@
 import React, { useRef } from 'react';
 import { View } from 'react-native';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { BlurTargetView } from 'expo-blur';
 import { BottomNavMenu } from '../../../src/navigation/BottomNavMenu';
+import { useAuthStore } from '../../../src/store/authStore';
+import { isStylist } from '../../../src/utils/roles';
 
 export default function StylistTabsLayout() {
+  const { user, isInitialized } = useAuthStore();
   const blurTargetRef = useRef<View | null>(null);
+
+  if (!isInitialized) return null;
+  if (!user || !isStylist(user)) return <Redirect href="/login" />;
+
   return (
     <View style={{ flex: 1 }}>
       <BlurTargetView ref={blurTargetRef} style={{ flex: 1 }}>

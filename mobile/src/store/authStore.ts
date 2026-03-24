@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { AxiosError } from 'axios';
 import api, { setStoredToken, removeStoredToken, getStoredToken, setOnUnauthorized } from '../services/api';
 import type { User, LoginResponse } from '../types';
 
@@ -24,6 +25,21 @@ interface RegisterData {
   phone?: string;
 }
 
+function extractUserFromPayload(payload: unknown): User | null {
+  if (!payload || typeof payload !== 'object') return null;
+
+  const direct = payload as Partial<User>;
+  if (typeof direct.id === 'string') return direct as User;
+
+  const nested = payload as { user?: unknown; data?: { user?: unknown } };
+  const nestedUser = nested.user ?? nested.data?.user;
+  if (nestedUser && typeof nestedUser === 'object' && typeof (nestedUser as Partial<User>).id === 'string') {
+    return nestedUser as User;
+  }
+
+  return null;
+}
+
 export const useAuthStore = create<AuthState>((set, get) => {
   setOnUnauthorized(() => {
     get().logout();
@@ -39,26 +55,44 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         const token = await getStoredToken();
         if (token) {
-          const { data } = await api.get<User>('/api/users/profile');
-          set({ user: data, token, isInitialized: true });
+          const { data } = await api.get<unknown>('/api/users/profile');
+          const user = extractUserFromPayload(data);
+          if (user) {
+            set({ user, token, isInitialized: true });
+            return;
+          }
+          // Ako payload nije validan user, ne brišemo token odmah; samo završimo init.
+          set({ token, isInitialized: true });
         } else {
           set({ isInitialized: true });
         }
-      } catch {
-        await removeStoredToken();
-        set({ user: null, token: null, isInitialized: true });
+      } catch (error) {
+        const status = (error as AxiosError)?.response?.status;
+        if (status === 401) {
+          await removeStoredToken();
+          set({ user: null, token: null, isInitialized: true });
+          return;
+        }
+        // Za mrežne/privremene greške ne brišemo token da se sesija ne izgubi nakon reload-a.
+        set({ isInitialized: true });
       }
     },
 
     login: async (login: string, password: string) => {
       set({ isLoading: true });
       try {
-        const { data } = await api.post<LoginResponse>('/auth/login', {
+        const { data } = await api.post<LoginResponse | unknown>('/auth/login', {
           login,
           password,
         });
-        await setStoredToken(data.access_token);
-        set({ user: data.user, token: data.access_token, isLoading: false });
+        const response = data as LoginResponse;
+        const token = response?.access_token;
+        const user = extractUserFromPayload(response?.user) ?? extractUserFromPayload(data);
+        if (!token || !user) {
+          throw new Error('Neispravan odgovor servera pri prijavi.');
+        }
+        await setStoredToken(token);
+        set({ user, token, isLoading: false });
       } catch (error) {
         set({ isLoading: false });
         throw error;
@@ -83,8 +117,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
     refreshProfile: async () => {
       try {
-        const { data } = await api.get<User>('/api/users/profile');
-        set({ user: data });
+        const { data } = await api.get<unknown>('/api/users/profile');
+        const user = extractUserFromPayload(data);
+        if (user) set({ user });
       } catch {
         // silent fail
       }

@@ -112,7 +112,14 @@ export function useReactNavAdapter(ctx: ReactNavAdapterContext) {
               case 'Reservation':
                 return {
                   pathname: '/services/reservation',
-                  params: { serviceId: params?.serviceId, serviceName: params?.serviceName },
+                  params: {
+                    serviceId: params?.serviceId,
+                    serviceName: params?.serviceName,
+                    origin: params?.origin,
+                    requestId: params?.requestId,
+                    originCategoryId: params?.originCategoryId,
+                    originCategoryName: params?.originCategoryName,
+                  },
                 };
             }
             return null;

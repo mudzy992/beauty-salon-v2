@@ -12,6 +12,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
@@ -28,8 +29,29 @@ import { AxiosError } from 'axios';
 
 const DEFAULT_LOGIN_IMAGE = 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&q=80&w=1200';
 
-function getSettingValue(settings: { key: string; value: string }[] | null, key: string, fallback: string): string {
-  if (!settings) return fallback;
+interface PublicSetting {
+  key: string;
+  value: string;
+}
+
+function isPublicSetting(value: unknown): value is PublicSetting {
+  if (!value || typeof value !== 'object') return false;
+  const setting = value as Record<string, unknown>;
+  return typeof setting.key === 'string' && typeof setting.value === 'string';
+}
+
+function normalizeSettings(input: unknown): PublicSetting[] {
+  if (Array.isArray(input)) return input.filter(isPublicSetting);
+  if (input && typeof input === 'object') {
+    const payload = input as { items?: unknown; settings?: unknown };
+    if (Array.isArray(payload.items)) return payload.items.filter(isPublicSetting);
+    if (Array.isArray(payload.settings)) return payload.settings.filter(isPublicSetting);
+  }
+  return [];
+}
+
+function getSettingValue(settings: PublicSetting[] | null | undefined, key: string, fallback: string): string {
+  if (!Array.isArray(settings)) return fallback;
   const item = settings.find((s) => s.key === key);
   return item?.value?.trim() || fallback;
 }
@@ -62,13 +84,13 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
   const insets = useSafeAreaInsets();
   const { login, isLoading } = useAuthStore();
 
-  const [settings, setSettings] = useState<{ key: string; value: string }[] | null>(null);
+  const [settings, setSettings] = useState<PublicSetting[] | null>(null);
   const [loginValue, setLoginValue] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ login?: string; password?: string }>({});
 
   useEffect(() => {
-    api.get<{ key: string; value: string }[]>('/api/settings').then(({ data }) => setSettings(data)).catch(() => {});
+    api.get<unknown>('/api/settings').then(({ data }) => setSettings(normalizeSettings(data))).catch(() => {});
   }, []);
 
   const validate = (): boolean => {
@@ -83,6 +105,9 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
     if (!validate()) return;
     try {
       await login(loginValue.trim(), password);
+      // U expo-router setup-u auth route se ne mijenja automatski nakon store update-a.
+      // Nakon uspješne prijave preusmjeravamo na root koji onda odluči ciljnu sekciju.
+      router.replace('/');
     } catch (error) {
       const message = getLoginErrorMessage(error);
       Alert.alert(t('common.error'), message);

@@ -22,7 +22,7 @@ import api, { getUploadUrl } from '../../services/api';
 import { spacing, borderRadius } from '../../theme';
 import { formatDate, formatTime, getDateRange } from '../../utils/date';
 import type { ServicesScreenProps } from '../../navigation/types';
-import type { Service, ServiceCategory, AvailableDate, TimeSlot } from '../../types';
+import type { Service, AvailableDate, TimeSlot } from '../../types';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -49,6 +49,10 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const { colors, isDark } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const initialServiceId = route.params?.serviceId;
+  const origin = route.params?.origin;
+  const requestId = route.params?.requestId;
+  const originCategoryId = route.params?.originCategoryId;
+  const originCategoryName = route.params?.originCategoryName;
 
   const [step, setStep] = useState<Step>(initialServiceId ? 2 : 1);
   const [services, setServices] = useState<Service[]>([]);
@@ -63,37 +67,52 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const [submitting, setSubmitting] = useState(false);
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0);
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
+  const servicesById = useMemo(
+    () => new Map(services.map((service) => [service.id, service])),
+    [services],
+  );
 
   // Load all services for step 1
   useEffect(() => {
-    if (initialServiceId) {
-      (async () => {
-        try {
-          const { data } = await api.get<Service>(`/api/services/${initialServiceId}`);
-          setSelectedService(data);
-        } catch { /* silent */ }
-      })();
-    }
-
     (async () => {
       try {
-        const { data: categories } = await api.get<ServiceCategory[]>(
-          '/api/services/categories',
-          { params: { activeOnly: true } },
-        );
-        const all: Service[] = [];
-        for (const cat of categories) {
-          try {
-            const { data } = await api.get<ServiceCategory>(`/api/services/categories/${cat.id}`);
-            data.subcategories?.forEach((sub) => {
-              sub.services?.forEach((s) => all.push(s));
-            });
-          } catch { /* skip */ }
-        }
-        setServices(all);
+        const { data } = await api.get<Service[]>('/api/services', {
+          params: { activeOnly: true },
+        });
+        setServices(Array.isArray(data) ? data : []);
       } catch { /* silent */ }
     })();
-  }, [initialServiceId]);
+  }, []);
+
+  // Re-apply preselected service whenever route request changes (important for repeated entry from Home).
+  useEffect(() => {
+    if (!initialServiceId) return;
+    const fromList = servicesById.get(initialServiceId);
+    if (fromList) {
+      setSelectedService(fromList);
+      setSelectedDate(null);
+      setSelectedSlot(null);
+      setNotes('');
+      setDesiredLoyaltyPercent(0);
+      setLoyaltyInfo(null);
+      setStep(2);
+      return;
+    }
+    (async () => {
+      try {
+        const { data } = await api.get<Service>(`/api/services/${initialServiceId}`);
+        setSelectedService(data);
+        setSelectedDate(null);
+        setSelectedSlot(null);
+        setNotes('');
+        setDesiredLoyaltyPercent(0);
+        setLoyaltyInfo(null);
+        setStep(2);
+      } catch {
+        setStep(1);
+      }
+    })();
+  }, [initialServiceId, requestId, servicesById]);
 
   // Load available dates when service is selected
   useEffect(() => {
@@ -219,6 +238,43 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     setSubmitting(false);
   };
 
+  const handleBackFromDateStep = useCallback(() => {
+    switch (origin) {
+      case 'home':
+        navigation.getParent()?.navigate('HomeTab', { screen: 'Home' });
+        return;
+      case 'services-list':
+        navigation.getParent()?.navigate('ServicesTab', { screen: 'Services' });
+        return;
+      case 'service-detail':
+        if (originCategoryId && originCategoryName) {
+          navigation.navigate('ServiceDetail', {
+            categoryId: originCategoryId,
+            categoryName: originCategoryName,
+          });
+          return;
+        }
+        navigation.getParent()?.navigate('ServicesTab', { screen: 'Services' });
+        return;
+      case 'service-single':
+        if (selectedService) {
+          navigation.navigate('ServiceSingleDetail', {
+            serviceId: selectedService.id,
+            serviceName: selectedService.name,
+          });
+          return;
+        }
+        navigation.getParent()?.navigate('ServicesTab', { screen: 'Services' });
+        return;
+      case 'reservations':
+        navigation.getParent()?.navigate('ReservationsTab', { screen: 'MyReservations' });
+        return;
+      default:
+        setStep(1);
+        setSelectedService(null);
+    }
+  }, [navigation, origin, originCategoryId, originCategoryName, selectedService]);
+
   const stepIndicator = (
     <View style={styles.steps}>
       {[1, 2, 3, 4].map((s) => (
@@ -341,7 +397,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
           <Button
             title={t('common.back')}
-            onPress={() => { setStep(1); setSelectedService(null); }}
+            onPress={handleBackFromDateStep}
             variant="ghost"
             style={{ marginTop: spacing.md }}
           />
