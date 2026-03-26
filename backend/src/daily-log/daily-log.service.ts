@@ -305,9 +305,12 @@ export class DailyLogService {
   async findBeforeAfterPairs(opts?: {
     limit?: number;
     offset?: number;
+    serviceId?: string;
   }): Promise<{
     items: {
       id: string;
+      service: { id: string; name: string };
+      completedAt: Date | null;
       before: {
         pathOriginal: string;
         pathMedium?: string | null;
@@ -324,10 +327,12 @@ export class DailyLogService {
   }> {
     const limit = Math.min(Math.max(opts?.limit ?? 20, 1), 50);
     const offset = Math.max(opts?.offset ?? 0, 0);
+    const serviceId = opts?.serviceId?.trim() || undefined;
     const entries = await this.prisma.dailyLogEntry.findMany({
-      where: { status: 'COMPLETED' },
+      where: { status: 'COMPLETED', ...(serviceId ? { serviceId } : {}) },
       include: {
         images: { include: { upload: true }, orderBy: { sortOrder: 'asc' } },
+        service: { select: { id: true, name: true } },
       },
       orderBy: { completedAt: 'desc' },
       skip: offset,
@@ -335,6 +340,8 @@ export class DailyLogService {
     });
     const pairs: {
       id: string;
+      service: { id: string; name: string };
+      completedAt: Date | null;
       before: {
         pathOriginal: string;
         pathMedium?: string | null;
@@ -353,6 +360,8 @@ export class DailyLogService {
       if (beforeImg?.upload && afterImg?.upload) {
         pairs.push({
           id: entry.id,
+          service: entry.service,
+          completedAt: entry.completedAt ?? null,
           before: {
             pathOriginal: beforeImg.upload.pathOriginal,
             pathMedium: beforeImg.upload.pathMedium,

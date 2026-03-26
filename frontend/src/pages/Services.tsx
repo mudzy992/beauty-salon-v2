@@ -9,7 +9,8 @@ import {
   NumberDecrementStepper, Switch, HStack, Image,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
-import { AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
+import { AddIcon, EditIcon, DeleteIcon, ViewIcon } from '@chakra-ui/icons';
+import { Link as RouterLink } from 'react-router-dom';
 import api from '../api/client';
 import { getUploadUrl } from '../utils/uploadUrl';
 
@@ -322,6 +323,15 @@ export default function Services() {
                                 <Td><Badge colorScheme={s.isActive ? 'green' : 'gray'}>{s.isActive ? 'Aktivan' : 'Neaktivan'}</Badge></Td>
                                 <Td textAlign="right">
                                   <HStack spacing={1} justify="flex-end">
+                                    <IconButton
+                                      as={RouterLink}
+                                      to={`/admin/services/${s.id}/work-gallery`}
+                                      aria-label="Urađeni radovi"
+                                      icon={<ViewIcon />}
+                                      size="xs"
+                                      colorScheme="purple"
+                                      variant="ghost"
+                                    />
                                     <IconButton aria-label="Uredi" icon={<EditIcon />} size="xs" colorScheme="blue" variant="ghost" onClick={() => openServiceForm(sub.id, s)} />
                                     <IconButton aria-label="Obriši" icon={<DeleteIcon />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeleteService(s.id)} />
                                   </HStack>

@@ -11,6 +11,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import PublicHome from './pages/public/PublicHome';
 import PublicServices from './pages/public/PublicServices';
+import PublicServiceDetail from './pages/public/PublicServiceDetail';
 import PublicBlogList from './pages/public/PublicBlogList';
 import PublicBlogPost from './pages/public/PublicBlogPost';
 import PublicGallery from './pages/public/PublicGallery';
@@ -34,6 +35,7 @@ import ClientAnalytics from './pages/ClientAnalytics';
 import StylistAnalytics from './pages/StylistAnalytics';
 import Analytics from './pages/Analytics';
 import Loyalty from './pages/Loyalty';
+import ServiceWorkGallery from './pages/ServiceWorkGallery';
 import NotFound from './pages/NotFound';
 import './i18n';
 
@@ -45,6 +47,7 @@ function AppRoutes() {
       <Route path="/" element={<PublicLayout />}>
         <Route index element={<PublicHome />} />
         <Route path="usluge" element={<PublicServices />} />
+        <Route path="usluge/:serviceId" element={<PublicServiceDetail />} />
         <Route path="blog" element={<PublicBlogList />} />
         <Route path="blog/:slug" element={<PublicBlogPost />} />
         <Route path="galerija" element={<PublicGallery />} />
@@ -64,6 +67,7 @@ function AppRoutes() {
         <Route path="users" element={<Users />} />
         <Route path="salon" element={<Salon />} />
         <Route path="services" element={<Services />} />
+        <Route path="services/:serviceId/work-gallery" element={<ServiceWorkGallery />} />
         <Route path="stylists" element={<Stylists />} />
         <Route path="reservations" element={<Reservations />} />
         <Route path="daily-log" element={<DailyLog />} />

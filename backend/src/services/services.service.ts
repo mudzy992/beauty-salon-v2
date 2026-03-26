@@ -202,7 +202,6 @@ export class ServicesService {
       where: { id },
       include: {
         subcategory: { include: { category: true } },
-        images: { include: { upload: true }, orderBy: { sortOrder: 'asc' } },
       },
     });
     if (!svc) throw new NotFoundException('Servis nije pronađen.');

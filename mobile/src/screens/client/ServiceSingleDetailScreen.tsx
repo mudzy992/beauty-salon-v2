@@ -6,6 +6,7 @@ import {
   ScrollView,
   ActivityIndicator,
   ImageBackground,
+  useWindowDimensions,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,10 +15,17 @@ import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
+import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import { spacing } from '../../theme';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Service } from '../../types';
 import type { Review } from '../../types';
+
+type BeforeAfterPair = {
+  id: string;
+  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
+  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
+};
 
 export function ServiceSingleDetailScreen({
   route,
@@ -27,8 +35,11 @@ export function ServiceSingleDetailScreen({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
+  const { width } = useWindowDimensions();
   const [service, setService] = useState<Service | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [pairs, setPairs] = useState<BeforeAfterPair[]>([]);
+  const [loadingPairs, setLoadingPairs] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,6 +66,26 @@ export function ServiceSingleDetailScreen({
     })();
   }, [serviceId]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingPairs(true);
+      try {
+        const { data } = await api.get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
+          params: { serviceId, limit: 3, offset: 0 },
+        });
+        if (!cancelled) setPairs(Array.isArray(data?.items) ? data.items : []);
+      } catch {
+        if (!cancelled) setPairs([]);
+      } finally {
+        if (!cancelled) setLoadingPairs(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [serviceId]);
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -72,6 +103,7 @@ export function ServiceSingleDetailScreen({
   }
 
   const heroUri = service.heroImage ? getUploadUrl(service.heroImage) : null;
+  const sliderSize = Math.max(220, width - spacing.md * 2);
 
   return (
     <ScrollView
@@ -161,6 +193,43 @@ export function ServiceSingleDetailScreen({
         )}
       </Card>
 
+      {/* Before / After (work gallery) */}
+      <Card style={styles.section}>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Prije / Poslije</Text>
+          <Button
+            title="Vidi sve"
+            size="sm"
+            variant="ghost"
+            onPress={() =>
+              navigation.navigate('ServiceWorkGallery', {
+                serviceId,
+                serviceName: service.name,
+              })
+            }
+          />
+        </View>
+        {loadingPairs ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : pairs.length === 0 ? (
+          <Text style={[styles.bodyText, { color: colors.textMuted }]}>
+            Trenutno nema dostupnih transformacija za ovaj servis.
+          </Text>
+        ) : (
+          <View style={{ gap: spacing.md }}>
+            {pairs.map((p) => (
+              <BeforeAfterSlider
+                key={p.id}
+                beforeSrc={getUploadUrl(p.before.pathMedium ?? p.before.pathThumb ?? p.before.pathOriginal)}
+                afterSrc={getUploadUrl(p.after.pathMedium ?? p.after.pathThumb ?? p.after.pathOriginal)}
+                width={sliderSize}
+                height={sliderSize}
+              />
+            ))}
+          </View>
+        )}
+      </Card>
+
       {/* Book button */}
       <Button
         title={t('services.bookService')}
@@ -213,6 +282,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   section: { marginBottom: spacing.md },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: spacing.sm },
   bodyText: { fontSize: 14, lineHeight: 22 },
   reviewList: {},

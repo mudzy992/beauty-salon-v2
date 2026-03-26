@@ -58,10 +58,12 @@ export class DailyLogController {
   getBeforeAfterPairs(
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('serviceId') serviceId?: string,
   ) {
     return this.dailyLog.findBeforeAfterPairs({
       limit: limit != null ? parseInt(limit, 10) : undefined,
       offset: offset != null ? parseInt(offset, 10) : undefined,
+      serviceId,
     });
   }
 

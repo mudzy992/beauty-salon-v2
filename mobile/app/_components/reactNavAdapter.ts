@@ -109,6 +109,11 @@ export function useReactNavAdapter(ctx: ReactNavAdapterContext) {
                   pathname: '/services/service-single-detail',
                   params: { serviceId: params?.serviceId, serviceName: params?.serviceName },
                 };
+              case 'ServiceWorkGallery':
+                return {
+                  pathname: '/services/service-work-gallery',
+                  params: { serviceId: params?.serviceId, serviceName: params?.serviceName },
+                };
               case 'Reservation':
                 return {
                   pathname: '/services/reservation',

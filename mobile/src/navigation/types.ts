@@ -57,6 +57,7 @@ export type ServicesStackParamList = {
   Services: undefined;
   ServiceDetail: { categoryId: string; categoryName: string };
   ServiceSingleDetail: { serviceId: string; serviceName?: string };
+  ServiceWorkGallery: { serviceId: string; serviceName?: string };
   Reservation: {
     serviceId?: string;
     serviceName?: string;

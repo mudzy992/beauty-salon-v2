@@ -12,45 +12,45 @@ datasource db {
 // ============ AUTH & USERS ============
 
 model User {
-  id            String    @id @default(uuid())
-  username      String    @unique
-  email         String    @unique
-  passwordHash  String?   @map("password_hash")
-  firstName     String    @map("first_name")
-  lastName      String    @map("last_name")
-  phone         String?
-  avatar        String?
-  isActive      Boolean   @default(true) @map("is_active")
-  isEmailVerified Boolean @default(false) @map("is_email_verified")
-  emailVerificationToken   String?   @map("email_verification_token")
+  id                         String    @id @default(uuid())
+  username                   String    @unique
+  email                      String    @unique
+  passwordHash               String?   @map("password_hash")
+  firstName                  String    @map("first_name")
+  lastName                   String    @map("last_name")
+  phone                      String?
+  avatar                     String?
+  isActive                   Boolean   @default(true) @map("is_active")
+  isEmailVerified            Boolean   @default(false) @map("is_email_verified")
+  emailVerificationToken     String?   @map("email_verification_token")
   emailVerificationExpiresAt DateTime? @map("email_verification_expires_at")
-  googleId      String?   @unique @map("google_id")
-  facebookId    String?   @unique @map("facebook_id")
-  lastLoginAt   DateTime? @map("last_login_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  googleId                   String?   @unique @map("google_id")
+  facebookId                 String?   @unique @map("facebook_id")
+  lastLoginAt                DateTime? @map("last_login_at")
+  createdAt                  DateTime  @default(now()) @map("created_at")
+  updatedAt                  DateTime  @updatedAt @map("updated_at")
 
-  userRoles           UserRole[]
-  stylistProfile      StylistProfile?
-  reservationsAsClient Reservation[]         @relation("ClientReservations")
-  reviews              Review[]
-  blogComments        BlogComment[]
-  pushTokens           PushToken[]
+  userRoles               UserRole[]
+  stylistProfile          StylistProfile?
+  reservationsAsClient    Reservation[]             @relation("ClientReservations")
+  reviews                 Review[]
+  blogComments            BlogComment[]
+  pushTokens              PushToken[]
   notificationPreferences NotificationPreference[]
-  notifications       Notification[]
-  loyaltyAccount      LoyaltyAccount?
-  uploads             Upload[]               @relation("UploadedBy")
-  expenseCreatedBy    Expense[]              @relation("ExpenseCreatedBy")
-  blogPosts           BlogPost[]             @relation("BlogAuthor")
-  cancellationCount  ClientCancellationCount[]
-  dailyLogEntriesAsClient DailyLogEntry[]      @relation("DailyLogClient")
+  notifications           Notification[]
+  loyaltyAccount          LoyaltyAccount?
+  uploads                 Upload[]                  @relation("UploadedBy")
+  expenseCreatedBy        Expense[]                 @relation("ExpenseCreatedBy")
+  blogPosts               BlogPost[]                @relation("BlogAuthor")
+  cancellationCount       ClientCancellationCount[]
+  dailyLogEntriesAsClient DailyLogEntry[]           @relation("DailyLogClient")
 
   @@map("users")
 }
 
 model Role {
-  id          String   @id @default(uuid())
-  name        String   @unique // SYSTEM_ADMIN | OWNER | STYLIST | CLIENT
+  id          String     @id @default(uuid())
+  name        String     @unique // SYSTEM_ADMIN | OWNER | STYLIST | CLIENT
   description String?
   userRoles   UserRole[]
 
@@ -58,9 +58,9 @@ model Role {
 }
 
 model UserRole {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
-  roleId    String   @map("role_id")
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  roleId     String   @map("role_id")
   assignedAt DateTime @default(now()) @map("assigned_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -72,11 +72,11 @@ model UserRole {
 
 // Penalty za česta otkazivanja - broj otkazivanja po klijentu
 model ClientCancellationCount {
-  id              String   @id @default(uuid())
-  userId          String   @unique @map("user_id")
-  cancellationCount Int    @default(0) @map("cancellation_count")
-  penaltyUntil    DateTime? @map("penalty_until")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id                String    @id @default(uuid())
+  userId            String    @unique @map("user_id")
+  cancellationCount Int       @default(0) @map("cancellation_count")
+  penaltyUntil      DateTime? @map("penalty_until")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -86,20 +86,20 @@ model ClientCancellationCount {
 // ============ SALON ============
 
 model SalonSettings {
-  id                         String   @id @default(uuid())
-  name                       String
-  address                    String?
-  phone                      String?
-  email                      String?
-  description                String?  @db.Text
-  logo                       String?
-  pauseBetweenServices       Int      @default(10) @map("pause_between_services") // minuta
-  cancellationDeadlineHours Int      @default(24) @map("cancellation_deadline_hours")
-  maxCancellationsBeforePenalty Int   @default(3) @map("max_cancellations_before_penalty")
-  penaltyDurationDays        Int      @default(30) @map("penalty_duration_days")
-  reservationLockMinutes     Int      @default(15) @map("reservation_lock_minutes") // koliko dugo stilist drži lock
-  createdAt                  DateTime @default(now()) @map("created_at")
-  updatedAt                  DateTime @updatedAt @map("updated_at")
+  id                            String   @id @default(uuid())
+  name                          String
+  address                       String?
+  phone                         String?
+  email                         String?
+  description                   String?  @db.Text
+  logo                          String?
+  pauseBetweenServices          Int      @default(10) @map("pause_between_services") // minuta
+  cancellationDeadlineHours     Int      @default(24) @map("cancellation_deadline_hours")
+  maxCancellationsBeforePenalty Int      @default(3) @map("max_cancellations_before_penalty")
+  penaltyDurationDays           Int      @default(30) @map("penalty_duration_days")
+  reservationLockMinutes        Int      @default(15) @map("reservation_lock_minutes") // koliko dugo stilist drži lock
+  createdAt                     DateTime @default(now()) @map("created_at")
+  updatedAt                     DateTime @updatedAt @map("updated_at")
 
   workingHours SalonWorkingHours[]
   holidays     Holiday[]
@@ -108,12 +108,12 @@ model SalonSettings {
 }
 
 model SalonWorkingHours {
-  id              String   @id @default(uuid())
-  salonSettingsId String   @map("salon_settings_id")
-  dayOfWeek       Int      @map("day_of_week") // 0-6
-  openTime        String   @map("open_time")   // "09:00"
-  closeTime       String   @map("close_time")  // "17:00"
-  isWorkingDay    Boolean  @default(true) @map("is_working_day")
+  id              String  @id @default(uuid())
+  salonSettingsId String  @map("salon_settings_id")
+  dayOfWeek       Int     @map("day_of_week") // 0-6
+  openTime        String  @map("open_time") // "09:00"
+  closeTime       String  @map("close_time") // "17:00"
+  isWorkingDay    Boolean @default(true) @map("is_working_day")
 
   salonSettings SalonSettings @relation(fields: [salonSettingsId], references: [id], onDelete: Cascade)
 
@@ -139,34 +139,34 @@ model Holiday {
 // ============ STYLISTS ============
 
 model StylistProfile {
-  id            String    @id @default(uuid())
-  userId        String    @unique @map("user_id")
-  bio           String?   @db.Text
+  id             String    @id @default(uuid())
+  userId         String    @unique @map("user_id")
+  bio            String?   @db.Text
   specialization String?
-  isActive      Boolean   @default(true) @map("is_active")
-  hireDate      DateTime? @map("hire_date")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  isActive       Boolean   @default(true) @map("is_active")
+  hireDate       DateTime? @map("hire_date")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workingHours            StylistWorkingHours[]
-  stylistServices         StylistService[]
-  dailyLogEntries         DailyLogEntry[]
-  reservationResponses    ReservationStylistResponse[]
-  reservationsConfirmed   Reservation[]              @relation("ConfirmedByStylist")
-  reviews                 Review[]
+  user                  User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workingHours          StylistWorkingHours[]
+  stylistServices       StylistService[]
+  dailyLogEntries       DailyLogEntry[]
+  reservationResponses  ReservationStylistResponse[]
+  reservationsConfirmed Reservation[]                @relation("ConfirmedByStylist")
+  reviews               Review[]
 
   @@map("stylist_profiles")
 }
 
 model StylistWorkingHours {
-  id              String    @id @default(uuid())
-  stylistProfileId String   @map("stylist_profile_id")
-  dayOfWeek       Int       @map("day_of_week") // 0-6
-  dateOverride    DateTime? @map("date_override") @db.Date // opciono override za pojedinačni dan
-  startTime       String    @map("start_time")
-  endTime         String    @map("end_time")
-  isWorkingDay    Boolean   @default(true) @map("is_working_day")
+  id               String    @id @default(uuid())
+  stylistProfileId String    @map("stylist_profile_id")
+  dayOfWeek        Int       @map("day_of_week") // 0-6
+  dateOverride     DateTime? @map("date_override") @db.Date // opciono override za pojedinačni dan
+  startTime        String    @map("start_time")
+  endTime          String    @map("end_time")
+  isWorkingDay     Boolean   @default(true) @map("is_working_day")
 
   stylistProfile StylistProfile @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
 
@@ -190,17 +190,17 @@ model ServiceCategory {
 }
 
 model ServiceSubcategory {
-  id         String   @id @default(uuid())
-  categoryId String   @map("category_id")
-  name       String
-  description String? @db.Text
-  sortOrder  Int      @default(0) @map("sort_order")
-  isActive   Boolean  @default(true) @map("is_active")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid())
+  categoryId  String   @map("category_id")
+  name        String
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  category  ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  services  Service[]
+  category ServiceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  services Service[]
 
   @@map("service_subcategories")
 }
@@ -210,7 +210,7 @@ model Service {
   subcategoryId    String   @map("subcategory_id")
   name             String
   shortDescription String?  @map("short_description") @db.Text
-  heroImage        String?   @map("hero_image")
+  heroImage        String?  @map("hero_image")
   durationMinutes  Int      @map("duration_minutes")
   price            Decimal  @db.Decimal(10, 2)
   isActive         Boolean  @default(true) @map("is_active")
@@ -219,40 +219,23 @@ model Service {
   updatedAt        DateTime @updatedAt @map("updated_at")
 
   // Loyalty konfiguracija po servisu
-  loyaltyEnabled           Boolean @default(false) @map("loyalty_enabled")
-  loyaltyMaxDiscountPercent Int    @default(0)     @map("loyalty_max_discount_percent")
+  loyaltyEnabled            Boolean @default(false) @map("loyalty_enabled")
+  loyaltyMaxDiscountPercent Int     @default(0) @map("loyalty_max_discount_percent")
 
-  subcategory    ServiceSubcategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
-  images         ServiceImage[]
+  subcategory     ServiceSubcategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
   stylistServices StylistService[]
-  reservations   Reservation[]
+  reservations    Reservation[]
   dailyLogEntries DailyLogEntry[]
-  reviews        Review[]
+  reviews         Review[]
 
   @@map("services")
 }
 
-model ServiceImage {
-  id          String   @id @default(uuid())
-  serviceId   String   @map("service_id")
-  uploadId    String   @map("upload_id")
-  isBefore    Boolean  @default(false) @map("is_before")
-  isAfter     Boolean  @default(false) @map("is_after")
-  description String?  @db.Text
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  upload  Upload  @relation(fields: [uploadId], references: [id], onDelete: Cascade)
-
-  @@map("service_images")
-}
-
 model StylistService {
-  id              String   @id @default(uuid())
-  stylistProfileId String @map("stylist_profile_id")
-  serviceId       String  @map("service_id")
-  createdAt       DateTime @default(now()) @map("created_at")
+  id               String   @id @default(uuid())
+  stylistProfileId String   @map("stylist_profile_id")
+  serviceId        String   @map("service_id")
+  createdAt        DateTime @default(now()) @map("created_at")
 
   stylistProfile StylistProfile @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
   service        Service        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
@@ -264,22 +247,22 @@ model StylistService {
 // ============ RESERVATIONS ============
 
 model Reservation {
-  id                   String    @id @default(uuid())
-  clientId             String    @map("client_id")
-  serviceId            String    @map("service_id")
-  reservationDate      DateTime  @map("reservation_date") @db.Date
-  startTime            String    @map("start_time")  // "09:00"
-  endTime              String    @map("end_time")   // "10:00"
-  status               String    // PENDING | STYLIST_REVIEW | CONFIRMED | ATTENDANCE_CONFIRMED | IN_PROGRESS | COMPLETED | CANCELLED_BY_CLIENT | CANCELLED_BY_STYLISTS | NO_SHOW
-  clientNotes          String?   @map("client_notes") @db.Text
-  confirmedStylistId   String?   @map("confirmed_stylist_id")
+  id                    String    @id @default(uuid())
+  clientId              String    @map("client_id")
+  serviceId             String    @map("service_id")
+  reservationDate       DateTime  @map("reservation_date") @db.Date
+  startTime             String    @map("start_time") // "09:00"
+  endTime               String    @map("end_time") // "10:00"
+  status                String // PENDING | STYLIST_REVIEW | CONFIRMED | ATTENDANCE_CONFIRMED | IN_PROGRESS | COMPLETED | CANCELLED_BY_CLIENT | CANCELLED_BY_STYLISTS | NO_SHOW
+  clientNotes           String?   @map("client_notes") @db.Text
+  confirmedStylistId    String?   @map("confirmed_stylist_id")
   attendanceConfirmedAt DateTime? @map("attendance_confirmed_at")
-  startedAt            DateTime? @map("started_at")
-  completedAt          DateTime? @map("completed_at")
-  cancelledAt          DateTime? @map("cancelled_at")
-  cancelReason         String?   @map("cancel_reason") @db.Text
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
+  startedAt             DateTime? @map("started_at")
+  completedAt           DateTime? @map("completed_at")
+  cancelledAt           DateTime? @map("cancelled_at")
+  cancelReason          String?   @map("cancel_reason") @db.Text
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
   // Reschedule potvrda klijenta (obavezna) nakon pomjeranja termina
   rescheduleProposedStartTime String? @map("reschedule_proposed_start_time")
@@ -290,88 +273,71 @@ model Reservation {
   delayNotifiedAt DateTime? @map("delay_notified_at")
 
   // Stilist može eksplicitno označiti da koristi pauzu nakon probijanja termina
-  useBreakAfterOverrun Boolean? @map("use_break_after_overrun")
+  useBreakAfterOverrun Boolean?  @map("use_break_after_overrun")
   useBreakDecidedAt    DateTime? @map("use_break_decided_at")
 
   // Loyalty popust po rezervaciji (informativno, ne mijenja automatski KIF)
-  loyaltyDiscountPercent Int      @default(0)        @map("loyalty_discount_percent")
-  loyaltyDiscountAmount  Decimal  @default(0)        @map("loyalty_discount_amount") @db.Decimal(10, 2)
-  loyaltyPointsUsed      Int      @default(0)        @map("loyalty_points_used")
+  loyaltyDiscountPercent Int     @default(0) @map("loyalty_discount_percent")
+  loyaltyDiscountAmount  Decimal @default(0) @map("loyalty_discount_amount") @db.Decimal(10, 2)
+  loyaltyPointsUsed      Int     @default(0) @map("loyalty_points_used")
 
-  client       User                       @relation("ClientReservations", fields: [clientId], references: [id], onDelete: Cascade)
-  service      Service                    @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  confirmedStylist StylistProfile?         @relation("ConfirmedByStylist", fields: [confirmedStylistId], references: [id], onDelete: SetNull)
+  client           User                         @relation("ClientReservations", fields: [clientId], references: [id], onDelete: Cascade)
+  service          Service                      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  confirmedStylist StylistProfile?              @relation("ConfirmedByStylist", fields: [confirmedStylistId], references: [id], onDelete: SetNull)
   stylistResponses ReservationStylistResponse[]
-  images       ReservationImage[]
-  dailyLogEntry DailyLogEntry[]
-  reviews      Review[]
+  dailyLogEntry    DailyLogEntry[]
+  reviews          Review[]
 
   @@map("reservations")
 }
 
 model ReservationStylistResponse {
-  id              String    @id @default(uuid())
-  reservationId   String    @map("reservation_id")
-  stylistProfileId String   @map("stylist_profile_id")
-  status          String    // PENDING | LOCKED | ACCEPTED | REJECTED
-  lockedAt        DateTime? @map("locked_at")
-  lockExpiresAt   DateTime? @map("lock_expires_at")
-  rejectionReason String?   @map("rejection_reason") @db.Text
-  respondedAt     DateTime? @map("responded_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id               String    @id @default(uuid())
+  reservationId    String    @map("reservation_id")
+  stylistProfileId String    @map("stylist_profile_id")
+  status           String // PENDING | LOCKED | ACCEPTED | REJECTED
+  lockedAt         DateTime? @map("locked_at")
+  lockExpiresAt    DateTime? @map("lock_expires_at")
+  rejectionReason  String?   @map("rejection_reason") @db.Text
+  respondedAt      DateTime? @map("responded_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  reservation    Reservation   @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  reservation    Reservation    @relation(fields: [reservationId], references: [id], onDelete: Cascade)
   stylistProfile StylistProfile @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
 
   @@unique([reservationId, stylistProfileId])
   @@map("reservation_stylist_responses")
 }
 
-model ReservationImage {
-  id            String   @id @default(uuid())
-  reservationId String   @map("reservation_id")
-  uploadId      String   @map("upload_id")
-  isBefore      Boolean  @default(false) @map("is_before")
-  isAfter       Boolean  @default(false) @map("is_after")
-  description   String?  @db.Text
-  sortOrder     Int      @default(0) @map("sort_order")
-  createdAt     DateTime @default(now()) @map("created_at")
-
-  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  upload      Upload      @relation(fields: [uploadId], references: [id], onDelete: Cascade)
-
-  @@map("reservation_images")
-}
-
 // ============ DAILY LOG ============
 
 model DailyLogEntry {
-  id              String    @id @default(uuid())
+  id               String   @id @default(uuid())
   stylistProfileId String   @map("stylist_profile_id")
-  reservationId    String?   @map("reservation_id")
-  serviceId       String    @map("service_id")
-  clientId        String?   @map("client_id")
-  date            DateTime  @db.Date
-  actualPrice     Decimal   @map("actual_price") @db.Decimal(10, 2)
-  tipAmount       Decimal   @default(0) @map("tip_amount") @db.Decimal(10, 2)
+  reservationId    String?  @map("reservation_id")
+  serviceId        String   @map("service_id")
+  clientId         String?  @map("client_id")
+  date             DateTime @db.Date
+  actualPrice      Decimal  @map("actual_price") @db.Decimal(10, 2)
+  tipAmount        Decimal  @default(0) @map("tip_amount") @db.Decimal(10, 2)
 
   // Loyalty popust (ako je klijent iskoristio bodove pri ručnom unosu)
   loyaltyDiscountPercent Int     @default(0) @map("loyalty_discount_percent")
   loyaltyDiscountAmount  Decimal @default(0) @map("loyalty_discount_amount") @db.Decimal(10, 2)
   loyaltyPointsUsed      Int     @default(0) @map("loyalty_points_used")
 
-  isManual        Boolean   @default(false) @map("is_manual")
-  notes           String?   @db.Text
-  status          String    @default("PENDING") // PENDING | COMPLETED
-  completedAt     DateTime? @map("completed_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  isManual    Boolean   @default(false) @map("is_manual")
+  notes       String?   @db.Text
+  status      String    @default("PENDING") // PENDING | COMPLETED
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  stylistProfile StylistProfile @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
-  reservation    Reservation?   @relation(fields: [reservationId], references: [id], onDelete: SetNull)
-  service        Service       @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  client         User?         @relation("DailyLogClient", fields: [clientId], references: [id], onDelete: SetNull)
+  stylistProfile StylistProfile    @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
+  reservation    Reservation?      @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  service        Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  client         User?             @relation("DailyLogClient", fields: [clientId], references: [id], onDelete: SetNull)
   images         DailyLogImage[]
   incomeEntries  IncomeBookEntry[]
 
@@ -380,7 +346,7 @@ model DailyLogEntry {
 
 model DailyLogImage {
   id              String   @id @default(uuid())
-  dailyLogEntryId  String   @map("daily_log_entry_id")
+  dailyLogEntryId String   @map("daily_log_entry_id")
   uploadId        String   @map("upload_id")
   isBefore        Boolean  @default(false) @map("is_before")
   isAfter         Boolean  @default(false) @map("is_after")
@@ -414,14 +380,14 @@ model ExpenseBook {
 }
 
 model ExpenseCategoryTemplate {
-  id                     String   @id @default(uuid())
-  name                   String
-  description            String?  @db.Text
-  requiresAttachmentPerItem Boolean @default(false) @map("requires_attachment_per_item")
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @updatedAt @map("updated_at")
+  id                        String   @id @default(uuid())
+  name                      String
+  description               String?  @db.Text
+  requiresAttachmentPerItem Boolean  @default(false) @map("requires_attachment_per_item")
+  createdAt                 DateTime @default(now()) @map("created_at")
+  updatedAt                 DateTime @updatedAt @map("updated_at")
 
-  fields   ExpenseTemplateField[]
+  fields     ExpenseTemplateField[]
   categories ExpenseCategory[]
 
   @@map("expense_category_templates")
@@ -460,20 +426,20 @@ model ExpenseCategory {
 }
 
 model Expense {
-  id             String    @id @default(uuid())
-  bookId         String    @map("book_id")
-  categoryId     String    @map("category_id")
-  title          String
-  totalAmount    Decimal   @map("total_amount") @db.Decimal(12, 2)
+  id              String   @id @default(uuid())
+  bookId          String   @map("book_id")
+  categoryId      String   @map("category_id")
+  title           String
+  totalAmount     Decimal  @map("total_amount") @db.Decimal(12, 2)
   invoiceUploadId String?  @map("invoice_upload_id")
-  notes          String?   @db.Text
-  createdById    String    @map("created_by_id")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  notes           String?  @db.Text
+  createdById     String   @map("created_by_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  book       ExpenseBook   @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  category   ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  createdBy  User          @relation("ExpenseCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  book        ExpenseBook         @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  category    ExpenseCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdBy   User                @relation("ExpenseCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   fieldValues ExpenseFieldValue[]
   attachments ExpenseAttachment[]
 
@@ -487,7 +453,7 @@ model ExpenseFieldValue {
   value     String   @db.Text
   createdAt DateTime @default(now()) @map("created_at")
 
-  expense Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  expense Expense              @relation(fields: [expenseId], references: [id], onDelete: Cascade)
   field   ExpenseTemplateField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
   @@unique([expenseId, fieldId])
@@ -535,7 +501,7 @@ model IncomeBookEntry {
   date            DateTime @db.Date
   createdAt       DateTime @default(now()) @map("created_at")
 
-  book         IncomeBook    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  book          IncomeBook    @relation(fields: [bookId], references: [id], onDelete: Cascade)
   dailyLogEntry DailyLogEntry @relation(fields: [dailyLogEntryId], references: [id], onDelete: Cascade)
 
   @@unique([bookId, dailyLogEntryId])
@@ -556,20 +522,20 @@ model BlogPost {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  author   User         @relation("BlogAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  author   User          @relation("BlogAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   comments BlogComment[]
 
   @@map("blog_posts")
 }
 
 model BlogComment {
-  id        String   @id @default(uuid())
-  postId    String   @map("post_id")
-  userId    String   @map("user_id")
-  content   String   @db.Text
-  isApproved Boolean @default(false) @map("is_approved")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(uuid())
+  postId     String   @map("post_id")
+  userId     String   @map("user_id")
+  content    String   @db.Text
+  isApproved Boolean  @default(false) @map("is_approved")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   post BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
   user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -623,10 +589,10 @@ model Review {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  service  Service        @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  stylist  StylistProfile? @relation(fields: [stylistProfileId], references: [id], onDelete: SetNull)
-  reservation Reservation? @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service     Service         @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  stylist     StylistProfile? @relation(fields: [stylistProfileId], references: [id], onDelete: SetNull)
+  reservation Reservation?    @relation(fields: [reservationId], references: [id], onDelete: SetNull)
 
   @@map("reviews")
 }
@@ -645,12 +611,10 @@ model Upload {
   uploadedById String?  @map("uploaded_by_id")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  uploadedBy       User?               @relation("UploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
-  serviceImages   ServiceImage[]
-  reservationImages ReservationImage[]
-  dailyLogImages  DailyLogImage[]
+  uploadedBy         User?               @relation("UploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  dailyLogImages     DailyLogImage[]
   expenseAttachments ExpenseAttachment[]
-  galleryImages   GalleryImage[]
+  galleryImages      GalleryImage[]
 
   @@map("uploads")
 }
@@ -664,7 +628,7 @@ model Notification {
   body      String    @db.Text
   type      String
   data      Json?
-  channel   String    // PUSH | EMAIL | BOTH
+  channel   String // PUSH | EMAIL | BOTH
   isRead    Boolean   @default(false) @map("is_read")
   sentAt    DateTime  @default(now()) @map("sent_at")
   readAt    DateTime? @map("read_at")
@@ -678,7 +642,7 @@ model Notification {
 model NotificationPreference {
   id           String   @id @default(uuid())
   userId       String   @map("user_id")
-  type         String   // reservation_confirmed, reservation_cancelled, etc.
+  type         String // reservation_confirmed, reservation_cancelled, etc.
   pushEnabled  Boolean  @default(true) @map("push_enabled")
   emailEnabled Boolean  @default(true) @map("email_enabled")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -693,7 +657,7 @@ model PushToken {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
   token     String   @unique
-  platform  String   // IOS | ANDROID | WEB
+  platform  String // IOS | ANDROID | WEB
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -710,7 +674,7 @@ model AppSetting {
   value       String   @db.Text
   description String?  @db.Text
   updatedAt   DateTime @updatedAt @map("updated_at")
-  updatedBy   String?   @map("updated_by")
+  updatedBy   String?  @map("updated_by")
 
   @@map("app_settings")
 }
@@ -726,7 +690,7 @@ model LoyaltyAccount {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions LoyaltyTransaction[]
 
   @@map("loyalty_accounts")
@@ -736,7 +700,7 @@ model LoyaltyTransaction {
   id        String   @id @default(uuid())
   accountId String   @map("account_id")
   points    Int
-  type      String   // EARN | REDEEM
+  type      String // EARN | REDEEM
   source    String?
   createdAt DateTime @default(now()) @map("created_at")
 

@@ -8,9 +8,11 @@ import {
   SimpleGrid,
   Flex,
   Badge,
+  Link,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { Link as RouterLink } from 'react-router-dom';
 import api from '../../api/client';
 import { useSettings } from '../../context/SettingsContext';
 
@@ -127,7 +129,15 @@ export default function PublicServices() {
                                 borderColor="gray.100"
                                 _last={{ borderBottomWidth: 0, pb: 0 }}
                               >
-                                <Text fontWeight="medium" color="gray.800">{s.name}</Text>
+                                <Link
+                                  as={RouterLink}
+                                  to={`/usluge/${s.id}`}
+                                  fontWeight="medium"
+                                  color="gray.800"
+                                  _hover={{ color: 'brand.600', textDecoration: 'underline' }}
+                                >
+                                  {s.name}
+                                </Link>
                                 <Badge colorScheme="brand" variant="subtle" px={2} py={1} rounded="md">
                                   {s.durationMinutes} min
                                 </Badge>
