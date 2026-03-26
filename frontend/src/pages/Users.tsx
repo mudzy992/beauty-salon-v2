@@ -61,6 +61,7 @@ export default function Users() {
   const [createData, setCreateData] = useState({
     username: '', firstName: '', lastName: '', role: 'CLIENT' as string, avatar: '' as string,
   });
+  const [isUsernameManuallyEdited, setIsUsernameManuallyEdited] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<{
     loading: boolean;
     available: boolean | null;
@@ -182,6 +183,7 @@ export default function Users() {
       onCreateClose();
       onCredentialsOpen();
       setCreateData({ username: '', firstName: '', lastName: '', role: 'CLIENT', avatar: '' });
+      setIsUsernameManuallyEdited(false);
       setUsernameStatus({ loading: false, available: null, suggestions: [] });
     } catch (err: any) {
       const msg = err?.response?.data?.message;
@@ -202,12 +204,14 @@ export default function Users() {
       .replace(/\.+/g, '.')
       .replace(/^\./, '')
       .replace(/\.$/, '');
-    const username = createData.username || base;
+    const username = (isUsernameManuallyEdited ? createData.username : base).trim();
     if (!username) {
       setUsernameStatus({ loading: false, available: null, suggestions: [] });
       return;
     }
-    setCreateData((prev) => (prev.username ? prev : { ...prev, username }));
+    if (!isUsernameManuallyEdited && createData.username !== base) {
+      setCreateData((prev) => ({ ...prev, username: base }));
+    }
     const timeout = setTimeout(async () => {
       setUsernameStatus((prev) => ({ ...prev, loading: true }));
       try {
@@ -224,7 +228,12 @@ export default function Users() {
       }
     }, 300);
     return () => clearTimeout(timeout);
-  }, [createData.firstName, createData.lastName, createData.username]);
+  }, [
+    createData.firstName,
+    createData.lastName,
+    createData.username,
+    isUsernameManuallyEdited,
+  ]);
 
   const handleDeactivate = async (id: string, username: string) => {
     if (!window.confirm(`Deaktivirati korisnika "${username}"?`)) return;
@@ -409,34 +418,6 @@ export default function Users() {
           <ModalBody>
             <Flex gap={4} mb={4}>
               <FormControl flex={1} isRequired>
-                <FormLabel>Korisničko ime</FormLabel>
-                <Input value={createData.username} onChange={(e) => setCreateData({ ...createData, username: e.target.value })} />
-                {usernameStatus.loading && (
-                  <Text fontSize="xs" color="gray.500" mt={1}>Provjera dostupnosti...</Text>
-                )}
-                {!usernameStatus.loading && usernameStatus.available === true && (
-                  <Text fontSize="xs" color="green.600" mt={1}>Korisničko ime je dostupno.</Text>
-                )}
-                {!usernameStatus.loading && usernameStatus.available === false && (
-                  <Text fontSize="xs" color="red.600" mt={1}>Korisničko ime nije dostupno.</Text>
-                )}
-              </FormControl>
-            </Flex>
-            {usernameStatus.suggestions.length > 0 && usernameStatus.available === false && (
-              <Alert status="info" mb={4}>
-                <AlertIcon />
-                <HStack spacing={2}>
-                  <Text fontSize="sm">Prijedlozi:</Text>
-                  {usernameStatus.suggestions.map((item) => (
-                    <Button key={item} size="xs" onClick={() => setCreateData((prev) => ({ ...prev, username: item }))}>
-                      {item}
-                    </Button>
-                  ))}
-                </HStack>
-              </Alert>
-            )}
-            <Flex gap={4} mb={4}>
-              <FormControl flex={1} isRequired>
                 <FormLabel>Ime</FormLabel>
                 <Input value={createData.firstName} onChange={(e) => setCreateData({ ...createData, firstName: e.target.value })} />
               </FormControl>
@@ -445,6 +426,46 @@ export default function Users() {
                 <Input value={createData.lastName} onChange={(e) => setCreateData({ ...createData, lastName: e.target.value })} />
               </FormControl>
             </Flex>
+            <FormControl mb={4} isRequired>
+              <FormLabel>Korisničko ime</FormLabel>
+              <Input
+                value={createData.username}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setIsUsernameManuallyEdited(value.trim().length > 0);
+                  setCreateData({ ...createData, username: value });
+                }}
+              />
+              {usernameStatus.loading && (
+                <Text fontSize="xs" color="gray.500" mt={1}>Provjera dostupnosti...</Text>
+              )}
+              {!usernameStatus.loading && usernameStatus.available === true && (
+                <Text fontSize="xs" color="green.600" mt={1}>Korisničko ime je dostupno.</Text>
+              )}
+              {!usernameStatus.loading && usernameStatus.available === false && (
+                <Text fontSize="xs" color="red.600" mt={1}>Korisničko ime nije dostupno.</Text>
+              )}
+            </FormControl>
+            {usernameStatus.suggestions.length > 0 && usernameStatus.available === false && (
+              <Alert status="info" mb={4}>
+                <AlertIcon />
+                <HStack spacing={2}>
+                  <Text fontSize="sm">Prijedlozi:</Text>
+                  {usernameStatus.suggestions.map((item) => (
+                    <Button
+                      key={item}
+                      size="xs"
+                      onClick={() => {
+                        setIsUsernameManuallyEdited(true);
+                        setCreateData((prev) => ({ ...prev, username: item }));
+                      }}
+                    >
+                      {item}
+                    </Button>
+                  ))}
+                </HStack>
+              </Alert>
+            )}
             <Flex gap={4} mb={4}>
               <FormControl flex={1} isRequired>
                 <FormLabel>Uloga</FormLabel>
