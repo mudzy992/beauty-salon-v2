@@ -140,6 +140,29 @@ export class ReservationsService {
   }
 
   async create(dto: CreateReservationDto, clientId: string) {
+    const client = await this.prisma.user.findUnique({
+      where: { id: clientId },
+      select: {
+        id: true,
+        email: true,
+        phone: true,
+        isEmailVerified: true,
+        mustChangePassword: true,
+      },
+    });
+    if (!client) throw new NotFoundException('Korisnik nije pronađen.');
+    if (client.mustChangePassword) {
+      throw new BadRequestException('MUST_CHANGE_PASSWORD');
+    }
+    if (!client.email) {
+      throw new BadRequestException('EMAIL_REQUIRED');
+    }
+    if (!client.phone) {
+      throw new BadRequestException('PHONE_REQUIRED');
+    }
+    if (!client.isEmailVerified) {
+      throw new BadRequestException('EMAIL_NOT_VERIFIED');
+    }
     await this.checkClientPenalty(clientId);
     const slots = await this.availability.getAvailableSlots(
       dto.serviceId,

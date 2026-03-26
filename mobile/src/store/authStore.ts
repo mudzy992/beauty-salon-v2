@@ -93,6 +93,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         }
         await setStoredToken(token);
         set({ user, token, isLoading: false });
+        await get().refreshProfile();
       } catch (error) {
         set({ isLoading: false });
         throw error;

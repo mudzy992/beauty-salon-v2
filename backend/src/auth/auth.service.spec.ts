@@ -10,6 +10,7 @@ import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
@@ -145,6 +146,9 @@ describe('AuthService', () => {
       firstName: 'Test',
       lastName: 'User',
       isActive: true,
+      mustChangePassword: false,
+      phone: null,
+      isEmailVerified: false,
       userRoles: [{ role: { name: 'CLIENT' } }],
     };
 
@@ -229,6 +233,33 @@ describe('AuthService', () => {
         username: 'john',
         email: 'john@example.com',
         roles: ['CLIENT'],
+      });
+    });
+  });
+
+  describe('changePassword', () => {
+    it('resetuje mustChangePassword nakon promjene lozinke', async () => {
+      const dto: ChangePasswordDto = {
+        currentPassword: 'Init2026!',
+        newPassword: 'NovaLozinka123!',
+      };
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        passwordHash: 'old-hash',
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+      (bcrypt.hash as jest.Mock).mockResolvedValue('new-hash');
+      mockPrisma.user.update.mockResolvedValue({});
+
+      await service.changePassword('u1', dto);
+
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: {
+          passwordHash: 'new-hash',
+          mustChangePassword: false,
+          passwordChangedAt: expect.any(Date),
+        },
       });
     });
   });

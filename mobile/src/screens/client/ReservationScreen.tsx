@@ -16,6 +16,7 @@ import { Calendar, DateData } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
@@ -48,6 +49,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
+  const user = useAuthStore((state) => state.user);
   const initialServiceId = route.params?.serviceId;
   const origin = route.params?.origin;
   const requestId = route.params?.requestId;
@@ -215,6 +217,22 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
   const handleSubmit = async () => {
     if (!selectedService || !selectedDate || !selectedSlot) return;
+    if (user?.mustChangePassword) {
+      Alert.alert(
+        t('common.error'),
+        'Prvo morate promijeniti inicijalnu lozinku.',
+        [{ text: t('common.ok'), onPress: () => navigation.getParent()?.navigate('ProfileTab') }],
+      );
+      return;
+    }
+    if (!user?.email || !user?.phone || !user?.isEmailVerified) {
+      Alert.alert(
+        t('common.error'),
+        'Za rezervaciju unesite email i telefon, te verifikujte email.',
+        [{ text: t('common.ok'), onPress: () => navigation.getParent()?.navigate('ProfileTab') }],
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       await api.post('/api/reservations', {

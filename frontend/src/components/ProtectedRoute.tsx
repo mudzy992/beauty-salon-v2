@@ -4,7 +4,7 @@ import { Spinner, Center } from '@chakra-ui/react';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { token, isReady } = useAuth();
+  const { token, user, isReady } = useAuth();
   const location = useLocation();
 
   if (!isReady) {
@@ -17,6 +17,9 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  if (user?.mustChangePassword && location.pathname !== '/force-change-password') {
+    return <Navigate to="/force-change-password" replace />;
   }
 
   return <>{children}</>;

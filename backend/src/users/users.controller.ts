@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Put,
   Param,
   Patch,
   Post,
@@ -41,6 +42,24 @@ export class UsersController {
   @Get('profile')
   getProfile(@CurrentUser() user: CurrentUserPayload) {
     return this.usersService.getProfile(user.sub);
+  }
+
+  @Put('profile')
+  updateProfile(
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.usersService.updateProfile(user.sub, dto);
+  }
+
+  @Get('username-availability')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getUsernameAvailability(
+    @Query('username') username: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.usersService.getUsernameAvailability(username, user.roles);
   }
 
   @Get(':id')

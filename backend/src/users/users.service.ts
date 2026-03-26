@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -13,6 +14,8 @@ import { CurrentUserPayload } from '../common/decorators/current-user.decorator'
 
 @Injectable()
 export class UsersService {
+  private static readonly DEFAULT_INITIAL_PASSWORD = 'Init2026!';
+
   constructor(private readonly prisma: PrismaService) {}
 
   /** Lista korisnika za odabir klijenta u dnevnoj knjizi (stilist ili admin). */
@@ -71,6 +74,7 @@ export class UsersService {
         avatar: true,
         isActive: true,
         isEmailVerified: true,
+        mustChangePassword: true,
         lastLoginAt: true,
         createdAt: true,
         userRoles: { include: { role: true } },
@@ -88,39 +92,69 @@ export class UsersService {
         'Rola Stilist se dodjeljuje automatski kada korisnik bude dodat u Stylists. Pri kreiranju korisnika odaberite drugu ulogu.',
       );
     }
-    const existing = await this.prisma.user.findFirst({
-      where: { OR: [{ email: dto.email }, { username: dto.username }] },
+    const username = dto.username
+      ? this.normalizeUsername(dto.username)
+      : await this.generateUniqueUsername({
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+        });
+    const existingUsername = await this.prisma.user.findUnique({
+      where: { username },
+      select: { id: true },
     });
-    if (existing) {
-      if (existing.email === dto.email)
-        throw new ConflictException('Email je već u upotrebi.');
+    if (existingUsername) {
       throw new ConflictException('Korisničko ime je već u upotrebi.');
     }
     const role = await this.prisma.role.findUnique({
       where: { name: dto.role },
     });
     if (!role) throw new NotFoundException(`Rola ${dto.role} nije pronađena.`);
-    const bcrypt = await import('bcrypt');
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const initialPassword = dto.password?.trim() || UsersService.DEFAULT_INITIAL_PASSWORD;
+    const passwordHash = await bcrypt.hash(initialPassword, 10);
     const user = await this.prisma.user.create({
       data: {
-        username: dto.username,
-        email: dto.email,
+        username,
+        email: null,
         passwordHash,
         firstName: dto.firstName,
         lastName: dto.lastName,
         phone: dto.phone ?? null,
         avatar: dto.avatar ?? null,
+        mustChangePassword: true,
+        isEmailVerified: false,
       },
       include: { userRoles: { include: { role: true } } },
     });
     await this.prisma.userRole.create({
       data: { userId: user.id, roleId: role.id },
     });
-    return this.prisma.user.findUnique({
+    const fullUser = await this.prisma.user.findUnique({
       where: { id: user.id },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
     });
+    return {
+      ...fullUser,
+      initialPasswordShownOnce: true,
+      initialPassword,
+    };
+  }
+
+  async getUsernameAvailability(username: string, roles: string[]) {
+    this.requireAdminOrOwner(roles);
+    const normalized = this.normalizeUsername(username);
+    if (!normalized) {
+      throw new BadRequestException('Korisničko ime nije validno.');
+    }
+    const existing = await this.prisma.user.findUnique({
+      where: { username: normalized },
+      select: { id: true },
+    });
+    const suggestions = await this.generateUsernameSuggestions(normalized, 3);
+    return {
+      username: normalized,
+      available: !existing,
+      suggestions,
+    };
   }
 
   async update(
@@ -146,17 +180,58 @@ export class UsersService {
       if (taken)
         throw new ConflictException('Korisničko ime je već u upotrebi.');
     }
+    const nextEmail = dto.email?.trim() ?? null;
+    const shouldResetEmailVerification =
+      dto.email !== undefined && nextEmail !== user.email;
     return this.prisma.user.update({
       where: { id },
       data: {
         ...(dto.firstName != null && { firstName: dto.firstName }),
         ...(dto.lastName != null && { lastName: dto.lastName }),
-        ...(dto.email != null && { email: dto.email }),
+        ...(dto.email !== undefined && {
+          email: nextEmail,
+          isEmailVerified: shouldResetEmailVerification ? false : user.isEmailVerified,
+          emailVerificationToken: shouldResetEmailVerification
+            ? null
+            : user.emailVerificationToken,
+          emailVerificationExpiresAt: shouldResetEmailVerification
+            ? null
+            : user.emailVerificationExpiresAt,
+        }),
         ...(dto.username != null && { username: dto.username }),
         ...(dto.phone !== undefined && { phone: dto.phone || null }),
         ...(dto.avatar !== undefined && { avatar: dto.avatar }),
         ...(this.isAdminOrOwner(currentUser.roles) &&
           dto.isActive !== undefined && { isActive: dto.isActive }),
+      },
+      include: { userRoles: { include: { role: true } }, stylistProfile: true },
+    });
+  }
+
+  async updateProfile(userId: string, dto: UpdateUserDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (dto.email !== undefined) {
+      const nextEmail = dto.email?.trim();
+      if (!nextEmail) throw new BadRequestException('Email je obavezan.');
+      if (nextEmail !== user.email) {
+        const taken = await this.prisma.user.findUnique({
+          where: { email: nextEmail },
+          select: { id: true },
+        });
+        if (taken) throw new ConflictException('Email je već u upotrebi.');
+      }
+    }
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.email !== undefined && {
+          email: dto.email.trim(),
+          isEmailVerified: dto.email.trim() === user.email ? user.isEmailVerified : false,
+          emailVerificationToken: null,
+          emailVerificationExpiresAt: null,
+        }),
+        ...(dto.phone !== undefined && { phone: dto.phone?.trim() || null }),
       },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
     });
@@ -396,5 +471,59 @@ export class UsersService {
   private requireAdminOrOwner(roles: string[]) {
     if (!this.isAdminOrOwner(roles))
       throw new ForbiddenException('Samo administrator ili vlasnik.');
+  }
+
+  private normalizeUsername(input: string): string {
+    return input
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9.\s]/g, '')
+      .trim()
+      .replace(/\s+/g, '.')
+      .replace(/\.+/g, '.')
+      .replace(/^\./, '')
+      .replace(/\.$/, '');
+  }
+
+  private async generateUniqueUsername(input: {
+    firstName: string;
+    lastName: string;
+  }): Promise<string> {
+    const first = this.normalizeUsername(input.firstName);
+    const last = this.normalizeUsername(input.lastName);
+    const base = `${first}.${last}`.replace(/\.+/g, '.').replace(/^\./, '').replace(/\.$/, '');
+    if (!base) throw new BadRequestException('Nije moguće generisati korisničko ime.');
+    const takenBase = await this.prisma.user.findUnique({
+      where: { username: base },
+      select: { id: true },
+    });
+    if (!takenBase) return base;
+    let suffix = 2;
+    while (suffix < 10000) {
+      const candidate = `${base}${suffix}`;
+      const taken = await this.prisma.user.findUnique({
+        where: { username: candidate },
+        select: { id: true },
+      });
+      if (!taken) return candidate;
+      suffix += 1;
+    }
+    throw new ConflictException('Nije moguće automatski generisati korisničko ime.');
+  }
+
+  private async generateUsernameSuggestions(base: string, count: number) {
+    const suggestions: string[] = [];
+    let suffix = 2;
+    while (suggestions.length < count && suffix < 10000) {
+      const candidate = `${base}${suffix}`;
+      const existing = await this.prisma.user.findUnique({
+        where: { username: candidate },
+        select: { id: true },
+      });
+      if (!existing) suggestions.push(candidate);
+      suffix += 1;
+    }
+    return suggestions;
   }
 }

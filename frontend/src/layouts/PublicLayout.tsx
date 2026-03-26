@@ -14,6 +14,8 @@ import {
   DrawerContent,
   VStack,
   IconButton,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
@@ -39,6 +41,8 @@ export default function PublicLayout() {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
   };
+  const isProfileIncomplete =
+    !!user && (!user.email || !user.phone || !user.isEmailVerified);
 
   const NavLinks = ({ onItemClick }: { onItemClick?: () => void }) => (
     <>
@@ -76,6 +80,9 @@ export default function PublicLayout() {
                 <>
                   <Button as={RouterLink} to="/rezervacija" size="sm" colorScheme="brand" variant="solid">
                     {t('public.nav.reserve')}
+                  </Button>
+                  <Button as={RouterLink} to="/profil" size="sm" variant="ghost">
+                    Profil
                   </Button>
                   {(['SYSTEM_ADMIN', 'OWNER'] as string[]).some((r) => user.roles.includes(r)) && (
                     <Button as={RouterLink} to="/admin" size="sm" variant="outline">
@@ -120,6 +127,9 @@ export default function PublicLayout() {
                   <Button as={RouterLink} to="/rezervacija" onClick={onClose} colorScheme="brand" w="full">
                     {t('public.nav.reserve')}
                   </Button>
+                  <Button as={RouterLink} to="/profil" onClick={onClose} variant="ghost" w="full">
+                    Profil
+                  </Button>
                   {(['SYSTEM_ADMIN', 'OWNER'] as string[]).some((r) => user.roles.includes(r)) && (
                     <Button as={RouterLink} to="/admin" onClick={onClose} variant="outline" w="full">
                       {t('app.admin')}
@@ -145,6 +155,17 @@ export default function PublicLayout() {
       </Drawer>
 
       <Box flex={1}>
+        {isProfileIncomplete && (
+          <Container maxW="container.xl" pt={4}>
+            <Alert status="warning" rounded="md">
+              <AlertIcon />
+              Potrebno je da unesete email i telefon, te verifikujete email prije rezervacije.
+              <Button as={RouterLink} to="/profil" size="sm" ml={3} colorScheme="orange">
+                Uredi profil
+              </Button>
+            </Alert>
+          </Container>
+        )}
         <Outlet />
       </Box>
 

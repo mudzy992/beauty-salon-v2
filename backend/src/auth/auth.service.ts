@@ -71,12 +71,9 @@ export class AuthService {
 
     // TODO: send verification email with token (Phase 3 - notifications)
     // For now we can auto-verify or use a simple token in DB
-    const token = await this.createAccessToken(
-      user.id,
-      user.email,
-      user.username,
-      ['CLIENT'],
-    );
+    const token = await this.createAccessToken(user.id, user.email, user.username, [
+      'CLIENT',
+    ]);
     return {
       access_token: token,
       user: {
@@ -135,6 +132,8 @@ export class AuthService {
         lastName: user.lastName,
         avatar: user.avatar ?? undefined,
         isEmailVerified: user.isEmailVerified,
+        mustChangePassword: user.mustChangePassword,
+        phone: user.phone ?? null,
         roles,
       },
     };
@@ -149,7 +148,7 @@ export class AuthService {
     return {
       sub: user.id,
       username: user.username,
-      email: user.email,
+      email: user.email ?? '',
       roles: user.userRoles.map((ur) => ur.role.name),
     };
   }
@@ -174,7 +173,11 @@ export class AuthService {
     const newHash = await bcrypt.hash(dto.newPassword, SALT_ROUNDS);
     await this.prisma.user.update({
       where: { id: userId },
-      data: { passwordHash: newHash },
+      data: {
+        passwordHash: newHash,
+        mustChangePassword: false,
+        passwordChangedAt: new Date(),
+      },
     });
     return { message: 'Lozinka je uspješno promijenjena.' };
   }
@@ -185,6 +188,9 @@ export class AuthService {
       select: { id: true, email: true, isEmailVerified: true },
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user.email) {
+      throw new BadRequestException('Prvo unesite email adresu u profilu.');
+    }
     if (user.isEmailVerified) {
       throw new BadRequestException('Email adresa je već potvrđena.');
     }
@@ -234,11 +240,11 @@ export class AuthService {
 
   private async createAccessToken(
     sub: string,
-    email: string,
+    email: string | null,
     username: string,
     roles: string[],
   ): Promise<string> {
-    const payload = { sub, email, username, roles };
+    const payload = { sub, email: email ?? '', username, roles };
     return this.jwtService.signAsync(payload, {
       secret: this.config.get<string>('JWT_SECRET', 'change-me-in-production'),
       expiresIn: this.config.get('JWT_EXPIRES_IN', '7d') as '7d',

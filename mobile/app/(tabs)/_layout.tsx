@@ -15,6 +15,7 @@ export default function TabsLayout() {
 
   if (!isInitialized) return null;
   if (!user) return <Redirect href="/login" />;
+  if (user.mustChangePassword) return <Redirect href="/profile/change-password" />;
 
   return (
     <View style={{ flex: 1 }}>

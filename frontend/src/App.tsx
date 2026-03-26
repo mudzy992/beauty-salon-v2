@@ -9,6 +9,8 @@ import PublicLayout from './layouts/PublicLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Profile from './pages/Profile';
+import ForceChangePassword from './pages/ForceChangePassword';
 import PublicHome from './pages/public/PublicHome';
 import PublicServices from './pages/public/PublicServices';
 import PublicServiceDetail from './pages/public/PublicServiceDetail';
@@ -44,6 +46,14 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route
+        path="/force-change-password"
+        element={
+          <ProtectedRoute>
+            <ForceChangePassword />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/" element={<PublicLayout />}>
         <Route index element={<PublicHome />} />
         <Route path="usluge" element={<PublicServices />} />
@@ -53,6 +63,7 @@ function AppRoutes() {
         <Route path="galerija" element={<PublicGallery />} />
         <Route path="kontakt" element={<PublicContact />} />
         <Route path="rezervacija" element={<PublicReserve />} />
+        <Route path="profil" element={<Profile />} />
         <Route path="zadovoljni-klijenti" element={<PublicSatisfiedClients />} />
       </Route>
       <Route

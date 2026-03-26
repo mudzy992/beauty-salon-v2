@@ -1,22 +1,17 @@
 import {
-  IsEmail,
   IsNotEmpty,
   IsOptional,
   IsString,
-  MinLength,
 } from 'class-validator';
 
 export class CreateUserDto {
   @IsString()
-  @IsNotEmpty()
-  username: string;
-
-  @IsEmail()
-  email: string;
+  @IsOptional()
+  username?: string;
 
   @IsString()
-  @MinLength(8, { message: 'Lozinka mora imati najmanje 8 karaktera.' })
-  password: string;
+  @IsOptional()
+  password?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -27,6 +22,7 @@ export class CreateUserDto {
   lastName: string;
 
   @IsString()
+  @IsOptional()
   phone?: string;
 
   @IsString()

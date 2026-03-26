@@ -6,7 +6,7 @@ import {
   ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
   FormControl, FormLabel, Input, Button, useToast, Switch, Select,
   Menu, MenuButton, MenuList, MenuItem, InputGroup, InputLeftElement,
-  HStack, Tag, TagLabel, TagCloseButton, Avatar,
+  HStack, Tag, TagLabel, TagCloseButton, Avatar, Alert, AlertIcon, VStack,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -47,6 +47,11 @@ export default function Users() {
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
+  const {
+    isOpen: isCredentialsOpen,
+    onOpen: onCredentialsOpen,
+    onClose: onCredentialsClose,
+  } = useDisclosure();
   const [editUser, setEditUser] = useState<UserRow | null>(null);
 
   const [formData, setFormData] = useState({
@@ -54,8 +59,17 @@ export default function Users() {
   });
 
   const [createData, setCreateData] = useState({
-    username: '', email: '', password: '', firstName: '', lastName: '', phone: '', role: 'CLIENT' as string, avatar: '' as string,
+    username: '', firstName: '', lastName: '', role: 'CLIENT' as string, avatar: '' as string,
   });
+  const [usernameStatus, setUsernameStatus] = useState<{
+    loading: boolean;
+    available: boolean | null;
+    suggestions: string[];
+  }>({ loading: false, available: null, suggestions: [] });
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    username: string;
+    initialPassword: string;
+  } | null>(null);
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarEditRef = useRef<HTMLInputElement>(null);
@@ -149,20 +163,26 @@ export default function Users() {
   };
 
   const handleCreate = async () => {
-    if (!createData.username || !createData.email || !createData.password || !createData.firstName || !createData.lastName || !createData.role) {
+    if (!createData.firstName || !createData.lastName || !createData.role) {
       toast({ title: 'Popunite sva obavezna polja', status: 'warning', isClosable: true });
       return;
     }
     setSaving(true);
     try {
-      await api.post('/api/users', {
+      const response = await api.post('/api/users', {
         ...createData,
         ...(createData.avatar && { avatar: createData.avatar }),
       });
       toast({ title: 'Korisnik kreiran', status: 'success', isClosable: true });
+      setCreatedCredentials({
+        username: response.data?.username || createData.username,
+        initialPassword: response.data?.initialPassword || 'Init2026!',
+      });
       loadData();
       onCreateClose();
-      setCreateData({ username: '', email: '', password: '', firstName: '', lastName: '', phone: '', role: 'CLIENT', avatar: '' });
+      onCredentialsOpen();
+      setCreateData({ username: '', firstName: '', lastName: '', role: 'CLIENT', avatar: '' });
+      setUsernameStatus({ loading: false, available: null, suggestions: [] });
     } catch (err: any) {
       const msg = err?.response?.data?.message;
       toast({ title: msg || 'Greška pri kreiranju', status: 'error', isClosable: true });
@@ -170,6 +190,41 @@ export default function Users() {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    const base = `${createData.firstName}.${createData.lastName}`
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9.\s]/g, '')
+      .trim()
+      .replace(/\s+/g, '.')
+      .replace(/\.+/g, '.')
+      .replace(/^\./, '')
+      .replace(/\.$/, '');
+    const username = createData.username || base;
+    if (!username) {
+      setUsernameStatus({ loading: false, available: null, suggestions: [] });
+      return;
+    }
+    setCreateData((prev) => (prev.username ? prev : { ...prev, username }));
+    const timeout = setTimeout(async () => {
+      setUsernameStatus((prev) => ({ ...prev, loading: true }));
+      try {
+        const { data } = await api.get('/api/users/username-availability', {
+          params: { username },
+        });
+        setUsernameStatus({
+          loading: false,
+          available: !!data.available,
+          suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
+        });
+      } catch {
+        setUsernameStatus({ loading: false, available: null, suggestions: [] });
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [createData.firstName, createData.lastName, createData.username]);
 
   const handleDeactivate = async (id: string, username: string) => {
     if (!window.confirm(`Deaktivirati korisnika "${username}"?`)) return;
@@ -356,16 +411,30 @@ export default function Users() {
               <FormControl flex={1} isRequired>
                 <FormLabel>Korisničko ime</FormLabel>
                 <Input value={createData.username} onChange={(e) => setCreateData({ ...createData, username: e.target.value })} />
-              </FormControl>
-              <FormControl flex={1} isRequired>
-                <FormLabel>Email</FormLabel>
-                <Input type="email" value={createData.email} onChange={(e) => setCreateData({ ...createData, email: e.target.value })} />
+                {usernameStatus.loading && (
+                  <Text fontSize="xs" color="gray.500" mt={1}>Provjera dostupnosti...</Text>
+                )}
+                {!usernameStatus.loading && usernameStatus.available === true && (
+                  <Text fontSize="xs" color="green.600" mt={1}>Korisničko ime je dostupno.</Text>
+                )}
+                {!usernameStatus.loading && usernameStatus.available === false && (
+                  <Text fontSize="xs" color="red.600" mt={1}>Korisničko ime nije dostupno.</Text>
+                )}
               </FormControl>
             </Flex>
-            <FormControl mb={4} isRequired>
-              <FormLabel>Lozinka</FormLabel>
-              <Input type="password" value={createData.password} onChange={(e) => setCreateData({ ...createData, password: e.target.value })} />
-            </FormControl>
+            {usernameStatus.suggestions.length > 0 && usernameStatus.available === false && (
+              <Alert status="info" mb={4}>
+                <AlertIcon />
+                <HStack spacing={2}>
+                  <Text fontSize="sm">Prijedlozi:</Text>
+                  {usernameStatus.suggestions.map((item) => (
+                    <Button key={item} size="xs" onClick={() => setCreateData((prev) => ({ ...prev, username: item }))}>
+                      {item}
+                    </Button>
+                  ))}
+                </HStack>
+              </Alert>
+            )}
             <Flex gap={4} mb={4}>
               <FormControl flex={1} isRequired>
                 <FormLabel>Ime</FormLabel>
@@ -377,10 +446,6 @@ export default function Users() {
               </FormControl>
             </Flex>
             <Flex gap={4} mb={4}>
-              <FormControl flex={1}>
-                <FormLabel>Telefon</FormLabel>
-                <Input value={createData.phone} onChange={(e) => setCreateData({ ...createData, phone: e.target.value })} />
-              </FormControl>
               <FormControl flex={1} isRequired>
                 <FormLabel>Uloga</FormLabel>
                 <Select value={createData.role} onChange={(e) => setCreateData({ ...createData, role: e.target.value })}>
@@ -405,6 +470,32 @@ export default function Users() {
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onCreateClose}>{t('common.cancel')}</Button>
             <Button colorScheme="brand" onClick={handleCreate} isLoading={saving}>{t('common.save')}</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isCredentialsOpen} onClose={onCredentialsClose} size="md">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Kredencijali korisnika (prikaz jednom)</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack align="stretch" spacing={3}>
+              <Box>
+                <Text fontSize="sm" color="gray.500">Korisničko ime</Text>
+                <Text fontWeight="bold">{createdCredentials?.username}</Text>
+              </Box>
+              <Box>
+                <Text fontSize="sm" color="gray.500">Inicijalna lozinka</Text>
+                <Text fontWeight="bold">{createdCredentials?.initialPassword}</Text>
+              </Box>
+              <Text fontSize="sm" color="orange.600">
+                Sačuvajte ove podatke i proslijedite korisniku. Nakon prve prijave korisnik mora promijeniti lozinku.
+              </Text>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onCredentialsClose} colorScheme="brand">U redu</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

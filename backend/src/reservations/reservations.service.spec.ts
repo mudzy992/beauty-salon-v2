@@ -27,6 +27,9 @@ jest.mock('expo-server-sdk', () => {
 });
 
 const mockPrisma = {
+  user: {
+    findUnique: jest.fn(),
+  },
   reservation: {
     create: jest.fn(),
     findUnique: jest.fn(),
@@ -96,7 +99,52 @@ describe('ReservationsService', () => {
   });
 
   describe('create', () => {
+    it('baca grešku kada korisnik mora promijeniti lozinku', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'client-1',
+        email: 'client@test.com',
+        phone: '+38761111222',
+        isEmailVerified: true,
+        mustChangePassword: true,
+      });
+      const dto = {
+        serviceId: 'svc-1',
+        reservationDate: '2026-03-20',
+        startTime: '09:00',
+        endTime: '10:00',
+      };
+      await expect(service.create(dto as any, 'client-1')).rejects.toThrow(
+        'MUST_CHANGE_PASSWORD',
+      );
+    });
+
+    it('baca grešku kada email nije verifikovan', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'client-1',
+        email: 'client@test.com',
+        phone: '+38761111222',
+        isEmailVerified: false,
+        mustChangePassword: false,
+      });
+      const dto = {
+        serviceId: 'svc-1',
+        reservationDate: '2026-03-20',
+        startTime: '09:00',
+        endTime: '10:00',
+      };
+      await expect(service.create(dto as any, 'client-1')).rejects.toThrow(
+        'EMAIL_NOT_VERIFIED',
+      );
+    });
+
     it('baca BadRequestException kada termin nije dostupan', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'client-1',
+        email: 'client@test.com',
+        phone: '+38761111222',
+        isEmailVerified: true,
+        mustChangePassword: false,
+      });
       mockAvailability.getAvailableSlots.mockResolvedValue([
         { startTime: '10:00', endTime: '11:00', availableStylistCount: 1 },
       ]);
@@ -115,6 +163,13 @@ describe('ReservationsService', () => {
     });
 
     it('kreira rezervaciju i PENDING odgovore kada je slot dostupan', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'client-1',
+        email: 'client@test.com',
+        phone: '+38761111222',
+        isEmailVerified: true,
+        mustChangePassword: false,
+      });
       mockPrisma.clientCancellationCount.findUnique.mockResolvedValue(null);
       mockAvailability.getAvailableSlots.mockResolvedValue([
         { startTime: '09:00', endTime: '10:00', availableStylistCount: 2 },

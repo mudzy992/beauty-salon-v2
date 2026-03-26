@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
@@ -66,6 +67,14 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const [verifyCode, setVerifyCode] = useState('');
   const [verifySending, setVerifySending] = useState(false);
   const [verifySubmitting, setVerifySubmitting] = useState(false);
+  const [emailInput, setEmailInput] = useState(user?.email ?? '');
+  const [phoneInput, setPhoneInput] = useState(user?.phone ?? '');
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  useEffect(() => {
+    setEmailInput(user?.email ?? '');
+    setPhoneInput(user?.phone ?? '');
+  }, [user?.email, user?.phone]);
 
   const themeLabel = mode === 'light'
     ? t('profile.themeLight')
@@ -162,6 +171,23 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
     }
   }, [verifyCode, refreshProfile, t]);
 
+  const handleSaveProfileContact = useCallback(async () => {
+    setProfileSaving(true);
+    try {
+      await api.put('/api/users/profile', { email: emailInput, phone: phoneInput });
+      await refreshProfile();
+      Alert.alert(t('common.ok'), 'Kontakt podaci su ažurirani.');
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
+          : t('common.error');
+      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
+    } finally {
+      setProfileSaving(false);
+    }
+  }, [emailInput, phoneInput, refreshProfile, t]);
+
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
@@ -227,6 +253,40 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
           </Text>
         )}
       </Card>
+
+      {(!user?.phone || !user?.email || !user?.isEmailVerified) && (
+        <Card style={styles.menuCard}>
+          <Text style={[styles.userName, { fontSize: 18, color: colors.text }]}>
+            Dovršite profil
+          </Text>
+          <Text style={[styles.userEmail, { marginBottom: spacing.sm, color: colors.textSecondary }]}>
+            Telefon je obavezan, a email mora biti verifikovan za rezervacije.
+          </Text>
+          <TextInput
+            value={emailInput}
+            onChangeText={setEmailInput}
+            placeholder="Email"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            style={[styles.input, { color: colors.text, borderColor: colors.borderLight }]}
+            placeholderTextColor={colors.textMuted}
+          />
+          <TextInput
+            value={phoneInput}
+            onChangeText={setPhoneInput}
+            placeholder="Telefon"
+            keyboardType="phone-pad"
+            style={[styles.input, { color: colors.text, borderColor: colors.borderLight }]}
+            placeholderTextColor={colors.textMuted}
+          />
+          <Button
+            title="Sačuvaj kontakt podatke"
+            onPress={handleSaveProfileContact}
+            loading={profileSaving}
+            style={{ marginTop: spacing.sm }}
+          />
+        </Card>
+      )}
 
       {/* Verify email modal */}
       <Modal visible={verifyModalVisible} animationType="slide" transparent>
@@ -375,4 +435,11 @@ const styles = StyleSheet.create({
   menuLabel: { flex: 1, fontSize: 16, fontWeight: '500' },
   menuRight: { fontSize: 13, marginRight: spacing.sm },
   separator: { height: 1, marginLeft: 52 },
+  input: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 8,
+  },
 });

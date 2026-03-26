@@ -4,7 +4,10 @@ import api from '../api/client';
 interface User {
   sub: string;
   username: string;
-  email: string;
+  email: string | null;
+  phone: string | null;
+  isEmailVerified: boolean;
+  mustChangePassword: boolean;
   roles: string[];
 }
 
@@ -13,6 +16,7 @@ interface AuthContextValue {
   token: string | null;
   login: (username: string, password: string) => Promise<User>;
   logout: () => void;
+  refreshProfile: () => Promise<void>;
   isReady: boolean;
 }
 
@@ -32,6 +36,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.dispatchEvent(new Event('auth-change'));
   }, []);
 
+  const mapProfileToUser = (profile: {
+    id: string;
+    username: string;
+    email: string | null;
+    phone?: string | null;
+    isEmailVerified?: boolean;
+    mustChangePassword?: boolean;
+    userRoles?: { role: { name: string } }[];
+    roles?: string[];
+  }): User => {
+    const roles = profile.roles ?? profile.userRoles?.map((r) => r.role.name) ?? [];
+    return {
+      sub: profile.id,
+      username: profile.username,
+      email: profile.email ?? null,
+      phone: profile.phone ?? null,
+      isEmailVerified: profile.isEmailVerified ?? false,
+      mustChangePassword: profile.mustChangePassword ?? false,
+      roles,
+    };
+  };
+
+  const refreshProfile = useCallback(async () => {
+    const profile = await api.get<{
+      id: string;
+      username: string;
+      email: string | null;
+      phone?: string | null;
+      isEmailVerified?: boolean;
+      mustChangePassword?: boolean;
+      userRoles?: { role: { name: string } }[];
+      roles?: string[];
+    }>('/api/users/profile');
+    setUser(mapProfileToUser(profile.data));
+  }, []);
+
   const loginFn = useCallback(
     async (username: string, password: string): Promise<User> => {
       const { data } = await api.post<{ access_token: string }>('/auth/login', {
@@ -44,16 +84,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const profile = await api.get<{
         id: string;
         username: string;
-        email: string;
+        email: string | null;
+        phone?: string | null;
+        isEmailVerified?: boolean;
+        mustChangePassword?: boolean;
         userRoles?: { role: { name: string } }[];
+        roles?: string[];
       }>('/api/users/profile');
-      const roles = profile.data.userRoles?.map((r) => r.role.name) ?? [];
-      const userData: User = {
-        sub: profile.data.id,
-        username: profile.data.username,
-        email: profile.data.email,
-        roles,
-      };
+      const userData = mapProfileToUser(profile.data);
       setUser(userData);
       setToken(newToken);
       window.dispatchEvent(new Event('auth-change'));
@@ -71,23 +109,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .get<{
         id: string;
         username: string;
-        email: string;
+        email: string | null;
+        phone?: string | null;
+        isEmailVerified?: boolean;
+        mustChangePassword?: boolean;
         userRoles?: { role: { name: string } }[];
+        roles?: string[];
       }>('/api/users/profile')
       .then((r) => {
-        const roles = r.data.userRoles?.map((ur) => ur.role.name) ?? [];
-        setUser({
-          sub: r.data.id,
-          username: r.data.username,
-          email: r.data.email,
-          roles,
-        });
+        setUser(mapProfileToUser(r.data));
       })
       .catch(() => logout())
       .finally(() => setIsReady(true));
   }, [token, logout]);
 
-  const value: AuthContextValue = { user, token, login: loginFn, logout, isReady };
+  const value: AuthContextValue = {
+    user,
+    token,
+    login: loginFn,
+    logout,
+    refreshProfile,
+    isReady,
+  };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

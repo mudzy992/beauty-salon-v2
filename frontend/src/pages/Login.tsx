@@ -52,6 +52,10 @@ export default function Login() {
 
     setLoading(false);
     toast({ title: 'Uspješna prijava!', status: 'success', duration: 2000, isClosable: true });
+    if (loggedInUser.mustChangePassword) {
+      navigate('/force-change-password', { replace: true });
+      return;
+    }
 
     const from = (location.state as { from?: string } | null)?.from;
     if (from && from.startsWith('/')) {

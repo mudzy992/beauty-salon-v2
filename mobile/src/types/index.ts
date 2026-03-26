@@ -1,13 +1,14 @@
 export interface User {
   id: string;
   username: string;
-  email: string;
+  email: string | null;
   firstName: string;
   lastName: string;
   phone?: string;
   avatar?: string;
   isActive: boolean;
   isEmailVerified: boolean;
+  mustChangePassword?: boolean;
   roles: UserRole[];
   createdAt: string;
 }

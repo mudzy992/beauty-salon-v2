@@ -415,6 +415,14 @@ export default function PublicReserve() {
       navigate('/login', { state: { from: '/rezervacija' }, replace: true });
       return;
     }
+    if (user?.mustChangePassword) {
+      navigate('/force-change-password', { replace: true });
+      return;
+    }
+    if (!user?.email || !user?.phone || !user?.isEmailVerified) {
+      navigate('/profil', { replace: true });
+      return;
+    }
     api
       .get<ServiceOption[]>('/api/services', { params: { activeOnly: 'true' } })
       .then((r) => setServices(Array.isArray(r.data) ? r.data : []))
@@ -513,6 +521,15 @@ export default function PublicReserve() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedService || !selectedDate || !selectedSlot) return;
+    if (user?.mustChangePassword || !user?.email || !user?.phone || !user?.isEmailVerified) {
+      toast({
+        title: 'Prije rezervacije morate ažurirati profil i verifikovati email.',
+        status: 'warning',
+        isClosable: true,
+      });
+      navigate('/profil');
+      return;
+    }
     setSubmitting(true);
     try {
       await api.post('/api/reservations', {
