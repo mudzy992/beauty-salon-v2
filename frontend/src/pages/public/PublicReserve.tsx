@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -389,6 +389,7 @@ export default function PublicReserve() {
   const { t } = useTranslation();
   const { getSetting } = useSettings();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const toast = useToast();
   const { user, token, isReady } = useAuth();
 
@@ -406,6 +407,7 @@ export default function PublicReserve() {
   const [step, setStep] = useState(1);
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0);
+  const dateSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isReady) return;
@@ -419,6 +421,17 @@ export default function PublicReserve() {
       .catch(() => setServices([]))
       .finally(() => setLoadingServices(false));
   }, [isReady, token, navigate, user]);
+
+  useEffect(() => {
+    if (loadingServices) return;
+    if (selectedService) return;
+    const serviceId = (searchParams.get('serviceId') ?? '').trim();
+    if (!serviceId) return;
+    const match = services.find((s) => s.id === serviceId) ?? null;
+    if (!match) return;
+    setSelectedService(match);
+    window.setTimeout(() => dateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  }, [loadingServices, searchParams, services, selectedService]);
 
   const loadAvailability = useCallback((serviceId: string) => {
     setLoadingDates(true);
@@ -617,7 +630,7 @@ export default function PublicReserve() {
                   animate={{ opacity: 1, height: 'auto' }}
                   transition={{ duration: 0.3 }}
                 >
-                  <FormControl>
+                  <FormControl ref={dateSectionRef}>
                     <FormLabel fontWeight="600" color="brand.700">
                       {t('public.reserve.selectDate')}
                     </FormLabel>

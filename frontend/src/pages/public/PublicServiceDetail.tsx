@@ -7,18 +7,22 @@ import {
   Container,
   Flex,
   Heading,
+  Icon,
   SimpleGrid,
   Spinner,
   Text,
 } from '@chakra-ui/react'
+import { InfoIcon } from '@chakra-ui/icons'
 import api from '../../api/client'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider'
+import { useSettings } from '../../context/SettingsContext'
 
 type Service = {
   id: string
   name: string
   shortDescription?: string | null
+  heroImage?: string | null
   durationMinutes: number
 }
 
@@ -36,6 +40,7 @@ export default function PublicServiceDetail() {
   const { serviceId } = useParams()
   const [service, setService] = useState<Service | null>(null)
   const [loadingService, setLoadingService] = useState(true)
+  const { getSetting } = useSettings()
 
   const [items, setItems] = useState<BeforeAfterPair[]>([])
   const [loadingPairs, setLoadingPairs] = useState(true)
@@ -144,54 +149,99 @@ export default function PublicServiceDetail() {
   }
 
   return (
-    <Box bg="gray.50" minH="100vh" pt={10} pb={20}>
-      <Container maxW="container.xl">
-        <Flex align="flex-start" justify="space-between" gap={6} wrap="wrap" mb={10}>
-          <Box>
-            <Text color="brand.500" fontWeight="bold" textTransform="uppercase" letterSpacing="widest" mb={2}>
-              Usluga
-            </Text>
-            <Heading size="2xl" color="brand.900">
-              {service.name}
-            </Heading>
-            <Flex gap={2} mt={3} wrap="wrap">
-              <Badge colorScheme="brand" variant="subtle" px={2} py={1} rounded="md">
-                {service.durationMinutes} min
-              </Badge>
-            </Flex>
-            {service.shortDescription ? (
-              <Text color="gray.600" mt={4} maxW="3xl">
-                {service.shortDescription}
+    <Box bg="gray.50" minH="100vh" pb={20}>
+      <Box bg="brand.900" color="white" py={{ base: 14, md: 18 }} mb={12} position="relative" overflow="hidden">
+        <Box
+          position="absolute"
+          inset={0}
+          backgroundImage={`url('${service.heroImage ? getUploadUrl(service.heroImage) : getSetting('public_services_bg', 'https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=2000')}')`}
+          backgroundSize="cover"
+          backgroundPosition="center"
+          opacity={0.3}
+        />
+        <Box position="absolute" inset={0} bgGradient="linear(to-r, blackAlpha.800, blackAlpha.500)" />
+        <Container maxW="container.xl" position="relative" zIndex={1}>
+          <Flex align={{ base: 'flex-start', md: 'center' }} justify="space-between" gap={6} wrap="wrap">
+            <Box>
+              <Text color="brand.300" fontWeight="bold" textTransform="uppercase" letterSpacing="widest" mb={2}>
+                Usluga
               </Text>
-            ) : null}
-          </Box>
-          <Flex gap={3} mt={{ base: 4, md: 0 }}>
-            <Button as={RouterLink} to="/rezervacija" colorScheme="brand">
-              Rezerviši
-            </Button>
-            <Button as={RouterLink} to="/usluge" variant="outline" colorScheme="brand">
-              Sve usluge
-            </Button>
+              <Heading size="2xl" color="white" lineHeight="shorter">
+                {service.name}
+              </Heading>
+              <Flex gap={2} mt={4} wrap="wrap">
+                <Badge colorScheme="brand" variant="solid" px={3} py={1} rounded="full">
+                  {service.durationMinutes} min
+                </Badge>
+              </Flex>
+              {service.shortDescription ? (
+                <Text color="gray.200" mt={4} maxW="3xl">
+                  {service.shortDescription}
+                </Text>
+              ) : null}
+            </Box>
+            <Flex gap={3} mt={{ base: 4, md: 0 }}>
+              <Button
+                as={RouterLink}
+                to={`/rezervacija?serviceId=${encodeURIComponent(service.id)}`}
+                colorScheme="brand"
+                _hover={{ transform: 'translateY(-1px)', shadow: 'lg' }}
+                transition="all 0.2s"
+              >
+                Rezerviši
+              </Button>
+              <Button as={RouterLink} to="/usluge" variant="outline" colorScheme="whiteAlpha">
+                Sve usluge
+              </Button>
+            </Flex>
           </Flex>
-        </Flex>
+        </Container>
+      </Box>
 
-        <Box mb={6}>
-          <Heading size="lg" color="gray.800" mb={2}>
-            Galerija urađenih radova
-          </Heading>
-          <Text color="gray.600">
-            Povucite sliku lijevo ili desno da vidite prije i poslije.
-          </Text>
-        </Box>
+      <Container maxW="container.xl">
+        {loadingPairs || items.length > 0 ? (
+          <Box mb={6}>
+            <Heading size="lg" color="gray.800" mb={2}>
+              Galerija urađenih radova
+            </Heading>
+            <Text color="gray.600">
+              Povucite sliku lijevo ili desno da vidite prije i poslije.
+            </Text>
+          </Box>
+        ) : null}
 
         {loadingPairs && items.length === 0 ? (
           <Flex justify="center" py={14}>
             <Spinner size="xl" color="brand.500" thickness="4px" />
           </Flex>
         ) : items.length === 0 ? (
-          <Text color="gray.500" py={10}>
-            Nema dostupnih before/after transformacija za ovaj servis.
-          </Text>
+          <Flex
+            direction="column"
+            align="center"
+            justify="center"
+            py={{ base: 14, md: 20 }}
+            bg="white"
+            rounded="2xl"
+            borderWidth="1px"
+            borderColor="gray.200"
+          >
+            <Flex
+              w="56px"
+              h="56px"
+              rounded="full"
+              align="center"
+              justify="center"
+              bg="brand.50"
+              borderWidth="1px"
+              borderColor="brand.100"
+              mb={4}
+            >
+              <Icon as={InfoIcon} color="brand.500" boxSize={6} />
+            </Flex>
+            <Text color="gray.600" textAlign="center" maxW="lg" px={6}>
+              Trenutno nema objavljenih urađenih radova za ovaj servis.
+            </Text>
+          </Flex>
         ) : (
           <>
             <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
