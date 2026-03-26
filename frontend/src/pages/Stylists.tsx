@@ -302,7 +302,7 @@ export default function Stylists() {
               <FormLabel>Bio</FormLabel>
               <Textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} />
             </FormControl>
-            <Flex gap={4}>
+            <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
               <FormControl flex={1}>
                 <FormLabel>Datum zaposlenja</FormLabel>
                 <Input type="date" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} />
@@ -338,7 +338,8 @@ export default function Stylists() {
               </TabList>
               <TabPanels>
                 <TabPanel>
-                  <Table size="sm" mb={4}>
+                  <Box overflowX="auto">
+                    <Table size="sm" mb={4}>
                     <Thead>
                       <Tr>
                         <Th>Dan</Th>
@@ -355,15 +356,16 @@ export default function Stylists() {
                             <Switch isChecked={wh.isWorkingDay} onChange={(e) => updateWH(wh.dayOfWeek, 'isWorkingDay', e.target.checked)} colorScheme="brand" />
                           </Td>
                           <Td>
-                            <Input type="time" size="sm" w="130px" value={wh.startTime} onChange={(e) => updateWH(wh.dayOfWeek, 'startTime', e.target.value)} isDisabled={!wh.isWorkingDay} />
+                            <Input type="time" size="sm" w={{ base: 'full', md: '130px' }} value={wh.startTime} onChange={(e) => updateWH(wh.dayOfWeek, 'startTime', e.target.value)} isDisabled={!wh.isWorkingDay} />
                           </Td>
                           <Td>
-                            <Input type="time" size="sm" w="130px" value={wh.endTime} onChange={(e) => updateWH(wh.dayOfWeek, 'endTime', e.target.value)} isDisabled={!wh.isWorkingDay} />
+                            <Input type="time" size="sm" w={{ base: 'full', md: '130px' }} value={wh.endTime} onChange={(e) => updateWH(wh.dayOfWeek, 'endTime', e.target.value)} isDisabled={!wh.isWorkingDay} />
                           </Td>
                         </Tr>
                       ))}
                     </Tbody>
-                  </Table>
+                    </Table>
+                  </Box>
                   <Button colorScheme="brand" onClick={handleSaveWorkingHours} isLoading={saving}>
                     Sačuvaj Radno Vrijeme
                   </Button>

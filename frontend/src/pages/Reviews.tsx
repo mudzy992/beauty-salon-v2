@@ -95,9 +95,9 @@ export default function Reviews() {
 
   return (
     <Box>
-      <Flex justify="space-between" align="center" mb={4}>
+      <Flex justify="space-between" align="center" mb={4} direction={{ base: 'column', md: 'row' }} gap={3}>
         <Heading size="lg">{t('nav.reviews')}</Heading>
-        <Select size="sm" maxW="200px" value={filter} onChange={(e) => setFilter(e.target.value)}>
+        <Select size="sm" maxW={{ base: 'full', md: '200px' }} value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="">Sve recenzije</option>
           <option value="pending">Na čekanju</option>
           <option value="approved">Odobrene</option>
@@ -179,7 +179,7 @@ export default function Reviews() {
                   <Text fontWeight="medium">{getUserName(detail.stylistProfile?.user)}</Text>
                 </Box>
                 <Divider />
-                <Flex gap={8}>
+                <Flex gap={8} direction={{ base: 'column', md: 'row' }}>
                   <Box>
                     <Text fontSize="xs" color="gray.500">Ocjena servisa</Text>
                     <Stars count={detail.serviceRating} />

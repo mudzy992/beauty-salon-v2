@@ -246,11 +246,11 @@ export default function ClientAnalytics() {
       {analytics && !loading && (
         <>
           <Flex mb={4} gap={3} wrap="wrap" align="flex-end">
-            <FormControl w="auto" maxW="160px">
+            <FormControl w={{ base: 'full', md: 'auto' }} maxW={{ base: 'full', md: '160px' }}>
               <FormLabel fontSize="sm">Od datuma</FormLabel>
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} size="sm" />
             </FormControl>
-            <FormControl w="auto" maxW="160px">
+            <FormControl w={{ base: 'full', md: 'auto' }} maxW={{ base: 'full', md: '160px' }}>
               <FormLabel fontSize="sm">Do datuma</FormLabel>
               <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} size="sm" />
             </FormControl>
@@ -321,14 +321,16 @@ export default function ClientAnalytics() {
           {analytics.topServices.length > 0 && (
             <Card mb={6}><CardBody>
               <Text fontWeight="bold" mb={3}>Najčešći servisi</Text>
-              <Table size="sm">
+              <Box overflowX="auto">
+                <Table size="sm">
                 <Thead><Tr><Th>Servis</Th><Th isNumeric>Broj posjeta</Th><Th isNumeric>Ukupno (KM)</Th></Tr></Thead>
                 <Tbody>
                   {analytics.topServices.map((s, i) => (
                     <Tr key={i}><Td fontWeight="medium">{s.name}</Td><Td isNumeric>{s.count}</Td><Td isNumeric>{s.totalSpent.toFixed(2)}</Td></Tr>
                   ))}
                 </Tbody>
-              </Table>
+                </Table>
+              </Box>
             </CardBody></Card>
           )}
 
@@ -435,7 +437,7 @@ export default function ClientAnalytics() {
               <ModalHeader>Detalji Rezervacije</ModalHeader>
               <ModalCloseButton />
               <ModalBody pb={6}>
-                <SimpleGrid columns={2} spacing={4}>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <Box><Text fontSize="xs" color="gray.500">Datum</Text><Text fontWeight="bold">{detailReservation.reservationDate?.slice(0, 10)}</Text></Box>
                   <Box><Text fontSize="xs" color="gray.500">Vrijeme</Text><Text fontWeight="bold">{detailReservation.startTime} - {detailReservation.endTime}</Text></Box>
                   <Box><Text fontSize="xs" color="gray.500">Servis</Text><Text>{detailReservation.service?.name ?? '-'}</Text></Box>
@@ -454,7 +456,7 @@ export default function ClientAnalytics() {
               <ModalHeader>Detalji Recenzije</ModalHeader>
               <ModalCloseButton />
               <ModalBody pb={6}>
-                <SimpleGrid columns={2} spacing={4}>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                   <Box><Text fontSize="xs" color="gray.500">Servis</Text><Text fontWeight="bold">{detailReview.service?.name ?? '-'}</Text></Box>
                   <Box><Text fontSize="xs" color="gray.500">Stilista</Text><Text>{getStylistName(detailReview.stylist)}</Text></Box>
                   <Box><Text fontSize="xs" color="gray.500">Ocjena servisa</Text><HStack>{renderStars(detailReview.serviceRating)}<Text fontSize="sm">{detailReview.serviceRating}/5</Text></HStack></Box>

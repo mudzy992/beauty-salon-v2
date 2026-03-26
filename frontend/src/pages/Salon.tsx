@@ -272,7 +272,7 @@ export default function Salon() {
               <FormLabel>Adresa</FormLabel>
               <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
             </FormControl>
-            <Flex gap={4}>
+            <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
               <FormControl flex={1}>
                 <FormLabel>Telefon</FormLabel>
                 <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
@@ -314,7 +314,7 @@ export default function Salon() {
                   <FormLabel>Adresa</FormLabel>
                   <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
                 </FormControl>
-                <Flex gap={4}>
+                <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
                   <FormControl flex={1}>
                     <FormLabel>Telefon</FormLabel>
                     <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
@@ -328,7 +328,7 @@ export default function Salon() {
                   <FormLabel>Opis</FormLabel>
                   <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} />
                 </FormControl>
-                <Flex gap={4}>
+                <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
                   <FormControl flex={1}>
                     <FormLabel>Pauza između servisa (min)</FormLabel>
                     <NumberInput value={formData.pauseBetweenServices} onChange={(_, v) => setFormData({ ...formData, pauseBetweenServices: v || 0 })} min={0} max={120}>
@@ -363,19 +363,21 @@ export default function Salon() {
 
           <TabPanel px={0} maxW="100%">
             <Box bg="white" p={6} rounded="xl" shadow="sm" maxW="full" w="100%">
-              <Table size="sm" mb={4}>
+              <Box overflowX="auto">
+                <Table size="sm" mb={4}>
                 <Thead><Tr><Th>Dan</Th><Th>Radni dan</Th><Th>Otvaranje</Th><Th>Zatvaranje</Th></Tr></Thead>
                 <Tbody>
                   {workingHours.map((wh) => (
                     <Tr key={wh.dayOfWeek} opacity={wh.isWorkingDay ? 1 : 0.5}>
                       <Td fontWeight="medium">{DAYS[wh.dayOfWeek]}</Td>
                       <Td><Switch isChecked={wh.isWorkingDay} onChange={(e) => updateWH(wh.dayOfWeek, 'isWorkingDay', e.target.checked)} colorScheme="brand" /></Td>
-                      <Td><Input type="time" size="sm" w="130px" value={wh.openTime} onChange={(e) => updateWH(wh.dayOfWeek, 'openTime', e.target.value)} isDisabled={!wh.isWorkingDay} /></Td>
-                      <Td><Input type="time" size="sm" w="130px" value={wh.closeTime} onChange={(e) => updateWH(wh.dayOfWeek, 'closeTime', e.target.value)} isDisabled={!wh.isWorkingDay} /></Td>
+                      <Td><Input type="time" size="sm" w={{ base: 'full', md: '130px' }} value={wh.openTime} onChange={(e) => updateWH(wh.dayOfWeek, 'openTime', e.target.value)} isDisabled={!wh.isWorkingDay} /></Td>
+                      <Td><Input type="time" size="sm" w={{ base: 'full', md: '130px' }} value={wh.closeTime} onChange={(e) => updateWH(wh.dayOfWeek, 'closeTime', e.target.value)} isDisabled={!wh.isWorkingDay} /></Td>
                     </Tr>
                   ))}
                 </Tbody>
-              </Table>
+                </Table>
+              </Box>
               <Button colorScheme="brand" onClick={handleSaveWorkingHours} isLoading={saving}>{t('common.save')}</Button>
             </Box>
           </TabPanel>

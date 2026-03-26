@@ -171,7 +171,7 @@ export default function Blog() {
 
   return (
     <Box>
-      <Flex justify="space-between" align="center" mb={6}>
+      <Flex justify="space-between" align="center" mb={6} direction={{ base: 'column', md: 'row' }} gap={3}>
         <Heading size="lg">{t('nav.blog')}</Heading>
         <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openForm()}>
           Novi Članak

@@ -292,7 +292,8 @@ export default function Services() {
                         </HStack>
                       </Flex>
                       {sub.services?.length ? (
-                        <Table size="sm" variant="simple">
+                        <Box overflowX="auto">
+                          <Table size="sm" variant="simple">
                       <Thead>
                         <Tr>
                           <Th>Usluga</Th>
@@ -339,7 +340,8 @@ export default function Services() {
                               </Tr>
                             ))}
                           </Tbody>
-                        </Table>
+                          </Table>
+                        </Box>
                       ) : (
                         <Text color="gray.500" fontSize="sm" fontStyle="italic">Nema definisanih usluga.</Text>
                       )}
@@ -371,7 +373,7 @@ export default function Services() {
                   <FormLabel>Opis</FormLabel>
                   <Textarea value={catForm.description} onChange={(e) => setCatForm({ ...catForm, description: e.target.value })} />
                 </FormControl>
-                <Flex gap={4}>
+                <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
                   <FormControl flex={1}>
                     <FormLabel>Redoslijed</FormLabel>
                     <NumberInput value={catForm.sortOrder} onChange={(_, v) => setCatForm({ ...catForm, sortOrder: v || 0 })} min={0}>
@@ -396,7 +398,7 @@ export default function Services() {
                   <FormLabel>Opis</FormLabel>
                   <Textarea value={subForm.description} onChange={(e) => setSubForm({ ...subForm, description: e.target.value })} />
                 </FormControl>
-                <Flex gap={4}>
+                <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
                   <FormControl flex={1}>
                     <FormLabel>Redoslijed</FormLabel>
                     <NumberInput value={subForm.sortOrder} onChange={(_, v) => setSubForm({ ...subForm, sortOrder: v || 0 })} min={0}>
@@ -432,7 +434,7 @@ export default function Services() {
                     {svcForm.heroImage ? 'Promijeni sliku' : 'Upload sliku'}
                   </Button>
                 </FormControl>
-                <Flex gap={4} mb={4}>
+                <Flex gap={4} mb={4} direction={{ base: 'column', md: 'row' }}>
                   <FormControl flex={1} isRequired>
                     <FormLabel>Trajanje (min)</FormLabel>
                     <NumberInput value={svcForm.durationMinutes} onChange={(_, v) => setSvcForm({ ...svcForm, durationMinutes: v || 15 })} min={5} max={480} step={5}>
@@ -446,7 +448,7 @@ export default function Services() {
                     </NumberInput>
                   </FormControl>
                 </Flex>
-                <Flex gap={4} mb={4}>
+                <Flex gap={4} mb={4} direction={{ base: 'column', md: 'row' }}>
                   <FormControl flex={1}>
                     <FormLabel>Redoslijed</FormLabel>
                     <NumberInput value={svcForm.sortOrder} onChange={(_, v) => setSvcForm({ ...svcForm, sortOrder: v || 0 })} min={0}>

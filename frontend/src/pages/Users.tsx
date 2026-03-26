@@ -7,6 +7,7 @@ import {
   FormControl, FormLabel, Input, Button, useToast, Switch, Select,
   Menu, MenuButton, MenuList, MenuItem, InputGroup, InputLeftElement,
   HStack, Tag, TagLabel, TagCloseButton, Avatar, Alert, AlertIcon, VStack,
+  useBreakpointValue, SimpleGrid,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -73,6 +74,7 @@ export default function Users() {
   } | null>(null);
 
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const isMobile = useBreakpointValue({ base: true, lg: false }) ?? false;
   const avatarEditRef = useRef<HTMLInputElement>(null);
   const avatarCreateRef = useRef<HTMLInputElement>(null);
 
@@ -279,8 +281,8 @@ export default function Users() {
     <Box>
       <Flex justify="space-between" align="center" mb={6} wrap="wrap" gap={3}>
         <Heading size="lg">{t('nav.users')}</Heading>
-        <HStack>
-          <InputGroup maxW="250px">
+        <HStack w={{ base: 'full', md: 'auto' }}>
+          <InputGroup maxW={{ base: 'full', md: '250px' }}>
             <InputLeftElement><SearchIcon color="gray.400" /></InputLeftElement>
             <Input placeholder="Pretraži..." value={search} onChange={(e) => setSearch(e.target.value)} bg="white" />
           </InputGroup>
@@ -291,6 +293,38 @@ export default function Users() {
       <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
         {loading ? (
           <Box p={6} textAlign="center"><Spinner size="lg" /></Box>
+        ) : isMobile ? (
+          <VStack align="stretch" spacing={3} p={3}>
+            {filteredUsers.length === 0 ? (
+              <Text color="gray.500">{t('common.noData')}</Text>
+            ) : filteredUsers.map((u) => (
+              <Box key={u.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
+                <HStack justify="space-between" align="start">
+                  <HStack>
+                    <Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" />
+                    <Box>
+                      <Text fontWeight="medium">{u.username}</Text>
+                      <Text fontSize="sm" color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
+                    </Box>
+                  </HStack>
+                  <Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
+                </HStack>
+                <Text fontSize="sm" mt={2}>{u.email ?? '-'}</Text>
+                <Flex mt={2} gap={1} flexWrap="wrap">
+                  {getUserRoles(u).map((roleName) => (
+                    <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
+                      <TagLabel>{roleName}</TagLabel>
+                    </Tag>
+                  ))}
+                </Flex>
+                <HStack spacing={1} justify="flex-end" mt={3}>
+                  <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} />
+                  <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
+                  {u.isActive && <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />}
+                </HStack>
+              </Box>
+            ))}
+          </VStack>
         ) : (
           <Table size="sm">
             <Thead>
@@ -363,7 +397,7 @@ export default function Users() {
           <ModalHeader>Uredi Korisnika: {editUser?.username}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Flex gap={4} mb={4}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl flex={1}>
                 <FormLabel>Korisničko ime</FormLabel>
                 <Input value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} />
@@ -372,8 +406,8 @@ export default function Users() {
                 <FormLabel>Email</FormLabel>
                 <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
               </FormControl>
-            </Flex>
-            <Flex gap={4} mb={4}>
+            </SimpleGrid>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl flex={1}>
                 <FormLabel>Ime</FormLabel>
                 <Input value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
@@ -382,7 +416,7 @@ export default function Users() {
                 <FormLabel>Prezime</FormLabel>
                 <Input value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
               </FormControl>
-            </Flex>
+            </SimpleGrid>
             <FormControl mb={4}>
               <FormLabel>Telefon</FormLabel>
               <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
@@ -416,7 +450,7 @@ export default function Users() {
           <ModalHeader>Novi Korisnik</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Flex gap={4} mb={4}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl flex={1} isRequired>
                 <FormLabel>Ime</FormLabel>
                 <Input value={createData.firstName} onChange={(e) => setCreateData({ ...createData, firstName: e.target.value })} />
@@ -425,7 +459,7 @@ export default function Users() {
                 <FormLabel>Prezime</FormLabel>
                 <Input value={createData.lastName} onChange={(e) => setCreateData({ ...createData, lastName: e.target.value })} />
               </FormControl>
-            </Flex>
+            </SimpleGrid>
             <FormControl mb={4} isRequired>
               <FormLabel>Korisničko ime</FormLabel>
               <Input
@@ -466,7 +500,7 @@ export default function Users() {
                 </HStack>
               </Alert>
             )}
-            <Flex gap={4} mb={4}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl flex={1} isRequired>
                 <FormLabel>Uloga</FormLabel>
                 <Select value={createData.role} onChange={(e) => setCreateData({ ...createData, role: e.target.value })}>
@@ -476,7 +510,7 @@ export default function Users() {
                 </Select>
                 <Text fontSize="xs" color="gray.500" mt={1}>Uloga Stylist se dodjeljuje u Stylists (dodaj korisnika kao stilista).</Text>
               </FormControl>
-            </Flex>
+            </SimpleGrid>
             <FormControl mb={4}>
               <FormLabel>Avatar (opciono)</FormLabel>
               <Flex align="center" gap={3}>

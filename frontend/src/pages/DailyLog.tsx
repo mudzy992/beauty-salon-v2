@@ -8,6 +8,7 @@ import {
   NumberIncrementStepper, NumberDecrementStepper, Textarea, HStack,
   IconButton, Stat, StatLabel, StatNumber, SimpleGrid, Card, CardBody,
   InputGroup, InputLeftElement, List, ListItem, Link, VStack,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router-dom';
@@ -105,6 +106,7 @@ export default function DailyLog() {
   const [clientSearch, setClientSearch] = useState('');
   const [showServiceDropdown, setShowServiceDropdown] = useState(false);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const isMobile = useBreakpointValue({ base: true, lg: false }) ?? false;
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -328,6 +330,27 @@ export default function DailyLog() {
 
       <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
         {loading ? <Box p={6} textAlign="center"><Spinner size="lg" /></Box> : (
+          isMobile ? (
+            <VStack align="stretch" spacing={3} p={3}>
+              {entries.length === 0 ? <Text color="gray.500">{t('common.noData')}</Text> : entries.map((e) => (
+                <Box key={e.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
+                  <HStack justify="space-between">
+                    <Text fontWeight="medium">{e.date?.slice(0, 10)}</Text>
+                    <Badge colorScheme={e.status === 'COMPLETED' ? 'green' : 'yellow'}>{e.status === 'COMPLETED' ? 'Kompletiran' : 'Na čekanju'}</Badge>
+                  </HStack>
+                  <Text fontSize="sm">{e.service?.name ?? '-'}</Text>
+                  <Text fontSize="sm" color="gray.600">{getStylistName(e.stylistProfile)}</Text>
+                  <HStack justify="space-between" mt={2}>
+                    <Text fontSize="sm">{Number(e.actualPrice).toFixed(2)} KM</Text>
+                    <HStack spacing={1}>
+                      <IconButton aria-label="Uredi" icon={<EditIcon />} size="xs" variant="ghost" colorScheme="blue" onClick={() => openEditForm(e)} />
+                      {e.status !== 'COMPLETED' && <IconButton aria-label="Kompletiraj" icon={<CheckIcon />} size="xs" variant="ghost" colorScheme="green" onClick={() => handleComplete(e.id)} />}
+                    </HStack>
+                  </HStack>
+                </Box>
+              ))}
+            </VStack>
+          ) : (
           <Table size="sm">
             <Thead>
               <Tr><Th>Datum</Th><Th>Stilista</Th><Th>Servis</Th><Th>Klijent</Th><Th isNumeric>Cijena</Th><Th isNumeric>Napojnica</Th><Th>Izvor</Th><Th>Status</Th><Th textAlign="right">Akcije</Th></Tr>
@@ -389,6 +412,7 @@ export default function DailyLog() {
               ))}
             </Tbody>
           </Table>
+          )
         )}
       </Box>
 
@@ -469,7 +493,7 @@ export default function DailyLog() {
                 </FormControl>
               </>
             )}
-            <Flex gap={4} mb={4}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl flex={1} isRequired>
                 <FormLabel>Naplaćeno (KM)</FormLabel>
                 <Input
@@ -485,7 +509,7 @@ export default function DailyLog() {
                   Za naplatu: {chargeAmount.toFixed(2)} KM
                 </Text>
               </FormControl>
-            </Flex>
+            </SimpleGrid>
             <FormControl>
               <FormLabel>Bilješke</FormLabel>
               <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />

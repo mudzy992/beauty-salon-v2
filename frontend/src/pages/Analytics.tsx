@@ -149,7 +149,7 @@ export default function Analytics() {
             value={period}
             onChange={(e) => setPeriod(e.target.value as PeriodPreset)}
             w="full"
-            maxW="220px"
+            maxW={{ base: 'full', md: '220px' }}
           >
             <option value="12">Zadnjih 12 mjeseci</option>
             <option value="thisMonth">Ovaj mjesec</option>
@@ -165,7 +165,7 @@ export default function Analytics() {
                 type="date"
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
-                maxW="180px"
+                maxW={{ base: 'full', md: '180px' }}
               />
             </FormControl>
             <FormControl w={{ base: '100%', md: 'auto' }}>
@@ -174,7 +174,7 @@ export default function Analytics() {
                 type="date"
                 value={customTo}
                 onChange={(e) => setCustomTo(e.target.value)}
-                maxW="180px"
+                maxW={{ base: 'full', md: '180px' }}
               />
             </FormControl>
             <Button colorScheme="brand" onClick={load} isDisabled={!customFrom || !customTo}>

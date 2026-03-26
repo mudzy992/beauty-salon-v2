@@ -185,7 +185,7 @@ export default function Gallery() {
 
       <Flex gap={6} direction={{ base: 'column', lg: 'row' }}>
         {/* Categories List */}
-        <Box minW="280px" maxW={{ lg: '300px' }}>
+        <Box w={{ base: 'full', lg: '300px' }} minW={{ base: 'auto', lg: '280px' }}>
           {loading ? (
             <Spinner size="lg" />
           ) : categories.length === 0 ? (

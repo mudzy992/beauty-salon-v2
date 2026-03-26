@@ -3,7 +3,6 @@ import { Outlet, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Flex,
-  Heading,
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -224,22 +223,7 @@ export default function DashboardLayout() {
   const currentLabel = pathNames[location.pathname] ?? location.pathname;
 
   return (
-    <Flex minH="100vh" direction={{ base: 'column', md: 'row' }}>
-      <Box
-        display={{ base: 'none', md: 'block' }}
-        w="240px"
-        borderRight="1px"
-        borderColor="gray.200"
-        bg="white"
-        py={4}
-        px={2}
-      >
-        <Heading size="sm" px={4} mb={4} color="brand.600">
-          {t('app.admin')}
-        </Heading>
-        <SidebarNav />
-      </Box>
-
+    <Flex minH="100vh" direction="column">
       <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
         <DrawerOverlay />
         <DrawerContent>
@@ -253,46 +237,66 @@ export default function DashboardLayout() {
       <Box flex={1} display="flex" flexDirection="column" minW={0}>
         <Flex
           as="header"
-          h="56px"
-          align="center"
+          minH="56px"
+          align={{ base: 'stretch', md: 'center' }}
+          direction={{ base: 'column', md: 'row' }}
           justify="space-between"
           px={4}
+          py={{ base: 2, md: 0 }}
+          gap={{ base: 2, md: 3 }}
           borderBottom="1px"
           borderColor="gray.200"
           bg="white"
         >
-          <IconButton
-            aria-label="Meni"
-            icon={<HamburgerIcon />}
-            display={{ md: 'none' }}
-            onClick={onOpen}
-            variant="ghost"
-          />
-          <Breadcrumb spacing={2} flex={1}>
-            <BreadcrumbItem>
-              <BreadcrumbLink as={RouterLink} to="/admin">
-                {t('app.title')}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbLink isCurrentPage>{currentLabel}</BreadcrumbLink>
-            </BreadcrumbItem>
-          </Breadcrumb>
-          <Flex align="center" gap={3}>
+          <Flex align="center" gap={2} minW={0} w="full">
+            <IconButton
+              aria-label="Meni"
+              icon={<HamburgerIcon />}
+              onClick={onOpen}
+              variant="ghost"
+              flexShrink={0}
+            />
+            <Breadcrumb spacing={2} flex={1} minW={0}>
+              <BreadcrumbItem>
+                <BreadcrumbLink as={RouterLink} to="/admin" whiteSpace="nowrap">
+                  {t('app.title')}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbItem minW={0}>
+                <BreadcrumbLink isCurrentPage noOfLines={1}>
+                  {currentLabel}
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+            </Breadcrumb>
+          </Flex>
+          <Flex
+            align="center"
+            gap={2}
+            wrap="wrap"
+            justify={{ base: 'space-between', md: 'flex-end' }}
+            w={{ base: 'full', md: 'auto' }}
+            minW={0}
+          >
             <Link
               as={RouterLink}
               to="/"
               fontSize="sm"
               color="brand.600"
               _hover={{ color: 'brand.700', textDecoration: 'underline' }}
-              display="flex"
+              display={{ base: 'none', sm: 'flex' }}
               alignItems="center"
               gap={1}
+              whiteSpace="nowrap"
             >
               <ExternalLinkIcon boxSize={4} />
               Pogledaj stranicu
             </Link>
-            <Text fontSize="sm" color="gray.600">
+            <Text
+              fontSize="sm"
+              color="gray.600"
+              noOfLines={1}
+              maxW={{ base: '120px', md: '180px' }}
+            >
               {user?.username}
             </Text>
             <Button size="sm" variant="outline" onClick={logout}>

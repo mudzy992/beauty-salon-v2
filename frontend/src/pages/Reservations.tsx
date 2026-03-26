@@ -5,7 +5,7 @@ import {
   Badge, Flex, Select, Input, Button, useToast, useDisclosure,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
   ModalCloseButton, ModalFooter, VStack, HStack, Divider,
-  IconButton, Textarea, Link,
+  IconButton, Textarea, Link, useBreakpointValue, SimpleGrid,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { ViewIcon } from '@chakra-ui/icons';
@@ -86,6 +86,7 @@ export default function Reservations() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [detail, setDetail] = useState<Reservation | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const isMobile = useBreakpointValue({ base: true, lg: false }) ?? false;
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -165,6 +166,24 @@ export default function Reservations() {
       <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
         {loading ? (
           <Box p={6} textAlign="center"><Spinner size="lg" /></Box>
+        ) : isMobile ? (
+          <VStack align="stretch" spacing={3} p={3}>
+            {items.length === 0 ? (
+              <Text color="gray.500">{t('common.noData')}</Text>
+            ) : items.map((r) => (
+              <Box key={r.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3} onClick={() => openDetail(r)} cursor="pointer">
+                <HStack justify="space-between">
+                  <Text fontWeight="medium">{String(r.reservationDate).slice(0, 10)}</Text>
+                  <Badge colorScheme={statusColorMap[r.status] ?? 'gray'}>{getStatusLabel(r.status)}</Badge>
+                </HStack>
+                <Text fontSize="sm" color="gray.600">{r.startTime} - {r.endTime}</Text>
+                <Text fontSize="sm" mt={1}>{r.service?.name ?? '-'}</Text>
+                <Text fontSize="sm" color="gray.600">
+                  {r.client ? ((`${r.client.firstName ?? ''} ${r.client.lastName ?? ''}`.trim() || r.client.username) || '-') : '-'}
+                </Text>
+              </Box>
+            ))}
+          </VStack>
         ) : (
           <Table size="sm">
             <Thead>
@@ -270,7 +289,7 @@ export default function Reservations() {
                   </Badge>
                 </Flex>
                 <Divider />
-                <HStack justify="space-between">
+                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={3}>
                   <Box>
                     <Text fontSize="xs" color="gray.500">Datum</Text>
                     <Text fontWeight="medium">{String(detail.reservationDate).slice(0, 10)}</Text>
@@ -283,7 +302,7 @@ export default function Reservations() {
                     <Text fontSize="xs" color="gray.500">Kreirano</Text>
                     <Text fontWeight="medium">{new Date(detail.createdAt).toLocaleString('bs-BA')}</Text>
                   </Box>
-                </HStack>
+                </SimpleGrid>
                 <Divider />
                 <Box>
                   <Text fontSize="xs" color="gray.500">Klijent</Text>

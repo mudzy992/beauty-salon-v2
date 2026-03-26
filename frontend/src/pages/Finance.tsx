@@ -143,7 +143,7 @@ function IncomeBooksTab() {
       <Box>
         <Button leftIcon={<ArrowBackIcon />} variant="ghost" mb={4} onClick={() => setView('list')}>Nazad na listu</Button>
         <Heading size="md" mb={2}>Knjiga prihoda: {MONTHS[selectedBook.month]} {selectedBook.year}</Heading>
-        <SimpleGrid columns={2} spacing={3} mb={4}>
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} mb={4}>
           <Card size="sm"><CardBody><Stat><StatLabel>Ukupni prihod</StatLabel><StatNumber color="green.600">{Number(selectedBook.totalRevenue).toFixed(2)} KM</StatNumber></Stat></CardBody></Card>
           <Card size="sm"><CardBody><Stat><StatLabel>Ukupne napojnice</StatLabel><StatNumber>{Number(selectedBook.totalTips).toFixed(2)} KM</StatNumber></Stat></CardBody></Card>
         </SimpleGrid>
@@ -453,9 +453,9 @@ function ExpenseBooksTab() {
                         <Card key={f.fieldId} size="sm" variant="outline"><CardBody py={2} px={3}>
                           <Flex justify="space-between" align="center" mb={selectedCategory.template?.requiresAttachmentPerItem ? 2 : 0}>
                             <HStack spacing={3} flex={1}>
-                              <Text fontWeight="medium" minW="140px">{f.fieldName}</Text>
+                              <Text fontWeight="medium" minW={{ base: 'auto', md: '140px' }}>{f.fieldName}</Text>
                               <HStack><Text fontSize="sm" color="gray.500">Cijena:</Text>
-                                <Input size="sm" w="100px" type="number" textAlign="right" value={f.value}
+                                <Input size="sm" w={{ base: 'full', md: '100px' }} type="number" textAlign="right" value={f.value}
                                   onChange={(e) => setFixedFields((p) => p.map((ff) => ff.fieldId === f.fieldId ? { ...ff, value: e.target.value } : ff))} />
                                 <Text fontSize="sm">KM</Text>
                               </HStack>
@@ -491,8 +491,8 @@ function ExpenseBooksTab() {
                         {lineItems.map((item, idx) => (
                           <Tr key={idx}>
                             <Td><Input size="sm" value={item.name} placeholder="Naziv" onChange={(e) => { const n = [...lineItems]; n[idx] = { ...n[idx], name: e.target.value }; setLineItems(n); }} /></Td>
-                            <Td isNumeric><Input size="sm" w="70px" type="number" value={item.qty} min={1} textAlign="right" onChange={(e) => { const n = [...lineItems]; n[idx] = { ...n[idx], qty: Number(e.target.value) || 1 }; setLineItems(n); }} /></Td>
-                            <Td isNumeric><Input size="sm" w="90px" type="number" value={item.price} textAlign="right" onChange={(e) => { const n = [...lineItems]; n[idx] = { ...n[idx], price: Number(e.target.value) || 0 }; setLineItems(n); }} /></Td>
+                            <Td isNumeric><Input size="sm" w={{ base: 'full', md: '70px' }} type="number" value={item.qty} min={1} textAlign="right" onChange={(e) => { const n = [...lineItems]; n[idx] = { ...n[idx], qty: Number(e.target.value) || 1 }; setLineItems(n); }} /></Td>
+                            <Td isNumeric><Input size="sm" w={{ base: 'full', md: '90px' }} type="number" value={item.price} textAlign="right" onChange={(e) => { const n = [...lineItems]; n[idx] = { ...n[idx], price: Number(e.target.value) || 0 }; setLineItems(n); }} /></Td>
                             <Td isNumeric fontWeight="medium">{(item.qty * item.price).toFixed(2)}</Td>
                             <Td>{lineItems.length > 1 && <IconButton aria-label="Ukloni" icon={<DeleteIcon />} size="xs" variant="ghost" colorScheme="red" onClick={() => setLineItems(lineItems.filter((_, i) => i !== idx))} />}</Td>
                           </Tr>
@@ -713,10 +713,10 @@ function ExpenseCategoriesTab() {
                 ) : <Text fontSize="sm" color="gray.500" mb={3}>Nema stavki.</Text>}
                 <Divider mb={3} />
                 <Text fontSize="sm" fontWeight="bold" mb={2}>Dodaj stavku:</Text>
-                <Flex gap={2} align="flex-end">
-                  <FormControl maxW="200px"><FormLabel fontSize="xs">Naziv (npr. PIO)</FormLabel>
+                <Flex gap={2} align="flex-end" direction={{ base: 'column', md: 'row' }}>
+                  <FormControl maxW={{ base: 'full', md: '200px' }}><FormLabel fontSize="xs">Naziv (npr. PIO)</FormLabel>
                     <Input size="sm" value={newField.fieldName} onChange={(e) => setNewField({ ...newField, fieldName: e.target.value })} placeholder="PIO, Zdravstvo..." /></FormControl>
-                  <FormControl maxW="130px"><FormLabel fontSize="xs">Default cijena</FormLabel>
+                  <FormControl maxW={{ base: 'full', md: '130px' }}><FormLabel fontSize="xs">Default cijena</FormLabel>
                     <Input size="sm" type="number" value={newField.defaultValue} onChange={(e) => setNewField({ ...newField, defaultValue: e.target.value })} placeholder="50.00" /></FormControl>
                   <Button size="sm" colorScheme="green" onClick={() => handleAddField(tpl.id)}>Dodaj</Button>
                 </Flex>
