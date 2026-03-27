@@ -132,6 +132,95 @@ const TEMPLATE_DEFAULTS: ExistingTemplateConfig = {
   plainText: '',
 };
 
+const getExistingTemplateDefaults = (type: ExistingTemplateType): ExistingTemplateConfig => {
+  if (type === 'verification') {
+    return {
+      subject: 'Verifikacija email adrese',
+      title: 'Verifikacija email adrese',
+      intro: 'Poštovani {{firstName}},',
+      body: 'Vaš verifikacijski kod je prikazan ispod. Kod važi 24 sata.',
+      ctaLabel: 'Otvori aplikaciju',
+      ctaUrl: '{{appUrl}}',
+      plainText: 'Vaš verifikacijski kod je validan 24 sata.',
+    };
+  }
+  if (type === 'reservation_new') {
+    return {
+      subject: 'Nova rezervacija',
+      title: 'Nova rezervacija',
+      intro: 'Poštovani {{firstName}},',
+      body: 'Zaprimljena je nova rezervacija. Molimo pregledajte detalje i status termina.',
+      ctaLabel: 'Otvori rezervacije',
+      ctaUrl: '{{appUrl}}/admin/reservations',
+      plainText: 'Zaprimljena je nova rezervacija.',
+    };
+  }
+  if (type === 'reservation_confirmed') {
+    return {
+      subject: 'Rezervacija potvrđena',
+      title: 'Vaša rezervacija je potvrđena',
+      intro: 'Poštovani {{firstName}},',
+      body: 'Termin je uspješno potvrđen. Hvala vam na povjerenju.',
+      ctaLabel: 'Pregled rezervacije',
+      ctaUrl: '{{appUrl}}/rezervacija',
+      plainText: 'Vaša rezervacija je potvrđena.',
+    };
+  }
+  if (type === 'reservation_cancelled') {
+    return {
+      subject: 'Rezervacija otkazana',
+      title: 'Obavijest o otkazivanju termina',
+      intro: 'Poštovani {{firstName}},',
+      body: 'Vaša rezervacija je otkazana. U aplikaciji možete vidjeti detalje.',
+      ctaLabel: 'Pregled rezervacije',
+      ctaUrl: '{{appUrl}}/rezervacija',
+      plainText: 'Rezervacija je otkazana.',
+    };
+  }
+  if (type === 'reservation_reminder') {
+    return {
+      subject: 'Podsjetnik za termin',
+      title: 'Podsjetnik za vaš termin',
+      intro: 'Poštovani {{firstName}},',
+      body: 'Podsjećamo vas na nadolazeći termin u našem salonu.',
+      ctaLabel: 'Pregled rezervacije',
+      ctaUrl: '{{appUrl}}/rezervacija',
+      plainText: 'Podsjetnik za vaš termin.',
+    };
+  }
+  if (type === 'reservation_reschedule') {
+    return {
+      subject: 'Termin je pomjeren',
+      title: 'Promjena termina',
+      intro: 'Poštovani {{firstName}},',
+      body: 'Termin je pomjeren. Molimo provjerite novi termin i potvrdite odgovara li vam.',
+      ctaLabel: 'Pregled rezervacije',
+      ctaUrl: '{{appUrl}}/rezervacija',
+      plainText: 'Termin je pomjeren. Provjerite novi termin.',
+    };
+  }
+  if (type === 'holiday') {
+    return {
+      subject: 'Obavijest o neradnom danu',
+      title: 'Neradni dan / Praznik',
+      intro: 'Poštovani {{firstName}},',
+      body: 'Salon će biti zatvoren zbog neradnog dana. Hvala na razumijevanju.',
+      ctaLabel: 'Otvori aplikaciju',
+      ctaUrl: '{{appUrl}}',
+      plainText: 'Obavijest o neradnom danu.',
+    };
+  }
+  return {
+    subject: 'Nova obavijest',
+    title: 'Obavijest iz salona',
+    intro: 'Poštovani {{firstName}},',
+    body: 'Imate novu obavijest. Otvorite aplikaciju za detalje.',
+    ctaLabel: 'Otvori aplikaciju',
+    ctaUrl: '{{appUrl}}',
+    plainText: 'Imate novu obavijest.',
+  };
+};
+
 const CAMPAIGN_KEY = 'system_email_campaign_templates';
 
 const createBlock = (type: CampaignBlockType): CampaignTemplateBlock => ({
@@ -260,10 +349,10 @@ export default function EmailSettings() {
       setExistingTemplate(
         selectedTemplateRaw
           ? {
-              ...TEMPLATE_DEFAULTS,
+              ...getExistingTemplateDefaults(existingTemplateType),
               ...(JSON.parse(selectedTemplateRaw) as Partial<ExistingTemplateConfig>),
             }
-          : TEMPLATE_DEFAULTS,
+          : getExistingTemplateDefaults(existingTemplateType),
       );
       const campaignRaw = setValueFromSettings(list, CAMPAIGN_KEY);
       const parsedCampaigns = campaignRaw
@@ -291,13 +380,13 @@ export default function EmailSettings() {
         setExistingTemplate(
           raw
             ? {
-                ...TEMPLATE_DEFAULTS,
+                ...getExistingTemplateDefaults(existingTemplateType),
                 ...(JSON.parse(raw) as Partial<ExistingTemplateConfig>),
               }
-            : TEMPLATE_DEFAULTS,
+            : getExistingTemplateDefaults(existingTemplateType),
         );
       } catch {
-        setExistingTemplate(TEMPLATE_DEFAULTS);
+        setExistingTemplate(getExistingTemplateDefaults(existingTemplateType));
       }
     };
     loadTemplateByType();
