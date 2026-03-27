@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   Box, Heading, VStack, Card, CardBody, Text, Spinner, Flex,
   Badge, useToast, Switch, FormControl, FormLabel,
@@ -6,7 +7,7 @@ import {
   Tabs, TabList, Tab, TabPanels, TabPanel,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
-import { CheckIcon } from '@chakra-ui/icons';
+import { BellIcon, CheckIcon } from '@chakra-ui/icons';
 import api from '../api/client';
 import { useSocketEvent } from '../context/SocketContext';
 
@@ -100,6 +101,15 @@ export default function Notifications() {
   return (
     <Box>
       <Heading size="lg" mb={6}>{t('nav.notifications')}</Heading>
+      <Flex justify="flex-end" mb={4}>
+        <IconButton
+          as={RouterLink}
+          to="/admin/email-settings"
+          aria-label="Email postavke"
+          icon={<BellIcon />}
+          title="Email postavke"
+        />
+      </Flex>
       <Tabs>
         <TabList>
           <Tab>Notifikacije</Tab>

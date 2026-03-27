@@ -8,12 +8,27 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
+jest.mock('expo-server-sdk', () => {
+  class MockExpo {
+    static isExpoPushToken() {
+      return true;
+    }
+    chunkPushNotifications(messages: unknown[]) {
+      return [messages];
+    }
+    async sendPushNotificationsAsync() {
+      return [];
+    }
+  }
+  return { __esModule: true, default: MockExpo };
+});
 
 const mockPrisma = {
   user: {
@@ -35,6 +50,9 @@ const mockConfigService = {
     (key: string, defaultValue?: string) => defaultValue ?? 'test-secret',
   ),
 };
+const mockNotifications = {
+  sendVerificationCodeEmail: jest.fn(),
+};
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -47,6 +65,7 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: NotificationsService, useValue: mockNotifications },
       ],
     }).compile();
 

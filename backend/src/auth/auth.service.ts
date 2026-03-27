@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -25,6 +26,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -207,8 +209,10 @@ export class AuthService {
         emailVerificationExpiresAt: expiresAt,
       },
     });
-    // TODO: poslati email s kodom (npr. preko NotificationsService). Za sada samo log u dev.
-    // await this.notificationsService.sendVerificationEmail(user.email, code);
+    await this.notifications.sendVerificationCodeEmail({
+      to: user.email,
+      code,
+    });
     return {
       message:
         'Verifikacijski kod je poslan na vašu email adresu. Kod vrijedi 24 sata.',

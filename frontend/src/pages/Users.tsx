@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRef } from 'react';
 import {
   Box, Heading, Table, Thead, Tbody, Tr, Th, Td, Spinner, Text,
@@ -35,6 +35,12 @@ interface UserRow {
 const ROLES_MANAGED_IN_UI = ['SYSTEM_ADMIN', 'OWNER', 'CLIENT'] as const;
 const roleColorMap: Record<string, string> = {
   SYSTEM_ADMIN: 'red', OWNER: 'purple', STYLIST: 'blue', CLIENT: 'green',
+};
+const rolePriority: Record<string, number> = {
+  SYSTEM_ADMIN: 0,
+  OWNER: 0,
+  STYLIST: 1,
+  CLIENT: 2,
 };
 
 export default function Users() {
@@ -88,14 +94,31 @@ export default function Users() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const filteredUsers = users.filter((u) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return u.username.toLowerCase().includes(q) ||
-      (u.email?.toLowerCase().includes(q)) ||
-      (u.firstName?.toLowerCase().includes(q)) ||
-      (u.lastName?.toLowerCase().includes(q));
-  });
+  const getUserRoles = useCallback((u: UserRow): string[] => u.userRoles?.map((r) => r.role.name) ?? [], []);
+  const sortedAndFilteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const filtered = users.filter((u) => {
+      if (!q) return true;
+      return u.username.toLowerCase().includes(q) ||
+        (u.email?.toLowerCase().includes(q)) ||
+        (u.firstName?.toLowerCase().includes(q)) ||
+        (u.lastName?.toLowerCase().includes(q));
+    });
+    return filtered.sort((a, b) => {
+      const aRoles = getUserRoles(a);
+      const bRoles = getUserRoles(b);
+      const aRoleRank = Math.min(...(aRoles.map((role) => rolePriority[role] ?? 99)), 99);
+      const bRoleRank = Math.min(...(bRoles.map((role) => rolePriority[role] ?? 99)), 99);
+      if (aRoleRank !== bRoleRank) return aRoleRank - bRoleRank;
+      const aFirst = (a.firstName ?? '').toLowerCase();
+      const bFirst = (b.firstName ?? '').toLowerCase();
+      if (aFirst !== bFirst) return aFirst.localeCompare(bFirst, 'bs');
+      const aLast = (a.lastName ?? '').toLowerCase();
+      const bLast = (b.lastName ?? '').toLowerCase();
+      if (aLast !== bLast) return aLast.localeCompare(bLast, 'bs');
+      return a.username.localeCompare(b.username, 'bs');
+    });
+  }, [users, search, getUserRoles]);
 
   const openEdit = (u: UserRow) => {
     setEditUser(u);
@@ -269,7 +292,6 @@ export default function Users() {
     }
   };
 
-  const getUserRoles = (u: UserRow): string[] => u.userRoles?.map((r) => r.role.name) ?? [];
   /** Uloge koje admin može dodati (isključeno STYLIST – dodaje se u Stylists). */
   const getAvailableRolesToAssign = (u: UserRow) => {
     const current = getUserRoles(u);
@@ -281,13 +303,22 @@ export default function Users() {
     <Box>
       <Flex justify="space-between" align="center" mb={6} wrap="wrap" gap={3}>
         <Heading size="lg">{t('nav.users')}</Heading>
-        <HStack w={{ base: 'full', md: 'auto' }}>
+        <Flex w={{ base: 'full', md: 'auto' }} gap={2} direction={{ base: 'column', sm: 'row' }}>
           <InputGroup maxW={{ base: 'full', md: '250px' }}>
             <InputLeftElement><SearchIcon color="gray.400" /></InputLeftElement>
             <Input placeholder="Pretraži..." value={search} onChange={(e) => setSearch(e.target.value)} bg="white" />
           </InputGroup>
-          <Button leftIcon={<AddIcon />} colorScheme="brand" size={{ base: 'sm', md: 'md' }} onClick={onCreateOpen}>Novi Korisnik</Button>
-        </HStack>
+          <Button
+            leftIcon={<AddIcon />}
+            colorScheme="brand"
+            size={{ base: 'sm', md: 'md' }}
+            minW={{ base: 'full', sm: 'fit-content' }}
+            w={{ base: 'full', sm: 'auto' }}
+            onClick={onCreateOpen}
+          >
+            Novi Korisnik
+          </Button>
+        </Flex>
       </Flex>
 
       <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
@@ -295,60 +326,60 @@ export default function Users() {
           <Box p={6} textAlign="center"><Spinner size="lg" /></Box>
         ) : isMobile ? (
           <VStack align="stretch" spacing={3} p={3}>
-            {filteredUsers.length === 0 ? (
+            {sortedAndFilteredUsers.length === 0 ? (
               <Text color="gray.500">{t('common.noData')}</Text>
-            ) : filteredUsers.map((u) => (
+            ) : sortedAndFilteredUsers.map((u) => (
               <Box key={u.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
                 <HStack justify="space-between" align="start">
                   <HStack>
                     <Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" />
                     <Box>
                       <Text fontWeight="medium">{u.username}</Text>
-                          <Text color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
+                      <Text color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
                     </Box>
                   </HStack>
                   <Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
                 </HStack>
-                    <Text mt={2} color="gray.600">{u.email ?? '-'}</Text>
+                <Text mt={2} color="gray.600">{u.email ?? '-'}</Text>
                 <Flex mt={2} gap={1} flexWrap="wrap">
-                      {getUserRoles(u).map((roleName) => (
-                        <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
-                          <TagLabel>
-                            {roleName}
-                            {roleName === 'STYLIST' ? ' (Stylists)' : ''}
-                          </TagLabel>
-                          {canRemoveRole(roleName) ? (
-                            <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
-                          ) : (
-                            <TagLabel
-                              as="span"
-                              color="gray.500"
-                              ml={1}
-                              title="Dodaje se/uklanja u Stylists"
-                            >
-                              *
-                            </TagLabel>
-                          )}
-                        </Tag>
-                      ))}
-                      {getAvailableRolesToAssign(u).length > 0 && (
-                        <Menu>
-                          <MenuButton
-                            as={IconButton}
-                            icon={<AddIcon />}
-                            size="xs"
-                            variant="ghost"
-                            aria-label="Dodaj ulogu"
-                          />
-                          <MenuList>
-                            {getAvailableRolesToAssign(u).map((r) => (
-                              <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>
-                                {r}
-                              </MenuItem>
-                            ))}
-                          </MenuList>
-                        </Menu>
+                  {getUserRoles(u).map((roleName) => (
+                    <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
+                      <TagLabel>
+                        {roleName}
+                        {roleName === 'STYLIST' ? ' (Stylists)' : ''}
+                      </TagLabel>
+                      {canRemoveRole(roleName) ? (
+                        <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
+                      ) : (
+                        <TagLabel
+                          as="span"
+                          color="gray.500"
+                          ml={1}
+                          title="Dodaje se/uklanja u Stylists"
+                        >
+                          *
+                        </TagLabel>
                       )}
+                    </Tag>
+                  ))}
+                  {getAvailableRolesToAssign(u).length > 0 && (
+                    <Menu>
+                      <MenuButton
+                        as={IconButton}
+                        icon={<AddIcon />}
+                        size="xs"
+                        variant="ghost"
+                        aria-label="Dodaj ulogu"
+                      />
+                      <MenuList>
+                        {getAvailableRolesToAssign(u).map((r) => (
+                          <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>
+                            {r}
+                          </MenuItem>
+                        ))}
+                      </MenuList>
+                    </Menu>
+                  )}
                 </Flex>
                 <HStack spacing={1} justify="flex-end" mt={3}>
                   <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} />
@@ -373,9 +404,9 @@ export default function Users() {
               </Tr>
             </Thead>
             <Tbody>
-              {filteredUsers.length === 0 ? (
+              {sortedAndFilteredUsers.length === 0 ? (
                 <Tr><Td colSpan={8}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
-              ) : filteredUsers.map((u) => (
+              ) : sortedAndFilteredUsers.map((u) => (
                 <Tr key={u.id}>
                   <Td><Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" /></Td>
                   <Td fontWeight="medium">{u.username}</Td>

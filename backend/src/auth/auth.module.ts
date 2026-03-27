@@ -8,10 +8,12 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UploadsModule } from '../uploads/uploads.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     UploadsModule,
+    NotificationsModule,
     MulterModule.register({
       storage: memoryStorage(),
       limits: { fileSize: 5 * 1024 * 1024 },

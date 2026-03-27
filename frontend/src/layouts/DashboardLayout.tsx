@@ -15,6 +15,7 @@ import {
   DrawerHeader,
   DrawerOverlay,
   DrawerContent,
+  DrawerFooter,
   VStack,
   HStack,
   Link,
@@ -34,6 +35,7 @@ import {
   EditIcon,
   BellIcon,
   InfoIcon,
+  ArrowBackIcon,
 } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -92,6 +94,7 @@ const navConfig: NavEntry[] = [
     children: [
       { path: '/admin/settings', labelKey: 'nav.settings' },
       { path: '/admin/notifications', labelKey: 'nav.notifications' },
+      { path: '/admin/email-settings', labelKey: 'nav.emailSettings' },
       { path: '/admin/loyalty', labelKey: 'nav.loyalty' },
     ],
   },
@@ -146,7 +149,7 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
               as={RouterLink}
               to={entry.path}
               onClick={onClose}
-              px={4}
+              px={{ base: 3, md: 4 }}
               py={2}
               rounded="md"
               mx={1}
@@ -157,7 +160,9 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
             >
               <HStack spacing={2}>
                 <Icon as={entry.icon} boxSize={4} />
-                <Text as="span">{t(entry.labelKey)}</Text>
+                <Text as="span" fontSize={{ base: 'sm', md: 'md' }} noOfLines={1}>
+                  {t(entry.labelKey)}
+                </Text>
               </HStack>
             </Link>
           );
@@ -168,7 +173,7 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
           <Box key={idx}>
             <Flex
               align="center"
-              px={4}
+              px={{ base: 3, md: 4 }}
               py={2}
               mx={1}
               rounded="md"
@@ -184,10 +189,12 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
                 <ChevronRightIcon boxSize={4} mr={2} />
               )}
               <Icon as={entry.icon} boxSize={4} mr={2} />
-              <Text as="span">{t(entry.labelKey)}</Text>
+              <Text as="span" fontSize={{ base: 'sm', md: 'md' }} noOfLines={1}>
+                {t(entry.labelKey)}
+              </Text>
             </Flex>
             <Collapse in={isOpen} animateOpacity>
-              <VStack align="stretch" spacing={0} pl={6} borderLeft="2px" borderColor="gray.200" ml={4} my={1}>
+              <VStack align="stretch" spacing={0} pl={5} borderLeft="2px" borderColor="gray.200" ml={3} my={1}>
                 {entry.children.map((item) => {
                   const isActive = path === item.path;
                   return (
@@ -196,14 +203,15 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
                       as={RouterLink}
                       to={item.path}
                       onClick={onClose}
-                      px={3}
+                      px={{ base: 2, md: 3 }}
                       py={1.5}
                       rounded="md"
-                      fontSize="sm"
+                      fontSize={{ base: 'xs', md: 'sm' }}
                       bg={isActive ? 'brand.100' : 'transparent'}
                       color={isActive ? 'brand.800' : 'gray.600'}
                       _hover={{ bg: 'brand.50' }}
                       fontWeight={isActive ? 600 : 400}
+                      noOfLines={1}
                     >
                       {t(item.labelKey)}
                     </Link>
@@ -238,6 +246,7 @@ export default function DashboardLayout() {
     '/admin/reviews': t('nav.reviews'),
     '/admin/settings': t('nav.settings'),
     '/admin/notifications': t('nav.notifications'),
+    '/admin/email-settings': t('nav.emailSettings'),
     '/admin/client-analytics': t('nav.clientAnalytics'),
     '/admin/stylist-analytics': t('nav.stylistAnalytics'),
     '/admin/analytics': t('nav.analytics'),
@@ -249,11 +258,24 @@ export default function DashboardLayout() {
     <Flex minH="100vh" direction="column">
       <Drawer isOpen={isOpen} placement="left" onClose={onClose}>
         <DrawerOverlay />
-        <DrawerContent>
-          <DrawerHeader>{t('app.admin')}</DrawerHeader>
-          <DrawerBody>
+        <DrawerContent maxW={{ base: '84vw', sm: '320px' }}>
+          <DrawerHeader pb={2}>{t('app.admin')}</DrawerHeader>
+          <DrawerBody p={2} overflowY="auto">
             <SidebarNav onClose={onClose} />
           </DrawerBody>
+          <DrawerFooter display={{ base: 'flex', md: 'none' }} pt={0}>
+            <Button
+              as={RouterLink}
+              to="/"
+              onClick={onClose}
+              leftIcon={<ArrowBackIcon />}
+              variant="outline"
+              size="sm"
+              w="full"
+            >
+              Nazad na public
+            </Button>
+          </DrawerFooter>
         </DrawerContent>
       </Drawer>
 
@@ -264,7 +286,7 @@ export default function DashboardLayout() {
           align={{ base: 'stretch', md: 'center' }}
           direction={{ base: 'column', md: 'row' }}
           justify="space-between"
-          px={4}
+          px={{ base: 2, md: 4 }}
           py={{ base: 2, md: 0 }}
           gap={{ base: 2, md: 3 }}
           borderBottom="1px"

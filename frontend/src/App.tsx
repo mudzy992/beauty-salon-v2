@@ -33,6 +33,7 @@ import Gallery from './pages/Gallery';
 import Reviews from './pages/Reviews';
 import Settings from './pages/Settings';
 import Notifications from './pages/Notifications';
+import EmailSettings from './pages/EmailSettings';
 import ClientAnalytics from './pages/ClientAnalytics';
 import StylistAnalytics from './pages/StylistAnalytics';
 import Analytics from './pages/Analytics';
@@ -88,6 +89,7 @@ function AppRoutes() {
         <Route path="reviews" element={<Reviews />} />
         <Route path="settings" element={<Settings />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="email-settings" element={<EmailSettings />} />
         <Route path="client-analytics" element={<ClientAnalytics />} />
         <Route path="stylist-analytics" element={<StylistAnalytics />} />
         <Route path="analytics" element={<Analytics />} />

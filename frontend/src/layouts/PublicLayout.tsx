@@ -15,7 +15,10 @@ import {
   VStack,
   IconButton,
   Alert,
+  AlertDescription,
   AlertIcon,
+  AlertTitle,
+  HStack,
 } from '@chakra-ui/react';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
@@ -157,12 +160,30 @@ export default function PublicLayout() {
       <Box flex={1}>
         {isProfileIncomplete && (
           <Container maxW="container.xl" pt={4}>
-            <Alert status="warning" rounded="md">
-              <AlertIcon />
-              Potrebno je da unesete email i telefon, te verifikujete email prije rezervacije.
-              <Button as={RouterLink} to="/profil" size="sm" ml={3} colorScheme="orange">
-                Uredi profil
-              </Button>
+            <Alert
+              status="warning"
+              rounded="lg"
+              variant="subtle"
+              borderWidth="1px"
+              borderColor="orange.200"
+              alignItems="start"
+              flexDirection={{ base: 'column', md: 'row' }}
+              gap={{ base: 3, md: 2 }}
+            >
+              <AlertIcon mt={1} />
+              <Box flex={1}>
+                <AlertTitle fontSize={{ base: 'sm', md: 'md' }} lineHeight="short">
+                  Profil nije kompletan
+                </AlertTitle>
+                <AlertDescription fontSize={{ base: 'sm', md: 'md' }} mt={1} lineHeight={{ base: '1.35', md: '1.45' }}>
+                  Potrebno je unijeti email i telefon, te verifikovati email prije rezervacije.
+                </AlertDescription>
+              </Box>
+              <HStack alignSelf={{ base: 'stretch', md: 'center' }} pl={{ base: 0, md: 2 }} w={{ base: 'full', md: 'auto' }}>
+                <Button as={RouterLink} to="/profil" size="sm" colorScheme="orange" w={{ base: 'full', md: 'auto' }}>
+                  Uredi profil
+                </Button>
+              </HStack>
             </Alert>
           </Container>
         )}

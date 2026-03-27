@@ -683,14 +683,18 @@ function ExpenseCategoriesTab() {
       <Accordion allowMultiple>
         {templates.length === 0 ? <Text color="gray.500">{t('common.noData')}</Text> : templates.map((tpl) => (
           <AccordionItem key={tpl.id} bg="white" rounded="lg" shadow="sm" mb={3} border="1px" borderColor="gray.200">
-            <AccordionButton>
-              <Flex flex="1" align="center" gap={2}>
-                <Text fontWeight="bold">{tpl.name}</Text>
-                {tpl.requiresAttachmentPerItem ? <Badge colorScheme="orange">Prilog po stavci</Badge> : <Badge colorScheme="blue">Prilog na rashod</Badge>}
-                <Badge colorScheme="gray">{(tpl.fields ?? []).length} stavki</Badge>
+            <AccordionButton py={3}>
+              <Flex flex="1" align="center" gap={2} wrap="wrap" minW={0}>
+                <Text fontWeight="bold" noOfLines={1} minW={0}>{tpl.name}</Text>
+                {tpl.requiresAttachmentPerItem ? (
+                  <Badge colorScheme="orange" fontSize={{ base: '2xs', md: 'xs' }}>Prilog po stavci</Badge>
+                ) : (
+                  <Badge colorScheme="blue" fontSize={{ base: '2xs', md: 'xs' }}>Prilog na rashod</Badge>
+                )}
+                <Badge colorScheme="gray" fontSize={{ base: '2xs', md: 'xs' }}>{(tpl.fields ?? []).length} stavki</Badge>
               </Flex>
-              <HStack spacing={1} mr={2} onClick={(e) => e.stopPropagation()}>
-                <IconButton aria-label="Uredi" icon={<EditIcon />} size="xs" variant="ghost" colorScheme="blue" onClick={() => openTplForm(tpl)} />
+              <HStack spacing={1} mr={2} onClick={(e) => e.stopPropagation()} flexShrink={0}>
+                <IconButton aria-label="Uredi" icon={<EditIcon />} size={{ base: 'sm', md: 'xs' }} variant="ghost" colorScheme="blue" onClick={() => openTplForm(tpl)} />
               </HStack>
               <AccordionIcon />
             </AccordionButton>
@@ -698,7 +702,8 @@ function ExpenseCategoriesTab() {
               {tpl.requiresAttachmentPerItem ? (<>
                 {/* Fixed template: show items */}
                 {(tpl.fields ?? []).length > 0 ? (
-                  <Table size="sm" mb={3}>
+                  <Box overflowX="auto">
+                    <Table size="sm" mb={3}>
                     <Thead><Tr><Th>Naziv stavke</Th><Th isNumeric>Default cijena (KM)</Th><Th textAlign="right">Akcije</Th></Tr></Thead>
                     <Tbody>
                       {(tpl.fields ?? []).map((f) => (
@@ -709,7 +714,8 @@ function ExpenseCategoriesTab() {
                         </Tr>
                       ))}
                     </Tbody>
-                  </Table>
+                    </Table>
+                  </Box>
                 ) : <Text fontSize="sm" color="gray.500" mb={3}>Nema stavki.</Text>}
                 <Divider mb={3} />
                 <Text fontSize="sm" fontWeight="bold" mb={2}>Dodaj stavku:</Text>

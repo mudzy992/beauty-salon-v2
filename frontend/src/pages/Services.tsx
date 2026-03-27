@@ -7,6 +7,7 @@ import {
   FormLabel, Input, useToast, IconButton, Badge, Textarea, NumberInput,
   NumberInputField, NumberInputStepper, NumberIncrementStepper,
   NumberDecrementStepper, Switch, HStack, Image,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { AddIcon, EditIcon, DeleteIcon, ViewIcon } from '@chakra-ui/icons';
@@ -73,6 +74,7 @@ export default function Services() {
     loyaltyMaxDiscountPercent: 0,
   });
   const [uploadingImg, setUploadingImg] = useState(false);
+  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
   const svcFileRef = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(() => {
@@ -242,7 +244,7 @@ export default function Services() {
 
   return (
     <Box>
-      <Flex justify="space-between" align="center" mb={6}>
+      <Flex justify="space-between" align="center" mb={6} wrap="wrap" gap={3}>
         <Heading size="lg">{t('nav.services')}</Heading>
         <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openCategoryForm()}>
           Nova Kategorija
@@ -258,17 +260,23 @@ export default function Services() {
           {categories.map((cat) => (
             <AccordionItem key={cat.id} bg="white" rounded="lg" shadow="sm" mb={3} border="1px" borderColor="gray.200">
               <AccordionButton py={3}>
-                <Flex flex="1" align="center" gap={2}>
-                  <Text fontWeight="bold" fontSize="lg">{cat.name}</Text>
-                  <Badge colorScheme={cat.isActive ? 'green' : 'gray'} ml={2}>
+                <Flex flex="1" align="center" gap={2} minW={0}>
+                  <Text fontWeight="bold" fontSize={{ base: 'md', md: 'lg' }} noOfLines={1}>
+                    {cat.name}
+                  </Text>
+                  <Badge colorScheme={cat.isActive ? 'green' : 'gray'} ml={2} fontSize={{ base: '2xs', md: 'xs' }}>
                     {cat.isActive ? 'Aktivna' : 'Neaktivna'}
                   </Badge>
-                  {cat.description && <Text fontSize="sm" color="gray.500" ml={2}>— {cat.description}</Text>}
+                  {cat.description && (
+                    <Text fontSize="sm" color="gray.500" ml={2} display={{ base: 'none', md: 'block' }}>
+                      — {cat.description}
+                    </Text>
+                  )}
                 </Flex>
-                <HStack spacing={1} mr={2} onClick={(e) => e.stopPropagation()}>
-                  <IconButton aria-label="Dodaj potkategoriju" icon={<AddIcon />} size="xs" colorScheme="green" variant="ghost" onClick={() => openSubcategoryForm(cat.id)} />
-                  <IconButton aria-label="Uredi" icon={<EditIcon />} size="xs" colorScheme="blue" variant="ghost" onClick={() => openCategoryForm(cat)} />
-                  <IconButton aria-label="Obriši" icon={<DeleteIcon />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeleteCategory(cat.id)} />
+                <HStack spacing={1} mr={2} onClick={(e) => e.stopPropagation()} flexShrink={0}>
+                  <IconButton aria-label="Dodaj potkategoriju" icon={<AddIcon />} size={{ base: 'sm', md: 'xs' }} colorScheme="green" variant="ghost" onClick={() => openSubcategoryForm(cat.id)} />
+                  <IconButton aria-label="Uredi" icon={<EditIcon />} size={{ base: 'sm', md: 'xs' }} colorScheme="blue" variant="ghost" onClick={() => openCategoryForm(cat)} />
+                  <IconButton aria-label="Obriši" icon={<DeleteIcon />} size={{ base: 'sm', md: 'xs' }} colorScheme="red" variant="ghost" onClick={() => handleDeleteCategory(cat.id)} />
                 </HStack>
                 <AccordionIcon />
               </AccordionButton>
@@ -276,19 +284,19 @@ export default function Services() {
                 {cat.subcategories?.length ? (
                   cat.subcategories.map((sub) => (
                     <Box key={sub.id} mb={6} ml={2} p={3} borderLeft="3px solid" borderColor="brand.300" bg="gray.50" rounded="md">
-                      <Flex align="center" justify="space-between" mb={3}>
+                      <Flex align="center" justify="space-between" mb={3} gap={2}>
                         <HStack>
-                          <Text fontWeight="bold" color="gray.700">{sub.name}</Text>
-                          <Badge colorScheme={sub.isActive ? 'green' : 'gray'} size="sm">
+                          <Text fontWeight="bold" color="gray.700" noOfLines={1}>{sub.name}</Text>
+                          <Badge colorScheme={sub.isActive ? 'green' : 'gray'} size="sm" fontSize={{ base: '2xs', md: 'xs' }}>
                             {sub.isActive ? 'Aktivna' : 'Neaktivna'}
                           </Badge>
                         </HStack>
-                        <HStack spacing={1}>
-                          <Button size="xs" leftIcon={<AddIcon />} colorScheme="brand" variant="outline" onClick={() => openServiceForm(sub.id)}>
+                        <HStack spacing={1} flexWrap="wrap" justify="flex-end" flexShrink={0}>
+                          <Button size={{ base: 'sm', md: 'xs' }} leftIcon={<AddIcon />} colorScheme="brand" variant="outline" onClick={() => openServiceForm(sub.id)}>
                             Servis
                           </Button>
-                          <IconButton aria-label="Uredi" icon={<EditIcon />} size="xs" colorScheme="blue" variant="ghost" onClick={() => openSubcategoryForm(cat.id, sub)} />
-                          <IconButton aria-label="Obriši" icon={<DeleteIcon />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeleteSubcategory(sub.id)} />
+                          <IconButton aria-label="Uredi" icon={<EditIcon />} size={{ base: 'sm', md: 'xs' }} colorScheme="blue" variant="ghost" onClick={() => openSubcategoryForm(cat.id, sub)} />
+                          <IconButton aria-label="Obriši" icon={<DeleteIcon />} size={{ base: 'sm', md: 'xs' }} colorScheme="red" variant="ghost" onClick={() => handleDeleteSubcategory(sub.id)} />
                         </HStack>
                       </Flex>
                       {sub.services?.length ? (
@@ -297,7 +305,7 @@ export default function Services() {
                       <Thead>
                         <Tr>
                           <Th>Usluga</Th>
-                          <Th>Opis</Th>
+                          {!isMobile && <Th>Opis</Th>}
                           <Th isNumeric>Trajanje (min)</Th>
                           <Th isNumeric>Cijena (KM)</Th>
                           <Th>Loyalty</Th>
@@ -309,7 +317,7 @@ export default function Services() {
                             {sub.services.map((s) => (
                               <Tr key={s.id}>
                                 <Td fontWeight="medium">{s.name}</Td>
-                                <Td maxW="200px" isTruncated>{s.shortDescription ?? '-'}</Td>
+                                {!isMobile && <Td maxW="200px" isTruncated>{s.shortDescription ?? '-'}</Td>}
                                 <Td isNumeric>{s.durationMinutes}</Td>
                                 <Td isNumeric>{Number(s.price).toFixed(2)}</Td>
                                 <Td>

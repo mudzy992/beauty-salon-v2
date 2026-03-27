@@ -139,17 +139,17 @@ export default function Reservations() {
       <Heading size="lg" mb={4}>{t('nav.reservations')}</Heading>
 
       {/* Filters */}
-      <Flex gap={3} mb={4} wrap="wrap" bg="white" p={4} rounded="lg" shadow="sm">
-        <Box>
-          <Text fontSize="xs" color="gray.500" mb={1}>Od datuma</Text>
+      <SimpleGrid columns={{ base: 1, md: 4 }} spacing={{ base: 2, md: 3 }} mb={4} bg="white" p={{ base: 3, md: 4 }} rounded="lg" shadow="sm">
+        <Box minW={0}>
+          <Text fontSize={{ base: 'xs', md: 'xs' }} color="gray.500" mb={1}>Od datuma</Text>
           <Input type="date" size="sm" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
         </Box>
-        <Box>
-          <Text fontSize="xs" color="gray.500" mb={1}>Do datuma</Text>
+        <Box minW={0}>
+          <Text fontSize={{ base: 'xs', md: 'xs' }} color="gray.500" mb={1}>Do datuma</Text>
           <Input type="date" size="sm" value={toDate} onChange={(e) => setToDate(e.target.value)} />
         </Box>
-        <Box>
-          <Text fontSize="xs" color="gray.500" mb={1}>Status</Text>
+        <Box minW={0}>
+          <Text fontSize={{ base: 'xs', md: 'xs' }} color="gray.500" mb={1}>Status</Text>
           <Select size="sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             {STATUS_OPTIONS.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
@@ -157,11 +157,17 @@ export default function Reservations() {
           </Select>
         </Box>
         <Flex align="flex-end">
-          <Button size="sm" variant="outline" onClick={() => { setFromDate(''); setToDate(''); setStatusFilter(''); }}>
+          <Button
+            size="sm"
+            variant="outline"
+            w={{ base: 'full', md: 'auto' }}
+            minH={{ base: '34px', md: '32px' }}
+            onClick={() => { setFromDate(''); setToDate(''); setStatusFilter(''); }}
+          >
             Resetuj
           </Button>
         </Flex>
-      </Flex>
+      </SimpleGrid>
 
       <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
         {loading ? (

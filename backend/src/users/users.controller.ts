@@ -62,6 +62,14 @@ export class UsersController {
     return this.usersService.getUsernameAvailability(username, user.roles);
   }
 
+  @Get('profile/username-availability')
+  getProfileUsernameAvailability(
+    @Query('username') username: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.usersService.getProfileUsernameAvailability(user.sub, username);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.usersService.findOne(id, user);

@@ -157,6 +157,23 @@ export class UsersService {
     };
   }
 
+  async getProfileUsernameAvailability(userId: string, username: string) {
+    const normalized = this.normalizeUsername(username);
+    if (!normalized) {
+      throw new BadRequestException('Korisničko ime nije validno.');
+    }
+    const existing = await this.prisma.user.findUnique({
+      where: { username: normalized },
+      select: { id: true },
+    });
+    const suggestions = await this.generateUsernameSuggestions(normalized, 3);
+    return {
+      username: normalized,
+      available: !existing || existing.id === userId,
+      suggestions,
+    };
+  }
+
   async update(
     id: string,
     dto: UpdateUserDto,

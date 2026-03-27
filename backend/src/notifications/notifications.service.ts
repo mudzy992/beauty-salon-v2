@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Expo from 'expo-server-sdk';
+import nodemailer from 'nodemailer';
+import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
@@ -195,12 +197,167 @@ export class NotificationsService {
       select: { email: true },
     });
     if (!user?.email) return;
-    const transport = this.config.get<string>('SMTP_HOST');
-    if (!transport) {
-      // Nodemailer nije konfigurisan – samo log
+    const mailConfig = await this.resolveMailConfig();
+    if (!mailConfig) {
       return;
     }
-    // TODO: Nodemailer sendMail({ to: user.email, subject: title, text: body })
-    // Za sada preskačemo stvarni email ako nije postavljen mailer modul.
+    const transporter = nodemailer.createTransport({
+      host: mailConfig.host,
+      port: mailConfig.port,
+      secure: mailConfig.secure,
+      auth: mailConfig.username
+        ? {
+            user: mailConfig.username,
+            pass: mailConfig.password,
+          }
+        : undefined,
+      tls: {
+        rejectUnauthorized: mailConfig.rejectUnauthorized,
+      },
+    } as SMTPTransport.Options);
+    await transporter.sendMail({
+      from: `"${mailConfig.fromName}" <${mailConfig.fromEmail}>`,
+      to: user.email,
+      subject: title,
+      text: body,
+      html: this.buildBasicEmailHtml({
+        title,
+        body,
+      }),
+    });
+  }
+
+  async sendVerificationCodeEmail(params: {
+    to: string;
+    code: string;
+    firstName?: string | null;
+  }) {
+    const mailConfig = await this.resolveMailConfig();
+    if (!mailConfig) {
+      return;
+    }
+    const transporter = nodemailer.createTransport({
+      host: mailConfig.host,
+      port: mailConfig.port,
+      secure: mailConfig.secure,
+      auth: mailConfig.username
+        ? {
+            user: mailConfig.username,
+            pass: mailConfig.password,
+          }
+        : undefined,
+      tls: {
+        rejectUnauthorized: mailConfig.rejectUnauthorized,
+      },
+    } as SMTPTransport.Options);
+    const greetingName = params.firstName?.trim() || 'korisniče';
+    const subject = 'Verifikacija email adrese';
+    const plainText = `Poštovani ${greetingName}, vaš verifikacijski kod je ${params.code}. Kod važi 24 sata.`;
+    const html = this.buildVerificationEmailHtml({
+      name: greetingName,
+      code: params.code,
+      expiresInHours: 24,
+    });
+    await transporter.sendMail({
+      from: `"${mailConfig.fromName}" <${mailConfig.fromEmail}>`,
+      to: params.to,
+      subject,
+      text: plainText,
+      html,
+    });
+  }
+
+  private buildBasicEmailHtml(params: { title: string; body: string }) {
+    return `<div style="font-family:Arial,sans-serif;line-height:1.5;color:#111827">
+<h2 style="margin:0 0 12px">${params.title}</h2>
+<p style="margin:0">${params.body}</p>
+</div>`;
+  }
+
+  private buildVerificationEmailHtml(params: {
+    name: string;
+    code: string;
+    expiresInHours: number;
+  }) {
+    return `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827;max-width:560px">
+<h2 style="margin:0 0 12px">Verifikacija email adrese</h2>
+<p style="margin:0 0 12px">Poštovani ${params.name},</p>
+<p style="margin:0 0 16px">Vaš verifikacijski kod je:</p>
+<div style="display:inline-block;padding:12px 18px;border-radius:8px;background:#f3f4f6;font-size:24px;letter-spacing:4px;font-weight:700">${params.code}</div>
+<p style="margin:16px 0 0">Kod važi ${params.expiresInHours} sata.</p>
+</div>`;
+  }
+
+  private async getSettingValue(key: string): Promise<string | null> {
+    const setting = await this.prisma.appSetting.findUnique({
+      where: { key },
+      select: { value: true },
+    });
+    return setting?.value ?? null;
+  }
+
+  private toBoolean(value: string | null, fallback: boolean): boolean {
+    if (value == null) return fallback;
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+    return fallback;
+  }
+
+  private async resolveMailConfig(): Promise<{
+    host: string;
+    port: number;
+    secure: boolean;
+    username: string | null;
+    password: string | null;
+    fromEmail: string;
+    fromName: string;
+    rejectUnauthorized: boolean;
+  } | null> {
+    const host =
+      (await this.getSettingValue('system_email_host')) ||
+      this.config.get<string>('SMTP_HOST') ||
+      null;
+    const portRaw =
+      (await this.getSettingValue('system_email_port')) ||
+      this.config.get<string>('SMTP_PORT') ||
+      '587';
+    const secureRaw =
+      (await this.getSettingValue('system_email_secure')) ||
+      this.config.get<string>('SMTP_SECURE') ||
+      'false';
+    const username =
+      (await this.getSettingValue('system_email_username')) ||
+      this.config.get<string>('SMTP_USER') ||
+      null;
+    const password =
+      (await this.getSettingValue('system_email_password')) ||
+      this.config.get<string>('SMTP_PASS') ||
+      null;
+    const fromEmail =
+      (await this.getSettingValue('system_notif_email_from')) ||
+      this.config.get<string>('SMTP_FROM') ||
+      '';
+    const fromName =
+      (await this.getSettingValue('system_notif_email_name')) ||
+      this.config.get<string>('SMTP_FROM_NAME') ||
+      'Beauty Salon';
+    const rejectUnauthorizedRaw =
+      (await this.getSettingValue('system_email_tls_reject_unauthorized')) ||
+      this.config.get<string>('SMTP_TLS_REJECT_UNAUTHORIZED') ||
+      'true';
+    if (!host || !fromEmail) {
+      return null;
+    }
+    return {
+      host,
+      port: Number.parseInt(portRaw, 10) || 587,
+      secure: this.toBoolean(secureRaw, false),
+      username,
+      password,
+      fromEmail,
+      fromName,
+      rejectUnauthorized: this.toBoolean(rejectUnauthorizedRaw, true),
+    };
   }
 }

@@ -19,6 +19,7 @@ const resources = {
         reviews: 'Recenzije',
         settings: 'Postavke',
         notifications: 'Notifikacije',
+        emailSettings: 'Email postavke',
         clientAnalytics: 'Analitika klijenata',
         stylistAnalytics: 'Analitika stiliste',
         analytics: 'Analitika',
