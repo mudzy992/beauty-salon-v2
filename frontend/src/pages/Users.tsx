@@ -286,7 +286,7 @@ export default function Users() {
             <InputLeftElement><SearchIcon color="gray.400" /></InputLeftElement>
             <Input placeholder="Pretraži..." value={search} onChange={(e) => setSearch(e.target.value)} bg="white" />
           </InputGroup>
-          <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={onCreateOpen}>Novi Korisnik</Button>
+          <Button leftIcon={<AddIcon />} colorScheme="brand" size={{ base: 'sm', md: 'md' }} onClick={onCreateOpen}>Novi Korisnik</Button>
         </HStack>
       </Flex>
 
@@ -304,18 +304,51 @@ export default function Users() {
                     <Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" />
                     <Box>
                       <Text fontWeight="medium">{u.username}</Text>
-                      <Text fontSize="sm" color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
+                          <Text color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
                     </Box>
                   </HStack>
                   <Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
                 </HStack>
-                <Text fontSize="sm" mt={2}>{u.email ?? '-'}</Text>
+                    <Text mt={2} color="gray.600">{u.email ?? '-'}</Text>
                 <Flex mt={2} gap={1} flexWrap="wrap">
-                  {getUserRoles(u).map((roleName) => (
-                    <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
-                      <TagLabel>{roleName}</TagLabel>
-                    </Tag>
-                  ))}
+                      {getUserRoles(u).map((roleName) => (
+                        <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
+                          <TagLabel>
+                            {roleName}
+                            {roleName === 'STYLIST' ? ' (Stylists)' : ''}
+                          </TagLabel>
+                          {canRemoveRole(roleName) ? (
+                            <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
+                          ) : (
+                            <TagLabel
+                              as="span"
+                              color="gray.500"
+                              ml={1}
+                              title="Dodaje se/uklanja u Stylists"
+                            >
+                              *
+                            </TagLabel>
+                          )}
+                        </Tag>
+                      ))}
+                      {getAvailableRolesToAssign(u).length > 0 && (
+                        <Menu>
+                          <MenuButton
+                            as={IconButton}
+                            icon={<AddIcon />}
+                            size="xs"
+                            variant="ghost"
+                            aria-label="Dodaj ulogu"
+                          />
+                          <MenuList>
+                            {getAvailableRolesToAssign(u).map((r) => (
+                              <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>
+                                {r}
+                              </MenuItem>
+                            ))}
+                          </MenuList>
+                        </Menu>
+                      )}
                 </Flex>
                 <HStack spacing={1} justify="flex-end" mt={3}>
                   <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} />
@@ -437,8 +470,8 @@ export default function Users() {
             </FormControl>
           </ModalBody>
           <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>{t('common.cancel')}</Button>
-            <Button colorScheme="brand" onClick={handleSave} isLoading={saving}>{t('common.save')}</Button>
+            <Button variant="ghost" size={{ base: 'sm', md: 'md' }} mr={3} onClick={onClose}>{t('common.cancel')}</Button>
+            <Button colorScheme="brand" size={{ base: 'sm', md: 'md' }} onClick={handleSave} isLoading={saving}>{t('common.save')}</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
@@ -523,8 +556,8 @@ export default function Users() {
             </FormControl>
           </ModalBody>
           <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onCreateClose}>{t('common.cancel')}</Button>
-            <Button colorScheme="brand" onClick={handleCreate} isLoading={saving}>{t('common.save')}</Button>
+            <Button variant="ghost" size={{ base: 'sm', md: 'md' }} mr={3} onClick={onCreateClose}>{t('common.cancel')}</Button>
+            <Button colorScheme="brand" size={{ base: 'sm', md: 'md' }} onClick={handleCreate} isLoading={saving}>{t('common.save')}</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
@@ -550,7 +583,7 @@ export default function Users() {
             </VStack>
           </ModalBody>
           <ModalFooter>
-            <Button onClick={onCredentialsClose} colorScheme="brand">U redu</Button>
+            <Button onClick={onCredentialsClose} colorScheme="brand" size={{ base: 'sm', md: 'md' }}>U redu</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

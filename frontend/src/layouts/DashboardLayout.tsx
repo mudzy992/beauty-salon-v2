@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ElementType } from 'react';
 import { Outlet, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -16,24 +16,39 @@ import {
   DrawerOverlay,
   DrawerContent,
   VStack,
+  HStack,
   Link,
   Text,
   Collapse,
+  Icon,
 } from '@chakra-ui/react';
-import { HamburgerIcon, ChevronDownIcon, ChevronRightIcon, ExternalLinkIcon } from '@chakra-ui/icons';
+import {
+  HamburgerIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ExternalLinkIcon,
+  CalendarIcon,
+  TimeIcon,
+  SettingsIcon,
+  StarIcon,
+  EditIcon,
+  BellIcon,
+  InfoIcon,
+} from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 
 type NavItem = { path: string; labelKey: string };
 type NavEntry =
-  | { type: 'link'; path: string; labelKey: string }
-  | { type: 'submenu'; labelKey: string; children: NavItem[] };
+  | { type: 'link'; path: string; labelKey: string; icon: ElementType }
+  | { type: 'submenu'; labelKey: string; icon: ElementType; children: NavItem[] };
 
 const navConfig: NavEntry[] = [
-  { type: 'link', path: '/admin', labelKey: 'nav.home' },
+  { type: 'link', path: '/admin', labelKey: 'nav.home', icon: InfoIcon },
   {
     type: 'submenu',
     labelKey: 'nav.sectionOperational',
+    icon: CalendarIcon,
     children: [
       { path: '/admin/reservations', labelKey: 'nav.reservations' },
       { path: '/admin/daily-log', labelKey: 'nav.dailyLog' },
@@ -42,16 +57,18 @@ const navConfig: NavEntry[] = [
   {
     type: 'submenu',
     labelKey: 'nav.sectionSalon',
+    icon: SettingsIcon,
     children: [
       { path: '/admin/salon', labelKey: 'nav.salon' },
       { path: '/admin/services', labelKey: 'nav.services' },
       { path: '/admin/stylists', labelKey: 'nav.stylists' },
     ],
   },
-  { type: 'link', path: '/admin/finance', labelKey: 'nav.finance' },
+  { type: 'link', path: '/admin/finance', labelKey: 'nav.finance', icon: TimeIcon },
   {
     type: 'submenu',
     labelKey: 'nav.sectionContent',
+    icon: EditIcon,
     children: [
       { path: '/admin/blog', labelKey: 'nav.blog' },
       { path: '/admin/gallery', labelKey: 'nav.gallery' },
@@ -61,15 +78,17 @@ const navConfig: NavEntry[] = [
   {
     type: 'submenu',
     labelKey: 'nav.sectionPeople',
+    icon: StarIcon,
     children: [
       { path: '/admin/users', labelKey: 'nav.users' },
       { path: '/admin/client-analytics', labelKey: 'nav.clientAnalytics' },
     ],
   },
-  { type: 'link', path: '/admin/analytics', labelKey: 'nav.analytics' },
+  { type: 'link', path: '/admin/analytics', labelKey: 'nav.analytics', icon: InfoIcon },
   {
     type: 'submenu',
     labelKey: 'nav.sectionSettings',
+    icon: BellIcon,
     children: [
       { path: '/admin/settings', labelKey: 'nav.settings' },
       { path: '/admin/notifications', labelKey: 'nav.notifications' },
@@ -136,7 +155,10 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
               _hover={{ bg: 'brand.50' }}
               fontWeight={isActive ? 600 : 400}
             >
-              {t(entry.labelKey)}
+              <HStack spacing={2}>
+                <Icon as={entry.icon} boxSize={4} />
+                <Text as="span">{t(entry.labelKey)}</Text>
+              </HStack>
             </Link>
           );
         }
@@ -161,6 +183,7 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
               ) : (
                 <ChevronRightIcon boxSize={4} mr={2} />
               )}
+              <Icon as={entry.icon} boxSize={4} mr={2} />
               <Text as="span">{t(entry.labelKey)}</Text>
             </Flex>
             <Collapse in={isOpen} animateOpacity>
@@ -272,7 +295,7 @@ export default function DashboardLayout() {
           <Flex
             align="center"
             gap={2}
-            wrap="wrap"
+            wrap={{ base: 'wrap', md: 'nowrap' }}
             justify={{ base: 'space-between', md: 'flex-end' }}
             w={{ base: 'full', md: 'auto' }}
             minW={0}
@@ -280,7 +303,6 @@ export default function DashboardLayout() {
             <Link
               as={RouterLink}
               to="/"
-              fontSize="sm"
               color="brand.600"
               _hover={{ color: 'brand.700', textDecoration: 'underline' }}
               display={{ base: 'none', sm: 'flex' }}
@@ -292,7 +314,6 @@ export default function DashboardLayout() {
               Pogledaj stranicu
             </Link>
             <Text
-              fontSize="sm"
               color="gray.600"
               noOfLines={1}
               maxW={{ base: '120px', md: '180px' }}
