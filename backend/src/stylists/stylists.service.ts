@@ -140,6 +140,7 @@ export class StylistsService {
         userId: dto.userId,
         bio: dto.bio,
         specialization: dto.specialization,
+        status: 'ACTIVE',
         isActive: dto.isActive ?? true,
         hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
       },

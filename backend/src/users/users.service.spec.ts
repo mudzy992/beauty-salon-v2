@@ -55,19 +55,21 @@ describe('UsersService', () => {
         userRoles: [{ role: { name: 'CLIENT' } }],
         stylistProfile: null,
       });
-    mockPrisma.role.findUnique.mockResolvedValue({ id: 'role-1', name: 'CLIENT' });
+    mockPrisma.role.findUnique
+      .mockResolvedValueOnce({ id: 'role-1', name: 'CLIENT' })
+      .mockResolvedValueOnce({ id: 'role-1', name: 'CLIENT' });
     (bcrypt.hash as jest.Mock).mockResolvedValue('hash');
     mockPrisma.user.create.mockResolvedValue({
       id: 'user-1',
       username: 'ime.prezime',
       userRoles: [{ role: { name: 'CLIENT' } }],
     });
-    mockPrisma.userRole.create.mockResolvedValue({});
 
     const result = await service.create(
       {
         firstName: 'Ime',
         lastName: 'Prezime',
+        gender: 'FEMALE',
         role: 'CLIENT',
       },
       ['OWNER'],

@@ -7,7 +7,7 @@ import {
   FormControl, FormLabel, Input, Button, useToast, Switch, Select,
   Menu, MenuButton, MenuList, MenuItem, InputGroup, InputLeftElement,
   HStack, Tag, TagLabel, TagCloseButton, Avatar, Alert, AlertIcon, VStack,
-  useBreakpointValue, SimpleGrid,
+  useBreakpointValue, SimpleGrid, Divider,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +24,7 @@ interface UserRow {
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
+  gender?: 'MALE' | 'FEMALE' | null;
   avatar: string | null;
   isActive: boolean;
   isEmailVerified: boolean;
@@ -38,8 +39,8 @@ interface PaginatedResponse<T> {
   pageSize: number;
 }
 
-/** Uloge koje admin može ručno dodavati/uklanjati. STYLIST se dodjeljuje automatski u Stylists modulu. */
-const ROLES_MANAGED_IN_UI = ['SYSTEM_ADMIN', 'OWNER', 'CLIENT'] as const;
+/** Uloge koje admin može ručno dodavati/uklanjati. */
+const ROLES_MANAGED_IN_UI = ['SYSTEM_ADMIN', 'OWNER', 'CLIENT', 'STYLIST'] as const;
 const roleColorMap: Record<string, string> = {
   SYSTEM_ADMIN: 'red', OWNER: 'purple', STYLIST: 'blue', CLIENT: 'green',
 };
@@ -77,6 +78,7 @@ export default function Users() {
     firstName: '',
     lastName: '',
     phone: '',
+    gender: '' as '' | 'MALE' | 'FEMALE',
     isActive: true,
     avatar: '' as string | null,
   });
@@ -92,6 +94,7 @@ export default function Users() {
 
   const [createData, setCreateData] = useState({
     username: '', firstName: '', lastName: '', role: 'CLIENT' as string, avatar: '' as string,
+    gender: '' as '' | 'MALE' | 'FEMALE',
   });
   const [isUsernameManuallyEdited, setIsUsernameManuallyEdited] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<{
@@ -150,6 +153,23 @@ export default function Users() {
   }, [loadData]);
 
   const getUserRoles = useCallback((u: UserRow): string[] => u.userRoles?.map((r) => r.role.name) ?? [], []);
+  const groupedUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const matches = (u: UserRow) => {
+      if (!q) return true;
+      return u.username.toLowerCase().includes(q) ||
+        (u.email?.toLowerCase().includes(q)) ||
+        (u.firstName?.toLowerCase().includes(q)) ||
+        (u.lastName?.toLowerCase().includes(q));
+    };
+    const filtered = users.filter(matches);
+    const isSystemAdmin = (u: UserRow) => getUserRoles(u).includes('SYSTEM_ADMIN');
+    const isStylist = (u: UserRow) => getUserRoles(u).includes('STYLIST');
+    const systemAdmins = filtered.filter(isSystemAdmin);
+    const stylists = filtered.filter((u) => !isSystemAdmin(u) && isStylist(u));
+    const others = filtered.filter((u) => !isSystemAdmin(u) && !isStylist(u));
+    return { systemAdmins, stylists, others };
+  }, [users, search, getUserRoles]);
   const sortedAndFilteredUsers = useMemo(() => {
     const q = search.trim().toLowerCase();
     const filtered = users.filter((u) => {
@@ -188,6 +208,7 @@ export default function Users() {
       firstName: u.firstName ?? '',
       lastName: u.lastName ?? '',
       phone: u.phone ?? '',
+      gender: (u.gender ?? '') as '' | 'MALE' | 'FEMALE',
       isActive: u.isActive,
       avatar: u.avatar ?? null,
     });
@@ -238,6 +259,7 @@ export default function Users() {
 
   const handleSave = async () => {
     if (!editUser) return;
+    const isClient = getUserRoles(editUser).includes('CLIENT');
     const trimmedFirst = formData.firstName.trim();
     const trimmedLast = formData.lastName.trim();
     const trimmedUsername = formData.username.trim();
@@ -247,6 +269,10 @@ export default function Users() {
     }
     if (!trimmedUsername) {
       toast({ title: 'Korisničko ime je obavezno.', status: 'warning', isClosable: true });
+      return;
+    }
+    if (isClient && !formData.gender) {
+      toast({ title: 'Spol je obavezan za klijente.', status: 'warning', isClosable: true });
       return;
     }
     setSaving(true);
@@ -259,6 +285,7 @@ export default function Users() {
         lastName: trimmedLast,
         email: trimmedEmail ? trimmedEmail : null,
         phone: trimmedPhone ? trimmedPhone : null,
+        gender: formData.gender || null,
         isActive: formData.isActive,
         avatar: formData.avatar || null,
       });
@@ -296,10 +323,14 @@ export default function Users() {
       setEditUsernameStatus({ loading: false, available: null, suggestions: [] });
       return;
     }
+    if (username === initialUsername.trim()) {
+      setEditUsernameStatus({ loading: false, available: true, suggestions: [] });
+      return;
+    }
     const timeout = setTimeout(async () => {
       setEditUsernameStatus((prev) => ({ ...prev, loading: true }));
       try {
-        const { data } = await api.get('/api/users/username-availability', {
+        const { data } = await api.get(`/api/users/${editUser.id}/username-availability`, {
           params: { username },
         });
         setEditUsernameStatus({
@@ -323,10 +354,16 @@ export default function Users() {
       toast({ title: 'Popunite sva obavezna polja', status: 'warning', isClosable: true });
       return;
     }
+    if (!createData.gender) {
+      toast({ title: 'Spol je obavezan.', status: 'warning', isClosable: true });
+      return;
+    }
     setSaving(true);
     try {
       const response = await api.post('/api/users', {
         ...createData,
+        role: 'CLIENT',
+        gender: createData.gender || undefined,
         ...(createData.avatar && { avatar: createData.avatar }),
       });
       toast({ title: 'Korisnik kreiran', status: 'success', isClosable: true });
@@ -337,7 +374,7 @@ export default function Users() {
       loadData();
       onCreateClose();
       onCredentialsOpen();
-      setCreateData({ username: '', firstName: '', lastName: '', role: 'CLIENT', avatar: '' });
+      setCreateData({ username: '', firstName: '', lastName: '', role: 'CLIENT', avatar: '', gender: '' });
       setIsUsernameManuallyEdited(false);
       setUsernameStatus({ loading: false, available: null, suggestions: [] });
     } catch (err: any) {
@@ -404,7 +441,16 @@ export default function Users() {
   const handleAssignRole = async (userId: string, roleName: string) => {
     try {
       await api.post(`/api/users/${userId}/roles`, { role: roleName });
-      toast({ title: `Uloga ${roleName} dodijeljena`, status: 'success', isClosable: true });
+      if (roleName === 'STYLIST') {
+        toast({
+          title: 'Stilist kreiran (pending)',
+          description: 'Završite profil u Stylists.',
+          status: 'success',
+          isClosable: true,
+        });
+      } else {
+        toast({ title: `Uloga ${roleName} dodijeljena`, status: 'success', isClosable: true });
+      }
       loadData();
     } catch {
       toast({ title: 'Greška pri dodjeli uloge', status: 'error', isClosable: true });
@@ -427,7 +473,8 @@ export default function Users() {
     const current = getUserRoles(u);
     return ROLES_MANAGED_IN_UI.filter((r) => !current.includes(r));
   };
-  const canRemoveRole = (roleName: string) => ROLES_MANAGED_IN_UI.includes(roleName as any);
+  const canRemoveRole = (roleName: string) =>
+    roleName !== 'CLIENT' && ROLES_MANAGED_IN_UI.includes(roleName as any);
 
   return (
     <Box>
@@ -458,66 +505,175 @@ export default function Users() {
           <VStack align="stretch" spacing={3} p={3}>
             {sortedAndFilteredUsers.length === 0 ? (
               <Text color="gray.500">{t('common.noData')}</Text>
-            ) : sortedAndFilteredUsers.map((u) => (
-              <Box key={u.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
-                <HStack justify="space-between" align="start">
-                  <HStack>
-                    <Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" />
-                    <Box>
-                      <Text fontWeight="medium">{u.username}</Text>
-                      <Text color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
-                    </Box>
-                  </HStack>
-                  <Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
-                </HStack>
-                <Text mt={2} color="gray.600">{u.email ?? '-'}</Text>
-                <Flex mt={2} gap={1} flexWrap="wrap">
-                  {getUserRoles(u).map((roleName) => (
-                    <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
-                      <TagLabel>
-                        {roleName}
-                        {roleName === 'STYLIST' ? ' (Stylists)' : ''}
-                      </TagLabel>
-                      {canRemoveRole(roleName) ? (
-                        <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
-                      ) : (
-                        <TagLabel
-                          as="span"
-                          color="gray.500"
-                          ml={1}
-                          title="Dodaje se/uklanja u Stylists"
-                        >
-                          *
-                        </TagLabel>
+            ) : (
+              <>
+                {groupedUsers.systemAdmins.length > 0 && (
+                  <>
+                    <Text fontSize="sm" fontWeight="bold" color="gray.600">SYSTEM_ADMIN</Text>
+                    {groupedUsers.systemAdmins.map((u) => (
+                      <Box key={u.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
+                        <HStack justify="space-between" align="start">
+                          <HStack>
+                            <Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" />
+                            <Box>
+                              <Text fontWeight="medium">{u.username}</Text>
+                              <Text color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
+                            </Box>
+                          </HStack>
+                          <Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
+                        </HStack>
+                        <Text mt={2} color="gray.600">{u.email ?? '-'}</Text>
+                        <Flex mt={2} gap={1} flexWrap="wrap">
+                          {getUserRoles(u).map((roleName) => (
+                            <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
+                              <TagLabel>
+                                {roleName}
+                                {roleName === 'STYLIST' ? ' (Stylists)' : ''}
+                              </TagLabel>
+                              {canRemoveRole(roleName) ? (
+                                <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
+                              ) : null}
+                            </Tag>
+                          ))}
+                          {getAvailableRolesToAssign(u).length > 0 && (
+                            <Menu>
+                              <MenuButton
+                                as={IconButton}
+                                icon={<AddIcon />}
+                                size="xs"
+                                variant="ghost"
+                                aria-label="Dodaj ulogu"
+                              />
+                              <MenuList>
+                                {getAvailableRolesToAssign(u).map((r) => (
+                                  <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>
+                                    {r}
+                                  </MenuItem>
+                                ))}
+                              </MenuList>
+                            </Menu>
+                          )}
+                        </Flex>
+                        <HStack spacing={1} justify="flex-end" mt={3}>
+                          <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} />
+                          <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
+                          {u.isActive && <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />}
+                        </HStack>
+                      </Box>
+                    ))}
+                    <Divider />
+                  </>
+                )}
+                {groupedUsers.stylists.length > 0 && (
+                  <>
+                    <Text fontSize="sm" fontWeight="bold" color="gray.600">STYLIST</Text>
+                    {groupedUsers.stylists.map((u) => (
+                      <Box key={u.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
+                        <HStack justify="space-between" align="start">
+                          <HStack>
+                            <Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" />
+                            <Box>
+                              <Text fontWeight="medium">{u.username}</Text>
+                              <Text color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
+                            </Box>
+                          </HStack>
+                          <Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
+                        </HStack>
+                        <Text mt={2} color="gray.600">{u.email ?? '-'}</Text>
+                        <Flex mt={2} gap={1} flexWrap="wrap">
+                          {getUserRoles(u).map((roleName) => (
+                            <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
+                              <TagLabel>
+                                {roleName}
+                                {roleName === 'STYLIST' ? ' (Stylists)' : ''}
+                              </TagLabel>
+                              {canRemoveRole(roleName) ? (
+                                <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
+                              ) : null}
+                            </Tag>
+                          ))}
+                          {getAvailableRolesToAssign(u).length > 0 && (
+                            <Menu>
+                              <MenuButton
+                                as={IconButton}
+                                icon={<AddIcon />}
+                                size="xs"
+                                variant="ghost"
+                                aria-label="Dodaj ulogu"
+                              />
+                              <MenuList>
+                                {getAvailableRolesToAssign(u).map((r) => (
+                                  <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>
+                                    {r}
+                                  </MenuItem>
+                                ))}
+                              </MenuList>
+                            </Menu>
+                          )}
+                        </Flex>
+                        <HStack spacing={1} justify="flex-end" mt={3}>
+                          <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} />
+                          <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
+                          {u.isActive && <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />}
+                        </HStack>
+                      </Box>
+                    ))}
+                    <Divider />
+                  </>
+                )}
+                {groupedUsers.others.map((u) => (
+                  <Box key={u.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
+                    <HStack justify="space-between" align="start">
+                      <HStack>
+                        <Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" />
+                        <Box>
+                          <Text fontWeight="medium">{u.username}</Text>
+                          <Text color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
+                        </Box>
+                      </HStack>
+                      <Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
+                    </HStack>
+                    <Text mt={2} color="gray.600">{u.email ?? '-'}</Text>
+                    <Flex mt={2} gap={1} flexWrap="wrap">
+                      {getUserRoles(u).map((roleName) => (
+                        <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
+                          <TagLabel>
+                            {roleName}
+                            {roleName === 'STYLIST' ? ' (Stylists)' : ''}
+                          </TagLabel>
+                          {canRemoveRole(roleName) ? (
+                            <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
+                          ) : null}
+                        </Tag>
+                      ))}
+                      {getAvailableRolesToAssign(u).length > 0 && (
+                        <Menu>
+                          <MenuButton
+                            as={IconButton}
+                            icon={<AddIcon />}
+                            size="xs"
+                            variant="ghost"
+                            aria-label="Dodaj ulogu"
+                          />
+                          <MenuList>
+                            {getAvailableRolesToAssign(u).map((r) => (
+                              <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>
+                                {r}
+                              </MenuItem>
+                            ))}
+                          </MenuList>
+                        </Menu>
                       )}
-                    </Tag>
-                  ))}
-                  {getAvailableRolesToAssign(u).length > 0 && (
-                    <Menu>
-                      <MenuButton
-                        as={IconButton}
-                        icon={<AddIcon />}
-                        size="xs"
-                        variant="ghost"
-                        aria-label="Dodaj ulogu"
-                      />
-                      <MenuList>
-                        {getAvailableRolesToAssign(u).map((r) => (
-                          <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>
-                            {r}
-                          </MenuItem>
-                        ))}
-                      </MenuList>
-                    </Menu>
-                  )}
-                </Flex>
-                <HStack spacing={1} justify="flex-end" mt={3}>
-                  <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} />
-                  <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
-                  {u.isActive && <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />}
-                </HStack>
-              </Box>
-            ))}
+                    </Flex>
+                    <HStack spacing={1} justify="flex-end" mt={3}>
+                      <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} />
+                      <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
+                      {u.isActive && <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />}
+                    </HStack>
+                  </Box>
+                ))}
+              </>
+            )}
           </VStack>
         ) : (
           <Table size="sm">
@@ -536,8 +692,106 @@ export default function Users() {
             <Tbody>
               {sortedAndFilteredUsers.length === 0 ? (
                 <Tr><Td colSpan={8}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
-              ) : sortedAndFilteredUsers.map((u) => (
-                <Tr key={u.id}>
+              ) : (
+                <>
+                  {groupedUsers.systemAdmins.length > 0 && (
+                    <Tr>
+                      <Td colSpan={8} bg="gray.50">
+                        <Text fontWeight="bold" color="gray.600">SYSTEM_ADMIN</Text>
+                      </Td>
+                    </Tr>
+                  )}
+                  {groupedUsers.systemAdmins.map((u) => (
+                    <Tr key={u.id}>
+                      <Td><Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" /></Td>
+                      <Td fontWeight="medium">{u.username}</Td>
+                      <Td>{u.email ?? '-'}</Td>
+                      <Td>{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Td>
+                      <Td>{u.phone ?? '-'}</Td>
+                      <Td>
+                        <Flex gap={1} flexWrap="wrap" align="center">
+                          {getUserRoles(u).map((roleName) => (
+                            <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
+                              <TagLabel>{roleName}{roleName === 'STYLIST' ? ' (Stylists)' : ''}</TagLabel>
+                              {canRemoveRole(roleName) ? (
+                                <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
+                              ) : null}
+                            </Tag>
+                          ))}
+                          {getAvailableRolesToAssign(u).length > 0 && (
+                            <Menu>
+                              <MenuButton as={IconButton} icon={<AddIcon />} size="xs" variant="ghost" aria-label="Dodaj ulogu" />
+                              <MenuList>
+                                {getAvailableRolesToAssign(u).map((r) => (
+                                  <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>{r}</MenuItem>
+                                ))}
+                              </MenuList>
+                            </Menu>
+                          )}
+                        </Flex>
+                      </Td>
+                      <Td><Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge></Td>
+                      <Td textAlign="right">
+                        <HStack spacing={1} justify="flex-end">
+                          <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} title="Analitika klijenta" />
+                          <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
+                          {u.isActive && (
+                            <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />
+                          )}
+                        </HStack>
+                      </Td>
+                    </Tr>
+                  ))}
+                  {groupedUsers.stylists.length > 0 && (
+                    <Tr>
+                      <Td colSpan={8} bg="gray.50">
+                        <Text fontWeight="bold" color="gray.600">STYLIST</Text>
+                      </Td>
+                    </Tr>
+                  )}
+                  {groupedUsers.stylists.map((u) => (
+                    <Tr key={u.id}>
+                      <Td><Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" /></Td>
+                      <Td fontWeight="medium">{u.username}</Td>
+                      <Td>{u.email ?? '-'}</Td>
+                      <Td>{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Td>
+                      <Td>{u.phone ?? '-'}</Td>
+                      <Td>
+                        <Flex gap={1} flexWrap="wrap" align="center">
+                          {getUserRoles(u).map((roleName) => (
+                            <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
+                              <TagLabel>{roleName}{roleName === 'STYLIST' ? ' (Stylists)' : ''}</TagLabel>
+                              {canRemoveRole(roleName) ? (
+                                <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
+                              ) : null}
+                            </Tag>
+                          ))}
+                          {getAvailableRolesToAssign(u).length > 0 && (
+                            <Menu>
+                              <MenuButton as={IconButton} icon={<AddIcon />} size="xs" variant="ghost" aria-label="Dodaj ulogu" />
+                              <MenuList>
+                                {getAvailableRolesToAssign(u).map((r) => (
+                                  <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>{r}</MenuItem>
+                                ))}
+                              </MenuList>
+                            </Menu>
+                          )}
+                        </Flex>
+                      </Td>
+                      <Td><Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge></Td>
+                      <Td textAlign="right">
+                        <HStack spacing={1} justify="flex-end">
+                          <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} title="Analitika klijenta" />
+                          <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
+                          {u.isActive && (
+                            <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />
+                          )}
+                        </HStack>
+                      </Td>
+                    </Tr>
+                  ))}
+                  {groupedUsers.others.map((u) => (
+                    <Tr key={u.id}>
                   <Td><Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" /></Td>
                   <Td fontWeight="medium">{u.username}</Td>
                   <Td>{u.email ?? '-'}</Td>
@@ -578,7 +832,9 @@ export default function Users() {
                     </HStack>
                   </Td>
                 </Tr>
-              ))}
+                  ))}
+                </>
+              )}
             </Tbody>
           </Table>
         )}
@@ -700,6 +956,25 @@ export default function Users() {
               <FormLabel>Telefon</FormLabel>
               <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
             </FormControl>
+            <FormControl
+              mb={4}
+              isRequired={!!editUser && getUserRoles(editUser).includes('CLIENT')}
+            >
+              <FormLabel>Spol</FormLabel>
+              <Select
+                value={formData.gender}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    gender: e.target.value as '' | 'MALE' | 'FEMALE',
+                  })
+                }
+              >
+                <option value="">Odaberite spol</option>
+                <option value="FEMALE">Žensko</option>
+                <option value="MALE">Muško</option>
+              </Select>
+            </FormControl>
             <FormControl mb={4}>
               <FormLabel>Avatar</FormLabel>
               <Flex align="center" gap={3}>
@@ -780,16 +1055,30 @@ export default function Users() {
               </Alert>
             )}
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-              <FormControl flex={1} isRequired>
+              <FormControl flex={1}>
                 <FormLabel>Uloga</FormLabel>
-                <Select value={createData.role} onChange={(e) => setCreateData({ ...createData, role: e.target.value })}>
-                  {ROLES_MANAGED_IN_UI.map((r) => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </Select>
-                <Text fontSize="xs" color="gray.500" mt={1}>Uloga Stylist se dodjeljuje u Stylists (dodaj korisnika kao stilista).</Text>
+                <Input value="CLIENT" isReadOnly />
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  Svi korisnici su klijenti. Dodatne role dodajte naknadno kroz listu korisnika.
+                </Text>
               </FormControl>
             </SimpleGrid>
+            <FormControl mb={4} isRequired>
+              <FormLabel>Spol</FormLabel>
+              <Select
+                value={createData.gender}
+                onChange={(e) =>
+                  setCreateData({
+                    ...createData,
+                    gender: e.target.value as '' | 'MALE' | 'FEMALE',
+                  })
+                }
+              >
+                <option value="">Odaberite spol</option>
+                <option value="FEMALE">Žensko</option>
+                <option value="MALE">Muško</option>
+              </Select>
+            </FormControl>
             <FormControl mb={4}>
               <FormLabel>Avatar (opciono)</FormLabel>
               <Flex align="center" gap={3}>

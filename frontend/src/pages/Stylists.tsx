@@ -5,7 +5,7 @@ import {
   ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
   FormControl, FormLabel, Input, Button, useToast, Switch, Select,
   Tabs, TabList, Tab, TabPanels, TabPanel, Textarea,
-  Checkbox, VStack, Link, HStack,
+  Checkbox, VStack, Link, HStack, Wrap, WrapItem, Tag, TagLabel,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router-dom';
@@ -17,6 +17,7 @@ interface StylistProfile {
   userId: string;
   bio: string | null;
   specialization: string | null;
+  status?: 'PENDING' | 'ACTIVE' | string | null;
   isActive: boolean;
   hireDate: string | null;
   user?: { username: string; email: string | null; firstName: string | null; lastName: string | null };
@@ -147,6 +148,13 @@ export default function Stylists() {
       hireDate: s.hireDate?.slice(0, 10) ?? '',
       serviceIds: [],
     });
+    api
+      .get<{ serviceId: string }[]>(`/api/stylists/${s.id}/services`)
+      .then((r) => {
+        const ids = Array.isArray(r.data) ? r.data.map((x: any) => x.serviceId ?? x.id).filter(Boolean) : [];
+        setForm((prev) => ({ ...prev, serviceIds: ids }));
+      })
+      .catch(() => {});
     onOpen();
   };
 
@@ -240,6 +248,8 @@ export default function Stylists() {
 
   const existingStylistUserIds = stylists.map((s) => s.userId);
   const availableUsers = users.filter((u) => !existingStylistUserIds.includes(u.id) || u.id === form.userId);
+  const selectedServices = allServices.filter((s) => form.serviceIds.includes(s.id));
+  const unselectedServices = allServices.filter((s) => !form.serviceIds.includes(s.id));
 
   return (
     <Box>
@@ -275,7 +285,14 @@ export default function Stylists() {
                       {s.user ? `${s.user.firstName ?? ''} ${s.user.lastName ?? ''} (${s.user.username})`.trim() : s.userId}
                     </Td>
                     <Td>{s.user?.email ?? '-'}</Td>
-                    <Td>{s.specialization ?? '-'}</Td>
+                    <Td>
+                      <HStack spacing={2}>
+                        <Text>{s.specialization ?? '-'}</Text>
+                        {String(s.status ?? '').toUpperCase() === 'PENDING' && (
+                          <Badge colorScheme="yellow">Pending</Badge>
+                        )}
+                      </HStack>
+                    </Td>
                     <Td>{s.hireDate?.slice(0, 10) ?? '-'}</Td>
                     <Td>
                       <Badge colorScheme={s.isActive ? 'green' : 'red'}>
@@ -331,10 +348,24 @@ export default function Stylists() {
             )}
             <FormControl mb={4}>
               <FormLabel>Specijalizacija (odaberite servise)</FormLabel>
+              {selectedServices.length > 0 && (
+                <Box mb={2}>
+                  <Text fontSize="xs" color="gray.600" mb={1}>Odabrano</Text>
+                  <Wrap>
+                    {selectedServices.map((svc) => (
+                      <WrapItem key={svc.id}>
+                        <Tag size="sm" colorScheme="brand" variant="subtle">
+                          <TagLabel>{svc.name}</TagLabel>
+                        </Tag>
+                      </WrapItem>
+                    ))}
+                  </Wrap>
+                </Box>
+              )}
               <VStack align="stretch" maxH="200px" overflowY="auto" border="1px" borderColor="gray.200" rounded="md" p={2}>
                 {allServices.length === 0 ? (
                   <Text fontSize="sm" color="gray.500">Nema dostupnih servisa.</Text>
-                ) : allServices.map((svc) => (
+                ) : unselectedServices.map((svc) => (
                   <Checkbox
                     key={svc.id}
                     isChecked={form.serviceIds.includes(svc.id)}

@@ -31,8 +31,8 @@ export class CreateUserDto {
   gender?: 'MALE' | 'FEMALE';
 
   @IsString()
-  @IsNotEmpty()
-  role: string; // SYSTEM_ADMIN | OWNER | STYLIST | CLIENT
+  @IsOptional()
+  role?: string; // SYSTEM_ADMIN | OWNER | STYLIST | CLIENT (default: CLIENT)
 
   @IsString()
   @IsOptional()

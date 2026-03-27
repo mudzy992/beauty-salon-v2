@@ -77,6 +77,21 @@ export class UsersController {
     return this.usersService.getProfileUsernameAvailability(user.sub, username);
   }
 
+  @Get(':id/username-availability')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getUserUsernameAvailabilityForAdminEdit(
+    @Param('id') id: string,
+    @Query('username') username: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.usersService.getUsernameAvailabilityForUserEdit(
+      id,
+      username,
+      user.roles,
+    );
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.usersService.findOne(id, user);

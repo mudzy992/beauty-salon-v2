@@ -119,7 +119,8 @@ export class UsersService {
 
   async create(dto: CreateUserDto, roles: string[]) {
     this.requireAdminOrOwner(roles);
-    if (dto.role === 'STYLIST') {
+    const requestedRoleName = (dto.role ?? UsersService.CLIENT_ROLE).trim();
+    if (requestedRoleName === 'STYLIST') {
       throw new BadRequestException(
         'Rola Stilist se dodjeljuje automatski kada korisnik bude dodat u Stylists. Pri kreiranju korisnika odaberite drugu ulogu.',
       );
@@ -137,15 +138,25 @@ export class UsersService {
     if (existingUsername) {
       throw new ConflictException('Korisničko ime je već u upotrebi.');
     }
-    const role = await this.prisma.role.findUnique({
-      where: { name: dto.role },
-    });
-    if (!role) throw new NotFoundException(`Rola ${dto.role} nije pronađena.`);
-    if (dto.role === UsersService.CLIENT_ROLE && !dto.gender) {
-      throw new BadRequestException('Spol je obavezan za klijente.');
+    const [requestedRole, clientRole] = await Promise.all([
+      this.prisma.role.findUnique({ where: { name: requestedRoleName } }),
+      this.prisma.role.findUnique({ where: { name: UsersService.CLIENT_ROLE } }),
+    ]);
+    if (!clientRole)
+      throw new NotFoundException(`Rola ${UsersService.CLIENT_ROLE} nije pronađena.`);
+    if (!requestedRole)
+      throw new NotFoundException(`Rola ${requestedRoleName} nije pronađena.`);
+    if (!dto.gender) {
+      throw new BadRequestException('Spol je obavezan.');
     }
     const initialPassword = dto.password?.trim() || UsersService.DEFAULT_INITIAL_PASSWORD;
     const passwordHash = await bcrypt.hash(initialPassword, 10);
+    const roleIds = Array.from(
+      new Set([
+        clientRole.id,
+        ...(requestedRoleName !== UsersService.CLIENT_ROLE ? [requestedRole.id] : []),
+      ]),
+    );
     const user = await this.prisma.user.create({
       data: {
         username,
@@ -158,11 +169,11 @@ export class UsersService {
         avatar: dto.avatar ?? null,
         mustChangePassword: true,
         isEmailVerified: false,
+        userRoles: {
+          create: roleIds.map((roleId) => ({ roleId })),
+        },
       },
       include: { userRoles: { include: { role: true } } },
-    });
-    await this.prisma.userRole.create({
-      data: { userId: user.id, roleId: role.id },
     });
     const fullUser = await this.prisma.user.findUnique({
       where: { id: user.id },
@@ -210,6 +221,15 @@ export class UsersService {
       isCurrentUsername,
       suggestions,
     };
+  }
+
+  async getUsernameAvailabilityForUserEdit(
+    userId: string,
+    username: string,
+    roles: string[],
+  ) {
+    this.requireAdminOrOwner(roles);
+    return this.getProfileUsernameAvailability(userId, username);
   }
 
   async update(
@@ -320,10 +340,9 @@ export class UsersService {
 
   async assignRole(userId: string, dto: AssignRoleDto, roles: string[]) {
     this.requireAdminOrOwner(roles);
-    if (dto.role === 'STYLIST') {
-      throw new BadRequestException(
-        'Rola Stilist se dodjeljuje automatski kada korisnik bude dodat u Stylists (kreiranjem profila stilista). Ne možete je ručno dodati ovdje.',
-      );
+    const requestedRoleName = dto.role?.trim();
+    if (!requestedRoleName) {
+      throw new BadRequestException('Rola je obavezna.');
     }
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -331,12 +350,30 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
     const role = await this.prisma.role.findUnique({
-      where: { name: dto.role },
+      where: { name: requestedRoleName },
     });
-    if (!role) throw new NotFoundException(`Rola ${dto.role} nije pronađena.`);
-    const existing = user.userRoles.find((ur) => ur.role.name === dto.role);
+    if (!role)
+      throw new NotFoundException(`Rola ${requestedRoleName} nije pronađena.`);
+    const existing = user.userRoles.find(
+      (ur) => ur.role.name === requestedRoleName,
+    );
     if (existing) return user;
     await this.prisma.userRole.create({ data: { userId, roleId: role.id } });
+    if (requestedRoleName === 'STYLIST') {
+      const existingProfile = await this.prisma.stylistProfile.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+      if (!existingProfile) {
+        await this.prisma.stylistProfile.create({
+          data: {
+            userId,
+            status: 'PENDING',
+            isActive: false,
+          },
+        });
+      }
+    }
     return this.prisma.user.findUnique({
       where: { id: userId },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
@@ -345,6 +382,9 @@ export class UsersService {
 
   async removeRole(userId: string, roleName: string, roles: string[]) {
     this.requireAdminOrOwner(roles);
+    if (roleName === UsersService.CLIENT_ROLE) {
+      throw new BadRequestException('Rolu Client nije moguće ukloniti.');
+    }
     if (roleName === 'STYLIST') {
       throw new BadRequestException(
         'Rolu Stilist ne možete ukloniti ovdje. Uklonite korisnika iz Stylists (obrišite ili deaktivirajte profil stilista) da bi rola bila uklonjena.',
