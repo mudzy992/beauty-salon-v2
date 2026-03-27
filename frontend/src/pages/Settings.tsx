@@ -25,9 +25,22 @@ interface AppSetting {
   key: string;
   value: string | null;
   description: string | null;
+  isSecret?: boolean;
+  scope?: 'PUBLIC' | 'PRIVATE';
+  type?: 'string' | 'boolean' | 'number' | 'json';
 }
 
 type SettingType = 'text' | 'textarea' | 'boolean' | 'number' | 'url' | 'image' | 'email' | 'color';
+
+type RegistryItem = {
+  key: string
+  scope: 'PUBLIC' | 'PRIVATE'
+  type: 'string' | 'boolean' | 'number' | 'json'
+  isSecret?: boolean
+  defaultValue?: string
+  min?: number
+  max?: number
+}
 
 interface SettingDef {
   key: string;
@@ -136,18 +149,6 @@ const SYSTEM_GROUPS: SettingGroup[] = [
     defaults: [
       { key: 'app_title', desc: 'Naziv aplikacije', type: 'text', placeholder: 'Beauty Salon' },
       { key: 'app_logo', desc: 'Logo aplikacije (upload ili URL)', type: 'image', placeholder: 'https://... ili upload' },
-    ],
-  },
-  {
-    label: 'Rezervacije',
-    prefix: 'system_reservation_',
-    description: 'Sistemske postavke koje kontroliraju ponašanje rezervacijskog sistema.',
-    icon: CalendarIcon,
-    color: 'orange',
-    defaults: [
-      { key: 'system_reservation_lock_minutes', desc: 'Koliko minuta stilist može držati "lock" na rezervaciji prije nego istekne', type: 'number', min: 1, max: 120, suffix: 'minuta' },
-      { key: 'system_reservation_attendance_hours', desc: 'Koliko sati prije termina klijent mora potvrditi dolazak', type: 'number', min: 1, max: 72, suffix: 'sati' },
-      { key: 'system_reservation_auto_cancel', desc: 'Automatski otkaži rezervacije ako klijent ne potvrdi dolazak u roku', type: 'boolean' },
     ],
   },
   {
@@ -566,15 +567,24 @@ export default function Settings() {
   const toast = useToast();
   const { refreshSettings } = useSettings();
   const [settingsList, setSettingsList] = useState<AppSetting[]>([]);
+  const [registry, setRegistry] = useState<RegistryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(() => {
     setLoading(true);
-    api
-      .get<AppSetting[]>('/api/settings')
-      .then((r) => setSettingsList(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setSettingsList([]))
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.get<AppSetting[]>('/api/settings'),
+      api.get<RegistryItem[]>('/api/settings/registry'),
+    ])
+      .then(([settingsRes, registryRes]) => {
+        setSettingsList(Array.isArray(settingsRes.data) ? settingsRes.data : [])
+        setRegistry(Array.isArray(registryRes.data) ? registryRes.data : [])
+      })
+      .catch(() => {
+        setSettingsList([])
+        setRegistry([])
+      })
+      .finally(() => setLoading(false))
   }, []);
 
   useEffect(() => {
@@ -613,7 +623,9 @@ export default function Settings() {
     ...SETTING_GROUPS.flatMap((g) => g.defaults.map((d) => d.key)),
     ...SYSTEM_GROUPS.flatMap((g) => g.defaults.map((d) => d.key)),
   ];
+  const registryKeys = new Set(registry.map((r) => r.key))
   const otherSettings = settingsList.filter((s) => !allKnownKeys.includes(s.key));
+  const unknownSettings = settingsList.filter((s) => !registryKeys.has(s.key))
 
   return (
     <Box>
@@ -647,6 +659,11 @@ export default function Settings() {
           {otherSettings.length > 0 && (
             <Tab fontSize="sm" fontWeight="600">
               Ostale ({otherSettings.length})
+            </Tab>
+          )}
+          {unknownSettings.length > 0 && (
+            <Tab fontSize="sm" fontWeight="600">
+              Legacy / nepoznate ({unknownSettings.length})
             </Tab>
           )}
         </TabList>
@@ -791,6 +808,60 @@ export default function Settings() {
                                 refreshSettings();
                               } catch {
                                 toast({ title: 'Greška', status: 'error', isClosable: true });
+                              }
+                            }}
+                          >
+                            Obriši
+                          </Button>
+                        </HStack>
+                      </Flex>
+                    </CardBody>
+                  </Card>
+                ))}
+              </VStack>
+            </TabPanel>
+          )}
+
+          {unknownSettings.length > 0 && (
+            <TabPanel px={0}>
+              <Text fontSize="sm" color="orange.700" mb={2} fontWeight="600">
+                Legacy / nepoznate postavke
+              </Text>
+              <Text fontSize="sm" color="gray.500" mb={4}>
+                Ove postavke nisu dio aktuelnog \"settings contract\"-a. Mogu biti zastarjele ili pogrešno imenovane.
+                Preporuka je da ih migriramo ili obrišemo nakon provjere.
+              </Text>
+              <VStack align="stretch" spacing={3}>
+                {unknownSettings.map((s) => (
+                  <Card key={s.key} size="sm" shadow="sm">
+                    <CardBody>
+                      <Flex justify="space-between" align="start" gap={3}>
+                        <Box flex={1} minW={0}>
+                          <HStack spacing={2} mb={1}>
+                            <Text fontWeight="600" fontSize="sm" color="gray.700">{s.key}</Text>
+                            <Badge colorScheme="orange" fontSize="2xs">Legacy</Badge>
+                          </HStack>
+                          {s.description && (
+                            <Text fontSize="xs" color="gray.500" mb={1}>{s.description}</Text>
+                          )}
+                          <Text fontSize="sm" noOfLines={2} bg="gray.50" p={1.5} px={2} rounded="md">
+                            {s.value}
+                          </Text>
+                        </Box>
+                        <HStack>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="red"
+                            onClick={async () => {
+                              if (!window.confirm(`Obrisati legacy postavku \"${s.key}\"?`)) return
+                              try {
+                                await api.delete(`/api/settings/${s.key}`)
+                                toast({ title: 'Obrisano', status: 'success', isClosable: true })
+                                loadData()
+                                refreshSettings()
+                              } catch {
+                                toast({ title: 'Greška', status: 'error', isClosable: true })
                               }
                             }}
                           >

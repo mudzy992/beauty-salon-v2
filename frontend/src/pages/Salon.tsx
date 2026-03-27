@@ -25,6 +25,7 @@ interface SalonSettings {
   cancellationDeadlineHours: number;
   maxCancellationsBeforePenalty: number;
   penaltyDurationDays: number;
+  reservationLockMinutes: number;
   workingHours?: WorkingHours[];
   holidays?: Holiday[];
 }
@@ -60,6 +61,7 @@ export default function Salon() {
     name: '', address: '', phone: '', email: '', description: '',
     pauseBetweenServices: 10, cancellationDeadlineHours: 24,
     maxCancellationsBeforePenalty: 3, penaltyDurationDays: 30,
+    reservationLockMinutes: 15,
   });
 
   const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
@@ -111,6 +113,7 @@ export default function Salon() {
         cancellationDeadlineHours: s.cancellationDeadlineHours ?? 24,
         maxCancellationsBeforePenalty: s.maxCancellationsBeforePenalty ?? 3,
         penaltyDurationDays: s.penaltyDurationDays ?? 30,
+        reservationLockMinutes: s.reservationLockMinutes ?? 15,
       });
 
       if (s.workingHours && s.workingHours.length > 0) {
@@ -342,6 +345,17 @@ export default function Salon() {
                     </NumberInput>
                   </FormControl>
                 </Flex>
+                <FormControl>
+                  <FormLabel>Lock rezervacije (min)</FormLabel>
+                  <NumberInput
+                    value={formData.reservationLockMinutes}
+                    onChange={(_, v) => setFormData({ ...formData, reservationLockMinutes: v || 0 })}
+                    min={5}
+                    max={60}
+                  >
+                    <NumberInputField /><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
+                  </NumberInput>
+                </FormControl>
                 <Flex gap={4}>
                   <FormControl flex={1}>
                     <FormLabel>Max otkazivanja prije penala</FormLabel>

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { SalonService } from './salon.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { EventsGateway } from '../events/events.gateway';
 
 const mockPrisma = {
   salonSettings: {
@@ -24,6 +25,11 @@ const mockPrisma = {
   },
 };
 
+const mockEvents = {
+  emitToAll: jest.fn(),
+  emitToUser: jest.fn(),
+};
+
 describe('SalonService', () => {
   let service: SalonService;
 
@@ -33,6 +39,7 @@ describe('SalonService', () => {
       providers: [
         SalonService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: EventsGateway, useValue: mockEvents },
       ],
     }).compile();
 

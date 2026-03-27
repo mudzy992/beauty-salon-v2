@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import Expo from 'expo-server-sdk';
 import nodemailer from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { PrismaService } from '../prisma/prisma.service';
@@ -8,6 +7,7 @@ import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { CampaignAudienceDto } from './dto/campaign-audience.dto';
 import { SendCampaignDto } from './dto/send-campaign.dto';
+import { SettingsService } from '../settings/settings.service';
 
 export type NotificationChannel = 'PUSH' | 'EMAIL' | 'BOTH';
 export type NotificationType =
@@ -71,6 +71,7 @@ export class NotificationsService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly events: EventsGateway,
+    private readonly settings: SettingsService,
   ) {}
 
   /**
@@ -359,9 +360,8 @@ export class NotificationsService {
       where: { userId },
       select: { token: true },
     });
-    const tokens = rows
-      .map((r) => r.token)
-      .filter((t) => Expo.isExpoPushToken(t));
+    const { default: Expo } = await import('expo-server-sdk');
+    const tokens = rows.map((r) => r.token).filter((t) => Expo.isExpoPushToken(t));
     if (tokens.length === 0) return;
 
     const expo = new Expo({
@@ -587,7 +587,7 @@ ${params.signature || 'Beauty Salon Nejra'}
   private async getEmailTemplateConfig(
     key: NotificationType | 'verification',
   ): Promise<EmailTemplateConfig> {
-    const raw = await this.getSettingValue(`system_email_template_${key}`);
+    const raw = await this.settings.getValue(`system_email_template_${key}`);
     if (!raw) return {};
     try {
       const parsed = JSON.parse(raw) as EmailTemplateConfig;
@@ -625,7 +625,7 @@ ${params.signature || 'Beauty Salon Nejra'}
   }
 
   private async getCampaignTemplates(): Promise<CampaignTemplateDefinition[]> {
-    const raw = await this.getSettingValue('system_email_campaign_templates');
+    const raw = await this.settings.getValue('system_email_campaign_templates');
     if (!raw) return [];
     try {
       const parsed = JSON.parse(raw) as CampaignTemplateDefinition[];
@@ -670,19 +670,11 @@ ${params.signature || 'Beauty Salon Nejra'}
   }
 
   private async resolveAppBaseUrl(): Promise<string> {
-    const fromSettings = await this.getSettingValue('system_public_app_url');
+    const fromSettings = await this.settings.getValue('system_public_app_url');
     const fromEnv =
       this.config.get<string>('APP_PUBLIC_URL') ||
       this.config.get<string>('FRONTEND_URL');
     return (fromSettings || fromEnv || 'http://localhost:3000').replace(/\/$/, '');
-  }
-
-  private async getSettingValue(key: string): Promise<string | null> {
-    const setting = await this.prisma.appSetting.findUnique({
-      where: { key },
-      select: { value: true },
-    });
-    return setting?.value ?? null;
   }
 
   private toBoolean(value: string | null, fallback: boolean): boolean {
@@ -707,75 +699,75 @@ ${params.signature || 'Beauty Salon Nejra'}
 
   private async resolveMailConfig(): Promise<MailConfig | null> {
     const host =
-      (await this.getSettingValue('system_email_host')) ||
+      (await this.settings.getValue('system_email_host')) ||
       this.config.get<string>('SMTP_HOST') ||
       null;
     const portRaw =
-      (await this.getSettingValue('system_email_port')) ||
+      (await this.settings.getValue('system_email_port')) ||
       this.config.get<string>('SMTP_PORT') ||
       '587';
     const secureRaw =
-      (await this.getSettingValue('system_email_secure')) ||
+      (await this.settings.getValue('system_email_secure')) ||
       this.config.get<string>('SMTP_SECURE') ||
       'false';
     const username =
-      (await this.getSettingValue('system_email_username')) ||
+      (await this.settings.getValue('system_email_username')) ||
       this.config.get<string>('SMTP_USER') ||
       null;
     const password =
-      (await this.getSettingValue('system_email_password')) ||
+      (await this.settings.getValue('system_email_password')) ||
       this.config.get<string>('SMTP_PASS') ||
       null;
     const fromEmail =
-      (await this.getSettingValue('system_notif_email_from')) ||
+      (await this.settings.getValue('system_notif_email_from')) ||
       this.config.get<string>('SMTP_FROM') ||
       '';
     const fromName =
-      (await this.getSettingValue('system_notif_email_name')) ||
+      (await this.settings.getValue('system_notif_email_name')) ||
       this.config.get<string>('SMTP_FROM_NAME') ||
       'Beauty Salon';
     const replyTo =
-      (await this.getSettingValue('system_email_reply_to')) ||
+      (await this.settings.getValue('system_email_reply_to')) ||
       this.config.get<string>('SMTP_REPLY_TO') ||
       null;
     const signature =
-      (await this.getSettingValue('system_email_signature')) ||
+      (await this.settings.getValue('system_email_signature')) ||
       this.config.get<string>('SMTP_SIGNATURE') ||
       'Beauty Salon Nejra';
     const rejectUnauthorizedRaw =
-      (await this.getSettingValue('system_email_tls_reject_unauthorized')) ||
+      (await this.settings.getValue('system_email_tls_reject_unauthorized')) ||
       this.config.get<string>('SMTP_TLS_REJECT_UNAUTHORIZED') ||
       'true';
     const requireTlsRaw =
-      (await this.getSettingValue('system_email_require_tls')) ||
+      (await this.settings.getValue('system_email_require_tls')) ||
       this.config.get<string>('SMTP_REQUIRE_TLS') ||
       'false';
     const ignoreTlsRaw =
-      (await this.getSettingValue('system_email_ignore_tls')) ||
+      (await this.settings.getValue('system_email_ignore_tls')) ||
       this.config.get<string>('SMTP_IGNORE_TLS') ||
       'false';
     const connectionTimeoutRaw =
-      (await this.getSettingValue('system_email_connection_timeout_ms')) ||
+      (await this.settings.getValue('system_email_connection_timeout_ms')) ||
       this.config.get<string>('SMTP_CONNECTION_TIMEOUT_MS') ||
       '10000';
     const greetingTimeoutRaw =
-      (await this.getSettingValue('system_email_greeting_timeout_ms')) ||
+      (await this.settings.getValue('system_email_greeting_timeout_ms')) ||
       this.config.get<string>('SMTP_GREETING_TIMEOUT_MS') ||
       '10000';
     const socketTimeoutRaw =
-      (await this.getSettingValue('system_email_socket_timeout_ms')) ||
+      (await this.settings.getValue('system_email_socket_timeout_ms')) ||
       this.config.get<string>('SMTP_SOCKET_TIMEOUT_MS') ||
       '20000';
     const poolRaw =
-      (await this.getSettingValue('system_email_pool')) ||
+      (await this.settings.getValue('system_email_pool')) ||
       this.config.get<string>('SMTP_POOL') ||
       'true';
     const maxConnectionsRaw =
-      (await this.getSettingValue('system_email_max_connections')) ||
+      (await this.settings.getValue('system_email_max_connections')) ||
       this.config.get<string>('SMTP_MAX_CONNECTIONS') ||
       '5';
     const maxMessagesRaw =
-      (await this.getSettingValue('system_email_max_messages')) ||
+      (await this.settings.getValue('system_email_max_messages')) ||
       this.config.get<string>('SMTP_MAX_MESSAGES') ||
       '100';
     if (!host || !fromEmail) {

@@ -23,9 +23,19 @@ export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
   @Get()
-  @Public()
   findAll() {
-    return this.settingsService.findAll();
+    return this.settingsService.findAllAdmin();
+  }
+
+  @Get('public')
+  @Public()
+  findAllPublic() {
+    return this.settingsService.findAllPublic();
+  }
+
+  @Get('registry')
+  findRegistry() {
+    return this.settingsService.getRegistry();
   }
 
   @Get(':key')

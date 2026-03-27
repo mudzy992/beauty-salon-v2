@@ -36,6 +36,8 @@ type ProviderType = 'google' | 'office365' | 'exchange' | 'custom';
 interface AppSetting {
   key: string;
   value: string | null;
+  isSecret?: boolean;
+  isConfigured?: boolean;
 }
 
 type ExistingTemplateType =
@@ -259,6 +261,8 @@ export default function EmailSettings() {
   const [secure, setSecure] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [hasPasswordConfigured, setHasPasswordConfigured] = useState(false);
+  const [clearPasswordRequested, setClearPasswordRequested] = useState(false);
   const [rejectUnauthorized, setRejectUnauthorized] = useState(true);
   const [requireTls, setRequireTls] = useState(false);
   const [ignoreTls, setIgnoreTls] = useState(false);
@@ -326,7 +330,10 @@ export default function EmailSettings() {
       setPort(setValueFromSettings(list, KEYS.port) || PRESETS[providerValue].port);
       setSecure((setValueFromSettings(list, KEYS.secure) || String(PRESETS[providerValue].secure)) === 'true');
       setUsername(setValueFromSettings(list, KEYS.username));
-      setPassword(setValueFromSettings(list, KEYS.password));
+      const passwordItem = list.find((item) => item.key === KEYS.password) || null;
+      setHasPasswordConfigured(!!passwordItem?.isConfigured || !!passwordItem?.value?.trim());
+      setClearPasswordRequested(false);
+      setPassword('');
       setRejectUnauthorized((setValueFromSettings(list, KEYS.rejectUnauthorized) || 'true') === 'true');
       setRequireTls((setValueFromSettings(list, 'system_email_require_tls') || 'false') === 'true');
       setIgnoreTls((setValueFromSettings(list, 'system_email_ignore_tls') || 'false') === 'true');
@@ -411,13 +418,12 @@ export default function EmailSettings() {
     }
     setSaving(true);
     try {
-      await Promise.all([
+      const ops: Array<Promise<unknown>> = [
         upsertSetting(KEYS.provider, provider, 'Email provider: google|office365|exchange|custom'),
         upsertSetting(KEYS.host, host.trim(), 'SMTP host'),
         upsertSetting(KEYS.port, port.trim(), 'SMTP port'),
         upsertSetting(KEYS.secure, String(secure), 'SMTP secure (SSL/TLS)'),
         upsertSetting(KEYS.username, username.trim(), 'SMTP username'),
-        upsertSetting(KEYS.password, password, 'SMTP password/app password'),
         upsertSetting(KEYS.rejectUnauthorized, String(rejectUnauthorized), 'TLS reject unauthorized'),
         upsertSetting('system_email_require_tls', String(requireTls), 'SMTP require TLS'),
         upsertSetting('system_email_ignore_tls', String(ignoreTls), 'SMTP ignore TLS'),
@@ -432,7 +438,15 @@ export default function EmailSettings() {
         upsertSetting('system_email_reply_to', replyTo.trim(), 'Email reply-to address'),
         upsertSetting('system_email_signature', signature.trim(), 'Email template signature'),
         upsertSetting('system_public_app_url', publicAppUrl.trim(), 'Public app base URL for email links'),
-      ]);
+      ];
+
+      if (clearPasswordRequested) {
+        ops.push(upsertSetting(KEYS.password, '', 'SMTP password/app password'))
+      } else if (password.trim().length > 0) {
+        ops.push(upsertSetting(KEYS.password, password, 'SMTP password/app password'))
+      }
+
+      await Promise.all(ops)
       toast({ title: 'Email postavke su sačuvane.', status: 'success', isClosable: true });
     } catch {
       toast({ title: 'Greška pri čuvanju email postavki.', status: 'error', isClosable: true });
@@ -752,7 +766,30 @@ export default function EmailSettings() {
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
+                    placeholder={hasPasswordConfigured ? '•••••••• (sačuvano)' : ''}
                   />
+                  <HStack justify="space-between" mt={2}>
+                    <Text fontSize="xs" color="gray.500">
+                      {hasPasswordConfigured
+                        ? 'Password je sačuvan (enkriptovan). Unesite novi samo ako želite promjenu.'
+                        : 'Unesite password/app password.'}
+                    </Text>
+                    {hasPasswordConfigured && (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        colorScheme="red"
+                        onClick={() => {
+                          if (!window.confirm('Obrisati sačuvani SMTP password?')) return
+                          setClearPasswordRequested(true)
+                          setHasPasswordConfigured(false)
+                          setPassword('')
+                        }}
+                      >
+                        Obriši password
+                      </Button>
+                    )}
+                  </HStack>
                 </FormControl>
               </GridItem>
             </Grid>

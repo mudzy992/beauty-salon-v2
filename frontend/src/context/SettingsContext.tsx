@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 
 export interface AppSetting {
   key: string;
-  value: string | null;
+  value: string;
 }
 
 interface SettingsContextValue {
@@ -21,7 +21,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const fetchSettings = async () => {
     try {
       const baseURL = import.meta.env.VITE_API_URL || '';
-      const url = baseURL ? `${baseURL.replace(/\/$/, '')}/api/settings` : '/api/settings';
+      const url = baseURL
+        ? `${baseURL.replace(/\/$/, '')}/api/settings/public`
+        : '/api/settings/public';
       
       const response = await fetch(url, {
         method: 'GET',
@@ -35,7 +37,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const data: AppSetting[] = await response.json();
       const settingsMap: Record<string, string> = {};
       data.forEach((s) => {
-        if (s.value !== null) settingsMap[s.key] = s.value;
+        settingsMap[s.key] = s.value;
       });
       setSettings(settingsMap);
     } catch (err) {

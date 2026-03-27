@@ -31,6 +31,7 @@ import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import api, { getImageUrl, getUploadUrl } from '../../services/api';
+import { fetchPublicSettings } from '../../services/publicSettings';
 import { spacing, borderRadius } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
@@ -209,13 +210,13 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const fetchData = useCallback(async () => {
     try {
       const [settingsRes, catRes, blogRes, homeStatsRes] = await Promise.all([
-        api.get<unknown>('/api/settings'),
+        fetchPublicSettings(),
         api.get<ServiceCategory[]>('/api/services/categories', { params: { activeOnly: true } }),
         api.get<BlogPost[]>('/api/blog', { params: { published: true } }),
         api.get<{ servicesCount: number; clientsCount: number }>('/api/services/home-stats').catch(() => null),
       ]);
 
-      setSettings(normalizeSettings(settingsRes.data));
+      setSettings(normalizeSettings(settingsRes));
 
       const withServices: CategoryWithServices[] = [];
       for (const cat of catRes.data) {

@@ -1,0 +1,120 @@
+import { Test, TestingModule } from '@nestjs/testing'
+import { BadRequestException } from '@nestjs/common'
+import { SettingsService } from './settings.service'
+import { PrismaService } from '../prisma/prisma.service'
+import { EventsGateway } from '../events/events.gateway'
+import { SettingsEncryptionService } from './settings-encryption.service'
+import { ConfigService } from '@nestjs/config'
+
+const mockPrisma = {
+  appSetting: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    upsert: jest.fn(),
+  },
+}
+
+const mockEvents = {
+  emitToAll: jest.fn(),
+}
+
+describe('SettingsService', () => {
+  let service: SettingsService
+
+  const createConfig = (keyBase64: string | null) => ({
+    get: jest.fn().mockImplementation((k: string) => {
+      if (k === 'APP_SETTINGS_ENCRYPTION_KEY') return keyBase64
+      return undefined
+    }),
+  })
+
+  beforeEach(async () => {
+    jest.clearAllMocks()
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        SettingsService,
+        SettingsEncryptionService,
+        { provide: PrismaService, useValue: mockPrisma },
+        { provide: EventsGateway, useValue: mockEvents },
+        { provide: ConfigService, useValue: createConfig(null) },
+      ],
+    }).compile()
+    service = module.get<SettingsService>(SettingsService)
+  })
+
+  describe('findAllPublic', () => {
+    it('vraca samo PUBLIC kljuceve sa default vrijednostima kada fale u bazi', async () => {
+      mockPrisma.appSetting.findMany.mockResolvedValueOnce([
+        { key: 'app_title', value: 'My Salon' },
+      ])
+
+      const result = await service.findAllPublic()
+      const map = new Map(result.map((r) => [r.key, r.value]))
+      expect(map.get('app_title')).toBe('My Salon')
+      expect(map.has('system_email_password')).toBe(false)
+      expect(map.get('app_logo')).toBeDefined()
+    })
+  })
+
+  describe('set', () => {
+    it('baca za nepoznat key', async () => {
+      await expect(
+        service.set('unknown_key', { value: '1' }, 'u1'),
+      ).rejects.toThrow(BadRequestException)
+    })
+
+    it('normalizuje boolean vrijednosti', async () => {
+      mockPrisma.appSetting.upsert.mockResolvedValueOnce({ key: 'system_maintenance_mode', value: 'true' })
+      await service.set('system_maintenance_mode', { value: 'TRUE' }, 'u1')
+      expect(mockPrisma.appSetting.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ value: 'true' }),
+          update: expect.objectContaining({ value: 'true' }),
+        }),
+      )
+    })
+
+    it('enkriptuje secret vrijednost kada je key prisutan', async () => {
+      const base64Key = Buffer.alloc(32, 7).toString('base64')
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          SettingsService,
+          SettingsEncryptionService,
+          { provide: PrismaService, useValue: mockPrisma },
+          { provide: EventsGateway, useValue: mockEvents },
+          { provide: ConfigService, useValue: createConfig(base64Key) },
+        ],
+      }).compile()
+      const localService = module.get<SettingsService>(SettingsService)
+
+      mockPrisma.appSetting.upsert.mockResolvedValueOnce({ key: 'system_email_password', value: 'x' })
+      await localService.set('system_email_password', { value: 'secret123' }, 'u1')
+
+      const call = mockPrisma.appSetting.upsert.mock.calls[0][0]
+      expect(call.create.value).toMatch(/^enc:v1:/)
+      expect(call.update.value).toMatch(/^enc:v1:/)
+    })
+  })
+
+  describe('getValue', () => {
+    it('dekriptuje secret vrijednost kada je enkriptovana', async () => {
+      const base64Key = Buffer.alloc(32, 9).toString('base64')
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          SettingsService,
+          SettingsEncryptionService,
+          { provide: PrismaService, useValue: mockPrisma },
+          { provide: EventsGateway, useValue: mockEvents },
+          { provide: ConfigService, useValue: createConfig(base64Key) },
+        ],
+      }).compile()
+      const localService = module.get<SettingsService>(SettingsService)
+      const enc = module.get<SettingsEncryptionService>(SettingsEncryptionService).encrypt('secret123')
+
+      mockPrisma.appSetting.findUnique.mockResolvedValueOnce({ key: 'system_email_password', value: enc })
+      const value = await localService.getValue('system_email_password')
+      expect(value).toBe('secret123')
+    })
+  })
+})
+

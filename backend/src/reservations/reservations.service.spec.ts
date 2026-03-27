@@ -30,6 +30,9 @@ const mockPrisma = {
   user: {
     findUnique: jest.fn(),
   },
+  service: {
+    findUnique: jest.fn(),
+  },
   reservation: {
     create: jest.fn(),
     findUnique: jest.fn(),
@@ -144,6 +147,11 @@ describe('ReservationsService', () => {
         phone: '+38761111222',
         isEmailVerified: true,
         mustChangePassword: false,
+        gender: 'FEMALE',
+      });
+      mockPrisma.service.findUnique.mockResolvedValue({
+        id: 'svc-1',
+        gender: 'FEMALE',
       });
       mockAvailability.getAvailableSlots.mockResolvedValue([
         { startTime: '10:00', endTime: '11:00', availableStylistCount: 1 },
@@ -169,6 +177,11 @@ describe('ReservationsService', () => {
         phone: '+38761111222',
         isEmailVerified: true,
         mustChangePassword: false,
+        gender: 'FEMALE',
+      });
+      mockPrisma.service.findUnique.mockResolvedValue({
+        id: 'svc-1',
+        gender: 'FEMALE',
       });
       mockPrisma.clientCancellationCount.findUnique.mockResolvedValue(null);
       mockAvailability.getAvailableSlots.mockResolvedValue([

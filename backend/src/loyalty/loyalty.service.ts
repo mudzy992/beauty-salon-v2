@@ -153,9 +153,15 @@ export class LoyaltyService {
    * klijent ispuni uslov (npr. ima završenu rezervaciju),
    * osiguravamo da postoji loyalty račun.
    */
-  async ensureAccountForUser(userId: string) {
-    const enabled = await this.isProgramEnabled();
-    if (!enabled) return null;
+  async ensureAccountForUser(
+    userId: string,
+    options?: { requireEnabled?: boolean },
+  ) {
+    const requireEnabled = options?.requireEnabled ?? true;
+    if (requireEnabled) {
+      const enabled = await this.isProgramEnabled();
+      if (!enabled) return null;
+    }
 
     const existing = await this.prisma.loyaltyAccount.findUnique({
       where: { userId },
@@ -211,7 +217,9 @@ export class LoyaltyService {
     const rawPoints = Math.floor(baseAmount * pointsPerCurrency);
     if (rawPoints <= 0) return null;
 
-    const account = await this.ensureAccountForUser(entry.clientId);
+    const account = await this.ensureAccountForUser(entry.clientId, {
+      requireEnabled: false,
+    });
     if (!account) return null;
 
     const updated = await this.prisma.loyaltyAccount.update({
@@ -256,10 +264,13 @@ export class LoyaltyService {
       'loyalty_max_discount_percent',
       'loyalty_tiers',
     ];
-    const settings = await this.prisma.appSetting.findMany({
-      where: { key: { in: keys } },
-    });
-    return settings;
+    const items = await Promise.all(
+      keys.map(async (key) => ({
+        key,
+        value: await this.settings.getValue(key),
+      })),
+    );
+    return items;
   }
 
   /**
