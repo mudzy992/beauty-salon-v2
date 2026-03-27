@@ -7,7 +7,7 @@ import {
   FormControl, FormLabel, Input, Button, useToast, Switch, Select,
   Menu, MenuButton, MenuList, MenuItem, InputGroup, InputLeftElement,
   HStack, Tag, TagLabel, TagCloseButton, Avatar, Alert, AlertIcon, VStack,
-  useBreakpointValue, SimpleGrid, Divider,
+  useBreakpointValue, SimpleGrid, RadioGroup, Radio, Stack,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -39,16 +39,25 @@ interface PaginatedResponse<T> {
   pageSize: number;
 }
 
+interface StylistRemovalPreview {
+  stylistProfileId: string;
+  counts: {
+    dailyLogEntriesCount: number;
+    confirmedReservationsCount: number;
+    reservationResponsesCount: number;
+    reviewsCount: number;
+  };
+}
+
+interface StylistOption {
+  id: string;
+  user?: { firstName?: string | null; lastName?: string | null; username?: string | null };
+}
+
 /** Uloge koje admin može ručno dodavati/uklanjati. */
 const ROLES_MANAGED_IN_UI = ['SYSTEM_ADMIN', 'OWNER', 'CLIENT', 'STYLIST'] as const;
 const roleColorMap: Record<string, string> = {
   SYSTEM_ADMIN: 'red', OWNER: 'purple', STYLIST: 'blue', CLIENT: 'green',
-};
-const rolePriority: Record<string, number> = {
-  SYSTEM_ADMIN: 0,
-  OWNER: 0,
-  STYLIST: 1,
-  CLIENT: 2,
 };
 
 export default function Users() {
@@ -112,6 +121,35 @@ export default function Users() {
   const avatarEditRef = useRef<HTMLInputElement>(null);
   const avatarCreateRef = useRef<HTMLInputElement>(null);
 
+  const {
+    isOpen: isRemoveStylistOpen,
+    onOpen: onRemoveStylistOpen,
+    onClose: onRemoveStylistClose,
+  } = useDisclosure();
+  const [removeStylistUser, setRemoveStylistUser] = useState<UserRow | null>(null);
+  const [removalPreview, setRemovalPreview] = useState<StylistRemovalPreview | null>(null);
+  const [allStylists, setAllStylists] = useState<StylistOption[]>([]);
+  const [removalSubmitting, setRemovalSubmitting] = useState(false);
+
+  type RemovalMode = 'DELETE' | 'TRANSFER';
+  const [removalModes, setRemovalModes] = useState<{
+    dailyLogs: RemovalMode;
+    confirmedReservations: RemovalMode;
+    reservationResponses: RemovalMode;
+    reviews: RemovalMode;
+  }>({
+    dailyLogs: 'TRANSFER',
+    confirmedReservations: 'TRANSFER',
+    reservationResponses: 'TRANSFER',
+    reviews: 'TRANSFER',
+  });
+  const [removalTargets, setRemovalTargets] = useState<{
+    dailyLogs?: string;
+    confirmedReservations?: string;
+    reservationResponses?: string;
+    reviews?: string;
+  }>({});
+
   const normalizeUsernameFromNames = (first: string, last: string): string => {
     const base = `${first}.${last}`
       .normalize('NFD')
@@ -165,34 +203,14 @@ export default function Users() {
     const filtered = users.filter(matches);
     const isSystemAdmin = (u: UserRow) => getUserRoles(u).includes('SYSTEM_ADMIN');
     const isStylist = (u: UserRow) => getUserRoles(u).includes('STYLIST');
-    const systemAdmins = filtered.filter(isSystemAdmin);
+    const isStrictClient = (u: UserRow) => {
+      const roles = getUserRoles(u);
+      return roles.length === 1 && roles[0] === 'CLIENT';
+    };
+    const administrators = filtered.filter(isSystemAdmin);
     const stylists = filtered.filter((u) => !isSystemAdmin(u) && isStylist(u));
-    const others = filtered.filter((u) => !isSystemAdmin(u) && !isStylist(u));
-    return { systemAdmins, stylists, others };
-  }, [users, search, getUserRoles]);
-  const sortedAndFilteredUsers = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const filtered = users.filter((u) => {
-      if (!q) return true;
-      return u.username.toLowerCase().includes(q) ||
-        (u.email?.toLowerCase().includes(q)) ||
-        (u.firstName?.toLowerCase().includes(q)) ||
-        (u.lastName?.toLowerCase().includes(q));
-    });
-    return filtered.sort((a, b) => {
-      const aRoles = getUserRoles(a);
-      const bRoles = getUserRoles(b);
-      const aRoleRank = Math.min(...(aRoles.map((role) => rolePriority[role] ?? 99)), 99);
-      const bRoleRank = Math.min(...(bRoles.map((role) => rolePriority[role] ?? 99)), 99);
-      if (aRoleRank !== bRoleRank) return aRoleRank - bRoleRank;
-      const aFirst = (a.firstName ?? '').toLowerCase();
-      const bFirst = (b.firstName ?? '').toLowerCase();
-      if (aFirst !== bFirst) return aFirst.localeCompare(bFirst, 'bs');
-      const aLast = (a.lastName ?? '').toLowerCase();
-      const bLast = (b.lastName ?? '').toLowerCase();
-      if (aLast !== bLast) return aLast.localeCompare(bLast, 'bs');
-      return a.username.localeCompare(b.username, 'bs');
-    });
+    const clients = filtered.filter(isStrictClient);
+    return { administrators, stylists, clients };
   }, [users, search, getUserRoles]);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   useEffect(() => {
@@ -458,6 +476,57 @@ export default function Users() {
   };
 
   const handleRemoveRole = async (userId: string, roleName: string) => {
+    if (roleName === 'STYLIST') {
+      const u = users.find((x) => x.id === userId) ?? null;
+      setRemoveStylistUser(u);
+      setRemovalPreview(null);
+      setAllStylists([]);
+      setRemovalModes({
+        dailyLogs: 'TRANSFER',
+        confirmedReservations: 'TRANSFER',
+        reservationResponses: 'TRANSFER',
+        reviews: 'TRANSFER',
+      });
+      setRemovalTargets({});
+      onRemoveStylistOpen();
+      try {
+        const previewRes = await api.get<StylistRemovalPreview>(`/api/users/${userId}/stylist-removal-preview`);
+        setRemovalPreview(previewRes.data);
+        const c = previewRes.data.counts;
+        const hasAnyLinks =
+          (c.dailyLogEntriesCount ?? 0) > 0 ||
+          (c.confirmedReservationsCount ?? 0) > 0 ||
+          (c.reservationResponsesCount ?? 0) > 0 ||
+          (c.reviewsCount ?? 0) > 0;
+        if (!hasAnyLinks) {
+          setRemovalSubmitting(true);
+          await api.post(`/api/users/${userId}/remove-stylist-role`, {
+            dailyLogs: { mode: 'DELETE' },
+            confirmedReservations: { mode: 'DELETE' },
+            reservationResponses: { mode: 'DELETE' },
+            reviews: { mode: 'DELETE' },
+          });
+          toast({ title: 'STYLIST rola uklonjena', status: 'success', isClosable: true });
+          onRemoveStylistClose();
+          loadData();
+          setRemovalSubmitting(false);
+          return;
+        }
+        const stylistsRes = await api.get<StylistOption[] | { items: StylistOption[] }>('/api/stylists', {
+          params: { page: 0, pageSize: 300 },
+        });
+        const items = Array.isArray((stylistsRes.data as any)?.items)
+          ? (stylistsRes.data as any).items
+          : (Array.isArray(stylistsRes.data) ? stylistsRes.data : []);
+        setAllStylists(items);
+      } catch (err: any) {
+        const msg = err?.response?.data?.message;
+        toast({ title: msg || 'Greška pri pripremi uklanjanja stiliste', status: 'error', isClosable: true });
+        setRemovalSubmitting(false);
+        onRemoveStylistClose();
+      }
+      return;
+    }
     if (!window.confirm(`Ukloniti ulogu ${roleName}?`)) return;
     try {
       await api.delete(`/api/users/${userId}/roles/${roleName}`);
@@ -468,6 +537,95 @@ export default function Users() {
     }
   };
 
+  const getTargetOptions = () => {
+    const currentStylistId = removalPreview?.stylistProfileId;
+    return allStylists
+      .filter((s) => s.id !== currentStylistId)
+      .map((s) => ({
+        id: s.id,
+        label: [s.user?.firstName, s.user?.lastName].filter(Boolean).join(' ') || s.user?.username || s.id,
+      }));
+  };
+
+  const removalSummary = useMemo(() => {
+    if (!removalPreview) return [];
+    const c = removalPreview.counts;
+    const rows = [
+      { key: 'dailyLogs', label: 'Daily logovi', count: c.dailyLogEntriesCount },
+      { key: 'confirmedReservations', label: 'Potvrđene rezervacije', count: c.confirmedReservationsCount },
+      { key: 'reservationResponses', label: 'Odgovori/lockovi rezervacija', count: c.reservationResponsesCount },
+      { key: 'reviews', label: 'Reviews', count: c.reviewsCount },
+    ] as const;
+    return rows
+      .filter((r) => (r.count ?? 0) > 0)
+      .map((r) => {
+        const mode = removalModes[r.key];
+        const target = (removalTargets as any)[r.key] as string | undefined;
+        return {
+          label: r.label,
+          count: r.count,
+          mode,
+          target,
+        };
+      });
+  }, [removalPreview, removalModes, removalTargets]);
+
+  const isRemovalReady = useMemo(() => {
+    if (!removalPreview) return false;
+    for (const row of removalSummary) {
+      if (row.mode === 'TRANSFER' && !row.target) return false;
+    }
+    return true;
+  }, [removalPreview, removalSummary]);
+
+  const handleConfirmRemoveStylist = async () => {
+    if (!removeStylistUser || !removalPreview) return;
+    const counts = removalPreview.counts;
+    const payload = {
+      dailyLogs: {
+        mode: counts.dailyLogEntriesCount > 0 ? removalModes.dailyLogs : 'DELETE',
+        targetStylistProfileId: removalModes.dailyLogs === 'TRANSFER' ? removalTargets.dailyLogs : undefined,
+      },
+      confirmedReservations: {
+        mode: counts.confirmedReservationsCount > 0 ? removalModes.confirmedReservations : 'DELETE',
+        targetStylistProfileId: removalModes.confirmedReservations === 'TRANSFER'
+          ? removalTargets.confirmedReservations
+          : undefined,
+      },
+      reservationResponses: {
+        mode: counts.reservationResponsesCount > 0 ? removalModes.reservationResponses : 'DELETE',
+        targetStylistProfileId: removalModes.reservationResponses === 'TRANSFER'
+          ? removalTargets.reservationResponses
+          : undefined,
+      },
+      reviews: {
+        mode: counts.reviewsCount > 0 ? removalModes.reviews : 'DELETE',
+        targetStylistProfileId: removalModes.reviews === 'TRANSFER' ? removalTargets.reviews : undefined,
+      },
+    } as const;
+
+    const missingTarget = (key: keyof typeof payload) =>
+      payload[key].mode === 'TRANSFER' && !payload[key].targetStylistProfileId;
+
+    if (missingTarget('dailyLogs') || missingTarget('confirmedReservations') || missingTarget('reservationResponses') || missingTarget('reviews')) {
+      toast({ title: 'Odaberite target stilistu za sve TRANSFER opcije.', status: 'warning', isClosable: true });
+      return;
+    }
+
+    setRemovalSubmitting(true);
+    try {
+      await api.post(`/api/users/${removeStylistUser.id}/remove-stylist-role`, payload);
+      toast({ title: 'STYLIST rola uklonjena', status: 'success', isClosable: true });
+      onRemoveStylistClose();
+      loadData();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message;
+      toast({ title: msg || 'Greška pri uklanjanju stiliste', status: 'error', isClosable: true });
+    } finally {
+      setRemovalSubmitting(false);
+    }
+  };
+
   /** Uloge koje admin može dodati (isključeno STYLIST – dodaje se u Stylists). */
   const getAvailableRolesToAssign = (u: UserRow) => {
     const current = getUserRoles(u);
@@ -475,6 +633,100 @@ export default function Users() {
   };
   const canRemoveRole = (roleName: string) =>
     roleName !== 'CLIENT' && ROLES_MANAGED_IN_UI.includes(roleName as any);
+
+  const renderMobileUserCard = (u: UserRow) => (
+    <Box key={u.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
+      <HStack justify="space-between" align="start">
+        <HStack>
+          <Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" />
+          <Box>
+            <Text fontWeight="medium">{u.username}</Text>
+            <Text color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
+          </Box>
+        </HStack>
+        <Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
+      </HStack>
+      <Text mt={2} color="gray.600">{u.email ?? '-'}</Text>
+      <Flex mt={2} gap={1} flexWrap="wrap">
+        {getUserRoles(u).map((roleName) => (
+          <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
+            <TagLabel>
+              {roleName}
+              {roleName === 'STYLIST' ? ' (Stylists)' : ''}
+            </TagLabel>
+            {canRemoveRole(roleName) ? (
+              <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
+            ) : null}
+          </Tag>
+        ))}
+        {getAvailableRolesToAssign(u).length > 0 && (
+          <Menu>
+            <MenuButton
+              as={IconButton}
+              icon={<AddIcon />}
+              size="xs"
+              variant="ghost"
+              aria-label="Dodaj ulogu"
+            />
+            <MenuList>
+              {getAvailableRolesToAssign(u).map((r) => (
+                <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>
+                  {r}
+                </MenuItem>
+              ))}
+            </MenuList>
+          </Menu>
+        )}
+      </Flex>
+      <HStack spacing={1} justify="flex-end" mt={3}>
+        <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} />
+        <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
+        {u.isActive && <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />}
+      </HStack>
+    </Box>
+  );
+
+  const renderDesktopUserRow = (u: UserRow) => (
+    <Tr key={u.id}>
+      <Td><Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" /></Td>
+      <Td fontWeight="medium">{u.username}</Td>
+      <Td>{u.email ?? '-'}</Td>
+      <Td>{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Td>
+      <Td>{u.phone ?? '-'}</Td>
+      <Td>
+        <Flex gap={1} flexWrap="wrap" align="center">
+          {getUserRoles(u).map((roleName) => (
+            <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
+              <TagLabel>{roleName}{roleName === 'STYLIST' ? ' (Stylists)' : ''}</TagLabel>
+              {canRemoveRole(roleName) ? (
+                <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
+              ) : null}
+            </Tag>
+          ))}
+          {getAvailableRolesToAssign(u).length > 0 && (
+            <Menu>
+              <MenuButton as={IconButton} icon={<AddIcon />} size="xs" variant="ghost" aria-label="Dodaj ulogu" />
+              <MenuList>
+                {getAvailableRolesToAssign(u).map((r) => (
+                  <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>{r}</MenuItem>
+                ))}
+              </MenuList>
+            </Menu>
+          )}
+        </Flex>
+      </Td>
+      <Td><Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge></Td>
+      <Td textAlign="right">
+        <HStack spacing={1} justify="flex-end">
+          <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} title="Analitika klijenta" />
+          <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
+          {u.isActive && (
+            <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />
+          )}
+        </HStack>
+      </Td>
+    </Tr>
+  );
 
   return (
     <Box>
@@ -498,347 +750,69 @@ export default function Users() {
         </Flex>
       </Flex>
 
-      <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
-        {loading ? (
+      {loading ? (
+        <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
           <Box p={6} textAlign="center"><Spinner size="lg" /></Box>
-        ) : isMobile ? (
-          <VStack align="stretch" spacing={3} p={3}>
-            {sortedAndFilteredUsers.length === 0 ? (
-              <Text color="gray.500">{t('common.noData')}</Text>
-            ) : (
-              <>
-                {groupedUsers.systemAdmins.length > 0 && (
-                  <>
-                    <Text fontSize="sm" fontWeight="bold" color="gray.600">SYSTEM_ADMIN</Text>
-                    {groupedUsers.systemAdmins.map((u) => (
-                      <Box key={u.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
-                        <HStack justify="space-between" align="start">
-                          <HStack>
-                            <Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" />
-                            <Box>
-                              <Text fontWeight="medium">{u.username}</Text>
-                              <Text color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
-                            </Box>
-                          </HStack>
-                          <Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
-                        </HStack>
-                        <Text mt={2} color="gray.600">{u.email ?? '-'}</Text>
-                        <Flex mt={2} gap={1} flexWrap="wrap">
-                          {getUserRoles(u).map((roleName) => (
-                            <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
-                              <TagLabel>
-                                {roleName}
-                                {roleName === 'STYLIST' ? ' (Stylists)' : ''}
-                              </TagLabel>
-                              {canRemoveRole(roleName) ? (
-                                <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
-                              ) : null}
-                            </Tag>
-                          ))}
-                          {getAvailableRolesToAssign(u).length > 0 && (
-                            <Menu>
-                              <MenuButton
-                                as={IconButton}
-                                icon={<AddIcon />}
-                                size="xs"
-                                variant="ghost"
-                                aria-label="Dodaj ulogu"
-                              />
-                              <MenuList>
-                                {getAvailableRolesToAssign(u).map((r) => (
-                                  <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>
-                                    {r}
-                                  </MenuItem>
-                                ))}
-                              </MenuList>
-                            </Menu>
-                          )}
-                        </Flex>
-                        <HStack spacing={1} justify="flex-end" mt={3}>
-                          <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} />
-                          <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
-                          {u.isActive && <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />}
-                        </HStack>
-                      </Box>
-                    ))}
-                    <Divider />
-                  </>
-                )}
-                {groupedUsers.stylists.length > 0 && (
-                  <>
-                    <Text fontSize="sm" fontWeight="bold" color="gray.600">STYLIST</Text>
-                    {groupedUsers.stylists.map((u) => (
-                      <Box key={u.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
-                        <HStack justify="space-between" align="start">
-                          <HStack>
-                            <Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" />
-                            <Box>
-                              <Text fontWeight="medium">{u.username}</Text>
-                              <Text color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
-                            </Box>
-                          </HStack>
-                          <Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
-                        </HStack>
-                        <Text mt={2} color="gray.600">{u.email ?? '-'}</Text>
-                        <Flex mt={2} gap={1} flexWrap="wrap">
-                          {getUserRoles(u).map((roleName) => (
-                            <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
-                              <TagLabel>
-                                {roleName}
-                                {roleName === 'STYLIST' ? ' (Stylists)' : ''}
-                              </TagLabel>
-                              {canRemoveRole(roleName) ? (
-                                <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
-                              ) : null}
-                            </Tag>
-                          ))}
-                          {getAvailableRolesToAssign(u).length > 0 && (
-                            <Menu>
-                              <MenuButton
-                                as={IconButton}
-                                icon={<AddIcon />}
-                                size="xs"
-                                variant="ghost"
-                                aria-label="Dodaj ulogu"
-                              />
-                              <MenuList>
-                                {getAvailableRolesToAssign(u).map((r) => (
-                                  <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>
-                                    {r}
-                                  </MenuItem>
-                                ))}
-                              </MenuList>
-                            </Menu>
-                          )}
-                        </Flex>
-                        <HStack spacing={1} justify="flex-end" mt={3}>
-                          <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} />
-                          <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
-                          {u.isActive && <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />}
-                        </HStack>
-                      </Box>
-                    ))}
-                    <Divider />
-                  </>
-                )}
-                {groupedUsers.others.map((u) => (
-                  <Box key={u.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
-                    <HStack justify="space-between" align="start">
-                      <HStack>
-                        <Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" />
-                        <Box>
-                          <Text fontWeight="medium">{u.username}</Text>
-                          <Text color="gray.500">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Text>
-                        </Box>
-                      </HStack>
-                      <Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
-                    </HStack>
-                    <Text mt={2} color="gray.600">{u.email ?? '-'}</Text>
-                    <Flex mt={2} gap={1} flexWrap="wrap">
-                      {getUserRoles(u).map((roleName) => (
-                        <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
-                          <TagLabel>
-                            {roleName}
-                            {roleName === 'STYLIST' ? ' (Stylists)' : ''}
-                          </TagLabel>
-                          {canRemoveRole(roleName) ? (
-                            <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
-                          ) : null}
-                        </Tag>
-                      ))}
-                      {getAvailableRolesToAssign(u).length > 0 && (
-                        <Menu>
-                          <MenuButton
-                            as={IconButton}
-                            icon={<AddIcon />}
-                            size="xs"
-                            variant="ghost"
-                            aria-label="Dodaj ulogu"
-                          />
-                          <MenuList>
-                            {getAvailableRolesToAssign(u).map((r) => (
-                              <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>
-                                {r}
-                              </MenuItem>
-                            ))}
-                          </MenuList>
-                        </Menu>
-                      )}
-                    </Flex>
-                    <HStack spacing={1} justify="flex-end" mt={3}>
-                      <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} />
-                      <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
-                      {u.isActive && <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />}
-                    </HStack>
-                  </Box>
-                ))}
-              </>
-            )}
-          </VStack>
-        ) : (
-          <Table size="sm">
-            <Thead>
-              <Tr>
-                <Th w="56px">Avatar</Th>
-                <Th>Korisničko ime</Th>
-                <Th>Email</Th>
-                <Th>Ime i Prezime</Th>
-                <Th>Telefon</Th>
-                <Th>Uloge</Th>
-                <Th>Status</Th>
-                <Th textAlign="right">Akcije</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {sortedAndFilteredUsers.length === 0 ? (
-                <Tr><Td colSpan={8}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
+        </Box>
+      ) : (
+        <VStack align="stretch" spacing={4}>
+          {([
+            {
+              title: 'ADMINISTRATORI',
+              items: groupedUsers.administrators,
+              empty: 'Nema administratora.',
+            },
+            {
+              title: 'STILISTI',
+              items: groupedUsers.stylists,
+              empty: 'Nema stilista.',
+            },
+            {
+              title: 'KLIJENTI',
+              items: groupedUsers.clients,
+              empty: 'Nema klijenata.',
+            },
+          ] as const).map((section) => (
+            <Box key={section.title} bg="white" rounded="lg" shadow="sm" overflow="hidden">
+              <Flex justify="space-between" align="center" px={4} py={3} bg="gray.50">
+                <Text fontWeight="bold" color="gray.700">
+                  {section.title}
+                </Text>
+                <Badge colorScheme="gray">{section.items.length}</Badge>
+              </Flex>
+              {section.items.length === 0 ? (
+                <Box p={4}>
+                  <Text color="gray.500">{section.empty}</Text>
+                </Box>
+              ) : isMobile ? (
+                <VStack align="stretch" spacing={3} p={3}>
+                  {section.items.map(renderMobileUserCard)}
+                </VStack>
               ) : (
-                <>
-                  {groupedUsers.systemAdmins.length > 0 && (
-                    <Tr>
-                      <Td colSpan={8} bg="gray.50">
-                        <Text fontWeight="bold" color="gray.600">SYSTEM_ADMIN</Text>
-                      </Td>
-                    </Tr>
-                  )}
-                  {groupedUsers.systemAdmins.map((u) => (
-                    <Tr key={u.id}>
-                      <Td><Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" /></Td>
-                      <Td fontWeight="medium">{u.username}</Td>
-                      <Td>{u.email ?? '-'}</Td>
-                      <Td>{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Td>
-                      <Td>{u.phone ?? '-'}</Td>
-                      <Td>
-                        <Flex gap={1} flexWrap="wrap" align="center">
-                          {getUserRoles(u).map((roleName) => (
-                            <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
-                              <TagLabel>{roleName}{roleName === 'STYLIST' ? ' (Stylists)' : ''}</TagLabel>
-                              {canRemoveRole(roleName) ? (
-                                <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
-                              ) : null}
-                            </Tag>
-                          ))}
-                          {getAvailableRolesToAssign(u).length > 0 && (
-                            <Menu>
-                              <MenuButton as={IconButton} icon={<AddIcon />} size="xs" variant="ghost" aria-label="Dodaj ulogu" />
-                              <MenuList>
-                                {getAvailableRolesToAssign(u).map((r) => (
-                                  <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>{r}</MenuItem>
-                                ))}
-                              </MenuList>
-                            </Menu>
-                          )}
-                        </Flex>
-                      </Td>
-                      <Td><Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge></Td>
-                      <Td textAlign="right">
-                        <HStack spacing={1} justify="flex-end">
-                          <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} title="Analitika klijenta" />
-                          <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
-                          {u.isActive && (
-                            <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />
-                          )}
-                        </HStack>
-                      </Td>
-                    </Tr>
-                  ))}
-                  {groupedUsers.stylists.length > 0 && (
-                    <Tr>
-                      <Td colSpan={8} bg="gray.50">
-                        <Text fontWeight="bold" color="gray.600">STYLIST</Text>
-                      </Td>
-                    </Tr>
-                  )}
-                  {groupedUsers.stylists.map((u) => (
-                    <Tr key={u.id}>
-                      <Td><Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" /></Td>
-                      <Td fontWeight="medium">{u.username}</Td>
-                      <Td>{u.email ?? '-'}</Td>
-                      <Td>{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Td>
-                      <Td>{u.phone ?? '-'}</Td>
-                      <Td>
-                        <Flex gap={1} flexWrap="wrap" align="center">
-                          {getUserRoles(u).map((roleName) => (
-                            <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
-                              <TagLabel>{roleName}{roleName === 'STYLIST' ? ' (Stylists)' : ''}</TagLabel>
-                              {canRemoveRole(roleName) ? (
-                                <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
-                              ) : null}
-                            </Tag>
-                          ))}
-                          {getAvailableRolesToAssign(u).length > 0 && (
-                            <Menu>
-                              <MenuButton as={IconButton} icon={<AddIcon />} size="xs" variant="ghost" aria-label="Dodaj ulogu" />
-                              <MenuList>
-                                {getAvailableRolesToAssign(u).map((r) => (
-                                  <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>{r}</MenuItem>
-                                ))}
-                              </MenuList>
-                            </Menu>
-                          )}
-                        </Flex>
-                      </Td>
-                      <Td><Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge></Td>
-                      <Td textAlign="right">
-                        <HStack spacing={1} justify="flex-end">
-                          <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} title="Analitika klijenta" />
-                          <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
-                          {u.isActive && (
-                            <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />
-                          )}
-                        </HStack>
-                      </Td>
-                    </Tr>
-                  ))}
-                  {groupedUsers.others.map((u) => (
-                    <Tr key={u.id}>
-                  <Td><Avatar size="sm" src={getUploadUrl(u.avatar ?? undefined)} name={[u.firstName, u.lastName].filter(Boolean).join(' ')} bg="brand.100" /></Td>
-                  <Td fontWeight="medium">{u.username}</Td>
-                  <Td>{u.email ?? '-'}</Td>
-                  <Td>{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</Td>
-                  <Td>{u.phone ?? '-'}</Td>
-                  <Td>
-                    <Flex gap={1} flexWrap="wrap" align="center">
-                      {getUserRoles(u).map((roleName) => (
-                        <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
-                          <TagLabel>{roleName}{roleName === 'STYLIST' ? ' (Stylists)' : ''}</TagLabel>
-                          {canRemoveRole(roleName) ? (
-                            <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
-                          ) : (
-                            <TagLabel as="span" fontSize="xs" color="gray.500" ml={1} title="Dodaje se/uklanja u Stylists">*</TagLabel>
-                          )}
-                        </Tag>
-                      ))}
-                      {getAvailableRolesToAssign(u).length > 0 && (
-                        <Menu>
-                          <MenuButton as={IconButton} icon={<AddIcon />} size="xs" variant="ghost" aria-label="Dodaj ulogu" />
-                          <MenuList>
-                            {getAvailableRolesToAssign(u).map((r) => (
-                              <MenuItem key={r} onClick={() => handleAssignRole(u.id, r)}>{r}</MenuItem>
-                            ))}
-                          </MenuList>
-                        </Menu>
-                      )}
-                    </Flex>
-                  </Td>
-                  <Td><Badge colorScheme={u.isActive ? 'green' : 'red'}>{u.isActive ? 'Aktivan' : 'Neaktivan'}</Badge></Td>
-                  <Td textAlign="right">
-                    <HStack spacing={1} justify="flex-end">
-                      <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)} title="Analitika klijenta" />
-                      <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEdit(u)} />
-                      {u.isActive && (
-                        <IconButton aria-label="Deaktiviraj" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDeactivate(u.id, u.username)} />
-                      )}
-                    </HStack>
-                  </Td>
-                </Tr>
-                  ))}
-                </>
+                <Box overflow="auto">
+                  <Table size="sm">
+                    <Thead>
+                      <Tr>
+                        <Th w="56px">Avatar</Th>
+                        <Th>Korisničko ime</Th>
+                        <Th>Email</Th>
+                        <Th>Ime i Prezime</Th>
+                        <Th>Telefon</Th>
+                        <Th>Uloge</Th>
+                        <Th>Status</Th>
+                        <Th textAlign="right">Akcije</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {section.items.map(renderDesktopUserRow)}
+                    </Tbody>
+                  </Table>
+                </Box>
               )}
-            </Tbody>
-          </Table>
-        )}
-      </Box>
+            </Box>
+          ))}
+        </VStack>
+      )}
       <Flex justify="space-between" align="center" mt={4}>
         <Text fontSize="sm" color="gray.500">
           Ukupno: {total}
@@ -865,6 +839,105 @@ export default function Users() {
           </Button>
         </HStack>
       </Flex>
+
+      <Modal isOpen={isRemoveStylistOpen} onClose={onRemoveStylistClose} size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Ukloni STYLIST rolu</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {!removalPreview ? (
+              <Box py={6} textAlign="center">
+                <Spinner />
+              </Box>
+            ) : (
+              <VStack align="stretch" spacing={4}>
+                <Text color="gray.600">
+                  Stilist: <Text as="span" fontWeight="bold">{removeStylistUser?.username}</Text>
+                </Text>
+
+                {([
+                  { key: 'dailyLogs', label: 'Daily logovi', count: removalPreview.counts.dailyLogEntriesCount },
+                  { key: 'confirmedReservations', label: 'Potvrđene rezervacije', count: removalPreview.counts.confirmedReservationsCount },
+                  { key: 'reservationResponses', label: 'Odgovori/lockovi rezervacija', count: removalPreview.counts.reservationResponsesCount },
+                  { key: 'reviews', label: 'Reviews', count: removalPreview.counts.reviewsCount },
+                ] as const).map((row) => {
+                  if (row.count <= 0) return null;
+                  const opts = getTargetOptions();
+                  const mode = removalModes[row.key];
+                  return (
+                    <Box key={row.key} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
+                      <Flex justify="space-between" align="center" mb={2}>
+                        <Text fontWeight="bold">{row.label}</Text>
+                        <Badge>{row.count}</Badge>
+                      </Flex>
+                      <RadioGroup
+                        value={mode}
+                        onChange={(v) => setRemovalModes((prev) => ({ ...prev, [row.key]: v as RemovalMode }))}
+                      >
+                        <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
+                          <Radio value="TRANSFER">Prebaci</Radio>
+                          <Radio value="DELETE">Obriši</Radio>
+                        </Stack>
+                      </RadioGroup>
+                      {mode === 'TRANSFER' && (
+                        <FormControl mt={3} isRequired>
+                          <FormLabel fontSize="sm">Target stilist</FormLabel>
+                          <Select
+                            placeholder="Odaberite stilistu"
+                            value={(removalTargets as any)[row.key] ?? ''}
+                            onChange={(e) => setRemovalTargets((prev) => ({ ...prev, [row.key]: e.target.value }))}
+                          >
+                            {opts.map((o) => (
+                              <option key={o.id} value={o.id}>{o.label}</option>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      )}
+                      {mode === 'DELETE' && (
+                        <Text fontSize="xs" color="orange.600" mt={2}>
+                          Ova akcija će trajno obrisati podatke iz ove kategorije.
+                        </Text>
+                      )}
+                    </Box>
+                  );
+                })}
+
+                {removalSummary.length > 0 && (
+                  <Box borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
+                    <Text fontWeight="bold" mb={2}>Sažetak</Text>
+                    <VStack align="stretch" spacing={1}>
+                      {removalSummary.map((r) => (
+                        <Flex key={r.label} justify="space-between" gap={3}>
+                          <Text fontSize="sm" color="gray.700">
+                            {r.label} ({r.count})
+                          </Text>
+                          <Text fontSize="sm" fontWeight="medium" color={r.mode === 'DELETE' ? 'red.600' : 'blue.600'}>
+                            {r.mode === 'DELETE' ? 'BRISANJE' : 'PREBACIVANJE'}
+                          </Text>
+                        </Flex>
+                      ))}
+                    </VStack>
+                  </Box>
+                )}
+
+                <Alert status="info">
+                  <AlertIcon />
+                  <Text fontSize="sm">
+                    Nakon izvršenja, profil stiliste i njegove postavke (servisi, radno vrijeme) se brišu.
+                  </Text>
+                </Alert>
+              </VStack>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onRemoveStylistClose}>Otkaži</Button>
+            <Button colorScheme="red" onClick={handleConfirmRemoveStylist} isLoading={removalSubmitting} isDisabled={!removalPreview || !isRemovalReady}>
+              Ukloni STYLIST
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       {/* Edit User Modal - ALL fields editable */}
       <Modal isOpen={isOpen} onClose={onClose} size="lg">

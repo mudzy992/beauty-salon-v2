@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
+import { RemoveStylistRoleDto } from './dto/remove-stylist-role.dto';
 import { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 
 @Injectable()
@@ -387,7 +388,7 @@ export class UsersService {
     }
     if (roleName === 'STYLIST') {
       throw new BadRequestException(
-        'Rolu Stilist ne možete ukloniti ovdje. Uklonite korisnika iz Stylists (obrišite ili deaktivirajte profil stilista) da bi rola bila uklonjena.',
+        'Rolu Stilist uklanjate kroz posebnu akciju (remove-stylist-role) zbog vezanih podataka.',
       );
     }
     const user = await this.prisma.user.findUnique({
@@ -401,6 +402,149 @@ export class UsersService {
     return this.prisma.user.findUnique({
       where: { id: userId },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
+    });
+  }
+
+  async getStylistRemovalPreview(userId: string, roles: string[]) {
+    this.requireAdminOrOwner(roles);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { stylistProfile: { select: { id: true } } },
+    });
+    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    const stylistProfileId = user.stylistProfile?.id;
+    if (!stylistProfileId)
+      throw new NotFoundException('Korisnik nema profil stiliste.');
+    const [dailyLogEntriesCount, confirmedReservationsCount, reservationResponsesCount, reviewsCount] =
+      await Promise.all([
+        this.prisma.dailyLogEntry.count({ where: { stylistProfileId } }),
+        this.prisma.reservation.count({ where: { confirmedStylistId: stylistProfileId } }),
+        this.prisma.reservationStylistResponse.count({ where: { stylistProfileId } }),
+        this.prisma.review.count({ where: { stylistProfileId } }),
+      ]);
+    return {
+      stylistProfileId,
+      counts: {
+        dailyLogEntriesCount,
+        confirmedReservationsCount,
+        reservationResponsesCount,
+        reviewsCount,
+      },
+    };
+  }
+
+  async removeStylistRole(
+    userId: string,
+    dto: RemoveStylistRoleDto,
+    roles: string[],
+  ) {
+    this.requireAdminOrOwner(roles);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { stylistProfile: { select: { id: true } }, userRoles: { include: { role: true } } },
+    });
+    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    const stylistProfileId = user.stylistProfile?.id;
+    if (!stylistProfileId)
+      throw new NotFoundException('Korisnik nema profil stiliste.');
+
+    const validateTransferTarget = async (category: { mode: string; targetStylistProfileId?: string }) => {
+      if (category.mode !== 'TRANSFER') return null;
+      const targetId = category.targetStylistProfileId?.trim();
+      if (!targetId) throw new BadRequestException('Nedostaje targetStylistProfileId.');
+      if (targetId === stylistProfileId) {
+        throw new BadRequestException('Target stilist ne može biti isti stilist.');
+      }
+      const target = await this.prisma.stylistProfile.findUnique({
+        where: { id: targetId },
+        select: { id: true },
+      });
+      if (!target) throw new NotFoundException('Target stilist nije pronađen.');
+      return targetId;
+    };
+
+    const dailyLogsTarget = await validateTransferTarget(dto.dailyLogs);
+    const confirmedReservationsTarget = await validateTransferTarget(dto.confirmedReservations);
+    const reservationResponsesTarget = await validateTransferTarget(dto.reservationResponses);
+    const reviewsTarget = await validateTransferTarget(dto.reviews);
+
+    return this.prisma.$transaction(async (tx) => {
+      if (dto.dailyLogs.mode === 'DELETE') {
+        await tx.dailyLogEntry.deleteMany({ where: { stylistProfileId } });
+      } else if (dailyLogsTarget) {
+        await tx.dailyLogEntry.updateMany({
+          where: { stylistProfileId },
+          data: { stylistProfileId: dailyLogsTarget },
+        });
+      }
+
+      if (dto.confirmedReservations.mode === 'DELETE') {
+        await tx.reservation.updateMany({
+          where: { confirmedStylistId: stylistProfileId },
+          data: { confirmedStylistId: null },
+        });
+      } else if (confirmedReservationsTarget) {
+        await tx.reservation.updateMany({
+          where: { confirmedStylistId: stylistProfileId },
+          data: { confirmedStylistId: confirmedReservationsTarget },
+        });
+      }
+
+      if (dto.reviews.mode === 'DELETE') {
+        await tx.review.deleteMany({ where: { stylistProfileId } });
+      } else if (reviewsTarget) {
+        await tx.review.updateMany({
+          where: { stylistProfileId },
+          data: { stylistProfileId: reviewsTarget },
+        });
+      }
+
+      if (dto.reservationResponses.mode === 'DELETE') {
+        await tx.reservationStylistResponse.deleteMany({
+          where: { stylistProfileId },
+        });
+      } else if (reservationResponsesTarget) {
+        const responses = await tx.reservationStylistResponse.findMany({
+          where: { stylistProfileId },
+          select: { id: true, reservationId: true },
+        });
+        for (const r of responses) {
+          const existsOnTarget = await tx.reservationStylistResponse.findUnique({
+            where: {
+              reservationId_stylistProfileId: {
+                reservationId: r.reservationId,
+                stylistProfileId: reservationResponsesTarget,
+              },
+            },
+            select: { id: true },
+          });
+          if (existsOnTarget) {
+            await tx.reservationStylistResponse.delete({ where: { id: r.id } });
+            continue;
+          }
+          await tx.reservationStylistResponse.update({
+            where: { id: r.id },
+            data: { stylistProfileId: reservationResponsesTarget },
+          });
+        }
+      }
+
+      const stylistRole = await tx.role.findUnique({
+        where: { name: 'STYLIST' },
+        select: { id: true },
+      });
+      if (stylistRole) {
+        await tx.userRole.deleteMany({
+          where: { userId, roleId: stylistRole.id },
+        });
+      }
+
+      await tx.stylistProfile.delete({ where: { id: stylistProfileId } });
+
+      return tx.user.findUnique({
+        where: { id: userId },
+        include: { userRoles: { include: { role: true } }, stylistProfile: true },
+      });
     });
   }
 

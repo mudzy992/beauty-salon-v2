@@ -14,6 +14,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
+import { RemoveStylistRoleDto } from './dto/remove-stylist-role.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -112,6 +113,27 @@ export class UsersController {
       fromDate,
       toDate,
     );
+  }
+
+  @Get(':id/stylist-removal-preview')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getStylistRemovalPreview(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.usersService.getStylistRemovalPreview(id, user.roles);
+  }
+
+  @Post(':id/remove-stylist-role')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  removeStylistRole(
+    @Param('id') id: string,
+    @Body() dto: RemoveStylistRoleDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.usersService.removeStylistRole(id, dto, user.roles);
   }
 
   @Post()
