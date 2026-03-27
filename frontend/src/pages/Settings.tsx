@@ -260,6 +260,26 @@ function SettingEditor({
     }
   };
 
+  const handleRemoveImage = async () => {
+    const current = (value || '').trim();
+    if (!current) return;
+    const shouldDeleteFromStorage =
+      !current.startsWith('http') && !current.startsWith('data:') && !current.startsWith('blob:');
+    setSaving(true);
+    try {
+      if (shouldDeleteFromStorage) {
+        await api.delete('/api/uploads/by-path-original', { data: { pathOriginal: current } });
+      }
+      await onSave(def.key, '', def.desc);
+      setEditing(false);
+      toast({ title: 'Slika uklonjena', status: 'success', duration: 2000, isClosable: true });
+    } catch {
+      toast({ title: 'Greška pri uklanjanju', status: 'error', isClosable: true });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleBooleanToggle = async (checked: boolean) => {
     setSaving(true);
     try {
@@ -441,6 +461,17 @@ function SettingEditor({
                     >
                       Upload
                     </Button>
+                    {value ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        colorScheme="red"
+                        onClick={handleRemoveImage}
+                        isLoading={saving}
+                      >
+                        Ukloni
+                      </Button>
+                    ) : null}
                   </HStack>
                   {value ? (
                     <Image

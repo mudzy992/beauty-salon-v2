@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -121,5 +121,36 @@ export class UploadsService {
       pathSmall: upload.pathSmall ?? undefined,
       pathMedium: upload.pathMedium ?? undefined,
     };
+  }
+
+  async deleteByPathOriginal(pathOriginal: string): Promise<{ deleted: boolean }> {
+    const normalized = (pathOriginal || '').trim().replace(/^\//, '');
+    if (!normalized) {
+      throw new BadRequestException('Putanja fajla nije validna.');
+    }
+
+    const upload = await this.prisma.upload.findFirst({
+      where: { pathOriginal: normalized },
+    });
+    if (!upload) throw new NotFoundException('Upload nije pronađen.');
+
+    const paths = [upload.pathOriginal, upload.pathThumb, upload.pathSmall, upload.pathMedium]
+      .filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
+      .map((p) => p.replace(/^\//, ''));
+
+    await Promise.all(
+      paths.map(async (p) => {
+        const abs = path.join(this.uploadRoot, p);
+        try {
+          await fs.unlink(abs);
+        } catch {
+          // ignore missing / already deleted
+        }
+      }),
+    );
+
+    await this.prisma.upload.delete({ where: { id: upload.id } });
+
+    return { deleted: true };
   }
 }

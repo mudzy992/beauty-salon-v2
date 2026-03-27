@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Delete,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -41,5 +42,10 @@ export class UploadsController {
     if (!file) throw new BadRequestException('Nijedna datoteka nije poslata.');
     const folder = entity && /^[a-z0-9_-]+$/.test(entity) ? entity : 'uploads';
     return this.uploadsService.saveFile(file, folder, user.sub);
+  }
+
+  @Delete('by-path-original')
+  async deleteByPathOriginal(@Body('pathOriginal') pathOriginal: string) {
+    return this.uploadsService.deleteByPathOriginal(pathOriginal);
   }
 }
