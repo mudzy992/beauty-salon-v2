@@ -9,6 +9,11 @@ datasource db {
   provider = "mysql"
 }
 
+enum Gender {
+  MALE
+  FEMALE
+}
+
 // ============ AUTH & USERS ============
 
 model User {
@@ -19,6 +24,7 @@ model User {
   firstName                  String    @map("first_name")
   lastName                   String    @map("last_name")
   phone                      String?
+  gender                     Gender?
   avatar                     String?
   isActive                   Boolean   @default(true) @map("is_active")
   isEmailVerified            Boolean   @default(false) @map("is_email_verified")
@@ -215,6 +221,7 @@ model Service {
   heroImage        String?  @map("hero_image")
   durationMinutes  Int      @map("duration_minutes")
   price            Decimal  @db.Decimal(10, 2)
+  gender           Gender   @default(FEMALE)
   isActive         Boolean  @default(true) @map("is_active")
   sortOrder        Int      @default(0) @map("sort_order")
   createdAt        DateTime @default(now()) @map("created_at")

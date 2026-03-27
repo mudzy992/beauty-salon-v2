@@ -48,6 +48,7 @@ interface ServiceOption {
   name: string;
   durationMinutes: number;
   price?: string;
+  gender: 'MALE' | 'FEMALE';
   shortDescription?: string;
   subcategory?: { name: string; category?: { name: string } };
 }
@@ -408,6 +409,10 @@ export default function PublicReserve() {
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0);
   const dateSectionRef = useRef<HTMLDivElement | null>(null);
+  const servicesForGender = useMemo(() => {
+    if (!user?.gender) return [];
+    return services.filter((service) => service.gender === user.gender);
+  }, [services, user?.gender]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -423,6 +428,10 @@ export default function PublicReserve() {
       navigate('/profil', { replace: true });
       return;
     }
+    if (!user?.gender) {
+      navigate('/profil', { replace: true });
+      return;
+    }
     api
       .get<ServiceOption[]>('/api/services', { params: { activeOnly: 'true' } })
       .then((r) => setServices(Array.isArray(r.data) ? r.data : []))
@@ -433,13 +442,14 @@ export default function PublicReserve() {
   useEffect(() => {
     if (loadingServices) return;
     if (selectedService) return;
+    if (!user?.gender) return;
     const serviceId = (searchParams.get('serviceId') ?? '').trim();
     if (!serviceId) return;
-    const match = services.find((s) => s.id === serviceId) ?? null;
+    const match = servicesForGender.find((s) => s.id === serviceId) ?? null;
     if (!match) return;
     setSelectedService(match);
     window.setTimeout(() => dateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-  }, [loadingServices, searchParams, services, selectedService]);
+  }, [loadingServices, searchParams, servicesForGender, selectedService, user?.gender]);
 
   const loadAvailability = useCallback((serviceId: string) => {
     setLoadingDates(true);
@@ -634,7 +644,7 @@ export default function PublicReserve() {
                   {t('public.reserve.selectService')}
                 </FormLabel>
                 <ServiceAutocomplete
-                  services={services}
+                  services={servicesForGender}
                   loading={loadingServices}
                   selected={selectedService}
                   onSelect={setSelectedService}

@@ -185,16 +185,42 @@ export class ServicesService {
     return { deleted: true };
   }
 
-  async findAllServices(subcategoryId?: string, activeOnly = false) {
+  async findAllServices(
+    subcategoryId?: string,
+    activeOnly = false,
+    pagination?: { page?: number; pageSize?: number },
+  ) {
     const where: Prisma.ServiceWhereInput = activeOnly
       ? { isActive: true }
       : {};
     if (subcategoryId) where.subcategoryId = subcategoryId;
-    return this.prisma.service.findMany({
-      where,
-      include: { subcategory: { include: { category: true } } },
-      orderBy: [{ subcategory: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
-    });
+    const hasPagination =
+      pagination?.page != null && pagination?.pageSize != null;
+    if (!hasPagination) {
+      return this.prisma.service.findMany({
+        where,
+        include: { subcategory: { include: { category: true } } },
+        orderBy: [{ subcategory: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
+      });
+    }
+    const page = Math.max(0, pagination?.page ?? 0);
+    const pageSize = Math.min(100, Math.max(1, pagination?.pageSize ?? 10));
+    const [items, total] = await Promise.all([
+      this.prisma.service.findMany({
+        where,
+        include: { subcategory: { include: { category: true } } },
+        orderBy: [{ subcategory: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
+        skip: page * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.service.count({ where }),
+    ]);
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+    };
   }
 
   async findOneService(id: string) {
@@ -220,6 +246,7 @@ export class ServicesService {
         heroImage: dto.heroImage,
         durationMinutes: dto.durationMinutes,
         price: new Prisma.Decimal(dto.price),
+        gender: dto.gender,
         isActive: dto.isActive ?? true,
         sortOrder: dto.sortOrder ?? 0,
         loyaltyEnabled: dto.loyaltyEnabled ?? false,
@@ -243,6 +270,7 @@ export class ServicesService {
           durationMinutes: dto.durationMinutes,
         }),
         ...(dto.price != null && { price: new Prisma.Decimal(dto.price) }),
+        ...(dto.gender != null && { gender: dto.gender }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         ...(dto.sortOrder != null && { sortOrder: dto.sortOrder }),
         ...(dto.loyaltyEnabled !== undefined && {

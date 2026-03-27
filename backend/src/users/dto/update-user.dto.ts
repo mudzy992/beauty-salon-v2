@@ -1,6 +1,7 @@
 import {
   IsBoolean,
   IsEmail,
+  IsIn,
   IsOptional,
   IsString,
   MinLength,
@@ -29,6 +30,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   phone?: string | null;
+
+  @IsOptional()
+  @IsIn(['MALE', 'FEMALE'])
+  gender?: 'MALE' | 'FEMALE' | null;
 
   @IsOptional()
   @IsString()

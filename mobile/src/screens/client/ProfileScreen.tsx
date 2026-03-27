@@ -69,12 +69,16 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const [verifySubmitting, setVerifySubmitting] = useState(false);
   const [emailInput, setEmailInput] = useState(user?.email ?? '');
   const [phoneInput, setPhoneInput] = useState(user?.phone ?? '');
+  const [genderInput, setGenderInput] = useState<'MALE' | 'FEMALE' | ''>(
+    user?.gender ?? '',
+  );
   const [profileSaving, setProfileSaving] = useState(false);
 
   useEffect(() => {
     setEmailInput(user?.email ?? '');
     setPhoneInput(user?.phone ?? '');
-  }, [user?.email, user?.phone]);
+    setGenderInput(user?.gender ?? '');
+  }, [user?.email, user?.phone, user?.gender]);
 
   const themeLabel = mode === 'light'
     ? t('profile.themeLight')
@@ -172,9 +176,17 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   }, [verifyCode, refreshProfile, t]);
 
   const handleSaveProfileContact = useCallback(async () => {
+    if (!genderInput) {
+      Alert.alert(t('common.error'), 'Spol je obavezan za rezervacije.');
+      return;
+    }
     setProfileSaving(true);
     try {
-      await api.put('/api/users/profile', { email: emailInput, phone: phoneInput });
+      await api.put('/api/users/profile', {
+        email: emailInput,
+        phone: phoneInput,
+        gender: genderInput,
+      });
       await refreshProfile();
       Alert.alert(t('common.ok'), 'Kontakt podaci su ažurirani.');
     } catch (err: unknown) {
@@ -186,7 +198,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
     } finally {
       setProfileSaving(false);
     }
-  }, [emailInput, phoneInput, refreshProfile, t]);
+  }, [emailInput, phoneInput, genderInput, refreshProfile, t]);
 
   return (
     <ScrollView
@@ -254,7 +266,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
         )}
       </Card>
 
-      {(!user?.phone || !user?.email || !user?.isEmailVerified) && (
+      {(!user?.phone || !user?.email || !user?.isEmailVerified || !user?.gender) && (
         <Card style={styles.menuCard}>
           <Text style={[styles.userName, { fontSize: 18, color: colors.text }]}>
             Dovršite profil
@@ -279,6 +291,37 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
             style={[styles.input, { color: colors.text, borderColor: colors.borderLight }]}
             placeholderTextColor={colors.textMuted}
           />
+          <Text style={[styles.genderLabel, { color: colors.textSecondary }]}>Spol</Text>
+          <View style={styles.genderRow}>
+            <TouchableOpacity
+              onPress={() => setGenderInput('FEMALE')}
+              style={[
+                styles.genderOption,
+                {
+                  borderColor:
+                    genderInput === 'FEMALE' ? colors.primary : colors.borderLight,
+                  backgroundColor:
+                    genderInput === 'FEMALE' ? colors.accent : 'transparent',
+                },
+              ]}
+            >
+              <Text style={{ color: colors.text }}>Žensko</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setGenderInput('MALE')}
+              style={[
+                styles.genderOption,
+                {
+                  borderColor:
+                    genderInput === 'MALE' ? colors.primary : colors.borderLight,
+                  backgroundColor:
+                    genderInput === 'MALE' ? colors.accent : 'transparent',
+                },
+              ]}
+            >
+              <Text style={{ color: colors.text }}>Muško</Text>
+            </TouchableOpacity>
+          </View>
           <Button
             title="Sačuvaj kontakt podatke"
             onPress={handleSaveProfileContact}
@@ -441,5 +484,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     marginTop: 8,
+  },
+  genderLabel: {
+    fontSize: 14,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  genderRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  genderOption: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
   },
 });

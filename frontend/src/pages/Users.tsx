@@ -31,6 +31,13 @@ interface UserRow {
   userRoles?: UserRole[];
 }
 
+interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 /** Uloge koje admin može ručno dodavati/uklanjati. STYLIST se dodjeljuje automatski u Stylists modulu. */
 const ROLES_MANAGED_IN_UI = ['SYSTEM_ADMIN', 'OWNER', 'CLIENT'] as const;
 const roleColorMap: Record<string, string> = {
@@ -51,6 +58,9 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(20);
+  const [total, setTotal] = useState(0);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
@@ -115,13 +125,29 @@ export default function Users() {
 
   const loadData = useCallback(() => {
     setLoading(true);
-    api.get<UserRow[]>('/api/users')
-      .then((r) => setUsers(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setUsers([]))
+    api
+      .get<UserRow[] | PaginatedResponse<UserRow>>('/api/users', {
+        params: { page, pageSize },
+      })
+      .then((r) => {
+        if (Array.isArray(r.data)) {
+          setUsers(r.data);
+          setTotal(r.data.length);
+          return;
+        }
+        setUsers(Array.isArray(r.data.items) ? r.data.items : []);
+        setTotal(r.data.total ?? 0);
+      })
+      .catch(() => {
+        setUsers([]);
+        setTotal(0);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, pageSize]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const getUserRoles = useCallback((u: UserRow): string[] => u.userRoles?.map((r) => r.role.name) ?? [], []);
   const sortedAndFilteredUsers = useMemo(() => {
@@ -148,6 +174,10 @@ export default function Users() {
       return a.username.localeCompare(b.username, 'bs');
     });
   }, [users, search, getUserRoles]);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  useEffect(() => {
+    setPage(0);
+  }, [search]);
 
   const openEdit = (u: UserRow) => {
     setEditUser(u);
@@ -553,6 +583,32 @@ export default function Users() {
           </Table>
         )}
       </Box>
+      <Flex justify="space-between" align="center" mt={4}>
+        <Text fontSize="sm" color="gray.500">
+          Ukupno: {total}
+        </Text>
+        <HStack>
+          <Button
+            size="sm"
+            variant="outline"
+            isDisabled={page <= 0}
+            onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+          >
+            Prethodna
+          </Button>
+          <Text fontSize="sm">
+            {page + 1} / {totalPages}
+          </Text>
+          <Button
+            size="sm"
+            variant="outline"
+            isDisabled={page >= totalPages - 1}
+            onClick={() => setPage((prev) => prev + 1)}
+          >
+            Sljedeća
+          </Button>
+        </HStack>
+      </Flex>
 
       {/* Edit User Modal - ALL fields editable */}
       <Modal isOpen={isOpen} onClose={onClose} size="lg">

@@ -6,6 +6,7 @@ interface User {
   username: string;
   email: string | null;
   phone: string | null;
+  gender: 'MALE' | 'FEMALE' | null;
   isEmailVerified: boolean;
   mustChangePassword: boolean;
   roles: string[];
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     username: string;
     email: string | null;
     phone?: string | null;
+    gender?: 'MALE' | 'FEMALE' | null;
     isEmailVerified?: boolean;
     mustChangePassword?: boolean;
     userRoles?: { role: { name: string } }[];
@@ -52,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       username: profile.username,
       email: profile.email ?? null,
       phone: profile.phone ?? null,
+      gender: profile.gender ?? null,
       isEmailVerified: profile.isEmailVerified ?? false,
       mustChangePassword: profile.mustChangePassword ?? false,
       roles,
@@ -64,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       username: string;
       email: string | null;
       phone?: string | null;
+      gender?: 'MALE' | 'FEMALE' | null;
       isEmailVerified?: boolean;
       mustChangePassword?: boolean;
       userRoles?: { role: { name: string } }[];
@@ -86,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         username: string;
         email: string | null;
         phone?: string | null;
+        gender?: 'MALE' | 'FEMALE' | null;
         isEmailVerified?: boolean;
         mustChangePassword?: boolean;
         userRoles?: { role: { name: string } }[];
@@ -111,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         username: string;
         email: string | null;
         phone?: string | null;
+        gender?: 'MALE' | 'FEMALE' | null;
         isEmailVerified?: boolean;
         mustChangePassword?: boolean;
         userRoles?: { role: { name: string } }[];

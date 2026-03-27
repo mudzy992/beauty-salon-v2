@@ -86,11 +86,20 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     })();
   }, []);
 
+  useEffect(() => {
+    if (user?.gender) return;
+    Alert.alert(
+      t('common.error'),
+      'Spol je obavezan za rezervacije. Molimo dopunite profil.',
+      [{ text: t('common.ok'), onPress: () => navigation.getParent()?.navigate('ProfileTab') }],
+    );
+  }, [navigation, t, user?.gender]);
+
   // Re-apply preselected service whenever route request changes (important for repeated entry from Home).
   useEffect(() => {
     if (!initialServiceId) return;
     const fromList = servicesById.get(initialServiceId);
-    if (fromList) {
+    if (fromList && (!user?.gender || fromList.gender === user.gender)) {
       setSelectedService(fromList);
       setSelectedDate(null);
       setSelectedSlot(null);
@@ -103,6 +112,10 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     (async () => {
       try {
         const { data } = await api.get<Service>(`/api/services/${initialServiceId}`);
+        if (user?.gender && data.gender !== user.gender) {
+          setStep(1);
+          return;
+        }
         setSelectedService(data);
         setSelectedDate(null);
         setSelectedSlot(null);
@@ -114,7 +127,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
         setStep(1);
       }
     })();
-  }, [initialServiceId, requestId, servicesById]);
+  }, [initialServiceId, requestId, servicesById, user?.gender]);
 
   // Load available dates when service is selected
   useEffect(() => {
@@ -150,14 +163,17 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   }, [selectedService, selectedDate]);
 
   const filteredServices = useMemo(() => {
-    if (!searchQuery.trim()) return services;
+    const servicesByGender = user?.gender
+      ? services.filter((service) => service.gender === user.gender)
+      : [];
+    if (!searchQuery.trim()) return servicesByGender;
     const q = searchQuery.toLowerCase();
-    return services.filter(
+    return servicesByGender.filter(
       (s) =>
         s.name.toLowerCase().includes(q) ||
         s.shortDescription?.toLowerCase().includes(q),
     );
-  }, [services, searchQuery]);
+  }, [services, searchQuery, user?.gender]);
 
   const markedDates = useMemo(() => {
     const marks: Record<string, { disabled?: boolean; disableTouchEvent?: boolean; selected?: boolean; selectedColor?: string; dotColor?: string; marked?: boolean }> = {};

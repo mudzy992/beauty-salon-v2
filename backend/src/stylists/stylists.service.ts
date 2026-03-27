@@ -13,26 +13,64 @@ import { CurrentUserPayload } from '../common/decorators/current-user.decorator'
 export class StylistsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(activeOnly = false) {
+  async findAll(
+    activeOnly = false,
+    pagination?: { page?: number; pageSize?: number },
+  ) {
     const where = activeOnly ? { isActive: true } : {};
-    return this.prisma.stylistProfile.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            avatar: true,
+    const hasPagination =
+      pagination?.page != null && pagination?.pageSize != null;
+    if (!hasPagination) {
+      return this.prisma.stylistProfile.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+            },
           },
+          workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
+          stylistServices: { include: { service: true } },
         },
-        workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
-        stylistServices: { include: { service: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+    const page = Math.max(0, pagination?.page ?? 0);
+    const pageSize = Math.min(100, Math.max(1, pagination?.pageSize ?? 10));
+    const [items, total] = await Promise.all([
+      this.prisma.stylistProfile.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              avatar: true,
+            },
+          },
+          workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
+          stylistServices: { include: { service: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: page * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.stylistProfile.count({ where }),
+    ]);
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+    };
   }
 
   async findOne(id: string, currentUser?: CurrentUserPayload) {

@@ -43,6 +43,13 @@ interface UserOption {
   lastName: string | null;
 }
 
+interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 const DAYS = ['Nedjelja', 'Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota'];
 
 export default function Stylists() {
@@ -51,6 +58,9 @@ export default function Stylists() {
   const [stylists, setStylists] = useState<StylistProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(20);
+  const [total, setTotal] = useState(0);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure();
@@ -69,18 +79,54 @@ export default function Stylists() {
 
   const loadData = useCallback(() => {
     setLoading(true);
-    api.get<StylistProfile[]>('/api/stylists')
-      .then((r) => setStylists(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setStylists([]))
+    api
+      .get<StylistProfile[] | PaginatedResponse<StylistProfile>>('/api/stylists', {
+        params: { page, pageSize },
+      })
+      .then((r) => {
+        if (Array.isArray(r.data)) {
+          setStylists(r.data);
+          setTotal(r.data.length);
+          return;
+        }
+        setStylists(Array.isArray(r.data.items) ? r.data.items : []);
+        setTotal(r.data.total ?? 0);
+      })
+      .catch(() => {
+        setStylists([]);
+        setTotal(0);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, pageSize]);
 
   const loadUsers = useCallback(() => {
-    api.get<UserOption[]>('/api/users').then((r) => setUsers(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+    api
+      .get<UserOption[] | PaginatedResponse<UserOption>>('/api/users', {
+        params: { page: 0, pageSize: 200 },
+      })
+      .then((r) => {
+        if (Array.isArray(r.data)) {
+          setUsers(r.data);
+          return;
+        }
+        setUsers(Array.isArray(r.data.items) ? r.data.items : []);
+      })
+      .catch(() => {});
   }, []);
 
   const loadAllServices = useCallback(() => {
-    api.get<ServiceOption[]>('/api/services').then((r) => setAllServices(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+    api
+      .get<ServiceOption[] | PaginatedResponse<ServiceOption>>('/api/services', {
+        params: { page: 0, pageSize: 300 },
+      })
+      .then((r) => {
+        if (Array.isArray(r.data)) {
+          setAllServices(r.data);
+          return;
+        }
+        setAllServices(Array.isArray(r.data.items) ? r.data.items : []);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => { loadData(); loadUsers(); loadAllServices(); }, [loadData, loadUsers, loadAllServices]);
@@ -251,6 +297,18 @@ export default function Stylists() {
           </Table>
         )}
       </Box>
+      <Flex justify="space-between" align="center" mt={4}>
+        <Text fontSize="sm" color="gray.500">Ukupno: {total}</Text>
+        <HStack>
+          <Button size="sm" variant="outline" isDisabled={page <= 0} onClick={() => setPage((prev) => Math.max(0, prev - 1))}>
+            Prethodna
+          </Button>
+          <Text fontSize="sm">{page + 1} / {Math.max(1, Math.ceil(total / pageSize))}</Text>
+          <Button size="sm" variant="outline" isDisabled={page >= Math.ceil(total / pageSize) - 1} onClick={() => setPage((prev) => prev + 1)}>
+            Sljedeća
+          </Button>
+        </HStack>
+      </Flex>
 
       {/* Create / Edit Stylist Modal */}
       <Modal isOpen={isOpen} onClose={onClose} size="lg">

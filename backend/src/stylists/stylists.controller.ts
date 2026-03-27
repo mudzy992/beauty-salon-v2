@@ -26,8 +26,15 @@ export class StylistsController {
 
   @Get()
   @Public()
-  findAll(@Query('activeOnly') activeOnly?: string) {
-    return this.stylistsService.findAll(activeOnly === 'true');
+  findAll(
+    @Query('activeOnly') activeOnly?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.stylistsService.findAll(activeOnly === 'true', {
+      page: page != null ? parseInt(page, 10) : undefined,
+      pageSize: pageSize != null ? parseInt(pageSize, 10) : undefined,
+    });
   }
 
   @Get('me')

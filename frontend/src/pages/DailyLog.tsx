@@ -55,6 +55,13 @@ interface ClientOption {
   lastName: string | null;
 }
 
+interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 type LoyaltyInfo = {
   enabled: boolean;
   hasAccount: boolean;
@@ -123,9 +130,30 @@ export default function DailyLog() {
   useEffect(() => { loadData(); }, [loadData]);
 
   useEffect(() => {
-    api.get<StylistOption[]>('/api/stylists').then((r) => setStylists(Array.isArray(r.data) ? r.data : [])).catch(() => {});
-    api.get<ServiceOption[]>('/api/services?activeOnly=true').then((r) => setServices(Array.isArray(r.data) ? r.data : [])).catch(() => {});
-    api.get<ClientOption[]>('/api/users').then((r) => setClients(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+    api
+      .get<StylistOption[] | PaginatedResponse<StylistOption>>('/api/stylists', {
+        params: { page: 0, pageSize: 200 },
+      })
+      .then((r) =>
+        setStylists(Array.isArray(r.data) ? r.data : Array.isArray(r.data.items) ? r.data.items : []),
+      )
+      .catch(() => {});
+    api
+      .get<ServiceOption[] | PaginatedResponse<ServiceOption>>('/api/services', {
+        params: { activeOnly: true, page: 0, pageSize: 300 },
+      })
+      .then((r) =>
+        setServices(Array.isArray(r.data) ? r.data : Array.isArray(r.data.items) ? r.data.items : []),
+      )
+      .catch(() => {});
+    api
+      .get<ClientOption[] | PaginatedResponse<ClientOption>>('/api/users', {
+        params: { page: 0, pageSize: 500 },
+      })
+      .then((r) =>
+        setClients(Array.isArray(r.data) ? r.data : Array.isArray(r.data.items) ? r.data.items : []),
+      )
+      .catch(() => {});
   }, []);
 
   const totalRevenue = entries.reduce((sum, e) => sum + Number(e.actualPrice || 0), 0);

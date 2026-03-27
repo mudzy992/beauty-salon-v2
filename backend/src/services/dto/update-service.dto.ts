@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  IsIn,
   Max,
   Min,
 } from 'class-validator';
@@ -38,6 +39,10 @@ export class UpdateServiceDto {
   @IsNumber()
   @Min(0)
   price?: number;
+
+  @IsOptional()
+  @IsIn(['MALE', 'FEMALE'])
+  gender?: 'MALE' | 'FEMALE';
 
   @IsOptional()
   @Type(() => Boolean)

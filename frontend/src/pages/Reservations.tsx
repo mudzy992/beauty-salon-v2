@@ -45,6 +45,13 @@ interface Reservation {
   loyaltyPointsUsed?: number;
 }
 
+interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 const STATUS_OPTIONS = [
   { value: '', label: 'Svi statusi' },
   { value: 'PENDING', label: 'Na čekanju' },
@@ -78,6 +85,9 @@ export default function Reservations() {
   const toast = useToast();
   const [items, setItems] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(20);
+  const [total, setTotal] = useState(0);
 
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
@@ -94,13 +104,27 @@ export default function Reservations() {
     if (fromDate) params.fromDate = fromDate;
     if (toDate) params.toDate = toDate;
     if (statusFilter) params.status = statusFilter;
-    api.get<Reservation[]>('/api/reservations', { params })
-      .then((r) => setItems(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setItems([]))
+    params.page = String(page);
+    params.pageSize = String(pageSize);
+    api.get<Reservation[] | PaginatedResponse<Reservation>>('/api/reservations', { params })
+      .then((r) => {
+        if (Array.isArray(r.data)) {
+          setItems(r.data);
+          setTotal(r.data.length);
+          return;
+        }
+        setItems(Array.isArray(r.data.items) ? r.data.items : []);
+        setTotal(r.data.total ?? 0);
+      })
+      .catch(() => {
+        setItems([]);
+        setTotal(0);
+      })
       .finally(() => setLoading(false));
-  }, [fromDate, toDate, statusFilter]);
+  }, [fromDate, toDate, statusFilter, page, pageSize]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { setPage(0); }, [fromDate, toDate, statusFilter]);
 
   useSocketEvent('reservation:created', useCallback(() => loadData(), [loadData]));
   useSocketEvent('reservation:updated', useCallback(() => loadData(), [loadData]));
@@ -278,6 +302,23 @@ export default function Reservations() {
           </Table>
         )}
       </Box>
+      <Flex justify="space-between" align="center" mt={4}>
+        <Text fontSize="sm" color="gray.500">Ukupno: {total}</Text>
+        <HStack>
+          <Button size="sm" variant="outline" isDisabled={page <= 0} onClick={() => setPage((prev) => Math.max(0, prev - 1))}>
+            Prethodna
+          </Button>
+          <Text fontSize="sm">{page + 1} / {Math.max(1, Math.ceil(total / pageSize))}</Text>
+          <Button
+            size="sm"
+            variant="outline"
+            isDisabled={page >= Math.ceil(total / pageSize) - 1}
+            onClick={() => setPage((prev) => prev + 1)}
+          >
+            Sljedeća
+          </Button>
+        </HStack>
+      </Flex>
 
       {/* Detail Modal */}
       <Modal isOpen={isOpen} onClose={onClose} size="xl">

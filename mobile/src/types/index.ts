@@ -5,6 +5,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phone?: string;
+  gender?: 'MALE' | 'FEMALE' | null;
   avatar?: string;
   isActive: boolean;
   isEmailVerified: boolean;
@@ -50,6 +51,7 @@ export interface Service {
   heroImage?: string;
   durationMinutes: number;
   price: number;
+  gender: 'MALE' | 'FEMALE';
   isActive: boolean;
   sortOrder: number;
   subcategory?: ServiceSubcategory;

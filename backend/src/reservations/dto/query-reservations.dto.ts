@@ -1,4 +1,11 @@
-import { IsOptional, IsDateString, IsIn, IsBoolean } from 'class-validator';
+import {
+  IsOptional,
+  IsDateString,
+  IsIn,
+  IsBoolean,
+  IsInt,
+  Min,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class QueryReservationsDto {
@@ -33,4 +40,16 @@ export class QueryReservationsDto {
   @Transform(({ value }) => value === 'true' || value === true)
   @IsBoolean()
   asStylist?: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => (value != null ? Number(value) : undefined))
+  @IsInt()
+  @Min(0)
+  page?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => (value != null ? Number(value) : undefined))
+  @IsInt()
+  @Min(1)
+  pageSize?: number;
 }

@@ -21,6 +21,13 @@ interface UserOption {
   userRoles?: { role: { name: string } }[];
 }
 
+interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 interface ManualEntry {
   id: string; date: string; actualPrice: string | number; tipAmount: string | number;
   isManual: boolean; notes: string | null; status: string;
@@ -83,6 +90,7 @@ export default function ClientAnalytics() {
   const [listLoading, setListLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState(searchParams.get('fromDate') ?? '');
   const [dateTo, setDateTo] = useState(searchParams.get('toDate') ?? '');
+  const [totalUsers, setTotalUsers] = useState(0);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [detailReservation, setDetailReservation] = useState<ClientAnalyticsData['reservations'][0] | null>(null);
@@ -90,11 +98,25 @@ export default function ClientAnalytics() {
 
   useEffect(() => {
     setListLoading(true);
-    api.get<UserOption[]>('/api/users')
-      .then((r) => setUsers(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setUsers([]))
+    api
+      .get<UserOption[] | PaginatedResponse<UserOption>>('/api/users', {
+        params: { page, pageSize: PAGE_SIZE },
+      })
+      .then((r) => {
+        if (Array.isArray(r.data)) {
+          setUsers(r.data);
+          setTotalUsers(r.data.length);
+          return;
+        }
+        setUsers(Array.isArray(r.data.items) ? r.data.items : []);
+        setTotalUsers(r.data.total ?? 0);
+      })
+      .catch(() => {
+        setUsers([]);
+        setTotalUsers(0);
+      })
       .finally(() => setListLoading(false));
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     const uid = searchParams.get('userId');
@@ -115,8 +137,7 @@ export default function ClientAnalytics() {
     );
   }, [users, search]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
-  const pagedUsers = filteredUsers.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(totalUsers / PAGE_SIZE));
 
   useEffect(() => { setPage(0); }, [search]);
 
@@ -196,9 +217,9 @@ export default function ClientAnalytics() {
                 <Tr><Th>Ime i Prezime</Th><Th>Email</Th><Th>Telefon</Th><Th>Uloge</Th><Th>Status</Th><Th>Registrovan</Th><Th textAlign="right">Akcije</Th></Tr>
               </Thead>
               <Tbody>
-                {pagedUsers.length === 0 ? (
+                {filteredUsers.length === 0 ? (
                   <Tr><Td colSpan={7}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
-                ) : pagedUsers.map((u) => (
+                ) : filteredUsers.map((u) => (
                   <Tr key={u.id} _hover={{ bg: 'gray.50' }}>
                     <Td fontWeight="medium">{getUserName(u)}</Td>
                     <Td>{u.email ?? '-'}</Td>
@@ -224,7 +245,7 @@ export default function ClientAnalytics() {
 
         {totalPages > 1 && (
           <Flex justify="space-between" align="center" mt={4}>
-            <Text fontSize="sm" color="gray.500">{filteredUsers.length} korisnika ukupno</Text>
+            <Text fontSize="sm" color="gray.500">{totalUsers} korisnika ukupno</Text>
             <HStack>
               <IconButton aria-label="Prethodna" icon={<ChevronLeftIcon />} size="sm" isDisabled={page === 0} onClick={() => setPage(page - 1)} />
               <Text fontSize="sm">{page + 1} / {totalPages}</Text>

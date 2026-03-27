@@ -20,6 +20,7 @@ import {
   useToast,
   List,
   ListItem,
+  Select,
 } from '@chakra-ui/react';
 import { CheckCircleIcon, WarningTwoIcon } from '@chakra-ui/icons';
 import api from '../api/client';
@@ -33,6 +34,7 @@ interface ProfileData {
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
+  gender: 'MALE' | 'FEMALE' | null;
   avatar: string | null;
   isActive: boolean;
   isEmailVerified: boolean;
@@ -52,6 +54,7 @@ export default function Profile() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState<'MALE' | 'FEMALE' | ''>('');
   const [avatar, setAvatar] = useState<string | null>(null);
   const [verifyToken, setVerifyToken] = useState('');
   const [usernameStatus, setUsernameStatus] = useState<{
@@ -79,6 +82,7 @@ export default function Profile() {
       setEmail(data.email ?? '');
       setInitialEmail(data.email ?? '');
       setPhone(data.phone ?? '');
+      setGender(data.gender ?? '');
       setAvatar(data.avatar ?? null);
     } finally {
       setLoading(false);
@@ -136,6 +140,11 @@ export default function Profile() {
   const handleSave = async (event: FormEvent) => {
     event.preventDefault();
     if (!user?.sub) return;
+    const isClient = (profile?.roles ?? []).includes('CLIENT');
+    if (isClient && !gender) {
+      toast({ title: 'Spol je obavezan za klijente.', status: 'warning', isClosable: true });
+      return;
+    }
     if (!username.trim()) {
       toast({ title: 'Korisničko ime je obavezno.', status: 'warning', isClosable: true });
       return;
@@ -153,6 +162,7 @@ export default function Profile() {
         lastName,
         email,
         phone,
+        gender: gender || null,
         avatar,
       });
       await refreshProfile();
@@ -302,6 +312,21 @@ export default function Profile() {
                       <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
                     </FormControl>
                   </SimpleGrid>
+                  {(profile?.roles ?? []).includes('CLIENT') && (
+                    <FormControl isRequired>
+                      <FormLabel>Spol</FormLabel>
+                      <Select
+                        value={gender}
+                        onChange={(event) =>
+                          setGender(event.target.value as 'MALE' | 'FEMALE' | '')
+                        }
+                      >
+                        <option value="">Odaberite spol</option>
+                        <option value="FEMALE">Žensko</option>
+                        <option value="MALE">Muško</option>
+                      </Select>
+                    </FormControl>
+                  )}
                   <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
                     <FormControl>
                       <FormLabel>Ime</FormLabel>

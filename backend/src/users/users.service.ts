@@ -15,6 +15,7 @@ import { CurrentUserPayload } from '../common/decorators/current-user.decorator'
 @Injectable()
 export class UsersService {
   private static readonly DEFAULT_INITIAL_PASSWORD = 'Init2026!';
+  private static readonly CLIENT_ROLE = 'CLIENT';
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -30,15 +31,45 @@ export class UsersService {
     });
   }
 
-  async findAll(roles: string[]) {
+  async findAll(
+    roles: string[],
+    pagination?: { page?: number; pageSize?: number },
+  ) {
     this.requireAdminOrOwner(roles);
-    return this.prisma.user.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        userRoles: { include: { role: true } },
-        stylistProfile: true,
-      },
-    });
+    const where = {};
+    const hasPagination =
+      pagination?.page != null && pagination?.pageSize != null;
+    if (!hasPagination) {
+      return this.prisma.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          userRoles: { include: { role: true } },
+          stylistProfile: true,
+        },
+      });
+    }
+    const page = Math.max(0, pagination?.page ?? 0);
+    const pageSize = Math.min(100, Math.max(1, pagination?.pageSize ?? 10));
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          userRoles: { include: { role: true } },
+          stylistProfile: true,
+        },
+        skip: page * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+    };
   }
 
   async findOne(id: string, currentUser: CurrentUserPayload) {
@@ -71,6 +102,7 @@ export class UsersService {
         firstName: true,
         lastName: true,
         phone: true,
+        gender: true,
         avatar: true,
         isActive: true,
         isEmailVerified: true,
@@ -109,6 +141,9 @@ export class UsersService {
       where: { name: dto.role },
     });
     if (!role) throw new NotFoundException(`Rola ${dto.role} nije pronađena.`);
+    if (dto.role === UsersService.CLIENT_ROLE && !dto.gender) {
+      throw new BadRequestException('Spol je obavezan za klijente.');
+    }
     const initialPassword = dto.password?.trim() || UsersService.DEFAULT_INITIAL_PASSWORD;
     const passwordHash = await bcrypt.hash(initialPassword, 10);
     const user = await this.prisma.user.create({
@@ -119,6 +154,7 @@ export class UsersService {
         firstName: dto.firstName,
         lastName: dto.lastName,
         phone: dto.phone ?? null,
+        gender: dto.gender ?? null,
         avatar: dto.avatar ?? null,
         mustChangePassword: true,
         isEmailVerified: false,
@@ -186,6 +222,19 @@ export class UsersService {
     }
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    const userWithRoles = await this.prisma.user.findUnique({
+      where: { id },
+      include: { userRoles: { include: { role: true } } },
+    });
+    if (!userWithRoles) throw new NotFoundException('Korisnik nije pronađen.');
+    const isClient = userWithRoles.userRoles.some(
+      (userRole) => userRole.role.name === UsersService.CLIENT_ROLE,
+    );
+    const nextGender =
+      dto.gender !== undefined ? dto.gender : user.gender ?? null;
+    if (isClient && !nextGender) {
+      throw new BadRequestException('Spol je obavezan za klijente.');
+    }
     if (dto.email && dto.email !== user.email) {
       const taken = await this.prisma.user.findUnique({
         where: { email: dto.email },
@@ -219,6 +268,7 @@ export class UsersService {
         }),
         ...(dto.username != null && { username: dto.username }),
         ...(dto.phone !== undefined && { phone: dto.phone || null }),
+        ...(dto.gender !== undefined && { gender: dto.gender }),
         ...(dto.avatar !== undefined && { avatar: dto.avatar }),
         ...(this.isAdminOrOwner(currentUser.roles) &&
           dto.isActive !== undefined && { isActive: dto.isActive }),
@@ -228,8 +278,19 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, dto: UpdateUserDto) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { userRoles: { include: { role: true } } },
+    });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    const isClient = user.userRoles.some(
+      (userRole) => userRole.role.name === UsersService.CLIENT_ROLE,
+    );
+    const nextGender =
+      dto.gender !== undefined ? dto.gender : user.gender ?? null;
+    if (isClient && !nextGender) {
+      throw new BadRequestException('Spol je obavezan za klijente.');
+    }
     if (dto.email !== undefined) {
       const nextEmail = dto.email?.trim();
       if (!nextEmail) throw new BadRequestException('Email je obavezan.');
@@ -251,6 +312,7 @@ export class UsersService {
           emailVerificationExpiresAt: null,
         }),
         ...(dto.phone !== undefined && { phone: dto.phone?.trim() || null }),
+        ...(dto.gender !== undefined && { gender: dto.gender }),
       },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
     });

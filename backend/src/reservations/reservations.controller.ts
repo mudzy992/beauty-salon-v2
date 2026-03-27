@@ -48,6 +48,8 @@ export class ReservationsController {
         status: query.status,
         asClient: query.asClient,
         asStylist: query.asStylist,
+        page: query.page,
+        pageSize: query.pageSize,
       },
       user,
     );

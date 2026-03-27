@@ -117,10 +117,16 @@ export class ServicesController {
   findAllServices(
     @Query('subcategoryId') subcategoryId?: string,
     @Query('activeOnly') activeOnly?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
     return this.servicesService.findAllServices(
       subcategoryId,
       activeOnly === 'true',
+      {
+        page: page != null ? parseInt(page, 10) : undefined,
+        pageSize: pageSize != null ? parseInt(pageSize, 10) : undefined,
+      },
     );
   }
 

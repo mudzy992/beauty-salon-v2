@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, type ChangeEvent } from 'react';
 import {
   Box, Heading, Table, Thead, Tbody, Tr, Th, Td, Spinner, Text,
   Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon,
@@ -7,6 +7,7 @@ import {
   FormLabel, Input, useToast, IconButton, Badge, Textarea, NumberInput,
   NumberInputField, NumberInputStepper, NumberIncrementStepper,
   NumberDecrementStepper, Switch, HStack, Image,
+  Select,
   useBreakpointValue,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +25,7 @@ interface Service {
   price: number | string;
   isActive: boolean;
   sortOrder: number;
+  gender: 'MALE' | 'FEMALE';
   loyaltyEnabled?: boolean;
   loyaltyMaxDiscountPercent?: number;
 }
@@ -67,6 +69,7 @@ export default function Services() {
     shortDescription: '',
     durationMinutes: 30,
     price: 0,
+    gender: 'FEMALE' as 'MALE' | 'FEMALE',
     sortOrder: 0,
     isActive: true,
     heroImage: '',
@@ -129,6 +132,7 @@ export default function Services() {
         shortDescription: svc.shortDescription ?? '',
         durationMinutes: svc.durationMinutes,
         price: Number(svc.price),
+        gender: svc.gender ?? 'FEMALE',
         sortOrder: svc.sortOrder,
         isActive: svc.isActive,
         heroImage: svc.heroImage ?? '',
@@ -142,6 +146,7 @@ export default function Services() {
         shortDescription: '',
         durationMinutes: 30,
         price: 0,
+        gender: 'FEMALE',
         sortOrder: 0,
         isActive: true,
         heroImage: '',
@@ -308,6 +313,7 @@ export default function Services() {
                           {!isMobile && <Th>Opis</Th>}
                           <Th isNumeric>Trajanje (min)</Th>
                           <Th isNumeric>Cijena (KM)</Th>
+                          <Th>Spol</Th>
                           <Th>Loyalty</Th>
                           <Th>Status</Th>
                           <Th textAlign="right">Akcije</Th>
@@ -320,6 +326,11 @@ export default function Services() {
                                 {!isMobile && <Td maxW="200px" isTruncated>{s.shortDescription ?? '-'}</Td>}
                                 <Td isNumeric>{s.durationMinutes}</Td>
                                 <Td isNumeric>{Number(s.price).toFixed(2)}</Td>
+                                <Td>
+                                  <Badge colorScheme={s.gender === 'MALE' ? 'blue' : 'pink'}>
+                                    {s.gender === 'MALE' ? 'Muško' : 'Žensko'}
+                                  </Badge>
+                                </Td>
                                 <Td>
                                   {s.loyaltyEnabled ? (
                                     <Badge colorScheme="purple">
@@ -456,6 +467,21 @@ export default function Services() {
                     </NumberInput>
                   </FormControl>
                 </Flex>
+                <FormControl mb={4} isRequired>
+                  <FormLabel>Spol servisa</FormLabel>
+                  <Select
+                    value={svcForm.gender}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                      setSvcForm({
+                        ...svcForm,
+                        gender: e.target.value as 'MALE' | 'FEMALE',
+                      })
+                    }
+                  >
+                    <option value="FEMALE">Žensko</option>
+                    <option value="MALE">Muško</option>
+                  </Select>
+                </FormControl>
                 <Flex gap={4} mb={4} direction={{ base: 'column', md: 'row' }}>
                   <FormControl flex={1}>
                     <FormLabel>Redoslijed</FormLabel>

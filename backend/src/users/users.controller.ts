@@ -28,8 +28,15 @@ export class UsersController {
   @Get()
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  findAll(@CurrentUser() user: CurrentUserPayload) {
-    return this.usersService.findAll(user.roles);
+  findAll(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.usersService.findAll(user.roles, {
+      page: page != null ? parseInt(page, 10) : undefined,
+      pageSize: pageSize != null ? parseInt(pageSize, 10) : undefined,
+    });
   }
 
   @Get('for-daily-log')

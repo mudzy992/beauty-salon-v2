@@ -1,4 +1,5 @@
 import {
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -24,6 +25,10 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  @IsIn(['MALE', 'FEMALE'])
+  @IsOptional()
+  gender?: 'MALE' | 'FEMALE';
 
   @IsString()
   @IsNotEmpty()

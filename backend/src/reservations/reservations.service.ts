@@ -146,6 +146,7 @@ export class ReservationsService {
         id: true,
         email: true,
         phone: true,
+        gender: true,
         isEmailVerified: true,
         mustChangePassword: true,
       },
@@ -162,6 +163,19 @@ export class ReservationsService {
     }
     if (!client.isEmailVerified) {
       throw new BadRequestException('EMAIL_NOT_VERIFIED');
+    }
+    if (!client.gender) {
+      throw new BadRequestException('GENDER_REQUIRED');
+    }
+    const selectedService = await this.prisma.service.findUnique({
+      where: { id: dto.serviceId },
+      select: { id: true, gender: true },
+    });
+    if (!selectedService) {
+      throw new NotFoundException('Servis nije pronađen.');
+    }
+    if (selectedService.gender !== client.gender) {
+      throw new BadRequestException('SERVICE_GENDER_MISMATCH');
     }
     await this.checkClientPenalty(clientId);
     const slots = await this.availability.getAvailableSlots(
@@ -284,6 +298,8 @@ export class ReservationsService {
       status?: string;
       asClient?: boolean;
       asStylist?: boolean;
+      page?: number;
+      pageSize?: number;
     },
     user: CurrentUserPayload,
   ) {
@@ -320,45 +336,67 @@ export class ReservationsService {
       }
     }
 
-    return this.prisma.reservation.findMany({
-      where,
-      include: {
-        service: {
-          select: {
-            id: true,
-            name: true,
-            durationMinutes: true,
-            price: true,
-            heroImage: true,
+    const include = {
+      service: {
+        select: {
+          id: true,
+          name: true,
+          durationMinutes: true,
+          price: true,
+          heroImage: true,
+        },
+      },
+      client: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          username: true,
+          cancellationCount: {
+            select: { cancellationCount: true, penaltyUntil: true },
+            take: 1,
           },
         },
-        client: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            username: true,
-            cancellationCount: {
-              select: { cancellationCount: true, penaltyUntil: true },
-              take: 1,
-            },
-          },
-        },
-        confirmedStylist: {
-          include: { user: { select: { firstName: true, lastName: true } } },
-        },
-        stylistResponses: {
-          include: {
-            stylistProfile: {
-              include: {
-                user: { select: { firstName: true, lastName: true } },
-              },
+      },
+      confirmedStylist: {
+        include: { user: { select: { firstName: true, lastName: true } } },
+      },
+      stylistResponses: {
+        include: {
+          stylistProfile: {
+            include: {
+              user: { select: { firstName: true, lastName: true } },
             },
           },
         },
       },
-      orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
-    });
+    } as const;
+    const hasPagination = query.page != null && query.pageSize != null;
+    if (!hasPagination) {
+      return this.prisma.reservation.findMany({
+        where,
+        include,
+        orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
+      });
+    }
+    const page = Math.max(0, query.page ?? 0);
+    const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 10));
+    const [items, total] = await Promise.all([
+      this.prisma.reservation.findMany({
+        where,
+        include,
+        orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
+        skip: page * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.reservation.count({ where }),
+    ]);
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+    };
   }
 
   async findOne(id: string, user: CurrentUserPayload) {
