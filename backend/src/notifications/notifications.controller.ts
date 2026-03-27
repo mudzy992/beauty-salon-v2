@@ -15,6 +15,8 @@ import { SetPreferenceDto } from './dto/set-preference.dto';
 import { RegisterPushTokenDto } from './dto/register-push-token.dto';
 import { SendTestEmailDto } from './dto/send-test-email.dto';
 import { TestSmtpConnectionDto } from './dto/test-smtp-connection.dto';
+import { CampaignAudienceDto } from './dto/campaign-audience.dto';
+import { SendCampaignDto } from './dto/send-campaign.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 
@@ -90,5 +92,22 @@ export class NotificationsController {
   @Roles('SYSTEM_ADMIN', 'OWNER')
   testSmtpConnection(@Body() _dto: TestSmtpConnectionDto) {
     return this.notifications.testSmtpConnection();
+  }
+
+  @Post('campaigns/audience')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getCampaignAudience(@Body() dto: CampaignAudienceDto) {
+    return this.notifications.getCampaignAudienceSummary(dto);
+  }
+
+  @Post('campaigns/send')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  sendCampaign(
+    @Body() dto: SendCampaignDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.notifications.sendCampaign(dto, user.sub);
   }
 }

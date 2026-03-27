@@ -1,9 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import {
-  Alert,
-  AlertDescription,
-  AlertIcon,
-  AlertTitle,
   Avatar,
   Badge,
   Box,
@@ -16,6 +12,8 @@ import {
   Heading,
   HStack,
   Input,
+  InputGroup,
+  InputRightElement,
   SimpleGrid,
   Text,
   VStack,
@@ -23,6 +21,7 @@ import {
   List,
   ListItem,
 } from '@chakra-ui/react';
+import { CheckCircleIcon, WarningTwoIcon } from '@chakra-ui/icons';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { getUploadUrl } from '../utils/uploadUrl';
@@ -48,6 +47,7 @@ export default function Profile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [username, setUsername] = useState('');
+  const [initialUsername, setInitialUsername] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -57,8 +57,9 @@ export default function Profile() {
   const [usernameStatus, setUsernameStatus] = useState<{
     loading: boolean;
     available: boolean | null;
+    isCurrentUsername: boolean;
     suggestions: string[];
-  }>({ loading: false, available: null, suggestions: [] });
+  }>({ loading: false, available: null, isCurrentUsername: false, suggestions: [] });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -72,6 +73,7 @@ export default function Profile() {
       const { data } = await api.get<ProfileData>('/api/users/profile');
       setProfile(data);
       setUsername(data.username ?? '');
+      setInitialUsername(data.username ?? '');
       setFirstName(data.firstName ?? '');
       setLastName(data.lastName ?? '');
       setEmail(data.email ?? '');
@@ -89,7 +91,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (!username.trim()) {
-      setUsernameStatus({ loading: false, available: null, suggestions: [] });
+      setUsernameStatus({ loading: false, available: null, isCurrentUsername: false, suggestions: [] });
       return;
     }
     const timeout = setTimeout(async () => {
@@ -101,10 +103,11 @@ export default function Profile() {
         setUsernameStatus({
           loading: false,
           available: !!data.available,
+          isCurrentUsername: !!data.isCurrentUsername,
           suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
         });
       } catch {
-        setUsernameStatus({ loading: false, available: null, suggestions: [] });
+        setUsernameStatus({ loading: false, available: null, isCurrentUsername: false, suggestions: [] });
       }
     }, 300);
     return () => clearTimeout(timeout);
@@ -200,8 +203,8 @@ export default function Profile() {
     try {
       await api.post('/auth/verify-email', { token: verifyToken });
       await refreshProfile();
+      await loadProfile();
       setVerifyToken('');
-      toast({ title: 'Email je verifikovan.', status: 'success', isClosable: true });
     } catch (error: any) {
       toast({ title: error?.response?.data?.message || 'Verifikacija nije uspjela.', status: 'error', isClosable: true });
     } finally {
@@ -268,7 +271,15 @@ export default function Profile() {
                       {usernameStatus.loading && (
                         <Text fontSize="xs" color="gray.500" mt={1}>Provjera korisničkog imena...</Text>
                       )}
-                      {!usernameStatus.loading && usernameStatus.available === true && (
+                      {!usernameStatus.loading &&
+                        usernameStatus.available === true &&
+                        (usernameStatus.isCurrentUsername || username.trim() === initialUsername.trim()) && (
+                        <Text fontSize="xs" color="blue.600" mt={1}>Ovo je vaše trenutno korisničko ime.</Text>
+                      )}
+                      {!usernameStatus.loading &&
+                        usernameStatus.available === true &&
+                        !usernameStatus.isCurrentUsername &&
+                        username.trim() !== initialUsername.trim() && (
                         <Text fontSize="xs" color="green.600" mt={1}>Korisničko ime je dostupno.</Text>
                       )}
                       {!usernameStatus.loading && usernameStatus.available === false && (
@@ -303,7 +314,17 @@ export default function Profile() {
                   </SimpleGrid>
                   <FormControl isRequired>
                     <FormLabel>Email</FormLabel>
-                    <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <InputGroup>
+                      <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                      <InputRightElement width="7rem">
+                        <Badge colorScheme={profile?.isEmailVerified ? 'green' : 'orange'} borderRadius="full" px={2} py={1}>
+                          <HStack spacing={1}>
+                            {profile?.isEmailVerified ? <CheckCircleIcon boxSize={3} /> : <WarningTwoIcon boxSize={3} />}
+                            <Text fontSize="10px">{profile?.isEmailVerified ? 'Verifikovan' : 'Neverifikovan'}</Text>
+                          </HStack>
+                        </Badge>
+                      </InputRightElement>
+                    </InputGroup>
                   </FormControl>
                   <Button
                     type="submit"
@@ -318,23 +339,6 @@ export default function Profile() {
               </form>
             </CardBody>
           </Card>
-
-          <Alert
-            status={profile?.isEmailVerified ? 'success' : 'warning'}
-            variant="subtle"
-            rounded="lg"
-            alignItems="start"
-          >
-            <AlertIcon mt={1} />
-            <Box>
-              <AlertTitle>Email verifikacija</AlertTitle>
-              <AlertDescription>
-                {profile?.isEmailVerified
-                  ? 'Email je verifikovan.'
-                  : 'Email nije verifikovan. Pošaljite kod i potvrdite email radi pune funkcionalnosti naloga.'}
-              </AlertDescription>
-            </Box>
-          </Alert>
 
           {!profile?.isEmailVerified && (
             <Card>

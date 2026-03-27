@@ -167,9 +167,11 @@ export class UsersService {
       select: { id: true },
     });
     const suggestions = await this.generateUsernameSuggestions(normalized, 3);
+    const isCurrentUsername = !!existing && existing.id === userId;
     return {
       username: normalized,
-      available: !existing || existing.id === userId,
+      available: !existing || isCurrentUsername,
+      isCurrentUsername,
       suggestions,
     };
   }

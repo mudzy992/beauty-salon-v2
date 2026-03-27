@@ -6,6 +6,8 @@ import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
+import { CampaignAudienceDto } from './dto/campaign-audience.dto';
+import { SendCampaignDto } from './dto/send-campaign.dto';
 
 export type NotificationChannel = 'PUSH' | 'EMAIL' | 'BOTH';
 export type NotificationType =
@@ -45,6 +47,22 @@ interface MailConfig {
   pool: boolean;
   maxConnections: number;
   maxMessages: number;
+}
+
+interface EmailTemplateConfig {
+  subject?: string;
+  title?: string;
+  intro?: string;
+  body?: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+  plainText?: string;
+}
+
+interface CampaignTemplateDefinition {
+  id: string;
+  name: string;
+  html: string;
 }
 
 @Injectable()
@@ -224,6 +242,100 @@ export class NotificationsService {
     return { ok: true, message: 'SMTP konekcija je uspješna.' };
   }
 
+  async getCampaignAudienceSummary(audience: CampaignAudienceDto) {
+    const users = await this.resolveCampaignAudienceUsers(audience);
+    return {
+      total: users.length,
+      sample: users.slice(0, 10).map((user) => ({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      })),
+    };
+  }
+
+  async sendCampaign(dto: SendCampaignDto, requestedByUserId: string) {
+    const campaignTemplates = await this.getCampaignTemplates();
+    const selectedTemplate = campaignTemplates.find(
+      (template) => template.id === dto.templateId,
+    );
+    if (!selectedTemplate) {
+      throw new NotFoundException('Kampanjski template nije pronađen.');
+    }
+    const recipients = await this.resolveCampaignAudienceUsers(dto.audience);
+    if (recipients.length === 0) {
+      return {
+        ok: true,
+        delivered: 0,
+        skipped: 0,
+        message: 'Nema korisnika koji odgovaraju odabranoj publici.',
+      };
+    }
+    const mailConfig = await this.resolveMailConfig();
+    if (!mailConfig) {
+      throw new NotFoundException(
+        'Email postavke nisu konfigurirane. Unesite SMTP podatke u admin panelu.',
+      );
+    }
+    const transporter = this.createSmtpTransporter(mailConfig);
+    const appUrl = await this.resolveAppBaseUrl();
+    const subject =
+      dto.subjectOverride?.trim() ||
+      dto.campaignName?.trim() ||
+      selectedTemplate.name ||
+      'Nova kampanja';
+    let delivered = 0;
+    let skipped = 0;
+    for (const user of recipients) {
+      if (!user.email) {
+        skipped += 1;
+        continue;
+      }
+      const personalizedHtml = this.applyCampaignVariables(selectedTemplate.html, {
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        username: user.username,
+        email: user.email,
+        appUrl,
+      });
+      await transporter.sendMail({
+        from: `"${mailConfig.fromName}" <${mailConfig.fromEmail}>`,
+        to: user.email,
+        subject,
+        text: this.convertHtmlToText(personalizedHtml),
+        html: personalizedHtml,
+        ...(mailConfig.replyTo ? { replyTo: mailConfig.replyTo } : {}),
+      });
+      delivered += 1;
+      if (dto.createInAppNotification ?? true) {
+        await this.prisma.notification.create({
+          data: {
+            userId: user.id,
+            title: subject,
+            body: dto.campaignName?.trim() || 'Nova email kampanja.',
+            type: 'general',
+            data: {
+              campaignTemplateId: dto.templateId,
+              tags: dto.tags || [],
+              source: 'email_campaign',
+              requestedByUserId,
+            },
+            channel: 'EMAIL',
+            isRead: false,
+          },
+        });
+      }
+    }
+    return {
+      ok: true,
+      delivered,
+      skipped,
+      totalTargeted: recipients.length,
+    };
+  }
+
   private async getEffectivePreferences(
     userId: string,
     type: NotificationType,
@@ -320,13 +432,18 @@ export class NotificationsService {
     const transporter = this.createSmtpTransporter(mailConfig);
     const greetingName = params.firstName?.trim() || 'korisniče';
     const subject = 'Verifikacija email adrese';
-    const plainText = `Poštovani ${greetingName}, vaš verifikacijski kod je ${params.code}. Kod važi 24 sata.`;
+    const template = await this.getEmailTemplateConfig('verification');
+    const plainText =
+      template.plainText ||
+      `Poštovani ${greetingName}, vaš verifikacijski kod je ${params.code}. Kod važi 24 sata.`;
     const appUrl = await this.resolveAppBaseUrl();
     const html = this.buildDefaultEmailTemplate({
-      title: 'Verifikacija email adrese',
-      intro: `Poštovani ${greetingName},`,
-      body: `Vaš verifikacijski kod je ${params.code}. Kod važi 24 sata.`,
-      ctaLabel: 'Otvori aplikaciju',
+      title: template.title || 'Verifikacija email adrese',
+      intro: template.intro || `Poštovani ${greetingName},`,
+      body:
+        template.body ||
+        `Vaš verifikacijski kod je ${params.code}. Kod važi 24 sata.`,
+      ctaLabel: template.ctaLabel || 'Otvori aplikaciju',
       ctaUrl: appUrl,
       codeBlock: params.code,
       signature: mailConfig.signature,
@@ -334,7 +451,7 @@ export class NotificationsService {
     await transporter.sendMail({
       from: `"${mailConfig.fromName}" <${mailConfig.fromEmail}>`,
       to: params.to,
-      subject,
+      subject: template.subject || subject,
       text: plainText,
       html,
       ...(mailConfig.replyTo ? { replyTo: mailConfig.replyTo } : {}),
@@ -406,19 +523,27 @@ export class NotificationsService {
       general:
         'Imate novu opću notifikaciju iz sistema.',
     };
-    const selectedCta = ctaByType[params.type];
+    const template = await this.getEmailTemplateConfig(params.type);
+    const selectedCta = {
+      label: template.ctaLabel || ctaByType[params.type].label,
+      url: template.ctaUrl || ctaByType[params.type].url,
+    };
     const reservationLine = reservationId ? `Referenca rezervacije: ${reservationId}.` : '';
-    const text = `Poštovani ${params.userName}, ${plainTextByType[params.type]} ${params.body} ${reservationLine} Detalji: ${selectedCta.url}`;
+    const text =
+      template.plainText ||
+      `Poštovani ${params.userName}, ${plainTextByType[params.type]} ${params.body} ${reservationLine} Detalji: ${selectedCta.url}`;
     const html = this.buildDefaultEmailTemplate({
-      title: params.title,
-      intro: `Poštovani ${params.userName},`,
-      body: `${params.body}${reservationLine ? ` ${reservationLine}` : ''}`,
+      title: template.title || params.title,
+      intro: template.intro || `Poštovani ${params.userName},`,
+      body:
+        template.body ||
+        `${params.body}${reservationLine ? ` ${reservationLine}` : ''}`,
       ctaLabel: selectedCta.label,
       ctaUrl: selectedCta.url,
       signature: params.signature,
     });
     return {
-      subject: params.title,
+      subject: template.subject || params.title,
       text,
       html,
     };
@@ -440,14 +565,108 @@ export class NotificationsService {
     const codeSection = params.codeBlock
       ? `<div style="display:inline-block;padding:12px 18px;border-radius:8px;background:#f3f4f6;font-size:24px;letter-spacing:4px;font-weight:700;margin:12px 0">${params.codeBlock}</div>`
       : '';
-    return `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827;max-width:640px">
-<h2 style="margin:0 0 12px">${params.title}</h2>
-<p style="margin:0 0 12px">${params.intro}</p>
-<p style="margin:0 0 12px">${params.body}</p>
+    return `<div style="margin:0;padding:24px;background:#f9f3f0;font-family:Arial,sans-serif;color:#2d1f1c">
+<div style="max-width:680px;margin:0 auto;background:#fff;border:1px solid #f2e7e2;border-radius:18px;overflow:hidden;box-shadow:0 12px 32px rgba(45,31,28,0.08)">
+<div style="padding:28px 32px;background:linear-gradient(135deg,#2d1f1c 0%,#7b4b3a 55%,#d4b098 100%);color:#fff">
+<div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:.92">Beauty Salon Premium</div>
+<h2 style="margin:10px 0 0;font-size:28px;line-height:1.2;font-weight:700">${params.title}</h2>
+</div>
+<div style="padding:30px 32px">
+<p style="margin:0 0 12px;font-size:16px">${params.intro}</p>
+<p style="margin:0 0 12px;font-size:15px;color:#4b3a35">${params.body}</p>
 ${codeSection}
 ${ctaSection}
-<p style="margin:24px 0 0;color:#6b7280;font-size:12px">${params.signature || 'Beauty Salon Nejra'}</p>
+<div style="margin-top:28px;padding-top:16px;border-top:1px solid #f2e7e2;color:#7e675f;font-size:12px">
+${params.signature || 'Beauty Salon Nejra'}
+</div>
+</div>
+</div>
 </div>`;
+  }
+
+  private async getEmailTemplateConfig(
+    key: NotificationType | 'verification',
+  ): Promise<EmailTemplateConfig> {
+    const raw = await this.getSettingValue(`system_email_template_${key}`);
+    if (!raw) return {};
+    try {
+      const parsed = JSON.parse(raw) as EmailTemplateConfig;
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private convertHtmlToText(html: string): string {
+    return html
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private applyCampaignVariables(
+    html: string,
+    data: {
+      firstName: string;
+      lastName: string;
+      username: string;
+      email: string;
+      appUrl: string;
+    },
+  ): string {
+    return html
+      .replace(/\{\{\s*firstName\s*\}\}/g, data.firstName)
+      .replace(/\{\{\s*lastName\s*\}\}/g, data.lastName)
+      .replace(/\{\{\s*username\s*\}\}/g, data.username)
+      .replace(/\{\{\s*email\s*\}\}/g, data.email)
+      .replace(/\{\{\s*appUrl\s*\}\}/g, data.appUrl);
+  }
+
+  private async getCampaignTemplates(): Promise<CampaignTemplateDefinition[]> {
+    const raw = await this.getSettingValue('system_email_campaign_templates');
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw) as CampaignTemplateDefinition[];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(
+        (item) =>
+          item &&
+          typeof item.id === 'string' &&
+          typeof item.name === 'string' &&
+          typeof item.html === 'string',
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  private async resolveCampaignAudienceUsers(audience: CampaignAudienceDto) {
+    const users = await this.prisma.user.findMany({
+      where: {
+        ...(audience.onlyActive ?? true ? { isActive: true } : {}),
+        ...(audience.onlyEmailVerified ?? false ? { isEmailVerified: true } : {}),
+        ...(audience.includeUserIds?.length
+          ? { id: { in: audience.includeUserIds } }
+          : {}),
+      },
+      include: {
+        userRoles: {
+          include: { role: true },
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }],
+    });
+    const roleFiltered = audience.roles?.length
+      ? users.filter((user) =>
+          user.userRoles.some((userRole) => audience.roles?.includes(userRole.role.name as 'SYSTEM_ADMIN' | 'OWNER' | 'STYLIST' | 'CLIENT')),
+        )
+      : users;
+    const excluded = audience.excludeUserIds?.length
+      ? roleFiltered.filter((user) => !audience.excludeUserIds?.includes(user.id))
+      : roleFiltered;
+    return excluded;
   }
 
   private async resolveAppBaseUrl(): Promise<string> {
