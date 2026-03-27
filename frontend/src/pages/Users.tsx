@@ -62,8 +62,23 @@ export default function Users() {
   const [editUser, setEditUser] = useState<UserRow | null>(null);
 
   const [formData, setFormData] = useState({
-    username: '', email: '', firstName: '', lastName: '', phone: '', isActive: true, avatar: '' as string | null,
+    username: '',
+    email: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    isActive: true,
+    avatar: '' as string | null,
   });
+  const [initialEmail, setInitialEmail] = useState<string>('');
+  const [initialUsername, setInitialUsername] = useState<string>('');
+  const [editIsUsernameManuallyEdited, setEditIsUsernameManuallyEdited] =
+    useState<boolean>(false);
+  const [editUsernameStatus, setEditUsernameStatus] = useState<{
+    loading: boolean;
+    available: boolean | null;
+    suggestions: string[];
+  }>({ loading: false, available: null, suggestions: [] });
 
   const [createData, setCreateData] = useState({
     username: '', firstName: '', lastName: '', role: 'CLIENT' as string, avatar: '' as string,
@@ -83,6 +98,20 @@ export default function Users() {
   const isMobile = useBreakpointValue({ base: true, lg: false }) ?? false;
   const avatarEditRef = useRef<HTMLInputElement>(null);
   const avatarCreateRef = useRef<HTMLInputElement>(null);
+
+  const normalizeUsernameFromNames = (first: string, last: string): string => {
+    const base = `${first}.${last}`
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9.\s]/g, '')
+      .trim()
+      .replace(/\s+/g, '.')
+      .replace(/\.+/g, '.')
+      .replace(/^\./, '')
+      .replace(/\.$/, '');
+    return base;
+  };
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -122,6 +151,7 @@ export default function Users() {
 
   const openEdit = (u: UserRow) => {
     setEditUser(u);
+    const baseUsername = normalizeUsernameFromNames(u.firstName ?? '', u.lastName ?? '');
     setFormData({
       username: u.username,
       email: u.email ?? '',
@@ -131,6 +161,12 @@ export default function Users() {
       isActive: u.isActive,
       avatar: u.avatar ?? null,
     });
+    setInitialEmail(u.email ?? '');
+    setInitialUsername(u.username ?? '');
+    setEditIsUsernameManuallyEdited(
+      !!u.username && baseUsername.trim().length > 0 && u.username.trim() !== baseUsername,
+    );
+    setEditUsernameStatus({ loading: false, available: null, suggestions: [] });
     onOpen();
   };
 
@@ -172,10 +208,28 @@ export default function Users() {
 
   const handleSave = async () => {
     if (!editUser) return;
+    const trimmedFirst = formData.firstName.trim();
+    const trimmedLast = formData.lastName.trim();
+    const trimmedUsername = formData.username.trim();
+    if (!trimmedFirst || !trimmedLast) {
+      toast({ title: 'Ime i prezime su obavezni.', status: 'warning', isClosable: true });
+      return;
+    }
+    if (!trimmedUsername) {
+      toast({ title: 'Korisničko ime je obavezno.', status: 'warning', isClosable: true });
+      return;
+    }
     setSaving(true);
     try {
+      const trimmedEmail = formData.email.trim();
+      const trimmedPhone = formData.phone.trim();
       await api.patch(`/api/users/${editUser.id}`, {
-        ...formData,
+        username: trimmedUsername,
+        firstName: trimmedFirst,
+        lastName: trimmedLast,
+        email: trimmedEmail ? trimmedEmail : null,
+        phone: trimmedPhone ? trimmedPhone : null,
+        isActive: formData.isActive,
         avatar: formData.avatar || null,
       });
       toast({ title: 'Korisnik ažuriran', status: 'success', isClosable: true });
@@ -187,6 +241,52 @@ export default function Users() {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (!editUser) return;
+    if (editIsUsernameManuallyEdited) return;
+    const baseUsername = normalizeUsernameFromNames(
+      formData.firstName,
+      formData.lastName,
+    );
+    if (!baseUsername) return;
+    if (baseUsername.trim() === formData.username.trim()) return;
+    setFormData((prev) => ({ ...prev, username: baseUsername }));
+  }, [
+    editUser,
+    editIsUsernameManuallyEdited,
+    formData.firstName,
+    formData.lastName,
+  ]);
+
+  useEffect(() => {
+    if (!editUser) return;
+    const username = formData.username.trim();
+    if (!username) {
+      setEditUsernameStatus({ loading: false, available: null, suggestions: [] });
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      setEditUsernameStatus((prev) => ({ ...prev, loading: true }));
+      try {
+        const { data } = await api.get('/api/users/username-availability', {
+          params: { username },
+        });
+        setEditUsernameStatus({
+          loading: false,
+          available: !!data.available,
+          suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
+        });
+      } catch {
+        setEditUsernameStatus({
+          loading: false,
+          available: null,
+          suggestions: [],
+        });
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [editUser, formData.username]);
 
   const handleCreate = async () => {
     if (!createData.firstName || !createData.lastName || !createData.role) {
@@ -464,19 +564,78 @@ export default function Users() {
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
               <FormControl flex={1}>
                 <FormLabel>Korisničko ime</FormLabel>
-                <Input value={formData.username} onChange={(e) => setFormData({ ...formData, username: e.target.value })} />
+                <Input
+                  value={formData.username}
+                  onChange={(e) => {
+                    setEditIsUsernameManuallyEdited(true);
+                    setFormData({ ...formData, username: e.target.value });
+                  }}
+                />
+                {editUsernameStatus.loading && (
+                  <Text fontSize="xs" color="gray.500" mt={1}>
+                    Provjera dostupnosti...
+                  </Text>
+                )}
+                {!editUsernameStatus.loading && editUsernameStatus.available === true && formData.username.trim() === initialUsername.trim() && (
+                  <Text fontSize="xs" color="blue.600" mt={1}>
+                    Trenutno korisničko ime
+                  </Text>
+                )}
+                {!editUsernameStatus.loading && editUsernameStatus.available === true && formData.username.trim() !== initialUsername.trim() && (
+                  <Text fontSize="xs" color="green.600" mt={1}>
+                    Korisničko ime je dostupno.
+                  </Text>
+                )}
+                {!editUsernameStatus.loading && editUsernameStatus.available === false && (
+                  <Text fontSize="xs" color="red.600" mt={1}>
+                    Korisničko ime nije dostupno.
+                  </Text>
+                )}
+                {editUsernameStatus.suggestions.length > 0 && editUsernameStatus.available === false && (
+                  <Alert status="info" mt={3}>
+                    <AlertIcon />
+                    <HStack spacing={2} flexWrap="wrap">
+                      <Text fontSize="sm">Prijedlozi:</Text>
+                      {editUsernameStatus.suggestions.map((item) => (
+                        <Button
+                          key={item}
+                          size="xs"
+                          onClick={() => {
+                            setEditIsUsernameManuallyEdited(true);
+                            setFormData({ ...formData, username: item });
+                          }}
+                        >
+                          {item}
+                        </Button>
+                      ))}
+                    </HStack>
+                  </Alert>
+                )}
               </FormControl>
               <FormControl flex={1}>
-                <FormLabel>Email</FormLabel>
-                <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+                <Flex align="center" gap={3}>
+                  <FormLabel mb="0">Email</FormLabel>
+                  {formData.email.trim().length > 0 && (
+                    <Badge colorScheme={formData.email.trim() === initialEmail.trim() && !!editUser?.isEmailVerified ? 'green' : 'orange'}>
+                      {formData.email.trim() === initialEmail.trim() && !!editUser?.isEmailVerified
+                        ? 'Verifikovan'
+                        : 'Nije verifikovan'}
+                    </Badge>
+                  )}
+                </Flex>
+                <Input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
               </FormControl>
             </SimpleGrid>
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-              <FormControl flex={1}>
+              <FormControl flex={1} isRequired>
                 <FormLabel>Ime</FormLabel>
                 <Input value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
               </FormControl>
-              <FormControl flex={1}>
+              <FormControl flex={1} isRequired>
                 <FormLabel>Prezime</FormLabel>
                 <Input value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
               </FormControl>
