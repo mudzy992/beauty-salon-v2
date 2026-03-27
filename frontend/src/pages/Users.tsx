@@ -30,6 +30,7 @@ interface UserRow {
   isEmailVerified: boolean;
   createdAt: string;
   userRoles?: UserRole[];
+  stylistProfile?: { id: string; status?: string | null } | null;
 }
 
 interface PaginatedResponse<T> {
@@ -659,6 +660,19 @@ export default function Users() {
             <TagLabel>
               {roleName}
               {roleName === 'STYLIST' ? ' (Stylists)' : ''}
+              {roleName === 'STYLIST' && String(u.stylistProfile?.status ?? '').toUpperCase() === 'PENDING' && (
+                <>
+                  {' '}•{' '}
+                  <Button
+                    variant="link"
+                    size="xs"
+                    colorScheme="orange"
+                    onClick={() => navigate('/admin/stylists')}
+                  >
+                    profil nije završen
+                  </Button>
+                </>
+              )}
             </TagLabel>
             {canRemoveRole(roleName) ? (
               <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
@@ -703,7 +717,23 @@ export default function Users() {
         <Flex gap={1} flexWrap="wrap" align="center">
           {getUserRoles(u).map((roleName) => (
             <Tag key={roleName} size="sm" colorScheme={roleColorMap[roleName] ?? 'gray'}>
-              <TagLabel>{roleName}{roleName === 'STYLIST' ? ' (Stylists)' : ''}</TagLabel>
+              <TagLabel>
+                {roleName}
+                {roleName === 'STYLIST' ? ' (Stylists)' : ''}
+                {roleName === 'STYLIST' && String(u.stylistProfile?.status ?? '').toUpperCase() === 'PENDING' && (
+                  <>
+                    {' '}•{' '}
+                    <Button
+                      variant="link"
+                      size="xs"
+                      colorScheme="orange"
+                      onClick={() => navigate('/admin/stylists')}
+                    >
+                      profil nije završen
+                    </Button>
+                  </>
+                )}
+              </TagLabel>
               {canRemoveRole(roleName) ? (
                 <TagCloseButton onClick={() => handleRemoveRole(u.id, roleName)} />
               ) : null}
