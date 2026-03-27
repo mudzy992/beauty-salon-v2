@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useEffect, useMemo, useState, FormEvent } from 'react';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -28,10 +28,37 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
-  const { login } = useAuth();
+  const { login, token, user, isReady } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const fallbackRedirect = useMemo(() => {
+    const roles = user?.roles ?? [];
+    const isAdmin = roles.includes('SYSTEM_ADMIN') || roles.includes('OWNER');
+    return isAdmin ? '/admin' : '/';
+  }, [user?.roles]);
+
+  useEffect(() => {
+    if (!isReady) return;
+    if (!token) return;
+    navigate(fallbackRedirect, { replace: true });
+  }, [isReady, token, navigate, fallbackRedirect]);
+
+  const resolveFrom = (fromState: unknown): string | null => {
+    if (typeof fromState === 'string') {
+      return fromState.startsWith('/') ? fromState : null;
+    }
+    if (fromState && typeof fromState === 'object') {
+      const anyObj = fromState as { pathname?: unknown; search?: unknown; hash?: unknown };
+      const pathname = typeof anyObj.pathname === 'string' ? anyObj.pathname : '';
+      if (!pathname.startsWith('/')) return null;
+      const search = typeof anyObj.search === 'string' ? anyObj.search : '';
+      const hash = typeof anyObj.hash === 'string' ? anyObj.hash : '';
+      return `${pathname}${search}${hash}`;
+    }
+    return null;
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -58,8 +85,9 @@ export default function Login() {
     }
 
     const from = (location.state as { from?: string } | null)?.from;
-    if (from && from.startsWith('/')) {
-      navigate(from, { replace: true });
+    const resolvedFrom = resolveFrom(from);
+    if (resolvedFrom) {
+      navigate(resolvedFrom, { replace: true });
       return;
     }
     const isAdmin = loggedInUser.roles.includes('SYSTEM_ADMIN') || loggedInUser.roles.includes('OWNER');
