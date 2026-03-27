@@ -64,7 +64,6 @@ export default function Stylists() {
   const [total, setTotal] = useState(0);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure();
   const [editId, setEditId] = useState<string | null>(null);
   const [selectedStylist, setSelectedStylist] = useState<StylistProfile | null>(null);
 
@@ -134,12 +133,18 @@ export default function Stylists() {
 
   const openCreateForm = () => {
     setEditId(null);
+    setSelectedStylist(null);
     setForm({ userId: '', bio: '', specialization: '', isActive: true, hireDate: '', serviceIds: [] });
+    setWorkingHours(Array.from({ length: 7 }, (_, i) => ({
+      dayOfWeek: i, startTime: '09:00', endTime: '17:00', isWorkingDay: i >= 1 && i <= 5,
+    })));
+    setStylistServiceIds([]);
     onOpen();
   };
 
-  const openEditForm = (s: StylistProfile) => {
+  const openEditForm = async (s: StylistProfile) => {
     setEditId(s.id);
+    setSelectedStylist(s);
     setForm({
       userId: s.userId,
       bio: s.bio ?? '',
@@ -148,17 +153,30 @@ export default function Stylists() {
       hireDate: s.hireDate?.slice(0, 10) ?? '',
       serviceIds: [],
     });
-    api
-      .get<{ serviceId: string }[]>(`/api/stylists/${s.id}/services`)
-      .then((r) => {
-        const ids = Array.isArray(r.data) ? r.data.map((x: any) => x.serviceId ?? x.id).filter(Boolean) : [];
-        setForm((prev) => ({ ...prev, serviceIds: ids }));
-      })
-      .catch(() => {});
+    try {
+      const [whRes, svcRes] = await Promise.all([
+        api.get<WorkingHours[]>(`/api/stylists/${s.id}/working-hours`),
+        api.get<{ serviceId: string }[]>(`/api/stylists/${s.id}/services`),
+      ]);
+      const existing = Array.isArray(whRes.data) ? whRes.data : [];
+      const full: WorkingHours[] = Array.from({ length: 7 }, (_, i) => {
+        const found = existing.find((w) => w.dayOfWeek === i);
+        return found ?? { dayOfWeek: i, startTime: '09:00', endTime: '17:00', isWorkingDay: i >= 1 && i <= 5 };
+      });
+      setWorkingHours(full);
+      const ids = Array.isArray(svcRes.data) ? svcRes.data.map((x: any) => x.serviceId ?? x.id).filter(Boolean) : [];
+      setStylistServiceIds(ids);
+      setForm((prev) => ({ ...prev, serviceIds: ids, specialization: allServices.filter((ss) => ids.includes(ss.id)).map((ss) => ss.name).join(', ') }));
+    } catch {
+      setWorkingHours(Array.from({ length: 7 }, (_, i) => ({
+        dayOfWeek: i, startTime: '09:00', endTime: '17:00', isWorkingDay: i >= 1 && i <= 5,
+      })));
+      setStylistServiceIds([]);
+    }
     onOpen();
   };
 
-  const handleSave = async () => {
+  const handleSaveAll = async () => {
     setSaving(true);
     try {
       const payload: Record<string, unknown> = {
@@ -167,13 +185,21 @@ export default function Stylists() {
         isActive: form.isActive,
       };
       if (form.hireDate) payload.hireDate = form.hireDate;
+      if (selectedStylist && String(selectedStylist.status ?? '').toUpperCase() === 'PENDING') {
+        payload.status = 'ACTIVE';
+      }
 
       if (editId) {
         await api.patch(`/api/stylists/${editId}`, payload);
+        await Promise.all([
+          api.post(`/api/stylists/${editId}/working-hours`, { workingHours }),
+          api.post(`/api/stylists/${editId}/services`, { serviceIds: stylistServiceIds }),
+        ]);
       } else {
         if (!form.userId) { toast({ title: 'Odaberite korisnika', status: 'warning', isClosable: true }); setSaving(false); return; }
         const createPayload: Record<string, unknown> = { ...payload, userId: form.userId };
-        if (form.serviceIds.length > 0) createPayload.serviceIds = form.serviceIds;
+        if (stylistServiceIds.length > 0) createPayload.serviceIds = stylistServiceIds;
+        createPayload.workingHours = workingHours;
         await api.post('/api/stylists', createPayload);
       }
       toast({ title: 'Sačuvano', status: 'success', isClosable: true });
@@ -186,69 +212,23 @@ export default function Stylists() {
     }
   };
 
-  const openDetail = async (s: StylistProfile) => {
-    setSelectedStylist(s);
-    try {
-      const [whRes, svcRes] = await Promise.all([
-        api.get<WorkingHours[]>(`/api/stylists/${s.id}/working-hours`),
-        api.get<{ serviceId: string }[]>(`/api/stylists/${s.id}/services`),
-      ]);
-      const existing = Array.isArray(whRes.data) ? whRes.data : [];
-      const full: WorkingHours[] = Array.from({ length: 7 }, (_, i) => {
-        const found = existing.find((w) => w.dayOfWeek === i);
-        return found ?? { dayOfWeek: i, startTime: '09:00', endTime: '17:00', isWorkingDay: i >= 1 && i <= 5 };
-      });
-      setWorkingHours(full);
-      const ids = Array.isArray(svcRes.data) ? svcRes.data.map((x: any) => x.serviceId ?? x.id) : [];
-      setStylistServiceIds(ids);
-    } catch {
-      setWorkingHours(Array.from({ length: 7 }, (_, i) => ({
-        dayOfWeek: i, startTime: '09:00', endTime: '17:00', isWorkingDay: i >= 1 && i <= 5,
-      })));
-      setStylistServiceIds([]);
-    }
-    onDetailOpen();
-  };
-
   const updateWH = (day: number, field: keyof WorkingHours, value: string | boolean) => {
     setWorkingHours((prev) => prev.map((w) => (w.dayOfWeek === day ? { ...w, [field]: value } : w)));
-  };
-
-  const handleSaveWorkingHours = async () => {
-    if (!selectedStylist) return;
-    setSaving(true);
-    try {
-      await api.post(`/api/stylists/${selectedStylist.id}/working-hours`, { workingHours });
-      toast({ title: 'Radno vrijeme sačuvano', status: 'success', isClosable: true });
-    } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveServices = async () => {
-    if (!selectedStylist) return;
-    setSaving(true);
-    try {
-      await api.post(`/api/stylists/${selectedStylist.id}/services`, { serviceIds: stylistServiceIds });
-      toast({ title: 'Kompetencije sačuvane', status: 'success', isClosable: true });
-    } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
-    } finally {
-      setSaving(false);
-    }
   };
 
   const toggleService = (svcId: string) => {
     setStylistServiceIds((prev) =>
       prev.includes(svcId) ? prev.filter((id) => id !== svcId) : [...prev, svcId]
     );
+    const nextIds = stylistServiceIds.includes(svcId)
+      ? stylistServiceIds.filter((id) => id !== svcId)
+      : [...stylistServiceIds, svcId];
+    const specNames = allServices.filter((s) => nextIds.includes(s.id)).map((s) => s.name);
+    setForm((prev) => ({ ...prev, specialization: specNames.join(', ') }));
   };
 
   const existingStylistUserIds = stylists.map((s) => s.userId);
   const availableUsers = users.filter((u) => !existingStylistUserIds.includes(u.id) || u.id === form.userId);
-  const selectedServices = allServices.filter((s) => form.serviceIds.includes(s.id));
   const unselectedServices = allServices.filter((s) => !form.serviceIds.includes(s.id));
 
   return (
@@ -280,7 +260,7 @@ export default function Stylists() {
                 <Tr><Td colSpan={6}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
               ) : (
                 stylists.map((s) => (
-                  <Tr key={s.id} cursor="pointer" _hover={{ bg: 'gray.50' }} onClick={() => openDetail(s)}>
+                  <Tr key={s.id} cursor="pointer" _hover={{ bg: 'gray.50' }} onClick={() => openEditForm(s)}>
                     <Td fontWeight="medium">
                       {s.user ? `${s.user.firstName ?? ''} ${s.user.lastName ?? ''} (${s.user.username})`.trim() : s.userId}
                     </Td>
@@ -327,144 +307,107 @@ export default function Stylists() {
         </HStack>
       </Flex>
 
-      {/* Create / Edit Stylist Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>{editId ? 'Uredi Stilistu' : 'Novi Stilista'}</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            {!editId && (
-              <FormControl mb={4} isRequired>
-                <FormLabel>Korisnik</FormLabel>
-                <Select placeholder="Odaberite korisnika" value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })}>
-                  {availableUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.username} ({u.email ?? 'bez emaila'})
-                    </option>
-                  ))}
-                </Select>
-              </FormControl>
-            )}
-            <FormControl mb={4}>
-              <FormLabel>Specijalizacija (odaberite servise)</FormLabel>
-              {selectedServices.length > 0 && (
-                <Box mb={2}>
-                  <Text fontSize="xs" color="gray.600" mb={1}>Odabrano</Text>
-                  <Wrap>
-                    {selectedServices.map((svc) => (
-                      <WrapItem key={svc.id}>
-                        <Tag size="sm" colorScheme="brand" variant="subtle">
-                          <TagLabel>{svc.name}</TagLabel>
-                        </Tag>
-                      </WrapItem>
-                    ))}
-                  </Wrap>
-                </Box>
-              )}
-              <VStack align="stretch" maxH="200px" overflowY="auto" border="1px" borderColor="gray.200" rounded="md" p={2}>
-                {allServices.length === 0 ? (
-                  <Text fontSize="sm" color="gray.500">Nema dostupnih servisa.</Text>
-                ) : unselectedServices.map((svc) => (
-                  <Checkbox
-                    key={svc.id}
-                    isChecked={form.serviceIds.includes(svc.id)}
-                    onChange={(e) => {
-                      const newIds = e.target.checked
-                        ? [...form.serviceIds, svc.id]
-                        : form.serviceIds.filter((id) => id !== svc.id);
-                      const specNames = allServices.filter((s) => newIds.includes(s.id)).map((s) => s.name);
-                      setForm({ ...form, serviceIds: newIds, specialization: specNames.join(', ') });
-                    }}
-                    colorScheme="brand"
-                    size="sm"
-                  >
-                    {svc.name}
-                  </Checkbox>
-                ))}
-              </VStack>
-              {form.specialization && (
-                <Text fontSize="xs" color="gray.500" mt={1}>Specijalizacija: {form.specialization}</Text>
-              )}
-            </FormControl>
-            <FormControl mb={4}>
-              <FormLabel>Bio</FormLabel>
-              <Textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} />
-            </FormControl>
-            <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
-              <FormControl flex={1}>
-                <FormLabel>Datum zaposlenja</FormLabel>
-                <Input type="date" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} />
-              </FormControl>
-              <FormControl flex={1} display="flex" alignItems="flex-end" pb={1}>
-                <FormLabel mb="0" mr={3}>Aktivan</FormLabel>
-                <Switch isChecked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} colorScheme="brand" />
-              </FormControl>
-            </Flex>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>{t('common.cancel')}</Button>
-            <Button colorScheme="brand" onClick={handleSave} isLoading={saving}>{t('common.save')}</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      {/* Detail Modal (Working hours + Services) */}
-      <Modal isOpen={isDetailOpen} onClose={onDetailClose} size="2xl">
+      {/* Unified Stylist Modal (Profile + Working hours + Services) */}
+      <Modal isOpen={isOpen} onClose={onClose} size="2xl">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>
-            {selectedStylist?.user
-              ? `${selectedStylist.user.firstName ?? ''} ${selectedStylist.user.lastName ?? ''} (${selectedStylist.user.username})`
-              : 'Detalji Stiliste'}
+            {editId ? 'Stilist profil' : 'Novi Stilista'}
+            {selectedStylist && String(selectedStylist.status ?? '').toUpperCase() === 'PENDING' && (
+              <Badge ml={3} colorScheme="yellow">Pending</Badge>
+            )}
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <Tabs>
               <TabList>
-                <Tab>Radno Vrijeme</Tab>
-                <Tab>Kompetencije (Servisi)</Tab>
+                <Tab>Profil</Tab>
+                <Tab>Radno vrijeme</Tab>
+                <Tab>Kompetencije</Tab>
               </TabList>
               <TabPanels>
                 <TabPanel>
-                  <Box overflowX="auto">
-                    <Table size="sm" mb={4}>
-                    <Thead>
-                      <Tr>
-                        <Th>Dan</Th>
-                        <Th>Radni dan</Th>
-                        <Th>Početak</Th>
-                        <Th>Kraj</Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {workingHours.map((wh) => (
-                        <Tr key={wh.dayOfWeek} opacity={wh.isWorkingDay ? 1 : 0.5}>
-                          <Td fontWeight="medium">{DAYS[wh.dayOfWeek]}</Td>
-                          <Td>
-                            <Switch isChecked={wh.isWorkingDay} onChange={(e) => updateWH(wh.dayOfWeek, 'isWorkingDay', e.target.checked)} colorScheme="brand" />
-                          </Td>
-                          <Td>
-                            <Input type="time" size="sm" w={{ base: 'full', md: '130px' }} value={wh.startTime} onChange={(e) => updateWH(wh.dayOfWeek, 'startTime', e.target.value)} isDisabled={!wh.isWorkingDay} />
-                          </Td>
-                          <Td>
-                            <Input type="time" size="sm" w={{ base: 'full', md: '130px' }} value={wh.endTime} onChange={(e) => updateWH(wh.dayOfWeek, 'endTime', e.target.value)} isDisabled={!wh.isWorkingDay} />
-                          </Td>
-                        </Tr>
-                      ))}
-                    </Tbody>
-                    </Table>
-                  </Box>
-                  <Button colorScheme="brand" onClick={handleSaveWorkingHours} isLoading={saving}>
-                    Sačuvaj Radno Vrijeme
-                  </Button>
+                  {!editId && (
+                    <FormControl mb={4} isRequired>
+                      <FormLabel>Korisnik</FormLabel>
+                      <Select placeholder="Odaberite korisnika" value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })}>
+                        {availableUsers.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.username} ({u.email ?? 'bez emaila'})
+                          </option>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  )}
+                  <FormControl mb={4}>
+                    <FormLabel>Specijalizacija (auto iz odabranih servisa)</FormLabel>
+                    <Input value={form.specialization} isReadOnly />
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      Specijalizacija se automatski generiše iz tab-a “Kompetencije”.
+                    </Text>
+                  </FormControl>
+                  <FormControl mb={4}>
+                    <FormLabel>Bio</FormLabel>
+                    <Textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} />
+                  </FormControl>
+                  <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
+                    <FormControl flex={1}>
+                      <FormLabel>Datum zaposlenja</FormLabel>
+                      <Input type="date" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} />
+                    </FormControl>
+                    <FormControl flex={1} display="flex" alignItems="flex-end" pb={1}>
+                      <FormLabel mb="0" mr={3}>Aktivan</FormLabel>
+                      <Switch isChecked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} colorScheme="brand" />
+                    </FormControl>
+                  </Flex>
                 </TabPanel>
                 <TabPanel>
-                  <Text fontSize="sm" color="gray.600" mb={3}>
-                    Označite servise koje ovaj stilista može obavljati:
-                  </Text>
+                  <Box overflowX="auto">
+                    <Table size="sm" mb={4}>
+                      <Thead>
+                        <Tr>
+                          <Th>Dan</Th>
+                          <Th>Radni dan</Th>
+                          <Th>Početak</Th>
+                          <Th>Kraj</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {workingHours.map((wh) => (
+                          <Tr key={wh.dayOfWeek} opacity={wh.isWorkingDay ? 1 : 0.5}>
+                            <Td fontWeight="medium">{DAYS[wh.dayOfWeek]}</Td>
+                            <Td>
+                              <Switch isChecked={wh.isWorkingDay} onChange={(e) => updateWH(wh.dayOfWeek, 'isWorkingDay', e.target.checked)} colorScheme="brand" />
+                            </Td>
+                            <Td>
+                              <Input type="time" size="sm" w={{ base: 'full', md: '130px' }} value={wh.startTime} onChange={(e) => updateWH(wh.dayOfWeek, 'startTime', e.target.value)} isDisabled={!wh.isWorkingDay} />
+                            </Td>
+                            <Td>
+                              <Input type="time" size="sm" w={{ base: 'full', md: '130px' }} value={wh.endTime} onChange={(e) => updateWH(wh.dayOfWeek, 'endTime', e.target.value)} isDisabled={!wh.isWorkingDay} />
+                            </Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  </Box>
+                </TabPanel>
+                <TabPanel>
+                  {stylistServiceIds.length > 0 && (
+                    <Box mb={2}>
+                      <Text fontSize="xs" color="gray.600" mb={1}>Odabrano</Text>
+                      <Wrap>
+                        {allServices.filter((s) => stylistServiceIds.includes(s.id)).map((svc) => (
+                          <WrapItem key={svc.id}>
+                            <Tag size="sm" colorScheme="brand" variant="subtle">
+                              <TagLabel>{svc.name}</TagLabel>
+                            </Tag>
+                          </WrapItem>
+                        ))}
+                      </Wrap>
+                    </Box>
+                  )}
                   <VStack align="stretch" spacing={2} maxH="400px" overflowY="auto">
-                    {allServices.map((svc) => (
+                    {unselectedServices.map((svc) => (
                       <Checkbox
                         key={svc.id}
                         isChecked={stylistServiceIds.includes(svc.id)}
@@ -483,15 +426,13 @@ export default function Stylists() {
                     ))}
                     {allServices.length === 0 && <Text color="gray.500" fontSize="sm">Nema dostupnih servisa.</Text>}
                   </VStack>
-                  <Button colorScheme="brand" mt={4} onClick={handleSaveServices} isLoading={saving}>
-                    Sačuvaj Kompetencije
-                  </Button>
                 </TabPanel>
               </TabPanels>
             </Tabs>
           </ModalBody>
           <ModalFooter>
-            <Button variant="ghost" onClick={onDetailClose}>Zatvori</Button>
+            <Button variant="ghost" mr={3} onClick={onClose}>{t('common.cancel')}</Button>
+            <Button colorScheme="brand" onClick={handleSaveAll} isLoading={saving}>{t('common.save')}</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

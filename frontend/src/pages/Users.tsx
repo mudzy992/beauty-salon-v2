@@ -52,6 +52,7 @@ interface StylistRemovalPreview {
 interface StylistOption {
   id: string;
   user?: { firstName?: string | null; lastName?: string | null; username?: string | null };
+  status?: 'PENDING' | 'ACTIVE' | string | null;
 }
 
 /** Uloge koje admin može ručno dodavati/uklanjati. */
@@ -68,7 +69,7 @@ export default function Users() {
   const [stylists, setStylists] = useState<UserRow[]>([]);
   const [clients, setClients] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [clientsSearch, setClientsSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(0);
   const [pageSize] = useState(20);
@@ -172,7 +173,7 @@ export default function Users() {
       api.get<UserRow[]>('/api/users/system-admins'),
       api.get<UserRow[]>('/api/users/stylists'),
       api.get<PaginatedResponse<UserRow>>('/api/users/clients', {
-        params: { page, pageSize },
+        params: { page, pageSize, q: clientsSearch.trim() || undefined },
       }),
     ])
       .then(([adminsRes, stylistsRes, clientsRes]) => {
@@ -188,7 +189,7 @@ export default function Users() {
         setTotal(0);
       })
       .finally(() => setLoading(false));
-  }, [page, pageSize]);
+  }, [page, pageSize, clientsSearch]);
 
   useEffect(() => {
     loadData();
@@ -196,23 +197,12 @@ export default function Users() {
 
   const getUserRoles = useCallback((u: UserRow): string[] => u.userRoles?.map((r) => r.role.name) ?? [], []);
   const groupedUsers = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const matches = (u: UserRow) => {
-      if (!q) return true;
-      return u.username.toLowerCase().includes(q) ||
-        (u.email?.toLowerCase().includes(q)) ||
-        (u.firstName?.toLowerCase().includes(q)) ||
-        (u.lastName?.toLowerCase().includes(q));
-    };
-    const administrators = admins.filter(matches);
-    const stylistsOnly = stylists.filter(matches);
-    const clientsOnly = clients.filter(matches);
-    return { administrators, stylists: stylistsOnly, clients: clientsOnly };
-  }, [admins, stylists, clients, search]);
+    return { administrators: admins, stylists, clients };
+  }, [admins, stylists, clients]);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   useEffect(() => {
     setPage(0);
-  }, [search]);
+  }, [clientsSearch]);
 
   const visiblePageNumbers = useMemo(() => {
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -551,6 +541,7 @@ export default function Users() {
       .map((s) => ({
         id: s.id,
         label: [s.user?.firstName, s.user?.lastName].filter(Boolean).join(' ') || s.user?.username || s.id,
+        isPending: String(s.status ?? '').toUpperCase() === 'PENDING',
       }));
   };
 
@@ -740,10 +731,6 @@ export default function Users() {
       <Flex justify="space-between" align="center" mb={6} wrap="wrap" gap={3}>
         <Heading size="lg">{t('nav.users')}</Heading>
         <Flex w={{ base: 'full', md: 'auto' }} gap={2} direction={{ base: 'column', sm: 'row' }}>
-          <InputGroup maxW={{ base: 'full', md: '250px' }}>
-            <InputLeftElement><SearchIcon color="gray.400" /></InputLeftElement>
-            <Input placeholder="Pretraži..." value={search} onChange={(e) => setSearch(e.target.value)} bg="white" />
-          </InputGroup>
           <Button
             leftIcon={<AddIcon />}
             colorScheme="brand"
@@ -784,10 +771,25 @@ export default function Users() {
             .map((section) => (
             <Box key={section.title} bg="white" rounded="lg" shadow="sm" overflow="hidden">
               <Flex justify="space-between" align="center" px={4} py={3} bg="gray.50">
-                <Text fontWeight="bold" color="gray.700">
-                  {section.title}
-                </Text>
-                <Badge colorScheme="gray">{section.items.length}</Badge>
+                <Flex align="center" gap={3} w="full" justify="space-between" flexWrap="wrap">
+                  <HStack>
+                    <Text fontWeight="bold" color="gray.700">
+                      {section.title}
+                    </Text>
+                    <Badge colorScheme="gray">{section.items.length}</Badge>
+                  </HStack>
+                  {section.title === 'KLIJENTI' && (
+                    <InputGroup maxW={{ base: 'full', md: '320px' }}>
+                      <InputLeftElement><SearchIcon color="gray.400" /></InputLeftElement>
+                      <Input
+                        placeholder="Pretraži klijente..."
+                        value={clientsSearch}
+                        onChange={(e) => setClientsSearch(e.target.value)}
+                        bg="white"
+                      />
+                    </InputGroup>
+                  )}
+                </Flex>
               </Flex>
               {isMobile ? (
                 <VStack align="stretch" spacing={3} p={3}>
@@ -921,9 +923,16 @@ export default function Users() {
                             onChange={(e) => setRemovalTargets((prev) => ({ ...prev, [row.key]: e.target.value }))}
                           >
                             {opts.map((o) => (
-                              <option key={o.id} value={o.id}>{o.label}</option>
+                              <option key={o.id} value={o.id} disabled={o.isPending}>
+                                {o.label}{o.isPending ? ' (PENDING - profil nije završen)' : ''}
+                              </option>
                             ))}
                           </Select>
+                          {opts.some((o) => o.isPending) && (
+                            <Text fontSize="xs" color="orange.600" mt={1}>
+                              Nije moguće prebacivanje na stilistu sa PENDING statusom. Prvo završite profil na stranici Stylists.
+                            </Text>
+                          )}
                         </FormControl>
                       )}
                       {mode === 'DELETE' && (

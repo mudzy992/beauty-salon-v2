@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -21,6 +22,10 @@ export class UpdateStylistProfileDto {
   @Type(() => Boolean)
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsIn(['PENDING', 'ACTIVE'])
+  status?: 'PENDING' | 'ACTIVE';
 
   @IsOptional()
   @IsString()

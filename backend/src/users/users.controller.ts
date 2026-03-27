@@ -47,11 +47,16 @@ export class UsersController {
     @CurrentUser() user: CurrentUserPayload,
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
+    @Query('q') q?: string,
   ) {
-    return this.usersService.findStrictClients(user.roles, {
-      page: page != null ? parseInt(page, 10) : undefined,
-      pageSize: pageSize != null ? parseInt(pageSize, 10) : undefined,
-    });
+    return this.usersService.findStrictClients(
+      user.roles,
+      {
+        page: page != null ? parseInt(page, 10) : undefined,
+        pageSize: pageSize != null ? parseInt(pageSize, 10) : undefined,
+      },
+      q,
+    );
   }
 
   @Get()

@@ -188,6 +188,7 @@ export class StylistsService {
     ) {
       throw new ForbiddenException('Nemate dozvolu za izmjenu ovog profila.');
     }
+    const shouldAllowAdminFields = this.isAdminOrOwner(currentUser.roles);
     await this.prisma.stylistProfile.update({
       where: { id },
       data: {
@@ -195,8 +196,15 @@ export class StylistsService {
         ...(dto.specialization !== undefined && {
           specialization: dto.specialization,
         }),
-        ...(this.isAdminOrOwner(currentUser.roles) &&
+        ...(shouldAllowAdminFields &&
           dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(shouldAllowAdminFields &&
+          dto.status !== undefined && {
+            status: dto.status,
+            ...(dto.status === 'ACTIVE' && dto.isActive === undefined
+              ? { isActive: true }
+              : {}),
+          }),
         ...(dto.hireDate !== undefined && {
           hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
         }),

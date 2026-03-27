@@ -105,13 +105,25 @@ export class UsersService {
   async findStrictClients(
     roles: string[],
     pagination?: { page?: number; pageSize?: number },
+    q?: string,
   ) {
     this.requireAdminOrOwner(roles);
+    const trimmed = (q ?? '').trim();
     const where = {
       userRoles: {
         some: { role: { name: 'CLIENT' } },
         none: { role: { name: { in: ['SYSTEM_ADMIN', 'STYLIST', 'OWNER'] } } },
       },
+      ...(trimmed
+        ? {
+            OR: [
+              { username: { contains: trimmed } },
+              { email: { contains: trimmed } },
+              { firstName: { contains: trimmed } },
+              { lastName: { contains: trimmed } },
+            ],
+          }
+        : {}),
     };
     const hasPagination =
       pagination?.page != null && pagination?.pageSize != null;
