@@ -24,6 +24,7 @@ import { HamburgerIcon } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
+import { getUploadUrl } from '../utils/uploadUrl';
 
 const publicNav = [
   { path: '/', labelKey: 'public.nav.home' },
@@ -39,6 +40,9 @@ export default function PublicLayout() {
   const { getSetting } = useSettings();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const location = useLocation();
+  const appLogo = getSetting('app_logo', '');
+  const appTitle = getSetting('app_title', t('app.title'));
+  const hasLogo = !!appLogo?.trim();
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
@@ -73,9 +77,20 @@ export default function PublicLayout() {
         <Container maxW="container.xl">
           <Flex align="center" justify="space-between" gap={4}>
             <Link as={RouterLink} to="/" _hover={{ textDecoration: 'none' }}>
-              <Heading size="md" color="brand.700">
-                {getSetting('app_title', t('app.title'))}
-              </Heading>
+              {hasLogo ? (
+                <Box>
+                  <Box
+                    as="img"
+                    src={getUploadUrl(appLogo)}
+                    alt={appTitle}
+                    style={{ height: 34, width: 'auto', objectFit: 'contain' }}
+                  />
+                </Box>
+              ) : (
+                <Heading size="md" color="brand.700">
+                  {appTitle}
+                </Heading>
+              )}
             </Link>
             <Flex align="center" gap={2} display={{ base: 'none', md: 'flex' }}>
               <NavLinks />
@@ -121,7 +136,7 @@ export default function PublicLayout() {
       <Drawer isOpen={isOpen} placement="right" onClose={onClose}>
         <DrawerOverlay />
         <DrawerContent>
-          <DrawerHeader>{t('app.title')}</DrawerHeader>
+          <DrawerHeader>{appTitle}</DrawerHeader>
           <DrawerBody>
             <VStack align="stretch" spacing={2}>
               <NavLinks onItemClick={onClose} />
@@ -200,7 +215,16 @@ export default function PublicLayout() {
             mb={6}
           >
             <Box textAlign={{ base: 'center', md: 'left' }}>
-              <Heading size="sm" mb={2}>{getSetting('app_title', t('app.title'))}</Heading>
+              {hasLogo ? (
+                <Box
+                  as="img"
+                  src={getUploadUrl(appLogo)}
+                  alt={appTitle}
+                  style={{ height: 28, width: 'auto', objectFit: 'contain' }}
+                />
+              ) : (
+                <Heading size="sm" mb={2}>{appTitle}</Heading>
+              )}
               {getSetting('public_footer_text', '') && (
                 <Box fontSize="sm" opacity={0.8} maxW="400px">
                   {getSetting('public_footer_text', '')}
@@ -244,7 +268,7 @@ export default function PublicLayout() {
             fontSize="sm"
             opacity={0.7}
           >
-            {getSetting('public_footer_copyright', `© ${new Date().getFullYear()} ${getSetting('app_title', t('app.title'))}. ${t('public.footer.rights')}.`)}
+            {getSetting('public_footer_copyright', `© ${new Date().getFullYear()} ${appTitle}. ${t('public.footer.rights')}.`)}
           </Box>
         </Container>
       </Box>

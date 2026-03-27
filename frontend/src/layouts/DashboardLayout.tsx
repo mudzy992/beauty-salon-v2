@@ -22,6 +22,7 @@ import {
   Text,
   Collapse,
   Icon,
+  Image,
 } from '@chakra-ui/react';
 import {
   HamburgerIcon,
@@ -39,6 +40,8 @@ import {
 } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
+import { getUploadUrl } from '../utils/uploadUrl';
 
 type NavItem = { path: string; labelKey: string };
 type NavEntry =
@@ -229,8 +232,12 @@ function SidebarNav({ onClose }: { onClose?: () => void }) {
 export default function DashboardLayout() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const { getSetting } = useSettings();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const location = useLocation();
+  const appLogo = getSetting('app_logo', '');
+  const appTitle = getSetting('app_title', t('app.title'));
+  const hasLogo = !!appLogo?.trim();
 
   const pathNames: Record<string, string> = {
     '/admin': t('nav.home'),
@@ -304,7 +311,17 @@ export default function DashboardLayout() {
             <Breadcrumb spacing={2} flex={1} minW={0}>
               <BreadcrumbItem>
                 <BreadcrumbLink as={RouterLink} to="/admin" whiteSpace="nowrap">
-                  {t('app.title')}
+                  {hasLogo ? (
+                    <Image
+                      src={getUploadUrl(appLogo)}
+                      alt={appTitle}
+                      h="22px"
+                      w="auto"
+                      objectFit="contain"
+                    />
+                  ) : (
+                    appTitle
+                  )}
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbItem minW={0}>

@@ -288,8 +288,11 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
     setRefreshing(false);
   }, [fetchData]);
 
+  const appLogo = getSettingValue(settings, 'app_logo', '');
+  const appTitle = getSettingValue(settings, 'app_title', t('home.heroTitle'));
+  const hasLogo = !!appLogo?.trim();
   const heroImageUrl = resolveHeroImageUrl(getSettingValue(settings, 'public_hero_image', ''));
-  const heroTitle = getSettingValue(settings, 'public_hero_title', t('home.heroTitle'));
+  const heroTitle = getSettingValue(settings, 'public_hero_title', appTitle);
   const heroSubtitle = getSettingValue(settings, 'public_hero_subtitle', t('home.heroSubtitle'));
   const servicesCountLabel = homeStats ? formatExactStatCount(homeStats.servicesCount) : '—';
   const clientsCountLabel = homeStats ? formatExactStatCount(homeStats.clientsCount) : '—';
@@ -340,19 +343,32 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                   </Text>
                 </Animated.View>
               ) : null}
-              <Animated.Text
-                entering={FadeInDown.delay(220).duration(520).springify()}
-                style={styles.heroTitle}
-              >
-                {heroTitle.replace(/\\n/g, '\n')}
-              </Animated.Text>
-              <Animated.Text
-                entering={FadeInDown.delay(360).duration(500).springify()}
-                style={styles.heroSubtitle}
-                numberOfLines={2}
-              >
-                {heroSubtitle}
-              </Animated.Text>
+              {hasLogo ? (
+                <Animated.View entering={FadeInDown.delay(220).duration(520).springify()}>
+                  <Image
+                    source={{ uri: getImageUrl(appLogo) || getUploadUrl(appLogo) || appLogo }}
+                    style={styles.heroLogo}
+                    contentFit="contain"
+                    accessibilityLabel={appTitle}
+                  />
+                </Animated.View>
+              ) : (
+                <>
+                  <Animated.Text
+                    entering={FadeInDown.delay(220).duration(520).springify()}
+                    style={styles.heroTitle}
+                  >
+                    {heroTitle.replace(/\\n/g, '\n')}
+                  </Animated.Text>
+                  <Animated.Text
+                    entering={FadeInDown.delay(360).duration(500).springify()}
+                    style={styles.heroSubtitle}
+                    numberOfLines={2}
+                  >
+                    {heroSubtitle}
+                  </Animated.Text>
+                </>
+              )}
               <Animated.View entering={FadeInDown.delay(520).duration(480).springify()} style={styles.heroCta}>
                 <Button
                   title={getSettingValue(settings, 'public_hero_cta_text', t('home.bookNow'))}
@@ -704,6 +720,10 @@ const styles = StyleSheet.create({
   },
   heroSparkLeft: { opacity: 0.9 },
   heroSparkRight: { opacity: 0.9, transform: [{ scaleX: -1 }] },
+  heroLogo: {
+    width: 220,
+    height: 90,
+  },
   heroTitle: {
     fontSize: 36,
     fontFamily: fontFamily.heading,

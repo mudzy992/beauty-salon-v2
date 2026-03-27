@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../api/client';
 import { useSettings } from '../context/SettingsContext';
 import { useSocketEvent } from '../context/SocketContext';
+import { getUploadUrl } from '../utils/uploadUrl';
 
 interface AppSetting {
   key: string;
@@ -127,6 +128,17 @@ const SETTING_GROUPS: SettingGroup[] = [
 
 const SYSTEM_GROUPS: SettingGroup[] = [
   {
+    label: 'Branding',
+    prefix: 'app_',
+    description: 'Logo i naziv aplikacije. Ako je logo postavljen, prikazuje se umjesto naziva na webu i u mobilnom hero-u.',
+    icon: StarIcon,
+    color: 'pink',
+    defaults: [
+      { key: 'app_title', desc: 'Naziv aplikacije', type: 'text', placeholder: 'Beauty Salon' },
+      { key: 'app_logo', desc: 'Logo aplikacije (upload ili URL)', type: 'image', placeholder: 'https://... ili upload' },
+    ],
+  },
+  {
     label: 'Rezervacije',
     prefix: 'system_reservation_',
     description: 'Sistemske postavke koje kontroliraju ponašanje rezervacijskog sistema.',
@@ -198,13 +210,17 @@ function SettingEditor({
   setting: AppSetting | undefined;
   onSave: (key: string, value: string, desc: string) => Promise<void>;
 }) {
+  const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(setting?.value ?? '');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const cardBg = useColorModeValue('white', 'gray.700');
 
   useEffect(() => {
     setValue(setting?.value ?? '');
+    setSelectedFile(null);
   }, [setting]);
 
   const handleSave = async () => {
@@ -219,7 +235,29 @@ function SettingEditor({
 
   const handleCancel = () => {
     setValue(setting?.value ?? '');
+    setSelectedFile(null);
     setEditing(false);
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('entity', 'branding');
+      const { data } = await api.post<{ pathOriginal: string }>('/api/uploads', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (!data?.pathOriginal) throw new Error('Upload failed');
+      setValue(data.pathOriginal);
+      setSelectedFile(null);
+      toast({ title: 'Logo uploadovan', status: 'success', duration: 2000, isClosable: true });
+    } catch {
+      toast({ title: 'Greška pri uploadu', status: 'error', isClosable: true });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleBooleanToggle = async (checked: boolean) => {
@@ -275,7 +313,7 @@ function SettingEditor({
               {hasValue && def.type === 'image' && setting?.value && (
                 <Box mt={2} mb={1}>
                   <Image
-                    src={setting.value}
+                    src={getUploadUrl(setting.value)}
                     alt={def.key}
                     maxH="80px"
                     rounded="md"
@@ -382,19 +420,44 @@ function SettingEditor({
                 mb={2}
                 autoFocus
               />
-              {def.type === 'image' && value && (
-                <Image
-                  src={value}
-                  alt="Preview"
-                  maxH="100px"
-                  rounded="md"
-                  objectFit="cover"
-                  fallback={
-                    <Box p={2} bg="red.50" rounded="md">
-                      <Text fontSize="xs" color="red.500">URL slike nije validan</Text>
-                    </Box>
-                  }
-                />
+              {def.type === 'image' && (
+                <Box>
+                  <HStack spacing={2} mb={2} align="center">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      bg="white"
+                      p={1}
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+                      isDisabled={uploading || saving}
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      colorScheme="brand"
+                      onClick={handleUpload}
+                      isLoading={uploading}
+                      isDisabled={!selectedFile}
+                    >
+                      Upload
+                    </Button>
+                  </HStack>
+                  {value ? (
+                    <Image
+                      src={getUploadUrl(value)}
+                      alt="Preview"
+                      maxH="100px"
+                      rounded="md"
+                      objectFit="contain"
+                      bg="gray.50"
+                      fallback={
+                        <Box p={2} bg="red.50" rounded="md">
+                          <Text fontSize="xs" color="red.500">Slika nije dostupna</Text>
+                        </Box>
+                      }
+                    />
+                  ) : null}
+                </Box>
               )}
             </Box>
           ) : (

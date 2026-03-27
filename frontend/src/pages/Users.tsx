@@ -70,6 +70,7 @@ export default function Users() {
   const [clients, setClients] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [clientsSearch, setClientsSearch] = useState('');
+  const [debouncedClientsSearch, setDebouncedClientsSearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [page, setPage] = useState(0);
   const [pageSize] = useState(20);
@@ -173,7 +174,7 @@ export default function Users() {
       api.get<UserRow[]>('/api/users/system-admins'),
       api.get<UserRow[]>('/api/users/stylists'),
       api.get<PaginatedResponse<UserRow>>('/api/users/clients', {
-        params: { page, pageSize, q: clientsSearch.trim() || undefined },
+        params: { page, pageSize, q: debouncedClientsSearch.trim() || undefined },
       }),
     ])
       .then(([adminsRes, stylistsRes, clientsRes]) => {
@@ -189,11 +190,18 @@ export default function Users() {
         setTotal(0);
       })
       .finally(() => setLoading(false));
-  }, [page, pageSize, clientsSearch]);
+  }, [page, pageSize, debouncedClientsSearch]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedClientsSearch(clientsSearch);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [clientsSearch]);
 
   const getUserRoles = useCallback((u: UserRow): string[] => u.userRoles?.map((r) => r.role.name) ?? [], []);
   const groupedUsers = useMemo(() => {
@@ -202,7 +210,7 @@ export default function Users() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   useEffect(() => {
     setPage(0);
-  }, [clientsSearch]);
+  }, [debouncedClientsSearch]);
 
   const visiblePageNumbers = useMemo(() => {
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
