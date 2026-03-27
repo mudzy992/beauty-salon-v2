@@ -73,6 +73,70 @@ export class UsersService {
     };
   }
 
+  async findSystemAdmins(roles: string[]) {
+    this.requireAdminOrOwner(roles);
+    return this.prisma.user.findMany({
+      where: {
+        userRoles: { some: { role: { name: 'SYSTEM_ADMIN' } } },
+      },
+      orderBy: [{ createdAt: 'desc' }],
+      include: {
+        userRoles: { include: { role: true } },
+        stylistProfile: true,
+      },
+    });
+  }
+
+  async findStylists(roles: string[]) {
+    this.requireAdminOrOwner(roles);
+    return this.prisma.user.findMany({
+      where: {
+        userRoles: { some: { role: { name: 'STYLIST' } } },
+        NOT: { userRoles: { some: { role: { name: 'SYSTEM_ADMIN' } } } },
+      },
+      orderBy: [{ createdAt: 'desc' }],
+      include: {
+        userRoles: { include: { role: true } },
+        stylistProfile: true,
+      },
+    });
+  }
+
+  async findStrictClients(
+    roles: string[],
+    pagination?: { page?: number; pageSize?: number },
+  ) {
+    this.requireAdminOrOwner(roles);
+    const where = {
+      userRoles: {
+        some: { role: { name: 'CLIENT' } },
+        none: { role: { name: { in: ['SYSTEM_ADMIN', 'STYLIST', 'OWNER'] } } },
+      },
+    };
+    const hasPagination =
+      pagination?.page != null && pagination?.pageSize != null;
+    if (!hasPagination) {
+      return this.prisma.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: { userRoles: { include: { role: true } }, stylistProfile: true },
+      });
+    }
+    const page = Math.max(0, pagination?.page ?? 0);
+    const pageSize = Math.min(100, Math.max(1, pagination?.pageSize ?? 10));
+    const [items, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: { userRoles: { include: { role: true } }, stylistProfile: true },
+        skip: page * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+    return { items, total, page, pageSize };
+  }
+
   async findOne(id: string, currentUser: CurrentUserPayload) {
     if (currentUser.sub !== id && !this.isAdminOrOwner(currentUser.roles)) {
       throw new ForbiddenException('Nemate dozvolu za pregled ovog korisnika.');

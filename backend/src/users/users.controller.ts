@@ -26,6 +26,34 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Get('system-admins')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findSystemAdmins(@CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.findSystemAdmins(user.roles);
+  }
+
+  @Get('stylists')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findStylists(@CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.findStylists(user.roles);
+  }
+
+  @Get('clients')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findClients(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.usersService.findStrictClients(user.roles, {
+      page: page != null ? parseInt(page, 10) : undefined,
+      pageSize: pageSize != null ? parseInt(pageSize, 10) : undefined,
+    });
+  }
+
   @Get()
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')

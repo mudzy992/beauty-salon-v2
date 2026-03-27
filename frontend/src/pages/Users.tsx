@@ -64,7 +64,9 @@ export default function Users() {
   const { t } = useTranslation();
   const toast = useToast();
   const navigate = useNavigate();
-  const [users, setUsers] = useState<UserRow[]>([]);
+  const [admins, setAdmins] = useState<UserRow[]>([]);
+  const [stylists, setStylists] = useState<UserRow[]>([]);
+  const [clients, setClients] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState(false);
@@ -166,21 +168,23 @@ export default function Users() {
 
   const loadData = useCallback(() => {
     setLoading(true);
-    api
-      .get<UserRow[] | PaginatedResponse<UserRow>>('/api/users', {
+    Promise.all([
+      api.get<UserRow[]>('/api/users/system-admins'),
+      api.get<UserRow[]>('/api/users/stylists'),
+      api.get<PaginatedResponse<UserRow>>('/api/users/clients', {
         params: { page, pageSize },
-      })
-      .then((r) => {
-        if (Array.isArray(r.data)) {
-          setUsers(r.data);
-          setTotal(r.data.length);
-          return;
-        }
-        setUsers(Array.isArray(r.data.items) ? r.data.items : []);
-        setTotal(r.data.total ?? 0);
+      }),
+    ])
+      .then(([adminsRes, stylistsRes, clientsRes]) => {
+        setAdmins(Array.isArray(adminsRes.data) ? adminsRes.data : []);
+        setStylists(Array.isArray(stylistsRes.data) ? stylistsRes.data : []);
+        setClients(Array.isArray(clientsRes.data.items) ? clientsRes.data.items : []);
+        setTotal(clientsRes.data.total ?? 0);
       })
       .catch(() => {
-        setUsers([]);
+        setAdmins([]);
+        setStylists([]);
+        setClients([]);
         setTotal(0);
       })
       .finally(() => setLoading(false));
@@ -200,22 +204,25 @@ export default function Users() {
         (u.firstName?.toLowerCase().includes(q)) ||
         (u.lastName?.toLowerCase().includes(q));
     };
-    const filtered = users.filter(matches);
-    const isSystemAdmin = (u: UserRow) => getUserRoles(u).includes('SYSTEM_ADMIN');
-    const isStylist = (u: UserRow) => getUserRoles(u).includes('STYLIST');
-    const isStrictClient = (u: UserRow) => {
-      const roles = getUserRoles(u);
-      return roles.length === 1 && roles[0] === 'CLIENT';
-    };
-    const administrators = filtered.filter(isSystemAdmin);
-    const stylists = filtered.filter((u) => !isSystemAdmin(u) && isStylist(u));
-    const clients = filtered.filter(isStrictClient);
-    return { administrators, stylists, clients };
-  }, [users, search, getUserRoles]);
+    const administrators = admins.filter(matches);
+    const stylistsOnly = stylists.filter(matches);
+    const clientsOnly = clients.filter(matches);
+    return { administrators, stylists: stylistsOnly, clients: clientsOnly };
+  }, [admins, stylists, clients, search]);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   useEffect(() => {
     setPage(0);
   }, [search]);
+
+  const visiblePageNumbers = useMemo(() => {
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const current = Math.min(totalPages - 1, Math.max(0, page));
+    const windowSize = 5;
+    const half = Math.floor(windowSize / 2);
+    const start = Math.max(0, Math.min(current - half, totalPages - windowSize));
+    const end = Math.min(totalPages, start + windowSize);
+    return { pages: Array.from({ length: end - start }, (_, i) => start + i), totalPages };
+  }, [page, pageSize, total]);
 
   const openEdit = (u: UserRow) => {
     setEditUser(u);
@@ -477,7 +484,7 @@ export default function Users() {
 
   const handleRemoveRole = async (userId: string, roleName: string) => {
     if (roleName === 'STYLIST') {
-      const u = users.find((x) => x.id === userId) ?? null;
+      const u = [...admins, ...stylists, ...clients].find((x) => x.id === userId) ?? null;
       setRemoveStylistUser(u);
       setRemovalPreview(null);
       setAllStylists([]);
@@ -772,7 +779,9 @@ export default function Users() {
               items: groupedUsers.clients,
               empty: 'Nema klijenata.',
             },
-          ] as const).map((section) => (
+          ] as const)
+            .filter((section) => section.items.length > 0)
+            .map((section) => (
             <Box key={section.title} bg="white" rounded="lg" shadow="sm" overflow="hidden">
               <Flex justify="space-between" align="center" px={4} py={3} bg="gray.50">
                 <Text fontWeight="bold" color="gray.700">
@@ -780,11 +789,7 @@ export default function Users() {
                 </Text>
                 <Badge colorScheme="gray">{section.items.length}</Badge>
               </Flex>
-              {section.items.length === 0 ? (
-                <Box p={4}>
-                  <Text color="gray.500">{section.empty}</Text>
-                </Box>
-              ) : isMobile ? (
+              {isMobile ? (
                 <VStack align="stretch" spacing={3} p={3}>
                   {section.items.map(renderMobileUserCard)}
                 </VStack>
@@ -815,7 +820,7 @@ export default function Users() {
       )}
       <Flex justify="space-between" align="center" mt={4}>
         <Text fontSize="sm" color="gray.500">
-          Ukupno: {total}
+          Klijenti ukupno: {total}
         </Text>
         <HStack>
           <Button
@@ -826,6 +831,33 @@ export default function Users() {
           >
             Prethodna
           </Button>
+          {visiblePageNumbers.pages[0] > 0 && (
+            <>
+              <Button size="sm" variant="ghost" onClick={() => setPage(0)}>1</Button>
+              {visiblePageNumbers.pages[0] > 1 && <Text fontSize="sm">…</Text>}
+            </>
+          )}
+          {visiblePageNumbers.pages.map((p) => (
+            <Button
+              key={p}
+              size="sm"
+              variant={p === page ? 'solid' : 'ghost'}
+              colorScheme={p === page ? 'brand' : undefined}
+              onClick={() => setPage(p)}
+            >
+              {p + 1}
+            </Button>
+          ))}
+          {visiblePageNumbers.totalPages - 1 > visiblePageNumbers.pages[visiblePageNumbers.pages.length - 1] && (
+            <>
+              {visiblePageNumbers.pages[visiblePageNumbers.pages.length - 1] < visiblePageNumbers.totalPages - 2 && (
+                <Text fontSize="sm">…</Text>
+              )}
+              <Button size="sm" variant="ghost" onClick={() => setPage(visiblePageNumbers.totalPages - 1)}>
+                {visiblePageNumbers.totalPages}
+              </Button>
+            </>
+          )}
           <Text fontSize="sm">
             {page + 1} / {totalPages}
           </Text>
