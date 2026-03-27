@@ -65,8 +65,22 @@ export default function EmailSettings() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rejectUnauthorized, setRejectUnauthorized] = useState(true);
+  const [requireTls, setRequireTls] = useState(false);
+  const [ignoreTls, setIgnoreTls] = useState(false);
+  const [connectionTimeoutMs, setConnectionTimeoutMs] = useState('10000');
+  const [greetingTimeoutMs, setGreetingTimeoutMs] = useState('10000');
+  const [socketTimeoutMs, setSocketTimeoutMs] = useState('20000');
+  const [pool, setPool] = useState(true);
+  const [maxConnections, setMaxConnections] = useState('5');
+  const [maxMessages, setMaxMessages] = useState('100');
   const [fromEmail, setFromEmail] = useState('');
   const [fromName, setFromName] = useState('Beauty Salon');
+  const [replyTo, setReplyTo] = useState('');
+  const [signature, setSignature] = useState('Beauty Salon Nejra');
+  const [publicAppUrl, setPublicAppUrl] = useState('');
+  const [testEmailTo, setTestEmailTo] = useState('');
+  const [sendingTest, setSendingTest] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
 
   const isCustomLike = useMemo(
     () => provider === 'custom' || provider === 'exchange',
@@ -99,8 +113,20 @@ export default function EmailSettings() {
       setUsername(setValueFromSettings(list, KEYS.username));
       setPassword(setValueFromSettings(list, KEYS.password));
       setRejectUnauthorized((setValueFromSettings(list, KEYS.rejectUnauthorized) || 'true') === 'true');
+      setRequireTls((setValueFromSettings(list, 'system_email_require_tls') || 'false') === 'true');
+      setIgnoreTls((setValueFromSettings(list, 'system_email_ignore_tls') || 'false') === 'true');
+      setConnectionTimeoutMs(setValueFromSettings(list, 'system_email_connection_timeout_ms') || '10000');
+      setGreetingTimeoutMs(setValueFromSettings(list, 'system_email_greeting_timeout_ms') || '10000');
+      setSocketTimeoutMs(setValueFromSettings(list, 'system_email_socket_timeout_ms') || '20000');
+      setPool((setValueFromSettings(list, 'system_email_pool') || 'true') === 'true');
+      setMaxConnections(setValueFromSettings(list, 'system_email_max_connections') || '5');
+      setMaxMessages(setValueFromSettings(list, 'system_email_max_messages') || '100');
       setFromEmail(setValueFromSettings(list, KEYS.fromEmail));
       setFromName(setValueFromSettings(list, KEYS.fromName) || 'Beauty Salon');
+      setReplyTo(setValueFromSettings(list, 'system_email_reply_to'));
+      setSignature(setValueFromSettings(list, 'system_email_signature') || 'Beauty Salon Nejra');
+      setPublicAppUrl(setValueFromSettings(list, 'system_public_app_url'));
+      setTestEmailTo(setValueFromSettings(list, KEYS.fromEmail));
     } finally {
       setLoading(false);
     }
@@ -137,14 +163,91 @@ export default function EmailSettings() {
         upsertSetting(KEYS.username, username.trim(), 'SMTP username'),
         upsertSetting(KEYS.password, password, 'SMTP password/app password'),
         upsertSetting(KEYS.rejectUnauthorized, String(rejectUnauthorized), 'TLS reject unauthorized'),
+        upsertSetting('system_email_require_tls', String(requireTls), 'SMTP require TLS'),
+        upsertSetting('system_email_ignore_tls', String(ignoreTls), 'SMTP ignore TLS'),
+        upsertSetting('system_email_connection_timeout_ms', connectionTimeoutMs.trim(), 'SMTP connection timeout (ms)'),
+        upsertSetting('system_email_greeting_timeout_ms', greetingTimeoutMs.trim(), 'SMTP greeting timeout (ms)'),
+        upsertSetting('system_email_socket_timeout_ms', socketTimeoutMs.trim(), 'SMTP socket timeout (ms)'),
+        upsertSetting('system_email_pool', String(pool), 'SMTP pooled connections'),
+        upsertSetting('system_email_max_connections', maxConnections.trim(), 'SMTP max pooled connections'),
+        upsertSetting('system_email_max_messages', maxMessages.trim(), 'SMTP max messages per connection'),
         upsertSetting(KEYS.fromEmail, fromEmail.trim(), 'Email sender address'),
         upsertSetting(KEYS.fromName, fromName.trim(), 'Email sender name'),
+        upsertSetting('system_email_reply_to', replyTo.trim(), 'Email reply-to address'),
+        upsertSetting('system_email_signature', signature.trim(), 'Email template signature'),
+        upsertSetting('system_public_app_url', publicAppUrl.trim(), 'Public app base URL for email links'),
       ]);
       toast({ title: 'Email postavke su sačuvane.', status: 'success', isClosable: true });
     } catch {
       toast({ title: 'Greška pri čuvanju email postavki.', status: 'error', isClosable: true });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmailTo.trim()) {
+      toast({ title: 'Unesite email adresu za test.', status: 'warning', isClosable: true });
+      return;
+    }
+    setSendingTest(true);
+    try {
+      await api.post('/api/notifications/test-email', { to: testEmailTo.trim() });
+      toast({
+        title: 'Test email je poslan.',
+        description: 'Provjerite inbox i spam folder.',
+        status: 'success',
+        isClosable: true,
+      });
+    } catch (error: any) {
+      toast({
+        title: error?.response?.data?.message || 'Slanje test emaila nije uspjelo.',
+        status: 'error',
+        isClosable: true,
+      });
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
+  const handleSendTestToMe = async () => {
+    setSendingTest(true);
+    try {
+      await api.post('/api/notifications/test-email', {});
+      toast({
+        title: 'Test email je poslan na vaš admin nalog.',
+        description: 'Provjerite inbox i spam folder.',
+        status: 'success',
+        isClosable: true,
+      });
+    } catch (error: any) {
+      toast({
+        title: error?.response?.data?.message || 'Slanje test emaila nije uspjelo.',
+        status: 'error',
+        isClosable: true,
+      });
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    setTestingConnection(true);
+    try {
+      await api.post('/api/notifications/test-smtp-connection', {});
+      toast({
+        title: 'SMTP konekcija je uspješna.',
+        status: 'success',
+        isClosable: true,
+      });
+    } catch (error: any) {
+      toast({
+        title: error?.response?.data?.message || 'SMTP konekcija nije uspjela.',
+        status: 'error',
+        isClosable: true,
+      });
+    } finally {
+      setTestingConnection(false);
     }
   };
 
@@ -206,6 +309,22 @@ export default function EmailSettings() {
                 />
               </FormControl>
             </HStack>
+            <HStack justify="space-between">
+              <FormControl display="flex" alignItems="center">
+                <FormLabel mb="0">Require TLS</FormLabel>
+                <Switch isChecked={requireTls} onChange={(event) => setRequireTls(event.target.checked)} />
+              </FormControl>
+              <FormControl display="flex" alignItems="center">
+                <FormLabel mb="0">Ignore TLS</FormLabel>
+                <Switch isChecked={ignoreTls} onChange={(event) => setIgnoreTls(event.target.checked)} />
+              </FormControl>
+            </HStack>
+            <HStack justify="space-between">
+              <FormControl display="flex" alignItems="center">
+                <FormLabel mb="0">Pool konekcije</FormLabel>
+                <Switch isChecked={pool} onChange={(event) => setPool(event.target.checked)} />
+              </FormControl>
+            </HStack>
 
             <Grid templateColumns="repeat(2, minmax(0, 1fr))" gap={4}>
               <GridItem colSpan={{ base: 2, md: 1 }}>
@@ -222,6 +341,35 @@ export default function EmailSettings() {
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                   />
+                </FormControl>
+              </GridItem>
+            </Grid>
+            <Grid templateColumns="repeat(2, minmax(0, 1fr))" gap={4}>
+              <GridItem colSpan={{ base: 2, md: 1 }}>
+                <FormControl>
+                  <FormLabel>Connection timeout (ms)</FormLabel>
+                  <Input value={connectionTimeoutMs} onChange={(event) => setConnectionTimeoutMs(event.target.value)} />
+                </FormControl>
+              </GridItem>
+              <GridItem colSpan={{ base: 2, md: 1 }}>
+                <FormControl>
+                  <FormLabel>Greeting timeout (ms)</FormLabel>
+                  <Input value={greetingTimeoutMs} onChange={(event) => setGreetingTimeoutMs(event.target.value)} />
+                </FormControl>
+              </GridItem>
+              <GridItem colSpan={{ base: 2, md: 1 }}>
+                <FormControl>
+                  <FormLabel>Socket timeout (ms)</FormLabel>
+                  <Input value={socketTimeoutMs} onChange={(event) => setSocketTimeoutMs(event.target.value)} />
+                </FormControl>
+              </GridItem>
+              <GridItem colSpan={{ base: 2, md: 1 }}>
+                <FormControl>
+                  <FormLabel>Max konekcija / Max poruka</FormLabel>
+                  <HStack>
+                    <Input value={maxConnections} onChange={(event) => setMaxConnections(event.target.value)} placeholder="5" />
+                    <Input value={maxMessages} onChange={(event) => setMaxMessages(event.target.value)} placeholder="100" />
+                  </HStack>
                 </FormControl>
               </GridItem>
             </Grid>
@@ -247,11 +395,63 @@ export default function EmailSettings() {
                   <Input value={fromName} onChange={(event) => setFromName(event.target.value)} />
                 </FormControl>
               </GridItem>
+              <GridItem colSpan={{ base: 2, md: 1 }}>
+                <FormControl>
+                  <FormLabel>Reply-To</FormLabel>
+                  <Input value={replyTo} onChange={(event) => setReplyTo(event.target.value)} placeholder="support@domena.com" />
+                </FormControl>
+              </GridItem>
+              <GridItem colSpan={{ base: 2, md: 1 }}>
+                <FormControl>
+                  <FormLabel>Potpis (footer)</FormLabel>
+                  <Input value={signature} onChange={(event) => setSignature(event.target.value)} />
+                </FormControl>
+              </GridItem>
+              <GridItem colSpan={2}>
+                <FormControl>
+                  <FormLabel>Public App URL (linkovi u emailovima)</FormLabel>
+                  <Input value={publicAppUrl} onChange={(event) => setPublicAppUrl(event.target.value)} placeholder="https://vas-domen.ba" />
+                </FormControl>
+              </GridItem>
             </Grid>
 
-            <Button colorScheme="brand" onClick={handleSave} isLoading={saving}>
-              Sačuvaj email postavke
-            </Button>
+            <HStack>
+              <Button colorScheme="brand" onClick={handleSave} isLoading={saving}>
+                Sačuvaj email postavke
+              </Button>
+              <Button variant="outline" onClick={handleTestConnection} isLoading={testingConnection}>
+                Test konekcije
+              </Button>
+            </HStack>
+
+            <Divider />
+
+            <FormControl>
+              <FormLabel>Test email</FormLabel>
+              <HStack>
+                <Input
+                  value={testEmailTo}
+                  onChange={(event) => setTestEmailTo(event.target.value)}
+                  placeholder="email@domena.com"
+                />
+                <Button
+                  variant="outline"
+                  colorScheme="brand"
+                  onClick={handleSendTestEmail}
+                  isLoading={sendingTest}
+                >
+                  Pošalji test
+                </Button>
+                <Button
+                  variant="solid"
+                  colorScheme="purple"
+                  onClick={handleSendTestToMe}
+                  isLoading={sendingTest}
+                >
+                  Pošalji meni
+                </Button>
+              </HStack>
+            </FormControl>
           </VStack>
         </CardBody>
       </Card>

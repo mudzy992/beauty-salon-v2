@@ -6,12 +6,17 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { SetPreferenceDto } from './dto/set-preference.dto';
 import { RegisterPushTokenDto } from './dto/register-push-token.dto';
+import { SendTestEmailDto } from './dto/send-test-email.dto';
+import { TestSmtpConnectionDto } from './dto/test-smtp-connection.dto';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 
 @Controller('api/notifications')
 export class NotificationsController {
@@ -58,5 +63,32 @@ export class NotificationsController {
       dto.pushEnabled,
       dto.emailEnabled,
     );
+  }
+
+  @Post('test-email')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  sendTestEmail(
+    @Body() dto: SendTestEmailDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    const requestedBy = dto.requestedByName || user.username || user.email;
+    if (dto.to?.trim()) {
+      return this.notifications.sendTestEmail({
+        to: dto.to.trim(),
+        requestedByUsername: requestedBy,
+      });
+    }
+    return this.notifications.sendTestEmailToUser({
+      userId: user.sub,
+      requestedByUsername: requestedBy,
+    });
+  }
+
+  @Post('test-smtp-connection')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  testSmtpConnection(@Body() _dto: TestSmtpConnectionDto) {
+    return this.notifications.testSmtpConnection();
   }
 }
