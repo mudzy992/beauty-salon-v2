@@ -350,6 +350,28 @@ export default function Profile() {
                         </Badge>
                       </InputRightElement>
                     </InputGroup>
+                    {!profile?.isEmailVerified ? (
+                      <VStack align="stretch" spacing={2} mt={3}>
+                        <Text fontSize="sm" color="gray.600">
+                          Ako ste promijenili email, unesite kod iz poruke ili zatražite novi.
+                        </Text>
+                        <HStack spacing={2} flexWrap="wrap" align="flex-start">
+                          <Button size="sm" variant="outline" onClick={handleSendCode} isLoading={sendingCode}>
+                            Pošalji kod
+                          </Button>
+                          <Input
+                            size="sm"
+                            maxW={{ base: 'full', sm: '180px' }}
+                            value={verifyToken}
+                            onChange={(e) => setVerifyToken(e.target.value)}
+                            placeholder="Kod iz emaila"
+                          />
+                          <Button size="sm" colorScheme="brand" onClick={handleVerify} isLoading={verifying}>
+                            Potvrdi
+                          </Button>
+                        </HStack>
+                      </VStack>
+                    ) : null}
                   </FormControl>
                   <Button
                     type="submit"
@@ -364,26 +386,6 @@ export default function Profile() {
               </form>
             </CardBody>
           </Card>
-
-          {!profile?.isEmailVerified && (
-            <Card>
-              <CardBody>
-                <VStack align="stretch" spacing={3}>
-                  <Button variant="outline" onClick={handleSendCode} isLoading={sendingCode}>
-                    Pošalji verifikacijski kod
-                  </Button>
-                  <Input
-                    value={verifyToken}
-                    onChange={(e) => setVerifyToken(e.target.value)}
-                    placeholder="Unesite kod iz emaila"
-                  />
-                  <Button colorScheme="brand" onClick={handleVerify} isLoading={verifying}>
-                    Verifikuj email
-                  </Button>
-                </VStack>
-              </CardBody>
-            </Card>
-          )}
         </VStack>
       )}
     </Box>

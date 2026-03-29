@@ -77,8 +77,8 @@ function AppContent() {
   }, [initialize]);
 
   useEffect(() => {
-    if (user) fetchNotifications();
-  }, [user, fetchNotifications]);
+    if (user?.id) fetchNotifications();
+  }, [user?.id, fetchNotifications]);
 
   const [fontsLoaded] = useFonts({
     Inter_400Regular,

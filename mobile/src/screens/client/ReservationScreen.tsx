@@ -15,6 +15,7 @@ import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Calendar, DateData } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { router } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
@@ -234,18 +235,16 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const handleSubmit = async () => {
     if (!selectedService || !selectedDate || !selectedSlot) return;
     if (user?.mustChangePassword) {
-      Alert.alert(
-        t('common.error'),
-        'Prvo morate promijeniti inicijalnu lozinku.',
-        [{ text: t('common.ok'), onPress: () => navigation.getParent()?.navigate('ProfileTab') }],
-      );
+      Alert.alert(t('common.error'), 'Prvo morate promijeniti inicijalnu lozinku.', [
+        { text: t('common.ok'), onPress: () => router.replace('/') },
+      ]);
       return;
     }
     if (!user?.email || !user?.phone || !user?.isEmailVerified) {
       Alert.alert(
         t('common.error'),
         'Za rezervaciju unesite email i telefon, te verifikujte email.',
-        [{ text: t('common.ok'), onPress: () => navigation.getParent()?.navigate('ProfileTab') }],
+        [{ text: t('common.ok'), onPress: () => router.replace('/') }],
       );
       return;
     }

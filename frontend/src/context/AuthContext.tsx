@@ -7,6 +7,7 @@ interface User {
   email: string | null;
   phone: string | null;
   gender: 'MALE' | 'FEMALE' | null;
+  genderOnboardingCompleted?: boolean;
   isEmailVerified: boolean;
   mustChangePassword: boolean;
   roles: string[];
@@ -17,7 +18,7 @@ interface AuthContextValue {
   token: string | null;
   login: (username: string, password: string) => Promise<User>;
   logout: () => void;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<User>;
   isReady: boolean;
 }
 
@@ -32,9 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
+    delete api.defaults.headers.common.Authorization;
     setToken(null);
     setUser(null);
     window.dispatchEvent(new Event('auth-change'));
+    window.location.assign('/');
   }, []);
 
   const mapProfileToUser = (profile: {
@@ -43,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     email: string | null;
     phone?: string | null;
     gender?: 'MALE' | 'FEMALE' | null;
+    genderOnboardingCompleted?: boolean;
     isEmailVerified?: boolean;
     mustChangePassword?: boolean;
     userRoles?: { role: { name: string } }[];
@@ -55,25 +59,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email: profile.email ?? null,
       phone: profile.phone ?? null,
       gender: profile.gender ?? null,
+      genderOnboardingCompleted: profile.genderOnboardingCompleted ?? false,
       isEmailVerified: profile.isEmailVerified ?? false,
       mustChangePassword: profile.mustChangePassword ?? false,
       roles,
     };
   };
 
-  const refreshProfile = useCallback(async () => {
+  const refreshProfile = useCallback(async (): Promise<User> => {
     const profile = await api.get<{
       id: string;
       username: string;
       email: string | null;
       phone?: string | null;
       gender?: 'MALE' | 'FEMALE' | null;
+      genderOnboardingCompleted?: boolean;
       isEmailVerified?: boolean;
       mustChangePassword?: boolean;
       userRoles?: { role: { name: string } }[];
       roles?: string[];
     }>('/api/users/profile');
-    setUser(mapProfileToUser(profile.data));
+    const mapped = mapProfileToUser(profile.data);
+    setUser(mapped);
+    return mapped;
   }, []);
 
   const loginFn = useCallback(
@@ -91,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: string | null;
         phone?: string | null;
         gender?: 'MALE' | 'FEMALE' | null;
+        genderOnboardingCompleted?: boolean;
         isEmailVerified?: boolean;
         mustChangePassword?: boolean;
         userRoles?: { role: { name: string } }[];
@@ -117,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: string | null;
         phone?: string | null;
         gender?: 'MALE' | 'FEMALE' | null;
+        genderOnboardingCompleted?: boolean;
         isEmailVerified?: boolean;
         mustChangePassword?: boolean;
         userRoles?: { role: { name: string } }[];

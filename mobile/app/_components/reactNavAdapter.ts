@@ -145,6 +145,8 @@ export function useReactNavAdapter(ctx: ReactNavAdapterContext) {
             switch (screenName) {
               case 'Profile':
                 return { pathname: '/profile' };
+              case 'EditProfile':
+                return { pathname: '/profile/edit' };
               case 'ChangePassword':
                 return { pathname: '/profile/change-password' };
               case 'Notifications':

@@ -12,6 +12,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import ForceChangePassword from './pages/ForceChangePassword';
+import OnboardingGender from './pages/onboarding/OnboardingGender';
+import OnboardingEmail from './pages/onboarding/OnboardingEmail';
 import PublicHome from './pages/public/PublicHome';
 import PublicServices from './pages/public/PublicServices';
 import PublicServiceDetail from './pages/public/PublicServiceDetail';
@@ -67,6 +69,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ForceChangePassword />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/onboarding/gender"
+        element={
+          <ProtectedRoute>
+            <OnboardingGender />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/onboarding/email"
+        element={
+          <ProtectedRoute>
+            <OnboardingEmail />
           </ProtectedRoute>
         }
       />

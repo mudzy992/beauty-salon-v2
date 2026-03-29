@@ -19,6 +19,7 @@ import { motion } from 'framer-motion';
 import { ArrowBackIcon } from '@chakra-ui/icons';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
+import { getClientMandatoryOnboardingPath, getPostAuthRedirectPath } from '../utils/clientOnboarding';
 
 const MotionBox = motion(Box as any);
 
@@ -33,17 +34,14 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const fallbackRedirect = useMemo(() => {
-    const roles = user?.roles ?? [];
-    const isAdmin = roles.includes('SYSTEM_ADMIN') || roles.includes('OWNER');
-    return isAdmin ? '/admin' : '/';
-  }, [user?.roles]);
+  const fallbackRedirect = useMemo(() => getPostAuthRedirectPath(user), [user]);
 
   useEffect(() => {
     if (!isReady) return;
     if (!token) return;
+    if (!user) return;
     navigate(fallbackRedirect, { replace: true });
-  }, [isReady, token, navigate, fallbackRedirect]);
+  }, [isReady, token, user, navigate, fallbackRedirect]);
 
   const resolveFrom = (fromState: unknown): string | null => {
     if (typeof fromState === 'string') {
@@ -79,8 +77,9 @@ export default function Login() {
 
     setLoading(false);
     toast({ title: 'Uspješna prijava!', status: 'success', duration: 2000, isClosable: true });
-    if (loggedInUser.mustChangePassword) {
-      navigate('/force-change-password', { replace: true });
+    const nextPath = getPostAuthRedirectPath(loggedInUser);
+    if (getClientMandatoryOnboardingPath(loggedInUser) !== null) {
+      navigate(nextPath, { replace: true });
       return;
     }
 
@@ -90,8 +89,7 @@ export default function Login() {
       navigate(resolvedFrom, { replace: true });
       return;
     }
-    const isAdmin = loggedInUser.roles.includes('SYSTEM_ADMIN') || loggedInUser.roles.includes('OWNER');
-    navigate(isAdmin ? '/admin' : '/', { replace: true });
+    navigate(nextPath, { replace: true });
   };
 
   return (

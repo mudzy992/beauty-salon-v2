@@ -531,7 +531,7 @@ export default function PublicReserve() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedService || !selectedDate || !selectedSlot) return;
-    if (user?.mustChangePassword || !user?.email || !user?.phone || !user?.isEmailVerified) {
+    if (user?.mustChangePassword || user?.genderOnboardingCompleted !== true || !user?.email || !user?.isEmailVerified) {
       toast({
         title: 'Prije rezervacije morate ažurirati profil i verifikovati email.',
         status: 'warning',

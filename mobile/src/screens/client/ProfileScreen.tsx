@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,12 +10,10 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
-  TextInput,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
@@ -27,6 +25,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import api, { getImageUrl } from '../../services/api';
 import { spacing } from '../../theme';
+import { fontFamily } from '../../theme/fonts';
 import type { ProfileScreenProps } from '../../navigation/types';
 
 interface MenuItemProps {
@@ -44,15 +43,17 @@ function MenuItem({ icon, label, onPress, rightText, danger }: MenuItemProps) {
       <View style={[styles.menuIconContainer, { backgroundColor: danger ? colors.errorLight : colors.accent }]}>
         <Ionicons name={icon} size={20} color={danger ? colors.error : colors.primary} />
       </View>
-      <Text style={[styles.menuLabel, { color: danger ? colors.error : colors.text }]}>
-        {label}
-      </Text>
+      <Text style={[styles.menuLabel, { color: danger ? colors.error : colors.text }]}>{label}</Text>
       {rightText && (
         <Text style={[styles.menuRight, { color: colors.textSecondary }]}>{rightText}</Text>
       )}
       <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
     </TouchableOpacity>
   );
+}
+
+function hasGender(user: { gender?: string | null } | null): boolean {
+  return user?.gender === 'MALE' || user?.gender === 'FEMALE';
 }
 
 export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
@@ -62,29 +63,17 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const { user, logout, refreshProfile } = useAuthStore();
   const setMode = useAppModeStore((s) => s.setMode);
   const canSwitchToStylist = user && isStylist(user);
-  const [avatarLoading, setAvatarLoading] = useState(false);
   const [verifyModalVisible, setVerifyModalVisible] = useState(false);
   const [verifyCode, setVerifyCode] = useState('');
   const [verifySending, setVerifySending] = useState(false);
   const [verifySubmitting, setVerifySubmitting] = useState(false);
-  const [emailInput, setEmailInput] = useState(user?.email ?? '');
-  const [phoneInput, setPhoneInput] = useState(user?.phone ?? '');
-  const [genderInput, setGenderInput] = useState<'MALE' | 'FEMALE' | ''>(
-    user?.gender ?? '',
-  );
-  const [profileSaving, setProfileSaving] = useState(false);
 
-  useEffect(() => {
-    setEmailInput(user?.email ?? '');
-    setPhoneInput(user?.phone ?? '');
-    setGenderInput(user?.gender ?? '');
-  }, [user?.email, user?.phone, user?.gender]);
-
-  const themeLabel = mode === 'light'
-    ? t('profile.themeLight')
-    : mode === 'dark'
-    ? t('profile.themeDark')
-    : t('profile.themeSystem');
+  const themeLabel =
+    mode === 'light'
+      ? t('profile.themeLight')
+      : mode === 'dark'
+        ? t('profile.themeDark')
+        : t('profile.themeSystem');
 
   const handleLogout = () => {
     Alert.alert(t('auth.logout'), t('auth.logoutConfirm'), [
@@ -92,47 +81,6 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
       { text: t('auth.logout'), style: 'destructive', onPress: logout },
     ]);
   };
-
-  const pickAndUploadAvatar = useCallback(async () => {
-    if (!user?.id) return;
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(t('common.error'), 'Dozvola za pristup galeriji je potrebna.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.[0]?.uri) return;
-    setAvatarLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', {
-        uri: result.assets[0].uri,
-        name: 'avatar.jpg',
-        type: 'image/jpeg',
-      } as any);
-      formData.append('entity', 'avatars');
-      const { data: uploadRes } = await api.post<{ pathThumb?: string; pathSmall?: string; pathOriginal: string }>(
-        '/api/uploads',
-        formData,
-      );
-      const avatarPath = uploadRes.pathThumb || uploadRes.pathSmall || uploadRes.pathOriginal;
-      await api.patch(`/api/users/${user.id}`, { avatar: avatarPath });
-      await refreshProfile();
-    } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : t('common.error');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
-    } finally {
-      setAvatarLoading(false);
-    }
-  }, [user?.id, refreshProfile, t]);
 
   const handleSendVerificationCode = useCallback(async () => {
     setVerifySending(true);
@@ -175,30 +123,15 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
     }
   }, [verifyCode, refreshProfile, t]);
 
-  const handleSaveProfileContact = useCallback(async () => {
-    if (!genderInput) {
-      Alert.alert(t('common.error'), 'Spol je obavezan za rezervacije.');
-      return;
-    }
-    setProfileSaving(true);
-    try {
-      await api.put('/api/users/profile', {
-        email: emailInput,
-        phone: phoneInput,
-        gender: genderInput,
-      });
-      await refreshProfile();
-      Alert.alert(t('common.ok'), 'Kontakt podaci su ažurirani.');
-    } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : t('common.error');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
-    } finally {
-      setProfileSaving(false);
-    }
-  }, [emailInput, phoneInput, genderInput, refreshProfile, t]);
+  const onboardingBasicsDone =
+    user &&
+    !user.mustChangePassword &&
+    hasGender(user) &&
+    !!user.email?.trim() &&
+    user.isEmailVerified;
+
+  const showPhoneOptionalCard =
+    onboardingBasicsDone && !user?.phone?.trim();
 
   return (
     <ScrollView
@@ -207,169 +140,85 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
-      {/* User Info */}
-      <Card style={styles.userCard}>
-        <TouchableOpacity
-          onPress={pickAndUploadAvatar}
-          disabled={avatarLoading}
-          style={[styles.avatarWrap, { backgroundColor: colors.accent }]}
+      <View style={[styles.heroOuter, { shadowColor: colors.text }]}>
+        <LinearGradient
+          colors={[colors.accentLight, colors.surface]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroGradient}
         >
-          {user?.avatar && getImageUrl(user.avatar) ? (
-            <Image
-              source={{ uri: getImageUrl(user.avatar)! }}
-              style={styles.avatarImage}
-            />
-          ) : (
-            <Text style={[styles.avatarText, { color: colors.primary }]}>
-              {user?.firstName?.[0]}{user?.lastName?.[0]}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('EditProfile')}
+            style={[styles.avatarWrap, { backgroundColor: colors.accent }]}
+            activeOpacity={0.85}
+          >
+            {user?.avatar && getImageUrl(user.avatar) ? (
+              <Image source={{ uri: getImageUrl(user.avatar)! }} style={styles.avatarImage} />
+            ) : (
+              <Text style={[styles.avatarText, { color: colors.primary }]}>
+                {user?.firstName?.[0]}
+                {user?.lastName?.[0]}
+              </Text>
+            )}
+            <View
+              style={[
+                styles.avatarEditBadge,
+                { backgroundColor: colors.primary, borderColor: colors.surface },
+              ]}
+            >
+              <Ionicons name="camera-outline" size={14} color={colors.primaryText} />
+            </View>
+          </TouchableOpacity>
+          <Text style={[styles.heroName, { color: colors.text }]}>
+            {user?.firstName} {user?.lastName}
+          </Text>
+          <View style={styles.emailRow}>
+            <Text style={[styles.heroEmail, { color: colors.textSecondary }]} numberOfLines={1}>
+              {user?.email ?? '—'}
             </Text>
-          )}
-          {avatarLoading && (
-            <View style={styles.avatarOverlay}>
-              <ActivityIndicator size="small" color={colors.primary} />
+            {user?.isEmailVerified ? (
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+                <Text style={[styles.verifiedText, { color: colors.success }]}>
+                  {t('profile.verifyEmailVerified')}
+                </Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={handleSendVerificationCode}
+                disabled={verifySending}
+                style={styles.verifyBtn}
+              >
+                <Text style={[styles.verifyBtnText, { color: colors.primary }]}>
+                  {verifySending ? '...' : t('profile.verifyEmailSendCode')}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          {user?.phone ? (
+            <View style={styles.phoneRow}>
+              <Ionicons name="call-outline" size={16} color={colors.textMuted} />
+              <Text style={[styles.heroPhone, { color: colors.textSecondary }]}>{user.phone}</Text>
             </View>
-          )}
-        </TouchableOpacity>
-        <Text style={[styles.avatarHint, { color: colors.textMuted }]}>
-          {t('profile.avatarChange')}
-        </Text>
-        <Text style={[styles.userName, { color: colors.text }]}>
-          {user?.firstName} {user?.lastName}
-        </Text>
-        <View style={styles.emailRow}>
-          <Text style={[styles.userEmail, { color: colors.textSecondary }]}>
-            {user?.email}
-          </Text>
-          {user?.isEmailVerified ? (
-            <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-              <Text style={[styles.verifiedText, { color: colors.success }]}>
-                {t('profile.verifyEmailVerified')}
-              </Text>
-            </View>
-          ) : (
-            <TouchableOpacity
-              onPress={handleSendVerificationCode}
-              disabled={verifySending}
-              style={styles.verifyBtn}
-            >
-              <Text style={[styles.verifyBtnText, { color: colors.primary }]}>
-                {verifySending ? '...' : t('profile.verifyEmailSendCode')}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-        {user?.phone && (
-          <Text style={[styles.userPhone, { color: colors.textSecondary }]}>
-            {user.phone}
-          </Text>
-        )}
-      </Card>
+          ) : null}
+        </LinearGradient>
+      </View>
 
-      {(!user?.phone || !user?.email || !user?.isEmailVerified || !user?.gender) && (
-        <Card style={styles.menuCard}>
-          <Text style={[styles.userName, { fontSize: 18, color: colors.text }]}>
-            Dovršite profil
-          </Text>
-          <Text style={[styles.userEmail, { marginBottom: spacing.sm, color: colors.textSecondary }]}>
-            Telefon je obavezan, a email mora biti verifikovan za rezervacije.
-          </Text>
-          <TextInput
-            value={emailInput}
-            onChangeText={setEmailInput}
-            placeholder="Email"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            style={[styles.input, { color: colors.text, borderColor: colors.borderLight }]}
-            placeholderTextColor={colors.textMuted}
-          />
-          <TextInput
-            value={phoneInput}
-            onChangeText={setPhoneInput}
-            placeholder="Telefon"
-            keyboardType="phone-pad"
-            style={[styles.input, { color: colors.text, borderColor: colors.borderLight }]}
-            placeholderTextColor={colors.textMuted}
-          />
-          <Text style={[styles.genderLabel, { color: colors.textSecondary }]}>Spol</Text>
-          <View style={styles.genderRow}>
-            <TouchableOpacity
-              onPress={() => setGenderInput('FEMALE')}
-              style={[
-                styles.genderOption,
-                {
-                  borderColor:
-                    genderInput === 'FEMALE' ? colors.primary : colors.borderLight,
-                  backgroundColor:
-                    genderInput === 'FEMALE' ? colors.accent : 'transparent',
-                },
-              ]}
-            >
-              <Text style={{ color: colors.text }}>Žensko</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setGenderInput('MALE')}
-              style={[
-                styles.genderOption,
-                {
-                  borderColor:
-                    genderInput === 'MALE' ? colors.primary : colors.borderLight,
-                  backgroundColor:
-                    genderInput === 'MALE' ? colors.accent : 'transparent',
-                },
-              ]}
-            >
-              <Text style={{ color: colors.text }}>Muško</Text>
-            </TouchableOpacity>
+      {showPhoneOptionalCard ? (
+        <Card style={[styles.phoneNudge, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+          <View style={styles.phoneNudgeRow}>
+            <Ionicons name="phone-portrait-outline" size={22} color={colors.primary} />
+            <Text style={[styles.phoneNudgeText, { color: colors.text }]}>{t('profile.phoneOptionalHint')}</Text>
           </View>
           <Button
-            title="Sačuvaj kontakt podatke"
-            onPress={handleSaveProfileContact}
-            loading={profileSaving}
-            style={{ marginTop: spacing.sm }}
+            title={t('profile.phoneOptionalCta')}
+            onPress={() => navigation.navigate('EditProfile')}
+            variant="outline"
+            style={styles.phoneNudgeBtn}
           />
         </Card>
-      )}
+      ) : null}
 
-      {/* Verify email modal */}
-      <Modal visible={verifyModalVisible} animationType="slide" transparent>
-        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.modalContent}
-          >
-            <Card style={[styles.modalCard, { backgroundColor: colors.surface }]}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {t('profile.verifyEmail')}
-              </Text>
-              <Input
-                label={t('profile.verifyEmailEnterCode')}
-                value={verifyCode}
-                onChangeText={setVerifyCode}
-                keyboardType="number-pad"
-                maxLength={6}
-                placeholder="000000"
-              />
-              <View style={styles.modalActions}>
-                <Button
-                  title={t('common.cancel')}
-                  onPress={() => { setVerifyModalVisible(false); setVerifyCode(''); }}
-                  variant="outline"
-                  style={styles.modalBtn}
-                />
-                <Button
-                  title={t('profile.verifyEmailVerify')}
-                  onPress={handleVerifyCode}
-                  loading={verifySubmitting}
-                  style={styles.modalBtn}
-                />
-              </View>
-            </Card>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-
-      {/* Switch to Stylist app (ako ima STYLIST rolu) */}
       {canSwitchToStylist && (
         <Card style={styles.menuCard}>
           <MenuItem
@@ -384,8 +233,14 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
         </Card>
       )}
 
-      {/* Menu */}
       <Card style={styles.menuCard}>
+        <MenuItem
+          icon="create-outline"
+          label={t('profile.editProfile')}
+          rightText={t('profile.editProfileSubtitle')}
+          onPress={() => navigation.navigate('EditProfile')}
+        />
+        <View style={[styles.separator, { backgroundColor: colors.borderLight }]} />
         <MenuItem
           icon="lock-closed-outline"
           label={t('profile.changePasswordLabel')}
@@ -414,46 +269,122 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
       </Card>
 
       <Card style={styles.menuCard}>
-        <MenuItem
-          icon="log-out-outline"
-          label={t('auth.logout')}
-          onPress={handleLogout}
-          danger
-        />
+        <MenuItem icon="log-out-outline" label={t('auth.logout')} onPress={handleLogout} danger />
       </Card>
+
+      <Modal visible={verifyModalVisible} animationType="slide" transparent>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalContent}>
+            <Card style={[styles.modalCard, { backgroundColor: colors.surface }]}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('profile.verifyEmail')}</Text>
+              <Input
+                label={t('profile.verifyEmailEnterCode')}
+                value={verifyCode}
+                onChangeText={setVerifyCode}
+                keyboardType="number-pad"
+                maxLength={6}
+                placeholder="000000"
+              />
+              <View style={styles.modalActions}>
+                <Button
+                  title={t('common.cancel')}
+                  onPress={() => {
+                    setVerifyModalVisible(false);
+                    setVerifyCode('');
+                  }}
+                  variant="outline"
+                  style={styles.modalBtn}
+                />
+                <Button
+                  title={t('profile.verifyEmailVerify')}
+                  onPress={handleVerifyCode}
+                  loading={verifySubmitting}
+                  style={styles.modalBtn}
+                />
+              </View>
+            </Card>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   content: { padding: spacing.md, paddingBottom: spacing.xxl },
-  userCard: { alignItems: 'center', marginBottom: spacing.md },
-  avatarWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
+  heroOuter: {
+    marginBottom: spacing.md,
+    borderRadius: 20,
     overflow: 'hidden',
+    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
   },
-  avatarImage: { width: 72, height: 72, borderRadius: 36 },
-  avatarText: { fontSize: 28, fontWeight: '700' },
-  avatarOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
+  heroGradient: {
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
   },
-  avatarHint: { fontSize: 11, marginBottom: spacing.sm },
-  userName: { fontSize: 20, fontWeight: '700' },
-  emailRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  userEmail: { fontSize: 14 },
+  avatarWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+    overflow: 'visible',
+  },
+  avatarImage: { width: 88, height: 88, borderRadius: 44 },
+  avatarText: { fontSize: 32, fontWeight: '700', fontFamily: fontFamily.heading },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+  },
+  heroName: {
+    fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+    fontFamily: fontFamily.heading,
+  },
+  emailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+    maxWidth: '100%',
+  },
+  heroEmail: { fontSize: 14, flexShrink: 1 },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.sm,
+  },
+  heroPhone: { fontSize: 14 },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   verifiedText: { fontSize: 12, fontWeight: '600' },
   verifyBtn: { paddingVertical: 2 },
   verifyBtnText: { fontSize: 12, fontWeight: '600' },
-  userPhone: { fontSize: 14, marginTop: 2 },
+  phoneNudge: {
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderRadius: 16,
+  },
+  phoneNudgeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.md },
+  phoneNudgeText: { flex: 1, fontSize: 14, lineHeight: 20 },
+  phoneNudgeBtn: { alignSelf: 'stretch' },
   modalOverlay: { flex: 1, justifyContent: 'center', padding: spacing.md },
   modalContent: { maxHeight: '80%' },
   modalCard: { padding: spacing.lg },
@@ -476,29 +407,6 @@ const styles = StyleSheet.create({
     marginRight: spacing.md,
   },
   menuLabel: { flex: 1, fontSize: 16, fontWeight: '500' },
-  menuRight: { fontSize: 13, marginRight: spacing.sm },
+  menuRight: { fontSize: 12, marginRight: spacing.sm, maxWidth: '42%' },
   separator: { height: 1, marginLeft: 52 },
-  input: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginTop: 8,
-  },
-  genderLabel: {
-    fontSize: 14,
-    marginTop: 10,
-    marginBottom: 6,
-  },
-  genderRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  genderOption: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
 });

@@ -6,6 +6,8 @@ export interface User {
   lastName: string;
   phone?: string;
   gender?: 'MALE' | 'FEMALE' | null;
+  /** false dok korisnik ne potvrdi spol u onboarding / profilu (admin može imati gender u bazi prije toga) */
+  genderOnboardingCompleted?: boolean;
   avatar?: string;
   isActive: boolean;
   isEmailVerified: boolean;

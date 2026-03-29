@@ -1,4 +1,5 @@
-import { Outlet, useLocation, Link as RouterLink } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Outlet, useLocation, Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Box,
   Flex,
@@ -14,11 +15,6 @@ import {
   DrawerContent,
   VStack,
   IconButton,
-  Alert,
-  AlertDescription,
-  AlertIcon,
-  AlertTitle,
-  HStack,
   Center,
   Spinner,
   Text,
@@ -28,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
 import { getUploadUrl } from '../utils/uploadUrl';
+import { getClientMandatoryOnboardingPath } from '../utils/clientOnboarding';
 
 const publicNav = [
   { path: '/', labelKey: 'public.nav.home' },
@@ -43,9 +40,16 @@ const DEFAULT_MAINTENANCE_TEXT =
 export default function PublicLayout() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { getSetting, settings, loading: settingsLoading } = useSettings();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const location = useLocation();
+
+  useEffect(() => {
+    if (!user) return;
+    const step = getClientMandatoryOnboardingPath(user);
+    if (step) navigate(step, { replace: true });
+  }, [user, navigate]);
   const appLogo = getSetting('app_logo', '');
   const appTitle = getSetting('app_title', t('app.title'));
   const hasLogo = !!appLogo?.trim();
@@ -57,9 +61,6 @@ export default function PublicLayout() {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
   };
-  const isProfileIncomplete =
-    !!user && (!user.email || !user.phone || !user.isEmailVerified);
-
   if (settingsLoading) {
     return (
       <Center minH="100vh" bg="gray.50">
@@ -217,35 +218,6 @@ export default function PublicLayout() {
       </Drawer>
 
       <Box flex={1}>
-        {isProfileIncomplete && (
-          <Container maxW="container.xl" pt={4}>
-            <Alert
-              status="warning"
-              rounded="lg"
-              variant="subtle"
-              borderWidth="1px"
-              borderColor="orange.200"
-              alignItems="start"
-              flexDirection={{ base: 'column', md: 'row' }}
-              gap={{ base: 3, md: 2 }}
-            >
-              <AlertIcon mt={1} />
-              <Box flex={1}>
-                <AlertTitle fontSize={{ base: 'sm', md: 'md' }} lineHeight="short">
-                  Profil nije kompletan
-                </AlertTitle>
-                <AlertDescription fontSize={{ base: 'sm', md: 'md' }} mt={1} lineHeight={{ base: '1.35', md: '1.45' }}>
-                  Potrebno je unijeti email i telefon, te verifikovati email prije rezervacije.
-                </AlertDescription>
-              </Box>
-              <HStack alignSelf={{ base: 'stretch', md: 'center' }} pl={{ base: 0, md: 2 }} w={{ base: 'full', md: 'auto' }}>
-                <Button as={RouterLink} to="/profil" size="sm" colorScheme="orange" w={{ base: 'full', md: 'auto' }}>
-                  Uredi profil
-                </Button>
-              </HStack>
-            </Alert>
-          </Container>
-        )}
         <Outlet />
       </Box>
 
