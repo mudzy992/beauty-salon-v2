@@ -308,6 +308,32 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
   const heroBlockHeight = insets.top + HERO_HEIGHT;
 
+  const maintenanceOn = getSettingValue(settings, 'system_maintenance_mode', 'false').toLowerCase() === 'true';
+  const maintenanceMsg =
+    getSettingValue(settings, 'public_maintenance_message', '').trim() ||
+    'Radimo na poboljšanjima. Molimo pokušajte kasnije.';
+
+  if (settings !== null && maintenanceOn) {
+    return (
+      <View
+        style={[
+          styles.safe,
+          {
+            justifyContent: 'center',
+            paddingHorizontal: 24,
+            paddingTop: insets.top + 24,
+            paddingBottom: tabBarBottom + 24,
+          },
+        ]}
+      >
+        <Text style={[styles.heroTitle, { textAlign: 'center', marginBottom: 16 }]}>Privremeno nedostupno</Text>
+        <Text style={{ fontSize: 16, textAlign: 'center', color: colors.text, lineHeight: 22, opacity: 0.9 }}>
+          {maintenanceMsg}
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.safe}>
       <ScrollView

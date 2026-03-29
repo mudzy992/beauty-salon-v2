@@ -3,8 +3,8 @@
 ## Overview
 
 `app_settings` is a key/value store used for:
-- **PUBLIC**: content and branding consumed by the public website and mobile home (logo, hero text, contact, etc.)
-- **PRIVATE**: system/admin configuration (email/notifications, loyalty rules, maintenance flags)
+- **PUBLIC**: content and branding consumed by the public website and mobile home (logo, hero text, contact, etc.), plus **`system_maintenance_mode`** and **`public_maintenance_message`** so visitors see a maintenance screen without any private configuration leaking
+- **PRIVATE**: system/admin configuration (email/notifications, loyalty rules, etc.)
 
 The authoritative contract is defined in:
 - `backend/src/settings/settings-registry.ts`
@@ -52,6 +52,10 @@ These keys exist for backward compatibility / migration visibility but are **not
 
 Reservation timing is controlled by `SalonSettings` (admin → Salon page), e.g.:
 - `SalonSettings.reservationLockMinutes`
+
+## Maintenance mode
+
+When `system_maintenance_mode` is `true`, the public website layout (`frontend/src/layouts/PublicLayout.tsx`) shows a full-page message instead of the normal header/footer and routes. The mobile client home (`mobile/src/screens/client/HomeScreen.tsx`) shows the same message on the home tab. Admin routes under `/admin` and auth routes `/login` and `/register` are **not** wrapped by `PublicLayout`, so staff can still sign in and turn maintenance off.
 
 ## Consumers map
 

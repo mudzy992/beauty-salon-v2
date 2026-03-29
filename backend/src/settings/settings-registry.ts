@@ -3,6 +3,8 @@ import type { SettingRegistryItem } from './settings-registry.types'
 export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'app_title', scope: 'PUBLIC', type: 'string', defaultValue: 'Beauty Salon' },
   { key: 'app_logo', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'system_maintenance_mode', scope: 'PUBLIC', type: 'boolean', defaultValue: 'false' },
+  { key: 'public_maintenance_message', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
   // Public site sections
   { key: 'public_hero_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
@@ -72,7 +74,6 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
 
   // System/general (private)
   { key: 'system_public_app_url', scope: 'PRIVATE', type: 'string', defaultValue: '' },
-  { key: 'system_maintenance_mode', scope: 'PRIVATE', type: 'boolean', defaultValue: 'false' },
   { key: 'system_app_version', scope: 'PRIVATE', type: 'string', defaultValue: '' },
 
   // Notifications (private)

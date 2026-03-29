@@ -19,6 +19,9 @@ import {
   AlertIcon,
   AlertTitle,
   HStack,
+  Center,
+  Spinner,
+  Text,
 } from '@chakra-ui/react';
 import { HamburgerIcon } from '@chakra-ui/icons';
 import { useTranslation } from 'react-i18next';
@@ -34,15 +37,21 @@ const publicNav = [
   { path: '/kontakt', labelKey: 'public.nav.contact' },
 ];
 
+const DEFAULT_MAINTENANCE_TEXT =
+  'Radimo na poboljšanjima. Javna stranica je privremeno nedostupna. Pokušajte kasnije.';
+
 export default function PublicLayout() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const { getSetting } = useSettings();
+  const { getSetting, settings, loading: settingsLoading } = useSettings();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const location = useLocation();
   const appLogo = getSetting('app_logo', '');
   const appTitle = getSetting('app_title', t('app.title'));
   const hasLogo = !!appLogo?.trim();
+  const maintenanceRaw = settings['system_maintenance_mode'] ?? 'false';
+  const maintenanceOn = String(maintenanceRaw).trim().toLowerCase() === 'true';
+  const maintenanceMessage = getSetting('public_maintenance_message', '').trim() || DEFAULT_MAINTENANCE_TEXT;
 
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
@@ -50,6 +59,41 @@ export default function PublicLayout() {
   };
   const isProfileIncomplete =
     !!user && (!user.email || !user.phone || !user.isEmailVerified);
+
+  if (settingsLoading) {
+    return (
+      <Center minH="100vh" bg="gray.50">
+        <VStack spacing={3}>
+          <Spinner size="xl" color="brand.500" thickness="3px" />
+          <Text color="gray.500" fontSize="sm">Učitavanje…</Text>
+        </VStack>
+      </Center>
+    );
+  }
+
+  if (maintenanceOn) {
+    return (
+      <Center minH="100vh" bg="gray.50" px={4}>
+        <VStack spacing={4} maxW="md" textAlign="center">
+          {hasLogo ? (
+            <Box
+              as="img"
+              src={getUploadUrl(appLogo)}
+              alt={appTitle}
+              style={{ height: 48, width: 'auto', objectFit: 'contain' }}
+            />
+          ) : (
+            <Heading size="lg" color="brand.700">{appTitle}</Heading>
+          )}
+          <Heading size="md" color="gray.800">Privremeno nedostupno</Heading>
+          <Text color="gray.600" whiteSpace="pre-wrap">{maintenanceMessage}</Text>
+          <Text fontSize="sm" color="gray.500">
+            Za administraciju otvorite <strong>/admin</strong> (prijava kao administrator).
+          </Text>
+        </VStack>
+      </Center>
+    );
+  }
 
   const NavLinks = ({ onItemClick }: { onItemClick?: () => void }) => (
     <>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Box, Heading, Text, Spinner, Card, CardBody, Button,
   Flex, useToast, FormControl,
@@ -7,8 +7,8 @@ import {
   NumberInput, NumberInputField, NumberInputStepper,
   NumberIncrementStepper, NumberDecrementStepper,
   Image, Tooltip, InputGroup, InputLeftAddon,
-  Accordion, AccordionItem, AccordionButton, AccordionPanel,
-  AccordionIcon, useColorModeValue, Tag,
+  useColorModeValue, Tag, Alert, AlertIcon, AlertTitle, AlertDescription,
+  Divider, SimpleGrid,
 } from '@chakra-ui/react';
 import {
   EditIcon, CheckIcon, CloseIcon, ExternalLinkIcon,
@@ -26,6 +26,7 @@ interface AppSetting {
   value: string | null;
   description: string | null;
   isSecret?: boolean;
+  isConfigured?: boolean;
   scope?: 'PUBLIC' | 'PRIVATE';
   type?: 'string' | 'boolean' | 'number' | 'json';
 }
@@ -63,6 +64,23 @@ interface SettingGroup {
 
 const SETTING_GROUPS: SettingGroup[] = [
   {
+    label: 'Režim održavanja',
+    prefix: 'maintenance_',
+    description:
+      'Kada je uključeno, javni web i mobilna početna prikazuju poruku umjesto sadržaja. Admin panel (/admin) i stranice prijave (/login) rade normalno.',
+    icon: LockIcon,
+    color: 'orange',
+    defaults: [
+      { key: 'system_maintenance_mode', desc: 'Režim održavanja (javni sadržaj blokiran)', type: 'boolean' },
+      {
+        key: 'public_maintenance_message',
+        desc: 'Poruka za posjetioce (prazno = podrazumijevani tekst)',
+        type: 'textarea',
+        placeholder: 'Radimo na poboljšanjima. Pokušajte kasnije.',
+      },
+    ],
+  },
+  {
     label: 'Hero Sekcija',
     prefix: 'public_hero_',
     description: 'Postavke za hero (glavnu) sekciju na javnoj početnoj stranici. Ovdje definirate naslov, podnaslov, pozadinsku sliku i CTA dugme.',
@@ -95,6 +113,9 @@ const SETTING_GROUPS: SettingGroup[] = [
     icon: AtSignIcon,
     color: 'green',
     defaults: [
+      { key: 'public_contact_bg', desc: 'Pozadinska slika stranice kontakt', type: 'image', placeholder: 'https://...' },
+      { key: 'public_contact_title', desc: 'Naslov stranice kontakt', type: 'text', placeholder: 'Kontakt' },
+      { key: 'public_contact_subtitle', desc: 'Podnaslov stranice kontakt', type: 'text', placeholder: 'Javite nam se' },
       { key: 'public_contact_address', desc: 'Fizička adresa salona', type: 'text', placeholder: 'Ulica i broj, Grad' },
       { key: 'public_contact_phone', desc: 'Kontakt telefon', type: 'text', placeholder: '+387 XX XXX XXX' },
       { key: 'public_contact_email', desc: 'Kontakt email adresa', type: 'email', placeholder: 'info@salon.ba' },
@@ -137,6 +158,71 @@ const SETTING_GROUPS: SettingGroup[] = [
       { key: 'public_reserve_bg', desc: 'Pozadinska slika za stranicu rezervacije (preporučena: 1920x1080px)', type: 'image', placeholder: 'https://...' },
     ],
   },
+  {
+    label: 'Blokovi (highlights)',
+    prefix: 'public_highlight_',
+    description: 'Tri istaknuta bloka na početnoj stranici.',
+    icon: StarIcon,
+    color: 'purple',
+    defaults: [
+      { key: 'public_highlight_1_title', desc: 'Naslov bloka 1', type: 'text', placeholder: '' },
+      { key: 'public_highlight_1_text', desc: 'Tekst bloka 1', type: 'textarea', placeholder: '' },
+      { key: 'public_highlight_2_title', desc: 'Naslov bloka 2', type: 'text', placeholder: '' },
+      { key: 'public_highlight_2_text', desc: 'Tekst bloka 2', type: 'textarea', placeholder: '' },
+      { key: 'public_highlight_3_title', desc: 'Naslov bloka 3', type: 'text', placeholder: '' },
+      { key: 'public_highlight_3_text', desc: 'Tekst bloka 3', type: 'textarea', placeholder: '' },
+    ],
+  },
+  {
+    label: 'Pregled usluga (kartice)',
+    prefix: 'public_services_peek_',
+    description: 'Naslovi i slike za sekciju usluga na početnoj stranici.',
+    icon: ViewIcon,
+    color: 'teal',
+    defaults: [
+      { key: 'public_services_peek_title', desc: 'Naslov sekcije', type: 'text', placeholder: '' },
+      { key: 'public_services_peek_subtitle', desc: 'Podnaslov sekcije', type: 'text', placeholder: '' },
+      { key: 'public_service_1_title', desc: 'Naslov kartice 1', type: 'text', placeholder: '' },
+      { key: 'public_service_1_img', desc: 'Slika kartice 1', type: 'image', placeholder: 'https://...' },
+      { key: 'public_service_2_title', desc: 'Naslov kartice 2', type: 'text', placeholder: '' },
+      { key: 'public_service_2_img', desc: 'Slika kartice 2', type: 'image', placeholder: 'https://...' },
+      { key: 'public_service_3_title', desc: 'Naslov kartice 3', type: 'text', placeholder: '' },
+      { key: 'public_service_3_img', desc: 'Slika kartice 3', type: 'image', placeholder: 'https://...' },
+    ],
+  },
+  {
+    label: 'Stranice (lista usluga, galerija, blog)',
+    prefix: 'public_pages_',
+    description: 'Hero naslovi i pozadine za stranice /usluge, /galerija, /blog.',
+    icon: ViewIcon,
+    color: 'blue',
+    defaults: [
+      { key: 'public_services_bg', desc: 'Pozadina stranice lista usluga', type: 'image', placeholder: 'https://...' },
+      { key: 'public_services_title', desc: 'Naslov stranice lista usluga', type: 'text', placeholder: '' },
+      { key: 'public_services_subtitle', desc: 'Podnaslov stranice lista usluga', type: 'text', placeholder: '' },
+      { key: 'public_gallery_bg', desc: 'Pozadina stranice galerije', type: 'image', placeholder: 'https://...' },
+      { key: 'public_gallery_title', desc: 'Naslov stranice galerije', type: 'text', placeholder: '' },
+      { key: 'public_gallery_subtitle', desc: 'Podnaslov stranice galerije', type: 'text', placeholder: '' },
+      { key: 'public_blog_bg', desc: 'Pozadina stranice bloga', type: 'image', placeholder: 'https://...' },
+      { key: 'public_blog_title', desc: 'Naslov stranice bloga', type: 'text', placeholder: '' },
+      { key: 'public_blog_subtitle', desc: 'Podnaslov stranice bloga', type: 'text', placeholder: '' },
+    ],
+  },
+  {
+    label: 'Prijava i registracija',
+    prefix: 'public_auth_',
+    description: 'Slike i tekstovi za stranice /login i /register.',
+    icon: LockIcon,
+    color: 'gray',
+    defaults: [
+      { key: 'public_login_image', desc: 'Slika panela prijave', type: 'image', placeholder: 'https://...' },
+      { key: 'public_login_title', desc: 'Naslov prijave', type: 'text', placeholder: '' },
+      { key: 'public_login_subtitle', desc: 'Podnaslov prijave', type: 'text', placeholder: '' },
+      { key: 'public_register_image', desc: 'Slika panela registracije', type: 'image', placeholder: 'https://...' },
+      { key: 'public_register_title', desc: 'Naslov registracije', type: 'text', placeholder: '' },
+      { key: 'public_register_subtitle', desc: 'Podnaslov registracije', type: 'text', placeholder: '' },
+    ],
+  },
 ];
 
 const SYSTEM_GROUPS: SettingGroup[] = [
@@ -170,7 +256,7 @@ const SYSTEM_GROUPS: SettingGroup[] = [
     icon: LockIcon,
     color: 'red',
     defaults: [
-      { key: 'system_maintenance_mode', desc: 'Kada je uključen, javna stranica prikazuje poruku o održavanju', type: 'boolean' },
+      { key: 'system_public_app_url', desc: 'Javni URL aplikacije (linkovi u emailovima, itd.)', type: 'url', placeholder: 'https://salon.ba' },
       { key: 'system_app_version', desc: 'Trenutna verzija aplikacije (informativno)', type: 'text', placeholder: '2.0.0' },
     ],
   },
@@ -201,6 +287,37 @@ const SYSTEM_GROUPS: SettingGroup[] = [
     ],
   },
 ];
+
+const ALL_KNOWN_SETTING_KEYS = [
+  ...SETTING_GROUPS.flatMap((g) => g.defaults.map((d) => d.key)),
+  ...SYSTEM_GROUPS.flatMap((g) => g.defaults.map((d) => d.key)),
+];
+
+function isMeaningfullyConfigured(row: AppSetting | undefined, reg: RegistryItem | undefined): boolean {
+  if (!row || !reg) return false;
+  if (row.isSecret) return Boolean(row.isConfigured);
+  const v = row.value;
+  if (v === null || v === undefined) return false;
+  const s = String(v).trim();
+  if (reg.type === 'boolean') {
+    const def = (reg.defaultValue ?? 'false').toLowerCase();
+    return s.toLowerCase() !== def;
+  }
+  if (reg.type === 'number') {
+    const def = reg.defaultValue ?? '0';
+    return s.trim() !== def;
+  }
+  if (reg.type === 'json') {
+    const def = (reg.defaultValue ?? '').trim();
+    if (s === '') return false;
+    if (def !== '' && s === def) return false;
+    return true;
+  }
+  const def = reg.defaultValue ?? '';
+  if (s === '') return false;
+  if (def !== '' && s === def) return false;
+  return true;
+}
 
 function SettingEditor({
   def,
@@ -526,28 +643,30 @@ function SettingGroupPanel({
   group,
   settingsList,
   onSave,
+  registryMap,
 }: {
   group: SettingGroup;
   settingsList: AppSetting[];
   onSave: (key: string, value: string, desc: string) => Promise<void>;
+  registryMap: Map<string, RegistryItem>;
 }) {
   const getSettingByKey = (key: string): AppSetting | undefined =>
     settingsList.find((s) => s.key === key);
 
-  const configuredCount = group.defaults.filter(
-    (d) => getSettingByKey(d.key)?.value !== null && getSettingByKey(d.key)?.value !== undefined,
+  const configuredCount = group.defaults.filter((d) =>
+    isMeaningfullyConfigured(getSettingByKey(d.key), registryMap.get(d.key)),
   ).length;
 
   return (
     <Box>
-      <Flex align="center" gap={2} mb={2}>
+      <Flex align="center" gap={2} mb={2} flexWrap="wrap">
         <Icon as={group.icon} color={`${group.color}.500`} />
         <Heading size="sm" color="gray.700">{group.label}</Heading>
         <Tag size="sm" colorScheme={configuredCount === group.defaults.length ? 'green' : 'gray'}>
           {configuredCount}/{group.defaults.length}
         </Tag>
       </Flex>
-      <Text fontSize="sm" color="gray.500" mb={4}>{group.description}</Text>
+      <Text fontSize="sm" color="gray.600" mb={4} lineHeight="tall">{group.description}</Text>
       <VStack align="stretch" spacing={3}>
         {group.defaults.map((def) => (
           <SettingEditor
@@ -608,6 +727,28 @@ export default function Settings() {
     }
   };
 
+  const registryMap = useMemo(() => new Map(registry.map((r) => [r.key, r])), [registry]);
+  const registryKeys = useMemo(() => new Set(registry.map((r) => r.key)), [registry]);
+  const otherSettings = useMemo(
+    () => settingsList.filter((s) => !ALL_KNOWN_SETTING_KEYS.includes(s.key)),
+    [settingsList],
+  );
+  const unknownSettings = useMemo(
+    () => settingsList.filter((s) => !registryKeys.has(s.key)),
+    [settingsList, registryKeys],
+  );
+  const contractConfigured = useMemo(
+    () =>
+      registry.filter((r) =>
+        isMeaningfullyConfigured(settingsList.find((s) => s.key === r.key), r),
+      ).length,
+    [registry, settingsList],
+  );
+  const legacyRowCount = useMemo(
+    () => settingsList.filter((s) => !registryMap.has(s.key)).length,
+    [settingsList, registryMap],
+  );
+
   if (loading) {
     return (
       <Flex justify="center" align="center" h="400px">
@@ -619,32 +760,36 @@ export default function Settings() {
     );
   }
 
-  const allKnownKeys = [
-    ...SETTING_GROUPS.flatMap((g) => g.defaults.map((d) => d.key)),
-    ...SYSTEM_GROUPS.flatMap((g) => g.defaults.map((d) => d.key)),
-  ];
-  const registryKeys = new Set(registry.map((r) => r.key))
-  const otherSettings = settingsList.filter((s) => !allKnownKeys.includes(s.key));
-  const unknownSettings = settingsList.filter((s) => !registryKeys.has(s.key))
-
   return (
-    <Box>
-      <Flex justify="space-between" align="center" mb={6}>
+    <Box maxW="container.xl" mx="auto">
+      <Flex justify="space-between" align="flex-start" mb={4} gap={4} flexWrap="wrap">
         <Box>
           <Heading size="lg" color="gray.800">{t('nav.settings')}</Heading>
-          <Text fontSize="sm" color="gray.500" mt={1}>
-            Upravljajte svim postavkama aplikacije i javne stranice
+          <Text fontSize="sm" color="gray.600" mt={1} maxW="lg">
+            Postavke iz kontrakta (registry) su jedini podržani ključevi. Broj ispod računa ključeve čija vrijednost nije prazna i razlikuje se od zadane (default).
           </Text>
         </Box>
-        <HStack spacing={2}>
-          <Tag size="md" colorScheme="green" variant="subtle">
-            {settingsList.filter((s) => s.value !== null).length} postavljenih
-          </Tag>
-          <Tag size="md" colorScheme="gray" variant="subtle">
-            {allKnownKeys.length} ukupno
-          </Tag>
-        </HStack>
+        <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={2} minW={{ sm: '220px' }}>
+          <Box bg="gray.50" borderRadius="md" px={3} py={2} borderWidth="1px" borderColor="gray.100">
+            <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wide">Kontrakt</Text>
+            <Text fontWeight="600" color="gray.800">{contractConfigured} / {registry.length}</Text>
+          </Box>
+          <Box bg="gray.50" borderRadius="md" px={3} py={2} borderWidth="1px" borderColor="gray.100">
+            <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wide">Redovi u bazi</Text>
+            <Text fontWeight="600" color="gray.800">{settingsList.length}{legacyRowCount > 0 ? ` (${legacyRowCount} izvan kontrakta)` : ''}</Text>
+          </Box>
+        </SimpleGrid>
       </Flex>
+
+      <Alert status="info" variant="subtle" borderRadius="md" mb={6} fontSize="sm">
+        <AlertIcon />
+        <Box>
+          <AlertTitle fontSize="sm">Kako čitati brojače</AlertTitle>
+          <AlertDescription>
+            „Kontrakt“ = ključevi definisani u backend registry-ju. „Postavljeno“ u grupi = vrijednost koja nije default i nije prazna. Nasumični ili zastarjeli ključevi u bazi pojavljuju se u kartici Legacy.
+          </AlertDescription>
+        </Box>
+      </Alert>
 
       <Tabs variant="enclosed-colored" colorScheme="brand">
         <TabList>
@@ -670,95 +815,35 @@ export default function Settings() {
 
         <TabPanels>
           <TabPanel px={0}>
-            <Accordion defaultIndex={[0]} allowMultiple>
-              {SETTING_GROUPS.map((group) => (
-                <AccordionItem key={group.prefix} border="none" mb={4}>
-                  <AccordionButton
-                    bg="white"
-                    rounded="lg"
-                    shadow="sm"
-                    _hover={{ bg: 'gray.50' }}
-                    _expanded={{ bg: `${group.color}.50`, roundedBottom: 0 }}
-                    px={4}
-                    py={3}
-                  >
-                    <Flex flex={1} align="center" gap={2}>
-                      <Icon as={group.icon} color={`${group.color}.500`} />
-                      <Text fontWeight="600" fontSize="sm">{group.label}</Text>
-                      <Tag
-                        size="sm"
-                        colorScheme={
-                          group.defaults.filter(
-                            (d) => settingsList.find((s) => s.key === d.key)?.value != null,
-                          ).length === group.defaults.length
-                            ? 'green'
-                            : 'gray'
-                        }
-                      >
-                        {group.defaults.filter(
-                          (d) => settingsList.find((s) => s.key === d.key)?.value != null,
-                        ).length}
-                        /{group.defaults.length}
-                      </Tag>
-                    </Flex>
-                    <AccordionIcon />
-                  </AccordionButton>
-                  <AccordionPanel bg="white" roundedBottom="lg" shadow="sm" pb={4}>
-                    <SettingGroupPanel
-                      group={group}
-                      settingsList={settingsList}
-                      onSave={handleSave}
-                    />
-                  </AccordionPanel>
-                </AccordionItem>
+            <VStack align="stretch" spacing={8} pt={1}>
+              {SETTING_GROUPS.map((group, idx) => (
+                <Box key={group.prefix}>
+                  {idx > 0 ? <Divider /> : null}
+                  <SettingGroupPanel
+                    group={group}
+                    settingsList={settingsList}
+                    onSave={handleSave}
+                    registryMap={registryMap}
+                  />
+                </Box>
               ))}
-            </Accordion>
+            </VStack>
           </TabPanel>
 
           <TabPanel px={0}>
-            <Accordion defaultIndex={[0]} allowMultiple>
-              {SYSTEM_GROUPS.map((group) => (
-                <AccordionItem key={group.prefix} border="none" mb={4}>
-                  <AccordionButton
-                    bg="white"
-                    rounded="lg"
-                    shadow="sm"
-                    _hover={{ bg: 'gray.50' }}
-                    _expanded={{ bg: `${group.color}.50`, roundedBottom: 0 }}
-                    px={4}
-                    py={3}
-                  >
-                    <Flex flex={1} align="center" gap={2}>
-                      <Icon as={group.icon} color={`${group.color}.500`} />
-                      <Text fontWeight="600" fontSize="sm">{group.label}</Text>
-                      <Tag
-                        size="sm"
-                        colorScheme={
-                          group.defaults.filter(
-                            (d) => settingsList.find((s) => s.key === d.key)?.value != null,
-                          ).length === group.defaults.length
-                            ? 'green'
-                            : 'gray'
-                        }
-                      >
-                        {group.defaults.filter(
-                          (d) => settingsList.find((s) => s.key === d.key)?.value != null,
-                        ).length}
-                        /{group.defaults.length}
-                      </Tag>
-                    </Flex>
-                    <AccordionIcon />
-                  </AccordionButton>
-                  <AccordionPanel bg="white" roundedBottom="lg" shadow="sm" pb={4}>
-                    <SettingGroupPanel
-                      group={group}
-                      settingsList={settingsList}
-                      onSave={handleSave}
-                    />
-                  </AccordionPanel>
-                </AccordionItem>
+            <VStack align="stretch" spacing={8} pt={1}>
+              {SYSTEM_GROUPS.map((group, idx) => (
+                <Box key={group.prefix}>
+                  {idx > 0 ? <Divider /> : null}
+                  <SettingGroupPanel
+                    group={group}
+                    settingsList={settingsList}
+                    onSave={handleSave}
+                    registryMap={registryMap}
+                  />
+                </Box>
               ))}
-            </Accordion>
+            </VStack>
           </TabPanel>
 
           {otherSettings.length > 0 && (
