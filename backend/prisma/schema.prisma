@@ -30,6 +30,7 @@ model User {
   lastName                   String    @map("last_name")
   phone                      String?
   gender                     Gender?
+  genderOnboardingCompleted  Boolean   @default(false) @map("gender_onboarding_completed")
   avatar                     String?
   isActive                   Boolean   @default(true) @map("is_active")
   isEmailVerified            Boolean   @default(false) @map("is_email_verified")

@@ -80,6 +80,7 @@ describe('UsersService', () => {
         data: expect.objectContaining({
           mustChangePassword: true,
           email: null,
+          genderOnboardingCompleted: false,
         }),
       }),
     );

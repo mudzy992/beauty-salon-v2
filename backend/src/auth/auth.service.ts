@@ -85,6 +85,8 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         avatar: user.avatar ?? undefined,
+        gender: user.gender ?? null,
+        genderOnboardingCompleted: user.genderOnboardingCompleted,
         roles: ['CLIENT'],
       },
     };
@@ -136,6 +138,8 @@ export class AuthService {
         isEmailVerified: user.isEmailVerified,
         mustChangePassword: user.mustChangePassword,
         phone: user.phone ?? null,
+        gender: user.gender ?? null,
+        genderOnboardingCompleted: user.genderOnboardingCompleted,
         roles,
       },
     };

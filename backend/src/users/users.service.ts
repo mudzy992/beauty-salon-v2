@@ -180,6 +180,7 @@ export class UsersService {
         lastName: true,
         phone: true,
         gender: true,
+        genderOnboardingCompleted: true,
         avatar: true,
         isActive: true,
         isEmailVerified: true,
@@ -243,6 +244,7 @@ export class UsersService {
         lastName: dto.lastName,
         phone: dto.phone ?? null,
         gender: dto.gender ?? null,
+        genderOnboardingCompleted: false,
         avatar: dto.avatar ?? null,
         mustChangePassword: true,
         isEmailVerified: false,
@@ -365,7 +367,10 @@ export class UsersService {
         }),
         ...(dto.username != null && { username: dto.username }),
         ...(dto.phone !== undefined && { phone: dto.phone || null }),
-        ...(dto.gender !== undefined && { gender: dto.gender }),
+        ...(dto.gender !== undefined && {
+          gender: dto.gender,
+          genderOnboardingCompleted: true,
+        }),
         ...(dto.avatar !== undefined && { avatar: dto.avatar }),
         ...(this.isAdminOrOwner(currentUser.roles) &&
           dto.isActive !== undefined && { isActive: dto.isActive }),
@@ -409,7 +414,10 @@ export class UsersService {
           emailVerificationExpiresAt: null,
         }),
         ...(dto.phone !== undefined && { phone: dto.phone?.trim() || null }),
-        ...(dto.gender !== undefined && { gender: dto.gender }),
+        ...(dto.gender !== undefined && {
+          gender: dto.gender,
+          genderOnboardingCompleted: true,
+        }),
       },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
     });
