@@ -196,7 +196,7 @@ export class IncomeBooksService {
           bookId,
           manualEntryId: entry.id,
           action: 'CREATE',
-          beforeJson: null,
+          beforeJson: undefined,
           afterJson: {
             id: entry.id,
             date: entry.date,
@@ -328,7 +328,7 @@ export class IncomeBooksService {
             tipAmount: existing.tipAmount,
             notes: existing.notes,
           },
-          afterJson: null,
+          afterJson: undefined,
           createdById: userId,
         },
       });
