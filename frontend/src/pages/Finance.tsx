@@ -41,6 +41,7 @@ interface IncomeBookManualEntry {
   date: string;
   serviceId: string;
   stylistProfileId: string | null;
+  clientId?: string | null;
   amount: number | string;
   tipAmount: number | string;
   notes: string | null;
@@ -48,6 +49,7 @@ interface IncomeBookManualEntry {
   updatedAt: string;
   service?: { id: string; name: string };
   stylistProfile?: { id: string; user?: { username: string; firstName: string | null; lastName: string | null } };
+  client?: { id: string; username: string; firstName: string | null; lastName: string | null; gender?: 'MALE' | 'FEMALE' | null };
   createdBy?: { id: string; username: string };
 }
 interface IncomeBookLockEvent {
@@ -70,6 +72,7 @@ interface ServiceOption {
   id: string;
   name: string;
   price?: number | string;
+  gender?: 'MALE' | 'FEMALE';
 }
 interface StylistOption {
   id: string;
@@ -80,6 +83,7 @@ interface ClientOption {
   username: string;
   firstName: string | null;
   lastName: string | null;
+  gender?: 'MALE' | 'FEMALE' | null;
 }
 interface ExpenseBook { id: string; year: number; month: number; isClosed: boolean; openedAt: string; closedAt: string | null; }
 interface ExpenseTemplate {
@@ -228,7 +232,7 @@ function IncomeBooksTab() {
       const svc = list
         .map((row: any) => row?.service)
         .filter(Boolean)
-        .map((s: any) => ({ id: s.id, name: s.name, price: s.price }));
+        .map((s: any) => ({ id: s.id, name: s.name, price: s.price, gender: s.gender }));
       setServices(svc);
       setServicesForStylistId(manualForm.stylistProfileId);
     } catch {
@@ -331,9 +335,15 @@ function IncomeBooksTab() {
   })();
   const computedTipAmount = Math.max(0, Number(manualForm.paidAmount || 0) - Number(selectedServicePrice || 0));
 
+  const selectedClientGender: 'MALE' | 'FEMALE' | null =
+    selectedClient?.gender ?? null
+
+  const filteredServices =
+    selectedClientGender ? services.filter((s) => s.gender === selectedClientGender) : []
+
   const handleSaveManual = async () => {
     if (!selectedBook) return;
-    if (!manualForm.date || !manualForm.stylistProfileId || !manualForm.serviceId) {
+    if (!manualForm.date || !manualForm.stylistProfileId || !manualForm.clientId || !manualForm.serviceId) {
       toast({ title: 'Popunite sva polja', status: 'warning', isClosable: true })
       return
     }
@@ -556,6 +566,7 @@ function IncomeBooksTab() {
             <Thead>
               <Tr>
                 <Th>Datum</Th>
+                <Th>Klijent</Th>
                 <Th>Servis</Th>
                 <Th isNumeric>Iznos</Th>
                 <Th isNumeric>Napojnica</Th>
@@ -569,6 +580,7 @@ function IncomeBooksTab() {
               ) : manualEntries.map((e) => (
                 <Tr key={e.id}>
                   <Td>{String(e.date).slice(0, 10)}</Td>
+                  <Td>{e.client?.firstName + ' ' + e.client?.lastName}</Td>
                   <Td>{e.service?.name ?? '-'}</Td>
                   <Td isNumeric fontWeight="medium">{Number(e.amount).toFixed(2)}</Td>
                   <Td isNumeric>{Number(e.tipAmount).toFixed(2)}</Td>
@@ -690,7 +702,7 @@ function IncomeBooksTab() {
                 </Select>
               </FormControl>
 
-              <FormControl mb={4}>
+              <FormControl mb={4} isRequired>
                 <FormLabel>Klijent</FormLabel>
                 <InputGroup>
                   <Input
@@ -741,7 +753,7 @@ function IncomeBooksTab() {
                               setSelectedClient(c)
                               setClientQuery(label)
                               setClientResults([])
-                              setManualForm((p) => ({ ...p, clientId: c.id }))
+                              setManualForm((p) => ({ ...p, clientId: c.id, serviceId: '', servicePrice: 0, paidAmount: 0 }))
                             }}
                           >
                             <Text fontSize="sm" fontWeight="medium">{label}</Text>
@@ -758,16 +770,16 @@ function IncomeBooksTab() {
                 <FormLabel>Servis</FormLabel>
                 <Select
                   value={manualForm.serviceId}
-                  isDisabled={!manualForm.stylistProfileId || loadingServices}
+                  isDisabled={!manualForm.clientId || !manualForm.stylistProfileId || loadingServices}
                   onChange={(e) => {
                     const serviceId = e.target.value
-                    const svc = services.find((s) => s.id === serviceId)
+                    const svc = filteredServices.find((s) => s.id === serviceId)
                     const price = svc?.price != null ? Number(svc.price) : 0
                     setManualForm((p) => ({ ...p, serviceId, servicePrice: price, paidAmount: Math.max(p.paidAmount, price) }))
                   }}
                 >
                   <option value="" disabled>Odaberite servis</option>
-                  {services.map((s) => (
+                  {filteredServices.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </Select>
