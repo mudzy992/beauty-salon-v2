@@ -11,6 +11,10 @@ export class CreateIncomeBookManualEntryDto {
   @IsUUID()
   stylistProfileId?: string;
 
+  @IsOptional()
+  @IsUUID()
+  clientId?: string;
+
   @IsNumber()
   @Min(0)
   amount!: number;

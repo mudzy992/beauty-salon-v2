@@ -8,9 +8,10 @@ import {
   HStack, IconButton, Card, CardBody, SimpleGrid, Stat,
   StatLabel, StatNumber, Switch, Divider, Accordion, AccordionItem,
   AccordionButton, AccordionPanel, AccordionIcon, VStack, Image,
+  List, ListItem, InputGroup, InputRightElement,
 } from '@chakra-ui/react';
 import { useTranslation } from 'react-i18next';
-import { AddIcon, EditIcon, DeleteIcon, LockIcon, ViewIcon, ArrowBackIcon } from '@chakra-ui/icons';
+import { AddIcon, EditIcon, DeleteIcon, LockIcon, ViewIcon, ArrowBackIcon, CloseIcon } from '@chakra-ui/icons';
 import api from '../api/client';
 import { getUploadUrl } from '../utils/uploadUrl';
 
@@ -70,6 +71,16 @@ interface ServiceOption {
   name: string;
   price?: number | string;
 }
+interface StylistOption {
+  id: string;
+  user?: { username: string; firstName: string | null; lastName: string | null };
+}
+interface ClientOption {
+  id: string;
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+}
 interface ExpenseBook { id: string; year: number; month: number; isClosed: boolean; openedAt: string; closedAt: string | null; }
 interface ExpenseTemplate {
   id: string; name: string; description: string | null; requiresAttachmentPerItem: boolean;
@@ -126,6 +137,7 @@ function IncomeBooksTab() {
   const toast = useToast();
   const [books, setBooks] = useState<IncomeBook[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentMonthBook, setCurrentMonthBook] = useState<IncomeBook | null>(null);
   const [selectedBook, setSelectedBook] = useState<IncomeBook | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<IncomeEntry | null>(null);
   const [view, setView] = useState<'list' | 'book' | 'entry'>('list');
@@ -138,14 +150,24 @@ function IncomeBooksTab() {
   const [locking, setLocking] = useState(false);
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
+  const [servicesForStylistId, setServicesForStylistId] = useState<string | null>(null);
+  const [stylists, setStylists] = useState<StylistOption[]>([]);
+  const [loadingStylists, setLoadingStylists] = useState(false);
+  const [stylistsLoadAttempted, setStylistsLoadAttempted] = useState(false);
+  const [clientQuery, setClientQuery] = useState('');
+  const [clientResults, setClientResults] = useState<ClientOption[]>([]);
+  const [clientSearching, setClientSearching] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
   const { isOpen: isManualOpen, onOpen: onManualOpen, onClose: onManualClose } = useDisclosure();
   const [editingManual, setEditingManual] = useState<IncomeBookManualEntry | null>(null);
   const [manualSaving, setManualSaving] = useState(false);
   const [manualForm, setManualForm] = useState({
     date: '',
+    stylistProfileId: '',
+    clientId: '',
     serviceId: '',
-    amount: 0,
-    tipAmount: 0,
+    servicePrice: 0,
+    paidAmount: 0,
     notes: '',
   });
 
@@ -157,6 +179,16 @@ function IncomeBooksTab() {
       .finally(() => setLoading(false));
   }, []);
   useEffect(() => { loadData(); }, [loadData]);
+
+  useEffect(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    api
+      .get<IncomeBook>(`/api/income-books/month/${year}/${month}`)
+      .then((r) => setCurrentMonthBook(r.data))
+      .catch(() => setCurrentMonthBook(null));
+  }, []);
 
   const openMonth = async (year: number, month: number) => {
     try {
@@ -187,23 +219,54 @@ function IncomeBooksTab() {
   const loadServices = useCallback(async () => {
     setLoadingServices(true);
     try {
-      const { data } = await api.get('/api/services', {
-        params: { activeOnly: 'true', pageSize: 500, page: 1 },
-      });
-      const items = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
-      setServices(items.map((s: any) => ({ id: s.id, name: s.name, price: s.price })));
+      if (!manualForm.stylistProfileId) {
+        setServices([]);
+        return;
+      }
+      const { data } = await api.get(`/api/stylists/${manualForm.stylistProfileId}/services`);
+      const list = Array.isArray(data) ? data : [];
+      const svc = list
+        .map((row: any) => row?.service)
+        .filter(Boolean)
+        .map((s: any) => ({ id: s.id, name: s.name, price: s.price }));
+      setServices(svc);
+      setServicesForStylistId(manualForm.stylistProfileId);
     } catch {
       setServices([]);
     } finally {
       setLoadingServices(false);
     }
+  }, [manualForm.stylistProfileId]);
+
+  const loadStylists = useCallback(async () => {
+    setLoadingStylists(true);
+    try {
+      const { data } = await api.get('/api/stylists', {
+        params: { activeOnly: 'true', pageSize: 200, page: 0 },
+      });
+      const items = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
+      setStylists(items);
+    } catch {
+      setStylists([]);
+    } finally {
+      setLoadingStylists(false);
+      setStylistsLoadAttempted(true);
+    }
   }, []);
 
   useEffect(() => {
     if (view !== 'book' || !selectedBook) return;
-    if (services.length > 0 || loadingServices) return;
+    if (!manualForm.stylistProfileId) return;
+    if (servicesForStylistId === manualForm.stylistProfileId) return;
+    if (loadingServices) return;
     loadServices();
-  }, [loadServices, loadingServices, selectedBook, services.length, view]);
+  }, [loadServices, loadingServices, manualForm.stylistProfileId, selectedBook, servicesForStylistId, view]);
+
+  useEffect(() => {
+    if (view !== 'book' || !selectedBook) return;
+    if (stylistsLoadAttempted || loadingStylists) return;
+    loadStylists();
+  }, [loadStylists, loadingStylists, selectedBook, stylistsLoadAttempted, view]);
 
   useEffect(() => {
     if (view !== 'book' || !selectedBook) return;
@@ -222,31 +285,55 @@ function IncomeBooksTab() {
     setEditingManual(null);
     const y = selectedBook.year;
     const m = String(selectedBook.month).padStart(2, '0');
+    const defaultStylistId = stylists[0]?.id ?? '';
+    const servicePrice = 0;
     setManualForm({
       date: `${y}-${m}-01`,
-      serviceId: services[0]?.id ?? '',
-      amount: 0,
-      tipAmount: 0,
+      stylistProfileId: defaultStylistId,
+      clientId: '',
+      serviceId: '',
+      servicePrice,
+      paidAmount: 0,
       notes: '',
     });
+    setSelectedClient(null);
+    setClientQuery('');
+    setClientResults([]);
     onManualOpen();
   }
 
   const openManualEdit = (entry: IncomeBookManualEntry) => {
     setEditingManual(entry);
+    const svc = services.find((s) => s.id === entry.serviceId);
+    const servicePrice = svc?.price != null ? Number(svc.price) : Number(entry.amount || 0);
+    const paidAmount = Number(entry.amount || 0) + Number(entry.tipAmount || 0);
     setManualForm({
       date: String(entry.date).slice(0, 10),
+      stylistProfileId: entry.stylistProfileId ?? '',
+      clientId: (entry as any).clientId ?? '',
       serviceId: entry.serviceId,
-      amount: Number(entry.amount || 0),
-      tipAmount: Number(entry.tipAmount || 0),
+      servicePrice,
+      paidAmount,
       notes: entry.notes ?? '',
     });
+    const client = (entry as any).client as ClientOption | undefined
+    setSelectedClient(client ?? null)
+    const label = client ? ([client.firstName, client.lastName].filter(Boolean).join(' ') || client.username) : ''
+    setClientQuery(label)
+    setClientResults([])
     onManualOpen();
   }
 
+  const selectedServicePrice = (() => {
+    const svc = services.find((s) => s.id === manualForm.serviceId);
+    const price = svc?.price != null ? Number(svc.price) : manualForm.servicePrice;
+    return Number.isFinite(price) ? price : 0;
+  })();
+  const computedTipAmount = Math.max(0, Number(manualForm.paidAmount || 0) - Number(selectedServicePrice || 0));
+
   const handleSaveManual = async () => {
     if (!selectedBook) return;
-    if (!manualForm.date || !manualForm.serviceId) {
+    if (!manualForm.date || !manualForm.stylistProfileId || !manualForm.serviceId) {
       toast({ title: 'Popunite sva polja', status: 'warning', isClosable: true })
       return
     }
@@ -255,17 +342,21 @@ function IncomeBooksTab() {
       if (editingManual) {
         await api.patch(`/api/income-books/${selectedBook.id}/manual-entries/${editingManual.id}`, {
           date: manualForm.date,
+          stylistProfileId: manualForm.stylistProfileId,
+          clientId: manualForm.clientId || null,
           serviceId: manualForm.serviceId,
-          amount: manualForm.amount,
-          tipAmount: manualForm.tipAmount,
+          amount: selectedServicePrice,
+          tipAmount: computedTipAmount,
           notes: manualForm.notes || null,
         });
       } else {
         await api.post(`/api/income-books/${selectedBook.id}/manual-entries`, {
           date: manualForm.date,
+          stylistProfileId: manualForm.stylistProfileId,
+          clientId: manualForm.clientId || undefined,
           serviceId: manualForm.serviceId,
-          amount: manualForm.amount,
-          tipAmount: manualForm.tipAmount,
+          amount: selectedServicePrice,
+          tipAmount: computedTipAmount,
           notes: manualForm.notes || undefined,
         });
       }
@@ -290,6 +381,27 @@ function IncomeBooksTab() {
       toast({ title: 'Greška', status: 'error', isClosable: true });
     }
   }
+
+  useEffect(() => {
+    if (!isManualOpen) return;
+    const q = clientQuery.trim();
+    if (q.length < 2) {
+      setClientResults([]);
+      return;
+    }
+    const handle = window.setTimeout(() => {
+      setClientSearching(true);
+      api
+        .get('/api/users/clients', { params: { q, page: 0, pageSize: 20 } })
+        .then((r) => {
+          const items = Array.isArray(r.data?.items) ? r.data.items : Array.isArray(r.data) ? r.data : [];
+          setClientResults(items);
+        })
+        .catch(() => setClientResults([]))
+        .finally(() => setClientSearching(false));
+    }, 250);
+    return () => window.clearTimeout(handle);
+  }, [clientQuery, isManualOpen]);
 
   const handleUnlockBook = async () => {
     if (!selectedBook) return;
@@ -330,7 +442,10 @@ function IncomeBooksTab() {
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
-  const currentBook = books.find((b) => b.year === currentYear && b.month === currentMonth) ?? null;
+  const currentBook =
+    currentMonthBook ??
+    books.find((b) => b.year === currentYear && b.month === currentMonth) ??
+    null;
   const isCurrentBookOpen = Boolean(currentBook && !currentBook.closedAt);
   const currentMonthEnd = getEndOfMonthDate(currentYear, currentMonth);
 
@@ -547,21 +662,132 @@ function IncomeBooksTab() {
                 <Input type="date" value={manualForm.date} onChange={(e) => setManualForm((p) => ({ ...p, date: e.target.value }))} />
               </FormControl>
               <FormControl mb={4} isRequired>
+                <FormLabel>Stilista</FormLabel>
+                <Select
+                  value={manualForm.stylistProfileId}
+                  onChange={(e) => {
+                    const stylistProfileId = e.target.value
+                    setManualForm((p) => ({
+                      ...p,
+                      stylistProfileId,
+                      serviceId: '',
+                      servicePrice: 0,
+                      paidAmount: 0,
+                    }))
+                    if (stylistProfileId && stylistProfileId !== servicesForStylistId) {
+                      setServices([])
+                      loadServices()
+                    }
+                  }}
+                  isDisabled={loadingStylists}
+                >
+                  <option value="" disabled>Odaberite stilistu</option>
+                  {stylists.map((s) => {
+                    const u = s.user
+                    const label = u ? (`${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.username) : s.id
+                    return <option key={s.id} value={s.id}>{label}</option>
+                  })}
+                </Select>
+              </FormControl>
+
+              <FormControl mb={4}>
+                <FormLabel>Klijent</FormLabel>
+                <InputGroup>
+                  <Input
+                    value={clientQuery}
+                    placeholder="Pretraži klijenta (min 2 slova)"
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setClientQuery(v)
+                      setSelectedClient(null)
+                      setManualForm((p) => ({ ...p, clientId: '' }))
+                    }}
+                  />
+                  {(selectedClient || clientQuery) && (
+                    <InputRightElement>
+                      <IconButton
+                        aria-label="Očisti"
+                        icon={<CloseIcon />}
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => {
+                          setClientQuery('')
+                          setSelectedClient(null)
+                          setClientResults([])
+                          setManualForm((p) => ({ ...p, clientId: '' }))
+                        }}
+                      />
+                    </InputRightElement>
+                  )}
+                </InputGroup>
+                {(clientSearching || clientResults.length > 0) && (
+                  <Box borderWidth="1px" borderColor="gray.200" rounded="md" mt={2} maxH="220px" overflowY="auto" bg="white">
+                    <List spacing={0}>
+                      {clientSearching && (
+                        <ListItem p={2}><Text fontSize="sm" color="gray.500">Pretraga...</Text></ListItem>
+                      )}
+                      {!clientSearching && clientResults.length === 0 && clientQuery.trim().length >= 2 && (
+                        <ListItem p={2}><Text fontSize="sm" color="gray.500">Nema rezultata.</Text></ListItem>
+                      )}
+                      {!clientSearching && clientResults.map((c) => {
+                        const label = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.username
+                        return (
+                          <ListItem
+                            key={c.id}
+                            p={2}
+                            cursor="pointer"
+                            _hover={{ bg: 'gray.50' }}
+                            onClick={() => {
+                              setSelectedClient(c)
+                              setClientQuery(label)
+                              setClientResults([])
+                              setManualForm((p) => ({ ...p, clientId: c.id }))
+                            }}
+                          >
+                            <Text fontSize="sm" fontWeight="medium">{label}</Text>
+                            <Text fontSize="xs" color="gray.500">@{c.username}</Text>
+                          </ListItem>
+                        )
+                      })}
+                    </List>
+                  </Box>
+                )}
+              </FormControl>
+
+              <FormControl mb={4} isRequired>
                 <FormLabel>Servis</FormLabel>
-                <Select value={manualForm.serviceId} onChange={(e) => setManualForm((p) => ({ ...p, serviceId: e.target.value }))}>
+                <Select
+                  value={manualForm.serviceId}
+                  isDisabled={!manualForm.stylistProfileId || loadingServices}
+                  onChange={(e) => {
+                    const serviceId = e.target.value
+                    const svc = services.find((s) => s.id === serviceId)
+                    const price = svc?.price != null ? Number(svc.price) : 0
+                    setManualForm((p) => ({ ...p, serviceId, servicePrice: price, paidAmount: Math.max(p.paidAmount, price) }))
+                  }}
+                >
+                  <option value="" disabled>Odaberite servis</option>
                   {services.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </Select>
               </FormControl>
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+                <FormControl>
+                  <FormLabel>Cijena servisa (KM)</FormLabel>
+                  <Input type="number" value={selectedServicePrice} isReadOnly />
+                </FormControl>
                 <FormControl isRequired>
-                  <FormLabel>Iznos (KM)</FormLabel>
-                  <Input type="number" value={manualForm.amount} onChange={(e) => setManualForm((p) => ({ ...p, amount: Number(e.target.value) || 0 }))} />
+                  <FormLabel>Naplaćeno (KM)</FormLabel>
+                  <Input type="number" value={manualForm.paidAmount} onChange={(e) => setManualForm((p) => ({ ...p, paidAmount: Number(e.target.value) || 0 }))} />
                 </FormControl>
                 <FormControl>
                   <FormLabel>Napojnica (KM)</FormLabel>
-                  <Input type="number" value={manualForm.tipAmount} onChange={(e) => setManualForm((p) => ({ ...p, tipAmount: Number(e.target.value) || 0 }))} />
+                  <Input type="number" value={computedTipAmount} isReadOnly />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Prihod (KM)</FormLabel>
+                  <Input type="number" value={selectedServicePrice} isReadOnly />
                 </FormControl>
               </SimpleGrid>
               <FormControl>

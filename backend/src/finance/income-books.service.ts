@@ -77,6 +77,7 @@ export class IncomeBooksService {
           include: {
             service: true,
             stylistProfile: { include: { user: true } },
+            client: { select: { id: true, username: true, firstName: true, lastName: true } },
             createdBy: { select: { id: true, username: true } },
           },
           orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
@@ -154,6 +155,7 @@ export class IncomeBooksService {
       date: string;
       serviceId: string;
       stylistProfileId?: string;
+      clientId?: string;
       amount: number;
       tipAmount?: number;
       notes?: string;
@@ -180,6 +182,7 @@ export class IncomeBooksService {
           date,
           serviceId: dto.serviceId,
           stylistProfileId: dto.stylistProfileId,
+          clientId: dto.clientId,
           amount: dto.amount,
           tipAmount,
           notes: dto.notes,
@@ -188,6 +191,7 @@ export class IncomeBooksService {
         include: {
           service: true,
           stylistProfile: { include: { user: true } },
+          client: { select: { id: true, username: true, firstName: true, lastName: true } },
           createdBy: { select: { id: true, username: true } },
         },
       });
@@ -202,6 +206,7 @@ export class IncomeBooksService {
             date: entry.date,
             serviceId: entry.serviceId,
             stylistProfileId: entry.stylistProfileId,
+            clientId: entry.clientId,
             amount: entry.amount,
             tipAmount: entry.tipAmount,
             notes: entry.notes,
@@ -222,6 +227,7 @@ export class IncomeBooksService {
       date?: string;
       serviceId?: string;
       stylistProfileId?: string | null;
+      clientId?: string | null;
       amount?: number;
       tipAmount?: number;
       notes?: string | null;
@@ -255,6 +261,7 @@ export class IncomeBooksService {
           ...(dto.stylistProfileId !== undefined && {
             stylistProfileId: dto.stylistProfileId,
           }),
+          ...(dto.clientId !== undefined && { clientId: dto.clientId }),
           ...(dto.amount != null && { amount: dto.amount }),
           ...(dto.tipAmount != null && { tipAmount: dto.tipAmount }),
           ...(dto.notes !== undefined && { notes: dto.notes }),
@@ -262,6 +269,7 @@ export class IncomeBooksService {
         include: {
           service: true,
           stylistProfile: { include: { user: true } },
+          client: { select: { id: true, username: true, firstName: true, lastName: true } },
           createdBy: { select: { id: true, username: true } },
         },
       });
@@ -275,6 +283,7 @@ export class IncomeBooksService {
             date: existing.date,
             serviceId: existing.serviceId,
             stylistProfileId: existing.stylistProfileId,
+            clientId: existing.clientId,
             amount: existing.amount,
             tipAmount: existing.tipAmount,
             notes: existing.notes,
@@ -284,6 +293,7 @@ export class IncomeBooksService {
             date: entry.date,
             serviceId: entry.serviceId,
             stylistProfileId: entry.stylistProfileId,
+            clientId: entry.clientId,
             amount: entry.amount,
             tipAmount: entry.tipAmount,
             notes: entry.notes,
@@ -324,6 +334,7 @@ export class IncomeBooksService {
             date: existing.date,
             serviceId: existing.serviceId,
             stylistProfileId: existing.stylistProfileId,
+            clientId: existing.clientId,
             amount: existing.amount,
             tipAmount: existing.tipAmount,
             notes: existing.notes,

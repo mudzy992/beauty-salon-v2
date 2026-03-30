@@ -14,6 +14,10 @@ export class UpdateIncomeBookManualEntryDto {
   stylistProfileId?: string | null;
 
   @IsOptional()
+  @IsUUID()
+  clientId?: string | null;
+
+  @IsOptional()
   @IsNumber()
   @Min(0)
   amount?: number;
