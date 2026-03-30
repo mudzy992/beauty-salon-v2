@@ -19,7 +19,11 @@ import { motion } from 'framer-motion';
 import { ArrowBackIcon } from '@chakra-ui/icons';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
-import { getClientMandatoryOnboardingPath, getPostAuthRedirectPath } from '../utils/clientOnboarding';
+import {
+  getClientMandatoryOnboardingPath,
+  getPostAuthRedirectPath,
+  shouldIgnoreStaleAuthRedirect,
+} from '../utils/clientOnboarding';
 
 const MotionBox = motion(Box as any);
 
@@ -83,9 +87,9 @@ export default function Login() {
       return;
     }
 
-    const from = (location.state as { from?: string } | null)?.from;
+    const from = (location.state as { from?: unknown } | null)?.from;
     const resolvedFrom = resolveFrom(from);
-    if (resolvedFrom) {
+    if (resolvedFrom && !shouldIgnoreStaleAuthRedirect(resolvedFrom, loggedInUser)) {
       navigate(resolvedFrom, { replace: true });
       return;
     }

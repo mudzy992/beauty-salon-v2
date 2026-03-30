@@ -26,6 +26,33 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const TOKEN_KEY = 'token';
 
+function parseRolesFromJwt(token: string | null): string[] {
+  if (!token) return [];
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return [];
+    const payload = JSON.parse(atob(parts[1])) as { roles?: unknown };
+    const r = payload.roles;
+    if (!Array.isArray(r)) return [];
+    return r.map((x) => String(x).trim().toUpperCase()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+type ProfilePayload = {
+  id: string;
+  username: string;
+  email: string | null;
+  phone?: string | null;
+  gender?: 'MALE' | 'FEMALE' | null;
+  genderOnboardingCompleted?: boolean;
+  isEmailVerified?: boolean;
+  mustChangePassword?: boolean;
+  userRoles?: { role: { name: string } }[];
+  roles?: string[];
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState<User | null>(null);
@@ -40,28 +67,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.assign('/');
   }, []);
 
-  const mapProfileToUser = (profile: {
-    id: string;
-    username: string;
-    email: string | null;
-    phone?: string | null;
-    gender?: 'MALE' | 'FEMALE' | null;
-    genderOnboardingCompleted?: boolean;
-    isEmailVerified?: boolean;
-    mustChangePassword?: boolean;
-    userRoles?: { role: { name: string } }[];
-    roles?: string[];
-  }): User => {
-    const roles = profile.roles ?? profile.userRoles?.map((r) => r.role.name) ?? [];
+  const mapProfileToUser = (profile: ProfilePayload, jwtFallbackToken: string | null = null): User => {
+    const raw =
+      profile.roles ??
+      profile.userRoles?.map((r) => r.role?.name).filter((n): n is string => Boolean(n)) ??
+      [];
+    let roles = raw.map((r) => String(r).trim().toUpperCase()).filter(Boolean);
+    if (roles.length === 0 && jwtFallbackToken) {
+      roles = parseRolesFromJwt(jwtFallbackToken);
+    }
+    const asBool = (v: unknown, fallback = false): boolean => {
+      if (v === true || v === 1) return true;
+      if (v === false || v === 0 || v == null) return false;
+      if (typeof v === 'string') {
+        const s = v.trim().toLowerCase();
+        if (s === '1' || s === 'true' || s === 'yes') return true;
+        if (s === '0' || s === 'false' || s === '') return false;
+      }
+      return fallback;
+    };
     return {
       sub: profile.id,
       username: profile.username,
       email: profile.email ?? null,
       phone: profile.phone ?? null,
       gender: profile.gender ?? null,
-      genderOnboardingCompleted: profile.genderOnboardingCompleted ?? false,
-      isEmailVerified: profile.isEmailVerified ?? false,
-      mustChangePassword: profile.mustChangePassword ?? false,
+      genderOnboardingCompleted: asBool(profile.genderOnboardingCompleted),
+      isEmailVerified: asBool(profile.isEmailVerified),
+      mustChangePassword: asBool(profile.mustChangePassword),
       roles,
     };
   };
@@ -86,26 +119,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginFn = useCallback(
     async (username: string, password: string): Promise<User> => {
-      const { data } = await api.post<{ access_token: string }>('/auth/login', {
+      const { data } = await api.post<{
+        access_token: string;
+        user?: ProfilePayload;
+      }>('/auth/login', {
         login: username,
         password,
       });
       const newToken = data.access_token;
       localStorage.setItem(TOKEN_KEY, newToken);
       api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
-      const profile = await api.get<{
-        id: string;
-        username: string;
-        email: string | null;
-        phone?: string | null;
-        gender?: 'MALE' | 'FEMALE' | null;
-        genderOnboardingCompleted?: boolean;
-        isEmailVerified?: boolean;
-        mustChangePassword?: boolean;
-        userRoles?: { role: { name: string } }[];
-        roles?: string[];
-      }>('/api/users/profile');
-      const userData = mapProfileToUser(profile.data);
+
+      let userData: User;
+      if (data.user?.id) {
+        userData = mapProfileToUser(data.user, newToken);
+      } else {
+        const profile = await api.get<ProfilePayload>('/api/users/profile');
+        userData = mapProfileToUser(profile.data, newToken);
+      }
       setUser(userData);
       setToken(newToken);
       window.dispatchEvent(new Event('auth-change'));
@@ -120,20 +151,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     api
-      .get<{
-        id: string;
-        username: string;
-        email: string | null;
-        phone?: string | null;
-        gender?: 'MALE' | 'FEMALE' | null;
-        genderOnboardingCompleted?: boolean;
-        isEmailVerified?: boolean;
-        mustChangePassword?: boolean;
-        userRoles?: { role: { name: string } }[];
-        roles?: string[];
-      }>('/api/users/profile')
+      .get<ProfilePayload>('/api/users/profile')
       .then((r) => {
-        setUser(mapProfileToUser(r.data));
+        setUser(mapProfileToUser(r.data, token));
       })
       .catch(() => logout())
       .finally(() => setIsReady(true));

@@ -2,7 +2,10 @@ import { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Spinner, Center } from '@chakra-ui/react';
 import { useAuth } from '../context/AuthContext';
-import { getClientMandatoryOnboardingPath } from '../utils/clientOnboarding';
+import {
+  getClientMandatoryOnboardingPath,
+  isExemptFromForcedPasswordChange,
+} from '../utils/clientOnboarding';
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
   const { token, user, isReady } = useAuth();
@@ -19,7 +22,11 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
   if (!token) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-  if (user?.mustChangePassword && location.pathname !== '/force-change-password') {
+  if (
+    user?.mustChangePassword &&
+    !isExemptFromForcedPasswordChange(user) &&
+    location.pathname !== '/force-change-password'
+  ) {
     return <Navigate to="/force-change-password" replace />;
   }
 
