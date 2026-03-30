@@ -44,20 +44,23 @@ model User {
   createdAt                  DateTime  @default(now()) @map("created_at")
   updatedAt                  DateTime  @updatedAt @map("updated_at")
 
-  userRoles               UserRole[]
-  stylistProfile          StylistProfile?
-  reservationsAsClient    Reservation[]             @relation("ClientReservations")
-  reviews                 Review[]
-  blogComments            BlogComment[]
-  pushTokens              PushToken[]
-  notificationPreferences NotificationPreference[]
-  notifications           Notification[]
-  loyaltyAccount          LoyaltyAccount?
-  uploads                 Upload[]                  @relation("UploadedBy")
-  expenseCreatedBy        Expense[]                 @relation("ExpenseCreatedBy")
-  blogPosts               BlogPost[]                @relation("BlogAuthor")
-  cancellationCount       ClientCancellationCount[]
-  dailyLogEntriesAsClient DailyLogEntry[]           @relation("DailyLogClient")
+  userRoles                  UserRole[]
+  stylistProfile             StylistProfile?
+  reservationsAsClient       Reservation[]                @relation("ClientReservations")
+  reviews                    Review[]
+  blogComments               BlogComment[]
+  pushTokens                 PushToken[]
+  notificationPreferences    NotificationPreference[]
+  notifications              Notification[]
+  loyaltyAccount             LoyaltyAccount?
+  uploads                    Upload[]                     @relation("UploadedBy")
+  expenseCreatedBy           Expense[]                    @relation("ExpenseCreatedBy")
+  incomeManualEntriesCreated IncomeBookManualEntry[]      @relation("IncomeManualEntriesCreated")
+  incomeBookLockEvents       IncomeBookLockEvent[]        @relation("IncomeBookLockEventsCreated")
+  incomeManualEntryAudits    IncomeBookManualEntryAudit[] @relation("IncomeManualEntryAuditsCreated")
+  blogPosts                  BlogPost[]                   @relation("BlogAuthor")
+  cancellationCount          ClientCancellationCount[]
+  dailyLogEntriesAsClient    DailyLogEntry[]              @relation("DailyLogClient")
 
   @@map("users")
 }
@@ -153,20 +156,21 @@ model Holiday {
 // ============ STYLISTS ============
 
 model StylistProfile {
-  id             String    @id @default(uuid())
-  userId         String    @unique @map("user_id")
-  bio            String?   @db.Text
-  specialization String?   @db.Text
+  id             String               @id @default(uuid())
+  userId         String               @unique @map("user_id")
+  bio            String?              @db.Text
+  specialization String?              @db.Text
   status         StylistProfileStatus @default(PENDING)
-  isActive       Boolean   @default(true) @map("is_active")
-  hireDate       DateTime? @map("hire_date")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  isActive       Boolean              @default(true) @map("is_active")
+  hireDate       DateTime?            @map("hire_date")
+  createdAt      DateTime             @default(now()) @map("created_at")
+  updatedAt      DateTime             @updatedAt @map("updated_at")
 
   user                  User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
   workingHours          StylistWorkingHours[]
   stylistServices       StylistService[]
   dailyLogEntries       DailyLogEntry[]
+  incomeManualEntries   IncomeBookManualEntry[]
   reservationResponses  ReservationStylistResponse[]
   reservationsConfirmed Reservation[]                @relation("ConfirmedByStylist")
   reviews               Review[]
@@ -238,11 +242,12 @@ model Service {
   loyaltyEnabled            Boolean @default(false) @map("loyalty_enabled")
   loyaltyMaxDiscountPercent Int     @default(0) @map("loyalty_max_discount_percent")
 
-  subcategory     ServiceSubcategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
-  stylistServices StylistService[]
-  reservations    Reservation[]
-  dailyLogEntries DailyLogEntry[]
-  reviews         Review[]
+  subcategory         ServiceSubcategory      @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+  stylistServices     StylistService[]
+  reservations        Reservation[]
+  dailyLogEntries     DailyLogEntry[]
+  incomeManualEntries IncomeBookManualEntry[]
+  reviews             Review[]
 
   @@map("services")
 }
@@ -502,7 +507,10 @@ model IncomeBook {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  entries IncomeBookEntry[]
+  entries       IncomeBookEntry[]
+  manualEntries IncomeBookManualEntry[]
+  lockEvents    IncomeBookLockEvent[]
+  manualAudits  IncomeBookManualEntryAudit[]
 
   @@unique([year, month])
   @@map("income_books")
@@ -522,6 +530,62 @@ model IncomeBookEntry {
 
   @@unique([bookId, dailyLogEntryId])
   @@map("income_book_entries")
+}
+
+model IncomeBookManualEntry {
+  id               String   @id @default(uuid())
+  bookId           String   @map("book_id")
+  date             DateTime @db.Date
+  serviceId        String   @map("service_id")
+  stylistProfileId String?  @map("stylist_profile_id")
+  amount           Decimal  @db.Decimal(10, 2)
+  tipAmount        Decimal  @default(0) @map("tip_amount") @db.Decimal(10, 2)
+  notes            String?  @db.Text
+  createdById      String   @map("created_by_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  book           IncomeBook                   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  service        Service                      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  stylistProfile StylistProfile?              @relation(fields: [stylistProfileId], references: [id], onDelete: SetNull)
+  createdBy      User                         @relation("IncomeManualEntriesCreated", fields: [createdById], references: [id], onDelete: Restrict)
+  audits         IncomeBookManualEntryAudit[]
+
+  @@index([bookId, date])
+  @@map("income_book_manual_entries")
+}
+
+model IncomeBookLockEvent {
+  id          String   @id @default(uuid())
+  bookId      String   @map("book_id")
+  action      String // LOCK | UNLOCK
+  reason      String?  @db.Text
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  book      IncomeBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdBy User       @relation("IncomeBookLockEventsCreated", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([bookId, createdAt])
+  @@map("income_book_lock_events")
+}
+
+model IncomeBookManualEntryAudit {
+  id            String   @id @default(uuid())
+  bookId        String   @map("book_id")
+  manualEntryId String?  @map("manual_entry_id")
+  action        String // CREATE | UPDATE | DELETE
+  beforeJson    Json?    @map("before_json")
+  afterJson     Json?    @map("after_json")
+  createdById   String   @map("created_by_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  book        IncomeBook             @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  manualEntry IncomeBookManualEntry? @relation(fields: [manualEntryId], references: [id], onDelete: SetNull)
+  createdBy   User                   @relation("IncomeManualEntryAuditsCreated", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([bookId, createdAt])
+  @@map("income_book_manual_entry_audits")
 }
 
 // ============ BLOG ============

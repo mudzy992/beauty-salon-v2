@@ -1,8 +1,13 @@
-import { Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { IncomeBooksService } from './income-books.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { UnlockIncomeBookDto } from './dto/unlock-income-book.dto';
+import { CreateIncomeBookManualEntryDto } from './dto/create-income-book-manual-entry.dto';
+import { UpdateIncomeBookManualEntryDto } from './dto/update-income-book-manual-entry.dto';
 
 @Controller('api/income-books')
 @UseGuards(RolesGuard)
@@ -26,6 +31,48 @@ export class IncomeController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.incomeBooks.findOne(id);
+  }
+
+  @Post(':id/unlock')
+  unlock(
+    @Param('id') id: string,
+    @Body() dto: UnlockIncomeBookDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.incomeBooks.unlockBook(id, dto.reason, user.sub);
+  }
+
+  @Post(':id/lock')
+  lock(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.incomeBooks.lockBook(id, user.sub);
+  }
+
+  @Post(':id/manual-entries')
+  createManualEntry(
+    @Param('id') id: string,
+    @Body() dto: CreateIncomeBookManualEntryDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.incomeBooks.createManualEntry(id, dto, user.sub);
+  }
+
+  @Patch(':id/manual-entries/:entryId')
+  updateManualEntry(
+    @Param('id') id: string,
+    @Param('entryId') entryId: string,
+    @Body() dto: UpdateIncomeBookManualEntryDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.incomeBooks.updateManualEntry(id, entryId, dto, user.sub);
+  }
+
+  @Delete(':id/manual-entries/:entryId')
+  deleteManualEntry(
+    @Param('id') id: string,
+    @Param('entryId') entryId: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.incomeBooks.deleteManualEntry(id, entryId, user.sub);
   }
 
   @Post('sync-from-daily-log/:dailyLogEntryId')

@@ -20,6 +20,9 @@ interface IncomeBook {
   totalRevenue: number | string; totalTips: number | string;
   openedAt: string; closedAt: string | null;
   entries?: IncomeEntry[];
+  manualEntries?: IncomeBookManualEntry[];
+  lockEvents?: IncomeBookLockEvent[];
+  manualAudits?: IncomeBookManualEntryAudit[];
 }
 interface IncomeEntry {
   id: string; amount: number | string; tipAmount: number | string; date: string;
@@ -31,6 +34,41 @@ interface IncomeEntry {
     stylistProfile?: { user?: { username: string; firstName: string | null; lastName: string | null } };
     client?: { user?: { username: string } };
   };
+}
+interface IncomeBookManualEntry {
+  id: string;
+  date: string;
+  serviceId: string;
+  stylistProfileId: string | null;
+  amount: number | string;
+  tipAmount: number | string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  service?: { id: string; name: string };
+  stylistProfile?: { id: string; user?: { username: string; firstName: string | null; lastName: string | null } };
+  createdBy?: { id: string; username: string };
+}
+interface IncomeBookLockEvent {
+  id: string;
+  action: string;
+  reason: string | null;
+  createdAt: string;
+  createdBy?: { id: string; username: string };
+}
+interface IncomeBookManualEntryAudit {
+  id: string;
+  manualEntryId: string | null;
+  action: string;
+  beforeJson: any | null;
+  afterJson: any | null;
+  createdAt: string;
+  createdBy?: { id: string; username: string };
+}
+interface ServiceOption {
+  id: string;
+  name: string;
+  price?: number | string;
 }
 interface ExpenseBook { id: string; year: number; month: number; isClosed: boolean; openedAt: string; closedAt: string | null; }
 interface ExpenseTemplate {
@@ -52,6 +90,14 @@ interface Expense {
 }
 
 const MONTHS = ['', 'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Juni', 'Juli', 'August', 'Septembar', 'Oktobar', 'Novembar', 'Decembar'];
+
+function getEndOfMonthDate(year: number, month: number): Date {
+  return new Date(year, month, 0);
+}
+
+function formatDateBs(date: Date): string {
+  return date.toLocaleDateString('bs-BA');
+}
 
 export default function Finance() {
   const { t } = useTranslation();
@@ -83,6 +129,25 @@ function IncomeBooksTab() {
   const [selectedBook, setSelectedBook] = useState<IncomeBook | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<IncomeEntry | null>(null);
   const [view, setView] = useState<'list' | 'book' | 'entry'>('list');
+  const nowForPicker = useRef<Date>(new Date());
+  const [targetYear, setTargetYear] = useState<number>(nowForPicker.current.getFullYear());
+  const [targetMonth, setTargetMonth] = useState<number>(nowForPicker.current.getMonth() + 1);
+  const { isOpen: isUnlockOpen, onOpen: onUnlockOpen, onClose: onUnlockClose } = useDisclosure();
+  const [unlockReason, setUnlockReason] = useState('');
+  const [unlocking, setUnlocking] = useState(false);
+  const [locking, setLocking] = useState(false);
+  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const { isOpen: isManualOpen, onOpen: onManualOpen, onClose: onManualClose } = useDisclosure();
+  const [editingManual, setEditingManual] = useState<IncomeBookManualEntry | null>(null);
+  const [manualSaving, setManualSaving] = useState(false);
+  const [manualForm, setManualForm] = useState({
+    date: '',
+    serviceId: '',
+    amount: 0,
+    tipAmount: 0,
+    notes: '',
+  });
 
   const loadData = useCallback(() => {
     setLoading(true);
@@ -93,6 +158,15 @@ function IncomeBooksTab() {
   }, []);
   useEffect(() => { loadData(); }, [loadData]);
 
+  const openMonth = async (year: number, month: number) => {
+    try {
+      const { data } = await api.get<IncomeBook>(`/api/income-books/month/${year}/${month}`);
+      setSelectedBook(data);
+      setView('book');
+      loadData();
+    } catch { toast({ title: 'Greška', status: 'error', isClosable: true }); }
+  }
+
   const openBook = async (b: IncomeBook) => {
     try {
       const { data } = await api.get<IncomeBook>(`/api/income-books/${b.id}`);
@@ -101,17 +175,164 @@ function IncomeBooksTab() {
     } catch { toast({ title: 'Greška', status: 'error', isClosable: true }); }
   };
 
+  const reloadSelectedBook = async () => {
+    if (!selectedBook) return;
+    try {
+      const { data } = await api.get<IncomeBook>(`/api/income-books/${selectedBook.id}`);
+      setSelectedBook(data);
+      loadData();
+    } catch { /* keep old */ }
+  }
+
+  const loadServices = useCallback(async () => {
+    setLoadingServices(true);
+    try {
+      const { data } = await api.get('/api/services', {
+        params: { activeOnly: 'true', pageSize: 500, page: 1 },
+      });
+      const items = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
+      setServices(items.map((s: any) => ({ id: s.id, name: s.name, price: s.price })));
+    } catch {
+      setServices([]);
+    } finally {
+      setLoadingServices(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (view !== 'book' || !selectedBook) return;
+    if (services.length > 0 || loadingServices) return;
+    loadServices();
+  }, [loadServices, loadingServices, selectedBook, services.length, view]);
+
+  useEffect(() => {
+    if (view !== 'book' || !selectedBook) return;
+    const isUnlocked = !selectedBook.closedAt;
+    if (!isUnlocked) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [selectedBook, view]);
+
+  const openManualCreate = () => {
+    if (!selectedBook) return;
+    setEditingManual(null);
+    const y = selectedBook.year;
+    const m = String(selectedBook.month).padStart(2, '0');
+    setManualForm({
+      date: `${y}-${m}-01`,
+      serviceId: services[0]?.id ?? '',
+      amount: 0,
+      tipAmount: 0,
+      notes: '',
+    });
+    onManualOpen();
+  }
+
+  const openManualEdit = (entry: IncomeBookManualEntry) => {
+    setEditingManual(entry);
+    setManualForm({
+      date: String(entry.date).slice(0, 10),
+      serviceId: entry.serviceId,
+      amount: Number(entry.amount || 0),
+      tipAmount: Number(entry.tipAmount || 0),
+      notes: entry.notes ?? '',
+    });
+    onManualOpen();
+  }
+
+  const handleSaveManual = async () => {
+    if (!selectedBook) return;
+    if (!manualForm.date || !manualForm.serviceId) {
+      toast({ title: 'Popunite sva polja', status: 'warning', isClosable: true })
+      return
+    }
+    setManualSaving(true);
+    try {
+      if (editingManual) {
+        await api.patch(`/api/income-books/${selectedBook.id}/manual-entries/${editingManual.id}`, {
+          date: manualForm.date,
+          serviceId: manualForm.serviceId,
+          amount: manualForm.amount,
+          tipAmount: manualForm.tipAmount,
+          notes: manualForm.notes || null,
+        });
+      } else {
+        await api.post(`/api/income-books/${selectedBook.id}/manual-entries`, {
+          date: manualForm.date,
+          serviceId: manualForm.serviceId,
+          amount: manualForm.amount,
+          tipAmount: manualForm.tipAmount,
+          notes: manualForm.notes || undefined,
+        });
+      }
+      toast({ title: 'Sačuvano', status: 'success', isClosable: true });
+      onManualClose();
+      await reloadSelectedBook();
+    } catch {
+      toast({ title: 'Greška', status: 'error', isClosable: true });
+    } finally {
+      setManualSaving(false);
+    }
+  }
+
+  const handleDeleteManual = async (entry: IncomeBookManualEntry) => {
+    if (!selectedBook) return;
+    if (!window.confirm('Obrisati ručni prihod?')) return;
+    try {
+      await api.delete(`/api/income-books/${selectedBook.id}/manual-entries/${entry.id}`);
+      toast({ title: 'Obrisano', status: 'success', isClosable: true });
+      await reloadSelectedBook();
+    } catch {
+      toast({ title: 'Greška', status: 'error', isClosable: true });
+    }
+  }
+
+  const handleUnlockBook = async () => {
+    if (!selectedBook) return;
+    const reason = unlockReason.trim();
+    if (!reason) {
+      toast({ title: 'Unesite razlog otključavanja', status: 'warning', isClosable: true })
+      return
+    }
+    setUnlocking(true);
+    try {
+      await api.post(`/api/income-books/${selectedBook.id}/unlock`, { reason });
+      toast({ title: 'Knjiga otključana', status: 'success', isClosable: true });
+      setUnlockReason('');
+      onUnlockClose();
+      await reloadSelectedBook();
+    } catch { toast({ title: 'Greška', status: 'error', isClosable: true }); }
+    finally { setUnlocking(false); }
+  }
+
+  const handleLockBook = async () => {
+    if (!selectedBook) return;
+    setLocking(true);
+    try {
+      await api.post(`/api/income-books/${selectedBook.id}/lock`);
+      toast({ title: 'Knjiga zaključana', status: 'success', isClosable: true });
+      await reloadSelectedBook();
+    } catch { toast({ title: 'Greška', status: 'error', isClosable: true }); }
+    finally { setLocking(false); }
+  }
+
   const openCurrentMonth = async () => {
     const now = new Date();
-    try {
-      const { data } = await api.get<IncomeBook>(`/api/income-books/month/${now.getFullYear()}/${now.getMonth() + 1}`);
-      setSelectedBook(data);
-      setView('book');
-      loadData();
-    } catch { toast({ title: 'Greška', status: 'error', isClosable: true }); }
+    await openMonth(now.getFullYear(), now.getMonth() + 1)
   };
 
   if (loading) return <Spinner />;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const currentBook = books.find((b) => b.year === currentYear && b.month === currentMonth) ?? null;
+  const isCurrentBookOpen = Boolean(currentBook && !currentBook.closedAt);
+  const currentMonthEnd = getEndOfMonthDate(currentYear, currentMonth);
 
   if (view === 'entry' && selectedEntry) {
     const dl = selectedEntry.dailyLogEntry;
@@ -139,10 +360,43 @@ function IncomeBooksTab() {
   }
 
   if (view === 'book' && selectedBook) {
+    const isLocked = Boolean(selectedBook.closedAt);
+    const manualEntries = selectedBook.manualEntries ?? [];
+    const canEditManual = !isLocked;
+    const manualTotal = manualEntries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const manualTipsTotal = manualEntries.reduce((sum, e) => sum + Number(e.tipAmount || 0), 0);
     return (
       <Box>
-        <Button leftIcon={<ArrowBackIcon />} variant="ghost" mb={4} onClick={() => setView('list')}>Nazad na listu</Button>
-        <Heading size="md" mb={2}>Knjiga prihoda: {MONTHS[selectedBook.month]} {selectedBook.year}</Heading>
+        <Button
+          leftIcon={<ArrowBackIcon />}
+          variant="ghost"
+          mb={4}
+          onClick={() => {
+            if (!isLocked) {
+              toast({
+                title: 'Knjiga je otključana',
+                description: 'Prije izlaska morate zaključati knjigu.',
+                status: 'warning',
+                isClosable: true,
+              });
+              return;
+            }
+            setView('list');
+          }}
+        >
+          Nazad na listu
+        </Button>
+        <Flex justify="space-between" align="center" mb={2} gap={3} wrap="wrap">
+          <Heading size="md">Knjiga prihoda: {MONTHS[selectedBook.month]} {selectedBook.year}</Heading>
+          <HStack>
+            <Badge colorScheme={isLocked ? 'red' : 'green'}>{isLocked ? 'Zaključana' : 'Otključana'}</Badge>
+            {isLocked ? (
+              <Button size="sm" colorScheme="orange" onClick={onUnlockOpen}>Otključaj</Button>
+            ) : (
+              <Button size="sm" colorScheme="red" leftIcon={<LockIcon />} onClick={handleLockBook} isLoading={locking}>Zaključi</Button>
+            )}
+          </HStack>
+        </Flex>
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} mb={4}>
           <Card size="sm"><CardBody><Stat><StatLabel>Ukupni prihod</StatLabel><StatNumber color="green.600">{Number(selectedBook.totalRevenue).toFixed(2)} KM</StatNumber></Stat></CardBody></Card>
           <Card size="sm"><CardBody><Stat><StatLabel>Ukupne napojnice</StatLabel><StatNumber>{Number(selectedBook.totalTips).toFixed(2)} KM</StatNumber></Stat></CardBody></Card>
@@ -166,13 +420,209 @@ function IncomeBooksTab() {
             </Tbody>
           </Table>
         </Box>
+
+        <Divider my={5} />
+
+        <Flex justify="space-between" align="center" mb={2} gap={3} wrap="wrap">
+          <Heading size="sm">Ručni prihodi</Heading>
+          <HStack>
+            <Badge colorScheme="purple">Prihod: {manualTotal.toFixed(2)} KM</Badge>
+            <Badge colorScheme="purple">Napojnice: {manualTipsTotal.toFixed(2)} KM</Badge>
+            {canEditManual && (
+              <Button size="sm" leftIcon={<AddIcon />} colorScheme="brand" onClick={openManualCreate} isLoading={loadingServices}>
+                Dodaj ručni prihod
+              </Button>
+            )}
+          </HStack>
+        </Flex>
+
+        <Box bg="white" rounded="lg" shadow="sm" overflow="auto" mb={6}>
+          <Table size="sm">
+            <Thead>
+              <Tr>
+                <Th>Datum</Th>
+                <Th>Servis</Th>
+                <Th isNumeric>Iznos</Th>
+                <Th isNumeric>Napojnica</Th>
+                <Th>Bilješke</Th>
+                <Th textAlign="right">Akcije</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {manualEntries.length === 0 ? (
+                <Tr><Td colSpan={6}><Text color="gray.500">Nema ručnih prihoda.</Text></Td></Tr>
+              ) : manualEntries.map((e) => (
+                <Tr key={e.id}>
+                  <Td>{String(e.date).slice(0, 10)}</Td>
+                  <Td>{e.service?.name ?? '-'}</Td>
+                  <Td isNumeric fontWeight="medium">{Number(e.amount).toFixed(2)}</Td>
+                  <Td isNumeric>{Number(e.tipAmount).toFixed(2)}</Td>
+                  <Td>{e.notes ?? '-'}</Td>
+                  <Td textAlign="right">
+                    <HStack justify="flex-end" spacing={1}>
+                      <IconButton aria-label="Uredi" icon={<EditIcon />} size="xs" variant="ghost" colorScheme="blue" onClick={() => openManualEdit(e)} isDisabled={!canEditManual} />
+                      <IconButton aria-label="Obriši" icon={<DeleteIcon />} size="xs" variant="ghost" colorScheme="red" onClick={() => handleDeleteManual(e)} isDisabled={!canEditManual} />
+                    </HStack>
+                  </Td>
+                </Tr>
+              ))}
+            </Tbody>
+          </Table>
+        </Box>
+
+        <Heading size="sm" mb={2}>Evidencija izmjena</Heading>
+        <Box bg="white" rounded="lg" shadow="sm" p={4} mb={6}>
+          <VStack align="stretch" spacing={3}>
+            {((selectedBook.lockEvents ?? []).length === 0 && (selectedBook.manualAudits ?? []).length === 0) ? (
+              <Text color="gray.500">Nema evidencije.</Text>
+            ) : (
+              <>
+                {(selectedBook.lockEvents ?? []).map((e) => (
+                  <Flex key={e.id} justify="space-between" align="start" gap={3} wrap="wrap">
+                    <Box>
+                      <Badge colorScheme={e.action === 'UNLOCK' ? 'orange' : 'red'} mr={2}>{e.action}</Badge>
+                      <Text as="span" fontSize="sm" fontWeight="medium">
+                        {e.createdBy?.username ?? 'admin'}
+                      </Text>
+                      {e.reason && (
+                        <Text fontSize="sm" color="gray.600" mt={1}>
+                          Razlog: {e.reason}
+                        </Text>
+                      )}
+                    </Box>
+                    <Text fontSize="sm" color="gray.500">{new Date(e.createdAt).toLocaleString('bs-BA')}</Text>
+                  </Flex>
+                ))}
+                {(selectedBook.manualAudits ?? []).map((a) => (
+                  <Flex key={a.id} justify="space-between" align="start" gap={3} wrap="wrap">
+                    <Box>
+                      <Badge colorScheme="purple" mr={2}>{a.action}</Badge>
+                      <Text as="span" fontSize="sm" fontWeight="medium">
+                        {a.createdBy?.username ?? 'admin'}
+                      </Text>
+                      <Text fontSize="sm" color="gray.600" mt={1}>
+                        {a.action === 'CREATE' && 'Kreiran ručni prihod'}
+                        {a.action === 'UPDATE' && 'Ažuriran ručni prihod'}
+                        {a.action === 'DELETE' && 'Obrisan ručni prihod'}
+                        {a.manualEntryId ? ` (ID: ${a.manualEntryId.slice(0, 8)})` : ''}
+                      </Text>
+                    </Box>
+                    <Text fontSize="sm" color="gray.500">{new Date(a.createdAt).toLocaleString('bs-BA')}</Text>
+                  </Flex>
+                ))}
+              </>
+            )}
+          </VStack>
+        </Box>
+
+        <Modal isOpen={isUnlockOpen} onClose={onUnlockClose} size="lg">
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Otključaj knjigu</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <Text fontSize="sm" color="gray.600" mb={3}>
+                Molimo unesite razlog otključavanja. Ova akcija će biti evidentirana.
+              </Text>
+              <FormControl isRequired>
+                <FormLabel>Razlog</FormLabel>
+                <Textarea value={unlockReason} onChange={(e) => setUnlockReason(e.target.value)} rows={3} />
+              </FormControl>
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="ghost" mr={3} onClick={onUnlockClose}>Odustani</Button>
+              <Button colorScheme="orange" onClick={handleUnlockBook} isLoading={unlocking}>Otključaj</Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+
+        <Modal isOpen={isManualOpen} onClose={onManualClose} size="lg" scrollBehavior="inside">
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>{editingManual ? 'Uredi ručni prihod' : 'Novi ručni prihod'}</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <FormControl mb={4} isRequired>
+                <FormLabel>Datum</FormLabel>
+                <Input type="date" value={manualForm.date} onChange={(e) => setManualForm((p) => ({ ...p, date: e.target.value }))} />
+              </FormControl>
+              <FormControl mb={4} isRequired>
+                <FormLabel>Servis</FormLabel>
+                <Select value={manualForm.serviceId} onChange={(e) => setManualForm((p) => ({ ...p, serviceId: e.target.value }))}>
+                  {services.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </Select>
+              </FormControl>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
+                <FormControl isRequired>
+                  <FormLabel>Iznos (KM)</FormLabel>
+                  <Input type="number" value={manualForm.amount} onChange={(e) => setManualForm((p) => ({ ...p, amount: Number(e.target.value) || 0 }))} />
+                </FormControl>
+                <FormControl>
+                  <FormLabel>Napojnica (KM)</FormLabel>
+                  <Input type="number" value={manualForm.tipAmount} onChange={(e) => setManualForm((p) => ({ ...p, tipAmount: Number(e.target.value) || 0 }))} />
+                </FormControl>
+              </SimpleGrid>
+              <FormControl>
+                <FormLabel>Bilješke</FormLabel>
+                <Textarea value={manualForm.notes} onChange={(e) => setManualForm((p) => ({ ...p, notes: e.target.value }))} rows={3} />
+              </FormControl>
+            </ModalBody>
+            <ModalFooter>
+              <Button variant="ghost" mr={3} onClick={onManualClose}>Odustani</Button>
+              <Button colorScheme="brand" onClick={handleSaveManual} isLoading={manualSaving} isDisabled={!canEditManual}>
+                Sačuvaj
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       </Box>
     );
   }
 
   return (
     <>
-      <Flex justify="flex-end" mb={3}><Button size="sm" colorScheme="brand" onClick={openCurrentMonth}>Otvori tekući mjesec</Button></Flex>
+      <Flex justify="space-between" align="center" mb={3} gap={3} wrap="wrap">
+        <HStack spacing={2}>
+          <Text fontSize="sm" color="gray.600">Otvori mjesec:</Text>
+          <Input
+            size="sm"
+            w="100px"
+            type="number"
+            value={targetYear}
+            min={2000}
+            max={2100}
+            onChange={(e) => setTargetYear(Number(e.target.value) || currentYear)}
+          />
+          <Select
+            size="sm"
+            w={{ base: '170px', md: '200px' }}
+            value={targetMonth}
+            onChange={(e) => setTargetMonth(Number(e.target.value) || currentMonth)}
+          >
+            {MONTHS.slice(1).map((m, idx) => (
+              <option key={idx + 1} value={idx + 1}>{m}</option>
+            ))}
+          </Select>
+          <Button size="sm" colorScheme="brand" onClick={() => openMonth(targetYear, targetMonth)}>
+            Otvori knjigu
+          </Button>
+        </HStack>
+
+        {isCurrentBookOpen ? (
+          <HStack spacing={2}>
+            <Badge colorScheme="green">Otvoreno</Badge>
+            <Text fontSize="sm" color="gray.600">
+              Knjiga za tekući mjesec {MONTHS[currentMonth]} {currentYear} je otvorena do {formatDateBs(currentMonthEnd)}.
+            </Text>
+          </HStack>
+        ) : (
+          <Button size="sm" colorScheme="brand" variant="outline" onClick={openCurrentMonth}>
+            Otvori tekući mjesec
+          </Button>
+        )}
+      </Flex>
       <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
         <Table size="sm">
           <Thead><Tr><Th>Godina</Th><Th>Mjesec</Th><Th isNumeric>Prihod</Th><Th isNumeric>Napojnice</Th><Th>Status</Th><Th textAlign="right">Akcije</Th></Tr></Thead>
@@ -345,6 +795,13 @@ function ExpenseBooksTab() {
   };
 
   if (loading) return <Spinner />;
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const currentBook = books.find((b) => b.year === currentYear && b.month === currentMonth) ?? null;
+  const isCurrentBookOpen = Boolean(currentBook && !currentBook.isClosed);
+  const currentMonthEnd = getEndOfMonthDate(currentYear, currentMonth);
 
   // Expense detail view
   if (view === 'expense' && selectedExpense) {
@@ -535,7 +992,18 @@ function ExpenseBooksTab() {
   // Book list view
   return (
     <>
-      <Flex justify="flex-end" mb={3}><Button size="sm" colorScheme="brand" onClick={openCurrentMonth}>Otvori tekući mjesec</Button></Flex>
+      <Flex justify="flex-end" mb={3}>
+        {isCurrentBookOpen ? (
+          <HStack spacing={2}>
+            <Badge colorScheme="green">Otvoreno</Badge>
+            <Text fontSize="sm" color="gray.600">
+              Knjiga za tekući mjesec {MONTHS[currentMonth]} {currentYear} je otvorena do {formatDateBs(currentMonthEnd)}.
+            </Text>
+          </HStack>
+        ) : (
+          <Button size="sm" colorScheme="brand" onClick={openCurrentMonth}>Otvori tekući mjesec</Button>
+        )}
+      </Flex>
       <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
         <Table size="sm">
           <Thead><Tr><Th>Godina</Th><Th>Mjesec</Th><Th>Otvorena</Th><Th>Status</Th><Th textAlign="right">Akcije</Th></Tr></Thead>
