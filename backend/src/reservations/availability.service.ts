@@ -1,5 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toLocalDateOnlyString } from '../common/utils/date-only';
+import { getDayStartEnd } from '../common/utils/date-range';
 import {
   generateSlots,
   timeToMinutes,
@@ -15,14 +17,6 @@ export interface AvailableSlotDto {
 export interface AvailableDateDto {
   date: string; // YYYY-MM-DD
   available: boolean;
-}
-
-function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function localDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 @Injectable()
@@ -64,7 +58,7 @@ export class AvailabilityService {
         date: { gte: fromDate, lte: end },
       },
     });
-    const holidayDates = new Set(holidays.map((h) => toDateStr(h.date)));
+    const holidayDates = new Set(holidays.map((h) => toLocalDateOnlyString(h.date)));
 
     let stylistWH: Array<{ dayOfWeek: number; dateOverride: Date | null }> = [];
     if (stylistIds.length > 0) {
@@ -83,7 +77,7 @@ export class AvailabilityService {
     const stylistOverrideDates = new Set(
       stylistWH
         .filter((w) => w.dateOverride)
-        .map((w) => toDateStr(w.dateOverride!)),
+        .map((w) => toLocalDateOnlyString(w.dateOverride!)),
     );
 
     this.logger.debug(
@@ -102,7 +96,7 @@ export class AvailabilityService {
 
     while (cursor <= end) {
       const dayOfWeek = cursor.getDay();
-      const dateStr = localDateStr(cursor);
+      const dateStr = toLocalDateOnlyString(cursor);
 
       if (stylistIds.length === 0) {
         results.push({ date: dateStr, available: false });
@@ -179,7 +173,7 @@ export class AvailabilityService {
     );
 
     // Za današnji dan: slotovi koji su već prošli ne trebaju biti dostupni.
-    const todayStr = localDateStr(new Date());
+    const todayStr = toLocalDateOnlyString(new Date());
     const nowMinutes = timeToMinutes(
       `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`,
     );
@@ -188,24 +182,7 @@ export class AvailabilityService {
         ? slots.filter((s) => timeToMinutes(s.startTime) >= nowMinutes)
         : slots;
 
-    const dateStart = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      0,
-      0,
-      0,
-      0,
-    );
-    const dateEnd = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      23,
-      59,
-      59,
-      999,
-    );
+    const { start: dateStart, end: dateEnd } = getDayStartEnd(date);
     const reservations = await this.prisma.reservation.findMany({
       where: {
         reservationDate: { gte: dateStart, lte: dateEnd },
@@ -410,7 +387,7 @@ export class AvailabilityService {
 
     for (const s of allStylists) {
       const override = s.workingHours.find(
-        (wh) => wh.dateOverride && toDateStr(wh.dateOverride) === dateStr,
+        (wh) => wh.dateOverride && toLocalDateOnlyString(wh.dateOverride) === dateStr,
       );
       const regular = s.workingHours.find(
         (wh) => !wh.dateOverride && wh.dayOfWeek === dayOfWeek,

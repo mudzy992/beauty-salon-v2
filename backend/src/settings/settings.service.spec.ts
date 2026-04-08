@@ -1,17 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { BadRequestException } from '@nestjs/common'
 import { SettingsService } from './settings.service'
-import { PrismaService } from '../prisma/prisma.service'
 import { EventsGateway } from '../events/events.gateway'
 import { SettingsEncryptionService } from './settings-encryption.service'
 import { ConfigService } from '@nestjs/config'
+import { SettingsRepository } from './settings.repository'
 
-const mockPrisma = {
-  appSetting: {
-    findMany: jest.fn(),
-    findUnique: jest.fn(),
-    upsert: jest.fn(),
-  },
+const mockRepo = {
+  findAll: jest.fn(),
+  findManyByKeys: jest.fn(),
+  findByKey: jest.fn(),
+  upsertByKey: jest.fn(),
+  deleteByKey: jest.fn(),
 }
 
 const mockEvents = {
@@ -34,7 +34,7 @@ describe('SettingsService', () => {
       providers: [
         SettingsService,
         SettingsEncryptionService,
-        { provide: PrismaService, useValue: mockPrisma },
+        { provide: SettingsRepository, useValue: mockRepo },
         { provide: EventsGateway, useValue: mockEvents },
         { provide: ConfigService, useValue: createConfig(null) },
       ],
@@ -44,7 +44,7 @@ describe('SettingsService', () => {
 
   describe('findAllPublic', () => {
     it('vraca samo PUBLIC kljuceve sa default vrijednostima kada fale u bazi', async () => {
-      mockPrisma.appSetting.findMany.mockResolvedValueOnce([
+      mockRepo.findManyByKeys.mockResolvedValueOnce([
         { key: 'app_title', value: 'My Salon' },
       ])
 
@@ -64,9 +64,9 @@ describe('SettingsService', () => {
     })
 
     it('normalizuje boolean vrijednosti', async () => {
-      mockPrisma.appSetting.upsert.mockResolvedValueOnce({ key: 'system_maintenance_mode', value: 'true' })
+      mockRepo.upsertByKey.mockResolvedValueOnce({ key: 'system_maintenance_mode', value: 'true' })
       await service.set('system_maintenance_mode', { value: 'TRUE' }, 'u1')
-      expect(mockPrisma.appSetting.upsert).toHaveBeenCalledWith(
+      expect(mockRepo.upsertByKey).toHaveBeenCalledWith(
         expect.objectContaining({
           create: expect.objectContaining({ value: 'true' }),
           update: expect.objectContaining({ value: 'true' }),
@@ -80,17 +80,17 @@ describe('SettingsService', () => {
         providers: [
           SettingsService,
           SettingsEncryptionService,
-          { provide: PrismaService, useValue: mockPrisma },
+          { provide: SettingsRepository, useValue: mockRepo },
           { provide: EventsGateway, useValue: mockEvents },
           { provide: ConfigService, useValue: createConfig(base64Key) },
         ],
       }).compile()
       const localService = module.get<SettingsService>(SettingsService)
 
-      mockPrisma.appSetting.upsert.mockResolvedValueOnce({ key: 'system_email_password', value: 'x' })
+      mockRepo.upsertByKey.mockResolvedValueOnce({ key: 'system_email_password', value: 'x' })
       await localService.set('system_email_password', { value: 'secret123' }, 'u1')
 
-      const call = mockPrisma.appSetting.upsert.mock.calls[0][0]
+      const call = mockRepo.upsertByKey.mock.calls[0][0]
       expect(call.create.value).toMatch(/^enc:v1:/)
       expect(call.update.value).toMatch(/^enc:v1:/)
     })
@@ -103,7 +103,7 @@ describe('SettingsService', () => {
         providers: [
           SettingsService,
           SettingsEncryptionService,
-          { provide: PrismaService, useValue: mockPrisma },
+          { provide: SettingsRepository, useValue: mockRepo },
           { provide: EventsGateway, useValue: mockEvents },
           { provide: ConfigService, useValue: createConfig(base64Key) },
         ],
@@ -111,7 +111,7 @@ describe('SettingsService', () => {
       const localService = module.get<SettingsService>(SettingsService)
       const enc = module.get<SettingsEncryptionService>(SettingsEncryptionService).encrypt('secret123')
 
-      mockPrisma.appSetting.findUnique.mockResolvedValueOnce({ key: 'system_email_password', value: enc })
+      mockRepo.findByKey.mockResolvedValueOnce({ key: 'system_email_password', value: enc })
       const value = await localService.getValue('system_email_password')
       expect(value).toBe('secret123')
     })

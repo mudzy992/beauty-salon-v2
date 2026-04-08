@@ -71,8 +71,6 @@ export class AuthService {
       data: { userId: user.id, roleId: clientRole.id },
     });
 
-    // TODO: send verification email with token (Phase 3 - notifications)
-    // For now we can auto-verify or use a simple token in DB
     const token = await this.createAccessToken(user.id, user.email, user.username, [
       'CLIENT',
     ]);

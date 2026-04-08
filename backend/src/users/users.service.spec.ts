@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { UsersRepository } from './users.repository';
 import { ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
 
-const mockPrisma = {
+const mockRepo = {
   user: {
     findUnique: jest.fn(),
     create: jest.fn(),
@@ -27,14 +27,14 @@ describe('UsersService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
-        { provide: PrismaService, useValue: mockPrisma },
+        { provide: UsersRepository, useValue: mockRepo },
       ],
     }).compile();
     service = module.get<UsersService>(UsersService);
   });
 
   it('predlaže slobodan username kada je bazni zauzet', async () => {
-    mockPrisma.user.findUnique
+    mockRepo.user.findUnique
       .mockResolvedValueOnce({ id: 'taken' })
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
@@ -46,7 +46,7 @@ describe('UsersService', () => {
   });
 
   it('kreira korisnika sa init lozinkom i mustChangePassword', async () => {
-    mockPrisma.user.findUnique
+    mockRepo.user.findUnique
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
@@ -55,11 +55,11 @@ describe('UsersService', () => {
         userRoles: [{ role: { name: 'CLIENT' } }],
         stylistProfile: null,
       });
-    mockPrisma.role.findUnique
+    mockRepo.role.findUnique
       .mockResolvedValueOnce({ id: 'role-1', name: 'CLIENT' })
       .mockResolvedValueOnce({ id: 'role-1', name: 'CLIENT' });
     (bcrypt.hash as jest.Mock).mockResolvedValue('hash');
-    mockPrisma.user.create.mockResolvedValue({
+    mockRepo.user.create.mockResolvedValue({
       id: 'user-1',
       username: 'ime.prezime',
       userRoles: [{ role: { name: 'CLIENT' } }],
@@ -75,7 +75,7 @@ describe('UsersService', () => {
       ['OWNER'],
     );
 
-    expect(mockPrisma.user.create).toHaveBeenCalledWith(
+    expect(mockRepo.user.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           mustChangePassword: true,
@@ -91,7 +91,7 @@ describe('UsersService', () => {
   });
 
   it('baca grešku kada je ručno uneseni username zauzet', async () => {
-    mockPrisma.user.findUnique.mockResolvedValue({ id: 'taken' });
+    mockRepo.user.findUnique.mockResolvedValue({ id: 'taken' });
     await expect(
       service.create(
         {

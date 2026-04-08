@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UploadsService } from './uploads.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { UploadsRepository } from './uploads.repository';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -17,10 +17,10 @@ jest.mock('sharp', () => {
   return { __esModule: true, default: jest.fn(() => mockChain) };
 });
 
-const mockPrisma = {
-  upload: {
-    create: jest.fn(),
-  },
+const mockUploadsRepo = {
+  create: jest.fn(),
+  findFirstByPathOriginal: jest.fn(),
+  deleteById: jest.fn(),
 };
 
 const mockConfigService = {
@@ -37,7 +37,7 @@ describe('UploadsService', () => {
     jest.clearAllMocks();
     (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
     (fs.writeFile as jest.Mock).mockResolvedValue(undefined);
-    mockPrisma.upload.create.mockResolvedValue({
+    mockUploadsRepo.create.mockResolvedValue({
       id: 'upload-1',
       pathOriginal: 'uploads/2026/03/file-original.jpg',
       pathThumb: 'uploads/2026/03/file-thumb.webp',
@@ -48,7 +48,7 @@ describe('UploadsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UploadsService,
-        { provide: PrismaService, useValue: mockPrisma },
+        { provide: UploadsRepository, useValue: mockUploadsRepo },
         { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
@@ -72,7 +72,7 @@ describe('UploadsService', () => {
       await expect(service.saveFile(file, 'uploads')).rejects.toThrow(
         'Tip datoteke nije dozvoljen.',
       );
-      expect(mockPrisma.upload.create).not.toHaveBeenCalled();
+      expect(mockUploadsRepo.create).not.toHaveBeenCalled();
     });
 
     it('kreira direktorij i upisuje original za sliku', async () => {
@@ -89,7 +89,7 @@ describe('UploadsService', () => {
         },
       );
       expect(fs.writeFile).toHaveBeenCalled();
-      expect(mockPrisma.upload.create).toHaveBeenCalledWith({
+      expect(mockUploadsRepo.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           originalName: 'photo.jpg',
           mimeType: 'image/jpeg',
@@ -108,7 +108,7 @@ describe('UploadsService', () => {
         buffer: Buffer.from('pdf'),
         size: 200,
       } as Express.Multer.File;
-      mockPrisma.upload.create.mockResolvedValue({
+      mockUploadsRepo.create.mockResolvedValue({
         id: 'upload-2',
         pathOriginal: 'uploads/2026/03/doc-original.pdf',
         pathThumb: null,
@@ -119,7 +119,7 @@ describe('UploadsService', () => {
       const result = await service.saveFile(pdfFile, 'uploads');
 
       expect(result.pathOriginal).toBeDefined();
-      expect(mockPrisma.upload.create).toHaveBeenCalledWith({
+      expect(mockUploadsRepo.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           mimeType: 'application/pdf',
           pathThumb: null,

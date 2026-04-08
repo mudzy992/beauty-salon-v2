@@ -1,16 +1,16 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 import { SetSettingDto } from './dto/set-setting.dto';
 import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { SETTINGS_REGISTRY } from './settings-registry';
 import type { SettingRegistryItem, SettingScope } from './settings-registry.types';
 import { SettingsEncryptionService } from './settings-encryption.service';
+import { SettingsRepository } from './settings.repository';
 
 @Injectable()
 export class SettingsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repo: SettingsRepository,
     private readonly events: EventsGateway,
     private readonly encryption: SettingsEncryptionService,
   ) {}
@@ -92,7 +92,7 @@ export class SettingsService {
   }
 
   async findAllAdmin() {
-    const rows = await this.prisma.appSetting.findMany({ orderBy: { key: 'asc' } });
+    const rows = await this.repo.findAll();
     return rows.map((row) => {
       const registry = this.getRegistryItem(row.key);
       const isSecret = registry?.isSecret ?? false;
@@ -113,11 +113,7 @@ export class SettingsService {
 
   async findAllPublic() {
     const publicKeys = SETTINGS_REGISTRY.filter((i) => i.scope === 'PUBLIC').map((i) => i.key);
-    const rows = await this.prisma.appSetting.findMany({
-      where: { key: { in: publicKeys } },
-      orderBy: { key: 'asc' },
-      select: { key: true, value: true },
-    });
+    const rows = await this.repo.findManyByKeys(publicKeys);
     const map = new Map(rows.map((r) => [r.key, r.value]));
     return publicKeys
       .map((key) => {
@@ -134,7 +130,7 @@ export class SettingsService {
   }
 
   async findByKey(key: string) {
-    const setting = await this.prisma.appSetting.findUnique({ where: { key } });
+    const setting = await this.repo.findByKey(key);
     if (!setting) throw new NotFoundException('Postavka nije pronađena.');
     const registry = this.getRegistryItem(key);
     const isSecret = registry?.isSecret ?? false;
@@ -154,7 +150,7 @@ export class SettingsService {
 
   async getValue(key: string): Promise<string | null> {
     const registry = this.getRegistryItem(key);
-    const setting = await this.prisma.appSetting.findUnique({ where: { key } });
+    const setting = await this.repo.findByKey(key);
     const raw = setting?.value ?? null;
     if (!registry?.isSecret) return raw;
     if (!raw) return raw;
@@ -216,7 +212,7 @@ export class SettingsService {
       registry.isSecret && normalizedValue.trim().length > 0
         ? this.encryption.encrypt(normalizedValue)
         : normalizedValue;
-    const result = await this.prisma.appSetting.upsert({
+    const result = await this.repo.upsertByKey({
       where: { key },
       create: {
         key,
@@ -238,9 +234,9 @@ export class SettingsService {
   }
 
   async remove(key: string) {
-    const setting = await this.prisma.appSetting.findUnique({ where: { key } });
+    const setting = await this.repo.findByKey(key);
     if (!setting) throw new NotFoundException('Postavka nije pronađena.');
-    await this.prisma.appSetting.delete({ where: { key } });
+    await this.repo.deleteByKey(key);
     return { deleted: true };
   }
 }

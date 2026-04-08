@@ -40,6 +40,15 @@ export class IncomeBooksService {
 
   /** Vraća knjigu za mjesec; kreira je ako ne postoji (za agregaciju). */
   async getOrCreateForMonth(year: number, month: number) {
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+      throw new BadRequestException('Godina nije validna.');
+    }
+    if (!Number.isInteger(month) || month < 1 || month > 12) {
+      throw new BadRequestException('Mjesec nije validan.');
+    }
+    if (this.isFutureMonth(year, month)) {
+      throw new BadRequestException('Ne možete kreirati knjigu za budući mjesec.');
+    }
     let book = await this.prisma.incomeBook.findUnique({
       where: { year_month: { year, month } },
       include: { entries: true },
@@ -168,10 +177,8 @@ export class IncomeBooksService {
       throw new BadRequestException(
         'Ne možete dodavati ručne prihode u zaključanu knjigu.',
       );
-    if (!this.isPastMonth(book.year, book.month))
-      throw new BadRequestException(
-        'Ručni prihodi su dozvoljeni samo za knjige iz prošlosti.',
-      );
+    if (this.isFutureMonth(book.year, book.month))
+      throw new BadRequestException('Ne možete dodavati ručne prihode u buduću knjigu.');
     const date = this.parseAndNormalizeDate(dto.date);
     this.ensureDateMatchesBookMonth(date, book.year, book.month);
     const tipAmount = dto.tipAmount ?? 0;
@@ -240,10 +247,8 @@ export class IncomeBooksService {
       throw new BadRequestException(
         'Ne možete mijenjati ručne prihode u zaključanoj knjizi.',
       );
-    if (!this.isPastMonth(book.year, book.month))
-      throw new BadRequestException(
-        'Ručni prihodi su dozvoljeni samo za knjige iz prošlosti.',
-      );
+    if (this.isFutureMonth(book.year, book.month))
+      throw new BadRequestException('Ne možete mijenjati ručne prihode u budućoj knjizi.');
     const existing = await this.prisma.incomeBookManualEntry.findUnique({
       where: { id: entryId },
     });
@@ -314,10 +319,8 @@ export class IncomeBooksService {
       throw new BadRequestException(
         'Ne možete brisati ručne prihode iz zaključane knjige.',
       );
-    if (!this.isPastMonth(book.year, book.month))
-      throw new BadRequestException(
-        'Ručni prihodi su dozvoljeni samo za knjige iz prošlosti.',
-      );
+    if (this.isFutureMonth(book.year, book.month))
+      throw new BadRequestException('Ne možete brisati ručne prihode iz buduće knjige.');
     const existing = await this.prisma.incomeBookManualEntry.findUnique({
       where: { id: entryId },
     });
@@ -408,6 +411,15 @@ export class IncomeBooksService {
     if (year < currentYear) return true;
     if (year > currentYear) return false;
     return month < currentMonth;
+  }
+
+  private isFutureMonth(year: number, month: number): boolean {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    if (year > currentYear) return true;
+    if (year < currentYear) return false;
+    return month > currentMonth;
   }
 
   private parseAndNormalizeDate(value: string): Date {

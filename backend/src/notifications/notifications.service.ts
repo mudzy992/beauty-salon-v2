@@ -1,13 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
-import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { CampaignAudienceDto } from './dto/campaign-audience.dto';
 import { SendCampaignDto } from './dto/send-campaign.dto';
 import { SettingsService } from '../settings/settings.service';
+import { NotificationsRepository } from './notifications.repository';
 
 export type NotificationChannel = 'PUSH' | 'EMAIL' | 'BOTH';
 export type NotificationType =
@@ -67,8 +67,10 @@ interface CampaignTemplateDefinition {
 
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
+
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repo: NotificationsRepository,
     private readonly config: ConfigService,
     private readonly events: EventsGateway,
     private readonly settings: SettingsService,
@@ -88,7 +90,7 @@ export class NotificationsService {
     const doEmail =
       (channel === 'EMAIL' || channel === 'BOTH') && prefs.emailEnabled;
 
-    const notification = await this.prisma.notification.create({
+    const notification = await this.repo.createNotification({
       data: {
         userId: options.userId,
         title: options.title,
@@ -140,7 +142,7 @@ export class NotificationsService {
   }
 
   async findForUser(userId: string, unreadOnly = false) {
-    return this.prisma.notification.findMany({
+    return this.repo.findNotificationsForUser({
       where: { userId, ...(unreadOnly ? { isRead: false } : {}) },
       orderBy: { sentAt: 'desc' },
       take: 100,
@@ -148,18 +150,18 @@ export class NotificationsService {
   }
 
   async markAsRead(id: string, userId: string) {
-    const n = await this.prisma.notification.findFirst({
+    const n = await this.repo.findFirstNotification({
       where: { id, userId },
     });
     if (!n) throw new NotFoundException('Notifikacija nije pronađena.');
-    return this.prisma.notification.update({
+    return this.repo.updateNotification({
       where: { id },
       data: { isRead: true, readAt: new Date() },
     });
   }
 
   async getPreferences(userId: string) {
-    return this.prisma.notificationPreference.findMany({
+    return this.repo.findPreferences({
       where: { userId },
     });
   }
@@ -170,7 +172,7 @@ export class NotificationsService {
     pushEnabled: boolean,
     emailEnabled: boolean,
   ) {
-    return this.prisma.notificationPreference.upsert({
+    return this.repo.upsertPreference({
       where: { userId_type: { userId, type } },
       create: { userId, type, pushEnabled, emailEnabled },
       update: { pushEnabled, emailEnabled },
@@ -178,7 +180,7 @@ export class NotificationsService {
   }
 
   async registerPushToken(userId: string, token: string, platform: string) {
-    await this.prisma.pushToken.upsert({
+    await this.repo.upsertPushToken({
       where: { token },
       create: { userId, token, platform },
       update: { userId, platform, updatedAt: new Date() },
@@ -218,7 +220,7 @@ export class NotificationsService {
     userId: string;
     requestedByUsername: string;
   }) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.repo.findUser({
       where: { id: params.userId },
       select: { email: true },
     });
@@ -311,7 +313,7 @@ export class NotificationsService {
       });
       delivered += 1;
       if (dto.createInAppNotification ?? true) {
-        await this.prisma.notification.create({
+        await this.repo.createNotification({
           data: {
             userId: user.id,
             title: subject,
@@ -341,7 +343,7 @@ export class NotificationsService {
     userId: string,
     type: NotificationType,
   ): Promise<{ pushEnabled: boolean; emailEnabled: boolean }> {
-    const prefs = await this.prisma.notificationPreference.findUnique({
+    const prefs = await this.repo.findPreference({
       where: { userId_type: { userId, type } },
     });
     return {
@@ -356,7 +358,7 @@ export class NotificationsService {
     body: string,
     data?: Record<string, unknown>,
   ): Promise<void> {
-    const rows = await this.prisma.pushToken.findMany({
+    const rows = await this.repo.findPushTokens({
       where: { userId },
       select: { token: true },
     });
@@ -379,7 +381,7 @@ export class NotificationsService {
       try {
         await expo.sendPushNotificationsAsync(chunk);
       } catch (err) {
-        console.error('Expo push send error:', err);
+        this.logger.warn('Expo push send error', err as Error);
       }
     }
   }
@@ -391,7 +393,7 @@ export class NotificationsService {
     type: NotificationType,
     data?: Record<string, unknown>,
   ): Promise<void> {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.repo.findUser({
       where: { id: userId },
       select: { email: true, firstName: true },
     });
@@ -643,7 +645,7 @@ ${params.signature || 'Beauty Salon Nejra'}
   }
 
   private async resolveCampaignAudienceUsers(audience: CampaignAudienceDto) {
-    const users = await this.prisma.user.findMany({
+    const users = await this.repo.findUsers({
       where: {
         ...(audience.onlyActive ?? true ? { isActive: true } : {}),
         ...(audience.onlyEmailVerified ?? false ? { isEmailVerified: true } : {}),

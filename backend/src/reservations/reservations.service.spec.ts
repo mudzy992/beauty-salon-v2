@@ -10,6 +10,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { ReservationDateService } from './reservation-date.service';
 
 jest.mock('expo-server-sdk', () => {
   class MockExpo {
@@ -96,6 +97,7 @@ describe('ReservationsService', () => {
         { provide: NotificationsService, useValue: mockNotifications },
         { provide: EventsGateway, useValue: mockEvents },
         { provide: LoyaltyService, useValue: mockLoyalty },
+        ReservationDateService,
       ],
     }).compile();
     service = module.get<ReservationsService>(ReservationsService);

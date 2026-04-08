@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import sharp from 'sharp';
-import { PrismaService } from '../prisma/prisma.service';
+import { UploadsRepository } from './uploads.repository';
 
 const IMAGE_SIZES = {
   thumb: { width: 150, height: 150 },
@@ -30,7 +30,7 @@ export class UploadsService {
   private readonly uploadRoot: string;
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repo: UploadsRepository,
     private readonly config: ConfigService,
   ) {
     this.uploadRoot = this.config.get<string>(
@@ -101,7 +101,7 @@ export class UploadsService {
       }
     }
 
-    const upload = await this.prisma.upload.create({
+    const upload = await this.repo.create({
       data: {
         originalName: file.originalname,
         mimeType: file.mimetype,
@@ -129,9 +129,7 @@ export class UploadsService {
       throw new BadRequestException('Putanja fajla nije validna.');
     }
 
-    const upload = await this.prisma.upload.findFirst({
-      where: { pathOriginal: normalized },
-    });
+    const upload = await this.repo.findFirstByPathOriginal(normalized);
     if (!upload) throw new NotFoundException('Upload nije pronađen.');
 
     const paths = [upload.pathOriginal, upload.pathThumb, upload.pathSmall, upload.pathMedium]
@@ -149,7 +147,7 @@ export class UploadsService {
       }),
     );
 
-    await this.prisma.upload.delete({ where: { id: upload.id } });
+    await this.repo.deleteById(upload.id);
 
     return { deleted: true };
   }

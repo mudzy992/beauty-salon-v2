@@ -21,6 +21,7 @@ import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { minutesToTime, timeToMinutes } from './utils/time-slot.utils';
+import { ReservationDateService } from './reservation-date.service';
 
 type RescheduleMode = 'actual_overrun' | 'manual_minutes' | 'use_break_only';
 type PendingRescheduleKind = 'reservation_reschedule' | 'reservation_reorder' | null;
@@ -33,20 +34,8 @@ export class ReservationsService {
     private readonly notifications: NotificationsService,
     private readonly events: EventsGateway,
     private readonly loyalty: LoyaltyService,
+    private readonly dates: ReservationDateService,
   ) {}
-
-  private parseDateOnly(value: Date | string): Date {
-    const d = new Date(value);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }
-
-  private toLocalDateStr(date: Date): string {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
 
   private isReservationBlocked(res: {
     status: string;
@@ -66,7 +55,10 @@ export class ReservationsService {
     proposedStartTime: string,
     reservationDate: Date,
   ): number {
-    const proposedStart = this.combineDateAndTime(reservationDate, proposedStartTime);
+    const proposedStart = this.dates.combineDateAndTime(
+      reservationDate,
+      proposedStartTime,
+    );
     const minutesUntil = Math.max(
       1,
       Math.floor((proposedStart.getTime() - sentAt.getTime()) / 60000),
@@ -823,7 +815,7 @@ export class ReservationsService {
     });
     if (rec?.penaltyUntil && new Date() < rec.penaltyUntil) {
       throw new BadRequestException(
-        `Zbog čestih otkazivanja rezervacija je onemogućena do ${rec.penaltyUntil.toISOString().slice(0, 10)}.`,
+        `Zbog čestih otkazivanja rezervacija je onemogućena do ${this.dates.toLocalDateOnlyString(rec.penaltyUntil)}.`,
       );
     }
   }
@@ -910,14 +902,17 @@ export class ReservationsService {
     }
 
     const now = new Date();
-    const plannedStart = this.combineDateAndTime(r.reservationDate, r.startTime);
+    const plannedStart = this.dates.combineDateAndTime(
+      r.reservationDate,
+      r.startTime,
+    );
     if (now.getTime() < plannedStart.getTime()) {
       throw new BadRequestException(
         'Termin još nije počeo. Start je dozvoljen tek od planiranog vremena početka.',
       );
     }
 
-    const dayStart = this.parseDateOnly(r.reservationDate);
+    const dayStart = this.dates.parseDateOnly(r.reservationDate);
     const dayEnd = new Date(dayStart);
     dayEnd.setHours(23, 59, 59, 999);
     const earlierPending = await this.prisma.reservation.findFirst({
@@ -951,7 +946,7 @@ export class ReservationsService {
       );
     }
 
-    const plannedEnd = this.combineDateAndTime(r.reservationDate, r.endTime);
+    const plannedEnd = this.dates.combineDateAndTime(r.reservationDate, r.endTime);
     if (now.getTime() > plannedEnd.getTime()) {
       throw new BadRequestException(
         'Termin je probijen. Prvo odaberite akciju kašnjenja (rekalkulacija ili korištenje pauze).',
@@ -1165,19 +1160,6 @@ export class ReservationsService {
     return p?.id ?? null;
   }
 
-  private combineDateAndTime(date: Date, time: string): Date {
-    const [h, m] = time.split(':').map(Number);
-    return new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      h ?? 0,
-      m ?? 0,
-      0,
-      0,
-    );
-  }
-
   async proposeReschedule(
     reservationId: string,
     userId: string,
@@ -1215,7 +1197,7 @@ export class ReservationsService {
       );
     }
 
-    const plannedEnd = this.combineDateAndTime(r.reservationDate, r.endTime);
+    const plannedEnd = this.dates.combineDateAndTime(r.reservationDate, r.endTime);
     const now = new Date();
     const referenceTime = r.completedAt ?? now;
     // "Stvarni overrun" mora biti stabilan i bez timezone drift-a.
@@ -1414,7 +1396,7 @@ export class ReservationsService {
       throw new BadRequestException('Nedostaju predloženi podaci za novi termin.');
     }
 
-    const dayStart = this.parseDateOnly(r.reservationDate);
+    const dayStart = this.dates.parseDateOnly(r.reservationDate);
     const dayEnd = new Date(dayStart);
     dayEnd.setHours(23, 59, 59, 999);
     const conflicts = await this.prisma.reservation.findFirst({
@@ -1571,7 +1553,7 @@ export class ReservationsService {
       );
     }
 
-    const dayStart = this.parseDateOnly(reservation.reservationDate);
+    const dayStart = this.dates.parseDateOnly(reservation.reservationDate);
     const dayEnd = new Date(dayStart);
     dayEnd.setHours(23, 59, 59, 999);
     const conflict = await this.prisma.reservation.findFirst({
@@ -1722,7 +1704,7 @@ export class ReservationsService {
 
   async autoStartUpcomingReservations() {
     const now = new Date();
-    const todayStr = this.toLocalDateStr(now);
+    const todayStr = this.dates.toLocalDateOnlyString(now);
     const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(
       now.getMinutes(),
     ).padStart(2, '0')}`;
@@ -1749,14 +1731,17 @@ export class ReservationsService {
     });
 
     for (const r of candidates) {
-      const plannedStart = this.combineDateAndTime(r.reservationDate, r.startTime);
+      const plannedStart = this.dates.combineDateAndTime(
+        r.reservationDate,
+        r.startTime,
+      );
       // Ne oslanjamo se na string poređenje datuma zbog mogućeg tz pomaka.
       if (plannedStart.getTime() > now.getTime()) continue;
       // Sigurnosna ograda: ne auto-startamo stare termine od ranijih dana.
       const ageMinutes = Math.floor((now.getTime() - plannedStart.getTime()) / 60000);
       if (ageMinutes > 24 * 60) continue;
-      if (this.toLocalDateStr(plannedStart) !== todayStr) continue;
-      const dayStart = this.parseDateOnly(r.reservationDate);
+      if (this.dates.toLocalDateOnlyString(plannedStart) !== todayStr) continue;
+      const dayStart = this.dates.parseDateOnly(r.reservationDate);
       const dayEnd = new Date(dayStart);
       dayEnd.setHours(23, 59, 59, 999);
       const alreadyRunning = await this.prisma.reservation.findFirst({

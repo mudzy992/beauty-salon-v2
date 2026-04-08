@@ -5,12 +5,10 @@ import { ExpenseBooksService } from './expense-books.service';
 import { ExpensesService } from './expenses.service';
 import { IncomeBooksService } from './income-books.service';
 import { IncomeCronService } from './income-cron.service';
-import {
-  ExpenseTemplatesController,
-  ExpenseCategoriesController,
-  ExpenseBooksController,
-  ExpensesController,
-} from './expense.controller';
+import { ExpenseTemplatesController } from './expense-templates.controller';
+import { ExpenseCategoriesController } from './expense-categories.controller';
+import { ExpenseBooksController } from './expense-books.controller';
+import { ExpensesController } from './expenses.controller';
 import { IncomeController } from './income.controller';
 
 @Module({

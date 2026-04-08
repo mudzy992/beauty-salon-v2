@@ -6,26 +6,26 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { RemoveStylistRoleDto } from './dto/remove-stylist-role.dto';
 import { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { UsersRepository } from './users.repository';
 
 @Injectable()
 export class UsersService {
   private static readonly DEFAULT_INITIAL_PASSWORD = 'Init2026!';
   private static readonly CLIENT_ROLE = 'CLIENT';
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly repo: UsersRepository) {}
 
   /** Lista korisnika za odabir klijenta u dnevnoj knjizi (stilist ili admin). */
   async findForDailyLog(roles: string[]) {
     if (!this.isAdminOrOwner(roles) && !roles.includes('STYLIST')) {
       throw new ForbiddenException('Nemate dozvolu.');
     }
-    return this.prisma.user.findMany({
+    return this.repo.user.findMany({
       where: { isActive: true },
       select: { id: true, username: true, firstName: true, lastName: true },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
@@ -41,7 +41,7 @@ export class UsersService {
     const hasPagination =
       pagination?.page != null && pagination?.pageSize != null;
     if (!hasPagination) {
-      return this.prisma.user.findMany({
+      return this.repo.user.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -53,7 +53,7 @@ export class UsersService {
     const page = Math.max(0, pagination?.page ?? 0);
     const pageSize = Math.min(100, Math.max(1, pagination?.pageSize ?? 10));
     const [items, total] = await Promise.all([
-      this.prisma.user.findMany({
+      this.repo.user.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         include: {
@@ -63,7 +63,7 @@ export class UsersService {
         skip: page * pageSize,
         take: pageSize,
       }),
-      this.prisma.user.count({ where }),
+      this.repo.user.count({ where }),
     ]);
     return {
       items,
@@ -75,7 +75,7 @@ export class UsersService {
 
   async findSystemAdmins(roles: string[]) {
     this.requireAdminOrOwner(roles);
-    return this.prisma.user.findMany({
+    return this.repo.user.findMany({
       where: {
         userRoles: { some: { role: { name: 'SYSTEM_ADMIN' } } },
       },
@@ -89,7 +89,7 @@ export class UsersService {
 
   async findStylists(roles: string[]) {
     this.requireAdminOrOwner(roles);
-    return this.prisma.user.findMany({
+    return this.repo.user.findMany({
       where: {
         userRoles: { some: { role: { name: 'STYLIST' } } },
         NOT: { userRoles: { some: { role: { name: 'SYSTEM_ADMIN' } } } },
@@ -128,7 +128,7 @@ export class UsersService {
     const hasPagination =
       pagination?.page != null && pagination?.pageSize != null;
     if (!hasPagination) {
-      return this.prisma.user.findMany({
+      return this.repo.user.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         include: { userRoles: { include: { role: true } }, stylistProfile: true },
@@ -137,14 +137,14 @@ export class UsersService {
     const page = Math.max(0, pagination?.page ?? 0);
     const pageSize = Math.min(100, Math.max(1, pagination?.pageSize ?? 10));
     const [items, total] = await Promise.all([
-      this.prisma.user.findMany({
+      this.repo.user.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         include: { userRoles: { include: { role: true } }, stylistProfile: true },
         skip: page * pageSize,
         take: pageSize,
       }),
-      this.prisma.user.count({ where }),
+      this.repo.user.count({ where }),
     ]);
     return { items, total, page, pageSize };
   }
@@ -153,7 +153,7 @@ export class UsersService {
     if (currentUser.sub !== id && !this.isAdminOrOwner(currentUser.roles)) {
       throw new ForbiddenException('Nemate dozvolu za pregled ovog korisnika.');
     }
-    const user = await this.prisma.user.findUnique({
+    const user = await this.repo.user.findUnique({
       where: { id },
       include: {
         userRoles: { include: { role: true } },
@@ -170,7 +170,7 @@ export class UsersService {
   }
 
   async getProfile(userId: string) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.repo.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -209,7 +209,7 @@ export class UsersService {
           firstName: dto.firstName,
           lastName: dto.lastName,
         });
-    const existingUsername = await this.prisma.user.findUnique({
+    const existingUsername = await this.repo.user.findUnique({
       where: { username },
       select: { id: true },
     });
@@ -217,8 +217,8 @@ export class UsersService {
       throw new ConflictException('Korisničko ime je već u upotrebi.');
     }
     const [requestedRole, clientRole] = await Promise.all([
-      this.prisma.role.findUnique({ where: { name: requestedRoleName } }),
-      this.prisma.role.findUnique({ where: { name: UsersService.CLIENT_ROLE } }),
+      this.repo.role.findUnique({ where: { name: requestedRoleName } }),
+      this.repo.role.findUnique({ where: { name: UsersService.CLIENT_ROLE } }),
     ]);
     if (!clientRole)
       throw new NotFoundException(`Rola ${UsersService.CLIENT_ROLE} nije pronađena.`);
@@ -235,7 +235,7 @@ export class UsersService {
         ...(requestedRoleName !== UsersService.CLIENT_ROLE ? [requestedRole.id] : []),
       ]),
     );
-    const user = await this.prisma.user.create({
+    const user = await this.repo.user.create({
       data: {
         username,
         email: null,
@@ -254,7 +254,7 @@ export class UsersService {
       },
       include: { userRoles: { include: { role: true } } },
     });
-    const fullUser = await this.prisma.user.findUnique({
+    const fullUser = await this.repo.user.findUnique({
       where: { id: user.id },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
     });
@@ -271,7 +271,7 @@ export class UsersService {
     if (!normalized) {
       throw new BadRequestException('Korisničko ime nije validno.');
     }
-    const existing = await this.prisma.user.findUnique({
+    const existing = await this.repo.user.findUnique({
       where: { username: normalized },
       select: { id: true },
     });
@@ -288,7 +288,7 @@ export class UsersService {
     if (!normalized) {
       throw new BadRequestException('Korisničko ime nije validno.');
     }
-    const existing = await this.prisma.user.findUnique({
+    const existing = await this.repo.user.findUnique({
       where: { username: normalized },
       select: { id: true },
     });
@@ -319,9 +319,9 @@ export class UsersService {
     if (currentUser.sub !== id && !this.isAdminOrOwner(currentUser.roles)) {
       throw new ForbiddenException('Nemate dozvolu za izmjenu ovog korisnika.');
     }
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.repo.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
-    const userWithRoles = await this.prisma.user.findUnique({
+    const userWithRoles = await this.repo.user.findUnique({
       where: { id },
       include: { userRoles: { include: { role: true } } },
     });
@@ -335,13 +335,13 @@ export class UsersService {
       throw new BadRequestException('Spol je obavezan za klijente.');
     }
     if (dto.email && dto.email !== user.email) {
-      const taken = await this.prisma.user.findUnique({
+      const taken = await this.repo.user.findUnique({
         where: { email: dto.email },
       });
       if (taken) throw new ConflictException('Email je već u upotrebi.');
     }
     if (dto.username && dto.username !== user.username) {
-      const taken = await this.prisma.user.findUnique({
+      const taken = await this.repo.user.findUnique({
         where: { username: dto.username },
       });
       if (taken)
@@ -350,7 +350,7 @@ export class UsersService {
     const nextEmail = dto.email?.trim() ?? null;
     const shouldResetEmailVerification =
       dto.email !== undefined && nextEmail !== user.email;
-    return this.prisma.user.update({
+    return this.repo.user.update({
       where: { id },
       data: {
         ...(dto.firstName != null && { firstName: dto.firstName }),
@@ -380,7 +380,7 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, dto: UpdateUserDto) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.repo.user.findUnique({
       where: { id: userId },
       include: { userRoles: { include: { role: true } } },
     });
@@ -397,14 +397,14 @@ export class UsersService {
       const nextEmail = dto.email?.trim();
       if (!nextEmail) throw new BadRequestException('Email je obavezan.');
       if (nextEmail !== user.email) {
-        const taken = await this.prisma.user.findUnique({
+        const taken = await this.repo.user.findUnique({
           where: { email: nextEmail },
           select: { id: true },
         });
         if (taken) throw new ConflictException('Email je već u upotrebi.');
       }
     }
-    return this.prisma.user.update({
+    return this.repo.user.update({
       where: { id: userId },
       data: {
         ...(dto.email !== undefined && {
@@ -429,12 +429,12 @@ export class UsersService {
     if (!requestedRoleName) {
       throw new BadRequestException('Rola je obavezna.');
     }
-    const user = await this.prisma.user.findUnique({
+    const user = await this.repo.user.findUnique({
       where: { id: userId },
       include: { userRoles: { include: { role: true } } },
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
-    const role = await this.prisma.role.findUnique({
+    const role = await this.repo.role.findUnique({
       where: { name: requestedRoleName },
     });
     if (!role)
@@ -443,14 +443,14 @@ export class UsersService {
       (ur) => ur.role.name === requestedRoleName,
     );
     if (existing) return user;
-    await this.prisma.userRole.create({ data: { userId, roleId: role.id } });
+    await this.repo.userRole.create({ data: { userId, roleId: role.id } });
     if (requestedRoleName === 'STYLIST') {
-      const existingProfile = await this.prisma.stylistProfile.findUnique({
+      const existingProfile = await this.repo.stylistProfile.findUnique({
         where: { userId },
         select: { id: true },
       });
       if (!existingProfile) {
-        await this.prisma.stylistProfile.create({
+        await this.repo.stylistProfile.create({
           data: {
             userId,
             status: 'PENDING',
@@ -459,7 +459,7 @@ export class UsersService {
         });
       }
     }
-    return this.prisma.user.findUnique({
+    return this.repo.user.findUnique({
       where: { id: userId },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
     });
@@ -475,15 +475,15 @@ export class UsersService {
         'Rolu Stilist uklanjate kroz posebnu akciju (remove-stylist-role) zbog vezanih podataka.',
       );
     }
-    const user = await this.prisma.user.findUnique({
+    const user = await this.repo.user.findUnique({
       where: { id: userId },
       include: { userRoles: { include: { role: true } } },
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
     const userRole = user.userRoles.find((ur) => ur.role.name === roleName);
     if (!userRole) throw new NotFoundException('Korisnik nema tu rol u.');
-    await this.prisma.userRole.delete({ where: { id: userRole.id } });
-    return this.prisma.user.findUnique({
+    await this.repo.userRole.delete({ where: { id: userRole.id } });
+    return this.repo.user.findUnique({
       where: { id: userId },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
     });
@@ -491,7 +491,7 @@ export class UsersService {
 
   async getStylistRemovalPreview(userId: string, roles: string[]) {
     this.requireAdminOrOwner(roles);
-    const user = await this.prisma.user.findUnique({
+    const user = await this.repo.user.findUnique({
       where: { id: userId },
       include: { stylistProfile: { select: { id: true } } },
     });
@@ -501,10 +501,10 @@ export class UsersService {
       throw new NotFoundException('Korisnik nema profil stiliste.');
     const [dailyLogEntriesCount, confirmedReservationsCount, reservationResponsesCount, reviewsCount] =
       await Promise.all([
-        this.prisma.dailyLogEntry.count({ where: { stylistProfileId } }),
-        this.prisma.reservation.count({ where: { confirmedStylistId: stylistProfileId } }),
-        this.prisma.reservationStylistResponse.count({ where: { stylistProfileId } }),
-        this.prisma.review.count({ where: { stylistProfileId } }),
+        this.repo.dailyLogEntry.count({ where: { stylistProfileId } }),
+        this.repo.reservation.count({ where: { confirmedStylistId: stylistProfileId } }),
+        this.repo.reservationStylistResponse.count({ where: { stylistProfileId } }),
+        this.repo.review.count({ where: { stylistProfileId } }),
       ]);
     return {
       stylistProfileId,
@@ -523,7 +523,7 @@ export class UsersService {
     roles: string[],
   ) {
     this.requireAdminOrOwner(roles);
-    const user = await this.prisma.user.findUnique({
+    const user = await this.repo.user.findUnique({
       where: { id: userId },
       include: { stylistProfile: { select: { id: true } }, userRoles: { include: { role: true } } },
     });
@@ -539,7 +539,7 @@ export class UsersService {
       if (targetId === stylistProfileId) {
         throw new BadRequestException('Target stilist ne može biti isti stilist.');
       }
-      const target = await this.prisma.stylistProfile.findUnique({
+      const target = await this.repo.stylistProfile.findUnique({
         where: { id: targetId },
         select: { id: true },
       });
@@ -552,7 +552,7 @@ export class UsersService {
     const reservationResponsesTarget = await validateTransferTarget(dto.reservationResponses);
     const reviewsTarget = await validateTransferTarget(dto.reviews);
 
-    return this.prisma.$transaction(async (tx) => {
+    return this.repo.transaction(async (tx) => {
       if (dto.dailyLogs.mode === 'DELETE') {
         await tx.dailyLogEntry.deleteMany({ where: { stylistProfileId } });
       } else if (dailyLogsTarget) {
@@ -639,7 +639,7 @@ export class UsersService {
     toDate?: string,
   ) {
     this.requireAdminOrOwner(roles);
-    const user = await this.prisma.user.findUnique({
+    const user = await this.repo.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -680,7 +680,7 @@ export class UsersService {
 
     const [reservations, reviews, cancellationData, manualEntries] =
       await Promise.all([
-        this.prisma.reservation.findMany({
+        this.repo.reservation.findMany({
           where: { clientId: userId, ...dateFilter },
           include: {
             service: { select: { id: true, name: true, price: true } },
@@ -694,7 +694,7 @@ export class UsersService {
           },
           orderBy: { createdAt: 'desc' },
         }),
-        this.prisma.review.findMany({
+        this.repo.review.findMany({
           where: { userId, ...reviewDateFilter },
           include: {
             service: { select: { name: true } },
@@ -708,8 +708,8 @@ export class UsersService {
           },
           orderBy: { createdAt: 'desc' },
         }),
-        this.prisma.clientCancellationCount.findUnique({ where: { userId } }),
-        this.prisma.dailyLogEntry.findMany({
+        this.repo.clientCancellationCount.findUnique({ where: { userId } }),
+        this.repo.dailyLogEntry.findMany({
           where: { clientId: userId, ...dailyLogDateFilter },
           include: {
             service: { select: { id: true, name: true, price: true } },
@@ -843,7 +843,7 @@ export class UsersService {
     const last = this.normalizeUsername(input.lastName);
     const base = `${first}.${last}`.replace(/\.+/g, '.').replace(/^\./, '').replace(/\.$/, '');
     if (!base) throw new BadRequestException('Nije moguće generisati korisničko ime.');
-    const takenBase = await this.prisma.user.findUnique({
+    const takenBase = await this.repo.user.findUnique({
       where: { username: base },
       select: { id: true },
     });
@@ -851,7 +851,7 @@ export class UsersService {
     let suffix = 2;
     while (suffix < 10000) {
       const candidate = `${base}${suffix}`;
-      const taken = await this.prisma.user.findUnique({
+      const taken = await this.repo.user.findUnique({
         where: { username: candidate },
         select: { id: true },
       });
@@ -866,7 +866,7 @@ export class UsersService {
     let suffix = 2;
     while (suggestions.length < count && suffix < 10000) {
       const candidate = `${base}${suffix}`;
-      const existing = await this.prisma.user.findUnique({
+      const existing = await this.repo.user.findUnique({
         where: { username: candidate },
         select: { id: true },
       });

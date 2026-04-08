@@ -204,4 +204,67 @@ describe('IncomeBooksService', () => {
       }),
     );
   });
+
+  it('createManualEntry dozvoljava unos u tekući mjesec kada je knjiga otključana', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-10T10:00:00Z'));
+    mockPrisma.incomeBook.findUnique.mockResolvedValue({
+      id: 'b1',
+      year: 2026,
+      month: 3,
+      closedAt: null,
+    });
+    mockPrisma.incomeBookManualEntry.create.mockResolvedValue({
+      id: 'm1',
+      bookId: 'b1',
+      date: new Date('2026-03-05T00:00:00Z'),
+      serviceId: 's1',
+      stylistProfileId: null,
+      amount: 100,
+      tipAmount: 10,
+      notes: null,
+    });
+    mockPrisma.incomeBookManualEntryAudit.create.mockResolvedValue({ id: 'a1' });
+    mockPrisma.incomeBookEntry.aggregate.mockResolvedValue({
+      _sum: { amount: 0, tipAmount: 0 },
+    });
+    mockPrisma.incomeBookManualEntry.aggregate.mockResolvedValue({
+      _sum: { amount: 100, tipAmount: 10 },
+    });
+    mockPrisma.incomeBook.update.mockResolvedValue({ id: 'b1' });
+
+    const result = await service.createManualEntry(
+      'b1',
+      { date: '2026-03-05', serviceId: 's1', amount: 100, tipAmount: 10 },
+      'user-1',
+    );
+    expect(result.id).toBe('m1');
+  });
+
+  it('createManualEntry baca BadRequestException za buduću knjigu', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-10T10:00:00Z'));
+    mockPrisma.incomeBook.findUnique.mockResolvedValue({
+      id: 'b1',
+      year: 2026,
+      month: 4,
+      closedAt: null,
+    });
+
+    await expect(
+      service.createManualEntry(
+        'b1',
+        { date: '2026-04-05', serviceId: 's1', amount: 100, tipAmount: 10 },
+        'user-1',
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('getOrCreateForMonth baca BadRequestException za budući mjesec', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-10T10:00:00Z'));
+    await expect(service.getOrCreateForMonth(2026, 4)).rejects.toThrow(
+      BadRequestException,
+    );
+  });
 });

@@ -1,5 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toLocalDateOnlyString } from '../common/utils/date-only';
+import { iterateMonthsInclusive } from '../common/utils/date-range';
 
 export interface MonthlyFinance {
   year: number;
@@ -44,10 +46,6 @@ export interface AnalyticsDashboardParams {
   monthsBack?: number; // default 12
 }
 
-function toDateOnly(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
 /** Iz parametara izračunaj [fromDate, toDate] i listu mjeseci { year, month } za prikaz. */
 function resolveDateRange(params: AnalyticsDashboardParams): {
   fromDate: Date;
@@ -77,16 +75,9 @@ function resolveDateRange(params: AnalyticsDashboardParams): {
     fromDate.setDate(1);
   }
 
-  const fromDateStr = toDateOnly(fromDate);
-  const toDateStr = toDateOnly(toDate);
-
-  const months: { year: number; month: number }[] = [];
-  const cur = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
-  const end = new Date(toDate.getFullYear(), toDate.getMonth(), 1);
-  while (cur <= end) {
-    months.push({ year: cur.getFullYear(), month: cur.getMonth() + 1 });
-    cur.setMonth(cur.getMonth() + 1);
-  }
+  const fromDateStr = toLocalDateOnlyString(fromDate);
+  const toDateStr = toLocalDateOnlyString(toDate);
+  const months = iterateMonthsInclusive(fromDate, toDate);
 
   return { fromDate, toDate, fromDateStr, toDateStr, months };
 }
@@ -196,18 +187,35 @@ export class AnalyticsService {
     fromDate: Date,
     toDate: Date,
   ): Promise<StylistPerformance[]> {
-    const entries = await this.prisma.dailyLogEntry.findMany({
-      where: { status: 'COMPLETED', date: { gte: fromDate, lte: toDate } },
-      include: {
-        stylistProfile: {
-          include: {
-            user: {
-              select: { firstName: true, lastName: true, username: true },
+    const [entries, manualEntries] = await Promise.all([
+      this.prisma.dailyLogEntry.findMany({
+        where: { status: 'COMPLETED', date: { gte: fromDate, lte: toDate } },
+        include: {
+          stylistProfile: {
+            include: {
+              user: {
+                select: { firstName: true, lastName: true, username: true },
+              },
             },
           },
         },
-      },
-    });
+      }),
+      this.prisma.incomeBookManualEntry.findMany({
+        where: {
+          stylistProfileId: { not: null },
+          date: { gte: fromDate, lte: toDate },
+        },
+        include: {
+          stylistProfile: {
+            include: {
+              user: {
+                select: { firstName: true, lastName: true, username: true },
+              },
+            },
+          },
+        },
+      }),
+    ]);
 
     const byStylist = new Map<
       string,
@@ -230,6 +238,22 @@ export class AnalyticsService {
       row.revenue += Number(e.actualPrice ?? 0);
       row.tips += Number(e.tipAmount ?? 0);
     }
+    for (const m of manualEntries) {
+      const id = m.stylistProfileId!;
+      const name =
+        [m.stylistProfile?.user?.firstName, m.stylistProfile?.user?.lastName]
+          .filter(Boolean)
+          .join(' ') ||
+        m.stylistProfile?.user?.username ||
+        '—';
+      if (!byStylist.has(id)) {
+        byStylist.set(id, { name, count: 0, revenue: 0, tips: 0 });
+      }
+      const row = byStylist.get(id)!;
+      row.count += 1;
+      row.revenue += Number(m.amount ?? 0);
+      row.tips += Number(m.tipAmount ?? 0);
+    }
 
     return Array.from(byStylist.entries()).map(([stylistProfileId, v]) => ({
       stylistProfileId,
@@ -244,7 +268,7 @@ export class AnalyticsService {
     fromDate: Date,
     toDate: Date,
   ): Promise<TopServiceRow[]> {
-    const [fromReservations, fromDailyLog] = await Promise.all([
+    const [fromReservations, fromDailyLog, fromManualIncome] = await Promise.all([
       this.prisma.reservation.findMany({
         where: {
           status: 'COMPLETED',
@@ -255,6 +279,10 @@ export class AnalyticsService {
       this.prisma.dailyLogEntry.findMany({
         where: { status: 'COMPLETED', date: { gte: fromDate, lte: toDate } },
         include: { service: { select: { id: true, name: true, price: true } } },
+      }),
+      this.prisma.incomeBookManualEntry.findMany({
+        where: { date: { gte: fromDate, lte: toDate } },
+        include: { service: { select: { id: true, name: true } } },
       }),
     ]);
 
@@ -280,6 +308,15 @@ export class AnalyticsService {
       const row = byService.get(id)!;
       row.count += 1;
       row.revenue += price;
+    }
+    for (const m of fromManualIncome) {
+      const id = m.serviceId;
+      const name = m.service?.name ?? '—';
+      const amount = Number(m.amount ?? 0);
+      if (!byService.has(id)) byService.set(id, { name, count: 0, revenue: 0 });
+      const row = byService.get(id)!;
+      row.count += 1;
+      row.revenue += amount;
     }
 
     return Array.from(byService.entries())
