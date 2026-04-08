@@ -744,6 +744,7 @@ export class UsersService {
       ...(incomeManualEntries ?? []).map((e) => ({
         id: e.id,
         date: e.date,
+        serviceId: e.serviceId,
         actualPrice: e.amount,
         tipAmount: e.tipAmount,
         isManual: true,
