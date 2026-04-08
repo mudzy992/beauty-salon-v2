@@ -678,7 +678,7 @@ export class UsersService {
           }
         : {};
 
-    const [reservations, reviews, cancellationData, manualEntries] =
+    const [reservations, reviews, cancellationData, manualEntries, incomeManualEntries] =
       await Promise.all([
         this.repo.reservation.findMany({
           where: { clientId: userId, ...dateFilter },
@@ -723,7 +723,36 @@ export class UsersService {
           },
           orderBy: { date: 'desc' },
         }),
+        this.repo.incomeBookManualEntry.findMany({
+          where: { clientId: userId, ...dailyLogDateFilter },
+          include: {
+            service: { select: { id: true, name: true, price: true } },
+            stylistProfile: {
+              include: {
+                user: {
+                  select: { firstName: true, lastName: true, username: true },
+                },
+              },
+            },
+          },
+          orderBy: { date: 'desc' },
+        }),
       ]);
+
+    const combinedManualEntries = [
+      ...(manualEntries ?? []),
+      ...(incomeManualEntries ?? []).map((e) => ({
+        id: e.id,
+        date: e.date,
+        actualPrice: e.amount,
+        tipAmount: e.tipAmount,
+        isManual: true,
+        notes: e.notes ?? null,
+        status: 'COMPLETED',
+        service: e.service,
+        stylistProfile: e.stylistProfile,
+      })),
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const totalReservations = reservations.length;
     const completedReservations = reservations.filter(
@@ -739,7 +768,7 @@ export class UsersService {
     const reservationSpent = reservations
       .filter((r) => r.status === 'COMPLETED')
       .reduce((sum, r) => sum + Number(r.service?.price ?? 0), 0);
-    const manualSpent = manualEntries.reduce(
+    const manualSpent = combinedManualEntries.reduce(
       (sum, e) => sum + Number(e.actualPrice ?? 0),
       0,
     );
@@ -760,7 +789,7 @@ export class UsersService {
       serviceCounts[svcId].count++;
       serviceCounts[svcId].totalSpent += Number(r.service?.price ?? 0);
     }
-    for (const e of manualEntries) {
+    for (const e of combinedManualEntries) {
       const svcId = e.serviceId;
       if (!serviceCounts[svcId])
         serviceCounts[svcId] = {
@@ -794,7 +823,7 @@ export class UsersService {
         cancelledReservations,
         noShowCount,
         totalSpent,
-        manualEntryCount: manualEntries.length,
+        manualEntryCount: combinedManualEntries.length,
         manualSpent,
         avgServiceRating: avgServiceRating
           ? Math.round(avgServiceRating * 10) / 10
@@ -809,7 +838,7 @@ export class UsersService {
       topServices,
       reservations,
       reviews,
-      manualEntries,
+      manualEntries: combinedManualEntries,
     };
   }
 

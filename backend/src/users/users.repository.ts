@@ -49,6 +49,10 @@ export class UsersRepository {
     return this.prisma.clientCancellationCount
   }
 
+  get incomeBookManualEntry() {
+    return this.prisma.incomeBookManualEntry
+  }
+
   transaction<T>(fn: Parameters<PrismaService['$transaction']>[0]) {
     return this.prisma.$transaction(fn as any) as Promise<T>
   }

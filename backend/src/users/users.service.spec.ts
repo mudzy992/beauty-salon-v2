@@ -17,6 +17,21 @@ const mockRepo = {
   userRole: {
     create: jest.fn(),
   },
+  reservation: {
+    findMany: jest.fn(),
+  },
+  review: {
+    findMany: jest.fn(),
+  },
+  clientCancellationCount: {
+    findUnique: jest.fn(),
+  },
+  dailyLogEntry: {
+    findMany: jest.fn(),
+  },
+  incomeBookManualEntry: {
+    findMany: jest.fn(),
+  },
 };
 
 describe('UsersService', () => {
@@ -103,5 +118,55 @@ describe('UsersService', () => {
         ['OWNER'],
       ),
     ).rejects.toThrow(ConflictException);
+  });
+
+  it('getClientAnalytics vraća manualEntries iz daily log + income book manual entries', async () => {
+    mockRepo.user.findUnique.mockResolvedValue({
+      id: 'u1',
+      username: 'u1',
+      email: null,
+      firstName: 'Belma',
+      lastName: 'Kadrić',
+      phone: null,
+      isActive: true,
+      createdAt: new Date('2026-03-27T00:00:00Z'),
+      userRoles: [{ role: { name: 'CLIENT' } }],
+    });
+    mockRepo.reservation.findMany.mockResolvedValue([]);
+    mockRepo.review.findMany.mockResolvedValue([]);
+    mockRepo.clientCancellationCount.findUnique.mockResolvedValue(null);
+    mockRepo.dailyLogEntry.findMany.mockResolvedValue([
+      {
+        id: 'd1',
+        serviceId: 's1',
+        date: new Date('2026-03-05T00:00:00Z'),
+        actualPrice: 20,
+        tipAmount: 0,
+        isManual: true,
+        notes: null,
+        status: 'COMPLETED',
+        service: { id: 's1', name: 'Manicure', price: 20 },
+        stylistProfile: { user: { firstName: 'Ana', lastName: 'A', username: 'ana' } },
+      },
+    ]);
+    mockRepo.incomeBookManualEntry.findMany.mockResolvedValue([
+      {
+        id: 'm1',
+        serviceId: 's2',
+        date: new Date('2026-03-06T00:00:00Z'),
+        amount: 50,
+        tipAmount: 5,
+        notes: 'ručno kroz knjigu',
+        service: { id: 's2', name: 'Pedicure', price: 50 },
+        stylistProfile: { user: { firstName: 'Ena', lastName: 'E', username: 'ena' } },
+      },
+    ]);
+
+    const result = await service.getClientAnalytics('u1', ['OWNER']);
+    expect(result.stats.manualEntryCount).toBe(2);
+    expect(result.stats.manualSpent).toBe(70);
+    expect(result.manualEntries).toHaveLength(2);
+    expect(result.manualEntries[0].id).toBe('m1');
+    expect(result.manualEntries[0].isManual).toBe(true);
   });
 });
