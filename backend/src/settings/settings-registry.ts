@@ -3,6 +3,9 @@ import type { SettingRegistryItem } from './settings-registry.types'
 export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'app_title', scope: 'PUBLIC', type: 'string', defaultValue: 'Beauty Salon' },
   { key: 'app_logo', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'app_logo_icon', scope: 'PUBLIC', type: 'string', defaultValue: 'n' },
+  { key: 'app_logo_accent', scope: 'PUBLIC', type: 'string', defaultValue: '#D4A843' },
+  { key: 'app_logo_animated', scope: 'PUBLIC', type: 'boolean', defaultValue: 'true' },
   { key: 'system_maintenance_mode', scope: 'PUBLIC', type: 'boolean', defaultValue: 'false' },
   { key: 'public_maintenance_message', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
