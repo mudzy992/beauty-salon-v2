@@ -1,315 +1,392 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import {
-  Box, Heading, Table, Thead, Tbody, Tr, Th, Td, Spinner, Text,
-  Badge, Button, Flex, useDisclosure, Modal, ModalOverlay, ModalContent,
-  ModalHeader, ModalFooter, ModalBody, ModalCloseButton, FormControl,
-  FormLabel, Input, Textarea, Switch, useToast, IconButton, HStack,
-  VStack, Card, CardBody, Image,
-} from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
-import { EditIcon, DeleteIcon, AddIcon, ChatIcon, CheckIcon } from '@chakra-ui/icons';
-import api from '../api/client';
-import { getUploadUrl } from '../utils/uploadUrl';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Check, Loader2, MessageSquareText, Pencil, Plus, Trash2 } from 'lucide-react'
+
+import api from '../api/client'
+import { getErrorMessage } from '../api/error'
+import { useAppToast } from '../lib/toast/useAppToast'
+import { getUploadUrl } from '../utils/uploadUrl'
+
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Switch } from '../components/ui/switch'
+import { Textarea } from '../components/ui/textarea'
 
 interface BlogComment {
-  id: string;
-  content: string;
-  isApproved: boolean;
-  createdAt: string;
-  user?: { username: string; firstName: string | null; lastName: string | null };
+  id: string
+  content: string
+  isApproved: boolean
+  createdAt: string
+  user?: { username: string; firstName: string | null; lastName: string | null }
 }
 
 interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  isPublished: boolean;
-  publishedAt: string | null;
-  createdAt: string;
-  content: string;
-  heroImage: string | null;
+  id: string
+  title: string
+  slug: string
+  isPublished: boolean
+  publishedAt: string | null
+  createdAt: string
+  content: string
+  heroImage: string | null
 }
 
 export default function Blog() {
-  const { t } = useTranslation();
-  const toast = useToast();
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { t } = useTranslation()
+  const { success, error, warning } = useAppToast()
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [editId, setEditId] = useState<string | null>(null);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [isPublished, setIsPublished] = useState(false);
-  const [heroImage, setHeroImage] = useState('');
-  const [uploadingImg, setUploadingImg] = useState(false);
-  const heroFileRef = useRef<HTMLInputElement>(null);
-  const { isOpen: isCommentsOpen, onOpen: onCommentsOpen, onClose: onCommentsClose } = useDisclosure();
-  const [commentsPostId, setCommentsPostId] = useState<string | null>(null);
-  const [commentsPostTitle, setCommentsPostTitle] = useState('');
-  const [comments, setComments] = useState<BlogComment[]>([]);
-  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [posts, setPosts] = useState<BlogPost[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  const [open, setOpen] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [title, setTitle] = useState('')
+  const [content, setContent] = useState('')
+  const [isPublished, setIsPublished] = useState(false)
+  const [heroImage, setHeroImage] = useState('')
+  const [uploadingImg, setUploadingImg] = useState(false)
+  const heroFileRef = useRef<HTMLInputElement>(null)
+
+  const [commentsOpen, setCommentsOpen] = useState(false)
+  const [commentsPostId, setCommentsPostId] = useState<string | null>(null)
+  const [commentsPostTitle, setCommentsPostTitle] = useState('')
+  const [comments, setComments] = useState<BlogComment[]>([])
+  const [commentsLoading, setCommentsLoading] = useState(false)
 
   const loadData = useCallback(() => {
-    setLoading(true);
-    api.get<BlogPost[]>('/api/blog')
+    setLoading(true)
+    api
+      .get<BlogPost[]>('/api/blog')
       .then((r) => setPosts(Array.isArray(r.data) ? r.data : []))
       .catch(() => setPosts([]))
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => setLoading(false))
+  }, [])
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleUploadHero = async (file: File) => {
-    setUploadingImg(true);
+    setUploadingImg(true)
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('entity', 'blog');
-      const { data } = await api.post('/api/uploads', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setHeroImage(data.pathMedium || data.pathOriginal || '');
-      toast({ title: 'Slika uploadovana', status: 'success', isClosable: true, duration: 2000 });
-    } catch {
-      toast({ title: 'Greška pri uploadu', status: 'error', isClosable: true });
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('entity', 'blog')
+      const { data } = await api.post('/api/uploads', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      setHeroImage(data.pathMedium || data.pathOriginal || '')
+      success('Slika uploadovana')
+    } catch (err) {
+      error(getErrorMessage(err))
     } finally {
-      setUploadingImg(false);
-      if (heroFileRef.current) heroFileRef.current.value = '';
+      setUploadingImg(false)
+      if (heroFileRef.current) heroFileRef.current.value = ''
     }
-  };
+  }
 
   const openForm = async (id?: string) => {
     if (id) {
-      setEditId(id);
+      setEditId(id)
       try {
-        const { data } = await api.get<BlogPost>(`/api/blog/${id}`);
-        setTitle(data.title);
-        setContent(data.content);
-        setIsPublished(data.isPublished);
-        setHeroImage(data.heroImage ?? '');
-        onOpen();
-      } catch {
-        toast({ title: 'Greška pri učitavanju', status: 'error', isClosable: true });
+        const { data } = await api.get<BlogPost>(`/api/blog/${id}`)
+        setTitle(data.title)
+        setContent(data.content)
+        setIsPublished(data.isPublished)
+        setHeroImage(data.heroImage ?? '')
+        setOpen(true)
+      } catch (err) {
+        error(getErrorMessage(err))
       }
-    } else {
-      setEditId(null);
-      setTitle('');
-      setContent('');
-      setIsPublished(false);
-      setHeroImage('');
-      onOpen();
+      return
     }
-  };
+    setEditId(null)
+    setTitle('')
+    setContent('')
+    setIsPublished(false)
+    setHeroImage('')
+    setOpen(true)
+  }
 
   const handleSave = async () => {
-    if (!title || !content) return;
-    setSaving(true);
-    try {
-      const payload: Record<string, unknown> = { title, content, isPublished };
-      if (heroImage) payload.heroImage = heroImage;
-      if (editId) {
-        await api.patch(`/api/blog/${editId}`, payload);
-      } else {
-        await api.post('/api/blog', payload);
-      }
-      toast({ title: 'Sačuvano', status: 'success', isClosable: true });
-      loadData();
-      onClose();
-    } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
-    } finally {
-      setSaving(false);
+    if (!title || !content) {
+      warning('Naslov i sadržaj su obavezni')
+      return
     }
-  };
+    setSaving(true)
+    try {
+      const payload: Record<string, unknown> = { title, content, isPublished }
+      if (heroImage) payload.heroImage = heroImage
+      if (editId) await api.patch(`/api/blog/${editId}`, payload)
+      else await api.post('/api/blog', payload)
+      success('Sačuvano')
+      loadData()
+      setOpen(false)
+    } catch (err) {
+      error(getErrorMessage(err))
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Jeste li sigurni da želite obrisati članak?')) return;
+    if (!window.confirm('Jeste li sigurni da želite obrisati članak?')) return
     try {
-      await api.delete(`/api/blog/${id}`);
-      toast({ title: 'Obrisano', status: 'success', isClosable: true });
-      loadData();
-    } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      await api.delete(`/api/blog/${id}`)
+      success('Obrisano')
+      loadData()
+    } catch (err) {
+      error(getErrorMessage(err))
     }
-  };
+  }
 
   const openComments = async (postId: string, postTitle: string) => {
-    setCommentsPostId(postId);
-    setCommentsPostTitle(postTitle);
-    setCommentsLoading(true);
-    onCommentsOpen();
+    setCommentsPostId(postId)
+    setCommentsPostTitle(postTitle)
+    setCommentsLoading(true)
+    setCommentsOpen(true)
     try {
-      const { data } = await api.get<BlogComment[]>(`/api/blog/${postId}/comments`);
-      setComments(Array.isArray(data) ? data : []);
+      const { data } = await api.get<BlogComment[]>(`/api/blog/${postId}/comments`)
+      setComments(Array.isArray(data) ? data : [])
     } catch {
-      setComments([]);
+      setComments([])
     } finally {
-      setCommentsLoading(false);
+      setCommentsLoading(false)
     }
-  };
+  }
 
   const handleApproveComment = async (commentId: string) => {
     try {
-      await api.patch(`/api/blog/comments/${commentId}/approve`);
-      toast({ title: 'Komentar odobren', status: 'success', isClosable: true });
-      if (commentsPostId) openComments(commentsPostId, commentsPostTitle);
-    } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      await api.patch(`/api/blog/comments/${commentId}/approve`)
+      success('Komentar odobren')
+      if (commentsPostId) openComments(commentsPostId, commentsPostTitle)
+    } catch (err) {
+      error(getErrorMessage(err))
     }
-  };
+  }
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!window.confirm('Obrisati komentar?')) return;
+    if (!window.confirm('Obrisati komentar?')) return
     try {
-      await api.delete(`/api/blog/comments/${commentId}`);
-      toast({ title: 'Komentar obrisan', status: 'success', isClosable: true });
-      if (commentsPostId) openComments(commentsPostId, commentsPostTitle);
-    } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      await api.delete(`/api/blog/comments/${commentId}`)
+      success('Komentar obrisan')
+      if (commentsPostId) openComments(commentsPostId, commentsPostTitle)
+    } catch (err) {
+      error(getErrorMessage(err))
     }
-  };
+  }
+
+  const heroPreviewUrl = useMemo(() => (heroImage ? getUploadUrl(heroImage) : null), [heroImage])
+
+  const commentAuthor = (u?: BlogComment['user']) => {
+    if (!u) return 'Nepoznat'
+    return `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.username
+  }
 
   return (
-    <Box>
-      <Flex justify="space-between" align="center" mb={6} direction={{ base: 'column', md: 'row' }} gap={3}>
-        <Heading size="lg">{t('nav.blog')}</Heading>
-        <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openForm()}>
-          Novi Članak
+    <div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.blog')}</h1>
+        <Button type="button" onClick={() => void openForm()}>
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+          Novi članak
         </Button>
-      </Flex>
+      </div>
 
-      <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
+      <Card className="overflow-hidden">
         {loading ? (
-          <Box p={6} textAlign="center"><Spinner size="lg" /></Box>
+          <div className="flex justify-center p-10 text-slate-500">
+            <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+          </div>
         ) : (
-          <Table size="sm">
-            <Thead>
-              <Tr>
-                <Th>Naslov</Th>
-                <Th>Slug</Th>
-                <Th>Status</Th>
-                <Th>Datum Objavljivanja</Th>
-                <Th>Kreirano</Th>
-                <Th textAlign="right">Akcije</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {posts.length === 0 ? (
-                <Tr><Td colSpan={6}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
-              ) : (
-                posts.map((p) => (
-                  <Tr key={p.id}>
-                    <Td fontWeight="medium">{p.title}</Td>
-                    <Td fontSize="sm" color="gray.500">{p.slug}</Td>
-                    <Td>
-                      <Badge colorScheme={p.isPublished ? 'green' : 'gray'}>
-                        {p.isPublished ? 'Objavljeno' : 'Nacrt'}
-                      </Badge>
-                    </Td>
-                    <Td>{p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('bs-BA') : '-'}</Td>
-                    <Td>{new Date(p.createdAt).toLocaleDateString('bs-BA')}</Td>
-                    <Td textAlign="right">
-                      <HStack spacing={1} justify="flex-end">
-                        <IconButton aria-label="Komentari" icon={<ChatIcon />} size="sm" variant="ghost" colorScheme="teal" onClick={() => openComments(p.id, p.title)} />
-                        <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openForm(p.id)} />
-                        <IconButton aria-label="Obriši" icon={<DeleteIcon />} size="sm" variant="ghost" colorScheme="red" onClick={() => handleDelete(p.id)} />
-                      </HStack>
-                    </Td>
-                  </Tr>
-                ))
-              )}
-            </Tbody>
-          </Table>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                  <th className="p-3 font-medium">Naslov</th>
+                  <th className="p-3 font-medium">Slug</th>
+                  <th className="p-3 font-medium">Status</th>
+                  <th className="p-3 font-medium">Datum objavljivanja</th>
+                  <th className="p-3 font-medium">Kreirano</th>
+                  <th className="p-3 text-right font-medium">Akcije</th>
+                </tr>
+              </thead>
+              <tbody>
+                {posts.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-6 text-slate-500">
+                      {t('common.noData')}
+                    </td>
+                  </tr>
+                ) : (
+                  posts.map((p) => (
+                    <tr key={p.id} className="border-b border-slate-100 dark:border-slate-800/80">
+                      <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{p.title}</td>
+                      <td className="p-3 text-slate-500">{p.slug}</td>
+                      <td className="p-3">
+                        <Badge variant={p.isPublished ? 'success' : 'secondary'}>{p.isPublished ? 'Objavljeno' : 'Nacrt'}</Badge>
+                      </td>
+                      <td className="p-3">{p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('bs-BA') : '-'}</td>
+                      <td className="p-3">{new Date(p.createdAt).toLocaleDateString('bs-BA')}</td>
+                      <td className="p-3 text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            aria-label="Komentari"
+                            onClick={() => void openComments(p.id, p.title)}
+                          >
+                            <MessageSquareText className="h-4 w-4 text-teal-600" aria-hidden="true" />
+                          </Button>
+                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Uredi" onClick={() => void openForm(p.id)}>
+                            <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
+                          </Button>
+                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Obriši" onClick={() => void handleDelete(p.id)}>
+                            <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
-      </Box>
+      </Card>
 
-      {/* Post Create/Edit Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>{editId ? 'Uredi Članak' : 'Novi Članak'}</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <FormControl mb={4} isRequired>
-              <FormLabel>Naslov</FormLabel>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{editId ? 'Uredi članak' : 'Novi članak'}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Naslov</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-            </FormControl>
-            <FormControl mb={4}>
-              <FormLabel>Hero slika</FormLabel>
-              {heroImage && (
-                <Image src={getUploadUrl(heroImage)} alt="Hero" maxH="150px" rounded="md" mb={2} objectFit="cover" w="100%" />
-              )}
-              <input type="file" accept="image/*" ref={heroFileRef} style={{ display: 'none' }}
-                onChange={(e) => e.target.files?.[0] && handleUploadHero(e.target.files[0])} />
-              <Button size="sm" onClick={() => heroFileRef.current?.click()} isLoading={uploadingImg}>
-                {heroImage ? 'Promijeni sliku' : 'Upload hero sliku'}
-              </Button>
-            </FormControl>
-            <FormControl mb={4} isRequired>
-              <FormLabel>Sadržaj (HTML/Tekst)</FormLabel>
-              <Textarea rows={12} value={content} onChange={(e) => setContent(e.target.value)} />
-            </FormControl>
-            <FormControl display="flex" alignItems="center">
-              <FormLabel mb="0">Objavljeno</FormLabel>
-              <Switch isChecked={isPublished} onChange={(e) => setIsPublished(e.target.checked)} colorScheme="brand" />
-            </FormControl>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>{t('common.cancel')}</Button>
-            <Button colorScheme="brand" onClick={handleSave} isLoading={saving}>{t('common.save')}</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
+            </div>
 
-      {/* Comments Modal */}
-      <Modal isOpen={isCommentsOpen} onClose={onCommentsClose} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Komentari: {commentsPostTitle}</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            {commentsLoading ? (
-              <Spinner />
-            ) : comments.length === 0 ? (
-              <Text color="gray.500">Nema komentara za ovaj članak.</Text>
-            ) : (
-              <VStack align="stretch" spacing={3}>
-                {comments.map((c) => (
-                  <Card key={c.id} size="sm" bg={c.isApproved ? 'white' : 'yellow.50'} borderLeft="3px solid" borderColor={c.isApproved ? 'green.400' : 'yellow.400'}>
-                    <CardBody py={2}>
-                      <Flex justify="space-between" align="start">
-                        <Box flex={1}>
-                          <Flex gap={2} align="center" mb={1}>
-                            <Text fontSize="sm" fontWeight="bold">
-                              {c.user ? `${c.user.firstName ?? ''} ${c.user.lastName ?? ''}`.trim() || c.user.username : 'Nepoznat'}
-                            </Text>
-                            <Badge colorScheme={c.isApproved ? 'green' : 'yellow'} size="sm">
-                              {c.isApproved ? 'Odobren' : 'Na čekanju'}
-                            </Badge>
-                          </Flex>
-                          <Text fontSize="sm">{c.content}</Text>
-                          <Text fontSize="xs" color="gray.500" mt={1}>
-                            {new Date(c.createdAt).toLocaleString('bs-BA')}
-                          </Text>
-                        </Box>
-                        <HStack spacing={1}>
-                          {!c.isApproved && (
-                            <IconButton aria-label="Odobri" icon={<CheckIcon />} size="xs" colorScheme="green" variant="ghost" onClick={() => handleApproveComment(c.id)} />
-                          )}
-                          <IconButton aria-label="Obriši" icon={<DeleteIcon />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeleteComment(c.id)} />
-                        </HStack>
-                      </Flex>
-                    </CardBody>
-                  </Card>
-                ))}
-              </VStack>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" onClick={onCommentsClose}>Zatvori</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </Box>
-  );
+            <div className="space-y-2">
+              <Label>Hero slika</Label>
+              {heroPreviewUrl ? (
+                <img src={heroPreviewUrl} alt="Hero" className="h-[150px] w-full rounded-md object-cover" />
+              ) : null}
+              <input
+                type="file"
+                accept="image/*"
+                ref={heroFileRef}
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void handleUploadHero(file)
+                }}
+              />
+              <Button type="button" size="sm" variant="outline" onClick={() => heroFileRef.current?.click()} disabled={uploadingImg}>
+                {uploadingImg ? 'Upload...' : heroImage ? 'Promijeni sliku' : 'Upload hero sliku'}
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Sadržaj (HTML/Tekst)</Label>
+              <Textarea rows={12} value={content} onChange={(e) => setContent(e.target.value)} />
+            </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Objavljeno</p>
+                <p className="text-xs text-slate-500">Kada je uključeno, članak je vidljiv na javnoj stranici.</p>
+              </div>
+              <Switch checked={isPublished} onCheckedChange={(checked) => setIsPublished(checked)} />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="button" onClick={() => void handleSave()} disabled={saving}>
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={commentsOpen} onOpenChange={setCommentsOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Komentari: {commentsPostTitle}</DialogTitle>
+          </DialogHeader>
+
+          {commentsLoading ? (
+            <div className="flex justify-center p-10 text-slate-500">
+              <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+            </div>
+          ) : comments.length === 0 ? (
+            <p className="text-sm text-slate-500">Nema komentara za ovaj članak.</p>
+          ) : (
+            <div className="space-y-3">
+              {comments.map((c) => (
+                <div
+                  key={c.id}
+                  className={[
+                    'rounded-md border p-3',
+                    c.isApproved
+                      ? 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950'
+                      : 'border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/20',
+                  ].join(' ')}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{commentAuthor(c.user)}</p>
+                        <Badge variant={c.isApproved ? 'success' : 'warning'}>{c.isApproved ? 'Odobren' : 'Na čekanju'}</Badge>
+                      </div>
+                      <p className="text-sm text-slate-900 dark:text-slate-50">{c.content}</p>
+                      <p className="mt-1 text-xs text-slate-500">{new Date(c.createdAt).toLocaleString('bs-BA')}</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {!c.isApproved ? (
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          aria-label="Odobri"
+                          onClick={() => void handleApproveComment(c.id)}
+                        >
+                          <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        aria-label="Obriši"
+                        onClick={() => void handleDeleteComment(c.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="ghost" onClick={() => setCommentsOpen(false)}>
+              Zatvori
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }

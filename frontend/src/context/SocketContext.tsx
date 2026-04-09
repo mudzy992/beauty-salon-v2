@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { useAuthStore } from '../stores/auth.store';
 
 export const SOCKET_EVENTS = {
   RESERVATION_CREATED: 'reservation:created',
@@ -27,9 +28,9 @@ const SocketContext = createContext<SocketContextValue | null>(null);
 export function SocketProvider({ children }: { children: ReactNode }) {
   const socketRef = useRef<Socket | null>(null);
   const [connected, setConnected] = useState(false);
+  const token = useAuthStore((s) => s.token);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     const baseURL = import.meta.env.VITE_API_URL || '';
     const url = baseURL || window.location.origin;
 
@@ -55,17 +56,11 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const handleStorageChange = () => {
-      const token = localStorage.getItem('token');
-      if (socketRef.current) {
-        socketRef.current.auth = token ? { token } : {};
-        socketRef.current.disconnect().connect();
-      }
-    };
-
-    window.addEventListener('auth-change', handleStorageChange);
-    return () => window.removeEventListener('auth-change', handleStorageChange);
-  }, []);
+    if (socketRef.current) {
+      socketRef.current.auth = token ? { token } : {};
+      socketRef.current.disconnect().connect();
+    }
+  }, [token]);
 
   const on = useCallback((event: string, handler: (...args: unknown[]) => void) => {
     socketRef.current?.on(event, handler);

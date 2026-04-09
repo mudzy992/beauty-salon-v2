@@ -1,51 +1,41 @@
-import { useEffect, useMemo, useState, FormEvent } from 'react';
-import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
-import {
-  Box,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Heading,
-  Text,
-  useToast,
-  Flex,
-  Image,
-  Link,
-} from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { ArrowBackIcon } from '@chakra-ui/icons';
-import { useAuth } from '../context/AuthContext';
-import { useSettings } from '../context/SettingsContext';
+import { useEffect, useMemo, useState, FormEvent } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { motion } from 'framer-motion'
+
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { useAppToast } from '../lib/toast/useAppToast'
+import { useAuth } from '../context/AuthContext'
+import { useSettings } from '../context/SettingsContext'
 import {
   getClientMandatoryOnboardingPath,
   getPostAuthRedirectPath,
   shouldIgnoreStaleAuthRedirect,
 } from '../utils/clientOnboarding';
 
-const MotionBox = motion(Box as any);
+const MotionDiv = motion.div
 
 export default function Login() {
-  const { t } = useTranslation();
-  const { getSetting } = useSettings();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const toast = useToast();
-  const { login, token, user, isReady } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { t } = useTranslation()
+  const { getSetting } = useSettings()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const toast = useAppToast()
+  const { login, token, user, isReady } = useAuth()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const fallbackRedirect = useMemo(() => getPostAuthRedirectPath(user), [user]);
+  const fallbackRedirect = useMemo(() => getPostAuthRedirectPath(user), [user])
 
   useEffect(() => {
-    if (!isReady) return;
-    if (!token) return;
-    if (!user) return;
-    navigate(fallbackRedirect, { replace: true });
-  }, [isReady, token, user, navigate, fallbackRedirect]);
+    if (!isReady) return
+    if (!token) return
+    if (!user) return
+    navigate(fallbackRedirect, { replace: true })
+  }, [isReady, token, user, navigate, fallbackRedirect])
 
   const resolveFrom = (fromState: unknown): string | null => {
     if (typeof fromState === 'string') {
@@ -63,130 +53,115 @@ export default function Login() {
   };
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    setLoading(true)
 
     let loggedInUser;
     try {
-      loggedInUser = await login(username, password);
+      loggedInUser = await login(username, password)
     } catch {
-      toast({
-        title: t('auth.loginError'),
-        status: 'error',
-        isClosable: true,
-      });
-      setLoading(false);
-      return;
+      toast.error(t('auth.loginError'))
+      setLoading(false)
+      return
     }
 
-    setLoading(false);
-    toast({ title: 'Uspješna prijava!', status: 'success', duration: 2000, isClosable: true });
-    const nextPath = getPostAuthRedirectPath(loggedInUser);
+    setLoading(false)
+    toast.success('Uspješna prijava!')
+    const nextPath = getPostAuthRedirectPath(loggedInUser)
     if (getClientMandatoryOnboardingPath(loggedInUser) !== null) {
-      navigate(nextPath, { replace: true });
-      return;
+      navigate(nextPath, { replace: true })
+      return
     }
 
-    const from = (location.state as { from?: unknown } | null)?.from;
-    const resolvedFrom = resolveFrom(from);
+    const from = (location.state as { from?: unknown } | null)?.from
+    const resolvedFrom = resolveFrom(from)
     if (resolvedFrom && !shouldIgnoreStaleAuthRedirect(resolvedFrom, loggedInUser)) {
-      navigate(resolvedFrom, { replace: true });
-      return;
+      navigate(resolvedFrom, { replace: true })
+      return
     }
-    navigate(nextPath, { replace: true });
-  };
+    navigate(nextPath, { replace: true })
+  }
 
   return (
-    <Flex minH="100vh">
-      <Box display={{ base: 'none', lg: 'block' }} flex={1} position="relative" overflow="hidden">
-        <Image
-          src={getSetting('public_login_image', 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&q=80&w=1200')}
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
+      <div className="hidden lg:block relative overflow-hidden">
+        <img
+          src={getSetting(
+            'public_login_image',
+            'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&q=80&w=1200',
+          )}
           alt="Beauty Salon"
-          objectFit="cover"
-          w="full"
-          h="full"
-          transform="scale(1.05)"
-          transition="transform 10s ease-out"
-          _hover={{ transform: 'scale(1)' }}
+          className="h-full w-full object-cover scale-[1.05] hover:scale-100 transition-transform duration-[10000ms] ease-out"
         />
-        <Box position="absolute" inset={0} bgGradient="linear(to-t, blackAlpha.800, transparent)" />
-        <Box position="absolute" bottom={12} left={12} right={12} color="white">
-          <Heading size="2xl" mb={4} fontWeight="light">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+        <div className="absolute bottom-12 left-12 right-12 text-white">
+          <div className="text-4xl font-light mb-4">
             {getSetting('public_login_title', 'Beauty Salon Nejra')}
-          </Heading>
-          <Text fontSize="xl" color="gray.200" maxW="md">
-            {getSetting('public_login_subtitle', 'Vaša kosa zaslužuje samo najbolje. Prijavite se kako biste brzo i jednostavno rezervisali svoj termin kod naših vrhunskih stilista.')}
-          </Text>
-        </Box>
-      </Box>
+          </div>
+          <div className="text-lg text-slate-200 max-w-md">
+            {getSetting(
+              'public_login_subtitle',
+              'Vaša kosa zaslužuje samo najbolje. Prijavite se kako biste brzo i jednostavno rezervisali svoj termin kod naših vrhunskih stilista.',
+            )}
+          </div>
+        </div>
+      </div>
 
-      <Flex flex={1} align="center" justify="center" bg="gray.50" px={8}>
-        <MotionBox
+      <div className="flex items-center justify-center bg-slate-50 px-6 py-10">
+        <MotionDiv
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          w="full"
-          maxW="md"
+          className="w-full max-w-md"
         >
-          <Button as={RouterLink} to="/" variant="ghost" mb={8} leftIcon={<ArrowBackIcon />}>
-            Nazad na početnu
-          </Button>
+          <Link to="/" className="inline-flex mb-8">
+            <Button variant="ghost">Nazad na početnu</Button>
+          </Link>
 
-          <Box bg="whiteAlpha.900" backdropFilter="blur(10px)" p={10} rounded="2xl" shadow="2xl" borderWidth="1px" borderColor="whiteAlpha.400">
-            <Heading size="xl" mb={2} color="brand.800">
+          <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8">
+            <div className="text-2xl font-semibold text-slate-900">
               {t('auth.login')}
-            </Heading>
-            <Text color="gray.500" mb={8}>
+            </div>
+            <div className="text-slate-500 mt-2 mb-8">
               Unesite svoje podatke za prijavu
-            </Text>
+            </div>
 
-            <form onSubmit={handleSubmit}>
-              <VStack spacing={5}>
-                <FormControl isRequired>
-                  <FormLabel color="gray.700">Korisničko ime ili Email</FormLabel>
-                  <Input
-                    size="lg"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="vasemail@example.com"
-                    autoComplete="username"
-                    focusBorderColor="brand.400"
-                  />
-                </FormControl>
-                <FormControl isRequired>
-                  <FormLabel color="gray.700">{t('auth.password')}</FormLabel>
-                  <Input
-                    size="lg"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    focusBorderColor="brand.400"
-                  />
-                </FormControl>
-                <Button
-                  type="submit"
-                  size="lg"
-                  colorScheme="brand"
-                  w="full"
-                  isLoading={loading}
-                  mt={2}
-                >
-                  Prijavi se
-                </Button>
-              </VStack>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="usernameOrEmail">Korisničko ime ili Email</Label>
+                <Input
+                  id="usernameOrEmail"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="vasemail@example.com"
+                  autoComplete="username"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">{t('auth.password')}</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Učitavanje…' : 'Prijavi se'}
+              </Button>
             </form>
 
-            <Text mt={6} textAlign="center" color="gray.600">
+            <div className="mt-6 text-center text-slate-600">
               Nemate račun?{' '}
-              <Link as={RouterLink} to="/register" color="brand.500" fontWeight="bold">
+              <Link to="/register" className="text-brand-gold font-semibold">
                 {t('public.nav.register')}
               </Link>
-            </Text>
-          </Box>
-        </MotionBox>
-      </Flex>
-    </Flex>
-  );
+            </div>
+          </div>
+        </MotionDiv>
+      </div>
+    </div>
+  )
 }

@@ -1,133 +1,144 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import {
-  Box, Heading, Table, Thead, Tbody, Tr, Th, Td, Spinner, Text,
-  Badge, Flex, Select, Input, Button, useToast, useDisclosure,
-  Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
-  ModalCloseButton, ModalFooter, FormControl, FormLabel,
-  NumberInput, NumberInputField, NumberInputStepper,
-  NumberIncrementStepper, NumberDecrementStepper, Textarea, HStack,
-  IconButton, Stat, StatLabel, StatNumber, SimpleGrid, Card, CardBody,
-  InputGroup, InputLeftElement, List, ListItem, Link, VStack,
-  useBreakpointValue,
-} from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
-import { Link as RouterLink } from 'react-router-dom';
-import { AddIcon, CheckIcon, EditIcon, SearchIcon } from '@chakra-ui/icons';
-import api from '../api/client';
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Link as RouterLink } from 'react-router-dom'
+import { Check, Loader2, Pencil, Plus, Search } from 'lucide-react'
+import api from '../api/client'
+import { useAppToast } from '../lib/toast/useAppToast'
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Textarea } from '../components/ui/textarea'
 
 interface DailyLogEntry {
-  id: string;
-  date: string;
-  actualPrice: number | string;
-  tipAmount: number | string;
-  loyaltyDiscountPercent?: number;
-  loyaltyDiscountAmount?: number | string;
-  loyaltyPointsUsed?: number;
-  isManual: boolean;
-  notes: string | null;
-  status: string;
-  completedAt: string | null;
-  stylistProfile?: { id: string; user?: { username: string; firstName: string | null; lastName: string | null } };
-  service?: { id: string; name: string };
-  client?: { id: string; firstName: string | null; lastName: string | null; user?: { username: string } };
+  id: string
+  date: string
+  actualPrice: number | string
+  tipAmount: number | string
+  loyaltyDiscountPercent?: number
+  loyaltyDiscountAmount?: number | string
+  loyaltyPointsUsed?: number
+  isManual: boolean
+  notes: string | null
+  status: string
+  completedAt: string | null
+  stylistProfile?: { id: string; user?: { username: string; firstName: string | null; lastName: string | null } }
+  service?: { id: string; name: string }
+  client?: { id: string; firstName: string | null; lastName: string | null; user?: { username: string } }
   reservation?: {
-    id: string;
-    loyaltyDiscountPercent: number;
-    loyaltyDiscountAmount: number | string;
-  } | null;
+    id: string
+    loyaltyDiscountPercent: number
+    loyaltyDiscountAmount: number | string
+  } | null
 }
 
 interface StylistOption {
-  id: string;
-  user?: { username: string; firstName: string | null; lastName: string | null };
+  id: string
+  user?: { username: string; firstName: string | null; lastName: string | null }
 }
 
 interface ServiceOption {
-  id: string;
-  name: string;
-  price: number | string;
+  id: string
+  name: string
+  price: number | string
 }
 
 interface ClientOption {
-  id: string;
-  username: string;
-  firstName: string | null;
-  lastName: string | null;
+  id: string
+  username: string
+  firstName: string | null
+  lastName: string | null
 }
 
 interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
 }
 
 type LoyaltyInfo = {
-  enabled: boolean;
-  hasAccount: boolean;
-  redeemEnabled?: boolean;
-  points?: number;
-  tier?: string | null;
-  tierMaxDiscountPercent?: number;
-  globalMaxDiscountPercent?: number;
-  minPointsToRedeem?: number;
-  redeemRate?: number;
+  enabled: boolean
+  hasAccount: boolean
+  redeemEnabled?: boolean
+  points?: number
+  tier?: string | null
+  tierMaxDiscountPercent?: number
+  globalMaxDiscountPercent?: number
+  minPointsToRedeem?: number
+  redeemRate?: number
   service?: {
-    id: string;
-    price: number;
-    maxDiscountPercent: number;
-    maxDiscountAmount: number;
-    maxUsablePoints: number;
-  } | null;
-};
+    id: string
+    price: number
+    maxDiscountPercent: number
+    maxDiscountAmount: number
+    maxUsablePoints: number
+  } | null
+}
+
+const StatMini = ({ title, value }: { title: string; value: string }) => (
+  <Card className="p-4">
+    <p className="text-xs text-slate-500">{title}</p>
+    <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">{value}</p>
+  </Card>
+)
 
 export default function DailyLog() {
-  const { t } = useTranslation();
-  const toast = useToast();
-  const [entries, setEntries] = useState<DailyLogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { t } = useTranslation()
+  const { success, error, warning } = useAppToast()
+  const [entries, setEntries] = useState<DailyLogEntry[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-  const [stylistFilter, setStylistFilter] = useState('');
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const [stylistFilter, setStylistFilter] = useState('')
 
-  const [stylists, setStylists] = useState<StylistOption[]>([]);
-  const [services, setServices] = useState<ServiceOption[]>([]);
-  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [stylists, setStylists] = useState<StylistOption[]>([])
+  const [services, setServices] = useState<ServiceOption[]>([])
+  const [clients, setClients] = useState<ClientOption[]>([])
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [saving, setSaving] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
 
   const [form, setForm] = useState({
-    stylistProfileId: '', serviceId: '', clientId: '', date: new Date().toISOString().slice(0, 10),
-    actualPrice: 0, tipAmount: 0, notes: '', isManual: true,
+    stylistProfileId: '',
+    serviceId: '',
+    clientId: '',
+    date: new Date().toISOString().slice(0, 10),
+    actualPrice: 0,
+    tipAmount: 0,
+    notes: '',
+    isManual: true,
     desiredLoyaltyPercent: 0,
-  });
-  const [paidAmount, setPaidAmount] = useState<string>('');
-  const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
-  const [loadingLoyalty, setLoadingLoyalty] = useState(false);
+  })
+  const [paidAmount, setPaidAmount] = useState<string>('')
+  const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null)
+  const [loadingLoyalty, setLoadingLoyalty] = useState(false)
 
-  // Autocomplete state
-  const [serviceSearch, setServiceSearch] = useState('');
-  const [clientSearch, setClientSearch] = useState('');
-  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
-  const [showClientDropdown, setShowClientDropdown] = useState(false);
-  const isMobile = useBreakpointValue({ base: true, lg: false }) ?? false;
+  const [serviceSearch, setServiceSearch] = useState('')
+  const [clientSearch, setClientSearch] = useState('')
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false)
+  const [showClientDropdown, setShowClientDropdown] = useState(false)
 
   const loadData = useCallback(() => {
-    setLoading(true);
-    const params: Record<string, string> = {};
-    if (fromDate) params.fromDate = fromDate;
-    if (toDate) params.toDate = toDate;
-    if (stylistFilter) params.stylistProfileId = stylistFilter;
-    api.get<DailyLogEntry[]>('/api/daily-log', { params })
+    setLoading(true)
+    const params: Record<string, string> = {}
+    if (fromDate) params.fromDate = fromDate
+    if (toDate) params.toDate = toDate
+    if (stylistFilter) params.stylistProfileId = stylistFilter
+    api
+      .get<DailyLogEntry[]>('/api/daily-log', { params })
       .then((r) => setEntries(Array.isArray(r.data) ? r.data : []))
       .catch(() => setEntries([]))
-      .finally(() => setLoading(false));
-  }, [fromDate, toDate, stylistFilter]);
+      .finally(() => setLoading(false))
+  }, [fromDate, toDate, stylistFilter])
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   useEffect(() => {
     api
@@ -137,7 +148,7 @@ export default function DailyLog() {
       .then((r) =>
         setStylists(Array.isArray(r.data) ? r.data : Array.isArray(r.data.items) ? r.data.items : []),
       )
-      .catch(() => {});
+      .catch(() => {})
     api
       .get<ServiceOption[] | PaginatedResponse<ServiceOption>>('/api/services', {
         params: { activeOnly: true, page: 0, pageSize: 300 },
@@ -145,7 +156,7 @@ export default function DailyLog() {
       .then((r) =>
         setServices(Array.isArray(r.data) ? r.data : Array.isArray(r.data.items) ? r.data.items : []),
       )
-      .catch(() => {});
+      .catch(() => {})
     api
       .get<ClientOption[] | PaginatedResponse<ClientOption>>('/api/users', {
         params: { page: 0, pageSize: 500 },
@@ -153,60 +164,69 @@ export default function DailyLog() {
       .then((r) =>
         setClients(Array.isArray(r.data) ? r.data : Array.isArray(r.data.items) ? r.data.items : []),
       )
-      .catch(() => {});
-  }, []);
+      .catch(() => {})
+  }, [])
 
-  const totalRevenue = entries.reduce((sum, e) => sum + Number(e.actualPrice || 0), 0);
-  const totalTips = entries.reduce((sum, e) => sum + Number(e.tipAmount || 0), 0);
-  const completedCount = entries.filter((e) => e.status === 'COMPLETED').length;
+  const totalRevenue = entries.reduce((sum, e) => sum + Number(e.actualPrice || 0), 0)
+  const totalTips = entries.reduce((sum, e) => sum + Number(e.tipAmount || 0), 0)
+  const completedCount = entries.filter((e) => e.status === 'COMPLETED').length
 
   const filteredServices = useMemo(() => {
-    if (!serviceSearch) return services;
-    const q = serviceSearch.toLowerCase();
-    return services.filter((s) => s.name.toLowerCase().includes(q));
-  }, [services, serviceSearch]);
+    if (!serviceSearch) return services
+    const q = serviceSearch.toLowerCase()
+    return services.filter((s) => s.name.toLowerCase().includes(q))
+  }, [services, serviceSearch])
 
   const filteredClients = useMemo(() => {
-    if (!clientSearch) return clients.slice(0, 20);
-    const q = clientSearch.toLowerCase();
-    return clients.filter((c) =>
-      c.username.toLowerCase().includes(q) ||
-      (c.firstName?.toLowerCase().includes(q)) ||
-      (c.lastName?.toLowerCase().includes(q))
-    ).slice(0, 20);
-  }, [clients, clientSearch]);
+    if (!clientSearch) return clients.slice(0, 20)
+    const q = clientSearch.toLowerCase()
+    return clients
+      .filter(
+        (c) =>
+          c.username.toLowerCase().includes(q) ||
+          (c.firstName?.toLowerCase().includes(q) ?? false) ||
+          (c.lastName?.toLowerCase().includes(q) ?? false),
+      )
+      .slice(0, 20)
+  }, [clients, clientSearch])
 
   const selectService = (svc: ServiceOption) => {
-    setForm((prev) => ({ ...prev, serviceId: svc.id, actualPrice: Number(svc.price) || 0, desiredLoyaltyPercent: 0 }));
-    setServiceSearch(svc.name);
-    setShowServiceDropdown(false);
-    setPaidAmount('');
-  };
+    setForm((prev) => ({ ...prev, serviceId: svc.id, actualPrice: Number(svc.price) || 0, desiredLoyaltyPercent: 0 }))
+    setServiceSearch(svc.name)
+    setShowServiceDropdown(false)
+    setPaidAmount('')
+  }
 
   const selectClient = (client: ClientOption) => {
-    setForm((prev) => ({ ...prev, clientId: client.id, desiredLoyaltyPercent: 0 }));
-    const name = [client.firstName, client.lastName].filter(Boolean).join(' ') || client.username;
-    setClientSearch(name);
-    setShowClientDropdown(false);
-    setPaidAmount('');
-  };
+    setForm((prev) => ({ ...prev, clientId: client.id, desiredLoyaltyPercent: 0 }))
+    const name = [client.firstName, client.lastName].filter(Boolean).join(' ') || client.username
+    setClientSearch(name)
+    setShowClientDropdown(false)
+    setPaidAmount('')
+  }
 
   const openCreateForm = () => {
-    setEditId(null);
+    setEditId(null)
     setForm({
-      stylistProfileId: '', serviceId: '', clientId: '', date: new Date().toISOString().slice(0, 10),
-      actualPrice: 0, tipAmount: 0, notes: '', isManual: true,
+      stylistProfileId: '',
+      serviceId: '',
+      clientId: '',
+      date: new Date().toISOString().slice(0, 10),
+      actualPrice: 0,
+      tipAmount: 0,
+      notes: '',
+      isManual: true,
       desiredLoyaltyPercent: 0,
-    });
-    setServiceSearch('');
-    setClientSearch('');
-    setLoyaltyInfo(null);
-    setPaidAmount('');
-    onOpen();
-  };
+    })
+    setServiceSearch('')
+    setClientSearch('')
+    setLoyaltyInfo(null)
+    setPaidAmount('')
+    setOpen(true)
+  }
 
   const openEditForm = (entry: DailyLogEntry) => {
-    setEditId(entry.id);
+    setEditId(entry.id)
     setForm({
       stylistProfileId: entry.stylistProfile?.id ?? '',
       serviceId: entry.service?.id ?? '',
@@ -217,80 +237,81 @@ export default function DailyLog() {
       notes: entry.notes ?? '',
       isManual: entry.isManual,
       desiredLoyaltyPercent: Number(entry.loyaltyDiscountPercent ?? 0),
-    });
-    setServiceSearch(entry.service?.name ?? '');
-    const clientName = entry.client ? [entry.client.firstName, entry.client.lastName].filter(Boolean).join(' ') || entry.client.user?.username || '' : '';
-    setClientSearch(clientName);
-    setPaidAmount(entry.actualPrice != null ? String(Number(entry.actualPrice)) : '');
-    onOpen();
-  };
+    })
+    setServiceSearch(entry.service?.name ?? '')
+    const clientName = entry.client
+      ? [entry.client.firstName, entry.client.lastName].filter(Boolean).join(' ') || entry.client.user?.username || ''
+      : ''
+    setClientSearch(clientName)
+    setPaidAmount(entry.actualPrice != null ? String(Number(entry.actualPrice)) : '')
+    setOpen(true)
+  }
 
   const selectedServiceObj = useMemo(
     () => services.find((s) => s.id === form.serviceId) ?? null,
     [services, form.serviceId],
-  );
-  const basePrice = selectedServiceObj ? Number(selectedServiceObj.price ?? 0) : 0;
+  )
+  const basePrice = selectedServiceObj ? Number(selectedServiceObj.price ?? 0) : 0
   const loyaltyPercent =
     loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service
       ? Math.max(0, Math.min(form.desiredLoyaltyPercent, loyaltyInfo.service.maxDiscountPercent))
-      : 0;
-  const loyaltyDiscountAmount = basePrice > 0 ? (basePrice * loyaltyPercent) / 100 : 0;
-  const chargeAmount = Math.max(0, basePrice - loyaltyDiscountAmount);
+      : 0
+  const loyaltyDiscountAmount = basePrice > 0 ? (basePrice * loyaltyPercent) / 100 : 0
+  const chargeAmount = Math.max(0, basePrice - loyaltyDiscountAmount)
 
   useEffect(() => {
     if (!form.serviceId || !form.clientId) {
-      setLoyaltyInfo(null);
-      return;
+      setLoyaltyInfo(null)
+      return
     }
-    let isMounted = true;
-    setLoadingLoyalty(true);
+    let isMounted = true
+    setLoadingLoyalty(true)
     api
       .get<LoyaltyInfo>(`/api/loyalty/stylist/client/${form.clientId}`, {
         params: { serviceId: form.serviceId },
       })
       .then((r) => {
-        if (!isMounted) return;
-        setLoyaltyInfo(r.data);
+        if (!isMounted) return
+        setLoyaltyInfo(r.data)
       })
       .catch(() => {
-        if (!isMounted) return;
-        setLoyaltyInfo(null);
+        if (!isMounted) return
+        setLoyaltyInfo(null)
       })
       .finally(() => {
-        if (!isMounted) return;
-        setLoadingLoyalty(false);
-      });
+        if (!isMounted) return
+        setLoadingLoyalty(false)
+      })
     return () => {
-      isMounted = false;
-    };
-  }, [form.serviceId, form.clientId]);
+      isMounted = false
+    }
+  }, [form.serviceId, form.clientId])
 
   const handleSave = async () => {
     if (!form.stylistProfileId || !form.serviceId) {
-      toast({ title: 'Odaberite stilistu i servis', status: 'warning', isClosable: true });
-      return;
+      warning('Odaberite stilistu i servis')
+      return
     }
-    setSaving(true);
+    const paidRaw =
+      paidAmount.trim().length > 0 ? Number(paidAmount.replace(',', '.')) : chargeAmount
+    if (!Number.isFinite(paidRaw) || paidRaw < 0) {
+      warning('Unesite ispravan iznos naplaćenog računa')
+      return
+    }
+    if (paidRaw < chargeAmount) {
+      warning(`Naplaćeno ne može biti manje od za naplatu (${chargeAmount.toFixed(2)} KM)`)
+      return
+    }
+    const tipAuto = Math.max(0, paidRaw - chargeAmount)
+    setSaving(true)
     try {
-      const paidRaw =
-        paidAmount.trim().length > 0 ? Number(paidAmount.replace(',', '.')) : chargeAmount;
-      if (!Number.isFinite(paidRaw) || paidRaw < 0) {
-        toast({ title: 'Unesite ispravan iznos naplaćenog računa', status: 'warning', isClosable: true });
-        return;
-      }
-      if (paidRaw < chargeAmount) {
-        toast({ title: `Naplaćeno ne može biti manje od za naplatu (${chargeAmount.toFixed(2)} KM)`, status: 'warning', isClosable: true });
-        return;
-      }
-      const tipAuto = Math.max(0, paidRaw - chargeAmount);
-
       if (editId) {
         await api.patch(`/api/daily-log/${editId}`, {
           actualPrice: paidRaw,
           tipAmount: tipAuto,
           notes: form.notes || undefined,
           ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
-        });
+        })
       } else {
         await api.post('/api/daily-log', {
           stylistProfileId: form.stylistProfileId,
@@ -302,296 +323,426 @@ export default function DailyLog() {
           notes: form.notes || undefined,
           isManual: true,
           ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
-        });
+        })
       }
-      toast({ title: 'Sačuvano', status: 'success', isClosable: true });
-      loadData();
-      onClose();
+      success('Sačuvano')
+      loadData()
+      setOpen(false)
     } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      error('Greška')
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const handleComplete = async (id: string) => {
     try {
-      await api.post(`/api/daily-log/${id}/complete`);
-      toast({ title: 'Unos kompletiran i prihod dodan u knjigu', status: 'success', isClosable: true });
-      loadData();
+      await api.post(`/api/daily-log/${id}/complete`)
+      success('Unos kompletiran i prihod dodan u knjigu')
+      loadData()
     } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      error('Greška')
     }
-  };
+  }
 
   const getStylistName = (s?: StylistOption | DailyLogEntry['stylistProfile']) => {
-    if (!s?.user) return '-';
-    return `${s.user.firstName ?? ''} ${s.user.lastName ?? ''}`.trim() || s.user.username;
-  };
+    if (!s?.user) return '-'
+    return `${s.user.firstName ?? ''} ${s.user.lastName ?? ''}`.trim() || s.user.username
+  }
+
+  const loyaltyLine = (e: DailyLogEntry) => {
+    if (e.reservation && e.reservation.loyaltyDiscountPercent > 0) {
+      return (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+          Loyalty popust: {e.reservation.loyaltyDiscountPercent}% ({Number(e.reservation.loyaltyDiscountAmount ?? 0).toFixed(2)}{' '}
+          KM)
+        </p>
+      )
+    }
+    if (!e.reservation && Number(e.loyaltyDiscountPercent ?? 0) > 0) {
+      return (
+        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+          Loyalty popust: {Number(e.loyaltyDiscountPercent)}% ({Number(e.loyaltyDiscountAmount ?? 0).toFixed(2)} KM)
+        </p>
+      )
+    }
+    return null
+  }
 
   return (
-    <Box>
-      <Flex justify="space-between" align="center" mb={4}>
-        <Heading size="lg">{t('nav.dailyLog')}</Heading>
-        <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={openCreateForm}>Novi Unos</Button>
-      </Flex>
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.dailyLog')}</h1>
+        <Button type="button" onClick={openCreateForm}>
+          <Plus className="mr-2 h-4 w-4" />
+          Novi Unos
+        </Button>
+      </div>
 
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={4}>
-        <Card><CardBody><Stat><StatLabel>Ukupno prihoda</StatLabel><StatNumber>{totalRevenue.toFixed(2)} KM</StatNumber></Stat></CardBody></Card>
-        <Card><CardBody><Stat><StatLabel>Ukupno napojnica</StatLabel><StatNumber>{totalTips.toFixed(2)} KM</StatNumber></Stat></CardBody></Card>
-        <Card><CardBody><Stat><StatLabel>Kompletirano</StatLabel><StatNumber>{completedCount} / {entries.length}</StatNumber></Stat></CardBody></Card>
-      </SimpleGrid>
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <StatMini title="Ukupno prihoda" value={`${totalRevenue.toFixed(2)} KM`} />
+        <StatMini title="Ukupno napojnica" value={`${totalTips.toFixed(2)} KM`} />
+        <StatMini title="Kompletirano" value={`${completedCount} / ${entries.length}`} />
+      </div>
 
-      <Flex gap={3} mb={4} wrap="wrap" bg="white" p={4} rounded="lg" shadow="sm">
-        <Box><Text fontSize="xs" color="gray.500" mb={1}>Od datuma</Text><Input type="date" size="sm" value={fromDate} onChange={(e) => setFromDate(e.target.value)} /></Box>
-        <Box><Text fontSize="xs" color="gray.500" mb={1}>Do datuma</Text><Input type="date" size="sm" value={toDate} onChange={(e) => setToDate(e.target.value)} /></Box>
-        <Box><Text fontSize="xs" color="gray.500" mb={1}>Stilista</Text>
-          <Select size="sm" value={stylistFilter} onChange={(e) => setStylistFilter(e.target.value)}>
+      <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+        <div>
+          <p className="mb-1 text-xs text-slate-500">Od datuma</p>
+          <Input type="date" className="h-9 w-[160px]" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+        </div>
+        <div>
+          <p className="mb-1 text-xs text-slate-500">Do datuma</p>
+          <Input type="date" className="h-9 w-[160px]" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+        </div>
+        <div>
+          <p className="mb-1 text-xs text-slate-500">Stilista</p>
+          <select
+            value={stylistFilter}
+            onChange={(e) => setStylistFilter(e.target.value)}
+            className="flex h-9 w-[200px] rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+          >
             <option value="">Svi stilisti</option>
-            {stylists.map((s) => <option key={s.id} value={s.id}>{getStylistName(s)}</option>)}
-          </Select>
-        </Box>
-        <Flex align="flex-end">
-          <Button size="sm" variant="outline" onClick={() => { setFromDate(''); setToDate(''); setStylistFilter(''); }}>Resetuj</Button>
-        </Flex>
-      </Flex>
+            {stylists.map((s) => (
+              <option key={s.id} value={s.id}>
+                {getStylistName(s)}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            setFromDate('')
+            setToDate('')
+            setStylistFilter('')
+          }}
+        >
+          Resetuj
+        </Button>
+      </div>
 
-      <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
-        {loading ? <Box p={6} textAlign="center"><Spinner size="lg" /></Box> : (
-          isMobile ? (
-            <VStack align="stretch" spacing={3} p={3}>
-              {entries.length === 0 ? <Text color="gray.500">{t('common.noData')}</Text> : entries.map((e) => (
-                <Box key={e.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3}>
-                  <HStack justify="space-between">
-                    <Text fontWeight="medium">{e.date?.slice(0, 10)}</Text>
-                    <Badge colorScheme={e.status === 'COMPLETED' ? 'green' : 'yellow'}>{e.status === 'COMPLETED' ? 'Kompletiran' : 'Na čekanju'}</Badge>
-                  </HStack>
-                  <Text fontSize="sm">{e.service?.name ?? '-'}</Text>
-                  <Text fontSize="sm" color="gray.600">{getStylistName(e.stylistProfile)}</Text>
-                  <HStack justify="space-between" mt={2}>
-                    <Text fontSize="sm">{Number(e.actualPrice).toFixed(2)} KM</Text>
-                    <HStack spacing={1}>
-                      <IconButton aria-label="Uredi" icon={<EditIcon />} size="xs" variant="ghost" colorScheme="blue" onClick={() => openEditForm(e)} />
-                      {e.status !== 'COMPLETED' && <IconButton aria-label="Kompletiraj" icon={<CheckIcon />} size="xs" variant="ghost" colorScheme="green" onClick={() => handleComplete(e.id)} />}
-                    </HStack>
-                  </HStack>
-                </Box>
-              ))}
-            </VStack>
-          ) : (
-          <Table size="sm">
-            <Thead>
-              <Tr><Th>Datum</Th><Th>Stilista</Th><Th>Servis</Th><Th>Klijent</Th><Th isNumeric>Cijena</Th><Th isNumeric>Napojnica</Th><Th>Izvor</Th><Th>Status</Th><Th textAlign="right">Akcije</Th></Tr>
-            </Thead>
-            <Tbody>
+      <Card className="overflow-hidden">
+        {loading ? (
+          <div className="flex justify-center p-10">
+            <Loader2 className="h-8 w-8 animate-spin text-slate-500" aria-hidden="true" />
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3 p-3 lg:hidden">
               {entries.length === 0 ? (
-                <Tr><Td colSpan={9}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
-              ) : entries.map((e) => (
-                <Tr key={e.id}>
-                  <Td>{e.date?.slice(0, 10)}</Td>
-                  <Td>
-                    {e.stylistProfile?.id ? (
-                      <Link as={RouterLink} to={`/admin/stylist-analytics?stylistId=${e.stylistProfile.id}`} color="brand.600" _hover={{ textDecoration: 'underline' }}>
-                        {getStylistName(e.stylistProfile)}
-                      </Link>
-                    ) : (
-                      getStylistName(e.stylistProfile)
-                    )}
-                  </Td>
-                  <Td>
-                    <VStack align="flex-start" spacing={0}>
-                      <Text>{e.service?.name ?? '-'}</Text>
-                      {e.reservation && e.reservation.loyaltyDiscountPercent > 0 && (
-                        <Text fontSize="xs" color="green.600">
-                          Loyalty popust: {e.reservation.loyaltyDiscountPercent}% (
-                          {Number(e.reservation.loyaltyDiscountAmount ?? 0).toFixed(2)} KM)
-                        </Text>
-                      )}
-                      {!e.reservation && Number(e.loyaltyDiscountPercent ?? 0) > 0 && (
-                        <Text fontSize="xs" color="green.600">
-                          Loyalty popust: {Number(e.loyaltyDiscountPercent)}% (
-                          {Number(e.loyaltyDiscountAmount ?? 0).toFixed(2)} KM)
-                        </Text>
-                      )}
-                    </VStack>
-                  </Td>
-                  <Td>
-                    {e.client ? (
-                      <Link as={RouterLink} to={`/admin/client-analytics?userId=${e.client.id}`} color="brand.600" _hover={{ textDecoration: 'underline' }}>
-                        {[e.client.firstName, e.client.lastName].filter(Boolean).join(' ') || e.client.user?.username || '-'}
-                      </Link>
-                    ) : (
-                      '-'
-                    )}
-                  </Td>
-                  <Td isNumeric fontWeight="medium">{Number(e.actualPrice).toFixed(2)}</Td>
-                  <Td isNumeric>{Number(e.tipAmount).toFixed(2)}</Td>
-                  <Td><Badge colorScheme={e.isManual ? 'orange' : 'blue'} variant="subtle">{e.isManual ? 'Ručno' : 'Rezervacija'}</Badge></Td>
-                  <Td><Badge colorScheme={e.status === 'COMPLETED' ? 'green' : 'yellow'}>{e.status === 'COMPLETED' ? 'Kompletiran' : 'Na čekanju'}</Badge></Td>
-                  <Td textAlign="right">
-                    <HStack spacing={1} justify="flex-end">
-                      <IconButton aria-label="Uredi" icon={<EditIcon />} size="xs" variant="ghost" colorScheme="blue" onClick={() => openEditForm(e)} />
-                      {e.status !== 'COMPLETED' && (
-                        <IconButton aria-label="Kompletiraj" icon={<CheckIcon />} size="xs" variant="ghost" colorScheme="green" onClick={() => handleComplete(e.id)} />
-                      )}
-                    </HStack>
-                  </Td>
-                </Tr>
-              ))}
-            </Tbody>
-          </Table>
-          )
-        )}
-      </Box>
-
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>{editId ? 'Uredi Unos' : 'Novi Unos u Dnevnu Knjigu'}</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            {!editId && (
-              <>
-                <FormControl mb={4} isRequired>
-                  <FormLabel>Stilista</FormLabel>
-                  <Select placeholder="Odaberite stilistu" value={form.stylistProfileId} onChange={(e) => setForm({ ...form, stylistProfileId: e.target.value })}>
-                    {stylists.map((s) => <option key={s.id} value={s.id}>{getStylistName(s)}</option>)}
-                  </Select>
-                </FormControl>
-
-                <FormControl mb={4} isRequired>
-                  <FormLabel>Servis</FormLabel>
-                  <Box position="relative">
-                    <InputGroup>
-                      <InputLeftElement pointerEvents="none"><SearchIcon color="gray.400" /></InputLeftElement>
-                      <Input
-                        value={serviceSearch}
-                        onChange={(e) => { setServiceSearch(e.target.value); setShowServiceDropdown(true); setForm((prev) => ({ ...prev, serviceId: '' })); }}
-                        onFocus={() => setShowServiceDropdown(true)}
-                        placeholder="Pretražite servis..."
-                      />
-                    </InputGroup>
-                    {showServiceDropdown && filteredServices.length > 0 && (
-                      <List position="absolute" zIndex={10} bg="white" border="1px" borderColor="gray.200" rounded="md" shadow="lg" maxH="200px" overflowY="auto" w="100%" mt={1}>
-                        {filteredServices.map((svc) => (
-                          <ListItem key={svc.id} px={3} py={2} cursor="pointer" _hover={{ bg: 'brand.50' }}
-                            onClick={() => selectService(svc)}>
-                            <Flex justify="space-between">
-                              <Text fontSize="sm">{svc.name}</Text>
-                              <Text fontSize="sm" color="gray.500">{Number(svc.price).toFixed(2)} KM</Text>
-                            </Flex>
-                          </ListItem>
-                        ))}
-                      </List>
-                    )}
-                  </Box>
-                  {form.serviceId && <Text fontSize="xs" color="green.600" mt={1}>Odabrano: {serviceSearch}</Text>}
-                </FormControl>
-
-                <FormControl mb={4}>
-                  <FormLabel>Klijent</FormLabel>
-                  <Box position="relative">
-                    <InputGroup>
-                      <InputLeftElement pointerEvents="none"><SearchIcon color="gray.400" /></InputLeftElement>
-                      <Input
-                        value={clientSearch}
-                        onChange={(e) => { setClientSearch(e.target.value); setShowClientDropdown(true); setForm((prev) => ({ ...prev, clientId: '' })); }}
-                        onFocus={() => setShowClientDropdown(true)}
-                        placeholder="Pretražite klijenta..."
-                      />
-                    </InputGroup>
-                    {showClientDropdown && filteredClients.length > 0 && (
-                      <List position="absolute" zIndex={10} bg="white" border="1px" borderColor="gray.200" rounded="md" shadow="lg" maxH="200px" overflowY="auto" w="100%" mt={1}>
-                        {filteredClients.map((c) => (
-                          <ListItem key={c.id} px={3} py={2} cursor="pointer" _hover={{ bg: 'brand.50' }}
-                            onClick={() => selectClient(c)}>
-                            <Text fontSize="sm">{[c.firstName, c.lastName].filter(Boolean).join(' ') || c.username}</Text>
-                            <Text fontSize="xs" color="gray.500">{c.username}</Text>
-                          </ListItem>
-                        ))}
-                      </List>
-                    )}
-                  </Box>
-                  {form.clientId && <Text fontSize="xs" color="green.600" mt={1}>Odabrano: {clientSearch}</Text>}
-                </FormControl>
-
-                <FormControl mb={4} isRequired>
-                  <FormLabel>Datum</FormLabel>
-                  <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-                </FormControl>
-              </>
-            )}
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={4}>
-              <FormControl flex={1} isRequired>
-                <FormLabel>Naplaćeno (KM)</FormLabel>
-                <Input
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value)}
-                  placeholder={chargeAmount > 0 ? chargeAmount.toFixed(2) : '0.00'}
-                />
-                <Text fontSize="xs" color="gray.600" mt={2}>
-                  Servis: {Number.isFinite(basePrice) ? basePrice.toFixed(2) : '0.00'} KM
-                  {loyaltyPercent > 0 ? ` · Loyalty: ${loyaltyPercent}% (${loyaltyDiscountAmount.toFixed(2)} KM)` : ''}
-                </Text>
-                <Text fontSize="sm" fontWeight="700" mt={1}>
-                  Za naplatu: {chargeAmount.toFixed(2)} KM
-                </Text>
-              </FormControl>
-            </SimpleGrid>
-            <FormControl>
-              <FormLabel>Bilješke</FormLabel>
-              <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
-            </FormControl>
-
-            <Box mt={4} pt={3} borderTop="1px" borderColor="gray.200">
-              <FormLabel mb={2}>Loyalty</FormLabel>
-              {loadingLoyalty ? (
-                <Spinner size="sm" />
-              ) : loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service ? (
-                <VStack align="stretch" spacing={2}>
-                  <Text fontSize="sm">
-                    Bodovi: {loyaltyInfo.points ?? 0} · Max popust: {loyaltyInfo.service.maxDiscountPercent}%
-                  </Text>
-                  <FormControl>
-                    <FormLabel fontSize="sm">Popust (%)</FormLabel>
-                    <NumberInput
-                      value={form.desiredLoyaltyPercent}
-                      onChange={(_, v) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          desiredLoyaltyPercent: Math.max(
-                            0,
-                            Math.min(v || 0, loyaltyInfo.service?.maxDiscountPercent ?? 0),
-                          ),
-                        }))
-                      }
-                      min={0}
-                      max={loyaltyInfo.service.maxDiscountPercent}
-                    >
-                      <NumberInputField />
-                      <NumberInputStepper>
-                        <NumberIncrementStepper />
-                        <NumberDecrementStepper />
-                      </NumberInputStepper>
-                    </NumberInput>
-                  </FormControl>
-                  <Text fontSize="xs" color="gray.600">
-                    Max iznos popusta: {Number(loyaltyInfo.service.maxDiscountAmount ?? 0).toFixed(2)} KM
-                  </Text>
-                </VStack>
+                <p className="text-slate-500">{t('common.noData')}</p>
               ) : (
-                <Text fontSize="sm" color="gray.600">
-                  Loyalty nije dostupan za odabranog klijenta ili servis.
-                </Text>
+                entries.map((e) => (
+                  <div key={e.id} className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-slate-900 dark:text-slate-50">{e.date?.slice(0, 10)}</p>
+                      <Badge variant={e.status === 'COMPLETED' ? 'success' : 'warning'} className="text-[10px]">
+                        {e.status === 'COMPLETED' ? 'Kompletiran' : 'Na čekanju'}
+                      </Badge>
+                    </div>
+                    <p className="text-sm">{e.service?.name ?? '-'}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">{getStylistName(e.stylistProfile)}</p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="text-sm font-medium">{Number(e.actualPrice).toFixed(2)} KM</p>
+                      <div className="flex gap-1">
+                        <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Uredi" onClick={() => openEditForm(e)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        {e.status !== 'COMPLETED' ? (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-emerald-600"
+                            aria-label="Kompletiraj"
+                            onClick={() => void handleComplete(e.id)}
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
-            </Box>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>{t('common.cancel')}</Button>
-            <Button colorScheme="brand" onClick={handleSave} isLoading={saving}>{t('common.save')}</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </Box>
-  );
+            </div>
+
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left dark:border-slate-800">
+                    <th className="p-3 font-medium">Datum</th>
+                    <th className="p-3 font-medium">Stilista</th>
+                    <th className="p-3 font-medium">Servis</th>
+                    <th className="p-3 font-medium">Klijent</th>
+                    <th className="p-3 text-right font-medium">Cijena</th>
+                    <th className="p-3 text-right font-medium">Napojnica</th>
+                    <th className="p-3 font-medium">Izvor</th>
+                    <th className="p-3 font-medium">Status</th>
+                    <th className="p-3 text-right font-medium">Akcije</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entries.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="p-6 text-slate-500">
+                        {t('common.noData')}
+                      </td>
+                    </tr>
+                  ) : (
+                    entries.map((e) => (
+                      <tr key={e.id} className="border-b border-slate-100 dark:border-slate-800/80">
+                        <td className="p-3">{e.date?.slice(0, 10)}</td>
+                        <td className="p-3">
+                          {e.stylistProfile?.id ? (
+                            <RouterLink
+                              to={`/admin/stylist-analytics?stylistId=${e.stylistProfile.id}`}
+                              className="font-medium text-brand-gold hover:underline"
+                            >
+                              {getStylistName(e.stylistProfile)}
+                            </RouterLink>
+                          ) : (
+                            getStylistName(e.stylistProfile)
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex flex-col gap-0">
+                            <span>{e.service?.name ?? '-'}</span>
+                            {loyaltyLine(e)}
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          {e.client ? (
+                            <RouterLink
+                              to={`/admin/client-analytics?userId=${e.client.id}`}
+                              className="text-brand-gold hover:underline"
+                            >
+                              {[e.client.firstName, e.client.lastName].filter(Boolean).join(' ') || e.client.user?.username || '-'}
+                            </RouterLink>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="p-3 text-right font-medium tabular-nums">{Number(e.actualPrice).toFixed(2)}</td>
+                        <td className="p-3 text-right tabular-nums">{Number(e.tipAmount).toFixed(2)}</td>
+                        <td className="p-3">
+                          <Badge variant={e.isManual ? 'warning' : 'secondary'} className="text-[10px]">
+                            {e.isManual ? 'Ručno' : 'Rezervacija'}
+                          </Badge>
+                        </td>
+                        <td className="p-3">
+                          <Badge variant={e.status === 'COMPLETED' ? 'success' : 'warning'} className="text-[10px]">
+                            {e.status === 'COMPLETED' ? 'Kompletiran' : 'Na čekanju'}
+                          </Badge>
+                        </td>
+                        <td className="p-3 text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Uredi" onClick={() => openEditForm(e)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            {e.status !== 'COMPLETED' ? (
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-emerald-600"
+                                aria-label="Kompletiraj"
+                                onClick={() => void handleComplete(e.id)}
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editId ? 'Uredi Unos' : 'Novi Unos u Dnevnu Knjigu'}</DialogTitle>
+          </DialogHeader>
+
+          {!editId ? (
+            <div className="space-y-4">
+              <div>
+                <Label>Stilista</Label>
+                <select
+                  required
+                  value={form.stylistProfileId}
+                  onChange={(e) => setForm({ ...form, stylistProfileId: e.target.value })}
+                  className="mt-1 flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+                >
+                  <option value="">Odaberite stilistu</option>
+                  {stylists.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {getStylistName(s)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label>Servis</Label>
+                <div className="relative mt-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    className="pl-9"
+                    value={serviceSearch}
+                    onChange={(e) => {
+                      setServiceSearch(e.target.value)
+                      setShowServiceDropdown(true)
+                      setForm((prev) => ({ ...prev, serviceId: '' }))
+                    }}
+                    onFocus={() => setShowServiceDropdown(true)}
+                    placeholder="Pretražite servis..."
+                  />
+                  {showServiceDropdown && filteredServices.length > 0 ? (
+                    <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
+                      {filteredServices.map((svc) => (
+                        <li
+                          key={svc.id}
+                          className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
+                          onMouseDown={(ev) => ev.preventDefault()}
+                          onClick={() => selectService(svc)}
+                        >
+                          <div className="flex justify-between gap-2 text-sm">
+                            <span>{svc.name}</span>
+                            <span className="text-slate-500">{Number(svc.price).toFixed(2)} KM</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+                {form.serviceId ? <p className="mt-1 text-xs text-emerald-600">Odabrano: {serviceSearch}</p> : null}
+              </div>
+
+              <div>
+                <Label>Klijent</Label>
+                <div className="relative mt-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    className="pl-9"
+                    value={clientSearch}
+                    onChange={(e) => {
+                      setClientSearch(e.target.value)
+                      setShowClientDropdown(true)
+                      setForm((prev) => ({ ...prev, clientId: '' }))
+                    }}
+                    onFocus={() => setShowClientDropdown(true)}
+                    placeholder="Pretražite klijenta..."
+                  />
+                  {showClientDropdown && filteredClients.length > 0 ? (
+                    <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
+                      {filteredClients.map((c) => (
+                        <li
+                          key={c.id}
+                          className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
+                          onMouseDown={(ev) => ev.preventDefault()}
+                          onClick={() => selectClient(c)}
+                        >
+                          <p className="text-sm">{[c.firstName, c.lastName].filter(Boolean).join(' ') || c.username}</p>
+                          <p className="text-xs text-slate-500">{c.username}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+                {form.clientId ? <p className="mt-1 text-xs text-emerald-600">Odabrano: {clientSearch}</p> : null}
+              </div>
+
+              <div>
+                <Label>Datum</Label>
+                <Input type="date" className="mt-1" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+              </div>
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <Label>Naplaćeno (KM)</Label>
+              <Input
+                className="mt-1"
+                value={paidAmount}
+                onChange={(e) => setPaidAmount(e.target.value)}
+                placeholder={chargeAmount > 0 ? chargeAmount.toFixed(2) : '0.00'}
+              />
+              <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
+                Servis: {Number.isFinite(basePrice) ? basePrice.toFixed(2) : '0.00'} KM
+                {loyaltyPercent > 0 ? ` · Loyalty: ${loyaltyPercent}% (${loyaltyDiscountAmount.toFixed(2)} KM)` : ''}
+              </p>
+              <p className="mt-1 text-sm font-bold text-slate-900 dark:text-slate-50">Za naplatu: {chargeAmount.toFixed(2)} KM</p>
+            </div>
+          </div>
+
+          <div>
+            <Label>Bilješke</Label>
+            <Textarea className="mt-1" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={2} />
+          </div>
+
+          <div className="mt-4 border-t border-slate-200 pt-3 dark:border-slate-800">
+            <Label className="mb-2 block">Loyalty</Label>
+            {loadingLoyalty ? (
+              <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
+            ) : loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service ? (
+              <div className="space-y-2">
+                <p className="text-sm">
+                  Bodovi: {loyaltyInfo.points ?? 0} · Max popust: {loyaltyInfo.service.maxDiscountPercent}%
+                </p>
+                <div>
+                  <Label className="text-sm">Popust (%)</Label>
+                  <Input
+                    type="number"
+                    className="mt-1 max-w-[140px]"
+                    min={0}
+                    max={loyaltyInfo.service.maxDiscountPercent}
+                    value={form.desiredLoyaltyPercent}
+                    onChange={(e) => {
+                      const v = Number(e.target.value) || 0
+                      const max = loyaltyInfo.service?.maxDiscountPercent ?? 0
+                      setForm((prev) => ({
+                        ...prev,
+                        desiredLoyaltyPercent: Math.max(0, Math.min(v, max)),
+                      }))
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  Max iznos popusta: {Number(loyaltyInfo.service.maxDiscountAmount ?? 0).toFixed(2)} KM
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600 dark:text-slate-400">Loyalty nije dostupan za odabranog klijenta ili servis.</p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="button" onClick={() => void handleSave()} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Čuvam...
+                </>
+              ) : (
+                t('common.save')
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }

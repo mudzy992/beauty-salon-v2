@@ -12,15 +12,34 @@ type UploadedBrandLogoProps = {
 
 const isSvgPath = (p: string) => p.trim().toLowerCase().endsWith('.svg')
 
+const normalizeInlineSvg = (input: string): string => {
+  let s = input
+  s = s.replace(/<\?xml[\s\S]*?\?>/gi, '')
+  s = s.replace(/<!doctype[\s\S]*?>/gi, '')
+  s = s.replace(/\swidth\s*=\s*["'][^"']*["']/gi, '')
+  s = s.replace(/\sheight\s*=\s*["'][^"']*["']/gi, '')
+  s = s.replace(
+    /<svg\b/i,
+    '<svg width="100%" height="100%" preserveAspectRatio="xMidYMid meet" fill="currentColor" style="display:block"',
+  )
+  return s
+}
+
 const sanitizeSvg = (input: string): string => {
   let s = input
+  s = s.replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
   s = s.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
   s = s.replace(/\son\w+="[^"]*"/gi, '')
   s = s.replace(/\son\w+='[^']*'/gi, '')
   s = s.replace(/href\s*=\s*["']\s*javascript:[^"']*["']/gi, 'href="#"')
   s = s.replace(/\sfill\s*=\s*["'][^"']*["']/gi, ' fill="currentColor"')
   s = s.replace(/\sstroke\s*=\s*["'][^"']*["']/gi, ' stroke="currentColor"')
-  return s
+  const normalized = normalizeInlineSvg(s)
+  // Force tinting for uploaded SVGs (branding use-case).
+  return normalized.replace(
+    /<svg\b([^>]*)>/i,
+    '<svg$1><style>*{fill:currentColor !important;stroke:currentColor !important}</style>',
+  )
 }
 
 export const UploadedBrandLogo = memo(
@@ -56,13 +75,17 @@ export const UploadedBrandLogo = memo(
     }, [logoPath, logoUrl])
 
     return (
-      <div className={['flex items-center gap-3', className].filter(Boolean).join(' ')}>
-        {isSvgPath(logoPath) ? (
+      <div
+        className={['uploaded-brand-logo flex items-center gap-3', className]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        {isSvgPath(logoPath) && svgMarkup ? (
           <span
             aria-hidden="true"
-            className="h-10 w-10 shrink-0"
+            className="h-10 w-10 shrink-0 [&>svg]:h-full [&>svg]:w-full"
             style={{ color: svgColor }}
-            dangerouslySetInnerHTML={svgMarkup ? { __html: svgMarkup } : undefined}
+            dangerouslySetInnerHTML={{ __html: svgMarkup }}
           />
         ) : (
           <img
@@ -73,7 +96,7 @@ export const UploadedBrandLogo = memo(
           />
         )}
         <span
-          className="text-[22px] tracking-[0.22em] font-medium font-serif select-none"
+          className="uploaded-brand-logo__word text-[22px] tracking-[0.22em] font-medium font-serif select-none"
           style={{ color: textColor }}
           aria-label={displayWord}
         >

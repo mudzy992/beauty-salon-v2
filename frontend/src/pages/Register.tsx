@@ -1,250 +1,233 @@
-import { useState, useRef, FormEvent } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Button,
-  FormControl,
-  FormLabel,
-  Input,
-  VStack,
-  Heading,
-  Text,
-  useToast,
-  Flex,
-  Image,
-  Link,
-  SimpleGrid,
-  Avatar,
-} from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { ArrowBackIcon } from '@chakra-ui/icons';
-import api from '../api/client';
-import { useSettings } from '../context/SettingsContext';
+import { useState, useRef, FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { motion } from 'framer-motion'
 
-const MotionBox = motion(Box as any);
+import api from '../api/client'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
+import { useAppToast } from '../lib/toast/useAppToast'
+import { useSettings } from '../context/SettingsContext'
+
+const MotionDiv = motion.div
 
 export default function Register() {
-  const { t } = useTranslation();
-  const { getSetting } = useSettings();
-  const navigate = useNavigate();
-  const toast = useToast();
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation()
+  const { getSetting } = useSettings()
+  const navigate = useNavigate()
+  const toast = useAppToast()
+  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.[0]
     if (file && file.type.startsWith('image/')) {
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
+      setAvatarFile(file)
+      setAvatarPreview(URL.createObjectURL(file))
     } else {
-      setAvatarFile(null);
-      setAvatarPreview(null);
+      setAvatarFile(null)
+      setAvatarPreview(null)
     }
   };
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault()
+    setLoading(true)
     try {
-      const formData = new FormData();
-      formData.append('username', username);
-      formData.append('email', email);
-      formData.append('password', password);
-      formData.append('firstName', firstName);
-      formData.append('lastName', lastName);
-      if (phone.trim()) formData.append('phone', phone.trim());
-      if (avatarFile) formData.append('avatar', avatarFile);
+      const formData = new FormData()
+      formData.append('username', username)
+      formData.append('email', email)
+      formData.append('password', password)
+      formData.append('firstName', firstName)
+      formData.append('lastName', lastName)
+      if (phone.trim()) formData.append('phone', phone.trim())
+      if (avatarFile) formData.append('avatar', avatarFile)
       await api.post('/auth/register', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      toast({ title: t('public.registerSuccess'), status: 'success', isClosable: true });
-      navigate('/login', { replace: true });
+      toast.success(t('public.registerSuccess'))
+      navigate('/login', { replace: true })
     } catch (err: unknown) {
       const msg = err && typeof err === 'object' && 'response' in err && typeof (err as { response: { data?: { message?: string } } }).response?.data?.message === 'string'
         ? (err as { response: { data: { message: string } } }).response.data.message
         : t('auth.loginError');
-      toast({ title: msg, status: 'error', isClosable: true });
+      toast.error(msg)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   };
 
   return (
-    <Flex minH="100vh">
-      <Box display={{ base: 'none', lg: 'block' }} flex={1} position="relative" overflow="hidden">
-        <Image
-          src={getSetting('public_register_image', 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1200')}
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
+      <div className="hidden lg:block relative overflow-hidden">
+        <img
+          src={getSetting(
+            'public_register_image',
+            'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1200',
+          )}
           alt="Salon Details"
-          objectFit="cover"
-          w="full"
-          h="full"
-          transform="scale(1.05)"
-          transition="transform 10s ease-out"
-          _hover={{ transform: 'scale(1)' }}
+          className="h-full w-full object-cover scale-[1.05] hover:scale-100 transition-transform duration-[10000ms] ease-out"
         />
-        <Box position="absolute" inset={0} bgGradient="linear(to-t, brand.900, transparent)" opacity={0.9} />
-        <Box position="absolute" bottom={12} left={12} right={12} color="white">
-          <Heading size="2xl" mb={4} fontWeight="light">
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 to-transparent" />
+        <div className="absolute bottom-12 left-12 right-12 text-white">
+          <div className="text-4xl font-light mb-4">
             {getSetting('public_register_title', 'Postanite dio naše priče')}
-          </Heading>
-          <Text fontSize="xl" color="gray.300" maxW="md">
-            {getSetting('public_register_subtitle', 'Kreirajte račun kako biste jednostavno zakazivali termine i pratili svoju historiju frizerskih posjeta.')}
-          </Text>
-        </Box>
-      </Box>
+          </div>
+          <div className="text-lg text-slate-200 max-w-md">
+            {getSetting(
+              'public_register_subtitle',
+              'Kreirajte račun kako biste jednostavno zakazivali termine i pratili svoju historiju frizerskih posjeta.',
+            )}
+          </div>
+        </div>
+      </div>
 
-      <Flex flex={{ base: 1, lg: 1.2 }} align="center" justify="center" bg="gray.50" px={8} py={12}>
-        <MotionBox
+      <div className="flex items-center justify-center bg-slate-50 px-6 py-10">
+        <MotionDiv
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
-          w="full"
-          maxW="xl"
+          className="w-full max-w-xl"
         >
-          <Button as={RouterLink} to="/" variant="ghost" mb={6} leftIcon={<ArrowBackIcon />}>
-            Nazad na početnu
-          </Button>
+          <Link to="/" className="inline-flex mb-6">
+            <Button variant="ghost">Nazad na početnu</Button>
+          </Link>
 
-          <Box bg="whiteAlpha.900" backdropFilter="blur(10px)" p={10} rounded="2xl" shadow="2xl" borderWidth="1px" borderColor="whiteAlpha.400">
-            <Heading size="xl" mb={2} color="brand.800">
+          <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8">
+            <div className="text-2xl font-semibold text-slate-900">
               Registracija
-            </Heading>
-            <Text color="gray.500" mb={8}>
+            </div>
+            <div className="text-slate-500 mt-2 mb-8">
               Pridružite nam se brzo i besplatno
-            </Text>
+            </div>
 
-            <form onSubmit={handleSubmit}>
-              <VStack spacing={5} align="stretch">
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
-                  <FormControl isRequired>
-                    <FormLabel color="gray.700">Ime</FormLabel>
-                    <Input
-                      size="lg"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      focusBorderColor="brand.400"
-                    />
-                  </FormControl>
-                  <FormControl isRequired>
-                    <FormLabel color="gray.700">Prezime</FormLabel>
-                    <Input
-                      size="lg"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      focusBorderColor="brand.400"
-                    />
-                  </FormControl>
-                </SimpleGrid>
-
-                <FormControl isRequired>
-                  <FormLabel color="gray.700">Email</FormLabel>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">Ime</Label>
                   <Input
-                    size="lg"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                    focusBorderColor="brand.400"
+                    id="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
                   />
-                </FormControl>
-
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
-                  <FormControl isRequired>
-                    <FormLabel color="gray.700">{t('auth.username')}</FormLabel>
-                    <Input
-                      size="lg"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      autoComplete="username"
-                      focusBorderColor="brand.400"
-                    />
-                  </FormControl>
-                  <FormControl>
-                    <FormLabel color="gray.700">Telefon</FormLabel>
-                    <Input
-                      size="lg"
-                      type="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      focusBorderColor="brand.400"
-                    />
-                  </FormControl>
-                </SimpleGrid>
-
-                <FormControl isRequired>
-                  <FormLabel color="gray.700">{t('auth.password')}</FormLabel>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Prezime</Label>
                   <Input
-                    size="lg"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="new-password"
-                    focusBorderColor="brand.400"
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
                   />
-                </FormControl>
+                </div>
+              </div>
 
-                <FormControl>
-                  <FormLabel color="gray.700">Avatar (opciono)</FormLabel>
-                  <Flex align="center" gap={4}>
-                    <Avatar
-                      size="xl"
-                      src={avatarPreview ?? undefined}
-                      name={firstName && lastName ? `${firstName} ${lastName}` : undefined}
-                      bg="brand.100"
-                      cursor="pointer"
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label htmlFor="username">{t('auth.username')}</Label>
+                  <Input
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Telefon</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">{t('auth.password')}</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Avatar (opciono)</Label>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    className="rounded-full"
+                    onClick={() => avatarInputRef.current?.click()}
+                    aria-label="Odaberi avatar"
+                  >
+                    <Avatar className="h-20 w-20">
+                      <AvatarImage src={avatarPreview ?? undefined} />
+                      <AvatarFallback>
+                        {(firstName?.[0] ?? 'U').toUpperCase()}
+                        {(lastName?.[0] ?? '').toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                  <div className="space-y-1">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      ref={avatarInputRef}
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
                       onClick={() => avatarInputRef.current?.click()}
-                    />
-                    <Box>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/gif"
-                        ref={avatarInputRef}
-                        onChange={handleAvatarChange}
-                        style={{ display: 'none' }}
-                      />
-                      <Button size="sm" variant="outline" onClick={() => avatarInputRef.current?.click()}>
-                        {avatarFile ? 'Promijeni sliku' : 'Dodaj sliku'}
-                      </Button>
-                      {avatarFile && (
-                        <Text fontSize="sm" color="gray.500" mt={1}>
-                          {avatarFile.name}
-                        </Text>
-                      )}
-                    </Box>
-                  </Flex>
-                </FormControl>
+                    >
+                      {avatarFile ? 'Promijeni sliku' : 'Dodaj sliku'}
+                    </Button>
+                    {avatarFile ? (
+                      <div className="text-sm text-slate-500">{avatarFile.name}</div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
 
-                <Button
-                  type="submit"
-                  size="lg"
-                  colorScheme="brand"
-                  w="full"
-                  isLoading={loading}
-                  mt={4}
-                >
-                  Registruj se
-                </Button>
-              </VStack>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Učitavanje…' : 'Registruj se'}
+              </Button>
             </form>
 
-            <Text mt={6} textAlign="center" color="gray.600">
+            <div className="mt-6 text-center text-slate-600">
               Već imate račun?{' '}
-              <Link as={RouterLink} to="/login" color="brand.500" fontWeight="bold">
+              <Link to="/login" className="text-brand-gold font-semibold">
                 Prijavite se
               </Link>
-            </Text>
-          </Box>
-        </MotionBox>
-      </Flex>
-    </Flex>
-  );
+            </div>
+          </div>
+        </MotionDiv>
+      </div>
+    </div>
+  )
 }

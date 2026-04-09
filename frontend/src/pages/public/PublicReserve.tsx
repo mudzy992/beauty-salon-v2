@@ -1,461 +1,423 @@
-import { useEffect, useState, useMemo, useRef, useCallback, FormEvent } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  Box,
-  Container,
-  Heading,
-  Text,
-  Button,
-  SimpleGrid,
-  Spinner,
-  useToast,
-  FormControl,
-  FormLabel,
-  Textarea,
-  VStack,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  List,
-  ListItem,
-  Flex,
-  IconButton,
-  Badge,
-  HStack,
-  Icon,
-  Tooltip,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
-} from '@chakra-ui/react';
-import {
-  SearchIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  TimeIcon,
-  CheckCircleIcon,
-} from '@chakra-ui/icons';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../context/AuthContext';
-import { motion } from 'framer-motion';
-import api from '../../api/client';
-import { useSettings } from '../../context/SettingsContext';
-import { useSocketEvent } from '../../context/SocketContext';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, Search } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+
+import api from '../../api/client'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent } from '../../components/ui/card'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Textarea } from '../../components/ui/textarea'
+import { useAuth } from '../../context/AuthContext'
+import { useSettings } from '../../context/SettingsContext'
+import { useSocketEvent } from '../../context/SocketContext'
+import { useAppToast } from '../../lib/toast/useAppToast'
+
 interface ServiceOption {
-  id: string;
-  name: string;
-  durationMinutes: number;
-  price?: string;
-  gender: 'MALE' | 'FEMALE';
-  shortDescription?: string;
-  subcategory?: { name: string; category?: { name: string } };
+  id: string
+  name: string
+  durationMinutes: number
+  price?: string
+  gender: 'MALE' | 'FEMALE'
+  shortDescription?: string
+  subcategory?: { name: string; category?: { name: string } }
 }
 
 interface DateAvailability {
-  date: string;
-  available: boolean;
+  date: string
+  available: boolean
 }
 
 interface SlotOption {
-  startTime: string;
-  endTime: string;
-  availableStylistCount: number;
+  startTime: string
+  endTime: string
+  availableStylistCount: number
 }
 
 interface LoyaltyInfo {
-  enabled: boolean;
-  hasAccount: boolean;
-  redeemEnabled?: boolean;
-  points?: number;
-  tier?: string | null;
-  tierMaxDiscountPercent?: number;
-  globalMaxDiscountPercent?: number;
+  enabled: boolean
+  hasAccount: boolean
+  redeemEnabled?: boolean
+  points?: number
+  tier?: string | null
+  tierMaxDiscountPercent?: number
+  globalMaxDiscountPercent?: number
   service?: {
-    id: string;
-    maxDiscountPercent: number;
-  } | null;
+    id: string
+    maxDiscountPercent: number
+  } | null
 }
 
-const MotionContainer = motion(Container as any);
-const MotionBox = motion(Box as any);
+const MotionDiv = motion.div
 
 const MONTHS_BS = [
-  'Januar', 'Februar', 'Mart', 'April', 'Maj', 'Juni',
-  'Juli', 'August', 'Septembar', 'Oktobar', 'Novembar', 'Decembar',
-];
+  'Januar',
+  'Februar',
+  'Mart',
+  'April',
+  'Maj',
+  'Juni',
+  'Juli',
+  'August',
+  'Septembar',
+  'Oktobar',
+  'Novembar',
+  'Decembar',
+]
 
-function ServiceAutocomplete({
+const ServiceAutocomplete = ({
   services,
   loading,
   selected,
   onSelect,
 }: {
-  services: ServiceOption[];
-  loading: boolean;
-  selected: ServiceOption | null;
-  onSelect: (s: ServiceOption | null) => void;
-}) {
-  const [query, setQuery] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  services: ServiceOption[]
+  loading: boolean
+  selected: ServiceOption | null
+  onSelect: (s: ServiceOption | null) => void
+}) => {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const wrapperRef = useRef<HTMLDivElement>(null)
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return services;
-    const q = query.toLowerCase();
+    if (!query.trim()) return services
+    const q = query.toLowerCase()
     return services.filter(
       (s) =>
         s.name.toLowerCase().includes(q) ||
         s.subcategory?.name?.toLowerCase().includes(q) ||
         s.subcategory?.category?.name?.toLowerCase().includes(q),
-    );
-  }, [query, services]);
+    )
+  }, [query, services])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+        setOpen(false)
       }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   if (selected) {
     return (
-      <Flex
-        p={3}
-        bg="brand.50"
-        rounded="lg"
-        borderWidth="2px"
-        borderColor="brand.400"
-        align="center"
-        justify="space-between"
-      >
-        <Box>
-          <Text fontWeight="bold" color="brand.800">{selected.name}</Text>
-          <HStack spacing={3} mt={1}>
-            <Badge colorScheme="brand" fontSize="xs">
-              <Icon as={TimeIcon} mr={1} />{selected.durationMinutes} min
-            </Badge>
-            {selected.subcategory?.category && (
-              <Text fontSize="xs" color="gray.500">
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-brand-champagne bg-brand-champagne/15 p-3">
+        <div>
+          <div className="font-semibold text-slate-900">{selected.name}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-600">
+            <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1">
+              <Clock className="h-3.5 w-3.5 text-brand-gold" />
+              {selected.durationMinutes} min
+            </span>
+            {selected.subcategory?.category ? (
+              <span>
                 {selected.subcategory.category.name} → {selected.subcategory.name}
-              </Text>
-            )}
-          </HStack>
-        </Box>
-        <Button size="sm" variant="ghost" onClick={() => { onSelect(null); setQuery(''); }}>
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            onSelect(null)
+            setQuery('')
+          }}
+        >
           Promijeni
         </Button>
-      </Flex>
-    );
+      </div>
+    )
   }
 
   return (
-    <Box ref={wrapperRef} position="relative">
-      <InputGroup>
-        <InputLeftElement pointerEvents="none">
-          {loading ? <Spinner size="sm" /> : <SearchIcon color="gray.400" />}
-        </InputLeftElement>
+    <div ref={wrapperRef} className="relative">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
           placeholder="Pretražite usluge po imenu..."
           value={query}
           onChange={(e) => {
-            setQuery(e.target.value);
-            setIsOpen(true);
+            setQuery(e.target.value)
+            setOpen(true)
           }}
-          onFocus={() => setIsOpen(true)}
-          bg="white"
-          borderColor="gray.200"
-          _focus={{ borderColor: 'brand.400', boxShadow: '0 0 0 1px var(--chakra-colors-brand-400)' }}
+          onFocus={() => setOpen(true)}
+          className="pl-9"
         />
-      </InputGroup>
-      {isOpen && !loading && (
-        <List
-          position="absolute"
-          top="100%"
-          left={0}
-          right={0}
-          mt={1}
-          bg="white"
-          borderWidth="1px"
-          borderColor="gray.200"
-          rounded="lg"
-          shadow="xl"
-          maxH="280px"
-          overflowY="auto"
-          zIndex={20}
-        >
-          {filtered.length === 0 ? (
-            <ListItem p={3}>
-              <Text color="gray.500" fontSize="sm">Nema rezultata.</Text>
-            </ListItem>
-          ) : (
-            filtered.map((s) => (
-              <ListItem
-                key={s.id}
-                p={3}
-                cursor="pointer"
-                _hover={{ bg: 'brand.50' }}
-                borderBottomWidth="1px"
-                borderColor="gray.100"
-                onClick={() => { onSelect(s); setIsOpen(false); setQuery(''); }}
-              >
-                <Flex justify="space-between" align="center">
-                  <Box>
-                    <Text fontWeight="600" fontSize="sm">{s.name}</Text>
-                    {s.subcategory?.category && (
-                      <Text fontSize="xs" color="gray.500">
-                        {s.subcategory.category.name} → {s.subcategory.name}
-                      </Text>
-                    )}
-                  </Box>
-                  <Badge colorScheme="brand" fontSize="xs">{s.durationMinutes} min</Badge>
-                </Flex>
-              </ListItem>
-            ))
-          )}
-        </List>
-      )}
-    </Box>
-  );
+        {loading ? (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+            Učitavanje…
+          </div>
+        ) : null}
+      </div>
+      {open && !loading ? (
+        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
+          <div className="max-h-[280px] overflow-auto">
+            {filtered.length === 0 ? (
+              <div className="p-3 text-sm text-slate-500">Nema rezultata.</div>
+            ) : (
+              filtered.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className="w-full text-left px-3 py-3 hover:bg-brand-champagne/20 border-b border-slate-100 last:border-b-0"
+                  onClick={() => {
+                    onSelect(s)
+                    setOpen(false)
+                    setQuery('')
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">
+                        {s.name}
+                      </div>
+                      {s.subcategory?.category ? (
+                        <div className="text-xs text-slate-500">
+                          {s.subcategory.category.name} → {s.subcategory.name}
+                        </div>
+                      ) : null}
+                    </div>
+                    <span className="text-xs font-semibold rounded-md border border-brand-champagne bg-brand-champagne/20 px-2 py-1 text-slate-900">
+                      {s.durationMinutes} min
+                    </span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
-function ReservationCalendar({
+const ReservationCalendar = ({
   availableDates,
   selectedDate,
   onSelectDate,
   loading,
   disabled,
 }: {
-  availableDates: Map<string, boolean>;
-  selectedDate: string;
-  onSelectDate: (date: string) => void;
-  loading: boolean;
-  disabled: boolean;
-}) {
+  availableDates: Map<string, boolean>
+  selectedDate: string
+  onSelectDate: (date: string) => void
+  loading: boolean
+  disabled: boolean
+}) => {
   const [currentMonth, setCurrentMonth] = useState(() => {
-    const now = new Date();
-    return { year: now.getFullYear(), month: now.getMonth() };
-  });
+    const now = new Date()
+    return { year: now.getFullYear(), month: now.getMonth() }
+  })
 
   const today = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }, []);
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }, [])
 
-  const daysInMonth = useMemo(() => {
-    const { year, month } = currentMonth;
-    return new Date(year, month + 1, 0).getDate();
-  }, [currentMonth]);
+  const daysInMonth = useMemo(
+    () => new Date(currentMonth.year, currentMonth.month + 1, 0).getDate(),
+    [currentMonth],
+  )
 
   const firstDayOfWeek = useMemo(() => {
-    const { year, month } = currentMonth;
-    const day = new Date(year, month, 1).getDay();
-    return day === 0 ? 6 : day - 1;
-  }, [currentMonth]);
-
-  const prevMonth = () => {
-    setCurrentMonth((prev) => {
-      if (prev.month === 0) return { year: prev.year - 1, month: 11 };
-      return { year: prev.year, month: prev.month - 1 };
-    });
-  };
-
-  const nextMonth = () => {
-    setCurrentMonth((prev) => {
-      if (prev.month === 11) return { year: prev.year + 1, month: 0 };
-      return { year: prev.year, month: prev.month + 1 };
-    });
-  };
+    const day = new Date(currentMonth.year, currentMonth.month, 1).getDay()
+    return day === 0 ? 6 : day - 1
+  }, [currentMonth])
 
   const canGoPrev = useMemo(() => {
-    const now = new Date();
-    return currentMonth.year > now.getFullYear() ||
-      (currentMonth.year === now.getFullYear() && currentMonth.month > now.getMonth());
-  }, [currentMonth]);
+    const now = new Date()
+    return (
+      currentMonth.year > now.getFullYear() ||
+      (currentMonth.year === now.getFullYear() && currentMonth.month > now.getMonth())
+    )
+  }, [currentMonth])
 
   const cells = useMemo(() => {
-    const result: Array<{ day: number; dateStr: string; available: boolean; isPast: boolean; isToday: boolean }> = [];
-    const { year, month } = currentMonth;
-
+    const result: Array<{
+      day: number
+      dateStr: string
+      available: boolean
+      isPast: boolean
+      isToday: boolean
+    }> = []
     for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const isPast = dateStr < today;
-      const available = !isPast && (availableDates.get(dateStr) ?? false);
-      result.push({ day: d, dateStr, available, isPast, isToday: dateStr === today });
+      const dateStr = `${currentMonth.year}-${String(currentMonth.month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+      const isPast = dateStr < today
+      const available = !isPast && (availableDates.get(dateStr) ?? false)
+      result.push({ day: d, dateStr, available, isPast, isToday: dateStr === today })
     }
-    return result;
-  }, [currentMonth, daysInMonth, today, availableDates]);
+    return result
+  }, [availableDates, currentMonth, daysInMonth, today])
 
   if (loading) {
-    return (
-      <Flex justify="center" align="center" h="200px">
-        <Spinner size="lg" color="brand.500" />
-      </Flex>
-    );
+    return <div className="h-[200px] flex items-center justify-center text-slate-600">Učitavanje…</div>
   }
 
   return (
-    <Box bg="white" rounded="xl" borderWidth="1px" borderColor="gray.200" p={4}>
-      <Flex justify="space-between" align="center" mb={4}>
-        <IconButton
-          aria-label="Prethodni mjesec"
-          icon={<ChevronLeftIcon />}
-          onClick={prevMonth}
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <div className="flex items-center justify-between mb-4">
+        <Button
+          type="button"
           size="sm"
           variant="ghost"
-          isDisabled={!canGoPrev || disabled}
-        />
-        <Text fontWeight="bold" fontSize="md" color="brand.700">
+          disabled={!canGoPrev || disabled}
+          onClick={() =>
+            setCurrentMonth((prev) =>
+              prev.month === 0 ? { year: prev.year - 1, month: 11 } : { year: prev.year, month: prev.month - 1 },
+            )
+          }
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="font-semibold text-slate-900">
           {MONTHS_BS[currentMonth.month]} {currentMonth.year}
-        </Text>
-        <IconButton
-          aria-label="Sljedeći mjesec"
-          icon={<ChevronRightIcon />}
-          onClick={nextMonth}
+        </div>
+        <Button
+          type="button"
           size="sm"
           variant="ghost"
-          isDisabled={disabled}
-        />
-      </Flex>
+          disabled={disabled}
+          onClick={() =>
+            setCurrentMonth((prev) =>
+              prev.month === 11 ? { year: prev.year + 1, month: 0 } : { year: prev.year, month: prev.month + 1 },
+            )
+          }
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
 
-      <SimpleGrid columns={7} spacing={1} mb={2}>
+      <div className="grid grid-cols-7 gap-1 mb-2">
         {['Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub', 'Ned'].map((d) => (
-          <Box key={d} textAlign="center" py={1}>
-            <Text fontSize="xs" fontWeight="bold" color="gray.500" textTransform="uppercase">
-              {d}
-            </Text>
-          </Box>
+          <div key={d} className="text-center py-1 text-xs font-semibold text-slate-500 uppercase">
+            {d}
+          </div>
         ))}
-      </SimpleGrid>
+      </div>
 
-      <SimpleGrid columns={7} spacing={1}>
+      <div className="grid grid-cols-7 gap-1">
         {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-          <Box key={`empty-${i}`} h="40px" />
+          <div key={`empty-${i}`} className="h-10" />
         ))}
         {cells.map(({ day, dateStr, available, isPast, isToday }) => {
-          const isSelected = dateStr === selectedDate;
+          const isSelected = dateStr === selectedDate
+          const disabledCell = disabled || !available
+          const title = available ? 'Dostupan' : isPast ? 'Prošao' : 'Nedostupan'
           return (
-            <Tooltip
+            <button
               key={dateStr}
-              label={available ? 'Dostupan' : isPast ? 'Prošao' : 'Nedostupan'}
-              placement="top"
-              hasArrow
-              isDisabled={disabled}
+              type="button"
+              title={title}
+              disabled={disabledCell}
+              className={[
+                'h-10 w-full rounded-md text-sm transition',
+                isSelected ? 'bg-brand-gold text-black font-semibold' : 'bg-transparent text-slate-700',
+                !available ? 'opacity-30 cursor-not-allowed' : 'hover:bg-brand-champagne/30',
+                isToday && !isSelected ? 'border-2 border-brand-champagne' : 'border border-transparent',
+              ].join(' ')}
+              onClick={() => onSelectDate(dateStr)}
             >
-              <Button
-                h="40px"
-                w="full"
-                size="sm"
-                variant="ghost"
-                isDisabled={!available || disabled}
-                bg={isSelected ? 'brand.500' : isToday && !isPast ? 'brand.50' : 'transparent'}
-                color={isSelected ? 'white' : !available ? 'gray.300' : 'gray.700'}
-                fontWeight={isToday ? 'bold' : 'normal'}
-                borderWidth={isToday ? '2px' : '0'}
-                borderColor={isToday ? 'brand.300' : 'transparent'}
-                _hover={available ? { bg: isSelected ? 'brand.600' : 'brand.100' } : {}}
-                _disabled={{ opacity: 0.3, cursor: 'not-allowed', _hover: {} }}
-                onClick={() => available && onSelectDate(dateStr)}
-              >
-                {day}
-              </Button>
-            </Tooltip>
-          );
+              {day}
+            </button>
+          )
         })}
-      </SimpleGrid>
+      </div>
 
-      <HStack mt={3} spacing={4} justify="center">
-        <HStack spacing={1}>
-          <Box w="10px" h="10px" rounded="full" bg="brand.500" />
-          <Text fontSize="xs" color="gray.600">Odabrano</Text>
-        </HStack>
-        <HStack spacing={1}>
-          <Box w="10px" h="10px" rounded="full" bg="brand.100" borderWidth="1px" borderColor="brand.300" />
-          <Text fontSize="xs" color="gray.600">Dostupno</Text>
-        </HStack>
-        <HStack spacing={1}>
-          <Box w="10px" h="10px" rounded="full" bg="gray.200" />
-          <Text fontSize="xs" color="gray.600">Nedostupno</Text>
-        </HStack>
-      </HStack>
-    </Box>
-  );
+      <div className="mt-3 flex items-center justify-center gap-4 text-xs text-slate-600">
+        <div className="flex items-center gap-1">
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-gold" /> Odabrano
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="h-2.5 w-2.5 rounded-full bg-brand-champagne border border-brand-champagne" /> Dostupno
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-200" /> Nedostupno
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function PublicReserve() {
-  const { t } = useTranslation();
-  const { getSetting } = useSettings();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const toast = useToast();
-  const { user, token, isReady } = useAuth();
+  const { t } = useTranslation()
+  const { getSetting } = useSettings()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const toast = useAppToast()
+  const { user, token, isReady, refreshProfile } = useAuth()
 
-  const [services, setServices] = useState<ServiceOption[]>([]);
-  const [selectedService, setSelectedService] = useState<ServiceOption | null>(null);
-  const [availableDatesMap, setAvailableDatesMap] = useState<Map<string, boolean>>(new Map());
-  const [selectedDate, setSelectedDate] = useState('');
-  const [slots, setSlots] = useState<SlotOption[]>([]);
-  const [selectedSlot, setSelectedSlot] = useState<{ start: string; end: string } | null>(null);
-  const [notes, setNotes] = useState('');
-  const [loadingServices, setLoadingServices] = useState(true);
-  const [loadingDates, setLoadingDates] = useState(false);
-  const [loadingSlots, setLoadingSlots] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [step, setStep] = useState(1);
-  const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
-  const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0);
-  const dateSectionRef = useRef<HTMLDivElement | null>(null);
+  const [services, setServices] = useState<ServiceOption[]>([])
+  const [selectedService, setSelectedService] = useState<ServiceOption | null>(null)
+  const [availableDatesMap, setAvailableDatesMap] = useState<Map<string, boolean>>(new Map())
+  const [selectedDate, setSelectedDate] = useState('')
+  const [slots, setSlots] = useState<SlotOption[]>([])
+  const [selectedSlot, setSelectedSlot] = useState<{ start: string; end: string } | null>(null)
+  const [notes, setNotes] = useState('')
+  const [loadingServices, setLoadingServices] = useState(true)
+  const [loadingDates, setLoadingDates] = useState(false)
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [step, setStep] = useState(1)
+  const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null)
+  const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0)
+  const dateSectionRef = useRef<HTMLDivElement | null>(null)
+
   const servicesForGender = useMemo(() => {
-    if (!user?.gender) return [];
-    return services.filter((service) => service.gender === user.gender);
-  }, [services, user?.gender]);
+    if (!user?.gender) return []
+    return services.filter((service) => service.gender === user.gender)
+  }, [services, user?.gender])
 
   useEffect(() => {
-    if (!isReady) return;
+    if (!isReady) return
     if (!token) {
-      navigate('/login', { state: { from: '/rezervacija' }, replace: true });
-      return;
+      navigate('/login', { state: { from: '/rezervacija' }, replace: true })
+      return
     }
     if (user?.mustChangePassword) {
-      navigate('/force-change-password', { replace: true });
-      return;
+      navigate('/force-change-password', { replace: true })
+      return
     }
     if (!user?.email || !user?.phone || !user?.isEmailVerified) {
-      navigate('/profil', { replace: true });
-      return;
+      navigate('/profil', { replace: true })
+      return
     }
     if (!user?.gender) {
-      navigate('/profil', { replace: true });
-      return;
+      navigate('/profil', { replace: true })
+      return
     }
     api
       .get<ServiceOption[]>('/api/services', { params: { activeOnly: 'true' } })
       .then((r) => setServices(Array.isArray(r.data) ? r.data : []))
       .catch(() => setServices([]))
-      .finally(() => setLoadingServices(false));
-  }, [isReady, token, navigate, user]);
+      .finally(() => setLoadingServices(false))
+  }, [isReady, token, navigate, user])
 
   useEffect(() => {
-    if (loadingServices) return;
-    if (selectedService) return;
-    if (!user?.gender) return;
-    const serviceId = (searchParams.get('serviceId') ?? '').trim();
-    if (!serviceId) return;
-    const match = servicesForGender.find((s) => s.id === serviceId) ?? null;
-    if (!match) return;
-    setSelectedService(match);
-    window.setTimeout(() => dateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-  }, [loadingServices, searchParams, servicesForGender, selectedService, user?.gender]);
+    if (loadingServices) return
+    if (selectedService) return
+    if (!user?.gender) return
+    const serviceId = (searchParams.get('serviceId') ?? '').trim()
+    if (!serviceId) return
+    const match = servicesForGender.find((s) => s.id === serviceId) ?? null
+    if (!match) return
+    setSelectedService(match)
+    window.setTimeout(
+      () => dateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      50,
+    )
+  }, [loadingServices, searchParams, servicesForGender, selectedService, user?.gender])
 
   const loadAvailability = useCallback((serviceId: string) => {
-    setLoadingDates(true);
-    const from = new Date();
-    const to = new Date();
-    to.setDate(to.getDate() + 60);
+    setLoadingDates(true)
+    const from = new Date()
+    const to = new Date()
+    to.setDate(to.getDate() + 60)
     api
       .get<DateAvailability[]>('/api/reservations/availability/dates', {
         params: {
@@ -465,42 +427,42 @@ export default function PublicReserve() {
         },
       })
       .then((r) => {
-        const map = new Map<string, boolean>();
+        const map = new Map<string, boolean>()
         if (Array.isArray(r.data)) {
-          r.data.forEach((d) => map.set(d.date, d.available));
+          r.data.forEach((d) => map.set(d.date, d.available))
         }
-        setAvailableDatesMap(map);
+        setAvailableDatesMap(map)
       })
       .catch(() => setAvailableDatesMap(new Map()))
-      .finally(() => setLoadingDates(false));
-  }, []);
+      .finally(() => setLoadingDates(false))
+  }, [])
 
   useEffect(() => {
     if (!selectedService) {
-      setAvailableDatesMap(new Map());
-      setSelectedDate('');
-      setSlots([]);
-      setSelectedSlot(null);
-      setStep(1);
-      return;
+      setAvailableDatesMap(new Map())
+      setSelectedDate('')
+      setSlots([])
+      setSelectedSlot(null)
+      setStep(1)
+      return
     }
-    setStep(2);
-    loadAvailability(selectedService.id);
-    setSelectedDate('');
-    setSlots([]);
-    setSelectedSlot(null);
-  }, [selectedService, loadAvailability]);
+    setStep(2)
+    loadAvailability(selectedService.id)
+    setSelectedDate('')
+    setSlots([])
+    setSelectedSlot(null)
+  }, [selectedService, loadAvailability])
 
   useEffect(() => {
     if (!selectedService || !selectedDate) {
-      setSlots([]);
-      setSelectedSlot(null);
-      setLoyaltyInfo(null);
-      setDesiredLoyaltyPercent(0);
-      return;
+      setSlots([])
+      setSelectedSlot(null)
+      setLoyaltyInfo(null)
+      setDesiredLoyaltyPercent(0)
+      return
     }
-    setLoadingSlots(true);
-    setStep(3);
+    setLoadingSlots(true)
+    setStep(3)
     api
       .get<SlotOption[]>('/api/reservations/availability/slots', {
         params: { serviceId: selectedService.id, date: selectedDate },
@@ -508,39 +470,46 @@ export default function PublicReserve() {
       .then((r) => setSlots(Array.isArray(r.data) ? r.data : []))
       .catch(() => setSlots([]))
       .finally(() => {
-        setLoadingSlots(false);
-        setSelectedSlot(null);
-      });
-  }, [selectedService, selectedDate]);
+        setLoadingSlots(false)
+        setSelectedSlot(null)
+      })
+  }, [selectedService, selectedDate])
 
-  useSocketEvent('availability:changed', useCallback((data: unknown) => {
-    const d = data as { serviceId: string; date: string };
-    if (selectedService && d.serviceId === selectedService.id) {
-      loadAvailability(selectedService.id);
-      if (selectedDate === d.date) {
-        api
-          .get<SlotOption[]>('/api/reservations/availability/slots', {
-            params: { serviceId: selectedService.id, date: selectedDate },
-          })
-          .then((r) => setSlots(Array.isArray(r.data) ? r.data : []))
-          .catch(() => {});
-      }
-    }
-  }, [selectedService, selectedDate, loadAvailability]));
+  useSocketEvent(
+    'availability:changed',
+    useCallback(
+      (data: unknown) => {
+        const d = data as { serviceId: string; date: string }
+        if (selectedService && d.serviceId === selectedService.id) {
+          loadAvailability(selectedService.id)
+          if (selectedDate === d.date) {
+            api
+              .get<SlotOption[]>('/api/reservations/availability/slots', {
+                params: { serviceId: selectedService.id, date: selectedDate },
+              })
+              .then((r) => setSlots(Array.isArray(r.data) ? r.data : []))
+              .catch(() => {})
+          }
+        }
+      },
+      [selectedService, selectedDate, loadAvailability],
+    ),
+  )
 
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!selectedService || !selectedDate || !selectedSlot) return;
-    if (user?.mustChangePassword || user?.genderOnboardingCompleted !== true || !user?.email || !user?.isEmailVerified) {
-      toast({
-        title: 'Prije rezervacije morate ažurirati profil i verifikovati email.',
-        status: 'warning',
-        isClosable: true,
-      });
-      navigate('/profil');
-      return;
+    e.preventDefault()
+    if (!selectedService || !selectedDate || !selectedSlot) return
+    if (
+      user?.mustChangePassword ||
+      user?.genderOnboardingCompleted !== true ||
+      !user?.email ||
+      !user?.isEmailVerified
+    ) {
+      toast.warning('Prije rezervacije morate ažurirati profil i verifikovati email.')
+      navigate('/profil')
+      return
     }
-    setSubmitting(true);
+    setSubmitting(true)
     try {
       await api.post('/api/reservations', {
         serviceId: selectedService.id,
@@ -549,118 +518,104 @@ export default function PublicReserve() {
         endTime: selectedSlot.end,
         ...(notes.trim() && { clientNotes: notes.trim() }),
         ...(desiredLoyaltyPercent > 0 && { desiredLoyaltyPercent }),
-      });
-      toast({
-        title: t('public.reserve.success'),
-        description: `${selectedService.name} - ${new Date(selectedDate).toLocaleDateString('bs-BA')} u ${selectedSlot.start}`,
-        status: 'success',
-        duration: 5000,
-        isClosable: true,
-      });
-      setSelectedService(null);
-      setSelectedDate('');
-      setSelectedSlot(null);
-      setNotes('');
-      setStep(1);
-      setLoyaltyInfo(null);
-      setDesiredLoyaltyPercent(0);
+      })
+      await refreshProfile().catch(() => {})
+      toast.success(
+        t('public.reserve.success'),
+        `${selectedService.name} - ${new Date(selectedDate).toLocaleDateString('bs-BA')} u ${selectedSlot.start}`,
+      )
+      setSelectedService(null)
+      setSelectedDate('')
+      setSelectedSlot(null)
+      setNotes('')
+      setStep(1)
+      setLoyaltyInfo(null)
+      setDesiredLoyaltyPercent(0)
     } catch (err: unknown) {
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || t('common.error');
-      toast({ title: message, status: 'error', isClosable: true });
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        t('common.error')
+      toast.error(message)
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
-  if (!user) return null;
+  if (!user) return null
+
+  const bgUrl = getSetting(
+    'public_reserve_bg',
+    'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=2000',
+  )
 
   return (
-    <Box minH="100vh" pt={10} pb={20} position="relative" bg="gray.50">
-      <Box
-        position="absolute"
-        top={0}
-        left={0}
-        w="full"
-        h="full"
-        backgroundImage={`url('${getSetting('public_reserve_bg', 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=2000')}')`}
-        backgroundSize="cover"
-        backgroundPosition="center"
-        backgroundAttachment="fixed"
-        opacity={0.12}
+    <div className="min-h-screen pt-10 pb-20 relative bg-slate-50">
+      <div
+        className="absolute inset-0 bg-cover bg-center opacity-10"
+        style={{ backgroundImage: `url('${bgUrl}')` }}
       />
-      <MotionContainer
-        maxW="container.md"
-        py={12}
+
+      <MotionDiv
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        position="relative"
-        zIndex={1}
+        className="relative z-10 mx-auto max-w-2xl px-4"
       >
-        <Box
-          bg="whiteAlpha.900"
-          backdropFilter="blur(12px)"
-          p={{ base: 6, md: 10 }}
-          rounded="2xl"
-          shadow="2xl"
-          borderWidth="1px"
-          borderColor="whiteAlpha.500"
-        >
-          <Heading size="xl" mb={2} color="brand.800" textAlign="center">
-            {getSetting('public_reserve_title', 'Rezervišite Vaš Termin')}
-          </Heading>
-          <Text color="gray.600" textAlign="center" mb={4}>
-            {getSetting('public_reserve_subtitle', 'Osigurajte svoje vrijeme za savršenu frizuru u nekoliko jednostavnih koraka.')}
-          </Text>
-
-          <HStack justify="center" mb={8} spacing={0}>
-            {[1, 2, 3, 4].map((s) => (
-              <Flex key={s} align="center">
-                <Flex
-                  w="32px"
-                  h="32px"
-                  rounded="full"
-                  align="center"
-                  justify="center"
-                  bg={step >= s ? 'brand.500' : 'gray.200'}
-                  color={step >= s ? 'white' : 'gray.500'}
-                  fontWeight="bold"
-                  fontSize="sm"
-                  transition="all 0.3s"
-                >
-                  {step > s ? <CheckCircleIcon /> : s}
-                </Flex>
-                {s < 4 && (
-                  <Box w="40px" h="2px" bg={step > s ? 'brand.500' : 'gray.200'} transition="all 0.3s" />
+        <Card className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl">
+          <CardContent className="p-6 md:p-10">
+            <div className="text-center">
+              <div className="text-2xl font-semibold text-slate-900">
+                {getSetting('public_reserve_title', 'Rezervišite Vaš Termin')}
+              </div>
+              <div className="text-slate-600 mt-2">
+                {getSetting(
+                  'public_reserve_subtitle',
+                  'Osigurajte svoje vrijeme za savršenu frizuru u nekoliko jednostavnih koraka.',
                 )}
-              </Flex>
-            ))}
-          </HStack>
+              </div>
+            </div>
 
-          <form onSubmit={handleSubmit}>
-            <VStack align="stretch" spacing={6}>
-              <FormControl>
-                <FormLabel fontWeight="600" color="brand.700">
+            <div className="flex items-center justify-center mt-8">
+              {[1, 2, 3, 4].map((s) => (
+                <div key={s} className="flex items-center">
+                  <div
+                    className={[
+                      'h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition',
+                      step >= s ? 'bg-brand-gold text-black' : 'bg-slate-200 text-slate-600',
+                    ].join(' ')}
+                  >
+                    {step > s ? <CheckCircle2 className="h-4 w-4" /> : s}
+                  </div>
+                  {s < 4 ? (
+                    <div className={step > s ? 'h-0.5 w-10 bg-brand-gold' : 'h-0.5 w-10 bg-slate-200'} />
+                  ) : null}
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+              <div className="space-y-2">
+                <Label className="text-slate-700 font-semibold">
                   {t('public.reserve.selectService')}
-                </FormLabel>
+                </Label>
                 <ServiceAutocomplete
                   services={servicesForGender}
                   loading={loadingServices}
                   selected={selectedService}
                   onSelect={setSelectedService}
                 />
-              </FormControl>
+              </div>
 
-              {selectedService && (
-                <MotionBox
+              {selectedService ? (
+                <MotionDiv
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   transition={{ duration: 0.3 }}
                 >
-                  <FormControl ref={dateSectionRef}>
-                    <FormLabel fontWeight="600" color="brand.700">
+                  <div className="space-y-2" ref={dateSectionRef}>
+                    <Label className="text-slate-700 font-semibold">
                       {t('public.reserve.selectDate')}
-                    </FormLabel>
+                    </Label>
                     <ReservationCalendar
                       availableDates={availableDatesMap}
                       selectedDate={selectedDate}
@@ -668,226 +623,204 @@ export default function PublicReserve() {
                       loading={loadingDates}
                       disabled={!selectedService}
                     />
-                  </FormControl>
-                </MotionBox>
-              )}
+                  </div>
+                </MotionDiv>
+              ) : null}
 
-              {selectedDate && (
-                <MotionBox
+              {selectedDate ? (
+                <MotionDiv
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   transition={{ duration: 0.3 }}
                 >
-                  <FormControl>
-                    <FormLabel fontWeight="600" color="brand.700">
-                      {t('public.reserve.selectTime')}
-                      <Text as="span" fontWeight="normal" color="gray.500" ml={2} fontSize="sm">
-                        ({new Date(selectedDate).toLocaleDateString('bs-BA', { weekday: 'long', day: 'numeric', month: 'long' })})
-                      </Text>
-                    </FormLabel>
+                  <div className="space-y-2">
+                    <Label className="text-slate-700 font-semibold">
+                      {t('public.reserve.selectTime')}{' '}
+                      <span className="font-normal text-slate-500 text-sm ml-2">
+                        (
+                        {new Date(selectedDate).toLocaleDateString('bs-BA', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                        })}
+                        )
+                      </span>
+                    </Label>
+
                     {loadingSlots ? (
-                      <Flex justify="center" py={4}>
-                        <Spinner size="md" color="brand.500" />
-                      </Flex>
+                      <div className="py-4 text-center text-slate-600">Učitavanje…</div>
                     ) : slots.length === 0 ? (
-                      <Box p={4} bg="orange.50" rounded="lg" borderWidth="1px" borderColor="orange.200">
-                        <Text color="orange.700" fontSize="sm" textAlign="center">
-                          Nema dostupnih termina za odabrani datum. Pokušajte drugi datum.
-                        </Text>
-                      </Box>
+                      <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 text-center text-sm text-orange-800">
+                        Nema dostupnih termina za odabrani datum. Pokušajte drugi datum.
+                      </div>
                     ) : (
-                      <SimpleGrid columns={{ base: 2, sm: 3, md: 4 }} spacing={2}>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                         {slots.map((slot) => {
                           const isSelected =
                             selectedSlot?.start === slot.startTime &&
-                            selectedSlot?.end === slot.endTime;
-                          const now = new Date();
-                          const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                          const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                          const isPastSlot = selectedDate === todayLocal && slot.startTime < nowHHMM;
+                            selectedSlot?.end === slot.endTime
+                          const now = new Date()
+                          const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+                          const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+                          const isPastSlot = selectedDate === todayLocal && slot.startTime < nowHHMM
                           return (
-                            <Button
+                            <button
                               key={`${slot.startTime}-${slot.endTime}`}
                               type="button"
-                              size="md"
-                              variant={isSelected ? 'solid' : 'outline'}
-                              colorScheme={isSelected ? 'brand' : 'gray'}
-                              bg={isSelected ? 'brand.500' : 'white'}
-                              color={isSelected ? 'white' : 'gray.700'}
-                              borderColor={isSelected ? 'brand.500' : 'gray.200'}
-                              isDisabled={isPastSlot}
-                              _hover={
+                              disabled={isPastSlot}
+                              className={[
+                                'rounded-md border px-3 py-2 text-left transition',
                                 isSelected
-                                  ? { bg: 'brand.600' }
-                                  : { bg: 'brand.50', borderColor: 'brand.300' }
-                              }
+                                  ? 'border-brand-gold bg-brand-gold text-black'
+                                  : 'border-slate-200 bg-white hover:bg-brand-champagne/20',
+                                isPastSlot ? 'opacity-40 cursor-not-allowed' : '',
+                              ].join(' ')}
                               onClick={() => {
-                            if (isPastSlot) return;
-                            setSelectedSlot({ start: slot.startTime, end: slot.endTime });
-                            setStep(4);
-                            if (selectedService) {
-                              // Učitaj loyalty info za ovu uslugu
-                              api
-                                .get<LoyaltyInfo>('/api/loyalty/client/me', {
-                                  params: { serviceId: selectedService.id },
-                                })
-                                .then((r) => setLoyaltyInfo(r.data))
-                                .catch(() => setLoyaltyInfo(null));
-                            }
-                            setDesiredLoyaltyPercent(0);
+                                if (isPastSlot) return
+                                setSelectedSlot({ start: slot.startTime, end: slot.endTime })
+                                setStep(4)
+                                if (selectedService) {
+                                  api
+                                    .get<LoyaltyInfo>('/api/loyalty/client/me', {
+                                      params: { serviceId: selectedService.id },
+                                    })
+                                    .then((r) => setLoyaltyInfo(r.data))
+                                    .catch(() => setLoyaltyInfo(null))
+                                }
+                                setDesiredLoyaltyPercent(0)
                               }}
-                              position="relative"
                             >
-                              <VStack spacing={0}>
-                                <Text fontSize="sm" fontWeight="bold">{slot.startTime}</Text>
-                                <Text fontSize="xs" opacity={0.7}>
-                                  {slot.availableStylistCount} {slot.availableStylistCount === 1 ? 'stilist' : 'stilista'}
-                                </Text>
-                              </VStack>
-                            </Button>
-                          );
+                              <div className="text-sm font-semibold">
+                                {slot.startTime}
+                              </div>
+                              <div className={isSelected ? 'text-xs opacity-80' : 'text-xs text-slate-500'}>
+                                {slot.availableStylistCount}{' '}
+                                {slot.availableStylistCount === 1 ? 'stilist' : 'stilista'}
+                              </div>
+                            </button>
+                          )
                         })}
-                      </SimpleGrid>
+                      </div>
                     )}
-                  </FormControl>
-                </MotionBox>
-              )}
+                  </div>
+                </MotionDiv>
+              ) : null}
 
-              {selectedSlot && (
-                <MotionBox
+              {selectedSlot ? (
+                <MotionDiv
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   transition={{ duration: 0.3 }}
                 >
-                  <FormControl>
-                    <FormLabel fontWeight="600" color="brand.700">
+                  <div className="space-y-2">
+                    <Label className="text-slate-700 font-semibold">
                       {t('public.reserve.notes')}
-                    </FormLabel>
+                    </Label>
                     <Textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows={3}
                       placeholder="Posebne želje, napomene za stilista..."
-                      bg="white"
-                      borderColor="gray.200"
-                      _focus={{ borderColor: 'brand.400' }}
                     />
-                  </FormControl>
+                  </div>
 
                   {loyaltyInfo &&
-                    loyaltyInfo.enabled &&
-                    loyaltyInfo.redeemEnabled &&
-                    loyaltyInfo.hasAccount &&
-                    loyaltyInfo.service &&
-                    loyaltyInfo.service.maxDiscountPercent > 0 && (
-                      <Box
-                        mt={4}
-                        p={4}
-                        bg="purple.50"
-                        rounded="lg"
-                        borderWidth="1px"
-                        borderColor="purple.200"
-                      >
-                        <Text fontWeight="bold" color="purple.800" mb={2}>
-                          Loyalty popust
-                        </Text>
-                        <Text fontSize="sm" color="purple.800">
-                          Status: {loyaltyInfo.tier ?? 'Nema nivoa'} · Dostupno bodova:{' '}
-                          {loyaltyInfo.points ?? 0}
-                        </Text>
-                        <Text fontSize="sm" color="purple.800">
-                          Maksimalan popust za ovu uslugu:{' '}
-                          {loyaltyInfo.service.maxDiscountPercent}%
-                        </Text>
-                        <FormControl mt={3}>
-                          <FormLabel fontWeight="600" color="purple.800">
-                            Koliki popust želite iskoristiti za ovu rezervaciju?
-                          </FormLabel>
-                          <HStack align="center" spacing={3}>
-                            <NumberInput
-                              value={desiredLoyaltyPercent}
-                              min={0}
-                              max={loyaltyInfo.service.maxDiscountPercent}
-                              step={1}
-                              onChange={(_, val) =>
-                                setDesiredLoyaltyPercent(
-                                  Math.max(
-                                    0,
-                                    Math.min(val || 0, loyaltyInfo.service!.maxDiscountPercent),
-                                  ),
-                                )
-                              }
-                            >
-                              <NumberInputField bg="white" />
-                              <NumberInputStepper>
-                                <NumberIncrementStepper />
-                                <NumberDecrementStepper />
-                              </NumberInputStepper>
-                            </NumberInput>
-                            <Text fontSize="sm" color="purple.800">
-                              %
-                            </Text>
-                          </HStack>
-                        </FormControl>
-                      </Box>
-                    )}
+                  loyaltyInfo.enabled &&
+                  loyaltyInfo.redeemEnabled &&
+                  loyaltyInfo.hasAccount &&
+                  loyaltyInfo.service &&
+                  loyaltyInfo.service.maxDiscountPercent > 0 ? (
+                    <div className="mt-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
+                      <div className="font-semibold text-purple-900 mb-2">
+                        Loyalty popust
+                      </div>
+                      <div className="text-sm text-purple-900">
+                        Status: {loyaltyInfo.tier ?? 'Nema nivoa'} · Dostupno bodova:{' '}
+                        {loyaltyInfo.points ?? 0}
+                      </div>
+                      <div className="text-sm text-purple-900">
+                        Maksimalan popust za ovu uslugu:{' '}
+                        {loyaltyInfo.service.maxDiscountPercent}%
+                      </div>
+                      <div className="mt-3 flex items-end gap-3">
+                        <div className="flex-1 space-y-2">
+                          <Label className="text-purple-900 font-semibold">
+                            Koliki popust želite iskoristiti?
+                          </Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={loyaltyInfo.service.maxDiscountPercent}
+                            step={1}
+                            value={desiredLoyaltyPercent}
+                            onChange={(e) => {
+                              const val = Number(e.target.value)
+                              setDesiredLoyaltyPercent(
+                                Math.max(
+                                  0,
+                                  Math.min(val || 0, loyaltyInfo.service!.maxDiscountPercent),
+                                ),
+                              )
+                            }}
+                          />
+                        </div>
+                        <div className="pb-2 text-sm text-purple-900 font-semibold">%</div>
+                      </div>
+                    </div>
+                  ) : null}
 
-                  <Box
-                    mt={4}
-                    p={4}
-                    bg="brand.50"
-                    rounded="lg"
-                    borderWidth="1px"
-                    borderColor="brand.200"
-                  >
-                    <Text fontWeight="bold" color="brand.800" mb={2}>Pregled rezervacije:</Text>
-                    <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={2}>
-                      <Box>
-                        <Text fontSize="xs" color="gray.500">Usluga</Text>
-                        <Text fontWeight="600">{selectedService?.name}</Text>
-                      </Box>
-                      <Box>
-                        <Text fontSize="xs" color="gray.500">Trajanje</Text>
-                        <Text fontWeight="600">{selectedService?.durationMinutes} minuta</Text>
-                      </Box>
-                      <Box>
-                        <Text fontSize="xs" color="gray.500">Datum</Text>
-                        <Text fontWeight="600">
+                  <div className="mt-4 rounded-lg border border-brand-champagne bg-brand-champagne/15 p-4">
+                    <div className="font-semibold text-slate-900 mb-2">
+                      Pregled rezervacije:
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-xs text-slate-500">Usluga</div>
+                        <div className="font-semibold">{selectedService?.name}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Trajanje</div>
+                        <div className="font-semibold">
+                          {selectedService?.durationMinutes} minuta
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Datum</div>
+                        <div className="font-semibold">
                           {new Date(selectedDate).toLocaleDateString('bs-BA', {
                             weekday: 'long',
                             day: 'numeric',
                             month: 'long',
                             year: 'numeric',
                           })}
-                        </Text>
-                      </Box>
-                      <Box>
-                        <Text fontSize="xs" color="gray.500">Termin</Text>
-                        <Text fontWeight="600">{selectedSlot.start} - {selectedSlot.end}</Text>
-                      </Box>
-                    </SimpleGrid>
-                  </Box>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-slate-500">Termin</div>
+                        <div className="font-semibold">
+                          {selectedSlot.start} - {selectedSlot.end}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
                   <Button
-                    mt={4}
-                    w="full"
                     type="submit"
-                    colorScheme="brand"
-                    size="lg"
-                    isLoading={submitting}
-                    loadingText="Slanje rezervacije..."
-                    isDisabled={!selectedSlot}
-                    _hover={{ transform: 'translateY(-1px)', shadow: 'lg' }}
-                    transition="all 0.2s"
+                    className="w-full mt-4"
+                    disabled={submitting || !selectedSlot}
                   >
-                    {t('public.reserve.submit')}
+                    <span className="inline-flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      {submitting ? 'Slanje rezervacije…' : t('public.reserve.submit')}
+                    </span>
                   </Button>
-                </MotionBox>
-              )}
-            </VStack>
-          </form>
-        </Box>
-      </MotionContainer>
-    </Box>
-  );
+                </MotionDiv>
+              ) : null}
+            </form>
+          </CardContent>
+        </Card>
+      </MotionDiv>
+    </div>
+  )
 }
+

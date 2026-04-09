@@ -1,231 +1,283 @@
-import { useEffect, useState, useCallback } from 'react';
-import {
-  Box, Heading, Table, Thead, Tbody, Tr, Th, Td, Spinner, Text,
-  Badge, IconButton, Flex, useToast, Select, HStack, Button,
-  useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader,
-  ModalBody, ModalCloseButton, ModalFooter, VStack, Divider,
-} from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
-import { CheckIcon, DeleteIcon, StarIcon } from '@chakra-ui/icons';
-import api from '../api/client';
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Check, Loader2, Star, Trash2 } from 'lucide-react'
+
+import api from '../api/client'
+import { useAppToast } from '../lib/toast/useAppToast'
+
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
 
 interface Review {
-  id: string;
-  serviceRating: number;
-  stylistRating: number | null;
-  comment: string | null;
-  isApproved: boolean | null;
-  createdAt: string;
-  service?: { name: string };
-  stylistProfile?: { user?: { username: string; firstName: string | null; lastName: string | null } };
-  user?: { username: string; firstName: string | null; lastName: string | null };
+  id: string
+  serviceRating: number
+  stylistRating: number | null
+  comment: string | null
+  isApproved: boolean | null
+  createdAt: string
+  service?: { name: string }
+  stylistProfile?: { user?: { username: string; firstName: string | null; lastName: string | null } }
+  user?: { username: string; firstName: string | null; lastName: string | null }
 }
 
 function Stars({ count }: { count: number }) {
   return (
-    <HStack spacing={0}>
+    <div className="flex items-center gap-0.5">
       {Array.from({ length: 5 }, (_, i) => (
-        <StarIcon key={i} color={i < count ? 'yellow.400' : 'gray.300'} boxSize={3} />
+        <Star
+          key={i}
+          className={i < count ? 'h-4 w-4 fill-yellow-400 text-yellow-400' : 'h-4 w-4 text-slate-300 dark:text-slate-700'}
+          aria-hidden="true"
+        />
       ))}
-    </HStack>
-  );
+    </div>
+  )
 }
 
 export default function Reviews() {
-  const { t } = useTranslation();
-  const toast = useToast();
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<string>('');
+  const { t } = useTranslation()
+  const { success, error } = useAppToast()
+  const [reviews, setReviews] = useState<Review[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved'>('all')
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [detail, setDetail] = useState<Review | null>(null);
+  const [open, setOpen] = useState(false)
+  const [detail, setDetail] = useState<Review | null>(null)
 
   const loadData = useCallback(() => {
-    setLoading(true);
-    const params: Record<string, string> = {};
-    if (filter === 'approved') params.approved = 'true';
-    else if (filter === 'pending') params.approved = 'false';
-    api.get<Review[]>('/api/reviews', { params })
+    setLoading(true)
+    const params: Record<string, string> = {}
+    if (filter === 'approved') params.approved = 'true'
+    else if (filter === 'pending') params.approved = 'false'
+    api
+      .get<Review[]>('/api/reviews', { params })
       .then((r) => setReviews(Array.isArray(r.data) ? r.data : []))
       .catch(() => setReviews([]))
-      .finally(() => setLoading(false));
-  }, [filter]);
+      .finally(() => setLoading(false))
+  }, [filter])
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleApprove = async (id: string) => {
     try {
-      await api.patch(`/api/reviews/${id}/approve`);
-      toast({ title: 'Recenzija odobrena', status: 'success', isClosable: true });
-      loadData();
+      await api.patch(`/api/reviews/${id}/approve`)
+      success('Recenzija odobrena')
+      loadData()
     } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      error('Greška')
     }
-  };
+  }
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Obrisati recenziju?')) return;
+    if (!window.confirm('Obrisati recenziju?')) return
     try {
-      await api.delete(`/api/reviews/${id}`);
-      toast({ title: 'Recenzija obrisana', status: 'success', isClosable: true });
-      loadData();
-      if (detail?.id === id) onClose();
+      await api.delete(`/api/reviews/${id}`)
+      success('Recenzija obrisana')
+      loadData()
+      if (detail?.id === id) setOpen(false)
     } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      error('Greška')
     }
-  };
+  }
 
   const openDetail = (r: Review) => {
-    setDetail(r);
-    onOpen();
-  };
+    setDetail(r)
+    setOpen(true)
+  }
 
   const getApprovalBadge = (isApproved: boolean | null) => {
-    if (isApproved === true) return <Badge colorScheme="green">Odobreno</Badge>;
-    if (isApproved === false) return <Badge colorScheme="red">Odbijeno</Badge>;
-    return <Badge colorScheme="yellow">Na čekanju</Badge>;
-  };
+    if (isApproved === true) return <Badge variant="success">Odobreno</Badge>
+    if (isApproved === false) return <Badge variant="danger">Odbijeno</Badge>
+    return <Badge variant="warning">Na čekanju</Badge>
+  }
 
   const getUserName = (user?: { username: string; firstName: string | null; lastName: string | null }) => {
-    if (!user) return '-';
-    const full = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim();
-    return full || user.username;
-  };
+    if (!user) return '-'
+    const full = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
+    return full || user.username
+  }
+
+  const detailDate = useMemo(() => {
+    if (!detail?.createdAt) return null
+    return new Date(detail.createdAt).toLocaleString('bs-BA')
+  }, [detail?.createdAt])
 
   return (
-    <Box>
-      <Flex justify="space-between" align="center" mb={4} direction={{ base: 'column', md: 'row' }} gap={3}>
-        <Heading size="lg">{t('nav.reviews')}</Heading>
-        <Select size="sm" maxW={{ base: 'full', md: '200px' }} value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option value="">Sve recenzije</option>
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.reviews')}</h1>
+        <select
+          className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as typeof filter)}
+        >
+          <option value="all">Sve recenzije</option>
           <option value="pending">Na čekanju</option>
           <option value="approved">Odobrene</option>
-        </Select>
-      </Flex>
+        </select>
+      </div>
 
-      <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
+      <Card className="overflow-hidden">
         {loading ? (
-          <Box p={6} textAlign="center"><Spinner size="lg" /></Box>
+          <div className="flex justify-center p-10 text-slate-500">
+            <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+          </div>
         ) : (
-          <Table size="sm">
-            <Thead>
-              <Tr>
-                <Th>Klijent</Th>
-                <Th>Servis</Th>
-                <Th>Stilista</Th>
-                <Th>Ocjena servisa</Th>
-                <Th>Ocjena stiliste</Th>
-                <Th>Komentar</Th>
-                <Th>Status</Th>
-                <Th>Datum</Th>
-                <Th textAlign="right">Akcije</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {reviews.length === 0 ? (
-                <Tr><Td colSpan={9}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
-              ) : (
-                reviews.map((r) => (
-                  <Tr key={r.id} cursor="pointer" _hover={{ bg: 'gray.50' }} onClick={() => openDetail(r)}>
-                    <Td>{getUserName(r.user)}</Td>
-                    <Td>{r.service?.name ?? '-'}</Td>
-                    <Td>{getUserName(r.stylistProfile?.user)}</Td>
-                    <Td><Stars count={r.serviceRating} /></Td>
-                    <Td>{r.stylistRating ? <Stars count={r.stylistRating} /> : '-'}</Td>
-                    <Td maxW="150px" isTruncated>{r.comment ?? '-'}</Td>
-                    <Td>{getApprovalBadge(r.isApproved)}</Td>
-                    <Td>{new Date(r.createdAt).toLocaleDateString('bs-BA')}</Td>
-                    <Td textAlign="right" onClick={(e) => e.stopPropagation()}>
-                      <HStack spacing={1} justify="flex-end">
-                        {r.isApproved !== true && (
-                          <IconButton aria-label="Odobri" icon={<CheckIcon />} size="xs" variant="ghost" colorScheme="green" onClick={() => handleApprove(r.id)} />
-                        )}
-                        <IconButton aria-label="Obriši" icon={<DeleteIcon />} size="xs" variant="ghost" colorScheme="red" onClick={() => handleDelete(r.id)} />
-                      </HStack>
-                    </Td>
-                  </Tr>
-                ))
-              )}
-            </Tbody>
-          </Table>
-        )}
-      </Box>
-
-      {/* Detail Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Detalji Recenzije</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            {detail && (
-              <VStack align="stretch" spacing={3}>
-                <Flex justify="space-between" align="center">
-                  <Text fontWeight="bold">Status</Text>
-                  {getApprovalBadge(detail.isApproved)}
-                </Flex>
-                <Divider />
-                <Box>
-                  <Text fontSize="xs" color="gray.500">Klijent</Text>
-                  <Text fontWeight="medium">{getUserName(detail.user)}</Text>
-                </Box>
-                <Box>
-                  <Text fontSize="xs" color="gray.500">Servis</Text>
-                  <Text fontWeight="medium">{detail.service?.name ?? '-'}</Text>
-                </Box>
-                <Box>
-                  <Text fontSize="xs" color="gray.500">Stilista</Text>
-                  <Text fontWeight="medium">{getUserName(detail.stylistProfile?.user)}</Text>
-                </Box>
-                <Divider />
-                <Flex gap={8} direction={{ base: 'column', md: 'row' }}>
-                  <Box>
-                    <Text fontSize="xs" color="gray.500">Ocjena servisa</Text>
-                    <Stars count={detail.serviceRating} />
-                    <Text fontSize="sm" fontWeight="bold">{detail.serviceRating}/5</Text>
-                  </Box>
-                  <Box>
-                    <Text fontSize="xs" color="gray.500">Ocjena stiliste</Text>
-                    {detail.stylistRating ? (
-                      <>
-                        <Stars count={detail.stylistRating} />
-                        <Text fontSize="sm" fontWeight="bold">{detail.stylistRating}/5</Text>
-                      </>
-                    ) : <Text color="gray.400">Nije ocijenjen</Text>}
-                  </Box>
-                </Flex>
-                {detail.comment && (
-                  <>
-                    <Divider />
-                    <Box>
-                      <Text fontSize="xs" color="gray.500">Komentar</Text>
-                      <Text>{detail.comment}</Text>
-                    </Box>
-                  </>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                  <th className="p-3 font-medium">Klijent</th>
+                  <th className="p-3 font-medium">Servis</th>
+                  <th className="p-3 font-medium">Stilista</th>
+                  <th className="p-3 font-medium">Ocjena servisa</th>
+                  <th className="p-3 font-medium">Ocjena stiliste</th>
+                  <th className="p-3 font-medium">Komentar</th>
+                  <th className="p-3 font-medium">Status</th>
+                  <th className="p-3 font-medium">Datum</th>
+                  <th className="p-3 text-right font-medium">Akcije</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviews.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="p-6 text-slate-500">
+                      {t('common.noData')}
+                    </td>
+                  </tr>
+                ) : (
+                  reviews.map((r) => (
+                    <tr
+                      key={r.id}
+                      className="cursor-pointer border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-slate-900/40"
+                      onClick={() => openDetail(r)}
+                    >
+                      <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{getUserName(r.user)}</td>
+                      <td className="p-3">{r.service?.name ?? '-'}</td>
+                      <td className="p-3">{getUserName(r.stylistProfile?.user)}</td>
+                      <td className="p-3">
+                        <Stars count={r.serviceRating} />
+                      </td>
+                      <td className="p-3">{r.stylistRating ? <Stars count={r.stylistRating} /> : '-'}</td>
+                      <td className="max-w-[220px] truncate p-3">{r.comment ?? '-'}</td>
+                      <td className="p-3">{getApprovalBadge(r.isApproved)}</td>
+                      <td className="p-3">{new Date(r.createdAt).toLocaleDateString('bs-BA')}</td>
+                      <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-1">
+                          {r.isApproved !== true ? (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              aria-label="Odobri"
+                              onClick={() => void handleApprove(r.id)}
+                            >
+                              <Check className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                            </Button>
+                          ) : null}
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            aria-label="Obriši"
+                            onClick={() => void handleDelete(r.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
                 )}
-                <Divider />
-                <Text fontSize="xs" color="gray.500">
-                  Datum: {new Date(detail.createdAt).toLocaleString('bs-BA')}
-                </Text>
-              </VStack>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            {detail && detail.isApproved !== true && (
-              <Button colorScheme="green" mr={3} size="sm" onClick={() => { handleApprove(detail.id); onClose(); }}>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Detalji recenzije</DialogTitle>
+          </DialogHeader>
+
+          {detail ? (
+            <div className="space-y-4 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-medium text-slate-900 dark:text-slate-50">Status</p>
+                {getApprovalBadge(detail.isApproved)}
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div>
+                  <p className="text-xs text-slate-500">Klijent</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-50">{getUserName(detail.user)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Servis</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-50">{detail.service?.name ?? '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Stilista</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-50">{getUserName(detail.stylistProfile?.user)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                  <p className="text-xs text-slate-500">Ocjena servisa</p>
+                  <div className="mt-1 flex items-center justify-between gap-3">
+                    <Stars count={detail.serviceRating} />
+                    <span className="font-semibold text-slate-900 dark:text-slate-50">{detail.serviceRating}/5</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Ocjena stiliste</p>
+                  {detail.stylistRating ? (
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <Stars count={detail.stylistRating} />
+                      <span className="font-semibold text-slate-900 dark:text-slate-50">{detail.stylistRating}/5</span>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-slate-500">Nije ocijenjen</p>
+                  )}
+                </div>
+              </div>
+
+              {detail.comment ? (
+                <div>
+                  <p className="text-xs text-slate-500">Komentar</p>
+                  <p className="mt-1 whitespace-pre-wrap text-slate-900 dark:text-slate-50">{detail.comment}</p>
+                </div>
+              ) : null}
+
+              <p className="text-xs text-slate-500">Datum: {detailDate ?? '-'}</p>
+            </div>
+          ) : null}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            {detail && detail.isApproved !== true ? (
+              <Button type="button" onClick={() => void handleApprove(detail.id)}>
                 Odobri
               </Button>
-            )}
-            {detail && (
-              <Button colorScheme="red" variant="outline" mr={3} size="sm" onClick={() => handleDelete(detail.id)}>
+            ) : null}
+            {detail ? (
+              <Button type="button" variant="outline" onClick={() => void handleDelete(detail.id)}>
                 Obriši
               </Button>
-            )}
-            <Button variant="ghost" onClick={onClose}>Zatvori</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </Box>
-  );
+            ) : null}
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              Zatvori
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }

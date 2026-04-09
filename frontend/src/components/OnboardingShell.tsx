@@ -1,15 +1,4 @@
 import { ReactNode } from 'react'
-import {
-  Box,
-  Card,
-  CardBody,
-  HStack,
-  Text,
-  VStack,
-  Icon,
-  useColorModeValue,
-  useBreakpointValue,
-} from '@chakra-ui/react'
 import { IconType } from 'react-icons'
 import {
   IoLockClosedOutline,
@@ -22,6 +11,8 @@ import {
   IoChatbubbleEllipsesOutline,
 } from 'react-icons/io5'
 import { FiInfo } from 'react-icons/fi'
+
+import { Card, CardContent } from './ui/card'
 
 export type HeroDecoration = 'lock' | 'gender' | 'mail' | 'phone' | 'none'
 
@@ -63,18 +54,10 @@ export default function OnboardingShell({
   icon: iconProp,
   children,
 }: Props) {
-  const bg = useColorModeValue('gray.50', 'gray.900')
-  const cardBg = useColorModeValue('white', 'gray.800')
-  const borderColor = useColorModeValue('gray.200', 'whiteAlpha.200')
-  const muted = useColorModeValue('gray.600', 'gray.400')
-  const dotsInactive = useColorModeValue('gray.200', 'whiteAlpha.200')
-  const brand = useColorModeValue('brand.500', 'brand.400')
-  const tipBoxBg = useColorModeValue('gray.50', 'whiteAlpha.50')
-  const mainOp = useColorModeValue(0.07, 0.12)
-  const accentOp = useColorModeValue(0.11, 0.2)
-  const decoSize = useBreakpointValue({ base: 160, md: 220 }) ?? 200
+  const decoSize = 200
 
   const headerIcon = iconProp ?? headerIconForDecoration(heroDecoration)
+  const HeaderIcon = headerIcon
 
   const deco =
     heroDecoration === 'lock'
@@ -103,109 +86,75 @@ export default function OnboardingShell({
               }
             : null
 
+  const MainDeco = deco?.main
+  const AccentDeco = deco?.accent
+
   return (
-    <Box minH="100vh" bg={bg} py={{ base: 10, md: 14 }} px={4} position="relative" overflow="hidden">
+    <div className="min-h-screen bg-slate-50 py-10 md:py-14 px-4 relative overflow-hidden">
       {deco ? (
-        <Box position="absolute" inset={0} pointerEvents="none" zIndex={0} overflow="hidden">
-          <Icon
-            as={deco.main}
-            position="absolute"
-            right="-28px"
-            bottom="12%"
-            w={`${decoSize}px`}
-            h={`${decoSize}px`}
-            color={brand}
-            opacity={mainOp}
-          />
-          <Icon
-            as={deco.accent}
-            position="absolute"
-            right="32px"
-            top="18%"
-            w={`${decoSize * deco.accentScale}px`}
-            h={`${decoSize * deco.accentScale}px`}
-            color={brand}
-            opacity={accentOp}
-          />
-        </Box>
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          {MainDeco ? (
+            <MainDeco
+            className="absolute right-[-28px] bottom-[12%] text-brand-gold opacity-10"
+            style={{ width: decoSize, height: decoSize }}
+            />
+          ) : null}
+          {AccentDeco ? (
+            <AccentDeco
+            className="absolute right-[32px] top-[18%] text-brand-gold opacity-15"
+            style={{
+              width: decoSize * deco.accentScale,
+              height: decoSize * deco.accentScale,
+            }}
+            />
+          ) : null}
+        </div>
       ) : null}
 
-      <Box position="relative" zIndex={1}>
-        <Card
-          maxW="lg"
-          mx="auto"
-          bg={cardBg}
-          borderWidth="1px"
-          borderColor={borderColor}
-          shadow="sm"
-          overflow="hidden"
-        >
-          <CardBody p={{ base: 6, md: 8 }}>
-            <VStack align="stretch" spacing={6}>
-              <HStack spacing={2} align="center">
+      <div className="relative z-10">
+        <Card className="max-w-lg mx-auto overflow-hidden">
+          <CardContent className="p-6 md:p-8 space-y-6">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 {Array.from({ length: totalSteps }, (_, i) => (
-                  <Box
+                  <div
                     key={i}
-                    w="10px"
-                    h="10px"
-                    borderRadius="full"
-                    bg={i < step ? 'brand.500' : dotsInactive}
-                    opacity={i < step ? 1 : 0.6}
+                    className={i < step ? 'h-2.5 w-2.5 rounded-full bg-brand-gold' : 'h-2.5 w-2.5 rounded-full bg-slate-200 opacity-70'}
                   />
                 ))}
-                <Text ml="auto" fontSize="sm" color={muted} fontWeight="600">
-                  {step}/{totalSteps}
-                </Text>
-              </HStack>
+              </div>
+              <div className="ml-auto text-sm text-slate-600 font-semibold">
+                {step}/{totalSteps}
+              </div>
+            </div>
 
-              <HStack spacing={3} align="flex-start">
-                {headerIcon ? (
-                  <Box
-                    flexShrink={0}
-                    w="44px"
-                    h="44px"
-                    borderRadius="16px"
-                    bg="brand.50"
-                    _dark={{ bg: 'whiteAlpha.100' }}
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <Icon as={headerIcon} color="brand.500" boxSize={5} />
-                  </Box>
-                ) : null}
-                <Box>
-                  <Text fontSize={{ base: '2xl', md: '3xl' }} fontWeight="800" lineHeight="1.15">
-                    {title}
-                  </Text>
-                  <Text mt={2} color={muted} fontSize="md" lineHeight="1.6">
-                    {subtitle}
-                  </Text>
-                </Box>
-              </HStack>
-
-              {tip ? (
-                <HStack
-                  spacing={3}
-                  p={4}
-                  borderWidth="1px"
-                  borderColor={borderColor}
-                  borderRadius="16px"
-                  bg={tipBoxBg}
-                  align="flex-start"
-                >
-                  <Icon as={FiInfo} color="brand.500" boxSize={5} mt="2px" />
-                  <Text fontSize="sm" lineHeight="1.55">
-                    {tip}
-                  </Text>
-                </HStack>
+            <div className="flex items-start gap-3">
+              {HeaderIcon ? (
+                <div className="shrink-0 h-11 w-11 rounded-2xl bg-brand-champagne/40 flex items-center justify-center">
+                  <HeaderIcon className="h-5 w-5 text-brand-gold" />
+                </div>
               ) : null}
+              <div>
+                <div className="text-2xl md:text-3xl font-extrabold leading-tight text-slate-900">
+                  {title}
+                </div>
+                <div className="mt-2 text-slate-600 text-base leading-relaxed">
+                  {subtitle}
+                </div>
+              </div>
+            </div>
 
-              <Box>{children}</Box>
-            </VStack>
-          </CardBody>
+            {tip ? (
+              <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <FiInfo className="h-5 w-5 text-brand-gold mt-0.5" />
+                <div className="text-sm leading-relaxed text-slate-700">{tip}</div>
+              </div>
+            ) : null}
+
+            <div>{children}</div>
+          </CardContent>
         </Card>
-      </Box>
-    </Box>
+      </div>
+    </div>
   )
 }

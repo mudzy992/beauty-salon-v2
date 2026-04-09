@@ -1,6 +1,5 @@
 import { ReactNode, useEffect, useMemo } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Center, Spinner } from '@chakra-ui/react'
 import { useAuth } from '../context/AuthContext'
 import { getPostAuthRedirectPath } from '../utils/clientOnboarding'
 
@@ -20,9 +19,9 @@ export default function PublicOnlyRoute({ children }: { children: ReactNode }) {
 
   if (!isReady) {
     return (
-      <Center minH="100vh">
-        <Spinner size="xl" />
-      </Center>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-sm text-slate-600">Učitavanje…</div>
+      </div>
     )
   }
 
@@ -32,9 +31,9 @@ export default function PublicOnlyRoute({ children }: { children: ReactNode }) {
 
   if (token && !user) {
     return (
-      <Center minH="100vh">
-        <Spinner size="xl" />
-      </Center>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-sm text-slate-600">Učitavanje…</div>
+      </div>
     )
   }
 

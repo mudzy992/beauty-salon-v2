@@ -1,35 +1,16 @@
-import { DragEvent, useEffect, useMemo, useState } from 'react';
-import {
-  Badge,
-  Box,
-  Code,
-  Heading,
-  Text,
-  VStack,
-  FormControl,
-  FormLabel,
-  Select,
-  Input,
-  Textarea,
-  Switch,
-  Button,
-  Grid,
-  GridItem,
-  useToast,
-  Card,
-  CardBody,
-  Divider,
-  HStack,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  IconButton,
-  Stack,
-} from '@chakra-ui/react';
-import { AddIcon, ArrowDownIcon, ArrowUpIcon, DeleteIcon } from '@chakra-ui/icons';
-import api from '../api/client';
+import { DragEvent, useEffect, useMemo, useState } from 'react'
+import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from 'lucide-react'
+import api from '../api/client'
+import { useAppToast } from '../lib/toast/useAppToast'
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Separator } from '../components/ui/separator'
+import { Switch } from '../components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Textarea } from '../components/ui/textarea'
 
 type ProviderType = 'google' | 'office365' | 'exchange' | 'custom';
 
@@ -251,7 +232,7 @@ const renderCampaignHtml = (blocks: CampaignTemplateBlock[]): string => {
 };
 
 export default function EmailSettings() {
-  const toast = useToast();
+  const { success, error: toastError, warning } = useAppToast()
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -409,12 +390,12 @@ export default function EmailSettings() {
 
   const handleSave = async () => {
     if (!host.trim()) {
-      toast({ title: 'SMTP host je obavezan.', status: 'warning', isClosable: true });
-      return;
+      warning('SMTP host je obavezan.')
+      return
     }
     if (!fromEmail.trim()) {
-      toast({ title: 'From email je obavezan.', status: 'warning', isClosable: true });
-      return;
+      warning('From email je obavezan.')
+      return
     }
     setSaving(true);
     try {
@@ -447,9 +428,9 @@ export default function EmailSettings() {
       }
 
       await Promise.all(ops)
-      toast({ title: 'Email postavke su sačuvane.', status: 'success', isClosable: true });
+      success('Email postavke su sačuvane.')
     } catch {
-      toast({ title: 'Greška pri čuvanju email postavki.', status: 'error', isClosable: true });
+      toastError('Greška pri čuvanju email postavki.')
     } finally {
       setSaving(false);
     }
@@ -457,24 +438,19 @@ export default function EmailSettings() {
 
   const handleSendTestEmail = async () => {
     if (!testEmailTo.trim()) {
-      toast({ title: 'Unesite email adresu za test.', status: 'warning', isClosable: true });
-      return;
+      warning('Unesite email adresu za test.')
+      return
     }
     setSendingTest(true);
     try {
-      await api.post('/api/notifications/test-email', { to: testEmailTo.trim() });
-      toast({
-        title: 'Test email je poslan.',
-        description: 'Provjerite inbox i spam folder.',
-        status: 'success',
-        isClosable: true,
-      });
-    } catch (error: any) {
-      toast({
-        title: error?.response?.data?.message || 'Slanje test emaila nije uspjelo.',
-        status: 'error',
-        isClosable: true,
-      });
+      await api.post('/api/notifications/test-email', { to: testEmailTo.trim() })
+      success('Test email je poslan.', 'Provjerite inbox i spam folder.')
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined
+      toastError(msg || 'Slanje test emaila nije uspjelo.')
     } finally {
       setSendingTest(false);
     }
@@ -483,19 +459,14 @@ export default function EmailSettings() {
   const handleSendTestToMe = async () => {
     setSendingTest(true);
     try {
-      await api.post('/api/notifications/test-email', {});
-      toast({
-        title: 'Test email je poslan na vaš admin nalog.',
-        description: 'Provjerite inbox i spam folder.',
-        status: 'success',
-        isClosable: true,
-      });
-    } catch (error: any) {
-      toast({
-        title: error?.response?.data?.message || 'Slanje test emaila nije uspjelo.',
-        status: 'error',
-        isClosable: true,
-      });
+      await api.post('/api/notifications/test-email', {})
+      success('Test email je poslan na vaš admin nalog.', 'Provjerite inbox i spam folder.')
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined
+      toastError(msg || 'Slanje test emaila nije uspjelo.')
     } finally {
       setSendingTest(false);
     }
@@ -504,18 +475,14 @@ export default function EmailSettings() {
   const handleTestConnection = async () => {
     setTestingConnection(true);
     try {
-      await api.post('/api/notifications/test-smtp-connection', {});
-      toast({
-        title: 'SMTP konekcija je uspješna.',
-        status: 'success',
-        isClosable: true,
-      });
-    } catch (error: any) {
-      toast({
-        title: error?.response?.data?.message || 'SMTP konekcija nije uspjela.',
-        status: 'error',
-        isClosable: true,
-      });
+      await api.post('/api/notifications/test-smtp-connection', {})
+      success('SMTP konekcija je uspješna.')
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined
+      toastError(msg || 'SMTP konekcija nije uspjela.')
     } finally {
       setTestingConnection(false);
     }
@@ -529,9 +496,9 @@ export default function EmailSettings() {
         JSON.stringify(existingTemplate),
         `Email template config for ${existingTemplateType}`,
       );
-      toast({ title: 'Template sačuvan.', status: 'success', isClosable: true });
+      success('Template sačuvan.')
     } catch {
-      toast({ title: 'Greška pri čuvanju template-a.', status: 'error', isClosable: true });
+      toastError('Greška pri čuvanju template-a.')
     } finally {
       setSavingTemplate(false);
     }
@@ -590,9 +557,9 @@ export default function EmailSettings() {
         JSON.stringify(normalized),
         'Email campaign templates (builder/html)',
       );
-      toast({ title: 'Kampanjski template-i sačuvani.', status: 'success', isClosable: true });
+      success('Kampanjski template-i sačuvani.')
     } catch {
-      toast({ title: 'Greška pri čuvanju kampanja.', status: 'error', isClosable: true });
+      toastError('Greška pri čuvanju kampanja.')
     } finally {
       setSavingCampaigns(false);
     }
@@ -618,12 +585,12 @@ export default function EmailSettings() {
         getAudiencePayload(),
       );
       setAudienceSummary(data);
-    } catch (error: any) {
-      toast({
-        title: error?.response?.data?.message || 'Neuspjelo učitavanje publike.',
-        status: 'error',
-        isClosable: true,
-      });
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined
+      toastError(msg || 'Neuspjelo učitavanje publike.')
     } finally {
       setLoadingAudience(false);
     }
@@ -631,16 +598,12 @@ export default function EmailSettings() {
 
   const handleSendCampaign = async () => {
     if (!selectedCampaign) {
-      toast({ title: 'Odaberite kampanjski template.', status: 'warning', isClosable: true });
-      return;
+      warning('Odaberite kampanjski template.')
+      return
     }
     if ((audienceSummary?.total || 0) <= 0) {
-      toast({
-        title: 'Publika je prazna. Prvo izračunajte publiku.',
-        status: 'warning',
-        isClosable: true,
-      });
-      return;
+      warning('Publika je prazna. Prvo izračunajte publiku.')
+      return
     }
     setSendingCampaign(true);
     try {
@@ -652,133 +615,127 @@ export default function EmailSettings() {
         tags: ['marketing', 'campaign'],
         audience: getAudiencePayload(),
       });
-      toast({
-        title: 'Kampanja je poslana.',
-        description: `Poslano: ${data?.delivered ?? 0}, preskočeno: ${data?.skipped ?? 0}.`,
-        status: 'success',
-        isClosable: true,
-      });
-    } catch (error: any) {
-      toast({
-        title: error?.response?.data?.message || 'Slanje kampanje nije uspjelo.',
-        status: 'error',
-        isClosable: true,
-      });
+      success(
+        'Kampanja je poslana.',
+        `Poslano: ${data?.delivered ?? 0}, preskočeno: ${data?.skipped ?? 0}.`,
+      )
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined
+      toastError(msg || 'Slanje kampanje nije uspjelo.')
     } finally {
       setSendingCampaign(false);
     }
   };
 
   if (loading) {
-    return <Text>Učitavanje...</Text>;
+    return (
+      <div className="flex items-center gap-2 text-slate-500">
+        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+        Učitavanje...
+      </div>
+    )
   }
 
+  const selectClass =
+    'flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50'
+
   return (
-    <Box>
-      <Heading size="lg" mb={2}>
-        Email postavke
-      </Heading>
-      <Text color="gray.600" mb={6}>
+    <div>
+      <h1 className="mb-2 text-2xl font-semibold text-slate-900 dark:text-slate-50">Email postavke</h1>
+      <p className="mb-6 text-slate-600 dark:text-slate-300">
         Konfigurišite SMTP za slanje verifikacijskih i drugih notifikacijskih emailova.
-      </Text>
+      </p>
 
-      <Tabs variant="enclosed" colorScheme="brand">
-        <TabList>
-          <Tab>SMTP i infrastruktura</Tab>
-          <Tab>Postojeći template-i</Tab>
-          <Tab>Kampanje (Drag & Drop + HTML)</Tab>
-        </TabList>
-        <TabPanels>
-          <TabPanel px={0}>
-            <Card>
-              <CardBody>
-                <VStack align="stretch" spacing={4}>
-            <FormControl>
-              <FormLabel>Provider</FormLabel>
-              <Select
-                value={provider}
-                onChange={(event) => handleProviderChange(event.target.value as ProviderType)}
-              >
-                {PROVIDERS.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.label}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
+      <Tabs defaultValue="smtp">
+        <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-2">
+          <TabsTrigger value="smtp">SMTP i infrastruktura</TabsTrigger>
+          <TabsTrigger value="templates">Postojeći template-i</TabsTrigger>
+          <TabsTrigger value="campaigns">Kampanje (Drag & Drop + HTML)</TabsTrigger>
+        </TabsList>
 
-            <Grid templateColumns="repeat(2, minmax(0, 1fr))" gap={4}>
-              <GridItem colSpan={{ base: 2, md: 1 }}>
-                <FormControl>
-                  <FormLabel>SMTP Host</FormLabel>
-                  <Input value={host} onChange={(event) => setHost(event.target.value)} />
-                </FormControl>
-              </GridItem>
-              <GridItem colSpan={{ base: 2, md: 1 }}>
-                <FormControl>
-                  <FormLabel>SMTP Port</FormLabel>
-                  <Input value={port} onChange={(event) => setPort(event.target.value)} />
-                </FormControl>
-              </GridItem>
-            </Grid>
+        <TabsContent value="smtp" className="mt-4">
+          <Card className="p-6">
+            <div className="space-y-4">
+              <div>
+                <Label>Provider</Label>
+                <select
+                  className={`${selectClass} mt-1`}
+                  value={provider}
+                  onChange={(event) => handleProviderChange(event.target.value as ProviderType)}
+                >
+                  {PROVIDERS.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <HStack justify="space-between">
-              <FormControl display="flex" alignItems="center">
-                <FormLabel mb="0">Secure (TLS/SSL)</FormLabel>
-                <Switch isChecked={secure} onChange={(event) => setSecure(event.target.checked)} />
-              </FormControl>
-              <FormControl display="flex" alignItems="center">
-                <FormLabel mb="0">Reject TLS Unauthorized</FormLabel>
-                <Switch
-                  isChecked={rejectUnauthorized}
-                  onChange={(event) => setRejectUnauthorized(event.target.checked)}
-                />
-              </FormControl>
-            </HStack>
-            <HStack justify="space-between">
-              <FormControl display="flex" alignItems="center">
-                <FormLabel mb="0">Require TLS</FormLabel>
-                <Switch isChecked={requireTls} onChange={(event) => setRequireTls(event.target.checked)} />
-              </FormControl>
-              <FormControl display="flex" alignItems="center">
-                <FormLabel mb="0">Ignore TLS</FormLabel>
-                <Switch isChecked={ignoreTls} onChange={(event) => setIgnoreTls(event.target.checked)} />
-              </FormControl>
-            </HStack>
-            <HStack justify="space-between">
-              <FormControl display="flex" alignItems="center">
-                <FormLabel mb="0">Pool konekcije</FormLabel>
-                <Switch isChecked={pool} onChange={(event) => setPool(event.target.checked)} />
-              </FormControl>
-            </HStack>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <Label>SMTP Host</Label>
+                  <Input className="mt-1" value={host} onChange={(event) => setHost(event.target.value)} />
+                </div>
+                <div>
+                  <Label>SMTP Port</Label>
+                  <Input className="mt-1" value={port} onChange={(event) => setPort(event.target.value)} />
+                </div>
+              </div>
 
-            <Grid templateColumns="repeat(2, minmax(0, 1fr))" gap={4}>
-              <GridItem colSpan={{ base: 2, md: 1 }}>
-                <FormControl>
-                  <FormLabel>SMTP Username</FormLabel>
-                  <Input value={username} onChange={(event) => setUsername(event.target.value)} />
-                </FormControl>
-              </GridItem>
-              <GridItem colSpan={{ base: 2, md: 1 }}>
-                <FormControl>
-                  <FormLabel>SMTP Password / App Password</FormLabel>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="mb-0">Secure (TLS/SSL)</Label>
+                  <Switch checked={secure} onCheckedChange={setSecure} />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="mb-0">Reject TLS Unauthorized</Label>
+                  <Switch checked={rejectUnauthorized} onCheckedChange={setRejectUnauthorized} />
+                </div>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="mb-0">Require TLS</Label>
+                  <Switch checked={requireTls} onCheckedChange={setRequireTls} />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="mb-0">Ignore TLS</Label>
+                  <Switch checked={ignoreTls} onCheckedChange={setIgnoreTls} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <Label className="mb-0">Pool konekcije</Label>
+                <Switch checked={pool} onCheckedChange={setPool} />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <Label>SMTP Username</Label>
+                  <Input className="mt-1" value={username} onChange={(event) => setUsername(event.target.value)} />
+                </div>
+                <div>
+                  <Label>SMTP Password / App Password</Label>
                   <Input
+                    className="mt-1"
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder={hasPasswordConfigured ? '•••••••• (sačuvano)' : ''}
                   />
-                  <HStack justify="space-between" mt={2}>
-                    <Text fontSize="xs" color="gray.500">
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <p className="text-xs text-slate-500">
                       {hasPasswordConfigured
                         ? 'Password je sačuvan (enkriptovan). Unesite novi samo ako želite promjenu.'
                         : 'Unesite password/app password.'}
-                    </Text>
-                    {hasPasswordConfigured && (
+                    </p>
+                    {hasPasswordConfigured ? (
                       <Button
-                        size="xs"
+                        type="button"
+                        size="sm"
                         variant="ghost"
-                        colorScheme="red"
+                        className="shrink-0 text-rose-600"
                         onClick={() => {
                           if (!window.confirm('Obrisati sačuvani SMTP password?')) return
                           setClearPasswordRequested(true)
@@ -788,501 +745,559 @@ export default function EmailSettings() {
                       >
                         Obriši password
                       </Button>
-                    )}
-                  </HStack>
-                </FormControl>
-              </GridItem>
-            </Grid>
-            <Grid templateColumns="repeat(2, minmax(0, 1fr))" gap={4}>
-              <GridItem colSpan={{ base: 2, md: 1 }}>
-                <FormControl>
-                  <FormLabel>Connection timeout (ms)</FormLabel>
-                  <Input value={connectionTimeoutMs} onChange={(event) => setConnectionTimeoutMs(event.target.value)} />
-                </FormControl>
-              </GridItem>
-              <GridItem colSpan={{ base: 2, md: 1 }}>
-                <FormControl>
-                  <FormLabel>Greeting timeout (ms)</FormLabel>
-                  <Input value={greetingTimeoutMs} onChange={(event) => setGreetingTimeoutMs(event.target.value)} />
-                </FormControl>
-              </GridItem>
-              <GridItem colSpan={{ base: 2, md: 1 }}>
-                <FormControl>
-                  <FormLabel>Socket timeout (ms)</FormLabel>
-                  <Input value={socketTimeoutMs} onChange={(event) => setSocketTimeoutMs(event.target.value)} />
-                </FormControl>
-              </GridItem>
-              <GridItem colSpan={{ base: 2, md: 1 }}>
-                <FormControl>
-                  <FormLabel>Max konekcija / Max poruka</FormLabel>
-                  <HStack>
-                    <Input value={maxConnections} onChange={(event) => setMaxConnections(event.target.value)} placeholder="5" />
-                    <Input value={maxMessages} onChange={(event) => setMaxMessages(event.target.value)} placeholder="100" />
-                  </HStack>
-                </FormControl>
-              </GridItem>
-            </Grid>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
 
-            {!isCustomLike && (
-              <Text fontSize="sm" color="gray.500">
-                Za {provider === 'google' ? 'Google' : 'Office 365'} koristite App Password ili OAuth SMTP credentials.
-              </Text>
-            )}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <Label>Connection timeout (ms)</Label>
+                  <Input
+                    className="mt-1"
+                    value={connectionTimeoutMs}
+                    onChange={(event) => setConnectionTimeoutMs(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Greeting timeout (ms)</Label>
+                  <Input
+                    className="mt-1"
+                    value={greetingTimeoutMs}
+                    onChange={(event) => setGreetingTimeoutMs(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Socket timeout (ms)</Label>
+                  <Input
+                    className="mt-1"
+                    value={socketTimeoutMs}
+                    onChange={(event) => setSocketTimeoutMs(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>Max konekcija / Max poruka</Label>
+                  <div className="mt-1 flex gap-2">
+                    <Input
+                      value={maxConnections}
+                      onChange={(event) => setMaxConnections(event.target.value)}
+                      placeholder="5"
+                    />
+                    <Input
+                      value={maxMessages}
+                      onChange={(event) => setMaxMessages(event.target.value)}
+                      placeholder="100"
+                    />
+                  </div>
+                </div>
+              </div>
 
-            <Divider />
+              {!isCustomLike ? (
+                <p className="text-sm text-slate-500">
+                  Za {provider === 'google' ? 'Google' : 'Office 365'} koristite App Password ili OAuth SMTP credentials.
+                </p>
+              ) : null}
 
-            <Grid templateColumns="repeat(2, minmax(0, 1fr))" gap={4}>
-              <GridItem colSpan={{ base: 2, md: 1 }}>
-                <FormControl>
-                  <FormLabel>From Email</FormLabel>
-                  <Input value={fromEmail} onChange={(event) => setFromEmail(event.target.value)} />
-                </FormControl>
-              </GridItem>
-              <GridItem colSpan={{ base: 2, md: 1 }}>
-                <FormControl>
-                  <FormLabel>From Name</FormLabel>
-                  <Input value={fromName} onChange={(event) => setFromName(event.target.value)} />
-                </FormControl>
-              </GridItem>
-              <GridItem colSpan={{ base: 2, md: 1 }}>
-                <FormControl>
-                  <FormLabel>Reply-To</FormLabel>
-                  <Input value={replyTo} onChange={(event) => setReplyTo(event.target.value)} placeholder="support@domena.com" />
-                </FormControl>
-              </GridItem>
-              <GridItem colSpan={{ base: 2, md: 1 }}>
-                <FormControl>
-                  <FormLabel>Potpis (footer)</FormLabel>
-                  <Input value={signature} onChange={(event) => setSignature(event.target.value)} />
-                </FormControl>
-              </GridItem>
-              <GridItem colSpan={2}>
-                <FormControl>
-                  <FormLabel>Public App URL (linkovi u emailovima)</FormLabel>
-                  <Input value={publicAppUrl} onChange={(event) => setPublicAppUrl(event.target.value)} placeholder="https://vas-domen.ba" />
-                </FormControl>
-              </GridItem>
-            </Grid>
+              <Separator />
 
-            <HStack>
-              <Button colorScheme="brand" onClick={handleSave} isLoading={saving}>
-                Sačuvaj email postavke
-              </Button>
-              <Button variant="outline" onClick={handleTestConnection} isLoading={testingConnection}>
-                Test konekcije
-              </Button>
-            </HStack>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <Label>From Email</Label>
+                  <Input className="mt-1" value={fromEmail} onChange={(event) => setFromEmail(event.target.value)} />
+                </div>
+                <div>
+                  <Label>From Name</Label>
+                  <Input className="mt-1" value={fromName} onChange={(event) => setFromName(event.target.value)} />
+                </div>
+                <div>
+                  <Label>Reply-To</Label>
+                  <Input
+                    className="mt-1"
+                    value={replyTo}
+                    onChange={(event) => setReplyTo(event.target.value)}
+                    placeholder="support@domena.com"
+                  />
+                </div>
+                <div>
+                  <Label>Potpis (footer)</Label>
+                  <Input className="mt-1" value={signature} onChange={(event) => setSignature(event.target.value)} />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Public App URL (linkovi u emailovima)</Label>
+                  <Input
+                    className="mt-1"
+                    value={publicAppUrl}
+                    onChange={(event) => setPublicAppUrl(event.target.value)}
+                    placeholder="https://vas-domen.ba"
+                  />
+                </div>
+              </div>
 
-            <Divider />
-
-            <FormControl>
-              <FormLabel>Test email</FormLabel>
-              <HStack>
-                <Input
-                  value={testEmailTo}
-                  onChange={(event) => setTestEmailTo(event.target.value)}
-                  placeholder="email@domena.com"
-                />
-                <Button
-                  variant="outline"
-                  colorScheme="brand"
-                  onClick={handleSendTestEmail}
-                  isLoading={sendingTest}
-                >
-                  Pošalji test
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" onClick={() => void handleSave()} disabled={saving}>
+                  {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Sačuvaj email postavke
                 </Button>
-                <Button
-                  variant="solid"
-                  colorScheme="purple"
-                  onClick={handleSendTestToMe}
-                  isLoading={sendingTest}
-                >
-                  Pošalji meni
+                <Button type="button" variant="outline" onClick={() => void handleTestConnection()} disabled={testingConnection}>
+                  {testingConnection ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Test konekcije
                 </Button>
-              </HStack>
-            </FormControl>
-                </VStack>
-              </CardBody>
-            </Card>
-          </TabPanel>
+              </div>
 
-          <TabPanel px={0}>
-            <Card>
-              <CardBody>
-                <VStack align="stretch" spacing={4}>
-                  <HStack>
-                    <FormControl>
-                      <FormLabel>Tip template-a</FormLabel>
-                      <Select
-                        value={existingTemplateType}
-                        onChange={(event) =>
-                          setExistingTemplateType(event.target.value as ExistingTemplateType)
-                        }
-                      >
-                        {EXISTING_TEMPLATE_TYPES.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.label}
-                          </option>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <Badge alignSelf="end" colorScheme="purple" px={3} py={2} borderRadius="md">
-                      Premium Salon Design Aktiviran
-                    </Badge>
-                  </HStack>
+              <Separator />
 
-                  <Grid templateColumns="repeat(2, minmax(0, 1fr))" gap={4}>
-                    <GridItem colSpan={{ base: 2, md: 1 }}>
-                      <FormControl>
-                        <FormLabel>Subject</FormLabel>
-                        <Input
-                          value={existingTemplate.subject}
-                          onChange={(event) =>
-                            setExistingTemplate((prev) => ({ ...prev, subject: event.target.value }))
-                          }
-                        />
-                      </FormControl>
-                    </GridItem>
-                    <GridItem colSpan={{ base: 2, md: 1 }}>
-                      <FormControl>
-                        <FormLabel>Naslov</FormLabel>
-                        <Input
-                          value={existingTemplate.title}
-                          onChange={(event) =>
-                            setExistingTemplate((prev) => ({ ...prev, title: event.target.value }))
-                          }
-                        />
-                      </FormControl>
-                    </GridItem>
-                    <GridItem colSpan={{ base: 2, md: 1 }}>
-                      <FormControl>
-                        <FormLabel>Intro</FormLabel>
-                        <Input
-                          value={existingTemplate.intro}
-                          onChange={(event) =>
-                            setExistingTemplate((prev) => ({ ...prev, intro: event.target.value }))
-                          }
-                        />
-                      </FormControl>
-                    </GridItem>
-                    <GridItem colSpan={{ base: 2, md: 1 }}>
-                      <FormControl>
-                        <FormLabel>CTA Label</FormLabel>
-                        <Input
-                          value={existingTemplate.ctaLabel}
-                          onChange={(event) =>
-                            setExistingTemplate((prev) => ({ ...prev, ctaLabel: event.target.value }))
-                          }
-                        />
-                      </FormControl>
-                    </GridItem>
-                    <GridItem colSpan={2}>
-                      <FormControl>
-                        <FormLabel>Body</FormLabel>
-                        <Textarea
-                          minH="120px"
-                          value={existingTemplate.body}
-                          onChange={(event) =>
-                            setExistingTemplate((prev) => ({ ...prev, body: event.target.value }))
-                          }
-                        />
-                      </FormControl>
-                    </GridItem>
-                    <GridItem colSpan={2}>
-                      <FormControl>
-                        <FormLabel>CTA URL</FormLabel>
-                        <Input
-                          value={existingTemplate.ctaUrl}
-                          onChange={(event) =>
-                            setExistingTemplate((prev) => ({ ...prev, ctaUrl: event.target.value }))
-                          }
-                        />
-                      </FormControl>
-                    </GridItem>
-                    <GridItem colSpan={2}>
-                      <FormControl>
-                        <FormLabel>Plain Text fallback</FormLabel>
-                        <Textarea
-                          minH="120px"
-                          value={existingTemplate.plainText}
-                          onChange={(event) =>
-                            setExistingTemplate((prev) => ({ ...prev, plainText: event.target.value }))
-                          }
-                        />
-                      </FormControl>
-                    </GridItem>
-                  </Grid>
-
-                  <Button colorScheme="brand" onClick={handleSaveExistingTemplate} isLoading={savingTemplate}>
-                    Sačuvaj postojeći template
-                  </Button>
-                </VStack>
-              </CardBody>
-            </Card>
-          </TabPanel>
-
-          <TabPanel px={0}>
-            <Card>
-              <CardBody>
-                <VStack align="stretch" spacing={4}>
-                  <HStack>
-                    <Button leftIcon={<AddIcon />} onClick={handleCreateCampaign}>
-                      Novi kampanjski template
+              <div>
+                <Label>Test email</Label>
+                <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input
+                    value={testEmailTo}
+                    onChange={(event) => setTestEmailTo(event.target.value)}
+                    placeholder="email@domena.com"
+                    className="sm:max-w-xs"
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" onClick={() => void handleSendTestEmail()} disabled={sendingTest}>
+                      {sendingTest ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Pošalji test
                     </Button>
-                    <Select
-                      maxW="320px"
-                      value={selectedCampaignId}
-                      onChange={(event) => setSelectedCampaignId(event.target.value)}
-                    >
-                      {campaignTemplates.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </Select>
-                    <Select
-                      maxW="220px"
-                      value={campaignMode}
-                      onChange={(event) => setCampaignMode(event.target.value as 'builder' | 'html')}
-                    >
-                      <option value="builder">Drag & Drop Builder</option>
-                      <option value="html">HTML Editor</option>
-                    </Select>
-                  </HStack>
+                    <Button type="button" variant="secondary" onClick={() => void handleSendTestToMe()} disabled={sendingTest}>
+                      {sendingTest ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Pošalji meni
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
 
-                  {selectedCampaign ? (
-                    <VStack align="stretch" spacing={4}>
-                      <FormControl>
-                        <FormLabel>Naziv template-a</FormLabel>
-                        <Input
-                          value={selectedCampaign.name}
-                          onChange={(event) =>
-                            updateSelectedCampaign((current) => ({ ...current, name: event.target.value }))
-                          }
-                        />
-                      </FormControl>
-                      <FormControl>
-                        <FormLabel>Subject kampanje (override)</FormLabel>
-                        <Input
-                          value={campaignSubject}
-                          onChange={(event) => setCampaignSubject(event.target.value)}
-                          placeholder="npr. Ekskluzivna premium ponuda za vas"
-                        />
-                      </FormControl>
-                      <FormControl>
-                        <FormLabel>Naziv kampanje (interno)</FormLabel>
-                        <Input
-                          value={campaignName}
-                          onChange={(event) => setCampaignName(event.target.value)}
-                          placeholder="npr. Proljetna kampanja 2026"
-                        />
-                      </FormControl>
+        <TabsContent value="templates" className="mt-4">
+          <Card className="p-6">
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <Label>Tip template-a</Label>
+                  <select
+                    className={`${selectClass} mt-1`}
+                    value={existingTemplateType}
+                    onChange={(event) => setExistingTemplateType(event.target.value as ExistingTemplateType)}
+                  >
+                    {EXISTING_TEMPLATE_TYPES.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <Badge variant="brand" className="w-fit px-3 py-2">
+                  Premium Salon Design Aktiviran
+                </Badge>
+              </div>
 
-                      {campaignMode === 'builder' ? (
-                        <Stack spacing={3}>
-                          <HStack>
-                            <Button size="sm" onClick={() => updateSelectedCampaign((current) => {
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <Label>Subject</Label>
+                  <Input
+                    className="mt-1"
+                    value={existingTemplate.subject}
+                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, subject: event.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Naslov</Label>
+                  <Input
+                    className="mt-1"
+                    value={existingTemplate.title}
+                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, title: event.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>Intro</Label>
+                  <Input
+                    className="mt-1"
+                    value={existingTemplate.intro}
+                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, intro: event.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label>CTA Label</Label>
+                  <Input
+                    className="mt-1"
+                    value={existingTemplate.ctaLabel}
+                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, ctaLabel: event.target.value }))}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Body</Label>
+                  <Textarea
+                    className="mt-1 min-h-[120px]"
+                    value={existingTemplate.body}
+                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, body: event.target.value }))}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>CTA URL</Label>
+                  <Input
+                    className="mt-1"
+                    value={existingTemplate.ctaUrl}
+                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, ctaUrl: event.target.value }))}
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Plain Text fallback</Label>
+                  <Textarea
+                    className="mt-1 min-h-[120px]"
+                    value={existingTemplate.plainText}
+                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, plainText: event.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <Button type="button" onClick={() => void handleSaveExistingTemplate()} disabled={savingTemplate}>
+                {savingTemplate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Sačuvaj postojeći template
+              </Button>
+            </div>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="campaigns" className="mt-4">
+          <Card className="p-6">
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Button type="button" variant="outline" onClick={handleCreateCampaign}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Novi kampanjski template
+                  </Button>
+                  <select
+                    className={`${selectClass} sm:w-[320px]`}
+                    value={selectedCampaignId}
+                    onChange={(event) => setSelectedCampaignId(event.target.value)}
+                  >
+                    {campaignTemplates.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className={`${selectClass} sm:w-[220px]`}
+                    value={campaignMode}
+                    onChange={(event) => setCampaignMode(event.target.value as 'builder' | 'html')}
+                  >
+                    <option value="builder">Drag & Drop Builder</option>
+                    <option value="html">HTML Editor</option>
+                  </select>
+                </div>
+              </div>
+
+              {selectedCampaign ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <Label>Naziv template-a</Label>
+                      <Input
+                        className="mt-1"
+                        value={selectedCampaign.name}
+                        onChange={(event) =>
+                          updateSelectedCampaign((current) => ({ ...current, name: event.target.value }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label>Subject kampanje (override)</Label>
+                      <Input
+                        className="mt-1"
+                        value={campaignSubject}
+                        onChange={(event) => setCampaignSubject(event.target.value)}
+                        placeholder="npr. Ekskluzivna premium ponuda za vas"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>Naziv kampanje (interno)</Label>
+                      <Input
+                        className="mt-1"
+                        value={campaignName}
+                        onChange={(event) => setCampaignName(event.target.value)}
+                        placeholder="npr. Proljetna kampanja 2026"
+                      />
+                    </div>
+                  </div>
+
+                  {campaignMode === 'builder' ? (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            updateSelectedCampaign((current) => {
                               const nextBlocks = [...current.blocks, createBlock('title')]
                               return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                            })}>+ Naslov</Button>
-                            <Button size="sm" onClick={() => updateSelectedCampaign((current) => {
+                            })
+                          }
+                        >
+                          + Naslov
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            updateSelectedCampaign((current) => {
                               const nextBlocks = [...current.blocks, createBlock('text')]
                               return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                            })}>+ Tekst</Button>
-                            <Button size="sm" onClick={() => updateSelectedCampaign((current) => {
+                            })
+                          }
+                        >
+                          + Tekst
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            updateSelectedCampaign((current) => {
                               const nextBlocks = [...current.blocks, createBlock('button')]
                               return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                            })}>+ Dugme</Button>
-                            <Button size="sm" onClick={() => updateSelectedCampaign((current) => {
+                            })
+                          }
+                        >
+                          + Dugme
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            updateSelectedCampaign((current) => {
                               const nextBlocks = [...current.blocks, createBlock('spacer')]
                               return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                            })}>+ Razmak</Button>
-                          </HStack>
+                            })
+                          }
+                        >
+                          + Razmak
+                        </Button>
+                      </div>
 
-                          {selectedCampaign.blocks.map((block, index) => (
-                            <Card
-                              key={block.id}
-                              draggable
-                              onDragStart={(event) => event.dataTransfer.setData('text/plain', block.id)}
-                              onDragOver={(event) => event.preventDefault()}
-                              onDrop={(event) => handleCampaignDrop(event, block.id)}
-                              border="1px solid"
-                              borderColor="gray.200"
-                            >
-                              <CardBody>
-                                <VStack align="stretch" spacing={2}>
-                                  <HStack justify="space-between">
-                                    <Badge colorScheme="purple">{block.type.toUpperCase()}</Badge>
-                                    <HStack>
-                                      <IconButton
-                                        aria-label="Move up"
-                                        size="xs"
-                                        icon={<ArrowUpIcon />}
-                                        onClick={() =>
-                                          updateSelectedCampaign((current) => {
-                                            if (index === 0) return current
-                                            const nextBlocks = [...current.blocks]
-                                            const temp = nextBlocks[index - 1]
-                                            nextBlocks[index - 1] = nextBlocks[index]
-                                            nextBlocks[index] = temp
-                                            return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                                          })
-                                        }
-                                      />
-                                      <IconButton
-                                        aria-label="Move down"
-                                        size="xs"
-                                        icon={<ArrowDownIcon />}
-                                        onClick={() =>
-                                          updateSelectedCampaign((current) => {
-                                            if (index === current.blocks.length - 1) return current
-                                            const nextBlocks = [...current.blocks]
-                                            const temp = nextBlocks[index + 1]
-                                            nextBlocks[index + 1] = nextBlocks[index]
-                                            nextBlocks[index] = temp
-                                            return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                                          })
-                                        }
-                                      />
-                                      <IconButton
-                                        aria-label="Delete block"
-                                        size="xs"
-                                        colorScheme="red"
-                                        icon={<DeleteIcon />}
-                                        onClick={() =>
-                                          updateSelectedCampaign((current) => {
-                                            const nextBlocks = current.blocks.filter((item) => item.id !== block.id)
-                                            return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                                          })
-                                        }
-                                      />
-                                    </HStack>
-                                  </HStack>
-                                  <Input
-                                    value={block.content}
-                                    onChange={(event) =>
+                      <div className="space-y-3">
+                        {selectedCampaign.blocks.map((block, index) => (
+                          <Card
+                            key={block.id}
+                            className="border border-slate-200 p-4 dark:border-slate-800"
+                            draggable
+                            onDragStart={(event) => event.dataTransfer.setData('text/plain', block.id)}
+                            onDragOver={(event) => event.preventDefault()}
+                            onDrop={(event) => handleCampaignDrop(event, block.id)}
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <Badge variant="secondary" className="text-[10px]">
+                                  {block.type.toUpperCase()}
+                                </Badge>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    aria-label="Move up"
+                                    onClick={() =>
                                       updateSelectedCampaign((current) => {
-                                        const nextBlocks = current.blocks.map((item) =>
-                                          item.id === block.id ? { ...item, content: event.target.value } : item,
-                                        )
+                                        if (index === 0) return current
+                                        const nextBlocks = [...current.blocks]
+                                        const temp = nextBlocks[index - 1]
+                                        nextBlocks[index - 1] = nextBlocks[index]
+                                        nextBlocks[index] = temp
                                         return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
                                       })
                                     }
-                                  />
-                                  {block.type === 'button' && (
-                                    <Input
-                                      placeholder="Button URL"
-                                      value={block.secondary || ''}
-                                      onChange={(event) =>
-                                        updateSelectedCampaign((current) => {
-                                          const nextBlocks = current.blocks.map((item) =>
-                                            item.id === block.id ? { ...item, secondary: event.target.value } : item,
-                                          )
-                                          return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                                        })
-                                      }
-                                    />
-                                  )}
-                                </VStack>
-                              </CardBody>
-                            </Card>
-                          ))}
-                        </Stack>
-                      ) : (
-                        <FormControl>
-                          <FormLabel>HTML</FormLabel>
-                          <Textarea
-                            minH="320px"
-                            value={selectedCampaign.html}
-                            onChange={(event) =>
-                              updateSelectedCampaign((current) => ({ ...current, html: event.target.value }))
-                            }
-                          />
-                        </FormControl>
-                      )}
+                                  >
+                                    <ArrowUp className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    aria-label="Move down"
+                                    onClick={() =>
+                                      updateSelectedCampaign((current) => {
+                                        if (index === current.blocks.length - 1) return current
+                                        const nextBlocks = [...current.blocks]
+                                        const temp = nextBlocks[index + 1]
+                                        nextBlocks[index + 1] = nextBlocks[index]
+                                        nextBlocks[index] = temp
+                                        return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
+                                      })
+                                    }
+                                  >
+                                    <ArrowDown className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-rose-600"
+                                    aria-label="Delete block"
+                                    onClick={() =>
+                                      updateSelectedCampaign((current) => {
+                                        const nextBlocks = current.blocks.filter((item) => item.id !== block.id)
+                                        return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
+                                      })
+                                    }
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
 
-                      <FormControl>
-                        <FormLabel>HTML Preview Source</FormLabel>
-                        <Code whiteSpace="pre-wrap" p={3} borderRadius="md">
-                          {(campaignMode === 'builder'
-                            ? renderCampaignHtml(selectedCampaign.blocks)
-                            : selectedCampaign.html
-                          ).slice(0, 1200)}
-                        </Code>
-                      </FormControl>
-
-                      <Divider />
-
-                      <VStack align="stretch" spacing={3}>
-                        <Text fontWeight="600">Publika kampanje</Text>
-                        <HStack flexWrap="wrap">
-                          {['CLIENT', 'STYLIST', 'SYSTEM_ADMIN', 'OWNER'].map((role) => (
-                            <Button
-                              key={role}
-                              size="sm"
-                              variant={campaignRoles.includes(role) ? 'solid' : 'outline'}
-                              colorScheme={campaignRoles.includes(role) ? 'purple' : 'gray'}
-                              onClick={() => handleToggleCampaignRole(role)}
-                            >
-                              {role}
-                            </Button>
-                          ))}
-                        </HStack>
-                        <HStack>
-                          <FormControl display="flex" alignItems="center">
-                            <FormLabel mb="0">Samo aktivni korisnici</FormLabel>
-                            <Switch isChecked={onlyActiveAudience} onChange={(event) => setOnlyActiveAudience(event.target.checked)} />
-                          </FormControl>
-                          <FormControl display="flex" alignItems="center">
-                            <FormLabel mb="0">Samo email-verifikovani</FormLabel>
-                            <Switch isChecked={onlyVerifiedAudience} onChange={(event) => setOnlyVerifiedAudience(event.target.checked)} />
-                          </FormControl>
-                          <FormControl display="flex" alignItems="center">
-                            <FormLabel mb="0">Kreiraj in-app notifikaciju</FormLabel>
-                            <Switch isChecked={createInAppNotification} onChange={(event) => setCreateInAppNotification(event.target.checked)} />
-                          </FormControl>
-                        </HStack>
-
-                        <HStack>
-                          <Button variant="outline" onClick={handleLoadAudiencePreview} isLoading={loadingAudience}>
-                            Izračunaj publiku
-                          </Button>
-                          <Button colorScheme="purple" onClick={handleSendCampaign} isLoading={sendingCampaign}>
-                            Pošalji kampanju
-                          </Button>
-                        </HStack>
-
-                        {audienceSummary && (
-                          <VStack align="stretch" spacing={2}>
-                            <Badge colorScheme="purple" w="fit-content" px={3} py={1} borderRadius="full">
-                              Ukupno primaoca: {audienceSummary.total}
-                            </Badge>
-                            <Text fontSize="sm" color="gray.600">
-                              Sample (prvih 10):{' '}
-                              {audienceSummary.sample.map((item) => item.username).join(', ') || '-'}
-                            </Text>
-                          </VStack>
-                        )}
-                        <Text fontSize="xs" color="gray.500">
-                          Dinamičke varijable u kampanji: {`{{firstName}}`} {`{{lastName}}`} {`{{username}}`} {`{{email}}`} {`{{appUrl}}`}
-                        </Text>
-                      </VStack>
-                    </VStack>
+                              <Input
+                                value={block.content}
+                                onChange={(event) =>
+                                  updateSelectedCampaign((current) => {
+                                    const nextBlocks = current.blocks.map((item) =>
+                                      item.id === block.id ? { ...item, content: event.target.value } : item,
+                                    )
+                                    return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
+                                  })
+                                }
+                              />
+                              {block.type === 'button' ? (
+                                <Input
+                                  placeholder="Button URL"
+                                  value={block.secondary || ''}
+                                  onChange={(event) =>
+                                    updateSelectedCampaign((current) => {
+                                      const nextBlocks = current.blocks.map((item) =>
+                                        item.id === block.id ? { ...item, secondary: event.target.value } : item,
+                                      )
+                                      return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
+                                    })
+                                  }
+                                />
+                              ) : null}
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
                   ) : (
-                    <Text color="gray.500">
-                      Još nema kampanjskih template-a. Kliknite na "Novi kampanjski template".
-                    </Text>
+                    <div>
+                      <Label>HTML</Label>
+                      <Textarea
+                        className="mt-1 min-h-[320px]"
+                        value={selectedCampaign.html}
+                        onChange={(event) =>
+                          updateSelectedCampaign((current) => ({ ...current, html: event.target.value }))
+                        }
+                      />
+                    </div>
                   )}
 
-                  <Button colorScheme="brand" onClick={handleSaveCampaignTemplates} isLoading={savingCampaigns}>
-                    Sačuvaj kampanjske template-e
-                  </Button>
-                </VStack>
-              </CardBody>
-            </Card>
-          </TabPanel>
-        </TabPanels>
+                  <div>
+                    <Label>HTML Preview Source</Label>
+                    <pre className="mt-1 max-h-[280px] overflow-auto rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-100">
+                      {(campaignMode === 'builder'
+                        ? renderCampaignHtml(selectedCampaign.blocks)
+                        : selectedCampaign.html
+                      ).slice(0, 1200)}
+                    </pre>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <p className="font-semibold text-slate-900 dark:text-slate-50">Publika kampanje</p>
+                    <div className="flex flex-wrap gap-2">
+                      {['CLIENT', 'STYLIST', 'SYSTEM_ADMIN', 'OWNER'].map((role) => (
+                        <Button
+                          key={role}
+                          type="button"
+                          size="sm"
+                          variant={campaignRoles.includes(role) ? 'default' : 'outline'}
+                          onClick={() => handleToggleCampaignRole(role)}
+                        >
+                          {role}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
+                      <div className="flex items-center justify-between gap-3">
+                        <Label className="mb-0">Samo aktivni korisnici</Label>
+                        <Switch checked={onlyActiveAudience} onCheckedChange={setOnlyActiveAudience} />
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <Label className="mb-0">Samo email-verifikovani</Label>
+                        <Switch checked={onlyVerifiedAudience} onCheckedChange={setOnlyVerifiedAudience} />
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <Label className="mb-0">Kreiraj in-app notifikaciju</Label>
+                        <Switch
+                          checked={createInAppNotification}
+                          onCheckedChange={setCreateInAppNotification}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => void handleLoadAudiencePreview()}
+                        disabled={loadingAudience}
+                      >
+                        {loadingAudience ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Izračunaj publiku
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => void handleSendCampaign()}
+                        disabled={sendingCampaign}
+                      >
+                        {sendingCampaign ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Pošalji kampanju
+                      </Button>
+                    </div>
+
+                    {audienceSummary ? (
+                      <div className="space-y-2">
+                        <Badge variant="brand" className="w-fit px-3 py-1">
+                          Ukupno primaoca: {audienceSummary.total}
+                        </Badge>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                          Sample (prvih 10): {audienceSummary.sample.map((item) => item.username).join(', ') || '-'}
+                        </p>
+                      </div>
+                    ) : null}
+
+                    <p className="text-xs text-slate-500">
+                      Dinamičke varijable u kampanji: {'{{firstName}}'} {'{{lastName}}'} {'{{username}}'} {'{{email}}'} {'{{appUrl}}'}
+                    </p>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void handleSaveCampaignTemplates()}
+                      disabled={savingCampaigns}
+                    >
+                      {savingCampaigns ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Sačuvaj kampanjske template-e
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">
+                  Još nema kampanjskih template-a. Kliknite na "Novi kampanjski template".
+                </p>
+              )}
+            </div>
+          </Card>
+        </TabsContent>
       </Tabs>
-    </Box>
-  );
+    </div>
+  )
 }

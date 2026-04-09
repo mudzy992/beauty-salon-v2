@@ -1,7 +1,6 @@
-import { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { Spinner, Center } from '@chakra-ui/react';
-import { useAuth } from '../context/AuthContext';
+import { ReactNode } from 'react'
+import { Navigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import {
   getClientMandatoryOnboardingPath,
   isExemptFromForcedPasswordChange,
@@ -13,10 +12,10 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (!isReady) {
     return (
-      <Center minH="100vh">
-        <Spinner size="xl" />
-      </Center>
-    );
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-sm text-slate-600">Učitavanje…</div>
+      </div>
+    )
   }
 
   if (!token) {

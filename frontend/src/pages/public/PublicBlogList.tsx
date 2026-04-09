@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import { Box, Container, Heading, Spinner, Text, SimpleGrid, Link, Flex, Icon, Image } from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { ArrowForwardIcon, CalendarIcon } from '@chakra-ui/icons';
-import api from '../../api/client';
-import { useSettings } from '../../context/SettingsContext';
-import { getUploadUrl } from '../../utils/uploadUrl';
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { motion } from 'framer-motion'
+import { ArrowRight, Calendar } from 'lucide-react'
+
+import api from '../../api/client'
+import { useSettings } from '../../context/SettingsContext'
+import { getUploadUrl } from '../../utils/uploadUrl'
 
 interface BlogPost {
   id: string;
@@ -18,7 +18,7 @@ interface BlogPost {
   heroImage?: string | null;
 }
 
-const MotionBox = motion(Box as any);
+const MotionDiv = motion.div
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -31,10 +31,10 @@ const fadeUp = {
 };
 
 export default function PublicBlogList() {
-  const { t } = useTranslation();
-  const { getSetting } = useSettings();
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { t } = useTranslation()
+  const { getSetting } = useSettings()
+  const [posts, setPosts] = useState<BlogPost[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     api
@@ -45,82 +45,76 @@ export default function PublicBlogList() {
   }, []);
 
   return (
-    <Box bg="gray.50" minH="100vh" pt={10} pb={20}>
-      <Box bg="white" py={16} mb={12} borderBottomWidth="1px" borderColor="gray.200" textAlign="center" position="relative" overflow="hidden">
-        <Box
-          position="absolute"
-          inset={0}
-          backgroundImage={`url('${getSetting('public_blog_bg', 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=2000')}')`}
-          backgroundSize="cover"
-          backgroundPosition="center"
-          opacity={0.1}
+    <div className="bg-slate-50 min-h-screen pt-10 pb-20">
+      <div className="bg-white py-16 mb-12 border-b border-slate-200 text-center relative overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-10"
+          style={{
+            backgroundImage: `url('${getSetting(
+              'public_blog_bg',
+              'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=2000',
+            )}')`,
+          }}
         />
-        <Container maxW="container.lg" position="relative" zIndex={1}>
-          <Text color="brand.500" fontWeight="bold" textTransform="uppercase" letterSpacing="widest" mb={2}>
+        <div className="mx-auto max-w-5xl px-4 relative z-10">
+          <div className="text-brand-gold font-semibold uppercase tracking-widest text-sm mb-2">
             {getSetting('public_blog_subtitle', 'Novosti & Savjeti')}
-          </Text>
-          <Heading size="2xl" color="brand.900">
+          </div>
+          <div className="text-4xl font-semibold text-slate-950">
             {getSetting('public_blog_title', 'Naš Frizerski Blog')}
-          </Heading>
-        </Container>
-      </Box>
+          </div>
+        </div>
+      </div>
 
-      <Container maxW="container.lg">
+      <div className="mx-auto max-w-5xl px-4">
         {loading ? (
-          <Flex justify="center" py={20}>
-            <Spinner size="xl" color="brand.500" thickness="4px" />
-          </Flex>
+          <div className="py-20 text-center text-slate-600">Učitavanje…</div>
         ) : posts.length === 0 ? (
-          <Text textAlign="center" color="gray.500" fontSize="lg">{t('common.noData')}</Text>
+          <div className="text-center text-slate-500 text-lg">{t('common.noData')}</div>
         ) : (
-          <MotionBox variants={stagger} initial="hidden" animate="visible">
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
+          <MotionDiv variants={stagger} initial="hidden" animate="visible">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {posts.map((p) => (
-                <MotionBox
+                <MotionDiv
                   key={p.id}
                   variants={fadeUp}
-                  bg="white"
-                  rounded="2xl"
-                  overflow="hidden"
-                  shadow="sm"
-                  _hover={{ shadow: 'lg', transform: 'translateY(-4px)' }}
-                  transition="all 0.3s"
+                  className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-slate-200"
                 >
-                  <Link as={RouterLink} to={`/blog/${p.slug}`} _hover={{ textDecoration: 'none' }} display="block">
-                    <Box h="180px" bg="gray.200" position="relative" overflow="hidden">
+                  <Link to={`/blog/${p.slug}`} className="block no-underline">
+                    <div className="h-[180px] bg-slate-200 relative overflow-hidden">
                       {p.heroImage ? (
-                        <Image
+                        <img
                           src={getUploadUrl(p.heroImage)}
                           alt={p.title}
-                          w="full"
-                          h="full"
-                          objectFit="cover"
-                          transition="transform 0.3s ease"
-                          _hover={{ transform: 'scale(1.03)' }}
+                          className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.03]"
                         />
                       ) : (
-                        <Box w="full" h="full" bgGradient="linear(to-br, brand.400, brand.600)" opacity={0.85} />
+                        <div className="h-full w-full bg-gradient-to-br from-brand-gold to-brand-champagne opacity-85" />
                       )}
-                    </Box>
-                    <Box p={6}>
-                      <Flex align="center" gap={2} color="gray.500" fontSize="sm" mb={3}>
-                        <Icon as={CalendarIcon} />
-                        <Text>{p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('bs-BA') : ''}</Text>
-                      </Flex>
-                      <Heading size="md" mb={4} color="gray.800" lineHeight="tall">
+                    </div>
+                    <div className="p-6">
+                      <div className="flex items-center gap-2 text-slate-500 text-sm mb-3">
+                        <Calendar className="h-4 w-4" />
+                        <div>
+                          {p.publishedAt
+                            ? new Date(p.publishedAt).toLocaleDateString('bs-BA')
+                            : ''}
+                        </div>
+                      </div>
+                      <div className="text-lg font-semibold text-slate-900 mb-4 leading-snug">
                         {p.title}
-                      </Heading>
-                      <Flex align="center" color="brand.500" fontWeight="semibold" fontSize="sm">
-                        Pročitaj više <Icon as={ArrowForwardIcon} ml={2} />
-                      </Flex>
-                    </Box>
+                      </div>
+                      <div className="inline-flex items-center gap-2 text-brand-gold font-semibold text-sm">
+                        Pročitaj više <ArrowRight className="h-4 w-4" />
+                      </div>
+                    </div>
                   </Link>
-                </MotionBox>
+                </MotionDiv>
               ))}
-            </SimpleGrid>
-          </MotionBox>
+            </div>
+          </MotionDiv>
         )}
-      </Container>
-    </Box>
-  );
+      </div>
+    </div>
+  )
 }

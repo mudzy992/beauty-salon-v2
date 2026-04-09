@@ -1,24 +1,17 @@
 import { FormEvent, useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import {
-  Button,
-  FormControl,
-  FormLabel,
-  HStack,
-  Input,
-  PinInput,
-  PinInputField,
-  Text,
-  useToast,
-  VStack,
-} from '@chakra-ui/react'
 import api from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import OnboardingShell from '../../components/OnboardingShell'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { OtpInput } from '../../components/ui/otp-input'
+import { useAppToast } from '../../lib/toast/useAppToast'
 
 export default function OnboardingEmail() {
   const { user, refreshProfile } = useAuth()
-  const toast = useToast()
+  const toast = useAppToast()
   const navigate = useNavigate()
   const [email, setEmail] = useState(user?.email ?? '')
   const [code, setCode] = useState('')
@@ -39,7 +32,7 @@ export default function OnboardingEmail() {
     e.preventDefault()
     const trimmed = email.trim()
     if (!trimmed) {
-      toast({ title: 'Email je obavezan.', status: 'warning', isClosable: true })
+      toast.warning('Email je obavezan.')
       return
     }
     setLoading(true)
@@ -48,13 +41,9 @@ export default function OnboardingEmail() {
       await refreshProfile()
       await api.post('/auth/send-verification-email')
       setCodeSent(true)
-      toast({ title: 'Poslali smo kod na email.', status: 'success', isClosable: true })
+      toast.success('Poslali smo kod na email.')
     } catch (error: any) {
-      toast({
-        title: error?.response?.data?.message || 'Slanje koda nije uspjelo.',
-        status: 'error',
-        isClosable: true,
-      })
+      toast.error(error?.response?.data?.message || 'Slanje koda nije uspjelo.')
     } finally {
       setLoading(false)
     }
@@ -63,7 +52,7 @@ export default function OnboardingEmail() {
   const handleVerify = async () => {
     const trimmed = code.trim()
     if (trimmed.length !== 6) {
-      toast({ title: 'Unesite 6-znamenkasti kod.', status: 'warning', isClosable: true })
+      toast.warning('Unesite 6-znamenkasti kod.')
       return
     }
     setLoading(true)
@@ -72,11 +61,7 @@ export default function OnboardingEmail() {
       await refreshProfile()
       navigate('/', { replace: true })
     } catch (error: any) {
-      toast({
-        title: error?.response?.data?.message || 'Verifikacija nije uspjela.',
-        status: 'error',
-        isClosable: true,
-      })
+      toast.error(error?.response?.data?.message || 'Verifikacija nije uspjela.')
     } finally {
       setLoading(false)
     }
@@ -86,13 +71,9 @@ export default function OnboardingEmail() {
     setLoading(true)
     try {
       await api.post('/auth/send-verification-email')
-      toast({ title: 'Kod je ponovo poslan.', status: 'success', isClosable: true })
+      toast.success('Kod je ponovo poslan.')
     } catch (error: any) {
-      toast({
-        title: error?.response?.data?.message || 'Slanje koda nije uspjelo.',
-        status: 'error',
-        isClosable: true,
-      })
+      toast.error(error?.response?.data?.message || 'Slanje koda nije uspjelo.')
     } finally {
       setLoading(false)
     }
@@ -107,46 +88,38 @@ export default function OnboardingEmail() {
       subtitle="Unesite email na koji šaljemo potvrde i obavještenja, zatim unesite kod iz poruke."
       tip="Provjerite i spam/junk folder ako kod ne stigne odmah."
     >
-      <VStack align="stretch" spacing={4}>
+      <div className="space-y-4">
         {!codeSent ? (
           <form onSubmit={handleSaveAndSend}>
-            <VStack align="stretch" spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Email</FormLabel>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
+                  id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
                   autoComplete="email"
                 />
-              </FormControl>
-              <Button type="submit" colorScheme="brand" isLoading={loading}>
-                Sačuvaj email i pošalji kod
+              </div>
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? 'Slanje…' : 'Sačuvaj email i pošalji kod'}
               </Button>
-            </VStack>
+            </div>
           </form>
         ) : (
-          <VStack align="stretch" spacing={4}>
-            <Text fontWeight="700">Verifikacijski kod</Text>
-            <HStack justify="center">
-              <PinInput otp value={code} onChange={setCode}>
-                <PinInputField />
-                <PinInputField />
-                <PinInputField />
-                <PinInputField />
-                <PinInputField />
-                <PinInputField />
-              </PinInput>
-            </HStack>
-            <Button colorScheme="brand" onClick={handleVerify} isLoading={loading}>
-              Potvrdi email
+          <div className="space-y-4">
+            <div className="font-semibold text-slate-900">Verifikacijski kod</div>
+            <OtpInput value={code} onChange={setCode} disabled={loading} />
+            <Button onClick={handleVerify} disabled={loading} className="w-full">
+              {loading ? 'Provjera…' : 'Potvrdi email'}
             </Button>
-            <Button variant="outline" onClick={handleResend} isLoading={loading}>
-              Pošalji kod ponovo
+            <Button variant="outline" onClick={handleResend} disabled={loading} className="w-full">
+              {loading ? 'Slanje…' : 'Pošalji kod ponovo'}
             </Button>
-          </VStack>
+          </div>
         )}
-      </VStack>
+      </div>
     </OnboardingShell>
   )
 }

@@ -11,6 +11,15 @@ export class ExpenseBooksService {
 
   /** Vraća knjigu za mjesec; kreira je ako ne postoji. */
   async getOrCreateForMonth(year: number, month: number) {
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+      throw new BadRequestException('Godina nije validna.');
+    }
+    if (!Number.isInteger(month) || month < 1 || month > 12) {
+      throw new BadRequestException('Mjesec nije validan.');
+    }
+    if (this.isFutureMonth(year, month)) {
+      throw new BadRequestException('Ne možete kreirati knjigu za budući mjesec.');
+    }
     let book = await this.prisma.expenseBook.findUnique({
       where: { year_month: { year, month } },
       include: { expenses: { include: { category: true } } },
@@ -42,6 +51,10 @@ export class ExpenseBooksService {
             attachments: true,
           },
         },
+        lockEvents: {
+          include: { createdBy: { select: { id: true, username: true } } },
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
     if (!book) throw new NotFoundException('Knjiga rashoda nije pronađena.');
@@ -49,14 +62,92 @@ export class ExpenseBooksService {
   }
 
   async close(id: string, closedBy: string) {
+    return this.lockBook(id, closedBy);
+  }
+
+  async unlockBook(id: string, reason: string, userId: string) {
+    const trimmedReason = reason?.trim();
+    if (!trimmedReason) {
+      throw new BadRequestException('Morate unijeti razlog otključavanja.');
+    }
+    if (trimmedReason.length > 2000) {
+      throw new BadRequestException('Razlog otključavanja je predugačak.');
+    }
     const book = await this.prisma.expenseBook.findUnique({ where: { id } });
     if (!book) throw new NotFoundException('Knjiga rashoda nije pronađena.');
-    if (book.isClosed)
-      throw new BadRequestException('Knjiga je već zatvorena.');
+    if (!book.isClosed) {
+      throw new BadRequestException('Knjiga je već otključana.');
+    }
+    if (!this.isPastMonth(book.year, book.month)) {
+      throw new BadRequestException('Otključavanje je dozvoljeno samo za knjige iz prošlosti.');
+    }
     return this.prisma.expenseBook.update({
       where: { id },
-      data: { isClosed: true, closedAt: new Date(), closedBy },
-      include: { expenses: true },
+      data: {
+        isClosed: false,
+        closedAt: null,
+        lockEvents: {
+          create: {
+            action: 'UNLOCK',
+            reason: trimmedReason,
+            createdById: userId,
+          },
+        },
+      },
+      include: {
+        expenses: { include: { category: true } },
+        lockEvents: {
+          include: { createdBy: { select: { id: true, username: true } } },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
     });
+  }
+
+  async lockBook(id: string, userId: string) {
+    const book = await this.prisma.expenseBook.findUnique({ where: { id } });
+    if (!book) throw new NotFoundException('Knjiga rashoda nije pronađena.');
+    if (book.isClosed) {
+      throw new BadRequestException('Knjiga je već zaključana.');
+    }
+    return this.prisma.expenseBook.update({
+      where: { id },
+      data: {
+        isClosed: true,
+        closedAt: new Date(),
+        closedBy: userId,
+        lockEvents: {
+          create: {
+            action: 'LOCK',
+            createdById: userId,
+          },
+        },
+      },
+      include: {
+        expenses: { include: { category: true } },
+        lockEvents: {
+          include: { createdBy: { select: { id: true, username: true } } },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+  }
+
+  private isPastMonth(year: number, month: number): boolean {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    if (year < currentYear) return true;
+    if (year > currentYear) return false;
+    return month < currentMonth;
+  }
+
+  private isFutureMonth(year: number, month: number): boolean {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    if (year > currentYear) return true;
+    if (year < currentYear) return false;
+    return month > currentMonth;
   }
 }

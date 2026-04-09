@@ -1,108 +1,112 @@
-import { useEffect, useState, useCallback } from 'react';
-import {
-  Box, Heading, Spinner, Text, Button, FormControl, FormLabel, Input,
-  VStack, useToast, NumberInput, NumberInputField, NumberInputStepper,
-  NumberIncrementStepper, NumberDecrementStepper, Tabs, TabList, Tab,
-  TabPanels, TabPanel, Table, Thead, Tbody, Tr, Th, Td, Switch, Flex,
-  Textarea, IconButton, useDisclosure, Modal, ModalOverlay, ModalContent,
-  ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Badge, HStack,
-  Alert, AlertIcon, AlertDescription,
-} from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
-import { AddIcon, DeleteIcon, EditIcon } from '@chakra-ui/icons';
-import api from '../api/client';
-import { useSocketEvent } from '../context/SocketContext';
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Loader2, Plus, Send, Trash2 } from 'lucide-react'
+
+import api from '../api/client'
+import { getErrorMessage } from '../api/error'
+import { useSocketEvent } from '../context/SocketContext'
+import { useAppToast } from '../lib/toast/useAppToast'
+
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Switch } from '../components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Textarea } from '../components/ui/textarea'
 
 interface SalonSettings {
-  id: string;
-  name: string;
-  address: string | null;
-  phone: string | null;
-  email: string | null;
-  description: string | null;
-  logo: string | null;
-  pauseBetweenServices: number;
-  cancellationDeadlineHours: number;
-  maxCancellationsBeforePenalty: number;
-  penaltyDurationDays: number;
-  reservationLockMinutes: number;
-  workingHours?: WorkingHours[];
-  holidays?: Holiday[];
+  id: string
+  name: string
+  address: string | null
+  phone: string | null
+  email: string | null
+  description: string | null
+  logo: string | null
+  pauseBetweenServices: number
+  cancellationDeadlineHours: number
+  maxCancellationsBeforePenalty: number
+  penaltyDurationDays: number
+  reservationLockMinutes: number
+  workingHours?: WorkingHours[]
+  holidays?: Holiday[]
 }
 
 interface WorkingHours {
-  id?: string;
-  dayOfWeek: number;
-  openTime: string;
-  closeTime: string;
-  isWorkingDay: boolean;
+  id?: string
+  dayOfWeek: number
+  openTime: string
+  closeTime: string
+  isWorkingDay: boolean
 }
 
 interface Holiday {
-  id: string;
-  date: string;
-  name: string;
-  message: string | null;
-  sendPush: boolean;
-  pushSentAt: string | null;
+  id: string
+  date: string
+  name: string
+  message: string | null
+  sendPush: boolean
+  pushSentAt: string | null
 }
 
-const DAYS = ['Nedjelja', 'Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota'];
+const DAYS = ['Nedjelja', 'Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota']
 
 export default function Salon() {
-  const { t } = useTranslation();
-  const toast = useToast();
-  const [salon, setSalon] = useState<SalonSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [noSalonExists, setNoSalonExists] = useState(false);
+  const { t } = useTranslation()
+  const { success, error, warning } = useAppToast()
+
+  const [salon, setSalon] = useState<SalonSettings | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [noSalonExists, setNoSalonExists] = useState(false)
 
   const [formData, setFormData] = useState({
-    name: '', address: '', phone: '', email: '', description: '',
-    pauseBetweenServices: 10, cancellationDeadlineHours: 24,
-    maxCancellationsBeforePenalty: 3, penaltyDurationDays: 30,
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+    description: '',
+    pauseBetweenServices: 10,
+    cancellationDeadlineHours: 24,
+    maxCancellationsBeforePenalty: 3,
+    penaltyDurationDays: 30,
     reservationLockMinutes: 15,
-  });
+  })
 
-  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([])
+  const [holidays, setHolidays] = useState<Holiday[]>([])
 
-  const { isOpen: isHolOpen, onOpen: onHolOpen, onClose: onHolClose } = useDisclosure();
-  const [editHol, setEditHol] = useState<Holiday | null>(null);
-  const [holForm, setHolForm] = useState({ date: '', name: '', message: '', sendPush: false });
+  const [holidayOpen, setHolidayOpen] = useState(false)
+  const [editHoliday, setEditHoliday] = useState<Holiday | null>(null)
+  const [holForm, setHolForm] = useState({ date: '', name: '', message: '', sendPush: false })
 
   const loadSalon = useCallback(async () => {
-    setLoading(true);
-    setNoSalonExists(false);
+    setLoading(true)
+    setNoSalonExists(false)
     try {
-      let s: SalonSettings | null = null;
-
-      // Try admin list endpoint first
+      let s: SalonSettings | null = null
       try {
-        const listRes = await api.get<SalonSettings[]>('/api/salon/list');
-        if (Array.isArray(listRes.data) && listRes.data.length > 0) {
-          s = listRes.data[0];
-        }
+        const listRes = await api.get<SalonSettings[]>('/api/salon/list')
+        if (Array.isArray(listRes.data) && listRes.data.length > 0) s = listRes.data[0]
       } catch {
-        // Fallback: try public endpoint
         try {
-          const pubRes = await api.get<SalonSettings | null>('/api/salon');
+          const pubRes = await api.get<SalonSettings | null>('/api/salon')
           if (pubRes.data && pubRes.data.id) {
-            // Get full details with relations
-            const detailRes = await api.get<SalonSettings>(`/api/salon/${pubRes.data.id}`);
-            s = detailRes.data;
+            const detailRes = await api.get<SalonSettings>(`/api/salon/${pubRes.data.id}`)
+            s = detailRes.data
           }
-        } catch { /* no salon */ }
+        } catch {}
       }
 
       if (!s) {
-        setNoSalonExists(true);
-        setSalon(null);
-        setLoading(false);
-        return;
+        setNoSalonExists(true)
+        setSalon(null)
+        return
       }
 
-      setSalon(s);
+      setSalon(s)
       setFormData({
         name: s.name ?? '',
         address: s.address ?? '',
@@ -114,353 +118,468 @@ export default function Salon() {
         maxCancellationsBeforePenalty: s.maxCancellationsBeforePenalty ?? 3,
         penaltyDurationDays: s.penaltyDurationDays ?? 30,
         reservationLockMinutes: s.reservationLockMinutes ?? 15,
-      });
+      })
 
       if (s.workingHours && s.workingHours.length > 0) {
         const full: WorkingHours[] = Array.from({ length: 7 }, (_, i) => {
-          const found = s!.workingHours!.find((w) => w.dayOfWeek === i);
-          return found ?? { dayOfWeek: i, openTime: '09:00', closeTime: '17:00', isWorkingDay: i >= 1 && i <= 5 };
-        });
-        setWorkingHours(full);
+          const found = s!.workingHours!.find((w) => w.dayOfWeek === i)
+          return found ?? { dayOfWeek: i, openTime: '09:00', closeTime: '17:00', isWorkingDay: i >= 1 && i <= 5 }
+        })
+        setWorkingHours(full)
       } else {
         const defaults: WorkingHours[] = Array.from({ length: 7 }, (_, i) => ({
-          dayOfWeek: i, openTime: '09:00', closeTime: '17:00', isWorkingDay: i >= 1 && i <= 5,
-        }));
-        setWorkingHours(defaults);
+          dayOfWeek: i,
+          openTime: '09:00',
+          closeTime: '17:00',
+          isWorkingDay: i >= 1 && i <= 5,
+        }))
+        setWorkingHours(defaults)
         try {
-          await api.post(`/api/salon/${s.id}/working-hours/ensure`);
-        } catch { /* ignore - will retry on next load */ }
+          await api.post(`/api/salon/${s.id}/working-hours/ensure`)
+        } catch {}
       }
 
-      setHolidays(s.holidays ?? []);
-    } catch {
-      setNoSalonExists(true);
-      setSalon(null);
+      setHolidays(s.holidays ?? [])
+    } catch (err) {
+      setNoSalonExists(true)
+      setSalon(null)
+      error(getErrorMessage(err))
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [error])
 
-  useEffect(() => { loadSalon(); }, [loadSalon]);
+  useEffect(() => {
+    loadSalon()
+  }, [loadSalon])
 
-  useSocketEvent('salon:updated', useCallback(() => loadSalon(), [loadSalon]));
+  useSocketEvent(
+    'salon:updated',
+    useCallback(() => {
+      loadSalon()
+    }, [loadSalon]),
+  )
+
+  const updateWH = (dayOfWeek: number, field: keyof WorkingHours, value: string | boolean) => {
+    setWorkingHours((prev) => prev.map((w) => (w.dayOfWeek === dayOfWeek ? { ...w, [field]: value } : w)))
+  }
+
+  const reloadHolidays = async () => {
+    if (!salon) return
+    try {
+      const { data } = await api.get<SalonSettings>(`/api/salon/${salon.id}`)
+      setHolidays(data.holidays ?? [])
+    } catch {}
+  }
+
+  const openHolidayForm = (h?: Holiday) => {
+    if (h) {
+      setEditHoliday(h)
+      setHolForm({ date: h.date.slice(0, 10), name: h.name, message: h.message ?? '', sendPush: h.sendPush })
+    } else {
+      setEditHoliday(null)
+      setHolForm({ date: '', name: '', message: '', sendPush: false })
+    }
+    setHolidayOpen(true)
+  }
 
   const handleCreateSalon = async () => {
     if (!formData.name) {
-      toast({ title: 'Unesite naziv salona', status: 'warning', isClosable: true });
-      return;
+      warning('Unesite naziv salona')
+      return
     }
-    setSaving(true);
+    setSaving(true)
     try {
-      await api.post('/api/salon', formData);
-      toast({ title: 'Salon kreiran!', status: 'success', isClosable: true });
-      loadSalon();
-    } catch {
-      toast({ title: 'Greška pri kreiranju salona', status: 'error', isClosable: true });
+      await api.post('/api/salon', formData)
+      success('Salon kreiran!')
+      loadSalon()
+    } catch (err) {
+      error(getErrorMessage(err))
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const handleSaveSettings = async () => {
-    if (!salon) return;
-    setSaving(true);
+    if (!salon) return
+    setSaving(true)
     try {
-      await api.patch(`/api/salon/${salon.id}`, formData);
-      toast({ title: 'Postavke salona sačuvane', status: 'success', isClosable: true });
-      loadSalon();
-    } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      await api.patch(`/api/salon/${salon.id}`, formData)
+      success('Postavke salona sačuvane')
+      loadSalon()
+    } catch (err) {
+      error(getErrorMessage(err))
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const handleSaveWorkingHours = async () => {
-    if (!salon) return;
-    setSaving(true);
+    if (!salon) return
+    setSaving(true)
     try {
-      await api.post(`/api/salon/${salon.id}/working-hours`, { workingHours });
-      toast({ title: 'Radno vrijeme sačuvano', status: 'success', isClosable: true });
-    } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      await api.post(`/api/salon/${salon.id}/working-hours`, { workingHours })
+      success('Radno vrijeme sačuvano')
+    } catch (err) {
+      error(getErrorMessage(err))
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
-
-  const updateWH = (dayOfWeek: number, field: keyof WorkingHours, value: string | boolean) => {
-    setWorkingHours((prev) =>
-      prev.map((w) => (w.dayOfWeek === dayOfWeek ? { ...w, [field]: value } : w))
-    );
-  };
-
-  const reloadHolidays = async () => {
-    if (!salon) return;
-    try {
-      const { data } = await api.get<SalonSettings>(`/api/salon/${salon.id}`);
-      setHolidays(data.holidays ?? []);
-    } catch { /* ignore */ }
-  };
-
-  const openHolForm = (h?: Holiday) => {
-    if (h) {
-      setEditHol(h);
-      setHolForm({ date: h.date.slice(0, 10), name: h.name, message: h.message ?? '', sendPush: h.sendPush });
-    } else {
-      setEditHol(null);
-      setHolForm({ date: '', name: '', message: '', sendPush: false });
-    }
-    onHolOpen();
-  };
+  }
 
   const handleSaveHoliday = async () => {
-    if (!salon || !holForm.date || !holForm.name) return;
-    setSaving(true);
+    if (!salon || !holForm.date || !holForm.name) return
+    setSaving(true)
     try {
-      if (editHol) {
-        await api.patch(`/api/salon/holidays/${editHol.id}`, holForm);
-      } else {
-        await api.post(`/api/salon/${salon.id}/holidays`, holForm);
-      }
-      toast({ title: 'Praznik sačuvan', status: 'success', isClosable: true });
-      reloadHolidays();
-      onHolClose();
-    } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      if (editHoliday) await api.patch(`/api/salon/holidays/${editHoliday.id}`, holForm)
+      else await api.post(`/api/salon/${salon.id}/holidays`, holForm)
+      success('Praznik sačuvan')
+      reloadHolidays()
+      setHolidayOpen(false)
+    } catch (err) {
+      error(getErrorMessage(err))
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const handleDeleteHoliday = async (id: string) => {
-    if (!window.confirm('Obrisati praznik?')) return;
+    if (!window.confirm('Obrisati praznik?')) return
     try {
-      await api.delete(`/api/salon/holidays/${id}`);
-      toast({ title: 'Praznik obrisan', status: 'success', isClosable: true });
-      reloadHolidays();
-    } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      await api.delete(`/api/salon/holidays/${id}`)
+      success('Praznik obrisan')
+      reloadHolidays()
+    } catch (err) {
+      error(getErrorMessage(err))
     }
-  };
+  }
 
-  const handleSendNotification = async (holId: string) => {
+  const handleSendNotification = async (holidayId: string) => {
     try {
-      await api.post(`/api/salon/holidays/${holId}/send-notification`);
-      toast({ title: 'Notifikacija poslana', status: 'success', isClosable: true });
-      reloadHolidays();
-    } catch {
-      toast({ title: 'Greška pri slanju', status: 'error', isClosable: true });
+      await api.post(`/api/salon/holidays/${holidayId}/send-notification`)
+      success('Notifikacija poslana')
+      reloadHolidays()
+    } catch (err) {
+      error(getErrorMessage(err))
     }
-  };
+  }
 
-  if (loading) return <Box p={6} textAlign="center"><Spinner size="lg" /></Box>;
+  const holidaysSummary = useMemo(() => {
+    const future = holidays
+      .slice()
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .filter((h) => new Date(h.date).getTime() >= new Date().setHours(0, 0, 0, 0))
+    return future.slice(0, 3)
+  }, [holidays])
 
-  // No salon exists - show creation form
+  if (loading) {
+    return (
+      <div className="flex justify-center p-10 text-slate-500">
+        <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+      </div>
+    )
+  }
+
   if (noSalonExists || !salon) {
     return (
-      <Box>
-        <Heading size="lg" mb={6}>{t('nav.salon')}</Heading>
-        <Alert status="info" mb={6} rounded="lg">
-          <AlertIcon />
-          <AlertDescription>Nema konfiguriranog salona. Kreirajte prvi salon da biste nastavili.</AlertDescription>
-        </Alert>
-        <Box bg="white" p={6} rounded="xl" shadow="sm" maxW="2xl">
-          <VStack spacing={4} align="stretch">
-            <FormControl isRequired>
-              <FormLabel>Naziv salona</FormLabel>
-              <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Beauty Salon Nejra" />
-            </FormControl>
-            <FormControl>
-              <FormLabel>Adresa</FormLabel>
-              <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
-            </FormControl>
-            <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
-              <FormControl flex={1}>
-                <FormLabel>Telefon</FormLabel>
-                <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-              </FormControl>
-              <FormControl flex={1}>
-                <FormLabel>Email</FormLabel>
-                <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-              </FormControl>
-            </Flex>
-            <FormControl>
-              <FormLabel>Opis</FormLabel>
-              <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} />
-            </FormControl>
-            <Button colorScheme="brand" onClick={handleCreateSalon} isLoading={saving} size="lg">Kreiraj Salon</Button>
-          </VStack>
-        </Box>
-      </Box>
-    );
+      <div className="mx-auto max-w-3xl space-y-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.salon')}</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Salon još nije podešen. Kreirajte osnovne informacije.</p>
+        </div>
+
+        <Card>
+          <div className="p-6 space-y-4">
+            <div className="space-y-2">
+              <Label>Naziv</Label>
+              <Input value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Telefon</Label>
+                <Input value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Adresa</Label>
+              <Input value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Opis</Label>
+              <Textarea rows={3} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} />
+            </div>
+            <div className="flex justify-end">
+              <Button type="button" onClick={() => void handleCreateSalon()} disabled={saving}>
+                Kreiraj salon
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    )
   }
 
   return (
-    <Box>
-      <Heading size="lg" mb={6}>{t('nav.salon')}</Heading>
-      <Tabs width="100%">
-        <TabList>
-          <Tab>Osnovne Postavke</Tab>
-          <Tab>Radno Vrijeme</Tab>
-          <Tab>Praznici</Tab>
-        </TabList>
-        <TabPanels width="100%" px={0}>
-          <TabPanel px={0} maxW="100%">
-            <Box bg="white" p={6} rounded="xl" shadow="sm" maxW="full" w="100%">
-              <VStack spacing={4} align="stretch">
-                <FormControl isRequired>
-                  <FormLabel>Naziv salona</FormLabel>
-                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>Adresa</FormLabel>
-                  <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
-                </FormControl>
-                <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
-                  <FormControl flex={1}>
-                    <FormLabel>Telefon</FormLabel>
-                    <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
-                  </FormControl>
-                  <FormControl flex={1}>
-                    <FormLabel>Email</FormLabel>
-                    <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
-                  </FormControl>
-                </Flex>
-                <FormControl>
-                  <FormLabel>Opis</FormLabel>
-                  <Textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows={3} />
-                </FormControl>
-                <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
-                  <FormControl flex={1}>
-                    <FormLabel>Pauza između servisa (min)</FormLabel>
-                    <NumberInput value={formData.pauseBetweenServices} onChange={(_, v) => setFormData({ ...formData, pauseBetweenServices: v || 0 })} min={0} max={120}>
-                      <NumberInputField /><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
-                    </NumberInput>
-                  </FormControl>
-                  <FormControl flex={1}>
-                    <FormLabel>Rok za otkazivanje (sati)</FormLabel>
-                    <NumberInput value={formData.cancellationDeadlineHours} onChange={(_, v) => setFormData({ ...formData, cancellationDeadlineHours: v || 0 })} min={0}>
-                      <NumberInputField /><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
-                    </NumberInput>
-                  </FormControl>
-                </Flex>
-                <FormControl>
-                  <FormLabel>Lock rezervacije (min)</FormLabel>
-                  <NumberInput
-                    value={formData.reservationLockMinutes}
-                    onChange={(_, v) => setFormData({ ...formData, reservationLockMinutes: v || 0 })}
-                    min={5}
-                    max={60}
-                  >
-                    <NumberInputField /><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
-                  </NumberInput>
-                </FormControl>
-                <Flex gap={4}>
-                  <FormControl flex={1}>
-                    <FormLabel>Max otkazivanja prije penala</FormLabel>
-                    <NumberInput value={formData.maxCancellationsBeforePenalty} onChange={(_, v) => setFormData({ ...formData, maxCancellationsBeforePenalty: v || 0 })} min={0}>
-                      <NumberInputField /><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
-                    </NumberInput>
-                  </FormControl>
-                  <FormControl flex={1}>
-                    <FormLabel>Trajanje penala (dana)</FormLabel>
-                    <NumberInput value={formData.penaltyDurationDays} onChange={(_, v) => setFormData({ ...formData, penaltyDurationDays: v || 0 })} min={0}>
-                      <NumberInputField /><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
-                    </NumberInput>
-                  </FormControl>
-                </Flex>
-                <Button colorScheme="brand" onClick={handleSaveSettings} isLoading={saving} mt={2}>{t('common.save')}</Button>
-              </VStack>
-            </Box>
-          </TabPanel>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.salon')}</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Podešavanja salona, radno vrijeme i praznici.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {holidaysSummary.map((h) => (
+            <Badge key={h.id} variant="secondary">
+              {new Date(h.date).toLocaleDateString('bs-BA')}: {h.name}
+            </Badge>
+          ))}
+        </div>
+      </div>
 
-          <TabPanel px={0} maxW="100%">
-            <Box bg="white" p={6} rounded="xl" shadow="sm" maxW="full" w="100%">
-              <Box overflowX="auto">
-                <Table size="sm" mb={4}>
-                <Thead><Tr><Th>Dan</Th><Th>Radni dan</Th><Th>Otvaranje</Th><Th>Zatvaranje</Th></Tr></Thead>
-                <Tbody>
-                  {workingHours.map((wh) => (
-                    <Tr key={wh.dayOfWeek} opacity={wh.isWorkingDay ? 1 : 0.5}>
-                      <Td fontWeight="medium">{DAYS[wh.dayOfWeek]}</Td>
-                      <Td><Switch isChecked={wh.isWorkingDay} onChange={(e) => updateWH(wh.dayOfWeek, 'isWorkingDay', e.target.checked)} colorScheme="brand" /></Td>
-                      <Td><Input type="time" size="sm" w={{ base: 'full', md: '130px' }} value={wh.openTime} onChange={(e) => updateWH(wh.dayOfWeek, 'openTime', e.target.value)} isDisabled={!wh.isWorkingDay} /></Td>
-                      <Td><Input type="time" size="sm" w={{ base: 'full', md: '130px' }} value={wh.closeTime} onChange={(e) => updateWH(wh.dayOfWeek, 'closeTime', e.target.value)} isDisabled={!wh.isWorkingDay} /></Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-                </Table>
-              </Box>
-              <Button colorScheme="brand" onClick={handleSaveWorkingHours} isLoading={saving}>{t('common.save')}</Button>
-            </Box>
-          </TabPanel>
+      <Card>
+        <div className="p-6">
+          <Tabs defaultValue="general">
+            <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-2">
+              <TabsTrigger value="general">Opšte</TabsTrigger>
+              <TabsTrigger value="hours">Radno vrijeme</TabsTrigger>
+              <TabsTrigger value="holidays">Praznici</TabsTrigger>
+            </TabsList>
 
-          <TabPanel px={0} maxW="100%">
-            <Flex justify="flex-end" mb={4}>
-              <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openHolForm()}>Novi Praznik</Button>
-            </Flex>
-            <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
-              <Table size="sm">
-                <Thead><Tr><Th>Datum</Th><Th>Naziv</Th><Th>Poruka</Th><Th>Push</Th><Th>Poslano</Th><Th textAlign="right">Akcije</Th></Tr></Thead>
-                <Tbody>
-                  {holidays.length === 0 ? (
-                    <Tr><Td colSpan={6}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
-                  ) : holidays.map((h) => (
-                    <Tr key={h.id}>
-                      <Td>{h.date?.slice(0, 10)}</Td>
-                      <Td fontWeight="medium">{h.name}</Td>
-                      <Td maxW="200px" isTruncated>{h.message ?? '-'}</Td>
-                      <Td><Badge colorScheme={h.sendPush ? 'green' : 'gray'}>{h.sendPush ? 'Da' : 'Ne'}</Badge></Td>
-                      <Td>
-                        {h.pushSentAt ? <Badge colorScheme="blue">Poslano</Badge>
-                          : h.sendPush ? <Button size="xs" colorScheme="orange" onClick={() => handleSendNotification(h.id)}>Pošalji</Button>
-                          : '-'}
-                      </Td>
-                      <Td textAlign="right">
-                        <HStack spacing={1} justify="flex-end">
-                          <IconButton aria-label="Uredi" icon={<EditIcon />} size="xs" variant="ghost" colorScheme="blue" onClick={() => openHolForm(h)} />
-                          <IconButton aria-label="Obriši" icon={<DeleteIcon />} size="xs" variant="ghost" colorScheme="red" onClick={() => handleDeleteHoliday(h.id)} />
-                        </HStack>
-                      </Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            </Box>
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
+            <TabsContent value="general" className="mt-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Naziv</Label>
+                  <Input value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Adresa</Label>
+                  <Input value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefon</Label>
+                  <Input value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Opis</Label>
+                  <Textarea rows={4} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} />
+                </div>
+              </div>
 
-      <Modal isOpen={isHolOpen} onClose={onHolClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>{editHol ? 'Uredi Praznik' : 'Novi Praznik'}</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <FormControl mb={4} isRequired>
-              <FormLabel>Datum</FormLabel>
-              <Input type="date" value={holForm.date} onChange={(e) => setHolForm({ ...holForm, date: e.target.value })} />
-            </FormControl>
-            <FormControl mb={4} isRequired>
-              <FormLabel>Naziv</FormLabel>
-              <Input value={holForm.name} onChange={(e) => setHolForm({ ...holForm, name: e.target.value })} />
-            </FormControl>
-            <FormControl mb={4}>
-              <FormLabel>Poruka</FormLabel>
-              <Textarea value={holForm.message} onChange={(e) => setHolForm({ ...holForm, message: e.target.value })} />
-            </FormControl>
-            <FormControl display="flex" alignItems="center">
-              <FormLabel mb="0">Pošalji push notifikaciju</FormLabel>
-              <Switch isChecked={holForm.sendPush} onChange={(e) => setHolForm({ ...holForm, sendPush: e.target.checked })} colorScheme="brand" />
-            </FormControl>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onHolClose}>{t('common.cancel')}</Button>
-            <Button colorScheme="brand" onClick={handleSaveHoliday} isLoading={saving}>{t('common.save')}</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </Box>
-  );
+              <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>Pauza između servisa (min)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={String(formData.pauseBetweenServices)}
+                    onChange={(e) => setFormData((p) => ({ ...p, pauseBetweenServices: Number(e.target.value || 0) }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Rok otkazivanja (h)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={String(formData.cancellationDeadlineHours)}
+                    onChange={(e) => setFormData((p) => ({ ...p, cancellationDeadlineHours: Number(e.target.value || 0) }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Lock rezervacije (min)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={String(formData.reservationLockMinutes)}
+                    onChange={(e) => setFormData((p) => ({ ...p, reservationLockMinutes: Number(e.target.value || 0) }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Max otkazivanja prije penala</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={String(formData.maxCancellationsBeforePenalty)}
+                    onChange={(e) => setFormData((p) => ({ ...p, maxCancellationsBeforePenalty: Number(e.target.value || 0) }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Trajanje penala (dana)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={String(formData.penaltyDurationDays)}
+                    onChange={(e) => setFormData((p) => ({ ...p, penaltyDurationDays: Number(e.target.value || 0) }))}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <Button type="button" onClick={() => void handleSaveSettings()} disabled={saving}>
+                  Sačuvaj
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="hours" className="mt-4">
+              <div className="overflow-x-auto rounded-md border border-slate-200 dark:border-slate-800">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                      <th className="p-3 font-medium">Dan</th>
+                      <th className="p-3 font-medium">Radni dan</th>
+                      <th className="p-3 font-medium">Otvara</th>
+                      <th className="p-3 font-medium">Zatvara</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {workingHours.map((wh) => (
+                      <tr key={wh.dayOfWeek} className={!wh.isWorkingDay ? 'opacity-60' : undefined}>
+                        <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{DAYS[wh.dayOfWeek]}</td>
+                        <td className="p-3">
+                          <Switch checked={wh.isWorkingDay} onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)} />
+                        </td>
+                        <td className="p-3">
+                          <Input
+                            type="time"
+                            className="h-9 w-[140px]"
+                            value={wh.openTime}
+                            disabled={!wh.isWorkingDay}
+                            onChange={(e) => updateWH(wh.dayOfWeek, 'openTime', e.target.value)}
+                          />
+                        </td>
+                        <td className="p-3">
+                          <Input
+                            type="time"
+                            className="h-9 w-[140px]"
+                            value={wh.closeTime}
+                            disabled={!wh.isWorkingDay}
+                            onChange={(e) => updateWH(wh.dayOfWeek, 'closeTime', e.target.value)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <Button type="button" onClick={() => void handleSaveWorkingHours()} disabled={saving}>
+                  Sačuvaj radno vrijeme
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="holidays" className="mt-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Praznici</p>
+                  <p className="text-xs text-slate-500">Datumi kada salon ne radi (opciono slanje push obavijesti).</p>
+                </div>
+                <Button type="button" onClick={() => openHolidayForm()}>
+                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Novi praznik
+                </Button>
+              </div>
+
+              {holidays.length === 0 ? (
+                <p className="text-sm text-slate-500">Nema praznika.</p>
+              ) : (
+                <div className="overflow-x-auto rounded-md border border-slate-200 dark:border-slate-800">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                        <th className="p-3 font-medium">Datum</th>
+                        <th className="p-3 font-medium">Naziv</th>
+                        <th className="p-3 font-medium">Push</th>
+                        <th className="p-3 font-medium">Poslano</th>
+                        <th className="p-3 text-right font-medium">Akcije</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {holidays
+                        .slice()
+                        .sort((a, b) => a.date.localeCompare(b.date))
+                        .map((h) => (
+                          <tr key={h.id} className="border-b border-slate-100 dark:border-slate-800/80">
+                            <td className="p-3">{new Date(h.date).toLocaleDateString('bs-BA')}</td>
+                            <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{h.name}</td>
+                            <td className="p-3">
+                              <Badge variant={h.sendPush ? 'success' : 'secondary'}>{h.sendPush ? 'Da' : 'Ne'}</Badge>
+                            </td>
+                            <td className="p-3">{h.pushSentAt ? new Date(h.pushSentAt).toLocaleString('bs-BA') : '-'}</td>
+                            <td className="p-3 text-right">
+                              <div className="flex justify-end gap-1">
+                                {h.sendPush ? (
+                                  <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Pošalji notifikaciju" onClick={() => void handleSendNotification(h.id)}>
+                                    <Send className="h-4 w-4 text-teal-600" aria-hidden="true" />
+                                  </Button>
+                                ) : null}
+                                <Button type="button" size="sm" variant="ghost" onClick={() => openHolidayForm(h)}>
+                                  Uredi
+                                </Button>
+                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Obriši" onClick={() => void handleDeleteHoliday(h.id)}>
+                                  <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </Card>
+
+      <Dialog open={holidayOpen} onOpenChange={setHolidayOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editHoliday ? 'Uredi praznik' : 'Novi praznik'}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Datum</Label>
+                <Input type="date" value={holForm.date} onChange={(e) => setHolForm((p) => ({ ...p, date: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Naziv</Label>
+                <Input value={holForm.name} onChange={(e) => setHolForm((p) => ({ ...p, name: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Poruka (opciono)</Label>
+              <Textarea rows={3} value={holForm.message} onChange={(e) => setHolForm((p) => ({ ...p, message: e.target.value }))} />
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
+              <div className="space-y-0.5">
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Pošalji push</p>
+                <p className="text-xs text-slate-500">Ako je uključeno, možete poslati obavijest klijentima.</p>
+              </div>
+              <Switch checked={holForm.sendPush} onCheckedChange={(checked) => setHolForm((p) => ({ ...p, sendPush: checked }))} />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="ghost" onClick={() => setHolidayOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="button" onClick={() => void handleSaveHoliday()} disabled={saving}>
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }

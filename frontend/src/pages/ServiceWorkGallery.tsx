@@ -1,18 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router-dom'
-import {
-  Badge,
-  Box,
-  Button,
-  Flex,
-  Heading,
-  SimpleGrid,
-  Spinner,
-  Text,
-} from '@chakra-ui/react'
+import { ArrowLeft, Loader2 } from 'lucide-react'
+
 import api from '../api/client'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { BeforeAfterSlider } from '../components/BeforeAfterSlider'
+
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
 
 type Service = {
   id: string
@@ -116,68 +112,61 @@ export default function ServiceWorkGallery() {
 
   if (loadingService) {
     return (
-      <Flex justify="center" py={14}>
-        <Spinner size="xl" />
-      </Flex>
+      <div className="flex justify-center py-14 text-slate-500">
+        <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+      </div>
     )
   }
 
   return (
-    <Box>
-      <Flex align="flex-start" justify="space-between" gap={4} wrap="wrap" mb={6}>
-        <Box>
-          <Heading size="lg">Urađeni radovi</Heading>
-          <Text color="gray.600" mt={1}>
-            {service ? service.name : 'Servis'}
-          </Text>
+    <div>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Urađeni radovi</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{service ? service.name : 'Servis'}</p>
           {service ? (
-            <Flex gap={2} mt={3} wrap="wrap">
-              <Badge colorScheme="purple" variant="subtle">
-                {service.durationMinutes} min
-              </Badge>
-            </Flex>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge variant="secondary">{service.durationMinutes} min</Badge>
+            </div>
           ) : null}
-        </Box>
-        <Button as={RouterLink} to="/admin/services" variant="outline">
-          Nazad
+        </div>
+
+        <Button asChild type="button" variant="outline">
+          <RouterLink to="/admin/services">
+            <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+            Nazad
+          </RouterLink>
         </Button>
-      </Flex>
+      </div>
 
       {loadingPairs && items.length === 0 ? (
-        <Flex justify="center" py={14}>
-          <Spinner size="xl" />
-        </Flex>
+        <div className="flex justify-center py-14 text-slate-500">
+          <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+        </div>
       ) : items.length === 0 ? (
-        <Text color="gray.500" py={10}>
-          Nema available before/after transformacija za ovaj servis.
-        </Text>
+        <p className="py-10 text-sm text-slate-500">Nema available before/after transformacija za ovaj servis.</p>
       ) : (
         <>
-          <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={6}>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             {items.map((pair) => (
-              <Box key={pair.id}>
+              <Card key={pair.id} className="overflow-hidden">
                 <BeforeAfterSlider
-                  beforeSrc={getUploadUrl(
-                    pair.before.pathMedium ?? pair.before.pathThumb ?? pair.before.pathOriginal,
-                  )}
-                  afterSrc={getUploadUrl(
-                    pair.after.pathMedium ?? pair.after.pathThumb ?? pair.after.pathOriginal,
-                  )}
+                  beforeSrc={getUploadUrl(pair.before.pathMedium ?? pair.before.pathThumb ?? pair.before.pathOriginal)}
+                  afterSrc={getUploadUrl(pair.after.pathMedium ?? pair.after.pathThumb ?? pair.after.pathOriginal)}
                   alt="Prije / Poslije"
                   aspectRatio={1}
                 />
-              </Box>
+              </Card>
             ))}
-          </SimpleGrid>
-          <Box ref={sentinelRef} h={4} mt={8} />
+          </div>
+          <div ref={sentinelRef} className="h-4 mt-8" />
           {loadingMore ? (
-            <Flex justify="center" py={8}>
-              <Spinner size="lg" />
-            </Flex>
+            <div className="flex justify-center py-8 text-slate-500">
+              <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
+            </div>
           ) : null}
         </>
       )}
-    </Box>
+    </div>
   )
 }
-

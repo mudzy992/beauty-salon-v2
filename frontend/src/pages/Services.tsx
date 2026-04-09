@@ -1,69 +1,74 @@
-import { useEffect, useState, useCallback, useRef, type ChangeEvent } from 'react';
-import {
-  Box, Heading, Table, Thead, Tbody, Tr, Th, Td, Spinner, Text,
-  Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon,
-  Button, Flex, useDisclosure, Modal, ModalOverlay, ModalContent,
-  ModalHeader, ModalFooter, ModalBody, ModalCloseButton, FormControl,
-  FormLabel, Input, useToast, IconButton, Badge, Textarea, NumberInput,
-  NumberInputField, NumberInputStepper, NumberIncrementStepper,
-  NumberDecrementStepper, Switch, HStack, Image,
-  Select,
-  useBreakpointValue,
-} from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
-import { AddIcon, EditIcon, DeleteIcon, ViewIcon } from '@chakra-ui/icons';
-import { Link as RouterLink } from 'react-router-dom';
-import api from '../api/client';
-import { getUploadUrl } from '../utils/uploadUrl';
+import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { Eye, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+
+import api from '../api/client'
+import { getUploadUrl } from '../utils/uploadUrl'
+import { useAppToast } from '../lib/toast/useAppToast'
+
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion'
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Switch } from '../components/ui/switch'
+import { Textarea } from '../components/ui/textarea'
 
 interface Service {
-  id: string;
-  name: string;
-  shortDescription: string | null;
-  heroImage: string | null;
-  durationMinutes: number;
-  price: number | string;
-  isActive: boolean;
-  sortOrder: number;
-  gender: 'MALE' | 'FEMALE';
-  loyaltyEnabled?: boolean;
-  loyaltyMaxDiscountPercent?: number;
+  id: string
+  name: string
+  shortDescription: string | null
+  heroImage: string | null
+  durationMinutes: number
+  price: number | string
+  isActive: boolean
+  sortOrder: number
+  gender: 'MALE' | 'FEMALE'
+  loyaltyEnabled?: boolean
+  loyaltyMaxDiscountPercent?: number
 }
 
 interface Subcategory {
-  id: string;
-  name: string;
-  description: string | null;
-  sortOrder: number;
-  isActive: boolean;
-  services?: Service[];
+  id: string
+  name: string
+  description: string | null
+  sortOrder: number
+  isActive: boolean
+  services?: Service[]
 }
 
 interface Category {
-  id: string;
-  name: string;
-  description: string | null;
-  sortOrder: number;
-  isActive: boolean;
-  subcategories?: Subcategory[];
+  id: string
+  name: string
+  description: string | null
+  sortOrder: number
+  isActive: boolean
+  subcategories?: Subcategory[]
 }
 
-type ModalMode = 'category' | 'subcategory' | 'service';
+type ModalMode = 'category' | 'subcategory' | 'service'
+
+const selectClass =
+  'flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950'
 
 export default function Services() {
-  const { t } = useTranslation();
-  const toast = useToast();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { t } = useTranslation()
+  const { success, error } = useAppToast()
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [modalMode, setModalMode] = useState<ModalMode>('category');
-  const [editId, setEditId] = useState<string | null>(null);
-  const [parentId, setParentId] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
-  const [catForm, setCatForm] = useState({ name: '', description: '', sortOrder: 0, isActive: true });
-  const [subForm, setSubForm] = useState({ name: '', description: '', sortOrder: 0, isActive: true });
+  const [open, setOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<ModalMode>('category')
+  const [editId, setEditId] = useState<string | null>(null)
+  const [parentId, setParentId] = useState<string | null>(null)
+
+  const [catForm, setCatForm] = useState({ name: '', description: '', sortOrder: 0, isActive: true })
+  const [subForm, setSubForm] = useState({ name: '', description: '', sortOrder: 0, isActive: true })
   const [svcForm, setSvcForm] = useState({
     name: '',
     shortDescription: '',
@@ -75,58 +80,77 @@ export default function Services() {
     heroImage: '',
     loyaltyEnabled: false,
     loyaltyMaxDiscountPercent: 0,
-  });
-  const [uploadingImg, setUploadingImg] = useState(false);
-  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
-  const svcFileRef = useRef<HTMLInputElement>(null);
+  })
+  const [uploadingImg, setUploadingImg] = useState(false)
+  const svcFileRef = useRef<HTMLInputElement>(null)
 
   const loadData = useCallback(() => {
-    setLoading(true);
-    api.get<Category[]>('/api/services/categories')
+    setLoading(true)
+    api
+      .get<Category[]>('/api/services/categories')
       .then(async (r) => {
-        const list = Array.isArray(r.data) ? r.data : [];
+        const list = Array.isArray(r.data) ? r.data : []
         const withDetails = await Promise.all(
-          list.map((c) => api.get<Category>(`/api/services/categories/${c.id}`).then((res) => res.data))
-        );
-        setCategories(withDetails);
+          list.map((c) => api.get<Category>(`/api/services/categories/${c.id}`).then((res) => res.data)),
+        )
+        setCategories(withDetails)
       })
       .catch(() => setCategories([]))
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => setLoading(false))
+  }, [])
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  const getDialogTitle = () => {
+    const action = editId ? 'Uredi' : 'Nova/i'
+    if (modalMode === 'category') return `${action} Kategorija`
+    if (modalMode === 'subcategory') return `${action} Potkategorija`
+    return `${action} Servis`
+  }
 
   const openCategoryForm = (cat?: Category) => {
-    setModalMode('category');
-    setParentId(null);
+    setModalMode('category')
+    setParentId(null)
     if (cat) {
-      setEditId(cat.id);
-      setCatForm({ name: cat.name, description: cat.description ?? '', sortOrder: cat.sortOrder, isActive: cat.isActive });
+      setEditId(cat.id)
+      setCatForm({
+        name: cat.name,
+        description: cat.description ?? '',
+        sortOrder: cat.sortOrder,
+        isActive: cat.isActive,
+      })
     } else {
-      setEditId(null);
-      setCatForm({ name: '', description: '', sortOrder: 0, isActive: true });
+      setEditId(null)
+      setCatForm({ name: '', description: '', sortOrder: 0, isActive: true })
     }
-    onOpen();
-  };
+    setOpen(true)
+  }
 
   const openSubcategoryForm = (categoryId: string, sub?: Subcategory) => {
-    setModalMode('subcategory');
-    setParentId(categoryId);
+    setModalMode('subcategory')
+    setParentId(categoryId)
     if (sub) {
-      setEditId(sub.id);
-      setSubForm({ name: sub.name, description: sub.description ?? '', sortOrder: sub.sortOrder, isActive: sub.isActive });
+      setEditId(sub.id)
+      setSubForm({
+        name: sub.name,
+        description: sub.description ?? '',
+        sortOrder: sub.sortOrder,
+        isActive: sub.isActive,
+      })
     } else {
-      setEditId(null);
-      setSubForm({ name: '', description: '', sortOrder: 0, isActive: true });
+      setEditId(null)
+      setSubForm({ name: '', description: '', sortOrder: 0, isActive: true })
     }
-    onOpen();
-  };
+    setOpen(true)
+  }
 
   const openServiceForm = (subcategoryId: string, svc?: Service) => {
-    setModalMode('service');
-    setParentId(subcategoryId);
+    setModalMode('service')
+    setParentId(subcategoryId)
     if (svc) {
-      setEditId(svc.id);
+      setEditId(svc.id)
       setSvcForm({
         name: svc.name,
         shortDescription: svc.shortDescription ?? '',
@@ -138,9 +162,9 @@ export default function Services() {
         heroImage: svc.heroImage ?? '',
         loyaltyEnabled: svc.loyaltyEnabled ?? false,
         loyaltyMaxDiscountPercent: svc.loyaltyMaxDiscountPercent ?? 0,
-      });
+      })
     } else {
-      setEditId(null);
+      setEditId(null)
       setSvcForm({
         name: '',
         shortDescription: '',
@@ -152,384 +176,471 @@ export default function Services() {
         heroImage: '',
         loyaltyEnabled: false,
         loyaltyMaxDiscountPercent: 0,
-      });
+      })
     }
-    onOpen();
-  };
+    setOpen(true)
+  }
 
   const handleUploadHeroImage = async (file: File) => {
-    setUploadingImg(true);
+    setUploadingImg(true)
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('entity', 'services');
-      const { data } = await api.post('/api/uploads', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      const path = data.pathMedium || data.pathOriginal || '';
-      setSvcForm((prev) => ({ ...prev, heroImage: path }));
-      toast({ title: 'Slika uploadovana', status: 'success', isClosable: true, duration: 2000 });
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('entity', 'services')
+      const { data } = await api.post('/api/uploads', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      const path = data.pathMedium || data.pathOriginal || ''
+      setSvcForm((prev) => ({ ...prev, heroImage: path }))
+      success('Slika uploadovana')
     } catch {
-      toast({ title: 'Greška pri uploadu slike', status: 'error', isClosable: true });
+      error('Greška pri uploadu slike')
     } finally {
-      setUploadingImg(false);
-      if (svcFileRef.current) svcFileRef.current.value = '';
+      setUploadingImg(false)
+      if (svcFileRef.current) svcFileRef.current.value = ''
     }
-  };
+  }
 
   const handleSave = async () => {
-    setSaving(true);
+    setSaving(true)
     try {
       if (modalMode === 'category') {
-        if (editId) {
-          await api.patch(`/api/services/categories/${editId}`, catForm);
-        } else {
-          await api.post('/api/services/categories', catForm);
-        }
+        if (editId) await api.patch(`/api/services/categories/${editId}`, catForm)
+        else await api.post('/api/services/categories', catForm)
       } else if (modalMode === 'subcategory') {
-        if (editId) {
-          await api.patch(`/api/services/subcategories/${editId}`, subForm);
-        } else {
-          await api.post('/api/services/subcategories', { ...subForm, categoryId: parentId });
-        }
+        if (editId) await api.patch(`/api/services/subcategories/${editId}`, subForm)
+        else await api.post('/api/services/subcategories', { ...subForm, categoryId: parentId })
       } else {
-        if (editId) {
-          await api.patch(`/api/services/${editId}`, svcForm);
-        } else {
-          await api.post('/api/services', { ...svcForm, subcategoryId: parentId });
-        }
+        if (editId) await api.patch(`/api/services/${editId}`, svcForm)
+        else await api.post('/api/services', { ...svcForm, subcategoryId: parentId })
       }
-      toast({ title: 'Sačuvano', status: 'success', isClosable: true });
-      loadData();
-      onClose();
+      success('Sačuvano')
+      loadData()
+      setOpen(false)
     } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      error('Greška')
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const handleDeleteCategory = async (id: string) => {
-    if (!window.confirm('Obrisati kategoriju i sve potkategorije/servise?')) return;
+    if (!window.confirm('Obrisati kategoriju i sve potkategorije/servise?')) return
     try {
-      await api.delete(`/api/services/categories/${id}`);
-      toast({ title: 'Kategorija obrisana', status: 'success', isClosable: true });
-      loadData();
+      await api.delete(`/api/services/categories/${id}`)
+      success('Kategorija obrisana')
+      loadData()
     } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      error('Greška')
     }
-  };
+  }
 
   const handleDeleteSubcategory = async (id: string) => {
-    if (!window.confirm('Obrisati potkategoriju i sve servise?')) return;
+    if (!window.confirm('Obrisati potkategoriju i sve servise?')) return
     try {
-      await api.delete(`/api/services/subcategories/${id}`);
-      toast({ title: 'Potkategorija obrisana', status: 'success', isClosable: true });
-      loadData();
+      await api.delete(`/api/services/subcategories/${id}`)
+      success('Potkategorija obrisana')
+      loadData()
     } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      error('Greška')
     }
-  };
+  }
 
   const handleDeleteService = async (id: string) => {
-    if (!window.confirm('Obrisati servis?')) return;
+    if (!window.confirm('Obrisati servis?')) return
     try {
-      await api.delete(`/api/services/${id}`);
-      toast({ title: 'Servis obrisan', status: 'success', isClosable: true });
-      loadData();
+      await api.delete(`/api/services/${id}`)
+      success('Servis obrisan')
+      loadData()
     } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      error('Greška')
     }
-  };
+  }
 
-  const getModalTitle = () => {
-    const action = editId ? 'Uredi' : 'Nova/i';
-    if (modalMode === 'category') return `${action} Kategorija`;
-    if (modalMode === 'subcategory') return `${action} Potkategorija`;
-    return `${action} Servis`;
-  };
+  if (loading) {
+    return (
+      <div className="flex justify-center p-10 text-slate-500">
+        <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+      </div>
+    )
+  }
 
   return (
-    <Box>
-      <Flex justify="space-between" align="center" mb={6} wrap="wrap" gap={3}>
-        <Heading size="lg">{t('nav.services')}</Heading>
-        <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openCategoryForm()}>
+    <div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.services')}</h1>
+        <Button type="button" onClick={() => openCategoryForm()}>
+          <Plus className="mr-2 h-4 w-4" />
           Nova Kategorija
         </Button>
-      </Flex>
+      </div>
 
-      {loading ? (
-        <Box p={6} textAlign="center"><Spinner size="lg" /></Box>
-      ) : categories.length === 0 ? (
-        <Text color="gray.500">{t('common.noData')}</Text>
+      {categories.length === 0 ? (
+        <p className="text-sm text-slate-500">{t('common.noData')}</p>
       ) : (
-        <Accordion allowMultiple>
-          {categories.map((cat) => (
-            <AccordionItem key={cat.id} bg="white" rounded="lg" shadow="sm" mb={3} border="1px" borderColor="gray.200">
-              <AccordionButton py={3}>
-                <Flex flex="1" align="center" gap={2} minW={0}>
-                  <Text fontWeight="bold" fontSize={{ base: 'md', md: 'lg' }} noOfLines={1}>
-                    {cat.name}
-                  </Text>
-                  <Badge colorScheme={cat.isActive ? 'green' : 'gray'} ml={2} fontSize={{ base: '2xs', md: 'xs' }}>
-                    {cat.isActive ? 'Aktivna' : 'Neaktivna'}
-                  </Badge>
-                  {cat.description && (
-                    <Text fontSize="sm" color="gray.500" ml={2} display={{ base: 'none', md: 'block' }}>
-                      — {cat.description}
-                    </Text>
+        <Card className="overflow-hidden">
+          <Accordion type="multiple" className="w-full">
+            {categories.map((cat) => (
+              <AccordionItem key={cat.id} value={cat.id} className="px-4">
+                <AccordionTrigger>
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                    <span className="truncate text-base font-semibold">{cat.name}</span>
+                    <Badge variant={cat.isActive ? 'success' : 'secondary'} className="text-[10px]">
+                      {cat.isActive ? 'Aktivna' : 'Neaktivna'}
+                    </Badge>
+                    {cat.description ? (
+                      <span className="hidden truncate text-sm text-slate-500 md:block">— {cat.description}</span>
+                    ) : null}
+                  </div>
+                  <div
+                    className="mr-2 flex shrink-0 items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      aria-label="Dodaj potkategoriju"
+                      onClick={() => openSubcategoryForm(cat.id)}
+                    >
+                      <Plus className="h-4 w-4 text-emerald-600" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      aria-label="Uredi kategoriju"
+                      onClick={() => openCategoryForm(cat)}
+                    >
+                      <Pencil className="h-4 w-4 text-blue-600" />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      aria-label="Obriši kategoriju"
+                      onClick={() => void handleDeleteCategory(cat.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-rose-600" />
+                    </Button>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pb-6">
+                  {cat.subcategories?.length ? (
+                    <div className="space-y-6">
+                      {cat.subcategories.map((sub) => (
+                        <div
+                          key={sub.id}
+                          className="rounded-md border-l-4 border-l-brand-gold bg-slate-50 p-4 dark:bg-slate-900/40"
+                        >
+                          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-semibold text-slate-800 dark:text-slate-100">{sub.name}</p>
+                              <Badge variant={sub.isActive ? 'success' : 'secondary'} className="text-[10px]">
+                                {sub.isActive ? 'Aktivna' : 'Neaktivna'}
+                              </Badge>
+                            </div>
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              <Button type="button" size="sm" variant="outline" onClick={() => openServiceForm(sub.id)}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Servis
+                              </Button>
+                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Uredi potkategoriju" onClick={() => openSubcategoryForm(cat.id, sub)}>
+                                <Pencil className="h-4 w-4 text-blue-600" />
+                              </Button>
+                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Obriši potkategoriju" onClick={() => void handleDeleteSubcategory(sub.id)}>
+                                <Trash2 className="h-4 w-4 text-rose-600" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {sub.services?.length ? (
+                            <div className="overflow-x-auto rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+                              <table className="w-full border-collapse text-sm">
+                                <thead>
+                                  <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                                    <th className="p-3 font-medium">Usluga</th>
+                                    <th className="hidden p-3 font-medium md:table-cell">Opis</th>
+                                    <th className="p-3 text-right font-medium">Trajanje</th>
+                                    <th className="p-3 text-right font-medium">Cijena</th>
+                                    <th className="p-3 font-medium">Spol</th>
+                                    <th className="p-3 font-medium">Loyalty</th>
+                                    <th className="p-3 font-medium">Status</th>
+                                    <th className="p-3 text-right font-medium">Akcije</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {sub.services.map((s) => (
+                                    <tr key={s.id} className="border-b border-slate-100 dark:border-slate-800/80">
+                                      <td className="p-3 font-medium">{s.name}</td>
+                                      <td className="hidden max-w-[260px] truncate p-3 text-slate-600 dark:text-slate-300 md:table-cell">
+                                        {s.shortDescription ?? '-'}
+                                      </td>
+                                      <td className="p-3 text-right tabular-nums">{s.durationMinutes} min</td>
+                                      <td className="p-3 text-right tabular-nums">{Number(s.price).toFixed(2)}</td>
+                                      <td className="p-3">
+                                        <Badge variant={s.gender === 'MALE' ? 'secondary' : 'brand'} className="text-[10px]">
+                                          {s.gender === 'MALE' ? 'Muško' : 'Žensko'}
+                                        </Badge>
+                                      </td>
+                                      <td className="p-3">
+                                        {s.loyaltyEnabled ? (
+                                          <Badge variant="brand" className="text-[10px]">
+                                            Loyalty do {s.loyaltyMaxDiscountPercent ?? 0}%
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="secondary" className="text-[10px]">
+                                            Bez loyalty
+                                          </Badge>
+                                        )}
+                                      </td>
+                                      <td className="p-3">
+                                        <Badge variant={s.isActive ? 'success' : 'secondary'} className="text-[10px]">
+                                          {s.isActive ? 'Aktivan' : 'Neaktivan'}
+                                        </Badge>
+                                      </td>
+                                      <td className="p-3 text-right">
+                                        <div className="flex justify-end gap-1">
+                                          <Button
+                                            asChild
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8"
+                                            aria-label="Urađeni radovi"
+                                          >
+                                            <RouterLink to={`/admin/services/${s.id}/work-gallery`}>
+                                              <Eye className="h-4 w-4 text-purple-600" />
+                                            </RouterLink>
+                                          </Button>
+                                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Uredi servis" onClick={() => openServiceForm(sub.id, s)}>
+                                            <Pencil className="h-4 w-4 text-blue-600" />
+                                          </Button>
+                                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Obriši servis" onClick={() => void handleDeleteService(s.id)}>
+                                            <Trash2 className="h-4 w-4 text-rose-600" />
+                                          </Button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-sm italic text-slate-500">Nema definisanih usluga.</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm italic text-slate-500">Nema potkategorija.</p>
                   )}
-                </Flex>
-                <HStack spacing={1} mr={2} onClick={(e) => e.stopPropagation()} flexShrink={0}>
-                  <IconButton aria-label="Dodaj potkategoriju" icon={<AddIcon />} size={{ base: 'sm', md: 'xs' }} colorScheme="green" variant="ghost" onClick={() => openSubcategoryForm(cat.id)} />
-                  <IconButton aria-label="Uredi" icon={<EditIcon />} size={{ base: 'sm', md: 'xs' }} colorScheme="blue" variant="ghost" onClick={() => openCategoryForm(cat)} />
-                  <IconButton aria-label="Obriši" icon={<DeleteIcon />} size={{ base: 'sm', md: 'xs' }} colorScheme="red" variant="ghost" onClick={() => handleDeleteCategory(cat.id)} />
-                </HStack>
-                <AccordionIcon />
-              </AccordionButton>
-              <AccordionPanel pb={4}>
-                {cat.subcategories?.length ? (
-                  cat.subcategories.map((sub) => (
-                    <Box key={sub.id} mb={6} ml={2} p={3} borderLeft="3px solid" borderColor="brand.300" bg="gray.50" rounded="md">
-                      <Flex align="center" justify="space-between" mb={3} gap={2}>
-                        <HStack>
-                          <Text fontWeight="bold" color="gray.700" noOfLines={1}>{sub.name}</Text>
-                          <Badge colorScheme={sub.isActive ? 'green' : 'gray'} size="sm" fontSize={{ base: '2xs', md: 'xs' }}>
-                            {sub.isActive ? 'Aktivna' : 'Neaktivna'}
-                          </Badge>
-                        </HStack>
-                        <HStack spacing={1} flexWrap="wrap" justify="flex-end" flexShrink={0}>
-                          <Button size={{ base: 'sm', md: 'xs' }} leftIcon={<AddIcon />} colorScheme="brand" variant="outline" onClick={() => openServiceForm(sub.id)}>
-                            Servis
-                          </Button>
-                          <IconButton aria-label="Uredi" icon={<EditIcon />} size={{ base: 'sm', md: 'xs' }} colorScheme="blue" variant="ghost" onClick={() => openSubcategoryForm(cat.id, sub)} />
-                          <IconButton aria-label="Obriši" icon={<DeleteIcon />} size={{ base: 'sm', md: 'xs' }} colorScheme="red" variant="ghost" onClick={() => handleDeleteSubcategory(sub.id)} />
-                        </HStack>
-                      </Flex>
-                      {sub.services?.length ? (
-                        <Box overflowX="auto">
-                          <Table size="sm" variant="simple">
-                      <Thead>
-                        <Tr>
-                          <Th>Usluga</Th>
-                          {!isMobile && <Th>Opis</Th>}
-                          <Th isNumeric>Trajanje (min)</Th>
-                          <Th isNumeric>Cijena (KM)</Th>
-                          <Th>Spol</Th>
-                          <Th>Loyalty</Th>
-                          <Th>Status</Th>
-                          <Th textAlign="right">Akcije</Th>
-                        </Tr>
-                      </Thead>
-                          <Tbody>
-                            {sub.services.map((s) => (
-                              <Tr key={s.id}>
-                                <Td fontWeight="medium">{s.name}</Td>
-                                {!isMobile && <Td maxW="200px" isTruncated>{s.shortDescription ?? '-'}</Td>}
-                                <Td isNumeric>{s.durationMinutes}</Td>
-                                <Td isNumeric>{Number(s.price).toFixed(2)}</Td>
-                                <Td>
-                                  <Badge colorScheme={s.gender === 'MALE' ? 'blue' : 'pink'}>
-                                    {s.gender === 'MALE' ? 'Muško' : 'Žensko'}
-                                  </Badge>
-                                </Td>
-                                <Td>
-                                  {s.loyaltyEnabled ? (
-                                    <Badge colorScheme="purple">
-                                      Loyalty do {s.loyaltyMaxDiscountPercent ?? 0}%
-                                    </Badge>
-                                  ) : (
-                                    <Badge colorScheme="gray">Bez loyalty</Badge>
-                                  )}
-                                </Td>
-                                <Td><Badge colorScheme={s.isActive ? 'green' : 'gray'}>{s.isActive ? 'Aktivan' : 'Neaktivan'}</Badge></Td>
-                                <Td textAlign="right">
-                                  <HStack spacing={1} justify="flex-end">
-                                    <IconButton
-                                      as={RouterLink}
-                                      to={`/admin/services/${s.id}/work-gallery`}
-                                      aria-label="Urađeni radovi"
-                                      icon={<ViewIcon />}
-                                      size="xs"
-                                      colorScheme="purple"
-                                      variant="ghost"
-                                    />
-                                    <IconButton aria-label="Uredi" icon={<EditIcon />} size="xs" colorScheme="blue" variant="ghost" onClick={() => openServiceForm(sub.id, s)} />
-                                    <IconButton aria-label="Obriši" icon={<DeleteIcon />} size="xs" colorScheme="red" variant="ghost" onClick={() => handleDeleteService(s.id)} />
-                                  </HStack>
-                                </Td>
-                              </Tr>
-                            ))}
-                          </Tbody>
-                          </Table>
-                        </Box>
-                      ) : (
-                        <Text color="gray.500" fontSize="sm" fontStyle="italic">Nema definisanih usluga.</Text>
-                      )}
-                    </Box>
-                  ))
-                ) : (
-                  <Text color="gray.500" fontSize="sm" fontStyle="italic">Nema potkategorija.</Text>
-                )}
-              </AccordionPanel>
-            </AccordionItem>
-          ))}
-        </Accordion>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </Card>
       )}
 
-      {/* Universal Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size={modalMode === 'service' ? 'xl' : 'md'}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>{getModalTitle()}</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            {modalMode === 'category' && (
-              <>
-                <FormControl mb={4} isRequired>
-                  <FormLabel>Naziv</FormLabel>
-                  <Input value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value })} />
-                </FormControl>
-                <FormControl mb={4}>
-                  <FormLabel>Opis</FormLabel>
-                  <Textarea value={catForm.description} onChange={(e) => setCatForm({ ...catForm, description: e.target.value })} />
-                </FormControl>
-                <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
-                  <FormControl flex={1}>
-                    <FormLabel>Redoslijed</FormLabel>
-                    <NumberInput value={catForm.sortOrder} onChange={(_, v) => setCatForm({ ...catForm, sortOrder: v || 0 })} min={0}>
-                      <NumberInputField />
-                    </NumberInput>
-                  </FormControl>
-                  <FormControl flex={1} display="flex" alignItems="flex-end" pb={1}>
-                    <FormLabel mb="0" mr={3}>Aktivna</FormLabel>
-                    <Switch isChecked={catForm.isActive} onChange={(e) => setCatForm({ ...catForm, isActive: e.target.checked })} colorScheme="brand" />
-                  </FormControl>
-                </Flex>
-              </>
-            )}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className={modalMode === 'service' ? 'max-w-2xl' : 'max-w-lg'}>
+          <DialogHeader>
+            <DialogTitle>{getDialogTitle()}</DialogTitle>
+          </DialogHeader>
 
-            {modalMode === 'subcategory' && (
-              <>
-                <FormControl mb={4} isRequired>
-                  <FormLabel>Naziv</FormLabel>
-                  <Input value={subForm.name} onChange={(e) => setSubForm({ ...subForm, name: e.target.value })} />
-                </FormControl>
-                <FormControl mb={4}>
-                  <FormLabel>Opis</FormLabel>
-                  <Textarea value={subForm.description} onChange={(e) => setSubForm({ ...subForm, description: e.target.value })} />
-                </FormControl>
-                <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
-                  <FormControl flex={1}>
-                    <FormLabel>Redoslijed</FormLabel>
-                    <NumberInput value={subForm.sortOrder} onChange={(_, v) => setSubForm({ ...subForm, sortOrder: v || 0 })} min={0}>
-                      <NumberInputField />
-                    </NumberInput>
-                  </FormControl>
-                  <FormControl flex={1} display="flex" alignItems="flex-end" pb={1}>
-                    <FormLabel mb="0" mr={3}>Aktivna</FormLabel>
-                    <Switch isChecked={subForm.isActive} onChange={(e) => setSubForm({ ...subForm, isActive: e.target.checked })} colorScheme="brand" />
-                  </FormControl>
-                </Flex>
-              </>
-            )}
+          {modalMode === 'category' ? (
+            <div className="space-y-4">
+              <div>
+                <Label>Naziv</Label>
+                <Input className="mt-1" value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value })} />
+              </div>
+              <div>
+                <Label>Opis</Label>
+                <Textarea className="mt-1" value={catForm.description} onChange={(e) => setCatForm({ ...catForm, description: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <Label>Redoslijed</Label>
+                  <Input
+                    className="mt-1"
+                    type="number"
+                    min={0}
+                    value={catForm.sortOrder}
+                    onChange={(e) => setCatForm({ ...catForm, sortOrder: Number(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3 md:pt-7">
+                  <Label className="mb-0">Aktivna</Label>
+                  <Switch checked={catForm.isActive} onCheckedChange={(checked) => setCatForm({ ...catForm, isActive: checked })} />
+                </div>
+              </div>
+            </div>
+          ) : null}
 
-            {modalMode === 'service' && (
-              <>
-                <FormControl mb={4} isRequired>
-                  <FormLabel>Naziv usluge</FormLabel>
-                  <Input value={svcForm.name} onChange={(e) => setSvcForm({ ...svcForm, name: e.target.value })} />
-                </FormControl>
-                <FormControl mb={4}>
-                  <FormLabel>Kratki opis</FormLabel>
-                  <Textarea value={svcForm.shortDescription} onChange={(e) => setSvcForm({ ...svcForm, shortDescription: e.target.value })} rows={2} />
-                </FormControl>
-                <FormControl mb={4}>
-                  <FormLabel>Hero slika</FormLabel>
-                  {svcForm.heroImage && (
-                    <Image src={getUploadUrl(svcForm.heroImage)} alt="Hero" maxH="120px" rounded="md" mb={2} objectFit="cover" />
-                  )}
-                  <input type="file" accept="image/*" ref={svcFileRef} style={{ display: 'none' }}
-                    onChange={(e) => e.target.files?.[0] && handleUploadHeroImage(e.target.files[0])} />
-                  <Button size="sm" onClick={() => svcFileRef.current?.click()} isLoading={uploadingImg}>
+          {modalMode === 'subcategory' ? (
+            <div className="space-y-4">
+              <div>
+                <Label>Naziv</Label>
+                <Input className="mt-1" value={subForm.name} onChange={(e) => setSubForm({ ...subForm, name: e.target.value })} />
+              </div>
+              <div>
+                <Label>Opis</Label>
+                <Textarea className="mt-1" value={subForm.description} onChange={(e) => setSubForm({ ...subForm, description: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <Label>Redoslijed</Label>
+                  <Input
+                    className="mt-1"
+                    type="number"
+                    min={0}
+                    value={subForm.sortOrder}
+                    onChange={(e) => setSubForm({ ...subForm, sortOrder: Number(e.target.value) || 0 })}
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3 md:pt-7">
+                  <Label className="mb-0">Aktivna</Label>
+                  <Switch checked={subForm.isActive} onCheckedChange={(checked) => setSubForm({ ...subForm, isActive: checked })} />
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {modalMode === 'service' ? (
+            <div className="space-y-4">
+              <div>
+                <Label>Naziv usluge</Label>
+                <Input className="mt-1" value={svcForm.name} onChange={(e) => setSvcForm({ ...svcForm, name: e.target.value })} />
+              </div>
+              <div>
+                <Label>Kratki opis</Label>
+                <Textarea className="mt-1" value={svcForm.shortDescription} onChange={(e) => setSvcForm({ ...svcForm, shortDescription: e.target.value })} rows={2} />
+              </div>
+              <div>
+                <Label>Hero slika</Label>
+                {svcForm.heroImage ? (
+                  <img
+                    src={getUploadUrl(svcForm.heroImage)}
+                    alt="Hero"
+                    className="mt-2 max-h-32 w-full rounded-md object-cover"
+                  />
+                ) : null}
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={svcFileRef}
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) void handleUploadHeroImage(file)
+                  }}
+                />
+                <div className="mt-2">
+                  <Button type="button" size="sm" variant="outline" onClick={() => svcFileRef.current?.click()} disabled={uploadingImg}>
+                    {uploadingImg ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     {svcForm.heroImage ? 'Promijeni sliku' : 'Upload sliku'}
                   </Button>
-                </FormControl>
-                <Flex gap={4} mb={4} direction={{ base: 'column', md: 'row' }}>
-                  <FormControl flex={1} isRequired>
-                    <FormLabel>Trajanje (min)</FormLabel>
-                    <NumberInput value={svcForm.durationMinutes} onChange={(_, v) => setSvcForm({ ...svcForm, durationMinutes: v || 15 })} min={5} max={480} step={5}>
-                      <NumberInputField /><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
-                    </NumberInput>
-                  </FormControl>
-                  <FormControl flex={1} isRequired>
-                    <FormLabel>Cijena (KM)</FormLabel>
-                    <NumberInput value={svcForm.price} onChange={(_, v) => setSvcForm({ ...svcForm, price: v || 0 })} min={0} precision={2} step={0.5}>
-                      <NumberInputField /><NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
-                    </NumberInput>
-                  </FormControl>
-                </Flex>
-                <FormControl mb={4} isRequired>
-                  <FormLabel>Spol servisa</FormLabel>
-                  <Select
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <Label>Trajanje (min)</Label>
+                  <Input
+                    className="mt-1"
+                    type="number"
+                    min={5}
+                    max={480}
+                    step={5}
+                    value={svcForm.durationMinutes}
+                    onChange={(e) => setSvcForm({ ...svcForm, durationMinutes: Number(e.target.value) || 15 })}
+                  />
+                </div>
+                <div>
+                  <Label>Cijena (KM)</Label>
+                  <Input
+                    className="mt-1"
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={svcForm.price}
+                    onChange={(e) => setSvcForm({ ...svcForm, price: Number(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <Label>Spol servisa</Label>
+                  <select
+                    className={`${selectClass} mt-1`}
                     value={svcForm.gender}
                     onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-                      setSvcForm({
-                        ...svcForm,
-                        gender: e.target.value as 'MALE' | 'FEMALE',
-                      })
+                      setSvcForm({ ...svcForm, gender: e.target.value as 'MALE' | 'FEMALE' })
                     }
                   >
                     <option value="FEMALE">Žensko</option>
                     <option value="MALE">Muško</option>
-                  </Select>
-                </FormControl>
-                <Flex gap={4} mb={4} direction={{ base: 'column', md: 'row' }}>
-                  <FormControl flex={1}>
-                    <FormLabel>Redoslijed</FormLabel>
-                    <NumberInput value={svcForm.sortOrder} onChange={(_, v) => setSvcForm({ ...svcForm, sortOrder: v || 0 })} min={0}>
-                      <NumberInputField />
-                    </NumberInput>
-                  </FormControl>
-                  <FormControl flex={1} display="flex" alignItems="flex-end" pb={1}>
-                    <FormLabel mb="0" mr={3}>Aktivan</FormLabel>
-                    <Switch isChecked={svcForm.isActive} onChange={(e) => setSvcForm({ ...svcForm, isActive: e.target.checked })} colorScheme="brand" />
-                  </FormControl>
-                </Flex>
-                <Box mt={2} p={3} bg="purple.50" rounded="md" borderWidth="1px" borderColor="purple.200">
-                  <FormControl display="flex" alignItems="center" mb={3}>
-                    <FormLabel mb="0" mr={3}>Uključi loyalty za ovaj servis</FormLabel>
-                    <Switch
-                      isChecked={svcForm.loyaltyEnabled}
-                      onChange={(e) => setSvcForm({ ...svcForm, loyaltyEnabled: e.target.checked })}
-                      colorScheme="purple"
+                  </select>
+                </div>
+                <div>
+                  <Label>Redoslijed</Label>
+                  <Input
+                    className="mt-1"
+                    type="number"
+                    min={0}
+                    value={svcForm.sortOrder}
+                    onChange={(e) => setSvcForm({ ...svcForm, sortOrder: Number(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="mb-0">Aktivan</Label>
+                  <Switch checked={svcForm.isActive} onCheckedChange={(checked) => setSvcForm({ ...svcForm, isActive: checked })} />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label className="mb-0">Loyalty</Label>
+                  <Switch checked={svcForm.loyaltyEnabled} onCheckedChange={(checked) => setSvcForm({ ...svcForm, loyaltyEnabled: checked })} />
+                </div>
+              </div>
+
+              {svcForm.loyaltyEnabled ? (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <Label>Maks popust (%)</Label>
+                    <Input
+                      className="mt-1"
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={svcForm.loyaltyMaxDiscountPercent}
+                      onChange={(e) =>
+                        setSvcForm({ ...svcForm, loyaltyMaxDiscountPercent: Number(e.target.value) || 0 })
+                      }
                     />
-                  </FormControl>
-                  {svcForm.loyaltyEnabled && (
-                    <FormControl>
-                      <FormLabel>Maksimalan loyalty popust za ovaj servis (%)</FormLabel>
-                      <NumberInput
-                        value={svcForm.loyaltyMaxDiscountPercent}
-                        min={0}
-                        max={100}
-                        onChange={(_, v) => setSvcForm({ ...svcForm, loyaltyMaxDiscountPercent: v || 0 })}
-                      >
-                        <NumberInputField />
-                        <NumberInputStepper>
-                          <NumberIncrementStepper />
-                          <NumberDecrementStepper />
-                        </NumberInputStepper>
-                      </NumberInput>
-                    </FormControl>
-                  )}
-                </Box>
-              </>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>{t('common.cancel')}</Button>
-            <Button colorScheme="brand" onClick={handleSave} isLoading={saving}>{t('common.save')}</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </Box>
-  );
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="button" onClick={() => void handleSave()} disabled={saving}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }
+

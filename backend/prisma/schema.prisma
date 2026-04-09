@@ -63,6 +63,7 @@ model User {
   incomeManualEntriesCreated  IncomeBookManualEntry[]      @relation("IncomeManualEntriesCreated")
   incomeManualEntriesAsClient IncomeBookManualEntry[]      @relation("IncomeManualEntriesClient")
   incomeBookLockEvents        IncomeBookLockEvent[]        @relation("IncomeBookLockEventsCreated")
+  expenseBookLockEvents       ExpenseBookLockEvent[]       @relation("ExpenseBookLockEventsCreated")
   incomeManualEntryAudits     IncomeBookManualEntryAudit[] @relation("IncomeManualEntryAuditsCreated")
   blogPosts                   BlogPost[]                   @relation("BlogAuthor")
   cancellationCount           ClientCancellationCount[]
@@ -406,9 +407,25 @@ model ExpenseBook {
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   expenses Expense[]
+  lockEvents ExpenseBookLockEvent[]
 
   @@unique([year, month])
   @@map("expense_books")
+}
+
+model ExpenseBookLockEvent {
+  id          String   @id @default(uuid())
+  bookId      String   @map("book_id")
+  action      String // LOCK | UNLOCK
+  reason      String?  @db.Text
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  book      ExpenseBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  createdBy User        @relation("ExpenseBookLockEventsCreated", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([bookId, createdAt])
+  @@map("expense_book_lock_events")
 }
 
 model ExpenseCategoryTemplate {

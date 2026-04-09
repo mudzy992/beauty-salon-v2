@@ -1,14 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import {
-  Box, Heading, SimpleGrid, Stat, StatLabel, StatNumber, StatHelpText,
-  Text, Spinner, Card, CardBody, Table, Thead, Tbody, Tr, Th, Td,
-  Badge, Link,
-} from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '../context/AuthContext';
-import api from '../api/client';
-import { useSocketEvent } from '../context/SocketContext';
+import { useEffect, useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+
+import { Card, CardContent } from '../components/ui/card'
+import { useAuth } from '../context/AuthContext'
+import api from '../api/client'
+import { useSocketEvent } from '../context/SocketContext'
 
 interface DashboardStats {
   usersCount: number;
@@ -33,26 +30,34 @@ interface RecentReservation {
   service?: { name: string };
 }
 
-const statusColorMap: Record<string, string> = {
-  PENDING: 'yellow', STYLIST_REVIEW: 'orange', CONFIRMED: 'blue',
-  ATTENDANCE_CONFIRMED: 'cyan', IN_PROGRESS: 'purple', COMPLETED: 'green',
-  CANCELLED_BY_CLIENT: 'red', CANCELLED_BY_STYLISTS: 'red', NO_SHOW: 'gray',
-};
+const statusClassMap: Record<string, string> = {
+  PENDING: 'bg-amber-100 text-amber-800 border-amber-200',
+  STYLIST_REVIEW: 'bg-orange-100 text-orange-800 border-orange-200',
+  CONFIRMED: 'bg-blue-100 text-blue-800 border-blue-200',
+  ATTENDANCE_CONFIRMED: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+  IN_PROGRESS: 'bg-purple-100 text-purple-800 border-purple-200',
+  COMPLETED: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  CANCELLED_BY_CLIENT: 'bg-rose-100 text-rose-800 border-rose-200',
+  CANCELLED_BY_STYLISTS: 'bg-rose-100 text-rose-800 border-rose-200',
+  NO_SHOW: 'bg-slate-100 text-slate-800 border-slate-200',
+}
 
 export default function Dashboard() {
-  const { t } = useTranslation();
-  const { user } = useAuth();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentReservations, setRecentReservations] = useState<RecentReservation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { t } = useTranslation()
+  const { user } = useAuth()
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [recentReservations, setRecentReservations] = useState<RecentReservation[]>(
+    [],
+  )
+  const [loading, setLoading] = useState(true)
 
   const loadData = useCallback(() => {
-    setLoading(true);
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
-    const lastDay = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
+    setLoading(true)
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = now.getMonth() + 1
+    const firstDay = `${year}-${String(month).padStart(2, '0')}-01`
+    const lastDay = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`
 
     Promise.all([
       api.get('/api/users').catch(() => ({ data: [] })),
@@ -65,153 +70,255 @@ export default function Dashboard() {
       api.get('/api/expenses').catch(() => ({ data: [] })),
       api.get('/api/reviews', { params: { approved: 'false' } }).catch(() => ({ data: [] })),
       api.get('/api/blog').catch(() => ({ data: [] })),
-    ]).then(([usersRes, stylistsRes, servicesRes, resThisMonth, pendingRes, incomeRes, _expBooksRes, expensesRes, reviewsRes, blogRes]) => {
-      const allReservations: any[] = Array.isArray(resThisMonth.data) ? resThisMonth.data : [];
-      const incomeBook = incomeRes.data;
-      const allExpenses: any[] = Array.isArray(expensesRes.data) ? expensesRes.data : [];
+    ]).then(
+      ([
+        usersRes,
+        stylistsRes,
+        servicesRes,
+        resThisMonth,
+        pendingRes,
+        incomeRes,
+        _expBooksRes,
+        expensesRes,
+        reviewsRes,
+        blogRes,
+      ]) => {
+        const allReservations: any[] = Array.isArray(resThisMonth.data)
+          ? resThisMonth.data
+          : []
+        const incomeBook = incomeRes.data
+        const allExpenses: any[] = Array.isArray(expensesRes.data)
+          ? expensesRes.data
+          : []
 
-      const monthExpenses = allExpenses.reduce((sum: number, e: any) => sum + Number(e.totalAmount || 0), 0);
+        const monthExpenses = allExpenses.reduce(
+          (sum: number, e: any) => sum + Number(e.totalAmount || 0),
+          0,
+        )
 
-      setStats({
-        usersCount: Array.isArray(usersRes.data) ? usersRes.data.length : 0,
-        stylistsCount: Array.isArray(stylistsRes.data) ? stylistsRes.data.length : 0,
-        servicesCount: Array.isArray(servicesRes.data) ? servicesRes.data.length : 0,
-        reservationsThisMonth: allReservations.length,
-        pendingReservations: Array.isArray(pendingRes.data) ? pendingRes.data.length : 0,
-        completedReservations: allReservations.filter((r: any) => r.status === 'COMPLETED').length,
-        incomeThisMonth: Number(incomeBook?.totalRevenue || 0),
-        tipsThisMonth: Number(incomeBook?.totalTips || 0),
-        expensesThisMonth: monthExpenses,
-        pendingReviews: Array.isArray(reviewsRes.data) ? reviewsRes.data.length : 0,
-        blogPostsCount: Array.isArray(blogRes.data) ? blogRes.data.length : 0,
-      });
+        setStats({
+          usersCount: Array.isArray(usersRes.data) ? usersRes.data.length : 0,
+          stylistsCount: Array.isArray(stylistsRes.data)
+            ? stylistsRes.data.length
+            : 0,
+          servicesCount: Array.isArray(servicesRes.data)
+            ? servicesRes.data.length
+            : 0,
+          reservationsThisMonth: allReservations.length,
+          pendingReservations: Array.isArray(pendingRes.data)
+            ? pendingRes.data.length
+            : 0,
+          completedReservations: allReservations.filter(
+            (r: any) => r.status === 'COMPLETED',
+          ).length,
+          incomeThisMonth: Number(incomeBook?.totalRevenue || 0),
+          tipsThisMonth: Number(incomeBook?.totalTips || 0),
+          expensesThisMonth: monthExpenses,
+          pendingReviews: Array.isArray(reviewsRes.data)
+            ? reviewsRes.data.length
+            : 0,
+          blogPostsCount: Array.isArray(blogRes.data) ? blogRes.data.length : 0,
+        })
 
-      const sorted = allReservations
-        .sort((a: any, b: any) => new Date(b.createdAt ?? b.reservationDate).getTime() - new Date(a.createdAt ?? a.reservationDate).getTime())
-        .slice(0, 8);
-      setRecentReservations(sorted);
-    }).finally(() => setLoading(false));
+        const sorted = allReservations
+          .sort(
+            (a: any, b: any) =>
+              new Date(b.createdAt ?? b.reservationDate).getTime() -
+              new Date(a.createdAt ?? a.reservationDate).getTime(),
+          )
+          .slice(0, 8)
+        setRecentReservations(sorted)
+      },
+    ).finally(() => setLoading(false))
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
-  useSocketEvent('reservation:created', useCallback(() => loadData(), [loadData]));
-  useSocketEvent('reservation:updated', useCallback(() => loadData(), [loadData]));
-  useSocketEvent('reservation:confirmed', useCallback(() => loadData(), [loadData]));
-  useSocketEvent('reservation:cancelled', useCallback(() => loadData(), [loadData]));
+  useSocketEvent('reservation:created', useCallback(() => loadData(), [loadData]))
+  useSocketEvent('reservation:updated', useCallback(() => loadData(), [loadData]))
+  useSocketEvent('reservation:confirmed', useCallback(() => loadData(), [loadData]))
+  useSocketEvent('reservation:cancelled', useCallback(() => loadData(), [loadData]))
 
-  if (loading) return <Box p={6} textAlign="center"><Spinner size="lg" /></Box>;
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <div className="text-sm text-slate-600">Učitavanje…</div>
+      </div>
+    )
+  }
 
   return (
-    <Box>
-      <Heading size="lg" mb={2}>
-        {t('dashboard.welcome')}, {user?.username}
-      </Heading>
-      <Text color="gray.600" mb={6}>{t('dashboard.stats')}</Text>
+    <div className="space-y-6">
+      <div>
+        <div className="text-xl font-semibold text-slate-900">
+          {t('dashboard.welcome')}, {user?.username}
+        </div>
+        <div className="text-slate-600 mt-1">{t('dashboard.stats')}</div>
+      </div>
 
       {/* Main Stats */}
-      <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={4} mb={6}>
-        <Card><CardBody>
-          <Stat>
-            <StatLabel>Korisnici</StatLabel>
-            <StatNumber>{stats?.usersCount ?? 0}</StatNumber>
-            <StatHelpText>{stats?.stylistsCount ?? 0} stilista</StatHelpText>
-          </Stat>
-        </CardBody></Card>
-        <Card><CardBody>
-          <Stat>
-            <StatLabel>Rezervacije (ovaj mjesec)</StatLabel>
-            <StatNumber>{stats?.reservationsThisMonth ?? 0}</StatNumber>
-            <StatHelpText>{stats?.completedReservations ?? 0} završenih | {stats?.pendingReservations ?? 0} na čekanju</StatHelpText>
-          </Stat>
-        </CardBody></Card>
-        <Card><CardBody>
-          <Stat>
-            <StatLabel color="green.600">Prihod (ovaj mjesec)</StatLabel>
-            <StatNumber color="green.600">{(stats?.incomeThisMonth ?? 0).toFixed(2)} KM</StatNumber>
-            <StatHelpText>Napojnice: {(stats?.tipsThisMonth ?? 0).toFixed(2)} KM</StatHelpText>
-          </Stat>
-        </CardBody></Card>
-        <Card><CardBody>
-          <Stat>
-            <StatLabel color="red.600">Rashodi (ovaj mjesec)</StatLabel>
-            <StatNumber color="red.600">{(stats?.expensesThisMonth ?? 0).toFixed(2)} KM</StatNumber>
-            <StatHelpText>Neto: {((stats?.incomeThisMonth ?? 0) - (stats?.expensesThisMonth ?? 0)).toFixed(2)} KM</StatHelpText>
-          </Stat>
-        </CardBody></Card>
-      </SimpleGrid>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-sm text-slate-600">Korisnici</div>
+            <div className="text-2xl font-semibold text-slate-900 mt-1">
+              {stats?.usersCount ?? 0}
+            </div>
+            <div className="text-sm text-slate-500 mt-1">
+              {stats?.stylistsCount ?? 0} stilista
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-sm text-slate-600">Rezervacije (ovaj mjesec)</div>
+            <div className="text-2xl font-semibold text-slate-900 mt-1">
+              {stats?.reservationsThisMonth ?? 0}
+            </div>
+            <div className="text-sm text-slate-500 mt-1">
+              {stats?.completedReservations ?? 0} završenih |{' '}
+              {stats?.pendingReservations ?? 0} na čekanju
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-sm text-emerald-700">Prihod (ovaj mjesec)</div>
+            <div className="text-2xl font-semibold text-emerald-700 mt-1">
+              {(stats?.incomeThisMonth ?? 0).toFixed(2)} KM
+            </div>
+            <div className="text-sm text-slate-500 mt-1">
+              Napojnice: {(stats?.tipsThisMonth ?? 0).toFixed(2)} KM
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-sm text-rose-700">Rashodi (ovaj mjesec)</div>
+            <div className="text-2xl font-semibold text-rose-700 mt-1">
+              {(stats?.expensesThisMonth ?? 0).toFixed(2)} KM
+            </div>
+            <div className="text-sm text-slate-500 mt-1">
+              Neto:{' '}
+              {(
+                (stats?.incomeThisMonth ?? 0) -
+                (stats?.expensesThisMonth ?? 0)
+              ).toFixed(2)}{' '}
+              KM
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Secondary Stats */}
-      <SimpleGrid columns={{ base: 1, sm: 3 }} spacing={4} mb={6}>
-        <Card><CardBody>
-          <Stat>
-            <StatLabel>Aktivni Servisi</StatLabel>
-            <StatNumber>{stats?.servicesCount ?? 0}</StatNumber>
-          </Stat>
-        </CardBody></Card>
-        <Card><CardBody>
-          <Stat>
-            <StatLabel>Recenzije na čekanju</StatLabel>
-            <StatNumber color={stats?.pendingReviews ? 'orange.500' : undefined}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-sm text-slate-600">Aktivni Servisi</div>
+            <div className="text-2xl font-semibold text-slate-900 mt-1">
+              {stats?.servicesCount ?? 0}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-sm text-slate-600">Recenzije na čekanju</div>
+            <div
+              className={
+                stats?.pendingReviews
+                  ? 'text-2xl font-semibold text-orange-600 mt-1'
+                  : 'text-2xl font-semibold text-slate-900 mt-1'
+              }
+            >
               {stats?.pendingReviews ?? 0}
-            </StatNumber>
-          </Stat>
-        </CardBody></Card>
-        <Card><CardBody>
-          <Stat>
-            <StatLabel>Blog članaka</StatLabel>
-            <StatNumber>{stats?.blogPostsCount ?? 0}</StatNumber>
-          </Stat>
-        </CardBody></Card>
-      </SimpleGrid>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-sm text-slate-600">Blog članaka</div>
+            <div className="text-2xl font-semibold text-slate-900 mt-1">
+              {stats?.blogPostsCount ?? 0}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Recent Reservations */}
       <Card>
-        <CardBody>
-          <Heading size="sm" mb={3}>Posljednje Rezervacije</Heading>
-          <Box overflow="auto">
-            <Table size="sm">
-              <Thead>
-                <Tr>
-                  <Th>Datum</Th>
-                  <Th>Vrijeme</Th>
-                  <Th>Klijent</Th>
-                  <Th>Servis</Th>
-                  <Th>Status</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
+        <CardContent className="p-5">
+          <div className="text-sm font-semibold text-slate-900 mb-3">
+            Posljednje Rezervacije
+          </div>
+          <div className="overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-slate-500">
+                <tr className="border-b border-slate-200">
+                  <th className="py-2 pr-3 font-medium">Datum</th>
+                  <th className="py-2 pr-3 font-medium">Vrijeme</th>
+                  <th className="py-2 pr-3 font-medium">Klijent</th>
+                  <th className="py-2 pr-3 font-medium">Servis</th>
+                  <th className="py-2 pr-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
                 {recentReservations.length === 0 ? (
-                  <Tr><Td colSpan={5}><Text color="gray.500">Nema rezervacija.</Text></Td></Tr>
+                  <tr>
+                    <td colSpan={5} className="py-4 text-slate-500">
+                      Nema rezervacija.
+                    </td>
+                  </tr>
                 ) : (
                   recentReservations.map((r) => {
                     const clientName = r.client
-                      ? [r.client.firstName, r.client.lastName].filter(Boolean).join(' ') || r.client.username || `#${r.client.id.slice(0, 8)}`
-                      : '-';
+                      ? [r.client.firstName, r.client.lastName]
+                          .filter(Boolean)
+                          .join(' ') ||
+                        r.client.username ||
+                        `#${r.client.id.slice(0, 8)}`
+                      : '-'
+                    const statusClass =
+                      statusClassMap[r.status] ??
+                      'bg-slate-100 text-slate-800 border-slate-200'
                     return (
-                      <Tr key={r.id}>
-                        <Td>{String(r.reservationDate).slice(0, 10)}</Td>
-                        <Td>{r.startTime}</Td>
-                        <Td>
+                      <tr key={r.id} className="border-b border-slate-100">
+                        <td className="py-2 pr-3 whitespace-nowrap">
+                          {String(r.reservationDate).slice(0, 10)}
+                        </td>
+                        <td className="py-2 pr-3 whitespace-nowrap">
+                          {r.startTime}
+                        </td>
+                        <td className="py-2 pr-3">
                           {r.client ? (
-                            <Link as={RouterLink} to={`/admin/client-analytics?userId=${r.client.id}`} color="brand.600" _hover={{ textDecoration: 'underline' }}>
+                            <Link
+                              to={`/admin/client-analytics?userId=${r.client.id}`}
+                              className="text-brand-gold hover:underline"
+                            >
                               {clientName}
                             </Link>
                           ) : (
                             '-'
                           )}
-                        </Td>
-                        <Td>{r.service?.name ?? '-'}</Td>
-                        <Td><Badge colorScheme={statusColorMap[r.status] ?? 'gray'}>{r.status}</Badge></Td>
-                      </Tr>
-                    );
+                        </td>
+                        <td className="py-2 pr-3">{r.service?.name ?? '-'}</td>
+                        <td className="py-2 pr-3">
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${statusClass}`}
+                          >
+                            {r.status}
+                          </span>
+                        </td>
+                      </tr>
+                    )
                   })
                 )}
-              </Tbody>
-            </Table>
-          </Box>
-        </CardBody>
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
       </Card>
-    </Box>
-  );
+    </div>
+  )
 }

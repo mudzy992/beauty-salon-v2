@@ -1,22 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link as RouterLink, useParams } from 'react-router-dom'
-import {
-  Badge,
-  Box,
-  Button,
-  Container,
-  Flex,
-  Heading,
-  Icon,
-  SimpleGrid,
-  Spinner,
-  Text,
-} from '@chakra-ui/react'
-import { InfoIcon } from '@chakra-ui/icons'
+import { Link, useParams } from 'react-router-dom'
+import { Info } from 'lucide-react'
 import api from '../../api/client'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider'
 import { useSettings } from '../../context/SettingsContext'
+import { Button } from '../../components/ui/button'
+import { Card, CardContent } from '../../components/ui/card'
 
 type Service = {
   id: string
@@ -122,154 +112,125 @@ export default function PublicServiceDetail() {
 
   if (loadingService) {
     return (
-      <Box py={16}>
-        <Flex justify="center">
-          <Spinner size="xl" color="brand.500" thickness="4px" />
-        </Flex>
-      </Box>
+      <div className="py-16 text-center text-slate-600">Učitavanje…</div>
     )
   }
 
   if (!service) {
     return (
-      <Box py={16}>
-        <Container maxW="container.lg">
-          <Heading size="lg" mb={3}>
+      <div className="py-16">
+        <div className="mx-auto max-w-4xl px-4">
+          <div className="text-2xl font-semibold text-slate-900 mb-2">
             Servis nije pronađen
-          </Heading>
-          <Text color="gray.600" mb={6}>
+          </div>
+          <div className="text-slate-600 mb-6">
             Molimo provjerite link ili se vratite na listu usluga.
-          </Text>
-          <Button as={RouterLink} to="/usluge" variant="outline" colorScheme="brand">
-            Nazad na usluge
-          </Button>
-        </Container>
-      </Box>
+          </div>
+          <Link to="/usluge">
+            <Button variant="outline">Nazad na usluge</Button>
+          </Link>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Box bg="gray.50" minH="100vh" pb={20}>
-      <Box bg="brand.900" color="white" py={{ base: 14, md: 18 }} mb={12} position="relative" overflow="hidden">
-        <Box
-          position="absolute"
-          inset={0}
-          backgroundImage={`url('${service.heroImage ? getUploadUrl(service.heroImage) : getSetting('public_services_bg', 'https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=2000')}')`}
-          backgroundSize="cover"
-          backgroundPosition="center"
-          opacity={0.3}
+    <div className="bg-slate-50 min-h-screen pb-20">
+      <div className="bg-slate-950 text-white py-14 md:py-18 mb-12 relative overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-30"
+          style={{
+            backgroundImage: `url('${service.heroImage ? getUploadUrl(service.heroImage) : getSetting('public_services_bg', 'https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=2000')}')`,
+          }}
         />
-        <Box position="absolute" inset={0} bgGradient="linear(to-r, blackAlpha.800, blackAlpha.500)" />
-        <Container maxW="container.xl" position="relative" zIndex={1}>
-          <Flex align={{ base: 'flex-start', md: 'center' }} justify="space-between" gap={6} wrap="wrap">
-            <Box>
-              <Text color="brand.300" fontWeight="bold" textTransform="uppercase" letterSpacing="widest" mb={2}>
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-black/50" />
+        <div className="mx-auto max-w-6xl px-4 relative z-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 flex-wrap">
+            <div>
+              <div className="text-brand-gold font-semibold uppercase tracking-widest text-sm mb-2">
                 Usluga
-              </Text>
-              <Heading size="2xl" color="white" lineHeight="shorter">
+              </div>
+              <div className="text-3xl md:text-4xl font-semibold leading-tight">
                 {service.name}
-              </Heading>
-              <Flex gap={2} mt={4} wrap="wrap">
-                <Badge colorScheme="brand" variant="solid" px={3} py={1} rounded="full">
+              </div>
+              <div className="flex gap-2 mt-4 flex-wrap">
+                <span className="inline-flex items-center rounded-full bg-brand-gold text-black px-3 py-1 text-xs font-semibold">
                   {service.durationMinutes} min
-                </Badge>
-              </Flex>
+                </span>
+              </div>
               {service.shortDescription ? (
-                <Text color="gray.200" mt={4} maxW="3xl">
+                <div className="text-slate-200 mt-4 max-w-3xl">
                   {service.shortDescription}
-                </Text>
+                </div>
               ) : null}
-            </Box>
-            <Flex gap={3} mt={{ base: 4, md: 0 }}>
-              <Button
-                as={RouterLink}
-                to={`/rezervacija?serviceId=${encodeURIComponent(service.id)}`}
-                colorScheme="brand"
-                _hover={{ transform: 'translateY(-1px)', shadow: 'lg' }}
-                transition="all 0.2s"
-              >
-                Rezerviši
-              </Button>
-              <Button as={RouterLink} to="/usluge" variant="outline" colorScheme="whiteAlpha">
-                Sve usluge
-              </Button>
-            </Flex>
-          </Flex>
-        </Container>
-      </Box>
+            </div>
+            <div className="flex gap-3 mt-4 md:mt-0">
+              <Link to={`/rezervacija?serviceId=${encodeURIComponent(service.id)}`}>
+                <Button>Rezerviši</Button>
+              </Link>
+              <Link to="/usluge">
+                <Button variant="outline">Sve usluge</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <Container maxW="container.xl">
+      <div className="mx-auto max-w-6xl px-4">
         {loadingPairs || items.length > 0 ? (
-          <Box mb={6}>
-            <Heading size="lg" color="gray.800" mb={2}>
+          <div className="mb-6">
+            <div className="text-xl font-semibold text-slate-900 mb-2">
               Galerija urađenih radova
-            </Heading>
-            <Text color="gray.600">
+            </div>
+            <div className="text-slate-600">
               Povucite sliku lijevo ili desno da vidite prije i poslije.
-            </Text>
-          </Box>
+            </div>
+          </div>
         ) : null}
 
         {loadingPairs && items.length === 0 ? (
-          <Flex justify="center" py={14}>
-            <Spinner size="xl" color="brand.500" thickness="4px" />
-          </Flex>
+          <div className="py-14 text-center text-slate-600">Učitavanje…</div>
         ) : items.length === 0 ? (
-          <Flex
-            direction="column"
-            align="center"
-            justify="center"
-            py={{ base: 14, md: 20 }}
-            bg="white"
-            rounded="2xl"
-            borderWidth="1px"
-            borderColor="gray.200"
-          >
-            <Flex
-              w="56px"
-              h="56px"
-              rounded="full"
-              align="center"
-              justify="center"
-              bg="brand.50"
-              borderWidth="1px"
-              borderColor="brand.100"
-              mb={4}
-            >
-              <Icon as={InfoIcon} color="brand.500" boxSize={6} />
-            </Flex>
-            <Text color="gray.600" textAlign="center" maxW="lg" px={6}>
-              Trenutno nema objavljenih urađenih radova za ovaj servis.
-            </Text>
-          </Flex>
+          <Card>
+            <CardContent className="py-14 md:py-20 flex flex-col items-center justify-center">
+              <div className="h-14 w-14 rounded-full flex items-center justify-center bg-brand-champagne/30 border border-brand-champagne mb-4">
+                <Info className="h-6 w-6 text-brand-gold" />
+              </div>
+              <div className="text-slate-600 text-center max-w-lg px-6">
+                Trenutno nema objavljenih urađenih radova za ovaj servis.
+              </div>
+            </CardContent>
+          </Card>
         ) : (
           <>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={8}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {items.map((pair) => (
-                <Box key={pair.id}>
+                <div key={pair.id}>
                   <BeforeAfterSlider
                     beforeSrc={getUploadUrl(
-                      pair.before.pathMedium ?? pair.before.pathThumb ?? pair.before.pathOriginal,
+                      pair.before.pathMedium ??
+                        pair.before.pathThumb ??
+                        pair.before.pathOriginal,
                     )}
                     afterSrc={getUploadUrl(
-                      pair.after.pathMedium ?? pair.after.pathThumb ?? pair.after.pathOriginal,
+                      pair.after.pathMedium ??
+                        pair.after.pathThumb ??
+                        pair.after.pathOriginal,
                     )}
                     alt="Prije / Poslije"
                     aspectRatio={1}
                   />
-                </Box>
+                </div>
               ))}
-            </SimpleGrid>
-            <Box ref={sentinelRef} h={4} mt={8} />
+            </div>
+            <div ref={sentinelRef} className="h-4 mt-8" />
             {loadingMore ? (
-              <Flex justify="center" py={8}>
-                <Spinner size="lg" color="brand.500" />
-              </Flex>
+              <div className="py-8 text-center text-slate-600">Učitavanje…</div>
             ) : null}
           </>
         )}
-      </Container>
-    </Box>
+      </div>
+    </div>
   )
 }
 

@@ -1,20 +1,17 @@
-import { Link as RouterLink } from 'react-router-dom';
-import { Box, Button, Heading, Text, VStack } from '@chakra-ui/react';
+import { Link } from 'react-router-dom'
+
+import { Button } from '../components/ui/button'
 
 export default function NotFound() {
   return (
-    <Box minH="100vh" display="flex" alignItems="center" justifyContent="center" bg="gray.50" px={4}>
-      <VStack spacing={6} textAlign="center">
-        <Heading size="2xl" color="gray.700">
-          404
-        </Heading>
-        <Text color="gray.600" fontSize="lg">
-          Stranica nije pronađena.
-        </Text>
-        <Button as={RouterLink} to="/" colorScheme="brand" size="lg">
-          Nazad na početnu
-        </Button>
-      </VStack>
-    </Box>
-  );
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <div className="text-center space-y-6">
+        <div className="text-6xl font-semibold text-slate-700">404</div>
+        <div className="text-lg text-slate-600">Stranica nije pronađena.</div>
+        <Link to="/">
+          <Button size="lg">Nazad na početnu</Button>
+        </Link>
+      </div>
+    </div>
+  )
 }

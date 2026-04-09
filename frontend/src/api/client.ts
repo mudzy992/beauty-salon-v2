@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useAuthStore } from '../stores/auth.store';
 
 const baseURL = import.meta.env.VITE_API_URL || '';
 
@@ -8,7 +9,7 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = useAuthStore.getState().token ?? localStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -33,8 +34,8 @@ api.interceptors.response.use(
       if (isExpectedUnauthorizedOnAuth(url) || isExpectedUnauthorizedOnAuth(combined)) {
         return Promise.reject(err);
       }
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      useAuthStore.getState().logout();
+      window.location.assign('/login');
     }
     return Promise.reject(err);
   }

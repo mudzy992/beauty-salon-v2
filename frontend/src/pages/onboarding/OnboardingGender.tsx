@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { Button, HStack, Text, useToast, VStack } from '@chakra-ui/react'
 import api from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
 import OnboardingShell from '../../components/OnboardingShell'
+import { Button } from '../../components/ui/button'
+import { useAppToast } from '../../lib/toast/useAppToast'
 
 type Gender = 'MALE' | 'FEMALE'
 
 export default function OnboardingGender() {
   const { user, refreshProfile } = useAuth()
-  const toast = useToast()
+  const toast = useAppToast()
   const navigate = useNavigate()
   const [gender, setGender] = useState<Gender | null>(() =>
     user?.gender === 'MALE' || user?.gender === 'FEMALE' ? user.gender : null,
@@ -30,7 +31,7 @@ export default function OnboardingGender() {
 
   const handleContinue = async () => {
     if (!gender) {
-      toast({ title: 'Odaberite spol.', status: 'warning', isClosable: true })
+      toast.warning('Odaberite spol.')
       return
     }
     setSaving(true)
@@ -39,11 +40,7 @@ export default function OnboardingGender() {
       await refreshProfile()
       navigate('/onboarding/email', { replace: true })
     } catch (error: any) {
-      toast({
-        title: error?.response?.data?.message || 'Spremanje nije uspjelo.',
-        status: 'error',
-        isClosable: true,
-      })
+      toast.error(error?.response?.data?.message || 'Spremanje nije uspjelo.')
     } finally {
       setSaving(false)
     }
@@ -58,30 +55,28 @@ export default function OnboardingGender() {
       subtitle="Odaberite spol. Ovaj korak je obavezan i možete ga kasnije promijeniti u profilu."
       tip="Podatak koristimo za personalizaciju i filtriranje usluga."
     >
-      <VStack align="stretch" spacing={4}>
-        <Text fontWeight="700">Spol</Text>
-        <HStack spacing={3}>
+      <div className="space-y-4">
+        <div className="font-semibold text-slate-900">Spol</div>
+        <div className="grid grid-cols-2 gap-3">
           <Button
-            flex={1}
-            variant={gender === 'MALE' ? 'solid' : 'outline'}
-            colorScheme={gender === 'MALE' ? 'brand' : 'gray'}
+            type="button"
+            variant={gender === 'MALE' ? 'default' : 'outline'}
             onClick={() => setGender('MALE')}
           >
             Muški
           </Button>
           <Button
-            flex={1}
-            variant={gender === 'FEMALE' ? 'solid' : 'outline'}
-            colorScheme={gender === 'FEMALE' ? 'brand' : 'gray'}
+            type="button"
+            variant={gender === 'FEMALE' ? 'default' : 'outline'}
             onClick={() => setGender('FEMALE')}
           >
             Ženski
           </Button>
-        </HStack>
-        <Button colorScheme="brand" onClick={handleContinue} isLoading={saving}>
-          Nastavi
+        </div>
+        <Button type="button" onClick={handleContinue} disabled={saving} className="w-full">
+          {saving ? 'Spremanje…' : 'Nastavi'}
         </Button>
-      </VStack>
+      </div>
     </OnboardingShell>
   )
 }

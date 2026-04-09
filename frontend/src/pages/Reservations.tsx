@@ -1,55 +1,58 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
-import {
-  Box, Heading, Table, Thead, Tbody, Tr, Th, Td, Spinner, Text,
-  Badge, Flex, Select, Input, Button, useToast, useDisclosure,
-  Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody,
-  ModalCloseButton, ModalFooter, VStack, HStack, Divider,
-  IconButton, Textarea, Link, useBreakpointValue, SimpleGrid,
-} from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
-import { ViewIcon } from '@chakra-ui/icons';
-import api from '../api/client';
-import { useSocketEvent } from '../context/SocketContext';
+import { useCallback, useEffect, useState } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { Eye, Loader2 } from 'lucide-react'
 
-/** Klijent u rezervaciji – backend vraća User direktno (client: { id, firstName, lastName, ... }) */
+import api from '../api/client'
+import { getErrorMessage } from '../api/error'
+import { useSocketEvent } from '../context/SocketContext'
+import { useAppToast } from '../lib/toast/useAppToast'
+
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Textarea } from '../components/ui/textarea'
+
 interface ReservationClient {
-  id: string;
-  firstName?: string | null;
-  lastName?: string | null;
-  username?: string;
-  email?: string;
-  phone?: string | null;
+  id: string
+  firstName?: string | null
+  lastName?: string | null
+  username?: string
+  email?: string
+  phone?: string | null
 }
 
 interface Reservation {
-  id: string;
-  reservationDate: string;
-  startTime: string;
-  endTime: string;
-  status: string;
-  clientNotes: string | null;
-  cancelReason: string | null;
-  createdAt: string;
-  client?: ReservationClient;
-  service?: { id: string; name: string; durationMinutes: number; price: number | string };
-  confirmedStylist?: { id: string; user?: { username: string; firstName: string | null; lastName: string | null } };
+  id: string
+  reservationDate: string
+  startTime: string
+  endTime: string
+  status: string
+  clientNotes: string | null
+  cancelReason: string | null
+  createdAt: string
+  client?: ReservationClient
+  service?: { id: string; name: string; durationMinutes: number; price: number | string }
+  confirmedStylist?: { id: string; user?: { username: string; firstName: string | null; lastName: string | null } }
   stylistResponses?: {
-    id: string;
-    status: string;
-    rejectionReason: string | null;
-    stylistProfile?: { user?: { username: string } };
-  }[];
-  loyaltyDiscountPercent?: number;
-  loyaltyDiscountAmount?: number | string;
-  loyaltyPointsUsed?: number;
+    id: string
+    status: string
+    rejectionReason: string | null
+    stylistProfile?: { user?: { username: string } }
+  }[]
+  loyaltyDiscountPercent?: number
+  loyaltyDiscountAmount?: number | string
+  loyaltyPointsUsed?: number
 }
 
 interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
 }
 
 const STATUS_OPTIONS = [
@@ -63,381 +66,452 @@ const STATUS_OPTIONS = [
   { value: 'CANCELLED_BY_CLIENT', label: 'Otkazao klijent' },
   { value: 'CANCELLED_BY_STYLISTS', label: 'Otkazali stilisti' },
   { value: 'NO_SHOW', label: 'Nije došao' },
-];
-
-const statusColorMap: Record<string, string> = {
-  PENDING: 'yellow',
-  STYLIST_REVIEW: 'orange',
-  CONFIRMED: 'blue',
-  ATTENDANCE_CONFIRMED: 'cyan',
-  IN_PROGRESS: 'purple',
-  COMPLETED: 'green',
-  CANCELLED_BY_CLIENT: 'red',
-  CANCELLED_BY_STYLISTS: 'red',
-  NO_SHOW: 'gray',
-};
+] as const
 
 const getStatusLabel = (status: string) =>
-  STATUS_OPTIONS.find((s) => s.value === status)?.label ?? status;
+  STATUS_OPTIONS.find((s) => s.value === status)?.label ?? status
+
+const getStatusBadgeVariant = (status: string) => {
+  if (status === 'COMPLETED') return 'success'
+  if (status === 'CONFIRMED' || status === 'ATTENDANCE_CONFIRMED') return 'brand'
+  if (status === 'IN_PROGRESS') return 'secondary'
+  if (status === 'PENDING' || status === 'STYLIST_REVIEW') return 'warning'
+  if (status === 'CANCELLED_BY_CLIENT' || status === 'CANCELLED_BY_STYLISTS' || status === 'NO_SHOW') return 'danger'
+  return 'secondary'
+}
+
+const canCancel = (status: string) =>
+  ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED'].includes(status)
+
+const getClientName = (c?: ReservationClient) => {
+  if (!c) return '-'
+  return (`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || c.username || '-') as string
+}
+
+const getStylistName = (s?: Reservation['confirmedStylist']) => {
+  if (!s?.user) return 'Nije potvrđen'
+  return `${s.user.firstName ?? ''} ${s.user.lastName ?? ''}`.trim() || s.user.username || 'Stilista'
+}
 
 export default function Reservations() {
-  const { t } = useTranslation();
-  const toast = useToast();
-  const [items, setItems] = useState<Reservation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const [pageSize] = useState(20);
-  const [total, setTotal] = useState(0);
+  const { t } = useTranslation()
+  const { success, error } = useAppToast()
 
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [items, setItems] = useState<Reservation[]>([])
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(0)
+  const [pageSize] = useState(20)
+  const [total, setTotal] = useState(0)
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [detail, setDetail] = useState<Reservation | null>(null);
-  const [cancelReason, setCancelReason] = useState('');
-  const isMobile = useBreakpointValue({ base: true, lg: false }) ?? false;
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+
+  const [open, setOpen] = useState(false)
+  const [detail, setDetail] = useState<Reservation | null>(null)
+  const [cancelReason, setCancelReason] = useState('')
+  const [cancelling, setCancelling] = useState(false)
 
   const loadData = useCallback(() => {
-    setLoading(true);
-    const params: Record<string, string> = {};
-    if (fromDate) params.fromDate = fromDate;
-    if (toDate) params.toDate = toDate;
-    if (statusFilter) params.status = statusFilter;
-    params.page = String(page);
-    params.pageSize = String(pageSize);
-    api.get<Reservation[] | PaginatedResponse<Reservation>>('/api/reservations', { params })
+    setLoading(true)
+    const params: Record<string, string> = {}
+    if (fromDate) params.fromDate = fromDate
+    if (toDate) params.toDate = toDate
+    if (statusFilter) params.status = statusFilter
+    params.page = String(page)
+    params.pageSize = String(pageSize)
+    api
+      .get<Reservation[] | PaginatedResponse<Reservation>>('/api/reservations', { params })
       .then((r) => {
         if (Array.isArray(r.data)) {
-          setItems(r.data);
-          setTotal(r.data.length);
-          return;
+          setItems(r.data)
+          setTotal(r.data.length)
+          return
         }
-        setItems(Array.isArray(r.data.items) ? r.data.items : []);
-        setTotal(r.data.total ?? 0);
+        setItems(Array.isArray(r.data.items) ? r.data.items : [])
+        setTotal(r.data.total ?? 0)
       })
       .catch(() => {
-        setItems([]);
-        setTotal(0);
+        setItems([])
+        setTotal(0)
       })
-      .finally(() => setLoading(false));
-  }, [fromDate, toDate, statusFilter, page, pageSize]);
+      .finally(() => setLoading(false))
+  }, [fromDate, toDate, statusFilter, page, pageSize])
 
-  useEffect(() => { loadData(); }, [loadData]);
-  useEffect(() => { setPage(0); }, [fromDate, toDate, statusFilter]);
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
-  useSocketEvent('reservation:created', useCallback(() => loadData(), [loadData]));
-  useSocketEvent('reservation:updated', useCallback(() => loadData(), [loadData]));
-  useSocketEvent('reservation:cancelled', useCallback(() => loadData(), [loadData]));
-  useSocketEvent('reservation:confirmed', useCallback(() => loadData(), [loadData]));
-  useSocketEvent('reservation:stylist_response', useCallback(() => loadData(), [loadData]));
+  useEffect(() => {
+    setPage(0)
+  }, [fromDate, toDate, statusFilter])
+
+  useSocketEvent('reservation:created', useCallback(() => loadData(), [loadData]))
+  useSocketEvent('reservation:updated', useCallback(() => loadData(), [loadData]))
+  useSocketEvent('reservation:cancelled', useCallback(() => loadData(), [loadData]))
+  useSocketEvent('reservation:confirmed', useCallback(() => loadData(), [loadData]))
+  useSocketEvent('reservation:stylist_response', useCallback(() => loadData(), [loadData]))
 
   const openDetail = async (r: Reservation) => {
     try {
-      const { data } = await api.get<Reservation>(`/api/reservations/${r.id}`);
-      setDetail(data);
+      const { data } = await api.get<Reservation>(`/api/reservations/${r.id}`)
+      setDetail(data)
     } catch {
-      setDetail(r);
+      setDetail(r)
     }
-    setCancelReason('');
-    onOpen();
-  };
+    setCancelReason('')
+    setOpen(true)
+  }
 
   const handleCancel = async () => {
-    if (!detail) return;
+    if (!detail) return
+    setCancelling(true)
     try {
-      await api.post(`/api/reservations/${detail.id}/cancel`, { reason: cancelReason || undefined });
-      toast({ title: 'Rezervacija otkazana', status: 'success', isClosable: true });
-      loadData();
-      onClose();
-    } catch {
-      toast({ title: 'Greška pri otkazivanju', status: 'error', isClosable: true });
+      await api.post(`/api/reservations/${detail.id}/cancel`, { reason: cancelReason || undefined })
+      success('Rezervacija otkazana')
+      loadData()
+      setOpen(false)
+    } catch (err) {
+      error(getErrorMessage(err, 'Greška pri otkazivanju'))
+    } finally {
+      setCancelling(false)
     }
-  };
+  }
 
-  const canCancel = (status: string) =>
-    ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED'].includes(status);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+  const priceBlock = (r: Reservation) => {
+    if (!r.service) return '-'
+    const base = Number(r.service.price ?? 0)
+    const pct = Number(r.loyaltyDiscountPercent ?? 0)
+    const amt = Number(r.loyaltyDiscountAmount ?? 0)
+    if (pct > 0 && amt > 0) {
+      const final = base - amt
+      return (
+        <div className="text-right">
+          <p className="font-medium text-slate-900 dark:text-slate-50">{base.toFixed(2)} KM</p>
+          <p className="text-xs text-emerald-700 dark:text-emerald-300">
+            -{pct}% ({amt.toFixed(2)} KM) → <span className="font-semibold">{final.toFixed(2)} KM</span>
+          </p>
+        </div>
+      )
+    }
+    return <span className="font-medium text-slate-900 dark:text-slate-50">{base.toFixed(2)} KM</span>
+  }
 
   return (
-    <Box>
-      <Heading size="lg" mb={4}>{t('nav.reservations')}</Heading>
+    <div>
+      <h1 className="mb-4 text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.reservations')}</h1>
 
-      {/* Filters */}
-      <SimpleGrid columns={{ base: 1, md: 4 }} spacing={{ base: 2, md: 3 }} mb={4} bg="white" p={{ base: 3, md: 4 }} rounded="lg" shadow="sm">
-        <Box minW={0}>
-          <Text fontSize={{ base: 'xs', md: 'xs' }} color="gray.500" mb={1}>Od datuma</Text>
-          <Input type="date" size="sm" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-        </Box>
-        <Box minW={0}>
-          <Text fontSize={{ base: 'xs', md: 'xs' }} color="gray.500" mb={1}>Do datuma</Text>
-          <Input type="date" size="sm" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-        </Box>
-        <Box minW={0}>
-          <Text fontSize={{ base: 'xs', md: 'xs' }} color="gray.500" mb={1}>Status</Text>
-          <Select size="sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-          </Select>
-        </Box>
-        <Flex align="flex-end">
-          <Button
-            size="sm"
-            variant="outline"
-            w={{ base: 'full', md: 'auto' }}
-            minH={{ base: '34px', md: '32px' }}
-            onClick={() => { setFromDate(''); setToDate(''); setStatusFilter(''); }}
-          >
-            Resetuj
-          </Button>
-        </Flex>
-      </SimpleGrid>
+      <Card className="mb-4">
+        <div className="p-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+            <div className="space-y-2">
+              <Label>Od datuma</Label>
+              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Do datuma</Label>
+              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <select
+                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full md:w-auto"
+                onClick={() => {
+                  setFromDate('')
+                  setToDate('')
+                  setStatusFilter('')
+                }}
+              >
+                Resetuj
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
 
-      <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
+      <Card className="overflow-hidden">
         {loading ? (
-          <Box p={6} textAlign="center"><Spinner size="lg" /></Box>
-        ) : isMobile ? (
-          <VStack align="stretch" spacing={3} p={3}>
-            {items.length === 0 ? (
-              <Text color="gray.500">{t('common.noData')}</Text>
-            ) : items.map((r) => (
-              <Box key={r.id} borderWidth="1px" borderColor="gray.200" rounded="md" p={3} onClick={() => openDetail(r)} cursor="pointer">
-                <HStack justify="space-between">
-                  <Text fontWeight="medium">{String(r.reservationDate).slice(0, 10)}</Text>
-                  <Badge colorScheme={statusColorMap[r.status] ?? 'gray'}>{getStatusLabel(r.status)}</Badge>
-                </HStack>
-                <Text fontSize="sm" color="gray.600">{r.startTime} - {r.endTime}</Text>
-                <Text fontSize="sm" mt={1}>{r.service?.name ?? '-'}</Text>
-                <Text fontSize="sm" color="gray.600">
-                  {r.client ? ((`${r.client.firstName ?? ''} ${r.client.lastName ?? ''}`.trim() || r.client.username) || '-') : '-'}
-                </Text>
-              </Box>
-            ))}
-          </VStack>
+          <div className="flex justify-center p-10 text-slate-500">
+            <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+          </div>
         ) : (
-          <Table size="sm">
-            <Thead>
-              <Tr>
-                <Th>Datum</Th>
-                <Th>Vrijeme</Th>
-                <Th>Klijent</Th>
-                <Th>Servis</Th>
-                <Th isNumeric>Cijena / Loyalty</Th>
-                <Th>Stilista</Th>
-                <Th>Status</Th>
-                <Th textAlign="right">Akcije</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
+          <>
+            <div className="grid grid-cols-1 gap-3 p-3 lg:hidden">
               {items.length === 0 ? (
-                <Tr><Td colSpan={7}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
+                <p className="p-3 text-sm text-slate-500">{t('common.noData')}</p>
               ) : (
                 items.map((r) => (
-                  <Tr key={r.id} cursor="pointer" _hover={{ bg: 'gray.50' }} onClick={() => openDetail(r)}>
-                    <Td>{String(r.reservationDate).slice(0, 10)}</Td>
-                    <Td>{r.startTime} – {r.endTime}</Td>
-                    <Td>
-                      {r.client ? (
-                        <Link
-                          as={RouterLink}
-                          to={`/admin/client-analytics?userId=${r.client.id}`}
-                          color="brand.600"
-                          fontWeight="medium"
-                          _hover={{ textDecoration: 'underline' }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {(`${r.client.firstName ?? ''} ${r.client.lastName ?? ''}`.trim() || r.client.username) || '-'}
-                        </Link>
-                      ) : (
-                        '-'
-                      )}
-                    </Td>
-                    <Td>{r.service?.name ?? '-'}</Td>
-                    <Td isNumeric>
-                      {r.service && (
-                        <VStack align="flex-end" spacing={0}>
-                          <Text fontSize="sm" fontWeight="medium">
-                            {Number(r.service.price).toFixed(2)} KM
-                          </Text>
-                          {(r.loyaltyDiscountPercent ?? 0) > 0 && (
-                            <Text fontSize="xs" color="green.600">
-                              -{r.loyaltyDiscountPercent}% ({Number(r.loyaltyDiscountAmount ?? 0).toFixed(2)} KM) →{' '}
-                              <strong>
-                                {(Number(r.service.price) - Number(r.loyaltyDiscountAmount ?? 0)).toFixed(2)} KM
-                              </strong>
-                            </Text>
-                          )}
-                        </VStack>
-                      )}
-                    </Td>
-                    <Td>
-                      {r.confirmedStylist ? (
-                        <Link
-                          as={RouterLink}
-                          to={`/admin/stylist-analytics?stylistId=${r.confirmedStylist.id}`}
-                          color="brand.600"
-                          _hover={{ textDecoration: 'underline' }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {r.confirmedStylist.user
-                            ? `${r.confirmedStylist.user.firstName ?? ''} ${r.confirmedStylist.user.lastName ?? ''}`.trim() || r.confirmedStylist.user.username
-                            : 'Stilista'}
-                        </Link>
-                      ) : (
-                        '-'
-                      )}
-                    </Td>
-                    <Td>
-                      <Badge colorScheme={statusColorMap[r.status] ?? 'gray'}>
+                  <button
+                    key={r.id}
+                    type="button"
+                    className="w-full rounded-md border border-slate-200 bg-white p-3 text-left hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/40"
+                    onClick={() => void openDetail(r)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-slate-900 dark:text-slate-50">{String(r.reservationDate).slice(0, 10)}</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                          {r.startTime} - {r.endTime}
+                        </p>
+                      </div>
+                      <Badge variant={getStatusBadgeVariant(r.status)} className="text-[10px]">
                         {getStatusLabel(r.status)}
                       </Badge>
-                    </Td>
-                    <Td textAlign="right" onClick={(e) => e.stopPropagation()}>
-                      <IconButton aria-label="Detalji" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openDetail(r)} />
-                    </Td>
-                  </Tr>
+                    </div>
+                    <p className="mt-2 text-sm text-slate-900 dark:text-slate-50">{r.service?.name ?? '-'}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">{getClientName(r.client)}</p>
+                  </button>
                 ))
               )}
-            </Tbody>
-          </Table>
+            </div>
+
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                    <th className="p-3 font-medium">Datum</th>
+                    <th className="p-3 font-medium">Vrijeme</th>
+                    <th className="p-3 font-medium">Klijent</th>
+                    <th className="p-3 font-medium">Servis</th>
+                    <th className="p-3 font-medium text-right">Cijena / Loyalty</th>
+                    <th className="p-3 font-medium">Stilista</th>
+                    <th className="p-3 font-medium">Status</th>
+                    <th className="p-3 font-medium text-right">Akcije</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="p-6 text-slate-500">
+                        {t('common.noData')}
+                      </td>
+                    </tr>
+                  ) : (
+                    items.map((r) => (
+                      <tr
+                        key={r.id}
+                        className="cursor-pointer border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-slate-900/40"
+                        onClick={() => void openDetail(r)}
+                      >
+                        <td className="p-3">{String(r.reservationDate).slice(0, 10)}</td>
+                        <td className="p-3">
+                          {r.startTime} – {r.endTime}
+                        </td>
+                        <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                          {r.client ? (
+                            <RouterLink
+                              to={`/admin/client-analytics?userId=${r.client.id}`}
+                              className="font-medium text-brand-gold hover:underline"
+                            >
+                              {getClientName(r.client)}
+                            </RouterLink>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="p-3">{r.service?.name ?? '-'}</td>
+                        <td className="p-3 text-right">{priceBlock(r)}</td>
+                        <td className="p-3" onClick={(e) => e.stopPropagation()}>
+                          {r.confirmedStylist ? (
+                            <RouterLink
+                              to={`/admin/stylist-analytics?stylistId=${r.confirmedStylist.id}`}
+                              className="text-brand-gold hover:underline"
+                            >
+                              {getStylistName(r.confirmedStylist)}
+                            </RouterLink>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <Badge variant={getStatusBadgeVariant(r.status)} className="text-[10px]">
+                            {getStatusLabel(r.status)}
+                          </Badge>
+                        </td>
+                        <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Detalji" onClick={() => void openDetail(r)}>
+                            <Eye className="h-4 w-4 text-blue-600" aria-hidden="true" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
-      </Box>
-      <Flex justify="space-between" align="center" mt={4}>
-        <Text fontSize="sm" color="gray.500">Ukupno: {total}</Text>
-        <HStack>
-          <Button size="sm" variant="outline" isDisabled={page <= 0} onClick={() => setPage((prev) => Math.max(0, prev - 1))}>
+      </Card>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">Ukupno: {total}</p>
+        <div className="flex items-center gap-2">
+          <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
             Prethodna
           </Button>
-          <Text fontSize="sm">{page + 1} / {Math.max(1, Math.ceil(total / pageSize))}</Text>
+          <span className="text-sm text-slate-600 dark:text-slate-300">
+            {page + 1} / {totalPages}
+          </span>
           <Button
+            type="button"
             size="sm"
             variant="outline"
-            isDisabled={page >= Math.ceil(total / pageSize) - 1}
-            onClick={() => setPage((prev) => prev + 1)}
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage((p) => p + 1)}
           >
             Sljedeća
           </Button>
-        </HStack>
-      </Flex>
+        </div>
+      </div>
 
-      {/* Detail Modal */}
-      <Modal isOpen={isOpen} onClose={onClose} size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Detalji Rezervacije</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            {detail && (
-              <VStack align="stretch" spacing={3}>
-                <Flex justify="space-between">
-                  <Text fontWeight="bold">Status</Text>
-                  <Badge colorScheme={statusColorMap[detail.status] ?? 'gray'} fontSize="md" px={3} py={1}>
-                    {getStatusLabel(detail.status)}
-                  </Badge>
-                </Flex>
-                <Divider />
-                <SimpleGrid columns={{ base: 1, md: 3 }} spacing={3}>
-                  <Box>
-                    <Text fontSize="xs" color="gray.500">Datum</Text>
-                    <Text fontWeight="medium">{String(detail.reservationDate).slice(0, 10)}</Text>
-                  </Box>
-                  <Box>
-                    <Text fontSize="xs" color="gray.500">Vrijeme</Text>
-                    <Text fontWeight="medium">{detail.startTime} – {detail.endTime}</Text>
-                  </Box>
-                  <Box>
-                    <Text fontSize="xs" color="gray.500">Kreirano</Text>
-                    <Text fontWeight="medium">{new Date(detail.createdAt).toLocaleString('bs-BA')}</Text>
-                  </Box>
-                </SimpleGrid>
-                <Divider />
-                <Box>
-                  <Text fontSize="xs" color="gray.500">Klijent</Text>
-                  <Text fontWeight="medium">
-                    {detail.client
-                      ? (`${detail.client.firstName ?? ''} ${detail.client.lastName ?? ''}`.trim() || detail.client.username || '-')
-                      : '-'}
-                  </Text>
-                  {detail.client?.phone && (
-                    <Text fontSize="sm" color="gray.600" mt={1}>Tel: {detail.client.phone}</Text>
-                  )}
-                </Box>
-                <Box>
-                  <Text fontSize="xs" color="gray.500">Servis</Text>
-                  <Text fontWeight="medium">{detail.service?.name ?? '-'}</Text>
-                  {detail.service && (
-                    <Text fontSize="sm" color="gray.600">
-                      {detail.service.durationMinutes} min | {Number(detail.service.price).toFixed(2)} KM
-                    </Text>
-                  )}
-                </Box>
-                <Box>
-                  <Text fontSize="xs" color="gray.500">Potvrđeni stilista</Text>
-                  <Text fontWeight="medium">
-                    {detail.confirmedStylist?.user
-                      ? `${detail.confirmedStylist.user.firstName ?? ''} ${detail.confirmedStylist.user.lastName ?? ''}`.trim() || detail.confirmedStylist.user.username
-                      : 'Nije potvrđen'}
-                  </Text>
-                </Box>
-                {detail.clientNotes && (
-                  <Box>
-                    <Text fontSize="xs" color="gray.500">Napomena klijenta</Text>
-                    <Text>{detail.clientNotes}</Text>
-                  </Box>
-                )}
-                {detail.cancelReason && (
-                  <Box>
-                    <Text fontSize="xs" color="gray.500">Razlog otkazivanja</Text>
-                    <Text color="red.600">{detail.cancelReason}</Text>
-                  </Box>
-                )}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Detalji rezervacije</DialogTitle>
+          </DialogHeader>
 
-                {detail.stylistResponses && detail.stylistResponses.length > 0 && (
-                  <>
-                    <Divider />
-                    <Text fontWeight="bold" fontSize="sm">Odgovori stilista</Text>
+          {detail ? (
+            <div className="space-y-4 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-medium text-slate-900 dark:text-slate-50">Status</p>
+                <Badge variant={getStatusBadgeVariant(detail.status)} className="px-3 py-1 text-sm">
+                  {getStatusLabel(detail.status)}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div>
+                  <p className="text-xs text-slate-500">Datum</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-50">{String(detail.reservationDate).slice(0, 10)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Vrijeme</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-50">
+                    {detail.startTime} – {detail.endTime}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Kreirano</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-50">{new Date(detail.createdAt).toLocaleString('bs-BA')}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div>
+                  <p className="text-xs text-slate-500">Klijent</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-50">{getClientName(detail.client)}</p>
+                  {detail.client?.phone ? <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Tel: {detail.client.phone}</p> : null}
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Potvrđeni stilista</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-50">{getStylistName(detail.confirmedStylist)}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-500">Servis</p>
+                <p className="font-medium text-slate-900 dark:text-slate-50">{detail.service?.name ?? '-'}</p>
+                {detail.service ? (
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                    {detail.service.durationMinutes} min | {Number(detail.service.price).toFixed(2)} KM
+                  </p>
+                ) : null}
+              </div>
+
+              {detail.clientNotes ? (
+                <div>
+                  <p className="text-xs text-slate-500">Napomena klijenta</p>
+                  <p className="mt-1 whitespace-pre-wrap text-slate-900 dark:text-slate-50">{detail.clientNotes}</p>
+                </div>
+              ) : null}
+
+              {detail.cancelReason ? (
+                <div>
+                  <p className="text-xs text-slate-500">Razlog otkazivanja</p>
+                  <p className="mt-1 whitespace-pre-wrap text-rose-700 dark:text-rose-300">{detail.cancelReason}</p>
+                </div>
+              ) : null}
+
+              {detail.stylistResponses && detail.stylistResponses.length > 0 ? (
+                <div>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Odgovori stilista</p>
+                  <div className="mt-2 space-y-2">
                     {detail.stylistResponses.map((sr) => (
-                      <Flex key={sr.id} justify="space-between" align="center" bg="gray.50" p={2} rounded="md">
-                        <Text fontSize="sm">{sr.stylistProfile?.user?.username ?? '-'}</Text>
-                        <Badge colorScheme={
-                          sr.status === 'ACCEPTED' ? 'green' :
-                          sr.status === 'REJECTED' ? 'red' :
-                          sr.status === 'LOCKED' ? 'orange' : 'gray'
-                        }>
+                      <div key={sr.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900/30">
+                        <p className="text-sm text-slate-900 dark:text-slate-50">{sr.stylistProfile?.user?.username ?? '-'}</p>
+                        <Badge
+                          variant={
+                            sr.status === 'ACCEPTED'
+                              ? 'success'
+                              : sr.status === 'REJECTED'
+                                ? 'danger'
+                                : sr.status === 'LOCKED'
+                                  ? 'warning'
+                                  : 'secondary'
+                          }
+                          className="text-[10px]"
+                        >
                           {sr.status}
                         </Badge>
-                        {sr.rejectionReason && <Text fontSize="xs" color="gray.500">{sr.rejectionReason}</Text>}
-                      </Flex>
+                        {sr.rejectionReason ? <p className="text-xs text-slate-500">{sr.rejectionReason}</p> : null}
+                      </div>
                     ))}
-                  </>
-                )}
+                  </div>
+                </div>
+              ) : null}
 
-                {canCancel(detail.status) && (
-                  <>
-                    <Divider />
-                    <Box>
-                      <Text fontWeight="bold" fontSize="sm" mb={2}>Otkaži rezervaciju</Text>
-                      <Textarea
-                        placeholder="Razlog otkazivanja (opciono)"
-                        value={cancelReason}
-                        onChange={(e) => setCancelReason(e.target.value)}
-                        size="sm"
-                        mb={2}
-                      />
-                      <Button colorScheme="red" size="sm" onClick={handleCancel}>
-                        Otkaži Rezervaciju
+              {canCancel(detail.status) ? (
+                <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Otkaži rezervaciju</p>
+                  <p className="mt-1 text-xs text-slate-500">Otkazivanje je dozvoljeno za ovu fazu.</p>
+                  <div className="mt-3 space-y-2">
+                    <Textarea
+                      placeholder="Razlog otkazivanja (opciono)"
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      rows={3}
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-950/20"
+                        onClick={() => void handleCancel()}
+                        disabled={cancelling}
+                      >
+                        {cancelling ? 'Otkazivanje...' : 'Otkaži rezervaciju'}
                       </Button>
-                    </Box>
-                  </>
-                )}
-              </VStack>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" onClick={onClose}>Zatvori</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </Box>
-  );
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              Zatvori
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }

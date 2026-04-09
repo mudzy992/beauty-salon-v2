@@ -1,118 +1,102 @@
-import { useEffect, useState, useCallback } from 'react';
-import {
-  Box, Heading, Table, Thead, Tbody, Tr, Th, Td, Spinner, Text,
-  Badge, IconButton, Flex, useDisclosure, Modal, ModalOverlay,
-  ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
-  FormControl, FormLabel, Input, Button, useToast, Switch, Select,
-  Tabs, TabList, Tab, TabPanels, TabPanel, Textarea,
-  Checkbox, VStack, Link, HStack, Wrap, WrapItem, Tag, TagLabel,
-} from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
-import { Link as RouterLink } from 'react-router-dom';
-import { AddIcon, EditIcon, ViewIcon } from '@chakra-ui/icons';
-import api from '../api/client';
+import { useCallback, useEffect, useState } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { Eye, Loader2, Pencil, X } from 'lucide-react'
+
+import api from '../api/client'
+import { useAppToast } from '../lib/toast/useAppToast'
+
+import { Badge } from '../components/ui/badge'
+import { Button } from '../components/ui/button'
+import { Card } from '../components/ui/card'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Switch } from '../components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
+import { Textarea } from '../components/ui/textarea'
 
 interface StylistProfile {
-  id: string;
-  userId: string;
-  bio: string | null;
-  specialization: string | null;
-  status?: 'PENDING' | 'ACTIVE' | string | null;
-  isActive: boolean;
-  hireDate: string | null;
-  user?: { username: string; email: string | null; firstName: string | null; lastName: string | null };
+  id: string
+  userId: string
+  bio: string | null
+  specialization: string | null
+  status?: 'PENDING' | 'ACTIVE' | string | null
+  isActive: boolean
+  hireDate: string | null
+  user?: { username: string; email: string | null; firstName: string | null; lastName: string | null }
 }
 
 interface WorkingHours {
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  isWorkingDay: boolean;
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+  isWorkingDay: boolean
 }
 
 interface ServiceOption {
-  id: string;
-  name: string;
-  subcategory?: { name: string; category?: { name: string } };
-}
-
-interface UserOption {
-  id: string;
-  username: string;
-  email: string | null;
-  firstName: string | null;
-  lastName: string | null;
+  id: string
+  name: string
+  subcategory?: { name: string; category?: { name: string } }
 }
 
 interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pageSize: number;
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
 }
 
-const DAYS = ['Nedjelja', 'Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota'];
+const DAYS = ['Nedjelja', 'Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota']
 
 export default function Stylists() {
-  const { t } = useTranslation();
-  const toast = useToast();
-  const [stylists, setStylists] = useState<StylistProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [page, setPage] = useState(0);
-  const [pageSize] = useState(20);
-  const [total, setTotal] = useState(0);
+  const { t } = useTranslation()
+  const { success, error, warning } = useAppToast()
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [editId, setEditId] = useState<string | null>(null);
-  const [selectedStylist, setSelectedStylist] = useState<StylistProfile | null>(null);
+  const [stylists, setStylists] = useState<StylistProfile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [page, setPage] = useState(0)
+  const [pageSize] = useState(20)
+  const [total, setTotal] = useState(0)
 
-  const [users, setUsers] = useState<UserOption[]>([]);
-  const [allServices, setAllServices] = useState<ServiceOption[]>([]);
+  const [open, setOpen] = useState(false)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [selectedStylist, setSelectedStylist] = useState<StylistProfile | null>(null)
+
+  const [allServices, setAllServices] = useState<ServiceOption[]>([])
 
   const [form, setForm] = useState({
-    userId: '', bio: '', specialization: '', isActive: true, hireDate: '', serviceIds: [] as string[],
-  });
+    bio: '',
+    specialization: '',
+    isActive: true,
+    hireDate: '',
+  })
 
-  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
-  const [stylistServiceIds, setStylistServiceIds] = useState<string[]>([]);
+  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([])
+  const [stylistServiceIds, setStylistServiceIds] = useState<string[]>([])
 
   const loadData = useCallback(() => {
-    setLoading(true);
+    setLoading(true)
     api
       .get<StylistProfile[] | PaginatedResponse<StylistProfile>>('/api/stylists', {
         params: { page, pageSize },
       })
       .then((r) => {
         if (Array.isArray(r.data)) {
-          setStylists(r.data);
-          setTotal(r.data.length);
-          return;
+          setStylists(r.data)
+          setTotal(r.data.length)
+          return
         }
-        setStylists(Array.isArray(r.data.items) ? r.data.items : []);
-        setTotal(r.data.total ?? 0);
+        setStylists(Array.isArray(r.data.items) ? r.data.items : [])
+        setTotal(r.data.total ?? 0)
       })
       .catch(() => {
-        setStylists([]);
-        setTotal(0);
+        setStylists([])
+        setTotal(0)
       })
-      .finally(() => setLoading(false));
-  }, [page, pageSize]);
-
-  const loadUsers = useCallback(() => {
-    api
-      .get<UserOption[] | PaginatedResponse<UserOption>>('/api/users', {
-        params: { page: 0, pageSize: 200 },
-      })
-      .then((r) => {
-        if (Array.isArray(r.data)) {
-          setUsers(r.data);
-          return;
-        }
-        setUsers(Array.isArray(r.data.items) ? r.data.items : []);
-      })
-      .catch(() => {});
-  }, []);
+      .finally(() => setLoading(false))
+  }, [page, pageSize])
 
   const loadAllServices = useCallback(() => {
     api
@@ -121,321 +105,380 @@ export default function Stylists() {
       })
       .then((r) => {
         if (Array.isArray(r.data)) {
-          setAllServices(r.data);
-          return;
+          setAllServices(r.data)
+          return
         }
-        setAllServices(Array.isArray(r.data.items) ? r.data.items : []);
+        setAllServices(Array.isArray(r.data.items) ? r.data.items : [])
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => {})
+  }, [])
 
-  useEffect(() => { loadData(); loadUsers(); loadAllServices(); }, [loadData, loadUsers, loadAllServices]);
-
-  const openCreateForm = () => {
-    setEditId(null);
-    setSelectedStylist(null);
-    setForm({ userId: '', bio: '', specialization: '', isActive: true, hireDate: '', serviceIds: [] });
-    setWorkingHours(Array.from({ length: 7 }, (_, i) => ({
-      dayOfWeek: i, startTime: '09:00', endTime: '17:00', isWorkingDay: i >= 1 && i <= 5,
-    })));
-    setStylistServiceIds([]);
-    onOpen();
-  };
+  useEffect(() => {
+    loadData()
+    loadAllServices()
+  }, [loadData, loadAllServices])
 
   const openEditForm = async (s: StylistProfile) => {
-    setEditId(s.id);
-    setSelectedStylist(s);
+    setEditId(s.id)
+    setSelectedStylist(s)
     setForm({
-      userId: s.userId,
       bio: s.bio ?? '',
       specialization: s.specialization ?? '',
       isActive: s.isActive,
       hireDate: s.hireDate?.slice(0, 10) ?? '',
-      serviceIds: [],
-    });
+    })
     try {
       const [whRes, svcRes] = await Promise.all([
         api.get<WorkingHours[]>(`/api/stylists/${s.id}/working-hours`),
         api.get<{ serviceId: string }[]>(`/api/stylists/${s.id}/services`),
-      ]);
-      const existing = Array.isArray(whRes.data) ? whRes.data : [];
+      ])
+      const existing = Array.isArray(whRes.data) ? whRes.data : []
       const full: WorkingHours[] = Array.from({ length: 7 }, (_, i) => {
-        const found = existing.find((w) => w.dayOfWeek === i);
-        return found ?? { dayOfWeek: i, startTime: '09:00', endTime: '17:00', isWorkingDay: i >= 1 && i <= 5 };
-      });
-      setWorkingHours(full);
-      const ids = Array.isArray(svcRes.data) ? svcRes.data.map((x: any) => x.serviceId ?? x.id).filter(Boolean) : [];
-      setStylistServiceIds(ids);
-      setForm((prev) => ({ ...prev, serviceIds: ids, specialization: allServices.filter((ss) => ids.includes(ss.id)).map((ss) => ss.name).join(', ') }));
+        const found = existing.find((w) => w.dayOfWeek === i)
+        return found ?? { dayOfWeek: i, startTime: '09:00', endTime: '17:00', isWorkingDay: i >= 1 && i <= 5 }
+      })
+      setWorkingHours(full)
+      const ids = Array.isArray(svcRes.data)
+        ? svcRes.data.map((x) => (x as any).serviceId ?? (x as any).id).filter(Boolean)
+        : []
+      setStylistServiceIds(ids)
+      setForm((prev) => ({
+        ...prev,
+        specialization: allServices.filter((ss) => ids.includes(ss.id)).map((ss) => ss.name).join(', '),
+      }))
     } catch {
-      setWorkingHours(Array.from({ length: 7 }, (_, i) => ({
-        dayOfWeek: i, startTime: '09:00', endTime: '17:00', isWorkingDay: i >= 1 && i <= 5,
-      })));
-      setStylistServiceIds([]);
+      setWorkingHours(
+        Array.from({ length: 7 }, (_, i) => ({
+          dayOfWeek: i,
+          startTime: '09:00',
+          endTime: '17:00',
+          isWorkingDay: i >= 1 && i <= 5,
+        })),
+      )
+      setStylistServiceIds([])
     }
-    onOpen();
-  };
+    setOpen(true)
+  }
 
   const handleSaveAll = async () => {
-    setSaving(true);
+    if (!editId) {
+      warning('Stilist se dodaje kroz korisnike (dodjela role STYLIST).')
+      return
+    }
+    setSaving(true)
     try {
       const payload: Record<string, unknown> = {
         bio: form.bio || undefined,
         specialization: form.specialization || undefined,
         isActive: form.isActive,
-      };
-      if (form.hireDate) payload.hireDate = form.hireDate;
+      }
+      if (form.hireDate) payload.hireDate = form.hireDate
       if (selectedStylist && String(selectedStylist.status ?? '').toUpperCase() === 'PENDING') {
-        payload.status = 'ACTIVE';
+        payload.status = 'ACTIVE'
       }
 
       if (editId) {
-        await api.patch(`/api/stylists/${editId}`, payload);
+        await api.patch(`/api/stylists/${editId}`, payload)
         await Promise.all([
           api.post(`/api/stylists/${editId}/working-hours`, { workingHours }),
           api.post(`/api/stylists/${editId}/services`, { serviceIds: stylistServiceIds }),
-        ]);
-      } else {
-        if (!form.userId) { toast({ title: 'Odaberite korisnika', status: 'warning', isClosable: true }); setSaving(false); return; }
-        const createPayload: Record<string, unknown> = { ...payload, userId: form.userId };
-        if (stylistServiceIds.length > 0) createPayload.serviceIds = stylistServiceIds;
-        createPayload.workingHours = workingHours;
-        await api.post('/api/stylists', createPayload);
+        ])
       }
-      toast({ title: 'Sačuvano', status: 'success', isClosable: true });
-      loadData();
-      onClose();
+      success('Sačuvano')
+      loadData()
+      setOpen(false)
     } catch {
-      toast({ title: 'Greška', status: 'error', isClosable: true });
+      error('Greška')
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const updateWH = (day: number, field: keyof WorkingHours, value: string | boolean) => {
-    setWorkingHours((prev) => prev.map((w) => (w.dayOfWeek === day ? { ...w, [field]: value } : w)));
-  };
+    setWorkingHours((prev) => prev.map((w) => (w.dayOfWeek === day ? { ...w, [field]: value } : w)))
+  }
 
   const toggleService = (svcId: string) => {
-    setStylistServiceIds((prev) =>
-      prev.includes(svcId) ? prev.filter((id) => id !== svcId) : [...prev, svcId]
-    );
-    const nextIds = stylistServiceIds.includes(svcId)
-      ? stylistServiceIds.filter((id) => id !== svcId)
-      : [...stylistServiceIds, svcId];
-    const specNames = allServices.filter((s) => nextIds.includes(s.id)).map((s) => s.name);
-    setForm((prev) => ({ ...prev, specialization: specNames.join(', ') }));
-  };
+    setStylistServiceIds((prev) => {
+      const nextIds = prev.includes(svcId) ? prev.filter((id) => id !== svcId) : [...prev, svcId]
+      const specNames = allServices.filter((s) => nextIds.includes(s.id)).map((s) => s.name)
+      setForm((curr) => ({ ...curr, specialization: specNames.join(', ') }))
+      return nextIds
+    })
+  }
 
-  const existingStylistUserIds = stylists.map((s) => s.userId);
-  const availableUsers = users.filter((u) => !existingStylistUserIds.includes(u.id) || u.id === form.userId);
-  const unselectedServices = allServices.filter((s) => !form.serviceIds.includes(s.id));
+  const selectedServices = allServices.filter((s) => stylistServiceIds.includes(s.id))
+  const unselectedServices = allServices.filter((s) => !stylistServiceIds.includes(s.id))
 
   return (
-    <Box>
-      <Flex justify="space-between" align="center" mb={6}>
-        <Heading size="lg">{t('nav.stylists')}</Heading>
-        <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={openCreateForm}>
-          Novi Stilista
-        </Button>
-      </Flex>
+    <div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.stylists')}</h1>
+      </div>
 
-      <Box bg="white" rounded="lg" shadow="sm" overflow="auto">
+      <Card className="overflow-hidden">
         {loading ? (
-          <Box p={6} textAlign="center"><Spinner size="lg" /></Box>
+          <div className="flex justify-center p-10 text-slate-500">
+            <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+          </div>
         ) : (
-          <Table size="sm">
-            <Thead>
-              <Tr>
-                <Th>Korisnik</Th>
-                <Th>Email</Th>
-                <Th>Specijalizacija</Th>
-                <Th>Datum zaposlenja</Th>
-                <Th>Status</Th>
-                <Th textAlign="right">Akcije</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {stylists.length === 0 ? (
-                <Tr><Td colSpan={6}><Text color="gray.500">{t('common.noData')}</Text></Td></Tr>
-              ) : (
-                stylists.map((s) => (
-                  <Tr key={s.id} cursor="pointer" _hover={{ bg: 'gray.50' }} onClick={() => openEditForm(s)}>
-                    <Td fontWeight="medium">
-                      {s.user ? `${s.user.firstName ?? ''} ${s.user.lastName ?? ''} (${s.user.username})`.trim() : s.userId}
-                    </Td>
-                    <Td>{s.user?.email ?? '-'}</Td>
-                    <Td>
-                      <HStack spacing={2}>
-                        <Text>{s.specialization ?? '-'}</Text>
-                        {String(s.status ?? '').toUpperCase() === 'PENDING' && (
-                          <Badge colorScheme="yellow">Pending</Badge>
-                        )}
-                      </HStack>
-                    </Td>
-                    <Td>{s.hireDate?.slice(0, 10) ?? '-'}</Td>
-                    <Td>
-                      <Badge colorScheme={s.isActive ? 'green' : 'red'}>
-                        {s.isActive ? 'Aktivan' : 'Neaktivan'}
-                      </Badge>
-                    </Td>
-                    <Td textAlign="right" onClick={(e) => e.stopPropagation()}>
-                      <HStack spacing={1} justify="flex-end">
-                        <Link as={RouterLink} to={`/admin/stylist-analytics?stylistId=${s.id}`}>
-                          <IconButton aria-label="Analitika" icon={<ViewIcon />} size="sm" variant="ghost" colorScheme="teal" />
-                        </Link>
-                        <IconButton aria-label="Uredi" icon={<EditIcon />} size="sm" variant="ghost" colorScheme="blue" onClick={() => openEditForm(s)} />
-                      </HStack>
-                    </Td>
-                  </Tr>
-                ))
-              )}
-            </Tbody>
-          </Table>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                  <th className="p-3 font-medium">Korisnik</th>
+                  <th className="p-3 font-medium">Email</th>
+                  <th className="p-3 font-medium">Specijalizacija</th>
+                  <th className="p-3 font-medium">Datum zaposlenja</th>
+                  <th className="p-3 font-medium">Status</th>
+                  <th className="p-3 text-right font-medium">Akcije</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stylists.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-6 text-slate-500">
+                      {t('common.noData')}
+                    </td>
+                  </tr>
+                ) : (
+                  stylists.map((s) => (
+                    <tr
+                      key={s.id}
+                      className="cursor-pointer border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-slate-900/40"
+                      onClick={() => void openEditForm(s)}
+                    >
+                      <td className="p-3 font-medium text-slate-900 dark:text-slate-50">
+                        {s.user ? `${s.user.firstName ?? ''} ${s.user.lastName ?? ''} (${s.user.username})`.trim() : s.userId}
+                      </td>
+                      <td className="p-3">{s.user?.email ?? '-'}</td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>{s.specialization ?? '-'}</span>
+                          {String(s.status ?? '').toUpperCase() === 'PENDING' ? (
+                            <Badge variant="warning" className="text-[10px]">
+                              Pending
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="p-3">{s.hireDate?.slice(0, 10) ?? '-'}</td>
+                      <td className="p-3">
+                        <Badge variant={s.isActive ? 'success' : 'danger'} className="text-[10px]">
+                          {s.isActive ? 'Aktivan' : 'Neaktivan'}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-1">
+                          <Button asChild type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Analitika">
+                            <RouterLink to={`/admin/stylist-analytics?stylistId=${s.id}`}>
+                              <Eye className="h-4 w-4 text-teal-600" />
+                            </RouterLink>
+                          </Button>
+                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Uredi" onClick={() => void openEditForm(s)}>
+                            <Pencil className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
-      </Box>
-      <Flex justify="space-between" align="center" mt={4}>
-        <Text fontSize="sm" color="gray.500">Ukupno: {total}</Text>
-        <HStack>
-          <Button size="sm" variant="outline" isDisabled={page <= 0} onClick={() => setPage((prev) => Math.max(0, prev - 1))}>
+      </Card>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">Ukupno: {total}</p>
+        <div className="flex items-center gap-2">
+          <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((prev) => Math.max(0, prev - 1))}>
             Prethodna
           </Button>
-          <Text fontSize="sm">{page + 1} / {Math.max(1, Math.ceil(total / pageSize))}</Text>
-          <Button size="sm" variant="outline" isDisabled={page >= Math.ceil(total / pageSize) - 1} onClick={() => setPage((prev) => prev + 1)}>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            {page + 1} / {Math.max(1, Math.ceil(total / pageSize))}
+          </p>
+          <Button type="button" size="sm" variant="outline" disabled={page >= Math.ceil(total / pageSize) - 1} onClick={() => setPage((prev) => prev + 1)}>
             Sljedeća
           </Button>
-        </HStack>
-      </Flex>
+        </div>
+      </div>
 
-      {/* Unified Stylist Modal (Profile + Working hours + Services) */}
-      <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>
-            {editId ? 'Stilist profil' : 'Novi Stilista'}
-            {selectedStylist && String(selectedStylist.status ?? '').toUpperCase() === 'PENDING' && (
-              <Badge ml={3} colorScheme="yellow">Pending</Badge>
-            )}
-          </ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Tabs>
-              <TabList>
-                <Tab>Profil</Tab>
-                <Tab>Radno vrijeme</Tab>
-                <Tab>Kompetencije</Tab>
-              </TabList>
-              <TabPanels>
-                <TabPanel>
-                  {!editId && (
-                    <FormControl mb={4} isRequired>
-                      <FormLabel>Korisnik</FormLabel>
-                      <Select placeholder="Odaberite korisnika" value={form.userId} onChange={(e) => setForm({ ...form, userId: e.target.value })}>
-                        {availableUsers.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.username} ({u.email ?? 'bez emaila'})
-                          </option>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>
+              Stilist profil{' '}
+              {selectedStylist && String(selectedStylist.status ?? '').toUpperCase() === 'PENDING' ? (
+                <Badge variant="warning" className="ml-2 align-middle text-[10px]">
+                  Pending
+                </Badge>
+              ) : null}
+            </DialogTitle>
+          </DialogHeader>
+
+          <Tabs defaultValue="profile">
+            <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-2">
+              <TabsTrigger value="profile">Profil</TabsTrigger>
+              <TabsTrigger value="hours">Radno vrijeme</TabsTrigger>
+              <TabsTrigger value="skills">Kompetencije</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="profile" className="mt-4">
+              <div className="space-y-4">
+                <div>
+                  <Label>Specijalizacija (auto iz odabranih servisa)</Label>
+                  <Input className="mt-1" value={form.specialization} readOnly />
+                  <p className="mt-1 text-xs text-slate-500">
+                    Specijalizacija se automatski generiše iz tab-a “Kompetencije”.
+                  </p>
+                  {selectedServices.length > 0 ? (
+                    <div className="mt-3">
+                      <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">Odabrane kompetencije</p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedServices.map((svc) => (
+                          <Badge key={svc.id} variant="brand" className="text-[10px]">
+                            {svc.name}
+                          </Badge>
                         ))}
-                      </Select>
-                    </FormControl>
-                  )}
-                  <FormControl mb={4}>
-                    <FormLabel>Specijalizacija (auto iz odabranih servisa)</FormLabel>
-                    <Input value={form.specialization} isReadOnly />
-                    <Text fontSize="xs" color="gray.500" mt={1}>
-                      Specijalizacija se automatski generiše iz tab-a “Kompetencije”.
-                    </Text>
-                  </FormControl>
-                  <FormControl mb={4}>
-                    <FormLabel>Bio</FormLabel>
-                    <Textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} />
-                  </FormControl>
-                  <Flex gap={4} direction={{ base: 'column', md: 'row' }}>
-                    <FormControl flex={1}>
-                      <FormLabel>Datum zaposlenja</FormLabel>
-                      <Input type="date" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} />
-                    </FormControl>
-                    <FormControl flex={1} display="flex" alignItems="flex-end" pb={1}>
-                      <FormLabel mb="0" mr={3}>Aktivan</FormLabel>
-                      <Switch isChecked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} colorScheme="brand" />
-                    </FormControl>
-                  </Flex>
-                </TabPanel>
-                <TabPanel>
-                  <Box overflowX="auto">
-                    <Table size="sm" mb={4}>
-                      <Thead>
-                        <Tr>
-                          <Th>Dan</Th>
-                          <Th>Radni dan</Th>
-                          <Th>Početak</Th>
-                          <Th>Kraj</Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {workingHours.map((wh) => (
-                          <Tr key={wh.dayOfWeek} opacity={wh.isWorkingDay ? 1 : 0.5}>
-                            <Td fontWeight="medium">{DAYS[wh.dayOfWeek]}</Td>
-                            <Td>
-                              <Switch isChecked={wh.isWorkingDay} onChange={(e) => updateWH(wh.dayOfWeek, 'isWorkingDay', e.target.checked)} colorScheme="brand" />
-                            </Td>
-                            <Td>
-                              <Input type="time" size="sm" w={{ base: 'full', md: '130px' }} value={wh.startTime} onChange={(e) => updateWH(wh.dayOfWeek, 'startTime', e.target.value)} isDisabled={!wh.isWorkingDay} />
-                            </Td>
-                            <Td>
-                              <Input type="time" size="sm" w={{ base: 'full', md: '130px' }} value={wh.endTime} onChange={(e) => updateWH(wh.dayOfWeek, 'endTime', e.target.value)} isDisabled={!wh.isWorkingDay} />
-                            </Td>
-                          </Tr>
-                        ))}
-                      </Tbody>
-                    </Table>
-                  </Box>
-                </TabPanel>
-                <TabPanel>
-                  {stylistServiceIds.length > 0 && (
-                    <Box mb={2}>
-                      <Text fontSize="xs" color="gray.600" mb={1}>Odabrano</Text>
-                      <Wrap>
-                        {allServices.filter((s) => stylistServiceIds.includes(s.id)).map((svc) => (
-                          <WrapItem key={svc.id}>
-                            <Tag size="sm" colorScheme="brand" variant="subtle">
-                              <TagLabel>{svc.name}</TagLabel>
-                            </Tag>
-                          </WrapItem>
-                        ))}
-                      </Wrap>
-                    </Box>
-                  )}
-                  <VStack align="stretch" spacing={2} maxH="400px" overflowY="auto">
-                    {unselectedServices.map((svc) => (
-                      <Checkbox
-                        key={svc.id}
-                        isChecked={stylistServiceIds.includes(svc.id)}
-                        onChange={() => toggleService(svc.id)}
-                        colorScheme="brand"
-                      >
-                        <Text fontSize="sm">
-                          <Text as="span" fontWeight="medium">{svc.name}</Text>
-                          {svc.subcategory && (
-                            <Text as="span" color="gray.500" ml={1}>
-                              ({svc.subcategory.category?.name} &gt; {svc.subcategory.name})
-                            </Text>
-                          )}
-                        </Text>
-                      </Checkbox>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+
+                <div>
+                  <Label>Bio</Label>
+                  <Textarea className="mt-1" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <Label>Datum zaposlenja</Label>
+                    <Input className="mt-1" type="date" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} />
+                  </div>
+                  <div className="flex items-center justify-between gap-3 md:pt-7">
+                    <Label className="mb-0">Aktivan</Label>
+                    <Switch checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} />
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="hours" className="mt-4">
+              <div className="overflow-x-auto rounded-md border border-slate-200 dark:border-slate-800">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                      <th className="p-3 font-medium">Dan</th>
+                      <th className="p-3 font-medium">Radni dan</th>
+                      <th className="p-3 font-medium">Početak</th>
+                      <th className="p-3 font-medium">Kraj</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {workingHours.map((wh) => (
+                      <tr key={wh.dayOfWeek} className={!wh.isWorkingDay ? 'opacity-60' : undefined}>
+                        <td className="p-3 font-medium">{DAYS[wh.dayOfWeek]}</td>
+                        <td className="p-3">
+                          <Switch checked={wh.isWorkingDay} onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)} />
+                        </td>
+                        <td className="p-3">
+                          <Input
+                            type="time"
+                            className="h-9 w-[140px]"
+                            value={wh.startTime}
+                            onChange={(e) => updateWH(wh.dayOfWeek, 'startTime', e.target.value)}
+                            disabled={!wh.isWorkingDay}
+                          />
+                        </td>
+                        <td className="p-3">
+                          <Input
+                            type="time"
+                            className="h-9 w-[140px]"
+                            value={wh.endTime}
+                            onChange={(e) => updateWH(wh.dayOfWeek, 'endTime', e.target.value)}
+                            disabled={!wh.isWorkingDay}
+                          />
+                        </td>
+                      </tr>
                     ))}
-                    {allServices.length === 0 && <Text color="gray.500" fontSize="sm">Nema dostupnih servisa.</Text>}
-                  </VStack>
-                </TabPanel>
-              </TabPanels>
-            </Tabs>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>{t('common.cancel')}</Button>
-            <Button colorScheme="brand" onClick={handleSaveAll} isLoading={saving}>{t('common.save')}</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </Box>
-  );
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="skills" className="mt-4">
+              <div className="space-y-4">
+                <div>
+                  <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">Odabrano (kliknite X za uklanjanje)</p>
+                  {selectedServices.length === 0 ? (
+                    <p className="text-sm text-slate-500">Nema odabranih kompetencija.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedServices.map((svc) => (
+                        <span key={svc.id} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-[11px] text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                          <span>{svc.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleService(svc.id)}
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800"
+                            aria-label="Ukloni kompetenciju"
+                          >
+                            <X className="h-3 w-3" aria-hidden="true" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">Dostupne (neodabrane)</p>
+                  {unselectedServices.length === 0 ? (
+                    <p className="text-sm text-slate-500">Sve kompetencije su već odabrane.</p>
+                  ) : (
+                    <div className="max-h-[320px] space-y-2 overflow-y-auto">
+                      {unselectedServices.map((svc) => (
+                        <label
+                          key={svc.id}
+                          className="flex cursor-pointer items-start gap-3 rounded-md border border-slate-200 p-3 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900/40"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={stylistServiceIds.includes(svc.id)}
+                            onChange={() => toggleService(svc.id)}
+                            className="mt-0.5 h-4 w-4 accent-brand-gold"
+                          />
+                          <span className="text-sm">
+                            <span className="font-medium text-slate-900 dark:text-slate-50">{svc.name}</span>
+                            {svc.subcategory ? (
+                              <span className="ml-1 text-slate-500">
+                                ({svc.subcategory.category?.name} &gt; {svc.subcategory.name})
+                              </span>
+                            ) : null}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                  {allServices.length === 0 ? <p className="text-sm text-slate-500">Nema dostupnih servisa.</p> : null}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="button" onClick={() => void handleSaveAll()} disabled={saving}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {t('common.save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
 }
+

@@ -1,20 +1,10 @@
-import { useEffect, useState } from 'react';
-import {
-  Box,
-  Container,
-  Heading,
-  Spinner,
-  Text,
-  SimpleGrid,
-  Flex,
-  Badge,
-  Link,
-} from '@chakra-ui/react';
-import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { Link as RouterLink } from 'react-router-dom';
-import api from '../../api/client';
-import { useSettings } from '../../context/SettingsContext';
+import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
+
+import api from '../../api/client'
+import { useSettings } from '../../context/SettingsContext'
 
 interface ServiceOption {
   id: string;
@@ -28,7 +18,7 @@ interface ServiceCategory {
   subcategories?: { id: string; name: string; services?: ServiceOption[] }[];
 }
 
-const MotionBox = motion(Box as any);
+const MotionDiv = motion.div;
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -41,10 +31,10 @@ const itemVariants = {
 };
 
 export default function PublicServices() {
-  const { t } = useTranslation();
-  const { getSetting } = useSettings();
-  const [categories, setCategories] = useState<ServiceCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { t } = useTranslation()
+  const { getSetting } = useSettings()
+  const [categories, setCategories] = useState<ServiceCategory[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     api
@@ -63,101 +53,85 @@ export default function PublicServices() {
   }, []);
 
   return (
-    <Box bg="gray.50" minH="100vh" pt={10} pb={20}>
+    <div className="bg-slate-50 min-h-screen pt-10 pb-20">
       {/* HEADER */}
-      <Box bg="brand.900" color="white" py={16} mb={12} textAlign="center" position="relative" overflow="hidden">
-        <Box
-          position="absolute"
-          inset={0}
-          backgroundImage={`url('${getSetting('public_services_bg', 'https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=2000')}')`}
-          backgroundSize="cover"
-          backgroundPosition="center"
-          opacity={0.3}
+      <div className="bg-slate-950 text-white py-16 mb-12 text-center relative overflow-hidden">
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-30"
+          style={{
+            backgroundImage: `url('${getSetting(
+              'public_services_bg',
+              'https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=2000',
+            )}')`,
+          }}
         />
-        <Container maxW="container.lg" position="relative" zIndex={1}>
-          <Heading size="2xl" mb={4}>
+        <div className="mx-auto max-w-5xl px-4 relative z-10">
+          <div className="text-4xl font-semibold mb-4">
             {getSetting('public_services_title', 'Naše Frizerske Usluge')}
-          </Heading>
-          <Text fontSize="lg" color="gray.200">
-            {getSetting('public_services_subtitle', 'Bilo da tražite moderno šišanje, spektakularnu boju ili dubinsku njegu kose, naš tim je tu da ispuni vaše želje.')}
-          </Text>
-        </Container>
-      </Box>
+          </div>
+          <div className="text-lg text-slate-200">
+            {getSetting(
+              'public_services_subtitle',
+              'Bilo da tražite moderno šišanje, spektakularnu boju ili dubinsku njegu kose, naš tim je tu da ispuni vaše želje.',
+            )}
+          </div>
+        </div>
+      </div>
 
-      <Container maxW="container.xl">
+      <div className="mx-auto max-w-6xl px-4">
         {loading ? (
-          <Flex justify="center" py={20}>
-            <Spinner size="xl" color="brand.500" thickness="4px" />
-          </Flex>
+          <div className="py-20 text-center text-slate-600">Učitavanje…</div>
         ) : categories.length === 0 ? (
-          <Text textAlign="center" color="gray.500" fontSize="lg">{t('common.noData')}</Text>
+          <div className="text-center text-slate-500 text-lg">{t('common.noData')}</div>
         ) : (
-          <MotionBox variants={containerVariants} initial="hidden" animate="visible">
+          <MotionDiv variants={containerVariants} initial="hidden" animate="visible">
             {categories.map((cat) => (
-              <Box key={cat.id} mb={16}>
-                <Heading size="xl" mb={8} color="brand.800" borderBottomWidth="2px" borderColor="brand.200" pb={2} display="inline-block">
+              <div key={cat.id} className="mb-16">
+                <div className="text-2xl font-semibold text-slate-900 inline-block border-b-2 border-brand-champagne pb-2 mb-8">
                   {cat.name}
-                </Heading>
+                </div>
 
                 {cat.subcategories?.length ? (
-                  <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {cat.subcategories.map((sub) => (
-                      <MotionBox
+                      <MotionDiv
                         key={sub.id}
                         variants={itemVariants}
-                        bg="white"
-                        p={6}
-                        rounded="2xl"
-                        shadow="sm"
-                        _hover={{ shadow: 'md' }}
-                        transition="all 0.3s"
+                        className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-slate-200"
                       >
-                        <Heading size="md" mb={6} color="gray.700">
+                        <div className="text-lg font-semibold text-slate-800 mb-6">
                           {sub.name}
-                        </Heading>
+                        </div>
                         {sub.services?.length ? (
-                          <Box as="ul" listStyleType="none" m={0} p={0}>
+                          <ul className="m-0 p-0 list-none">
                             {sub.services.map((s) => (
-                              <Box
-                                as="li"
+                              <li
                                 key={s.id}
-                                display="flex"
-                                justifyContent="space-between"
-                                alignItems="center"
-                                py={3}
-                                borderBottomWidth="1px"
-                                borderColor="gray.100"
-                                _last={{ borderBottomWidth: 0, pb: 0 }}
+                                className="flex items-center justify-between py-3 border-b border-slate-100 last:border-b-0 last:pb-0"
                               >
-                                <Link
-                                  as={RouterLink}
-                                  to={`/usluge/${s.id}`}
-                                  fontWeight="medium"
-                                  color="gray.800"
-                                  _hover={{ color: 'brand.600', textDecoration: 'underline' }}
-                                >
+                                <Link to={`/usluge/${s.id}`} className="font-medium text-slate-800 hover:text-brand-gold hover:underline">
                                   {s.name}
                                 </Link>
-                                <Badge colorScheme="brand" variant="subtle" px={2} py={1} rounded="md">
+                                <span className="inline-flex items-center rounded-md bg-brand-champagne/30 text-slate-900 border border-brand-champagne px-2 py-1 text-xs font-medium">
                                   {s.durationMinutes} min
-                                </Badge>
-                              </Box>
+                                </span>
+                              </li>
                             ))}
-                          </Box>
+                          </ul>
                         ) : (
-                          <Text color="gray.400" fontSize="sm">{t('common.noData')}</Text>
+                          <div className="text-slate-400 text-sm">{t('common.noData')}</div>
                         )}
-                      </MotionBox>
+                      </MotionDiv>
                     ))}
-                  </SimpleGrid>
+                  </div>
                 ) : (
-                  <Text color="gray.500">{t('common.noData')}</Text>
+                  <div className="text-slate-500">{t('common.noData')}</div>
                 )}
-              </Box>
+              </div>
             ))}
-          </MotionBox>
+          </MotionDiv>
         )}
-      </Container>
-    </Box>
-  );
+      </div>
+    </div>
+  )
 }
