@@ -1,4 +1,4 @@
-import { IsDateString, IsNumber, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { IsDateString, IsIn, IsNumber, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 
 export class CreateIncomeBookManualEntryDto {
   @IsDateString()
@@ -17,7 +17,11 @@ export class CreateIncomeBookManualEntryDto {
 
   @IsNumber()
   @Min(0)
-  amount!: number;
+  paidAmount!: number;
+
+  @IsOptional()
+  @IsIn(['CREATE_DEBT', 'IGNORE_DEBT'])
+  debtHandling?: 'CREATE_DEBT' | 'IGNORE_DEBT';
 
   @IsOptional()
   @IsNumber()

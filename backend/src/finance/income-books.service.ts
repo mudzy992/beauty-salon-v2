@@ -165,8 +165,8 @@ export class IncomeBooksService {
       serviceId: string;
       stylistProfileId?: string;
       clientId?: string;
-      amount: number;
-      tipAmount?: number;
+      paidAmount: number;
+      debtHandling?: 'CREATE_DEBT' | 'IGNORE_DEBT';
       notes?: string;
     },
     userId: string,
@@ -181,7 +181,27 @@ export class IncomeBooksService {
       throw new BadRequestException('Ne možete dodavati ručne prihode u buduću knjigu.');
     const date = this.parseAndNormalizeDate(dto.date);
     this.ensureDateMatchesBookMonth(date, book.year, book.month);
-    const tipAmount = dto.tipAmount ?? 0;
+    const service = await this.prisma.service.findUnique({
+      where: { id: dto.serviceId },
+      select: { id: true, price: true, name: true },
+    });
+    if (!service) throw new NotFoundException('Servis nije pronađen.');
+    const servicePrice = Number(service.price);
+    const paidAmount = Number(dto.paidAmount ?? 0);
+    if (!Number.isFinite(paidAmount) || paidAmount < 0) {
+      throw new BadRequestException('Iznos naplate nije validan.');
+    }
+    const baseAmount = Math.min(paidAmount, servicePrice);
+    const tipAmount = Math.max(0, paidAmount - servicePrice);
+    const debtAmount = Math.max(0, servicePrice - paidAmount);
+    const shouldCreateDebt = dto.debtHandling === 'CREATE_DEBT' && debtAmount > 0;
+    if (shouldCreateDebt && !dto.clientId) {
+      throw new BadRequestException('Za dug morate odabrati klijenta.');
+    }
+    if (shouldCreateDebt && !dto.stylistProfileId) {
+      throw new BadRequestException('Za dug morate odabrati stilistu.');
+    }
+
     const created = await this.prisma.$transaction(async (tx) => {
       const entry = await tx.incomeBookManualEntry.create({
         data: {
@@ -190,7 +210,7 @@ export class IncomeBooksService {
           serviceId: dto.serviceId,
           stylistProfileId: dto.stylistProfileId,
           clientId: dto.clientId,
-          amount: dto.amount,
+          amount: baseAmount,
           tipAmount,
           notes: dto.notes,
           createdById: userId,
@@ -217,10 +237,26 @@ export class IncomeBooksService {
             amount: entry.amount,
             tipAmount: entry.tipAmount,
             notes: entry.notes,
+            paidAmount,
+            debtHandling: dto.debtHandling ?? null,
           },
           createdById: userId,
         },
       });
+
+      if (shouldCreateDebt) {
+        await tx.clientDebt.create({
+          data: {
+            clientId: dto.clientId!,
+            stylistProfileId: dto.stylistProfileId!,
+            serviceId: dto.serviceId,
+            manualEntryId: entry.id,
+            amount: debtAmount,
+            note: dto.notes,
+            createdById: userId,
+          },
+        });
+      }
       return entry;
     });
     await this.recalculateTotals(bookId);
@@ -235,8 +271,8 @@ export class IncomeBooksService {
       serviceId?: string;
       stylistProfileId?: string | null;
       clientId?: string | null;
-      amount?: number;
-      tipAmount?: number;
+      paidAmount?: number;
+      debtHandling?: 'CREATE_DEBT' | 'IGNORE_DEBT';
       notes?: string | null;
     },
     userId: string,
@@ -257,6 +293,33 @@ export class IncomeBooksService {
     const nextDate =
       dto.date != null ? this.parseAndNormalizeDate(dto.date) : existing.date;
     this.ensureDateMatchesBookMonth(nextDate, book.year, book.month);
+
+    const nextServiceId = dto.serviceId ?? existing.serviceId;
+    const service = await this.prisma.service.findUnique({
+      where: { id: nextServiceId },
+      select: { id: true, price: true },
+    });
+    if (!service) throw new NotFoundException('Servis nije pronađen.');
+    const servicePrice = Number(service.price);
+    const paidAmount =
+      dto.paidAmount != null ? Number(dto.paidAmount) : Number(existing.amount) + Number(existing.tipAmount);
+    if (!Number.isFinite(paidAmount) || paidAmount < 0) {
+      throw new BadRequestException('Iznos naplate nije validan.');
+    }
+    const baseAmount = Math.min(paidAmount, servicePrice);
+    const tipAmount = Math.max(0, paidAmount - servicePrice);
+    const debtAmount = Math.max(0, servicePrice - paidAmount);
+    const shouldCreateDebt = dto.debtHandling === 'CREATE_DEBT' && debtAmount > 0;
+    const nextClientId = dto.clientId !== undefined ? dto.clientId : existing.clientId;
+    const nextStylistProfileId =
+      dto.stylistProfileId !== undefined ? dto.stylistProfileId : existing.stylistProfileId;
+    if (shouldCreateDebt && !nextClientId) {
+      throw new BadRequestException('Za dug morate odabrati klijenta.');
+    }
+    if (shouldCreateDebt && !nextStylistProfileId) {
+      throw new BadRequestException('Za dug morate odabrati stilistu.');
+    }
+
     const updated = await this.prisma.$transaction(async (tx) => {
       const entry = await tx.incomeBookManualEntry.update({
         where: { id: entryId },
@@ -267,8 +330,8 @@ export class IncomeBooksService {
             stylistProfileId: dto.stylistProfileId,
           }),
           ...(dto.clientId !== undefined && { clientId: dto.clientId }),
-          ...(dto.amount != null && { amount: dto.amount }),
-          ...(dto.tipAmount != null && { tipAmount: dto.tipAmount }),
+          amount: baseAmount,
+          tipAmount,
           ...(dto.notes !== undefined && { notes: dto.notes }),
         },
         include: {
@@ -302,10 +365,26 @@ export class IncomeBooksService {
             amount: entry.amount,
             tipAmount: entry.tipAmount,
             notes: entry.notes,
+            paidAmount,
+            debtHandling: dto.debtHandling ?? null,
           },
           createdById: userId,
         },
       });
+
+      if (shouldCreateDebt) {
+        await tx.clientDebt.create({
+          data: {
+            clientId: nextClientId!,
+            stylistProfileId: nextStylistProfileId!,
+            serviceId: nextServiceId,
+            manualEntryId: entry.id,
+            amount: debtAmount,
+            note: dto.notes ?? undefined,
+            createdById: userId,
+          },
+        });
+      }
       return entry;
     });
     await this.recalculateTotals(bookId);

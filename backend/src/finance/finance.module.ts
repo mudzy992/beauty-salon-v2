@@ -10,6 +10,8 @@ import { ExpenseCategoriesController } from './expense-categories.controller';
 import { ExpenseBooksController } from './expense-books.controller';
 import { ExpensesController } from './expenses.controller';
 import { IncomeController } from './income.controller';
+import { ClientDebtsController } from './client-debts.controller';
+import { ClientDebtsService } from './client-debts.service';
 
 @Module({
   controllers: [
@@ -18,6 +20,7 @@ import { IncomeController } from './income.controller';
     ExpenseBooksController,
     ExpensesController,
     IncomeController,
+    ClientDebtsController,
   ],
   providers: [
     ExpenseTemplatesService,
@@ -26,6 +29,7 @@ import { IncomeController } from './income.controller';
     ExpensesService,
     IncomeBooksService,
     IncomeCronService,
+    ClientDebtsService,
   ],
   exports: [ExpenseBooksService, ExpensesService, IncomeBooksService],
 })
