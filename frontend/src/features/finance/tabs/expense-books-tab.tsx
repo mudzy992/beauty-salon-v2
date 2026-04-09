@@ -578,14 +578,14 @@ export function ExpenseBooksTab() {
         </Card>
 
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
+          <DialogContent className="flex max-h-[90dvh] max-w-3xl flex-col gap-4 overflow-hidden p-6 sm:rounded-lg">
+            <DialogHeader className="shrink-0 pr-10 text-left">
               <DialogTitle>
                 Novi Rashod — {MONTHS[selectedBook.month]} {selectedBook.year}
               </DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
               <div className="space-y-2">
                 <Label htmlFor="category">Kategorija</Label>
                 <select
@@ -822,7 +822,7 @@ export function ExpenseBooksTab() {
               ) : null}
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="shrink-0 border-t border-slate-200 pt-4 dark:border-slate-800">
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
                 Odustani
               </Button>

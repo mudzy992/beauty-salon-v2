@@ -3,13 +3,22 @@ import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Menu } from 'lucide-react'
 
+import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar'
 import { Button } from '../../../components/ui/button'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../../../components/ui/dropdown-menu'
 import { AppLogo } from '../../../components/brand/app-logo'
 import { UploadedBrandLogo } from '../../../components/brand/uploaded-brand-logo'
 import { useAuth } from '../../../context/AuthContext'
 import { useSettings } from '../../../context/SettingsContext'
 import { getClientMandatoryOnboardingPath } from '../../../utils/clientOnboarding'
+import { getUploadUrl } from '../../../utils/uploadUrl'
 
 const DEFAULT_MAINTENANCE_TEXT =
   'Radimo na poboljšanjima. Javna stranica je privremeno nedostupna. Pokušajte kasnije.'
@@ -20,6 +29,7 @@ const publicNav = [
   { path: '/blog', labelKey: 'public.nav.blog' },
   { path: '/galerija', labelKey: 'public.nav.gallery' },
   { path: '/kontakt', labelKey: 'public.nav.contact' },
+  { path: '/rezervacija', labelKey: 'public.nav.reserve' },
 ]
 
 export const PublicLayout = () => {
@@ -60,6 +70,18 @@ export const PublicLayout = () => {
       })),
     [activePath],
   )
+
+  const canSeeAdmin =
+    !!user && (['SYSTEM_ADMIN', 'OWNER'] as string[]).some((r) => user.roles.includes(r))
+  const avatarInitials = (user?.username ?? '')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0] ?? '')
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+  const avatarSrc = user?.avatar ? getUploadUrl(user.avatar) : ''
 
   if (loading) {
     return (
@@ -114,7 +136,7 @@ export const PublicLayout = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <header className="bg-white border-b border-slate-200">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 flex-none">
             {hasLogo ? (
               <UploadedBrandLogo
                 logoPath={appLogo}
@@ -134,7 +156,7 @@ export const PublicLayout = () => {
             )}
           </Link>
 
-          <nav className="hidden md:flex items-center gap-2">
+          <nav className="hidden lg:flex items-center justify-center gap-1 flex-1">
             {navItems.map((item) => (
               <Link
                 key={item.path}
@@ -148,43 +170,68 @@ export const PublicLayout = () => {
                 {t(item.labelKey)}
               </Link>
             ))}
-
-            {user ? (
-              <>
-                <Link to="/rezervacija">
-                  <Button size="sm">{t('public.nav.reserve')}</Button>
-                </Link>
-                <Link to="/profil">
-                  <Button size="sm" variant="ghost">
-                    Profil
-                  </Button>
-                </Link>
-                {(['SYSTEM_ADMIN', 'OWNER'] as string[]).some((r) =>
-                  user.roles.includes(r),
-                ) ? (
-                  <Link to="/admin">
-                    <Button size="sm" variant="outline">
-                      {t('app.admin')}
-                    </Button>
-                  </Link>
-                ) : null}
-                <Button size="sm" variant="ghost" onClick={logout}>
-                  {t('auth.logout')}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link to="/login">
-                  <Button size="sm" variant="ghost">
-                    {t('auth.login')}
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button size="sm">{t('public.nav.register')}</Button>
-                </Link>
-              </>
-            )}
           </nav>
+
+          <div className="hidden lg:flex items-center gap-2 flex-none">
+            {!user ? (
+              <Link to="/login">
+                <Button size="sm" variant="ghost">
+                  Prijavi se
+                </Button>
+              </Link>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Korisnički meni"
+                    className="rounded-full"
+                  >
+                    <Avatar className="h-9 w-9">
+                      {avatarSrc ? (
+                        <AvatarImage
+                          src={avatarSrc}
+                          alt={user?.username ? `Profil: ${user.username}` : 'Profil'}
+                        />
+                      ) : null}
+                      <AvatarFallback className="text-xs font-semibold">
+                        {avatarInitials || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      navigate('/profil')
+                    }}
+                  >
+                    Profil
+                  </DropdownMenuItem>
+                  {canSeeAdmin ? (
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        navigate('/admin')
+                      }}
+                    >
+                      {t('app.admin')}
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      logout()
+                      navigate('/', { replace: true })
+                    }}
+                  >
+                    {t('auth.logout')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
 
           <Drawer open={mobileOpen} onOpenChange={setMobileOpen}>
             <Button
@@ -192,7 +239,7 @@ export const PublicLayout = () => {
               aria-label="Meni"
               variant="outline"
               size="icon"
-              className="md:hidden border-slate-200 text-slate-700 hover:text-slate-900"
+              className="lg:hidden border-slate-200 text-slate-700 hover:text-slate-900"
               onClick={() => setMobileOpen(true)}
             >
               <Menu className="h-5 w-5" />
@@ -270,12 +317,9 @@ export const PublicLayout = () => {
                     </>
                   ) : (
                     <>
-                      <Link to="/register" onClick={() => setMobileOpen(false)}>
-                        <Button className="w-full" size="sm">{t('public.nav.register')}</Button>
-                      </Link>
                       <Link to="/login" onClick={() => setMobileOpen(false)}>
                         <Button className="w-full" variant="outline" size="sm">
-                          {t('auth.login')}
+                          Prijavi se
                         </Button>
                       </Link>
                     </>

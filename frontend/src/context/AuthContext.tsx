@@ -11,6 +11,7 @@ interface User {
   isEmailVerified: boolean;
   mustChangePassword: boolean;
   roles: string[];
+  avatar: string | null;
 }
 
 interface AuthContextValue {

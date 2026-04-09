@@ -5,11 +5,12 @@ import { ExternalLink, LogOut } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
-import { Avatar, AvatarFallback } from '../../../components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar'
 import { AppLogo } from '../../../components/brand/app-logo'
 import { UploadedBrandLogo } from '../../../components/brand/uploaded-brand-logo'
 import { useAuth } from '../../../context/AuthContext'
 import { useSettings } from '../../../context/SettingsContext'
+import { getUploadUrl } from '../../../utils/uploadUrl'
 
 type NavItem = { path: string; labelKey: string }
 
@@ -55,6 +56,7 @@ export const AdminLayout = () => {
   }, [location.pathname, t])
 
   const adminInitials = (user?.username?.trim()?.[0] ?? 'A').toUpperCase()
+  const adminAvatarSrc = user?.avatar ? getUploadUrl(user.avatar) : ''
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -85,13 +87,24 @@ export const AdminLayout = () => {
                     )}
                   </div>
 
-                  <div className="mt-4">
-                    <div className="text-sm font-semibold text-slate-900 truncate">
-                      {user?.username ?? 'Admin'}
+                  <div className="mt-4 flex items-center gap-3 min-w-0">
+                    <Avatar className="h-11 w-11 shrink-0 ring-1 ring-slate-200">
+                      {adminAvatarSrc ? (
+                        <AvatarImage
+                          src={adminAvatarSrc}
+                          alt={user?.username ? `Profil: ${user.username}` : 'Profil'}
+                        />
+                      ) : null}
+                      <AvatarFallback className="font-semibold">{adminInitials}</AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-slate-900 truncate">
+                        {user?.username ?? 'Admin'}
+                      </div>
+                      {user?.email ? (
+                        <div className="text-xs text-slate-500 truncate">{user.email}</div>
+                      ) : null}
                     </div>
-                    {user?.email ? (
-                      <div className="text-xs text-slate-500 truncate">{user.email}</div>
-                    ) : null}
                   </div>
 
                   <nav className="mt-4 grid gap-1 min-h-0 overflow-y-auto -mr-2 pr-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -181,6 +194,12 @@ export const AdminLayout = () => {
               onClick={() => setSidebarOpen(true)}
             >
               <Avatar className="h-9 w-9 ring-1 ring-slate-200">
+                {adminAvatarSrc ? (
+                  <AvatarImage
+                    src={adminAvatarSrc}
+                    alt={user?.username ? `Profil: ${user.username}` : 'Profil'}
+                  />
+                ) : null}
                 <AvatarFallback className="font-semibold">{adminInitials}</AvatarFallback>
               </Avatar>
             </button>
