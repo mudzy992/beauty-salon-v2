@@ -323,32 +323,84 @@ export class StylistsService {
       dateFilter = { gte: new Date(fromDate), lte: new Date(toDate) };
     }
 
-    const entries = await this.prisma.dailyLogEntry.findMany({
-      where: {
-        stylistProfileId,
-        status: 'COMPLETED',
-        ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}),
-      },
-      include: {
-        service: { select: { id: true, name: true } },
-        client: { select: { id: true, firstName: true, lastName: true } },
-      },
-      orderBy: { date: 'desc' },
-      take: 100,
-    });
+    const [fromReservations, fromDailyLog, fromManualIncome] = await Promise.all(
+      [
+        this.prisma.reservation.findMany({
+          where: {
+            confirmedStylistId: stylistProfileId,
+            status: 'COMPLETED',
+            ...(Object.keys(dateFilter).length
+              ? { reservationDate: dateFilter }
+              : {}),
+          },
+          include: {
+            service: { select: { id: true, name: true, price: true } },
+            client: { select: { id: true, firstName: true, lastName: true } },
+          },
+          orderBy: { reservationDate: 'desc' },
+          take: 100,
+        }),
+        this.prisma.dailyLogEntry.findMany({
+          where: {
+            stylistProfileId,
+            status: 'COMPLETED',
+            ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}),
+          },
+          include: {
+            service: { select: { id: true, name: true } },
+            client: { select: { id: true, firstName: true, lastName: true } },
+          },
+          orderBy: { date: 'desc' },
+          take: 100,
+        }),
+        this.prisma.incomeBookManualEntry.findMany({
+          where: {
+            stylistProfileId,
+            ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}),
+          },
+          include: { service: { select: { id: true, name: true } } },
+          orderBy: { date: 'desc' },
+          take: 100,
+        }),
+      ],
+    );
 
-    const completedCount = entries.length;
-    const revenue = entries.reduce((s, e) => s + Number(e.actualPrice ?? 0), 0);
-    const tips = entries.reduce((s, e) => s + Number(e.tipAmount ?? 0), 0);
+    const completedCount =
+      fromReservations.length + fromDailyLog.length + fromManualIncome.length;
+    const revenue =
+      fromReservations.reduce((s, r) => s + Number(r.service?.price ?? 0), 0) +
+      fromDailyLog.reduce((s, e) => s + Number(e.actualPrice ?? 0), 0) +
+      fromManualIncome.reduce((s, m) => s + Number(m.amount ?? 0), 0);
+    const tips =
+      fromDailyLog.reduce((s, e) => s + Number(e.tipAmount ?? 0), 0) +
+      fromManualIncome.reduce((s, m) => s + Number(m.tipAmount ?? 0), 0);
 
     const byService = new Map<
       string,
       { name: string; count: number; revenue: number }
     >();
-    for (const e of entries) {
+    for (const r of fromReservations) {
+      const id = r.serviceId;
+      const name = r.service?.name ?? '—';
+      const amt = Number(r.service?.price ?? 0);
+      if (!byService.has(id)) byService.set(id, { name, count: 0, revenue: 0 });
+      const row = byService.get(id)!;
+      row.count++;
+      row.revenue += amt;
+    }
+    for (const e of fromDailyLog) {
       const id = e.serviceId;
       const name = e.service?.name ?? '—';
       const amt = Number(e.actualPrice ?? 0);
+      if (!byService.has(id)) byService.set(id, { name, count: 0, revenue: 0 });
+      const row = byService.get(id)!;
+      row.count++;
+      row.revenue += amt;
+    }
+    for (const m of fromManualIncome) {
+      const id = m.serviceId;
+      const name = m.service?.name ?? '—';
+      const amt = Number(m.amount ?? 0);
       if (!byService.has(id)) byService.set(id, { name, count: 0, revenue: 0 });
       const row = byService.get(id)!;
       row.count++;
@@ -379,7 +431,7 @@ export class StylistsService {
       revenue: Math.round(revenue * 100) / 100,
       tips: Math.round(tips * 100) / 100,
       topServices,
-      recentEntries: entries.slice(0, 20).map((e) => ({
+      recentEntries: fromDailyLog.slice(0, 20).map((e) => ({
         id: e.id,
         date: e.date,
         serviceName: e.service?.name,
