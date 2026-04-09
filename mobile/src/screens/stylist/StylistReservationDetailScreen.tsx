@@ -10,6 +10,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,7 +27,7 @@ import { formatDate, formatTime } from '../../utils/date';
 import type { StylistScheduleStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
-import type { DailyLogEntry, Reservation } from '../../types';
+import type { ClientDebt, DailyLogEntry, Reservation } from '../../types';
 
 type Props = NativeStackScreenProps<
   StylistScheduleStackParamList,
@@ -57,6 +58,9 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
   const [completeActualPrice, setCompleteActualPrice] = useState('');
   const [completeNotes, setCompleteNotes] = useState('');
   const [completeSubmitting, setCompleteSubmitting] = useState(false);
+  const [clientDebts, setClientDebts] = useState<ClientDebt[]>([]);
+  const [clientDebtsLoading, setClientDebtsLoading] = useState(false);
+  const [selectedDebtIds, setSelectedDebtIds] = useState<Record<string, boolean>>({});
   const [startSubmitting, setStartSubmitting] = useState(false);
   const [startBlockedReason, setStartBlockedReason] = useState<string | null>(null);
   const [overrunModalOpen, setOverrunModalOpen] = useState(false);
@@ -75,6 +79,24 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     }
     setLoading(false);
   }, [reservationId]);
+
+  const fetchClientDebts = useCallback(async (clientId?: string) => {
+    if (!clientId) {
+      setClientDebts([]);
+      return;
+    }
+    setClientDebtsLoading(true);
+    try {
+      const { data } = await api.get<ClientDebt[]>('/api/client-debts', {
+        params: { clientId },
+      });
+      setClientDebts(Array.isArray(data) ? data : []);
+    } catch {
+      setClientDebts([]);
+    } finally {
+      setClientDebtsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchReservation();
@@ -133,6 +155,10 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
       };
     }, [fetchReservation]),
   );
+
+  useEffect(() => {
+    void fetchClientDebts(reservation?.clientId);
+  }, [reservation?.clientId, fetchClientDebts]);
 
   useEffect(() => {
     let cancelled = false;
@@ -378,8 +404,14 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     const chargePrice = Math.max(0, basePrice - loyaltyDiscountAmount);
     setCompleteActualPrice(chargePrice ? String(chargePrice) : '');
     setCompleteNotes('');
+    setSelectedDebtIds({});
     setCompleteModalOpen(true);
   }, [reservation]);
+
+  const selectedDebtSum = useMemo(() => {
+    const selected = clientDebts.filter((d) => selectedDebtIds[d.id]);
+    return selected.reduce((acc, d) => acc + (Number(d.amount) || 0), 0);
+  }, [clientDebts, selectedDebtIds]);
 
   const submitComplete = useCallback(async () => {
     if (!reservation) return;
@@ -400,14 +432,23 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     }
     const autoTip = paidRaw - minCharge;
     const tipAmount = autoTip > 0 ? autoTip : 0;
+    const actualPriceWithDebts = paidRaw + selectedDebtSum;
 
     setCompleteSubmitting(true);
     try {
+      const selectedDebts = clientDebts.filter((d) => selectedDebtIds[d.id]);
       const { data: entry } = await api.post<DailyLogEntry>(`/api/daily-log/from-reservation/${reservation.id}`, {
-        actualPrice: paidRaw,
+        actualPrice: actualPriceWithDebts,
         tipAmount: tipAmount >= 0 ? tipAmount : 0,
         notes: completeNotes.trim() || undefined,
       });
+
+      if (selectedDebts.length > 0) {
+        await Promise.all(
+          selectedDebts.map((d) => api.patch(`/api/client-debts/${d.id}/settle`)),
+        );
+        await fetchClientDebts(reservation.clientId);
+      }
       setCompleteModalOpen(false);
       await fetchReservation();
 
@@ -426,7 +467,7 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     } finally {
       setCompleteSubmitting(false);
     }
-  }, [reservation, completeActualPrice, completeNotes, fetchReservation, navigation]);
+  }, [reservation, completeActualPrice, completeNotes, fetchReservation, navigation, selectedDebtSum, clientDebts, selectedDebtIds, fetchClientDebts]);
 
   if (loading) {
     return (
@@ -664,6 +705,59 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
                 onChangeText={setCompleteActualPrice}
                 keyboardType="decimal-pad"
               />
+              <View style={{ marginTop: spacing.sm }}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Dugovanja klijenta</Text>
+                {clientDebtsLoading ? (
+                  <View style={{ paddingVertical: spacing.sm }}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                ) : clientDebts.length === 0 ? (
+                  <Text style={[styles.infoText, { color: colors.textSecondary }]}>Nema otvorenih dugovanja.</Text>
+                ) : (
+                  <View style={{ gap: 8 }}>
+                    {clientDebts.slice(0, 6).map((d) => {
+                      const isMine = d.stylistProfileId === profileId;
+                      const label = d.service?.name ?? 'Usluga';
+                      const stylistName = d.stylistProfile?.user
+                        ? `${d.stylistProfile.user.firstName} ${d.stylistProfile.user.lastName}`.trim()
+                        : 'Stilist';
+                      const selected = !!selectedDebtIds[d.id];
+                      return (
+                        <TouchableOpacity
+                          key={d.id}
+                          onPress={() =>
+                            setSelectedDebtIds((prev) => ({ ...prev, [d.id]: !prev[d.id] }))
+                          }
+                          style={[
+                            styles.debtRow,
+                            { borderColor: colors.border, backgroundColor: colors.surface },
+                          ]}
+                        >
+                          <Ionicons
+                            name={selected ? 'checkbox-outline' : 'square-outline'}
+                            size={18}
+                            color={selected ? colors.primary : colors.textSecondary}
+                          />
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.debtTitle, { color: colors.text }]}>
+                              {label} · {Number(d.amount).toFixed(2)} KM
+                            </Text>
+                            <Text style={[styles.debtMeta, { color: colors.textSecondary }]}>
+                              {isMine ? 'Dug kod vas' : `Dug kod ${stylistName}`} · {d.createdAt.slice(0, 10)}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                    <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                      Odabrana dugovanja će biti dodata na ukupnu cijenu i neće se računati u napojnicu.
+                    </Text>
+                    <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                      Ukupno za dugovanja: {selectedDebtSum.toFixed(2)} KM
+                    </Text>
+                  </View>
+                )}
+              </View>
               <Input
                 label="Napomena (opciono)"
                 value={completeNotes}
@@ -799,5 +893,15 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.md },
   modalActions: { flexDirection: 'row', gap: 8, marginTop: spacing.md },
   modalBtn: { flex: 1 },
+  debtRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  debtTitle: { fontSize: 14, fontWeight: '700' },
+  debtMeta: { fontSize: 12, marginTop: 2 },
 });
 

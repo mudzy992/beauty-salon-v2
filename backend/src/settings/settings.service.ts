@@ -29,6 +29,24 @@ export class SettingsService {
     return typeof value === 'string' ? value : String(value);
   }
 
+  private normalizeHexColor(value: string): string {
+    const v = String(value ?? '').trim();
+    if (v === '') return '';
+    const ok = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v);
+    if (!ok) throw new BadRequestException('Boja mora biti hex format (npr. #632238).');
+    return v.toUpperCase();
+  }
+
+  private normalizeLogoText(value: string): string {
+    const raw = String(value ?? '').trim();
+    const oneWord = raw.split(/\s+/)[0] ?? '';
+    const upper = oneWord.slice(0, 8).toLocaleUpperCase('bs-BA');
+    const cleaned = upper.replace(/[^A-Z0-9ČĆŽŠĐ]/gu, '');
+    const finalValue = cleaned.slice(0, 8);
+    if (!finalValue) throw new BadRequestException('Logo naslov mora imati barem 1 karakter.');
+    return finalValue;
+  }
+
   private normalizeBoolean(value: string): string {
     const normalized = value.trim().toLowerCase();
     if (normalized === 'true') return 'true';
@@ -200,14 +218,20 @@ export class SettingsService {
   async set(key: string, dto: SetSettingDto, updatedBy?: string) {
     const registry = this.getRegistryItemOrThrow(key);
     const rawValue = this.normalizeString(dto.value ?? '');
+    const keySpecific =
+      key === 'app_logo_text'
+        ? this.normalizeLogoText(rawValue)
+        : key === 'app_logo_svg_color' || key === 'app_logo_text_color'
+          ? this.normalizeHexColor(rawValue)
+          : rawValue;
     const normalizedValue =
       registry.type === 'boolean'
-        ? this.normalizeBoolean(rawValue)
+        ? this.normalizeBoolean(keySpecific)
         : registry.type === 'number'
-          ? this.normalizeNumber(rawValue, registry.min, registry.max)
+          ? this.normalizeNumber(keySpecific, registry.min, registry.max)
           : registry.type === 'json'
-            ? this.normalizeJson(rawValue, key)
-            : this.normalizeString(rawValue);
+            ? this.normalizeJson(keySpecific, key)
+            : this.normalizeString(keySpecific);
     const valueToStore =
       registry.isSecret && normalizedValue.trim().length > 0
         ? this.encryption.encrypt(normalizedValue)

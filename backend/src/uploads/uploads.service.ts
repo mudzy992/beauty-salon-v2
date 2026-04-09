@@ -16,7 +16,9 @@ const IMAGE_MIMES = new Set([
   'image/png',
   'image/webp',
   'image/gif',
+  'image/svg+xml',
 ]);
+const VECTOR_MIMES = new Set(['image/svg+xml']);
 const DOC_MIMES = new Set([
   'application/pdf',
   'application/msword',
@@ -65,6 +67,7 @@ export class UploadsService {
     await fs.mkdir(absDir, { recursive: true });
 
     const isImage = IMAGE_MIMES.has(file.mimetype);
+    const isVector = VECTOR_MIMES.has(file.mimetype);
     const isDoc = DOC_MIMES.has(file.mimetype);
     if (!isImage && !isDoc) {
       throw new BadRequestException('Tip datoteke nije dozvoljen.');
@@ -84,7 +87,7 @@ export class UploadsService {
     const originalPath = path.join(absDir, `${baseName}-original${ext}`);
     await fs.writeFile(originalPath, file.buffer);
 
-    if (isImage) {
+    if (isImage && !isVector) {
       const pipeline = sharp(file.buffer);
       for (const [sizeName, size] of Object.entries(IMAGE_SIZES)) {
         const filename = `${baseName}-${sizeName}.webp`;

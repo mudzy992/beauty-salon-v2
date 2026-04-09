@@ -19,7 +19,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
 import { spacing } from '../../theme';
 import { formatDate, formatTime } from '../../utils/date';
-import type { Reservation, StylistResponse } from '../../types';
+import type { ClientDebt, Reservation, StylistResponse } from '../../types';
 
 function getMyResponse(reservation: Reservation, profileId: string): StylistResponse | undefined {
   return reservation.stylistResponses?.find((r) => r.stylistProfileId === profileId);
@@ -81,11 +81,41 @@ export function StylistInboxScreen() {
   );
 
   const handleAccept = useCallback(
-    async (reservationId: string) => {
+    async (reservation: Reservation) => {
       if (!profileId) return;
-      setActingId(reservationId);
+      setActingId(reservation.id);
       try {
-        await api.post(`/api/reservations/${reservationId}/stylist/${profileId}/accept`);
+        try {
+          const { data } = await api.get<ClientDebt[]>('/api/client-debts', {
+            params: { clientId: reservation.clientId },
+          });
+          const list = Array.isArray(data) ? data : [];
+          if (list.length > 0) {
+            const mine = list.filter((d) => d.stylistProfileId === profileId);
+            const others = list.filter((d) => d.stylistProfileId !== profileId);
+            const lines: string[] = [];
+            if (mine.length > 0) {
+              const first = mine[0];
+              lines.push(
+                `Klijent ima dugovanje kod vas${first.service?.name ? ` (${first.service.name})` : ''} od ${first.createdAt.slice(0, 10)}.`,
+              );
+            }
+            if (others.length > 0) {
+              const d = others[0];
+              const stylistName = d.stylistProfile?.user
+                ? `${d.stylistProfile.user.firstName} ${d.stylistProfile.user.lastName}`.trim()
+                : 'drugog stiliste';
+              lines.push(
+                `Klijent ima dugovanje kod ${stylistName}${d.service?.name ? ` (${d.service.name})` : ''} od ${d.createdAt.slice(0, 10)}.`,
+              );
+            }
+            if (lines.length > 0) Alert.alert('Dugovanje klijenta', lines.join('\n'));
+          }
+        } catch {
+          // ignore - rezervacija se i dalje može prihvatiti
+        }
+
+        await api.post(`/api/reservations/${reservation.id}/stylist/${profileId}/accept`);
         await fetchReservations();
       } catch (err: unknown) {
         const msg =
@@ -255,7 +285,7 @@ export function StylistInboxScreen() {
                 <>
                   <Button
                     title="Prihvati"
-                    onPress={() => handleAccept(item.id)}
+                    onPress={() => handleAccept(item)}
                     loading={acting}
                     size="sm"
                     style={styles.actionBtn}

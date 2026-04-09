@@ -262,3 +262,23 @@ export interface ApiError {
   message: string | string[];
   error?: string;
 }
+
+export type ClientDebtStatus = 'OPEN' | 'SETTLED'
+
+export interface ClientDebt {
+  id: string
+  clientId: string
+  stylistProfileId: string
+  serviceId?: string | null
+  manualEntryId?: string | null
+  reservationId?: string | null
+  amount: number
+  note?: string | null
+  status: ClientDebtStatus
+  createdById: string
+  createdAt: string
+  settledAt?: string | null
+  settledById?: string | null
+  service?: { id: string; name: string } | null
+  stylistProfile?: StylistProfile | null
+}
