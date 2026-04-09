@@ -20,7 +20,7 @@ const normalizeInlineSvg = (input: string): string => {
   s = s.replace(/\sheight\s*=\s*["'][^"']*["']/gi, '')
   s = s.replace(
     /<svg\b/i,
-    '<svg width="100%" height="100%" preserveAspectRatio="xMidYMid meet" fill="currentColor" style="display:block"',
+    '<svg class="uploaded-brand-logo-svg" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" fill="currentColor" style="display:block"',
   )
   return s
 }
@@ -35,10 +35,10 @@ const sanitizeSvg = (input: string): string => {
   s = s.replace(/\sfill\s*=\s*["'][^"']*["']/gi, ' fill="currentColor"')
   s = s.replace(/\sstroke\s*=\s*["'][^"']*["']/gi, ' stroke="currentColor"')
   const normalized = normalizeInlineSvg(s)
-  // Force tinting for uploaded SVGs (branding use-case).
+  // Scoped so `*` cannot leak to Lucide / other page SVGs (unscoped SVG <style> may apply document-wide).
   return normalized.replace(
     /<svg\b([^>]*)>/i,
-    '<svg$1><style>*{fill:currentColor !important;stroke:currentColor !important}</style>',
+    '<svg$1><style>.uploaded-brand-logo-svg *{fill:currentColor !important;stroke:currentColor !important}</style>',
   )
 }
 
