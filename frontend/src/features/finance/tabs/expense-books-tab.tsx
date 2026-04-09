@@ -297,6 +297,11 @@ export function ExpenseBooksTab() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [selectedBook, view])
 
+  const yearOptions = useMemo(
+    () => Array.from({ length: 5 }, (_, i) => nowForPicker.current.getFullYear() - 2 + i),
+    [],
+  )
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10 text-slate-600 dark:text-slate-300">
@@ -311,10 +316,6 @@ export function ExpenseBooksTab() {
   const currentBook = books.find((b) => b.year === currentYear && b.month === currentMonth) ?? null
   const isCurrentBookOpen = Boolean(currentBook && !currentBook.isClosed)
   const currentMonthEnd = getEndOfMonthDate(currentYear, currentMonth)
-  const yearOptions = useMemo(
-    () => Array.from({ length: 5 }, (_, i) => nowForPicker.current.getFullYear() - 2 + i),
-    [],
-  )
 
   if (view === 'expense' && selectedExpense) {
     const isFixed = selectedExpense.category?.isFixed
