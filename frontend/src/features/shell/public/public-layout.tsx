@@ -85,7 +85,7 @@ export const PublicLayout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-sm text-slate-600">{t('common.loading')}</div>
       </div>
     )
@@ -93,7 +93,7 @@ export const PublicLayout = () => {
 
   if (maintenanceOn) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
         <div className="w-full max-w-md text-center space-y-4">
           {hasLogo ? (
             <div className="flex justify-center">
@@ -133,8 +133,8 @@ export const PublicLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <header className="bg-white border-b border-slate-200">
+    <div className="min-h-screen bg-white flex flex-col">
+      <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/70">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2 flex-none">
             {hasLogo ? (
@@ -156,15 +156,15 @@ export const PublicLayout = () => {
             )}
           </Link>
 
-          <nav className="hidden lg:flex items-center justify-center gap-1 flex-1">
+          <nav className="hidden lg:flex items-center justify-center gap-0.5 flex-1">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={
                   item.isActive
-                    ? 'px-3 py-2 text-sm font-semibold text-brand-gold'
-                    : 'px-3 py-2 text-sm text-slate-700 hover:text-brand-gold'
+                    ? 'px-3 py-2 text-sm font-medium text-slate-900 rounded-full bg-slate-100/90'
+                    : 'px-3 py-2 text-sm text-slate-600 hover:text-slate-900 rounded-full hover:bg-slate-50 transition-colors'
                 }
               >
                 {t(item.labelKey)}
@@ -175,7 +175,7 @@ export const PublicLayout = () => {
           <div className="hidden lg:flex items-center gap-2 flex-none">
             {!user ? (
               <Link to="/login">
-                <Button size="sm" variant="ghost">
+                <Button size="sm" variant="ghost" className="rounded-full text-slate-600 hover:text-slate-900">
                   Prijavi se
                 </Button>
               </Link>
@@ -239,7 +239,7 @@ export const PublicLayout = () => {
               aria-label="Meni"
               variant="outline"
               size="icon"
-              className="lg:hidden border-slate-200 text-slate-700 hover:text-slate-900"
+              className="lg:hidden rounded-full border-slate-200/80 text-slate-700 hover:text-slate-900 bg-white/80"
               onClick={() => setMobileOpen(true)}
             >
               <Menu className="h-5 w-5" />
@@ -274,8 +274,8 @@ export const PublicLayout = () => {
                       onClick={() => setMobileOpen(false)}
                       className={
                         item.isActive
-                          ? 'rounded-lg px-3 py-2 text-[15px] font-semibold text-brand-gold bg-brand-champagne/20'
-                          : 'rounded-lg px-3 py-2 text-[15px] text-slate-800 hover:text-brand-gold hover:bg-slate-50'
+                          ? 'rounded-xl px-3 py-2.5 text-[15px] font-medium text-slate-900 bg-slate-100'
+                          : 'rounded-xl px-3 py-2.5 text-[15px] text-slate-700 hover:bg-slate-50 hover:text-slate-900'
                       }
                     >
                       {t(item.labelKey)}
@@ -283,28 +283,28 @@ export const PublicLayout = () => {
                   ))}
                 </div>
 
-                <div className="mt-auto pt-3 border-t border-slate-200 grid gap-1">
+                <div className="mt-auto pt-3 border-t border-slate-200/80 grid gap-1">
                   {user ? (
                     <>
                       <Link to="/rezervacija" onClick={() => setMobileOpen(false)}>
-                        <Button className="w-full" size="sm">{t('public.nav.reserve')}</Button>
+                        <Button className="w-full rounded-full" size="sm">{t('public.nav.reserve')}</Button>
                       </Link>
                       {(['SYSTEM_ADMIN', 'OWNER'] as string[]).some((r) =>
                         user.roles.includes(r),
                       ) ? (
                         <Link to="/admin" onClick={() => setMobileOpen(false)}>
-                          <Button className="w-full" variant="outline" size="sm">
+                          <Button className="w-full rounded-full" variant="outline" size="sm">
                             {t('app.admin')}
                           </Button>
                         </Link>
                       ) : null}
                       <Link to="/profil" onClick={() => setMobileOpen(false)}>
-                        <Button className="w-full" variant="ghost" size="sm">
+                        <Button className="w-full rounded-full" variant="ghost" size="sm">
                           Profil
                         </Button>
                       </Link>
                       <Button
-                        className="w-full"
+                        className="w-full rounded-full"
                         variant="ghost"
                         size="sm"
                         onClick={() => {
@@ -318,7 +318,7 @@ export const PublicLayout = () => {
                   ) : (
                     <>
                       <Link to="/login" onClick={() => setMobileOpen(false)}>
-                        <Button className="w-full" variant="outline" size="sm">
+                        <Button className="w-full rounded-full" variant="outline" size="sm">
                           Prijavi se
                         </Button>
                       </Link>
@@ -335,8 +335,8 @@ export const PublicLayout = () => {
         <Outlet />
       </main>
 
-      <footer className="mt-auto bg-slate-900 text-white">
-        <div className="mx-auto max-w-6xl px-4 py-8 flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+      <footer className="mt-auto border-t border-slate-200/80 bg-slate-50/80">
+        <div className="mx-auto max-w-6xl px-4 py-10 flex flex-col md:flex-row md:items-start md:justify-between gap-8">
           <div className="text-center md:text-left">
             {hasLogo ? (
               <div className="flex md:justify-start justify-center">
@@ -349,15 +349,15 @@ export const PublicLayout = () => {
                 />
               </div>
             ) : (
-              <div className="text-sm font-semibold">{appTitle}</div>
+              <div className="text-sm font-semibold text-slate-900">{appTitle}</div>
             )}
             {getSetting('public_footer_text', '') ? (
-              <div className="mt-2 text-sm text-slate-300 max-w-md">
+              <div className="mt-2 text-sm text-slate-600 max-w-md leading-relaxed">
                 {getSetting('public_footer_text', '')}
               </div>
             ) : null}
           </div>
-          <div className="text-sm text-slate-300 text-center md:text-left space-y-1">
+          <div className="text-sm text-slate-600 text-center md:text-left space-y-1.5">
             {getSetting('public_contact_address', '') ? (
               <div>{getSetting('public_contact_address', '')}</div>
             ) : null}
@@ -369,8 +369,8 @@ export const PublicLayout = () => {
             ) : null}
           </div>
         </div>
-        <div className="border-t border-slate-800">
-          <div className="mx-auto max-w-6xl px-4 py-4 text-xs text-slate-400 text-center">
+        <div className="border-t border-slate-200/80 bg-white/60">
+          <div className="mx-auto max-w-6xl px-4 py-4 text-xs text-slate-500 text-center">
             © {new Date().getFullYear()} {appTitle}. {t('public.footer.rights')}
           </div>
         </div>

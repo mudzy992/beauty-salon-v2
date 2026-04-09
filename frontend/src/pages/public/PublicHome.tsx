@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle2, Clock, Star } from 'lucide-react'
+import { ArrowRight, Calendar, CheckCircle2, Clock, Star } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
-import { BeforeAfterSlider } from '../../components/BeforeAfterSlider'
+import { BeforeAfterSpotlight } from '../../features/shell/public/before-after-spotlight'
+import { publicHeader, publicPage, publicSection } from '../../features/shell/public/public-ui'
 import { useSettings } from '../../context/SettingsContext'
 import { getUploadUrl } from '../../utils/uploadUrl'
 
@@ -258,7 +259,7 @@ export default function PublicHome() {
         </div>
       </section>
 
-      <section className="py-20 bg-brand-champagne/15">
+      <section className="py-20 bg-slate-50/80">
         <div className="mx-auto max-w-6xl px-4">
           <MotionDiv
             initial="hidden"
@@ -316,60 +317,48 @@ export default function PublicHome() {
         </div>
       </section>
 
-      <section className="py-20 bg-slate-50">
-        <div className="mx-auto max-w-6xl px-4">
-          <div className="text-center mb-10">
-            <div className="text-brand-gold font-semibold uppercase tracking-widest text-sm">
-              Prije / Poslije
+      <section className={`${publicSection.subtle} ${publicSection.base}`}>
+        <div className={`${publicPage.container}`}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8 mb-10 md:mb-12">
+            <div className="max-w-2xl">
+              <div className={publicHeader.kicker}>Prije / poslije</div>
+              <h2 className={`${publicHeader.title} mt-2`}>Urađeni radovi</h2>
+              <p className={`${publicHeader.subtitle} mt-3`}>
+                Jedna transformacija u fokusu. Ostale su u pregledu sa strane — kliknite za
+                usporedbu ili pričekajte da se lista lagano pomiče.
+              </p>
             </div>
-            <div className="text-3xl md:text-4xl font-semibold text-slate-900 mt-2">
-              Urađeni radovi
-            </div>
-            <div className="text-slate-600 mt-3 max-w-2xl mx-auto">
-              Povucite sliku lijevo ili desno da vidite transformaciju.
-            </div>
-            <div className="mt-6">
-              <Link to="/zadovoljni-klijenti">
-                <Button variant="outline">Pogledaj sve</Button>
-              </Link>
-            </div>
+            <Link
+              to="/zadovoljni-klijenti"
+              className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 hover:text-brand-gold transition-colors shrink-0"
+            >
+              Pogledaj sve
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
           </div>
 
-          {beforeAfterLoading ? (
-            <div className="py-12 text-center text-slate-600">Učitavanje…</div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {displayPairs.slice(0, 6).map((pair) => (
-                <div
-                  key={pair.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm"
-                >
-                  <BeforeAfterSlider
-                    beforeSrc={getImageUrl(
-                      pair.before.pathMedium ?? pair.before.pathThumb ?? pair.before.pathOriginal,
-                    )}
-                    afterSrc={getImageUrl(
-                      pair.after.pathMedium ?? pair.after.pathThumb ?? pair.after.pathOriginal,
-                    )}
-                    alt="Prije / Poslije"
-                    aspectRatio={1}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          <BeforeAfterSpotlight
+            pairs={displayPairs}
+            loading={beforeAfterLoading}
+            resolveBefore={(p) =>
+              getImageUrl(
+                p.before.pathMedium ?? p.before.pathThumb ?? p.before.pathOriginal,
+              )
+            }
+            resolveAfter={(p) =>
+              getImageUrl(p.after.pathMedium ?? p.after.pathThumb ?? p.after.pathOriginal)
+            }
+          />
 
           {featuredReview ? (
-            <div className="mt-12">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-sm font-semibold text-brand-gold uppercase tracking-widest">
-                    Izdvojena recenzija
-                  </div>
-                  <div className="mt-2 text-lg font-semibold text-slate-900">
+            <div className="mt-12 md:mt-16 max-w-2xl mx-auto">
+              <Card className="border-slate-200/80 shadow-soft rounded-2xl">
+                <CardContent className="p-6 sm:p-8">
+                  <div className="text-xs font-medium text-slate-500">Nasumična recenzija</div>
+                  <div className="mt-2 text-lg font-semibold tracking-tight text-slate-950">
                     {featuredReview.service?.name ?? 'Usluga'}
                   </div>
-                  <div className="mt-2 text-slate-600 whitespace-pre-wrap">
+                  <div className="mt-3 text-slate-600 leading-relaxed whitespace-pre-wrap">
                     {featuredReview.comment ?? ''}
                   </div>
                   <div className="mt-4 text-sm text-slate-500">
@@ -384,21 +373,26 @@ export default function PublicHome() {
         </div>
       </section>
 
-      <section className="py-16 bg-slate-950 text-white">
-        <div className="mx-auto max-w-6xl px-4 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div>
-            <div className="text-2xl font-semibold">
+      <section className="relative overflow-hidden py-16 border-t border-slate-200/80 bg-slate-50/80">
+        <Calendar
+          className="pointer-events-none absolute -right-6 -bottom-10 h-44 w-44 text-slate-400/[0.22] sm:h-56 sm:w-56 sm:-right-10 sm:-bottom-14 md:h-64 md:w-64"
+          strokeWidth={1}
+          aria-hidden
+        />
+        <div className="relative z-[1] mx-auto max-w-6xl px-4 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="text-center md:text-left">
+            <div className="text-2xl font-semibold tracking-tight text-slate-950">
               {getSetting('public_cta_title', 'Spremni za novu frizuru?')}
             </div>
-            <div className="text-slate-300 mt-2">
+            <div className="text-slate-600 mt-2 max-w-xl">
               {getSetting(
                 'public_cta_subtitle',
                 'Rezervišite termin online u par klikova.',
               )}
             </div>
           </div>
-          <Link to="/rezervacija">
-            <Button size="lg" className="px-8">
+          <Link to="/rezervacija" className="shrink-0">
+            <Button size="lg" className="px-8 rounded-full">
               {t('public.nav.reserve')}
             </Button>
           </Link>

@@ -220,8 +220,8 @@ export default function Profile() {
   }
 
   return (
-    <div className="mx-auto mt-8 max-w-4xl px-4 space-y-6">
-      <div className="text-2xl font-semibold text-slate-900">Moj profil</div>
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:py-10 space-y-6">
+      <div className="text-2xl font-semibold tracking-tight text-slate-950">Moj profil</div>
 
       {loading ? (
         <div className="text-slate-600">Učitavanje…</div>

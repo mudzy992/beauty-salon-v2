@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Calendar, MessageCircle } from 'lucide-react'
 
 import { Button } from '../../components/ui/button'
+import { publicHeader, publicPage } from '../../features/shell/public/public-ui'
 import { Textarea } from '../../components/ui/textarea'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import api from '../../api/client'
@@ -91,46 +92,56 @@ export default function PublicBlogPost() {
   }
 
   return (
-    <div className="bg-white min-h-screen pt-10 pb-20">
-      <div className="mx-auto max-w-5xl px-4">
-        <Link to="/blog" className="inline-flex mb-4">
-          <Button variant="ghost">
+    <div className="bg-white min-h-screen pb-20">
+      <div className={publicPage.containerNarrow}>
+        <Link to="/blog" className="inline-flex mb-6 pt-8">
+          <Button variant="ghost" className="rounded-full text-slate-600 hover:text-slate-900 -ml-2">
             <span className="inline-flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4" aria-hidden />
               Nazad na blog
             </span>
           </Button>
         </Link>
 
-        {/* Hero backdrop – slika u pozadini, naslov i datum u donjem lijevom uglu */}
-        <div className="relative min-h-[280px] md:min-h-[360px] mb-10 overflow-hidden rounded-xl">
+        <div className="relative min-h-[220px] md:min-h-[300px] overflow-hidden rounded-2xl border border-slate-200/80 shadow-soft">
           {post.heroImage ? (
-            <img
-              src={getUploadUrl(post.heroImage)}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-brand-gold to-brand-champagne" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-6 pt-12 flex flex-col items-start">
-            <div className="flex items-center gap-2 text-white/90 text-sm mb-2">
-              <Calendar className="h-4 w-4" />
-              <div>
-                {post.publishedAt
-                  ? new Date(post.publishedAt).toLocaleDateString('bs-BA')
-                  : ''}
+            <>
+              <img
+                src={getUploadUrl(post.heroImage)}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 flex flex-col items-start">
+                <div className="flex items-center gap-2 text-white/85 text-sm mb-2">
+                  <Calendar className="h-4 w-4" aria-hidden />
+                  <div>
+                    {post.publishedAt
+                      ? new Date(post.publishedAt).toLocaleDateString('bs-BA')
+                      : ''}
+                  </div>
+                </div>
+                <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-white leading-tight">
+                  {post.title}
+                </h1>
               </div>
+            </>
+          ) : (
+            <div className="p-8 md:p-10 bg-gradient-to-br from-slate-50 to-slate-100 min-h-[220px] flex flex-col justify-end">
+              <div className="flex items-center gap-2 text-slate-500 text-sm mb-2">
+                <Calendar className="h-4 w-4" aria-hidden />
+                <div>
+                  {post.publishedAt
+                    ? new Date(post.publishedAt).toLocaleDateString('bs-BA')
+                    : ''}
+                </div>
+              </div>
+              <h1 className={`${publicHeader.title} text-slate-950`}>{post.title}</h1>
             </div>
-            <div className="text-3xl md:text-4xl font-semibold text-white leading-tight drop-shadow">
-              {post.title}
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Sadržaj članka */}
-        <div className="px-0 md:px-2">
+        <div className={`px-0 md:px-2 ${publicPage.contentAfterHero}`}>
           <div
             className="blog-content text-lg leading-relaxed text-slate-700 mb-14"
             dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }}
@@ -138,8 +149,8 @@ export default function PublicBlogPost() {
 
           {/* Komentari */}
           <div className="my-10 h-px bg-slate-200" />
-          <div className="text-xl font-semibold text-slate-900 mb-6 flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-brand-gold" />
+          <div className="text-xl font-semibold tracking-tight text-slate-950 mb-6 flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-slate-500" aria-hidden />
             Komentari {comments.length > 0 && `(${comments.length})`}
           </div>
 
@@ -156,6 +167,7 @@ export default function PublicBlogPost() {
               <Button
                 onClick={handleSubmitComment}
                 disabled={submitting || !newComment.trim()}
+                className="rounded-full"
               >
                 {submitting ? 'Slanje…' : 'Pošalji komentar'}
               </Button>
@@ -163,7 +175,7 @@ export default function PublicBlogPost() {
           ) : (
             <div className="py-4 text-slate-600">
               <Link to="/login" state={{ from: `/blog/${post.slug}` } as any}>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="rounded-full border-slate-200/80">
                   Prijavite se da biste komentarisali
                 </Button>
               </Link>

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
+import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { Button } from '../../components/ui/button'
 
@@ -65,31 +66,22 @@ export default function PublicGallery() {
   const handleClose = () => setLightboxSrc(null)
 
   return (
-    <div className="bg-slate-50 min-h-screen pt-10 pb-20">
-      <div className="bg-slate-950 text-white py-16 mb-12 text-center relative overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-30"
-          style={{
-            backgroundImage: `url('${getSetting(
-              'public_gallery_bg',
-              'https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&q=80&w=2000',
-            )}')`,
-          }}
-        />
-        <div className="mx-auto max-w-5xl px-4 relative z-10">
-          <div className="text-4xl font-semibold mb-4">
+    <div className="bg-white min-h-screen pb-20">
+      <div className={publicPageHero.section}>
+        <div className={`${publicPageHero.innerNarrow} text-center`}>
+          <h1 className={publicHeader.title}>
             {getSetting('public_gallery_title', 'Galerija Naših Radova')}
-          </div>
-          <div className="text-lg text-slate-200">
+          </h1>
+          <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
             {getSetting(
               'public_gallery_subtitle',
               'Zavirite u naš svijet ljepote i uvjerite se u stručnost naših frizera i stilista.',
             )}
-          </div>
+          </p>
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4">
+      <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loading ? (
           <div className="py-20 text-center text-slate-600">Učitavanje…</div>
         ) : sortedCategories.length === 0 ? (
@@ -98,9 +90,9 @@ export default function PublicGallery() {
           <MotionDiv variants={stagger} initial="hidden" animate="visible">
             {sortedCategories.map((cat) => (
               <div key={cat.id} className="mb-16">
-                <div className="text-xl font-semibold text-slate-900 border-l-4 border-brand-gold pl-4 mb-8">
+                <h2 className="text-xl font-semibold tracking-tight text-slate-950 pb-3 mb-8 border-b border-slate-200/80">
                   {cat.name}
-                </div>
+                </h2>
 
                 {cat.images?.length ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -122,7 +114,7 @@ export default function PublicGallery() {
                           <MotionDiv
                             key={img.id}
                             variants={fadeScale}
-                            className="group relative overflow-hidden rounded-xl bg-slate-100 aspect-square shadow-sm cursor-pointer"
+                            className="group relative overflow-hidden rounded-2xl bg-slate-100 aspect-square border border-slate-200/80 shadow-sm cursor-pointer"
                             onClick={() => {
                               if (originalUrl) setLightboxSrc(originalUrl)
                             }}

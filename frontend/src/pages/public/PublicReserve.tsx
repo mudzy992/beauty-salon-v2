@@ -105,12 +105,12 @@ const ServiceAutocomplete = ({
 
   if (selected) {
     return (
-      <div className="flex items-center justify-between gap-4 rounded-lg border border-brand-champagne bg-brand-champagne/15 p-3">
+      <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200/80 bg-slate-50 p-3">
         <div>
           <div className="font-semibold text-slate-900">{selected.name}</div>
           <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-600">
             <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1">
-              <Clock className="h-3.5 w-3.5 text-brand-gold" />
+              <Clock className="h-3.5 w-3.5 text-slate-500" />
               {selected.durationMinutes} min
             </span>
             {selected.subcategory?.category ? (
@@ -165,7 +165,7 @@ const ServiceAutocomplete = ({
                 <button
                   key={s.id}
                   type="button"
-                  className="w-full text-left px-3 py-3 hover:bg-brand-champagne/20 border-b border-slate-100 last:border-b-0"
+                  className="w-full text-left px-3 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
                   onClick={() => {
                     onSelect(s)
                     setOpen(false)
@@ -183,7 +183,7 @@ const ServiceAutocomplete = ({
                         </div>
                       ) : null}
                     </div>
-                    <span className="text-xs font-semibold rounded-md border border-brand-champagne bg-brand-champagne/20 px-2 py-1 text-slate-900">
+                    <span className="text-xs font-semibold rounded-full border border-slate-200/80 bg-white px-2 py-1 text-slate-700">
                       {s.durationMinutes} min
                     </span>
                   </div>
@@ -317,9 +317,9 @@ const ReservationCalendar = ({
               disabled={disabledCell}
               className={[
                 'h-10 w-full rounded-md text-sm transition',
-                isSelected ? 'bg-brand-gold text-black font-semibold' : 'bg-transparent text-slate-700',
-                !available ? 'opacity-30 cursor-not-allowed' : 'hover:bg-brand-champagne/30',
-                isToday && !isSelected ? 'border-2 border-brand-champagne' : 'border border-transparent',
+                isSelected ? 'bg-slate-900 text-white font-semibold' : 'bg-transparent text-slate-700',
+                !available ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-100',
+                isToday && !isSelected ? 'border-2 border-slate-300' : 'border border-transparent',
               ].join(' ')}
               onClick={() => onSelectDate(dateStr)}
             >
@@ -331,10 +331,10 @@ const ReservationCalendar = ({
 
       <div className="mt-3 flex items-center justify-center gap-4 text-xs text-slate-600">
         <div className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-brand-gold" /> Odabrano
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-900" /> Odabrano
         </div>
         <div className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-brand-champagne border border-brand-champagne" /> Dostupno
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-200 border border-slate-300" /> Dostupno
         </div>
         <div className="flex items-center gap-1">
           <span className="h-2.5 w-2.5 rounded-full bg-slate-200" /> Nedostupno
@@ -549,9 +549,9 @@ export default function PublicReserve() {
   )
 
   return (
-    <div className="min-h-screen pt-10 pb-20 relative bg-slate-50">
+    <div className="min-h-screen pt-8 pb-20 relative bg-white">
       <div
-        className="absolute inset-0 bg-cover bg-center opacity-10"
+        className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.04]"
         style={{ backgroundImage: `url('${bgUrl}')` }}
       />
 
@@ -561,10 +561,10 @@ export default function PublicReserve() {
         transition={{ duration: 0.5 }}
         className="relative z-10 mx-auto max-w-2xl px-4"
       >
-        <Card className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl">
+        <Card className="rounded-2xl border border-slate-200/80 bg-white shadow-soft">
           <CardContent className="p-6 md:p-10">
             <div className="text-center">
-              <div className="text-2xl font-semibold text-slate-900">
+              <div className="text-2xl font-semibold tracking-tight text-slate-950">
                 {getSetting('public_reserve_title', 'Rezervišite Vaš Termin')}
               </div>
               <div className="text-slate-600 mt-2">
@@ -581,13 +581,13 @@ export default function PublicReserve() {
                   <div
                     className={[
                       'h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition',
-                      step >= s ? 'bg-brand-gold text-black' : 'bg-slate-200 text-slate-600',
+                      step >= s ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600',
                     ].join(' ')}
                   >
                     {step > s ? <CheckCircle2 className="h-4 w-4" /> : s}
                   </div>
                   {s < 4 ? (
-                    <div className={step > s ? 'h-0.5 w-10 bg-brand-gold' : 'h-0.5 w-10 bg-slate-200'} />
+                    <div className={step > s ? 'h-0.5 w-10 bg-slate-900' : 'h-0.5 w-10 bg-slate-200'} />
                   ) : null}
                 </div>
               ))}
@@ -671,8 +671,8 @@ export default function PublicReserve() {
                               className={[
                                 'rounded-md border px-3 py-2 text-left transition',
                                 isSelected
-                                  ? 'border-brand-gold bg-brand-gold text-black'
-                                  : 'border-slate-200 bg-white hover:bg-brand-champagne/20',
+                                  ? 'border-slate-900 bg-slate-900 text-white'
+                                  : 'border-slate-200 bg-white hover:bg-slate-50',
                                 isPastSlot ? 'opacity-40 cursor-not-allowed' : '',
                               ].join(' ')}
                               onClick={() => {
@@ -769,8 +769,8 @@ export default function PublicReserve() {
                     </div>
                   ) : null}
 
-                  <div className="mt-4 rounded-lg border border-brand-champagne bg-brand-champagne/15 p-4">
-                    <div className="font-semibold text-slate-900 mb-2">
+                  <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50 p-4">
+                    <div className="font-semibold text-slate-950 mb-2">
                       Pregled rezervacije:
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -1,17 +1,25 @@
 import { useRef, useState, useCallback } from 'react'
+import { ChevronsLeftRight } from 'lucide-react'
 
 interface BeforeAfterSliderProps {
   beforeSrc: string
   afterSrc: string
   alt?: string
   aspectRatio?: number
+  ariaLabel?: string
 }
 
 /**
  * Before/After slider: vertikalna linija (handle) se pomiče lijevo/desno.
  * "After" slika je fiksirana (clip se širi/sužava), bez klizanja jedne preko druge.
  */
-export function BeforeAfterSlider({ beforeSrc, afterSrc, alt = '', aspectRatio = 4 / 3 }: BeforeAfterSliderProps) {
+export function BeforeAfterSlider({
+  beforeSrc,
+  afterSrc,
+  alt = '',
+  aspectRatio = 4 / 3,
+  ariaLabel = 'Prije / Poslije',
+}: BeforeAfterSliderProps) {
   const [position, setPosition] = useState(50)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -25,6 +33,10 @@ export function BeforeAfterSlider({ beforeSrc, afterSrc, alt = '', aspectRatio =
     },
     [],
   )
+
+  const handleStep = useCallback((delta: number) => {
+    setPosition((p) => Math.max(0, Math.min(100, p + delta)))
+  }, [])
 
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -51,10 +63,38 @@ export function BeforeAfterSlider({ beforeSrc, afterSrc, alt = '', aspectRatio =
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-xl bg-slate-200 cursor-col-resize select-none"
+      role="slider"
+      aria-label={ariaLabel}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(position)}
+      tabIndex={0}
+      className="relative w-full overflow-hidden rounded-2xl bg-slate-100 cursor-col-resize select-none ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20"
       onMouseDown={onMouseDown}
       onTouchMove={onTouchMove}
       onTouchStart={(e) => e.touches[0] && handleMove(e.touches[0].clientX)}
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault()
+          handleStep(-2)
+          return
+        }
+        if (e.key === 'ArrowRight') {
+          e.preventDefault()
+          handleStep(2)
+          return
+        }
+        if (e.key === 'Home') {
+          e.preventDefault()
+          setPosition(0)
+          return
+        }
+        if (e.key === 'End') {
+          e.preventDefault()
+          setPosition(100)
+          return
+        }
+      }}
       style={{ touchAction: 'none', aspectRatio }}
     >
       {/* Before – cijela slika u pozadini */}
@@ -80,11 +120,13 @@ export function BeforeAfterSlider({ beforeSrc, afterSrc, alt = '', aspectRatio =
       </div>
       {/* Slider handle – vertikalna linija */}
       <div
-        className="absolute top-0 h-full w-1 bg-white shadow-[0_0_12px_rgba(0,0,0,0.4)] -translate-x-1/2 pointer-events-none z-[2]"
+        className="absolute top-0 h-full w-px bg-white/90 shadow-[0_0_0_1px_rgba(15,23,42,0.12)] -translate-x-1/2 pointer-events-none z-[2]"
         style={{ left: `${position}%` }}
       >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow-md border-2 border-slate-200 flex items-center justify-center text-lg pointer-events-none">
-          ⟷
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+          <div className="h-10 w-10 rounded-full bg-white/95 shadow-soft ring-1 ring-slate-900/10 flex items-center justify-center">
+            <ChevronsLeftRight className="h-4 w-4 text-slate-700" />
+          </div>
         </div>
       </div>
     </div>

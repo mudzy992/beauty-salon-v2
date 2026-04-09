@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
+import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 
 interface ServiceOption {
   id: string;
@@ -52,33 +53,33 @@ export default function PublicServices() {
       .finally(() => setLoading(false));
   }, []);
 
+  const servicesHeroBg = getSetting(
+    'public_services_bg',
+    'https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=2000',
+  )
+
   return (
-    <div className="bg-slate-50 min-h-screen pt-10 pb-20">
-      {/* HEADER */}
-      <div className="bg-slate-950 text-white py-16 mb-12 text-center relative overflow-hidden">
+    <div className="bg-white min-h-screen pb-20">
+      <div className={`${publicPageHero.section} relative overflow-hidden`}>
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-30"
-          style={{
-            backgroundImage: `url('${getSetting(
-              'public_services_bg',
-              'https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=2000',
-            )}')`,
-          }}
+          className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.08]"
+          style={{ backgroundImage: `url('${servicesHeroBg}')` }}
         />
-        <div className="mx-auto max-w-5xl px-4 relative z-10">
-          <div className="text-4xl font-semibold mb-4">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/85 to-white" />
+        <div className={`${publicPageHero.innerNarrow} text-center relative z-[1]`}>
+          <h1 className={publicHeader.title}>
             {getSetting('public_services_title', 'Naše Frizerske Usluge')}
-          </div>
-          <div className="text-lg text-slate-200">
+          </h1>
+          <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
             {getSetting(
               'public_services_subtitle',
               'Bilo da tražite moderno šišanje, spektakularnu boju ili dubinsku njegu kose, naš tim je tu da ispuni vaše želje.',
             )}
-          </div>
+          </p>
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4">
+      <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loading ? (
           <div className="py-20 text-center text-slate-600">Učitavanje…</div>
         ) : categories.length === 0 ? (
@@ -87,9 +88,9 @@ export default function PublicServices() {
           <MotionDiv variants={containerVariants} initial="hidden" animate="visible">
             {categories.map((cat) => (
               <div key={cat.id} className="mb-16">
-                <div className="text-2xl font-semibold text-slate-900 inline-block border-b-2 border-brand-champagne pb-2 mb-8">
+                <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-950 mb-8 pb-3 border-b border-slate-200/80">
                   {cat.name}
-                </div>
+                </h2>
 
                 {cat.subcategories?.length ? (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -97,7 +98,7 @@ export default function PublicServices() {
                       <MotionDiv
                         key={sub.id}
                         variants={itemVariants}
-                        className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-slate-200"
+                        className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 transition-shadow hover:shadow-md"
                       >
                         <div className="text-lg font-semibold text-slate-800 mb-6">
                           {sub.name}
@@ -109,10 +110,13 @@ export default function PublicServices() {
                                 key={s.id}
                                 className="flex items-center justify-between py-3 border-b border-slate-100 last:border-b-0 last:pb-0"
                               >
-                                <Link to={`/usluge/${s.id}`} className="font-medium text-slate-800 hover:text-brand-gold hover:underline">
+                                <Link
+                                  to={`/usluge/${s.id}`}
+                                  className="font-medium text-slate-900 hover:text-brand-gold transition-colors"
+                                >
                                   {s.name}
                                 </Link>
-                                <span className="inline-flex items-center rounded-md bg-brand-champagne/30 text-slate-900 border border-brand-champagne px-2 py-1 text-xs font-medium">
+                                <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
                                   {s.durationMinutes} min
                                 </span>
                               </li>

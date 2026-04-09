@@ -6,6 +6,7 @@ import { ArrowRight, Calendar } from 'lucide-react'
 
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
+import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 import { getUploadUrl } from '../../utils/uploadUrl'
 
 interface BlogPost {
@@ -45,28 +46,19 @@ export default function PublicBlogList() {
   }, []);
 
   return (
-    <div className="bg-slate-50 min-h-screen pt-10 pb-20">
-      <div className="bg-white py-16 mb-12 border-b border-slate-200 text-center relative overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-10"
-          style={{
-            backgroundImage: `url('${getSetting(
-              'public_blog_bg',
-              'https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=2000',
-            )}')`,
-          }}
-        />
-        <div className="mx-auto max-w-5xl px-4 relative z-10">
-          <div className="text-brand-gold font-semibold uppercase tracking-widest text-sm mb-2">
-            {getSetting('public_blog_subtitle', 'Novosti & Savjeti')}
+    <div className="bg-white min-h-screen pb-20">
+      <div className={publicPageHero.section}>
+        <div className={`${publicPageHero.innerNarrow} text-center`}>
+          <div className={publicHeader.kicker}>
+            {getSetting('public_blog_subtitle', 'Novosti & savjeti')}
           </div>
-          <div className="text-4xl font-semibold text-slate-950">
-            {getSetting('public_blog_title', 'Naš Frizerski Blog')}
-          </div>
+          <h1 className={`${publicHeader.title} mt-2`}>
+            {getSetting('public_blog_title', 'Naš frizerski blog')}
+          </h1>
         </div>
       </div>
 
-      <div className="mx-auto max-w-5xl px-4">
+      <div className={`${publicPage.containerNarrow} ${publicPage.contentAfterHero}`}>
         {loading ? (
           <div className="py-20 text-center text-slate-600">Učitavanje…</div>
         ) : posts.length === 0 ? (
@@ -78,7 +70,7 @@ export default function PublicBlogList() {
                 <MotionDiv
                   key={p.id}
                   variants={fadeUp}
-                  className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 border border-slate-200"
+                  className="bg-white rounded-2xl overflow-hidden shadow-soft border border-slate-200/80 hover:shadow-md transition-shadow duration-300"
                 >
                   <Link to={`/blog/${p.slug}`} className="block no-underline">
                     <div className="h-[180px] bg-slate-200 relative overflow-hidden">
@@ -89,7 +81,7 @@ export default function PublicBlogList() {
                           className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.03]"
                         />
                       ) : (
-                        <div className="h-full w-full bg-gradient-to-br from-brand-gold to-brand-champagne opacity-85" />
+                        <div className="h-full w-full bg-gradient-to-br from-slate-200 to-slate-100" />
                       )}
                     </div>
                     <div className="p-6">
@@ -104,8 +96,8 @@ export default function PublicBlogList() {
                       <div className="text-lg font-semibold text-slate-900 mb-4 leading-snug">
                         {p.title}
                       </div>
-                      <div className="inline-flex items-center gap-2 text-brand-gold font-semibold text-sm">
-                        Pročitaj više <ArrowRight className="h-4 w-4" />
+                      <div className="inline-flex items-center gap-2 text-slate-900 font-medium text-sm">
+                        Pročitaj više <ArrowRight className="h-4 w-4" aria-hidden />
                       </div>
                     </div>
                   </Link>

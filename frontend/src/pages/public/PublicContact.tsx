@@ -8,6 +8,7 @@ import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import { useSettings } from '../../context/SettingsContext'
+import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 
 const MotionDiv = motion.div
 
@@ -33,40 +34,31 @@ export default function PublicContact() {
   }
 
   return (
-    <div className="bg-slate-50 min-h-screen pt-10 pb-20">
-      <div className="bg-slate-950 text-white py-16 mb-12 text-center relative overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-30"
-          style={{
-            backgroundImage: `url('${getSetting(
-              'public_contact_bg',
-              'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?auto=format&fit=crop&q=80&w=2000',
-            )}')`,
-          }}
-        />
-        <div className="mx-auto max-w-5xl px-4 relative z-10">
-          <div className="text-4xl font-semibold mb-4">
+    <div className="bg-white min-h-screen pb-20">
+      <div className={publicPageHero.section}>
+        <div className={`${publicPageHero.innerNarrow} text-center`}>
+          <h1 className={publicHeader.title}>
             {getSetting('public_contact_title', 'Kontaktirajte Nas')}
-          </div>
-          <div className="text-lg text-slate-200">
+          </h1>
+          <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
             {getSetting(
               'public_contact_subtitle',
               'Tu smo za sva vaša pitanja. Javite nam se ili nas posjetite u salonu.',
             )}
-          </div>
+          </p>
         </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-4">
+      <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <MotionDiv
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Card>
+            <Card className="rounded-2xl border-slate-200/80 shadow-soft">
               <CardContent className="p-8">
-                <div className="text-xl font-semibold text-slate-900 mb-6">
+                <div className="text-lg font-semibold tracking-tight text-slate-950 mb-6">
                   Pošaljite nam poruku
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-5">
@@ -97,7 +89,7 @@ export default function PublicContact() {
                       onChange={(e) => setMessage(e.target.value)}
                     />
                   </div>
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading} className="rounded-full">
                     {loading ? 'Slanje…' : 'Pošalji'}
                   </Button>
                 </form>
@@ -111,14 +103,14 @@ export default function PublicContact() {
             transition={{ duration: 0.5 }}
           >
             <div className="space-y-8">
-              <Card>
+              <Card className="rounded-2xl border-slate-200/80 shadow-soft">
                 <CardContent className="p-8">
-                  <div className="text-base font-semibold text-slate-900 mb-4">
+                  <div className="text-base font-semibold tracking-tight text-slate-950 mb-4">
                     Informacije
                   </div>
-                  <div className="space-y-4 text-slate-700">
+                  <div className="space-y-4 text-slate-600">
                     <div>
-                      <div className="text-sm font-semibold text-brand-gold">
+                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                         Adresa
                       </div>
                       <div>
@@ -129,7 +121,7 @@ export default function PublicContact() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-brand-gold">
+                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                         Telefon
                       </div>
                       <div>
@@ -137,7 +129,7 @@ export default function PublicContact() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-brand-gold">
+                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                         Email
                       </div>
                       <div>
@@ -145,8 +137,8 @@ export default function PublicContact() {
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-brand-gold">
-                        Radno Vrijeme
+                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                        Radno vrijeme
                       </div>
                       <div className="whitespace-pre-line">
                         {getSetting(
@@ -160,7 +152,7 @@ export default function PublicContact() {
               </Card>
               
               {getSetting('public_contact_map_embed', '') ? (
-                <div className="rounded-2xl overflow-hidden shadow-sm h-[300px] bg-white border border-slate-200">
+                <div className="rounded-2xl overflow-hidden shadow-soft h-[300px] bg-white border border-slate-200/80">
                   <iframe
                     src={getSetting('public_contact_map_embed', '')}
                     width="100%"

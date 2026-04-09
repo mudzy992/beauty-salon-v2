@@ -6,6 +6,7 @@ import api from '../../api/client'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider'
 import { Button } from '../../components/ui/button'
+import { publicHeader, publicPage } from '../../features/shell/public/public-ui'
 
 const MotionDiv = motion.div
 const PAGE_SIZE = 12
@@ -66,50 +67,48 @@ export default function PublicSatisfiedClients() {
   }, [hasMore, loadingMore, offset, loadPage])
 
   return (
-    <div className="py-12 bg-slate-50 min-h-[60vh]">
-      <div className="mx-auto max-w-6xl px-4">
-        <div className="text-center mb-10">
-          <div className="text-brand-gold font-semibold uppercase tracking-widest text-sm mb-2">
-            Transformacije
-          </div>
-          <div className="text-4xl font-semibold text-slate-950">
-            Zadovoljni klijenti
-          </div>
-          <div className="text-slate-600 mt-2 max-w-xl mx-auto">
-            Povucite sliku lijevo ili desno da vidite prije i poslije.
-          </div>
+    <div className="py-12 sm:py-16 bg-white min-h-[60vh]">
+      <div className={publicPage.container}>
+        <div className="max-w-2xl mb-10 md:mb-12">
+          <div className={publicHeader.kicker}>Transformacije</div>
+          <h1 className={`${publicHeader.title} mt-2`}>Zadovoljni klijenti</h1>
+          <p className={`${publicHeader.subtitle} mt-3`}>
+            Povucite slider lijevo ili desno da vidite prije i poslije. Lista se automatski
+            dopunjava dok skrolate.
+          </p>
         </div>
 
         {loading && items.length === 0 ? (
           <div className="py-16 text-center text-slate-600">Učitavanje…</div>
         ) : items.length === 0 ? (
-          <div className="text-center text-slate-500 py-12">
-            Nema prikazanih transformacija.
-          </div>
+          <div className="text-center text-slate-500 py-12">Nema prikazanih transformacija.</div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible pb-2 md:pb-0 snap-x snap-mandatory md:snap-none -mx-4 px-4 md:mx-0 md:px-0 [scrollbar-width:thin]">
               {items.map((pair) => (
                 <MotionDiv
                   key={pair.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
+                  className="snap-center shrink-0 w-[min(88vw,20rem)] md:shrink md:w-auto"
                 >
-                  <BeforeAfterSlider
-                    beforeSrc={getUploadUrl(
-                      pair.before.pathMedium ??
-                        pair.before.pathThumb ??
-                        pair.before.pathOriginal,
-                    )}
-                    afterSrc={getUploadUrl(
-                      pair.after.pathMedium ??
-                        pair.after.pathThumb ??
-                        pair.after.pathOriginal,
-                    )}
-                    alt="Prije / Poslije"
-                    aspectRatio={1}
-                  />
+                  <div className="rounded-2xl border border-slate-200/80 bg-white p-2 shadow-soft">
+                    <BeforeAfterSlider
+                      beforeSrc={getUploadUrl(
+                        pair.before.pathMedium ??
+                          pair.before.pathThumb ??
+                          pair.before.pathOriginal,
+                      )}
+                      afterSrc={getUploadUrl(
+                        pair.after.pathMedium ??
+                          pair.after.pathThumb ??
+                          pair.after.pathOriginal,
+                      )}
+                      alt="Prije / Poslije"
+                      aspectRatio={1}
+                    />
+                  </div>
                 </MotionDiv>
               ))}
             </div>
@@ -122,7 +121,9 @@ export default function PublicSatisfiedClients() {
 
         <div className="text-center mt-10">
           <Link to="/">
-            <Button variant="outline">Nazad na početnu</Button>
+            <Button variant="outline" className="rounded-full border-slate-200/80">
+              Nazad na početnu
+            </Button>
           </Link>
         </div>
       </div>
