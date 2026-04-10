@@ -27,6 +27,21 @@ export interface TopServiceRow {
   revenue: number;
 }
 
+export interface PeriodExpenseCategoryRow {
+  categoryId: string;
+  categoryName: string;
+  total: number;
+}
+
+export interface PeriodFinance {
+  servicesRevenue: number;
+  tips: number;
+  totalIncome: number;
+  expensesByCategory: PeriodExpenseCategoryRow[];
+  totalExpenses: number;
+  netProfit: number;
+}
+
 export interface AnalyticsDashboard {
   monthlyFinance: MonthlyFinance[];
   stylistPerformance: StylistPerformance[];
@@ -36,6 +51,7 @@ export interface AnalyticsDashboard {
   totalCompleted: number;
   fromDate: string;
   toDate: string;
+  periodFinance: PeriodFinance;
 }
 
 export interface AnalyticsDashboardParams {
@@ -82,6 +98,8 @@ function resolveDateRange(params: AnalyticsDashboardParams): {
   return { fromDate, toDate, fromDateStr, toDateStr, months };
 }
 
+const roundFinance2 = (n: number): number => Math.round(n * 100) / 100;
+
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -99,6 +117,10 @@ export class AnalyticsService {
     const { fromDate, toDate, fromDateStr, toDateStr, months } =
       resolveDateRange(params);
     const monthlyFinance: MonthlyFinance[] = [];
+    const categoryTotals = new Map<
+      string,
+      { categoryName: string; total: number }
+    >();
 
     for (const { year, month } of months) {
       const [incomeBook, expenseBook] = await Promise.all([
@@ -108,7 +130,12 @@ export class AnalyticsService {
         this.prisma.expenseBook.findUnique({
           where: { year_month: { year, month } },
           include: {
-            expenses: { select: { totalAmount: true } },
+            expenses: {
+              select: {
+                totalAmount: true,
+                category: { select: { id: true, name: true } },
+              },
+            },
           },
         }),
       ]);
@@ -121,6 +148,18 @@ export class AnalyticsService {
           0,
         ) ?? 0;
 
+      for (const e of expenseBook?.expenses ?? []) {
+        const cid = e.category.id;
+        const categoryName = e.category.name;
+        const amt = Number(e.totalAmount ?? 0);
+        const row = categoryTotals.get(cid);
+        if (row) {
+          row.total += amt;
+        } else {
+          categoryTotals.set(cid, { categoryName, total: amt });
+        }
+      }
+
       monthlyFinance.push({
         year,
         month,
@@ -130,6 +169,29 @@ export class AnalyticsService {
         tips,
       });
     }
+
+    const servicesRevenue = monthlyFinance.reduce((s, m) => s + m.income, 0);
+    const tipsSum = monthlyFinance.reduce((s, m) => s + m.tips, 0);
+    const totalIncomeRaw = servicesRevenue + tipsSum;
+    const totalExpensesRaw = monthlyFinance.reduce((s, m) => s + m.expenses, 0);
+    const expensesByCategory: PeriodExpenseCategoryRow[] = Array.from(
+      categoryTotals.entries(),
+    )
+      .map(([categoryId, v]) => ({
+        categoryId,
+        categoryName: v.categoryName,
+        total: roundFinance2(v.total),
+      }))
+      .sort((a, b) => a.categoryName.localeCompare(b.categoryName, 'bs'));
+
+    const periodFinance: PeriodFinance = {
+      servicesRevenue: roundFinance2(servicesRevenue),
+      tips: roundFinance2(tipsSum),
+      totalIncome: roundFinance2(totalIncomeRaw),
+      expensesByCategory,
+      totalExpenses: roundFinance2(totalExpensesRaw),
+      netProfit: roundFinance2(totalIncomeRaw - totalExpensesRaw),
+    };
 
     const [stylistAgg, topServicesRaw, reservationCounts] = await Promise.all([
       this.getStylistPerformance(fromDate, toDate),
@@ -180,6 +242,7 @@ export class AnalyticsService {
       totalCompleted,
       fromDate: fromDateStr,
       toDate: toDateStr,
+      periodFinance,
     };
   }
 
