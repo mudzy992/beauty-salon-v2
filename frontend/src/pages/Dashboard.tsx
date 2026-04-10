@@ -66,8 +66,11 @@ export default function Dashboard() {
       api.get('/api/reservations', { params: { fromDate: firstDay, toDate: lastDay } }).catch(() => ({ data: [] })),
       api.get('/api/reservations', { params: { status: 'PENDING' } }).catch(() => ({ data: [] })),
       api.get(`/api/income-books/month/${year}/${month}`).catch(() => ({ data: null })),
-      api.get('/api/expense-books').catch(() => ({ data: [] })),
-      api.get('/api/expenses').catch(() => ({ data: [] })),
+      api
+        .get<{ expenses?: { totalAmount: string | number }[] }>(
+          `/api/expense-books/month/${year}/${month}`,
+        )
+        .catch(() => ({ data: null })),
       api.get('/api/reviews', { params: { approved: 'false' } }).catch(() => ({ data: [] })),
       api.get('/api/blog').catch(() => ({ data: [] })),
     ]).then(
@@ -78,8 +81,7 @@ export default function Dashboard() {
         resThisMonth,
         pendingRes,
         incomeRes,
-        _expBooksRes,
-        expensesRes,
+        expenseBookRes,
         reviewsRes,
         blogRes,
       ]) => {
@@ -87,12 +89,12 @@ export default function Dashboard() {
           ? resThisMonth.data
           : []
         const incomeBook = incomeRes.data
-        const allExpenses: any[] = Array.isArray(expensesRes.data)
-          ? expensesRes.data
+        const expenseBook = expenseBookRes.data
+        const bookExpenses = Array.isArray(expenseBook?.expenses)
+          ? expenseBook.expenses
           : []
-
-        const monthExpenses = allExpenses.reduce(
-          (sum: number, e: any) => sum + Number(e.totalAmount || 0),
+        const monthExpenses = bookExpenses.reduce(
+          (sum, e) => sum + Number(e.totalAmount ?? 0),
           0,
         )
 

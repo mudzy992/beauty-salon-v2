@@ -6,6 +6,13 @@ import { ExternalLink, LogOut } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../../../components/ui/dropdown-menu'
 import { AppLogo } from '../../../components/brand/app-logo'
 import { UploadedBrandLogo } from '../../../components/brand/uploaded-brand-logo'
 import { useAuth } from '../../../context/AuthContext'
@@ -181,16 +188,10 @@ export const AdminLayout = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link to="/" className="hidden md:block">
-              <Button size="sm" variant="outline">
-                Pogledaj stranicu
-              </Button>
-            </Link>
-
             <button
               type="button"
               aria-label="Admin meni"
-              className="inline-flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold"
+              className="inline-flex lg:hidden items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold"
               onClick={() => setSidebarOpen(true)}
             >
               <Avatar className="h-9 w-9 ring-1 ring-slate-200">
@@ -203,6 +204,73 @@ export const AdminLayout = () => {
                 <AvatarFallback className="font-semibold">{adminInitials}</AvatarFallback>
               </Avatar>
             </button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Admin meni"
+                  className="hidden lg:inline-flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold"
+                >
+                  <Avatar className="h-9 w-9 ring-1 ring-slate-200">
+                    {adminAvatarSrc ? (
+                      <AvatarImage
+                        src={adminAvatarSrc}
+                        alt={user?.username ? `Profil: ${user.username}` : 'Profil'}
+                      />
+                    ) : null}
+                    <AvatarFallback className="font-semibold">{adminInitials}</AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align="end" className="w-[318px] p-3">
+                <div className="mt-4 flex items-center gap-3 min-w-0">
+                  <Avatar className="h-11 w-11 shrink-0 ring-1 ring-slate-200">
+                    {adminAvatarSrc ? (
+                      <AvatarImage
+                        src={adminAvatarSrc}
+                        alt={user?.username ? `Profil: ${user.username}` : 'Profil'}
+                      />
+                    ) : null}
+                    <AvatarFallback className="font-semibold">{adminInitials}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-slate-900 truncate">
+                      {user?.username ?? 'Admin'}
+                    </div>
+                    {user?.email ? (
+                      <div className="text-xs text-slate-500 truncate">{user.email}</div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <DropdownMenuSeparator className="my-3" />
+
+                <div className="grid gap-1">
+                  <DropdownMenuItem asChild className="p-0 focus:bg-transparent">
+                    <Link to="/" className="w-full">
+                      <Button className="w-full" variant="outline" size="sm">
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        Pogledaj stranicu
+                      </Button>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="p-0 focus:bg-transparent"
+                    onSelect={(e) => {
+                      e.preventDefault()
+                      logout()
+                    }}
+                  >
+                    <Button className="w-full" variant="outline" size="sm">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      {t('auth.logout')}
+                    </Button>
+                  </DropdownMenuItem>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>

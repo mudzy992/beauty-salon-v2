@@ -1,0 +1,52 @@
+.rbc-calendar {
+  font-family: inherit;
+}
+
+.rbc-toolbar,
+.rbc-time-header,
+.rbc-time-content,
+.rbc-month-view,
+.rbc-agenda-view {
+  background: transparent;
+}
+
+.rbc-time-content {
+  scrollbar-gutter: stable;
+}
+
+.rbc-time-header {
+  overflow-y: scroll;
+}
+
+.rbc-time-header-content {
+  overflow: visible;
+}
+
+.rbc-event {
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  padding: 6px 8px;
+}
+
+.rbc-event-content {
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.rbc-time-view .rbc-event {
+  min-height: 44px;
+}
+
+.rbc-day-slot .rbc-event {
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.rbc-row-segment .rbc-event {
+  padding: 4px 6px;
+}
+
+.rbc-selected {
+  outline: 2px solid rgba(212, 168, 67, 0.45);
+  outline-offset: 1px;
+}
+

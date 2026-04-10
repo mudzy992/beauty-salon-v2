@@ -314,6 +314,9 @@ model Reservation {
   loyaltyDiscountAmount  Decimal @default(0) @map("loyalty_discount_amount") @db.Decimal(10, 2)
   loyaltyPointsUsed      Int     @default(0) @map("loyalty_points_used")
 
+  publicReferenceCode String @unique @map("public_reference_code")
+  clientViewToken     String @unique @map("client_view_token")
+
   client           User                         @relation("ClientReservations", fields: [clientId], references: [id], onDelete: Cascade)
   service          Service                      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   confirmedStylist StylistProfile?              @relation("ConfirmedByStylist", fields: [confirmedStylistId], references: [id], onDelete: SetNull)

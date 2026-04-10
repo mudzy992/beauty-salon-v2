@@ -17,7 +17,7 @@ import { AppLogo } from '../../../components/brand/app-logo'
 import { UploadedBrandLogo } from '../../../components/brand/uploaded-brand-logo'
 import { useAuth } from '../../../context/AuthContext'
 import { useSettings } from '../../../context/SettingsContext'
-import { getClientMandatoryOnboardingPath } from '../../../utils/clientOnboarding'
+import { getClientMandatoryOnboardingPath, normalizeRoles } from '../../../utils/clientOnboarding'
 import { getUploadUrl } from '../../../utils/uploadUrl'
 
 const DEFAULT_MAINTENANCE_TEXT =
@@ -73,6 +73,10 @@ export const PublicLayout = () => {
 
   const canSeeAdmin =
     !!user && (['SYSTEM_ADMIN', 'OWNER'] as string[]).some((r) => user.roles.includes(r))
+  const canSeeStylistWorkbook = useMemo(() => {
+    const roles = normalizeRoles(user?.roles)
+    return roles.includes('STYLIST')
+  }, [user?.roles])
   const avatarInitials = (user?.username ?? '')
     .trim()
     .split(/\s+/)
@@ -175,7 +179,7 @@ export const PublicLayout = () => {
           <div className="hidden lg:flex items-center gap-2 flex-none">
             {!user ? (
               <Link to="/login">
-                <Button size="sm" variant="ghost" className="rounded-full text-slate-600 hover:text-slate-900">
+                <Button size="sm" variant="ghost">
                   Prijavi se
                 </Button>
               </Link>
@@ -187,7 +191,6 @@ export const PublicLayout = () => {
                     variant="ghost"
                     size="icon"
                     aria-label="Korisnički meni"
-                    className="rounded-full"
                   >
                     <Avatar className="h-9 w-9">
                       {avatarSrc ? (
@@ -210,6 +213,15 @@ export const PublicLayout = () => {
                   >
                     Profil
                   </DropdownMenuItem>
+                  {canSeeStylistWorkbook ? (
+                    <DropdownMenuItem
+                      onSelect={() => {
+                        navigate('/stylist/inbox')
+                      }}
+                    >
+                      Stylist workbook
+                    </DropdownMenuItem>
+                  ) : null}
                   {canSeeAdmin ? (
                     <DropdownMenuItem
                       onSelect={() => {
@@ -239,7 +251,7 @@ export const PublicLayout = () => {
               aria-label="Meni"
               variant="outline"
               size="icon"
-              className="lg:hidden rounded-full border-slate-200/80 text-slate-700 hover:text-slate-900 bg-white/80"
+              className="lg:hidden bg-white/80"
               onClick={() => setMobileOpen(true)}
             >
               <Menu className="h-5 w-5" />
@@ -287,24 +299,33 @@ export const PublicLayout = () => {
                   {user ? (
                     <>
                       <Link to="/rezervacija" onClick={() => setMobileOpen(false)}>
-                        <Button className="w-full rounded-full" size="sm">{t('public.nav.reserve')}</Button>
+                        <Button className="w-full" size="sm">
+                          {t('public.nav.reserve')}
+                        </Button>
                       </Link>
+                      {canSeeStylistWorkbook ? (
+                        <Link to="/stylist/inbox" onClick={() => setMobileOpen(false)}>
+                          <Button className="w-full" variant="outline" size="sm">
+                            Stylist workbook
+                          </Button>
+                        </Link>
+                      ) : null}
                       {(['SYSTEM_ADMIN', 'OWNER'] as string[]).some((r) =>
                         user.roles.includes(r),
                       ) ? (
                         <Link to="/admin" onClick={() => setMobileOpen(false)}>
-                          <Button className="w-full rounded-full" variant="outline" size="sm">
+                          <Button className="w-full" variant="outline" size="sm">
                             {t('app.admin')}
                           </Button>
                         </Link>
                       ) : null}
                       <Link to="/profil" onClick={() => setMobileOpen(false)}>
-                        <Button className="w-full rounded-full" variant="ghost" size="sm">
+                        <Button className="w-full" variant="ghost" size="sm">
                           Profil
                         </Button>
                       </Link>
                       <Button
-                        className="w-full rounded-full"
+                        className="w-full"
                         variant="ghost"
                         size="sm"
                         onClick={() => {
@@ -318,7 +339,7 @@ export const PublicLayout = () => {
                   ) : (
                     <>
                       <Link to="/login" onClick={() => setMobileOpen(false)}>
-                        <Button className="w-full rounded-full" variant="outline" size="sm">
+                        <Button className="w-full" variant="outline" size="sm">
                           Prijavi se
                         </Button>
                       </Link>

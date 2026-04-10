@@ -155,7 +155,10 @@ export default function Login() {
 
             <div className="mt-6 text-center text-slate-600">
               Nemate račun?{' '}
-              <Link to="/register" className="text-brand-gold font-semibold">
+              <Link
+                to="/register"
+                className="font-semibold text-slate-900 underline underline-offset-4 hover:text-slate-600"
+              >
                 {t('public.nav.register')}
               </Link>
             </div>

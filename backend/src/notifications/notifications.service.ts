@@ -485,6 +485,18 @@ export class NotificationsService {
     } as SMTPTransport.Options);
   }
 
+  private applyNotificationEmailPlaceholders(
+    input: string,
+    vars: Record<string, string>,
+  ): string {
+    let out = input;
+    for (const [key, value] of Object.entries(vars)) {
+      const pattern = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'g');
+      out = out.replace(pattern, value);
+    }
+    return out;
+  }
+
   private async buildNotificationEmailContent(params: {
     type: NotificationType;
     title: string;
@@ -498,14 +510,48 @@ export class NotificationsService {
       params.data && typeof params.data.reservationId === 'string'
         ? params.data.reservationId
         : null;
+    const publicReferenceCode =
+      params.data && typeof params.data.publicReferenceCode === 'string'
+        ? params.data.publicReferenceCode.trim()
+        : '';
+    const clientViewToken =
+      params.data && typeof params.data.clientViewToken === 'string'
+        ? params.data.clientViewToken.trim()
+        : '';
     const adminReservationsUrl = `${appUrl}/admin/reservations`;
     const publicReservationsUrl = `${appUrl}/rezervacija`;
+    const reservationViewUrl =
+      clientViewToken.length > 0
+        ? `${appUrl}/moj-termin/${encodeURIComponent(clientViewToken)}`
+        : publicReservationsUrl;
+    const reservationReference = publicReferenceCode;
+    const placeholderVars: Record<string, string> = {
+      appUrl,
+      reservationReference,
+      reservationViewUrl,
+      reservationId: reservationId ?? '',
+      firstName: params.userName,
+    };
+    const ph = (s: string) =>
+      this.applyNotificationEmailPlaceholders(s, placeholderVars);
     const ctaByType: Record<NotificationType, { label: string; url: string }> = {
       reservation_new: { label: 'Otvori rezervacije', url: adminReservationsUrl },
-      reservation_confirmed: { label: 'Pregled rezervacije', url: publicReservationsUrl },
-      reservation_cancelled: { label: 'Pregled rezervacije', url: publicReservationsUrl },
-      reservation_reminder: { label: 'Pregled rezervacije', url: publicReservationsUrl },
-      reservation_reschedule: { label: 'Pregled rezervacije', url: publicReservationsUrl },
+      reservation_confirmed: {
+        label: 'Pregled rezervacije',
+        url: reservationViewUrl,
+      },
+      reservation_cancelled: {
+        label: 'Pregled rezervacije',
+        url: reservationViewUrl,
+      },
+      reservation_reminder: {
+        label: 'Pregled rezervacije',
+        url: reservationViewUrl,
+      },
+      reservation_reschedule: {
+        label: 'Pregled rezervacije',
+        url: reservationViewUrl,
+      },
       holiday: { label: 'Otvori aplikaciju', url: appUrl },
       general: { label: 'Otvori aplikaciju', url: appUrl },
     };
@@ -526,26 +572,34 @@ export class NotificationsService {
         'Imate novu opću notifikaciju iz sistema.',
     };
     const template = await this.getEmailTemplateConfig(params.type);
+    const reservationLine = reservationReference
+      ? `Broj termina: ${reservationReference}.`
+      : '';
+    const defaultBody = `${params.body}${
+      reservationLine ? ` ${reservationLine}` : ''
+    }`;
+    const defaultCtaUrl = ctaByType[params.type].url;
     const selectedCta = {
-      label: template.ctaLabel || ctaByType[params.type].label,
-      url: template.ctaUrl || ctaByType[params.type].url,
+      label: ph(template.ctaLabel || ctaByType[params.type].label),
+      url: ph(template.ctaUrl || defaultCtaUrl),
     };
-    const reservationLine = reservationId ? `Referenca rezervacije: ${reservationId}.` : '';
-    const text =
-      template.plainText ||
-      `Poštovani ${params.userName}, ${plainTextByType[params.type]} ${params.body} ${reservationLine} Detalji: ${selectedCta.url}`;
+    const text = template.plainText
+      ? ph(template.plainText)
+      : `Poštovani ${params.userName}, ${plainTextByType[params.type]} ${
+          params.body
+        } ${reservationLine ? `${reservationLine} ` : ''}Detalji: ${
+          selectedCta.url
+        }`;
     const html = this.buildDefaultEmailTemplate({
-      title: template.title || params.title,
-      intro: template.intro || `Poštovani ${params.userName},`,
-      body:
-        template.body ||
-        `${params.body}${reservationLine ? ` ${reservationLine}` : ''}`,
+      title: ph(template.title || params.title),
+      intro: ph(template.intro || `Poštovani ${params.userName},`),
+      body: template.body ? ph(template.body) : defaultBody,
       ctaLabel: selectedCta.label,
       ctaUrl: selectedCta.url,
       signature: params.signature,
     });
     return {
-      subject: template.subject || params.title,
+      subject: ph(template.subject || params.title),
       text,
       html,
     };

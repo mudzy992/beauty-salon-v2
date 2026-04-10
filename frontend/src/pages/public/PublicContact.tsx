@@ -89,7 +89,7 @@ export default function PublicContact() {
                       onChange={(e) => setMessage(e.target.value)}
                     />
                   </div>
-                  <Button type="submit" disabled={loading} className="rounded-full">
+                  <Button type="submit" disabled={loading}>
                     {loading ? 'Slanje…' : 'Pošalji'}
                   </Button>
                 </form>

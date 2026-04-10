@@ -95,7 +95,7 @@ export default function PublicBlogPost() {
     <div className="bg-white min-h-screen pb-20">
       <div className={publicPage.containerNarrow}>
         <Link to="/blog" className="inline-flex mb-6 pt-8">
-          <Button variant="ghost" className="rounded-full text-slate-600 hover:text-slate-900 -ml-2">
+          <Button variant="ghost" className="-ml-2">
             <span className="inline-flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" aria-hidden />
               Nazad na blog
@@ -167,7 +167,6 @@ export default function PublicBlogPost() {
               <Button
                 onClick={handleSubmitComment}
                 disabled={submitting || !newComment.trim()}
-                className="rounded-full"
               >
                 {submitting ? 'Slanje…' : 'Pošalji komentar'}
               </Button>
@@ -175,7 +174,7 @@ export default function PublicBlogPost() {
           ) : (
             <div className="py-4 text-slate-600">
               <Link to="/login" state={{ from: `/blog/${post.slug}` } as any}>
-                <Button variant="outline" size="sm" className="rounded-full border-slate-200/80">
+                <Button variant="outline" size="sm">
                   Prijavite se da biste komentarisali
                 </Button>
               </Link>

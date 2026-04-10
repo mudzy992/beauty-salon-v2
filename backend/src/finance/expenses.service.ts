@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { AddExpenseAttachmentDto } from './dto/add-expense-attachment.dto';
 
 @Injectable()
 export class ExpensesService {
@@ -119,6 +120,44 @@ export class ExpensesService {
         })),
       });
     }
+    return this.findOne(id);
+  }
+
+  async addAttachment(
+    id: string,
+    dto: AddExpenseAttachmentDto,
+    user: CurrentUserPayload,
+  ) {
+    const expense = await this.findOne(id);
+    if (expense.book.isClosed)
+      throw new BadRequestException(
+        'Ne možete mijenjati rashod u zatvorenoj knjizi.',
+      );
+    await this.prisma.expenseAttachment.create({
+      data: {
+        expenseId: id,
+        uploadId: dto.uploadId,
+        description: dto.description,
+      },
+    });
+    return this.findOne(id);
+  }
+
+  async removeAttachment(
+    id: string,
+    attachmentId: string,
+    user: CurrentUserPayload,
+  ) {
+    const expense = await this.findOne(id);
+    if (expense.book.isClosed)
+      throw new BadRequestException(
+        'Ne možete mijenjati rashod u zatvorenoj knjizi.',
+      );
+    const existing = await this.prisma.expenseAttachment.findFirst({
+      where: { id: attachmentId, expenseId: id },
+    });
+    if (!existing) throw new NotFoundException('Prilog nije pronađen.');
+    await this.prisma.expenseAttachment.delete({ where: { id: attachmentId } });
     return this.findOne(id);
   }
 

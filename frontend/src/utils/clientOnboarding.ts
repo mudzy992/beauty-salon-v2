@@ -54,6 +54,8 @@ export function getPostAuthRedirectPath(user: OnboardingUserLike | null): string
   if (!user) return '/'
   const step = getClientMandatoryOnboardingPath(user)
   if (step) return step
+  const roles = normalizeRoles(user.roles)
+  if (roles.includes('STYLIST')) return '/stylist/inbox'
   if (hasStaffDashboardAccess(user)) return '/admin'
   return '/'
 }

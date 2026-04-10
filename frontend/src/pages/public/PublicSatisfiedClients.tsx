@@ -121,9 +121,7 @@ export default function PublicSatisfiedClients() {
 
         <div className="text-center mt-10">
           <Link to="/">
-            <Button variant="outline" className="rounded-full border-slate-200/80">
-              Nazad na početnu
-            </Button>
+            <Button variant="outline">Nazad na početnu</Button>
           </Link>
         </div>
       </div>

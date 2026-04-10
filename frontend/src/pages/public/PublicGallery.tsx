@@ -186,7 +186,7 @@ export default function PublicGallery() {
               </a>
             </div>
             <div className="mt-4 flex justify-center">
-              <Button variant="outline" onClick={handleClose}>
+              <Button variant="onDarkOutline" onClick={handleClose}>
                 Zatvori
               </Button>
             </div>

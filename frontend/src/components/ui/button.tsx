@@ -5,20 +5,29 @@ import { ButtonHTMLAttributes, forwardRef } from 'react'
 import { cn } from '../../lib/cn'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.99] dark:focus-visible:ring-offset-slate-950',
   {
     variants: {
       variant: {
-        default: 'bg-brand-gold text-black hover:bg-brand-champagne',
-        secondary: 'bg-brand-gray text-white hover:bg-black',
+        default:
+          'border border-transparent bg-slate-900 text-white shadow-sm shadow-slate-900/10 hover:bg-slate-800 focus-visible:ring-slate-400 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950',
+        secondary:
+          'border border-slate-200/90 bg-slate-100 text-slate-900 shadow-sm hover:bg-slate-200/80 focus-visible:ring-slate-400 focus-visible:ring-offset-white dark:border-slate-700 dark:bg-slate-800 dark:text-slate-50 dark:hover:bg-slate-700 dark:focus-visible:ring-offset-slate-950',
         outline:
-          'border border-brand-gold bg-transparent text-brand-gold hover:bg-brand-gold hover:text-black',
-        ghost: 'hover:bg-brand-champagne/30',
+          'border border-slate-200/90 bg-white text-slate-900 shadow-sm shadow-slate-900/5 hover:border-slate-300/90 hover:bg-slate-50 focus-visible:ring-slate-400 focus-visible:ring-offset-white dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:hover:bg-slate-900 dark:focus-visible:ring-offset-slate-950',
+        ghost:
+          'border border-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-slate-400 focus-visible:ring-offset-white dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-50 dark:focus-visible:ring-offset-slate-950',
+        onDark:
+          'border border-white/20 bg-white text-slate-900 shadow-sm hover:bg-white/92 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black/40',
+        onDarkOutline:
+          'border border-white/45 bg-white/12 text-white shadow-sm backdrop-blur-md hover:border-white/60 hover:bg-white/18 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50',
+        destructive:
+          'border border-transparent bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:ring-red-500 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950',
       },
       size: {
         default: 'h-10 px-4 py-2',
-        sm: 'h-9 rounded-md px-3',
-        lg: 'h-11 rounded-md px-8',
+        sm: 'h-9 px-3',
+        lg: 'h-11 px-8',
         icon: 'h-10 w-10',
       },
     },
@@ -40,7 +49,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : 'button'
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size }), className)}
         ref={ref}
         {...props}
       />
@@ -48,4 +57,3 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   },
 )
 Button.displayName = 'Button'
-

@@ -112,7 +112,7 @@ export default function PublicServices() {
                               >
                                 <Link
                                   to={`/usluge/${s.id}`}
-                                  className="font-medium text-slate-900 hover:text-brand-gold transition-colors"
+                                  className="font-medium text-slate-900 hover:text-slate-600 transition-colors"
                                 >
                                   {s.name}
                                 </Link>

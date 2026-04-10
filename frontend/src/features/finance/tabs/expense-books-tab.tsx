@@ -17,6 +17,35 @@ import type { Expense, ExpenseBook, ExpenseCategory } from '../finance.types'
 
 type LineItem = { name: string; qty: number; price: number }
 type ExpenseBookDetail = ExpenseBook & { expenses?: Expense[] }
+type ExpenseFieldValueDraft = { fieldId: string; fieldName: string; value: string }
+
+const normalizeForMatch = (input: string): string => {
+  return input
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+const isUploadImage = (originalName?: string | null): boolean => {
+  return Boolean(originalName?.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+}
+
+const findAttachmentForField = (expense: Expense, fieldName: string) => {
+  const attachments = Array.isArray(expense.attachments) ? expense.attachments : []
+  if (attachments.length === 0) return null
+  const wanted = normalizeForMatch(fieldName)
+  if (!wanted) return null
+  const direct = attachments.find((a) => normalizeForMatch(a.upload?.originalName ?? '').includes(wanted))
+  if (direct) return direct
+  const tokens = wanted.split(' ').filter(Boolean)
+  if (tokens.length === 0) return null
+  return attachments.find((a) => {
+    const candidate = normalizeForMatch(a.upload?.originalName ?? '')
+    return tokens.every((t) => candidate.includes(t))
+  }) ?? null
+}
 
 export function ExpenseBooksTab() {
   const { t } = useTranslation()
@@ -53,6 +82,14 @@ export function ExpenseBooksTab() {
   const fileRef = useRef<HTMLInputElement>(null)
   const fixedFileRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [uploadingAtt, setUploadingAtt] = useState(false)
+
+  const [isEditingExpense, setIsEditingExpense] = useState(false)
+  const [savingExpense, setSavingExpense] = useState(false)
+  const [draftFieldValues, setDraftFieldValues] = useState<ExpenseFieldValueDraft[]>([])
+
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
+  const [imagePreviewTitle, setImagePreviewTitle] = useState<string>('')
 
   const loadData = useCallback(() => {
     setLoading(true)
@@ -115,6 +152,8 @@ export function ExpenseBooksTab() {
     } catch {
       setSelectedExpense(exp)
     }
+    setIsEditingExpense(false)
+    setDraftFieldValues([])
     setView('expense')
   }
 
@@ -234,6 +273,14 @@ export function ExpenseBooksTab() {
     }
   }
 
+  const handleAddExpenseAttachment = async (expenseId: string, uploadId: string) => {
+    await api.post(`/api/expenses/${expenseId}/attachments`, { uploadId })
+  }
+
+  const handleRemoveExpenseAttachment = async (expenseId: string, attachmentId: string) => {
+    await api.delete(`/api/expenses/${expenseId}/attachments/${attachmentId}`)
+  }
+
   const handleSaveExpense = async () => {
     if (!selectedBook || !form.categoryId || !form.title) {
       warning('Popunite sva polja')
@@ -319,6 +366,139 @@ export function ExpenseBooksTab() {
 
   if (view === 'expense' && selectedExpense) {
     const isFixed = selectedExpense.category?.isFixed
+    const isBookLocked = Boolean((selectedExpense as any)?.book?.isClosed)
+    const canEdit = !isBookLocked
+    const requiresAttachmentPerItem = Boolean((selectedExpense as any)?.category?.template?.requiresAttachmentPerItem)
+
+    const handleStartEditExpense = () => {
+      const fvs = Array.isArray(selectedExpense.fieldValues) ? selectedExpense.fieldValues : []
+      setDraftFieldValues(
+        fvs.map((fv) => ({
+          fieldId: fv.fieldId,
+          fieldName: fv.field?.fieldName ?? '-',
+          value: fv.value ?? '',
+        })),
+      )
+      setIsEditingExpense(true)
+    }
+
+    const handleCancelEditExpense = () => {
+      setIsEditingExpense(false)
+      setDraftFieldValues([])
+    }
+
+    const handleSaveExpenseEdits = async () => {
+      if (!canEdit) return
+      if (!selectedExpense.id) return
+      setSavingExpense(true)
+      try {
+        const totalAmount = draftFieldValues.reduce((sum, v) => sum + Number(v.value || 0), 0)
+        await api.patch(`/api/expenses/${selectedExpense.id}`, {
+          fieldValues: draftFieldValues.map((fv) => ({ fieldId: fv.fieldId, value: String(fv.value ?? '') })),
+          totalAmount,
+        })
+        const { data } = await api.get<Expense>(`/api/expenses/${selectedExpense.id}`)
+        setSelectedExpense(data)
+        success('Rashod sačuvan')
+        setIsEditingExpense(false)
+        setDraftFieldValues([])
+      } catch (err) {
+        toastApiError(err, 'Greška')
+      } finally {
+        setSavingExpense(false)
+      }
+    }
+
+    const handleOpenImagePreview = (url: string, title: string) => {
+      setImagePreviewUrl(url)
+      setImagePreviewTitle(title)
+      setIsImagePreviewOpen(true)
+    }
+
+    const handleUploadAttachmentForField = async (fieldName: string) => {
+      if (!canEdit) return
+      const expenseId = selectedExpense.id
+      if (!expenseId) return
+      try {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.onchange = async () => {
+          const file = input.files?.[0]
+          if (!file) return
+          try {
+            const fd = new FormData()
+            const safePrefix = normalizeForMatch(fieldName).replace(/\s+/g, '-')
+            const ext = file.name.includes('.') ? `.${file.name.split('.').pop()}` : ''
+            const renamedFile = new File([file], `${safePrefix || 'stavka'}${ext}`, { type: file.type })
+            fd.append('file', renamedFile)
+            fd.append('entity', 'expenses')
+            const { data } = await api.post('/api/uploads', fd, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            await handleAddExpenseAttachment(expenseId, data.id)
+            const { data: refreshed } = await api.get<Expense>(`/api/expenses/${expenseId}`)
+            setSelectedExpense(refreshed)
+            success('Prilog sačuvan')
+          } catch (err) {
+            toastApiError(err, 'Greška pri uploadu')
+          }
+        }
+        input.click()
+      } catch (err) {
+        toastApiError(err, 'Greška')
+      }
+    }
+
+    const handleReplaceAttachmentForField = async (fieldName: string, attachmentId: string) => {
+      if (!canEdit) return
+      const expenseId = selectedExpense.id
+      if (!expenseId) return
+      try {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.onchange = async () => {
+          const file = input.files?.[0]
+          if (!file) return
+          try {
+            const fd = new FormData()
+            const safePrefix = normalizeForMatch(fieldName).replace(/\s+/g, '-')
+            const ext = file.name.includes('.') ? `.${file.name.split('.').pop()}` : ''
+            const renamedFile = new File([file], `${safePrefix || 'stavka'}${ext}`, { type: file.type })
+            fd.append('file', renamedFile)
+            fd.append('entity', 'expenses')
+            const { data } = await api.post('/api/uploads', fd, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            await handleRemoveExpenseAttachment(expenseId, attachmentId)
+            await handleAddExpenseAttachment(expenseId, data.id)
+            const { data: refreshed } = await api.get<Expense>(`/api/expenses/${expenseId}`)
+            setSelectedExpense(refreshed)
+            success('Prilog zamijenjen')
+          } catch (err) {
+            toastApiError(err, 'Greška pri uploadu')
+          }
+        }
+        input.click()
+      } catch (err) {
+        toastApiError(err, 'Greška')
+      }
+    }
+
+    const handleDeleteAttachmentForField = async (attachmentId: string) => {
+      if (!canEdit) return
+      const expenseId = selectedExpense.id
+      if (!expenseId) return
+      if (!window.confirm('Obrisati prilog?')) return
+      try {
+        await handleRemoveExpenseAttachment(expenseId, attachmentId)
+        const { data } = await api.get<Expense>(`/api/expenses/${expenseId}`)
+        setSelectedExpense(data)
+        success('Prilog obrisan')
+      } catch (err) {
+        toastApiError(err, 'Greška')
+      }
+    }
+
     return (
       <div className="space-y-6">
         <Button variant="ghost" onClick={() => setView('book')}>
@@ -326,8 +506,27 @@ export function ExpenseBooksTab() {
           Nazad na knjigu
         </Button>
 
-        <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-          Detalji rashoda: {selectedExpense.title}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">Detalji rashoda: {selectedExpense.title}</div>
+          {isFixed ? (
+            <div className="flex items-center gap-2">
+              {!isEditingExpense ? (
+                <Button variant="outline" size="sm" onClick={handleStartEditExpense} disabled={!canEdit}>
+                  Uredi stavke
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" size="sm" onClick={handleCancelEditExpense} disabled={savingExpense}>
+                    Odustani
+                  </Button>
+                  <Button size="sm" onClick={() => void handleSaveExpenseEdits()} disabled={savingExpense}>
+                    {savingExpense ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Sačuvaj
+                  </Button>
+                </>
+              )}
+            </div>
+          ) : null}
         </div>
 
         <Card>
@@ -381,17 +580,137 @@ export function ExpenseBooksTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedExpense.fieldValues.map((fv) => (
-                    <tr key={fv.id} className="border-b border-slate-100 dark:border-slate-800/80">
-                      <td className="p-3 font-medium">{fv.field?.fieldName ?? '-'}</td>
-                      <td className="p-3 text-right">{Number(fv.value || 0).toFixed(2)}</td>
-                    </tr>
-                  ))}
+                  {selectedExpense.fieldValues.map((fv) => {
+                    const fieldName = fv.field?.fieldName ?? '-'
+                    const draft = draftFieldValues.find((d) => d.fieldId === fv.fieldId)
+                    const mapped = requiresAttachmentPerItem ? findAttachmentForField(selectedExpense, fieldName) : null
+                    const mappedIsImage = mapped ? isUploadImage(mapped.upload?.originalName) : false
+                    const mappedThumb = mapped?.upload?.pathThumb || mapped?.upload?.pathOriginal
+                    const mappedOriginal = mapped?.upload?.pathOriginal
+                    return (
+                      <tr key={fv.id} className="border-b border-slate-100 dark:border-slate-800/80">
+                        <td className="p-3 font-medium">
+                          <div className="space-y-2">
+                            <div>{fieldName}</div>
+                            {requiresAttachmentPerItem ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="text-xs text-slate-500 dark:text-slate-400">Prilog:</div>
+                                {mapped ? (
+                                  <>
+                                    {mappedIsImage && mappedThumb ? (
+                                      <button
+                                        type="button"
+                                        className="shrink-0"
+                                        onClick={() => {
+                                          if (!mappedOriginal) return
+                                          handleOpenImagePreview(
+                                            getUploadUrl(mappedOriginal),
+                                            mapped.upload?.originalName ?? fieldName,
+                                          )
+                                        }}
+                                        aria-label="Pregled slike"
+                                      >
+                                        <img
+                                          src={getUploadUrl(mappedThumb)}
+                                          alt=""
+                                          className="h-10 w-10 rounded-md object-cover"
+                                          loading="lazy"
+                                        />
+                                      </button>
+                                    ) : (
+                                      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                        <FileText className="h-4 w-4" />
+                                      </div>
+                                    )}
+                                    <div className="min-w-0 max-w-[22rem] truncate text-xs text-slate-700 dark:text-slate-200">
+                                      {mapped.upload?.originalName ?? 'Prilog'}
+                                    </div>
+                                    {mappedOriginal ? (
+                                      <Button asChild variant="outline" size="sm">
+                                        <a href={getUploadUrl(mappedOriginal)} target="_blank" rel="noreferrer">
+                                          Preuzmi
+                                        </a>
+                                      </Button>
+                                    ) : null}
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => void handleReplaceAttachmentForField(fieldName, mapped.id)}
+                                      disabled={!canEdit}
+                                    >
+                                      Zamijeni
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/20"
+                                      onClick={() => void handleDeleteAttachmentForField(mapped.id)}
+                                      disabled={!canEdit}
+                                    >
+                                      Obriši
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => void handleUploadAttachmentForField(fieldName)}
+                                    disabled={!canEdit}
+                                  >
+                                    Dodaj prilog
+                                  </Button>
+                                )}
+                              </div>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="p-3 text-right">
+                          {isEditingExpense ? (
+                            <Input
+                              className="ml-auto w-32 text-right"
+                              type="number"
+                              value={draft?.value ?? String(fv.value ?? '')}
+                              onChange={(e) => {
+                                const nextValue = e.target.value
+                                setDraftFieldValues((prev) =>
+                                  prev.map((p) => (p.fieldId === fv.fieldId ? { ...p, value: nextValue } : p)),
+                                )
+                              }}
+                            />
+                          ) : (
+                            Number(fv.value || 0).toFixed(2)
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </CardContent>
           </Card>
         ) : null}
+
+        <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{imagePreviewTitle || 'Pregled slike'}</DialogTitle>
+            </DialogHeader>
+            {imagePreviewUrl ? (
+              <div className="space-y-3">
+                <div className="overflow-hidden rounded-md border border-slate-200 dark:border-slate-800">
+                  <img src={imagePreviewUrl} alt={imagePreviewTitle} className="max-h-[70dvh] w-full object-contain" />
+                </div>
+                <div className="flex justify-end">
+                  <Button asChild variant="outline">
+                    <a href={imagePreviewUrl} target="_blank" rel="noreferrer">
+                      Preuzmi
+                    </a>
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </DialogContent>
+        </Dialog>
 
         {selectedExpense.attachments && selectedExpense.attachments.length > 0 ? (
           <Card>
@@ -400,21 +719,32 @@ export function ExpenseBooksTab() {
             </CardHeader>
             <CardContent className="space-y-2">
               {selectedExpense.attachments.map((att) => {
-                const isImage = Boolean(att.upload?.originalName?.match(/\.(jpg|jpeg|png|gif|webp)$/i))
+                const isImage = isUploadImage(att.upload?.originalName)
                 const thumbUrl = att.upload?.pathThumb || att.upload?.pathOriginal
                 const originalUrl = att.upload?.pathOriginal
+                const title = att.upload?.originalName ?? 'Prilog'
                 return (
                   <div
                     key={att.id}
                     className="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900/30"
                   >
                     {isImage && thumbUrl ? (
-                      <img
-                        src={getUploadUrl(thumbUrl)}
-                        alt=""
-                        className="h-12 w-12 rounded-md object-cover"
-                        loading="lazy"
-                      />
+                      <button
+                        type="button"
+                        className="shrink-0"
+                        onClick={() => {
+                          if (!originalUrl) return
+                          handleOpenImagePreview(getUploadUrl(originalUrl), title)
+                        }}
+                        aria-label="Pregled slike"
+                      >
+                        <img
+                          src={getUploadUrl(thumbUrl)}
+                          alt=""
+                          className="h-12 w-12 rounded-md object-cover"
+                          loading="lazy"
+                        />
+                      </button>
                     ) : (
                       <div className="flex h-12 w-12 items-center justify-center rounded-md bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
                         <FileText className="h-5 w-5" />
@@ -423,10 +753,19 @@ export function ExpenseBooksTab() {
 
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-50">
-                        {att.upload?.originalName ?? 'Prilog'}
+                        {title}
                       </div>
                     </div>
 
+                    {isImage && originalUrl ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleOpenImagePreview(getUploadUrl(originalUrl), title)}
+                      >
+                        Pregled
+                      </Button>
+                    ) : null}
                     {originalUrl ? (
                       <Button asChild variant="outline" size="sm">
                         <a href={getUploadUrl(originalUrl)} target="_blank" rel="noreferrer">
@@ -961,4 +1300,3 @@ export function ExpenseBooksTab() {
     </div>
   )
 }
-

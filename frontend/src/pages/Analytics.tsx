@@ -41,6 +41,21 @@ interface TopServiceRow {
   revenue: number
 }
 
+interface PeriodExpenseCategoryRow {
+  categoryId: string
+  categoryName: string
+  total: number
+}
+
+interface PeriodFinance {
+  servicesRevenue: number
+  tips: number
+  totalIncome: number
+  expensesByCategory: PeriodExpenseCategoryRow[]
+  totalExpenses: number
+  netProfit: number
+}
+
 interface AnalyticsDashboard {
   monthlyFinance: MonthlyFinance[]
   stylistPerformance: StylistPerformance[]
@@ -50,6 +65,7 @@ interface AnalyticsDashboard {
   totalCompleted: number
   fromDate: string
   toDate: string
+  periodFinance: PeriodFinance
 }
 
 type PeriodPreset = '12' | 'thisMonth' | 'lastMonth' | 'custom'
@@ -178,6 +194,73 @@ export default function Analytics() {
         ) : (
           <p className="pb-1 text-sm text-slate-600 dark:text-slate-300 md:self-center">{periodLabel}</p>
         )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="p-5">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Prihodi</h2>
+          <p className="mt-1 text-xs text-slate-500">{periodLabel}</p>
+          <dl className="mt-4 space-y-2 text-sm">
+            <div className="flex justify-between gap-2 tabular-nums">
+              <dt className="text-slate-600 dark:text-slate-400">Servisi (ukupno)</dt>
+              <dd className="font-medium text-slate-900 dark:text-slate-50">
+                {data.periodFinance.servicesRevenue.toFixed(2)} KM
+              </dd>
+            </div>
+            <div className="flex justify-between gap-2 tabular-nums">
+              <dt className="text-slate-600 dark:text-slate-400">Napojnice (ukupno)</dt>
+              <dd className="font-medium text-slate-900 dark:text-slate-50">
+                {data.periodFinance.tips.toFixed(2)} KM
+              </dd>
+            </div>
+            <div className="mt-3 flex justify-between gap-2 border-t border-slate-200 pt-3 tabular-nums dark:border-slate-800">
+              <dt className="text-sm font-semibold text-slate-900 dark:text-slate-50">Ukupno prihodi</dt>
+              <dd className="text-lg font-semibold text-emerald-700 dark:text-emerald-400">
+                {data.periodFinance.totalIncome.toFixed(2)} KM
+              </dd>
+            </div>
+          </dl>
+        </Card>
+
+        <Card className="p-5">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Rashodi</h2>
+          <p className="mt-1 text-xs text-slate-500">{periodLabel}</p>
+          <ul className="mt-4 max-h-40 space-y-2 overflow-y-auto text-sm">
+            {data.periodFinance.expensesByCategory.length === 0 ? (
+              <li className="text-slate-500">Nema rashoda u periodu.</li>
+            ) : (
+              data.periodFinance.expensesByCategory.map((row) => (
+                <li
+                  key={row.categoryId}
+                  className="flex justify-between gap-2 border-b border-slate-100 pb-2 tabular-nums last:border-0 dark:border-slate-800/80"
+                >
+                  <span className="text-slate-600 dark:text-slate-400">{row.categoryName}</span>
+                  <span className="font-medium text-slate-900 dark:text-slate-50">{row.total.toFixed(2)} KM</span>
+                </li>
+              ))
+            )}
+          </ul>
+          <div className="mt-3 flex justify-between gap-2 border-t border-slate-200 pt-3 tabular-nums dark:border-slate-800">
+            <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">Ukupno rashodi</span>
+            <span className="text-lg font-semibold text-rose-700 dark:text-rose-400">
+              {data.periodFinance.totalExpenses.toFixed(2)} KM
+            </span>
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Zarada</h2>
+          <p className="mt-1 text-xs text-slate-500">Prihodi − rashodi · {periodLabel}</p>
+          <p
+            className={
+              data.periodFinance.netProfit < 0
+                ? 'mt-6 text-3xl font-semibold tabular-nums text-rose-600 dark:text-rose-400'
+                : 'mt-6 text-3xl font-semibold tabular-nums text-slate-900 dark:text-slate-50'
+            }
+          >
+            {data.periodFinance.netProfit.toFixed(2)} KM
+          </p>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

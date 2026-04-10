@@ -193,6 +193,7 @@ describe('ReservationsService', () => {
       mockAvailability.getAvailableSlots.mockResolvedValue([
         { startTime: '09:00', endTime: '10:00', availableStylistCount: 2 },
       ]);
+      mockPrisma.reservation.findFirst.mockResolvedValue(null);
       mockPrisma.reservation.create.mockResolvedValue({
         id: 'res-1',
         clientId: 'client-1',

@@ -137,20 +137,32 @@ export default function PublicServiceDetail() {
     )
   }
 
-  const detailHeroBg = service.heroImage?.trim()
-    ? getUploadUrl(service.heroImage)
+  const hasServiceHeroImage = Boolean(service.heroImage?.trim())
+  const detailHeroBg = hasServiceHeroImage
+    ? getUploadUrl(service.heroImage as string)
     : getSetting('public_services_bg', DEFAULT_SERVICES_HERO_BG)
+  const heroImageAlt = `${service.name} — vizual usluge`
 
   return (
     <div className="bg-white min-h-screen pb-20">
       <div className={`${publicPageHero.section} relative overflow-hidden`}>
         <div
-          className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.09]"
-          style={{ backgroundImage: `url('${detailHeroBg}')` }}
+          className={
+            hasServiceHeroImage
+              ? 'pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.16] sm:opacity-[0.14]'
+              : 'pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.09]'
+          }
+          style={{ backgroundImage: `url(${JSON.stringify(detailHeroBg)})` }}
         />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/88 to-white" />
+        <div
+          className={
+            hasServiceHeroImage
+              ? 'pointer-events-none absolute inset-0 bg-gradient-to-b from-white/93 via-white/86 to-white'
+              : 'pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/88 to-white'
+          }
+        />
         <div className={`${publicPageHero.inner} relative z-[1]`}>
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8 md:gap-10">
             <div className="min-w-0 flex-1">
               <div className={publicHeader.kicker}>Usluga</div>
               <h1 className={`${publicHeader.title} mt-2`}>{service.name}</h1>
@@ -165,15 +177,40 @@ export default function PublicServiceDetail() {
                 </p>
               ) : null}
             </div>
-            <div className="flex flex-wrap gap-3 shrink-0">
-              <Link to={`/rezervacija?serviceId=${encodeURIComponent(service.id)}`}>
-                <Button className="rounded-full px-6">Rezerviši</Button>
-              </Link>
-              <Link to="/usluge">
-                <Button variant="outline" className="rounded-full px-6 border-slate-200/80">
-                  Sve usluge
-                </Button>
-              </Link>
+            <div
+              className={
+                hasServiceHeroImage
+                  ? 'flex w-full shrink-0 flex-col gap-5 md:max-w-[min(100%,15rem)] lg:max-w-[min(100%,20rem)] xl:max-w-[min(100%,26.25rem)]'
+                  : 'flex w-full shrink-0 flex-col gap-5'
+              }
+            >
+              {hasServiceHeroImage ? (
+                <div className="relative w-full max-w-full overflow-hidden rounded-2xl border border-slate-200/70 bg-slate-100 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_12px_40px_-12px_rgba(15,23,42,0.12)] aspect-[4/3] sm:aspect-[16/10] md:aspect-[4/3]">
+                  <img
+                    src={detailHeroBg}
+                    alt={heroImageAlt}
+                    className="h-full w-full object-cover"
+                    loading="eager"
+                    decoding="async"
+                  />
+                  <div
+                    className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/[0.04] rounded-2xl"
+                    aria-hidden
+                  />
+                </div>
+              ) : null}
+              <div className="flex flex-wrap gap-3">
+                <Link to={`/rezervacija?serviceId=${encodeURIComponent(service.id)}`}>
+                  <Button className="px-6">
+                    Rezerviši
+                  </Button>
+                </Link>
+                <Link to="/usluge">
+                  <Button variant="outline" className="px-6">
+                    Sve usluge
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -226,4 +263,3 @@ export default function PublicServiceDetail() {
     </div>
   )
 }
-

@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AvailabilityService } from './availability.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
@@ -24,6 +25,7 @@ import { SOCKET_EVENTS } from '../events/socket-events';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { minutesToTime, timeToMinutes } from './utils/time-slot.utils';
 import { ReservationDateService } from './reservation-date.service';
+import type { PublicReservationViewDto } from './dto/public-reservation-view.dto';
 
 type RescheduleMode = 'actual_overrun' | 'manual_minutes' | 'use_break_only';
 type PendingRescheduleKind = 'reservation_reschedule' | 'reservation_reorder' | null;
@@ -38,6 +40,84 @@ export class ReservationsService {
     private readonly loyalty: LoyaltyService,
     private readonly dates: ReservationDateService,
   ) {}
+
+  private buildPublicReferenceCodeForDate(reservationDate: Date): string {
+    const d = this.dates.parseDateOnly(reservationDate);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const suffix = randomBytes(3).toString('hex').toUpperCase();
+    return `RZ-${y}${m}${day}-${suffix}`;
+  }
+
+  private generateClientViewToken(): string {
+    return randomBytes(32).toString('hex');
+  }
+
+  private async allocateReservationPublicCodes(
+    reservationDate: Date,
+  ): Promise<{ publicReferenceCode: string; clientViewToken: string }> {
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      const publicReferenceCode = this.buildPublicReferenceCodeForDate(
+        reservationDate,
+      );
+      const clientViewToken = this.generateClientViewToken();
+      const clash = await this.prisma.reservation.findFirst({
+        where: {
+          OR: [{ publicReferenceCode }, { clientViewToken }],
+        },
+        select: { id: true },
+      });
+      if (!clash) {
+        return { publicReferenceCode, clientViewToken };
+      }
+    }
+    throw new BadRequestException(
+      'Ne možemo generisati jedinstveni kod rezervacije. Pokušajte ponovo.',
+    );
+  }
+
+  async findPublicByViewToken(rawToken: string): Promise<PublicReservationViewDto> {
+    const token = rawToken?.trim().toLowerCase();
+    if (!token || token.length < 32 || !/^[a-f0-9]+$/.test(token)) {
+      throw new NotFoundException('Rezervacija nije pronađena.');
+    }
+    const r = await this.prisma.reservation.findUnique({
+      where: { clientViewToken: token },
+      include: {
+        service: { select: { name: true } },
+        confirmedStylist: {
+          include: {
+            user: { select: { firstName: true, lastName: true } },
+          },
+        },
+      },
+    });
+    if (!r) {
+      throw new NotFoundException('Rezervacija nije pronađena.');
+    }
+    const u = r.confirmedStylist?.user;
+    const stylistName = u
+      ? [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || null
+      : null;
+    return {
+      publicReferenceCode: r.publicReferenceCode,
+      reservationDate: this.dates.toLocalDateOnlyString(r.reservationDate),
+      startTime: r.startTime,
+      endTime: r.endTime,
+      status: r.status,
+      serviceName: r.service.name,
+      stylistName,
+      clientNotes: r.clientNotes,
+      cancelReason: r.cancelReason,
+      cancelledAt: r.cancelledAt
+        ? r.cancelledAt.toISOString()
+        : null,
+      rescheduleStatus: r.rescheduleStatus,
+      rescheduleProposedStartTime: r.rescheduleProposedStartTime,
+      rescheduleProposedEndTime: r.rescheduleProposedEndTime,
+    };
+  }
 
   private isReservationBlocked(res: {
     status: string;
@@ -212,6 +292,9 @@ export class ReservationsService {
       );
     }
 
+    const { publicReferenceCode, clientViewToken } =
+      await this.allocateReservationPublicCodes(reservationDate);
+
     const reservation = await this.prisma.reservation.create({
       data: {
         clientId,
@@ -221,6 +304,8 @@ export class ReservationsService {
         endTime: dto.endTime,
         status: RESERVATION_STATUS.PENDING,
         clientNotes: dto.clientNotes,
+        publicReferenceCode,
+        clientViewToken,
       },
       include: {
         service: true,
@@ -810,6 +895,8 @@ export class ReservationsService {
         service: { select: { name: true } },
         reservationDate: true,
         startTime: true,
+        publicReferenceCode: true,
+        clientViewToken: true,
       },
     });
     if (resWithClient?.clientId) {
@@ -818,7 +905,11 @@ export class ReservationsService {
         title: 'Rezervacija potvrđena',
         body: `Vaša rezervacija za ${resWithClient.service.name} je potvrđena.`,
         type: 'reservation_confirmed',
-        data: { reservationId },
+        data: {
+          reservationId,
+          publicReferenceCode: resWithClient.publicReferenceCode,
+          clientViewToken: resWithClient.clientViewToken,
+        },
       });
     }
 
@@ -903,7 +994,11 @@ export class ReservationsService {
       });
       const resWithClient = await this.prisma.reservation.findUnique({
         where: { id: reservationId },
-        select: { clientId: true },
+        select: {
+          clientId: true,
+          publicReferenceCode: true,
+          clientViewToken: true,
+        },
       });
       if (resWithClient?.clientId) {
         await this.notifications.send({
@@ -911,7 +1006,11 @@ export class ReservationsService {
           title: 'Rezervacija otkazana',
           body: 'Rezervacija je otkazana jer nijedan stilist nije mogao prihvatiti termin.',
           type: 'reservation_cancelled',
-          data: { reservationId },
+          data: {
+            reservationId,
+            publicReferenceCode: resWithClient.publicReferenceCode,
+            clientViewToken: resWithClient.clientViewToken,
+          },
         });
       }
     }

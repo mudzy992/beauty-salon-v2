@@ -240,16 +240,12 @@ export default function PublicHome() {
             <MotionDiv variants={fadeUp}>
               <div className="flex items-center justify-center gap-4 flex-wrap">
                 <Link to="/rezervacija">
-                  <Button size="lg" className="px-8">
+                  <Button variant="onDark" size="lg" className="px-8">
                     {t('public.nav.reserve')}
                   </Button>
                 </Link>
                 <Link to="/usluge">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="text-white border-white/30 hover:bg-white/10"
-                  >
+                  <Button variant="onDarkOutline" size="lg" className="px-8">
                     Sve Usluge
                   </Button>
                 </Link>
@@ -330,7 +326,7 @@ export default function PublicHome() {
             </div>
             <Link
               to="/zadovoljni-klijenti"
-              className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 hover:text-brand-gold transition-colors shrink-0"
+              className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 hover:text-slate-600 transition-colors shrink-0"
             >
               Pogledaj sve
               <ArrowRight className="h-4 w-4" aria-hidden />
@@ -392,7 +388,7 @@ export default function PublicHome() {
             </div>
           </div>
           <Link to="/rezervacija" className="shrink-0">
-            <Button size="lg" className="px-8 rounded-full">
+            <Button size="lg" className="px-8">
               {t('public.nav.reserve')}
             </Button>
           </Link>

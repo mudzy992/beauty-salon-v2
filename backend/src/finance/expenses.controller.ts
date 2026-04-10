@@ -6,6 +6,7 @@ import { RolesGuard } from '../common/guards/roles.guard'
 import { ExpensesService } from './expenses.service'
 import { CreateExpenseDto } from './dto/create-expense.dto'
 import { UpdateExpenseDto } from './dto/update-expense.dto'
+import { AddExpenseAttachmentDto } from './dto/add-expense-attachment.dto'
 
 @Controller('api/expenses')
 @UseGuards(RolesGuard)
@@ -35,6 +36,20 @@ export class ExpensesController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.expenses.update(id, dto, user)
+  }
+
+  @Post(':id/attachments')
+  addAttachment(@Param('id') id: string, @Body() dto: AddExpenseAttachmentDto, @CurrentUser() user: CurrentUserPayload) {
+    return this.expenses.addAttachment(id, dto, user)
+  }
+
+  @Delete(':id/attachments/:attachmentId')
+  removeAttachment(
+    @Param('id') id: string,
+    @Param('attachmentId') attachmentId: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.expenses.removeAttachment(id, attachmentId, user)
   }
 
   @Delete(':id')

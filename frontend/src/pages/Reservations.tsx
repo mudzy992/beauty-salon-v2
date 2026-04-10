@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Eye, Loader2 } from 'lucide-react'
+import { CalendarDays, Eye, Loader2 } from 'lucide-react'
 
 import api from '../api/client'
 import { getErrorMessage } from '../api/error'
@@ -167,7 +167,7 @@ export default function Reservations() {
     if (!detail) return
     setCancelling(true)
     try {
-      await api.post(`/api/reservations/${detail.id}/cancel`, { reason: cancelReason || undefined })
+      await api.post(`/api/reservations/${detail.id}/admin-cancel`, { cancelReason: cancelReason || undefined })
       success('Rezervacija otkazana')
       loadData()
       setOpen(false)
@@ -201,7 +201,17 @@ export default function Reservations() {
 
   return (
     <div>
-      <h1 className="mb-4 text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.reservations')}</h1>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+          {t('nav.reservations')}
+        </h1>
+        <Button asChild type="button" variant="outline">
+          <RouterLink to="/admin/reservations/calendar">
+            <CalendarDays className="mr-2 h-4 w-4" aria-hidden="true" />
+            Kalendar
+          </RouterLink>
+        </Button>
+      </div>
 
       <Card className="mb-4">
         <div className="p-4">

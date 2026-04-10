@@ -143,10 +143,11 @@ const getExistingTemplateDefaults = (type: ExistingTemplateType): ExistingTempla
       subject: 'Rezervacija potvrđena',
       title: 'Vaša rezervacija je potvrđena',
       intro: 'Poštovani {{firstName}},',
-      body: 'Termin je uspješno potvrđen. Hvala vam na povjerenju.',
+      body: 'Termin je uspješno potvrđen. Hvala vam na povjerenju. Broj termina: {{reservationReference}}.',
       ctaLabel: 'Pregled rezervacije',
-      ctaUrl: '{{appUrl}}/rezervacija',
-      plainText: 'Vaša rezervacija je potvrđena.',
+      ctaUrl: '{{reservationViewUrl}}',
+      plainText:
+        'Vaša rezervacija je potvrđena. Broj termina: {{reservationReference}}. Link: {{reservationViewUrl}}',
     };
   }
   if (type === 'reservation_cancelled') {
@@ -154,10 +155,11 @@ const getExistingTemplateDefaults = (type: ExistingTemplateType): ExistingTempla
       subject: 'Rezervacija otkazana',
       title: 'Obavijest o otkazivanju termina',
       intro: 'Poštovani {{firstName}},',
-      body: 'Vaša rezervacija je otkazana. U aplikaciji možete vidjeti detalje.',
+      body: 'Vaša rezervacija je otkazana. Broj termina: {{reservationReference}}.',
       ctaLabel: 'Pregled rezervacije',
-      ctaUrl: '{{appUrl}}/rezervacija',
-      plainText: 'Rezervacija je otkazana.',
+      ctaUrl: '{{reservationViewUrl}}',
+      plainText:
+        'Rezervacija je otkazana. Broj termina: {{reservationReference}}. Link: {{reservationViewUrl}}',
     };
   }
   if (type === 'reservation_reminder') {
@@ -165,10 +167,11 @@ const getExistingTemplateDefaults = (type: ExistingTemplateType): ExistingTempla
       subject: 'Podsjetnik za termin',
       title: 'Podsjetnik za vaš termin',
       intro: 'Poštovani {{firstName}},',
-      body: 'Podsjećamo vas na nadolazeći termin u našem salonu.',
+      body: 'Podsjećamo vas na nadolazeći termin u našem salonu. Broj termina: {{reservationReference}}.',
       ctaLabel: 'Pregled rezervacije',
-      ctaUrl: '{{appUrl}}/rezervacija',
-      plainText: 'Podsjetnik za vaš termin.',
+      ctaUrl: '{{reservationViewUrl}}',
+      plainText:
+        'Podsjetnik za vaš termin. Broj termina: {{reservationReference}}. Link: {{reservationViewUrl}}',
     };
   }
   if (type === 'reservation_reschedule') {
@@ -176,10 +179,11 @@ const getExistingTemplateDefaults = (type: ExistingTemplateType): ExistingTempla
       subject: 'Termin je pomjeren',
       title: 'Promjena termina',
       intro: 'Poštovani {{firstName}},',
-      body: 'Termin je pomjeren. Molimo provjerite novi termin i potvrdite odgovara li vam.',
+      body: 'Termin je pomjeren. Molimo provjerite novi termin i potvrdite odgovara li vam. Broj termina: {{reservationReference}}.',
       ctaLabel: 'Pregled rezervacije',
-      ctaUrl: '{{appUrl}}/rezervacija',
-      plainText: 'Termin je pomjeren. Provjerite novi termin.',
+      ctaUrl: '{{reservationViewUrl}}',
+      plainText:
+        'Termin je pomjeren. Broj termina: {{reservationReference}}. Link: {{reservationViewUrl}}',
     };
   }
   if (type === 'holiday') {
