@@ -5,6 +5,9 @@ import { PrismaService } from '../prisma/prisma.service';
 
 const mockPrisma = {
   $transaction: jest.fn(),
+  service: {
+    findUnique: jest.fn(),
+  },
   incomeBook: {
     findUnique: jest.fn(),
     findMany: jest.fn(),
@@ -180,10 +183,15 @@ describe('IncomeBooksService', () => {
       _sum: { amount: 100, tipAmount: 10 },
     });
     mockPrisma.incomeBook.update.mockResolvedValue({ id: 'b1' });
+    mockPrisma.service.findUnique.mockResolvedValue({
+      id: 's1',
+      price: 100,
+      name: 'Usluga',
+    });
 
     const result = await service.createManualEntry(
       'b1',
-      { date: '2026-02-05', serviceId: 's1', amount: 100, tipAmount: 10 },
+      { date: '2026-02-05', serviceId: 's1', paidAmount: 110 },
       'user-1',
     );
     expect(result.id).toBe('m1');
@@ -232,10 +240,15 @@ describe('IncomeBooksService', () => {
       _sum: { amount: 100, tipAmount: 10 },
     });
     mockPrisma.incomeBook.update.mockResolvedValue({ id: 'b1' });
+    mockPrisma.service.findUnique.mockResolvedValue({
+      id: 's1',
+      price: 100,
+      name: 'Usluga',
+    });
 
     const result = await service.createManualEntry(
       'b1',
-      { date: '2026-03-05', serviceId: 's1', amount: 100, tipAmount: 10 },
+      { date: '2026-03-05', serviceId: 's1', paidAmount: 110 },
       'user-1',
     );
     expect(result.id).toBe('m1');
@@ -254,7 +267,7 @@ describe('IncomeBooksService', () => {
     await expect(
       service.createManualEntry(
         'b1',
-        { date: '2026-04-05', serviceId: 's1', amount: 100, tipAmount: 10 },
+        { date: '2026-04-05', serviceId: 's1', paidAmount: 110 },
         'user-1',
       ),
     ).rejects.toThrow(BadRequestException);

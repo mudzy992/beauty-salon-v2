@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -10,10 +11,12 @@ import {
 import { ReservationsService } from './reservations.service';
 import { AvailabilityService } from './availability.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
+import { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
 import { StylistRejectDto } from './dto/stylist-respond.dto';
 import { QueryReservationsDto } from './dto/query-reservations.dto';
 import { StylistNoShowDto } from './dto/stylist-no-show.dto';
+import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -34,6 +37,13 @@ export class ReservationsController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.reservations.create(dto, user.sub);
+  }
+
+  @Post('admin')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  createByAdmin(@Body() dto: AdminCreateReservationDto) {
+    return this.reservations.createByAdmin(dto);
   }
 
   @Get()
@@ -88,6 +98,13 @@ export class ReservationsController {
     return this.reservations.findOne(id, user);
   }
 
+  @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  updateByAdmin(@Param('id') id: string, @Body() dto: UpdateReservationDto) {
+    return this.reservations.updateByAdmin(id, dto);
+  }
+
   @Post(':id/cancel')
   cancelByClient(
     @Param('id') id: string,
@@ -95,6 +112,13 @@ export class ReservationsController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.reservations.cancelByClient(id, user.sub, dto);
+  }
+
+  @Post(':id/admin-cancel')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  cancelByAdmin(@Param('id') id: string, @Body() dto: CancelReservationDto) {
+    return this.reservations.cancelByAdmin(id, dto);
   }
 
   @Post(':id/confirm-attendance')

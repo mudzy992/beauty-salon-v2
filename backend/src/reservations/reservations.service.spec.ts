@@ -27,7 +27,8 @@ jest.mock('expo-server-sdk', () => {
   return { __esModule: true, default: MockExpo };
 });
 
-const mockPrisma = {
+const mockPrisma: any = {};
+Object.assign(mockPrisma, {
   user: {
     findUnique: jest.fn(),
   },
@@ -55,8 +56,11 @@ const mockPrisma = {
   stylistProfile: { findUnique: jest.fn(), findMany: jest.fn() },
   salonSettings: { findFirst: jest.fn() },
   clientCancellationCount: { findUnique: jest.fn(), upsert: jest.fn() },
-  $transaction: jest.fn(async (cb: any) => (typeof cb === 'function' ? cb(mockPrisma) : undefined)),
-};
+  $transaction: jest.fn(async (cb: unknown): Promise<unknown> => {
+    if (typeof cb === 'function') return (cb as (tx: any) => unknown)(mockPrisma);
+    return undefined;
+  }),
+});
 
 const mockAvailability = {
   getAvailableSlots: jest.fn(),
@@ -531,12 +535,14 @@ describe('ReservationsService', () => {
 
   describe('autoStartUpcomingReservations', () => {
     it('auto-starta due termin kada nema aktivnog termina', async () => {
+      jest.useFakeTimers()
+      jest.setSystemTime(new Date('2026-03-10T10:00:00Z'))
       mockPrisma.reservation.findMany.mockResolvedValue([
         {
           id: 'res-due',
           clientId: 'client-1',
           confirmedStylistId: 'sp-1',
-          reservationDate: new Date(),
+          reservationDate: new Date('2026-03-10T00:00:00Z'),
           startTime: '09:00',
         },
       ]);

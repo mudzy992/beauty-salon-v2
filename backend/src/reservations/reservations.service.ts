@@ -7,9 +7,11 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AvailabilityService } from './availability.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
+import { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
 import { StylistRejectDto } from './dto/stylist-respond.dto';
 import type { StylistNoShowDto } from './dto/stylist-no-show.dto';
+import { UpdateReservationDto } from './dto/update-reservation.dto';
 import {
   RESERVATION_STATUS,
   RESERVATION_TRANSITIONS,
@@ -283,6 +285,101 @@ export class ReservationsService {
     return full;
   }
 
+  async createByAdmin(dto: AdminCreateReservationDto) {
+    return this.create(
+      {
+        serviceId: dto.serviceId,
+        reservationDate: dto.reservationDate,
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        clientNotes: dto.clientNotes,
+      },
+      dto.clientId,
+    );
+  }
+
+  async updateByAdmin(reservationId: string, dto: UpdateReservationDto) {
+    const existing = await this.prisma.reservation.findUnique({
+      where: { id: reservationId },
+      select: {
+        id: true,
+        reservationDate: true,
+        startTime: true,
+        endTime: true,
+        status: true,
+        confirmedStylistId: true,
+        serviceId: true,
+      },
+    });
+    if (!existing) throw new NotFoundException('Rezervacija nije pronađena.');
+    const nextDate = dto.reservationDate
+      ? this.dates.parseDateOnly(dto.reservationDate)
+      : this.dates.parseDateOnly(existing.reservationDate);
+    const nextStartTime = (dto.startTime ?? existing.startTime).trim();
+    const nextEndTime = (dto.endTime ?? existing.endTime).trim();
+    if (!nextStartTime || !nextEndTime) {
+      throw new BadRequestException('Neispravno vrijeme termina.');
+    }
+    if (timeToMinutes(nextEndTime) <= timeToMinutes(nextStartTime)) {
+      throw new BadRequestException('Vrijeme završetka mora biti nakon početka.');
+    }
+    const stylistId = existing.confirmedStylistId;
+    if (stylistId) {
+      const dayStart = new Date(nextDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(nextDate);
+      dayEnd.setHours(23, 59, 59, 999);
+      const conflict = await this.prisma.reservation.findFirst({
+        where: {
+          id: { not: existing.id },
+          confirmedStylistId: stylistId,
+          reservationDate: { gte: dayStart, lte: dayEnd },
+          status: {
+            in: [
+              RESERVATION_STATUS.CONFIRMED,
+              RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
+              RESERVATION_STATUS.IN_PROGRESS,
+            ] as any,
+          },
+          OR: [
+            {
+              AND: [
+                { startTime: { lt: nextEndTime } },
+                { endTime: { gt: nextStartTime } },
+              ],
+            },
+          ],
+        },
+        select: { id: true, startTime: true, endTime: true },
+      });
+      if (conflict) {
+        throw new BadRequestException(
+          `Preklapanje sa drugim terminom (${conflict.startTime}–${conflict.endTime}).`,
+        );
+      }
+    }
+    const updated = await this.prisma.reservation.update({
+      where: { id: reservationId },
+      data: {
+        reservationDate: nextDate,
+        startTime: nextStartTime,
+        endTime: nextEndTime,
+      },
+    });
+    const full = await this.findOne(updated.id, {
+      sub: '',
+      roles: ['SYSTEM_ADMIN'],
+      username: '',
+      email: '',
+    });
+    this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_UPDATED, full);
+    this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
+      serviceId: existing.serviceId,
+      date: this.dates.toLocalDateOnlyString(nextDate),
+    });
+    return full;
+  }
+
   async findAll(
     query: {
       fromDate?: string;
@@ -475,6 +572,35 @@ export class ReservationsService {
     const cancelled = await this.findOne(id, {
       sub: clientId,
       roles: ['CLIENT'],
+      username: '',
+      email: '',
+    });
+    this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CANCELLED, cancelled);
+    this.events.emitToStylists(SOCKET_EVENTS.RESERVATION_CANCELLED, cancelled);
+    this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
+      serviceId: r.serviceId,
+      date: r.reservationDate,
+    });
+    return cancelled;
+  }
+
+  async cancelByAdmin(id: string, dto?: CancelReservationDto) {
+    const r = await this.prisma.reservation.findUnique({ where: { id } });
+    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (r.status === RESERVATION_STATUS.COMPLETED) {
+      throw new BadRequestException('Završena rezervacija se ne može otkazati.');
+    }
+    await this.prisma.reservation.update({
+      where: { id },
+      data: {
+        status: RESERVATION_STATUS.CANCELLED_BY_STYLISTS,
+        cancelledAt: new Date(),
+        cancelReason: dto?.cancelReason,
+      },
+    });
+    const cancelled = await this.findOne(id, {
+      sub: '',
+      roles: ['SYSTEM_ADMIN'],
       username: '',
       email: '',
     });
