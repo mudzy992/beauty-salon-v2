@@ -34,10 +34,21 @@ export class ExpenseBooksService {
   }
 
   async findAll() {
-    return this.prisma.expenseBook.findMany({
+    const books = await this.prisma.expenseBook.findMany({
       include: { _count: { select: { expenses: true } } },
       orderBy: [{ year: 'desc' }, { month: 'desc' }],
     });
+    const sums = await this.prisma.expense.groupBy({
+      by: ['bookId'],
+      _sum: { totalAmount: true },
+    });
+    const totalByBookId = new Map<string, number>(
+      sums.map((s) => [s.bookId, Number(s._sum.totalAmount ?? 0)]),
+    );
+    return books.map((b) => ({
+      ...b,
+      totalExpenses: totalByBookId.get(b.id) ?? 0,
+    }));
   }
 
   async findOne(id: string) {

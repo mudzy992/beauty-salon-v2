@@ -100,6 +100,7 @@ export interface ExpenseBook {
   isClosed: boolean
   openedAt: string
   closedAt: string | null
+  totalExpenses?: number | string
   lockEvents?: {
     id: string
     action: string

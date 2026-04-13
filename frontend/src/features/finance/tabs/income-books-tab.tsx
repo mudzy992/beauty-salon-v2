@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Eye, Loader2, Lock, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Eye, Loader2, Lock, LockOpen, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import api from '../../../api/client'
@@ -10,6 +10,7 @@ import { Input } from '../../../components/ui/input'
 import { Label } from '../../../components/ui/label'
 import { Textarea } from '../../../components/ui/textarea'
 import { Badge } from '../../../components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../../components/ui/tooltip'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import { MONTHS, getEndOfMonthDate, formatDateBs } from '../finance.utils'
 import type {
@@ -412,6 +413,19 @@ export function IncomeBooksTab() {
     () => Array.from({ length: 5 }, (_, i) => nowForPicker.current.getFullYear() - 2 + i),
     [],
   )
+
+  const totalsByYearMonth = useMemo(() => {
+    const map = new Map<string, number>()
+    books.forEach((b) => {
+      map.set(`${b.year}-${b.month}`, Number(b.totalRevenue ?? 0) + Number(b.totalTips ?? 0))
+    })
+    return map
+  }, [books])
+
+  const getPrevYearMonthKey = (year: number, month: number) => {
+    const prev = month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 }
+    return `${prev.year}-${prev.month}`
+  }
 
   if (loading) {
     return (
@@ -1020,6 +1034,7 @@ export function IncomeBooksTab() {
                 <th className="p-3">Godina</th>
                 <th className="p-3">Mjesec</th>
                 <th className="p-3">Otvorena</th>
+                <th className="p-3 text-right">Ukupno (KM)</th>
                 <th className="p-3">Status</th>
                 <th className="p-3 text-right">Akcije</th>
               </tr>
@@ -1027,38 +1042,76 @@ export function IncomeBooksTab() {
             <tbody>
               {books.length === 0 ? (
                 <tr>
-                  <td className="p-3 text-slate-500 dark:text-slate-400" colSpan={5}>
+                  <td className="p-3 text-slate-500 dark:text-slate-400" colSpan={6}>
                     {t('common.noData')}
                   </td>
                 </tr>
               ) : (
-                books.map((b) => (
-                  <tr
-                    key={b.id}
-                    className="cursor-pointer border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-slate-900/40"
-                    onClick={() => void openBook(b)}
-                  >
-                    <td className="p-3">{b.year}</td>
-                    <td className="p-3">{MONTHS[b.month]}</td>
-                    <td className="p-3">{new Date(b.openedAt).toLocaleDateString('bs-BA')}</td>
-                    <td className="p-3">
-                      <Badge
-                        className={
-                          b.closedAt
-                            ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200'
-                            : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200'
-                        }
-                      >
-                        {b.closedAt ? 'Zatvorena' : 'Otvorena'}
-                      </Badge>
-                    </td>
-                    <td className="p-3 text-right">
-                      <Button variant="ghost" size="sm" className="h-8 px-2">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))
+                books.map((b) => {
+                  const total = Number(b.totalRevenue ?? 0) + Number(b.totalTips ?? 0)
+                  const prevTotal = totalsByYearMonth.get(getPrevYearMonthKey(b.year, b.month))
+                  const delta = prevTotal == null ? null : total - prevTotal
+                  const deltaLabel =
+                    delta == null ? null : `${delta > 0 ? '+' : ''}${delta.toFixed(2)} KM`
+                  const deltaClass =
+                    delta == null
+                      ? ''
+                      : delta > 0
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200'
+                        : delta < 0
+                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200'
+                          : 'bg-slate-100 text-slate-800 dark:bg-slate-900/60 dark:text-slate-200'
+                  return (
+                    <tr
+                      key={b.id}
+                      className="cursor-pointer border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-slate-900/40"
+                      onClick={() => void openBook(b)}
+                    >
+                      <td className="p-3">{b.year}</td>
+                      <td className="p-3">{MONTHS[b.month]}</td>
+                      <td className="p-3">{new Date(b.openedAt).toLocaleDateString('bs-BA')}</td>
+                      <td className="p-3 text-right font-semibold text-emerald-700 dark:text-emerald-300">
+                        {total.toFixed(2)}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            className={
+                              b.closedAt
+                                ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-200'
+                                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200'
+                            }
+                          >
+                            {b.closedAt ? (
+                              <Lock className="h-3.5 w-3.5" aria-label="Zaključana" />
+                            ) : (
+                              <LockOpen className="h-3.5 w-3.5" aria-label="Otvorena" />
+                            )}
+                          </Badge>
+                          {deltaLabel ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div>
+                                    <Badge variant="secondary" className={deltaClass}>
+                                      Δ {deltaLabel}
+                                    </Badge>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>Razlika u odnosu na prošli mjesec</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="p-3 text-right">
+                        <Button variant="ghost" size="sm" className="h-8 px-2">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
