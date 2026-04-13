@@ -47,6 +47,25 @@ const findAttachmentForField = (expense: Expense, fieldName: string) => {
   }) ?? null
 }
 
+const findFieldNameForAttachment = (expense: Expense, originalName?: string | null) => {
+  const fvs = Array.isArray(expense.fieldValues) ? expense.fieldValues : []
+  if (fvs.length === 0) return null
+  const candidate = normalizeForMatch(originalName ?? '')
+  if (!candidate) return null
+  const direct = fvs.find((fv) => candidate.includes(normalizeForMatch(fv.field?.fieldName ?? '')))
+  if (direct?.field?.fieldName) return direct.field.fieldName
+  const best = fvs
+    .map((fv) => {
+      const name = fv.field?.fieldName ?? ''
+      const tokens = normalizeForMatch(name).split(' ').filter(Boolean)
+      const score = tokens.length === 0 ? 0 : tokens.filter((t) => candidate.includes(t)).length
+      return { name, score }
+    })
+    .sort((a, b) => b.score - a.score)[0]
+  if (!best || best.score === 0) return null
+  return best.name
+}
+
 export function ExpenseBooksTab() {
   const { t } = useTranslation()
   const { success, warning, toastApiError } = useAppToast()
@@ -722,7 +741,10 @@ export function ExpenseBooksTab() {
                 const isImage = isUploadImage(att.upload?.originalName)
                 const thumbUrl = att.upload?.pathThumb || att.upload?.pathOriginal
                 const originalUrl = att.upload?.pathOriginal
-                const title = att.upload?.originalName ?? 'Prilog'
+                const originalName = att.upload?.originalName ?? ''
+                const matchedFieldName =
+                  requiresAttachmentPerItem ? findFieldNameForAttachment(selectedExpense, originalName) : null
+                const title = matchedFieldName || originalName || 'Prilog'
                 return (
                   <div
                     key={att.id}
@@ -755,6 +777,9 @@ export function ExpenseBooksTab() {
                       <div className="truncate text-sm font-medium text-slate-900 dark:text-slate-50">
                         {title}
                       </div>
+                      {matchedFieldName && originalName ? (
+                        <div className="truncate text-xs text-slate-500 dark:text-slate-400">{originalName}</div>
+                      ) : null}
                     </div>
 
                     {isImage && originalUrl ? (
