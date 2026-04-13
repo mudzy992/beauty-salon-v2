@@ -19,6 +19,7 @@ import type { Expense, ExpenseBook, ExpenseCategory } from '../finance.types'
 type LineItem = { name: string; qty: number; price: number }
 type ExpenseBookDetail = ExpenseBook & { expenses?: Expense[] }
 type ExpenseFieldValueDraft = { fieldId: string; fieldName: string; value: string }
+type DraftLineItemAttachment = { uploadId: string; originalName: string }
 
 const normalizeForMatch = (input: string): string => {
   return input
@@ -97,6 +98,7 @@ export function ExpenseBooksTab() {
     { fieldId: string; fieldName: string; value: string; attachmentId: string; attachmentName: string }[]
   >([])
   const [lineItems, setLineItems] = useState<LineItem[]>([])
+  const [lineItemAttachments, setLineItemAttachments] = useState<(DraftLineItemAttachment | null)[]>([])
   const [attachmentUploadIds, setAttachmentUploadIds] = useState<string[]>([])
   const [attachmentNames, setAttachmentNames] = useState<string[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
@@ -231,6 +233,7 @@ export function ExpenseBooksTab() {
       } catch {}
     }
     setSelectedCategory(fullCat)
+    setForm((prev) => ({ ...prev, title: fullCat.name }))
     if (fullCat.isFixed && fullCat.template?.fields) {
       setFixedFields(
         fullCat.template.fields.map((f) => ({
@@ -241,7 +244,6 @@ export function ExpenseBooksTab() {
           attachmentName: '',
         })),
       )
-      setForm((prev) => ({ ...prev, title: fullCat.name }))
     } else {
       setLineItems([{ name: '', qty: 1, price: 0 }])
     }
@@ -252,6 +254,7 @@ export function ExpenseBooksTab() {
     setSelectedCategory(null)
     setFixedFields([])
     setLineItems([])
+    setLineItemAttachments([])
     setAttachmentUploadIds([])
     setAttachmentNames([])
     setIsCreateOpen(true)
@@ -276,6 +279,29 @@ export function ExpenseBooksTab() {
     } finally {
       setUploadingAtt(false)
       if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const handleUploadLineItemAtt = async (file: File, lineItemName: string, lineItemIndex: number) => {
+    setUploadingAtt(true)
+    try {
+      const fd = new FormData()
+      const safePrefix = normalizeForMatch(lineItemName).replace(/\s+/g, '-')
+      const ext = file.name.includes('.') ? `.${file.name.split('.').pop()}` : ''
+      const renamedFile = new File([file], `${safePrefix || 'stavka'}${ext}`, { type: file.type })
+      fd.append('file', renamedFile)
+      fd.append('entity', 'expenses')
+      const { data } = await api.post('/api/uploads', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      setLineItemAttachments((prev) => {
+        const next = [...prev]
+        while (next.length < lineItems.length) next.push(null)
+        next[lineItemIndex] = { uploadId: data.id, originalName: file.name }
+        return next
+      })
+    } catch (err) {
+      toastApiError(err, 'Greška pri uploadu')
+    } finally {
+      setUploadingAtt(false)
     }
   }
 
@@ -315,6 +341,10 @@ export function ExpenseBooksTab() {
         fixedFields.forEach((f) => {
           fieldValues.push({ fieldId: f.fieldId, value: f.value })
           if (f.attachmentId) allAttIds.push(f.attachmentId)
+        })
+      } else if (selectedCategory?.template?.requiresAttachmentPerItem) {
+        lineItemAttachments.forEach((a) => {
+          if (a?.uploadId) allAttIds.push(a.uploadId)
         })
       }
       await api.post('/api/expenses', {
@@ -402,6 +432,18 @@ export function ExpenseBooksTab() {
     const isBookLocked = Boolean((selectedExpense as any)?.book?.isClosed)
     const canEdit = !isBookLocked
     const requiresAttachmentPerItem = Boolean((selectedExpense as any)?.category?.template?.requiresAttachmentPerItem)
+    const variableMeta = useMemo(() => {
+      if (isFixed) return { lineItems: [] as LineItem[], userNotes: selectedExpense.notes ?? '' }
+      const raw = selectedExpense.notes ?? ''
+      try {
+        const parsed = JSON.parse(raw) as { lineItems?: LineItem[]; userNotes?: string }
+        const parsedLineItems = Array.isArray(parsed?.lineItems) ? parsed.lineItems : []
+        const parsedUserNotes = typeof parsed?.userNotes === 'string' ? parsed.userNotes : ''
+        return { lineItems: parsedLineItems, userNotes: parsedUserNotes }
+      } catch {
+        return { lineItems: [] as LineItem[], userNotes: raw }
+      }
+    }, [isFixed, selectedExpense.notes])
 
     const handleStartEditExpense = () => {
       const fvs = Array.isArray(selectedExpense.fieldValues) ? selectedExpense.fieldValues : []
@@ -446,6 +488,75 @@ export function ExpenseBooksTab() {
       setImagePreviewUrl(url)
       setImagePreviewTitle(title)
       setIsImagePreviewOpen(true)
+    }
+
+    const handleUploadAttachmentForLineItem = async (lineItemName: string) => {
+      if (!canEdit) return
+      const expenseId = selectedExpense.id
+      if (!expenseId) return
+      try {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.onchange = async () => {
+          const file = input.files?.[0]
+          if (!file) return
+          try {
+            const fd = new FormData()
+            const safePrefix = normalizeForMatch(lineItemName).replace(/\s+/g, '-')
+            const ext = file.name.includes('.') ? `.${file.name.split('.').pop()}` : ''
+            const renamedFile = new File([file], `${safePrefix || 'stavka'}${ext}`, { type: file.type })
+            fd.append('file', renamedFile)
+            fd.append('entity', 'expenses')
+            const { data } = await api.post('/api/uploads', fd, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            await handleAddExpenseAttachment(expenseId, data.id)
+            const { data: refreshed } = await api.get<Expense>(`/api/expenses/${expenseId}`)
+            setSelectedExpense(refreshed)
+            success('Prilog sačuvan')
+          } catch (err) {
+            toastApiError(err, 'Greška pri uploadu')
+          }
+        }
+        input.click()
+      } catch (err) {
+        toastApiError(err, 'Greška')
+      }
+    }
+
+    const handleReplaceAttachmentForLineItem = async (lineItemName: string, attachmentId: string) => {
+      if (!canEdit) return
+      const expenseId = selectedExpense.id
+      if (!expenseId) return
+      try {
+        const input = document.createElement('input')
+        input.type = 'file'
+        input.onchange = async () => {
+          const file = input.files?.[0]
+          if (!file) return
+          try {
+            const fd = new FormData()
+            const safePrefix = normalizeForMatch(lineItemName).replace(/\s+/g, '-')
+            const ext = file.name.includes('.') ? `.${file.name.split('.').pop()}` : ''
+            const renamedFile = new File([file], `${safePrefix || 'stavka'}${ext}`, { type: file.type })
+            fd.append('file', renamedFile)
+            fd.append('entity', 'expenses')
+            const { data } = await api.post('/api/uploads', fd, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            })
+            await handleRemoveExpenseAttachment(expenseId, attachmentId)
+            await handleAddExpenseAttachment(expenseId, data.id)
+            const { data: refreshed } = await api.get<Expense>(`/api/expenses/${expenseId}`)
+            setSelectedExpense(refreshed)
+            success('Prilog zamijenjen')
+          } catch (err) {
+            toastApiError(err, 'Greška pri uploadu')
+          }
+        }
+        input.click()
+      } catch (err) {
+        toastApiError(err, 'Greška')
+      }
     }
 
     const handleUploadAttachmentForField = async (fieldName: string) => {
@@ -593,11 +704,116 @@ export function ExpenseBooksTab() {
             {selectedExpense.notes ? (
               <div className="md:col-span-2">
                 <div className="text-xs text-slate-500 dark:text-slate-400">Bilješke</div>
-                <div className="text-sm text-slate-900 dark:text-slate-50">{selectedExpense.notes}</div>
+                <div className="text-sm text-slate-900 dark:text-slate-50">{variableMeta.userNotes || selectedExpense.notes}</div>
               </div>
             ) : null}
           </CardContent>
         </Card>
+
+        {!isFixed && variableMeta.lineItems.length > 0 ? (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Stavke</CardTitle>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                    <th className="p-3">Naziv</th>
+                    <th className="p-3 text-right">Količina</th>
+                    <th className="p-3 text-right">Cijena (KM)</th>
+                    <th className="p-3 text-right">Ukupno</th>
+                    {requiresAttachmentPerItem ? <th className="p-3">Prilog</th> : null}
+                  </tr>
+                </thead>
+                <tbody>
+                  {variableMeta.lineItems.map((li, idx) => {
+                    const itemName = li.name || `Stavka ${idx + 1}`
+                    const total = (Number(li.qty || 0) || 0) * (Number(li.price || 0) || 0)
+                    const mapped = requiresAttachmentPerItem ? findAttachmentForField(selectedExpense, itemName) : null
+                    const mappedIsImage = mapped ? isUploadImage(mapped.upload?.originalName) : false
+                    const mappedThumb = mapped?.upload?.pathThumb || mapped?.upload?.pathOriginal
+                    const mappedOriginal = mapped?.upload?.pathOriginal
+                    return (
+                      <tr key={`${itemName}-${idx}`} className="border-b border-slate-100 dark:border-slate-800/80">
+                        <td className="p-3 font-medium">{itemName}</td>
+                        <td className="p-3 text-right">{Number(li.qty || 0) || 0}</td>
+                        <td className="p-3 text-right">{(Number(li.price || 0) || 0).toFixed(2)}</td>
+                        <td className="p-3 text-right font-semibold text-rose-700 dark:text-rose-300">{total.toFixed(2)}</td>
+                        {requiresAttachmentPerItem ? (
+                          <td className="p-3">
+                            {mapped ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                {mappedIsImage && mappedThumb ? (
+                                  <button
+                                    type="button"
+                                    className="shrink-0"
+                                    onClick={() => {
+                                      if (!mappedOriginal) return
+                                      handleOpenImagePreview(getUploadUrl(mappedOriginal), mapped.upload?.originalName ?? itemName)
+                                    }}
+                                    aria-label="Pregled slike"
+                                  >
+                                    <img
+                                      src={getUploadUrl(mappedThumb)}
+                                      alt=""
+                                      className="h-10 w-10 rounded-md object-cover"
+                                      loading="lazy"
+                                    />
+                                  </button>
+                                ) : (
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                                    <FileText className="h-4 w-4" />
+                                  </div>
+                                )}
+                                <div className="min-w-0 max-w-[22rem] truncate text-xs text-slate-700 dark:text-slate-200">
+                                  {mapped.upload?.originalName ?? 'Prilog'}
+                                </div>
+                                {mappedOriginal ? (
+                                  <Button asChild variant="outline" size="sm">
+                                    <a href={getUploadUrl(mappedOriginal)} target="_blank" rel="noreferrer">
+                                      Preuzmi
+                                    </a>
+                                  </Button>
+                                ) : null}
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => void handleReplaceAttachmentForLineItem(itemName, mapped.id)}
+                                  disabled={!canEdit}
+                                >
+                                  Zamijeni
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/20"
+                                  onClick={() => void handleDeleteAttachmentForField(mapped.id)}
+                                  disabled={!canEdit}
+                                >
+                                  Obriši
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void handleUploadAttachmentForLineItem(itemName)}
+                                disabled={!canEdit}
+                              >
+                                Dodaj prilog
+                              </Button>
+                            )}
+                          </td>
+                        ) : null}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {selectedExpense.fieldValues && selectedExpense.fieldValues.length > 0 ? (
           <Card>
@@ -989,11 +1205,6 @@ export function ExpenseBooksTab() {
 
               {selectedCategory ? (
                 <>
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Naslov</Label>
-                    <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-                  </div>
-
                   {selectedCategory.isFixed && fixedFields.length > 0 ? (
                     <div className="space-y-2">
                       <div className="text-sm font-semibold text-slate-900 dark:text-slate-50">Fiksne stavke</div>
@@ -1066,7 +1277,10 @@ export function ExpenseBooksTab() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setLineItems([...lineItems, { name: '', qty: 1, price: 0 }])}
+                          onClick={() => {
+                            setLineItems([...lineItems, { name: '', qty: 1, price: 0 }])
+                            setLineItemAttachments((prev) => [...prev, null])
+                          }}
                         >
                           <Plus className="mr-2 h-4 w-4" />
                           Dodaj stavku
@@ -1082,6 +1296,7 @@ export function ExpenseBooksTab() {
                                 <th className="p-3 text-right">Količina</th>
                                 <th className="p-3 text-right">Cijena</th>
                                 <th className="p-3 text-right">Ukupno</th>
+                                {selectedCategory.template?.requiresAttachmentPerItem ? <th className="p-3">Prilog</th> : null}
                                 <th className="p-3"></th>
                               </tr>
                             </thead>
@@ -1125,13 +1340,63 @@ export function ExpenseBooksTab() {
                                     />
                                   </td>
                                   <td className="p-3 text-right font-medium">{(item.qty * item.price).toFixed(2)}</td>
+                                  {selectedCategory.template?.requiresAttachmentPerItem ? (
+                                    <td className="p-3">
+                                      {lineItemAttachments[idx]?.originalName ? (
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <Badge variant="secondary">{lineItemAttachments[idx]?.originalName}</Badge>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 px-2 text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/20"
+                                            onClick={() => {
+                                              setLineItemAttachments((prev) => {
+                                                const next = [...prev]
+                                                next[idx] = null
+                                                return next
+                                              })
+                                            }}
+                                          >
+                                            Ukloni
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <input
+                                            type="file"
+                                            className="hidden"
+                                            id={`li-att-${idx}`}
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0]
+                                              if (!file) return
+                                              void handleUploadLineItemAtt(file, item.name, idx)
+                                              e.currentTarget.value = ''
+                                            }}
+                                          />
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={!item.name || uploadingAtt}
+                                            onClick={() => document.getElementById(`li-att-${idx}`)?.click()}
+                                          >
+                                            Dodaj prilog
+                                          </Button>
+                                        </>
+                                      )}
+                                    </td>
+                                  ) : null}
                                   <td className="p-3">
                                     {lineItems.length > 1 ? (
                                       <Button
                                         variant="ghost"
                                         size="sm"
                                         className="h-8 px-2 text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/20"
-                                        onClick={() => setLineItems(lineItems.filter((_, i) => i !== idx))}
+                                        onClick={() => {
+                                          setLineItems(lineItems.filter((_, i) => i !== idx))
+                                          setLineItemAttachments((prev) => prev.filter((_, i) => i !== idx))
+                                        }}
                                       >
                                         <Trash2 className="h-4 w-4" />
                                       </Button>

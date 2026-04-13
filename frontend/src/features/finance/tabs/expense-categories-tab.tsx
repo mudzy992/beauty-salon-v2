@@ -478,7 +478,9 @@ export function ExpenseCategoriesTab() {
             <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
               <div className="space-y-0.5">
                 <div className="text-sm font-medium text-slate-900 dark:text-slate-50">Prilog po stavci</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">Uplatnice za doprinose (jedan prilog po stavci)</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Prilog uz svaku stavku (npr. uplatnice) — radi i za varijabilne rashode tipa “Ostalo”
+                </div>
               </div>
               <Switch
                 checked={tplForm.requiresAttachmentPerItem}
@@ -488,7 +490,7 @@ export function ExpenseCategoriesTab() {
 
             <div className="text-xs text-slate-500 dark:text-slate-400">
               {tplForm.requiresAttachmentPerItem
-                ? 'DA — Šablon za doprinose: definirate fiksne stavke sa cijenama, prilog (uplatnica) uz svaku stavku.'
+                ? 'DA — Prilog po stavci: uz svaku stavku možete dodati prilog (korisno za doprinose, ali i za varijabilne rashode npr. “Ostalo”).'
                 : 'NE — Šablon za fakture: stavke se dodaju ručno (naziv, količina, cijena). Prilog ide na kompletan rashod.'}
             </div>
           </div>
