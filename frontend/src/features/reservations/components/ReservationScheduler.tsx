@@ -48,7 +48,9 @@ const SchedulerEventContent = ({ event }: { event: SchedulerEvent }) => {
         <div className="truncate text-[11px] font-semibold">{event.title}</div>
         <div className="shrink-0 text-[10px] font-semibold opacity-80">{timeLabel}</div>
       </div>
-      <div className="mt-0.5 truncate text-[10px] opacity-80">{getReservationStatusLabel(event.status)}</div>
+      <div className="mt-0.5 truncate text-[10px] opacity-80">
+        {getReservationStatusLabel(event.status, event.reservation.cancelReason)}
+      </div>
     </div>
   )
 }
@@ -547,7 +549,7 @@ export const ReservationScheduler = (props: Props) => {
                 <p className="text-xs text-slate-500">Status</p>
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <p className="font-semibold text-slate-900 dark:text-slate-50">
-                    {getReservationStatusLabel(activeReservation.status)}
+                    {getReservationStatusLabel(activeReservation.status, activeReservation.cancelReason)}
                   </p>
                   <Badge variant="secondary" className="text-[10px]">
                     {activeReservation.status}

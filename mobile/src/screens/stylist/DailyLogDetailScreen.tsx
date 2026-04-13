@@ -194,6 +194,13 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const beforeImages = entry.images?.filter((i) => i.isBefore) ?? [];
   const afterImages = entry.images?.filter((i) => i.isAfter) ?? [];
   const hasBeforeAfter = beforeImages.length > 0 || afterImages.length > 0;
+  const reservationStatusLabel =
+    entry.reservation?.status === 'CANCELLED_BY_CLIENT' &&
+    (entry.reservation?.cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
+      ? 'Otkazano (nepotvrđen dolazak)'
+      : entry.reservation?.status
+        ? entry.reservation.status
+        : null;
 
   return (
     <ScrollView
@@ -218,6 +225,18 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         </View>
 
         <View style={styles.infoGrid}>
+          {entry.reservation ? (
+            <View style={styles.infoItem}>
+              <Ionicons name="bookmark-outline" size={16} color={colors.textSecondary} />
+              <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                Rezervacija:{' '}
+                <Text style={{ color: colors.text }}>
+                  {reservationStatusLabel}
+                </Text>
+                {entry.reservation.publicReferenceCode ? ` · ${entry.reservation.publicReferenceCode}` : ''}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.infoItem}>
             <Ionicons name="person-outline" size={16} color={colors.textSecondary} />
             <Text style={[styles.infoText, { color: colors.text }]}>

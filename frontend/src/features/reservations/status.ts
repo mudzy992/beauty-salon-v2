@@ -11,8 +11,18 @@ export const RESERVATION_STATUS_OPTIONS = [
   { value: 'NO_SHOW', label: 'Nije došao' },
 ] as const
 
-export const getReservationStatusLabel = (status: string) =>
-  RESERVATION_STATUS_OPTIONS.find((s) => s.value === status)?.label ?? status
+export const getReservationStatusLabel = (
+  status: string,
+  cancelReason?: string | null,
+) => {
+  if (
+    status === 'CANCELLED_BY_CLIENT' &&
+    (cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
+  ) {
+    return 'Otkazano (nepotvrđen dolazak)'
+  }
+  return RESERVATION_STATUS_OPTIONS.find((s) => s.value === status)?.label ?? status
+}
 
 export const getReservationStatusColor = (status: string) => {
   if (status === 'COMPLETED') return 'emerald'

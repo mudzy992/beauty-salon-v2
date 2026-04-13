@@ -274,7 +274,17 @@ export class DailyLogService {
       },
       service: { select: { id: true, name: true } },
       client: { select: { id: true, firstName: true, lastName: true } },
-      reservation: { select: { id: true } },
+      reservation: {
+        select: {
+          id: true,
+          status: true,
+          cancelReason: true,
+          reservationDate: true,
+          startTime: true,
+          endTime: true,
+          publicReferenceCode: true,
+        },
+      },
       images: { include: { upload: true } },
     };
   }

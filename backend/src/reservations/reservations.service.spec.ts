@@ -41,6 +41,7 @@ Object.assign(mockPrisma, {
     findMany: jest.fn(),
     findFirst: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
   },
   notification: {
     findFirst: jest.fn(),
@@ -55,6 +56,7 @@ Object.assign(mockPrisma, {
   stylistService: { findMany: jest.fn() },
   stylistProfile: { findUnique: jest.fn(), findMany: jest.fn() },
   salonSettings: { findFirst: jest.fn() },
+  salonWorkingHours: { findUnique: jest.fn() },
   clientCancellationCount: { findUnique: jest.fn(), upsert: jest.fn() },
   $transaction: jest.fn(async (cb: unknown): Promise<unknown> => {
     if (typeof cb === 'function') return (cb as (tx: any) => unknown)(mockPrisma);
@@ -560,4 +562,164 @@ describe('ReservationsService', () => {
       );
     });
   });
+
+  describe('confirmAttendance', () => {
+    it('ne dozvoljava potvrdu dolaska prije 24h od stvarnog starta', async () => {
+      jest.useFakeTimers()
+      jest.setSystemTime(new Date(2026, 2, 9, 9, 59, 59, 0))
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-1',
+        clientId: 'client-1',
+        status: 'CONFIRMED',
+        reservationDate: new Date(2026, 2, 10, 0, 0, 0, 0),
+        startTime: '10:00',
+      })
+      mockPrisma.salonSettings.findFirst.mockResolvedValue({
+        cancellationDeadlineHours: 24,
+      })
+      await expect(service.confirmAttendance('res-1', 'client-1')).rejects.toThrow(
+        BadRequestException,
+      )
+    })
+  })
+
+  describe('cancelByClient', () => {
+    it('računa rok za otkazivanje od stvarnog starta, ne od ponoći', async () => {
+      jest.useFakeTimers()
+      jest.setSystemTime(new Date('2026-03-10T11:01:00.000Z'))
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-1',
+        clientId: 'client-1',
+        status: 'CONFIRMED',
+        reservationDate: new Date('2026-03-11T00:00:00.000Z'),
+        startTime: '10:00',
+        serviceId: 'svc-1',
+      })
+      mockPrisma.salonSettings.findFirst.mockResolvedValue({
+        cancellationDeadlineHours: 24,
+        maxCancellationsBeforePenalty: 3,
+        penaltyDurationDays: 30,
+      })
+      await expect(service.cancelByClient('res-1', 'client-1')).rejects.toThrow(
+        BadRequestException,
+      )
+    })
+  })
+
+  describe('processAttendanceDeadlines', () => {
+    it('auto-otkazuje CONFIRMED bez attendance u 24h window i primjenjuje penal', async () => {
+      jest.useFakeTimers()
+      jest.setSystemTime(new Date('2026-03-09T10:01:00.000Z'))
+      mockPrisma.salonSettings.findFirst.mockResolvedValue({
+        maxCancellationsBeforePenalty: 3,
+        penaltyDurationDays: 30,
+        pauseBetweenServices: 10,
+        id: 'salon-1',
+      })
+      mockPrisma.reservation.findMany.mockResolvedValue([
+        {
+          id: 'res-1',
+          clientId: 'client-1',
+          serviceId: 'svc-1',
+          reservationDate: new Date('2026-03-10T00:00:00.000Z'),
+          startTime: '10:00',
+          confirmedStylistId: 'sp-1',
+        },
+      ])
+      mockPrisma.reservation.updateMany.mockResolvedValue({ count: 1 })
+      mockPrisma.clientCancellationCount.findUnique.mockResolvedValue({
+        userId: 'client-1',
+        cancellationCount: 0,
+        penaltyUntil: null,
+      })
+      mockPrisma.clientCancellationCount.upsert.mockResolvedValue({})
+      jest.spyOn(service as any, 'findOne').mockResolvedValue({ id: 'res-1' })
+      const result = await service.processAttendanceDeadlines()
+      expect(result).toEqual({ cancelledCount: 1 })
+      expect(mockPrisma.reservation.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'CANCELLED_BY_CLIENT',
+            cancelReason: 'Nije potvrđen dolazak u roku',
+          }),
+        }),
+      )
+      expect(mockPrisma.clientCancellationCount.upsert).toHaveBeenCalled()
+      expect(mockNotifications.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'reservation_cancelled',
+          data: expect.objectContaining({ kind: 'attendance_timeout_cancelled' }),
+        }),
+      )
+    })
+  })
+
+  describe('processAutoReordersAfterAttendanceCancellations', () => {
+    it('predlaže raniji termin za ATTENDANCE_CONFIRMED kada postoji rupa, uz pauzu', async () => {
+      jest.useFakeTimers()
+      jest.setSystemTime(new Date('2026-03-10T08:00:00.000Z'))
+      mockPrisma.salonSettings.findFirst.mockResolvedValue({
+        id: 'salon-1',
+        pauseBetweenServices: 10,
+      })
+      mockPrisma.reservation.findMany.mockResolvedValue([
+        {
+          id: 'res-1',
+          clientId: 'client-1',
+          confirmedStylistId: 'sp-1',
+          reservationDate: new Date('2026-03-10T00:00:00.000Z'),
+          startTime: '11:00',
+          endTime: '11:30',
+          rescheduleStatus: null,
+        },
+      ])
+      mockPrisma.salonWorkingHours.findUnique.mockResolvedValue({
+        isWorkingDay: true,
+        openTime: '09:00',
+        closeTime: '17:00',
+      })
+      mockPrisma.reservation.updateMany.mockResolvedValue({ count: 1 })
+      const result = await service.processAutoReordersAfterAttendanceCancellations()
+      expect(result).toEqual({ proposedCount: 1 })
+      expect(mockPrisma.reservation.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            rescheduleStatus: 'PENDING',
+            rescheduleProposedStartTime: '09:10',
+            rescheduleProposedEndTime: '09:40',
+          }),
+        }),
+      )
+      expect(mockNotifications.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ kind: 'reservation_reorder' }),
+        }),
+      )
+    })
+  })
+
+  describe('stylistStart', () => {
+    it('odbija start kada je prošlo plannedEnd + 60min', async () => {
+      jest.useFakeTimers()
+      jest.setSystemTime(new Date('2026-03-10T12:01:00.000Z'))
+      mockPrisma.stylistProfile.findUnique.mockResolvedValue({ id: 'sp-1', userId: 'user-1' })
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-1',
+        clientId: 'client-1',
+        confirmedStylistId: 'sp-1',
+        reservationDate: new Date('2026-03-10T00:00:00.000Z'),
+        startTime: '10:00',
+        endTime: '11:00',
+        status: 'ATTENDANCE_CONFIRMED',
+        rescheduleStatus: null,
+        rescheduleProposedStartTime: null,
+        rescheduleProposedEndTime: null,
+        serviceId: 'svc-1',
+      })
+      mockPrisma.reservation.findFirst.mockResolvedValue(null)
+      await expect(service.stylistStart('res-1', 'user-1')).rejects.toThrow(
+        BadRequestException,
+      )
+    })
+  })
 });

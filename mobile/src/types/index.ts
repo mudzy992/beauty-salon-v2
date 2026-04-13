@@ -144,6 +144,15 @@ export interface DailyLogEntry {
   service?: { id: string; name: string };
   client?: { id: string; firstName: string; lastName: string };
   stylistProfile?: StylistProfile;
+  reservation?: {
+    id: string;
+    status: ReservationStatus;
+    cancelReason: string | null;
+    reservationDate: string;
+    startTime: string;
+    endTime: string;
+    publicReferenceCode: string | null;
+  } | null;
   images?: DailyLogImage[];
 }
 

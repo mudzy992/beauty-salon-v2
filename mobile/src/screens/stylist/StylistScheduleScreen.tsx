@@ -269,7 +269,13 @@ export function StylistScheduleScreen({ navigation }: Props) {
                         </Text>
                       </View>
                       <Badge
-                        label={t(`myReservations.status.${activeReservation.status}` as any)}
+                        label={
+                          activeReservation.status === 'CANCELLED_BY_CLIENT' &&
+                          (activeReservation.cancelReason ?? '').trim() ===
+                            'Nije potvrđen dolazak u roku'
+                            ? 'Otkazano (nepotvrđen dolazak)'
+                            : t(`myReservations.status.${activeReservation.status}` as any)
+                        }
                         variant={getStatusVariant(activeReservation.status)}
                         status={activeReservation.status}
                       />
@@ -359,7 +365,13 @@ export function StylistScheduleScreen({ navigation }: Props) {
                         </Text>
                       </View>
                       <Badge
-                        label={t(`myReservations.status.${activeReservation.status}` as any)}
+                        label={
+                          activeReservation.status === 'CANCELLED_BY_CLIENT' &&
+                          (activeReservation.cancelReason ?? '').trim() ===
+                            'Nije potvrđen dolazak u roku'
+                            ? 'Otkazano (nepotvrđen dolazak)'
+                            : t(`myReservations.status.${activeReservation.status}` as any)
+                        }
                         variant={getStatusVariant(activeReservation.status)}
                         status={activeReservation.status}
                       />
@@ -478,7 +490,13 @@ export function StylistScheduleScreen({ navigation }: Props) {
                         </Text>
                       </View>
                       <Badge
-                        label={t(`myReservations.status.${item.status}` as any)}
+                        label={
+                          item.status === 'CANCELLED_BY_CLIENT' &&
+                          (item.cancelReason ?? '').trim() ===
+                            'Nije potvrđen dolazak u roku'
+                            ? 'Otkazano (nepotvrđen dolazak)'
+                            : t(`myReservations.status.${item.status}` as any)
+                        }
                         variant={getStatusVariant(item.status)}
                         status={item.status}
                       />
@@ -517,7 +535,13 @@ export function StylistScheduleScreen({ navigation }: Props) {
                       </Text>
                     </View>
                     <Badge
-                      label={t(`myReservations.status.${item.status}` as any)}
+                      label={
+                        item.status === 'CANCELLED_BY_CLIENT' &&
+                        (item.cancelReason ?? '').trim() ===
+                          'Nije potvrđen dolazak u roku'
+                          ? 'Otkazano (nepotvrđen dolazak)'
+                          : t(`myReservations.status.${item.status}` as any)
+                      }
                       variant={getStatusVariant(item.status)}
                       status={item.status}
                     />

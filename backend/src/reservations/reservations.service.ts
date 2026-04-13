@@ -637,9 +637,13 @@ export class ReservationsService {
 
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
-    const deadline = new Date(r.reservationDate);
-    deadline.setHours(0, 0, 0, 0);
-    deadline.setHours(deadline.getHours() - salon.cancellationDeadlineHours);
+    const reservationStartAt = this.dates.combineDateAndTime(
+      r.reservationDate,
+      r.startTime,
+    );
+    const deadline = new Date(
+      reservationStartAt.getTime() - salon.cancellationDeadlineHours * 60 * 60 * 1000,
+    );
     if (new Date() > deadline) {
       throw new BadRequestException('Rok za otkazivanje je istekao.');
     }
@@ -711,11 +715,11 @@ export class ReservationsService {
 
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
-    const minConfirmTime = new Date(r.reservationDate);
-    minConfirmTime.setHours(0, 0, 0, 0);
-    minConfirmTime.setHours(
-      minConfirmTime.getHours() - salon.cancellationDeadlineHours,
+    const reservationStartAt = this.dates.combineDateAndTime(
+      r.reservationDate,
+      r.startTime,
     );
+    const minConfirmTime = new Date(reservationStartAt.getTime() - 24 * 60 * 60 * 1000);
     if (new Date() < minConfirmTime) {
       throw new BadRequestException(
         'Dolazak se može potvrditi najranije 24h prije termina.',
@@ -1172,7 +1176,8 @@ export class ReservationsService {
     }
 
     const plannedEnd = this.dates.combineDateAndTime(r.reservationDate, r.endTime);
-    if (now.getTime() > plannedEnd.getTime()) {
+    const latestStart = new Date(plannedEnd.getTime() + 60 * 60 * 1000);
+    if (now.getTime() > latestStart.getTime()) {
       throw new BadRequestException(
         'Termin je probijen. Prvo odaberite akciju kašnjenja (rekalkulacija ili korištenje pauze).',
       );
@@ -1925,6 +1930,201 @@ export class ReservationsService {
       }
       await this.notifyStylistAboutClientDecision(r.id, 'timeout_cancelled');
     }
+  }
+
+  async processAttendanceDeadlines() {
+    const salon = await this.prisma.salonSettings.findFirst();
+    if (!salon) return { cancelledCount: 0 };
+    const now = new Date();
+    const today = this.dates.parseDateOnly(now);
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const dayAfterTomorrow = new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000);
+    const candidates = await this.prisma.reservation.findMany({
+      where: {
+        status: RESERVATION_STATUS.CONFIRMED,
+        attendanceConfirmedAt: null,
+        reservationDate: { gte: today, lt: dayAfterTomorrow },
+      },
+      select: {
+        id: true,
+        clientId: true,
+        serviceId: true,
+        reservationDate: true,
+        startTime: true,
+        confirmedStylistId: true,
+      },
+      orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
+    });
+    let cancelledCount = 0;
+    for (const r of candidates) {
+      const reservationStartAt = this.dates.combineDateAndTime(
+        r.reservationDate,
+        r.startTime,
+      );
+      const attendanceDeadline = new Date(
+        reservationStartAt.getTime() - 24 * 60 * 60 * 1000,
+      );
+      if (now.getTime() < attendanceDeadline.getTime()) continue;
+      const updatedRow = await this.prisma.reservation.updateMany({
+        where: {
+          id: r.id,
+          status: RESERVATION_STATUS.CONFIRMED,
+          attendanceConfirmedAt: null,
+        },
+        data: {
+          status: RESERVATION_STATUS.CANCELLED_BY_CLIENT,
+          cancelledAt: now,
+          cancelReason: 'Nije potvrđen dolazak u roku',
+        },
+      });
+      if (updatedRow.count === 0) continue;
+      cancelledCount++;
+      await this.incrementCancellationCount(r.clientId, {
+        maxCancellationsBeforePenalty: salon.maxCancellationsBeforePenalty,
+        penaltyDurationDays: salon.penaltyDurationDays,
+      });
+      await this.notifications.send({
+        userId: r.clientId,
+        title: 'Termin je otkazan',
+        body: 'Termin je otkazan jer dolazak nije potvrđen u predviđenom roku.',
+        type: 'reservation_cancelled',
+        data: {
+          kind: 'attendance_timeout_cancelled',
+          reservationId: r.id,
+        },
+        channel: 'PUSH',
+      });
+      const cancelled = await this.findOne(r.id, {
+        sub: r.clientId,
+        roles: ['CLIENT'],
+        username: '',
+        email: '',
+      });
+      this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CANCELLED, cancelled);
+      this.events.emitToStylists(SOCKET_EVENTS.RESERVATION_CANCELLED, cancelled);
+      this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
+        serviceId: r.serviceId,
+        date: r.reservationDate,
+      });
+    }
+    return { cancelledCount };
+  }
+
+  async processAutoReordersAfterAttendanceCancellations() {
+    const salon = await this.prisma.salonSettings.findFirst();
+    if (!salon) return { proposedCount: 0 };
+    const now = new Date();
+    const today = this.dates.parseDateOnly(now);
+    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+    const dayAfterTomorrow = new Date(tomorrow.getTime() + 24 * 60 * 60 * 1000);
+    const attendanceConfirmed = await this.prisma.reservation.findMany({
+      where: {
+        status: RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
+        confirmedStylistId: { not: null },
+        rescheduleStatus: { not: 'PENDING' },
+        reservationDate: { gte: today, lt: dayAfterTomorrow },
+      },
+      select: {
+        id: true,
+        clientId: true,
+        confirmedStylistId: true,
+        reservationDate: true,
+        startTime: true,
+        endTime: true,
+        rescheduleStatus: true,
+      },
+      orderBy: [
+        { confirmedStylistId: 'asc' },
+        { reservationDate: 'asc' },
+        { startTime: 'asc' },
+      ],
+    });
+    const nowDateStr = this.dates.toLocalDateOnlyString(now);
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const byKey = new Map<string, typeof attendanceConfirmed>();
+    for (const r of attendanceConfirmed) {
+      const key = `${r.confirmedStylistId}|${this.dates.toLocalDateOnlyString(r.reservationDate)}`;
+      const list = byKey.get(key);
+      if (list) {
+        list.push(r);
+      } else {
+        byKey.set(key, [r]);
+      }
+    }
+    let proposedCount = 0;
+    for (const [key, list] of byKey.entries()) {
+      const [stylistProfileId, dateStr] = key.split('|');
+      if (!stylistProfileId || !dateStr) continue;
+      const dateParts = dateStr.split('-').map((x) => Number(x));
+      const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2], 12, 0, 0, 0);
+      const dayOfWeek = date.getDay();
+      const hours = await this.prisma.salonWorkingHours.findUnique({
+        where: {
+          salonSettingsId_dayOfWeek: {
+            salonSettingsId: salon.id,
+            dayOfWeek,
+          },
+        },
+        select: { isWorkingDay: true, openTime: true, closeTime: true },
+      });
+      if (!hours?.isWorkingDay) continue;
+      const openMin = timeToMinutes(hours.openTime);
+      const closeMin = timeToMinutes(hours.closeTime);
+      const pause = salon.pauseBetweenServices ?? 0;
+      let prevOriginalEnd = openMin;
+      for (const r of list) {
+        const duration = timeToMinutes(r.endTime) - timeToMinutes(r.startTime);
+        if (duration <= 0) {
+          prevOriginalEnd = Math.max(prevOriginalEnd, timeToMinutes(r.endTime));
+          continue;
+        }
+        let earliestStart = Math.max(openMin, prevOriginalEnd + pause);
+        if (dateStr === nowDateStr) {
+          earliestStart = Math.max(earliestStart, nowMinutes);
+        }
+        const originalStart = timeToMinutes(r.startTime);
+        if (earliestStart < originalStart && earliestStart + duration <= closeMin) {
+          const targetStartTime = minutesToTime(earliestStart);
+          const targetEndTime = minutesToTime(earliestStart + duration);
+          const updated = await this.prisma.reservation.updateMany({
+            where: {
+              id: r.id,
+              status: RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
+              rescheduleStatus: { not: 'PENDING' },
+            },
+            data: {
+              rescheduleProposedStartTime: targetStartTime,
+              rescheduleProposedEndTime: targetEndTime,
+              rescheduleStatus: 'PENDING',
+            },
+          });
+          if (updated.count > 0) {
+            proposedCount++;
+            const sentAt = new Date();
+            const confirmIn = this.computeRescheduleDeadlineMinutes(
+              sentAt,
+              targetStartTime,
+              r.reservationDate,
+            );
+            await this.notifications.send({
+              userId: r.clientId,
+              title: 'Oslobodilo se ranije vrijeme',
+              body: `Možete prebaciti termin na ${targetStartTime}–${targetEndTime}. Potvrdite u narednih ${confirmIn} min.`,
+              type: 'reservation_reminder',
+              data: {
+                kind: 'reservation_reorder',
+                reservationId: r.id,
+                confirmationDeadlineMinutes: confirmIn,
+                createdAt: sentAt.toISOString(),
+              },
+              channel: 'PUSH',
+            });
+          }
+        }
+        prevOriginalEnd = timeToMinutes(r.endTime);
+      }
+    }
+    return { proposedCount };
   }
 
   async autoStartUpcomingReservations() {

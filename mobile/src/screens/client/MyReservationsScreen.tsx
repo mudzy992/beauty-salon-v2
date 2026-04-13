@@ -208,7 +208,12 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
             {item.service?.name || 'Usluga'}
           </Text>
           <Badge
-            label={t(`myReservations.status.${item.status}` as any)}
+            label={
+              item.status === 'CANCELLED_BY_CLIENT' &&
+              (item.cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
+                ? 'Otkazano (nepotvrđen dolazak)'
+                : t(`myReservations.status.${item.status}` as any)
+            }
             variant={getStatusVariant(item.status)}
             status={item.status}
           />

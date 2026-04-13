@@ -41,6 +41,15 @@ export type DailyLogEntry = {
   service?: { id: string; name: string } | null
   client?: { id: string; firstName: string | null; lastName: string | null; user?: { username: string } } | null
   stylistProfile?: { id: string; user?: { id: string; firstName: string | null; lastName: string | null; username?: string } } | null
+  reservation?: {
+    id: string
+    status: string
+    cancelReason: string | null
+    reservationDate: string
+    startTime: string
+    endTime: string
+    publicReferenceCode: string | null
+  } | null
   images?: DailyLogImage[]
 }
 

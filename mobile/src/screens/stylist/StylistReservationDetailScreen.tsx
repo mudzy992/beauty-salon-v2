@@ -486,7 +486,11 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     );
   }
 
-  const statusLabel = t(`myReservations.status.${reservation.status}` as any);
+  const statusLabel =
+    reservation.status === 'CANCELLED_BY_CLIENT' &&
+    (reservation.cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
+      ? 'Otkazano (nepotvrđen dolazak)'
+      : t(`myReservations.status.${reservation.status}` as any);
   const loyaltyPercent = 'loyaltyDiscountPercent' in reservation ? Number((reservation as any).loyaltyDiscountPercent ?? 0) : 0;
   const loyaltyAmount = 'loyaltyDiscountAmount' in reservation ? Number((reservation as any).loyaltyDiscountAmount ?? 0) : 0;
 

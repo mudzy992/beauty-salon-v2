@@ -20,10 +20,13 @@ export class ReservationDelayCron {
    */
   @Cron('*/1 * * * *')
   async tick() {
-    // 1) Auto-start nadolazećih potvrđenih termina (ako stilist nema aktivan termin)
-    await this.reservations.autoStartUpcomingReservations();
-    // 2) Timeout za pending potvrde nakon rekalkulacije/reorder zahtjeva
+    // 1) Timeout za pending potvrde nakon rekalkulacije/reorder zahtjeva
     await this.reservations.processPendingRescheduleTimeouts();
+    // 2) Attendance deadline enforcement (auto-otkaz za nepotvrđene dolaske)
+    const attendanceResult = await this.reservations.processAttendanceDeadlines();
+    if ((attendanceResult?.cancelledCount ?? 0) > 0) {
+      await this.reservations.processAutoReordersAfterAttendanceCancellations();
+    }
 
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) return;
