@@ -432,7 +432,7 @@ export function ExpenseBooksTab() {
     const isBookLocked = Boolean((selectedExpense as any)?.book?.isClosed)
     const canEdit = !isBookLocked
     const requiresAttachmentPerItem = Boolean((selectedExpense as any)?.category?.template?.requiresAttachmentPerItem)
-    const variableMeta = useMemo(() => {
+    const variableMeta = (() => {
       if (isFixed) return { lineItems: [] as LineItem[], userNotes: selectedExpense.notes ?? '' }
       const raw = selectedExpense.notes ?? ''
       try {
@@ -443,7 +443,8 @@ export function ExpenseBooksTab() {
       } catch {
         return { lineItems: [] as LineItem[], userNotes: raw }
       }
-    }, [isFixed, selectedExpense.notes])
+    })()
+    const notesLabel = variableMeta.userNotes.trim()
 
     const handleStartEditExpense = () => {
       const fvs = Array.isArray(selectedExpense.fieldValues) ? selectedExpense.fieldValues : []
@@ -701,10 +702,10 @@ export function ExpenseBooksTab() {
                 {new Date(selectedExpense.createdAt).toLocaleDateString('bs-BA')}
               </div>
             </div>
-            {selectedExpense.notes ? (
+            {notesLabel ? (
               <div className="md:col-span-2">
                 <div className="text-xs text-slate-500 dark:text-slate-400">Bilješke</div>
-                <div className="text-sm text-slate-900 dark:text-slate-50">{variableMeta.userNotes || selectedExpense.notes}</div>
+                <div className="text-sm text-slate-900 dark:text-slate-50 whitespace-pre-wrap">{notesLabel}</div>
               </div>
             ) : null}
           </CardContent>
