@@ -134,24 +134,44 @@ export const StylistSchedulePage = () => {
           <div key={section.title} className="space-y-2">
             <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{section.title}</h2>
             <div className="grid gap-3">
-              {section.data.map((r) => (
-                <Link key={r.id} to={`/stylist/schedule/${r.id}`} className="block">
-                  <Card className="p-4 hover:bg-slate-50/60 dark:hover:bg-slate-900/30 transition-colors">
-                    <div className="flex items-start justify-between gap-3">
+              {section.data.map((r) => {
+                const detailHref = `/stylist/schedule/${r.id}`
+                const completeHref = `/stylist/schedule/${r.id}?action=complete`
+
+                return (
+                  <Card key={r.id} className="p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-semibold text-slate-900 dark:text-slate-50 truncate">
-                          {r.service?.name ?? 'Usluga'}
-                        </p>
+                        <Link to={detailHref} className="block">
+                          <p className="font-semibold text-slate-900 dark:text-slate-50 truncate hover:underline underline-offset-4">
+                            {r.service?.name ?? 'Usluga'}
+                          </p>
+                        </Link>
                         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                           {formatTime(r.startTime)} – {formatTime(r.endTime)}
                           {r.client ? ` · ${r.client.firstName} ${r.client.lastName}` : ''}
                         </p>
                       </div>
-                      <Badge variant={getStatusVariant(r.status)}>{r.status}</Badge>
+
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <Badge variant={getStatusVariant(r.status)}>{r.status}</Badge>
+                        <Link to={detailHref}>
+                          <Button type="button" variant="outline" size="sm">
+                            Detalji
+                          </Button>
+                        </Link>
+                        {r.status === 'IN_PROGRESS' ? (
+                          <Link to={completeHref}>
+                            <Button type="button" size="sm">
+                              Naplata
+                            </Button>
+                          </Link>
+                        ) : null}
+                      </div>
                     </div>
                   </Card>
-                </Link>
-              ))}
+                )
+              })}
             </div>
           </div>
         ))}

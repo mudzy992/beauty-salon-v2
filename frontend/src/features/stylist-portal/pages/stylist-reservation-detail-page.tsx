@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
@@ -56,11 +56,19 @@ export const StylistReservationDetailPage = () => {
   const { toastApiError, success, warning } = useAppToast()
   const navigate = useNavigate()
   const { reservationId } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const id = String(reservationId ?? '')
 
   const { profileId, isLoading: profileLoading } = useStylistProfileMe()
   const { reservation, isLoading, isFetching, refetch } = useStylistReservationDetail({ reservationId: id })
   const actions = useReservationActions()
+
+  const isConfirmedStylist = useMemo(() => {
+    if (!reservation || !profileId) return false
+    const confirmedId = reservation.confirmedStylistId ?? null
+    const confirmedProfileId = reservation.confirmedStylist?.id ?? null
+    return confirmedId === profileId || confirmedProfileId === profileId
+  }, [reservation, profileId])
 
   const debtsQuery = useClientDebts({ clientId: reservation?.clientId ?? null })
   const [selectedDebtIds, setSelectedDebtIds] = useState<Record<string, boolean>>({})
@@ -98,27 +106,31 @@ export const StylistReservationDetailPage = () => {
     if (!reservation || !profileId) return false
     return (
       (reservation.status === 'CONFIRMED' || reservation.status === 'IN_PROGRESS') &&
-      reservation.confirmedStylistId === profileId
+      isConfirmedStylist
     )
-  }, [reservation, profileId])
+  }, [reservation, profileId, isConfirmedStylist])
 
   const canMarkNoShow = useMemo(() => {
     if (!reservation || !profileId) return false
     return (
       (reservation.status === 'CONFIRMED' || reservation.status === 'ATTENDANCE_CONFIRMED') &&
-      reservation.confirmedStylistId === profileId
+      isConfirmedStylist
     )
-  }, [reservation, profileId])
+  }, [reservation, profileId, isConfirmedStylist])
 
   const canStart = useMemo(() => {
     if (!reservation || !profileId) return false
-    return reservation.status === 'ATTENDANCE_CONFIRMED' && reservation.confirmedStylistId === profileId
-  }, [reservation, profileId])
+    return reservation.status === 'ATTENDANCE_CONFIRMED' && isConfirmedStylist
+  }, [reservation, profileId, isConfirmedStylist])
 
   const canComplete = useMemo(() => {
     if (!reservation || !profileId) return false
-    return reservation.status === 'IN_PROGRESS' && reservation.confirmedStylistId === profileId
-  }, [reservation, profileId])
+    return reservation.status === 'IN_PROGRESS' && isConfirmedStylist
+  }, [reservation, profileId, isConfirmedStylist])
+
+  const hasAnyAction = useMemo(() => {
+    return canStart || canComplete || canCancelByStylist || canMarkNoShow
+  }, [canStart, canComplete, canCancelByStylist, canMarkNoShow])
 
   const isStartOverdue = useMemo(() => {
     if (!reservation) return false
@@ -224,6 +236,20 @@ export const StylistReservationDetailPage = () => {
     setSelectedDebtIds({})
     setCompleteOpen(true)
   }
+
+  useEffect(() => {
+    const action = searchParams.get('action')
+    if (!action) return
+    if (!reservation || !profileId) return
+    if (action === 'complete' && reservation.status === 'IN_PROGRESS' && isConfirmedStylist) {
+      openComplete()
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('action')
+        return next
+      })
+    }
+  }, [searchParams, reservation, profileId, isConfirmedStylist, setSearchParams])
 
   const submitComplete = async () => {
     if (!reservation) return
@@ -422,7 +448,7 @@ export const StylistReservationDetailPage = () => {
         </div>
       </Card>
 
-      {(canStart || canComplete || canCancelByStylist || canMarkNoShow) ? (
+      {hasAnyAction ? (
         <Card className="p-4 space-y-3">
           <p className="font-semibold text-slate-900 dark:text-slate-50">Akcije</p>
 
@@ -473,7 +499,24 @@ export const StylistReservationDetailPage = () => {
             </Button>
           ) : null}
         </Card>
-      ) : null}
+      ) : (
+        <Card className="p-4 space-y-2">
+          <p className="font-semibold text-slate-900 dark:text-slate-50">Akcije nisu dostupne</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Ovo se obično desi ako trenutni korisnik nije prepoznat kao potvrđeni stilist za ovaj termin.
+          </p>
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 p-3 text-xs text-slate-700 dark:text-slate-200 space-y-1">
+            <div><span className="font-semibold">status:</span> {reservation.status}</div>
+            <div><span className="font-semibold">profileId:</span> {profileId ?? 'null'}</div>
+            <div><span className="font-semibold">confirmedStylistId:</span> {reservation.confirmedStylistId ?? 'null'}</div>
+            <div><span className="font-semibold">confirmedStylist.id:</span> {reservation.confirmedStylist?.id ?? 'null'}</div>
+            <div><span className="font-semibold">isConfirmedStylist:</span> {String(isConfirmedStylist)}</div>
+          </div>
+          <Button type="button" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+            Osvježi
+          </Button>
+        </Card>
+      )}
 
       <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <DialogContent>

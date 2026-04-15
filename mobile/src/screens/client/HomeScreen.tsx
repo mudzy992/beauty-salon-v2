@@ -84,6 +84,13 @@ function getSettingValue(settings: PublicSetting[] | null | undefined, key: stri
   return item?.value?.trim() || fallback;
 }
 
+function formatBrandWordDisplay(word: string): string {
+  const raw = String(word ?? '').trim();
+  const oneWord = raw.split(/\s+/)[0] ?? '';
+  const upper = oneWord.slice(0, 8).toLocaleUpperCase('bs-BA');
+  return upper || 'LOGO';
+}
+
 function resolveHeroImageUrl(value: string): string {
   if (!value?.trim()) return DEFAULT_HERO_IMAGE;
   const v = value.trim();
@@ -291,6 +298,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
   const appLogo = getSettingValue(settings, 'app_logo', '');
   const appTitle = getSettingValue(settings, 'app_title', t('home.heroTitle'));
+  const appLogoTextColor =
+    getSettingValue(settings, 'app_logo_text_color', '').trim() || colors.primary;
   const hasLogo = !!appLogo?.trim();
   const heroImageUrl = resolveHeroImageUrl(getSettingValue(settings, 'public_hero_image', ''));
   const heroTitle = getSettingValue(settings, 'public_hero_title', appTitle);
@@ -371,14 +380,40 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 </Animated.View>
               ) : null}
               {hasLogo ? (
-                <Animated.View entering={FadeInDown.delay(220).duration(520).springify()}>
-                  <Image
-                    source={{ uri: getImageUrl(appLogo) || getUploadUrl(appLogo) || appLogo }}
-                    style={styles.heroLogo}
-                    contentFit="contain"
-                    accessibilityLabel={appTitle}
-                  />
-                </Animated.View>
+                <>
+                  <Animated.View
+                    entering={FadeInDown.delay(220).duration(520).springify()}
+                    style={styles.heroLogoBlock}
+                  >
+                    <Image
+                      source={{ uri: getImageUrl(appLogo) || getUploadUrl(appLogo) || appLogo }}
+                      style={styles.heroLogoLarge}
+                      contentFit="contain"
+                      accessibilityLabel={appTitle}
+                    />
+                  </Animated.View>
+                  <Animated.Text
+                    entering={FadeInDown.delay(300).duration(500).springify()}
+                    style={[
+                      styles.heroBrandTitle,
+                      {
+                        color: appLogoTextColor,
+                        textShadowColor: 'rgba(0,0,0,0.5)',
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 6,
+                      },
+                    ]}
+                  >
+                    {formatBrandWordDisplay(appTitle)}
+                  </Animated.Text>
+                  <Animated.Text
+                    entering={FadeInDown.delay(380).duration(480).springify()}
+                    style={styles.heroSubtitleUnderLogo}
+                    numberOfLines={2}
+                  >
+                    {heroSubtitle}
+                  </Animated.Text>
+                </>
               ) : (
                 <>
                   <Animated.Text
@@ -747,9 +782,33 @@ const styles = StyleSheet.create({
   },
   heroSparkLeft: { opacity: 0.9 },
   heroSparkRight: { opacity: 0.9, transform: [{ scaleX: -1 }] },
-  heroLogo: {
-    width: 220,
-    height: 90,
+  heroLogoBlock: {
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  heroLogoLarge: {
+    width: 300,
+    height: 128,
+  },
+  heroBrandTitle: {
+    marginTop: spacing.sm,
+    fontSize: 22,
+    fontFamily: fontFamily.bodySemiBold,
+    letterSpacing: 5,
+    textAlign: 'center',
+  },
+  heroSubtitleUnderLogo: {
+    fontSize: 14,
+    marginTop: spacing.xs,
+    fontFamily: fontFamily.body,
+    letterSpacing: 0.35,
+    lineHeight: 21,
+    textAlign: 'center',
+    paddingHorizontal: spacing.md,
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   heroTitle: {
     fontSize: 36,

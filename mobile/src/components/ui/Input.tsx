@@ -54,6 +54,8 @@ export function Input({ label, error, leftIcon, isPassword, style, onFocus, onBl
             style,
           ]}
           placeholderTextColor={colors.inputPlaceholder}
+          autoCapitalize={isPassword ? 'none' : props.autoCapitalize}
+          autoCorrect={isPassword ? false : props.autoCorrect}
           secureTextEntry={isPassword && !showPassword}
           onFocus={(e) => {
             setFocused(true);
