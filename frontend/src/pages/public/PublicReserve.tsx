@@ -75,8 +75,8 @@ const ServiceAutocomplete = ({
 }: {
   services: ServiceOption[]
   loading: boolean
-  selected: ServiceOption | null
-  onSelect: (s: ServiceOption | null) => void
+  selected: ServiceOption[]
+  onSelect: (next: ServiceOption[]) => void
 }) => {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
@@ -103,34 +103,62 @@ const ServiceAutocomplete = ({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  if (selected) {
+  if (selected.length > 0) {
+    const totalMinutes = selected.reduce((acc, s) => acc + (s.durationMinutes ?? 0), 0)
     return (
-      <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200/80 bg-slate-50 p-3">
+      <div className="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50 p-3">
         <div>
-          <div className="font-semibold text-slate-900">{selected.name}</div>
-          <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-600">
+          <div className="font-semibold text-slate-900">Odabrani servisi</div>
+          <div className="mt-2 space-y-2">
+            {selected.map((s) => (
+              <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-slate-900">{s.name}</div>
+                  <div className="mt-0.5 text-xs text-slate-600">{s.durationMinutes} min</div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    onSelect(selected.filter((x) => x.id !== s.id))
+                  }}
+                >
+                  Ukloni
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-600">
             <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1">
               <Clock className="h-3.5 w-3.5 text-slate-500" />
-              {selected.durationMinutes} min
+              Ukupno: {totalMinutes} min
             </span>
-            {selected.subcategory?.category ? (
-              <span>
-                {selected.subcategory.category.name} → {selected.subcategory.name}
-              </span>
-            ) : null}
           </div>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          onClick={() => {
-            onSelect(null)
-            setQuery('')
-          }}
-        >
-          Promijeni
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setOpen(true)
+            }}
+          >
+            Dodaj još
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              onSelect([])
+              setQuery('')
+            }}
+          >
+            Očisti
+          </Button>
+        </div>
       </div>
     )
   }
@@ -167,7 +195,7 @@ const ServiceAutocomplete = ({
                   type="button"
                   className="w-full text-left px-3 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
                   onClick={() => {
-                    onSelect(s)
+                    onSelect([...selected, s])
                     setOpen(false)
                     setQuery('')
                   }}
@@ -353,7 +381,7 @@ export default function PublicReserve() {
   const { user, token, isReady, refreshProfile } = useAuth()
 
   const [services, setServices] = useState<ServiceOption[]>([])
-  const [selectedService, setSelectedService] = useState<ServiceOption | null>(null)
+  const [selectedServices, setSelectedServices] = useState<ServiceOption[]>([])
   const [availableDatesMap, setAvailableDatesMap] = useState<Map<string, boolean>>(new Map())
   const [selectedDate, setSelectedDate] = useState('')
   const [slots, setSlots] = useState<SlotOption[]>([])
@@ -400,20 +428,20 @@ export default function PublicReserve() {
 
   useEffect(() => {
     if (loadingServices) return
-    if (selectedService) return
+    if (selectedServices.length > 0) return
     if (!user?.gender) return
     const serviceId = (searchParams.get('serviceId') ?? '').trim()
     if (!serviceId) return
     const match = servicesForGender.find((s) => s.id === serviceId) ?? null
     if (!match) return
-    setSelectedService(match)
+    setSelectedServices([match])
     window.setTimeout(
       () => dateSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
       50,
     )
-  }, [loadingServices, searchParams, servicesForGender, selectedService, user?.gender])
+  }, [loadingServices, searchParams, servicesForGender, selectedServices.length, user?.gender])
 
-  const loadAvailability = useCallback((serviceId: string) => {
+  const loadAvailability = useCallback((serviceIds: string[]) => {
     setLoadingDates(true)
     const from = new Date()
     const to = new Date()
@@ -421,7 +449,7 @@ export default function PublicReserve() {
     api
       .get<DateAvailability[]>('/api/reservations/availability/dates', {
         params: {
-          serviceId,
+          serviceIds: serviceIds.join(','),
           fromDate: from.toISOString().slice(0, 10),
           toDate: to.toISOString().slice(0, 10),
         },
@@ -437,8 +465,10 @@ export default function PublicReserve() {
       .finally(() => setLoadingDates(false))
   }, [])
 
+  const selectedServiceIds = useMemo(() => selectedServices.map((s) => s.id), [selectedServices])
+
   useEffect(() => {
-    if (!selectedService) {
+    if (selectedServiceIds.length === 0) {
       setAvailableDatesMap(new Map())
       setSelectedDate('')
       setSlots([])
@@ -447,14 +477,14 @@ export default function PublicReserve() {
       return
     }
     setStep(2)
-    loadAvailability(selectedService.id)
+    loadAvailability(selectedServiceIds)
     setSelectedDate('')
     setSlots([])
     setSelectedSlot(null)
-  }, [selectedService, loadAvailability])
+  }, [selectedServiceIds, loadAvailability])
 
   useEffect(() => {
-    if (!selectedService || !selectedDate) {
+    if (selectedServiceIds.length === 0 || !selectedDate) {
       setSlots([])
       setSelectedSlot(null)
       setLoyaltyInfo(null)
@@ -465,7 +495,7 @@ export default function PublicReserve() {
     setStep(3)
     api
       .get<SlotOption[]>('/api/reservations/availability/slots', {
-        params: { serviceId: selectedService.id, date: selectedDate },
+        params: { serviceIds: selectedServiceIds.join(','), date: selectedDate },
       })
       .then((r) => setSlots(Array.isArray(r.data) ? r.data : []))
       .catch(() => setSlots([]))
@@ -473,32 +503,39 @@ export default function PublicReserve() {
         setLoadingSlots(false)
         setSelectedSlot(null)
       })
-  }, [selectedService, selectedDate])
+  }, [selectedServiceIds, selectedDate])
 
   useSocketEvent(
     'availability:changed',
     useCallback(
       (data: unknown) => {
-        const d = data as { serviceId: string; date: string }
-        if (selectedService && d.serviceId === selectedService.id) {
-          loadAvailability(selectedService.id)
+        const d = data as { serviceId?: string; serviceIds?: string[]; date: string }
+        const intersects =
+          selectedServiceIds.length > 0 &&
+          (Array.isArray(d.serviceIds)
+            ? d.serviceIds.some((x) => selectedServiceIds.includes(x))
+            : d.serviceId
+              ? selectedServiceIds.includes(d.serviceId)
+              : false)
+        if (intersects) {
+          loadAvailability(selectedServiceIds)
           if (selectedDate === d.date) {
             api
               .get<SlotOption[]>('/api/reservations/availability/slots', {
-                params: { serviceId: selectedService.id, date: selectedDate },
+                params: { serviceIds: selectedServiceIds.join(','), date: selectedDate },
               })
               .then((r) => setSlots(Array.isArray(r.data) ? r.data : []))
               .catch(() => {})
           }
         }
       },
-      [selectedService, selectedDate, loadAvailability],
+      [selectedServiceIds, selectedDate, loadAvailability],
     ),
   )
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!selectedService || !selectedDate || !selectedSlot) return
+    if (selectedServiceIds.length === 0 || !selectedDate || !selectedSlot) return
     if (
       user?.mustChangePassword ||
       user?.genderOnboardingCompleted !== true ||
@@ -512,7 +549,7 @@ export default function PublicReserve() {
     setSubmitting(true)
     try {
       await api.post('/api/reservations', {
-        serviceId: selectedService.id,
+        serviceIds: selectedServiceIds,
         reservationDate: selectedDate,
         startTime: selectedSlot.start,
         endTime: selectedSlot.end,
@@ -520,11 +557,15 @@ export default function PublicReserve() {
         ...(desiredLoyaltyPercent > 0 && { desiredLoyaltyPercent }),
       })
       await refreshProfile().catch(() => {})
+      const svcLabel =
+        selectedServices.length === 1
+          ? selectedServices[0]!.name
+          : `${selectedServices[0]!.name} + ${selectedServices.length - 1}`
       toast.success(
         t('public.reserve.success'),
-        `${selectedService.name} - ${new Date(selectedDate).toLocaleDateString('bs-BA')} u ${selectedSlot.start}`,
+        `${svcLabel} - ${new Date(selectedDate).toLocaleDateString('bs-BA')} u ${selectedSlot.start}`,
       )
-      setSelectedService(null)
+      setSelectedServices([])
       setSelectedDate('')
       setSelectedSlot(null)
       setNotes('')
@@ -601,12 +642,12 @@ export default function PublicReserve() {
                 <ServiceAutocomplete
                   services={servicesForGender}
                   loading={loadingServices}
-                  selected={selectedService}
-                  onSelect={setSelectedService}
+                  selected={selectedServices}
+                  onSelect={setSelectedServices}
                 />
               </div>
 
-              {selectedService ? (
+              {selectedServices.length > 0 ? (
                 <MotionDiv
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
@@ -621,7 +662,7 @@ export default function PublicReserve() {
                       selectedDate={selectedDate}
                       onSelectDate={(d) => setSelectedDate(d)}
                       loading={loadingDates}
-                      disabled={!selectedService}
+                      disabled={selectedServices.length === 0}
                     />
                   </div>
                 </MotionDiv>
@@ -679,14 +720,12 @@ export default function PublicReserve() {
                                 if (isPastSlot) return
                                 setSelectedSlot({ start: slot.startTime, end: slot.endTime })
                                 setStep(4)
-                                if (selectedService) {
-                                  api
-                                    .get<LoyaltyInfo>('/api/loyalty/client/me', {
-                                      params: { serviceId: selectedService.id },
-                                    })
-                                    .then((r) => setLoyaltyInfo(r.data))
-                                    .catch(() => setLoyaltyInfo(null))
-                                }
+                                api
+                                  .get<LoyaltyInfo>('/api/loyalty/client/me', {
+                                    params: { serviceIds: selectedServiceIds.join(',') },
+                                  })
+                                  .then((r) => setLoyaltyInfo(r.data))
+                                  .catch(() => setLoyaltyInfo(null))
                                 setDesiredLoyaltyPercent(0)
                               }}
                             >
@@ -776,12 +815,16 @@ export default function PublicReserve() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <div className="text-xs text-slate-500">Usluga</div>
-                        <div className="font-semibold">{selectedService?.name}</div>
+                        <div className="font-semibold">
+                          {selectedServices.length === 1
+                            ? selectedServices[0]!.name
+                            : `${selectedServices[0]!.name} + ${selectedServices.length - 1}`}
+                        </div>
                       </div>
                       <div>
                         <div className="text-xs text-slate-500">Trajanje</div>
                         <div className="font-semibold">
-                          {selectedService?.durationMinutes} minuta
+                          {selectedServices.reduce((acc, s) => acc + (s.durationMinutes ?? 0), 0)} minuta
                         </div>
                       </div>
                       <div>

@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsDateString,
   IsInt,
   IsNumber,
@@ -18,8 +19,16 @@ export class CreateDailyLogEntryDto {
   @IsUUID()
   reservationId?: string;
 
+  /** Backwards-compat (legacy clients). Prefer `serviceIds`. */
+  @IsOptional()
   @IsUUID()
-  serviceId!: string;
+  serviceId?: string;
+
+  /** Multi-service entry. */
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  serviceIds?: string[];
 
   @IsOptional()
   @IsUUID()

@@ -74,12 +74,17 @@ export class ReservationsController {
 
   @Get('availability/dates')
   getAvailableDates(
-    @Query('serviceId') serviceId: string,
+    @Query('serviceId') serviceId: string | undefined,
+    @Query('serviceIds') serviceIds: string | undefined,
     @Query('fromDate') fromDate: string,
     @Query('toDate') toDate?: string,
   ) {
+    const ids = (serviceIds ?? '')
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean);
     return this.availability.getAvailableDates(
-      serviceId,
+      ids.length > 0 ? ids : (serviceId ?? ''),
       new Date(fromDate),
       toDate ? new Date(toDate) : undefined,
     );
@@ -87,10 +92,18 @@ export class ReservationsController {
 
   @Get('availability/slots')
   getAvailableSlots(
-    @Query('serviceId') serviceId: string,
+    @Query('serviceId') serviceId: string | undefined,
+    @Query('serviceIds') serviceIds: string | undefined,
     @Query('date') date: string,
   ) {
-    return this.availability.getAvailableSlots(serviceId, date);
+    const ids = (serviceIds ?? '')
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean);
+    return this.availability.getAvailableSlots(
+      ids.length > 0 ? ids : (serviceId ?? ''),
+      date,
+    );
   }
 
   @Get(':id')

@@ -26,20 +26,27 @@ export class AvailabilityService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getAvailableDates(
-    serviceId: string,
+    serviceIdsInput: string[] | string,
     fromDate: Date,
     toDate?: Date,
   ): Promise<AvailableDateDto[]> {
+    const serviceIds = Array.isArray(serviceIdsInput)
+      ? serviceIdsInput
+      : [serviceIdsInput];
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
 
-    const service = await this.prisma.service.findUnique({
-      where: { id: serviceId },
+    const normalized = [...new Set(serviceIds.map((x) => x.trim()).filter(Boolean))];
+    if (normalized.length === 0)
+      throw new NotFoundException('Servis nije pronađen.');
+    const services = await this.prisma.service.findMany({
+      where: { id: { in: normalized } },
       select: { id: true },
     });
-    if (!service) throw new NotFoundException('Servis nije pronađen.');
+    if (services.length !== normalized.length)
+      throw new NotFoundException('Servis nije pronađen.');
 
-    const stylistIds = await this.getStylistIdsForService(serviceId);
+    const stylistIds = await this.getStylistIdsForServices(normalized);
 
     const end = toDate
       ? new Date(toDate)
@@ -81,7 +88,7 @@ export class AvailabilityService {
     );
 
     this.logger.debug(
-      `Availability check: service=${serviceId}, stylists=${stylistIds.length}, ` +
+      `Availability check: services=${normalized.join(',')}, stylists=${stylistIds.length}, ` +
         `salonHoursDays=[${[...salonHoursByDay.entries()]
           .filter(([, v]) => v.isWorkingDay)
           .map(([k]) => k)
@@ -121,17 +128,28 @@ export class AvailabilityService {
   }
 
   async getAvailableSlots(
-    serviceId: string,
+    serviceIdsInput: string[] | string,
     dateStr: string,
   ): Promise<AvailableSlotDto[]> {
+    const serviceIds = Array.isArray(serviceIdsInput)
+      ? serviceIdsInput
+      : [serviceIdsInput];
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
 
-    const service = await this.prisma.service.findUnique({
-      where: { id: serviceId },
+    const normalized = [...new Set(serviceIds.map((x) => x.trim()).filter(Boolean))];
+    if (normalized.length === 0)
+      throw new NotFoundException('Servis nije pronađen.');
+    const services = await this.prisma.service.findMany({
+      where: { id: { in: normalized } },
       select: { id: true, durationMinutes: true },
     });
-    if (!service) throw new NotFoundException('Servis nije pronađen.');
+    if (services.length !== normalized.length)
+      throw new NotFoundException('Servis nije pronađen.');
+    const totalDurationMinutes = services.reduce(
+      (acc, s) => acc + (s.durationMinutes ?? 0),
+      0,
+    );
 
     const parts = dateStr.split('-').map(Number);
     const date = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
@@ -159,7 +177,7 @@ export class AvailabilityService {
     if (!salonHours || !salonHours.isWorkingDay) return [];
 
     const stylists = await this.getStylistProfilesForSlots(
-      serviceId,
+      normalized,
       dayOfWeek,
       dateStr,
     );
@@ -168,7 +186,7 @@ export class AvailabilityService {
     const slots = generateSlots(
       salonHours.openTime,
       salonHours.closeTime,
-      service.durationMinutes,
+      totalDurationMinutes,
       salon.pauseBetweenServices,
     );
 
@@ -355,23 +373,33 @@ export class AvailabilityService {
     };
   }
 
-  private async getStylistIdsForService(serviceId: string): Promise<string[]> {
+  private async getStylistIdsForServices(serviceIds: string[]): Promise<string[]> {
+    const uniqueIds = [...new Set(serviceIds.map((x) => x.trim()).filter(Boolean))];
+    if (uniqueIds.length === 0) return [];
     const rows = await this.prisma.stylistService.findMany({
-      where: { serviceId },
-      select: { stylistProfileId: true },
+      where: { serviceId: { in: uniqueIds } },
+      select: { stylistProfileId: true, serviceId: true },
     });
-    return rows.map((r) => r.stylistProfileId);
+    const counts = new Map<string, number>();
+    for (const r of rows) {
+      counts.set(r.stylistProfileId, (counts.get(r.stylistProfileId) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .filter(([, c]) => c === uniqueIds.length)
+      .map(([stylistProfileId]) => stylistProfileId);
   }
 
   private async getStylistProfilesForSlots(
-    serviceId: string,
+    serviceIds: string[],
     dayOfWeek: number,
     dateStr: string,
   ): Promise<Array<{ id: string; window: { start: number; end: number } }>> {
+    const eligibleIds = await this.getStylistIdsForServices(serviceIds);
+    if (eligibleIds.length === 0) return [];
     const allStylists = await this.prisma.stylistProfile.findMany({
       where: {
         isActive: true,
-        stylistServices: { some: { serviceId } },
+        id: { in: eligibleIds },
       },
       include: {
         workingHours: {

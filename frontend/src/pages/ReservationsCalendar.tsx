@@ -94,7 +94,7 @@ export default function ReservationsCalendar() {
 
   const handleCreate = async (payload: {
     clientId: string
-    serviceId: string
+    serviceIds: string[]
     reservationDate: string
     startTime: string
     endTime: string

@@ -13,7 +13,12 @@ export class LoyaltyClientController {
   async getMyLoyalty(
     @CurrentUser() user: CurrentUserPayload,
     @Query('serviceId') serviceId?: string,
+    @Query('serviceIds') serviceIds?: string,
   ) {
-    return this.loyalty.getClientLoyaltyInfo(user.sub, serviceId);
+    const ids = (serviceIds ?? '')
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean);
+    return this.loyalty.getClientLoyaltyInfo(user.sub, serviceId, ids.length > 0 ? ids : undefined);
   }
 }

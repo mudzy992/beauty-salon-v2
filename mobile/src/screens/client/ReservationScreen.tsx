@@ -60,7 +60,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const [step, setStep] = useState<Step>(initialServiceId ? 2 : 1);
   const [services, setServices] = useState<Service[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [availableDates, setAvailableDates] = useState<Record<string, boolean>>({});
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -74,6 +74,15 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     () => new Map(services.map((service) => [service.id, service])),
     [services],
   );
+  const selectedServiceIds = useMemo(
+    () => selectedServices.map((s) => s.id),
+    [selectedServices],
+  );
+  const selectedServicesLabel = useMemo(() => {
+    if (selectedServices.length === 0) return '';
+    if (selectedServices.length === 1) return selectedServices[0]!.name;
+    return `${selectedServices[0]!.name} + ${selectedServices.length - 1}`;
+  }, [selectedServices]);
 
   // Load all services for step 1
   useEffect(() => {
@@ -101,7 +110,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     if (!initialServiceId) return;
     const fromList = servicesById.get(initialServiceId);
     if (fromList && (!user?.gender || fromList.gender === user.gender)) {
-      setSelectedService(fromList);
+      setSelectedServices([fromList]);
       setSelectedDate(null);
       setSelectedSlot(null);
       setNotes('');
@@ -117,7 +126,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
           setStep(1);
           return;
         }
-        setSelectedService(data);
+        setSelectedServices([data]);
         setSelectedDate(null);
         setSelectedSlot(null);
         setNotes('');
@@ -132,13 +141,13 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
   // Load available dates when service is selected
   useEffect(() => {
-    if (!selectedService) return;
+    if (selectedServiceIds.length === 0) return;
     setLoading(true);
     const { fromDate, toDate } = getDateRange(60);
     (async () => {
       try {
         const { data } = await api.get<AvailableDate[]>('/api/reservations/availability/dates', {
-          params: { serviceId: selectedService.id, fromDate, toDate },
+          params: { serviceIds: selectedServiceIds.join(','), fromDate, toDate },
         });
         const dateMap: Record<string, boolean> = {};
         data.forEach((d) => { dateMap[d.date] = d.available; });
@@ -146,22 +155,22 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       } catch { /* silent */ }
       setLoading(false);
     })();
-  }, [selectedService]);
+  }, [selectedServiceIds]);
 
   // Load slots when date is selected
   useEffect(() => {
-    if (!selectedService || !selectedDate) return;
+    if (selectedServiceIds.length === 0 || !selectedDate) return;
     setLoading(true);
     (async () => {
       try {
         const { data } = await api.get<TimeSlot[]>('/api/reservations/availability/slots', {
-          params: { serviceId: selectedService.id, date: selectedDate },
+          params: { serviceIds: selectedServiceIds.join(','), date: selectedDate },
         });
         setSlots(data);
       } catch { /* silent */ }
       setLoading(false);
     })();
-  }, [selectedService, selectedDate]);
+  }, [selectedServiceIds, selectedDate]);
 
   const filteredServices = useMemo(() => {
     const servicesByGender = user?.gender
@@ -197,12 +206,19 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     return marks;
   }, [availableDates, selectedDate, colors]);
 
-  const handleSelectService = useCallback((service: Service) => {
-    setSelectedService(service);
+  const handleToggleService = useCallback((service: Service) => {
+    setSelectedServices((prev) => {
+      const exists = prev.some((x) => x.id === service.id);
+      return exists ? prev.filter((x) => x.id !== service.id) : [...prev, service];
+    });
     setSelectedDate(null);
     setSelectedSlot(null);
-    setStep(2);
   }, []);
+
+  const handleContinueFromServices = useCallback(() => {
+    if (selectedServices.length === 0) return;
+    setStep(2);
+  }, [selectedServices.length]);
 
   const handleSelectDate = useCallback((day: DateData) => {
     if (availableDates[day.dateString]) {
@@ -216,11 +232,11 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     setSelectedSlot(slot);
     setStep(4);
     setDesiredLoyaltyPercent(0);
-    if (selectedService) {
+    if (selectedServiceIds.length > 0) {
       (async () => {
         try {
           const { data } = await api.get<LoyaltyInfo>('/api/loyalty/client/me', {
-            params: { serviceId: selectedService.id },
+            params: { serviceIds: selectedServiceIds.join(',') },
           });
           setLoyaltyInfo(data);
         } catch {
@@ -230,10 +246,10 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     } else {
       setLoyaltyInfo(null);
     }
-  }, [selectedService]);
+  }, [selectedServiceIds]);
 
   const handleSubmit = async () => {
-    if (!selectedService || !selectedDate || !selectedSlot) return;
+    if (selectedServiceIds.length === 0 || !selectedDate || !selectedSlot) return;
     if (user?.mustChangePassword) {
       Alert.alert(t('common.error'), 'Prvo morate promijeniti inicijalnu lozinku.', [
         { text: t('common.ok'), onPress: () => router.replace('/') },
@@ -251,7 +267,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     setSubmitting(true);
     try {
       await api.post('/api/reservations', {
-        serviceId: selectedService.id,
+        serviceIds: selectedServiceIds,
         reservationDate: selectedDate,
         startTime: selectedSlot.startTime,
         endTime: selectedSlot.endTime,
@@ -290,7 +306,8 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
         navigation.getParent()?.navigate('ServicesTab', { screen: 'Services' });
         return;
       case 'service-single':
-        if (selectedService) {
+        if (selectedServices.length === 1) {
+          const selectedService = selectedServices[0]!;
           navigation.navigate('ServiceSingleDetail', {
             serviceId: selectedService.id,
             serviceName: selectedService.name,
@@ -304,9 +321,9 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
         return;
       default:
         setStep(1);
-        setSelectedService(null);
+        setSelectedServices([]);
     }
-  }, [navigation, origin, originCategoryId, originCategoryName, selectedService]);
+  }, [navigation, origin, originCategoryId, originCategoryName, selectedServices]);
 
   const stepIndicator = (
     <View style={styles.steps}>
@@ -357,7 +374,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             renderItem={({ item }) => {
               const heroUri = item.heroImage ? getUploadUrl(item.heroImage) : null;
               return (
-                <Card onPress={() => handleSelectService(item)} style={[styles.serviceItem, styles.serviceItemBackdrop]} padded={false}>
+                <Card onPress={() => handleToggleService(item)} style={[styles.serviceItem, styles.serviceItemBackdrop]} padded={false}>
                   {heroUri ? (
                     <ImageBackground
                       source={{ uri: heroUri }}
@@ -382,6 +399,13 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
               );
             }}
           />
+          <View style={{ padding: spacing.md, paddingBottom: spacing.md + tabBarBottom }}>
+            <Button
+              title={selectedServices.length > 0 ? 'Nastavi' : 'Odaberite servis'}
+              onPress={handleContinueFromServices}
+              disabled={selectedServices.length === 0}
+            />
+          </View>
         </View>
       )}
 
@@ -397,7 +421,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
               {t('reservation.service')}
             </Text>
             <Text style={[styles.selectedValue, { color: colors.text }]}>
-              {selectedService?.name}
+              {selectedServicesLabel}
             </Text>
           </Card>
 
@@ -449,7 +473,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
               {t('reservation.service')}
             </Text>
             <Text style={[styles.selectedValue, { color: colors.text }]}>
-              {selectedService?.name}
+              {selectedServicesLabel}
             </Text>
             <Text style={[styles.selectedLabel, { color: colors.textSecondary, marginTop: spacing.sm }]}>
               {t('reservation.date')}
@@ -535,7 +559,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
                 {t('reservation.service')}
               </Text>
               <Text style={[styles.reviewValue, { color: colors.text }]}>
-                {selectedService?.name}
+                {selectedServicesLabel}
               </Text>
             </View>
             <View style={styles.reviewRow}>

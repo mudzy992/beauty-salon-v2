@@ -213,7 +213,10 @@ export class ReservationsService {
     });
   }
 
-  async create(dto: CreateReservationDto, clientId: string) {
+  private async getClientForReservation(
+    clientId: string,
+    opts?: { ignoreMustChangePassword?: boolean },
+  ) {
     const client = await this.prisma.user.findUnique({
       where: { id: clientId },
       select: {
@@ -226,7 +229,7 @@ export class ReservationsService {
       },
     });
     if (!client) throw new NotFoundException('Korisnik nije pronađen.');
-    if (client.mustChangePassword) {
+    if (client.mustChangePassword && !opts?.ignoreMustChangePassword) {
       throw new BadRequestException('MUST_CHANGE_PASSWORD');
     }
     if (!client.email) {
@@ -241,19 +244,49 @@ export class ReservationsService {
     if (!client.gender) {
       throw new BadRequestException('GENDER_REQUIRED');
     }
-    const selectedService = await this.prisma.service.findUnique({
-      where: { id: dto.serviceId },
-      select: { id: true, gender: true },
+    return client;
+  }
+
+  private async createInternal(
+    dto: CreateReservationDto,
+    clientId: string,
+    opts?: { ignoreMustChangePassword?: boolean },
+  ) {
+    const client = await this.getClientForReservation(clientId, opts);
+    const serviceIdsRaw =
+      dto.serviceIds && dto.serviceIds.length > 0
+        ? dto.serviceIds
+        : dto.serviceId
+          ? [dto.serviceId]
+          : [];
+    const serviceIds = [...new Set(serviceIdsRaw.map((x) => x.trim()).filter(Boolean))];
+    if (serviceIds.length === 0) {
+      throw new BadRequestException('SERVICE_REQUIRED');
+    }
+
+    const services = await this.prisma.service.findMany({
+      where: { id: { in: serviceIds } },
+      select: {
+        id: true,
+        name: true,
+        gender: true,
+        durationMinutes: true,
+        price: true,
+        loyaltyEnabled: true,
+        loyaltyMaxDiscountPercent: true,
+      },
     });
-    if (!selectedService) {
+    if (services.length !== serviceIds.length) {
       throw new NotFoundException('Servis nije pronađen.');
     }
-    if (selectedService.gender !== client.gender) {
+    if (services.some((s) => s.gender !== client.gender)) {
       throw new BadRequestException('SERVICE_GENDER_MISMATCH');
     }
+
+    const primaryServiceId = serviceIds[0]!;
     await this.checkClientPenalty(clientId);
     const slots = await this.availability.getAvailableSlots(
-      dto.serviceId,
+      serviceIds,
       dto.reservationDate,
     );
     const match = slots.find(
@@ -298,7 +331,7 @@ export class ReservationsService {
     const reservation = await this.prisma.reservation.create({
       data: {
         clientId,
-        serviceId: dto.serviceId,
+        serviceId: primaryServiceId,
         reservationDate,
         startTime: dto.startTime,
         endTime: dto.endTime,
@@ -315,12 +348,15 @@ export class ReservationsService {
       },
     });
 
-    const stylistIds = await this.prisma.stylistService
-      .findMany({
-        where: { serviceId: dto.serviceId },
-        select: { stylistProfileId: true },
-      })
-      .then((r) => r.map((x) => x.stylistProfileId));
+    await this.prisma.reservationServiceItem.createMany({
+      data: services.map((s, idx) => ({
+        reservationId: reservation.id,
+        serviceId: s.id,
+        sortOrder: idx,
+      })),
+    });
+
+    const stylistIds = await this.getEligibleStylistsForServices(serviceIds);
 
     await this.prisma.reservationStylistResponse.createMany({
       data: stylistIds.map((stylistProfileId) => ({
@@ -336,10 +372,14 @@ export class ReservationsService {
     });
     const stylistUserIds = stylistUsers.map((s) => s.userId);
     if (stylistUserIds.length > 0) {
+      const svcLabel =
+        services.length === 1
+          ? services[0]!.name
+          : `${services[0]!.name} + ${services.length - 1}`;
       await this.notifications.sendToMany(
         stylistUserIds,
         'Nova rezervacija',
-        `Nova rezervacija za ${reservation.service.name} – ${dto.reservationDate} u ${dto.startTime}.`,
+        `Nova rezervacija za ${svcLabel} – ${dto.reservationDate} u ${dto.startTime}.`,
         'reservation_new',
         { reservationId: reservation.id },
       );
@@ -350,7 +390,7 @@ export class ReservationsService {
       await this.loyalty.redeemForReservation({
         clientId,
         reservationId: reservation.id,
-        serviceId: reservation.serviceId,
+        serviceIds,
         desiredPercent: dto.desiredLoyaltyPercent,
       });
     }
@@ -364,22 +404,29 @@ export class ReservationsService {
     this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CREATED, full);
     this.events.emitToStylists(SOCKET_EVENTS.RESERVATION_CREATED, full);
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
-      serviceId: dto.serviceId,
+      serviceId: primaryServiceId,
+      serviceIds,
       date: dto.reservationDate,
     });
     return full;
   }
 
+  async create(dto: CreateReservationDto, clientId: string) {
+    return this.createInternal(dto, clientId, { ignoreMustChangePassword: false });
+  }
+
   async createByAdmin(dto: AdminCreateReservationDto) {
-    return this.create(
+    return this.createInternal(
       {
         serviceId: dto.serviceId,
+        serviceIds: dto.serviceIds,
         reservationDate: dto.reservationDate,
         startTime: dto.startTime,
         endTime: dto.endTime,
         clientNotes: dto.clientNotes,
       },
       dto.clientId,
+      { ignoreMustChangePassword: true },
     );
   }
 
@@ -520,6 +567,20 @@ export class ReservationsService {
           heroImage: true,
         },
       },
+      items: {
+        orderBy: { sortOrder: 'asc' as const },
+        include: {
+          service: {
+            select: {
+              id: true,
+              name: true,
+              durationMinutes: true,
+              price: true,
+              heroImage: true,
+            },
+          },
+        },
+      },
       client: {
         select: {
           id: true,
@@ -578,6 +639,12 @@ export class ReservationsService {
       where: { id },
       include: {
         service: { include: { subcategory: { include: { category: true } } } },
+        items: {
+          orderBy: { sortOrder: 'asc' },
+          include: {
+            service: { include: { subcategory: { include: { category: true } } } },
+          },
+        },
         client: {
           select: {
             id: true,
@@ -1388,6 +1455,26 @@ export class ReservationsService {
       select: { id: true },
     });
     return p?.id ?? null;
+  }
+
+  private async getEligibleStylistsForServices(
+    serviceIds: string[],
+  ): Promise<string[]> {
+    const uniqueIds = [...new Set(serviceIds.map((x) => x.trim()).filter(Boolean))];
+    if (uniqueIds.length === 0) return [];
+
+    const rows = await this.prisma.stylistService.findMany({
+      where: { serviceId: { in: uniqueIds } },
+      select: { stylistProfileId: true, serviceId: true },
+    });
+
+    const counts = new Map<string, number>();
+    for (const r of rows) {
+      counts.set(r.stylistProfileId, (counts.get(r.stylistProfileId) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .filter(([, c]) => c === uniqueIds.length)
+      .map(([stylistProfileId]) => stylistProfileId);
   }
 
   async proposeReschedule(

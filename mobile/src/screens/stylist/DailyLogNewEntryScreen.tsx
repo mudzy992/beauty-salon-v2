@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -20,7 +20,13 @@ import api from '../../services/api';
 import { spacing } from '../../theme';
 import type { Service } from '../../types';
 
-type ClientOption = { id: string; username: string; firstName: string | null; lastName: string | null };
+type ClientOption = {
+  id: string;
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+  gender: 'MALE' | 'FEMALE' | null;
+};
 
 type LoyaltyInfo = {
   enabled: boolean;
@@ -55,7 +61,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
   const [saving, setSaving] = useState(false);
 
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [serviceId, setServiceId] = useState('');
+  const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [clientId, setClientId] = useState('');
   const [paidAmount, setPaidAmount] = useState('');
   const [notes, setNotes] = useState('');
@@ -86,11 +92,17 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     fetchOptions();
   }, [fetchOptions]);
 
-  const selectedService = services.find((s) => s.id === serviceId);
+  const selectedServices = useMemo(
+    () => serviceIds.map((id) => services.find((s) => s.id === id)).filter(Boolean) as Service[],
+    [serviceIds, services],
+  );
   const selectedClient = clients.find((c) => c.id === clientId);
-  const filteredServices = serviceSearch.trim()
-    ? services.filter((s) => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+  const baseServices = selectedClient?.gender
+    ? services.filter((s) => s.gender === selectedClient.gender)
     : services;
+  const filteredServices = serviceSearch.trim()
+    ? baseServices.filter((s) => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+    : baseServices;
   const filteredClients = clientSearch.trim()
     ? clients.filter(
         (c) =>
@@ -100,10 +112,11 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
       )
     : clients;
 
-  const selectService = (s: Service) => {
-    setServiceId(s.id);
-    setServiceSearch(s.name);
-    setShowServicePicker(false);
+  const toggleService = (s: Service) => {
+    setServiceIds((prev) => {
+      const exists = prev.includes(s.id);
+      return exists ? prev.filter((x) => x !== s.id) : [...prev, s.id];
+    });
     setDesiredLoyaltyPercent(0);
     setPaidAmount('');
   };
@@ -113,11 +126,15 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.username;
     setClientSearch(name);
     setShowClientPicker(false);
+    if (c.gender && selectedServices.length > 0 && selectedServices.some((s) => s.gender !== c.gender)) {
+      setServiceIds([]);
+      setServiceSearch('');
+    }
     setDesiredLoyaltyPercent(0);
     setPaidAmount('');
   };
 
-  const basePrice = selectedService ? Number((selectedService as any).price ?? 0) : 0;
+  const basePrice = selectedServices.reduce((acc, s) => acc + Number((s as any).price ?? 0), 0);
   const loyaltyPercent =
     loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service
       ? Math.max(0, Math.min(desiredLoyaltyPercent, loyaltyInfo.service.maxDiscountPercent))
@@ -126,7 +143,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
   const chargeAmount = Math.max(0, basePrice - loyaltyDiscountAmount);
 
   useEffect(() => {
-    if (!serviceId || !clientId) {
+    if (serviceIds.length === 0 || !clientId) {
       setLoyaltyInfo(null);
       setDesiredLoyaltyPercent(0);
       return;
@@ -135,7 +152,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     setLoadingLoyalty(true);
     api
       .get<LoyaltyInfo>(`/api/loyalty/stylist/client/${clientId}`, {
-        params: { serviceId },
+        params: { serviceIds: serviceIds.join(',') },
       })
       .then((r) => {
         if (!isMounted) return;
@@ -152,15 +169,23 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     return () => {
       isMounted = false;
     };
-  }, [serviceId, clientId]);
+  }, [serviceIds, clientId]);
 
   const handleSubmit = useCallback(async () => {
     if (!profileId) {
       Alert.alert('Greška', 'Profil stilista nije pronađen.');
       return;
     }
-    if (!serviceId || !clientId) {
-      Alert.alert('Greška', 'Odaberite servis i klijenta.');
+    if (!clientId) {
+      Alert.alert('Greška', 'Odaberite klijenta.');
+      return;
+    }
+    if (!selectedClient?.gender) {
+      Alert.alert('Greška', 'Klijent mora imati definisan spol.');
+      return;
+    }
+    if (serviceIds.length === 0) {
+      Alert.alert('Greška', 'Odaberite servis(e).');
       return;
     }
     const paidRaw = paidAmount.trim()
@@ -182,7 +207,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     try {
       const { data: entry } = await api.post<{ id: string }>('/api/daily-log', {
         stylistProfileId: profileId,
-        serviceId,
+        serviceIds,
         clientId,
         date,
         actualPrice: paidRaw,
@@ -201,7 +226,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     } finally {
       setSaving(false);
     }
-  }, [profileId, serviceId, clientId, date, paidAmount, chargeAmount, notes, loyaltyPercent, navigation]);
+  }, [profileId, serviceIds, clientId, date, paidAmount, chargeAmount, notes, loyaltyPercent, navigation]);
 
   if (profileLoading || (loading && !profileId)) {
     return (
@@ -230,18 +255,6 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
         showsVerticalScrollIndicator={false}
       >
         <Card style={styles.card}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Servis</Text>
-          <TouchableOpacity
-            style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}
-            onPress={() => setShowServicePicker(true)}
-          >
-            <Text style={[styles.pickerText, { color: selectedService ? colors.text : colors.textMuted }]}>
-              {selectedService ? selectedService.name : 'Odaberi servis'}
-            </Text>
-          </TouchableOpacity>
-        </Card>
-
-        <Card style={styles.card}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>Klijent</Text>
           <TouchableOpacity
             style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}
@@ -256,6 +269,25 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
         </Card>
 
         <Card style={styles.card}>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>Servis</Text>
+          <TouchableOpacity
+            style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}
+            onPress={() => setShowServicePicker(true)}
+            disabled={!selectedClient?.gender}
+          >
+            <Text style={[styles.pickerText, { color: selectedServices.length > 0 ? colors.text : colors.textMuted }]}>
+              {!selectedClient
+                ? 'Prvo odaberite klijenta'
+                : !selectedClient.gender
+                  ? 'Klijent nema definisan spol'
+                  : selectedServices.length > 0
+                    ? `${selectedServices.length} servis(a) odabrano`
+                    : 'Odaberi servis(e)'}
+            </Text>
+          </TouchableOpacity>
+        </Card>
+
+        <Card style={styles.card}>
           <Input label="Datum" value={date} onChangeText={setDate} />
           <Input
             label="Naplaćeno (KM)"
@@ -265,7 +297,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
             placeholder={chargeAmount > 0 ? chargeAmount.toFixed(2) : '0.00'}
           />
           <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
-            Servis: {Number.isFinite(basePrice) ? basePrice.toFixed(2) : '0.00'} KM
+            Servisi: {Number.isFinite(basePrice) ? basePrice.toFixed(2) : '0.00'} KM
           </Text>
           {loyaltyPercent > 0 && (
             <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
@@ -330,14 +362,19 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[styles.pickerItem, { borderColor: colors.border }]}
-                  onPress={() => selectService(item)}
+                  onPress={() => toggleService(item)}
                 >
-                  <Text style={{ color: colors.text }}>{item.name}</Text>
-                  <Text style={{ color: colors.textSecondary }}>{Number(item.price).toFixed(2)} KM</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.text }}>{item.name}</Text>
+                    <Text style={{ color: colors.textSecondary }}>{Number(item.price).toFixed(2)} KM</Text>
+                  </View>
+                  <Text style={{ color: serviceIds.includes(item.id) ? colors.primary : colors.textMuted }}>
+                    {serviceIds.includes(item.id) ? '✓' : ''}
+                  </Text>
                 </TouchableOpacity>
               )}
             />
-            <Button title="Zatvori" variant="outline" onPress={() => setShowServicePicker(false)} />
+            <Button title="U redu" variant="outline" onPress={() => setShowServicePicker(false)} />
           </Card>
         </View>
       </Modal>

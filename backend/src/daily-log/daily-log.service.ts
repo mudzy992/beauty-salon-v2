@@ -21,22 +21,60 @@ export class DailyLogService {
 
   async create(dto: CreateDailyLogEntryDto, user: CurrentUserPayload) {
     await this.ensureStylistAccess(dto.stylistProfileId, user);
+    const serviceIdsRaw =
+      dto.serviceIds && dto.serviceIds.length > 0
+        ? dto.serviceIds
+        : dto.serviceId
+          ? [dto.serviceId]
+          : [];
+    const serviceIds = [...new Set(serviceIdsRaw.map((x) => x.trim()).filter(Boolean))];
+    if (serviceIds.length === 0) {
+      throw new BadRequestException('SERVICE_REQUIRED');
+    }
     if (dto.reservationId) {
       const res = await this.prisma.reservation.findUnique({
         where: { id: dto.reservationId },
-        include: { service: true },
+        include: { items: true },
       });
       if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
-      if (res.serviceId !== dto.serviceId)
-        throw new BadRequestException('Servis se ne podudara s rezervacijom.');
+      const resServiceIds = res.items?.length
+        ? res.items.map((i) => i.serviceId)
+        : [res.serviceId];
+      const normalizedResIds = [...new Set(resServiceIds.map((x) => x.trim()).filter(Boolean))];
+      const same =
+        normalizedResIds.length === serviceIds.length &&
+        normalizedResIds.every((id) => serviceIds.includes(id));
+      if (!same) {
+        throw new BadRequestException('Servisi se ne podudaraju s rezervacijom.');
+      }
+    }
+    if (dto.clientId) {
+      const [client, services] = await Promise.all([
+        this.prisma.user.findUnique({
+          where: { id: dto.clientId },
+          select: { id: true, gender: true },
+        }),
+        this.prisma.service.findMany({
+          where: { id: { in: serviceIds } },
+          select: { id: true, gender: true },
+        }),
+      ]);
+      if (!client) throw new NotFoundException('Korisnik nije pronađen.');
+      if (!client.gender) throw new BadRequestException('GENDER_REQUIRED');
+      if (services.length !== serviceIds.length)
+        throw new NotFoundException('Servis nije pronađen.');
+      if (services.some((s) => s.gender !== client.gender)) {
+        throw new BadRequestException('SERVICE_GENDER_MISMATCH');
+      }
     }
     const date = new Date(dto.date);
     date.setHours(0, 0, 0, 0);
+    const primaryServiceId = serviceIds[0]!;
     const created = await this.prisma.dailyLogEntry.create({
       data: {
         stylistProfileId: dto.stylistProfileId,
         reservationId: dto.reservationId,
-        serviceId: dto.serviceId,
+        serviceId: primaryServiceId,
         clientId: dto.clientId,
         date,
         actualPrice: dto.actualPrice,
@@ -48,6 +86,14 @@ export class DailyLogService {
       include: this.entryInclude(),
     });
 
+    await this.prisma.dailyLogEntryServiceItem.createMany({
+      data: serviceIds.map((sid, idx) => ({
+        dailyLogEntryId: created.id,
+        serviceId: sid,
+        sortOrder: idx,
+      })),
+    });
+
     if (
       created.clientId &&
       dto.desiredLoyaltyPercent &&
@@ -56,14 +102,14 @@ export class DailyLogService {
       await this.loyalty.redeemForDailyLog({
         clientId: created.clientId,
         dailyLogEntryId: created.id,
-        serviceId: created.serviceId,
+        serviceIds,
         desiredPercent: dto.desiredLoyaltyPercent,
         actualPrice: Number(created.actualPrice),
       });
       return this.findOne(created.id, user);
     }
 
-    return created;
+    return this.findOne(created.id, user);
   }
 
   /** Kreira zapis iz rezervacije (nakon COMPLETED ili ručno povezivanje). */
@@ -76,7 +122,7 @@ export class DailyLogService {
   ) {
     const res = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
-      include: { service: true, confirmedStylist: true },
+      include: { items: true, confirmedStylist: true },
     });
     if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
     if (
@@ -100,11 +146,16 @@ export class DailyLogService {
       );
     const date = new Date(res.reservationDate);
     date.setHours(0, 0, 0, 0);
-    return this.prisma.dailyLogEntry.create({
+    const resServiceIds = res.items?.length
+      ? res.items.map((i) => i.serviceId)
+      : [res.serviceId];
+    const normalizedResIds = [...new Set(resServiceIds.map((x) => x.trim()).filter(Boolean))];
+    const primaryServiceId = normalizedResIds[0]!;
+    const created = await this.prisma.dailyLogEntry.create({
       data: {
         stylistProfileId: res.confirmedStylistId,
         reservationId: res.id,
-        serviceId: res.serviceId,
+        serviceId: primaryServiceId,
         clientId: res.clientId,
         date,
         actualPrice,
@@ -115,6 +166,14 @@ export class DailyLogService {
       },
       include: this.entryInclude(),
     });
+    await this.prisma.dailyLogEntryServiceItem.createMany({
+      data: normalizedResIds.map((sid, idx) => ({
+        dailyLogEntryId: created.id,
+        serviceId: sid,
+        sortOrder: idx,
+      })),
+    });
+    return this.findOne(created.id, user);
   }
 
   async findAll(
@@ -273,6 +332,10 @@ export class DailyLogService {
         },
       },
       service: { select: { id: true, name: true } },
+      items: {
+        orderBy: { sortOrder: 'asc' as const },
+        include: { service: { select: { id: true, name: true } } },
+      },
       client: { select: { id: true, firstName: true, lastName: true } },
       reservation: {
         select: {

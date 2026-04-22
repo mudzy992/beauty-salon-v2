@@ -14,8 +14,13 @@ export class LoyaltyStylistController {
   getClientLoyalty(
     @Param('userId') userId: string,
     @Query('serviceId') serviceId?: string,
+    @Query('serviceIds') serviceIds?: string,
   ) {
-    return this.loyalty.getClientLoyaltyInfo(userId, serviceId);
+    const ids = (serviceIds ?? '')
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean);
+    return this.loyalty.getClientLoyaltyInfo(userId, serviceId, ids.length > 0 ? ids : undefined);
   }
 }
 

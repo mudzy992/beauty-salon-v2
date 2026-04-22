@@ -47,7 +47,10 @@ const getPlannedDateTime = (reservationDate: string, time: string) => {
 }
 
 const computeMinCharge = (r: Reservation) => {
-  const base = Number(r.service?.price ?? 0)
+  const base =
+    Array.isArray((r as any).items) && (r as any).items.length > 0
+      ? (r as any).items.reduce((acc: number, it: any) => acc + Number(it?.service?.price ?? 0), 0)
+      : Number(r.service?.price ?? 0)
   const loyaltyDiscountAmount = Number(r.loyaltyDiscountAmount ?? 0)
   return Math.max(0, base - loyaltyDiscountAmount)
 }

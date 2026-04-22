@@ -277,7 +277,11 @@ export class LoyaltyService {
    * Vraća loyalty info koji frontend može prikazati (limit/cap) za određenog korisnika.
    * Koristi se i za klijenta (me) i za stilistu/admin (odabrani klijent).
    */
-  async getClientLoyaltyInfo(userId: string, serviceId?: string) {
+  async getClientLoyaltyInfo(
+    userId: string,
+    serviceId?: string,
+    serviceIds?: string[],
+  ) {
     const enabled = await this.isProgramEnabled();
     const account = await this.prisma.loyaltyAccount.findUnique({
       where: { userId },
@@ -303,6 +307,71 @@ export class LoyaltyService {
       await this.settings.getValue('loyalty_max_discount_percent'),
       100,
     );
+
+    const normalizedServiceIds =
+      serviceIds && serviceIds.length > 0
+        ? [...new Set(serviceIds.map((x) => x.trim()).filter(Boolean))]
+        : [];
+
+    if (normalizedServiceIds.length > 0) {
+      const services = await this.prisma.service.findMany({
+        where: { id: { in: normalizedServiceIds } },
+        select: {
+          id: true,
+          price: true,
+          loyaltyEnabled: true,
+          loyaltyMaxDiscountPercent: true,
+        },
+      });
+      if (services.length !== normalizedServiceIds.length || services.some((s) => !s.loyaltyEnabled)) {
+        return {
+          enabled,
+          hasAccount: true,
+          redeemEnabled,
+          points: account.points,
+          tier: tier?.name ?? null,
+          tierMaxDiscountPercent: tier?.maxDiscountPercent ?? 0,
+          globalMaxDiscountPercent: globalMaxPercent,
+          redeemRate,
+          minPointsToRedeem: minPoints,
+          service: null,
+        };
+      }
+
+      const sumPrice = services
+        .map((s) => Number(s.price))
+        .reduce((acc, x) => acc + (Number.isFinite(x) ? x : 0), 0);
+      const tierMax = tier?.maxDiscountPercent ?? 0;
+      const serviceMax = Math.min(...services.map((s) => s.loyaltyMaxDiscountPercent ?? 0));
+      const maxPercentForService = Math.min(tierMax, serviceMax, globalMaxPercent);
+
+      let maxDiscountAmount = 0;
+      let maxUsablePoints = 0;
+      if (Number.isFinite(sumPrice) && sumPrice > 0 && maxPercentForService > 0 && redeemRate > 0) {
+        maxDiscountAmount = (sumPrice * maxPercentForService) / 100;
+        const maxByPercent = Math.floor(maxDiscountAmount / redeemRate);
+        maxUsablePoints = Math.max(0, Math.min(maxByPercent, account.points));
+      }
+
+      return {
+        enabled,
+        hasAccount: true,
+        redeemEnabled,
+        points: account.points,
+        tier: tier?.name ?? null,
+        tierMaxDiscountPercent: tier?.maxDiscountPercent ?? 0,
+        globalMaxDiscountPercent: globalMaxPercent,
+        redeemRate,
+        minPointsToRedeem: minPoints,
+        service: {
+          id: normalizedServiceIds.join(','),
+          price: sumPrice,
+          maxDiscountPercent: maxPercentForService,
+          maxDiscountAmount,
+          maxUsablePoints,
+        },
+      };
+    }
 
     if (serviceId) {
       const service = await this.prisma.service.findUnique({
@@ -431,11 +500,22 @@ export class LoyaltyService {
   async redeemForReservation(args: {
     clientId: string;
     reservationId: string;
-    serviceId: string;
+    serviceId?: string;
+    serviceIds?: string[];
     desiredPercent: number;
   }) {
-    const { clientId, reservationId, serviceId, desiredPercent } = args;
+    const { clientId, reservationId, desiredPercent } = args;
+    const idsRaw =
+      args.serviceIds && args.serviceIds.length > 0
+        ? args.serviceIds
+        : args.serviceId
+          ? [args.serviceId]
+          : [];
+    const serviceIds = [...new Set(idsRaw.map((x) => x.trim()).filter(Boolean))];
     if (desiredPercent <= 0) return null;
+    if (serviceIds.length === 0) {
+      throw new BadRequestException('Servis nije pronađen.');
+    }
 
     // Ako je za rezervaciju već evidentirano korištenje bodova, ne dozvoljavamo ponovni redeem.
     const existingReservation = await this.prisma.reservation.findUnique({
@@ -475,26 +555,26 @@ export class LoyaltyService {
       throw new BadRequestException('Nemate aktivan loyalty račun.');
     }
 
-    const service = await this.prisma.service.findUnique({
-      where: { id: serviceId },
+    const services = await this.prisma.service.findMany({
+      where: { id: { in: serviceIds } },
       select: {
+        id: true,
         price: true,
         loyaltyEnabled: true,
         loyaltyMaxDiscountPercent: true,
       },
     });
-    if (!service) {
+    if (services.length !== serviceIds.length) {
       throw new NotFoundException('Servis nije pronađen.');
     }
-
-    if (!service.loyaltyEnabled) {
+    if (services.some((s) => !s.loyaltyEnabled)) {
       throw new BadRequestException(
-        'Za ovaj servis nije dozvoljen loyalty popust.',
+        'Za jedan ili više odabranih servisa nije dozvoljen loyalty popust.',
       );
     }
-
-    const price = Number(service.price);
-    if (!Number.isFinite(price) || price <= 0) {
+    const prices = services.map((s) => Number(s.price));
+    const sumPrice = prices.reduce((acc, x) => acc + (Number.isFinite(x) ? x : 0), 0);
+    if (!Number.isFinite(sumPrice) || sumPrice <= 0) {
       throw new BadRequestException(
         'Cijena usluge nije validna za loyalty popust.',
       );
@@ -502,7 +582,9 @@ export class LoyaltyService {
 
     const tier = await this.getTierForPoints(account.points);
     const tierMaxPercent = tier?.maxDiscountPercent ?? 0;
-    const serviceMaxPercent = service.loyaltyMaxDiscountPercent ?? 0;
+    const serviceMaxPercent = Math.min(
+      ...services.map((s) => s.loyaltyMaxDiscountPercent ?? 0),
+    );
     const globalMaxPercent = this.parseNumber(
       await this.settings.getValue('loyalty_max_discount_percent'),
       100,
@@ -535,7 +617,7 @@ export class LoyaltyService {
       );
     }
 
-    const desiredDiscountAmount = (price * desiredPercent) / 100;
+    const desiredDiscountAmount = (sumPrice * desiredPercent) / 100;
     const neededPoints = Math.floor(desiredDiscountAmount / redeemRate);
 
     const minPoints = this.parseNumber(
@@ -587,13 +669,23 @@ export class LoyaltyService {
   async redeemForDailyLog(args: {
     clientId: string;
     dailyLogEntryId: string;
-    serviceId: string;
+    serviceId?: string;
+    serviceIds?: string[];
     desiredPercent: number;
     actualPrice: number;
   }) {
-    const { clientId, dailyLogEntryId, serviceId, desiredPercent, actualPrice } =
-      args;
+    const { clientId, dailyLogEntryId, desiredPercent, actualPrice } = args;
+    const idsRaw =
+      args.serviceIds && args.serviceIds.length > 0
+        ? args.serviceIds
+        : args.serviceId
+          ? [args.serviceId]
+          : [];
+    const serviceIds = [...new Set(idsRaw.map((x) => x.trim()).filter(Boolean))];
     if (desiredPercent <= 0) return null;
+    if (serviceIds.length === 0) {
+      throw new NotFoundException('Servis nije pronađen.');
+    }
 
     const existingEntry = await this.prisma.dailyLogEntry.findUnique({
       where: { id: dailyLogEntryId },
@@ -632,25 +724,28 @@ export class LoyaltyService {
       throw new BadRequestException('Nemate aktivan loyalty račun.');
     }
 
-    const service = await this.prisma.service.findUnique({
-      where: { id: serviceId },
+    const services = await this.prisma.service.findMany({
+      where: { id: { in: serviceIds } },
       select: {
+        id: true,
         price: true,
         loyaltyEnabled: true,
         loyaltyMaxDiscountPercent: true,
       },
     });
-    if (!service) {
+    if (services.length !== serviceIds.length) {
       throw new NotFoundException('Servis nije pronađen.');
     }
-    if (!service.loyaltyEnabled) {
+    if (services.some((s) => !s.loyaltyEnabled)) {
       throw new BadRequestException(
-        'Za ovaj servis nije dozvoljen loyalty popust.',
+        'Za jedan ili više odabranih servisa nije dozvoljen loyalty popust.',
       );
     }
 
-    const price = Number(service.price);
-    if (!Number.isFinite(price) || price <= 0) {
+    const sumPrice = services
+      .map((s) => Number(s.price))
+      .reduce((acc, x) => acc + (Number.isFinite(x) ? x : 0), 0);
+    if (!Number.isFinite(sumPrice) || sumPrice <= 0) {
       throw new BadRequestException(
         'Cijena usluge nije validna za loyalty popust.',
       );
@@ -658,7 +753,9 @@ export class LoyaltyService {
 
     const tier = await this.getTierForPoints(account.points);
     const tierMaxPercent = tier?.maxDiscountPercent ?? 0;
-    const serviceMaxPercent = service.loyaltyMaxDiscountPercent ?? 0;
+    const serviceMaxPercent = Math.min(
+      ...services.map((s) => s.loyaltyMaxDiscountPercent ?? 0),
+    );
     const globalMaxPercent = this.parseNumber(
       await this.settings.getValue('loyalty_max_discount_percent'),
       100,
@@ -689,8 +786,8 @@ export class LoyaltyService {
       );
     }
 
-    const desiredDiscountAmount = (price * desiredPercent) / 100;
-    const minCharge = Math.max(0, price - desiredDiscountAmount);
+    const desiredDiscountAmount = (sumPrice * desiredPercent) / 100;
+    const minCharge = Math.max(0, sumPrice - desiredDiscountAmount);
     if (!Number.isFinite(actualPrice) || actualPrice < minCharge) {
       throw new BadRequestException(
         `Naplaćeni iznos ne može biti manji od preporučene cijene za naplatu (${minCharge.toFixed(2)} KM).`,

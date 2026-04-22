@@ -249,6 +249,59 @@ describe('ReservationsService', () => {
     });
   });
 
+  describe('createByAdmin', () => {
+    it('ne baca MUST_CHANGE_PASSWORD kada admin kreira rezervaciju za klijenta', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'client-1',
+        email: 'client@test.com',
+        phone: '+38761111222',
+        isEmailVerified: true,
+        mustChangePassword: true,
+        gender: 'FEMALE',
+      });
+      mockPrisma.service.findUnique.mockResolvedValue({
+        id: 'svc-1',
+        gender: 'FEMALE',
+      });
+      mockPrisma.clientCancellationCount.findUnique.mockResolvedValue(null);
+      mockAvailability.getAvailableSlots.mockResolvedValue([
+        { startTime: '09:00', endTime: '10:00', availableStylistCount: 1 },
+      ]);
+      mockPrisma.reservation.findFirst.mockResolvedValue(null);
+      mockPrisma.reservation.create.mockResolvedValue({
+        id: 'res-1',
+        serviceId: 'svc-1',
+        reservationDate: new Date('2026-03-20T00:00:00.000Z'),
+        startTime: '09:00',
+        endTime: '10:00',
+        status: 'PENDING',
+        clientNotes: null,
+        publicReferenceCode: 'ABC123',
+        clientViewToken: 'token',
+        service: { id: 'svc-1', name: 'Test', gender: 'FEMALE' },
+        client: { id: 'client-1', firstName: 'A', lastName: 'B', email: 'client@test.com' },
+      } as any);
+      mockPrisma.stylistService.findMany.mockResolvedValue([
+        { stylistProfileId: 'sty-1' },
+      ]);
+      mockPrisma.reservationStylistResponse.createMany.mockResolvedValue({ count: 1 });
+      mockPrisma.stylistProfile.findMany.mockResolvedValue([{ userId: 'u-1' }]);
+      jest
+        .spyOn(service, 'findOne')
+        .mockResolvedValue({ id: 'res-1' } as any);
+
+      await expect(
+        service.createByAdmin({
+          clientId: 'client-1',
+          serviceId: 'svc-1',
+          reservationDate: '2026-03-20',
+          startTime: '09:00',
+          endTime: '10:00',
+        } as any),
+      ).resolves.toBeTruthy();
+    });
+  });
+
   describe('cancelByClient', () => {
     it('baca ForbiddenException kada korisnik nije klijent rezervacije', async () => {
       mockPrisma.reservation.findUnique.mockResolvedValue({

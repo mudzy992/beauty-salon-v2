@@ -27,7 +27,13 @@ export class UsersService {
     }
     return this.repo.user.findMany({
       where: { isActive: true },
-      select: { id: true, username: true, firstName: true, lastName: true },
+      select: {
+        id: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        gender: true,
+      },
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
     });
   }

@@ -1,6 +1,7 @@
 import {
   IsDateString,
   IsInt,
+  IsArray,
   IsOptional,
   IsString,
   IsUUID,
@@ -10,8 +11,16 @@ import {
 } from 'class-validator';
 
 export class CreateReservationDto {
+  /** Backwards-compat (legacy clients). Prefer `serviceIds`. */
+  @IsOptional()
   @IsUUID()
-  serviceId!: string;
+  serviceId?: string;
+
+  /** Multi-service reservation. */
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  serviceIds?: string[];
 
   @IsDateString()
   reservationDate!: string; // YYYY-MM-DD

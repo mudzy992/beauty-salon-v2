@@ -14,6 +14,13 @@ export interface ReservationService {
   price?: number | string
 }
 
+export interface ReservationServiceItem {
+  id: string
+  sortOrder: number
+  serviceId: string
+  service?: ReservationService
+}
+
 export interface StylistProfile {
   id: string
   isActive?: boolean
@@ -36,6 +43,7 @@ export interface Reservation {
   createdAt: string
   client?: ReservationClient
   service?: ReservationService
+  items?: ReservationServiceItem[]
   confirmedStylist?: StylistProfile | null
   stylistResponses?: Array<{
     id: string

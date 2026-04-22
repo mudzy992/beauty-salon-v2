@@ -253,10 +253,12 @@ model Service {
   loyaltyEnabled            Boolean @default(false) @map("loyalty_enabled")
   loyaltyMaxDiscountPercent Int     @default(0) @map("loyalty_max_discount_percent")
 
-  subcategory         ServiceSubcategory      @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+  subcategory         ServiceSubcategory         @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
   stylistServices     StylistService[]
   reservations        Reservation[]
+  reservationItems    ReservationServiceItem[]
   dailyLogEntries     DailyLogEntry[]
+  dailyLogEntryItems  DailyLogEntryServiceItem[]
   incomeManualEntries IncomeBookManualEntry[]
   clientDebts         ClientDebt[]
   reviews             Review[]
@@ -319,12 +321,28 @@ model Reservation {
 
   client           User                         @relation("ClientReservations", fields: [clientId], references: [id], onDelete: Cascade)
   service          Service                      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  items            ReservationServiceItem[]
   confirmedStylist StylistProfile?              @relation("ConfirmedByStylist", fields: [confirmedStylistId], references: [id], onDelete: SetNull)
   stylistResponses ReservationStylistResponse[]
   dailyLogEntry    DailyLogEntry[]
   reviews          Review[]
 
   @@map("reservations")
+}
+
+model ReservationServiceItem {
+  id            String   @id @default(uuid())
+  reservationId String   @map("reservation_id")
+  serviceId     String   @map("service_id")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  service     Service     @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@unique([reservationId, serviceId])
+  @@index([serviceId])
+  @@map("reservation_service_items")
 }
 
 model ReservationStylistResponse {
@@ -370,14 +388,30 @@ model DailyLogEntry {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  stylistProfile StylistProfile    @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
-  reservation    Reservation?      @relation(fields: [reservationId], references: [id], onDelete: SetNull)
-  service        Service           @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  client         User?             @relation("DailyLogClient", fields: [clientId], references: [id], onDelete: SetNull)
+  stylistProfile StylistProfile             @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
+  reservation    Reservation?               @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  service        Service                    @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  items          DailyLogEntryServiceItem[]
+  client         User?                      @relation("DailyLogClient", fields: [clientId], references: [id], onDelete: SetNull)
   images         DailyLogImage[]
   incomeEntries  IncomeBookEntry[]
 
   @@map("daily_log_entries")
+}
+
+model DailyLogEntryServiceItem {
+  id              String   @id @default(uuid())
+  dailyLogEntryId String   @map("daily_log_entry_id")
+  serviceId       String   @map("service_id")
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  dailyLogEntry DailyLogEntry @relation(fields: [dailyLogEntryId], references: [id], onDelete: Cascade)
+  service       Service       @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@unique([dailyLogEntryId, serviceId])
+  @@index([serviceId])
+  @@map("daily_log_entry_service_items")
 }
 
 model DailyLogImage {
@@ -409,7 +443,7 @@ model ExpenseBook {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
-  expenses Expense[]
+  expenses   Expense[]
   lockEvents ExpenseBookLockEvent[]
 
   @@unique([year, month])
@@ -590,26 +624,26 @@ model IncomeBookManualEntry {
 }
 
 model ClientDebt {
-  id                String           @id @default(uuid())
-  clientId          String           @map("client_id")
-  stylistProfileId  String           @map("stylist_profile_id")
-  serviceId         String?          @map("service_id")
-  manualEntryId     String?          @map("manual_entry_id")
-  reservationId     String?          @map("reservation_id")
-  amount            Decimal          @db.Decimal(10, 2)
-  note              String?          @db.Text
-  status            ClientDebtStatus @default(OPEN)
-  createdById       String           @map("created_by_id")
-  createdAt         DateTime         @default(now()) @map("created_at")
-  settledAt         DateTime?        @map("settled_at")
-  settledById       String?          @map("settled_by_id")
+  id               String           @id @default(uuid())
+  clientId         String           @map("client_id")
+  stylistProfileId String           @map("stylist_profile_id")
+  serviceId        String?          @map("service_id")
+  manualEntryId    String?          @map("manual_entry_id")
+  reservationId    String?          @map("reservation_id")
+  amount           Decimal          @db.Decimal(10, 2)
+  note             String?          @db.Text
+  status           ClientDebtStatus @default(OPEN)
+  createdById      String           @map("created_by_id")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  settledAt        DateTime?        @map("settled_at")
+  settledById      String?          @map("settled_by_id")
 
-  client         User                 @relation("ClientDebtsClient", fields: [clientId], references: [id], onDelete: Cascade)
-  stylistProfile StylistProfile       @relation(fields: [stylistProfileId], references: [id], onDelete: Restrict)
-  service        Service?             @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  client         User                   @relation("ClientDebtsClient", fields: [clientId], references: [id], onDelete: Cascade)
+  stylistProfile StylistProfile         @relation(fields: [stylistProfileId], references: [id], onDelete: Restrict)
+  service        Service?               @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   manualEntry    IncomeBookManualEntry? @relation(fields: [manualEntryId], references: [id], onDelete: SetNull)
-  createdBy      User                 @relation("ClientDebtsCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
-  settledBy      User?                @relation("ClientDebtsSettledBy", fields: [settledById], references: [id], onDelete: SetNull)
+  createdBy      User                   @relation("ClientDebtsCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  settledBy      User?                  @relation("ClientDebtsSettledBy", fields: [settledById], references: [id], onDelete: SetNull)
 
   @@index([clientId, status])
   @@index([stylistProfileId, status])

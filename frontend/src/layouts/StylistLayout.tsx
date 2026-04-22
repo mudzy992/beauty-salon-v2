@@ -49,6 +49,25 @@ export default function StylistLayout() {
             <Link to="/stylist/inbox" className="font-semibold text-slate-900 dark:text-slate-50">
               Stylist
             </Link>
+            <nav className="sm:hidden -mx-1 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
+              {navItems.map((x) => {
+                const isActive =
+                  location.pathname === x.path || location.pathname.startsWith(x.path + '/')
+                return (
+                  <Link
+                    key={x.path}
+                    to={x.path}
+                    className={
+                      isActive
+                        ? 'shrink-0 rounded-md px-3 py-2 text-sm font-semibold text-brand-gold bg-brand-champagne/20'
+                        : 'shrink-0 rounded-md px-3 py-2 text-sm text-slate-700 hover:text-brand-gold hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900/40'
+                    }
+                  >
+                    {x.label.startsWith('nav.') ? t(x.label) : x.label}
+                  </Link>
+                )
+              })}
+            </nav>
             <nav className="hidden sm:flex items-center gap-1">
               {navItems.map((x) => {
                 const isActive =

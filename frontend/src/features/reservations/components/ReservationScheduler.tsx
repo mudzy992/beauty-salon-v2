@@ -81,7 +81,7 @@ type Props = {
   onSelectedStylistIdsChange: (ids: string[]) => void
   onCreateRequest: (payload: {
     clientId: string
-    serviceId: string
+    serviceIds: string[]
     reservationDate: string
     startTime: string
     endTime: string
@@ -193,7 +193,7 @@ export const ReservationScheduler = (props: Props) => {
     clientSearch: string
     clientId: string
     serviceSearch: string
-    serviceId: string
+    serviceIds: string[]
     reservationDate: string
     startTime: string
     endTime: string
@@ -202,7 +202,7 @@ export const ReservationScheduler = (props: Props) => {
     clientSearch: '',
     clientId: '',
     serviceSearch: '',
-    serviceId: '',
+    serviceIds: [],
     reservationDate: '',
     startTime: '',
     endTime: '',
@@ -256,6 +256,28 @@ export const ReservationScheduler = (props: Props) => {
     if (!q) return services
     return services.filter((s) => s.name.toLowerCase().includes(q))
   }, [createDraft.serviceSearch, services])
+
+  const servicesById = useMemo(() => new Map(services.map((s) => [s.id, s])), [services])
+
+  useEffect(() => {
+    const start = (createDraft.startTime ?? '').trim()
+    if (!start) return
+    if (!createDraft.serviceIds || createDraft.serviceIds.length === 0) return
+    const totalMinutes = createDraft.serviceIds
+      .map((id) => servicesById.get(id)?.durationMinutes ?? 0)
+      .reduce((acc, x) => acc + x, 0)
+    if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) return
+    const [hhRaw, mmRaw] = start.split(':').map(Number)
+    if (!Number.isFinite(hhRaw) || !Number.isFinite(mmRaw)) return
+    const startMinutes = hhRaw * 60 + mmRaw
+    const endMinutes = startMinutes + totalMinutes
+    const endH = Math.floor(endMinutes / 60) % 24
+    const endM = endMinutes % 60
+    const nextEnd = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
+    if (createDraft.endTime !== nextEnd) {
+      setCreateDraft((p) => ({ ...p, endTime: nextEnd }))
+    }
+  }, [createDraft.startTime, createDraft.serviceIds, createDraft.endTime, servicesById])
 
   const view = useMemo(() => {
     if (props.view === 'dayGridMonth') return Views.MONTH
@@ -761,16 +783,24 @@ export const ReservationScheduler = (props: Props) => {
                 />
                 <select
                   className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
-                  value={createDraft.serviceId}
-                  onChange={(e) => setCreateDraft((p) => ({ ...p, serviceId: e.target.value }))}
+                  multiple
+                  value={createDraft.serviceIds}
+                  onChange={(e) => {
+                    const ids = Array.from(e.currentTarget.selectedOptions)
+                      .map((o) => o.value)
+                      .filter(Boolean)
+                    setCreateDraft((p) => ({ ...p, serviceIds: ids }))
+                  }}
                 >
-                  <option value="">Odaberite servis</option>
                   {filteredServices.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
                   ))}
                 </select>
+                <p className="text-xs text-slate-500">
+                  Odaberite jedan ili više servisa (Ctrl/⌘ + klik).
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -819,7 +849,7 @@ export const ReservationScheduler = (props: Props) => {
                     try {
                       await props.onCreateRequest({
                         clientId: createDraft.clientId.trim(),
-                        serviceId: createDraft.serviceId.trim(),
+                        serviceIds: createDraft.serviceIds.map((x) => x.trim()).filter(Boolean),
                         reservationDate: createDraft.reservationDate,
                         startTime: createDraft.startTime,
                         endTime: createDraft.endTime,
@@ -832,7 +862,7 @@ export const ReservationScheduler = (props: Props) => {
                   }}
                   disabled={
                     !createDraft.clientId.trim() ||
-                    !createDraft.serviceId.trim() ||
+                    createDraft.serviceIds.length === 0 ||
                     !createDraft.reservationDate ||
                     !createDraft.startTime ||
                     !createDraft.endTime
