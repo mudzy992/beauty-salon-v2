@@ -324,7 +324,7 @@ export const ReservationScheduler = (props: Props) => {
       clientSearch: '',
       clientId: '',
       serviceSearch: '',
-      serviceId: '',
+      serviceIds: [],
       reservationDate: toYmd(start),
       startTime: toHm(start),
       endTime: toHm(end),
