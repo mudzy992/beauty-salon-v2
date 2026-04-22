@@ -33,7 +33,7 @@ export const WorkbookNewEntryPage = () => {
   const [clients, setClients] = useState<ClientOption[]>([])
 
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
-  const [serviceId, setServiceId] = useState('')
+  const [serviceIds, setServiceIds] = useState<string[]>([])
   const [clientId, setClientId] = useState('')
   const [paidAmount, setPaidAmount] = useState('')
   const [notes, setNotes] = useState('')
@@ -66,9 +66,9 @@ export const WorkbookNewEntryPage = () => {
     }
   }, [])
 
-  const selectedService = useMemo(
-    () => services.find((s) => s.id === serviceId) ?? null,
-    [services, serviceId],
+  const selectedServices = useMemo(
+    () => serviceIds.map((id) => services.find((s) => s.id === id)).filter(Boolean) as ServiceOption[],
+    [services, serviceIds],
   )
 
   const selectedClient = useMemo(
@@ -78,9 +78,10 @@ export const WorkbookNewEntryPage = () => {
 
   const filteredServices = useMemo(() => {
     const q = serviceSearch.trim().toLowerCase()
-    if (!q) return services
-    return services.filter((s) => s.name.toLowerCase().includes(q))
-  }, [services, serviceSearch])
+    const base = selectedClient?.gender ? services.filter((s: any) => s.gender === selectedClient.gender) : services
+    if (!q) return base
+    return base.filter((s) => s.name.toLowerCase().includes(q))
+  }, [services, serviceSearch, selectedClient?.gender])
 
   const filteredClients = useMemo(() => {
     const q = clientSearch.trim().toLowerCase()
@@ -95,7 +96,7 @@ export const WorkbookNewEntryPage = () => {
       .slice(0, 50)
   }, [clients, clientSearch])
 
-  const basePrice = selectedService ? Number(selectedService.price ?? 0) : 0
+  const basePrice = selectedServices.reduce((acc, s) => acc + Number(s.price ?? 0), 0)
   const loyaltyPercent =
     loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service
       ? Math.max(0, Math.min(desiredLoyaltyPercent, loyaltyInfo.service.maxDiscountPercent))
@@ -104,14 +105,14 @@ export const WorkbookNewEntryPage = () => {
   const chargeAmount = Math.max(0, basePrice - loyaltyDiscountAmount)
 
   useEffect(() => {
-    if (!serviceId || !clientId) {
+    if (serviceIds.length === 0 || !clientId) {
       setLoyaltyInfo(null)
       setDesiredLoyaltyPercent(0)
       return
     }
     let mounted = true
     setLoadingLoyalty(true)
-    fetchLoyaltyInfoForClient({ clientId, serviceId })
+    fetchLoyaltyInfoForClient({ clientId, serviceIds })
       .then((data) => {
         if (!mounted) return
         setLoyaltyInfo(data)
@@ -127,12 +128,13 @@ export const WorkbookNewEntryPage = () => {
     return () => {
       mounted = false
     }
-  }, [serviceId, clientId])
+  }, [serviceIds, clientId])
 
-  const handleSelectService = (svc: ServiceOption) => {
-    setServiceId(svc.id)
-    setServiceSearch(svc.name)
-    setShowServiceDropdown(false)
+  const toggleService = (svc: ServiceOption) => {
+    setServiceIds((prev) => {
+      const exists = prev.includes(svc.id)
+      return exists ? prev.filter((x) => x !== svc.id) : [...prev, svc.id]
+    })
     setDesiredLoyaltyPercent(0)
     setPaidAmount('')
   }
@@ -142,6 +144,10 @@ export const WorkbookNewEntryPage = () => {
     const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.username
     setClientSearch(name)
     setShowClientDropdown(false)
+    if (c.gender && selectedServices.length > 0 && selectedServices.some((s: any) => (s as any).gender !== c.gender)) {
+      setServiceIds([])
+      setServiceSearch('')
+    }
     setDesiredLoyaltyPercent(0)
     setPaidAmount('')
   }
@@ -151,8 +157,16 @@ export const WorkbookNewEntryPage = () => {
       warning('Greška', 'Profil stilista nije pronađen.')
       return
     }
-    if (!serviceId || !clientId) {
-      warning('Greška', 'Odaberite servis i klijenta.')
+    if (!clientId) {
+      warning('Greška', 'Odaberite klijenta.')
+      return
+    }
+    if (!selectedClient?.gender) {
+      warning('Greška', 'Klijent mora imati definisan spol.')
+      return
+    }
+    if (serviceIds.length === 0) {
+      warning('Greška', 'Odaberite servis(e).')
       return
     }
     const paidRaw = paidAmount.trim() ? Number(paidAmount.replace(',', '.')) : chargeAmount
@@ -170,7 +184,7 @@ export const WorkbookNewEntryPage = () => {
     try {
       const entry = await createDailyLogEntry({
         stylistProfileId: profileId,
-        serviceId,
+        serviceIds,
         clientId,
         date,
         actualPrice: paidRaw,
@@ -230,7 +244,6 @@ export const WorkbookNewEntryPage = () => {
               onChange={(e) => {
                 setServiceSearch(e.target.value)
                 setShowServiceDropdown(true)
-                setServiceId('')
               }}
             />
             {showServiceDropdown && filteredServices.length > 0 ? (
@@ -240,7 +253,7 @@ export const WorkbookNewEntryPage = () => {
                     key={svc.id}
                     className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
                     onMouseDown={(ev) => ev.preventDefault()}
-                    onClick={() => handleSelectService(svc)}
+                    onClick={() => toggleService(svc)}
                   >
                     <div className="flex justify-between gap-2 text-sm">
                       <span>{svc.name}</span>
@@ -251,8 +264,23 @@ export const WorkbookNewEntryPage = () => {
               </ul>
             ) : null}
           </div>
-          {selectedService ? (
-            <p className="mt-2 text-xs text-emerald-600">Odabrano: {selectedService.name}</p>
+          {selectedServices.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              {selectedServices.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
+                >
+                  <div className="min-w-0">
+                    <div className="font-semibold text-slate-900 dark:text-slate-50">{s.name}</div>
+                    <div className="text-xs text-slate-500">{Number(s.price).toFixed(2)} KM</div>
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => toggleService(s)}>
+                    Ukloni
+                  </Button>
+                </div>
+              ))}
+            </div>
           ) : null}
         </Card>
 

@@ -141,6 +141,13 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
       : 0;
   const loyaltyDiscountAmount = basePrice > 0 ? (basePrice * loyaltyPercent) / 100 : 0;
   const chargeAmount = Math.max(0, basePrice - loyaltyDiscountAmount);
+  const tipPreview = useMemo(() => {
+    const raw = paidAmount.trim()
+      ? parseFloat(paidAmount.replace(',', '.'))
+      : NaN;
+    if (!Number.isFinite(raw) || raw < 0) return 0;
+    return Math.max(0, raw - chargeAmount);
+  }, [paidAmount, chargeAmount]);
 
   useEffect(() => {
     if (serviceIds.length === 0 || !clientId) {
@@ -285,6 +292,44 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
                     : 'Odaberi servis(e)'}
             </Text>
           </TouchableOpacity>
+          {selectedServices.length > 0 ? (
+            <View style={{ marginTop: spacing.sm }}>
+              {selectedServices.map((s) => (
+                <View
+                  key={s.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: spacing.sm,
+                    paddingVertical: 8,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.border,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.text, fontWeight: '700' }}>{s.name}</Text>
+                    <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
+                      {Number(s.price).toFixed(2)} KM · {s.durationMinutes} min
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => toggleService(s)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: colors.inputBorder,
+                      backgroundColor: colors.inputBg,
+                    }}
+                  >
+                    <Text style={{ color: colors.textSecondary, fontWeight: '700' }}>Ukloni</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </Card>
 
         <Card style={styles.card}>
@@ -307,6 +352,11 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
           <Text style={{ color: colors.text, marginTop: 2, fontWeight: '700' }}>
             Za naplatu: {chargeAmount.toFixed(2)} KM
           </Text>
+          {tipPreview > 0 ? (
+            <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
+              Napojnica: {tipPreview.toFixed(2)} KM
+            </Text>
+          ) : null}
           <Input label="Napomena (opciono)" value={notes} onChangeText={setNotes} multiline />
         </Card>
 

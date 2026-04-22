@@ -22,6 +22,11 @@ import api, { getUploadUrl } from '../../services/api';
 import { spacing } from '../../theme';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatTime } from '../../utils/date';
+import {
+  getReservationServicesLabel,
+  getReservationTotalDurationMinutes,
+  pickReservationBackdropHeroImage,
+} from '../../utils/reservationServices';
 import type { Reservation, DailyLogEntry } from '../../types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { StylistScheduleStackParamList } from '../../navigation/types';
@@ -86,6 +91,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
   }, [fetchReservations]);
 
   const sections: Section[] = useMemo(() => {
+    if (reservations.length === 0) return [];
     const todayStr = new Date().toISOString().slice(0, 10);
     const todayActive: Reservation[] = [];
     const todayCompletedLike: Reservation[] = [];
@@ -192,7 +198,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
   }, [activeReservation, tick]);
 
   const activeHeroUri = useMemo(() => {
-    const path = activeReservation?.service?.heroImage;
+    const path = pickReservationBackdropHeroImage(activeReservation);
     const uri = path ? getUploadUrl(path) : null;
     return uri || null;
   }, [activeReservation]);
@@ -229,6 +235,13 @@ export function StylistScheduleScreen({ navigation }: Props) {
         ]}
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: colors.background }}
+        ListEmptyComponent={
+          <EmptyState
+            icon="calendar-outline"
+            title="Nema termina"
+            message="Trenutno nema termina za prikaz."
+          />
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
@@ -286,7 +299,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                     ) : null}
 
                     <Text style={[styles.activeServiceName, styles.titleOverlay]}>
-                      {activeReservation.service?.name ?? 'Usluga'}
+                      {getReservationServicesLabel(activeReservation)}
                     </Text>
                     {activeReservation.client ? (
                       <View style={styles.activeMetaRow}>
@@ -384,7 +397,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                     ) : null}
 
                     <Text style={[styles.activeServiceName, { color: colors.text }]}>
-                      {activeReservation.service?.name ?? 'Usluga'}
+                      {getReservationServicesLabel(activeReservation)}
                     </Text>
                     {activeReservation.client ? (
                       <View style={styles.activeMetaRow}>
@@ -445,18 +458,14 @@ export function StylistScheduleScreen({ navigation }: Props) {
             </Card>
           ) : null
         }
-        ListEmptyComponent={
-          <EmptyState
-            icon="calendar-outline"
-            title="Nema termina"
-            message="Vaši potvrđeni i zakazani termini pojavit će se ovdje."
-          />
-        }
         renderSectionHeader={({ section }) => (
           <Text style={[styles.sectionHeader, { color: colors.primary }]}>{section.title}</Text>
         )}
         renderItem={({ item }) => {
-          const heroUri = item.service?.heroImage ? getUploadUrl(item.service.heroImage) : null;
+          const heroPath = pickReservationBackdropHeroImage(item);
+          const heroUri = heroPath ? getUploadUrl(heroPath) : null;
+          const totalMinutes = getReservationTotalDurationMinutes(item);
+          const durationSuffix = totalMinutes > 0 ? ` · ${totalMinutes} min` : '';
           return (
             <Card
               style={[styles.card, heroUri ? styles.cardBackdrop : null]}
@@ -487,6 +496,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                         <Ionicons name="time-outline" size={16} color={gold} />
                         <Text style={[styles.time, styles.titleOverlay]}>
                           {formatTime(item.startTime)} – {formatTime(item.endTime)}
+                          {durationSuffix}
                         </Text>
                       </View>
                       <Badge
@@ -504,7 +514,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                     <View style={[styles.inlineRow, { marginTop: 2 }]}>
                       <Ionicons name="cut-outline" size={16} color={gold} />
                       <Text style={[styles.serviceName, styles.titleOverlay]}>
-                        {item.service?.name ?? 'Usluga'}
+                        {getReservationServicesLabel(item)}
                       </Text>
                     </View>
                     {item.client && (
@@ -532,6 +542,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                       <Ionicons name="time-outline" size={16} color={gold} />
                       <Text style={[styles.time, { color: colors.text }]}>
                         {formatTime(item.startTime)} – {formatTime(item.endTime)}
+                        {durationSuffix}
                       </Text>
                     </View>
                     <Badge
@@ -549,7 +560,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                   <View style={[styles.inlineRow, { marginTop: 2 }]}>
                     <Ionicons name="cut-outline" size={16} color={gold} />
                     <Text style={[styles.serviceName, { color: colors.text }]}>
-                      {item.service?.name ?? 'Usluga'}
+                      {getReservationServicesLabel(item)}
                     </Text>
                   </View>
                   {item.client && (

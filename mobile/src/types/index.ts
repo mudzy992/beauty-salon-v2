@@ -79,6 +79,14 @@ export type ReservationStatus =
   | 'CANCELLED_BY_STYLISTS'
   | 'NO_SHOW';
 
+export interface ReservationServiceItem {
+  id: string;
+  reservationId?: string;
+  serviceId: string;
+  sortOrder?: number;
+  service?: Service;
+}
+
 export interface Reservation {
   id: string;
   clientId: string;
@@ -102,6 +110,7 @@ export interface Reservation {
   loyaltyPointsUsed?: number;
   createdAt: string;
   service?: Service;
+  items?: ReservationServiceItem[];
   confirmedStylist?: StylistProfile;
   client?: {
     id: string;

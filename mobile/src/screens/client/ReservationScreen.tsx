@@ -287,43 +287,13 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     setSubmitting(false);
   };
 
-  const handleBackFromDateStep = useCallback(() => {
-    switch (origin) {
-      case 'home':
-        navigation.getParent()?.navigate('HomeTab', { screen: 'Home' });
-        return;
-      case 'services-list':
-        navigation.getParent()?.navigate('ServicesTab', { screen: 'Services' });
-        return;
-      case 'service-detail':
-        if (originCategoryId && originCategoryName) {
-          navigation.navigate('ServiceDetail', {
-            categoryId: originCategoryId,
-            categoryName: originCategoryName,
-          });
-          return;
-        }
-        navigation.getParent()?.navigate('ServicesTab', { screen: 'Services' });
-        return;
-      case 'service-single':
-        if (selectedServices.length === 1) {
-          const selectedService = selectedServices[0]!;
-          navigation.navigate('ServiceSingleDetail', {
-            serviceId: selectedService.id,
-            serviceName: selectedService.name,
-          });
-          return;
-        }
-        navigation.getParent()?.navigate('ServicesTab', { screen: 'Services' });
-        return;
-      case 'reservations':
-        navigation.getParent()?.navigate('ReservationsTab', { screen: 'MyReservations' });
-        return;
-      default:
-        setStep(1);
-        setSelectedServices([]);
-    }
-  }, [navigation, origin, originCategoryId, originCategoryName, selectedServices]);
+  const handleBackToServices = useCallback(() => {
+    setStep(1);
+    setSelectedDate(null);
+    setSelectedSlot(null);
+    setDesiredLoyaltyPercent(0);
+    setLoyaltyInfo(null);
+  }, []);
 
   const stepIndicator = (
     <View style={styles.steps}>
@@ -373,6 +343,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             contentInsetAdjustmentBehavior="automatic"
             renderItem={({ item }) => {
               const heroUri = item.heroImage ? getUploadUrl(item.heroImage) : null;
+              const isSelected = selectedServiceIds.includes(item.id);
               return (
                 <Card onPress={() => handleToggleService(item)} style={[styles.serviceItem, styles.serviceItemBackdrop]} padded={false}>
                   {heroUri ? (
@@ -381,14 +352,33 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
                       style={styles.serviceItemBackdropImage}
                       imageStyle={styles.serviceItemBackdropImageStyle}
                     >
-                      <View style={[styles.serviceItemBackdropOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+                      <View
+                        style={[
+                          styles.serviceItemBackdropOverlay,
+                          { backgroundColor: isSelected ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.5)' },
+                        ]}
+                      />
                       <View style={styles.serviceItemBackdropContent}>
                         <Text style={styles.serviceItemNameOverlay}>{item.name}</Text>
                         <Text style={styles.serviceItemDurationOverlay}>{item.durationMinutes} min</Text>
                       </View>
+                      {isSelected ? (
+                        <View style={styles.selectedBadge}>
+                          <Ionicons name="checkmark" size={14} color="#fff" />
+                        </View>
+                      ) : null}
                     </ImageBackground>
                   ) : (
-                    <View style={[styles.serviceItemPlaceholder, { backgroundColor: colors.surface }]}>
+                    <View
+                      style={[
+                        styles.serviceItemPlaceholder,
+                        {
+                          backgroundColor: colors.surface,
+                          borderColor: isSelected ? colors.primary : colors.border,
+                          borderWidth: 1,
+                        },
+                      ]}
+                    >
                       <Text style={[styles.serviceItemName, { color: colors.text }]}>{item.name}</Text>
                       <Text style={[styles.serviceItemDuration, { color: colors.textSecondary }]}>
                         {item.durationMinutes} min
@@ -420,9 +410,13 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             <Text style={[styles.selectedLabel, { color: colors.textSecondary }]}>
               {t('reservation.service')}
             </Text>
-            <Text style={[styles.selectedValue, { color: colors.text }]}>
-              {selectedServicesLabel}
-            </Text>
+            <View style={styles.selectedServicesWrap}>
+              {selectedServices.map((s) => (
+                <View key={s.id} style={[styles.selectedChip, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+                  <Text style={{ color: colors.text, fontWeight: '700' }}>{s.name}</Text>
+                </View>
+              ))}
+            </View>
           </Card>
 
           {loading ? (
@@ -454,7 +448,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
           <Button
             title={t('common.back')}
-            onPress={handleBackFromDateStep}
+            onPress={handleBackToServices}
             variant="ghost"
             style={{ marginTop: spacing.md }}
           />
@@ -714,6 +708,19 @@ const styles = StyleSheet.create({
   serviceItemBackdropImageStyle: { borderRadius: borderRadius.lg },
   serviceItemBackdropOverlay: { ...StyleSheet.absoluteFill, borderRadius: borderRadius.lg },
   serviceItemBackdropContent: { paddingTop: spacing.sm },
+  selectedBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedServicesWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
+  selectedChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
   serviceItemNameOverlay: { fontSize: 16, fontWeight: '600', color: '#fff', textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
   serviceItemDurationOverlay: { fontSize: 13, color: 'rgba(255,255,255,0.95)', marginTop: 2 },
   serviceItemPlaceholder: { padding: spacing.md, borderRadius: borderRadius.lg },

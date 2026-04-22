@@ -393,20 +393,6 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     />
                   </Animated.View>
                   <Animated.Text
-                    entering={FadeInDown.delay(300).duration(500).springify()}
-                    style={[
-                      styles.heroBrandTitle,
-                      {
-                        color: appLogoTextColor,
-                        textShadowColor: 'rgba(0,0,0,0.5)',
-                        textShadowOffset: { width: 0, height: 1 },
-                        textShadowRadius: 6,
-                      },
-                    ]}
-                  >
-                    {formatBrandWordDisplay(appTitle)}
-                  </Animated.Text>
-                  <Animated.Text
                     entering={FadeInDown.delay(380).duration(480).springify()}
                     style={styles.heroSubtitleUnderLogo}
                     numberOfLines={2}

@@ -26,6 +26,7 @@ interface DailyLogEntry {
   completedAt: string | null
   stylistProfile?: { id: string; user?: { username: string; firstName: string | null; lastName: string | null } }
   service?: { id: string; name: string }
+  items?: Array<{ id: string; sortOrder: number; serviceId: string; service?: { id: string; name: string } | null }>
   client?: { id: string; firstName: string | null; lastName: string | null; user?: { username: string } }
   reservation?: {
     id: string
@@ -43,6 +44,7 @@ interface ServiceOption {
   id: string
   name: string
   price: number | string
+  gender?: 'MALE' | 'FEMALE'
 }
 
 interface ClientOption {
@@ -105,7 +107,7 @@ export default function DailyLog() {
 
   const [form, setForm] = useState({
     stylistProfileId: '',
-    serviceId: '',
+    serviceIds: [] as string[],
     clientId: '',
     date: new Date().toISOString().slice(0, 10),
     actualPrice: 0,
@@ -177,6 +179,11 @@ export default function DailyLog() {
     return services.filter((s) => s.name.toLowerCase().includes(q))
   }, [services, serviceSearch])
 
+  const isServiceSelected = useCallback(
+    (id: string) => form.serviceIds.includes(id),
+    [form.serviceIds],
+  )
+
   const filteredClients = useMemo(() => {
     if (!clientSearch) return clients.slice(0, 20)
     const q = clientSearch.toLowerCase()
@@ -190,10 +197,13 @@ export default function DailyLog() {
       .slice(0, 20)
   }, [clients, clientSearch])
 
-  const selectService = (svc: ServiceOption) => {
-    setForm((prev) => ({ ...prev, serviceId: svc.id, actualPrice: Number(svc.price) || 0, desiredLoyaltyPercent: 0 }))
-    setServiceSearch(svc.name)
-    setShowServiceDropdown(false)
+  const toggleService = (svc: ServiceOption) => {
+    setForm((prev) => {
+      const exists = prev.serviceIds.includes(svc.id)
+      const nextIds = exists ? prev.serviceIds.filter((x) => x !== svc.id) : [...prev.serviceIds, svc.id]
+      return { ...prev, serviceIds: nextIds, desiredLoyaltyPercent: 0 }
+    })
+    setShowServiceDropdown(true)
     setPaidAmount('')
   }
 
@@ -209,7 +219,7 @@ export default function DailyLog() {
     setEditId(null)
     setForm({
       stylistProfileId: '',
-      serviceId: '',
+      serviceIds: [],
       clientId: '',
       date: new Date().toISOString().slice(0, 10),
       actualPrice: 0,
@@ -227,9 +237,15 @@ export default function DailyLog() {
 
   const openEditForm = (entry: DailyLogEntry) => {
     setEditId(entry.id)
+    const serviceIds =
+      Array.isArray(entry.items) && entry.items.length > 0
+        ? entry.items.map((x) => x.serviceId)
+        : entry.service?.id
+          ? [entry.service.id]
+          : []
     setForm({
       stylistProfileId: entry.stylistProfile?.id ?? '',
-      serviceId: entry.service?.id ?? '',
+      serviceIds,
       clientId: entry.client?.id ?? '',
       date: entry.date?.slice(0, 10) ?? '',
       actualPrice: Number(entry.actualPrice),
@@ -238,7 +254,7 @@ export default function DailyLog() {
       isManual: entry.isManual,
       desiredLoyaltyPercent: Number(entry.loyaltyDiscountPercent ?? 0),
     })
-    setServiceSearch(entry.service?.name ?? '')
+    setServiceSearch('')
     const clientName = entry.client
       ? [entry.client.firstName, entry.client.lastName].filter(Boolean).join(' ') || entry.client.user?.username || ''
       : ''
@@ -247,11 +263,11 @@ export default function DailyLog() {
     setOpen(true)
   }
 
-  const selectedServiceObj = useMemo(
-    () => services.find((s) => s.id === form.serviceId) ?? null,
-    [services, form.serviceId],
+  const selectedServices = useMemo(
+    () => form.serviceIds.map((id) => services.find((s) => s.id === id)).filter(Boolean) as ServiceOption[],
+    [services, form.serviceIds],
   )
-  const basePrice = selectedServiceObj ? Number(selectedServiceObj.price ?? 0) : 0
+  const basePrice = selectedServices.reduce((acc, s) => acc + Number(s.price ?? 0), 0)
   const loyaltyPercent =
     loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service
       ? Math.max(0, Math.min(form.desiredLoyaltyPercent, loyaltyInfo.service.maxDiscountPercent))
@@ -260,7 +276,7 @@ export default function DailyLog() {
   const chargeAmount = Math.max(0, basePrice - loyaltyDiscountAmount)
 
   useEffect(() => {
-    if (!form.serviceId || !form.clientId) {
+    if (form.serviceIds.length === 0 || !form.clientId) {
       setLoyaltyInfo(null)
       return
     }
@@ -268,7 +284,7 @@ export default function DailyLog() {
     setLoadingLoyalty(true)
     api
       .get<LoyaltyInfo>(`/api/loyalty/stylist/client/${form.clientId}`, {
-        params: { serviceId: form.serviceId },
+        params: { serviceIds: form.serviceIds.join(',') },
       })
       .then((r) => {
         if (!isMounted) return
@@ -285,10 +301,10 @@ export default function DailyLog() {
     return () => {
       isMounted = false
     }
-  }, [form.serviceId, form.clientId])
+  }, [form.serviceIds, form.clientId])
 
   const handleSave = async () => {
-    if (!form.stylistProfileId || !form.serviceId) {
+    if (!form.stylistProfileId || form.serviceIds.length === 0) {
       warning('Odaberite stilistu i servis')
       return
     }
@@ -315,7 +331,7 @@ export default function DailyLog() {
       } else {
         await api.post('/api/daily-log', {
           stylistProfileId: form.stylistProfileId,
-          serviceId: form.serviceId,
+          serviceIds: form.serviceIds,
           clientId: form.clientId || undefined,
           date: form.date,
           actualPrice: paidRaw,
@@ -601,7 +617,6 @@ export default function DailyLog() {
                     onChange={(e) => {
                       setServiceSearch(e.target.value)
                       setShowServiceDropdown(true)
-                      setForm((prev) => ({ ...prev, serviceId: '' }))
                     }}
                     onFocus={() => setShowServiceDropdown(true)}
                     placeholder="Pretražite servis..."
@@ -613,10 +628,13 @@ export default function DailyLog() {
                           key={svc.id}
                           className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
                           onMouseDown={(ev) => ev.preventDefault()}
-                          onClick={() => selectService(svc)}
+                          onClick={() => toggleService(svc)}
                         >
                           <div className="flex justify-between gap-2 text-sm">
-                            <span>{svc.name}</span>
+                            <span className="flex items-center gap-2">
+                              {isServiceSelected(svc.id) ? <Check className="h-4 w-4 text-emerald-600" /> : null}
+                              {svc.name}
+                            </span>
                             <span className="text-slate-500">{Number(svc.price).toFixed(2)} KM</span>
                           </div>
                         </li>
@@ -624,7 +642,24 @@ export default function DailyLog() {
                     </ul>
                   ) : null}
                 </div>
-                {form.serviceId ? <p className="mt-1 text-xs text-emerald-600">Odabrano: {serviceSearch}</p> : null}
+                {form.serviceIds.length > 0 ? (
+                  <div className="mt-2 space-y-2">
+                    {selectedServices.map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-semibold text-slate-900 dark:text-slate-50">{s.name}</div>
+                          <div className="text-xs text-slate-500">{Number(s.price).toFixed(2)} KM</div>
+                        </div>
+                        <Button type="button" variant="outline" size="sm" onClick={() => toggleService(s)}>
+                          Ukloni
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               <div>

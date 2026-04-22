@@ -19,6 +19,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
 import { spacing } from '../../theme';
 import { formatDate, formatTime } from '../../utils/date';
+import { getReservationServicesLabel } from '../../utils/reservationServices';
 import type { ClientDebt, Reservation, StylistResponse } from '../../types';
 
 function getMyResponse(reservation: Reservation, profileId: string): StylistResponse | undefined {
@@ -218,7 +219,7 @@ export function StylistInboxScreen() {
           <Card style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={[styles.serviceName, { color: colors.text }]}>
-                {item.service?.name ?? 'Usluga'}
+                {getReservationServicesLabel(item)}
               </Text>
               <Badge
                 label={

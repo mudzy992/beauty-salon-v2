@@ -26,6 +26,7 @@ export type DailyLogEntry = {
   stylistProfileId: string
   reservationId?: string | null
   serviceId: string
+  items?: Array<{ id: string; sortOrder: number; serviceId: string; service?: { id: string; name: string } | null }>
   clientId?: string | null
   date: string
   actualPrice: number
@@ -60,6 +61,7 @@ export type ClientOption = {
   username: string
   firstName: string | null
   lastName: string | null
+  gender?: 'MALE' | 'FEMALE' | null
 }
 
 export type LoyaltyInfo = {

@@ -41,17 +41,17 @@ export const fetchClientsForDailyLog = async (): Promise<ClientOption[]> => {
 
 export const fetchLoyaltyInfoForClient = async (params: {
   clientId: string
-  serviceId: string
+  serviceIds: string[]
 }): Promise<LoyaltyInfo> => {
   const { data } = await api.get<LoyaltyInfo>(`/api/loyalty/stylist/client/${params.clientId}`, {
-    params: { serviceId: params.serviceId },
+    params: { serviceIds: params.serviceIds.join(',') },
   })
   return data
 }
 
 export const createDailyLogEntry = async (body: {
   stylistProfileId: string
-  serviceId: string
+  serviceIds: string[]
   clientId?: string
   date: string
   actualPrice: number

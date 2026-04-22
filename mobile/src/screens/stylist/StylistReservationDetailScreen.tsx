@@ -24,6 +24,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { spacing } from '../../theme';
 import { formatDate, formatTime } from '../../utils/date';
+import { getReservationServicesLabel, getReservationTotalDurationMinutes } from '../../utils/reservationServices';
 import type { StylistScheduleStackParamList } from '../../navigation/types';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
@@ -493,6 +494,8 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
       : t(`myReservations.status.${reservation.status}` as any);
   const loyaltyPercent = 'loyaltyDiscountPercent' in reservation ? Number((reservation as any).loyaltyDiscountPercent ?? 0) : 0;
   const loyaltyAmount = 'loyaltyDiscountAmount' in reservation ? Number((reservation as any).loyaltyDiscountAmount ?? 0) : 0;
+  const totalMinutes = getReservationTotalDurationMinutes(reservation);
+  const durationSuffix = totalMinutes > 0 ? ` · ${totalMinutes} min` : '';
 
   return (
     <>
@@ -507,10 +510,11 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
           <View style={[styles.headerRow, { borderBottomColor: colors.border }]}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.serviceName, { color: colors.text }]}>
-                {reservation.service?.name ?? 'Usluga'}
+                {getReservationServicesLabel(reservation)}
               </Text>
               <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                 {formatDate(reservation.reservationDate.slice(0, 10))} · {formatTime(reservation.startTime)} – {formatTime(reservation.endTime)}
+                {durationSuffix}
               </Text>
             </View>
             <Badge
