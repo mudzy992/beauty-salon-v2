@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /stylist/
+Disallow: /login
+Disallow: /register
+Disallow: /onboarding/
+Disallow: /force-change-password
+Disallow: /moj-termin/
+Disallow: /profil
+
+Sitemap: https://nejra-v2.ba101.top/sitemap.xml
+

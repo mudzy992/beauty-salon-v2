@@ -9,6 +9,8 @@ import { Textarea } from '../../components/ui/textarea'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import { useSettings } from '../../context/SettingsContext'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { Seo } from '../../seo/Seo'
+import { site } from '../../seo/site'
 
 const MotionDiv = motion.div
 
@@ -33,18 +35,47 @@ export default function PublicContact() {
     }, 1000)
   }
 
+  const contactTitle = getSetting('public_contact_title', 'Kontaktirajte Nas')
+  const contactSubtitle = getSetting(
+    'public_contact_subtitle',
+    'Tu smo za sva vaša pitanja. Javite nam se ili nas posjetite u salonu.',
+  )
+
+  const address = getSetting('public_contact_address', 'Titova 12, 71000 Sarajevo')
+  const phone = getSetting('public_contact_phone', '+387 61 234 567')
+  const contactEmail = getSetting('public_contact_email', 'info@salon.ba')
+
+  const canonicalPath = '/kontakt'
+  const description = `${contactSubtitle}`.trim()
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: site.siteName,
+    url: site.baseUrl,
+    telephone: phone,
+    email: contactEmail,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: address,
+      addressCountry: 'BA',
+    },
+  }
+
   return (
     <div className="bg-white min-h-screen pb-20">
+      <Seo
+        title="Kontakt"
+        description={description}
+        canonicalUrl={canonicalPath}
+        jsonLd={jsonLd}
+      />
       <div className={publicPageHero.section}>
         <div className={`${publicPageHero.innerNarrow} text-center`}>
           <h1 className={publicHeader.title}>
-            {getSetting('public_contact_title', 'Kontaktirajte Nas')}
+            {contactTitle}
           </h1>
           <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
-            {getSetting(
-              'public_contact_subtitle',
-              'Tu smo za sva vaša pitanja. Javite nam se ili nas posjetite u salonu.',
-            )}
+            {contactSubtitle}
           </p>
         </div>
       </div>
@@ -114,10 +145,7 @@ export default function PublicContact() {
                         Adresa
                       </div>
                       <div>
-                        {getSetting(
-                          'public_contact_address',
-                          'Titova 12, 71000 Sarajevo',
-                        )}
+                        {address}
                       </div>
                     </div>
                     <div>
@@ -125,7 +153,7 @@ export default function PublicContact() {
                         Telefon
                       </div>
                       <div>
-                        {getSetting('public_contact_phone', '+387 61 234 567')}
+                        {phone}
                       </div>
                     </div>
                     <div>
@@ -133,7 +161,7 @@ export default function PublicContact() {
                         Email
                       </div>
                       <div>
-                        {getSetting('public_contact_email', 'info@salon.ba')}
+                        {contactEmail}
                       </div>
                     </div>
                     <div>

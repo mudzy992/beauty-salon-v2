@@ -9,6 +9,8 @@ import { useAppToast } from '../../lib/toast/useAppToast'
 import api from '../../api/client'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { useAuth } from '../../context/AuthContext'
+import { Seo } from '../../seo/Seo'
+import { site } from '../../seo/site'
 
 interface BlogPost {
   id: string;
@@ -24,6 +26,18 @@ interface BlogComment {
   content: string;
   createdAt: string;
   user: { id: string; firstName: string; lastName: string };
+}
+
+const toPlainText = (value: string): string =>
+  value
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const toExcerpt = (value: string, maxLen: number): string => {
+  const text = toPlainText(value)
+  if (text.length <= maxLen) return text
+  return `${text.slice(0, maxLen).trimEnd()}…`
 }
 
 export default function PublicBlogPost() {
@@ -91,8 +105,39 @@ export default function PublicBlogPost() {
     )
   }
 
+  const canonicalPath = `/blog/${post.slug}`
+  const description = toExcerpt(post.content || '', 160) || 'Pročitajte članak na blogu Beauty Salon Nejra.'
+  const ogImage = post.heroImage ? getUploadUrl(post.heroImage) : site.defaultOgImagePath
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: post.title,
+    description,
+    datePublished: post.publishedAt || undefined,
+    dateModified: post.publishedAt || undefined,
+    image: ogImage ? (ogImage.startsWith('http') ? ogImage : `${site.baseUrl}${ogImage}`) : undefined,
+    mainEntityOfPage: `${site.baseUrl}${canonicalPath}`,
+    publisher: {
+      '@type': 'Organization',
+      name: site.siteName,
+      url: site.baseUrl,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${site.baseUrl}${site.defaultOgImagePath}`,
+      },
+    },
+  }
+
   return (
     <div className="bg-white min-h-screen pb-20">
+      <Seo
+        title={post.title}
+        description={description}
+        canonicalUrl={canonicalPath}
+        og={{ type: 'article', image: ogImage }}
+        twitter={{ image: ogImage }}
+        jsonLd={jsonLd}
+      />
       <div className={publicPage.containerNarrow}>
         <Link to="/blog" className="inline-flex mb-6 pt-8">
           <Button variant="ghost" className="-ml-2">

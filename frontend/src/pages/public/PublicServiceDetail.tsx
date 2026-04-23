@@ -8,6 +8,8 @@ import { publicHeader, publicPage, publicPageHero } from '../../features/shell/p
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
 import { useSettings } from '../../context/SettingsContext'
+import { Seo } from '../../seo/Seo'
+import { site } from '../../seo/site'
 
 const DEFAULT_SERVICES_HERO_BG =
   'https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=2000'
@@ -143,8 +145,39 @@ export default function PublicServiceDetail() {
     : getSetting('public_services_bg', DEFAULT_SERVICES_HERO_BG)
   const heroImageAlt = `${service.name} — vizual usluge`
 
+  const canonicalPath = `/usluge/${service.id}`
+  const description =
+    service.shortDescription?.trim() ||
+    'Detalji usluge i primjeri prije/poslije u Beauty Salon Nejra.'
+  const ogImage = hasServiceHeroImage ? detailHeroBg : site.defaultOgImagePath
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: service.name,
+    description,
+    provider: {
+      '@type': 'LocalBusiness',
+      name: site.siteName,
+      url: site.baseUrl,
+    },
+    url: `${site.baseUrl}${canonicalPath}`,
+    image: ogImage
+      ? ogImage.startsWith('http')
+        ? ogImage
+        : `${site.baseUrl}${ogImage}`
+      : undefined,
+  }
+
   return (
     <div className="bg-white min-h-screen pb-20">
+      <Seo
+        title={service.name}
+        description={description}
+        canonicalUrl={canonicalPath}
+        og={{ image: ogImage }}
+        twitter={{ image: ogImage }}
+        jsonLd={jsonLd}
+      />
       <div className={`${publicPageHero.section} relative overflow-hidden`}>
         <div
           className={
