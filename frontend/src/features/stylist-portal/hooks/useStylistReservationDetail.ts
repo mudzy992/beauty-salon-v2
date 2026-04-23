@@ -6,7 +6,6 @@ import {
   fetchClientDebts,
   fetchReservationById,
   requestReorder,
-  settleClientDebt,
   stylistCancelReservation,
   stylistNoShowReservation,
   stylistStartReservation,
