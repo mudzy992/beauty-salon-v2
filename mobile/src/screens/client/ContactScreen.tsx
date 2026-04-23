@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Linking, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { WebView } from 'react-native-webview';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
@@ -64,16 +63,32 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
   const email = getSettingValue(settings, 'public_contact_email', '').trim();
   const workingHours = getSettingValue(settings, 'public_contact_working_hours_text', '').trim();
   const mapEmbed = getSettingValue(settings, 'public_contact_map_embed', '').trim();
+  const latRaw = getSettingValue(settings, 'public_contact_lat', '').trim();
+  const lngRaw = getSettingValue(settings, 'public_contact_lng', '').trim();
+
+  const lat = Number(latRaw);
+  const lng = Number(lngRaw);
+  const hasCoords =
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    Math.abs(lat) > 0.000001 &&
+    Math.abs(lng) > 0.000001;
 
   const openMaps = async () => {
-    if (!address) {
-      if (mapEmbed) await Linking.openURL(mapEmbed);
-      return;
-    }
-    const query = encodeURIComponent(address);
-    const nativeUrl =
-      Platform.OS === 'ios' ? `maps:0,0?q=${query}` : `geo:0,0?q=${query}`;
-    const webUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+    const label = address || 'Beauty salon';
+    const query = encodeURIComponent(label);
+
+    const nativeUrl = hasCoords
+      ? Platform.OS === 'ios'
+        ? `maps:0,0?q=${query}&ll=${lat},${lng}`
+        : `geo:${lat},${lng}?q=${lat},${lng}(${query})`
+      : Platform.OS === 'ios'
+        ? `maps:0,0?q=${query}`
+        : `geo:0,0?q=${query}`;
+
+    const webUrl = hasCoords
+      ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+      : `https://www.google.com/maps/search/?api=1&query=${query}`;
 
     try {
       const canNative = await Linking.canOpenURL(nativeUrl);
@@ -167,17 +182,17 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
 
       {mapEmbed ? (
         <Card style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Mapa</Text>
-          <View style={[styles.mapWrap, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-            <WebView
-              source={{ uri: mapEmbed }}
-              style={styles.map}
-              originWhitelist={['*']}
-              javaScriptEnabled
-              domStorageEnabled
-              setSupportMultipleWindows={false}
-            />
-          </View>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Mapa (web)</Text>
+          <TouchableOpacity
+            onPress={() => Linking.openURL(mapEmbed)}
+            activeOpacity={0.75}
+            style={styles.row}
+          >
+            <Ionicons name="link-outline" size={18} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontWeight: '700' }}>
+              Otvori embedded mapu u browseru
+            </Text>
+          </TouchableOpacity>
         </Card>
       ) : null}
 
@@ -208,12 +223,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
   socialRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  mapWrap: {
-    borderWidth: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  map: { height: 240, width: '100%' },
   socialChip: {
     flexDirection: 'row',
     alignItems: 'center',
