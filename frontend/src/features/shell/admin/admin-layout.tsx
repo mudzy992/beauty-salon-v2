@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ExternalLink, LogOut } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
+import { Badge } from '../../../components/ui/badge'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar'
 import {
@@ -17,6 +18,7 @@ import { AppLogo } from '../../../components/brand/app-logo'
 import { UploadedBrandLogo } from '../../../components/brand/uploaded-brand-logo'
 import { useAuth } from '../../../context/AuthContext'
 import { useSettings } from '../../../context/SettingsContext'
+import api from '../../../api/client'
 import { getUploadUrl } from '../../../utils/uploadUrl'
 
 type NavItem = { path: string; labelKey: string }
@@ -48,6 +50,7 @@ export const AdminLayout = () => {
   const { getSetting } = useSettings()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [pendingBlogComments, setPendingBlogComments] = useState(0)
 
   const appLogo = getSetting('app_logo', '')
   const appTitle = getSetting('app_title', t('app.title'))
@@ -65,6 +68,24 @@ export const AdminLayout = () => {
 
   const adminInitials = (user?.username?.trim()?.[0] ?? 'A').toUpperCase()
   const adminAvatarSrc = user?.avatar ? getUploadUrl(user.avatar) : ''
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const { data } = await api.get<{ pending: number }>('/api/blog/comments/pending-count')
+        if (!cancelled) setPendingBlogComments(Math.max(0, Number(data?.pending ?? 0) || 0))
+      } catch {
+        if (!cancelled) setPendingBlogComments(0)
+      }
+    }
+    void load()
+    const timer = window.setInterval(load, 60_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -121,6 +142,8 @@ export const AdminLayout = () => {
                         location.pathname === item.path ||
                         (item.path !== '/admin' &&
                           location.pathname.startsWith(item.path + '/'))
+                      const isBlog = item.path === '/admin/blog'
+                      const showPending = isBlog && pendingBlogComments > 0
                       return (
                         <Link
                           key={item.path}
@@ -132,7 +155,14 @@ export const AdminLayout = () => {
                               : 'rounded-lg px-3 py-2 text-[15px] text-slate-800 hover:text-brand-gold hover:bg-slate-50'
                           }
                         >
-                          {t(item.labelKey)}
+                          <span className="flex items-center justify-between gap-3">
+                            <span className="truncate">{t(item.labelKey)}</span>
+                            {showPending ? (
+                              <Badge className="bg-rose-600 text-white hover:bg-rose-600">
+                                {pendingBlogComments}
+                              </Badge>
+                            ) : null}
+                          </span>
                         </Link>
                       )
                     })}
@@ -283,6 +313,8 @@ export const AdminLayout = () => {
               const isActive =
                 location.pathname === item.path ||
                 (item.path !== '/admin' && location.pathname.startsWith(item.path + '/'))
+              const isBlog = item.path === '/admin/blog'
+              const showPending = isBlog && pendingBlogComments > 0
               return (
                 <Link
                   key={item.path}
@@ -293,7 +325,14 @@ export const AdminLayout = () => {
                       : 'block rounded-md px-3 py-2 text-sm text-slate-700 hover:text-brand-gold hover:bg-slate-50'
                   }
                 >
-                  {t(item.labelKey)}
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="truncate">{t(item.labelKey)}</span>
+                    {showPending ? (
+                      <Badge className="bg-rose-600 text-white hover:bg-rose-600">
+                        {pendingBlogComments}
+                      </Badge>
+                    ) : null}
+                  </span>
                 </Link>
               )
             })}

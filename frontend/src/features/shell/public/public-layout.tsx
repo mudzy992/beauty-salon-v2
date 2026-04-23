@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Menu } from 'lucide-react'
+import { ExternalLink, Menu } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar'
 import { Button } from '../../../components/ui/button'
@@ -86,6 +86,9 @@ export const PublicLayout = () => {
     .toUpperCase()
     .slice(0, 2)
   const avatarSrc = user?.avatar ? getUploadUrl(user.avatar) : ''
+  const facebook = getSetting('public_social_facebook', '').trim()
+  const instagram = getSetting('public_social_instagram', '').trim()
+  const tiktok = getSetting('public_social_tiktok', '').trim()
 
   if (loading) {
     return (
@@ -387,6 +390,43 @@ export const PublicLayout = () => {
             ) : null}
             {getSetting('public_contact_email', '') ? (
               <div>{getSetting('public_contact_email', '')}</div>
+            ) : null}
+            {facebook || instagram || tiktok ? (
+              <div className="pt-2 flex justify-center md:justify-start flex-wrap gap-2">
+                {facebook ? (
+                  <a
+                    href={facebook}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-1.5 text-xs text-slate-700 hover:bg-white"
+                  >
+                    <ExternalLink className="h-4 w-4 opacity-70" aria-hidden />
+                    Facebook
+                  </a>
+                ) : null}
+                {instagram ? (
+                  <a
+                    href={instagram}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-1.5 text-xs text-slate-700 hover:bg-white"
+                  >
+                    <ExternalLink className="h-4 w-4 opacity-70" aria-hidden />
+                    Instagram
+                  </a>
+                ) : null}
+                {tiktok ? (
+                  <a
+                    href={tiktok}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/60 px-3 py-1.5 text-xs text-slate-700 hover:bg-white"
+                  >
+                    <ExternalLink className="h-4 w-4 opacity-70" aria-hidden />
+                    TikTok
+                  </a>
+                ) : null}
+              </div>
             ) : null}
           </div>
         </div>

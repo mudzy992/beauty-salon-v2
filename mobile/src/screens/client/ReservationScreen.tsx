@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   FlatList,
   ImageBackground,
+  BackHandler,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Calendar, DateData } from 'react-native-calendars';
@@ -52,12 +53,13 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const user = useAuthStore((state) => state.user);
   const initialServiceId = route.params?.serviceId;
+  const startAtStep = route.params?.startAtStep;
   const origin = route.params?.origin;
   const requestId = route.params?.requestId;
   const originCategoryId = route.params?.originCategoryId;
   const originCategoryName = route.params?.originCategoryName;
 
-  const [step, setStep] = useState<Step>(initialServiceId ? 2 : 1);
+  const [step, setStep] = useState<Step>(startAtStep ?? (initialServiceId ? 2 : 1));
   const [services, setServices] = useState<Service[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
@@ -116,7 +118,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       setNotes('');
       setDesiredLoyaltyPercent(0);
       setLoyaltyInfo(null);
-      setStep(2);
+      setStep((startAtStep ?? 2) as Step);
       return;
     }
     (async () => {
@@ -132,12 +134,12 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
         setNotes('');
         setDesiredLoyaltyPercent(0);
         setLoyaltyInfo(null);
-        setStep(2);
+        setStep((startAtStep ?? 2) as Step);
       } catch {
         setStep(1);
       }
     })();
-  }, [initialServiceId, requestId, servicesById, user?.gender]);
+  }, [initialServiceId, requestId, servicesById, user?.gender, startAtStep]);
 
   // Load available dates when service is selected
   useEffect(() => {
@@ -287,13 +289,63 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     setSubmitting(false);
   };
 
-  const handleBackToServices = useCallback(() => {
-    setStep(1);
-    setSelectedDate(null);
+  const goBackToOrigin = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+
+    const parent = navigation.getParent();
+    if (origin === 'service-detail' && originCategoryId && originCategoryName) {
+      parent?.navigate('ServicesTab', {
+        screen: 'ServiceDetail',
+        params: { categoryId: originCategoryId, categoryName: originCategoryName },
+      } as any);
+      return;
+    }
+
+    if (origin === 'home') {
+      parent?.navigate('HomeTab' as any);
+      return;
+    }
+
+    parent?.navigate('ServicesTab', { screen: 'Services' } as any);
+  }, [navigation, origin, originCategoryId, originCategoryName]);
+
+  const handleBack = useCallback(() => {
+    if (step === 1) {
+      goBackToOrigin();
+      return;
+    }
+
+    if (step === 2) {
+      setStep(1);
+      setSelectedDate(null);
+      setSelectedSlot(null);
+      setDesiredLoyaltyPercent(0);
+      setLoyaltyInfo(null);
+      return;
+    }
+
+    if (step === 3) {
+      setStep(2);
+      setSelectedDate(null);
+      setSelectedSlot(null);
+      return;
+    }
+
+    // step === 4
+    setStep(3);
     setSelectedSlot(null);
-    setDesiredLoyaltyPercent(0);
-    setLoyaltyInfo(null);
-  }, []);
+  }, [goBackToOrigin, step]);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleBack();
+      return true;
+    });
+    return () => sub.remove();
+  }, [handleBack]);
 
   const stepIndicator = (
     <View style={styles.steps}>
@@ -448,7 +500,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
           <Button
             title={t('common.back')}
-            onPress={handleBackToServices}
+            onPress={handleBack}
             variant="ghost"
             style={{ marginTop: spacing.md }}
           />
@@ -529,7 +581,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
           <Button
             title={t('common.back')}
-            onPress={() => { setStep(2); setSelectedDate(null); }}
+            onPress={handleBack}
             variant="ghost"
             style={{ marginTop: spacing.md }}
           />
@@ -657,7 +709,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
           <Button
             title={t('common.back')}
-            onPress={() => { setStep(3); setSelectedSlot(null); }}
+            onPress={handleBack}
             variant="ghost"
             style={{ marginTop: spacing.sm }}
           />

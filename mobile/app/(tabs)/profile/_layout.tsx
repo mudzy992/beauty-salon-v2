@@ -20,7 +20,7 @@ export default function ProfileStackLayout() {
       <Stack.Screen name="edit" options={{ title: t('profile.editProfile') }} />
       <Stack.Screen name="change-password" options={{ title: t('profile.changePasswordLabel') }} />
       <Stack.Screen name="notifications" options={{ title: t('notifications.title') }} />
+      <Stack.Screen name="contact" options={{ title: t('profile.contact.title') }} />
     </Stack>
   );
 }
-

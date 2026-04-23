@@ -56,6 +56,9 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'public_social_instagram', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_social_tiktok', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
+  // Canonical public site base URL (used for sharing links from mobile)
+  { key: 'public_site_base_url', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+
   { key: 'public_footer_text', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_footer_copyright', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
@@ -86,6 +89,11 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'system_notif_email_from', scope: 'PRIVATE', type: 'string', defaultValue: '' },
   { key: 'system_notif_email_name', scope: 'PRIVATE', type: 'string', defaultValue: '' },
   { key: 'system_notif_reminder_hours', scope: 'PRIVATE', type: 'number', defaultValue: '24', min: 1, max: 168 },
+
+  // Blog comments (private)
+  { key: 'comments_auto_approve', scope: 'PRIVATE', type: 'boolean', defaultValue: 'false' },
+  { key: 'comments_badwords', scope: 'PRIVATE', type: 'string', defaultValue: '' },
+  { key: 'comments_blocked_user_ids', scope: 'PRIVATE', type: 'string', defaultValue: '' },
 
   // Email (private, includes secrets)
   { key: 'system_email_provider', scope: 'PRIVATE', type: 'string', defaultValue: 'google' },

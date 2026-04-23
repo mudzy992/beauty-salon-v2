@@ -127,10 +127,9 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                 <Card
                   style={styles.featuredCard}
                   onPress={() =>
-                    navigation.navigate('Reservation', {
+                    navigation.navigate('ServiceSingleDetail', {
                       serviceId: featuredService.id,
                       serviceName: featuredService.name,
-                      origin: 'services-list',
                     })
                   }
                 >
@@ -165,10 +164,9 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                 <Card
                   style={styles.lastUsedCard}
                   onPress={() =>
-                    navigation.navigate('Reservation', {
+                    navigation.navigate('ServiceSingleDetail', {
                       serviceId: lastUsedService.id,
                       serviceName: lastUsedService.name,
-                      origin: 'services-list',
                     })
                   }
                 >
@@ -185,10 +183,9 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                     title="Ponovi"
                     size="sm"
                     onPress={() =>
-                      navigation.navigate('Reservation', {
+                      navigation.navigate('ServiceSingleDetail', {
                         serviceId: lastUsedService.id,
                         serviceName: lastUsedService.name,
-                        origin: 'services-list',
                       })
                     }
                   />

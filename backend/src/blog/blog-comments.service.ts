@@ -6,10 +6,26 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBlogCommentDto } from './dto/create-blog-comment.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { SettingsService } from '../settings/settings.service';
 
 @Injectable()
 export class BlogCommentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settings: SettingsService,
+  ) {}
+
+  private parseList(value: string): string[] {
+    return String(value ?? '')
+      .split(/[\n,;]+/g)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  private containsBadword(content: string, badwords: string[]): boolean {
+    const text = content.toLowerCase();
+    return badwords.some((w) => w && text.includes(w.toLowerCase()));
+  }
 
   async create(postId: string, dto: CreateBlogCommentDto, userId: string) {
     const post = await this.prisma.blogPost.findUnique({
@@ -20,12 +36,28 @@ export class BlogCommentsService {
       throw new ForbiddenException(
         'Komentar se može dodati samo na objavljeni članak.',
       );
+
+    const [autoApprove, badwordsRaw, blockedRaw] = await Promise.all([
+      this.settings.getBoolean('comments_auto_approve'),
+      this.settings.getString('comments_badwords'),
+      this.settings.getString('comments_blocked_user_ids'),
+    ]);
+    const badwords = this.parseList(badwordsRaw);
+    const blockedUserIds = new Set(this.parseList(blockedRaw));
+
+    if (blockedUserIds.has(userId)) {
+      throw new ForbiddenException('Komentarisanje nije dozvoljeno za ovaj račun.');
+    }
+
+    const flaggedByBadwords = badwords.length > 0 && this.containsBadword(dto.content, badwords);
+    const isApproved = autoApprove && !flaggedByBadwords;
+
     return this.prisma.blogComment.create({
       data: {
         postId,
         userId,
         content: dto.content,
-        isApproved: false,
+        isApproved,
       },
       include: {
         user: { select: { id: true, firstName: true, lastName: true } },
@@ -65,6 +97,14 @@ export class BlogCommentsService {
       throw new ForbiddenException('Nemate dozvolu.');
     await this.prisma.blogComment.delete({ where: { id: commentId } });
     return { deleted: true };
+  }
+
+  async countPending(user: CurrentUserPayload) {
+    this.requireAdminOrOwner(user);
+    const pending = await this.prisma.blogComment.count({
+      where: { isApproved: false },
+    });
+    return { pending };
   }
 
   private isAdminOrOwner(user: CurrentUserPayload) {

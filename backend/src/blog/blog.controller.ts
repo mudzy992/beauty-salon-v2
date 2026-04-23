@@ -86,6 +86,13 @@ export class BlogController {
     return this.comments.create(postId, dto, user.sub);
   }
 
+  @Get('comments/pending-count')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  pendingCount(@CurrentUser() user: CurrentUserPayload) {
+    return this.comments.countPending(user);
+  }
+
   @Patch('comments/:commentId/approve')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')

@@ -33,13 +33,33 @@ export class BlogService {
   }
 
   async findAll(publishedOnly = false) {
-    return this.prisma.blogPost.findMany({
+    const posts = await this.prisma.blogPost.findMany({
       where: publishedOnly ? { isPublished: true } : undefined,
       include: {
         author: { select: { id: true, firstName: true, lastName: true } },
         _count: { select: { comments: true } },
       },
       orderBy: { createdAt: 'desc' },
+    });
+
+    const pendingByPost = await this.prisma.blogComment.groupBy({
+      by: ['postId'],
+      where: {
+        isApproved: false,
+        ...(publishedOnly ? { post: { isPublished: true } } : {}),
+      },
+      _count: { _all: true },
+    });
+    const pendingMap = new Map(pendingByPost.map((x) => [x.postId, x._count._all]));
+
+    return posts.map((p) => {
+      const total = p._count?.comments ?? 0;
+      const pending = pendingMap.get(p.id) ?? 0;
+      return {
+        ...p,
+        commentsTotalCount: total,
+        commentsPendingCount: pending,
+      };
     });
   }
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Calendar, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Calendar, Copy, ExternalLink, MessageCircle, Share2 } from 'lucide-react'
 
 import { Button } from '../../components/ui/button'
 import { publicHeader, publicPage } from '../../features/shell/public/public-ui'
@@ -50,6 +50,7 @@ export default function PublicBlogPost() {
   const [commentsLoading, setCommentsLoading] = useState(false)
   const [newComment, setNewComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
 
   const loadPost = useCallback(() => {
     if (!slug) return
@@ -106,6 +107,10 @@ export default function PublicBlogPost() {
   }
 
   const canonicalPath = `/blog/${post.slug}`
+  const shareUrl =
+    typeof window !== 'undefined'
+      ? window.location.origin + canonicalPath
+      : `${site.baseUrl}${canonicalPath}`
   const description = toExcerpt(post.content || '', 160) || 'Pročitajte članak na blogu Beauty Salon Nejra.'
   const ogImage = post.heroImage ? getUploadUrl(post.heroImage) : site.defaultOgImagePath
   const jsonLd = {
@@ -127,6 +132,32 @@ export default function PublicBlogPost() {
       },
     },
   }
+
+  const handleShare = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && 'share' in navigator) {
+        await (navigator as any).share({ title: post.title, text: post.title, url: shareUrl })
+        return
+      }
+    } catch {
+      // fallthrough to copy
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setShareCopied(true)
+      setTimeout(() => setShareCopied(false), 1500)
+      toast.success('Link kopiran.')
+    } catch {
+      toast.error('Ne mogu kopirati link.')
+    }
+  }
+
+  const encodedUrl = encodeURIComponent(shareUrl)
+  const encodedTitle = encodeURIComponent(post.title)
+  const fbShare = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`
+  const xShare = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`
+  const viberShare = `viber://forward?text=${encodedUrl}`
+  const waShare = `https://wa.me/?text=${encodedUrl}`
 
   return (
     <div className="bg-white min-h-screen pb-20">
@@ -187,6 +218,52 @@ export default function PublicBlogPost() {
         </div>
 
         <div className={`px-0 md:px-2 ${publicPage.contentAfterHero}`}>
+          <div className="mb-6 flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => void handleShare()}>
+              <Share2 className="mr-2 h-4 w-4" aria-hidden />
+              Dijeli
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(shareUrl)
+                  .then(() => {
+                    setShareCopied(true)
+                    setTimeout(() => setShareCopied(false), 1500)
+                    toast.success('Link kopiran.')
+                  })
+                  .catch(() => toast.error('Ne mogu kopirati link.'))
+              }}
+            >
+              <Copy className="mr-2 h-4 w-4" aria-hidden />
+              {shareCopied ? 'Kopirano' : 'Kopiraj link'}
+            </Button>
+            <a href={fbShare} target="_blank" rel="noreferrer">
+              <Button type="button" variant="ghost" size="sm">
+                <ExternalLink className="mr-2 h-4 w-4 opacity-70" aria-hidden />
+                Facebook
+              </Button>
+            </a>
+            <a href={xShare} target="_blank" rel="noreferrer">
+              <Button type="button" variant="ghost" size="sm">
+                <ExternalLink className="mr-2 h-4 w-4 opacity-70" aria-hidden />
+                X
+              </Button>
+            </a>
+            <a href={viberShare} target="_blank" rel="noreferrer">
+              <Button type="button" variant="ghost" size="sm">
+                Viber
+              </Button>
+            </a>
+            <a href={waShare} target="_blank" rel="noreferrer">
+              <Button type="button" variant="ghost" size="sm">
+                WhatsApp
+              </Button>
+            </a>
+          </div>
           <div
             className="blog-content text-lg leading-relaxed text-slate-700 mb-14"
             dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }}

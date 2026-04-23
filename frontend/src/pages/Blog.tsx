@@ -33,6 +33,8 @@ interface BlogPost {
   createdAt: string
   content: string
   heroImage: string | null
+  commentsTotalCount?: number
+  commentsPendingCount?: number
 }
 
 export default function Blog() {
@@ -233,16 +235,28 @@ export default function Blog() {
                       <td className="p-3">{new Date(p.createdAt).toLocaleDateString('bs-BA')}</td>
                       <td className="p-3 text-right">
                         <div className="flex justify-end gap-1">
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            aria-label="Komentari"
-                            onClick={() => void openComments(p.id, p.title)}
-                          >
-                            <MessageSquareText className="h-4 w-4 text-teal-600" aria-hidden="true" />
-                          </Button>
+                          <div className="relative">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              aria-label="Komentari"
+                              onClick={() => void openComments(p.id, p.title)}
+                            >
+                              <MessageSquareText className="h-4 w-4 text-teal-600" aria-hidden="true" />
+                            </Button>
+                            {Number(p.commentsTotalCount ?? 0) > 0 ? (
+                              <span
+                                className={[
+                                  'absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[11px] leading-[18px] text-center text-white',
+                                  Number(p.commentsPendingCount ?? 0) > 0 ? 'bg-rose-600' : 'bg-emerald-600',
+                                ].join(' ')}
+                              >
+                                {p.commentsTotalCount}
+                              </span>
+                            ) : null}
+                          </div>
                           <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Uredi" onClick={() => void openForm(p.id)}>
                             <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
                           </Button>

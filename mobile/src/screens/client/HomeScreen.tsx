@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   Pressable,
+  Linking,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -527,12 +528,10 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                       style={[styles.serviceCardWrap, { marginTop: verticalOffset }]}
                       onPress={() =>
                         navigation.getParent()?.navigate('ServicesTab', {
-                          screen: 'Reservation',
+                          screen: 'ServiceSingleDetail',
                           params: {
                             serviceId: service.id,
                             serviceName: service.name,
-                            origin: 'home',
-                            requestId: `${Date.now()}-${service.id}`,
                           },
                         })
                       }
@@ -706,6 +705,124 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             ))}
           </Animated.View>
         )}
+
+        {(() => {
+          const address = getSettingValue(settings, 'public_contact_address', '').trim();
+          const phone = getSettingValue(settings, 'public_contact_phone', '').trim();
+          const email = getSettingValue(settings, 'public_contact_email', '').trim();
+          const facebook = getSettingValue(settings, 'public_social_facebook', '').trim();
+          const instagram = getSettingValue(settings, 'public_social_instagram', '').trim();
+          const tiktok = getSettingValue(settings, 'public_social_tiktok', '').trim();
+          const hasAny = !!(address || phone || email || facebook || instagram || tiktok);
+          if (!hasAny) return null;
+          return (
+            <Animated.View entering={FadeInUp.delay(460).duration(420).springify()} style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Kontakt</Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.getParent()?.navigate('ProfileTab', { screen: 'Contact' } as any)
+                  }
+                >
+                  <Text style={[styles.seeAll, { color: colors.primary }]}>Detalji</Text>
+                </TouchableOpacity>
+              </View>
+              <Card style={styles.satisfiedCard}>
+                {address ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 8 }}>
+                    <Ionicons name="location-outline" size={16} color={colors.textMuted} />
+                    <Text style={{ color: colors.textSecondary, flex: 1 }}>{address}</Text>
+                  </View>
+                ) : null}
+                {phone ? (
+                  <TouchableOpacity
+                    onPress={() => Linking.openURL(`tel:${phone}`)}
+                    activeOpacity={0.75}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 8 }}
+                  >
+                    <Ionicons name="call-outline" size={16} color={colors.textMuted} />
+                    <Text style={{ color: colors.textSecondary, flex: 1 }}>{phone}</Text>
+                  </TouchableOpacity>
+                ) : null}
+                {email ? (
+                  <TouchableOpacity
+                    onPress={() => Linking.openURL(`mailto:${email}`)}
+                    activeOpacity={0.75}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 8 }}
+                  >
+                    <Ionicons name="mail-outline" size={16} color={colors.textMuted} />
+                    <Text style={{ color: colors.textSecondary, flex: 1 }}>{email}</Text>
+                  </TouchableOpacity>
+                ) : null}
+
+                {facebook || instagram || tiktok ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm }}>
+                    {facebook ? (
+                      <TouchableOpacity
+                        onPress={() => Linking.openURL(facebook)}
+                        activeOpacity={0.75}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 8,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          backgroundColor: colors.surface,
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 999,
+                        }}
+                      >
+                        <Ionicons name="logo-facebook" size={16} color={colors.primary} />
+                        <Text style={{ color: colors.text, fontWeight: '600' }}>Facebook</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    {instagram ? (
+                      <TouchableOpacity
+                        onPress={() => Linking.openURL(instagram)}
+                        activeOpacity={0.75}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 8,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          backgroundColor: colors.surface,
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 999,
+                        }}
+                      >
+                        <Ionicons name="logo-instagram" size={16} color={colors.primary} />
+                        <Text style={{ color: colors.text, fontWeight: '600' }}>Instagram</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    {tiktok ? (
+                      <TouchableOpacity
+                        onPress={() => Linking.openURL(tiktok)}
+                        activeOpacity={0.75}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 8,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          backgroundColor: colors.surface,
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 999,
+                        }}
+                      >
+                        <Ionicons name="link-outline" size={16} color={colors.primary} />
+                        <Text style={{ color: colors.text, fontWeight: '600' }}>TikTok</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                ) : null}
+              </Card>
+            </Animated.View>
+          );
+        })()}
         </View>
         </View>
         <View style={{ height: tabBarBottom }} />

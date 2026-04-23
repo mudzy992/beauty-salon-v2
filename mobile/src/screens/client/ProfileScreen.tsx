@@ -261,10 +261,9 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
         />
         <View style={[styles.separator, { backgroundColor: colors.borderLight }]} />
         <MenuItem
-          icon="information-circle-outline"
-          label={t('profile.about')}
-          rightText={t('profile.version') + ' 1.0.0'}
-          onPress={() => {}}
+          icon="call-outline"
+          label="Kontakt"
+          onPress={() => navigation.navigate('Contact')}
         />
       </Card>
 

@@ -120,6 +120,7 @@ export function useReactNavAdapter(ctx: ReactNavAdapterContext) {
                   params: {
                     serviceId: params?.serviceId,
                     serviceName: params?.serviceName,
+                    startAtStep: params?.startAtStep,
                     origin: params?.origin,
                     requestId: params?.requestId,
                     originCategoryId: params?.originCategoryId,
@@ -151,6 +152,8 @@ export function useReactNavAdapter(ctx: ReactNavAdapterContext) {
                 return { pathname: '/profile/change-password' };
               case 'Notifications':
                 return { pathname: '/profile/notifications' };
+              case 'Contact':
+                return { pathname: '/profile/contact' };
             }
             return null;
           }

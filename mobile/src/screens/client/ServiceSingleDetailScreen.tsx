@@ -12,6 +12,7 @@ import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
@@ -34,6 +35,7 @@ export function ServiceSingleDetailScreen({
   const { serviceId, serviceName } = route.params;
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const user = useAuthStore((state) => state.user);
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { width } = useWindowDimensions();
   const [service, setService] = useState<Service | null>(null);
@@ -104,6 +106,8 @@ export function ServiceSingleDetailScreen({
 
   const heroUri = service.heroImage ? getUploadUrl(service.heroImage) : null;
   const sliderSize = Math.max(220, width - spacing.md * 2);
+  const canBook =
+    !user?.gender || service.gender === user.gender;
 
   return (
     <ScrollView
@@ -231,17 +235,20 @@ export function ServiceSingleDetailScreen({
       </Card>
 
       {/* Book button */}
-      <Button
-        title={t('services.bookService')}
-        onPress={() =>
-          navigation.navigate('Reservation', {
-            serviceId: service.id,
-            serviceName: service.name,
-            origin: 'service-single',
-          })
-        }
-        style={styles.bookButton}
-      />
+      {canBook ? (
+        <Button
+          title={t('services.bookService')}
+          onPress={() =>
+            navigation.navigate('Reservation', {
+              serviceId: service.id,
+              serviceName: service.name,
+              startAtStep: 1,
+              origin: 'service-single',
+            })
+          }
+          style={styles.bookButton}
+        />
+      ) : null}
     </ScrollView>
   );
 }

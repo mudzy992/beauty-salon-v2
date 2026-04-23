@@ -61,6 +61,7 @@ export type ServicesStackParamList = {
   Reservation: {
     serviceId?: string;
     serviceName?: string;
+    startAtStep?: 1 | 2;
     origin?: 'home' | 'services-list' | 'service-detail' | 'service-single' | 'reservations' | 'other';
     requestId?: string;
     originCategoryId?: string;
@@ -80,6 +81,7 @@ export type ProfileStackParamList = {
   ChangePassword: undefined;
   Notifications: undefined;
   NotificationPreferences: undefined;
+  Contact: undefined;
 };
 
 export type AuthScreenProps<T extends keyof AuthStackParamList> = NativeStackScreenProps<AuthStackParamList, T>;

@@ -9,6 +9,7 @@ import {
   Info,
   Loader2,
   Lock,
+  MessageCircle,
   Pencil,
   Settings2,
   Star,
@@ -160,6 +161,16 @@ const SETTING_GROUPS: SettingGroup[] = [
     ],
   },
   {
+    label: 'Dijeljenje (share)',
+    prefix: 'public_site_',
+    description: 'Postavke koje se koriste za dijeljenje linkova (npr. iz mobilne aplikacije).',
+    icon: ExternalLink,
+    color: 'teal',
+    defaults: [
+      { key: 'public_site_base_url', desc: 'Osnovni URL javne stranice (npr. https://salon.ba)', type: 'url', placeholder: 'https://salon.ba' },
+    ],
+  },
+  {
     label: 'Footer',
     prefix: 'public_footer_',
     description: 'Postavke za footer (podnožje) na svim javnim stranicama.',
@@ -287,6 +298,18 @@ const SYSTEM_GROUPS: SettingGroup[] = [
     defaults: [
       { key: 'system_public_app_url', desc: 'Javni URL aplikacije (linkovi u emailovima, itd.)', type: 'url', placeholder: 'https://salon.ba' },
       { key: 'system_app_version', desc: 'Trenutna verzija aplikacije (informativno)', type: 'text', placeholder: '2.0.0' },
+    ],
+  },
+  {
+    label: 'Komentari (blog)',
+    prefix: 'comments_',
+    description: 'Pravila za blog komentare: auto-odobravanje, filtriranje riječi i blokiranje korisnika.',
+    icon: MessageCircle,
+    color: 'orange',
+    defaults: [
+      { key: 'comments_auto_approve', desc: 'Automatski odobravaj nove komentare (osim ako sadrže zabranjene riječi)', type: 'boolean' },
+      { key: 'comments_badwords', desc: 'Zabranjene riječi (odvojite zarezom ili novim redom)', type: 'textarea', placeholder: 'spam\nružno\n...' },
+      { key: 'comments_blocked_user_ids', desc: 'Blokirani korisnici (userId), odvojite zarezom ili novim redom', type: 'textarea', placeholder: 'uuid-1\nuuid-2\n...' },
     ],
   },
   {

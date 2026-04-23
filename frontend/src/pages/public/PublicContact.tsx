@@ -11,6 +11,7 @@ import { useSettings } from '../../context/SettingsContext'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 import { Seo } from '../../seo/Seo'
 import { site } from '../../seo/site'
+import { ExternalLink } from 'lucide-react'
 
 const MotionDiv = motion.div
 
@@ -44,6 +45,9 @@ export default function PublicContact() {
   const address = getSetting('public_contact_address', 'Titova 12, 71000 Sarajevo')
   const phone = getSetting('public_contact_phone', '+387 61 234 567')
   const contactEmail = getSetting('public_contact_email', 'info@salon.ba')
+  const facebook = getSetting('public_social_facebook', '').trim()
+  const instagram = getSetting('public_social_instagram', '').trim()
+  const tiktok = getSetting('public_social_tiktok', '').trim()
 
   const canonicalPath = '/kontakt'
   const description = `${contactSubtitle}`.trim()
@@ -175,6 +179,33 @@ export default function PublicContact() {
                         )}
                       </div>
                     </div>
+                    {facebook || instagram || tiktok ? (
+                      <div>
+                        <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                          Društvene mreže
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {facebook ? (
+                            <a href={facebook} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                              <ExternalLink className="h-4 w-4 opacity-70" aria-hidden />
+                              Facebook
+                            </a>
+                          ) : null}
+                          {instagram ? (
+                            <a href={instagram} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                              <ExternalLink className="h-4 w-4 opacity-70" aria-hidden />
+                              Instagram
+                            </a>
+                          ) : null}
+                          {tiktok ? (
+                            <a href={tiktok} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                              <ExternalLink className="h-4 w-4 opacity-70" aria-hidden />
+                              TikTok
+                            </a>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </CardContent>
               </Card>

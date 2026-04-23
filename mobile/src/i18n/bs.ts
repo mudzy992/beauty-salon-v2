@@ -130,6 +130,9 @@ export const bs = {
     title: 'Profil',
     personalInfo: 'Lični podaci',
     changePasswordLabel: 'Promijeni lozinku',
+    contact: {
+        title: 'Kontakt',
+    },
     changePassword: {
       currentPassword: 'Trenutna lozinka',
       newPassword: 'Nova lozinka',

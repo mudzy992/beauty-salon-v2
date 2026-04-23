@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
@@ -29,6 +30,7 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
   const { categoryId, categoryName } = route.params;
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const user = useAuthStore((state) => state.user);
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +77,7 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
       )}
       renderItem={({ item, index }) => {
         const heroUri = item.heroImage ? getUploadUrl(item.heroImage) : null;
+        const canBook = !user?.gender || item.gender === user.gender;
         return (
           <Animated.View entering={FadeInRight.delay(Math.min(index, 8) * 45).duration(320).springify()}>
           <Card style={{ ...styles.card, ...styles.cardBackdrop }}>
@@ -114,20 +117,22 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
                       </Text>
                     </View>
                   </TouchableOpacity>
-                  <Button
-                    title={t('services.bookService')}
-                    onPress={() =>
-                      navigation.navigate('Reservation', {
-                        serviceId: item.id,
-                        serviceName: item.name,
-                        origin: 'service-detail',
-                        originCategoryId: categoryId,
-                        originCategoryName: categoryName,
-                      })
-                    }
-                    size="sm"
-                    variant="outline"
-                  />
+                  {canBook ? (
+                    <Button
+                      title={t('services.bookService')}
+                      onPress={() =>
+                        navigation.navigate('Reservation', {
+                          serviceId: item.id,
+                          serviceName: item.name,
+                          origin: 'service-detail',
+                          originCategoryId: categoryId,
+                          originCategoryName: categoryName,
+                        })
+                      }
+                      size="sm"
+                      variant="outline"
+                    />
+                  ) : null}
                 </View>
               </ImageBackground>
             ) : (
@@ -161,20 +166,22 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
                       </Text>
                     </View>
                   </TouchableOpacity>
-                  <Button
-                    title={t('services.bookService')}
-                    onPress={() =>
-                      navigation.navigate('Reservation', {
-                        serviceId: item.id,
-                        serviceName: item.name,
-                        origin: 'service-detail',
-                        originCategoryId: categoryId,
-                        originCategoryName: categoryName,
-                      })
-                    }
-                    size="sm"
-                    variant="outline"
-                  />
+                  {canBook ? (
+                    <Button
+                      title={t('services.bookService')}
+                      onPress={() =>
+                        navigation.navigate('Reservation', {
+                          serviceId: item.id,
+                          serviceName: item.name,
+                          origin: 'service-detail',
+                          originCategoryId: categoryId,
+                          originCategoryName: categoryName,
+                        })
+                      }
+                      size="sm"
+                      variant="outline"
+                    />
+                  ) : null}
                 </View>
               </View>
             )}
