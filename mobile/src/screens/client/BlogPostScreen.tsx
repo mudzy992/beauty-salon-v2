@@ -90,7 +90,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
 
   const handleShare = async () => {
     if (!post) return;
-    const baseFromSettings = getSettingValue(settings, 'system_public_app_url', '').trim();
+    const baseFromSettings = getSettingValue(settings, 'public_site_base_url', '').trim();
     const baseFromExtra = (Constants.expoConfig as any)?.extra?.publicSiteBaseUrl ?? '';
     const baseFromEnv = (process.env.EXPO_PUBLIC_SITE_BASE_URL ?? '').trim();
 

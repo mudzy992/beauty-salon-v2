@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Linking, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Linking, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { WebView } from 'react-native-webview';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
@@ -62,6 +63,30 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
   const phone = getSettingValue(settings, 'public_contact_phone', '').trim();
   const email = getSettingValue(settings, 'public_contact_email', '').trim();
   const workingHours = getSettingValue(settings, 'public_contact_working_hours_text', '').trim();
+  const mapEmbed = getSettingValue(settings, 'public_contact_map_embed', '').trim();
+
+  const openMaps = async () => {
+    if (!address) {
+      if (mapEmbed) await Linking.openURL(mapEmbed);
+      return;
+    }
+    const query = encodeURIComponent(address);
+    const nativeUrl =
+      Platform.OS === 'ios' ? `maps:0,0?q=${query}` : `geo:0,0?q=${query}`;
+    const webUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+
+    try {
+      const canNative = await Linking.canOpenURL(nativeUrl);
+      if (canNative) {
+        await Linking.openURL(nativeUrl);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    await Linking.openURL(webUrl);
+  };
 
   const socials = useMemo(() => {
     const facebook = getSettingValue(settings, 'public_social_facebook', '').trim();
@@ -125,7 +150,36 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
             </Text>
           </View>
         ) : null}
+
+        {address || mapEmbed ? (
+          <TouchableOpacity
+            onPress={openMaps}
+            activeOpacity={0.75}
+            style={[styles.row, { marginTop: 4 }]}
+          >
+            <Ionicons name="navigate-outline" size={18} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontWeight: '700' }}>
+              Navigacija (otvori u Maps)
+            </Text>
+          </TouchableOpacity>
+        ) : null}
       </Card>
+
+      {mapEmbed ? (
+        <Card style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Mapa</Text>
+          <View style={[styles.mapWrap, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+            <WebView
+              source={{ uri: mapEmbed }}
+              style={styles.map}
+              originWhitelist={['*']}
+              javaScriptEnabled
+              domStorageEnabled
+              setSupportMultipleWindows={false}
+            />
+          </View>
+        </Card>
+      ) : null}
 
       {socials.facebook || socials.instagram || socials.tiktok ? (
         <Card style={styles.section}>
@@ -154,6 +208,12 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
   socialRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  mapWrap: {
+    borderWidth: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  map: { height: 240, width: '100%' },
   socialChip: {
     flexDirection: 'row',
     alignItems: 'center',
