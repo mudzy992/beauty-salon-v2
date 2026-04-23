@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
-import api from '../../../src/services/api';
-import { useTheme } from '../../../src/hooks/useTheme';
-import { Card } from '../../../src/components/ui/Card';
-import { Button } from '../../../src/components/ui/Button';
-import { Input } from '../../../src/components/ui/Input';
-import { spacing } from '../../../src/theme';
+import api from '../../../../src/services/api';
+import { useTheme } from '../../../../src/hooks/useTheme';
+import { Card } from '../../../../src/components/ui/Card';
+import { Button } from '../../../../src/components/ui/Button';
+import { Input } from '../../../../src/components/ui/Input';
+import { spacing } from '../../../../src/theme';
 
 type DebtRow = {
   id: string;
