@@ -439,6 +439,10 @@ export class IncomeBooksService {
     if (!entry) throw new NotFoundException('Zapis dnevnika nije pronađen.');
     if (entry.status !== 'COMPLETED')
       throw new Error('Samo završeni zapisi se dodaju u knjigu prihoda.');
+    if ((entry as any).kind === 'DEBT_PAYMENT') {
+      // DEBT_PAYMENT se knjiži kao ručni prihod (da bude posebna stavka), ne kao auto agregacija.
+      return null;
+    }
     const d = new Date(entry.date);
     const year = d.getFullYear();
     const month = d.getMonth() + 1;

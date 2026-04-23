@@ -10,6 +10,7 @@ import Stylists from '../../pages/Stylists'
 import Reservations from '../../pages/Reservations'
 import DailyLog from '../../pages/DailyLog'
 import Finance from '../../pages/Finance'
+import Debtors from '../../pages/Debtors'
 import Blog from '../../pages/Blog'
 import Gallery from '../../pages/Gallery'
 import Reviews from '../../pages/Reviews'
@@ -40,6 +41,7 @@ export const adminRoutes: RouteObject[] = [
       { path: 'reservations', element: <Reservations /> },
       { path: 'daily-log', element: <DailyLog /> },
       { path: 'finance', element: <Finance /> },
+      { path: 'debtors', element: <Debtors /> },
       { path: 'blog', element: <Blog /> },
       { path: 'gallery', element: <Gallery /> },
       { path: 'reviews', element: <Reviews /> },

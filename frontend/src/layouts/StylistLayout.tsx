@@ -20,6 +20,7 @@ const navItems: NavItem[] = [
   { path: '/stylist/inbox', label: 'Inbox' },
   { path: '/stylist/workbook', label: 'nav.dailyLog' },
   { path: '/stylist/schedule', label: 'Raspored' },
+  { path: '/stylist/debts', label: 'Dužnici' },
   { path: '/stylist/stats', label: 'Statistika' },
 ]
 

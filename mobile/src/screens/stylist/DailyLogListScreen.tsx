@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { Card } from '../../components/ui/Card';
@@ -76,13 +77,20 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('DailyLogNewEntry')}
-          style={{ marginRight: spacing.sm }}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="add-circle-outline" size={26} color={colors.headerText} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginRight: spacing.sm }}>
+          <TouchableOpacity
+            onPress={() => router.push('/stylist/daily-log/debts')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="cash-outline" size={24} color={colors.headerText} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('DailyLogNewEntry')}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="add-circle-outline" size={26} color={colors.headerText} />
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation, colors.headerText]);

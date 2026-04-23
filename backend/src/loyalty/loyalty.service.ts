@@ -673,6 +673,7 @@ export class LoyaltyService {
     serviceIds?: string[];
     desiredPercent: number;
     actualPrice: number;
+    coveredByDebtAmount?: number;
   }) {
     const { clientId, dailyLogEntryId, desiredPercent, actualPrice } = args;
     const idsRaw =
@@ -788,7 +789,9 @@ export class LoyaltyService {
 
     const desiredDiscountAmount = (sumPrice * desiredPercent) / 100;
     const minCharge = Math.max(0, sumPrice - desiredDiscountAmount);
-    if (!Number.isFinite(actualPrice) || actualPrice < minCharge) {
+    const coveredByDebtAmount = Math.max(0, Number(args.coveredByDebtAmount ?? 0));
+    const effectivePaid = Number(actualPrice) + coveredByDebtAmount;
+    if (!Number.isFinite(effectivePaid) || effectivePaid < minCharge) {
       throw new BadRequestException(
         `Naplaćeni iznos ne može biti manji od preporučene cijene za naplatu (${minCharge.toFixed(2)} KM).`,
       );

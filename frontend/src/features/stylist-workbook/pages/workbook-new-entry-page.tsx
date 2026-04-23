@@ -4,6 +4,7 @@ import { Loader2, Search } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
 import { Input } from '../../../components/ui/input'
 import { Label } from '../../../components/ui/label'
@@ -44,6 +45,9 @@ export const WorkbookNewEntryForm = ({
   const [clientId, setClientId] = useState('')
   const [paidAmount, setPaidAmount] = useState('')
   const [notes, setNotes] = useState('')
+  const [partialOpen, setPartialOpen] = useState(false)
+  const [partialDiff, setPartialDiff] = useState(0)
+  const [pendingPaidRaw, setPendingPaidRaw] = useState<number | null>(null)
 
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null)
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState(0)
@@ -218,7 +222,9 @@ export const WorkbookNewEntryForm = ({
       return
     }
     if (paidRaw < chargeAmount) {
-      warning('Greška', `Naplaćeni iznos ne može biti manji od iznosa za naplatu (${chargeAmount.toFixed(2)} KM).`)
+      setPendingPaidRaw(paidRaw)
+      setPartialDiff(Math.max(0, chargeAmount - paidRaw))
+      setPartialOpen(true)
       return
     }
     const tip = Math.max(0, paidRaw - chargeAmount)
@@ -230,10 +236,12 @@ export const WorkbookNewEntryForm = ({
         serviceIds,
         clientId,
         date,
+        paidAmount: paidRaw,
         actualPrice: paidRaw,
         tipAmount: tip,
         notes: notes.trim() || undefined,
         isManual: true,
+        debtHandling: 'IGNORE_DEBT',
         ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
       })
       success('Kreirano', 'Možete dodati before/after slike i završiti zapis u detalju.')
@@ -472,6 +480,102 @@ export const WorkbookNewEntryForm = ({
           </Button>
         </div>
       </div>
+
+      <Dialog
+        open={partialOpen}
+        onOpenChange={(v) => {
+          if (!v) {
+            setPartialOpen(false)
+            return
+          }
+          setPartialOpen(true)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Naplaćuje se manje nego što sistem zahtijeva</DialogTitle>
+            <DialogDescription>
+              Razlika iznosi {partialDiff.toFixed(2)} KM. Želite li da se ta razlika evidentira kao dug klijentu?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPartialOpen(false)} disabled={saving}>
+              Odustani
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={async () => {
+                const paidRaw = pendingPaidRaw
+                if (paidRaw == null) return
+                setPartialOpen(false)
+                const tip = 0
+                setSaving(true)
+                try {
+                  const entry = await createDailyLogEntry({
+                    stylistProfileId: profileId!,
+                    serviceIds,
+                    clientId,
+                    date,
+                    paidAmount: paidRaw,
+                    actualPrice: paidRaw,
+                    tipAmount: tip,
+                    notes: notes.trim() || undefined,
+                    isManual: true,
+                    debtHandling: 'IGNORE_DEBT',
+                    ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
+                  })
+                  success('Kreirano', 'Zapis je kreiran.')
+                  onClose?.()
+                  navigate(`/stylist/workbook/${entry.id}`)
+                } catch (err) {
+                  toastApiError(err, 'Greška pri kreiranju zapisa')
+                } finally {
+                  setSaving(false)
+                }
+              }}
+              disabled={saving}
+            >
+              Ne zavodi dug
+            </Button>
+            <Button
+              type="button"
+              onClick={async () => {
+                const paidRaw = pendingPaidRaw
+                if (paidRaw == null) return
+                setPartialOpen(false)
+                const tip = 0
+                setSaving(true)
+                try {
+                  const entry = await createDailyLogEntry({
+                    stylistProfileId: profileId!,
+                    serviceIds,
+                    clientId,
+                    date,
+                    paidAmount: paidRaw,
+                    actualPrice: paidRaw,
+                    tipAmount: tip,
+                    notes: notes.trim() || undefined,
+                    isManual: true,
+                    debtHandling: 'CREATE_DEBT',
+                    ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
+                  })
+                  success('Kreirano', `Zapis je kreiran, a ${partialDiff.toFixed(2)} KM je evidentirano kao dug.`)
+                  onClose?.()
+                  navigate(`/stylist/workbook/${entry.id}`)
+                } catch (err) {
+                  toastApiError(err, 'Greška pri kreiranju zapisa')
+                } finally {
+                  setSaving(false)
+                }
+              }}
+              disabled={saving}
+            >
+              Zavedi dug
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

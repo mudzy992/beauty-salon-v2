@@ -54,11 +54,13 @@ export const createDailyLogEntry = async (body: {
   serviceIds: string[]
   clientId?: string
   date: string
+  paidAmount: number
   actualPrice: number
   tipAmount: number
   notes?: string
   isManual: true
   desiredLoyaltyPercent?: number
+  debtHandling?: 'CREATE_DEBT' | 'IGNORE_DEBT'
 }): Promise<{ id: string }> => {
   const { data } = await api.post<{ id: string }>('/api/daily-log', body)
   return data

@@ -21,6 +21,7 @@ import { StylistInboxPage } from '../features/stylist-portal/pages/stylist-inbox
 import { StylistSchedulePage } from '../features/stylist-portal/pages/stylist-schedule-page'
 import { StylistReservationDetailPage } from '../features/stylist-portal/pages/stylist-reservation-detail-page'
 import { StylistStatsPage } from '../features/stylist-portal/pages/stylist-stats-page'
+import { StylistDebtsPage } from '../features/stylist-portal/pages/stylist-debts-page'
 
 export const AppRouter = () => {
   const element = useRoutes([
@@ -63,6 +64,10 @@ export const AppRouter = () => {
         {
           path: 'schedule/:reservationId',
           element: <StylistReservationDetailPage />,
+        },
+        {
+          path: 'debts',
+          element: <StylistDebtsPage />,
         },
         {
           path: 'stats',

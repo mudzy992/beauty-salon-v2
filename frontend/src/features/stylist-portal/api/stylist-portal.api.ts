@@ -87,14 +87,18 @@ export const settleClientDebt = async (debtId: string): Promise<void> => {
 
 export const createDailyLogFromReservation = async (params: {
   reservationId: string
-  actualPrice: number
+  paidAmount: number
   tipAmount: number
   notes?: string
+  settledDebtIds?: string[]
+  debtHandling?: 'CREATE_DEBT' | 'IGNORE_DEBT'
 }): Promise<DailyLogEntry> => {
   const { data } = await api.post<DailyLogEntry>(`/api/daily-log/from-reservation/${params.reservationId}`, {
-    actualPrice: params.actualPrice,
+    paidAmount: params.paidAmount,
     tipAmount: params.tipAmount,
     notes: params.notes,
+    debtHandling: params.debtHandling,
+    settledDebtIds: params.settledDebtIds ?? [],
   })
   return data
 }

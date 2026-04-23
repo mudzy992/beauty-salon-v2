@@ -15,6 +15,7 @@ export default function DailyLogStackLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Dnevna knjiga' }} />
+      <Stack.Screen name="debts" options={{ title: 'Dužnici' }} />
       <Stack.Screen name="detail/[entryId]" options={{ title: 'Zapis' }} />
       <Stack.Screen name="new-entry" options={{ title: 'Novi zapis (ručno)' }} />
       <Stack.Screen

@@ -29,6 +29,7 @@ const navItems: NavItem[] = [
   { path: '/admin/services', labelKey: 'nav.services' },
   { path: '/admin/stylists', labelKey: 'nav.stylists' },
   { path: '/admin/finance', labelKey: 'nav.finance' },
+  { path: '/admin/debtors', labelKey: 'Dužnici' as any },
   { path: '/admin/blog', labelKey: 'nav.blog' },
   { path: '/admin/gallery', labelKey: 'nav.gallery' },
   { path: '/admin/reviews', labelKey: 'nav.reviews' },

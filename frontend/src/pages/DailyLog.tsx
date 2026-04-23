@@ -105,6 +105,9 @@ export default function DailyLog() {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
+  const [partialOpen, setPartialOpen] = useState(false)
+  const [partialDiff, setPartialDiff] = useState(0)
+  const [pendingPaidRaw, setPendingPaidRaw] = useState<number | null>(null)
 
   const [form, setForm] = useState({
     stylistProfileId: '',
@@ -374,7 +377,13 @@ export default function DailyLog() {
       warning('Unesite ispravan iznos naplaćenog računa')
       return
     }
-    if (paidRaw < chargeAmount) {
+    if (!editId && paidRaw < chargeAmount) {
+      setPendingPaidRaw(paidRaw)
+      setPartialDiff(Math.max(0, chargeAmount - paidRaw))
+      setPartialOpen(true)
+      return
+    }
+    if (editId && paidRaw < chargeAmount) {
       warning(`Naplaćeno ne može biti manje od za naplatu (${chargeAmount.toFixed(2)} KM)`)
       return
     }
@@ -394,15 +403,47 @@ export default function DailyLog() {
           serviceIds: form.serviceIds,
           clientId: form.clientId || undefined,
           date: form.date,
+          paidAmount: paidRaw,
           actualPrice: paidRaw,
           tipAmount: tipAuto,
           notes: form.notes || undefined,
           isManual: true,
+          debtHandling: 'IGNORE_DEBT',
           ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
         })
       }
       success('Sačuvano')
       loadData()
+      setOpen(false)
+    } catch {
+      error('Greška')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const confirmPartial = async (debtHandling: 'CREATE_DEBT' | 'IGNORE_DEBT') => {
+    if (pendingPaidRaw == null) return
+    const paidRaw = pendingPaidRaw
+    const tipAuto = 0
+    setSaving(true)
+    try {
+      await api.post('/api/daily-log', {
+        stylistProfileId: form.stylistProfileId,
+        serviceIds: form.serviceIds,
+        clientId: form.clientId || undefined,
+        date: form.date,
+        paidAmount: paidRaw,
+        actualPrice: paidRaw,
+        tipAmount: tipAuto,
+        notes: form.notes || undefined,
+        isManual: true,
+        debtHandling,
+        ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
+      })
+      success('Sačuvano')
+      loadData()
+      setPartialOpen(false)
       setOpen(false)
     } catch {
       error('Greška')
@@ -838,6 +879,28 @@ export default function DailyLog() {
               ) : (
                 t('common.save')
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={partialOpen} onOpenChange={setPartialOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Naplaćuje se manje nego što sistem zahtijeva</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Razlika iznosi {partialDiff.toFixed(2)} KM. Želite li da se ta razlika evidentira kao dug klijentu?
+          </p>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPartialOpen(false)} disabled={saving}>
+              Odustani
+            </Button>
+            <Button type="button" variant="outline" onClick={() => void confirmPartial('IGNORE_DEBT')} disabled={saving}>
+              Ne zavodi dug
+            </Button>
+            <Button type="button" onClick={() => void confirmPartial('CREATE_DEBT')} disabled={saving}>
+              Zavedi dug
             </Button>
           </DialogFooter>
         </DialogContent>

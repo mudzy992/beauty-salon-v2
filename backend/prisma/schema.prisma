@@ -24,6 +24,11 @@ enum ClientDebtStatus {
   SETTLED
 }
 
+enum DailyLogEntryKind {
+  SERVICE
+  DEBT_PAYMENT
+}
+
 // ============ AUTH & USERS ============
 
 model User {
@@ -326,6 +331,7 @@ model Reservation {
   stylistResponses ReservationStylistResponse[]
   dailyLogEntry    DailyLogEntry[]
   reviews          Review[]
+  clientDebts      ClientDebt[]
 
   @@map("reservations")
 }
@@ -372,6 +378,8 @@ model DailyLogEntry {
   reservationId    String?  @map("reservation_id")
   serviceId        String   @map("service_id")
   clientId         String?  @map("client_id")
+  kind             DailyLogEntryKind @default(SERVICE)
+  debtId           String?  @map("debt_id")
   date             DateTime @db.Date
   actualPrice      Decimal  @map("actual_price") @db.Decimal(10, 2)
   tipAmount        Decimal  @default(0) @map("tip_amount") @db.Decimal(10, 2)
@@ -393,9 +401,12 @@ model DailyLogEntry {
   service        Service                    @relation(fields: [serviceId], references: [id], onDelete: Restrict)
   items          DailyLogEntryServiceItem[]
   client         User?                      @relation("DailyLogClient", fields: [clientId], references: [id], onDelete: SetNull)
+  debt           ClientDebt?                @relation("DebtPaymentEntries", fields: [debtId], references: [id], onDelete: SetNull)
   images         DailyLogImage[]
   incomeEntries  IncomeBookEntry[]
+  clientDebts    ClientDebt[]
 
+  @@index([debtId])
   @@map("daily_log_entries")
 }
 
@@ -630,6 +641,7 @@ model ClientDebt {
   serviceId        String?          @map("service_id")
   manualEntryId    String?          @map("manual_entry_id")
   reservationId    String?          @map("reservation_id")
+  dailyLogEntryId  String?          @map("daily_log_entry_id")
   amount           Decimal          @db.Decimal(10, 2)
   note             String?          @db.Text
   status           ClientDebtStatus @default(OPEN)
@@ -642,12 +654,16 @@ model ClientDebt {
   stylistProfile StylistProfile         @relation(fields: [stylistProfileId], references: [id], onDelete: Restrict)
   service        Service?               @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   manualEntry    IncomeBookManualEntry? @relation(fields: [manualEntryId], references: [id], onDelete: SetNull)
+  reservation    Reservation?          @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  dailyLogEntry  DailyLogEntry?         @relation(fields: [dailyLogEntryId], references: [id], onDelete: SetNull)
+  debtPayments   DailyLogEntry[]        @relation("DebtPaymentEntries")
   createdBy      User                   @relation("ClientDebtsCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   settledBy      User?                  @relation("ClientDebtsSettledBy", fields: [settledById], references: [id], onDelete: SetNull)
 
   @@index([clientId, status])
   @@index([stylistProfileId, status])
   @@index([createdById, status])
+  @@index([dailyLogEntryId])
   @@map("client_debts")
 }
 

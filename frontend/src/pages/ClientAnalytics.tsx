@@ -54,6 +54,18 @@ interface ManualEntry {
   stylistProfile?: { user?: { firstName: string | null; lastName: string | null; username: string } }
 }
 
+interface ClientDebtRow {
+  id: string
+  amount: number | string
+  createdAt: string
+  status: 'OPEN' | 'SETTLED'
+  service?: { id: string; name: string } | null
+  reservation?: { id: string; publicReferenceCode: string; reservationDate: string; startTime: string; endTime: string } | null
+  dailyLogEntry?: { id: string; date: string; reservationId: string | null; kind: 'SERVICE' | 'DEBT_PAYMENT' } | null
+  manualEntry?: { id: string; date: string } | null
+  stylistProfile?: { user?: { firstName: string | null; lastName: string | null; username: string } }
+}
+
 interface ClientAnalyticsData {
   fromDate: string | null
   toDate: string | null
@@ -186,6 +198,8 @@ export default function ClientAnalytics() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailReservation, setDetailReservation] = useState<ClientAnalyticsData['reservations'][0] | null>(null)
   const [detailReview, setDetailReview] = useState<ClientAnalyticsData['reviews'][0] | null>(null)
+  const [clientDebts, setClientDebts] = useState<ClientDebtRow[]>([])
+  const [debtsLoading, setDebtsLoading] = useState(false)
 
   useEffect(() => {
     setListLoading(true)
@@ -219,15 +233,20 @@ export default function ClientAnalytics() {
       if (to) params.toDate = to
       setSearchParams(params)
       setLoading(true)
+      setDebtsLoading(true)
       try {
         const queryParams = from && to ? { fromDate: from, toDate: to } : {}
         const { data } = await api.get<ClientAnalyticsData>(`/api/users/${userId}/analytics`, { params: queryParams })
         setAnalytics(data)
+        const debtsRes = await api.get<ClientDebtRow[]>('/api/client-debts', { params: { clientId: userId } })
+        setClientDebts(Array.isArray(debtsRes.data) ? debtsRes.data : [])
       } catch {
         toast.error('Greška pri učitavanju analitike')
         setAnalytics(null)
+        setClientDebts([])
       } finally {
         setLoading(false)
+        setDebtsLoading(false)
       }
     },
     [setSearchParams],
@@ -564,6 +583,7 @@ export default function ClientAnalytics() {
             <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-2">
               <TabsTrigger value="reservations">Rezervacije ({analytics.reservations.length})</TabsTrigger>
               <TabsTrigger value="manual">Manuelni prihodi ({analytics.manualEntries.length})</TabsTrigger>
+              <TabsTrigger value="debts">Dugovanja ({clientDebts.length})</TabsTrigger>
               <TabsTrigger value="reviews">Recenzije ({analytics.reviews.length})</TabsTrigger>
             </TabsList>
 
@@ -726,6 +746,51 @@ export default function ClientAnalytics() {
                   ))}
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="debts" className="mt-4">
+              <Card className="p-4">
+                {debtsLoading ? (
+                  <p className="text-sm text-slate-500">Učitavanje…</p>
+                ) : clientDebts.length === 0 ? (
+                  <p className="text-sm text-slate-500">{t('common.noData')}</p>
+                ) : (
+                  <div className="grid gap-2">
+                    {clientDebts.map((d) => {
+                      const stylistName = d.stylistProfile?.user
+                        ? `${d.stylistProfile.user.firstName ?? ''} ${d.stylistProfile.user.lastName ?? ''}`.trim() || d.stylistProfile.user.username
+                        : '—'
+                      const ref =
+                        d.reservation?.publicReferenceCode
+                          ? `Rezervacija: ${d.reservation.publicReferenceCode}`
+                          : d.dailyLogEntry?.id
+                            ? `Daily log: ${d.dailyLogEntry.date.slice(0, 10)}`
+                            : d.manualEntry?.id
+                              ? `Manual entry: ${d.manualEntry.date.slice(0, 10)}`
+                              : '—'
+                      return (
+                        <div
+                          key={d.id}
+                          className="rounded-md border border-slate-200 dark:border-slate-800 p-3 flex items-start justify-between gap-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                              {d.service?.name ?? 'Dug'} · {Number(d.amount).toFixed(2)} KM
+                            </p>
+                            <p className="text-xs text-slate-600 dark:text-slate-300">
+                              <span className="font-semibold">Stilist:</span> {stylistName} · {ref}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-0.5">{d.createdAt.slice(0, 10)}</p>
+                          </div>
+                          <Badge variant={d.status === 'OPEN' ? 'warning' : 'success'} className="text-[10px]">
+                            {d.status === 'OPEN' ? 'Otvoren' : 'Zatvoren'}
+                          </Badge>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </Card>
             </TabsContent>
           </Tabs>
         </div>

@@ -85,16 +85,16 @@ export const useReservationActions = () => {
   })
 
   const completeAndCreateDailyLog = useMutation({
-    mutationFn: (args: { reservationId: string; actualPrice: number; tipAmount: number; notes?: string }) =>
-      createDailyLogFromReservation(args),
+    mutationFn: (args: {
+      reservationId: string
+      paidAmount: number
+      settledDebtIds?: string[]
+      debtHandling?: 'CREATE_DEBT' | 'IGNORE_DEBT'
+      tipAmount: number
+      notes?: string
+    }) => createDailyLogFromReservation(args),
   })
 
-  const settleDebt = useMutation({
-    mutationFn: (debtId: string) => settleClientDebt(debtId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['clientDebts'] })
-    },
-  })
 
   return {
     start,
@@ -102,7 +102,6 @@ export const useReservationActions = () => {
     noShow,
     reorder,
     completeAndCreateDailyLog,
-    settleDebt,
   }
 }
 

@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDailyLogEntryDto } from './dto/create-daily-log-entry.dto';
 import { UpdateDailyLogEntryDto } from './dto/update-daily-log-entry.dto';
+import type { CreateFromReservationDto } from './dto/create-from-reservation.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { IncomeBooksService } from '../finance/income-books.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
@@ -70,6 +71,11 @@ export class DailyLogService {
     const date = new Date(dto.date);
     date.setHours(0, 0, 0, 0);
     const primaryServiceId = serviceIds[0]!;
+    const paidAmount =
+      dto.paidAmount != null ? Number(dto.paidAmount) : Number(dto.actualPrice);
+    if (!Number.isFinite(paidAmount) || paidAmount < 0) {
+      throw new BadRequestException('Iznos naplate nije validan.');
+    }
     const created = await this.prisma.dailyLogEntry.create({
       data: {
         stylistProfileId: dto.stylistProfileId,
@@ -77,9 +83,10 @@ export class DailyLogService {
         serviceId: primaryServiceId,
         clientId: dto.clientId,
         date,
-        actualPrice: dto.actualPrice,
+        actualPrice: paidAmount,
         tipAmount: dto.tipAmount ?? 0,
         notes: dto.notes,
+        kind: 'SERVICE' as any,
         isManual: dto.isManual ?? !!dto.reservationId === false,
         status: 'PENDING',
       },
@@ -94,19 +101,70 @@ export class DailyLogService {
       })),
     });
 
-    if (
-      created.clientId &&
-      dto.desiredLoyaltyPercent &&
-      dto.desiredLoyaltyPercent > 0
-    ) {
+    const shouldCreateDebt = dto.debtHandling === 'CREATE_DEBT' && !!created.clientId;
+
+    if (created.clientId && dto.desiredLoyaltyPercent && dto.desiredLoyaltyPercent > 0) {
       await this.loyalty.redeemForDailyLog({
         clientId: created.clientId,
         dailyLogEntryId: created.id,
         serviceIds,
         desiredPercent: dto.desiredLoyaltyPercent,
         actualPrice: Number(created.actualPrice),
+        coveredByDebtAmount: shouldCreateDebt ? Number.MAX_SAFE_INTEGER : 0,
       });
-      return this.findOne(created.id, user);
+    }
+
+    if (shouldCreateDebt) {
+      const refreshed = await this.prisma.dailyLogEntry.findUnique({
+        where: { id: created.id },
+        select: {
+          id: true,
+          clientId: true,
+          stylistProfileId: true,
+          serviceId: true,
+          notes: true,
+          loyaltyDiscountAmount: true,
+          items: { select: { service: { select: { price: true } } } },
+        },
+      });
+      if (refreshed?.clientId) {
+        const base = refreshed.items.reduce(
+          (acc, it) => acc + Number(it.service?.price ?? 0),
+          0,
+        );
+        const minCharge = Math.max(0, base - Number(refreshed.loyaltyDiscountAmount ?? 0));
+        const debtAmount = Math.max(0, minCharge - paidAmount);
+        if (debtAmount > 0) {
+          await this.prisma.clientDebt.create({
+            data: {
+              clientId: refreshed.clientId,
+              stylistProfileId: refreshed.stylistProfileId,
+              serviceId: refreshed.serviceId,
+              dailyLogEntryId: refreshed.id,
+              amount: debtAmount,
+              note: refreshed.notes ?? undefined,
+              createdById: user.sub,
+            },
+          });
+        }
+      }
+    }
+
+    // Zatvori odabrana dugovanja i kreiraj posebne DEBT_PAYMENT stavke.
+    const settledDebtIds = Array.isArray(dto.settledDebtIds)
+      ? [...new Set(dto.settledDebtIds.map((x) => x.trim()).filter(Boolean))]
+      : [];
+    if (settledDebtIds.length > 0) {
+      if (!created.clientId) {
+        throw new BadRequestException('Za otplatu duga morate odabrati klijenta.');
+      }
+      await this.settleDebtsAndCreateLedgerEntries({
+        debtIds: settledDebtIds,
+        clientId: created.clientId,
+        date,
+        sourceReservationId: null,
+        userId: user.sub,
+      });
     }
 
     return this.findOne(created.id, user);
@@ -115,14 +173,18 @@ export class DailyLogService {
   /** Kreira zapis iz rezervacije (nakon COMPLETED ili ručno povezivanje). */
   async createFromReservation(
     reservationId: string,
-    actualPrice: number,
+    dto: CreateFromReservationDto,
     tipAmount: number,
     notes: string | undefined,
     user: CurrentUserPayload,
   ) {
     const res = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
-      include: { items: true, confirmedStylist: true },
+      include: {
+        items: { include: { service: { select: { id: true, price: true } } } },
+        service: { select: { id: true, price: true } },
+        confirmedStylist: true,
+      },
     });
     if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
     if (
@@ -151,6 +213,29 @@ export class DailyLogService {
       : [res.serviceId];
     const normalizedResIds = [...new Set(resServiceIds.map((x) => x.trim()).filter(Boolean))];
     const primaryServiceId = normalizedResIds[0]!;
+
+    const paidAmount =
+      dto.paidAmount != null
+        ? Number(dto.paidAmount)
+        : dto.actualPrice != null
+          ? Number(dto.actualPrice)
+          : 0;
+    if (!Number.isFinite(paidAmount) || paidAmount < 0) {
+      throw new BadRequestException('Iznos naplate nije validan.');
+    }
+    const settledDebtIds = Array.isArray(dto.settledDebtIds)
+      ? [...new Set(dto.settledDebtIds.map((x) => x.trim()).filter(Boolean))]
+      : [];
+
+    const base =
+      res.items && res.items.length > 0
+        ? res.items.reduce((acc, it) => acc + Number(it.service?.price ?? 0), 0)
+        : Number(res.service?.price ?? 0);
+    const loyaltyDiscountAmount = Number((res as any).loyaltyDiscountAmount ?? 0);
+    const minCharge = Math.max(0, base - loyaltyDiscountAmount);
+    const debtAmount = Math.max(0, minCharge - paidAmount);
+    const shouldCreateDebt = dto.debtHandling === 'CREATE_DEBT' && debtAmount > 0;
+
     const created = await this.prisma.dailyLogEntry.create({
       data: {
         stylistProfileId: res.confirmedStylistId,
@@ -158,9 +243,10 @@ export class DailyLogService {
         serviceId: primaryServiceId,
         clientId: res.clientId,
         date,
-        actualPrice,
+        actualPrice: paidAmount,
         tipAmount: tipAmount ?? 0,
         notes,
+        kind: 'SERVICE' as any,
         isManual: false,
         status: 'PENDING',
       },
@@ -173,7 +259,150 @@ export class DailyLogService {
         sortOrder: idx,
       })),
     });
+    if (shouldCreateDebt) {
+      await this.prisma.clientDebt.create({
+        data: {
+          clientId: res.clientId,
+          stylistProfileId: res.confirmedStylistId,
+          serviceId: primaryServiceId,
+          reservationId: res.id,
+          dailyLogEntryId: created.id,
+          amount: debtAmount,
+          note: notes,
+          createdById: user.sub,
+        },
+      });
+    }
+
+    if (settledDebtIds.length > 0) {
+      await this.settleDebtsAndCreateLedgerEntries({
+        debtIds: settledDebtIds,
+        clientId: res.clientId,
+        date,
+        sourceReservationId: res.id,
+        userId: user.sub,
+      });
+    }
     return this.findOne(created.id, user);
+  }
+
+  private async settleDebtsAndCreateLedgerEntries(params: {
+    debtIds: string[];
+    clientId: string;
+    date: Date;
+    sourceReservationId: string | null;
+    userId: string;
+  }) {
+    const debtIds = [...new Set(params.debtIds.map((x) => x.trim()).filter(Boolean))];
+    if (debtIds.length === 0) return;
+    const date = new Date(params.date);
+    date.setHours(0, 0, 0, 0);
+
+    const debts = await this.prisma.clientDebt.findMany({
+      where: {
+        id: { in: debtIds },
+        clientId: params.clientId,
+        status: 'OPEN',
+      },
+      select: {
+        id: true,
+        clientId: true,
+        stylistProfileId: true,
+        serviceId: true,
+        reservationId: true,
+        dailyLogEntryId: true,
+        amount: true,
+      },
+    });
+    if (debts.length !== debtIds.length) {
+      throw new BadRequestException('Jedno ili više dugovanja nije validno ili je već zatvoreno.');
+    }
+
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const book = await this.incomeBooks.getOrCreateForMonth(year, month);
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const d of debts) {
+        const amount = Number(d.amount);
+        if (!Number.isFinite(amount) || amount <= 0) continue;
+
+        const serviceId = d.serviceId
+          ? d.serviceId
+          : d.dailyLogEntryId
+            ? (await tx.dailyLogEntry.findUnique({
+                where: { id: d.dailyLogEntryId },
+                select: { serviceId: true },
+              }))?.serviceId
+            : d.reservationId
+              ? (await tx.reservation.findUnique({
+                  where: { id: d.reservationId },
+                  select: { serviceId: true },
+                }))?.serviceId
+              : null;
+        if (!serviceId) {
+          throw new BadRequestException('Nedostaje servis za knjiženje naplate duga.');
+        }
+
+        await tx.clientDebt.update({
+          where: { id: d.id },
+          data: {
+            status: 'SETTLED',
+            settledAt: new Date(),
+            settledById: params.userId,
+          },
+        });
+
+        await tx.dailyLogEntry.create({
+          data: {
+            stylistProfileId: d.stylistProfileId,
+            reservationId: params.sourceReservationId,
+            serviceId,
+            clientId: d.clientId,
+            kind: 'DEBT_PAYMENT' as any,
+            debtId: d.id,
+            date,
+            actualPrice: amount,
+            tipAmount: 0,
+            notes: 'Naplata duga',
+            isManual: true,
+            status: 'COMPLETED',
+            completedAt: new Date(),
+          },
+        });
+
+        await tx.incomeBookManualEntry.create({
+          data: {
+            bookId: book.id,
+            date,
+            serviceId,
+            stylistProfileId: d.stylistProfileId,
+            clientId: d.clientId,
+            amount,
+            tipAmount: 0,
+            notes: 'Naplata duga',
+            createdById: params.userId,
+          },
+        });
+      }
+
+      const autoAgg = await tx.incomeBookEntry.aggregate({
+        where: { bookId: book.id },
+        _sum: { amount: true, tipAmount: true },
+      });
+      const manualAgg = await tx.incomeBookManualEntry.aggregate({
+        where: { bookId: book.id },
+        _sum: { amount: true, tipAmount: true },
+      });
+      const totalRevenue =
+        Number(autoAgg._sum.amount ?? 0) + Number(manualAgg._sum.amount ?? 0);
+      const totalTips =
+        Number(autoAgg._sum.tipAmount ?? 0) + Number(manualAgg._sum.tipAmount ?? 0);
+      await tx.incomeBook.update({
+        where: { id: book.id },
+        data: { totalRevenue, totalTips },
+      });
+    });
   }
 
   async findAll(

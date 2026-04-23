@@ -422,12 +422,10 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     const minCharge = Math.max(0, basePrice - loyaltyDiscountAmount);
 
     const paidRaw = parseFloat(completeActualPrice.replace(',', '.'));
-    if (isNaN(paidRaw) || paidRaw < minCharge) {
+    if (isNaN(paidRaw) || paidRaw < 0) {
       Alert.alert(
         'Greška',
-        minCharge > 0
-          ? `Naplaćeni iznos ne može biti manji od preporučene cijene za naplatu (${minCharge.toFixed(2)} KM).`
-          : 'Unesite ispravan iznos naplaćenog računa.',
+        'Unesite ispravan iznos naplaćenog računa.',
       );
       return;
     }
@@ -435,39 +433,54 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     const tipAmount = autoTip > 0 ? autoTip : 0;
     const actualPriceWithDebts = paidRaw + selectedDebtSum;
 
-    setCompleteSubmitting(true);
-    try {
-      const selectedDebts = clientDebts.filter((d) => selectedDebtIds[d.id]);
-      const { data: entry } = await api.post<DailyLogEntry>(`/api/daily-log/from-reservation/${reservation.id}`, {
-        actualPrice: actualPriceWithDebts,
-        tipAmount: tipAmount >= 0 ? tipAmount : 0,
-        notes: completeNotes.trim() || undefined,
-      });
-
-      if (selectedDebts.length > 0) {
-        await Promise.all(
-          selectedDebts.map((d) => api.patch(`/api/client-debts/${d.id}/settle`)),
+    const doSubmit = async (debtHandling: 'CREATE_DEBT' | 'IGNORE_DEBT') => {
+      setCompleteSubmitting(true);
+      try {
+        const selectedDebts = clientDebts.filter((d) => selectedDebtIds[d.id]);
+        const { data: entry } = await api.post<DailyLogEntry>(
+          `/api/daily-log/from-reservation/${reservation.id}`,
+          {
+            paidAmount: paidRaw,
+            settledDebtIds: selectedDebts.map((d) => d.id),
+            debtHandling,
+            tipAmount: tipAmount >= 0 ? tipAmount : 0,
+            notes: completeNotes.trim() || undefined,
+          },
         );
+        setCompleteModalOpen(false);
+        await fetchReservation();
         await fetchClientDebts(reservation.clientId);
-      }
-      setCompleteModalOpen(false);
-      await fetchReservation();
 
-      // UX: nakon unosa naplate prebacujemo stilistu u Dnevnik -> detalji zapisa,
-      // gdje može dodati before/after i završiti zapis (što će i završiti rezervaciju).
-      (navigation.getParent() as { navigate: (name: string, params: object) => void } | undefined)?.navigate(
-        'DailyLogTab',
-        { screen: 'DailyLogDetail', params: { entryId: entry.id } },
+        (navigation.getParent() as { navigate: (name: string, params: object) => void } | undefined)?.navigate(
+          'DailyLogTab',
+          { screen: 'DailyLogDetail', params: { entryId: entry.id } },
+        );
+      } catch (err: unknown) {
+        const msg =
+          err && typeof err === 'object' && 'response' in err
+            ? (err as any).response?.data?.message
+            : 'Greška pri upisu.';
+        Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+      } finally {
+        setCompleteSubmitting(false);
+      }
+    };
+
+    if (paidRaw < minCharge) {
+      const diff = Math.max(0, minCharge - paidRaw);
+      Alert.alert(
+        'Naplaćuje se manje nego što sistem zahtijeva',
+        `Razlika iznosi ${diff.toFixed(2)} KM. Želite li da se ta razlika evidentira kao dug klijentu?`,
+        [
+          { text: 'Odustani', style: 'cancel' },
+          { text: 'Ne zavodi dug', onPress: () => void doSubmit('IGNORE_DEBT') },
+          { text: 'Zavedi dug', onPress: () => void doSubmit('CREATE_DEBT') },
+        ],
       );
-    } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as any).response?.data?.message
-          : 'Greška pri upisu.';
-      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
-    } finally {
-      setCompleteSubmitting(false);
+      return;
     }
+
+    await doSubmit('IGNORE_DEBT');
   }, [reservation, completeActualPrice, completeNotes, fetchReservation, navigation, selectedDebtSum, clientDebts, selectedDebtIds, fetchClientDebts]);
 
   if (loading) {

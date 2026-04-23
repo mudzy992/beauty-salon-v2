@@ -36,7 +36,7 @@ export class DailyLogController {
   ) {
     return this.dailyLog.createFromReservation(
       reservationId,
-      body.actualPrice,
+      body,
       body.tipAmount ?? 0,
       body.notes,
       user,

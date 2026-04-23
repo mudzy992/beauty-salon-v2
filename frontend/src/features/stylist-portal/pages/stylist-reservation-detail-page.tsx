@@ -87,6 +87,9 @@ export const StylistReservationDetailPage = () => {
   const [completeOpen, setCompleteOpen] = useState(false)
   const [completeActualPrice, setCompleteActualPrice] = useState('')
   const [completeNotes, setCompleteNotes] = useState('')
+  const [partialOpen, setPartialOpen] = useState(false)
+  const [partialDiff, setPartialDiff] = useState(0)
+  const [pendingPaidRaw, setPendingPaidRaw] = useState<number | null>(null)
 
   const [overrunOpen, setOverrunOpen] = useState(false)
   const [manualShiftMinutes, setManualShiftMinutes] = useState('5')
@@ -258,30 +261,67 @@ export const StylistReservationDetailPage = () => {
     if (!reservation) return
     const minCharge = computeMinCharge(reservation)
     const paidRaw = parseMoney(completeActualPrice)
-    if (!Number.isFinite(paidRaw) || paidRaw < minCharge) {
-      toastApiError(null, minCharge > 0 ? `Naplaćeni iznos ne može biti manji od ${minCharge.toFixed(2)} KM.` : 'Unesite ispravan iznos.')
+    if (!Number.isFinite(paidRaw) || paidRaw < 0) {
+      toastApiError(null, 'Unesite ispravan iznos.')
       return
     }
+
+    if (paidRaw < minCharge) {
+      setPendingPaidRaw(paidRaw)
+      setPartialDiff(Math.max(0, minCharge - paidRaw))
+      setPartialOpen(true)
+      return
+    }
+
     const autoTip = paidRaw - minCharge
     const tipAmount = autoTip > 0 ? autoTip : 0
-    const actualPriceWithDebts = paidRaw + selectedDebtSum
 
     try {
       const entry = await actions.completeAndCreateDailyLog.mutateAsync({
         reservationId: reservation.id,
-        actualPrice: actualPriceWithDebts,
+        paidAmount: paidRaw,
+        settledDebtIds: debtsQuery.debts.filter((d) => selectedDebtIds[d.id]).map((d) => d.id),
+        debtHandling: 'IGNORE_DEBT',
         tipAmount,
         notes: completeNotes.trim() || undefined,
       })
 
-      const selected = debtsQuery.debts.filter((d) => selectedDebtIds[d.id])
-      if (selected.length > 0) {
-        await Promise.all(selected.map((d) => actions.settleDebt.mutateAsync(d.id)))
-        await debtsQuery.refetch()
-      }
+      await debtsQuery.refetch()
 
       setCompleteOpen(false)
       success('Upisano', 'Naplata je upisana u Dnevnik.')
+      navigate(`/stylist/workbook/${entry.id}`)
+    } catch (err) {
+      toastApiError(err, 'Greška pri upisu')
+    }
+  }
+
+  const confirmPartial = async (debtHandling: 'CREATE_DEBT' | 'IGNORE_DEBT') => {
+    if (!reservation) return
+    const minCharge = computeMinCharge(reservation)
+    const paidRaw = pendingPaidRaw
+    if (paidRaw == null) return
+    const autoTip = paidRaw - minCharge
+    const tipAmount = autoTip > 0 ? autoTip : 0
+    try {
+      const entry = await actions.completeAndCreateDailyLog.mutateAsync({
+        reservationId: reservation.id,
+        paidAmount: paidRaw,
+        settledDebtIds: debtsQuery.debts.filter((d) => selectedDebtIds[d.id]).map((d) => d.id),
+        debtHandling,
+        tipAmount,
+        notes: completeNotes.trim() || undefined,
+      })
+      await debtsQuery.refetch()
+
+      setPartialOpen(false)
+      setCompleteOpen(false)
+      success(
+        'Upisano',
+        debtHandling === 'CREATE_DEBT'
+          ? `Naplata je upisana, a ${partialDiff.toFixed(2)} KM je evidentirano kao dug.`
+          : 'Naplata je upisana.',
+      )
       navigate(`/stylist/workbook/${entry.id}`)
     } catch (err) {
       toastApiError(err, 'Greška pri upisu')
@@ -640,6 +680,37 @@ export const StylistReservationDetailPage = () => {
             </Button>
             <Button type="button" onClick={submitComplete} disabled={actions.completeAndCreateDailyLog.isPending}>
               Potvrdi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={partialOpen} onOpenChange={setPartialOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Naplaćuje se manje nego što sistem zahtijeva</DialogTitle>
+            <DialogDescription>
+              Razlika iznosi {partialDiff.toFixed(2)} KM. Želite li da se ta razlika evidentira kao dug klijentu?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPartialOpen(false)}>
+              Odustani
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => confirmPartial('IGNORE_DEBT')}
+              disabled={actions.completeAndCreateDailyLog.isPending}
+            >
+              Ne zavodi dug
+            </Button>
+            <Button
+              type="button"
+              onClick={() => confirmPartial('CREATE_DEBT')}
+              disabled={actions.completeAndCreateDailyLog.isPending}
+            >
+              Zavedi dug
             </Button>
           </DialogFooter>
         </DialogContent>

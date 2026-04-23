@@ -202,37 +202,50 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
       Alert.alert('Greška', 'Unesite ispravan iznos naplaćenog računa.');
       return;
     }
+    const doSubmit = async (debtHandling: 'CREATE_DEBT' | 'IGNORE_DEBT', tipAmount: number) => {
+      setSaving(true);
+      try {
+        const { data: entry } = await api.post<{ id: string }>('/api/daily-log', {
+          stylistProfileId: profileId,
+          serviceIds,
+          clientId,
+          date,
+          paidAmount: paidRaw,
+          actualPrice: paidRaw,
+          debtHandling,
+          tipAmount,
+          notes: notes.trim() || undefined,
+          isManual: true,
+          ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
+        });
+        navigation.navigate('DailyLogDetail', { entryId: entry.id });
+      } catch (err: unknown) {
+        const msg =
+          err && typeof err === 'object' && 'response' in err
+            ? (err as any).response?.data?.message
+            : 'Greška pri kreiranju zapisa.';
+        Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+      } finally {
+        setSaving(false);
+      }
+    };
+
     if (paidRaw < chargeAmount) {
+      const diff = Math.max(0, chargeAmount - paidRaw);
       Alert.alert(
-        'Greška',
-        `Naplaćeni iznos ne može biti manji od iznosa za naplatu (${chargeAmount.toFixed(2)} KM).`,
+        'Naplaćuje se manje nego što sistem zahtijeva',
+        `Razlika iznosi ${diff.toFixed(2)} KM. Želite li da se ta razlika evidentira kao dug klijentu?`,
+        [
+          { text: 'Odustani', style: 'cancel' },
+          { text: 'Ne zavodi dug', onPress: () => void doSubmit('IGNORE_DEBT', 0) },
+          { text: 'Zavedi dug', onPress: () => void doSubmit('CREATE_DEBT', 0) },
+        ],
       );
       return;
     }
+
     const tip = Math.max(0, paidRaw - chargeAmount);
-    setSaving(true);
-    try {
-      const { data: entry } = await api.post<{ id: string }>('/api/daily-log', {
-        stylistProfileId: profileId,
-        serviceIds,
-        clientId,
-        date,
-        actualPrice: paidRaw,
-        tipAmount: tip,
-        notes: notes.trim() || undefined,
-        isManual: true,
-        ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
-      });
-      navigation.navigate('DailyLogDetail', { entryId: entry.id });
-    } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as any).response?.data?.message
-          : 'Greška pri kreiranju zapisa.';
-      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
-    } finally {
-      setSaving(false);
-    }
+    await doSubmit('IGNORE_DEBT', tip);
   }, [profileId, serviceIds, clientId, date, paidAmount, chargeAmount, notes, loyaltyPercent, navigation]);
 
   if (profileLoading || (loading && !profileId)) {

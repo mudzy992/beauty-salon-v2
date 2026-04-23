@@ -40,6 +40,19 @@ module.exports = {
       'react-native-edge-to-edge',
       'expo-router',
       [
+        "expo-build-properties",
+        {
+            "android": {
+                "compileSdkVersion": 36,
+                "targetSdkVersion": 36,
+                "buildToolsVersion": "36.0.0",
+                "enableMinifyInReleaseBuilds": true,
+                "enableShrinkResourcesInReleaseBuilds": true,
+                "buildArchs": ["arm64-v8a"]
+            }
+        }
+      ],
+      [
         'expo-navigation-bar',
         {
           enforceContrast: false,
