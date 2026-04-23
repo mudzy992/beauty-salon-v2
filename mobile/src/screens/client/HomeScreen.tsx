@@ -369,16 +369,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               pointerEvents="none"
             />
             <View style={[styles.heroContent, { paddingTop: insets.top }]}>
-              {user ? (
-                <Animated.View
-                  entering={FadeInDown.delay(140).duration(400).springify()}
-                  style={styles.heroWelcomeAbove}
-                >
-                  <Text style={styles.welcome}>
-                    {t('home.welcome')}, {user.firstName}!
-                  </Text>
-                </Animated.View>
-              ) : null}
+
               {hasLogo ? (
                 <>
                   <Animated.View
@@ -390,8 +381,19 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                       style={styles.heroLogoLarge}
                       contentFit="contain"
                       accessibilityLabel={appTitle}
+                      tintColor="#FFF"
                     />
                   </Animated.View>
+                  {user ? (
+                    <Animated.View
+                    entering={FadeInDown.delay(140).duration(400).springify()}
+                    style={styles.heroWelcomeAbove}
+                    >
+                    <Text style={styles.welcome}>
+                        {t('home.welcome')}, {user.firstName}!
+                    </Text>
+                    </Animated.View>
+                ) : null}
                   <Animated.Text
                     entering={FadeInDown.delay(380).duration(480).springify()}
                     style={styles.heroSubtitleUnderLogo}
@@ -435,7 +437,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     styles.heroStatChip,
                     isDark
                       ? styles.heroStatChipDark
-                      : { backgroundColor: 'rgba(0,0,0,0.36)', borderColor: 'rgba(0,0,0,0.48)' },
+                      : { backgroundColor: 'rgba(0,0,0,0.66)', borderColor: 'rgba(0,0,0,0.98)' },
                   ]}
                 >
                   <Ionicons name="diamond-outline" size={13} color="#fff" />
@@ -446,7 +448,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     styles.heroStatChip,
                     isDark
                       ? styles.heroStatChipDark
-                      : { backgroundColor: 'rgba(0,0,0,0.36)', borderColor: 'rgba(0,0,0,0.48)' },
+                      : { backgroundColor: 'rgba(0,0,0,0.66)', borderColor: 'rgba(0,0,0,0.98)' },
                   ]}
                 >
                   <Ionicons name="people-outline" size={13} color="#fff" />
@@ -728,7 +730,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   homeBelowHeroFade: {
-    height: 24,
+    height: 45,
     width: '100%',
   },
   heroWrap: {
@@ -770,11 +772,11 @@ const styles = StyleSheet.create({
   heroSparkRight: { opacity: 0.9, transform: [{ scaleX: -1 }] },
   heroLogoBlock: {
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 12,
   },
   heroLogoLarge: {
     width: 300,
-    height: 128,
+    height: 150
   },
   heroBrandTitle: {
     marginTop: spacing.sm,
