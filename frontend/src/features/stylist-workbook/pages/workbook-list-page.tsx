@@ -1,10 +1,11 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
 import { Badge } from '../../../components/ui/badge'
+import { WorkbookNewEntryDrawer } from './workbook-new-entry-page'
 import { useStylistProfileMe } from '../hooks/useStylistProfileMe'
 import { useWorkbookEntries } from '../hooks/useWorkbookEntries'
 
@@ -24,6 +25,7 @@ const getWindow = () => {
 export const WorkbookListPage = () => {
   const { profileId, isLoading: profileLoading } = useStylistProfileMe()
   const { fromDate, toDate } = useMemo(() => getWindow(), [])
+  const [newOpen, setNewOpen] = useState(false)
 
   const { sections, isLoading, isFetching, refetch } = useWorkbookEntries({
     stylistProfileId: profileId,
@@ -62,14 +64,14 @@ export const WorkbookListPage = () => {
           <Button type="button" variant="outline" onClick={() => void refetch()} disabled={isFetching}>
             {isFetching ? 'Osvježavam…' : 'Osvježi'}
           </Button>
-          <Link to="/stylist/workbook/new">
-            <Button type="button" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Novi unos
-            </Button>
-          </Link>
+          <Button type="button" className="gap-2" onClick={() => setNewOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Novi unos
+          </Button>
         </div>
       </div>
+
+      <WorkbookNewEntryDrawer open={newOpen} onOpenChange={setNewOpen} />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
@@ -81,6 +83,12 @@ export const WorkbookListPage = () => {
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             Zapisi iz rezervacija ili ručno dodani pojavit će se ovdje. Završite zapis i dodajte before/after slike.
           </p>
+          <div className="mt-4">
+            <Button type="button" className="gap-2" onClick={() => setNewOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Novi unos
+            </Button>
+          </div>
         </Card>
       ) : (
         <div className="space-y-6">

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink } from 'react-router-dom'
 import { Check, Loader2, Pencil, Plus, Search } from 'lucide-react'
@@ -52,6 +52,7 @@ interface ClientOption {
   username: string
   firstName: string | null
   lastName: string | null
+  gender?: 'MALE' | 'FEMALE'
 }
 
 interface PaginatedResponse<T> {
@@ -124,6 +125,42 @@ export default function DailyLog() {
   const [clientSearch, setClientSearch] = useState('')
   const [showServiceDropdown, setShowServiceDropdown] = useState(false)
   const [showClientDropdown, setShowClientDropdown] = useState(false)
+  const serviceDropdownRef = useRef<HTMLDivElement | null>(null)
+  const clientDropdownRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node | null
+      if (
+        showServiceDropdown &&
+        serviceDropdownRef.current &&
+        target &&
+        !serviceDropdownRef.current.contains(target)
+      ) {
+        setShowServiceDropdown(false)
+      }
+      if (
+        showClientDropdown &&
+        clientDropdownRef.current &&
+        target &&
+        !clientDropdownRef.current.contains(target)
+      ) {
+        setShowClientDropdown(false)
+      }
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowServiceDropdown(false)
+        setShowClientDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [showServiceDropdown, showClientDropdown])
 
   const loadData = useCallback(() => {
     setLoading(true)
@@ -174,10 +211,12 @@ export default function DailyLog() {
   const completedCount = entries.filter((e) => e.status === 'COMPLETED').length
 
   const filteredServices = useMemo(() => {
-    if (!serviceSearch) return services
+    const selectedClient = clients.find((c) => c.id === form.clientId)
+    const base = selectedClient?.gender ? services.filter((s) => s.gender === selectedClient.gender) : services
+    if (!serviceSearch) return base
     const q = serviceSearch.toLowerCase()
-    return services.filter((s) => s.name.toLowerCase().includes(q))
-  }, [services, serviceSearch])
+    return base.filter((s) => s.name.toLowerCase().includes(q))
+  }, [clients, form.clientId, services, serviceSearch])
 
   const isServiceSelected = useCallback(
     (id: string) => form.serviceIds.includes(id),
@@ -198,6 +237,11 @@ export default function DailyLog() {
   }, [clients, clientSearch])
 
   const toggleService = (svc: ServiceOption) => {
+    if (!form.clientId) {
+      warning('Prvo odaberite klijenta')
+      setShowClientDropdown(true)
+      return
+    }
     setForm((prev) => {
       const exists = prev.serviceIds.includes(svc.id)
       const nextIds = exists ? prev.serviceIds.filter((x) => x !== svc.id) : [...prev.serviceIds, svc.id]
@@ -208,10 +252,26 @@ export default function DailyLog() {
   }
 
   const selectClient = (client: ClientOption) => {
-    setForm((prev) => ({ ...prev, clientId: client.id, desiredLoyaltyPercent: 0 }))
+    setForm((prev) => {
+      const currentSelected = prev.serviceIds
+        .map((id) => services.find((s) => s.id === id))
+        .filter(Boolean) as ServiceOption[]
+      const hasMismatch =
+        client.gender &&
+        currentSelected.length > 0 &&
+        currentSelected.some((s) => s.gender && s.gender !== client.gender)
+
+      return {
+        ...prev,
+        clientId: client.id,
+        desiredLoyaltyPercent: 0,
+        serviceIds: hasMismatch ? [] : prev.serviceIds,
+      }
+    })
     const name = [client.firstName, client.lastName].filter(Boolean).join(' ') || client.username
     setClientSearch(name)
     setShowClientDropdown(false)
+    setServiceSearch('')
     setPaidAmount('')
   }
 
@@ -608,18 +668,56 @@ export default function DailyLog() {
               </div>
 
               <div>
+                <Label>Klijent</Label>
+                <div ref={clientDropdownRef} className="relative mt-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    className="pl-9"
+                    value={clientSearch}
+                    onChange={(e) => {
+                      setClientSearch(e.target.value)
+                      setShowClientDropdown(true)
+                      setForm((prev) => ({ ...prev, clientId: '' }))
+                    }}
+                    onFocus={() => setShowClientDropdown(true)}
+                    placeholder="Pretražite klijenta..."
+                  />
+                  {showClientDropdown && filteredClients.length > 0 ? (
+                    <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
+                      {filteredClients.map((c) => (
+                        <li
+                          key={c.id}
+                          className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
+                          onMouseDown={(ev) => ev.preventDefault()}
+                          onClick={() => selectClient(c)}
+                        >
+                          <p className="text-sm">{[c.firstName, c.lastName].filter(Boolean).join(' ') || c.username}</p>
+                          <p className="text-xs text-slate-500">{c.username}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+                {form.clientId ? <p className="mt-1 text-xs text-emerald-600">Odabrano: {clientSearch}</p> : null}
+              </div>
+
+              <div>
                 <Label>Servis</Label>
-                <div className="relative mt-1">
+                {!form.clientId ? (
+                  <p className="mt-1 text-xs text-slate-500">Prvo odaberite klijenta da bi se prikazali servisi po spolu.</p>
+                ) : null}
+                <div ref={serviceDropdownRef} className="relative mt-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <Input
                     className="pl-9"
                     value={serviceSearch}
+                    disabled={!form.clientId}
                     onChange={(e) => {
                       setServiceSearch(e.target.value)
                       setShowServiceDropdown(true)
                     }}
                     onFocus={() => setShowServiceDropdown(true)}
-                    placeholder="Pretražite servis..."
+                    placeholder={!form.clientId ? 'Odaberite klijenta...' : 'Pretražite servis...'}
                   />
                   {showServiceDropdown && filteredServices.length > 0 ? (
                     <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
@@ -660,40 +758,6 @@ export default function DailyLog() {
                     ))}
                   </div>
                 ) : null}
-              </div>
-
-              <div>
-                <Label>Klijent</Label>
-                <div className="relative mt-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    className="pl-9"
-                    value={clientSearch}
-                    onChange={(e) => {
-                      setClientSearch(e.target.value)
-                      setShowClientDropdown(true)
-                      setForm((prev) => ({ ...prev, clientId: '' }))
-                    }}
-                    onFocus={() => setShowClientDropdown(true)}
-                    placeholder="Pretražite klijenta..."
-                  />
-                  {showClientDropdown && filteredClients.length > 0 ? (
-                    <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
-                      {filteredClients.map((c) => (
-                        <li
-                          key={c.id}
-                          className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
-                          onMouseDown={(ev) => ev.preventDefault()}
-                          onClick={() => selectClient(c)}
-                        >
-                          <p className="text-sm">{[c.firstName, c.lastName].filter(Boolean).join(' ') || c.username}</p>
-                          <p className="text-xs text-slate-500">{c.username}</p>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-                {form.clientId ? <p className="mt-1 text-xs text-emerald-600">Odabrano: {clientSearch}</p> : null}
               </div>
 
               <div>

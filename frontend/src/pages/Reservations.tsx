@@ -25,6 +25,20 @@ interface ReservationClient {
   phone?: string | null
 }
 
+interface ReservationService {
+  id: string
+  name: string
+  durationMinutes: number
+  price: number | string
+}
+
+interface ReservationServiceItem {
+  id: string
+  sortOrder: number
+  serviceId: string
+  service?: ReservationService
+}
+
 interface Reservation {
   id: string
   reservationDate: string
@@ -35,7 +49,8 @@ interface Reservation {
   cancelReason: string | null
   createdAt: string
   client?: ReservationClient
-  service?: { id: string; name: string; durationMinutes: number; price: number | string }
+  service?: ReservationService
+  items?: ReservationServiceItem[]
   confirmedStylist?: { id: string; user?: { username: string; firstName: string | null; lastName: string | null } }
   stylistResponses?: {
     id: string
@@ -180,9 +195,34 @@ export default function Reservations() {
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
+  const serviceSummary = (r: Reservation) => {
+    const items = Array.isArray(r.items) ? r.items : []
+    if (items.length > 0) {
+      const sorted = [...items].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+      const firstName = sorted[0]?.service?.name ?? 'Servis'
+      const rest = sorted.length - 1
+      return rest > 0 ? `${firstName} (+${rest})` : firstName
+    }
+    return r.service?.name ?? '-'
+  }
+
+  const getServicesTotals = (r: Reservation) => {
+    const items = Array.isArray(r.items) ? r.items : []
+    if (items.length > 0) {
+      const totalMinutes = items.reduce((acc, it) => acc + Number(it.service?.durationMinutes ?? 0), 0)
+      const totalPrice = items.reduce((acc, it) => acc + Number(it.service?.price ?? 0), 0)
+      return { totalMinutes, totalPrice }
+    }
+    return {
+      totalMinutes: Number(r.service?.durationMinutes ?? 0),
+      totalPrice: Number(r.service?.price ?? 0),
+    }
+  }
+
   const priceBlock = (r: Reservation) => {
-    if (!r.service) return '-'
-    const base = Number(r.service.price ?? 0)
+    const { totalPrice } = getServicesTotals(r)
+    if (!Number.isFinite(totalPrice) || totalPrice <= 0) return '-'
+    const base = totalPrice
     const pct = Number(r.loyaltyDiscountPercent ?? 0)
     const amt = Number(r.loyaltyDiscountAmount ?? 0)
     if (pct > 0 && amt > 0) {
@@ -285,7 +325,7 @@ export default function Reservations() {
                         {getStatusLabel(r.status)}
                       </Badge>
                     </div>
-                    <p className="mt-2 text-sm text-slate-900 dark:text-slate-50">{r.service?.name ?? '-'}</p>
+                  <p className="mt-2 text-sm text-slate-900 dark:text-slate-50">{serviceSummary(r)}</p>
                     <p className="text-sm text-slate-600 dark:text-slate-300">{getClientName(r.client)}</p>
                   </button>
                 ))
@@ -336,7 +376,7 @@ export default function Reservations() {
                             '-'
                           )}
                         </td>
-                        <td className="p-3">{r.service?.name ?? '-'}</td>
+                        <td className="p-3">{serviceSummary(r)}</td>
                         <td className="p-3 text-right">{priceBlock(r)}</td>
                         <td className="p-3" onClick={(e) => e.stopPropagation()}>
                           {r.confirmedStylist ? (
@@ -437,12 +477,35 @@ export default function Reservations() {
 
               <div>
                 <p className="text-xs text-slate-500">Servis</p>
-                <p className="font-medium text-slate-900 dark:text-slate-50">{detail.service?.name ?? '-'}</p>
-                {detail.service ? (
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                    {detail.service.durationMinutes} min | {Number(detail.service.price).toFixed(2)} KM
-                  </p>
-                ) : null}
+                {detail.items && detail.items.length > 0 ? (
+                  <div className="mt-2 space-y-2">
+                    {[...detail.items]
+                      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+                      .map((it) => (
+                        <div key={it.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900/30">
+                          <p className="font-medium text-slate-900 dark:text-slate-50">{it.service?.name ?? '-'}</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            {Number(it.service?.durationMinutes ?? 0)} min | {Number(it.service?.price ?? 0).toFixed(2)} KM
+                          </p>
+                        </div>
+                      ))}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-sm">
+                      <p className="font-medium text-slate-900 dark:text-slate-50">Ukupno</p>
+                      <p className="text-slate-700 dark:text-slate-300">
+                        {getServicesTotals(detail).totalMinutes} min | {getServicesTotals(detail).totalPrice.toFixed(2)} KM
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="font-medium text-slate-900 dark:text-slate-50">{detail.service?.name ?? '-'}</p>
+                    {detail.service ? (
+                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                        {detail.service.durationMinutes} min | {Number(detail.service.price).toFixed(2)} KM
+                      </p>
+                    ) : null}
+                  </>
+                )}
               </div>
 
               {detail.clientNotes ? (

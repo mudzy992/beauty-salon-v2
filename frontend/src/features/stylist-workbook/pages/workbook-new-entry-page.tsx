@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, Search } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
+import { Drawer, DrawerContent } from '../../../components/ui/drawer'
 import { Input } from '../../../components/ui/input'
 import { Label } from '../../../components/ui/label'
 import { Textarea } from '../../../components/ui/textarea'
@@ -21,7 +22,13 @@ const formatKm = (v: number) => `${Number(v || 0).toFixed(2)} KM`
 
 const clampInt = (v: number, min: number, max: number) => Math.max(min, Math.min(max, Math.floor(v)))
 
-export const WorkbookNewEntryPage = () => {
+export const WorkbookNewEntryForm = ({
+  mode,
+  onClose,
+}: {
+  mode: 'page' | 'drawer'
+  onClose?: () => void
+}) => {
   const navigate = useNavigate()
   const { warning, success, toastApiError } = useAppToast()
   const { profileId, isLoading: profileLoading } = useStylistProfileMe()
@@ -46,6 +53,42 @@ export const WorkbookNewEntryPage = () => {
   const [clientSearch, setClientSearch] = useState('')
   const [showServiceDropdown, setShowServiceDropdown] = useState(false)
   const [showClientDropdown, setShowClientDropdown] = useState(false)
+  const serviceDropdownRef = useRef<HTMLDivElement | null>(null)
+  const clientDropdownRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node | null
+      if (
+        showServiceDropdown &&
+        serviceDropdownRef.current &&
+        target &&
+        !serviceDropdownRef.current.contains(target)
+      ) {
+        setShowServiceDropdown(false)
+      }
+      if (
+        showClientDropdown &&
+        clientDropdownRef.current &&
+        target &&
+        !clientDropdownRef.current.contains(target)
+      ) {
+        setShowClientDropdown(false)
+      }
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowServiceDropdown(false)
+        setShowClientDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('keydown', onKeyDown)
+    }
+  }, [showServiceDropdown, showClientDropdown])
 
   useEffect(() => {
     let mounted = true
@@ -194,6 +237,7 @@ export const WorkbookNewEntryPage = () => {
         ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
       })
       success('Kreirano', 'Možete dodati before/after slike i završiti zapis u detalju.')
+      onClose?.()
       navigate(`/stylist/workbook/${entry.id}`)
     } catch (err) {
       toastApiError(err, 'Greška pri kreiranju zapisa')
@@ -215,7 +259,15 @@ export const WorkbookNewEntryPage = () => {
       <Card className="p-6">
         <p className="text-slate-900 dark:text-slate-50 font-semibold">Nema profila</p>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Profil stilista nije pronađen.</p>
-        <Button type="button" variant="outline" className="mt-4" onClick={() => navigate('/stylist/workbook')}>
+        <Button
+          type="button"
+          variant="outline"
+          className="mt-4"
+          onClick={() => {
+            onClose?.()
+            navigate('/stylist/workbook')
+          }}
+        >
           Nazad
         </Button>
       </Card>
@@ -223,22 +275,68 @@ export const WorkbookNewEntryPage = () => {
   }
 
   return (
-    <div className="max-w-2xl">
-      <div className="mb-4">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Novi unos</h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Nakon kreiranja možete dodati before/after slike i završiti zapis u detalju.
-        </p>
-      </div>
+    <div className={mode === 'page' ? 'max-w-2xl' : ''}>
+      {mode === 'page' ? (
+        <div className="mb-4">
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Novi unos</h1>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+            Nakon kreiranja možete dodati before/after slike i završiti zapis u detalju.
+          </p>
+        </div>
+      ) : null}
 
       <div className="space-y-4">
         <Card className="p-4">
+          <Label>Klijent</Label>
+          <div ref={clientDropdownRef} className="relative mt-2">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+            <Input
+              value={clientSearch}
+              placeholder="Pretraži klijenta…"
+              className="pl-9"
+              onFocus={() => setShowClientDropdown(true)}
+              onChange={(e) => {
+                setClientSearch(e.target.value)
+                setShowClientDropdown(true)
+                setClientId('')
+              }}
+            />
+            {showClientDropdown && filteredClients.length > 0 ? (
+              <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
+                {filteredClients.map((c) => (
+                  <li
+                    key={c.id}
+                    className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
+                    onMouseDown={(ev) => ev.preventDefault()}
+                    onClick={() => handleSelectClient(c)}
+                  >
+                    <p className="text-sm">{[c.firstName, c.lastName].filter(Boolean).join(' ') || c.username}</p>
+                    <p className="text-xs text-slate-500">{c.username}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+          {selectedClient ? (
+            <p className="mt-2 text-xs text-emerald-600">
+              Odabrano: {[selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ') || selectedClient.username}
+            </p>
+          ) : null}
+        </Card>
+
+        <Card className="p-4">
           <Label>Servis</Label>
-          <div className="relative mt-2">
+          {!selectedClient ? (
+            <p className="mt-1 text-xs text-slate-500">Prvo odaberite klijenta da bi se prikazali servisi po spolu.</p>
+          ) : !selectedClient.gender ? (
+            <p className="mt-1 text-xs text-rose-600">Odabrani klijent nema definisan spol.</p>
+          ) : null}
+          <div ref={serviceDropdownRef} className="relative mt-2">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
             <Input
               value={serviceSearch}
-              placeholder="Pretraži servis…"
+              disabled={!selectedClient || !selectedClient.gender}
+              placeholder={!selectedClient ? 'Odaberite klijenta…' : 'Pretraži servis…'}
               className="pl-9"
               onFocus={() => setShowServiceDropdown(true)}
               onChange={(e) => {
@@ -281,44 +379,6 @@ export const WorkbookNewEntryPage = () => {
                 </div>
               ))}
             </div>
-          ) : null}
-        </Card>
-
-        <Card className="p-4">
-          <Label>Klijent</Label>
-          <div className="relative mt-2">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-            <Input
-              value={clientSearch}
-              placeholder="Pretraži klijenta…"
-              className="pl-9"
-              onFocus={() => setShowClientDropdown(true)}
-              onChange={(e) => {
-                setClientSearch(e.target.value)
-                setShowClientDropdown(true)
-                setClientId('')
-              }}
-            />
-            {showClientDropdown && filteredClients.length > 0 ? (
-              <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
-                {filteredClients.map((c) => (
-                  <li
-                    key={c.id}
-                    className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
-                    onMouseDown={(ev) => ev.preventDefault()}
-                    onClick={() => handleSelectClient(c)}
-                  >
-                    <p className="text-sm">{[c.firstName, c.lastName].filter(Boolean).join(' ') || c.username}</p>
-                    <p className="text-xs text-slate-500">{c.username}</p>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-          {selectedClient ? (
-            <p className="mt-2 text-xs text-emerald-600">
-              Odabrano: {[selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ') || selectedClient.username}
-            </p>
           ) : null}
         </Card>
 
@@ -389,7 +449,15 @@ export const WorkbookNewEntryPage = () => {
         </Card>
 
         <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => navigate('/stylist/workbook')} disabled={saving}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              onClose?.()
+              navigate('/stylist/workbook')
+            }}
+            disabled={saving}
+          >
             Nazad
           </Button>
           <Button type="button" onClick={() => void handleSubmit()} disabled={saving}>
@@ -405,6 +473,32 @@ export const WorkbookNewEntryPage = () => {
         </div>
       </div>
     </div>
+  )
+}
+
+export const WorkbookNewEntryPage = () => {
+  return <WorkbookNewEntryForm mode="page" />
+}
+
+export const WorkbookNewEntryDrawer = ({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+}) => {
+  return (
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent side="right" className="flex flex-col">
+        <div className="h-full overflow-y-auto p-5">
+          <div className="mb-3">
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Novi unos</p>
+            <p className="text-xs text-slate-500">Brzi unos u dnevnu knjigu (stilist).</p>
+          </div>
+          <WorkbookNewEntryForm mode="drawer" onClose={() => onOpenChange(false)} />
+        </div>
+      </DrawerContent>
+    </Drawer>
   )
 }
 

@@ -80,7 +80,9 @@ const ServiceAutocomplete = ({
 }) => {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [addingMore, setAddingMore] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const filtered = useMemo(() => {
     if (!query.trim()) return services
@@ -97,11 +99,21 @@ const ServiceAutocomplete = ({
     const handleClickOutside = (e: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setOpen(false)
+        setAddingMore(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  const selectService = (svc: ServiceOption) => {
+    const exists = selected.some((x) => x.id === svc.id)
+    const next = exists ? selected : [...selected, svc]
+    onSelect(next)
+    setOpen(false)
+    setQuery('')
+    setAddingMore(false)
+  }
 
   if (selected.length > 0) {
     const totalMinutes = selected.reduce((acc, s) => acc + (s.durationMinutes ?? 0), 0)
@@ -142,7 +154,9 @@ const ServiceAutocomplete = ({
             size="sm"
             variant="outline"
             onClick={() => {
+              setAddingMore(true)
               setOpen(true)
+              requestAnimationFrame(() => inputRef.current?.focus())
             }}
           >
             Dodaj još
@@ -154,11 +168,69 @@ const ServiceAutocomplete = ({
             onClick={() => {
               onSelect([])
               setQuery('')
+              setOpen(false)
+              setAddingMore(false)
             }}
           >
             Očisti
           </Button>
         </div>
+
+        {addingMore ? (
+          <div ref={wrapperRef} className="relative">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                ref={inputRef}
+                placeholder="Pretražite usluge po imenu..."
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value)
+                  setOpen(true)
+                }}
+                onFocus={() => setOpen(true)}
+                className="pl-9"
+              />
+              {loading ? (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+                  Učitavanje…
+                </div>
+              ) : null}
+            </div>
+            {open && !loading ? (
+              <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
+                <div className="max-h-[280px] overflow-auto">
+                  {filtered.length === 0 ? (
+                    <div className="p-3 text-sm text-slate-500">Nema rezultata.</div>
+                  ) : (
+                    filtered.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        className="w-full text-left px-3 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+                        onClick={() => selectService(s)}
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <div className="text-sm font-semibold text-slate-900">{s.name}</div>
+                            {s.subcategory?.category ? (
+                              <div className="text-xs text-slate-500">
+                                {s.subcategory.category.name} → {s.subcategory.name}
+                              </div>
+                            ) : null}
+                          </div>
+                          <span className="text-xs font-semibold rounded-full border border-slate-200/80 bg-white px-2 py-1 text-slate-700">
+                            {s.durationMinutes} min
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     )
   }
@@ -168,6 +240,7 @@ const ServiceAutocomplete = ({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
+          ref={inputRef}
           placeholder="Pretražite usluge po imenu..."
           value={query}
           onChange={(e) => {
@@ -195,9 +268,7 @@ const ServiceAutocomplete = ({
                   type="button"
                   className="w-full text-left px-3 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
                   onClick={() => {
-                    onSelect([...selected, s])
-                    setOpen(false)
-                    setQuery('')
+                    selectService(s)
                   }}
                 >
                   <div className="flex items-center justify-between gap-4">

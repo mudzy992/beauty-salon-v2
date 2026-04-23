@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalendarDays, ChevronLeft, ChevronRight, Filter, Plus } from 'lucide-react'
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Filter, Plus, Search } from 'lucide-react'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS, bs } from 'date-fns/locale'
 import {
@@ -67,6 +67,7 @@ type ClientOption = {
   username: string
   firstName: string | null
   lastName: string | null
+  gender?: 'MALE' | 'FEMALE'
 }
 
 type Props = {
@@ -106,6 +107,32 @@ const combineLocal = (dateStr: string, timeStr: string): Date => {
 const stylistName = (s?: StylistProfile | null): string => {
   if (!s?.user) return s?.id ?? 'Stilist'
   return [s.user.firstName, s.user.lastName].filter(Boolean).join(' ') || s.user.username || s.id
+}
+
+const reservationServices = (r: Reservation | null | undefined) => {
+  const items = Array.isArray(r?.items) ? r?.items : []
+  if (items.length > 0) {
+    const sorted = [...items].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    return sorted
+      .map((it) => it.service)
+      .filter((s): s is NonNullable<typeof s> => Boolean(s))
+  }
+  return r?.service ? [r.service] : []
+}
+
+const reservationServiceTitle = (r: Reservation): string => {
+  const svcs = reservationServices(r)
+  if (svcs.length === 0) return 'Usluga'
+  const first = svcs[0]?.name ?? 'Usluga'
+  const rest = svcs.length - 1
+  return rest > 0 ? `${first} (+${rest})` : first
+}
+
+const reservationTotals = (r: Reservation): { totalMinutes: number; totalPrice: number } => {
+  const svcs = reservationServices(r)
+  const totalMinutes = svcs.reduce((acc, s) => acc + Number(s.durationMinutes ?? 0), 0)
+  const totalPrice = svcs.reduce((acc, s) => acc + Number(s.price ?? 0), 0)
+  return { totalMinutes, totalPrice }
 }
 
 const canCancel = (status: string) =>
@@ -163,7 +190,7 @@ export const ReservationScheduler = (props: Props) => {
 
     return filtered
       .map((r): SchedulerEvent => {
-        const serviceTitle = r.service?.name ?? 'Usluga'
+        const serviceTitle = reservationServiceTitle(r)
         const clientTitle =
           [r.client?.firstName, r.client?.lastName].filter(Boolean).join(' ').trim() || r.client?.username || 'Klijent'
         const title = `${serviceTitle} • ${clientTitle}`
@@ -189,6 +216,8 @@ export const ReservationScheduler = (props: Props) => {
   const [services, setServices] = useState<ServiceOption[]>([])
   const [clientsLoading, setClientsLoading] = useState(false)
   const [clients, setClients] = useState<ClientOption[]>([])
+  const serviceDropdownRef = useRef<HTMLDivElement | null>(null)
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false)
   const [createDraft, setCreateDraft] = useState<{
     clientSearch: string
     clientId: string
@@ -251,13 +280,52 @@ export const ReservationScheduler = (props: Props) => {
     return () => window.clearTimeout(t)
   }, [createDraft.clientSearch, loadClients])
 
+  const selectedClient = useMemo(
+    () => clients.find((c) => c.id === createDraft.clientId) ?? null,
+    [clients, createDraft.clientId],
+  )
+
   const filteredServices = useMemo(() => {
     const q = createDraft.serviceSearch.trim().toLowerCase()
-    if (!q) return services
-    return services.filter((s) => s.name.toLowerCase().includes(q))
-  }, [createDraft.serviceSearch, services])
+    const base = selectedClient?.gender ? services.filter((s: any) => s.gender === selectedClient.gender) : services
+    if (!q) return base
+    return base.filter((s) => s.name.toLowerCase().includes(q))
+  }, [createDraft.serviceSearch, selectedClient?.gender, services])
 
   const servicesById = useMemo(() => new Map(services.map((s) => [s.id, s])), [services])
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (serviceDropdownRef.current && !serviceDropdownRef.current.contains(e.target as Node)) {
+        setShowServiceDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [])
+
+  const isServiceSelected = useCallback((id: string) => createDraft.serviceIds.includes(id), [createDraft.serviceIds])
+
+  const toggleServiceId = useCallback(
+    (id: string) => {
+      if (!createDraft.clientId) {
+        toast.warning('Prvo odaberite klijenta')
+        return
+      }
+      setCreateDraft((prev) => {
+        const exists = prev.serviceIds.includes(id)
+        const next = exists ? prev.serviceIds.filter((x) => x !== id) : [...prev.serviceIds, id]
+        return { ...prev, serviceIds: next }
+      })
+      setShowServiceDropdown(true)
+    },
+    [createDraft.clientId, toast],
+  )
+
+  const selectedServices = useMemo(
+    () => createDraft.serviceIds.map((id) => servicesById.get(id)).filter((x): x is ServiceOption => Boolean(x)),
+    [createDraft.serviceIds, servicesById],
+  )
 
   useEffect(() => {
     const start = (createDraft.startTime ?? '').trim()
@@ -564,9 +632,10 @@ export const ReservationScheduler = (props: Props) => {
       </div>
 
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <DrawerContent side="right" className="p-5">
-          {drawerMode === 'details' && activeReservation ? (
-            <div className="space-y-4">
+        <DrawerContent side="right" className="flex flex-col">
+          <div className="h-full overflow-y-auto p-5">
+            {drawerMode === 'details' && activeReservation ? (
+              <div className="space-y-4">
               <div>
                 <p className="text-xs text-slate-500">Status</p>
                 <div className="mt-1 flex items-center justify-between gap-2">
@@ -585,7 +654,32 @@ export const ReservationScheduler = (props: Props) => {
                   <p className="mt-1 font-semibold text-slate-900 dark:text-slate-50">
                     {String(activeReservation.reservationDate).slice(0, 10)} • {activeReservation.startTime}–{activeReservation.endTime}
                   </p>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{activeReservation.service?.name ?? '-'}</p>
+                  {activeReservation.items && activeReservation.items.length > 0 ? (
+                    <div className="mt-2 space-y-2">
+                      {[...activeReservation.items]
+                        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+                        .map((it) => (
+                          <div
+                            key={it.id}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900/30"
+                          >
+                            <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{it.service?.name ?? '-'}</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-300">
+                              {Number(it.service?.durationMinutes ?? 0)} min | {Number(it.service?.price ?? 0).toFixed(2)} KM
+                            </p>
+                          </div>
+                        ))}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-sm">
+                        <p className="font-medium text-slate-900 dark:text-slate-50">Ukupno</p>
+                        <p className="text-slate-700 dark:text-slate-300">
+                          {reservationTotals(activeReservation).totalMinutes} min |{' '}
+                          {reservationTotals(activeReservation).totalPrice.toFixed(2)} KM
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{activeReservation.service?.name ?? '-'}</p>
+                  )}
                   <p className="text-sm text-slate-600 dark:text-slate-300">
                     Klijent:{' '}
                     {[activeReservation.client?.firstName, activeReservation.client?.lastName].filter(Boolean).join(' ').trim() ||
@@ -726,11 +820,11 @@ export const ReservationScheduler = (props: Props) => {
                   </div>
                 ) : null}
               </div>
-            </div>
-          ) : null}
+              </div>
+            ) : null}
 
-          {drawerMode === 'create' ? (
-            <div className="space-y-4">
+            {drawerMode === 'create' ? (
+              <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Nova rezervacija</p>
@@ -763,7 +857,25 @@ export const ReservationScheduler = (props: Props) => {
                           key={c.id}
                           type="button"
                           className="w-full border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-50 last:border-b-0 dark:border-slate-800 dark:hover:bg-slate-900/40"
-                          onClick={() => setCreateDraft((p) => ({ ...p, clientId: c.id, clientSearch: label }))}
+                        onClick={() =>
+                          setCreateDraft((p) => {
+                            const hasMismatch =
+                              c.gender &&
+                              p.serviceIds.length > 0 &&
+                              p.serviceIds
+                                .map((id) => servicesById.get(id))
+                                .filter(Boolean)
+                                .some((s: any) => s?.gender && s.gender !== c.gender)
+
+                            return {
+                              ...p,
+                              clientId: c.id,
+                              clientSearch: label,
+                              serviceIds: hasMismatch ? [] : p.serviceIds,
+                              serviceSearch: hasMismatch ? '' : p.serviceSearch,
+                            }
+                          })
+                        }
                         >
                           <div className="font-medium text-slate-900 dark:text-slate-50">{label}</div>
                           <div className="text-xs text-slate-500">{c.id}</div>
@@ -776,31 +888,63 @@ export const ReservationScheduler = (props: Props) => {
 
               <div className="space-y-2">
                 <Label>Servis</Label>
-                <Input
-                  placeholder="Pretraži servis..."
-                  value={createDraft.serviceSearch}
-                  onChange={(e) => setCreateDraft((p) => ({ ...p, serviceSearch: e.target.value }))}
-                />
-                <select
-                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
-                  multiple
-                  value={createDraft.serviceIds}
-                  onChange={(e) => {
-                    const ids = Array.from(e.currentTarget.selectedOptions)
-                      .map((o) => o.value)
-                      .filter(Boolean)
-                    setCreateDraft((p) => ({ ...p, serviceIds: ids }))
-                  }}
-                >
-                  {filteredServices.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-slate-500">
-                  Odaberite jedan ili više servisa (Ctrl/⌘ + klik).
-                </p>
+                {!createDraft.clientId ? (
+                  <p className="text-xs text-slate-500">Prvo odaberite klijenta da bi se prikazali servisi po spolu.</p>
+                ) : null}
+                <div ref={serviceDropdownRef} className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    className="pl-9"
+                    disabled={!createDraft.clientId}
+                    placeholder={!createDraft.clientId ? 'Odaberite klijenta...' : 'Pretraži servis...'}
+                    value={createDraft.serviceSearch}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setCreateDraft((p) => ({ ...p, serviceSearch: v }))
+                      setShowServiceDropdown(true)
+                    }}
+                    onFocus={() => setShowServiceDropdown(true)}
+                  />
+                  {showServiceDropdown && filteredServices.length > 0 ? (
+                    <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
+                      {filteredServices.map((svc) => (
+                        <li
+                          key={svc.id}
+                          className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
+                          onMouseDown={(ev) => ev.preventDefault()}
+                          onClick={() => toggleServiceId(svc.id)}
+                        >
+                          <div className="flex justify-between gap-2 text-sm">
+                            <span className="flex items-center gap-2">
+                              {isServiceSelected(svc.id) ? <Check className="h-4 w-4 text-emerald-600" /> : null}
+                              {svc.name}
+                            </span>
+                            <span className="text-slate-500">{Number(svc.price ?? 0).toFixed(2)} KM</span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+
+                {selectedServices.length > 0 ? (
+                  <div className="mt-2 space-y-2">
+                    {selectedServices.map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
+                      >
+                        <div className="min-w-0">
+                          <div className="font-semibold text-slate-900 dark:text-slate-50">{s.name}</div>
+                          <div className="text-xs text-slate-500">{Number(s.price ?? 0).toFixed(2)} KM</div>
+                        </div>
+                        <Button type="button" variant="outline" size="sm" onClick={() => toggleServiceId(s.id)}>
+                          Ukloni
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -871,8 +1015,9 @@ export const ReservationScheduler = (props: Props) => {
                   Kreiraj
                 </Button>
               </div>
-            </div>
-          ) : null}
+              </div>
+            ) : null}
+          </div>
         </DrawerContent>
       </Drawer>
     </div>
