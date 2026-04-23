@@ -62,7 +62,6 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
   const phone = getSettingValue(settings, 'public_contact_phone', '').trim();
   const email = getSettingValue(settings, 'public_contact_email', '').trim();
   const workingHours = getSettingValue(settings, 'public_contact_working_hours_text', '').trim();
-  const mapEmbed = getSettingValue(settings, 'public_contact_map_embed', '').trim();
   const latRaw = getSettingValue(settings, 'public_contact_lat', '').trim();
   const lngRaw = getSettingValue(settings, 'public_contact_lng', '').trim();
 
@@ -166,7 +165,7 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
           </View>
         ) : null}
 
-        {address || mapEmbed ? (
+        {address || hasCoords ? (
           <TouchableOpacity
             onPress={openMaps}
             activeOpacity={0.75}
@@ -179,22 +178,6 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
           </TouchableOpacity>
         ) : null}
       </Card>
-
-      {mapEmbed ? (
-        <Card style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Mapa (web)</Text>
-          <TouchableOpacity
-            onPress={() => Linking.openURL(mapEmbed)}
-            activeOpacity={0.75}
-            style={styles.row}
-          >
-            <Ionicons name="link-outline" size={18} color={colors.primary} />
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>
-              Otvori embedded mapu u browseru
-            </Text>
-          </TouchableOpacity>
-        </Card>
-      ) : null}
 
       {socials.facebook || socials.instagram || socials.tiktok ? (
         <Card style={styles.section}>
