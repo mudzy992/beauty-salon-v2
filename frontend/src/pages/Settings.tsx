@@ -145,6 +145,8 @@ const SETTING_GROUPS: SettingGroup[] = [
       { key: 'public_contact_phone', desc: 'Kontakt telefon', type: 'text', placeholder: '+387 XX XXX XXX' },
       { key: 'public_contact_email', desc: 'Kontakt email adresa', type: 'email', placeholder: 'info@salon.ba' },
       { key: 'public_contact_map_embed', desc: 'Google Maps embed URL za prikaz mape (kopirajte iz Google Maps → Share → Embed)', type: 'url', placeholder: 'https://www.google.com/maps/embed?...' },
+      { key: 'public_contact_lat', desc: 'Geografska širina (latitude) pina – za mobilnu navigaciju', type: 'number', min: -90, max: 90, placeholder: '43.8563' },
+      { key: 'public_contact_lng', desc: 'Geografska dužina (longitude) pina – za mobilnu navigaciju', type: 'number', min: -180, max: 180, placeholder: '18.4131' },
       { key: 'public_contact_working_hours_text', desc: 'Tekst radnog vremena za javni prikaz (npr. "Pon-Pet: 09-17h, Sub: 09-14h")', type: 'textarea', placeholder: 'Pon-Pet: 09:00-17:00\nSub: 09:00-14:00\nNed: Zatvoreno' },
     ],
   },

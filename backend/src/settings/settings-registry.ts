@@ -50,6 +50,8 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'public_contact_phone', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_contact_email', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_contact_map_embed', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'public_contact_lat', scope: 'PUBLIC', type: 'number', defaultValue: '0', min: -90, max: 90 },
+  { key: 'public_contact_lng', scope: 'PUBLIC', type: 'number', defaultValue: '0', min: -180, max: 180 },
   { key: 'public_contact_working_hours_text', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
   { key: 'public_social_facebook', scope: 'PUBLIC', type: 'string', defaultValue: '' },
