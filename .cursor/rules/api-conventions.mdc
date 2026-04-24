@@ -1,0 +1,13 @@
+---
+description: REST konvencije, error handling, guard chain, response format
+globs: backend/src/**/*.ts
+alwaysApply: false
+---
+
+# API Conventions
+
+- **Rute**: Zaštićene API rute pod prefiksom `api/*` (npr. `api/uploads`, `api/users`). Javne rute: `auth/*` (login, register).
+- **Guardi**: Globalni JwtAuthGuard; rute koje su javne označene sa `@Public()`. RolesGuard uz `@Roles('SYSTEM_ADMIN', 'OWNER')` gdje treba.
+- **Validacija**: ValidationPipe globalno (whitelist, forbidNonWhitelisted, transform). DTO-i sa class-validator.
+- **Odgovori**: Uspjeh: 200/201 s tijelom. Greške: NestJS HttpException (400, 401, 403, 404, 409). Poruke na bosanskom gdje je moguće.
+- **Struktura**: Controller -> Service -> Prisma. Ne stavljaj poslovnu logiku u controllere.

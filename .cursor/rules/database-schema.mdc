@@ -1,0 +1,13 @@
+---
+description: Prisma šema, naming konvencije, migracije
+globs: backend/prisma/**/*
+alwaysApply: false
+---
+
+# Database Schema
+
+- Autoritativna šema: **`backend/prisma/schema.prisma`**. Svi modeli koriste `@@map("snake_case_table")` i `@map("snake_case_field")` za MySQL.
+- **Konvencije**: Tabele u množini snake_case (npr. `salon_working_hours`). Strani ključevi: `entityId` -> `entity_id`. Datum/vrijeme: `createdAt` -> `created_at`.
+- **Migracije**: Koristi `npx prisma migrate dev` za nove migracije. Za seed: `npm run seed` (poziva `prisma/seed.ts`). Ne briši migracije koje su već primijenjene.
+- **Prisma 7**: `datasource url` je u `prisma.config.ts`, ne u schema fajlu. Generator ostaje `prisma-client-js`.
+- Pri dodavanju novih modela ili relacija ažuriraj i `.cursor/docs/` ako utječe na poslovna pravila.

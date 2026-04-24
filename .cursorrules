@@ -1,0 +1,40 @@
+## Cursor Rules – Beauty Salon Nejra v2
+
+Ovaj fajl je **ulazna tačka** za pravila projekta.
+
+- **Pravila** su u **`.cursor/rules/*.mdc`**:
+  - `full-stack-workflow.mdc` – struktura, tech stack, Prisma, uploadi, Docker
+  - `plan-first.mdc` – veće funkcionalnosti prvo u Plan mode, standard za planove + handoff
+  - `database-schema.mdc` – Prisma šema, migracije, konvencije
+  - `reservation-engine.mdc` – rezervacije, FSM, dostupnost
+  - `finance-system.mdc` – KIF/KUF, templatei, CRON
+  - `api-conventions.mdc` – REST, error handling, guardi
+  - `testing-strategy.mdc` – obavezni testovi, coverage, naming
+
+- **Skillovi** su u **`.cursor/skills/`** (svaki ima `SKILL.md`):
+  - `schema-review` – pregled Prisma šeme
+  - `reservation-flow` – rezervacijski tok
+  - `finance-operations` – KIF/KUF operacije
+  - `phase-tracker` – faze i taskovi
+
+- **Globalni Callstack `agent-skills`** (iz `callstackincubator/agent-skills`, instalirano u `~/.cursor/skills`):
+  - `react-native-best-practices` – optimizacija performansi i React Native best prakse
+  - `upgrading-react-native` – plan i koraci za upgrade React Native/Expo
+  - `react-native-brownfield-migration` – brownfield migracije i inkrementalno prebacivanje
+  - `github` – branching, PR i code review workflow šabloni
+  - `github-actions` – CI workflowi (build/artefakti) za Android/iOS
+
+Kada radiš zadatke na mobilnom (RN/Expo), preferiraj
+`expo-skills` globalno su instalirani (koristi za sve zadatke koji se odnose na Expo) i koristi za sve zadatke koji se odnose na Expo
+`react-native-best-practices`; za upgrade koristi `upgrading-react-native`; za migracije/brownfield koristi `react-native-brownfield-migration`. Za GitHub/PR i CI koristi `github` i `github-actions`.
+
+- **Expo/React Native (Cursor agent-skills globalno)**:
+  - `expo-api-routes` – Expo Router API routeovi (EAS hosting)
+  - `expo-cicd-workflows` – EAS CI/CD workflowi
+  - `expo-deployment` – deploy na iOS/Android/web, release koraci
+  - `expo-dev-client` – build/distribucija dev client-a
+  - `expo-tailwind-setup` – Tailwind CSS setup (Expo + NativeWind)
+
+- **Source of truth**: vidi **`SOURCE_OF_TRUTH.md`** u rootu i koristi ga za konflikte i referencu.
+
+Pri radu u repou oslanjaj se na ove fajlove umjesto na velike blokove pravila u chat-u.

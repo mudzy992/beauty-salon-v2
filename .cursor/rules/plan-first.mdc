@@ -1,0 +1,41 @@
+---
+description: Standard za "plan-first" rad, plan strukturu i handoff.
+globs: ["backend/**", "frontend/**", "mobile/**", ".cursor/**", "SOURCE_OF_TRUTH.md"]
+alwaysApply: false
+---
+
+# Plan-first Standard
+
+- **Pravilo**: Svaka veća funkcionalnost ide prvo u Plan mode, tek nakon odobrenog plana ide implementacija.
+
+## Šta je "veća funkcionalnost"
+
+Tipično je "veće" ako važi bilo šta od sljedećeg:
+
+- dotiče **više od 1–2 fajla** ili više foldera
+- uključuje promjene kroz slojeve (npr. backend API + frontend/mobile UI)
+- uključuje migracije/Prisma šemu ili promjene ponašanja rezervacija/finansija
+- uključuje veći refaktor (prepakivanje modula, promjene arhitekture, performance/security audit)
+
+## Standardizacija planova
+
+- Ako plan ima **više od 3 faze**, novi plan mora biti folder:
+  - `.cursor/plans/<plan-slug>/`
+  - obavezni fajlovi:
+    - `00_overview.md`
+    - `01_phase-*.md`
+    - `CHECKLIST.md`
+    - `CHANGELOG.md`
+    - `HANDOFF.md`
+
+> Napomena: Ovo pravilo je **striktno samo za nove planove**. Postojeće `.plan.md` fajlove ne treba migrirati retroaktivno.
+
+## Handoff pravilo (obavezno)
+
+- Kada je implementacija ili istraga “na 80–90%” i postoji rizik od gubitka konteksta:
+  - obavezno generiši `HANDOFF.md` sa:
+    - šta je urađeno
+    - donesene odluke (i razlozi)
+    - otvorena pitanja / rizici
+    - next steps (konkretno)
+    - test status (šta je pokrenuto, šta fali)

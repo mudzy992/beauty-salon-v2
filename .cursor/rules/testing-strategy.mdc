@@ -1,0 +1,12 @@
+---
+description: Obavezni testovi, coverage pragovi, naming
+globs: ["backend/src/**/*.spec.ts", "backend/test/**/*"]
+alwaysApply: false
+---
+
+# Testing Strategy
+
+- **Jedinični testovi**: Za svaki ključni servis (auth, uploads, reservations, finance) – `*.spec.ts` pored modula. Koristi mock za PrismaService i ConfigService.
+- **E2E**: Za kritične tokove (auth, rezervacije, dashboard) – testovi u `test/` sa `jest-e2e.json`. Supertest prema aplikaciji.
+- **Naming**: `describe('AuthService', () => { ... })`, `it('registruje novog klijenta kada su podaci ispravni', ...)`. Na bosanskom ili engleskom konzistentno.
+- **Pravilo**: Bez odgovarajućih testova za fazu ne prelaziti na sljedeću. Faza 1: Auth (register, login, JWT), Upload (saveFile, tipovi datoteka). Faza 3: Availability engine i FSM testovi su kritični.

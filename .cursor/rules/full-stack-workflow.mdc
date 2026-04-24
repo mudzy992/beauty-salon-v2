@@ -1,0 +1,25 @@
+---
+globs: ["backend/**", "frontend/**", "mobile/**", "docker-compose.yml"]
+alwaysApply: false
+---
+# Full-Stack Workflow
+
+- **Struktura**: ROOT/{backend, frontend, mobile}. Svaki ima svoj `package.json` i `package-lock.json` – nije monorepo.
+- **Backend**: NestJS, Prisma, strogi TypeScript. MySQL preko env: DATABASE_URL.
+- **Frontend**: Vite, Tailwind CSS, Radix/shadcn-style komponente (u `frontend/src/components/ui/*`). i18n BS default.
+- **Mobile**: Expo (React Native). Dark/Light mode.
+- **Mobile skills**: Za mobilne zadatke koristi globalne Expo skillove kada je relevantno: `expo-api-routes`, `expo-cicd-workflows`, `expo-deployment`, `expo-dev-client`, `expo-tailwind-setup`.
+- **Realtime (opt-in)**: Socket.IO je obavezan kada projekat implementira realtime za `reservations`, `notifications`, `settings`.
+- **Settings contract**: Registry + public/private + secret handling; UI: boolean→switch, number→number input, string→text; opis uz svaki key.
+- **Baza**: Prisma šema u `backend/prisma/schema.prisma`. Workflow: `npm run db:migrate`, `npm run db:seed`, ili `npm run db:init`. Nikad ne mijenjaj bazu bez ažuriranja šeme i dokumenata.
+- **Uploadi**: Globalni servis na backendu. Host putanja `/mnt/shared-app-files/beauty-salon-v2/`. U bazi samo putanje. Slike: original + thumb, small, medium (sharp).
+- **Docker**: Jedan `docker-compose.yml` u rootu; svaki projekat (backend, frontend, mobile) ima svoj `Dockerfile`. Backend volume: `/mnt/shared-app-files/beauty-salon-v2` -> `/usr/app/uploads`.
+- **Kvalitet**: Strogi TypeScript, čista arhitektura, responzivan UI, testovi prije prelaska na sljedeću fazu.
+- **Matrice**: za bitne funkcionalnosti održavaj matrice u `.cursor/docs/matrices/<feature>/MATRIX.md` + `CHANGELOG.md` (promjena logike ⇒ update matrice + changelog + brisanje dead code-a).
+
+## Task Type → Working Mode (vendor-neutral)
+
+- **Veće funkcionalnosti / refaktori / promjene koje dotiču više slojeva (API + UI + DB)**: prvo Plan mode (vidi `plan-first.mdc`), tek nakon toga implementacija.
+- **Bugfix sa nejasnim uzrokom**: prvo kratka dijagnostika (repro → hipoteza → dokaz), zatim minimalna korekcija + test.
+- **UI/UX iteracije**: kratke iteracije, mali PR-ovi/commit-i, vizuelna konzistentnost sa postojećim komponentama u `frontend/src/components/ui/*`.
+- **Jednostavne izmjene (lokalne, 1–2 fajla)**: direktna implementacija, ali uz poštivanje postojećih konvencija i testova gdje je relevantno.

@@ -1,0 +1,12 @@
+---
+description: KIF/KUF pravila, template mehanizam, automatski CRON-ovi
+globs: ["backend/src/finance/**/*", "backend/src/daily-log/**/*"]
+alwaysApply: false
+---
+
+# Finance System
+
+- **KUF (rashodi)**: expense_books (po mjesecu), automatski se kreira knjiga na početku mjeseca. Zaključavanje ručno; jednom zaključana – otključavanje samo kroz bazu. expense_category_templates definiše polja; expense_categories vezane za template. Rashod se unosi po kategoriji; polja iz templatea + prilozi (expense_attachments).
+- **KIF (prihodi)**: income_books mjesečno; otvaranje/zatvaranje automatski (CRON). Unos iz daily_log_entries (COMPLETED); suma prihoda i baksisa u knjigu.
+- **Dnevna knjiga**: daily_log_entries – automatski iz potvrđenih rezervacija ili ručni unos. Stilist označava završetak, actualPrice, tipAmount; before/after slike preko daily_log_images.
+- **Template polja**: fieldType: TEXT | NUMBER | CURRENCY | DATE | FILE. requiresAttachmentPerItem na templateu za kategorije gdje svaki stavka ima prilog (npr. doprinosi).

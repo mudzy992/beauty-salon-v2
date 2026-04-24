@@ -1,0 +1,12 @@
+---
+description: Pravila za strukturu backend koda, refaktorizaciju i Repository layer.
+globs: backend/src/**/*.ts
+---
+
+# Backend Architecture & Refactoring Rules
+
+- **Separation of Concerns**: Biznis logika ide u `services`. Pristup bazi (Prisma) je dozvoljen u `services` za trivijalne, lokalne upite, ali **preferiraj repository layer** za kompleksne domene/aggregate upite i za module gdje repository već postoji (npr. `users`, `settings`, `uploads`, `notifications`, te posebno `reservations` i `finance`).
+- **Repository Pattern**: Preferiran kao default za `reservations` i `finance` (transakcije, složeni upiti, reuse).
+- **File size**: Preferiraj manje fajlove i jasne granice odgovornosti; refaktoriši kada fajl postane težak za održavanje/testiranje.
+- **Helpers/Utils**: Zajednička logika ide u `src/common/utils` (i po potrebi `src/common/helpers` ako se uvede), ne duplirati istu logiku po servisima.
+- **DRY (Don't Repeat Yourself)**: Ako se isti Prisma upit ili logika ponavlja na dva mjesta, odmah kreiraj helper ili repository metodu.
