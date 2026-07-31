@@ -22,12 +22,28 @@ export class ExpenseBooksService {
     }
     let book = await this.prisma.expenseBook.findUnique({
       where: { year_month: { year, month } },
-      include: { expenses: { include: { category: true } } },
+      include: {
+        expenses: {
+          include: {
+            category: { include: { template: true } },
+            fieldValues: { include: { field: true } },
+            attachments: { include: { upload: true } },
+          },
+        },
+      },
     });
     if (!book) {
       book = await this.prisma.expenseBook.create({
         data: { year, month },
-        include: { expenses: { include: { category: true } } },
+        include: {
+          expenses: {
+            include: {
+              category: { include: { template: true } },
+              fieldValues: { include: { field: true } },
+              attachments: { include: { upload: true } },
+            },
+          },
+        },
       });
     }
     return book;
@@ -57,7 +73,7 @@ export class ExpenseBooksService {
       include: {
         expenses: {
           include: {
-            category: true,
+            category: { include: { template: true } },
             fieldValues: { include: { field: true } },
             attachments: { include: { upload: true } },
           },

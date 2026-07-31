@@ -126,8 +126,11 @@ export function CategoryDialog({
         </div>
         <div className="flex items-center justify-between">
           <div>
-            <Label htmlFor="cat-fixed">Fiksni trošak</Label>
-            <p className="text-xs text-slate-500">Ponavlja se svakog mjeseca.</p>
+            <Label htmlFor="cat-fixed">Fiksne stavke (iz predloška)</Label>
+            <p className="text-xs text-slate-500">
+              Uključeno: PIO, zdravstvo… se unaprijed popune iz default vrijednosti
+              polja. Isključeno: slobodne stavke fakture (materijal).
+            </p>
           </div>
           <Switch
             id="cat-fixed"

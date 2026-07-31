@@ -1,6 +1,9 @@
-# Finance Matrix Changelog
+## 2026-07-31 (restore fixed vs invoice expense modes)
 
-## 2026-07-31 (refaktor i hardening KIF/KUF)
+- Vraćen model: `isFixed` kategorija (doprinosi) koristi template polja + `defaultValue` i opcionalno prilog po polju (`requiresAttachmentPerItem`).
+- Nefiksna kategorija (materijal) koristi JSON `lineItems` u notes i prilog na cijeli rashod (ili po liniji ako je flag uključen).
+- Backend forsira obavezna template polja samo za `isFixed` kategorije.
+
 
 Backend — ispravke:
 

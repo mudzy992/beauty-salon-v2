@@ -85,6 +85,7 @@ export const removeExpenseAttachment = async (
 export const uploadExpenseFile = async (file: File): Promise<string> => {
   const form = new FormData()
   form.append('file', file)
+  form.append('entity', 'expenses')
   const { data } = await api.post<{ id: string }>('/api/uploads', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })

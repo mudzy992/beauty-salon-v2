@@ -1,4 +1,3 @@
-import { useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
@@ -7,15 +6,15 @@ import { Label } from '../../../components/ui/label'
 import { Textarea } from '../../../components/ui/textarea'
 import { ResponsiveDialog } from '../components/responsive-dialog'
 import { ExpenseAttachmentFields } from './expense-attachment-fields'
-import { ExpenseTemplateFields } from './expense-template-fields'
+import { FixedFieldsEditor } from './fixed-fields-editor'
 import { LineItemsEditor } from './line-items-editor'
 import { useExpenseForm } from './use-expense-form'
-import { uploadExpenseFile } from '../api/expense-books.api'
+import { useExpenseUploads } from './use-expense-uploads'
 import { formatMoney } from '../finance.utils'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import type { Expense, ExpenseCategory, ExpensePayload } from '../finance.types'
 
-type ExpenseDialogProps = {
+type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   bookId: string
@@ -33,36 +32,20 @@ export function ExpenseDialog({
   categories,
   isSaving,
   onSubmit,
-}: ExpenseDialogProps) {
+}: Props) {
   const { toastApiError } = useAppToast()
   const f = useExpenseForm({ open, bookId, editing, categories })
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [pendingUploads, setPendingUploads] = useState<
-    { id: string; name: string }[]
-  >([])
-  const [isUploading, setIsUploading] = useState(false)
-
-  const handleFiles = async (files: FileList | null) => {
-    if (!files?.length) return
-    setIsUploading(true)
-    try {
-      const uploaded = await Promise.all(
-        Array.from(files).map(async (file) => ({
-          id: await uploadExpenseFile(file),
-          name: file.name,
-        })),
-      )
-      setPendingUploads((prev) => [...prev, ...uploaded])
-    } catch (err) {
-      toastApiError(err, 'Slanje priloga nije uspjelo')
-    } finally {
-      setIsUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
-    }
-  }
+  const uploads = useExpenseUploads({
+    fieldAttachments: f.form.fieldAttachments,
+    lineAttachments: f.form.lineAttachments,
+    lineItemsLength: f.form.lineItems.length,
+    onFieldAttachments: (fieldAttachments) => f.update({ fieldAttachments }),
+    onLineAttachments: (lineAttachments) => f.update({ lineAttachments }),
+    onError: toastApiError,
+  })
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) setPendingUploads([])
+    if (!next) uploads.resetPending()
     onOpenChange(next)
   }
 
@@ -71,19 +54,19 @@ export function ExpenseDialog({
       open={open}
       onOpenChange={handleOpenChange}
       title={editing ? 'Uredi rashod' : 'Novi rashod'}
-      description="Obavezna polja predloška kategorije moraju biti popunjena."
+      description={
+        f.isFixed
+          ? 'Fiksne stavke iz predloška – vrijednosti i prilozi po stavci.'
+          : 'Unesite stavke fakture; prilog može biti na cijeli rashod ili po stavci.'
+      }
       footer={
         <div className="mt-4 flex justify-end gap-2">
-          <Button
-            variant="outline"
-            onClick={() => handleOpenChange(false)}
-            disabled={isSaving}
-          >
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSaving}>
             Odustani
           </Button>
           <Button
-            onClick={() => onSubmit(f.toPayload(pendingUploads.map((u) => u.id)))}
-            disabled={isSaving || isUploading || Boolean(f.validationError)}
+            onClick={() => onSubmit(f.toPayload(uploads.pendingUploads.map((u) => u.id)))}
+            disabled={isSaving || uploads.isUploading || Boolean(f.validationError)}
           >
             {isSaving ? (
               <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -100,15 +83,16 @@ export function ExpenseDialog({
             id="expense-cat"
             className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-800 dark:bg-slate-950"
             value={f.form.categoryId}
-            onChange={(event) => f.update({ categoryId: event.target.value })}
+            onChange={(e) => f.selectCategory(e.target.value)}
             disabled={Boolean(editing)}
           >
             <option value="">— Odaberi kategoriju —</option>
             {categories
-              .filter((category) => category.isActive || category.id === f.form.categoryId)
-              .map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
+              .filter((c) => c.isActive || c.id === f.form.categoryId)
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                  {c.isFixed ? ' (fiksno)' : ''}
                 </option>
               ))}
           </select>
@@ -119,53 +103,71 @@ export function ExpenseDialog({
           <Input
             id="expense-title"
             value={f.form.title}
-            onChange={(event) => f.update({ title: event.target.value })}
+            onChange={(e) => f.update({ title: e.target.value })}
           />
         </div>
 
-        <ExpenseTemplateFields
-          fields={f.templateFields}
-          values={f.form.fieldValues}
-          onChange={f.setFieldValue}
-        />
-
-        <LineItemsEditor
-          items={f.form.lineItems}
-          onChange={(lineItems) => f.update({ lineItems })}
-        />
-
-        <div className="grid gap-1">
-          <Label htmlFor="expense-total">Ukupan iznos</Label>
-          <Input
-            id="expense-total"
-            type="number"
-            min={0}
-            step="0.01"
-            value={
-              f.form.lineItems.length > 0
-                ? f.lineItemsTotal.toFixed(2)
-                : f.form.totalAmount
-            }
-            onChange={(event) => f.update({ totalAmount: event.target.value })}
-            disabled={f.form.lineItems.length > 0}
+        {f.category && f.isFixed ? (
+          <FixedFieldsEditor
+            fields={f.templateFields}
+            values={f.form.fieldValues}
+            attachments={f.form.fieldAttachments}
+            existingAttachments={editing?.attachments ?? []}
+            requiresPerItem={f.requiresPerItem}
+            isUploading={uploads.isUploading}
+            onValueChange={f.setFieldValue}
+            onUpload={(id, name, file) => void uploads.handleFieldUpload(id, name, file)}
+            onClearPending={(id) => {
+              const next = { ...f.form.fieldAttachments }
+              delete next[id]
+              f.update({ fieldAttachments: next })
+            }}
           />
-          {f.form.lineItems.length > 0 ? (
-            <p className="text-xs text-slate-500">
-              Iznos se računa iz stavki: {formatMoney(f.lineItemsTotal)}
-            </p>
-          ) : null}
-        </div>
+        ) : null}
 
-        <ExpenseAttachmentFields
-          existing={editing?.attachments ?? []}
-          pending={pendingUploads}
-          isUploading={isUploading}
-          fileInputRef={fileInputRef}
-          onFiles={(files) => void handleFiles(files)}
-          onRemovePending={(id) =>
-            setPendingUploads((prev) => prev.filter((item) => item.id !== id))
-          }
-        />
+        {f.category && !f.isFixed ? (
+          <>
+            <LineItemsEditor
+              items={f.form.lineItems}
+              onChange={f.setLineItems}
+              requiresPerItem={f.requiresPerItem}
+              lineAttachments={f.form.lineAttachments}
+              existingAttachments={editing?.attachments ?? []}
+              isUploading={uploads.isUploading}
+              onUploadItem={(i, name, file) => void uploads.handleLineUpload(i, name, file)}
+              onClearItemAttachment={(i) => {
+                const next = [...f.form.lineAttachments]
+                next[i] = null
+                f.update({ lineAttachments: next })
+              }}
+            />
+            {f.form.lineItems.length === 0 ? (
+              <div className="grid gap-1">
+                <Label htmlFor="expense-total">Ukupan iznos</Label>
+                <Input
+                  id="expense-total"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={f.form.totalAmount}
+                  onChange={(e) => f.update({ totalAmount: e.target.value })}
+                />
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500">Iznos: {formatMoney(f.effectiveTotal)}</p>
+            )}
+            <ExpenseAttachmentFields
+              existing={editing?.attachments ?? []}
+              pending={uploads.pendingUploads}
+              isUploading={uploads.isUploading}
+              fileInputRef={uploads.fileInputRef}
+              onFiles={(files) => void uploads.handleBulkFiles(files)}
+              onRemovePending={(id) =>
+                uploads.setPendingUploads((prev) => prev.filter((item) => item.id !== id))
+              }
+            />
+          </>
+        ) : null}
 
         <div className="grid gap-1">
           <Label htmlFor="expense-notes">Napomena</Label>
@@ -173,7 +175,7 @@ export function ExpenseDialog({
             id="expense-notes"
             rows={2}
             value={f.form.notes}
-            onChange={(event) => f.update({ notes: event.target.value })}
+            onChange={(e) => f.update({ notes: e.target.value })}
           />
         </div>
 

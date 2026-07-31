@@ -15,29 +15,31 @@ const FIELD_TYPES: TemplateFieldPayload['fieldType'][] = [
   'FILE',
 ]
 
-type TemplateFieldsEditorProps = {
+type Props = {
   template: ExpenseTemplate
   isPending: boolean
   onAdd: (payload: TemplateFieldPayload) => void
   onRemove: (fieldId: string) => void
 }
 
-export function TemplateFieldsEditor({
-  template,
-  isPending,
-  onAdd,
-  onRemove,
-}: TemplateFieldsEditorProps) {
+export function TemplateFieldsEditor({ template, isPending, onAdd, onRemove }: Props) {
   const [fieldName, setFieldName] = useState('')
   const [fieldType, setFieldType] =
-    useState<TemplateFieldPayload['fieldType']>('TEXT')
-  const [isRequired, setIsRequired] = useState(false)
+    useState<TemplateFieldPayload['fieldType']>('CURRENCY')
+  const [defaultValue, setDefaultValue] = useState('')
+  const [isRequired, setIsRequired] = useState(true)
 
   const handleAdd = () => {
     if (!fieldName.trim()) return
-    onAdd({ fieldName: fieldName.trim(), fieldType, isRequired })
+    onAdd({
+      fieldName: fieldName.trim(),
+      fieldType,
+      isRequired,
+      defaultValue: defaultValue.trim() || undefined,
+    })
     setFieldName('')
-    setIsRequired(false)
+    setDefaultValue('')
+    setIsRequired(true)
   }
 
   const fields = [...(template.fields ?? [])].sort((a, b) => a.sortOrder - b.sortOrder)
@@ -45,7 +47,9 @@ export function TemplateFieldsEditor({
   return (
     <div className="grid gap-3">
       {fields.length === 0 ? (
-        <p className="text-xs text-slate-500">Predložak još nema polja.</p>
+        <p className="text-xs text-slate-500">
+          Predložak još nema polja. Za doprinose dodajte npr. PIO sa default 121.
+        </p>
       ) : (
         <ul className="grid gap-1">
           {fields.map((field) => (
@@ -53,9 +57,12 @@ export function TemplateFieldsEditor({
               key={field.id}
               className="flex items-center justify-between gap-2 rounded-md border border-slate-200 px-2 py-1.5 text-sm dark:border-slate-800"
             >
-              <span className="flex items-center gap-2">
+              <span className="flex flex-wrap items-center gap-2">
                 {field.fieldName}
                 <Badge variant="outline">{field.fieldType}</Badge>
+                {field.defaultValue ? (
+                  <Badge variant="secondary">default: {field.defaultValue}</Badge>
+                ) : null}
                 {field.isRequired ? <Badge variant="secondary">obavezno</Badge> : null}
               </span>
               <Button
@@ -72,7 +79,7 @@ export function TemplateFieldsEditor({
         </ul>
       )}
 
-      <div className="grid items-end gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
+      <div className="grid items-end gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto]">
         <div className="grid gap-1">
           <Label htmlFor={`field-name-${template.id}`} className="text-xs">
             Novo polje
@@ -80,8 +87,8 @@ export function TemplateFieldsEditor({
           <Input
             id={`field-name-${template.id}`}
             value={fieldName}
-            onChange={(event) => setFieldName(event.target.value)}
-            placeholder="Naziv polja"
+            onChange={(e) => setFieldName(e.target.value)}
+            placeholder="npr. PIO"
           />
         </div>
         <div className="grid gap-1">
@@ -92,8 +99,8 @@ export function TemplateFieldsEditor({
             id={`field-type-${template.id}`}
             className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-800 dark:bg-slate-950"
             value={fieldType}
-            onChange={(event) =>
-              setFieldType(event.target.value as TemplateFieldPayload['fieldType'])
+            onChange={(e) =>
+              setFieldType(e.target.value as TemplateFieldPayload['fieldType'])
             }
           >
             {FIELD_TYPES.map((type) => (
@@ -103,12 +110,24 @@ export function TemplateFieldsEditor({
             ))}
           </select>
         </div>
+        <div className="grid gap-1">
+          <Label htmlFor={`field-default-${template.id}`} className="text-xs">
+            Default
+          </Label>
+          <Input
+            id={`field-default-${template.id}`}
+            value={defaultValue}
+            onChange={(e) => setDefaultValue(e.target.value)}
+            placeholder="121"
+            className="w-24"
+          />
+        </div>
         <label className="flex h-9 items-center gap-2 text-xs">
           <input
             type="checkbox"
             className="h-4 w-4 rounded border-slate-300"
             checked={isRequired}
-            onChange={(event) => setIsRequired(event.target.checked)}
+            onChange={(e) => setIsRequired(e.target.checked)}
           />
           Obavezno
         </label>

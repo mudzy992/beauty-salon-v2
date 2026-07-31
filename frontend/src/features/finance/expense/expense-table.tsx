@@ -1,10 +1,11 @@
 import { ArrowDown, ArrowUp, Pencil, Trash2 } from 'lucide-react'
 
+import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
 import { EmptyState } from '../components/data-state'
 import { ExpenseAttachmentsList } from './expense-attachments'
 import { formatExpenseNotesSummary } from './expense-notes'
-import { formatIsoDateBs, formatMoney } from '../finance.utils'
+import { formatIsoDateBs, formatMoney, toNumber } from '../finance.utils'
 import type { ExpenseSortField } from './expenses.helpers'
 import type { Expense, SortDirection } from '../finance.types'
 
@@ -82,13 +83,22 @@ export function ExpenseTable({
         </thead>
         <tbody>
           {expenses.map((expense) => {
-            const notes = formatExpenseNotesSummary(expense.notes)
+            const isFixed = Boolean(expense.category?.isFixed)
+            const notes = isFixed
+              ? { userNotes: expense.notes ?? '', lineLabels: [] as string[] }
+              : formatExpenseNotesSummary(expense.notes)
+            const detailLabels = isFixed
+              ? (expense.fieldValues ?? []).map((fv) => {
+                  const name = fv.field?.fieldName ?? 'Polje'
+                  return `${name}: ${toNumber(fv.value).toFixed(2)} KM`
+                })
+              : notes.lineLabels
             return (
               <tr
                 key={expense.id}
                 className="border-b border-slate-100 last:border-0 dark:border-slate-900"
               >
-                <td className="py-2 pr-3 whitespace-nowrap align-top">
+                <td className="whitespace-nowrap py-2 pr-3 align-top">
                   {formatIsoDateBs(expense.createdAt)}
                 </td>
                 <td className="py-2 pr-3 align-top">
@@ -98,16 +108,16 @@ export function ExpenseTable({
                   {notes.userNotes ? (
                     <div className="mt-0.5 text-xs text-slate-500">{notes.userNotes}</div>
                   ) : null}
-                  {notes.lineLabels.length > 0 ? (
+                  {detailLabels.length > 0 ? (
                     <ul className="mt-1 space-y-0.5 text-xs text-slate-600 dark:text-slate-300">
-                      {notes.lineLabels.slice(0, 4).map((label) => (
+                      {detailLabels.slice(0, 4).map((label) => (
                         <li key={label} className="truncate" title={label}>
                           {label}
                         </li>
                       ))}
-                      {notes.lineLabels.length > 4 ? (
+                      {detailLabels.length > 4 ? (
                         <li className="text-slate-400">
-                          + još {notes.lineLabels.length - 4} stavki
+                          + još {detailLabels.length - 4} stavki
                         </li>
                       ) : null}
                     </ul>
@@ -117,9 +127,12 @@ export function ExpenseTable({
                   {formatMoney(expense.totalAmount)}
                 </td>
                 <td className="py-2 pr-3 align-top">
-                  {expense.category?.name ?? '—'}
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span>{expense.category?.name ?? '—'}</span>
+                    {isFixed ? <Badge variant="secondary">fiksno</Badge> : null}
+                  </div>
                 </td>
-                <td className="py-2 pr-3 align-top min-w-[160px]">
+                <td className="min-w-[160px] py-2 pr-3 align-top">
                   <ExpenseAttachmentsList
                     attachments={expense.attachments ?? []}
                     compact

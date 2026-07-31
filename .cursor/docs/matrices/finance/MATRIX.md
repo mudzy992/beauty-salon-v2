@@ -87,11 +87,16 @@ Sve putanje idu kroz `IncomeSyncService.assertBookOpenForDate` odnosno `getEdita
 
 ## Rashodi (KUF)
 
-- `Expense` se unosi po kategoriji; kategorija nosi `ExpenseCategoryTemplate` sa poljima (`TEXT | NUMBER | CURRENCY | DATE | FILE`).
-- Svako `fieldValues[].fieldId` mora pripadati predlošku te kategorije, bez duplikata, a sva `isRequired` polja moraju imati vrijednost (`assertFieldValuesMatchTemplate`).
-- `create` i `update` idu kroz `prisma.$transaction` — pad na upisu polja ne ostavlja rashod bez obaveznih vrijednosti niti briše postojeće.
-- Polje predloška koje je već korišteno u nekom rashodu ne može se obrisati.
-- `requiresAttachmentPerItem` na predlošku znači da svaka stavka mora imati prilog.
+Dva moda kategorije:
+
+| | Fiksna (`isFixed`) npr. doprinosi | Faktura (`!isFixed`) npr. materijal |
+|--|----------------------------------|-------------------------------------|
+| Stavke | Template polja + `defaultValue` (PIO 121…) | Slobodne `lineItems` u `notes` JSON |
+| Total | Suma vrijednosti polja | Suma `qty × price` |
+| Prilog | Ako `requiresAttachmentPerItem`: po polju | Ako flag: po liniji; inače na cijeli rashod |
+
+- `create`/`update` u `prisma.$transaction`. Obavezna template polja se forsira **samo** za `isFixed`.
+- Polje predloška koje je već korišteno u rashodu ne može se obrisati.
 
 ## Backend struktura
 

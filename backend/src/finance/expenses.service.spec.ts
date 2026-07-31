@@ -12,6 +12,7 @@ const user = { sub: 'u1', roles: ['OWNER'] } as never;
 const category = {
   id: 'cat1',
   isActive: true,
+  isFixed: true,
   template: {
     id: 't1',
     fields: [
@@ -108,6 +109,15 @@ describe('ExpensesService', () => {
           user,
         ),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('za nefiksnu kategoriju ne forsira obavezna template polja', async () => {
+      prisma.expenseCategory.findUnique.mockResolvedValue({
+        ...category,
+        isFixed: false,
+      });
+      await service.create({ ...baseDto, fieldValues: [] }, user);
+      expect(prisma.$transaction).toHaveBeenCalled();
     });
 
     it('kreira rashod i vrijednosti polja u jednoj transakciji', async () => {

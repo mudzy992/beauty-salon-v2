@@ -24,8 +24,10 @@ export class ExpensesService {
         'Ne možete dodavati rashode u zatvorenu knjigu.',
       );
     }
-    const fields = await this.getTemplateFields(dto.categoryId);
-    assertFieldValuesMatchTemplate(fields, dto.fieldValues);
+    const category = await this.getCategoryWithTemplate(dto.categoryId);
+    assertFieldValuesMatchTemplate(category.template.fields, dto.fieldValues, {
+      requireRequiredFields: category.isFixed,
+    });
 
     const expense = await this.prisma.$transaction(async (tx) => {
       const created = await tx.expense.create({
@@ -91,8 +93,10 @@ export class ExpensesService {
   async update(id: string, dto: UpdateExpenseDto, user: CurrentUserPayload) {
     const expense = await this.assertEditable(id, 'mijenjati rashod');
     if (dto.fieldValues !== undefined) {
-      const fields = await this.getTemplateFields(expense.categoryId);
-      assertFieldValuesMatchTemplate(fields, dto.fieldValues);
+      const category = await this.getCategoryWithTemplate(expense.categoryId);
+      assertFieldValuesMatchTemplate(category.template.fields, dto.fieldValues, {
+        requireRequiredFields: category.isFixed,
+      });
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -160,7 +164,7 @@ export class ExpensesService {
     return expense;
   }
 
-  private async getTemplateFields(categoryId: string) {
+  private async getCategoryWithTemplate(categoryId: string) {
     const category = await this.prisma.expenseCategory.findUnique({
       where: { id: categoryId },
       include: { template: { include: { fields: true } } },
@@ -169,6 +173,6 @@ export class ExpensesService {
     if (!category.isActive) {
       throw new BadRequestException('Kategorija rashoda nije aktivna.');
     }
-    return category.template.fields;
+    return category;
   }
 }

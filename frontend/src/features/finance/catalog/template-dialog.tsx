@@ -92,7 +92,8 @@ export function TemplateDialog({
           <div>
             <Label htmlFor="tpl-attachment">Prilog po stavci</Label>
             <p className="text-xs text-slate-500">
-              Zahtijeva prilog uz svaku stavku rashoda.
+              Uključeno: prilog uz svaku fiksnu stavku / liniju (npr. doprinosi).
+              Isključeno: prilog na cijeli rashod (npr. faktura materijala).
             </p>
           </div>
           <Switch

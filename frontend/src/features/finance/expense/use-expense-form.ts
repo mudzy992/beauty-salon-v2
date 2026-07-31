@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { findAttachmentForLabel } from './expense-attachment-match'
+import {
+  emptyExpenseForm,
+  formFromCategory,
+  formFromExpense,
+  type ExpenseFormState,
+} from './expense-form-state'
 import { sumLineItems } from './expenses.helpers'
-import { parseExpenseNotes, serializeExpenseNotes } from './expense-notes'
+import { serializeExpenseNotes } from './expense-notes'
 import { toNumber } from '../finance.utils'
 import type {
   Expense,
@@ -11,37 +18,7 @@ import type {
   TemplateField,
 } from '../finance.types'
 
-export type ExpenseFormState = {
-  categoryId: string
-  title: string
-  totalAmount: string
-  notes: string
-  fieldValues: Record<string, string>
-  lineItems: LineItem[]
-}
-
-const emptyForm = (): ExpenseFormState => ({
-  categoryId: '',
-  title: '',
-  totalAmount: '',
-  notes: '',
-  fieldValues: {},
-  lineItems: [],
-})
-
-const toFormState = (expense: Expense): ExpenseFormState => {
-  const parsed = parseExpenseNotes(expense.notes)
-  return {
-    categoryId: expense.category?.id ?? '',
-    title: expense.title,
-    totalAmount: String(toNumber(expense.totalAmount)),
-    notes: parsed.userNotes,
-    fieldValues: Object.fromEntries(
-      (expense.fieldValues ?? []).map((fv) => [fv.fieldId, fv.value]),
-    ),
-    lineItems: parsed.lineItems,
-  }
-}
+export type { ExpenseFormState, PendingAtt } from './expense-form-state'
 
 export const useExpenseForm = (params: {
   open: boolean
@@ -49,28 +26,50 @@ export const useExpenseForm = (params: {
   editing: Expense | null
   categories: ExpenseCategory[]
 }) => {
-  const [form, setForm] = useState<ExpenseFormState>(emptyForm)
+  const [form, setForm] = useState<ExpenseFormState>(emptyExpenseForm)
 
   useEffect(() => {
     if (!params.open) return
-    setForm(params.editing ? toFormState(params.editing) : emptyForm())
-  }, [params.open, params.editing])
+    if (!params.editing) {
+      setForm(emptyExpenseForm())
+      return
+    }
+    const category =
+      params.categories.find((c) => c.id === params.editing?.category?.id) ??
+      params.editing.category ??
+      null
+    setForm(formFromExpense(params.editing, category))
+  }, [params.open, params.editing, params.categories])
 
   const category = useMemo(
     () => params.categories.find((c) => c.id === form.categoryId) ?? null,
     [params.categories, form.categoryId],
   )
+  const isFixed = Boolean(category?.isFixed)
+  const requiresPerItem = Boolean(category?.template?.requiresAttachmentPerItem)
   const templateFields: TemplateField[] = useMemo(
     () => [...(category?.template?.fields ?? [])].sort((a, b) => a.sortOrder - b.sortOrder),
     [category],
   )
 
+  const fixedTotal = templateFields.reduce(
+    (sum, field) => sum + toNumber(form.fieldValues[field.id]),
+    0,
+  )
   const lineItemsTotal = sumLineItems(form.lineItems)
-  const effectiveTotal =
-    form.lineItems.length > 0 ? lineItemsTotal : Number(form.totalAmount || 0)
+  const effectiveTotal = isFixed
+    ? fixedTotal
+    : form.lineItems.length > 0
+      ? lineItemsTotal
+      : Number(form.totalAmount || 0)
 
   const update = (patch: Partial<ExpenseFormState>) =>
     setForm((prev) => ({ ...prev, ...patch }))
+
+  const selectCategory = (categoryId: string) => {
+    const next = params.categories.find((c) => c.id === categoryId)
+    setForm(next ? formFromCategory(next) : emptyExpenseForm())
+  }
 
   const setFieldValue = (fieldId: string, value: string) =>
     setForm((prev) => ({
@@ -78,9 +77,12 @@ export const useExpenseForm = (params: {
       fieldValues: { ...prev.fieldValues, [fieldId]: value },
     }))
 
-  const missingRequired = templateFields.filter(
-    (field) => field.isRequired && !(form.fieldValues[field.id] ?? '').trim(),
-  )
+  const setLineItems = (lineItems: LineItem[]) =>
+    setForm((prev) => ({
+      ...prev,
+      lineItems,
+      lineAttachments: lineItems.map((_, i) => prev.lineAttachments[i] ?? null),
+    }))
 
   const validationError = (() => {
     if (!form.categoryId) return 'Odaberite kategoriju.'
@@ -88,42 +90,65 @@ export const useExpenseForm = (params: {
     if (!Number.isFinite(effectiveTotal) || effectiveTotal <= 0) {
       return 'Iznos mora biti veći od nule.'
     }
-    if (missingRequired.length > 0) {
-      return `Nedostaju obavezna polja: ${missingRequired
-        .map((f) => f.fieldName)
-        .join(', ')}.`
+    if (isFixed) {
+      const missing = templateFields.filter((f) => !(form.fieldValues[f.id] ?? '').trim())
+      if (missing.length) {
+        return `Nedostaju vrijednosti: ${missing.map((f) => f.fieldName).join(', ')}.`
+      }
+      if (requiresPerItem) {
+        const noAtt = templateFields.filter(
+          (f) =>
+            !form.fieldAttachments[f.id] &&
+            !findAttachmentForLabel(params.editing?.attachments, f.fieldName),
+        )
+        if (noAtt.length) {
+          return `Dodajte prilog za: ${noAtt.map((f) => f.fieldName).join(', ')}.`
+        }
+      }
+    } else if (requiresPerItem) {
+      const noAtt = form.lineItems.filter(
+        (item, i) =>
+          item.name.trim() &&
+          !form.lineAttachments[i] &&
+          !findAttachmentForLabel(params.editing?.attachments, item.name),
+      )
+      if (noAtt.length) return 'Dodajte prilog uz svaku stavku.'
     }
     return null
   })()
 
-  const toPayload = (attachmentUploadIds: string[]): ExpensePayload => {
-    const notes = serializeExpenseNotes({
-      lineItems: form.lineItems,
-      userNotes: form.notes,
-    })
+  const toPayload = (bulkUploadIds: string[]): ExpensePayload => {
+    const perItem = isFixed
+      ? Object.values(form.fieldAttachments).map((a) => a.uploadId)
+      : form.lineAttachments.filter(Boolean).map((a) => a!.uploadId)
+    const attachmentUploadIds = [...bulkUploadIds, ...perItem]
     return {
       bookId: params.bookId,
       categoryId: form.categoryId,
       title: form.title.trim(),
       totalAmount: effectiveTotal,
-      notes,
-      fieldValues: templateFields
-        .map((field) => ({
-          fieldId: field.id,
-          value: (form.fieldValues[field.id] ?? '').trim(),
-        }))
-        .filter((fv) => fv.value !== ''),
-      attachmentUploadIds: attachmentUploadIds.length
-        ? attachmentUploadIds
+      notes: isFixed
+        ? form.notes.trim() || undefined
+        : serializeExpenseNotes({ lineItems: form.lineItems, userNotes: form.notes }),
+      fieldValues: isFixed
+        ? templateFields.map((f) => ({
+            fieldId: f.id,
+            value: (form.fieldValues[f.id] ?? '').trim(),
+          }))
         : undefined,
+      attachmentUploadIds: attachmentUploadIds.length ? attachmentUploadIds : undefined,
     }
   }
 
   return {
     form,
     update,
+    selectCategory,
     setFieldValue,
+    setLineItems,
     category,
+    isFixed,
+    requiresPerItem,
     templateFields,
     lineItemsTotal,
     effectiveTotal,
