@@ -73,8 +73,8 @@ export const DailyLogEntryFormDialog = (props: Props) => {
   const [clientSearch, setClientSearch] = useState('')
   const [showServiceDropdown, setShowServiceDropdown] = useState(false)
   const [showClientDropdown, setShowClientDropdown] = useState(false)
-  const serviceDropdownRef = useRef<HTMLDivElement | null>(null)
-  const clientDropdownRef = useRef<HTMLDivElement | null>(null)
+  const serviceDropdownRef = useRef<HTMLDivElement>(null)
+  const clientDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return

@@ -28,8 +28,8 @@ type Props = {
   setShowServiceDropdown: (v: boolean) => void
   showClientDropdown: boolean
   setShowClientDropdown: (v: boolean) => void
-  serviceDropdownRef: React.RefObject<HTMLDivElement | null>
-  clientDropdownRef: React.RefObject<HTMLDivElement | null>
+  serviceDropdownRef: React.RefObject<HTMLDivElement>
+  clientDropdownRef: React.RefObject<HTMLDivElement>
   paidAmount: string
   setPaidAmount: (v: string) => void
   basePrice: number
