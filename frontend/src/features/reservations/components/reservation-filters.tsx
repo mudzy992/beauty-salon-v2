@@ -1,7 +1,9 @@
-import { Button } from '../../components/ui/button'
-import { Input } from '../../components/ui/input'
-import { Label } from '../../components/ui/label'
-import { getCalendarMonthRange } from '../../lib/date-range'
+import type { ChangeEvent } from 'react'
+
+import { Button } from '../../../components/ui/button'
+import { Input } from '../../../components/ui/input'
+import { Label } from '../../../components/ui/label'
+import { getCalendarMonthRange } from '../../../lib/date-range'
 
 export type ReservationStatusOption = { value: string; label: string }
 
@@ -52,7 +54,7 @@ export const ReservationFilters = ({
         id="res-from"
         type="date"
         value={fromDate}
-        onChange={(e) => onFromDateChange(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => onFromDateChange(e.target.value)}
       />
     </div>
     <div className="space-y-2">
@@ -61,7 +63,7 @@ export const ReservationFilters = ({
         id="res-to"
         type="date"
         value={toDate}
-        onChange={(e) => onToDateChange(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => onToDateChange(e.target.value)}
       />
     </div>
     <div className="space-y-2">
@@ -70,7 +72,7 @@ export const ReservationFilters = ({
         id="res-status"
         className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
         value={statusFilter}
-        onChange={(e) => onStatusChange(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLSelectElement>) => onStatusChange(e.target.value)}
       >
         {statusOptions.map((s) => (
           <option key={s.value || 'all'} value={s.value}>
@@ -86,7 +88,7 @@ export const ReservationFilters = ({
         type="search"
         placeholder="npr. Ana Marić"
         value={clientSearch}
-        onChange={(e) => onClientSearchChange(e.target.value)}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => onClientSearchChange(e.target.value)}
         aria-label="Pretraga po imenu i prezimenu klijenta"
       />
     </div>

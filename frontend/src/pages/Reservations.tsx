@@ -17,7 +17,6 @@ import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
-import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 
 interface ReservationClient {

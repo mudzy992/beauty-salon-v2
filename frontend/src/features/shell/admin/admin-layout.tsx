@@ -10,7 +10,8 @@ import { useAuth } from '../../../context/AuthContext'
 import { useSettings } from '../../../context/SettingsContext'
 import api from '../../../api/client'
 import { getUploadUrl } from '../../../utils/uploadUrl'
-import { AdminNav, flatAdminNavItems } from './admin-nav'
+import { flatAdminNavItems } from './admin-nav'
+import { AdminNav } from './admin-nav-menu'
 import { AdminBrand, AdminUserMenu } from './admin-chrome'
 
 export const AdminLayout = () => {

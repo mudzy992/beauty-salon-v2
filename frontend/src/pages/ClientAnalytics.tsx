@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
+  Eye,
   Loader2,
   Star,
   TriangleAlert,
