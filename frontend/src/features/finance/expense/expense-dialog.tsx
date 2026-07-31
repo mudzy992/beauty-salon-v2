@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react'
-import { Loader2, Paperclip, X } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
 import { Label } from '../../../components/ui/label'
 import { Textarea } from '../../../components/ui/textarea'
 import { ResponsiveDialog } from '../components/responsive-dialog'
+import { ExpenseAttachmentFields } from './expense-attachment-fields'
+import { ExpenseTemplateFields } from './expense-template-fields'
 import { LineItemsEditor } from './line-items-editor'
 import { useExpenseForm } from './use-expense-form'
 import { uploadExpenseFile } from '../api/expense-books.api'
@@ -21,12 +23,6 @@ type ExpenseDialogProps = {
   categories: ExpenseCategory[]
   isSaving: boolean
   onSubmit: (payload: ExpensePayload) => void
-}
-
-const inputTypeForField = (fieldType: string): string => {
-  if (fieldType === 'NUMBER' || fieldType === 'CURRENCY') return 'number'
-  if (fieldType === 'DATE') return 'date'
-  return 'text'
 }
 
 export function ExpenseDialog({
@@ -127,32 +123,11 @@ export function ExpenseDialog({
           />
         </div>
 
-        {f.templateFields.length > 0 ? (
-          <fieldset className="grid gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
-            <legend className="px-1 text-xs font-medium text-slate-500">
-              Polja predloška
-            </legend>
-            {f.templateFields.map((field) => (
-              <div key={field.id} className="grid gap-1">
-                <Label htmlFor={`field-${field.id}`}>
-                  {field.fieldName}
-                  {field.isRequired ? (
-                    <span className="ml-1 text-rose-500" aria-hidden="true">
-                      *
-                    </span>
-                  ) : null}
-                </Label>
-                <Input
-                  id={`field-${field.id}`}
-                  type={inputTypeForField(field.fieldType)}
-                  required={field.isRequired}
-                  value={f.form.fieldValues[field.id] ?? ''}
-                  onChange={(event) => f.setFieldValue(field.id, event.target.value)}
-                />
-              </div>
-            ))}
-          </fieldset>
-        ) : null}
+        <ExpenseTemplateFields
+          fields={f.templateFields}
+          values={f.form.fieldValues}
+          onChange={f.setFieldValue}
+        />
 
         <LineItemsEditor
           items={f.form.lineItems}
@@ -181,47 +156,16 @@ export function ExpenseDialog({
           ) : null}
         </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="expense-files">Prilozi</Label>
-          <input
-            ref={fileInputRef}
-            id="expense-files"
-            type="file"
-            multiple
-            className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm dark:text-slate-300 dark:file:bg-slate-800"
-            onChange={(event) => void handleFiles(event.target.files)}
-          />
-          {isUploading ? (
-            <p className="text-xs text-slate-500">Slanje priloga…</p>
-          ) : null}
-          {pendingUploads.length > 0 ? (
-            <ul className="grid gap-1">
-              {pendingUploads.map((upload) => (
-                <li
-                  key={upload.id}
-                  className="flex items-center justify-between rounded-md border border-slate-200 px-2 py-1 text-xs dark:border-slate-800"
-                >
-                  <span className="inline-flex items-center gap-1 truncate">
-                    <Paperclip className="h-3 w-3" aria-hidden="true" />
-                    {upload.name}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label={`Ukloni prilog ${upload.name}`}
-                    onClick={() =>
-                      setPendingUploads((prev) =>
-                        prev.filter((item) => item.id !== upload.id),
-                      )
-                    }
-                  >
-                    <X className="h-3 w-3" aria-hidden="true" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
+        <ExpenseAttachmentFields
+          existing={editing?.attachments ?? []}
+          pending={pendingUploads}
+          isUploading={isUploading}
+          fileInputRef={fileInputRef}
+          onFiles={(files) => void handleFiles(files)}
+          onRemovePending={(id) =>
+            setPendingUploads((prev) => prev.filter((item) => item.id !== id))
+          }
+        />
 
         <div className="grid gap-1">
           <Label htmlFor="expense-notes">Napomena</Label>

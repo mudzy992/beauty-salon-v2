@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 
 import { sumLineItems } from './expenses.helpers'
+import { parseExpenseNotes, serializeExpenseNotes } from './expense-notes'
 import { toNumber } from '../finance.utils'
 import type {
   Expense,
@@ -28,16 +29,19 @@ const emptyForm = (): ExpenseFormState => ({
   lineItems: [],
 })
 
-const toFormState = (expense: Expense): ExpenseFormState => ({
-  categoryId: expense.category?.id ?? '',
-  title: expense.title,
-  totalAmount: String(toNumber(expense.totalAmount)),
-  notes: expense.notes ?? '',
-  fieldValues: Object.fromEntries(
-    (expense.fieldValues ?? []).map((fv) => [fv.fieldId, fv.value]),
-  ),
-  lineItems: [],
-})
+const toFormState = (expense: Expense): ExpenseFormState => {
+  const parsed = parseExpenseNotes(expense.notes)
+  return {
+    categoryId: expense.category?.id ?? '',
+    title: expense.title,
+    totalAmount: String(toNumber(expense.totalAmount)),
+    notes: parsed.userNotes,
+    fieldValues: Object.fromEntries(
+      (expense.fieldValues ?? []).map((fv) => [fv.fieldId, fv.value]),
+    ),
+    lineItems: parsed.lineItems,
+  }
+}
 
 export const useExpenseForm = (params: {
   open: boolean
@@ -93,17 +97,16 @@ export const useExpenseForm = (params: {
   })()
 
   const toPayload = (attachmentUploadIds: string[]): ExpensePayload => {
-    const itemsNote = form.lineItems
-      .filter((item) => item.name.trim())
-      .map((item) => `${item.name} × ${item.qty} @ ${item.price}`)
-      .join('; ')
-    const notes = [form.notes.trim(), itemsNote].filter(Boolean).join(' | ')
+    const notes = serializeExpenseNotes({
+      lineItems: form.lineItems,
+      userNotes: form.notes,
+    })
     return {
       bookId: params.bookId,
       categoryId: form.categoryId,
       title: form.title.trim(),
       totalAmount: effectiveTotal,
-      notes: notes || undefined,
+      notes,
       fieldValues: templateFields
         .map((field) => ({
           fieldId: field.id,

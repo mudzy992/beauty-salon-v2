@@ -5,6 +5,7 @@ import type {
   SortDirection,
 } from '../finance.types'
 import { toNumber } from '../finance.utils'
+import { parseExpenseNotes } from './expense-notes'
 
 export const EMPTY_EXPENSE_FILTERS: ExpenseFilters = {
   search: '',
@@ -32,9 +33,11 @@ export const filterExpenses = (
       return false
     }
     if (term) {
+      const parsed = parseExpenseNotes(expense.notes)
       const haystack = [
         expense.title,
-        expense.notes ?? '',
+        parsed.userNotes,
+        ...parsed.lineItems.map((item) => item.name),
         expense.category?.name ?? '',
       ]
         .join(' ')

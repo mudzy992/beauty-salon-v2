@@ -1,7 +1,9 @@
-import { ArrowDown, ArrowUp, Paperclip, Pencil, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Pencil, Trash2 } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
 import { EmptyState } from '../components/data-state'
+import { ExpenseAttachmentsList } from './expense-attachments'
+import { formatExpenseNotesSummary } from './expense-notes'
 import { formatIsoDateBs, formatMoney } from '../finance.utils'
 import type { ExpenseSortField } from './expenses.helpers'
 import type { Expense, SortDirection } from '../finance.types'
@@ -44,7 +46,7 @@ export function ExpenseTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-sm">
+      <table className="w-full min-w-[720px] text-sm">
         <caption className="sr-only">Stavke knjige rashoda</caption>
         <thead>
           <tr className="border-b border-slate-200 text-left dark:border-slate-800">
@@ -79,62 +81,77 @@ export function ExpenseTable({
           </tr>
         </thead>
         <tbody>
-          {expenses.map((expense) => (
-            <tr
-              key={expense.id}
-              className="border-b border-slate-100 last:border-0 dark:border-slate-900"
-            >
-              <td className="py-2 pr-3 whitespace-nowrap">
-                {formatIsoDateBs(expense.createdAt)}
-              </td>
-              <td className="py-2 pr-3">
-                <div className="font-medium text-slate-900 dark:text-slate-50">
-                  {expense.title}
-                </div>
-                {expense.notes ? (
-                  <div className="text-xs text-slate-500">{expense.notes}</div>
-                ) : null}
-              </td>
-              <td className="py-2 pr-3 text-right tabular-nums">
-                {formatMoney(expense.totalAmount)}
-              </td>
-              <td className="py-2 pr-3">{expense.category?.name ?? '—'}</td>
-              <td className="py-2 pr-3">
-                {(expense.attachments ?? []).length > 0 ? (
-                  <span className="inline-flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
-                    <Paperclip className="h-3 w-3" aria-hidden="true" />
-                    {expense.attachments?.length}
-                  </span>
-                ) : (
-                  <span className="text-xs text-slate-400">—</span>
-                )}
-              </td>
-              <td className="py-2 text-right">
-                {isLocked ? (
-                  <span className="text-xs text-slate-400">—</span>
-                ) : (
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Uredi rashod ${expense.title}`}
-                      onClick={() => onEdit(expense)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Obriši rashod ${expense.title}`}
-                      onClick={() => onDelete(expense)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
-                    </Button>
+          {expenses.map((expense) => {
+            const notes = formatExpenseNotesSummary(expense.notes)
+            return (
+              <tr
+                key={expense.id}
+                className="border-b border-slate-100 last:border-0 dark:border-slate-900"
+              >
+                <td className="py-2 pr-3 whitespace-nowrap align-top">
+                  {formatIsoDateBs(expense.createdAt)}
+                </td>
+                <td className="py-2 pr-3 align-top">
+                  <div className="font-medium text-slate-900 dark:text-slate-50">
+                    {expense.title}
                   </div>
-                )}
-              </td>
-            </tr>
-          ))}
+                  {notes.userNotes ? (
+                    <div className="mt-0.5 text-xs text-slate-500">{notes.userNotes}</div>
+                  ) : null}
+                  {notes.lineLabels.length > 0 ? (
+                    <ul className="mt-1 space-y-0.5 text-xs text-slate-600 dark:text-slate-300">
+                      {notes.lineLabels.slice(0, 4).map((label) => (
+                        <li key={label} className="truncate" title={label}>
+                          {label}
+                        </li>
+                      ))}
+                      {notes.lineLabels.length > 4 ? (
+                        <li className="text-slate-400">
+                          + još {notes.lineLabels.length - 4} stavki
+                        </li>
+                      ) : null}
+                    </ul>
+                  ) : null}
+                </td>
+                <td className="py-2 pr-3 text-right tabular-nums align-top">
+                  {formatMoney(expense.totalAmount)}
+                </td>
+                <td className="py-2 pr-3 align-top">
+                  {expense.category?.name ?? '—'}
+                </td>
+                <td className="py-2 pr-3 align-top min-w-[160px]">
+                  <ExpenseAttachmentsList
+                    attachments={expense.attachments ?? []}
+                    compact
+                  />
+                </td>
+                <td className="py-2 text-right align-top">
+                  {isLocked ? (
+                    <span className="text-xs text-slate-400">—</span>
+                  ) : (
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Uredi rashod ${expense.title}`}
+                        onClick={() => onEdit(expense)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Obriši rashod ${expense.title}`}
+                        onClick={() => onDelete(expense)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
+                      </Button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>

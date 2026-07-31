@@ -59,7 +59,7 @@ export class ExpenseBooksService {
           include: {
             category: true,
             fieldValues: { include: { field: true } },
-            attachments: true,
+            attachments: { include: { upload: true } },
           },
         },
         lockEvents: {
