@@ -1,13 +1,18 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ClientDebtStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { IncomeBooksService } from './income-books.service';
+import { IncomeSyncService } from './income-sync.service';
+import { IncomeManualEntriesService } from './income-manual-entries.service';
+import { parseAndNormalizeDate } from '../common/utils/book-period';
 import type { RepayClientDebtDto } from './dto/repay-client-debt.dto';
+import type { SettleClientDebtDto } from './dto/settle-client-debt.dto';
 
 @Injectable()
 export class ClientDebtsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly incomeBooks: IncomeBooksService,
+    private readonly incomeSync: IncomeSyncService,
+    private readonly manualEntries: IncomeManualEntriesService,
   ) {}
 
   private async getStylistProfileIdByUserId(userId: string): Promise<string | null> {
@@ -72,16 +77,17 @@ export class ClientDebtsService {
   }
 
   async listAll(filters: { status?: string; stylistProfileId?: string; clientId?: string }) {
-    const status = (filters.status ?? 'OPEN').toUpperCase();
-    if (status !== 'OPEN' && status !== 'SETTLED') {
+    const raw = (filters.status ?? ClientDebtStatus.OPEN).toUpperCase();
+    if (!(raw in ClientDebtStatus)) {
       throw new BadRequestException('status nije validan.');
     }
+    const status = raw as ClientDebtStatus;
     const stylistProfileId = filters.stylistProfileId?.trim() || undefined;
     const clientId = filters.clientId?.trim() || undefined;
 
     return this.prisma.clientDebt.findMany({
       where: {
-        status: status as any,
+        status,
         ...(stylistProfileId ? { stylistProfileId } : {}),
         ...(clientId ? { clientId } : {}),
       },
@@ -99,24 +105,39 @@ export class ClientDebtsService {
     });
   }
 
-  async settle(debtId: string, currentUser: { sub: string; roles: string[] }, note?: string) {
+  /**
+   * Otpis duga: zatvara dug BEZ knjiženja prihoda u KIF.
+   * Koristi se kada se novac neće naplatiti, zato je razlog obavezan.
+   * Za stvarnu naplatu koristi `repayDebt`.
+   */
+  async writeOff(
+    debtId: string,
+    dto: SettleClientDebtDto,
+    currentUser: { sub: string; roles: string[] },
+  ) {
+    const reason = dto.note?.trim();
+    if (!reason || reason.length < 3) {
+      throw new BadRequestException('Morate unijeti razlog otpisa duga.');
+    }
     const debt = await this.prisma.clientDebt.findUnique({ where: { id: debtId } });
     if (!debt) throw new NotFoundException('Dug nije pronađen.');
-    if (debt.status !== 'OPEN') throw new BadRequestException('Dug je već zatvoren.');
-
-    const isAdminOrOwner = currentUser.roles.includes('SYSTEM_ADMIN') || currentUser.roles.includes('OWNER');
+    if (debt.status !== ClientDebtStatus.OPEN) {
+      throw new BadRequestException('Dug je već zatvoren.');
+    }
+    // Otpis je finansijska odluka – stilista ne smije sam otpisati potraživanje.
+    const isAdminOrOwner =
+      currentUser.roles.includes('SYSTEM_ADMIN') || currentUser.roles.includes('OWNER');
     if (!isAdminOrOwner) {
-      if (!currentUser.roles.includes('STYLIST')) throw new ForbiddenException('Nemate dozvolu.');
-      if (debt.createdById !== currentUser.sub) throw new ForbiddenException('Nemate dozvolu.');
+      throw new ForbiddenException('Otpis duga može izvršiti samo vlasnik ili administrator.');
     }
 
     return this.prisma.clientDebt.update({
       where: { id: debtId },
       data: {
-        status: 'SETTLED',
+        status: ClientDebtStatus.SETTLED,
         settledAt: new Date(),
         settledById: currentUser.sub,
-        ...(note != null ? { note } : {}),
+        note: `[OTPIS] ${reason}`,
       },
     });
   }
@@ -130,7 +151,9 @@ export class ClientDebtsService {
       },
     });
     if (!debt) throw new NotFoundException('Dug nije pronađen.');
-    if (debt.status !== 'OPEN') throw new BadRequestException('Dug je već zatvoren.');
+    if (debt.status !== ClientDebtStatus.OPEN) {
+      throw new BadRequestException('Dug je već zatvoren.');
+    }
 
     const isAdminOrOwner =
       currentUser.roles.includes('SYSTEM_ADMIN') || currentUser.roles.includes('OWNER');
@@ -142,8 +165,7 @@ export class ClientDebtsService {
       }
     }
 
-    const date = dto.date ? new Date(dto.date) : new Date();
-    if (Number.isNaN(date.getTime())) throw new BadRequestException('Datum nije validan.');
+    const date = dto.date ? parseAndNormalizeDate(dto.date) : new Date();
     date.setHours(0, 0, 0, 0);
 
     const serviceId =
@@ -158,17 +180,14 @@ export class ClientDebtsService {
       throw new BadRequestException('Iznos duga nije validan.');
     }
 
-    const y = date.getFullYear();
-    const m = date.getMonth() + 1;
-    const book = await this.incomeBooks.getOrCreateForMonth(y, m);
-
+    const book = await this.incomeSync.assertBookOpenForDate(date);
     const note = dto.note?.trim() || undefined;
 
     return this.prisma.$transaction(async (tx) => {
       const settled = await tx.clientDebt.update({
         where: { id: debtId },
         data: {
-          status: 'SETTLED',
+          status: ClientDebtStatus.SETTLED,
           settledAt: new Date(),
           settledById: currentUser.sub,
           ...(note ? { note } : {}),
@@ -195,35 +214,16 @@ export class ClientDebtsService {
 
       // Knjiženje u Income Book kao ručni prihod (da KIF dobije stavku),
       // a daily-log DEBT_PAYMENT se neće auto-sync-ovati.
-      await tx.incomeBookManualEntry.create({
-        data: {
-          bookId: book.id,
-          date,
-          serviceId,
-          stylistProfileId: settled.stylistProfileId,
-          clientId: settled.clientId,
-          amount,
-          tipAmount: 0,
-          notes: note ?? 'Naplata duga',
-          createdById: currentUser.sub,
-        },
-      });
-
-      const autoAgg = await tx.incomeBookEntry.aggregate({
-        where: { bookId: book.id },
-        _sum: { amount: true, tipAmount: true },
-      });
-      const manualAgg = await tx.incomeBookManualEntry.aggregate({
-        where: { bookId: book.id },
-        _sum: { amount: true, tipAmount: true },
-      });
-      const totalRevenue =
-        Number(autoAgg._sum.amount ?? 0) + Number(manualAgg._sum.amount ?? 0);
-      const totalTips =
-        Number(autoAgg._sum.tipAmount ?? 0) + Number(manualAgg._sum.tipAmount ?? 0);
-      await tx.incomeBook.update({
-        where: { id: book.id },
-        data: { totalRevenue, totalTips },
+      await this.manualEntries.createForDebtRepayment(tx, {
+        bookId: book.id,
+        date,
+        serviceId,
+        stylistProfileId: settled.stylistProfileId,
+        clientId: settled.clientId,
+        dailyLogEntryId: debtPaymentDailyLog.id,
+        amount,
+        notes: note ?? 'Naplata duga',
+        userId: currentUser.sub,
       });
 
       return {

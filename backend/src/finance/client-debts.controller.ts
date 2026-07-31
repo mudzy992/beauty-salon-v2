@@ -38,9 +38,11 @@ export class ClientDebtsController {
     });
   }
 
-  @Patch(':id/settle')
-  settle(@Param('id') id: string, @Body() dto: SettleClientDebtDto, @CurrentUser() user: CurrentUserPayload) {
-    return this.debts.settle(id, user, dto.note);
+  /** Otpis duga (bez knjiženja prihoda). Za naplatu koristiti `:id/repay`. */
+  @Patch(':id/write-off')
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  writeOff(@Param('id') id: string, @Body() dto: SettleClientDebtDto, @CurrentUser() user: CurrentUserPayload) {
+    return this.debts.writeOff(id, dto, user);
   }
 
   @Post(':id/repay')

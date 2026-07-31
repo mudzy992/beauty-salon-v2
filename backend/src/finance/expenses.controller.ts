@@ -39,17 +39,16 @@ export class ExpensesController {
   }
 
   @Post(':id/attachments')
-  addAttachment(@Param('id') id: string, @Body() dto: AddExpenseAttachmentDto, @CurrentUser() user: CurrentUserPayload) {
-    return this.expenses.addAttachment(id, dto, user)
+  addAttachment(@Param('id') id: string, @Body() dto: AddExpenseAttachmentDto) {
+    return this.expenses.addAttachment(id, dto)
   }
 
   @Delete(':id/attachments/:attachmentId')
   removeAttachment(
     @Param('id') id: string,
     @Param('attachmentId') attachmentId: string,
-    @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.expenses.removeAttachment(id, attachmentId, user)
+    return this.expenses.removeAttachment(id, attachmentId)
   }
 
   @Delete(':id')

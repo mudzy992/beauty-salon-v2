@@ -7,12 +7,16 @@ import api from '../api/client'
 import { getErrorMessage } from '../api/error'
 import { useSocketEvent } from '../context/SocketContext'
 import { useAppToast } from '../lib/toast/useAppToast'
+import { getCalendarMonthRange } from '../lib/date-range'
+import {
+  ReservationFilters,
+  resetReservationFilters,
+} from '../features/reservations/components/reservation-filters'
 
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
-import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 
@@ -118,14 +122,22 @@ export default function Reservations() {
   const [pageSize] = useState(20)
   const [total, setTotal] = useState(0)
 
-  const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState('')
+  const initialRange = getCalendarMonthRange()
+  const [fromDate, setFromDate] = useState(initialRange.fromDate)
+  const [toDate, setToDate] = useState(initialRange.toDate)
   const [statusFilter, setStatusFilter] = useState('')
+  const [clientSearch, setClientSearch] = useState('')
+  const [debouncedClientSearch, setDebouncedClientSearch] = useState('')
 
   const [open, setOpen] = useState(false)
   const [detail, setDetail] = useState<Reservation | null>(null)
   const [cancelReason, setCancelReason] = useState('')
   const [cancelling, setCancelling] = useState(false)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedClientSearch(clientSearch.trim()), 300)
+    return () => window.clearTimeout(timer)
+  }, [clientSearch])
 
   const loadData = useCallback(() => {
     setLoading(true)
@@ -133,6 +145,7 @@ export default function Reservations() {
     if (fromDate) params.fromDate = fromDate
     if (toDate) params.toDate = toDate
     if (statusFilter) params.status = statusFilter
+    if (debouncedClientSearch) params.clientSearch = debouncedClientSearch
     params.page = String(page)
     params.pageSize = String(pageSize)
     api
@@ -151,7 +164,7 @@ export default function Reservations() {
         setTotal(0)
       })
       .finally(() => setLoading(false))
-  }, [fromDate, toDate, statusFilter, page, pageSize])
+  }, [fromDate, toDate, statusFilter, debouncedClientSearch, page, pageSize])
 
   useEffect(() => {
     loadData()
@@ -159,7 +172,7 @@ export default function Reservations() {
 
   useEffect(() => {
     setPage(0)
-  }, [fromDate, toDate, statusFilter])
+  }, [fromDate, toDate, statusFilter, debouncedClientSearch])
 
   useSocketEvent('reservation:created', useCallback(() => loadData(), [loadData]))
   useSocketEvent('reservation:updated', useCallback(() => loadData(), [loadData]))
@@ -255,44 +268,24 @@ export default function Reservations() {
 
       <Card className="mb-4">
         <div className="p-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-            <div className="space-y-2">
-              <Label>Od datuma</Label>
-              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Do datuma</Label>
-              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <select
-                className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full md:w-auto"
-                onClick={() => {
-                  setFromDate('')
-                  setToDate('')
-                  setStatusFilter('')
-                }}
-              >
-                Resetuj
-              </Button>
-            </div>
-          </div>
+          <ReservationFilters
+            fromDate={fromDate}
+            toDate={toDate}
+            statusFilter={statusFilter}
+            clientSearch={clientSearch}
+            statusOptions={STATUS_OPTIONS}
+            onFromDateChange={setFromDate}
+            onToDateChange={setToDate}
+            onStatusChange={setStatusFilter}
+            onClientSearchChange={setClientSearch}
+            onReset={() => {
+              const next = resetReservationFilters()
+              setFromDate(next.fromDate)
+              setToDate(next.toDate)
+              setStatusFilter(next.statusFilter)
+              setClientSearch(next.clientSearch)
+            }}
+          />
         </div>
       </Card>
 

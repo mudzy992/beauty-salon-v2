@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateExpenseTemplateDto } from './dto/create-expense-template.dto';
 import { UpdateExpenseTemplateDto } from './dto/update-expense-template.dto';
+import { CreateExpenseTemplateFieldDto } from './dto/create-expense-template-field.dto';
 
 @Injectable()
 export class ExpenseTemplatesService {
@@ -61,32 +66,31 @@ export class ExpenseTemplatesService {
     });
   }
 
-  async addField(
-    templateId: string,
-    fieldName: string,
-    fieldType: string,
-    isRequired?: boolean,
-    sortOrder?: number,
-    defaultValue?: string,
-  ) {
-    await this.findOne(templateId);
+  async addField(templateId: string, dto: CreateExpenseTemplateFieldDto) {
+    const template = await this.findOne(templateId);
     return this.prisma.expenseTemplateField.create({
       data: {
         templateId,
-        fieldName,
-        fieldType,
-        isRequired: isRequired ?? false,
-        sortOrder: sortOrder ?? 0,
-        defaultValue: defaultValue ?? null,
+        fieldName: dto.fieldName,
+        fieldType: dto.fieldType,
+        isRequired: dto.isRequired ?? false,
+        sortOrder: dto.sortOrder ?? template.fields.length,
+        defaultValue: dto.defaultValue ?? null,
       },
     });
   }
 
   async removeField(fieldId: string) {
-    const f = await this.prisma.expenseTemplateField.findUnique({
+    const field = await this.prisma.expenseTemplateField.findUnique({
       where: { id: fieldId },
+      include: { _count: { select: { values: true } } },
     });
-    if (!f) throw new NotFoundException('Polje nije pronađeno.');
+    if (!field) throw new NotFoundException('Polje nije pronađeno.');
+    if (field._count.values > 0) {
+      throw new BadRequestException(
+        'Polje se koristi na postojećim rashodima i ne može se obrisati.',
+      );
+    }
     await this.prisma.expenseTemplateField.delete({ where: { id: fieldId } });
     return { deleted: true };
   }

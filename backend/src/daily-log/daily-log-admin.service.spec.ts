@@ -5,7 +5,7 @@ import { DailyLogService } from './daily-log.service';
 import { DailyLogReversalService } from './daily-log-reversal.service';
 import { DailyLogValidators } from './daily-log.validators';
 import { PrismaService } from '../prisma/prisma.service';
-import { IncomeBooksService } from '../finance/income-books.service';
+import { IncomeSyncService } from '../finance/income-sync.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 
 describe('DailyLogAdminService', () => {
@@ -27,7 +27,7 @@ describe('DailyLogAdminService', () => {
     normalizeServiceIds: jest.fn((ids: string[]) => ids),
     assertClientServiceGenderMatch: jest.fn(),
   };
-  const mockPrisma = {
+  const mockPrisma: Record<string, any> = {
     dailyLogEntry: {
       update: jest.fn(),
       findUnique: jest.fn(),
@@ -49,7 +49,7 @@ describe('DailyLogAdminService', () => {
     },
     clientDebt: { update: jest.fn() },
   };
-  const mockIncomeBooks = {
+  const mockIncomeSync = {
     assertBookOpenForDate: jest.fn(),
   };
   const mockLoyalty = {
@@ -82,7 +82,7 @@ describe('DailyLogAdminService', () => {
         { provide: DailyLogReversalService, useValue: mockReversal },
         { provide: DailyLogValidators, useValue: mockValidators },
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: IncomeBooksService, useValue: mockIncomeBooks },
+        { provide: IncomeSyncService, useValue: mockIncomeSync },
         { provide: LoyaltyService, useValue: mockLoyalty },
       ],
     }).compile();

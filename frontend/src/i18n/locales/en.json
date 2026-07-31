@@ -2,6 +2,109 @@
   "app": {
     "title": "Beauty Salon Nejra",
     "admin": "Admin Panel"
+  },
+  "nav": {
+    "home": "Home",
+    "users": "Users",
+    "salon": "Salon",
+    "services": "Services",
+    "stylists": "Stylists",
+    "reservations": "Reservations",
+    "dailyLog": "Daily log",
+    "finance": "Finance",
+    "blog": "Blog",
+    "gallery": "Gallery",
+    "reviews": "Reviews",
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "emailSettings": "Email settings",
+    "clientAnalytics": "Client analytics",
+    "stylistAnalytics": "Stylist analytics",
+    "analytics": "Analytics",
+    "loyalty": "Loyalty program",
+    "debtors": "Debtors",
+    "sectionOverview": "Overview",
+    "sectionOperational": "Operations",
+    "sectionSalon": "Salon",
+    "sectionFinance": "Finance",
+    "sectionContent": "Content",
+    "sectionPeople": "People",
+    "sectionSystem": "System",
+    "sectionSettings": "Settings"
+  },
+  "finance": {
+    "incomeBook": "Income Book",
+    "expenseBook": "Expense Book",
+    "expenses": "Expenses",
+    "categories": "Expense Categories",
+    "templates": "Templates",
+    "newExpense": "New Expense",
+    "closeBook": "Close Book",
+    "openCurrentMonth": "Open current month",
+    "template": "Template",
+    "fields": "Fields",
+    "addField": "Add field",
+    "fieldName": "Field name",
+    "fieldType": "Field type",
+    "required": "Required",
+    "tabs": {
+      "income": "Income Book",
+      "expense": "Expense Book",
+      "categories": "Expense Categories"
+    },
+    "book": {
+      "openForMonth": "Open book for month",
+      "openBook": "Open book",
+      "locked": "Locked",
+      "open": "Open",
+      "lock": "Lock",
+      "unlock": "Unlock",
+      "lockConfirmTitle": "Lock this book?",
+      "lockConfirmBody": "Once locked, entries cannot be added, edited or deleted.",
+      "unlockConfirmTitle": "Unlock this book?",
+      "unlockReason": "Reason for unlocking",
+      "lockHistory": "Lock history",
+      "auditHistory": "Manual entry changes"
+    },
+    "summary": {
+      "revenue": "Revenue excluding tips",
+      "tips": "Tips",
+      "totalCollected": "Total collected",
+      "totalExpenses": "Total expenses",
+      "net": "Net (income − expenses)",
+      "filtered": "Shown (filtered)"
+    },
+    "manualEntry": {
+      "create": "New manual income",
+      "edit": "Edit manual income",
+      "paid": "Amount paid",
+      "servicePrice": "Service price",
+      "unpaid": "Outstanding",
+      "ignoreDebt": "Ignore",
+      "createDebt": "Record as debt"
+    },
+    "integrity": {
+      "healthy": "The book matches the daily log.",
+      "drift": "The book does not match the daily log",
+      "resync": "Synchronise"
+    },
+    "filters": {
+      "search": "Search",
+      "stylist": "Stylist",
+      "category": "Category",
+      "amountFrom": "Amount from",
+      "amountTo": "Amount to",
+      "clear": "Clear",
+      "all": "All",
+      "fromDailyLog": "From daily log",
+      "manual": "Manual"
+    },
+    "empty": {
+      "noIncomeBooks": "No income books yet",
+      "noExpenseBooks": "No expense books yet",
+      "noEntries": "No entries",
+      "noExpenses": "No expenses"
+    }
   }
 }
 

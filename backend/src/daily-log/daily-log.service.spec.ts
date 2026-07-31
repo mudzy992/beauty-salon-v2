@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { DailyLogService } from './daily-log.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { IncomeBooksService } from '../finance/income-books.service';
+import { IncomeSyncService } from '../finance/income-sync.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 
 const mockPrisma = {
@@ -17,7 +17,7 @@ const mockPrisma = {
   reservation: { findUnique: jest.fn() },
 };
 
-const mockIncomeBooks = {
+const mockIncomeSync = {
   addEntryFromDailyLog: jest.fn(),
 };
 
@@ -37,7 +37,7 @@ describe('DailyLogService', () => {
       providers: [
         DailyLogService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: IncomeBooksService, useValue: mockIncomeBooks },
+        { provide: IncomeSyncService, useValue: mockIncomeSync },
         { provide: LoyaltyService, useValue: { earnFromDailyLog: jest.fn() } },
       ],
     }).compile();
@@ -62,7 +62,7 @@ describe('DailyLogService', () => {
   });
 
   it('complete poziva incomeBooks.addEntryFromDailyLog', async () => {
-    mockIncomeBooks.addEntryFromDailyLog.mockResolvedValue(undefined);
+    mockIncomeSync.addEntryFromDailyLog.mockResolvedValue(undefined);
     const entry = {
       id: 'e1',
       stylistProfileId: 'sp-1',
@@ -82,7 +82,7 @@ describe('DailyLogService', () => {
       status: 'COMPLETED',
     });
     await service.complete('e1', user as any);
-    expect(mockIncomeBooks.addEntryFromDailyLog).toHaveBeenCalledWith('e1');
+    expect(mockIncomeSync.addEntryFromDailyLog).toHaveBeenCalledWith('e1');
   });
 
   it('findOne baca NotFoundException kada zapis ne postoji', async () => {

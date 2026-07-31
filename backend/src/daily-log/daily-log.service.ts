@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,14 +10,16 @@ import { CreateDailyLogEntryDto } from './dto/create-daily-log-entry.dto';
 import { UpdateDailyLogEntryDto } from './dto/update-daily-log-entry.dto';
 import type { CreateFromReservationDto } from './dto/create-from-reservation.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
-import { IncomeBooksService } from '../finance/income-books.service';
+import { IncomeSyncService } from '../finance/income-sync.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 
 @Injectable()
 export class DailyLogService {
+  private readonly logger = new Logger(DailyLogService.name);
+
   constructor(
     private readonly prisma: PrismaService,
-    private readonly incomeBooks: IncomeBooksService,
+    private readonly incomeSync: IncomeSyncService,
     private readonly loyalty: LoyaltyService,
   ) {}
 
@@ -321,9 +324,7 @@ export class DailyLogService {
       throw new BadRequestException('Jedno ili više dugovanja nije validno ili je već zatvoreno.');
     }
 
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const book = await this.incomeBooks.getOrCreateForMonth(year, month);
+    const book = await this.incomeSync.assertBookOpenForDate(date);
 
     await this.prisma.$transaction(async (tx) => {
       for (const d of debts) {
@@ -391,22 +392,7 @@ export class DailyLogService {
         });
       }
 
-      const autoAgg = await tx.incomeBookEntry.aggregate({
-        where: { bookId: book.id },
-        _sum: { amount: true, tipAmount: true },
-      });
-      const manualAgg = await tx.incomeBookManualEntry.aggregate({
-        where: { bookId: book.id },
-        _sum: { amount: true, tipAmount: true },
-      });
-      const totalRevenue =
-        Number(autoAgg._sum.amount ?? 0) + Number(manualAgg._sum.amount ?? 0);
-      const totalTips =
-        Number(autoAgg._sum.tipAmount ?? 0) + Number(manualAgg._sum.tipAmount ?? 0);
-      await tx.incomeBook.update({
-        where: { id: book.id },
-        data: { totalRevenue, totalTips },
-      });
+      await this.incomeSync.recalculateTotals(book.id, tx);
     });
   }
 
@@ -536,7 +522,15 @@ export class DailyLogService {
       await this.loyalty.ensureAccountForUser(updated.clientId ?? '').catch(() => {});
     }
 
-    await this.incomeBooks.addEntryFromDailyLog(id).catch(() => {});
+    // KIF knjiženje je dio završetka zapisa; greška ne smije ostati nevidljiva.
+    await this.incomeSync.addEntryFromDailyLog(id).catch((err: unknown) => {
+      this.logger.error(
+        `KIF knjiženje nije uspjelo za dnevni zapis ${id}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      throw err;
+    });
     if (updated.clientId) {
       await this.loyalty
         .earnFromDailyLog({

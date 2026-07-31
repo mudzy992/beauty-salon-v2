@@ -81,10 +81,6 @@ export const fetchClientDebts = async (clientId: string): Promise<ClientDebt[]> 
   return Array.isArray(data) ? data : []
 }
 
-export const settleClientDebt = async (debtId: string): Promise<void> => {
-  await api.patch(`/api/client-debts/${debtId}/settle`)
-}
-
 export const createDailyLogFromReservation = async (params: {
   reservationId: string
   paidAmount: number

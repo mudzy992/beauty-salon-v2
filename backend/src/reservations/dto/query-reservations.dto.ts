@@ -4,6 +4,8 @@ import {
   IsIn,
   IsBoolean,
   IsInt,
+  IsString,
+  MaxLength,
   Min,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
@@ -16,6 +18,13 @@ export class QueryReservationsDto {
   @IsOptional()
   @IsDateString()
   toDate?: string;
+
+  /** Search by client firstName / lastName (partial, multi-token). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  clientSearch?: string;
 
   @IsOptional()
   @IsIn([

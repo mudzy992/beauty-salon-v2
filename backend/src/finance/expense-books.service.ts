@@ -4,6 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  assertValidPeriod,
+  isFutureMonth,
+  isPastMonth,
+} from '../common/utils/book-period';
 
 @Injectable()
 export class ExpenseBooksService {
@@ -11,13 +16,8 @@ export class ExpenseBooksService {
 
   /** Vraća knjigu za mjesec; kreira je ako ne postoji. */
   async getOrCreateForMonth(year: number, month: number) {
-    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
-      throw new BadRequestException('Godina nije validna.');
-    }
-    if (!Number.isInteger(month) || month < 1 || month > 12) {
-      throw new BadRequestException('Mjesec nije validan.');
-    }
-    if (this.isFutureMonth(year, month)) {
+    assertValidPeriod(year, month);
+    if (isFutureMonth(year, month)) {
       throw new BadRequestException('Ne možete kreirati knjigu za budući mjesec.');
     }
     let book = await this.prisma.expenseBook.findUnique({
@@ -89,7 +89,7 @@ export class ExpenseBooksService {
     if (!book.isClosed) {
       throw new BadRequestException('Knjiga je već otključana.');
     }
-    if (!this.isPastMonth(book.year, book.month)) {
+    if (!isPastMonth(book.year, book.month)) {
       throw new BadRequestException('Otključavanje je dozvoljeno samo za knjige iz prošlosti.');
     }
     return this.prisma.expenseBook.update({
@@ -144,21 +144,4 @@ export class ExpenseBooksService {
     });
   }
 
-  private isPastMonth(year: number, month: number): boolean {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    if (year < currentYear) return true;
-    if (year > currentYear) return false;
-    return month < currentMonth;
-  }
-
-  private isFutureMonth(year: number, month: number): boolean {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    if (year > currentYear) return true;
-    if (year < currentYear) return false;
-    return month > currentMonth;
-  }
 }

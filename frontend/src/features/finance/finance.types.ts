@@ -161,3 +161,102 @@ export interface Expense {
 
 export type LineItem = { name: string; qty: number; price: number }
 
+export type ExpenseBookDetail = ExpenseBook & { expenses?: Expense[] }
+
+export interface IncomeBookIntegrity {
+  bookId: string
+  isLocked: boolean
+  missingCount: number
+  orphanedCount: number
+  isHealthy: boolean
+  missing: {
+    id: string
+    date: string
+    actualPrice: number | string
+    tipAmount: number | string
+    service?: { id: string; name: string }
+    stylistProfile?: { user?: { username: string; firstName: string | null; lastName: string | null } }
+  }[]
+  orphaned: {
+    id: string
+    date: string
+    amount: number | string
+    dailyLogEntryId: string
+  }[]
+}
+
+export interface ManualEntryPayload {
+  date: string
+  serviceId: string
+  stylistProfileId?: string
+  clientId?: string
+  paidAmount: number
+  debtHandling: 'CREATE_DEBT' | 'IGNORE_DEBT'
+  notes?: string
+}
+
+export interface ExpenseFieldValuePayload {
+  fieldId: string
+  value: string
+}
+
+export interface ExpensePayload {
+  bookId: string
+  categoryId: string
+  title: string
+  totalAmount: number
+  notes?: string
+  invoiceUploadId?: string
+  fieldValues?: ExpenseFieldValuePayload[]
+  attachmentUploadIds?: string[]
+}
+
+export interface TemplateFieldPayload {
+  fieldName: string
+  fieldType: 'TEXT' | 'NUMBER' | 'CURRENCY' | 'DATE' | 'FILE'
+  isRequired?: boolean
+  sortOrder?: number
+  defaultValue?: string
+}
+
+export interface ClientDebtRow {
+  id: string
+  amount: number | string
+  note?: string | null
+  createdAt: string
+  service?: { id: string; name: string } | null
+  createdBy?: { id: string; username: string } | null
+}
+
+export type IncomeEntryRow = {
+  id: string
+  kind: 'AUTO' | 'MANUAL'
+  date: string
+  serviceName: string
+  stylistName: string
+  clientName: string
+  amount: number
+  tipAmount: number
+  notes: string | null
+  manualEntry?: IncomeBookManualEntry
+  autoEntry?: IncomeEntry
+}
+
+export type IncomeEntryFilters = {
+  search: string
+  kind: 'ALL' | 'AUTO' | 'MANUAL'
+  stylistName: string
+  minAmount: string
+  maxAmount: string
+}
+
+export type ExpenseFilters = {
+  search: string
+  categoryId: string
+  minAmount: string
+  maxAmount: string
+  onlyWithAttachments: boolean
+}
+
+export type SortDirection = 'asc' | 'desc'
+

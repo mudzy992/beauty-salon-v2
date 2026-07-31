@@ -23,6 +23,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
+import { ConfirmDialog } from '../features/finance/components/confirm-dialog'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -144,6 +145,8 @@ export default function Users() {
   const [saving, setSaving] = useState(false)
   const [clientDebts, setClientDebts] = useState<ClientDebtRow[]>([])
   const [clientDebtsLoading, setClientDebtsLoading] = useState(false)
+  const [debtToWriteOff, setDebtToWriteOff] = useState<string | null>(null)
+  const [writeOffPending, setWriteOffPending] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize] = useState(20)
   const [total, setTotal] = useState(0)
@@ -275,15 +278,19 @@ export default function Users() {
       .finally(() => setClientDebtsLoading(false))
   }, [editOpen, editUser, getUserRoles])
 
-  const handleSettleClientDebt = async (debtId: string) => {
-    if (!editUser) return
+  const handleWriteOffClientDebt = async (reason: string) => {
+    if (!editUser || !debtToWriteOff) return
+    setWriteOffPending(true)
     try {
-      await api.patch(`/api/client-debts/${debtId}/settle`, {})
-      success('Dug je označen kao vraćen')
+      await api.patch(`/api/client-debts/${debtToWriteOff}/write-off`, { note: reason })
+      success('Dug je otpisan')
       const { data } = await api.get('/api/client-debts', { params: { clientId: editUser.id } })
       setClientDebts(Array.isArray(data) ? data : [])
+      setDebtToWriteOff(null)
     } catch (err) {
       error(getErrorMessage(err))
+    } finally {
+      setWriteOffPending(false)
     }
   }
 
@@ -1247,8 +1254,13 @@ export default function Users() {
                             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">Zaveo: {d.createdBy.username}</div>
                           ) : null}
                         </div>
-                        <Button type="button" variant="outline" size="sm" onClick={() => void handleSettleClientDebt(d.id)}>
-                          Označi vraćen
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDebtToWriteOff(d.id)}
+                        >
+                          Otpiši dug
                         </Button>
                       </div>
                     ))}
@@ -1412,6 +1424,20 @@ export default function Users() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(debtToWriteOff)}
+        onOpenChange={(next) => {
+          if (!next) setDebtToWriteOff(null)
+        }}
+        title="Otpis duga"
+        description="Otpis zatvara dug bez knjiženja prihoda u KIF. Za naplatu koristi dnevnu knjigu."
+        confirmLabel="Otpiši dug"
+        isDestructive
+        isPending={writeOffPending}
+        reasonLabel="Razlog otpisa"
+        onConfirm={(reason) => void handleWriteOffClientDebt(reason)}
+      />
     </div>
   )
 }

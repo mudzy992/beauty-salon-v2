@@ -20,7 +20,12 @@ type DebtRow = {
 
 const formatMoney = (v: number | string) => `${Number(v || 0).toFixed(2)} KM`
 
-export default function Debtors() {
+type Props = {
+  /** When rendered inside Finance tabs, hide page title. */
+  embedded?: boolean
+}
+
+export default function Debtors({ embedded = false }: Props) {
   const [q, setQ] = useState('')
   const query = useQuery({
     queryKey: ['debts', 'all', 'OPEN'],
@@ -55,8 +60,14 @@ export default function Debtors() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Dužnici</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300">Sva otvorena dugovanja u sistemu.</p>
+          {embedded ? (
+            <p className="text-sm text-slate-600 dark:text-slate-300">Sva otvorena dugovanja u sistemu.</p>
+          ) : (
+            <>
+              <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Dužnici</h1>
+              <p className="text-sm text-slate-600 dark:text-slate-300">Sva otvorena dugovanja u sistemu.</p>
+            </>
+          )}
         </div>
         <div className="text-right">
           <div className="text-xs text-slate-500">Ukupno</div>

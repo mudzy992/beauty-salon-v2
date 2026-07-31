@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog'
 import { Drawer, DrawerContent } from '../../components/ui/drawer'
+import { useIsMobile } from '../../hooks/use-is-mobile'
 import { DailyLogEntryFormFields } from './entry-form-fields'
 import type {
   ClientOption,
@@ -34,20 +35,6 @@ type Props = {
   saveLabel: string
 }
 
-const useIsMobile = (): boolean => {
-  const [isMobile, setIsMobile] = useState(
-    typeof window !== 'undefined'
-      ? window.matchMedia('(max-width: 767px)').matches
-      : false,
-  )
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)')
-    const onChange = () => setIsMobile(mq.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-  return isMobile
-}
 
 export const DailyLogEntryFormDialog = (props: Props) => {
   const {

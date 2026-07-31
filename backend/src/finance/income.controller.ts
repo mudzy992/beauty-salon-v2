@@ -1,8 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { IncomeBooksService } from './income-books.service';
+import { IncomeManualEntriesService } from './income-manual-entries.service';
+import { IncomeSyncService } from './income-sync.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { UnlockIncomeBookDto } from './dto/unlock-income-book.dto';
@@ -13,7 +24,11 @@ import { UpdateIncomeBookManualEntryDto } from './dto/update-income-book-manual-
 @UseGuards(RolesGuard)
 @Roles('SYSTEM_ADMIN', 'OWNER')
 export class IncomeController {
-  constructor(private readonly incomeBooks: IncomeBooksService) {}
+  constructor(
+    private readonly incomeBooks: IncomeBooksService,
+    private readonly manualEntries: IncomeManualEntriesService,
+    private readonly incomeSync: IncomeSyncService,
+  ) {}
 
   @Get()
   findAll() {
@@ -21,16 +36,26 @@ export class IncomeController {
   }
 
   @Get('month/:year/:month')
-  getOrCreate(@Param('year') year: string, @Param('month') month: string) {
-    return this.incomeBooks.getOrCreateForMonth(
-      parseInt(year, 10),
-      parseInt(month, 10),
-    );
+  getOrCreate(
+    @Param('year', ParseIntPipe) year: number,
+    @Param('month', ParseIntPipe) month: number,
+  ) {
+    return this.incomeBooks.getOrCreateForMonth(year, month);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.incomeBooks.findOne(id);
+  }
+
+  @Get(':id/integrity')
+  checkIntegrity(@Param('id') id: string) {
+    return this.incomeSync.checkIntegrity(id);
+  }
+
+  @Post(':id/resync')
+  resync(@Param('id') id: string) {
+    return this.incomeSync.resyncBook(id);
   }
 
   @Post(':id/unlock')
@@ -53,7 +78,7 @@ export class IncomeController {
     @Body() dto: CreateIncomeBookManualEntryDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.incomeBooks.createManualEntry(id, dto, user.sub);
+    return this.manualEntries.create(id, dto, user.sub);
   }
 
   @Patch(':id/manual-entries/:entryId')
@@ -63,7 +88,7 @@ export class IncomeController {
     @Body() dto: UpdateIncomeBookManualEntryDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.incomeBooks.updateManualEntry(id, entryId, dto, user.sub);
+    return this.manualEntries.update(id, entryId, dto, user.sub);
   }
 
   @Delete(':id/manual-entries/:entryId')
@@ -72,11 +97,11 @@ export class IncomeController {
     @Param('entryId') entryId: string,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.incomeBooks.deleteManualEntry(id, entryId, user.sub);
+    return this.manualEntries.remove(id, entryId, user.sub);
   }
 
   @Post('sync-from-daily-log/:dailyLogEntryId')
   syncFromDailyLog(@Param('dailyLogEntryId') dailyLogEntryId: string) {
-    return this.incomeBooks.addEntryFromDailyLog(dailyLogEntryId);
+    return this.incomeSync.addEntryFromDailyLog(dailyLogEntryId);
   }
 }

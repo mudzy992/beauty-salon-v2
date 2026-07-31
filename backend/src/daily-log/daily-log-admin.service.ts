@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { DailyLogService } from './daily-log.service';
 import { DailyLogReversalService } from './daily-log-reversal.service';
 import { DailyLogValidators } from './daily-log.validators';
-import { IncomeBooksService } from '../finance/income-books.service';
+import { IncomeSyncService } from '../finance/income-sync.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import type { UpdateDailyLogEntryDto } from './dto/update-daily-log-entry.dto';
 import type { DeleteDailyLogEntryDto } from './dto/delete-daily-log-entry.dto';
@@ -21,7 +21,7 @@ export class DailyLogAdminService {
     private readonly dailyLog: DailyLogService,
     private readonly reversal: DailyLogReversalService,
     private readonly validators: DailyLogValidators,
-    private readonly incomeBooks: IncomeBooksService,
+    private readonly incomeSync: IncomeSyncService,
     private readonly loyalty: LoyaltyService,
   ) {}
 
@@ -57,9 +57,9 @@ export class DailyLogAdminService {
       });
     }
     if (entry.status === 'COMPLETED') {
-      await this.incomeBooks.assertBookOpenForDate(new Date(entry.date));
+      await this.incomeSync.assertBookOpenForDate(new Date(entry.date));
       if (dto.date) {
-        await this.incomeBooks.assertBookOpenForDate(
+        await this.incomeSync.assertBookOpenForDate(
           this.validators.parseDate(dto.date),
         );
       }
@@ -138,7 +138,7 @@ export class DailyLogAdminService {
     if (!entry.deletedAt) {
       throw new BadRequestException('Zapis nije obrisan.');
     }
-    await this.incomeBooks.assertBookOpenForDate(new Date(entry.date));
+    await this.incomeSync.assertBookOpenForDate(new Date(entry.date));
     const restored = await this.prisma.dailyLogEntry.update({
       where: { id },
       data: {
@@ -256,7 +256,7 @@ export class DailyLogAdminService {
     entryId: string,
     debtId: string,
   ): Promise<void> {
-    await this.incomeBooks.assertBookOpenForDate(
+    await this.incomeSync.assertBookOpenForDate(
       (
         await this.prisma.dailyLogEntry.findUniqueOrThrow({
           where: { id: entryId },

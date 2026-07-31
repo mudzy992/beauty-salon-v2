@@ -27,11 +27,6 @@ export class UpdateIncomeBookManualEntryDto {
   debtHandling?: 'CREATE_DEBT' | 'IGNORE_DEBT';
 
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  tipAmount?: number;
-
-  @IsOptional()
   @IsString()
   @MaxLength(2000)
   notes?: string | null;

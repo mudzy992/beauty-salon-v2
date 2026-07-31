@@ -517,6 +517,7 @@ model ExpenseTemplateField {
   template ExpenseCategoryTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   values   ExpenseFieldValue[]
 
+  @@index([templateId, sortOrder])
   @@map("expense_template_fields")
 }
 
@@ -554,6 +555,8 @@ model Expense {
   fieldValues ExpenseFieldValue[]
   attachments ExpenseAttachment[]
 
+  @@index([bookId, createdAt])
+  @@index([categoryId])
   @@map("expenses")
 }
 
@@ -681,6 +684,7 @@ model ClientDebt {
   @@index([stylistProfileId, status])
   @@index([createdById, status])
   @@index([dailyLogEntryId])
+  @@index([manualEntryId, status])
   @@map("client_debts")
 }
 
@@ -689,11 +693,12 @@ model IncomeBookLockEvent {
   bookId      String   @map("book_id")
   action      String // LOCK | UNLOCK
   reason      String?  @db.Text
-  createdById String   @map("created_by_id")
+  /// null = automatsko zaključavanje iz CRON-a (nema korisnika)
+  createdById String?  @map("created_by_id")
   createdAt   DateTime @default(now()) @map("created_at")
 
   book      IncomeBook @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  createdBy User       @relation("IncomeBookLockEventsCreated", fields: [createdById], references: [id], onDelete: Restrict)
+  createdBy User?      @relation("IncomeBookLockEventsCreated", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([bookId, createdAt])
   @@map("income_book_lock_events")

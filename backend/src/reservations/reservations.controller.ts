@@ -56,6 +56,7 @@ export class ReservationsController {
         fromDate: query.fromDate,
         toDate: query.toDate,
         status: query.status,
+        clientSearch: query.clientSearch,
         asClient: query.asClient,
         asStylist: query.asStylist,
         page: query.page,

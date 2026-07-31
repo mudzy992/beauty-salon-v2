@@ -1,12 +1,40 @@
 ---
-description: KIF/KUF pravila, template mehanizam, automatski CRON-ovi
-globs: ["backend/src/finance/**/*", "backend/src/daily-log/**/*"]
+description: KIF/KUF pravila, lifecycle knjige, dugovi, template mehanizam, automatski CRON-ovi
+globs: ["backend/src/finance/**/*", "backend/src/daily-log/**/*", "frontend/src/features/finance/**/*"]
 alwaysApply: false
 ---
 
 # Finance System
 
-- **KUF (rashodi)**: expense_books (po mjesecu), automatski se kreira knjiga na početku mjeseca. Zaključavanje ručno; jednom zaključana – otključavanje samo kroz bazu. expense_category_templates definiše polja; expense_categories vezane za template. Rashod se unosi po kategoriji; polja iz templatea + prilozi (expense_attachments).
-- **KIF (prihodi)**: income_books mjesečno; otvaranje/zatvaranje automatski (CRON). Unos iz daily_log_entries (COMPLETED); suma prihoda i baksisa u knjigu.
-- **Dnevna knjiga**: daily_log_entries – automatski iz potvrđenih rezervacija ili ručni unos. Stilist označava završetak, actualPrice, tipAmount; before/after slike preko daily_log_images.
-- **Template polja**: fieldType: TEXT | NUMBER | CURRENCY | DATE | FILE. requiresAttachmentPerItem na templateu za kategorije gdje svaki stavka ima prilog (npr. doprinosi).
+Puna matrica: `.cursor/docs/matrices/finance/MATRIX.md` (source of truth). Ovdje su samo pravila koja se moraju poštovati pri izmjenama.
+
+## Knjige
+
+- **KIF (`IncomeBook`)**: mjesečno. Auto stavke iz `daily_log_entries` (COMPLETED) + ručne stavke (`IncomeBookManualEntry`). CRON 1. u mjesecu otvara novu i zaključava prethodnu.
+- **KUF (`ExpenseBook`)**: mjesečno, isti CRON je otvara. Rashod se unosi po kategoriji; kategorija nosi predložak sa poljima + prilozi (`expense_attachments`).
+- **Lock**: `closedAt != null` znači read-only. Otključavanje je moguće kroz `POST api/income-books/:id/unlock` uz **obavezan razlog**; svaki lock/unlock piše `IncomeBookLockEvent` (CRON auto-close piše event sa `createdById = null`).
+
+## Obavezna pravila pri izmjenama
+
+- Svaki upis koji dira knjigu mora prvo proći `IncomeSyncService.assertBookOpenForDate` ili `getEditableBookOrThrow`. Ne postoji putanja koja piše u zaključanu knjigu.
+- `recalculateTotals(bookId, tx)` se poziva **unutar iste transakcije** kao i izmjena stavke, nikad nakon commita.
+- Iznosi: `IncomeBookEntry.amount` = prihod bez napojnice (`actualPrice - tipAmount`), napojnica ide u `tipAmount`. Frontend ne re-računa totale knjige.
+- Dugovi: izmjena/brisanje ručne stavke ide kroz `syncDebtForManualEntry` (upsert semantika, bez duplih i orphan dugova). SETTLED dug blokira izmjenu iznosa i brisanje stavke.
+- Otpis duga je `PATCH api/client-debts/:id/write-off` (bez knjiženja prihoda, razlog obavezan); naplata je `POST api/client-debts/:id/repay` (kreira ručnu KIF stavku, traži otvorenu knjigu).
+- Nikad ne gutati grešku sinhronizacije KIF-a — logovati i propagirati.
+
+## Rashodi i predlošci
+
+- `fieldType`: `TEXT | NUMBER | CURRENCY | DATE | FILE`. `requiresAttachmentPerItem` znači prilog po stavci.
+- `ExpensesService.create/update` su u `prisma.$transaction`; `assertFieldValuesMatchTemplate` provjerava obavezna polja, pripadnost `fieldId` predlošku kategorije i duplikate.
+- Polje predloška koje je korišteno u nekom rashodu se ne briše.
+
+## Struktura
+
+Backend: `repositories/income-book.repository.ts` (upiti + totali), `income-books.service.ts` (lifecycle), `income-manual-entries.service.ts` (ručne stavke + dugovi), `income-sync.service.ts` (dnevna knjiga → KIF, integritet, re-sync), `common/utils/book-period.ts` (period helperi — ne duplirati `isPastMonth`/`isFutureMonth`).
+
+Frontend: `features/finance/{api,hooks,components,income,expense,catalog}`. Sve dohvaćanje kroz TanStack Query sa ključevima iz `hooks/query-keys.ts` i `invalidateQueries` nakon mutacije. Potvrde kroz `ConfirmDialog`, nikad `window.confirm`.
+
+## Drift
+
+`GET api/income-books/:id/integrity` vraća COMPLETED dnevne unose bez KIF stavke i razliku totala; `POST api/income-books/:id/resync` popravlja otvorenu knjigu.

@@ -15,14 +15,18 @@
     "settings": "Postavke",
     "notifications": "Notifikacije",
     "emailSettings": "Email postavke",
-    "clientAnalytics": "Analitika klijenata",
+    "clientAnalytics": "Analitika klijenta",
     "stylistAnalytics": "Analitika stiliste",
     "analytics": "Analitika",
     "loyalty": "Loyalty program",
-    "sectionOperational": "Operativno",
+    "debtors": "Dužnici",
+    "sectionOverview": "Pregled",
+    "sectionOperational": "Operacije",
     "sectionSalon": "Salon",
+    "sectionFinance": "Finansije",
     "sectionContent": "Sadržaj",
-    "sectionPeople": "Korisnici",
+    "sectionPeople": "Ljudi",
+    "sectionSystem": "Sistem",
     "sectionSettings": "Postavke"
   },
   "auth": {
@@ -167,7 +171,65 @@
     "addField": "Dodaj polje",
     "fieldName": "Naziv polja",
     "fieldType": "Tip polja",
-    "required": "Obavezno"
+    "required": "Obavezno",
+    "tabs": {
+      "income": "Knjiga Prihoda",
+      "expense": "Knjiga Rashoda",
+      "categories": "Kategorije Rashoda"
+    },
+    "book": {
+      "openForMonth": "Otvori knjigu za mjesec",
+      "openBook": "Otvori knjigu",
+      "locked": "Zaključana",
+      "open": "Otvorena",
+      "lock": "Zaključaj",
+      "unlock": "Otključaj",
+      "lockConfirmTitle": "Zaključati knjigu?",
+      "lockConfirmBody": "Nakon zaključavanja stavke se ne mogu dodavati, mijenjati ni brisati.",
+      "unlockConfirmTitle": "Otključati knjigu?",
+      "unlockReason": "Razlog otključavanja",
+      "lockHistory": "Zaključavanja",
+      "auditHistory": "Izmjene ručnih stavki"
+    },
+    "summary": {
+      "revenue": "Prihod bez napojnice",
+      "tips": "Napojnice",
+      "totalCollected": "Ukupno naplaćeno",
+      "totalExpenses": "Ukupno rashodi",
+      "net": "Neto (KIF − KUF)",
+      "filtered": "Prikazano (filter)"
+    },
+    "manualEntry": {
+      "create": "Novi ručni prihod",
+      "edit": "Uredi ručni prihod",
+      "paid": "Naplaćeno",
+      "servicePrice": "Cijena servisa",
+      "unpaid": "Nenaplaćeno",
+      "ignoreDebt": "Zanemari",
+      "createDebt": "Evidentiraj dug"
+    },
+    "integrity": {
+      "healthy": "Knjiga je usklađena sa dnevnikom rada.",
+      "drift": "Knjiga nije usklađena sa dnevnikom",
+      "resync": "Sinhronizuj"
+    },
+    "filters": {
+      "search": "Pretraga",
+      "stylist": "Stilista",
+      "category": "Kategorija",
+      "amountFrom": "Iznos od",
+      "amountTo": "Iznos do",
+      "clear": "Očisti",
+      "all": "Sve",
+      "fromDailyLog": "Iz dnevnika",
+      "manual": "Ručne"
+    },
+    "empty": {
+      "noIncomeBooks": "Još nema otvorenih knjiga prihoda",
+      "noExpenseBooks": "Još nema otvorenih knjiga rashoda",
+      "noEntries": "Nema stavki",
+      "noExpenses": "Nema rashoda"
+    }
   },
   "reviews": {
     "approve": "Odobri",

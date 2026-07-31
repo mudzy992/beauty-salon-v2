@@ -1,13 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
   Loader2,
-  Search,
   Star,
   TriangleAlert,
 } from 'lucide-react'
@@ -22,25 +18,6 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import type { BadgeProps } from '../components/ui/badge'
-
-interface UserOption {
-  id: string
-  username: string
-  firstName: string | null
-  lastName: string | null
-  email: string | null
-  phone: string | null
-  isActive: boolean
-  createdAt: string
-  userRoles?: { role: { name: string } }[]
-}
-
-interface PaginatedResponse<T> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-}
 
 interface ManualEntry {
   id: string
@@ -142,15 +119,6 @@ const statusLabels: Record<string, string> = {
   NO_SHOW: 'Nije došao/la',
 }
 
-const roleBadgeVariant = (role: string): NonNullable<BadgeProps['variant']> => {
-  if (role === 'SYSTEM_ADMIN') return 'danger'
-  if (role === 'OWNER') return 'brand'
-  if (role === 'STYLIST') return 'secondary'
-  return 'success'
-}
-
-const PAGE_SIZE = 15
-
 const SmallStatCard = ({
   title,
   value,
@@ -183,45 +151,19 @@ const StarRating = ({ rating, max = 5 }: { rating: number; max?: number }) => (
 
 export default function ClientAnalytics() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [users, setUsers] = useState<UserOption[]>([])
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(0)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(searchParams.get('userId'))
   const [analytics, setAnalytics] = useState<ClientAnalyticsData | null>(null)
   const [loading, setLoading] = useState(false)
-  const [listLoading, setListLoading] = useState(true)
   const [dateFrom, setDateFrom] = useState(searchParams.get('fromDate') ?? '')
   const [dateTo, setDateTo] = useState(searchParams.get('toDate') ?? '')
-  const [totalUsers, setTotalUsers] = useState(0)
 
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailReservation, setDetailReservation] = useState<ClientAnalyticsData['reservations'][0] | null>(null)
   const [detailReview, setDetailReview] = useState<ClientAnalyticsData['reviews'][0] | null>(null)
   const [clientDebts, setClientDebts] = useState<ClientDebtRow[]>([])
   const [debtsLoading, setDebtsLoading] = useState(false)
-
-  useEffect(() => {
-    setListLoading(true)
-    api
-      .get<UserOption[] | PaginatedResponse<UserOption>>('/api/users', {
-        params: { page, pageSize: PAGE_SIZE },
-      })
-      .then((r) => {
-        if (Array.isArray(r.data)) {
-          setUsers(r.data)
-          setTotalUsers(r.data.length)
-          return
-        }
-        setUsers(Array.isArray(r.data.items) ? r.data.items : [])
-        setTotalUsers(r.data.total ?? 0)
-      })
-      .catch(() => {
-        setUsers([])
-        setTotalUsers(0)
-      })
-      .finally(() => setListLoading(false))
-  }, [page])
 
   const selectUser = useCallback(
     async (userId: string, from?: string, to?: string) => {
@@ -259,25 +201,6 @@ export default function ClientAnalytics() {
     if (uid && !analytics) void selectUser(uid, from, to)
   }, [analytics, searchParams, selectUser])
 
-  const filteredUsers = useMemo(() => {
-    if (!search) return users
-    const q = search.toLowerCase()
-    return users.filter(
-      (u) =>
-        u.username.toLowerCase().includes(q) ||
-        (u.firstName?.toLowerCase().includes(q) ?? false) ||
-        (u.lastName?.toLowerCase().includes(q) ?? false) ||
-        (u.email?.toLowerCase().includes(q) ?? false) ||
-        (u.phone?.includes(q) ?? false),
-    )
-  }, [users, search])
-
-  const totalPages = Math.max(1, Math.ceil(totalUsers / PAGE_SIZE))
-
-  useEffect(() => {
-    setPage(0)
-  }, [search])
-
   const applyDateFilter = () => {
     if (selectedUserId && dateFrom && dateTo) void selectUser(selectedUserId, dateFrom, dateTo)
   }
@@ -289,9 +212,7 @@ export default function ClientAnalytics() {
   }
 
   const goBack = () => {
-    setSelectedUserId(null)
-    setAnalytics(null)
-    setSearchParams({})
+    navigate('/admin/users')
   }
 
   const openReservationDetail = (r: ClientAnalyticsData['reservations'][0]) => {
@@ -321,116 +242,14 @@ export default function ClientAnalytics() {
     [u.firstName, u.lastName].filter(Boolean).join(' ') || u.username
 
   if (!selectedUserId) {
-    return (
-      <div>
-        <h1 className="mb-6 text-2xl font-semibold text-slate-900 dark:text-slate-50">Analitika Klijenata</h1>
-
-        <div className="relative mb-4 max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Pretražite po imenu, emailu, telefonu..."
-            className="pl-9"
-          />
-        </div>
-
-        <Card className="overflow-hidden">
-          {listLoading ? (
-            <div className="flex justify-center p-10 text-slate-500">
-              <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                    <th className="py-3 pl-4 pr-3 font-medium">Ime i Prezime</th>
-                    <th className="py-3 pr-3 font-medium">Email</th>
-                    <th className="py-3 pr-3 font-medium">Telefon</th>
-                    <th className="py-3 pr-3 font-medium">Uloge</th>
-                    <th className="py-3 pr-3 font-medium">Status</th>
-                    <th className="py-3 pr-3 font-medium">Registrovan</th>
-                    <th className="py-3 pr-4 text-right font-medium">Akcije</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-6 text-slate-500">
-                        {t('common.noData')}
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredUsers.map((u) => (
-                      <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-slate-900/40">
-                        <td className="py-3 pl-4 pr-3 font-medium text-slate-900 dark:text-slate-50">{getUserName(u)}</td>
-                        <td className="py-3 pr-3 text-slate-700 dark:text-slate-200">{u.email ?? '-'}</td>
-                        <td className="py-3 pr-3 text-slate-700 dark:text-slate-200">{u.phone ?? '-'}</td>
-                        <td className="py-3 pr-3">
-                          <div className="flex flex-wrap gap-1">
-                            {u.userRoles?.map((r) => (
-                              <Badge key={r.role.name} variant={roleBadgeVariant(r.role.name)} className="text-[10px]">
-                                {r.role.name}
-                              </Badge>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-3 pr-3">
-                          <Badge variant={u.isActive ? 'success' : 'danger'} className="text-[10px]">
-                            {u.isActive ? 'Aktivan' : 'Neaktivan'}
-                          </Badge>
-                        </td>
-                        <td className="py-3 pr-3 text-xs text-slate-500">{new Date(u.createdAt).toLocaleDateString('bs-BA')}</td>
-                        <td className="py-3 pr-4 text-right">
-                          <Button type="button" size="sm" variant="outline" onClick={() => void selectUser(u.id)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Analitika
-                          </Button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
-
-        {totalPages > 1 ? (
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-slate-500">
-              {totalUsers} korisnika ukupno
-            </p>
-            <div className="flex items-center gap-2">
-              <Button type="button" size="icon" variant="outline" aria-label="Prethodna" disabled={page === 0} onClick={() => setPage(page - 1)}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                {page + 1} / {totalPages}
-              </p>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                aria-label="Sljedeća"
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage(page + 1)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    )
+    return <Navigate to="/admin/users" replace />
   }
 
   return (
     <div>
       <Button type="button" variant="ghost" className="mb-4" onClick={goBack}>
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Nazad na listu
+        Nazad na korisnike
       </Button>
 
       {loading ? (

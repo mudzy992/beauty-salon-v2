@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { IncomeBooksService } from '../finance/income-books.service';
+import { IncomeSyncService } from '../finance/income-sync.service';
+import { IncomeBookRepository } from '../finance/repositories/income-book.repository';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { getServiceAmount } from './daily-log.amounts';
 
@@ -11,7 +12,8 @@ type TxClient = Prisma.TransactionClient;
 export class DailyLogReversalService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly incomeBooks: IncomeBooksService,
+    private readonly incomeSync: IncomeSyncService,
+    private readonly incomeBookRepository: IncomeBookRepository,
     private readonly loyalty: LoyaltyService,
   ) {}
 
@@ -19,13 +21,13 @@ export class DailyLogReversalService {
     date: Date;
     id: string;
   }): Promise<void> {
-    await this.incomeBooks.assertBookOpenForDate(new Date(entry.date));
+    await this.incomeSync.assertBookOpenForDate(new Date(entry.date));
     const debtPayments = await this.prisma.dailyLogEntry.findMany({
       where: { sourceEntryId: entry.id, deletedAt: null },
       select: { date: true },
     });
     for (const dp of debtPayments) {
-      await this.incomeBooks.assertBookOpenForDate(new Date(dp.date));
+      await this.incomeSync.assertBookOpenForDate(new Date(dp.date));
     }
   }
 
@@ -62,38 +64,31 @@ export class DailyLogReversalService {
     if (entry.status !== 'COMPLETED' || entry.deletedAt || entry.kind === 'DEBT_PAYMENT') {
       return;
     }
-    const book = await this.incomeBooks.assertBookOpenForDate(new Date(entry.date));
+    const book = await this.incomeSync.assertBookOpenForDate(new Date(entry.date));
     const existing = await this.prisma.incomeBookEntry.findFirst({
       where: { dailyLogEntryId: entry.id },
     });
-    if (existing) {
-      if (existing.bookId !== book.id) {
-        await this.prisma.incomeBookEntry.delete({ where: { id: existing.id } });
-        await this.incomeBooks.recalculateTotals(existing.bookId);
-        const serviceAmount = getServiceAmount(entry.actualPrice, entry.tipAmount);
-        await this.prisma.incomeBookEntry.create({
-          data: {
-            bookId: book.id,
-            dailyLogEntryId: entry.id,
-            amount: serviceAmount,
-            tipAmount: entry.tipAmount as any,
-            date: entry.date,
-          },
-        });
-      } else {
-        await this.prisma.incomeBookEntry.update({
-          where: { id: existing.id },
-          data: {
-            amount: getServiceAmount(entry.actualPrice, entry.tipAmount),
-            tipAmount: entry.tipAmount as any,
-            date: entry.date,
-          },
-        });
-      }
-      await this.incomeBooks.recalculateTotals(book.id);
+    if (!existing) {
+      await this.incomeSync.addEntryFromDailyLog(entry.id);
       return;
     }
-    await this.incomeBooks.addEntryFromDailyLog(entry.id);
+    const data = {
+      amount: getServiceAmount(entry.actualPrice, entry.tipAmount),
+      tipAmount: entry.tipAmount as Prisma.Decimal,
+      date: entry.date,
+    };
+    await this.prisma.$transaction(async (tx) => {
+      if (existing.bookId !== book.id) {
+        await tx.incomeBookEntry.delete({ where: { id: existing.id } });
+        await this.recalcInTx(tx, existing.bookId);
+        await tx.incomeBookEntry.create({
+          data: { bookId: book.id, dailyLogEntryId: entry.id, ...data },
+        });
+      } else {
+        await tx.incomeBookEntry.update({ where: { id: existing.id }, data });
+      }
+      await this.recalcInTx(tx, book.id);
+    });
   }
 
   private async removeIncomeBookEntries(
@@ -181,22 +176,6 @@ export class DailyLogReversalService {
   }
 
   async recalcInTx(tx: TxClient, bookId: string): Promise<void> {
-    const autoAgg = await tx.incomeBookEntry.aggregate({
-      where: { bookId },
-      _sum: { amount: true, tipAmount: true },
-    });
-    const manualAgg = await tx.incomeBookManualEntry.aggregate({
-      where: { bookId },
-      _sum: { amount: true, tipAmount: true },
-    });
-    const totalRevenue =
-      Number(autoAgg._sum.amount ?? 0) + Number(manualAgg._sum.amount ?? 0);
-    const totalTips =
-      Number(autoAgg._sum.tipAmount ?? 0) +
-      Number(manualAgg._sum.tipAmount ?? 0);
-    await tx.incomeBook.update({
-      where: { id: bookId },
-      data: { totalRevenue, totalTips },
-    });
+    await this.incomeBookRepository.recalculateTotals(bookId, tx);
   }
 }

@@ -512,11 +512,41 @@ export class ReservationsService {
     return full;
   }
 
+  private buildClientNameSearch(
+    search: string,
+  ): Array<Record<string, unknown>> {
+    const tokens = search.split(/\s+/).filter(Boolean);
+    const clauses: Array<Record<string, unknown>> = [
+      { firstName: { contains: search } },
+      { lastName: { contains: search } },
+    ];
+    if (tokens.length >= 2) {
+      const first = tokens[0];
+      const last = tokens.slice(1).join(' ');
+      clauses.push(
+        {
+          AND: [
+            { firstName: { contains: first } },
+            { lastName: { contains: last } },
+          ],
+        },
+        {
+          AND: [
+            { firstName: { contains: last } },
+            { lastName: { contains: first } },
+          ],
+        },
+      );
+    }
+    return clauses;
+  }
+
   async findAll(
     query: {
       fromDate?: string;
       toDate?: string;
       status?: string;
+      clientSearch?: string;
       asClient?: boolean;
       asStylist?: boolean;
       page?: number;
@@ -528,6 +558,7 @@ export class ReservationsService {
       reservationDate?: { gte?: Date; lte?: Date };
       status?: string;
       clientId?: string;
+      client?: { OR: Array<Record<string, unknown>> };
       OR?: Array<{
         confirmedStylistId?: string;
         stylistResponses?: { some: { stylistProfileId: string } };
@@ -546,6 +577,10 @@ export class ReservationsService {
       };
     }
     if (query.status) where.status = query.status;
+    const clientSearch = query.clientSearch?.trim();
+    if (clientSearch) {
+      where.client = { OR: this.buildClientNameSearch(clientSearch) };
+    }
     if (query.asClient) where.clientId = user.sub;
     if (query.asStylist) {
       const stylistProfileId = await this.getStylistProfileIdByUserId(user.sub);

@@ -13,6 +13,7 @@ import { RolesGuard } from '../common/guards/roles.guard'
 import { ExpenseTemplatesService } from './expense-templates.service'
 import { CreateExpenseTemplateDto } from './dto/create-expense-template.dto'
 import { UpdateExpenseTemplateDto } from './dto/update-expense-template.dto'
+import { CreateExpenseTemplateFieldDto } from './dto/create-expense-template-field.dto'
 
 @Controller('api/expense-templates')
 @UseGuards(RolesGuard)
@@ -43,23 +44,9 @@ export class ExpenseTemplatesController {
   @Post(':id/fields')
   addField(
     @Param('id') id: string,
-    @Body()
-    body: {
-      fieldName: string
-      fieldType: string
-      isRequired?: boolean
-      sortOrder?: number
-      defaultValue?: string
-    },
+    @Body() dto: CreateExpenseTemplateFieldDto,
   ) {
-    return this.templates.addField(
-      id,
-      body.fieldName,
-      body.fieldType,
-      body.isRequired,
-      body.sortOrder,
-      body.defaultValue,
-    )
+    return this.templates.addField(id, dto)
   }
 
   @Delete('fields/:fieldId')

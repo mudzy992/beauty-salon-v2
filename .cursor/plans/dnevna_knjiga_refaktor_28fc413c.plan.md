@@ -48,6 +48,8 @@ flowchart LR
   tip --> total
 ```
 
+
+
 ## Bug u KIF-u (isti korijen)
 
 Cijeli finance modul tretira `amount` kao prihod od servisa **bez** napojnice: [frontend/src/features/finance/tabs/income-books-tab.tsx](frontend/src/features/finance/tabs/income-books-tab.tsx) racuna `paidAmount = amount + tipAmount` (linija 226) i ukupno kao `totalRevenue + totalTips` (linije 420, 1051). Rucni KIF unosi to postuju (`amount = min(paidAmount, servicePrice)`).
