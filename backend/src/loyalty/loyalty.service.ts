@@ -690,9 +690,9 @@ export class LoyaltyService {
 
     const existingEntry = await this.prisma.dailyLogEntry.findUnique({
       where: { id: dailyLogEntryId },
-      select: { loyaltyPointsUsed: true },
+      select: { loyaltyPointsUsed: true, deletedAt: true },
     });
-    if (!existingEntry) {
+    if (!existingEntry || existingEntry.deletedAt) {
       throw new BadRequestException(
         'Zapis u dnevnoj knjizi nije pronađen za loyalty popust.',
       );
@@ -867,5 +867,57 @@ export class LoyaltyService {
     });
     await this.recalculateTier(updated.id);
     return updated;
+  }
+
+  /**
+   * Reverses loyalty side-effects of a daily log entry.
+   * EARN points are removed; REDEEM points are restored. Balance is clamped at 0.
+   */
+  async reverseFromDailyLog(dailyLogEntryId: string): Promise<void> {
+    const source = `daily_log:${dailyLogEntryId}`;
+    const txs = await this.prisma.loyaltyTransaction.findMany({
+      where: { source },
+      include: { account: true },
+    });
+    if (txs.length === 0) return;
+    const byAccount = new Map<
+      string,
+      { accountId: string; delta: number }
+    >();
+    for (const tx of txs) {
+      const current = byAccount.get(tx.accountId) ?? {
+        accountId: tx.accountId,
+        delta: 0,
+      };
+      if (tx.type === 'EARN') {
+        current.delta -= Math.abs(tx.points);
+      } else if (tx.type === 'REDEEM') {
+        current.delta += Math.abs(tx.points);
+      }
+      byAccount.set(tx.accountId, current);
+    }
+    for (const item of byAccount.values()) {
+      const account = await this.prisma.loyaltyAccount.findUnique({
+        where: { id: item.accountId },
+      });
+      if (!account) continue;
+      const nextPoints = Math.max(0, account.points + item.delta);
+      const appliedDelta = nextPoints - account.points;
+      if (appliedDelta === 0 && item.delta === 0) continue;
+      await this.prisma.loyaltyAccount.update({
+        where: { id: account.id },
+        data: {
+          points: { set: nextPoints },
+          transactions: {
+            create: {
+              points: appliedDelta,
+              type: 'ADJUST',
+              source: `daily_log_reversal:${dailyLogEntryId}`,
+            },
+          },
+        },
+      });
+      await this.recalculateTier(account.id);
+    }
   }
 }

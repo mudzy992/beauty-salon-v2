@@ -21,7 +21,10 @@ import type { DailyLogEntry } from '../../types';
 
 type DailyLogDetailScreenProps = {
   route: { params: { entryId: string } };
-  navigation: { goBack: () => void; navigate: (name: string, params?: any) => void };
+  navigation: {
+    goBack: () => void;
+    navigate: (name: string, params?: any) => void;
+  };
 };
 
 export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreenProps) {
@@ -126,6 +129,31 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
       ],
     );
   }, [entryId, fetchEntry, entry?.reservationId, navigation]);
+
+  const handleDelete = useCallback(() => {
+    Alert.alert('Obriši unos', 'Da li ste sigurni da želite obrisati ovaj unos?', [
+      { text: 'Odustani', style: 'cancel' },
+      {
+        text: 'Obriši',
+        style: 'destructive',
+        onPress: async () => {
+          setActing(true);
+          try {
+            await api.delete(`/api/daily-log/${entryId}`, { data: {} });
+            navigation.goBack();
+          } catch (err: unknown) {
+            const msg =
+              err && typeof err === 'object' && 'response' in err
+                ? (err as any).response?.data?.message
+                : 'Greška pri brisanju.';
+            Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+          } finally {
+            setActing(false);
+          }
+        },
+      },
+    ]);
+  }, [entryId, navigation]);
 
   const addImage = useCallback(
     async (isBefore: boolean) => {
@@ -260,13 +288,34 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           ) : null}
 
           {canComplete ? (
-            <Button
-              title={entry.reservationId ? 'Završi zapis (završava i rezervaciju)' : 'Završi zapis (upis u knjigu)'}
-              onPress={handleComplete}
-              loading={acting}
-              style={{ marginTop: spacing.md }}
-            />
-          ) : null}
+            <>
+              <Button
+                title={entry.reservationId ? 'Završi zapis (završava i rezervaciju)' : 'Završi zapis (upis u knjigu)'}
+                onPress={handleComplete}
+                loading={acting}
+                style={{ marginTop: spacing.md }}
+              />
+              <Button
+                title="Uredi unos"
+                variant="outline"
+                onPress={() =>
+                  navigation.navigate('DailyLogNewEntry', { entryId })
+                }
+                style={{ marginTop: spacing.sm }}
+              />
+              <Button
+                title="Obriši unos"
+                variant="outline"
+                onPress={handleDelete}
+                loading={acting}
+                style={{ marginTop: spacing.sm }}
+              />
+            </>
+          ) : (
+            <Text style={[styles.infoText, { color: colors.textSecondary, marginTop: spacing.md }]}>
+              Kompletirani unos može mijenjati ili vratiti na čekanje samo administrator (web).
+            </Text>
+          )}
         </View>
       </Card>
 

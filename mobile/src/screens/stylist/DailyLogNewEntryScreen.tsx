@@ -48,10 +48,15 @@ type LoyaltyInfo = {
 };
 
 type DailyLogNewEntryScreenProps = {
-  navigation: { goBack: () => void; navigate: (screen: 'DailyLogDetail', params: { entryId: string }) => void };
+  route?: { params?: { entryId?: string } };
+  navigation: {
+    goBack: () => void;
+    navigate: (screen: 'DailyLogDetail', params: { entryId: string }) => void;
+  };
 };
 
-export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenProps) {
+export function DailyLogNewEntryScreen({ route, navigation }: DailyLogNewEntryScreenProps) {
+  const editEntryId = route?.params?.entryId;
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { profileId, loading: profileLoading } = useStylistProfile();
@@ -91,6 +96,50 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
   useEffect(() => {
     fetchOptions();
   }, [fetchOptions]);
+
+  useEffect(() => {
+    if (!editEntryId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const { data } = await api.get<{
+          id: string;
+          date: string;
+          notes: string | null;
+          actualPrice: number | string;
+          clientId?: string | null;
+          client?: { id: string; firstName?: string | null; lastName?: string | null };
+          items?: Array<{ serviceId: string }>;
+          serviceId?: string;
+          status: string;
+        }>(`/api/daily-log/${editEntryId}`);
+        if (!mounted) return;
+        if (data.status === 'COMPLETED') {
+          Alert.alert('Info', 'Kompletirani unos se ne može uređivati na mobilnoj.');
+          navigation.goBack();
+          return;
+        }
+        setDate(data.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
+        setNotes(data.notes ?? '');
+        setPaidAmount(String(Number(data.actualPrice ?? 0)));
+        const ids =
+          Array.isArray(data.items) && data.items.length > 0
+            ? data.items.map((x) => x.serviceId)
+            : data.serviceId
+              ? [data.serviceId]
+              : [];
+        setServiceIds(ids);
+        const cid = data.clientId ?? data.client?.id ?? '';
+        setClientId(cid);
+      } catch {
+        Alert.alert('Greška', 'Nije moguće učitati unos.');
+        navigation.goBack();
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [editEntryId, navigation]);
 
   const selectedServices = useMemo(
     () => serviceIds.map((id) => services.find((s) => s.id === id)).filter(Boolean) as Service[],
@@ -205,6 +254,19 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
     const doSubmit = async (debtHandling: 'CREATE_DEBT' | 'IGNORE_DEBT', tipAmount: number) => {
       setSaving(true);
       try {
+        if (editEntryId) {
+          await api.patch(`/api/daily-log/${editEntryId}`, {
+            serviceIds,
+            clientId,
+            date,
+            actualPrice: paidRaw,
+            tipAmount,
+            notes: notes.trim() || undefined,
+            ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
+          });
+          navigation.navigate('DailyLogDetail', { entryId: editEntryId });
+          return;
+        }
         const { data: entry } = await api.post<{ id: string }>('/api/daily-log', {
           stylistProfileId: profileId,
           serviceIds,
@@ -230,7 +292,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
       }
     };
 
-    if (paidRaw < chargeAmount) {
+    if (!editEntryId && paidRaw < chargeAmount) {
       const diff = Math.max(0, chargeAmount - paidRaw);
       Alert.alert(
         'Naplaćuje se manje nego što sistem zahtijeva',
@@ -246,7 +308,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
 
     const tip = Math.max(0, paidRaw - chargeAmount);
     await doSubmit('IGNORE_DEBT', tip);
-  }, [profileId, serviceIds, clientId, date, paidAmount, chargeAmount, notes, loyaltyPercent, navigation]);
+  }, [profileId, serviceIds, clientId, date, paidAmount, chargeAmount, notes, loyaltyPercent, navigation, editEntryId, selectedClient?.gender]);
 
   if (profileLoading || (loading && !profileId)) {
     return (
@@ -402,7 +464,7 @@ export function DailyLogNewEntryScreen({ navigation }: DailyLogNewEntryScreenPro
           )}
         </Card>
 
-        <Button title="Kreiraj zapis" onPress={handleSubmit} loading={saving} />
+        <Button title={editEntryId ? 'Sačuvaj izmjene' : 'Kreiraj zapis'} onPress={handleSubmit} loading={saving} />
         <Text style={[styles.hint, { color: colors.textMuted }]}>
           Nakon kreiranja možete dodati before/after slike i završiti zapis u detalju.
         </Text>

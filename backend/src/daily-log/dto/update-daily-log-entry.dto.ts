@@ -1,11 +1,16 @@
 import {
+  IsArray,
+  IsDateString,
+  IsIn,
   IsInt,
-  Max,
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
+  Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 export class UpdateDailyLogEntryDto {
@@ -24,10 +29,31 @@ export class UpdateDailyLogEntryDto {
   @MaxLength(2000)
   notes?: string;
 
-  /** Opcionalno: procenat loyalty popusta koji klijent želi iskoristiti za ovaj zapis. */
   @IsOptional()
   @IsInt()
   @Min(0)
   @Max(100)
   desiredLoyaltyPercent?: number;
+
+  @IsOptional()
+  @IsDateString()
+  date?: string;
+
+  @IsOptional()
+  @IsUUID()
+  stylistProfileId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  serviceIds?: string[];
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsUUID()
+  clientId?: string | null;
+
+  @IsOptional()
+  @IsIn(['PENDING', 'COMPLETED'])
+  status?: 'PENDING' | 'COMPLETED';
 }

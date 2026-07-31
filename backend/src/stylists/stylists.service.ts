@@ -344,6 +344,7 @@ export class StylistsService {
           where: {
             stylistProfileId,
             status: 'COMPLETED',
+            deletedAt: null,
             ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}),
           },
           include: {

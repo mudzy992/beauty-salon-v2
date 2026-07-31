@@ -507,7 +507,7 @@ export class UsersService {
       throw new NotFoundException('Korisnik nema profil stiliste.');
     const [dailyLogEntriesCount, confirmedReservationsCount, reservationResponsesCount, reviewsCount] =
       await Promise.all([
-        this.repo.dailyLogEntry.count({ where: { stylistProfileId } }),
+        this.repo.dailyLogEntry.count({ where: { stylistProfileId, deletedAt: null } }),
         this.repo.reservation.count({ where: { confirmedStylistId: stylistProfileId } }),
         this.repo.reservationStylistResponse.count({ where: { stylistProfileId } }),
         this.repo.review.count({ where: { stylistProfileId } }),
@@ -716,7 +716,7 @@ export class UsersService {
         }),
         this.repo.clientCancellationCount.findUnique({ where: { userId } }),
         this.repo.dailyLogEntry.findMany({
-          where: { clientId: userId, ...dailyLogDateFilter },
+          where: { clientId: userId, deletedAt: null, ...dailyLogDateFilter },
           include: {
             service: { select: { id: true, name: true, price: true } },
             stylistProfile: {

@@ -1,0 +1,11 @@
+﻿---
+description: Project baseline (generated on bootstrap).
+globs: ["backend/**", "frontend/**", "mobile/**", ".cursor/**"]
+alwaysApply: false
+---
+
+# Project baseline
+
+- DrÅ¾i `.cursorrules` kratkim (skretnica).
+- Domen pravila i detalji idu u `.cursor/rules/*`.
+- Za veÄ‡e promjene: Plan mode prvo (vidi `plan-first.mdc` ako postoji).

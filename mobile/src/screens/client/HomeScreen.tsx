@@ -266,11 +266,10 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
       }
       try {
         const { data } = await api.get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
-          params: { limit: 6, offset: 0 },
+          params: { limit: 6, random: 1 },
         });
         const list = Array.isArray(data?.items) ? data.items : [];
-        const shuffled = [...list].sort(() => Math.random() - 0.5);
-        setBeforeAfterPairs(shuffled.slice(0, 1));
+        setBeforeAfterPairs(list.slice(0, 1));
       } catch {
         setBeforeAfterPairs([]);
       }

@@ -431,12 +431,25 @@ export class IncomeBooksService {
     return { deleted: true };
   }
 
+  async assertBookOpenForDate(date: Date): Promise<{ id: string }> {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const book = await this.getOrCreateForMonth(year, month);
+    if (book.closedAt) {
+      throw new BadRequestException('Mjesec je zaključan u KIF-u.');
+    }
+    return book;
+  }
+
   /** Dodaje zapis iz daily log u knjigu prihoda (poziva se pri complete daily log ili ručno sync). */
   async addEntryFromDailyLog(dailyLogEntryId: string) {
     const entry = await this.prisma.dailyLogEntry.findUnique({
       where: { id: dailyLogEntryId },
     });
     if (!entry) throw new NotFoundException('Zapis dnevnika nije pronađen.');
+    if (entry.deletedAt) {
+      throw new BadRequestException('Obrisani zapis se ne knjiži u KIF.');
+    }
     if (entry.status !== 'COMPLETED')
       throw new Error('Samo završeni zapisi se dodaju u knjigu prihoda.');
     if ((entry as any).kind === 'DEBT_PAYMENT') {
@@ -467,7 +480,7 @@ export class IncomeBooksService {
     });
   }
 
-  private async recalculateTotals(bookId: string) {
+  async recalculateTotals(bookId: string) {
     const autoAgg = await this.prisma.incomeBookEntry.aggregate({
       where: { bookId },
       _sum: { amount: true, tipAmount: true },

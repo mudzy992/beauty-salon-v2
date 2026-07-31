@@ -252,7 +252,7 @@ export class AnalyticsService {
   ): Promise<StylistPerformance[]> {
     const [entries, manualEntries] = await Promise.all([
       this.prisma.dailyLogEntry.findMany({
-        where: { status: 'COMPLETED', date: { gte: fromDate, lte: toDate } },
+        where: { status: 'COMPLETED', deletedAt: null, date: { gte: fromDate, lte: toDate } },
         include: {
           stylistProfile: {
             include: {
@@ -340,7 +340,7 @@ export class AnalyticsService {
         include: { service: { select: { id: true, name: true, price: true } } },
       }),
       this.prisma.dailyLogEntry.findMany({
-        where: { status: 'COMPLETED', date: { gte: fromDate, lte: toDate } },
+        where: { status: 'COMPLETED', deletedAt: null, date: { gte: fromDate, lte: toDate } },
         include: { service: { select: { id: true, name: true, price: true } } },
       }),
       this.prisma.incomeBookManualEntry.findMany({

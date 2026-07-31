@@ -1,24 +1,35 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { DailyLogService } from './daily-log.service';
+import { DailyLogPublicService } from './daily-log-public.service';
+import { DailyLogAdminService } from './daily-log-admin.service';
 import { CreateDailyLogEntryDto } from './dto/create-daily-log-entry.dto';
 import { UpdateDailyLogEntryDto } from './dto/update-daily-log-entry.dto';
 import { AddDailyLogImageDto } from './dto/add-daily-log-image.dto';
 import { CreateFromReservationDto } from './dto/create-from-reservation.dto';
+import { DeleteDailyLogEntryDto } from './dto/delete-daily-log-entry.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
 
 @Controller('api/daily-log')
 export class DailyLogController {
-  constructor(private readonly dailyLog: DailyLogService) {}
+  constructor(
+    private readonly dailyLog: DailyLogService,
+    private readonly dailyLogPublic: DailyLogPublicService,
+    private readonly dailyLogAdmin: DailyLogAdminService,
+  ) {}
 
   @Post()
   create(
@@ -48,9 +59,18 @@ export class DailyLogController {
     @Query('fromDate') fromDate: string,
     @Query('toDate') toDate: string,
     @Query('stylistProfileId') stylistProfileId: string,
+    @Query('includeDeleted') includeDeleted: string | undefined,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.dailyLog.findAll({ fromDate, toDate, stylistProfileId }, user);
+    return this.dailyLog.findAll(
+      {
+        fromDate,
+        toDate,
+        stylistProfileId,
+        includeDeleted: includeDeleted === '1' || includeDeleted === 'true',
+      },
+      user,
+    );
   }
 
   @Get('before-after')
@@ -59,11 +79,13 @@ export class DailyLogController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
     @Query('serviceId') serviceId?: string,
+    @Query('random') random?: string,
   ) {
-    return this.dailyLog.findBeforeAfterPairs({
+    return this.dailyLogPublic.findBeforeAfterPairs({
       limit: limit != null ? parseInt(limit, 10) : undefined,
       offset: offset != null ? parseInt(offset, 10) : undefined,
       serviceId,
+      random: random === '1' || random === 'true',
     });
   }
 
@@ -78,12 +100,35 @@ export class DailyLogController {
     @Body() dto: UpdateDailyLogEntryDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.dailyLog.update(id, dto, user);
+    return this.dailyLogAdmin.update(id, dto, user);
   }
 
   @Post(':id/complete')
   complete(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.dailyLog.complete(id, user);
+  }
+
+  @Post(':id/revert')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  revert(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.dailyLogAdmin.revertToPending(id, user);
+  }
+
+  @Delete(':id')
+  softDelete(
+    @Param('id') id: string,
+    @Body() dto: DeleteDailyLogEntryDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.dailyLogAdmin.softDelete(id, dto, user);
+  }
+
+  @Post(':id/restore')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  restore(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
+    return this.dailyLogAdmin.restore(id, user);
   }
 
   @Post(':id/images')
@@ -92,6 +137,17 @@ export class DailyLogController {
     @Body() dto: AddDailyLogImageDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.dailyLog.addImage(id, dto, user);
+    return this.dailyLogAdmin.addImage(id, dto, user);
+  }
+
+  @Delete(':id/images/:imageId')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  removeImage(
+    @Param('id') id: string,
+    @Param('imageId') imageId: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.dailyLogAdmin.removeImage(id, imageId, user);
   }
 }

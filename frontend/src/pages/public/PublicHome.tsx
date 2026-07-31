@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, Calendar, CheckCircle2, Clock, Star } from 'lucide-react'
@@ -29,84 +29,6 @@ interface FeaturedReview {
   service?: { name: string }
 }
 
-const DEFAULT_BEFORE_AFTER_PAIRS: BeforeAfterPair[] = [
-  {
-    id: 'default-1',
-    before: {
-      pathOriginal:
-        'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=400&q=80',
-      pathMedium: null,
-      pathThumb: null,
-    },
-    after: {
-      pathOriginal:
-        'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=400&q=80',
-      pathMedium: null,
-      pathThumb: null,
-    },
-  },
-  {
-    id: 'default-2',
-    before: {
-      pathOriginal:
-        'https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?w=400&q=80',
-      pathMedium: null,
-      pathThumb: null,
-    },
-    after: {
-      pathOriginal:
-        'https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=400&q=80',
-      pathMedium: null,
-      pathThumb: null,
-    },
-  },
-  {
-    id: 'default-3',
-    before: {
-      pathOriginal:
-        'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=400&q=80',
-      pathMedium: null,
-      pathThumb: null,
-    },
-    after: {
-      pathOriginal:
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
-      pathMedium: null,
-      pathThumb: null,
-    },
-  },
-  {
-    id: 'default-4',
-    before: {
-      pathOriginal:
-        'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400&q=80',
-      pathMedium: null,
-      pathThumb: null,
-    },
-    after: {
-      pathOriginal:
-        'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=400&q=80',
-      pathMedium: null,
-      pathThumb: null,
-    },
-  },
-  {
-    id: 'default-5',
-    before: {
-      pathOriginal:
-        'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=400&q=80',
-      pathMedium: null,
-      pathThumb: null,
-    },
-    after: {
-      pathOriginal:
-        'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=400&q=80',
-      pathMedium: null,
-      pathThumb: null,
-    },
-  },
-]
-
 const getImageUrl = (path: string): string =>
   path.startsWith('http') ? path : getUploadUrl(path)
 
@@ -130,12 +52,11 @@ export default function PublicHome() {
   useEffect(() => {
     api
       .get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
-        params: { limit: 20, offset: 0 },
+        params: { limit: 6, random: 1 },
       })
       .then((r) => {
         const list = Array.isArray(r.data?.items) ? r.data.items : []
-        const shuffled = [...list].sort(() => Math.random() - 0.5)
-        setBeforeAfterPairs(shuffled.slice(0, 6))
+        setBeforeAfterPairs(list)
       })
       .catch(() => setBeforeAfterPairs([]))
       .finally(() => setBeforeAfterLoading(false))
@@ -147,11 +68,6 @@ export default function PublicHome() {
       .then((r) => setFeaturedReview(r.data ?? null))
       .catch(() => setFeaturedReview(null))
   }, [])
-
-  const displayPairs = useMemo(() => {
-    if (beforeAfterPairs.length >= 5) return beforeAfterPairs.slice(0, 6)
-    return [...beforeAfterPairs, ...DEFAULT_BEFORE_AFTER_PAIRS].slice(0, 6)
-  }, [beforeAfterPairs])
 
   const heroImage = getSetting(
     'public_hero_image',
@@ -313,6 +229,7 @@ export default function PublicHome() {
         </div>
       </section>
 
+      {!beforeAfterLoading && beforeAfterPairs.length === 0 ? null : (
       <section className={`${publicSection.subtle} ${publicSection.base}`}>
         <div className={`${publicPage.container}`}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8 mb-10 md:mb-12">
@@ -334,7 +251,7 @@ export default function PublicHome() {
           </div>
 
           <BeforeAfterSpotlight
-            pairs={displayPairs}
+            pairs={beforeAfterPairs}
             loading={beforeAfterLoading}
             resolveBefore={(p) =>
               getImageUrl(
@@ -368,6 +285,7 @@ export default function PublicHome() {
           ) : null}
         </div>
       </section>
+      )}
 
       <section className="relative overflow-hidden py-16 border-t border-slate-200/80 bg-slate-50/80">
         <Calendar

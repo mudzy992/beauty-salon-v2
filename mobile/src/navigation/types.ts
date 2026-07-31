@@ -19,7 +19,7 @@ export type StylistTabParamList = {
 export type StylistDailyLogStackParamList = {
   DailyLogList: undefined;
   DailyLogDetail: { entryId: string };
-  DailyLogNewEntry: undefined;
+  DailyLogNewEntry: { entryId?: string } | undefined;
   ReschedulePreview: {
     reservationId: string;
     includeBreaks?: boolean;

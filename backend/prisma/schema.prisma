@@ -73,6 +73,7 @@ model User {
   blogPosts                   BlogPost[]                   @relation("BlogAuthor")
   cancellationCount           ClientCancellationCount[]
   dailyLogEntriesAsClient     DailyLogEntry[]              @relation("DailyLogClient")
+  dailyLogEntriesDeleted      DailyLogEntry[]              @relation("DailyLogDeletedBy")
   clientDebtsAsClient         ClientDebt[]                 @relation("ClientDebtsClient")
   clientDebtsCreated          ClientDebt[]                 @relation("ClientDebtsCreatedBy")
   clientDebtsSettled          ClientDebt[]                 @relation("ClientDebtsSettledBy")
@@ -393,6 +394,10 @@ model DailyLogEntry {
   notes       String?   @db.Text
   status      String    @default("PENDING") // PENDING | COMPLETED
   completedAt DateTime? @map("completed_at")
+  sourceEntryId String? @map("source_entry_id")
+  deletedAt     DateTime? @map("deleted_at")
+  deletedById   String?   @map("deleted_by_id")
+  deleteReason  String?   @map("delete_reason") @db.Text
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
@@ -405,8 +410,15 @@ model DailyLogEntry {
   images         DailyLogImage[]
   incomeEntries  IncomeBookEntry[]
   clientDebts    ClientDebt[]
+  deletedBy      User?                      @relation("DailyLogDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  sourceEntry    DailyLogEntry?             @relation("DailyLogDebtPayments", fields: [sourceEntryId], references: [id], onDelete: SetNull)
+  debtPaymentEntries DailyLogEntry[]        @relation("DailyLogDebtPayments")
+  incomeManualEntries IncomeBookManualEntry[]
 
   @@index([debtId])
+  @@index([deletedAt])
+  @@index([status, deletedAt])
+  @@index([sourceEntryId])
   @@map("daily_log_entries")
 }
 
@@ -438,6 +450,8 @@ model DailyLogImage {
   dailyLogEntry DailyLogEntry @relation(fields: [dailyLogEntryId], references: [id], onDelete: Cascade)
   upload        Upload        @relation(fields: [uploadId], references: [id], onDelete: Cascade)
 
+  @@index([dailyLogEntryId, isBefore])
+  @@index([dailyLogEntryId, isAfter])
   @@map("daily_log_images")
 }
 
@@ -615,6 +629,7 @@ model IncomeBookManualEntry {
   serviceId        String   @map("service_id")
   stylistProfileId String?  @map("stylist_profile_id")
   clientId         String?  @map("client_id")
+  dailyLogEntryId  String?  @map("daily_log_entry_id")
   amount           Decimal  @db.Decimal(10, 2)
   tipAmount        Decimal  @default(0) @map("tip_amount") @db.Decimal(10, 2)
   notes            String?  @db.Text
@@ -627,10 +642,12 @@ model IncomeBookManualEntry {
   stylistProfile StylistProfile?              @relation(fields: [stylistProfileId], references: [id], onDelete: SetNull)
   client         User?                        @relation("IncomeManualEntriesClient", fields: [clientId], references: [id], onDelete: SetNull)
   createdBy      User                         @relation("IncomeManualEntriesCreated", fields: [createdById], references: [id], onDelete: Restrict)
+  dailyLogEntry  DailyLogEntry?               @relation(fields: [dailyLogEntryId], references: [id], onDelete: SetNull)
   audits         IncomeBookManualEntryAudit[]
   clientDebts    ClientDebt[]
 
   @@index([bookId, date])
+  @@index([dailyLogEntryId])
   @@map("income_book_manual_entries")
 }
 
