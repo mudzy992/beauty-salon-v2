@@ -66,6 +66,64 @@ describe('IncomeBooksService', () => {
     await expect(service.addEntryFromDailyLog('e1')).rejects.toThrow();
   });
 
+  it('addEntryFromDailyLog upisuje amount bez napojnice (actualPrice - tipAmount)', async () => {
+    const date = new Date('2026-03-15');
+    mockPrisma.dailyLogEntry.findUnique.mockResolvedValue({
+      id: 'e1',
+      status: 'COMPLETED',
+      deletedAt: null,
+      kind: 'SERVICE',
+      date,
+      actualPrice: 70,
+      tipAmount: 10,
+    });
+    mockPrisma.incomeBook.findUnique.mockResolvedValue({
+      id: 'b1',
+      year: 2026,
+      month: 3,
+      closedAt: null,
+    });
+    mockPrisma.incomeBookEntry.findUnique.mockResolvedValue(null);
+    mockPrisma.incomeBookEntry.create.mockResolvedValue({
+      id: 'ibe1',
+      bookId: 'b1',
+      amount: 60,
+      tipAmount: 10,
+    });
+    mockPrisma.incomeBookEntry.aggregate.mockResolvedValue({
+      _sum: { amount: 60, tipAmount: 10 },
+    });
+    mockPrisma.incomeBookManualEntry.aggregate.mockResolvedValue({
+      _sum: { amount: 0, tipAmount: 0 },
+    });
+    mockPrisma.incomeBook.update.mockResolvedValue({ id: 'b1' });
+    mockPrisma.incomeBookEntry.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: 'ibe1',
+        dailyLogEntry: { id: 'e1' },
+      });
+
+    await service.addEntryFromDailyLog('e1');
+
+    expect(mockPrisma.incomeBookEntry.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          bookId: 'b1',
+          dailyLogEntryId: 'e1',
+          amount: 60,
+          tipAmount: 10,
+        }),
+      }),
+    );
+    expect(mockPrisma.incomeBook.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'b1' },
+        data: { totalRevenue: 60, totalTips: 10 },
+      }),
+    );
+  });
+
   it('getOrCreateForMonth kreira knjigu ako ne postoji', async () => {
     mockPrisma.incomeBook.findUnique.mockResolvedValue(null);
     mockPrisma.incomeBook.create.mockResolvedValue({

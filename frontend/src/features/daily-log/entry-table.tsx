@@ -1,10 +1,12 @@
-import { Check, Loader2, Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Link as RouterLink } from 'react-router-dom'
 import { Badge } from '../../components/ui/badge'
-import { Button } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
 import type { DailyLogEntry } from './types'
 import { getStylistName } from './types'
+import { getServiceAmount, getTipAmount, getTotalAmount } from './amounts'
+import { DailyLogEntryActions } from './entry-table-actions'
+import { formatMobileAmount, loyaltyLine } from './entry-table-helpers'
 
 type Props = {
   entries: DailyLogEntry[]
@@ -14,91 +16,6 @@ type Props = {
   onComplete: (id: string) => void
   onDelete: (entry: DailyLogEntry) => void
   onRestore: (id: string) => void
-}
-
-const loyaltyLine = (e: DailyLogEntry) => {
-  if (e.reservation && e.reservation.loyaltyDiscountPercent > 0) {
-    return (
-      <p className="text-xs text-emerald-600 dark:text-emerald-400">
-        Loyalty popust: {e.reservation.loyaltyDiscountPercent}% (
-        {Number(e.reservation.loyaltyDiscountAmount ?? 0).toFixed(2)} KM)
-      </p>
-    )
-  }
-  if (!e.reservation && Number(e.loyaltyDiscountPercent ?? 0) > 0) {
-    return (
-      <p className="text-xs text-emerald-600 dark:text-emerald-400">
-        Loyalty popust: {Number(e.loyaltyDiscountPercent)}% (
-        {Number(e.loyaltyDiscountAmount ?? 0).toFixed(2)} KM)
-      </p>
-    )
-  }
-  return null
-}
-
-const Actions = ({
-  entry,
-  onEdit,
-  onComplete,
-  onDelete,
-  onRestore,
-}: {
-  entry: DailyLogEntry
-  onEdit: (entry: DailyLogEntry) => void
-  onComplete: (id: string) => void
-  onDelete: (entry: DailyLogEntry) => void
-  onRestore: (id: string) => void
-}) => {
-  if (entry.deletedAt) {
-    return (
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        className="h-8 w-8"
-        aria-label="Vrati"
-        onClick={() => onRestore(entry.id)}
-      >
-        <RotateCcw className="h-4 w-4" />
-      </Button>
-    )
-  }
-  return (
-    <div className="flex justify-end gap-1">
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        className="h-8 w-8"
-        aria-label="Uredi"
-        onClick={() => onEdit(entry)}
-      >
-        <Pencil className="h-4 w-4" />
-      </Button>
-      {entry.status !== 'COMPLETED' ? (
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8 text-emerald-600"
-          aria-label="Kompletiraj"
-          onClick={() => onComplete(entry.id)}
-        >
-          <Check className="h-4 w-4" />
-        </Button>
-      ) : null}
-      <Button
-        type="button"
-        size="icon"
-        variant="ghost"
-        className="h-8 w-8 text-rose-600"
-        aria-label="Obriši"
-        onClick={() => onDelete(entry)}
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    </div>
-  )
 }
 
 export const DailyLogEntryTable = ({
@@ -119,6 +36,7 @@ export const DailyLogEntryTable = ({
       </Card>
     )
   }
+  const actions = { onEdit, onComplete, onDelete, onRestore }
   return (
     <Card className="overflow-hidden">
       <div className="space-y-3 p-3 lg:hidden">
@@ -155,14 +73,8 @@ export const DailyLogEntryTable = ({
                 <p className="mt-1 text-xs text-rose-600">Razlog: {e.deleteReason}</p>
               ) : null}
               <div className="mt-2 flex items-center justify-between">
-                <p className="text-sm font-medium">{Number(e.actualPrice).toFixed(2)} KM</p>
-                <Actions
-                  entry={e}
-                  onEdit={onEdit}
-                  onComplete={onComplete}
-                  onDelete={onDelete}
-                  onRestore={onRestore}
-                />
+                <p className="text-sm font-medium">{formatMobileAmount(e)}</p>
+                <DailyLogEntryActions entry={e} {...actions} />
               </div>
             </div>
           ))
@@ -178,6 +90,7 @@ export const DailyLogEntryTable = ({
               <th className="p-3 font-medium">Klijent</th>
               <th className="p-3 text-right font-medium">Cijena</th>
               <th className="p-3 text-right font-medium">Napojnica</th>
+              <th className="p-3 text-right font-medium">Ukupno</th>
               <th className="p-3 font-medium">Izvor</th>
               <th className="p-3 font-medium">Status</th>
               <th className="p-3 text-right font-medium">Akcije</th>
@@ -186,7 +99,7 @@ export const DailyLogEntryTable = ({
           <tbody>
             {entries.length === 0 ? (
               <tr>
-                <td colSpan={9} className="p-6 text-slate-500">
+                <td colSpan={10} className="p-6 text-slate-500">
                   {noDataLabel}
                 </td>
               </tr>
@@ -238,10 +151,11 @@ export const DailyLogEntryTable = ({
                     )}
                   </td>
                   <td className="p-3 text-right font-medium tabular-nums">
-                    {Number(e.actualPrice).toFixed(2)}
+                    {getServiceAmount(e).toFixed(2)}
                   </td>
-                  <td className="p-3 text-right tabular-nums">
-                    {Number(e.tipAmount).toFixed(2)}
+                  <td className="p-3 text-right tabular-nums">{getTipAmount(e).toFixed(2)}</td>
+                  <td className="p-3 text-right font-semibold tabular-nums">
+                    {getTotalAmount(e).toFixed(2)}
                   </td>
                   <td className="p-3">
                     <Badge variant={e.isManual ? 'warning' : 'secondary'} className="text-[10px]">
@@ -267,13 +181,7 @@ export const DailyLogEntryTable = ({
                     </Badge>
                   </td>
                   <td className="p-3 text-right">
-                    <Actions
-                      entry={e}
-                      onEdit={onEdit}
-                      onComplete={onComplete}
-                      onDelete={onDelete}
-                      onRestore={onRestore}
-                    />
+                    <DailyLogEntryActions entry={e} {...actions} />
                   </td>
                 </tr>
               ))

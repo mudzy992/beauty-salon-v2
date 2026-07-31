@@ -39,3 +39,16 @@
 - Javna galerija: `status=COMPLETED`, `deletedAt=null`, `kind=SERVICE`, ima `isBefore` i `isAfter` sliku.
 - `sourceEntryId` povezuje DEBT_PAYMENT unose s izvornim SERVICE unosom.
 - `IncomeBookManualEntry.dailyLogEntryId` povezuje ručnu KIF stavku s DEBT_PAYMENT unosom.
+
+## Novac (konvencija)
+
+| Pojam | Polje / formula | Primjer (servis 60, plaćeno 70) |
+|-------|-----------------|--------------------------------|
+| Ukupan prihod / naplaćeno | `actualPrice` | 70 |
+| Napojnica | `tipAmount` | 10 |
+| Prihod od servisa | `actualPrice - tipAmount` | 60 |
+| KIF `IncomeBookEntry.amount` | = prihod od servisa (bez tipa) | 60 |
+| KIF `IncomeBookEntry.tipAmount` | = napojnica | 10 |
+| Knjiga `totalRevenue + totalTips` | = stvarno naplaćeno | 70 |
+
+Admin UI (Dnevna knjiga): default filter = tekući kalendarski mjesec (1. → danas). Statistike sumiraju aktivne (ne-obrisane) PENDING + COMPLETED unose.

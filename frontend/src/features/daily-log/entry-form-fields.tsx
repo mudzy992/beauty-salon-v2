@@ -11,6 +11,7 @@ import type {
   StylistOption,
 } from './types'
 import { getStylistName } from './types'
+import { TipPreview } from './tip-preview'
 
 type Props = {
   editId: string | null
@@ -228,6 +229,7 @@ export const DailyLogEntryFormFields = ({
           : ''}
       </p>
       <p className="mt-1 text-sm font-bold">Za naplatu: {chargeAmount.toFixed(2)} KM</p>
+      <TipPreview paidAmount={paidAmount} chargeAmount={chargeAmount} />
     </div>
     <div>
       <Label>Bilješke</Label>

@@ -1,5 +1,11 @@
 # Daily Log Matrix Changelog
 
+## 2026-07-31 (amounts / admin UI)
+
+- Konvencija novca: `actualPrice` = ukupno naplaćeno (tip uključen); prihod od servisa = `actualPrice - tipAmount`.
+- KIF auto stavke: `IncomeBookEntry.amount` = prihod od servisa (bez tipa); data-fix migracija `fix_income_book_entry_amount_excludes_tip`.
+- Admin Dnevna knjiga: default filter tekući mjesec; kartice Ukupan / Servisi / Napojnice / Kompletirano; tabela Cijena + Napojnica + Ukupno.
+
 ## 2026-07-31
 
 - Inicijalna matrica: PENDING / COMPLETED / DELETED soft-delete.

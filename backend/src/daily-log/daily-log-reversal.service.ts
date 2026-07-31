@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { IncomeBooksService } from '../finance/income-books.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { getServiceAmount } from './daily-log.amounts';
 
 type TxClient = Prisma.TransactionClient;
 
@@ -69,11 +70,12 @@ export class DailyLogReversalService {
       if (existing.bookId !== book.id) {
         await this.prisma.incomeBookEntry.delete({ where: { id: existing.id } });
         await this.incomeBooks.recalculateTotals(existing.bookId);
+        const serviceAmount = getServiceAmount(entry.actualPrice, entry.tipAmount);
         await this.prisma.incomeBookEntry.create({
           data: {
             bookId: book.id,
             dailyLogEntryId: entry.id,
-            amount: entry.actualPrice as any,
+            amount: serviceAmount,
             tipAmount: entry.tipAmount as any,
             date: entry.date,
           },
@@ -82,7 +84,7 @@ export class DailyLogReversalService {
         await this.prisma.incomeBookEntry.update({
           where: { id: existing.id },
           data: {
-            amount: entry.actualPrice as any,
+            amount: getServiceAmount(entry.actualPrice, entry.tipAmount),
             tipAmount: entry.tipAmount as any,
             date: entry.date,
           },

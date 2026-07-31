@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { getServiceAmount } from '../daily-log/daily-log.amounts';
 
 @Injectable()
 export class IncomeBooksService {
@@ -468,7 +469,7 @@ export class IncomeBooksService {
       data: {
         bookId: book.id,
         dailyLogEntryId,
-        amount: entry.actualPrice,
+        amount: getServiceAmount(entry.actualPrice, entry.tipAmount),
         tipAmount: entry.tipAmount,
         date: entry.date,
       },
