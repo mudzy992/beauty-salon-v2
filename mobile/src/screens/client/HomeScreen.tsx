@@ -205,6 +205,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
     service?: { name: string };
   } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [openDebtsTotal, setOpenDebtsTotal] = useState(0);
+  const [openDebtsCount, setOpenDebtsCount] = useState(0);
 
   const parseStatCount = (value: unknown): number | null => {
     if (typeof value === 'number' && Number.isFinite(value)) return Math.max(0, Math.round(value));
@@ -217,12 +219,23 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
   const fetchData = useCallback(async () => {
     try {
-      const [settingsRes, catRes, blogRes, homeStatsRes] = await Promise.all([
+      const [settingsRes, catRes, blogRes, homeStatsRes, debtsRes] = await Promise.all([
         fetchPublicSettings(),
         api.get<ServiceCategory[]>('/api/services/categories', { params: { activeOnly: true } }),
         api.get<BlogPost[]>('/api/blog', { params: { published: true } }),
         api.get<{ servicesCount: number; clientsCount: number }>('/api/services/home-stats').catch(() => null),
+        user
+          ? api.get<Array<{ amount: number | string }>>('/api/client-debts/me').catch(() => null)
+          : Promise.resolve(null),
       ]);
+
+      if (debtsRes?.data && Array.isArray(debtsRes.data)) {
+        setOpenDebtsCount(debtsRes.data.length);
+        setOpenDebtsTotal(debtsRes.data.reduce((acc, d) => acc + Number(d.amount || 0), 0));
+      } else {
+        setOpenDebtsCount(0);
+        setOpenDebtsTotal(0);
+      }
 
       setSettings(normalizeSettings(settingsRes));
 
@@ -285,7 +298,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         setFeaturedReview(null);
       }
     } catch { /* silent */ }
-  }, []);
+  }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useAutoRefresh(fetchData, { intervalMs: 60000 });
@@ -466,6 +479,36 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           pointerEvents="none"
         />
         <View style={{ backgroundColor: colors.background, paddingBottom: spacing.xxl, paddingTop: spacing.xs }}>
+        {user && openDebtsCount > 0 ? (
+          <TouchableOpacity
+            onPress={() =>
+              (navigation.getParent() as { navigate: (name: string) => void } | undefined)?.navigate(
+                'ProfileTab',
+              )
+            }
+            style={{
+              marginHorizontal: spacing.md,
+              marginBottom: spacing.md,
+              padding: spacing.md,
+              borderRadius: borderRadius.lg,
+              borderWidth: 1,
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.sm,
+            }}
+          >
+            <Ionicons name="wallet-outline" size={22} color={colors.primary} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>Imate otvoreno dugovanje</Text>
+              <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
+                {openDebtsCount} stavk(i) · {openDebtsTotal.toFixed(2)} KM — pogledajte profil
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        ) : null}
         {/* Services by category */}
         {categoriesWithServices.map(({ category, services }, sectionIndex) => {
           const isMenRow = sectionIndex % 2 === 0;

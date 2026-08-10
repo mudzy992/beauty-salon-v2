@@ -12,6 +12,14 @@ import type { CreateFromReservationDto } from './dto/create-from-reservation.dto
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { IncomeSyncService } from '../finance/income-sync.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { getServiceAmount } from './daily-log.amounts';
+import {
+  computeDebtPaymentTip,
+  computeTipAndShortfall,
+  resolveServiceItems,
+  sumUnitPrices,
+} from './daily-log.pricing';
 
 @Injectable()
 export class DailyLogService {
@@ -21,20 +29,58 @@ export class DailyLogService {
     private readonly prisma: PrismaService,
     private readonly incomeSync: IncomeSyncService,
     private readonly loyalty: LoyaltyService,
+    private readonly notifications: NotificationsService,
   ) {}
+
+  private async notifyClientDebt(params: {
+    clientId: string;
+    amount: number;
+    dailyLogEntryId: string;
+  }): Promise<void> {
+    try {
+      await this.notifications.send({
+        userId: params.clientId,
+        title: 'Novo dugovanje',
+        body: `Evidentirano je dugovanje od ${params.amount.toFixed(2)} KM.`,
+        type: 'client_debt',
+        data: {
+          debtAmount: params.amount,
+          dailyLogEntryId: params.dailyLogEntryId,
+        },
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Failed to notify client debt for ${params.clientId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
 
   async create(dto: CreateDailyLogEntryDto, user: CurrentUserPayload) {
     await this.ensureStylistAccess(dto.stylistProfileId, user);
-    const serviceIdsRaw =
-      dto.serviceIds && dto.serviceIds.length > 0
-        ? dto.serviceIds
-        : dto.serviceId
-          ? [dto.serviceId]
-          : [];
-    const serviceIds = [...new Set(serviceIdsRaw.map((x) => x.trim()).filter(Boolean))];
-    if (serviceIds.length === 0) {
-      throw new BadRequestException('SERVICE_REQUIRED');
-    }
+    const catalogRows = await this.prisma.service.findMany({
+      where: {
+        id: {
+          in: [
+            ...(dto.items?.map((i) => i.serviceId) ?? []),
+            ...(dto.serviceIds ?? []),
+            ...(dto.serviceId ? [dto.serviceId] : []),
+          ].filter(Boolean),
+        },
+      },
+      select: { id: true, price: true, gender: true },
+    });
+    const catalogPrices = new Map(
+      catalogRows.map((s) => [s.id, Number(s.price)]),
+    );
+    const resolved = resolveServiceItems({
+      items: dto.items,
+      serviceIds: dto.serviceIds,
+      serviceId: dto.serviceId,
+      catalogPrices,
+    });
+    const serviceIds = resolved.map((r) => r.serviceId);
     if (dto.reservationId) {
       const res = await this.prisma.reservation.findUnique({
         where: { id: dto.reservationId },
@@ -44,7 +90,9 @@ export class DailyLogService {
       const resServiceIds = res.items?.length
         ? res.items.map((i) => i.serviceId)
         : [res.serviceId];
-      const normalizedResIds = [...new Set(resServiceIds.map((x) => x.trim()).filter(Boolean))];
+      const normalizedResIds = [
+        ...new Set(resServiceIds.map((x) => x.trim()).filter(Boolean)),
+      ];
       const same =
         normalizedResIds.length === serviceIds.length &&
         normalizedResIds.every((id) => serviceIds.includes(id));
@@ -53,32 +101,61 @@ export class DailyLogService {
       }
     }
     if (dto.clientId) {
-      const [client, services] = await Promise.all([
-        this.prisma.user.findUnique({
-          where: { id: dto.clientId },
-          select: { id: true, gender: true },
-        }),
-        this.prisma.service.findMany({
-          where: { id: { in: serviceIds } },
-          select: { id: true, gender: true },
-        }),
-      ]);
+      const client = await this.prisma.user.findUnique({
+        where: { id: dto.clientId },
+        select: { id: true, gender: true },
+      });
       if (!client) throw new NotFoundException('Korisnik nije pronađen.');
       if (!client.gender) throw new BadRequestException('GENDER_REQUIRED');
-      if (services.length !== serviceIds.length)
+      if (catalogRows.length !== serviceIds.length) {
         throw new NotFoundException('Servis nije pronađen.');
-      if (services.some((s) => s.gender !== client.gender)) {
+      }
+      if (catalogRows.some((s) => s.gender !== client.gender)) {
         throw new BadRequestException('SERVICE_GENDER_MISMATCH');
       }
     }
     const date = new Date(dto.date);
     date.setHours(0, 0, 0, 0);
     const primaryServiceId = serviceIds[0]!;
-    const paidAmount =
+    const totalPaid =
       dto.paidAmount != null ? Number(dto.paidAmount) : Number(dto.actualPrice);
-    if (!Number.isFinite(paidAmount) || paidAmount < 0) {
+    if (!Number.isFinite(totalPaid) || totalPaid < 0) {
       throw new BadRequestException('Iznos naplate nije validan.');
     }
+    const settledDebtIds = Array.isArray(dto.settledDebtIds)
+      ? [...new Set(dto.settledDebtIds.map((x) => x.trim()).filter(Boolean))]
+      : [];
+    let settledDebtsSum = 0;
+    if (settledDebtIds.length > 0) {
+      if (!dto.clientId) {
+        throw new BadRequestException('Za otplatu duga morate odabrati klijenta.');
+      }
+      const debts = await this.prisma.clientDebt.findMany({
+        where: {
+          id: { in: settledDebtIds },
+          clientId: dto.clientId,
+          status: 'OPEN',
+        },
+        select: { id: true, amount: true },
+      });
+      if (debts.length !== settledDebtIds.length) {
+        throw new BadRequestException(
+          'Jedno ili više dugovanja nije validno ili je već zatvoreno.',
+        );
+      }
+      settledDebtsSum = debts.reduce((acc, d) => acc + Number(d.amount), 0);
+      if (totalPaid < settledDebtsSum) {
+        throw new BadRequestException(
+          'Nedovoljno za naplatu označenih dugova.',
+        );
+      }
+    }
+    const paidForServices = totalPaid - settledDebtsSum;
+    const unitsSum = sumUnitPrices(resolved);
+    const { tipAmount: tipBeforeLoyalty } = computeTipAndShortfall(
+      paidForServices,
+      unitsSum,
+    );
     const created = await this.prisma.dailyLogEntry.create({
       data: {
         stylistProfileId: dto.stylistProfileId,
@@ -86,8 +163,8 @@ export class DailyLogService {
         serviceId: primaryServiceId,
         clientId: dto.clientId,
         date,
-        actualPrice: paidAmount,
-        tipAmount: dto.tipAmount ?? 0,
+        actualPrice: paidForServices,
+        tipAmount: tipBeforeLoyalty,
         notes: dto.notes,
         kind: 'SERVICE' as any,
         isManual: dto.isManual ?? !!dto.reservationId === false,
@@ -95,72 +172,75 @@ export class DailyLogService {
       },
       include: this.entryInclude(),
     });
-
     await this.prisma.dailyLogEntryServiceItem.createMany({
-      data: serviceIds.map((sid, idx) => ({
+      data: resolved.map((it, idx) => ({
         dailyLogEntryId: created.id,
-        serviceId: sid,
+        serviceId: it.serviceId,
+        unitPrice: it.unitPrice,
         sortOrder: idx,
       })),
     });
-
-    const shouldCreateDebt = dto.debtHandling === 'CREATE_DEBT' && !!created.clientId;
-
+    const shouldCreateDebt =
+      dto.debtHandling === 'CREATE_DEBT' && !!created.clientId;
     if (created.clientId && dto.desiredLoyaltyPercent && dto.desiredLoyaltyPercent > 0) {
       await this.loyalty.redeemForDailyLog({
         clientId: created.clientId,
         dailyLogEntryId: created.id,
         serviceIds,
         desiredPercent: dto.desiredLoyaltyPercent,
-        actualPrice: Number(created.actualPrice),
+        actualPrice: paidForServices,
         coveredByDebtAmount: shouldCreateDebt ? Number.MAX_SAFE_INTEGER : 0,
       });
     }
-
-    if (shouldCreateDebt) {
-      const refreshed = await this.prisma.dailyLogEntry.findUnique({
+    const refreshed = await this.prisma.dailyLogEntry.findUnique({
+      where: { id: created.id },
+      select: {
+        id: true,
+        clientId: true,
+        stylistProfileId: true,
+        serviceId: true,
+        notes: true,
+        loyaltyDiscountAmount: true,
+        items: { select: { unitPrice: true } },
+      },
+    });
+    if (refreshed) {
+      const base = refreshed.items.reduce(
+        (acc, it) => acc + Number(it.unitPrice ?? 0),
+        0,
+      );
+      const chargeBase = Math.max(
+        0,
+        base - Number(refreshed.loyaltyDiscountAmount ?? 0),
+      );
+      const { tipAmount, shortfall } = computeTipAndShortfall(
+        paidForServices,
+        chargeBase,
+      );
+      await this.prisma.dailyLogEntry.update({
         where: { id: created.id },
-        select: {
-          id: true,
-          clientId: true,
-          stylistProfileId: true,
-          serviceId: true,
-          notes: true,
-          loyaltyDiscountAmount: true,
-          items: { select: { service: { select: { price: true } } } },
-        },
+        data: { tipAmount },
       });
-      if (refreshed?.clientId) {
-        const base = refreshed.items.reduce(
-          (acc, it) => acc + Number(it.service?.price ?? 0),
-          0,
-        );
-        const minCharge = Math.max(0, base - Number(refreshed.loyaltyDiscountAmount ?? 0));
-        const debtAmount = Math.max(0, minCharge - paidAmount);
-        if (debtAmount > 0) {
-          await this.prisma.clientDebt.create({
-            data: {
-              clientId: refreshed.clientId,
-              stylistProfileId: refreshed.stylistProfileId,
-              serviceId: refreshed.serviceId,
-              dailyLogEntryId: refreshed.id,
-              amount: debtAmount,
-              note: refreshed.notes ?? undefined,
-              createdById: user.sub,
-            },
-          });
-        }
+      if (shouldCreateDebt && shortfall > 0 && refreshed.clientId) {
+        await this.prisma.clientDebt.create({
+          data: {
+            clientId: refreshed.clientId,
+            stylistProfileId: refreshed.stylistProfileId,
+            serviceId: refreshed.serviceId,
+            dailyLogEntryId: refreshed.id,
+            amount: shortfall,
+            note: refreshed.notes ?? undefined,
+            createdById: user.sub,
+          },
+        });
+        await this.notifyClientDebt({
+          clientId: refreshed.clientId,
+          amount: shortfall,
+          dailyLogEntryId: refreshed.id,
+        });
       }
     }
-
-    // Zatvori odabrana dugovanja i kreiraj posebne DEBT_PAYMENT stavke.
-    const settledDebtIds = Array.isArray(dto.settledDebtIds)
-      ? [...new Set(dto.settledDebtIds.map((x) => x.trim()).filter(Boolean))]
-      : [];
-    if (settledDebtIds.length > 0) {
-      if (!created.clientId) {
-        throw new BadRequestException('Za otplatu duga morate odabrati klijenta.');
-      }
+    if (settledDebtIds.length > 0 && created.clientId) {
       await this.settleDebtsAndCreateLedgerEntries({
         debtIds: settledDebtIds,
         clientId: created.clientId,
@@ -170,7 +250,6 @@ export class DailyLogService {
         userId: user.sub,
       });
     }
-
     return this.findOne(created.id, user);
   }
 
@@ -178,7 +257,7 @@ export class DailyLogService {
   async createFromReservation(
     reservationId: string,
     dto: CreateFromReservationDto,
-    tipAmount: number,
+    _tipAmount: number,
     notes: string | undefined,
     user: CurrentUserPayload,
   ) {
@@ -237,7 +316,32 @@ export class DailyLogService {
         : Number(res.service?.price ?? 0);
     const loyaltyDiscountAmount = Number((res as any).loyaltyDiscountAmount ?? 0);
     const minCharge = Math.max(0, base - loyaltyDiscountAmount);
-    const debtAmount = Math.max(0, minCharge - paidAmount);
+    let settledDebtsSum = 0;
+    if (settledDebtIds.length > 0) {
+      const debts = await this.prisma.clientDebt.findMany({
+        where: {
+          id: { in: settledDebtIds },
+          clientId: res.clientId,
+          status: 'OPEN',
+        },
+        select: { amount: true },
+      });
+      if (debts.length !== settledDebtIds.length) {
+        throw new BadRequestException(
+          'Jedno ili više dugovanja nije validno ili je već zatvoreno.',
+        );
+      }
+      settledDebtsSum = debts.reduce((acc, d) => acc + Number(d.amount), 0);
+      if (paidAmount < settledDebtsSum) {
+        throw new BadRequestException('Nedovoljno za naplatu označenih dugova.');
+      }
+    }
+    const paidForServices = paidAmount - settledDebtsSum;
+    const { tipAmount: computedTip, shortfall } = computeTipAndShortfall(
+      paidForServices,
+      minCharge,
+    );
+    const debtAmount = shortfall;
     const shouldCreateDebt = dto.debtHandling === 'CREATE_DEBT' && debtAmount > 0;
 
     const created = await this.prisma.dailyLogEntry.create({
@@ -247,8 +351,8 @@ export class DailyLogService {
         serviceId: primaryServiceId,
         clientId: res.clientId,
         date,
-        actualPrice: paidAmount,
-        tipAmount: tipAmount ?? 0,
+        actualPrice: paidForServices,
+        tipAmount: computedTip,
         notes,
         kind: 'SERVICE' as any,
         isManual: false,
@@ -256,13 +360,23 @@ export class DailyLogService {
       },
       include: this.entryInclude(),
     });
-    await this.prisma.dailyLogEntryServiceItem.createMany({
-      data: normalizedResIds.map((sid, idx) => ({
-        dailyLogEntryId: created.id,
-        serviceId: sid,
-        sortOrder: idx,
-      })),
-    });
+    const itemRows =
+      res.items && res.items.length > 0
+        ? res.items.map((it, idx) => ({
+            dailyLogEntryId: created.id,
+            serviceId: it.serviceId,
+            unitPrice: Number(it.service?.price ?? 0),
+            sortOrder: idx,
+          }))
+        : [
+            {
+              dailyLogEntryId: created.id,
+              serviceId: primaryServiceId,
+              unitPrice: Number(res.service?.price ?? 0),
+              sortOrder: 0,
+            },
+          ];
+    await this.prisma.dailyLogEntryServiceItem.createMany({ data: itemRows });
     if (shouldCreateDebt) {
       await this.prisma.clientDebt.create({
         data: {
@@ -275,6 +389,11 @@ export class DailyLogService {
           note: notes,
           createdById: user.sub,
         },
+      });
+      await this.notifyClientDebt({
+        clientId: res.clientId,
+        amount: debtAmount,
+        dailyLogEntryId: created.id,
       });
     }
 
@@ -347,6 +466,13 @@ export class DailyLogService {
         if (!serviceId) {
           throw new BadRequestException('Nedostaje servis za knjiženje naplate duga.');
         }
+        const service = await tx.service.findUnique({
+          where: { id: serviceId },
+          select: { price: true },
+        });
+        const listPrice = Number(service?.price ?? 0);
+        const tipAmount = computeDebtPaymentTip(amount, listPrice);
+        const kifAmount = getServiceAmount(amount, tipAmount);
 
         await tx.clientDebt.update({
           where: { id: d.id },
@@ -368,7 +494,7 @@ export class DailyLogService {
             sourceEntryId: params.sourceEntryId,
             date,
             actualPrice: amount,
-            tipAmount: 0,
+            tipAmount,
             notes: 'Naplata duga',
             isManual: true,
             status: 'COMPLETED',
@@ -384,8 +510,8 @@ export class DailyLogService {
             stylistProfileId: d.stylistProfileId,
             clientId: d.clientId,
             dailyLogEntryId: debtPayment.id,
-            amount,
-            tipAmount: 0,
+            amount: kifAmount,
+            tipAmount,
             notes: 'Naplata duga',
             createdById: params.userId,
           },
@@ -609,7 +735,9 @@ export class DailyLogService {
       service: { select: { id: true, name: true } },
       items: {
         orderBy: { sortOrder: 'asc' as const },
-        include: { service: { select: { id: true, name: true } } },
+        include: {
+          service: { select: { id: true, name: true, price: true } },
+        },
       },
       client: { select: { id: true, firstName: true, lastName: true } },
       reservation: {

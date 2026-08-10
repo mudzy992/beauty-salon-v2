@@ -9,12 +9,14 @@ import { Drawer, DrawerContent } from '../../components/ui/drawer'
 import { useIsMobile } from '../../hooks/use-is-mobile'
 import { DailyLogEntryFormFields } from './entry-form-fields'
 import type {
+  ClientDebtOption,
   ClientOption,
   DailyLogFormState,
   LoyaltyInfo,
   ServiceOption,
   StylistOption,
 } from './types'
+import { defaultUnitPrice } from './form-helpers'
 
 type Props = {
   open: boolean
@@ -27,6 +29,21 @@ type Props = {
   clients: ClientOption[]
   paidAmount: string
   setPaidAmount: (v: string) => void
+  chargeAmount: number
+  debtsSum: number
+  tipPreview: number
+  shortfall: number
+  createDebt: boolean
+  setCreateDebt: (v: boolean) => void
+  openDebts: ClientDebtOption[]
+  settleDebtsEnabled: boolean
+  setSettleDebtsEnabled: (v: boolean) => void
+  settledDebtIds: string[]
+  onToggleSettledDebt: (id: string) => void
+  setUnitPrice: (serviceId: string, value: number) => void
+  toggleService: (svc: ServiceOption) => void
+  loyaltyPercent: number
+  loyaltyDiscountAmount: number
   loyaltyInfo: LoyaltyInfo | null
   loadingLoyalty: boolean
   saving: boolean
@@ -34,7 +51,6 @@ type Props = {
   cancelLabel: string
   saveLabel: string
 }
-
 
 export const DailyLogEntryFormDialog = (props: Props) => {
   const {
@@ -48,6 +64,21 @@ export const DailyLogEntryFormDialog = (props: Props) => {
     clients,
     paidAmount,
     setPaidAmount,
+    chargeAmount,
+    debtsSum,
+    tipPreview,
+    shortfall,
+    createDebt,
+    setCreateDebt,
+    openDebts,
+    settleDebtsEnabled,
+    setSettleDebtsEnabled,
+    settledDebtIds,
+    onToggleSettledDebt,
+    setUnitPrice,
+    toggleService,
+    loyaltyPercent,
+    loyaltyDiscountAmount,
     loyaltyInfo,
     loadingLoyalty,
     saving,
@@ -110,7 +141,7 @@ export const DailyLogEntryFormDialog = (props: Props) => {
   }, [clients, form.clientId, services, serviceSearch])
 
   const filteredClients = useMemo(() => {
-    if (!clientSearch) return clients.slice(0, 20)
+    if (!clientSearch) return clients.slice(0, 40)
     const q = clientSearch.toLowerCase()
     return clients
       .filter(
@@ -119,7 +150,7 @@ export const DailyLogEntryFormDialog = (props: Props) => {
           (c.firstName?.toLowerCase().includes(q) ?? false) ||
           (c.lastName?.toLowerCase().includes(q) ?? false),
       )
-      .slice(0, 20)
+      .slice(0, 40)
   }, [clients, clientSearch])
 
   const selectedServices = useMemo(
@@ -129,29 +160,10 @@ export const DailyLogEntryFormDialog = (props: Props) => {
         .filter(Boolean) as ServiceOption[],
     [services, form.serviceIds],
   )
-  const basePrice = selectedServices.reduce((acc, s) => acc + Number(s.price ?? 0), 0)
-  const loyaltyPercent =
-    loyaltyInfo?.enabled &&
-    loyaltyInfo?.hasAccount &&
-    loyaltyInfo?.redeemEnabled &&
-    loyaltyInfo?.service
-      ? Math.max(
-          0,
-          Math.min(form.desiredLoyaltyPercent, loyaltyInfo.service.maxDiscountPercent),
-        )
-      : 0
-  const loyaltyDiscountAmount = basePrice > 0 ? (basePrice * loyaltyPercent) / 100 : 0
-  const chargeAmount = Math.max(0, basePrice - loyaltyDiscountAmount)
 
   const onToggleService = (svc: ServiceOption) => {
-    setForm((prev) => {
-      const exists = prev.serviceIds.includes(svc.id)
-      const nextIds = exists
-        ? prev.serviceIds.filter((x) => x !== svc.id)
-        : [...prev.serviceIds, svc.id]
-      return { ...prev, serviceIds: nextIds, desiredLoyaltyPercent: 0 }
-    })
-    setPaidAmount('')
+    toggleService(svc)
+    setForm((prev) => ({ ...prev, desiredLoyaltyPercent: 0 }))
   }
 
   const onSelectClient = (client: ClientOption) => {
@@ -163,18 +175,27 @@ export const DailyLogEntryFormDialog = (props: Props) => {
         client.gender &&
         currentSelected.length > 0 &&
         currentSelected.some((s) => s.gender && s.gender !== client.gender)
+      const nextIds = hasMismatch ? [] : prev.serviceIds
+      const nextPrices = hasMismatch
+        ? {}
+        : Object.fromEntries(
+            nextIds.map((id) => {
+              const svc = services.find((s) => s.id === id)
+              return [id, prev.unitPrices[id] ?? (svc ? defaultUnitPrice(svc) : 0)]
+            }),
+          )
       return {
         ...prev,
         clientId: client.id,
         desiredLoyaltyPercent: 0,
-        serviceIds: hasMismatch ? [] : prev.serviceIds,
+        serviceIds: nextIds,
+        unitPrices: nextPrices,
       }
     })
     setClientSearch(
       [client.firstName, client.lastName].filter(Boolean).join(' ') || client.username,
     )
     setShowClientDropdown(false)
-    setPaidAmount('')
   }
 
   const fields = (
@@ -198,10 +219,20 @@ export const DailyLogEntryFormDialog = (props: Props) => {
       clientDropdownRef={clientDropdownRef}
       paidAmount={paidAmount}
       setPaidAmount={setPaidAmount}
-      basePrice={basePrice}
+      chargeAmount={chargeAmount}
+      debtsSum={debtsSum}
+      tipPreview={tipPreview}
+      shortfall={shortfall}
+      createDebt={createDebt}
+      setCreateDebt={setCreateDebt}
+      openDebts={openDebts}
+      settleDebtsEnabled={settleDebtsEnabled}
+      setSettleDebtsEnabled={setSettleDebtsEnabled}
+      settledDebtIds={settledDebtIds}
+      onToggleSettledDebt={onToggleSettledDebt}
+      setUnitPrice={setUnitPrice}
       loyaltyPercent={loyaltyPercent}
       loyaltyDiscountAmount={loyaltyDiscountAmount}
-      chargeAmount={chargeAmount}
       loyaltyInfo={loyaltyInfo}
       loadingLoyalty={loadingLoyalty}
       onToggleService={onToggleService}

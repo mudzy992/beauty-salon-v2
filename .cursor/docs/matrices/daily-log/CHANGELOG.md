@@ -1,5 +1,9 @@
 # Daily Log Matrix Changelog
 
+## 2026-08-10
+
+- Nova matrica: `unitPrice` snapshot, Za naplatu / Naplaćeno, tip vs shortfall + Zavedi dug; settle OPEN dugova u istoj formi; vidi `client-debts` matricu. KUF N/A.
+
 ## 2026-07-31 (amounts / admin UI)
 
 - Konvencija novca: `actualPrice` = ukupno naplaćeno (tip uključen); prihod od servisa = `actualPrice - tipAmount`.

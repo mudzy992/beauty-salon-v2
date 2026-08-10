@@ -4,6 +4,7 @@ import { DailyLogService } from './daily-log.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { IncomeSyncService } from '../finance/income-sync.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const mockPrisma = {
   dailyLogEntry: {
@@ -39,6 +40,7 @@ describe('DailyLogService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: IncomeSyncService, useValue: mockIncomeSync },
         { provide: LoyaltyService, useValue: { earnFromDailyLog: jest.fn() } },
+        { provide: NotificationsService, useValue: { send: jest.fn() } },
       ],
     }).compile();
     service = module.get<DailyLogService>(DailyLogService);

@@ -7,9 +7,10 @@ import { DailyLogAdminService } from './daily-log-admin.service';
 import { DailyLogValidators } from './daily-log.validators';
 import { FinanceModule } from '../finance/finance.module';
 import { LoyaltyModule } from '../loyalty/loyalty.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [FinanceModule, LoyaltyModule],
+  imports: [FinanceModule, LoyaltyModule, NotificationsModule],
   controllers: [DailyLogController],
   providers: [
     DailyLogService,

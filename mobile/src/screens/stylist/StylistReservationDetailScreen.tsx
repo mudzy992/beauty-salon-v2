@@ -62,6 +62,7 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
   const [clientDebts, setClientDebts] = useState<ClientDebt[]>([]);
   const [clientDebtsLoading, setClientDebtsLoading] = useState(false);
   const [selectedDebtIds, setSelectedDebtIds] = useState<Record<string, boolean>>({});
+  const [createDebt, setCreateDebt] = useState(true);
   const [startSubmitting, setStartSubmitting] = useState(false);
   const [startBlockedReason, setStartBlockedReason] = useState<string | null>(null);
   const [overrunModalOpen, setOverrunModalOpen] = useState(false);
@@ -400,88 +401,100 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     if (!reservation) return;
     if (reservation.status !== 'IN_PROGRESS') return;
     const basePrice =
-      reservation.service && 'price' in reservation.service ? Number((reservation.service as any).price) : 0;
-    const loyaltyDiscountAmount = 'loyaltyDiscountAmount' in reservation ? Number((reservation as any).loyaltyDiscountAmount ?? 0) : 0;
-    const chargePrice = Math.max(0, basePrice - loyaltyDiscountAmount);
-    setCompleteActualPrice(chargePrice ? String(chargePrice) : '');
+      reservation.service && 'price' in reservation.service
+        ? Number((reservation.service as { price?: number }).price)
+        : 0;
+    const loyaltyDiscountAmount = Number(reservation.loyaltyDiscountAmount ?? 0);
+    const minCharge = Math.max(0, basePrice - loyaltyDiscountAmount);
+    const intent = !!reservation.payDebtsIntent;
+    const nextSelected: Record<string, boolean> = {};
+    if (intent) {
+      clientDebts.forEach((d) => {
+        nextSelected[d.id] = true;
+      });
+    }
+    const debtsSum = intent
+      ? clientDebts.reduce((acc, d) => acc + (Number(d.amount) || 0), 0)
+      : 0;
+    setSelectedDebtIds(nextSelected);
+    setCreateDebt(true);
+    setCompleteActualPrice(String(minCharge + debtsSum));
     setCompleteNotes('');
-    setSelectedDebtIds({});
     setCompleteModalOpen(true);
-  }, [reservation]);
+  }, [reservation, clientDebts]);
 
   const selectedDebtSum = useMemo(() => {
     const selected = clientDebts.filter((d) => selectedDebtIds[d.id]);
     return selected.reduce((acc, d) => acc + (Number(d.amount) || 0), 0);
   }, [clientDebts, selectedDebtIds]);
 
+  const completeMinCharge = useMemo(() => {
+    if (!reservation) return 0;
+    const basePrice =
+      reservation.service && 'price' in reservation.service
+        ? Number((reservation.service as { price?: number }).price)
+        : 0;
+    return Math.max(0, basePrice - Number(reservation.loyaltyDiscountAmount ?? 0));
+  }, [reservation]);
+
+  const completeChargeAmount = completeMinCharge + selectedDebtSum;
+
   const submitComplete = useCallback(async () => {
     if (!reservation) return;
-    const basePrice =
-      reservation.service && 'price' in reservation.service ? Number((reservation.service as any).price) : 0;
-    const loyaltyDiscountAmount = 'loyaltyDiscountAmount' in reservation ? Number((reservation as any).loyaltyDiscountAmount ?? 0) : 0;
-    const minCharge = Math.max(0, basePrice - loyaltyDiscountAmount);
-
     const paidRaw = parseFloat(completeActualPrice.replace(',', '.'));
     if (isNaN(paidRaw) || paidRaw < 0) {
-      Alert.alert(
-        'Greška',
-        'Unesite ispravan iznos naplaćenog računa.',
-      );
+      Alert.alert('Greška', 'Unesite ispravan iznos naplaćenog računa.');
       return;
     }
-    const autoTip = paidRaw - minCharge;
-    const tipAmount = autoTip > 0 ? autoTip : 0;
-    const actualPriceWithDebts = paidRaw + selectedDebtSum;
-
-    const doSubmit = async (debtHandling: 'CREATE_DEBT' | 'IGNORE_DEBT') => {
-      setCompleteSubmitting(true);
-      try {
-        const selectedDebts = clientDebts.filter((d) => selectedDebtIds[d.id]);
-        const { data: entry } = await api.post<DailyLogEntry>(
-          `/api/daily-log/from-reservation/${reservation.id}`,
-          {
-            paidAmount: paidRaw,
-            settledDebtIds: selectedDebts.map((d) => d.id),
-            debtHandling,
-            tipAmount: tipAmount >= 0 ? tipAmount : 0,
-            notes: completeNotes.trim() || undefined,
-          },
-        );
-        setCompleteModalOpen(false);
-        await fetchReservation();
-        await fetchClientDebts(reservation.clientId);
-
-        (navigation.getParent() as { navigate: (name: string, params: object) => void } | undefined)?.navigate(
-          'DailyLogTab',
-          { screen: 'DailyLogDetail', params: { entryId: entry.id } },
-        );
-      } catch (err: unknown) {
-        const msg =
-          err && typeof err === 'object' && 'response' in err
-            ? (err as any).response?.data?.message
-            : 'Greška pri upisu.';
-        Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
-      } finally {
-        setCompleteSubmitting(false);
-      }
-    };
-
-    if (paidRaw < minCharge) {
-      const diff = Math.max(0, minCharge - paidRaw);
-      Alert.alert(
-        'Naplaćuje se manje nego što sistem zahtijeva',
-        `Razlika iznosi ${diff.toFixed(2)} KM. Želite li da se ta razlika evidentira kao dug klijentu?`,
-        [
-          { text: 'Odustani', style: 'cancel' },
-          { text: 'Ne zavodi dug', onPress: () => void doSubmit('IGNORE_DEBT') },
-          { text: 'Zavedi dug', onPress: () => void doSubmit('CREATE_DEBT') },
-        ],
-      );
+    if (selectedDebtSum > 0 && paidRaw < selectedDebtSum) {
+      Alert.alert('Greška', 'Nedovoljno za naplatu označenih dugova.');
       return;
     }
-
-    await doSubmit('IGNORE_DEBT');
-  }, [reservation, completeActualPrice, completeNotes, fetchReservation, navigation, selectedDebtSum, clientDebts, selectedDebtIds, fetchClientDebts]);
+    const shortfall = Math.max(0, completeChargeAmount - paidRaw);
+    const tipAmount = Math.max(0, paidRaw - completeChargeAmount);
+    const debtHandling = shortfall > 0 && createDebt ? 'CREATE_DEBT' : 'IGNORE_DEBT';
+    setCompleteSubmitting(true);
+    try {
+      const selectedDebts = clientDebts.filter((d) => selectedDebtIds[d.id]);
+      const { data: entry } = await api.post<DailyLogEntry>(
+        `/api/daily-log/from-reservation/${reservation.id}`,
+        {
+          paidAmount: paidRaw,
+          settledDebtIds: selectedDebts.map((d) => d.id),
+          debtHandling,
+          tipAmount,
+          notes: completeNotes.trim() || undefined,
+        },
+      );
+      setCompleteModalOpen(false);
+      await fetchReservation();
+      await fetchClientDebts(reservation.clientId);
+      (navigation.getParent() as { navigate: (name: string, params: object) => void } | undefined)?.navigate(
+        'DailyLogTab',
+        { screen: 'DailyLogDetail', params: { entryId: entry.id } },
+      );
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
+          : 'Greška pri upisu.';
+      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : String(msg));
+    } finally {
+      setCompleteSubmitting(false);
+    }
+  }, [
+    reservation,
+    completeActualPrice,
+    completeNotes,
+    fetchReservation,
+    navigation,
+    selectedDebtSum,
+    completeChargeAmount,
+    createDebt,
+    clientDebts,
+    selectedDebtIds,
+    fetchClientDebts,
+  ]);
 
   if (loading) {
     return (
@@ -559,6 +572,14 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
                 <Ionicons name="chatbubble-outline" size={16} color={colors.textSecondary} />
                 <Text style={[styles.infoText, { color: colors.textSecondary, flex: 1 }]}>
                   {reservation.clientNotes}
+                </Text>
+              </View>
+            ) : null}
+            {reservation.payDebtsIntent ? (
+              <View style={styles.infoItem}>
+                <Ionicons name="cash-outline" size={16} color={colors.primary} />
+                <Text style={[styles.infoText, { color: colors.primary, fontWeight: '700' }]}>
+                  Klijent želi platiti dugovanje
                 </Text>
               </View>
             ) : null}
@@ -721,11 +742,41 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
                 {t('stylist.schedule.completeTitle')}
               </Text>
               <Input
-                label="Cijena (KM)"
+                label="Naplaćeno (KM)"
                 value={completeActualPrice}
                 onChangeText={setCompleteActualPrice}
                 keyboardType="decimal-pad"
               />
+              <Text style={[styles.infoText, { color: colors.textSecondary, marginTop: 4 }]}>
+                Za naplatu: {completeChargeAmount.toFixed(2)} KM
+                {reservation.payDebtsIntent ? ' · klijent želi platiti dug' : ''}
+              </Text>
+              {Math.max(0, parseFloat(completeActualPrice.replace(',', '.')) - completeChargeAmount) > 0 ? (
+                <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+                  Napojnica:{' '}
+                  {Math.max(
+                    0,
+                    parseFloat(completeActualPrice.replace(',', '.')) - completeChargeAmount,
+                  ).toFixed(2)}{' '}
+                  KM
+                </Text>
+              ) : null}
+              {Math.max(0, completeChargeAmount - (parseFloat(completeActualPrice.replace(',', '.')) || 0)) >
+              0 ? (
+                <TouchableOpacity
+                  onPress={() => setCreateDebt((v) => !v)}
+                  style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: '700' }}>
+                    {createDebt ? '✓' : '○'} Zavedi dug (
+                    {Math.max(
+                      0,
+                      completeChargeAmount - (parseFloat(completeActualPrice.replace(',', '.')) || 0),
+                    ).toFixed(2)}{' '}
+                    KM)
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
               <View style={{ marginTop: spacing.sm }}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Dugovanja klijenta</Text>
                 {clientDebtsLoading ? (

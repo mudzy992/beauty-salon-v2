@@ -58,10 +58,8 @@ export const useDailyLogData = () => {
       .then((r) => setServices(unwrapList(r.data)))
       .catch(() => {})
     api
-      .get<ClientOption[] | PaginatedResponse<ClientOption>>('/api/users', {
-        params: { page: 0, pageSize: 500 },
-      })
-      .then((r) => setClients(unwrapList(r.data)))
+      .get<ClientOption[]>('/api/users/for-daily-log')
+      .then((r) => setClients(Array.isArray(r.data) ? r.data : []))
       .catch(() => {})
   }, [])
 

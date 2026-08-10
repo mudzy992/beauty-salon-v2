@@ -72,6 +72,8 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const [submitting, setSubmitting] = useState(false);
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0);
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
+  const [payDebtsIntent, setPayDebtsIntent] = useState(false);
+  const [openDebtsTotal, setOpenDebtsTotal] = useState(0);
   const servicesById = useMemo(
     () => new Map(services.map((service) => [service.id, service])),
     [services],
@@ -234,6 +236,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     setSelectedSlot(slot);
     setStep(4);
     setDesiredLoyaltyPercent(0);
+    setPayDebtsIntent(false);
     if (selectedServiceIds.length > 0) {
       (async () => {
         try {
@@ -248,6 +251,15 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     } else {
       setLoyaltyInfo(null);
     }
+    (async () => {
+      try {
+        const { data } = await api.get<Array<{ amount: number | string }>>('/api/client-debts/me');
+        const rows = Array.isArray(data) ? data : [];
+        setOpenDebtsTotal(rows.reduce((acc, d) => acc + Number(d.amount || 0), 0));
+      } catch {
+        setOpenDebtsTotal(0);
+      }
+    })();
   }, [selectedServiceIds]);
 
   const handleSubmit = async () => {
@@ -275,6 +287,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
         endTime: selectedSlot.endTime,
         clientNotes: notes.trim() || undefined,
         ...(desiredLoyaltyPercent > 0 ? { desiredLoyaltyPercent } : {}),
+        ...(payDebtsIntent ? { payDebtsIntent: true } : {}),
       });
       Alert.alert(t('reservation.success'), t('reservation.successMessage'), [
         {
@@ -677,6 +690,35 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
                 </View>
               </Card>
             )}
+
+          {openDebtsTotal > 0 ? (
+            <TouchableOpacity
+              onPress={() => setPayDebtsIntent((v) => !v)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
+                marginBottom: spacing.md,
+                padding: spacing.md,
+                borderRadius: borderRadius.md,
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.surface,
+              }}
+            >
+              <Ionicons
+                name={payDebtsIntent ? 'checkbox' : 'square-outline'}
+                size={22}
+                color={colors.primary}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>Plaćam i dugovanje</Text>
+                <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
+                  Otvoreno: {openDebtsTotal.toFixed(2)} KM
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ) : null}
 
           <Text style={[styles.notesLabel, { color: colors.textSecondary }]}>
             {t('reservation.addNotes')}

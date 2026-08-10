@@ -465,6 +465,9 @@ export default function PublicReserve() {
   const [step, setStep] = useState(1)
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null)
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0)
+  const [payDebtsIntent, setPayDebtsIntent] = useState(false)
+  const [openDebtsTotal, setOpenDebtsTotal] = useState(0)
+  const [openDebtsTotal, setOpenDebtsTotal] = useState(0)
   const dateSectionRef = useRef<HTMLDivElement | null>(null)
 
   const servicesForGender = useMemo(() => {
@@ -626,6 +629,7 @@ export default function PublicReserve() {
         endTime: selectedSlot.end,
         ...(notes.trim() && { clientNotes: notes.trim() }),
         ...(desiredLoyaltyPercent > 0 && { desiredLoyaltyPercent }),
+        ...(payDebtsIntent && { payDebtsIntent: true }),
       })
       await refreshProfile().catch(() => {})
       const svcLabel =
@@ -791,6 +795,16 @@ export default function PublicReserve() {
                                 if (isPastSlot) return
                                 setSelectedSlot({ start: slot.startTime, end: slot.endTime })
                                 setStep(4)
+                                setPayDebtsIntent(false)
+                                api
+                                  .get<Array<{ amount: number | string }>>('/api/client-debts/me')
+                                  .then((r) => {
+                                    const rows = Array.isArray(r.data) ? r.data : []
+                                    setOpenDebtsTotal(
+                                      rows.reduce((acc, d) => acc + Number(d.amount || 0), 0),
+                                    )
+                                  })
+                                  .catch(() => setOpenDebtsTotal(0))
                                 api
                                   .get<LoyaltyInfo>('/api/loyalty/client/me', {
                                     params: { serviceIds: selectedServiceIds.join(',') },
@@ -833,6 +847,23 @@ export default function PublicReserve() {
                       placeholder="Posebne želje, napomene za stilista..."
                     />
                   </div>
+
+                  {openDebtsTotal > 0 ? (
+                    <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={payDebtsIntent}
+                        onChange={(e) => setPayDebtsIntent(e.target.checked)}
+                      />
+                      <span>
+                        <span className="block font-semibold text-slate-900">Plaćam i dugovanje</span>
+                        <span className="block text-sm text-slate-600">
+                          Otvoreno: {openDebtsTotal.toFixed(2)} KM
+                        </span>
+                      </span>
+                    </label>
+                  ) : null}
 
                   {loyaltyInfo &&
                   loyaltyInfo.enabled &&

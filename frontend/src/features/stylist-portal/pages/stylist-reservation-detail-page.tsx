@@ -87,9 +87,7 @@ export const StylistReservationDetailPage = () => {
   const [completeOpen, setCompleteOpen] = useState(false)
   const [completeActualPrice, setCompleteActualPrice] = useState('')
   const [completeNotes, setCompleteNotes] = useState('')
-  const [partialOpen, setPartialOpen] = useState(false)
-  const [partialDiff, setPartialDiff] = useState(0)
-  const [pendingPaidRaw, setPendingPaidRaw] = useState<number | null>(null)
+  const [createDebt, setCreateDebt] = useState(true)
 
   const [overrunOpen, setOverrunOpen] = useState(false)
   const [manualShiftMinutes, setManualShiftMinutes] = useState('5')
@@ -237,9 +235,20 @@ export const StylistReservationDetailPage = () => {
     if (!reservation) return
     if (reservation.status !== 'IN_PROGRESS') return
     const minCharge = computeMinCharge(reservation)
-    setCompleteActualPrice(minCharge ? String(minCharge) : '')
+    const intent = !!reservation.payDebtsIntent
+    const nextSelected: Record<string, boolean> = {}
+    if (intent) {
+      debtsQuery.debts.forEach((d) => {
+        nextSelected[d.id] = true
+      })
+    }
+    const debtsSum = intent
+      ? debtsQuery.debts.reduce((acc, d) => acc + (Number(d.amount) || 0), 0)
+      : 0
+    setSelectedDebtIds(nextSelected)
+    setCreateDebt(true)
+    setCompleteActualPrice(String(minCharge + debtsSum))
     setCompleteNotes('')
-    setSelectedDebtIds({})
     setCompleteOpen(true)
   }
 
@@ -260,49 +269,19 @@ export const StylistReservationDetailPage = () => {
   const submitComplete = async () => {
     if (!reservation) return
     const minCharge = computeMinCharge(reservation)
+    const chargeAmount = minCharge + selectedDebtSum
     const paidRaw = parseMoney(completeActualPrice)
     if (!Number.isFinite(paidRaw) || paidRaw < 0) {
       toastApiError(null, 'Unesite ispravan iznos.')
       return
     }
-
-    if (paidRaw < minCharge) {
-      setPendingPaidRaw(paidRaw)
-      setPartialDiff(Math.max(0, minCharge - paidRaw))
-      setPartialOpen(true)
+    if (selectedDebtSum > 0 && paidRaw < selectedDebtSum) {
+      toastApiError(null, 'Nedovoljno za naplatu označenih dugova.')
       return
     }
-
-    const autoTip = paidRaw - minCharge
-    const tipAmount = autoTip > 0 ? autoTip : 0
-
-    try {
-      const entry = await actions.completeAndCreateDailyLog.mutateAsync({
-        reservationId: reservation.id,
-        paidAmount: paidRaw,
-        settledDebtIds: debtsQuery.debts.filter((d) => selectedDebtIds[d.id]).map((d) => d.id),
-        debtHandling: 'IGNORE_DEBT',
-        tipAmount,
-        notes: completeNotes.trim() || undefined,
-      })
-
-      await debtsQuery.refetch()
-
-      setCompleteOpen(false)
-      success('Upisano', 'Naplata je upisana u Dnevnik.')
-      navigate(`/stylist/workbook/${entry.id}`)
-    } catch (err) {
-      toastApiError(err, 'Greška pri upisu')
-    }
-  }
-
-  const confirmPartial = async (debtHandling: 'CREATE_DEBT' | 'IGNORE_DEBT') => {
-    if (!reservation) return
-    const minCharge = computeMinCharge(reservation)
-    const paidRaw = pendingPaidRaw
-    if (paidRaw == null) return
-    const autoTip = paidRaw - minCharge
-    const tipAmount = autoTip > 0 ? autoTip : 0
+    const shortfall = Math.max(0, chargeAmount - paidRaw)
+    const tipAmount = Math.max(0, paidRaw - chargeAmount)
+    const debtHandling = shortfall > 0 && createDebt ? 'CREATE_DEBT' : 'IGNORE_DEBT'
     try {
       const entry = await actions.completeAndCreateDailyLog.mutateAsync({
         reservationId: reservation.id,
@@ -313,14 +292,12 @@ export const StylistReservationDetailPage = () => {
         notes: completeNotes.trim() || undefined,
       })
       await debtsQuery.refetch()
-
-      setPartialOpen(false)
       setCompleteOpen(false)
       success(
         'Upisano',
         debtHandling === 'CREATE_DEBT'
-          ? `Naplata je upisana, a ${partialDiff.toFixed(2)} KM je evidentirano kao dug.`
-          : 'Naplata je upisana.',
+          ? `Naplata je upisana, a ${shortfall.toFixed(2)} KM je evidentirano kao dug.`
+          : 'Naplata je upisana u Dnevnik.',
       )
       navigate(`/stylist/workbook/${entry.id}`)
     } catch (err) {
@@ -618,13 +595,38 @@ export const StylistReservationDetailPage = () => {
           <DialogHeader>
             <DialogTitle>Završi termin</DialogTitle>
             <DialogDescription>
-              Preporučena minimalna naplata: {minCharge.toFixed(2)} KM. Napojnica = naplaćeno − minimalno.
+              Za naplatu = usluge + odabrana dugovanja. Napojnica = naplaćeno − za naplatu.
+              {reservation?.payDebtsIntent ? ' Klijent je označio plaćanje dugovanja.' : ''}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2">
-            <Label htmlFor="price">Cijena (KM)</Label>
+            <Label htmlFor="price">Naplaćeno (KM)</Label>
             <Input id="price" value={completeActualPrice} onChange={(e) => setCompleteActualPrice(e.target.value)} inputMode="decimal" />
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Za naplatu: {(computeMinCharge(reservation!) + selectedDebtSum).toFixed(2)} KM
+            </p>
+            {Math.max(0, parseMoney(completeActualPrice) - (computeMinCharge(reservation!) + selectedDebtSum)) > 0 ? (
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Napojnica:{' '}
+                {Math.max(
+                  0,
+                  parseMoney(completeActualPrice) - (computeMinCharge(reservation!) + selectedDebtSum),
+                ).toFixed(2)}{' '}
+                KM
+              </p>
+            ) : null}
+            {Math.max(0, computeMinCharge(reservation!) + selectedDebtSum - parseMoney(completeActualPrice)) > 0 ? (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={createDebt} onChange={(e) => setCreateDebt(e.target.checked)} />
+                Zavedi dug (
+                {Math.max(
+                  0,
+                  computeMinCharge(reservation!) + selectedDebtSum - parseMoney(completeActualPrice),
+                ).toFixed(2)}{' '}
+                KM)
+              </label>
+            ) : null}
           </div>
 
           <div className="space-y-2">
@@ -680,37 +682,6 @@ export const StylistReservationDetailPage = () => {
             </Button>
             <Button type="button" onClick={submitComplete} disabled={actions.completeAndCreateDailyLog.isPending}>
               Potvrdi
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={partialOpen} onOpenChange={setPartialOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Naplaćuje se manje nego što sistem zahtijeva</DialogTitle>
-            <DialogDescription>
-              Razlika iznosi {partialDiff.toFixed(2)} KM. Želite li da se ta razlika evidentira kao dug klijentu?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setPartialOpen(false)}>
-              Odustani
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => confirmPartial('IGNORE_DEBT')}
-              disabled={actions.completeAndCreateDailyLog.isPending}
-            >
-              Ne zavodi dug
-            </Button>
-            <Button
-              type="button"
-              onClick={() => confirmPartial('CREATE_DEBT')}
-              disabled={actions.completeAndCreateDailyLog.isPending}
-            >
-              Zavedi dug
             </Button>
           </DialogFooter>
         </DialogContent>

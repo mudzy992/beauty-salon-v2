@@ -46,6 +46,7 @@ export type Reservation = {
   loyaltyDiscountPercent?: number | null
   loyaltyDiscountAmount?: number | null
   loyaltyPointsUsed?: number | null
+  payDebtsIntent?: boolean | null
   createdAt?: string
   service?: { id: string; name: string; durationMinutes?: number; price?: number | string } | null
   confirmedStylist?: { id: string; user?: { username?: string; firstName?: string | null; lastName?: string | null } } | null

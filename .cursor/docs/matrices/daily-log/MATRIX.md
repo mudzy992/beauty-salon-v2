@@ -52,3 +52,10 @@
 | Knjiga `totalRevenue + totalTips` | = stvarno naplaćeno | 70 |
 
 Admin UI (Dnevna knjiga): default filter = tekući kalendarski mjesec (1. → danas). Statistike sumiraju aktivne (ne-obrisane) PENDING + COMPLETED unose.
+
+## Nova matrica cijena (v. client-debts)
+
+- Stavke snimaju `DailyLogEntryServiceItem.unitPrice` (snapshot).
+- Za naplatu = suma unitPrice − loyalty (+ odabrani OPEN dugovi).
+- Naplaćeno default = Za naplatu; tip / shortfall + toggle Zavedi dug.
+- Detalji: `.cursor/docs/matrices/client-debts/MATRIX.md`. KUF N/A.

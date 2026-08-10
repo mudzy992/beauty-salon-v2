@@ -4,6 +4,7 @@ import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
 import type {
+  ClientDebtOption,
   ClientOption,
   DailyLogFormState,
   LoyaltyInfo,
@@ -11,7 +12,7 @@ import type {
   StylistOption,
 } from './types'
 import { getStylistName } from './types'
-import { TipPreview } from './tip-preview'
+import { DailyLogPricingPanel } from './pricing-panel'
 
 type Props = {
   editId: string | null
@@ -33,10 +34,20 @@ type Props = {
   clientDropdownRef: React.RefObject<HTMLDivElement>
   paidAmount: string
   setPaidAmount: (v: string) => void
-  basePrice: number
+  chargeAmount: number
+  debtsSum: number
+  tipPreview: number
+  shortfall: number
+  createDebt: boolean
+  setCreateDebt: (v: boolean) => void
+  openDebts: ClientDebtOption[]
+  settleDebtsEnabled: boolean
+  setSettleDebtsEnabled: (v: boolean) => void
+  settledDebtIds: string[]
+  onToggleSettledDebt: (id: string) => void
+  setUnitPrice: (serviceId: string, value: number) => void
   loyaltyPercent: number
   loyaltyDiscountAmount: number
-  chargeAmount: number
   loyaltyInfo: LoyaltyInfo | null
   loadingLoyalty: boolean
   onToggleService: (svc: ServiceOption) => void
@@ -68,10 +79,20 @@ export const DailyLogEntryFormFields = ({
   clientDropdownRef,
   paidAmount,
   setPaidAmount,
-  basePrice,
+  chargeAmount,
+  debtsSum,
+  tipPreview,
+  shortfall,
+  createDebt,
+  setCreateDebt,
+  openDebts,
+  settleDebtsEnabled,
+  setSettleDebtsEnabled,
+  settledDebtIds,
+  onToggleSettledDebt,
+  setUnitPrice,
   loyaltyPercent,
   loyaltyDiscountAmount,
-  chargeAmount,
   loyaltyInfo,
   loadingLoyalty,
   onToggleService,
@@ -119,14 +140,11 @@ export const DailyLogEntryFormFields = ({
             {filteredClients.map((c) => (
               <li
                 key={c.id}
-                className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
+                className="cursor-pointer px-3 py-2 text-sm hover:bg-brand-champagne/20"
                 onMouseDown={(ev) => ev.preventDefault()}
                 onClick={() => onSelectClient(c)}
               >
-                <p className="text-sm">
-                  {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.username}
-                </p>
-                <p className="text-xs text-slate-500">{c.username}</p>
+                {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.username}
               </li>
             ))}
           </ul>
@@ -134,13 +152,12 @@ export const DailyLogEntryFormFields = ({
       </div>
     </div>
     <div>
-      <Label>Servis</Label>
+      <Label>Servisi</Label>
       <div ref={serviceDropdownRef} className="relative mt-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
           className="pl-9"
           value={serviceSearch}
-          disabled={!form.clientId && !editId}
           onChange={(e) => {
             setServiceSearch(e.target.value)
             setShowServiceDropdown(true)
@@ -172,20 +189,11 @@ export const DailyLogEntryFormFields = ({
         ) : null}
       </div>
       {selectedServices.length > 0 ? (
-        <div className="mt-2 space-y-2">
+        <div className="mt-2 flex flex-wrap gap-2">
           {selectedServices.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center justify-between gap-3 rounded-md border border-slate-200 px-3 py-2 text-sm dark:border-slate-800"
-            >
-              <div>
-                <div className="font-semibold">{s.name}</div>
-                <div className="text-xs text-slate-500">{Number(s.price).toFixed(2)} KM</div>
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => onToggleService(s)}>
-                Ukloni
-              </Button>
-            </div>
+            <Button key={s.id} type="button" variant="outline" size="sm" onClick={() => onToggleService(s)}>
+              {s.name} ×
+            </Button>
           ))}
         </div>
       ) : null}
@@ -214,23 +222,29 @@ export const DailyLogEntryFormFields = ({
         </select>
       </div>
     ) : null}
-    <div>
-      <Label>Naplaćeno (KM)</Label>
-      <Input
-        className="mt-1"
-        value={paidAmount}
-        onChange={(e) => setPaidAmount(e.target.value)}
-        placeholder={chargeAmount > 0 ? chargeAmount.toFixed(2) : '0.00'}
-      />
-      <p className="mt-2 text-xs text-slate-600">
-        Servis: {basePrice.toFixed(2)} KM
-        {loyaltyPercent > 0
-          ? ` · Loyalty: ${loyaltyPercent}% (${loyaltyDiscountAmount.toFixed(2)} KM)`
-          : ''}
+    <DailyLogPricingPanel
+      selectedServices={selectedServices}
+      unitPrices={form.unitPrices}
+      onUnitPriceChange={setUnitPrice}
+      openDebts={editId ? [] : openDebts}
+      settleDebtsEnabled={settleDebtsEnabled}
+      onSettleDebtsEnabledChange={setSettleDebtsEnabled}
+      settledDebtIds={settledDebtIds}
+      onToggleSettledDebt={onToggleSettledDebt}
+      chargeAmount={chargeAmount}
+      debtsSum={debtsSum}
+      paidAmount={paidAmount}
+      onPaidAmountChange={setPaidAmount}
+      tipPreview={tipPreview}
+      shortfall={shortfall}
+      createDebt={createDebt}
+      onCreateDebtChange={setCreateDebt}
+    />
+    {loyaltyPercent > 0 ? (
+      <p className="text-xs text-slate-500">
+        Loyalty popust: {loyaltyPercent}% ({loyaltyDiscountAmount.toFixed(2)} KM)
       </p>
-      <p className="mt-1 text-sm font-bold">Za naplatu: {chargeAmount.toFixed(2)} KM</p>
-      <TipPreview paidAmount={paidAmount} chargeAmount={chargeAmount} />
-    </div>
+    ) : null}
     <div>
       <Label>Bilješke</Label>
       <Textarea

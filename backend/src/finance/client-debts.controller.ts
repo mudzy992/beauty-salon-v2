@@ -10,11 +10,18 @@ import { RepayClientDebtDto } from './dto/repay-client-debt.dto';
 
 @Controller('api/client-debts')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('SYSTEM_ADMIN', 'OWNER', 'STYLIST')
+@Roles('SYSTEM_ADMIN', 'OWNER', 'STYLIST', 'CLIENT')
 export class ClientDebtsController {
   constructor(private readonly debts: ClientDebtsService) {}
 
+  @Get('me')
+  @Roles('CLIENT', 'SYSTEM_ADMIN', 'OWNER')
+  listMine(@CurrentUser() user: CurrentUserPayload) {
+    return this.debts.listForMe(user);
+  }
+
   @Get()
+  @Roles('SYSTEM_ADMIN', 'OWNER', 'STYLIST', 'CLIENT')
   listForClient(@Query('clientId') clientId: string, @CurrentUser() user: CurrentUserPayload) {
     return this.debts.listForClient(clientId, user);
   }

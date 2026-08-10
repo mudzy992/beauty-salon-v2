@@ -17,12 +17,13 @@ export interface DailyLogEntry {
     id: string
     user?: { username: string; firstName: string | null; lastName: string | null }
   }
-  service?: { id: string; name: string }
+  service?: { id: string; name: string; price?: number | string }
   items?: Array<{
     id: string
     sortOrder: number
     serviceId: string
-    service?: { id: string; name: string } | null
+    unitPrice?: number | string
+    service?: { id: string; name: string; price?: number | string } | null
   }>
   client?: {
     id: string
@@ -34,6 +35,7 @@ export interface DailyLogEntry {
     id: string
     loyaltyDiscountPercent: number
     loyaltyDiscountAmount: number | string
+    payDebtsIntent?: boolean
   } | null
 }
 
@@ -55,6 +57,17 @@ export interface ClientOption {
   firstName: string | null
   lastName: string | null
   gender?: 'MALE' | 'FEMALE'
+}
+
+export type ClientDebtOption = {
+  id: string
+  amount: number | string
+  createdAt: string
+  service?: { id: string; name: string } | null
+  stylistProfile?: {
+    user?: { firstName: string | null; lastName: string | null; username?: string }
+  } | null
+  dailyLogEntry?: { id: string; date: string } | null
 }
 
 export type LoyaltyInfo = {
@@ -79,6 +92,7 @@ export type LoyaltyInfo = {
 export type DailyLogFormState = {
   stylistProfileId: string
   serviceIds: string[]
+  unitPrices: Record<string, number>
   clientId: string
   date: string
   actualPrice: number
@@ -90,8 +104,13 @@ export type DailyLogFormState = {
 }
 
 export const getStylistName = (
-  s?: StylistOption | DailyLogEntry['stylistProfile'],
+  s?: StylistOption | DailyLogEntry['stylistProfile'] | ClientDebtOption['stylistProfile'],
 ): string => {
   if (!s?.user) return '-'
-  return `${s.user.firstName ?? ''} ${s.user.lastName ?? ''}`.trim() || s.user.username
+  const u = s.user as {
+    firstName?: string | null
+    lastName?: string | null
+    username?: string
+  }
+  return `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.username || '-'
 }

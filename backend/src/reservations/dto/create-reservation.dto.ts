@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsInt,
   IsArray,
@@ -23,23 +24,26 @@ export class CreateReservationDto {
   serviceIds?: string[];
 
   @IsDateString()
-  reservationDate!: string; // YYYY-MM-DD
+  reservationDate!: string;
 
   @IsString()
-  startTime!: string; // HH:mm
+  startTime!: string;
 
   @IsString()
-  endTime!: string; // HH:mm
+  endTime!: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(2000)
   clientNotes?: string;
 
-  /** Opcionalno: procenat loyalty popusta koji klijent želi iskoristiti za ovu rezervaciju. */
   @IsOptional()
   @IsInt()
   @Min(0)
   @Max(100)
   desiredLoyaltyPercent?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  payDebtsIntent?: boolean;
 }

@@ -27,7 +27,10 @@ export class ClientDebtsService {
     if (!clientId) throw new BadRequestException('clientId je obavezan.');
     const isAdminOrOwner = currentUser.roles.includes('SYSTEM_ADMIN') || currentUser.roles.includes('OWNER');
     const isStylist = currentUser.roles.includes('STYLIST');
-    if (!isAdminOrOwner && !isStylist) throw new ForbiddenException('Nemate dozvolu.');
+    const isSelf = currentUser.sub === clientId;
+    if (!isAdminOrOwner && !isStylist && !isSelf) {
+      throw new ForbiddenException('Nemate dozvolu.');
+    }
 
     const debts = await this.prisma.clientDebt.findMany({
       where: { clientId, status: 'OPEN' },
@@ -51,11 +54,15 @@ export class ClientDebtsService {
       },
     });
 
-    if (isAdminOrOwner) return debts;
+    if (isAdminOrOwner || isSelf) return debts;
 
     // STYLIST: može vidjeti dugove klijenta zbog operativnih poruka u toku rada,
     // ali ne smije vidjeti tuđe napomene.
     return debts.map((d) => (d.createdById === currentUser.sub ? d : { ...d, note: null }));
+  }
+
+  async listForMe(currentUser: { sub: string; roles: string[] }) {
+    return this.listForClient(currentUser.sub, currentUser);
   }
 
   async listForStylistMe(currentUser: { sub: string; roles: string[] }) {

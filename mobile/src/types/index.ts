@@ -108,6 +108,7 @@ export interface Reservation {
   loyaltyDiscountPercent?: number;
   loyaltyDiscountAmount?: number;
   loyaltyPointsUsed?: number;
+  payDebtsIntent?: boolean;
   createdAt: string;
   service?: Service;
   items?: ReservationServiceItem[];

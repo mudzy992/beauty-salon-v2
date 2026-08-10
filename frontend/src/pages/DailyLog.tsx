@@ -7,7 +7,6 @@ import { DailyLogEntryFormDialog } from '../features/daily-log/entry-form-dialog
 import { DailyLogDeleteDialog } from '../features/daily-log/entry-delete-dialog'
 import { DailyLogStats } from '../features/daily-log/entry-stats'
 import { DailyLogEntryFilters } from '../features/daily-log/entry-filters'
-import { DailyLogPartialDialog } from '../features/daily-log/entry-partial-dialog'
 import { useDailyLogData } from '../features/daily-log/use-daily-log-data'
 import { useDailyLogForm } from '../features/daily-log/use-daily-log-form'
 import { useDailyLogMutations } from '../features/daily-log/use-daily-log-mutations'
@@ -74,6 +73,21 @@ export default function DailyLog() {
         clients={data.clients}
         paidAmount={form.paidAmount}
         setPaidAmount={form.setPaidAmount}
+        chargeAmount={form.chargeAmount}
+        debtsSum={form.debtsSum}
+        tipPreview={form.tipPreview}
+        shortfall={form.shortfall}
+        createDebt={form.createDebt}
+        setCreateDebt={form.setCreateDebt}
+        openDebts={form.openDebts}
+        settleDebtsEnabled={form.settleDebtsEnabled}
+        setSettleDebtsEnabled={form.setSettleDebtsEnabled}
+        settledDebtIds={form.settledDebtIds}
+        onToggleSettledDebt={form.onToggleSettledDebt}
+        setUnitPrice={form.setUnitPrice}
+        toggleService={form.toggleService}
+        loyaltyPercent={form.loyaltyPercent}
+        loyaltyDiscountAmount={form.loyaltyDiscountAmount}
         loyaltyInfo={form.loyaltyInfo}
         loadingLoyalty={form.loadingLoyalty}
         saving={form.saving}
@@ -91,14 +105,6 @@ export default function DailyLog() {
         onReasonChange={mutations.setDeleteReason}
         saving={form.saving}
         onConfirm={() => void mutations.handleDelete()}
-      />
-      <DailyLogPartialDialog
-        open={form.partialOpen}
-        onOpenChange={form.setPartialOpen}
-        partialDiff={form.partialDiff}
-        saving={form.saving}
-        onIgnoreDebt={() => void form.confirmPartial('IGNORE_DEBT')}
-        onCreateDebt={() => void form.confirmPartial('CREATE_DEBT')}
       />
     </div>
   )

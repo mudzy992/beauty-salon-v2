@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -67,6 +67,24 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const [verifyCode, setVerifyCode] = useState('');
   const [verifySending, setVerifySending] = useState(false);
   const [verifySubmitting, setVerifySubmitting] = useState(false);
+  const [openDebts, setOpenDebts] = useState<
+    Array<{ id: string; amount: number | string; createdAt: string; service?: { name?: string } | null }>
+  >([]);
+
+  useEffect(() => {
+    let mounted = true;
+    api
+      .get<typeof openDebts>('/api/client-debts/me')
+      .then((r) => {
+        if (mounted) setOpenDebts(Array.isArray(r.data) ? r.data : []);
+      })
+      .catch(() => {
+        if (mounted) setOpenDebts([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const themeLabel =
     mode === 'light'
@@ -216,6 +234,32 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
             variant="outline"
             style={styles.phoneNudgeBtn}
           />
+        </Card>
+      ) : null}
+
+      {openDebts.length > 0 ? (
+        <Card style={[styles.menuCard, { borderColor: colors.border }]}>
+          <Text style={[styles.menuLabel, { color: colors.text, paddingHorizontal: 16, paddingTop: 14, fontWeight: '700' }]}>
+            Otvorena dugovanja
+          </Text>
+          {openDebts.map((d, idx) => (
+            <View key={d.id}>
+              {idx > 0 ? <View style={[styles.separator, { backgroundColor: colors.borderLight }]} /> : null}
+              <View style={styles.menuItem}>
+                <View style={[styles.menuIconContainer, { backgroundColor: colors.accent }]}>
+                  <Ionicons name="wallet-outline" size={20} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.menuLabel, { color: colors.text }]}>
+                    {d.service?.name ?? 'Usluga'} · {Number(d.amount).toFixed(2)} KM
+                  </Text>
+                  <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                    {String(d.createdAt).slice(0, 10)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ))}
         </Card>
       ) : null}
 

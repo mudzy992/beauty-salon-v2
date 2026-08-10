@@ -322,6 +322,9 @@ model Reservation {
   loyaltyDiscountAmount  Decimal @default(0) @map("loyalty_discount_amount") @db.Decimal(10, 2)
   loyaltyPointsUsed      Int     @default(0) @map("loyalty_points_used")
 
+  /// Klijent pri bookingu želi platiti i otvorena dugovanja
+  payDebtsIntent Boolean @default(false) @map("pay_debts_intent")
+
   publicReferenceCode String @unique @map("public_reference_code")
   clientViewToken     String @unique @map("client_view_token")
 
@@ -426,6 +429,7 @@ model DailyLogEntryServiceItem {
   id              String   @id @default(uuid())
   dailyLogEntryId String   @map("daily_log_entry_id")
   serviceId       String   @map("service_id")
+  unitPrice       Decimal  @map("unit_price") @db.Decimal(10, 2)
   sortOrder       Int      @default(0) @map("sort_order")
   createdAt       DateTime @default(now()) @map("created_at")
 

@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsDateString,
@@ -11,7 +12,9 @@ import {
   MaxLength,
   Min,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
+import { DailyLogServiceItemDto } from './daily-log-service-item.dto';
 
 export class UpdateDailyLogEntryDto {
   @IsOptional()
@@ -47,6 +50,12 @@ export class UpdateDailyLogEntryDto {
   @IsArray()
   @IsUUID(undefined, { each: true })
   serviceIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DailyLogServiceItemDto)
+  items?: DailyLogServiceItemDto[];
 
   @IsOptional()
   @ValidateIf((_, v) => v !== null)

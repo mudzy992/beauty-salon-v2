@@ -17,6 +17,7 @@ export type NotificationType =
   | 'reservation_reminder'
   | 'reservation_reschedule'
   | 'holiday'
+  | 'client_debt'
   | 'general';
 
 export interface SendNotificationOptions {
@@ -553,6 +554,7 @@ export class NotificationsService {
         url: reservationViewUrl,
       },
       holiday: { label: 'Otvori aplikaciju', url: appUrl },
+      client_debt: { label: 'Moj profil', url: appUrl },
       general: { label: 'Otvori aplikaciju', url: appUrl },
     };
     const plainTextByType: Record<NotificationType, string> = {
@@ -568,6 +570,8 @@ export class NotificationsService {
         'Termin je pomjeren. Potvrdite novi termin unutar aplikacije.',
       holiday:
         'Obavijest o neradnom danu/prazniku. Provjerite kalendar i obavijesti.',
+      client_debt:
+        'Kreirano je novo dugovanje na vašem računu. Pregledajte iznos u profilu.',
       general:
         'Imate novu opću notifikaciju iz sistema.',
     };

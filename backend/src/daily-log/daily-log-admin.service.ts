@@ -13,6 +13,7 @@ import { LoyaltyService } from '../loyalty/loyalty.service';
 import type { UpdateDailyLogEntryDto } from './dto/update-daily-log-entry.dto';
 import type { DeleteDailyLogEntryDto } from './dto/delete-daily-log-entry.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { resolveServiceItems } from './daily-log.pricing';
 
 @Injectable()
 export class DailyLogAdminService {
@@ -36,6 +37,7 @@ export class DailyLogAdminService {
       dto.date != null ||
       dto.stylistProfileId != null ||
       dto.serviceIds != null ||
+      dto.items != null ||
       dto.clientId !== undefined ||
       dto.status != null;
     if (wantsAdminFields && !isAdmin) {
@@ -212,8 +214,27 @@ export class DailyLogAdminService {
       data.stylistProfileId = dto.stylistProfileId;
     }
     if (dto.clientId !== undefined) data.clientId = dto.clientId;
-    if (dto.serviceIds) {
-      const serviceIds = this.validators.normalizeServiceIds(dto.serviceIds);
+    if (dto.items?.length || dto.serviceIds) {
+      const catalog = await this.prisma.service.findMany({
+        where: {
+          id: {
+            in: [
+              ...(dto.items?.map((i) => i.serviceId) ?? []),
+              ...(dto.serviceIds ?? []),
+            ],
+          },
+        },
+        select: { id: true, price: true },
+      });
+      const catalogPrices = new Map(
+        catalog.map((s) => [s.id, Number(s.price)]),
+      );
+      const resolved = resolveServiceItems({
+        items: dto.items,
+        serviceIds: dto.serviceIds,
+        catalogPrices,
+      });
+      const serviceIds = resolved.map((r) => r.serviceId);
       const clientId =
         dto.clientId !== undefined ? dto.clientId : current.clientId;
       await this.validators.assertClientServiceGenderMatch(clientId, serviceIds);
@@ -222,9 +243,10 @@ export class DailyLogAdminService {
         where: { dailyLogEntryId: id },
       });
       await this.prisma.dailyLogEntryServiceItem.createMany({
-        data: serviceIds.map((sid, idx) => ({
+        data: resolved.map((it, idx) => ({
           dailyLogEntryId: id,
-          serviceId: sid,
+          serviceId: it.serviceId,
+          unitPrice: it.unitPrice,
           sortOrder: idx,
         })),
       });

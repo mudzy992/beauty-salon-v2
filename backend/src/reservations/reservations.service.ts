@@ -337,6 +337,7 @@ export class ReservationsService {
         endTime: dto.endTime,
         status: RESERVATION_STATUS.PENDING,
         clientNotes: dto.clientNotes,
+        payDebtsIntent: !!dto.payDebtsIntent,
         publicReferenceCode,
         clientViewToken,
       },

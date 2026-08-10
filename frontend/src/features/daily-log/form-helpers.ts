@@ -1,4 +1,5 @@
 import type {
+  ClientDebtOption,
   DailyLogEntry,
   DailyLogFormState,
   LoyaltyInfo,
@@ -8,6 +9,7 @@ import type {
 export const emptyDailyLogForm = (): DailyLogFormState => ({
   stylistProfileId: '',
   serviceIds: [],
+  unitPrices: {},
   clientId: '',
   date: new Date().toISOString().slice(0, 10),
   actualPrice: 0,
@@ -25,9 +27,16 @@ export const mapEntryToForm = (entry: DailyLogEntry): DailyLogFormState => {
       : entry.service?.id
         ? [entry.service.id]
         : []
+  const unitPrices: Record<string, number> = {}
+  for (const it of entry.items ?? []) {
+    unitPrices[it.serviceId] = Number(
+      it.unitPrice ?? it.service?.price ?? 0,
+    )
+  }
   return {
     stylistProfileId: entry.stylistProfile?.id ?? '',
     serviceIds,
+    unitPrices,
     clientId: entry.client?.id ?? '',
     date: entry.date?.slice(0, 10) ?? '',
     actualPrice: Number(entry.actualPrice),
@@ -38,16 +47,28 @@ export const mapEntryToForm = (entry: DailyLogEntry): DailyLogFormState => {
     status: entry.status === 'COMPLETED' ? 'COMPLETED' : 'PENDING',
   }
 }
+
+export const sumUnitPrices = (
+  serviceIds: string[],
+  unitPrices: Record<string, number>,
+): number =>
+  serviceIds.reduce((acc, id) => acc + Number(unitPrices[id] ?? 0), 0)
+
 export const computeChargeAmount = (opts: {
   serviceIds: string[]
-  services: ServiceOption[]
+  unitPrices: Record<string, number>
   loyaltyInfo: LoyaltyInfo | null
   desiredLoyaltyPercent: number
-}): { chargeAmount: number; loyaltyPercent: number } => {
-  const selected = opts.serviceIds
-    .map((id) => opts.services.find((s) => s.id === id))
-    .filter(Boolean) as ServiceOption[]
-  const base = selected.reduce((acc, s) => acc + Number(s.price ?? 0), 0)
+  settledDebtIds: string[]
+  openDebts: ClientDebtOption[]
+}): {
+  servicesSum: number
+  debtsSum: number
+  chargeAmount: number
+  loyaltyPercent: number
+  loyaltyDiscountAmount: number
+} => {
+  const servicesSum = sumUnitPrices(opts.serviceIds, opts.unitPrices)
   const loyaltyPercent =
     opts.loyaltyInfo?.enabled &&
     opts.loyaltyInfo?.hasAccount &&
@@ -58,11 +79,32 @@ export const computeChargeAmount = (opts: {
           Math.min(opts.desiredLoyaltyPercent, opts.loyaltyInfo.service.maxDiscountPercent),
         )
       : 0
-  const discount = base > 0 ? (base * loyaltyPercent) / 100 : 0
-  return { chargeAmount: Math.max(0, base - discount), loyaltyPercent }
+  const loyaltyDiscountAmount = servicesSum > 0 ? (servicesSum * loyaltyPercent) / 100 : 0
+  const servicesCharge = Math.max(0, servicesSum - loyaltyDiscountAmount)
+  const debtsSum = opts.openDebts
+    .filter((d) => opts.settledDebtIds.includes(d.id))
+    .reduce((acc, d) => acc + Number(d.amount), 0)
+  return {
+    servicesSum,
+    debtsSum,
+    chargeAmount: servicesCharge + debtsSum,
+    loyaltyPercent,
+    loyaltyDiscountAmount,
+  }
 }
 
 export const parsePaidAmount = (paidAmount: string, fallback: number): number => {
   if (paidAmount.trim().length === 0) return fallback
   return Number(paidAmount.replace(',', '.'))
 }
+
+export const buildItemsPayload = (
+  serviceIds: string[],
+  unitPrices: Record<string, number>,
+): Array<{ serviceId: string; unitPrice: number }> =>
+  serviceIds.map((serviceId) => ({
+    serviceId,
+    unitPrice: Number(unitPrices[serviceId] ?? 0),
+  }))
+
+export const defaultUnitPrice = (svc: ServiceOption): number => Number(svc.price ?? 0)

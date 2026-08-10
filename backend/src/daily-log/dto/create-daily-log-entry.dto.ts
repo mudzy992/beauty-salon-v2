@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsArray,
   IsDateString,
@@ -10,7 +11,9 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { DailyLogServiceItemDto } from './daily-log-service-item.dto';
 
 export class CreateDailyLogEntryDto {
   @IsUUID()
@@ -20,23 +23,30 @@ export class CreateDailyLogEntryDto {
   @IsUUID()
   reservationId?: string;
 
-  /** Backwards-compat (legacy clients). Prefer `serviceIds`. */
+  /** Backwards-compat (legacy clients). Prefer `items` / `serviceIds`. */
   @IsOptional()
   @IsUUID()
   serviceId?: string;
 
-  /** Multi-service entry. */
+  /** Multi-service entry (legacy without per-item price). */
   @IsOptional()
   @IsArray()
   @IsUUID(undefined, { each: true })
   serviceIds?: string[];
+
+  /** Preferred: services with editable unit prices. */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DailyLogServiceItemDto)
+  items?: DailyLogServiceItemDto[];
 
   @IsOptional()
   @IsUUID()
   clientId?: string;
 
   @IsDateString()
-  date!: string; // YYYY-MM-DD
+  date!: string;
 
   /** Iznos naplate koji je klijent stvarno platio. */
   @IsOptional()
@@ -44,7 +54,7 @@ export class CreateDailyLogEntryDto {
   @Min(0)
   paidAmount?: number;
 
-  /** Backwards-compat (legacy clients). Prefer `paidAmount`. */
+  /** Backwards-compat. Prefer `paidAmount`. */
   @IsNumber()
   @Min(0)
   actualPrice!: number;
@@ -68,7 +78,6 @@ export class CreateDailyLogEntryDto {
   @MaxLength(2000)
   notes?: string;
 
-  /** Opcionalno: procenat loyalty popusta koji klijent želi iskoristiti za ovaj zapis. */
   @IsOptional()
   @IsInt()
   @Min(0)
