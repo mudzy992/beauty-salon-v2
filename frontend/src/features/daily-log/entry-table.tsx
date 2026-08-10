@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui/badge'
 import { Card } from '../../components/ui/card'
 import type { DailyLogEntry } from './types'
 import { getStylistName } from './types'
-import { getServiceAmount, getTipAmount, getTotalAmount } from './amounts'
+import { getServiceAmount, getSettledDebtsSum, getServicesLabel, getTipAmount, getTotalAmount } from './amounts'
 import { DailyLogEntryActions } from './entry-table-actions'
 import { formatMobileAmount, loyaltyLine } from './entry-table-helpers'
 
@@ -52,7 +52,7 @@ export const DailyLogEntryTable = ({
             >
               <div className="flex items-center justify-between">
                 <p className="font-medium text-slate-900 dark:text-slate-50">
-                  {e.date?.slice(0, 10)}
+                  {e.publicReferenceCode ?? e.date?.slice(0, 10)}
                 </p>
                 <Badge
                   variant={e.deletedAt ? 'secondary' : e.status === 'COMPLETED' ? 'success' : 'warning'}
@@ -65,7 +65,13 @@ export const DailyLogEntryTable = ({
                       : 'Na čekanju'}
                 </Badge>
               </div>
-              <p className="text-sm">{e.service?.name ?? '-'}</p>
+              <p className="text-xs text-slate-500">{e.date?.slice(0, 10)}</p>
+              <p className="text-sm">{getServicesLabel(e)}</p>
+              {getSettledDebtsSum(e) > 0 ? (
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  + naplata duga {getSettledDebtsSum(e).toFixed(2)} KM
+                </p>
+              ) : null}
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 {getStylistName(e.stylistProfile)}
               </p>
@@ -85,10 +91,12 @@ export const DailyLogEntryTable = ({
           <thead>
             <tr className="border-b border-slate-200 text-left dark:border-slate-800">
               <th className="p-3 font-medium">Datum</th>
+              <th className="p-3 font-medium">Ref.</th>
               <th className="p-3 font-medium">Stilista</th>
-              <th className="p-3 font-medium">Servis</th>
+              <th className="p-3 font-medium">Servisi</th>
               <th className="p-3 font-medium">Klijent</th>
-              <th className="p-3 text-right font-medium">Cijena</th>
+              <th className="p-3 text-right font-medium">Servisi</th>
+              <th className="p-3 text-right font-medium">Dugovi</th>
               <th className="p-3 text-right font-medium">Napojnica</th>
               <th className="p-3 text-right font-medium">Ukupno</th>
               <th className="p-3 font-medium">Izvor</th>
@@ -99,7 +107,7 @@ export const DailyLogEntryTable = ({
           <tbody>
             {entries.length === 0 ? (
               <tr>
-                <td colSpan={10} className="p-6 text-slate-500">
+                <td colSpan={12} className="p-6 text-slate-500">
                   {noDataLabel}
                 </td>
               </tr>
@@ -115,6 +123,7 @@ export const DailyLogEntryTable = ({
                   <td className={`p-3 ${e.deletedAt ? 'line-through' : ''}`}>
                     {e.date?.slice(0, 10)}
                   </td>
+                  <td className="p-3 font-mono text-xs">{e.publicReferenceCode ?? '—'}</td>
                   <td className="p-3">
                     {e.stylistProfile?.id ? (
                       <RouterLink
@@ -129,7 +138,14 @@ export const DailyLogEntryTable = ({
                   </td>
                   <td className="p-3">
                     <div className="flex flex-col gap-0">
-                      <span>{e.service?.name ?? '-'}</span>
+                      <span title={e.items?.map((i) => i.service?.name).filter(Boolean).join(', ')}>
+                        {getServicesLabel(e)}
+                      </span>
+                      {getSettledDebtsSum(e) > 0 ? (
+                        <span className="text-xs text-slate-500">
+                          + dugovi ({e.debtPaymentEntries?.length ?? 0})
+                        </span>
+                      ) : null}
                       {loyaltyLine(e)}
                       {e.deletedAt && e.deleteReason ? (
                         <span className="text-xs text-rose-600">Razlog: {e.deleteReason}</span>
@@ -152,6 +168,9 @@ export const DailyLogEntryTable = ({
                   </td>
                   <td className="p-3 text-right font-medium tabular-nums">
                     {getServiceAmount(e).toFixed(2)}
+                  </td>
+                  <td className="p-3 text-right tabular-nums">
+                    {getSettledDebtsSum(e).toFixed(2)}
                   </td>
                   <td className="p-3 text-right tabular-nums">{getTipAmount(e).toFixed(2)}</td>
                   <td className="p-3 text-right font-semibold tabular-nums">

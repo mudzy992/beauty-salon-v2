@@ -1,5 +1,6 @@
 export interface DailyLogEntry {
   id: string
+  publicReferenceCode?: string | null
   date: string
   actualPrice: number | string
   tipAmount: number | string
@@ -24,6 +25,22 @@ export interface DailyLogEntry {
     serviceId: string
     unitPrice?: number | string
     service?: { id: string; name: string; price?: number | string } | null
+  }>
+  debtPaymentEntries?: Array<{
+    id: string
+    actualPrice: number | string
+    tipAmount?: number | string
+    debtId?: string | null
+    notes?: string | null
+    date?: string
+    publicReferenceCode?: string | null
+    service?: { id: string; name: string } | null
+    debt?: {
+      id: string
+      amount: number | string
+      createdAt: string
+      service?: { id: string; name: string } | null
+    } | null
   }>
   client?: {
     id: string

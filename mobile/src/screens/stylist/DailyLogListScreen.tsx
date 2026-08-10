@@ -28,6 +28,7 @@ import {
   startOfWeek,
   subWeeks,
 } from 'date-fns';
+import { getCollectedTotal, getServicesLabel, getSettledDebtsSum } from './daily-log-display';
 
 type DailyLogListScreenProps = {
   navigation: {
@@ -196,7 +197,7 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
           <Card style={styles.card}>
             <View style={styles.row}>
               <Text style={[styles.serviceName, { color: colors.text }]}>
-                {item.service?.name ?? 'Usluga'}
+                {item.publicReferenceCode ?? getServicesLabel(item)}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 {(() => {
@@ -214,7 +215,7 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
               </View>
             </View>
             <Text style={[styles.date, { color: colors.textSecondary }]}>
-              {formatDate(item.date)}
+              {formatDate(item.date)} · {getServicesLabel(item)}
             </Text>
             {item.client && (
               <Text style={[styles.client, { color: colors.textMuted }]}>
@@ -222,8 +223,11 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
               </Text>
             )}
             <Text style={[styles.price, { color: colors.primary }]}>
-              {Number(item.actualPrice).toFixed(2)} KM
-              {item.tipAmount ? ` + ${Number(item.tipAmount).toFixed(2)} KM napojnica` : ''}
+              {getCollectedTotal(item).toFixed(2)} KM
+              {getSettledDebtsSum(item) > 0
+                ? ` · uklj. dug ${getSettledDebtsSum(item).toFixed(2)} KM`
+                : ''}
+              {item.tipAmount ? ` · nap. ${Number(item.tipAmount).toFixed(2)} KM` : ''}
             </Text>
           </Card>
         </TouchableOpacity>

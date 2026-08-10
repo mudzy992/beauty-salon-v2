@@ -183,7 +183,10 @@ export function useReactNavAdapter(ctx: ReactNavAdapterContext) {
               case 'DailyLogDetail':
                 return { pathname: '/stylist/daily-log/detail/[entryId]', params: { entryId: params?.entryId } };
               case 'DailyLogNewEntry':
-                return { pathname: '/stylist/daily-log/new-entry' };
+                return {
+                  pathname: '/stylist/daily-log/new-entry',
+                  params: params?.entryId ? { entryId: params.entryId } : undefined,
+                };
               case 'ReschedulePreview':
                 return {
                   pathname: '/stylist/daily-log/reschedule-preview/[reservationId]',
@@ -245,7 +248,12 @@ export function useReactNavAdapter(ctx: ReactNavAdapterContext) {
               router.push({ pathname: '/stylist/daily-log/detail/[entryId]', params: { entryId: nested?.params?.entryId } });
               return;
             case 'DailyLogNewEntry':
-              router.push('/stylist/daily-log/new-entry');
+              router.push({
+                pathname: '/stylist/daily-log/new-entry',
+                params: nested?.params?.entryId
+                  ? { entryId: nested.params.entryId }
+                  : undefined,
+              });
               return;
             case 'ReschedulePreview':
               router.push({

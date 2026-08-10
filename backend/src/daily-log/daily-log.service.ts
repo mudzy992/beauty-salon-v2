@@ -20,6 +20,7 @@ import {
   resolveServiceItems,
   sumUnitPrices,
 } from './daily-log.pricing';
+import { allocateDailyLogReferenceCode } from './daily-log.reference';
 
 @Injectable()
 export class DailyLogService {
@@ -156,6 +157,10 @@ export class DailyLogService {
       paidForServices,
       unitsSum,
     );
+    const publicReferenceCode = await allocateDailyLogReferenceCode(
+      this.prisma,
+      date,
+    );
     const created = await this.prisma.dailyLogEntry.create({
       data: {
         stylistProfileId: dto.stylistProfileId,
@@ -165,6 +170,7 @@ export class DailyLogService {
         date,
         actualPrice: paidForServices,
         tipAmount: tipBeforeLoyalty,
+        publicReferenceCode,
         notes: dto.notes,
         kind: 'SERVICE' as any,
         isManual: dto.isManual ?? !!dto.reservationId === false,
@@ -344,6 +350,10 @@ export class DailyLogService {
     const debtAmount = shortfall;
     const shouldCreateDebt = dto.debtHandling === 'CREATE_DEBT' && debtAmount > 0;
 
+    const publicReferenceCode = await allocateDailyLogReferenceCode(
+      this.prisma,
+      date,
+    );
     const created = await this.prisma.dailyLogEntry.create({
       data: {
         stylistProfileId: res.confirmedStylistId,
@@ -353,6 +363,7 @@ export class DailyLogService {
         date,
         actualPrice: paidForServices,
         tipAmount: computedTip,
+        publicReferenceCode,
         notes,
         kind: 'SERVICE' as any,
         isManual: false,
@@ -473,6 +484,7 @@ export class DailyLogService {
         const listPrice = Number(service?.price ?? 0);
         const tipAmount = computeDebtPaymentTip(amount, listPrice);
         const kifAmount = getServiceAmount(amount, tipAmount);
+        const debtRef = await allocateDailyLogReferenceCode(tx as any, date);
 
         await tx.clientDebt.update({
           where: { id: d.id },
@@ -495,6 +507,7 @@ export class DailyLogService {
             date,
             actualPrice: amount,
             tipAmount,
+            publicReferenceCode: debtRef,
             notes: 'Naplata duga',
             isManual: true,
             status: 'COMPLETED',
@@ -745,6 +758,28 @@ export class DailyLogService {
         orderBy: { sortOrder: 'asc' as const },
         include: {
           service: { select: { id: true, name: true, price: true } },
+        },
+      },
+      debtPaymentEntries: {
+        where: { deletedAt: null },
+        orderBy: { createdAt: 'asc' as const },
+        select: {
+          id: true,
+          actualPrice: true,
+          tipAmount: true,
+          debtId: true,
+          notes: true,
+          date: true,
+          publicReferenceCode: true,
+          service: { select: { id: true, name: true } },
+          debt: {
+            select: {
+              id: true,
+              amount: true,
+              createdAt: true,
+              service: { select: { id: true, name: true } },
+            },
+          },
         },
       },
       client: { select: { id: true, firstName: true, lastName: true } },

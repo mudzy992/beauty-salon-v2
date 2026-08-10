@@ -117,8 +117,6 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         }
         setDate(data.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10));
         setNotes(data.notes ?? '');
-        setPaidAmount(String(Number(data.actualPrice ?? 0)));
-        setPaidTouched(true);
         const ids =
           Array.isArray(data.items) && data.items.length > 0
             ? data.items.map((x) => x.serviceId)
@@ -128,10 +126,22 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         setServiceIds(ids);
         const prices: Record<string, number> = {};
         (data.items ?? []).forEach((it) => {
-          prices[it.serviceId] = Number(it.unitPrice ?? 0);
+          const fromItem = Number(it.unitPrice ?? NaN);
+          prices[it.serviceId] = Number.isFinite(fromItem) ? fromItem : 0;
         });
         setUnitPrices(prices);
         setClientId(data.clientId ?? data.client?.id ?? '');
+        setPaidTouched(true);
+        const servicesPortion = Number(data.actualPrice ?? 0);
+        const debtsPortion = Array.isArray(
+          (data as { debtPaymentEntries?: Array<{ actualPrice?: number | string }> }).debtPaymentEntries,
+        )
+          ? (data as { debtPaymentEntries: Array<{ actualPrice?: number | string }> }).debtPaymentEntries.reduce(
+              (acc, row) => acc + Number(row.actualPrice ?? 0),
+              0,
+            )
+          : 0;
+        setPaidAmount(String(servicesPortion + debtsPortion));
       } catch {
         Alert.alert('Greška', 'Nije moguće učitati unos.');
         navigation.goBack();

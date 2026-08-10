@@ -136,6 +136,7 @@ export interface StylistResponse {
 
 export interface DailyLogEntry {
   id: string;
+  publicReferenceCode?: string | null;
   stylistProfileId: string;
   reservationId?: string;
   serviceId: string;
@@ -152,6 +153,28 @@ export interface DailyLogEntry {
   isManual: boolean;
   createdAt: string;
   service?: { id: string; name: string };
+  items?: Array<{
+    id?: string;
+    serviceId: string;
+    unitPrice?: number | string;
+    sortOrder?: number;
+    service?: { id: string; name: string; price?: number | string } | null;
+  }>;
+  debtPaymentEntries?: Array<{
+    id: string;
+    actualPrice: number | string;
+    tipAmount?: number | string;
+    debtId?: string | null;
+    notes?: string | null;
+    date?: string;
+    service?: { id: string; name: string } | null;
+    debt?: {
+      id: string;
+      amount: number | string;
+      createdAt: string;
+      service?: { id: string; name: string } | null;
+    } | null;
+  }>;
   client?: { id: string; firstName: string; lastName: string };
   stylistProfile?: StylistProfile;
   reservation?: {

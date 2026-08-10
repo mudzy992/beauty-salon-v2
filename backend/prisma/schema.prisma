@@ -387,6 +387,7 @@ model DailyLogEntry {
   date             DateTime @db.Date
   actualPrice      Decimal  @map("actual_price") @db.Decimal(10, 2)
   tipAmount        Decimal  @default(0) @map("tip_amount") @db.Decimal(10, 2)
+  publicReferenceCode String @unique @map("public_reference_code")
 
   // Loyalty popust (ako je klijent iskoristio bodove pri ručnom unosu)
   loyaltyDiscountPercent Int     @default(0) @map("loyalty_discount_percent")

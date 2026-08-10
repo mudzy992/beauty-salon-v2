@@ -22,6 +22,7 @@ import {
   uploadDailyLogImage,
 } from '../api/stylist-workbook.api'
 import { useWorkbookEntry } from '../hooks/useWorkbookEntry'
+import { getCollectedTotal, getSettledDebtsSum } from '../workbook-display'
 
 const formatKm = (v: number) => `${Number(v || 0).toFixed(2)} KM`
 
@@ -140,7 +141,7 @@ export const WorkbookDetailPage = () => {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50 truncate">
-            {entry.service?.name ?? 'Usluga'}
+            {entry.publicReferenceCode ?? entry.id.slice(0, 8).toUpperCase()}
           </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             {entry.date?.slice(0, 10)} {entry.isManual ? '· Ručno' : '· Rezervacija'}
@@ -160,7 +161,47 @@ export const WorkbookDetailPage = () => {
 
       <Card className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-2">
+          <div className="space-y-3 w-full">
+            <div>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Servisi</p>
+              <ul className="mt-1 space-y-1">
+                {(entry.items && entry.items.length > 0
+                  ? entry.items
+                  : entry.service
+                    ? [{ serviceId: entry.serviceId, service: entry.service, unitPrice: entry.actualPrice }]
+                    : []
+                ).map((it) => (
+                  <li
+                    key={it.serviceId}
+                    className="flex justify-between text-sm text-slate-700 dark:text-slate-200"
+                  >
+                    <span>{it.service?.name ?? 'Usluga'}</span>
+                    <span>{formatKm(Number(it.unitPrice ?? 0))}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {(entry.debtPaymentEntries?.length ?? 0) > 0 ? (
+              <div>
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                  Naplata dugovanja
+                </p>
+                <ul className="mt-1 space-y-1">
+                  {entry.debtPaymentEntries!.map((dp) => (
+                    <li
+                      key={dp.id}
+                      className="flex justify-between text-sm text-slate-700 dark:text-slate-200"
+                    >
+                      <span>
+                        {dp.debt?.service?.name ?? dp.service?.name ?? 'Dug'}
+                        {dp.debt?.createdAt ? ` · ${String(dp.debt.createdAt).slice(0, 10)}` : ''}
+                      </span>
+                      <span>{formatKm(Number(dp.actualPrice))}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             <div className="text-sm text-slate-600 dark:text-slate-300">
               Klijent:{' '}
               <span className="font-medium text-slate-900 dark:text-slate-50">
@@ -172,16 +213,19 @@ export const WorkbookDetailPage = () => {
               </span>
             </div>
             <div className="text-sm text-slate-600 dark:text-slate-300">
-              Naplaćeno:{' '}
+              Ukupno naplaćeno:{' '}
               <span className="font-semibold text-slate-900 dark:text-slate-50">
-                {formatKm(Number(entry.actualPrice))}
+                {formatKm(getCollectedTotal(entry))}
               </span>
-              {Number(entry.tipAmount) > 0 ? (
-                <span className="text-slate-600 dark:text-slate-300">
-                  {' '}
-                  · Napojnica: <span className="font-semibold">{formatKm(Number(entry.tipAmount))}</span>
-                </span>
-              ) : null}
+              <span className="block text-xs mt-1">
+                Servisi {formatKm(Number(entry.actualPrice))}
+                {getSettledDebtsSum(entry) > 0
+                  ? ` · Dugovi ${formatKm(getSettledDebtsSum(entry))}`
+                  : ''}
+                {Number(entry.tipAmount) > 0
+                  ? ` · Napojnica ${formatKm(Number(entry.tipAmount))}`
+                  : ''}
+              </span>
             </div>
             {entry.notes ? (
               <div className="text-sm text-slate-600 dark:text-slate-300">

@@ -23,10 +23,32 @@ export type DailyLogImage = {
 
 export type DailyLogEntry = {
   id: string
+  publicReferenceCode?: string | null
   stylistProfileId: string
   reservationId?: string | null
   serviceId: string
-  items?: Array<{ id: string; sortOrder: number; serviceId: string; service?: { id: string; name: string } | null }>
+  items?: Array<{
+    id: string
+    sortOrder: number
+    serviceId: string
+    unitPrice?: number | string
+    service?: { id: string; name: string } | null
+  }>
+  debtPaymentEntries?: Array<{
+    id: string
+    actualPrice: number | string
+    tipAmount?: number | string
+    debtId?: string | null
+    notes?: string | null
+    date?: string
+    service?: { id: string; name: string } | null
+    debt?: {
+      id: string
+      amount: number | string
+      createdAt: string
+      service?: { id: string; name: string } | null
+    } | null
+  }>
   clientId?: string | null
   date: string
   actualPrice: number

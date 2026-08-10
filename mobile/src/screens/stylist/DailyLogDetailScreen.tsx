@@ -22,6 +22,7 @@ import api, { getUploadUrl } from '../../services/api';
 import { spacing } from '../../theme';
 import { formatDate } from '../../utils/date';
 import type { DailyLogEntry } from '../../types';
+import { getCollectedTotal, getSettledDebtsSum } from './daily-log-display';
 
 type DailyLogDetailScreenProps = {
   route: { params: { entryId: string } };
@@ -251,7 +252,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         <View style={[styles.headerRow, { borderBottomColor: colors.border }]}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: colors.text }]}>
-              {entry.service?.name ?? 'Usluga'}
+              {entry.publicReferenceCode ?? entry.id.slice(0, 8).toUpperCase()}
             </Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
               {formatDate(entry.date)} {entry.isManual ? '· Ručno' : '· Rezervacija'}
@@ -263,6 +264,64 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         </View>
 
         <View style={styles.infoGrid}>
+          <View>
+            <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 4 }]}>Servisi</Text>
+            {(entry.items && entry.items.length > 0
+              ? entry.items
+              : entry.service
+                ? [{ serviceId: entry.serviceId, service: entry.service, unitPrice: entry.actualPrice }]
+                : []
+            ).map((it, idx) => (
+              <View
+                key={`${it.serviceId ?? idx}`}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  paddingVertical: 4,
+                  borderBottomWidth: 1,
+                  borderBottomColor: colors.border,
+                }}
+              >
+                <Text style={{ color: colors.text, flex: 1 }}>
+                  {it.service?.name ?? 'Usluga'}
+                </Text>
+                <Text style={{ color: colors.textSecondary }}>
+                  {Number(it.unitPrice ?? 0).toFixed(2)} KM
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {(entry.debtPaymentEntries?.length ?? 0) > 0 ? (
+            <View>
+              <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 4 }]}>
+                Naplata dugovanja
+              </Text>
+              {entry.debtPaymentEntries!.map((dp) => (
+                <View
+                  key={dp.id}
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    paddingVertical: 4,
+                    borderBottomWidth: 1,
+                    borderBottomColor: colors.border,
+                  }}
+                >
+                  <Text style={{ color: colors.text, flex: 1 }}>
+                    {dp.debt?.service?.name ?? dp.service?.name ?? 'Dug'}
+                    {dp.debt?.createdAt
+                      ? ` · ${String(dp.debt.createdAt).slice(0, 10)}`
+                      : ''}
+                  </Text>
+                  <Text style={{ color: colors.textSecondary }}>
+                    {Number(dp.actualPrice).toFixed(2)} KM
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
           {entry.reservation ? (
             <View style={styles.infoItem}>
               <Ionicons name="bookmark-outline" size={16} color={colors.textSecondary} />
@@ -284,10 +343,16 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           <View style={styles.infoItem}>
             <Ionicons name="cash-outline" size={16} color={colors.textSecondary} />
             <Text style={[styles.infoText, { color: colors.text }]}>
-              Naplaćeno: {Number(entry.actualPrice).toFixed(2)} KM
-              {entry.tipAmount > 0 ? ` · Napojnica: ${Number(entry.tipAmount).toFixed(2)} KM` : ''}
+              Ukupno naplaćeno: {getCollectedTotal(entry).toFixed(2)} KM
             </Text>
           </View>
+          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+            Servisi: {Number(entry.actualPrice).toFixed(2)} KM
+            {entry.tipAmount > 0 ? ` (napojnica ${Number(entry.tipAmount).toFixed(2)} KM)` : ''}
+            {getSettledDebtsSum(entry) > 0
+              ? ` · Dugovi: ${getSettledDebtsSum(entry).toFixed(2)} KM`
+              : ''}
+          </Text>
           {entry.notes ? (
             <View style={[styles.infoItem, { alignItems: 'flex-start' }]}>
               <Ionicons name="document-text-outline" size={16} color={colors.textSecondary} />

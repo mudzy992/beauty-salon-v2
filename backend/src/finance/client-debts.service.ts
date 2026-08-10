@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { IncomeSyncService } from './income-sync.service';
 import { IncomeManualEntriesService } from './income-manual-entries.service';
 import { parseAndNormalizeDate } from '../common/utils/book-period';
+import { allocateDailyLogReferenceCode } from '../daily-log/daily-log.reference';
 import type { RepayClientDebtDto } from './dto/repay-client-debt.dto';
 import type { SettleClientDebtDto } from './dto/settle-client-debt.dto';
 
@@ -212,6 +213,7 @@ export class ClientDebtsService {
           date,
           actualPrice: amount,
           tipAmount: 0,
+          publicReferenceCode: await allocateDailyLogReferenceCode(tx as any, date),
           notes: note ?? 'Naplata duga',
           isManual: true,
           status: 'COMPLETED',

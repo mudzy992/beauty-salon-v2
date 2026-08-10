@@ -1,14 +1,20 @@
 import type { DailyLogEntry } from './types'
-import { getServiceAmount, getTipAmount, getTotalAmount } from './amounts'
+import {
+  getServiceAmount,
+  getSettledDebtsSum,
+  getTipAmount,
+  getTotalAmount,
+} from './amounts'
 
 export const formatMobileAmount = (e: DailyLogEntry): string => {
   const service = getServiceAmount(e)
   const tip = getTipAmount(e)
+  const debts = getSettledDebtsSum(e)
   const total = getTotalAmount(e)
-  if (tip > 0) {
-    return `${service.toFixed(2)} + ${tip.toFixed(2)} nap. = ${total.toFixed(2)} KM`
-  }
-  return `${total.toFixed(2)} KM`
+  const parts: string[] = [`servisi ${service.toFixed(2)}`]
+  if (tip > 0) parts.push(`nap. ${tip.toFixed(2)}`)
+  if (debts > 0) parts.push(`dugovi ${debts.toFixed(2)}`)
+  return `${parts.join(' + ')} = ${total.toFixed(2)} KM`
 }
 
 export const loyaltyLine = (e: DailyLogEntry) => {

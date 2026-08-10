@@ -38,7 +38,8 @@
 - Zatvoren KIF mjesec (`IncomeBook.closedAt`) **blokira** brisanje, revert i izmjenu COMPLETED unosa.
 - Javna galerija: `status=COMPLETED`, `deletedAt=null`, `kind=SERVICE`, ima `isBefore` i `isAfter` sliku.
 - `sourceEntryId` povezuje DEBT_PAYMENT unose s izvornim SERVICE unosom.
-- Povezani `DEBT_PAYMENT` (sa `sourceEntryId`) **ne prikazuju se** kao zasebni unosi u listi dnevne knjige — sastavni su dio parent SERVICE unosa. Samostalna manuelna naplata duga (bez `sourceEntryId`) ostaje zaseban unos.
+- Povezani `DEBT_PAYMENT` (sa `sourceEntryId`) **ne prikazuju se** kao zasebni unosi u listi dnevne knjige — sastavni su dio parent SERVICE unosa (vidljivi u detalju / kolonama dugovi). Samostalna manuelna naplata duga (bez `sourceEntryId`) ostaje zaseban unos.
+- Svaki unos ima `publicReferenceCode` (`DK-YYYYMMDD-XXXXXX`) — naslov u UI.
 - `IncomeBookManualEntry.dailyLogEntryId` povezuje ručnu KIF stavku s DEBT_PAYMENT unosom.
 
 ## Novac (konvencija)

@@ -8,6 +8,7 @@ import { Badge } from '../../../components/ui/badge'
 import { WorkbookNewEntryDrawer } from './workbook-new-entry-page'
 import { useStylistProfileMe } from '../hooks/useStylistProfileMe'
 import { useWorkbookEntries } from '../hooks/useWorkbookEntries'
+import { getCollectedTotal, getServicesLabel, getSettledDebtsSum } from '../workbook-display'
 
 const formatKm = (v: number) => `${Number(v || 0).toFixed(2)} KM`
 
@@ -111,10 +112,10 @@ export const WorkbookListPage = () => {
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-base font-semibold text-slate-900 dark:text-slate-50 truncate">
-                              {item.service?.name ?? 'Usluga'}
+                              {item.publicReferenceCode ?? getServicesLabel(item)}
                             </div>
                             <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                              {item.date?.slice(0, 10)}
+                              {item.date?.slice(0, 10)} · {getServicesLabel(item)}
                             </div>
                             {clientName ? (
                               <div className="mt-1 text-sm text-slate-500 dark:text-slate-400 truncate">
@@ -122,8 +123,13 @@ export const WorkbookListPage = () => {
                               </div>
                             ) : null}
                             <div className="mt-2 text-sm font-semibold text-brand-gold">
-                              {formatKm(Number(item.actualPrice))}
-                              {Number(item.tipAmount) > 0 ? ` + ${formatKm(Number(item.tipAmount))} napojnica` : ''}
+                              {formatKm(getCollectedTotal(item))}
+                              {getSettledDebtsSum(item) > 0
+                                ? ` · dug ${formatKm(getSettledDebtsSum(item))}`
+                                : ''}
+                              {Number(item.tipAmount) > 0
+                                ? ` · nap. ${formatKm(Number(item.tipAmount))}`
+                                : ''}
                             </div>
                           </div>
 

@@ -1,7 +1,9 @@
 # Daily Log Matrix Changelog
 
-## 2026-08-10 (delete + linked debts)
+## 2026-08-10 (reference + debt display)
 
+- `publicReferenceCode` na DailyLogEntry (`DK-YYYYMMDD-XXXXXX`); backfill postojećih.
+- Lista/detalj: više servisa, linked debt payments + ukupno naplaćeno (servisi + dugovi).
 - Soft delete: razlog obavezan i za stilistu.
 - Soft delete PENDING SERVICE: reverse linked DEBT_PAYMENT + reopen SETTLED dugova (`sourceEntryId`).
 - Lista dnevne knjige: skriva DEBT_PAYMENT sa `sourceEntryId` (manuelna naplata duga ostaje vidljiva).
