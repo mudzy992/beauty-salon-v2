@@ -418,7 +418,6 @@ export const StylistReservationDetailPage = () => {
     )
   }
 
-  const minCharge = computeMinCharge(reservation)
   const loyaltyPercent = Number(reservation.loyaltyDiscountPercent ?? 0)
   const loyaltyAmount = Number(reservation.loyaltyDiscountAmount ?? 0)
 

@@ -20,12 +20,11 @@ import {
 type ToastFns = ReturnType<typeof useAppToast>
 
 type Args = {
-  services: ServiceOption[]
   loadData: () => void
   toast: ToastFns
 }
 
-export const useDailyLogForm = ({ services, loadData, toast }: Args) => {
+export const useDailyLogForm = ({ loadData, toast }: Args) => {
   const { success, error, warning } = toast
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)

@@ -467,7 +467,6 @@ export default function PublicReserve() {
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0)
   const [payDebtsIntent, setPayDebtsIntent] = useState(false)
   const [openDebtsTotal, setOpenDebtsTotal] = useState(0)
-  const [openDebtsTotal, setOpenDebtsTotal] = useState(0)
   const dateSectionRef = useRef<HTMLDivElement | null>(null)
 
   const servicesForGender = useMemo(() => {

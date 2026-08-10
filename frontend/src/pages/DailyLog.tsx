@@ -16,7 +16,6 @@ export default function DailyLog() {
   const toast = useAppToast()
   const data = useDailyLogData()
   const form = useDailyLogForm({
-    services: data.services,
     loadData: data.loadData,
     toast,
   })
