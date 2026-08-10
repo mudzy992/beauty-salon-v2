@@ -43,7 +43,7 @@ export class DailyLogReversalService {
     await this.assertOpenBooksForEntry(entry);
     await this.prisma.$transaction(async (tx) => {
       await this.removeIncomeBookEntries(tx, entryId);
-      await this.reverseDebtPayments(tx, entryId);
+      await this.reverseLinkedDebtPayments(tx, entryId);
       await this.removeCreatedDebts(tx, entryId);
       if (opts?.revertReservation !== false && entry.reservationId) {
         await this.revertReservationIfCompleted(tx, entry.reservationId);
@@ -107,7 +107,8 @@ export class DailyLogReversalService {
     }
   }
 
-  private async reverseDebtPayments(
+  /** Soft-delete linked DEBT_PAYMENT rows and reopen settled debts. */
+  async reverseLinkedDebtPayments(
     tx: TxClient,
     sourceEntryId: string,
   ): Promise<void> {

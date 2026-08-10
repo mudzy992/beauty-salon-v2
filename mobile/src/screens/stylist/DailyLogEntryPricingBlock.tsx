@@ -1,6 +1,8 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/ui/Input';
+import { Button } from '../../components/ui/Button';
 import { spacing } from '../../theme';
 import type { OpenDebtRow } from './daily-log-entry-math';
 
@@ -43,111 +45,132 @@ type Props = {
   editMode: boolean;
 };
 
-export function DailyLogEntryPricingBlock({
-  colors,
-  selectedServices,
-  unitPrices,
-  onUnitPriceChange,
-  onRemoveService,
-  openDebts,
-  settleDebtsEnabled,
-  onSettleDebtsEnabledChange,
-  settledDebtIds,
-  onToggleDebt,
-  chargeAmount,
-  servicesSum,
-  loyaltyDiscount,
-  debtsSum,
-  paidAmount,
-  onPaidAmountChange,
-  tipPreview,
-  shortfall,
-  createDebt,
-  onCreateDebtChange,
-  notes,
-  onNotesChange,
-  date,
-  onDateChange,
-  editMode,
-}: Props) {
+export function DailyLogEntryPricingBlock(props: Props) {
+  const {
+    colors,
+    selectedServices,
+    unitPrices,
+    onUnitPriceChange,
+    onRemoveService,
+    openDebts,
+    settleDebtsEnabled,
+    onSettleDebtsEnabledChange,
+    settledDebtIds,
+    onToggleDebt,
+    chargeAmount,
+    servicesSum,
+    loyaltyDiscount,
+    debtsSum,
+    paidAmount,
+    onPaidAmountChange,
+    tipPreview,
+    shortfall,
+    createDebt,
+    onCreateDebtChange,
+    notes,
+    onNotesChange,
+    date,
+    onDateChange,
+    editMode,
+  } = props;
+  const [editServiceId, setEditServiceId] = useState<string | null>(null);
+  const [editPriceDraft, setEditPriceDraft] = useState('');
+  const editingService = selectedServices.find((s) => s.id === editServiceId);
+
+  const openEditPrice = (serviceId: string) => {
+    setEditServiceId(serviceId);
+    setEditPriceDraft(String(unitPrices[serviceId] ?? 0));
+  };
+
+  const saveEditPrice = () => {
+    if (!editServiceId) return;
+    const n = parseFloat(editPriceDraft.replace(',', '.'));
+    onUnitPriceChange(editServiceId, Number.isFinite(n) && n >= 0 ? n : 0);
+    setEditServiceId(null);
+  };
+
   return (
     <>
       {selectedServices.map((s) => (
         <View
           key={s.id}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: spacing.sm,
-            paddingVertical: 8,
-            borderBottomWidth: 1,
-            borderBottomColor: colors.border,
-          }}
+          style={[styles.serviceRow, { borderBottomColor: colors.border }]}
         >
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>{s.name}</Text>
-            <Input
-              label="Cijena (KM)"
-              value={String(unitPrices[s.id] ?? 0)}
-              onChangeText={(v) => {
-                const n = parseFloat(v.replace(',', '.'));
-                onUnitPriceChange(s.id, Number.isFinite(n) ? n : 0);
-              }}
-              keyboardType="decimal-pad"
-            />
+            <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
+              {(unitPrices[s.id] ?? 0).toFixed(2)} KM
+            </Text>
           </View>
           <TouchableOpacity
-            onPress={() => onRemoveService(s.id)}
-            style={{
-              paddingHorizontal: 10,
-              paddingVertical: 6,
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: colors.inputBorder,
-              backgroundColor: colors.inputBg,
-            }}
+            onPress={() => openEditPrice(s.id)}
+            accessibilityLabel="Uredi cijenu"
+            style={[styles.iconBtn, { borderColor: colors.inputBorder, backgroundColor: colors.inputBg }]}
           >
-            <Text style={{ color: colors.textSecondary, fontWeight: '700' }}>Ukloni</Text>
+            <Ionicons name="create-outline" size={18} color={colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => onRemoveService(s.id)}
+            accessibilityLabel="Ukloni servis"
+            style={[styles.iconBtn, { borderColor: colors.inputBorder, backgroundColor: colors.inputBg }]}
+          >
+            <Ionicons name="trash-outline" size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
       ))}
 
       {!editMode && openDebts.length > 0 ? (
-        <View style={{ marginTop: spacing.sm, gap: 8 }}>
+        <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
           <Text style={{ color: colors.textSecondary }}>
             Otvorena dugovanja: {openDebts.length} ·{' '}
             {openDebts.reduce((a, d) => a + Number(d.amount || 0), 0).toFixed(2)} KM
           </Text>
           <TouchableOpacity
             onPress={() => onSettleDebtsEnabledChange(!settleDebtsEnabled)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+            style={[
+              styles.settleBtn,
+              {
+                backgroundColor: settleDebtsEnabled ? colors.primary : colors.inputBg,
+                borderColor: settleDebtsEnabled ? colors.primary : colors.inputBorder,
+              },
+            ]}
           >
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>
-              {settleDebtsEnabled ? '✓' : '○'} Naplati dug
+            <Ionicons
+              name={settleDebtsEnabled ? 'checkbox' : 'square-outline'}
+              size={20}
+              color={settleDebtsEnabled ? '#fff' : colors.primary}
+            />
+            <Text
+              style={{
+                color: settleDebtsEnabled ? '#fff' : colors.primary,
+                fontWeight: '700',
+                fontSize: 15,
+              }}
+            >
+              Naplati dug
             </Text>
           </TouchableOpacity>
-          {settleDebtsEnabled
-            ? openDebts.map((d) => {
+          {settleDebtsEnabled ? (
+            <>
+              <Text style={{ color: colors.textMuted, fontSize: 13 }}>
+                Označite dugovanja za naplatu
+              </Text>
+              {openDebts.map((d) => {
                 const selected = settledDebtIds.includes(d.id);
                 return (
                   <TouchableOpacity
                     key={d.id}
                     onPress={() => onToggleDebt(d.id)}
-                    style={{
-                      flexDirection: 'row',
-                      gap: 8,
-                      paddingVertical: 6,
-                      borderBottomWidth: 1,
-                      borderBottomColor: colors.border,
-                    }}
+                    style={[styles.debtRow, { borderBottomColor: colors.border }]}
                   >
-                    <Text style={{ color: selected ? colors.primary : colors.textMuted }}>
-                      {selected ? '✓' : '○'}
-                    </Text>
+                    <Ionicons
+                      name={selected ? 'checkbox' : 'square-outline'}
+                      size={20}
+                      color={selected ? colors.primary : colors.textMuted}
+                    />
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: colors.text, fontWeight: '600' }}>
-                        Naplata dugovanja · {d.service?.name ?? 'Usluga'} ·{' '}
-                        {Number(d.amount).toFixed(2)} KM
+                        {d.service?.name ?? 'Usluga'} · {Number(d.amount).toFixed(2)} KM
                       </Text>
                       <Text style={{ color: colors.textSecondary }}>
                         {String(d.createdAt).slice(0, 10)}
@@ -155,8 +178,9 @@ export function DailyLogEntryPricingBlock({
                     </View>
                   </TouchableOpacity>
                 );
-              })
-            : null}
+              })}
+            </>
+          ) : null}
         </View>
       ) : null}
 
@@ -190,13 +214,83 @@ export function DailyLogEntryPricingBlock({
             onPress={() => onCreateDebtChange(!createDebt)}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
           >
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>
-              {createDebt ? '✓' : '○'} Zavedi dug
-            </Text>
+            <Ionicons
+              name={createDebt ? 'checkbox' : 'square-outline'}
+              size={20}
+              color={colors.primary}
+            />
+            <Text style={{ color: colors.primary, fontWeight: '700' }}>Zavedi dug</Text>
           </TouchableOpacity>
         </View>
       ) : null}
       <Input label="Napomena (opciono)" value={notes} onChangeText={onNotesChange} multiline />
+
+      <Modal visible={!!editServiceId} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Uredi cijenu</Text>
+            <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
+              Cijena vrijedi samo za ovaj unos (snapshot). Katalog ostaje nepromijenjen.
+            </Text>
+            <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 4 }}>
+              {editingService?.name ?? 'Servis'}
+            </Text>
+            <Input
+              label="Cijena (KM)"
+              value={editPriceDraft}
+              onChangeText={setEditPriceDraft}
+              keyboardType="decimal-pad"
+            />
+            <View style={styles.modalActions}>
+              <Button title="Odustani" variant="outline" onPress={() => setEditServiceId(null)} style={{ flex: 1 }} />
+              <Button title="Sačuvaj" onPress={saveEditPrice} style={{ flex: 1 }} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  serviceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  debtRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: spacing.md,
+  },
+  modalCard: { borderRadius: 12, padding: spacing.md },
+  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.xs },
+  modalActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+});

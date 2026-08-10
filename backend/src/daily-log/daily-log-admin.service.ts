@@ -96,25 +96,26 @@ export class DailyLogAdminService {
   ) {
     const entry = await this.dailyLog.findOne(id, user, { includeDeleted: false });
     const isAdmin = this.dailyLog.isAdminOrOwner(user);
-    if (!isAdmin) {
-      if (entry.status === 'COMPLETED') {
-        throw new ForbiddenException(
-          'Kompletirani unos može obrisati samo administrator.',
-        );
-      }
-    } else {
-      const reason = dto.reason?.trim();
-      if (!reason) {
-        throw new BadRequestException('Razlog brisanja je obavezan.');
-      }
+    const reason = dto.reason?.trim();
+    if (!reason) {
+      throw new BadRequestException('Razlog brisanja je obavezan.');
+    }
+    if (!isAdmin && entry.status === 'COMPLETED') {
+      throw new ForbiddenException(
+        'Kompletirani unos može obrisati samo administrator.',
+      );
     }
     if (entry.status === 'COMPLETED') {
       await this.reversal.reverseCompletedEffects(id);
     } else if (entry.kind === 'DEBT_PAYMENT' && entry.debtId) {
       await this.reopenDebtOnDelete(entry.id, entry.debtId);
     } else {
-      await this.prisma.clientDebt.deleteMany({
-        where: { dailyLogEntryId: id, status: 'OPEN' },
+      await this.reversal.assertOpenBooksForEntry(entry);
+      await this.prisma.$transaction(async (tx) => {
+        await this.reversal.reverseLinkedDebtPayments(tx, id);
+        await tx.clientDebt.deleteMany({
+          where: { dailyLogEntryId: id, status: 'OPEN' },
+        });
       });
     }
     return this.prisma.dailyLogEntry.update({
@@ -122,7 +123,7 @@ export class DailyLogAdminService {
       data: {
         deletedAt: new Date(),
         deletedById: user.sub,
-        deleteReason: dto.reason?.trim() || null,
+        deleteReason: reason,
       },
       include: this.dailyLog.entryInclude(),
     });

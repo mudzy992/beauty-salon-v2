@@ -21,6 +21,8 @@ describe('DailyLogAdminService', () => {
     reverseCompletedEffects: jest.fn(),
     syncIncomeBookEntry: jest.fn(),
     recalcInTx: jest.fn(),
+    reverseLinkedDebtPayments: jest.fn(),
+    assertOpenBooksForEntry: jest.fn(),
   };
   const mockValidators = {
     parseDate: jest.fn((v: string) => new Date(v)),
@@ -121,6 +123,18 @@ describe('DailyLogAdminService', () => {
     );
   });
 
+  it('softDelete requires reason for stylist', async () => {
+    mockDailyLog.findOne.mockResolvedValue({
+      id: 'e1',
+      status: 'PENDING',
+      kind: 'SERVICE',
+      date: new Date(),
+    });
+    await expect(
+      service.softDelete('e1', {}, stylist as any),
+    ).rejects.toThrow(BadRequestException);
+  });
+
   it('stylist cannot delete COMPLETED entry', async () => {
     mockDailyLog.findOne.mockResolvedValue({
       id: 'e1',
@@ -129,7 +143,7 @@ describe('DailyLogAdminService', () => {
       date: new Date(),
     });
     await expect(
-      service.softDelete('e1', {}, stylist as any),
+      service.softDelete('e1', { reason: 'Greška' }, stylist as any),
     ).rejects.toThrow(ForbiddenException);
   });
 

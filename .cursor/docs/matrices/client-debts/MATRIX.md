@@ -22,9 +22,14 @@
 Ledger split when settling debts in the same form:
 
 1. Validate `paid >= sum(selectedDebtAmounts)`.
-2. For each selected debt → `DEBT_PAYMENT` entry via settle helper (`actualPrice = debt.amount`, tip vs service list price).
+2. For each selected debt → internal `DEBT_PAYMENT` row + KIF manual (audit), linked via `sourceEntryId` to the SERVICE entry.
 3. Remainder `paid − debtsSum` → SERVICE entry with unitPrice items; tip/shortfall vs chargeBase (services − loyalty).
-4. `sourceEntryId` links DEBT_PAYMENT → SERVICE.
+4. **List UI**: linked `DEBT_PAYMENT` rows are **not** shown as separate daily-log items; only standalone manual repay appears as its own row.
+
+## Delete / reopen
+
+- Soft-delete of parent SERVICE entry reopens SETTLED debts that were paid through linked `DEBT_PAYMENT` children and soft-deletes those children.
+- Delete reason is required for stylist and admin.
 
 ## Stored fields
 

@@ -6,6 +6,9 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Image } from 'expo-image';
@@ -14,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Input } from '../../components/ui/Input';
 import api, { getUploadUrl } from '../../services/api';
 import { spacing } from '../../theme';
 import { formatDate } from '../../utils/date';
@@ -35,6 +39,8 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteReason, setDeleteReason] = useState('');
 
   const fetchEntry = useCallback(async () => {
     try {
@@ -131,29 +137,32 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   }, [entryId, fetchEntry, entry?.reservationId, navigation]);
 
   const handleDelete = useCallback(() => {
-    Alert.alert('Obriši unos', 'Da li ste sigurni da želite obrisati ovaj unos?', [
-      { text: 'Odustani', style: 'cancel' },
-      {
-        text: 'Obriši',
-        style: 'destructive',
-        onPress: async () => {
-          setActing(true);
-          try {
-            await api.delete(`/api/daily-log/${entryId}`, { data: {} });
-            navigation.goBack();
-          } catch (err: unknown) {
-            const msg =
-              err && typeof err === 'object' && 'response' in err
-                ? (err as any).response?.data?.message
-                : 'Greška pri brisanju.';
-            Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
-          } finally {
-            setActing(false);
-          }
-        },
-      },
-    ]);
-  }, [entryId, navigation]);
+    setDeleteReason('');
+    setDeleteModalOpen(true);
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    const reason = deleteReason.trim();
+    if (!reason) {
+      Alert.alert('Greška', 'Unesite razlog brisanja.');
+      return;
+    }
+    setActing(true);
+    try {
+      await api.delete(`/api/daily-log/${entryId}`, { data: { reason } });
+      setDeleteModalOpen(false);
+      navigation.goBack();
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data
+              ?.message
+          : 'Greška pri brisanju.';
+      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : String(msg));
+    } finally {
+      setActing(false);
+    }
+  }, [deleteReason, entryId, navigation]);
 
   const addImage = useCallback(
     async (isBefore: boolean) => {
@@ -231,6 +240,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         : null;
 
   return (
+    <>
     <ScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + tabBarBottom }]}
@@ -389,6 +399,44 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         </Card>
       )}
     </ScrollView>
+
+      <Modal visible={deleteModalOpen} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ width: '100%' }}
+          >
+            <Card style={{ ...styles.modalCard, backgroundColor: colors.surface }}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Obriši unos</Text>
+              <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
+                Unos će biti obrisan. Ako je preko ovog unosa naplaćen dug, dug se vraća u status OPEN.
+              </Text>
+              <Input
+                label="Razlog brisanja"
+                value={deleteReason}
+                onChangeText={setDeleteReason}
+                multiline
+                placeholder="Npr. greška u unosu"
+              />
+              <View style={styles.modalActions}>
+                <Button
+                  title="Odustani"
+                  variant="outline"
+                  onPress={() => setDeleteModalOpen(false)}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  title="Obriši"
+                  onPress={confirmDelete}
+                  loading={acting}
+                  style={{ flex: 1 }}
+                />
+              </View>
+            </Card>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -408,4 +456,13 @@ const styles = StyleSheet.create({
   imageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   thumb: { width: 80, height: 80, borderRadius: 8 },
   addImageRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    padding: spacing.md,
+  },
+  modalCard: { padding: spacing.md, borderRadius: 12 },
+  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.xs },
+  modalActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
 });

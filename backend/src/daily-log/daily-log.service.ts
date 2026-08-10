@@ -535,7 +535,15 @@ export class DailyLogService {
       date?: { gte?: Date; lte?: Date };
       stylistProfileId?: string;
       deletedAt?: Date | null;
-    } = {};
+      OR?: Array<Record<string, unknown>>;
+    } = {
+      // Linked debt settlements are part of the parent SERVICE entry; only
+      // standalone manual DEBT_PAYMENT rows appear as their own list items.
+      OR: [
+        { kind: { not: 'DEBT_PAYMENT' } },
+        { sourceEntryId: null },
+      ],
+    };
     if (query.fromDate)
       where.date = { ...where.date, gte: new Date(query.fromDate) };
     if (query.toDate)

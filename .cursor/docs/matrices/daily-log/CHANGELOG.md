@@ -1,5 +1,11 @@
 # Daily Log Matrix Changelog
 
+## 2026-08-10 (delete + linked debts)
+
+- Soft delete: razlog obavezan i za stilistu.
+- Soft delete PENDING SERVICE: reverse linked DEBT_PAYMENT + reopen SETTLED dugova (`sourceEntryId`).
+- Lista dnevne knjige: skriva DEBT_PAYMENT sa `sourceEntryId` (manuelna naplata duga ostaje vidljiva).
+
 ## 2026-08-10
 
 - Nova matrica: `unitPrice` snapshot, Za naplatu / Naplaćeno, tip vs shortfall + Zavedi dug; settle OPEN dugova u istoj formi; vidi `client-debts` matricu. KUF N/A.

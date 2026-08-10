@@ -17,7 +17,7 @@
 | Urediti COMPLETED | Ne | Da |
 | Kompletirati | Da | Da |
 | Vratiti COMPLETED → PENDING | Ne | Da |
-| Soft delete PENDING | Da (razlog opcionalan) | Da (razlog obavezan) |
+| Soft delete PENDING | Da (razlog obavezan) | Da (razlog obavezan) |
 | Soft delete COMPLETED | Ne | Da (razlog obavezan) |
 | Restore deleted | Ne | Da (vraća kao PENDING) |
 | Dodati slike na PENDING | Da | Da |
@@ -31,13 +31,14 @@
 | COMPLETED → PENDING (revert) | Briše KIF stavku + totali | Reverzija EARN/REDEEM (clamp ≥ 0) | Reopen SETTLED via `sourceEntryId`; briše OPEN dug kreiran iz unosa | Ako COMPLETED → IN_PROGRESS |
 | Soft delete COMPLETED | Isto kao revert | Isto | Isto | Isto |
 | Soft delete DEBT_PAYMENT | Briše manual KIF | — | Dug → OPEN | — |
-| Soft delete PENDING | — | — | Briše OPEN dug kreiran iz unosa | — |
+| Soft delete PENDING | Reverzija linked DEBT_PAYMENT (KIF manual) | — | SETTLED via `sourceEntryId` → OPEN; briše OPEN dug kreiran iz unosa | — |
 
 ## Pravila
 
 - Zatvoren KIF mjesec (`IncomeBook.closedAt`) **blokira** brisanje, revert i izmjenu COMPLETED unosa.
 - Javna galerija: `status=COMPLETED`, `deletedAt=null`, `kind=SERVICE`, ima `isBefore` i `isAfter` sliku.
 - `sourceEntryId` povezuje DEBT_PAYMENT unose s izvornim SERVICE unosom.
+- Povezani `DEBT_PAYMENT` (sa `sourceEntryId`) **ne prikazuju se** kao zasebni unosi u listi dnevne knjige — sastavni su dio parent SERVICE unosa. Samostalna manuelna naplata duga (bez `sourceEntryId`) ostaje zaseban unos.
 - `IncomeBookManualEntry.dailyLogEntryId` povezuje ručnu KIF stavku s DEBT_PAYMENT unosom.
 
 ## Novac (konvencija)
