@@ -60,6 +60,10 @@ export class IncomeBookRepository {
             dailyLogEntry: {
               include: {
                 service: true,
+                items: {
+                  include: { service: true },
+                  orderBy: { sortOrder: 'asc' },
+                },
                 stylistProfile: { include: { user: true } },
                 client: {
                   select: {

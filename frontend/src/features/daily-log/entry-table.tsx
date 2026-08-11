@@ -12,6 +12,7 @@ type Props = {
   entries: DailyLogEntry[]
   loading: boolean
   noDataLabel: string
+  onView: (entry: DailyLogEntry) => void
   onEdit: (entry: DailyLogEntry) => void
   onComplete: (id: string) => void
   onDelete: (entry: DailyLogEntry) => void
@@ -22,6 +23,7 @@ export const DailyLogEntryTable = ({
   entries,
   loading,
   noDataLabel,
+  onView,
   onEdit,
   onComplete,
   onDelete,
@@ -36,7 +38,7 @@ export const DailyLogEntryTable = ({
       </Card>
     )
   }
-  const actions = { onEdit, onComplete, onDelete, onRestore }
+  const actions = { onView, onEdit, onComplete, onDelete, onRestore }
   return (
     <Card className="overflow-hidden">
       <div className="space-y-3 p-3 lg:hidden">

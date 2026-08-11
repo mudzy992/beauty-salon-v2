@@ -27,6 +27,7 @@ export interface IncomeEntry {
     status: string
     isManual: boolean
     service?: { name: string }
+    items?: Array<{ service?: { name: string } | null }>
     stylistProfile?: { user?: { username: string; firstName: string | null; lastName: string | null } }
     client?: { user?: { username: string } }
   }

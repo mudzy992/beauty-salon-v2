@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { Button } from '../components/ui/button'
 import { DailyLogEntryTable } from '../features/daily-log/entry-table'
+import { DailyLogEntryDetailDialog } from '../features/daily-log/entry-detail-dialog'
 import { DailyLogEntryFormDialog } from '../features/daily-log/entry-form-dialog'
 import { DailyLogDeleteDialog } from '../features/daily-log/entry-delete-dialog'
 import { DailyLogStats } from '../features/daily-log/entry-stats'
@@ -10,6 +12,7 @@ import { DailyLogEntryFilters } from '../features/daily-log/entry-filters'
 import { useDailyLogData } from '../features/daily-log/use-daily-log-data'
 import { useDailyLogForm } from '../features/daily-log/use-daily-log-form'
 import { useDailyLogMutations } from '../features/daily-log/use-daily-log-mutations'
+import type { DailyLogEntry } from '../features/daily-log/types'
 
 export default function DailyLog() {
   const { t } = useTranslation()
@@ -24,6 +27,7 @@ export default function DailyLog() {
     setSaving: form.setSaving,
     toast,
   })
+  const [detailEntry, setDetailEntry] = useState<DailyLogEntry | null>(null)
 
   return (
     <div>
@@ -53,6 +57,7 @@ export default function DailyLog() {
         entries={data.entries}
         loading={data.loading}
         noDataLabel={t('common.noData')}
+        onView={setDetailEntry}
         onEdit={form.openEditForm}
         onComplete={(id) => void mutations.handleComplete(id)}
         onDelete={(entry) => {
@@ -60,6 +65,13 @@ export default function DailyLog() {
           mutations.setDeleteReason('')
         }}
         onRestore={(id) => void mutations.handleRestore(id)}
+      />
+      <DailyLogEntryDetailDialog
+        entry={detailEntry}
+        open={!!detailEntry}
+        onOpenChange={(v) => {
+          if (!v) setDetailEntry(null)
+        }}
       />
       <DailyLogEntryFormDialog
         open={form.open}

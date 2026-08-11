@@ -1,5 +1,6 @@
 import type {
   IncomeBook,
+  IncomeEntry,
   IncomeEntryFilters,
   IncomeEntryRow,
   SortDirection,
@@ -16,6 +17,25 @@ export const EMPTY_INCOME_FILTERS: IncomeEntryFilters = {
 
 export type IncomeSortField = 'date' | 'amount' | 'tipAmount' | 'serviceName'
 
+export const resolveIncomeServiceNames = (
+  dailyLogEntry: IncomeEntry['dailyLogEntry'] | undefined,
+): string[] => {
+  const fromItems =
+    dailyLogEntry?.items
+      ?.map((it) => it.service?.name)
+      .filter((name): name is string => Boolean(name)) ?? []
+  if (fromItems.length > 0) return fromItems
+  if (dailyLogEntry?.service?.name) return [dailyLogEntry.service.name]
+  return []
+}
+
+export const resolveIncomeServiceLabel = (
+  dailyLogEntry: IncomeEntry['dailyLogEntry'] | undefined,
+): string => {
+  const names = resolveIncomeServiceNames(dailyLogEntry)
+  return names.length > 0 ? names.join(', ') : '—'
+}
+
 /** Spaja automatske i ručne stavke u jedinstven red tabele. */
 export const toIncomeEntryRows = (book: IncomeBook | undefined): IncomeEntryRow[] => {
   if (!book) return []
@@ -24,7 +44,7 @@ export const toIncomeEntryRows = (book: IncomeBook | undefined): IncomeEntryRow[
     id: entry.id,
     kind: 'AUTO',
     date: entry.date,
-    serviceName: entry.dailyLogEntry?.service?.name ?? '—',
+    serviceName: resolveIncomeServiceLabel(entry.dailyLogEntry),
     stylistName: getPersonName(entry.dailyLogEntry?.stylistProfile?.user),
     clientName: getPersonName(entry.dailyLogEntry?.client as never),
     amount: toNumber(entry.amount),

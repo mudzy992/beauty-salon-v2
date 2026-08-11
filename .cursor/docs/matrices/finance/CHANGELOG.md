@@ -1,3 +1,8 @@
+## 2026-08-11 (KIF multi-servis prikaz)
+
+- `IncomeBookRepository.findDetail`: include `dailyLogEntry.items.service`.
+- Web knjiga prihoda: kolona Servis lista svih servisa iz dnevnog zapisa (fallback na legacy `service`).
+
 ## 2026-07-31 (restore fixed vs invoice expense modes)
 
 - Vraćen model: `isFixed` kategorija (doprinosi) koristi template polja + `defaultValue` i opcionalno prilog po polju (`requiresAttachmentPerItem`).

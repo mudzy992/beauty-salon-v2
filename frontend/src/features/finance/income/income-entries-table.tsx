@@ -4,7 +4,10 @@ import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
 import { EmptyState } from '../components/data-state'
 import { formatIsoDateBs, formatMoney } from '../finance.utils'
-import type { IncomeSortField } from './income-entries.helpers'
+import {
+  resolveIncomeServiceNames,
+  type IncomeSortField,
+} from './income-entries.helpers'
 import type {
   IncomeBookManualEntry,
   IncomeEntryRow,
@@ -27,6 +30,13 @@ const COLUMNS: { field: IncomeSortField; label: string; numeric?: boolean }[] = 
   { field: 'amount', label: 'Prihod', numeric: true },
   { field: 'tipAmount', label: 'Napojnica', numeric: true },
 ]
+
+const serviceNamesForRow = (row: IncomeEntryRow): string[] => {
+  if (row.kind === 'AUTO') {
+    return resolveIncomeServiceNames(row.autoEntry?.dailyLogEntry)
+  }
+  return row.serviceName && row.serviceName !== '—' ? [row.serviceName] : []
+}
 
 export function IncomeEntriesTable({
   rows,
@@ -88,7 +98,9 @@ export function IncomeEntriesTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {rows.map((row) => {
+            const serviceNames = serviceNamesForRow(row)
+            return (
             <tr
               key={`${row.kind}-${row.id}`}
               className="border-b border-slate-100 last:border-0 dark:border-slate-900"
@@ -96,7 +108,19 @@ export function IncomeEntriesTable({
               <td className="py-2 pr-3 whitespace-nowrap">
                 {formatIsoDateBs(row.date)}
               </td>
-              <td className="py-2 pr-3">{row.serviceName}</td>
+              <td className="py-2 pr-3 align-top" title={row.serviceName}>
+                {serviceNames.length === 0 ? (
+                  '—'
+                ) : (
+                  <ul className="space-y-0.5">
+                    {serviceNames.map((name, index) => (
+                      <li key={`${name}-${index}`} className="truncate">
+                        {name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </td>
               <td className="py-2 pr-3 text-right tabular-nums">
                 {formatMoney(row.amount)}
               </td>
@@ -135,7 +159,8 @@ export function IncomeEntriesTable({
                 )}
               </td>
             </tr>
-          ))}
+            )
+          })}
         </tbody>
       </table>
     </div>

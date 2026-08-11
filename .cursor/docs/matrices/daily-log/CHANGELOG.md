@@ -1,5 +1,10 @@
 # Daily Log Matrix Changelog
 
+## 2026-08-11 (admin detail dialog)
+
+- Admin web dnevna knjiga: Eye → read-only detail dialog/drawer (ref, meta, lista servisa + unitPrice, naplata dugova, iznosi, bilješke).
+- KIF knjiga prihoda: `dailyLogEntry.items` u detail include; kolona Servis prikazuje sve servise (stacked), ne samo legacy `service`.
+
 ## 2026-08-10 (reference + debt display)
 
 - `publicReferenceCode` na DailyLogEntry (`DK-YYYYMMDD-XXXXXX`); backfill postojećih.

@@ -1,9 +1,10 @@
-import { Check, Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { Check, Eye, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import type { DailyLogEntry } from './types'
 
 type Props = {
   entry: DailyLogEntry
+  onView: (entry: DailyLogEntry) => void
   onEdit: (entry: DailyLogEntry) => void
   onComplete: (id: string) => void
   onDelete: (entry: DailyLogEntry) => void
@@ -12,6 +13,7 @@ type Props = {
 
 export const DailyLogEntryActions = ({
   entry,
+  onView,
   onEdit,
   onComplete,
   onDelete,
@@ -19,20 +21,42 @@ export const DailyLogEntryActions = ({
 }: Props) => {
   if (entry.deletedAt) {
     return (
+      <div className="flex justify-end gap-1">
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
+          aria-label="Pregledaj"
+          onClick={() => onView(entry)}
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
+          aria-label="Vrati"
+          onClick={() => onRestore(entry.id)}
+        >
+          <RotateCcw className="h-4 w-4" />
+        </Button>
+      </div>
+    )
+  }
+  return (
+    <div className="flex justify-end gap-1">
       <Button
         type="button"
         size="icon"
         variant="ghost"
         className="h-8 w-8"
-        aria-label="Vrati"
-        onClick={() => onRestore(entry.id)}
+        aria-label="Pregledaj"
+        onClick={() => onView(entry)}
       >
-        <RotateCcw className="h-4 w-4" />
+        <Eye className="h-4 w-4" />
       </Button>
-    )
-  }
-  return (
-    <div className="flex justify-end gap-1">
       <Button
         type="button"
         size="icon"
