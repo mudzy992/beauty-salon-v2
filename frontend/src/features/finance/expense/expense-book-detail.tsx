@@ -133,7 +133,8 @@ export function ExpenseBookDetail({
         { header: 'Kategorija', value: (e: Expense) => e.category?.name ?? '' },
         { header: 'Iznos', value: (e: Expense) => toNumber(e.totalAmount).toFixed(2) },
         { header: 'Napomena', value: (e: Expense) => {
-          const n = formatExpenseNotesSummary(e.notes)
+          const fields = e.category?.template?.fields ?? []
+          const n = formatExpenseNotesSummary(e.notes, fields)
           return [n.userNotes, ...n.lineLabels].filter(Boolean).join(' | ')
         }},
       ],

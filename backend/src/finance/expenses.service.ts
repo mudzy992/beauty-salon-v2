@@ -9,6 +9,11 @@ import { UpdateExpenseDto } from './dto/update-expense.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { AddExpenseAttachmentDto } from './dto/add-expense-attachment.dto';
 import { assertFieldValuesMatchTemplate } from './utils/expense-field-values';
+import {
+  assertVariableLineItemsMatchTemplate,
+  expectedTotalFromLines,
+  resolveModularLineItems,
+} from './utils/expense-line-items';
 
 @Injectable()
 export class ExpensesService {
@@ -25,9 +30,7 @@ export class ExpensesService {
       );
     }
     const category = await this.getCategoryWithTemplate(dto.categoryId);
-    assertFieldValuesMatchTemplate(category.template.fields, dto.fieldValues, {
-      requireRequiredFields: category.isFixed,
-    });
+    this.assertExpensePayload(category, dto.fieldValues, dto.notes, dto.totalAmount);
 
     const expense = await this.prisma.$transaction(async (tx) => {
       const created = await tx.expense.create({
@@ -92,11 +95,15 @@ export class ExpensesService {
 
   async update(id: string, dto: UpdateExpenseDto, user: CurrentUserPayload) {
     const expense = await this.assertEditable(id, 'mijenjati rashod');
-    if (dto.fieldValues !== undefined) {
+    if (dto.fieldValues !== undefined || dto.notes !== undefined || dto.totalAmount != null) {
       const category = await this.getCategoryWithTemplate(expense.categoryId);
-      assertFieldValuesMatchTemplate(category.template.fields, dto.fieldValues, {
-        requireRequiredFields: category.isFixed,
-      });
+      this.assertExpensePayload(
+        category,
+        dto.fieldValues !== undefined ? dto.fieldValues : undefined,
+        dto.notes !== undefined ? dto.notes : expense.notes,
+        dto.totalAmount ?? Number(expense.totalAmount),
+        { skipFieldValues: dto.fieldValues === undefined && category.isFixed },
+      );
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -152,6 +159,52 @@ export class ExpensesService {
     await this.assertEditable(id, 'brisati rashod');
     await this.prisma.expense.delete({ where: { id } });
     return { deleted: true };
+  }
+
+  private assertExpensePayload(
+    category: {
+      isFixed: boolean;
+      template: {
+        fields: Array<{
+          id: string;
+          fieldName: string;
+          fieldType: string;
+          isRequired: boolean;
+          lineRole: string;
+        }>;
+      };
+    },
+    fieldValues: CreateExpenseDto['fieldValues'] | undefined,
+    notes: string | null | undefined,
+    totalAmount: number,
+    options?: { skipFieldValues?: boolean },
+  ) {
+    if (category.isFixed) {
+      if (options?.skipFieldValues) return;
+      assertFieldValuesMatchTemplate(
+        category.template.fields.map((f) => ({
+          id: f.id,
+          fieldName: f.fieldName,
+          fieldType: f.fieldType,
+          isRequired: f.isRequired,
+        })),
+        fieldValues,
+        {
+          requireRequiredFields: true,
+        },
+      );
+      return;
+    }
+    const fields = category.template.fields;
+    if (fields.length === 0) return;
+    const { lineItems } = resolveModularLineItems(notes, fields);
+    assertVariableLineItemsMatchTemplate(fields, lineItems);
+    const expected = expectedTotalFromLines(fields, lineItems);
+    if (Math.abs(expected - Number(totalAmount)) > 0.02) {
+      throw new BadRequestException(
+        `Ukupan iznos (${totalAmount}) ne odgovara zbiru stavki (${expected}).`,
+      );
+    }
   }
 
   private async assertEditable(id: string, action: string) {

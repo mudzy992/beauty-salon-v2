@@ -2,11 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
   addTemplateField,
+  bootstrapLegacyColumns,
+  createCategoryBundle,
   fetchExpenseCategories,
-  fetchExpenseTemplates,
   removeTemplateField,
-  saveExpenseCategory,
-  saveExpenseTemplate,
+  updateCategoryBundle,
+  updateTemplateField,
+  type CategoryBundlePayload,
 } from '../api/expense-catalog.api'
 import { financeKeys } from './query-keys'
 import type { TemplateFieldPayload } from '../finance.types'
@@ -17,13 +19,6 @@ export const useExpenseCategories = () =>
     queryFn: fetchExpenseCategories,
   })
 
-/** Predlošci stižu sa ugniježđenim `fields` – nema pojedinačnih poziva po predlošku. */
-export const useExpenseTemplates = () =>
-  useQuery({
-    queryKey: financeKeys.expenseTemplates(),
-    queryFn: fetchExpenseTemplates,
-  })
-
 export const useExpenseCatalogMutations = () => {
   const queryClient = useQueryClient()
   const invalidate = async () => {
@@ -31,12 +26,12 @@ export const useExpenseCatalogMutations = () => {
   }
 
   return {
-    saveCategory: useMutation({
-      mutationFn: saveExpenseCategory,
+    createBundle: useMutation({
+      mutationFn: createCategoryBundle,
       onSuccess: invalidate,
     }),
-    saveTemplate: useMutation({
-      mutationFn: saveExpenseTemplate,
+    updateBundle: useMutation({
+      mutationFn: updateCategoryBundle,
       onSuccess: invalidate,
     }),
     addField: useMutation({
@@ -44,9 +39,22 @@ export const useExpenseCatalogMutations = () => {
         addTemplateField(args.templateId, args.payload),
       onSuccess: invalidate,
     }),
+    updateField: useMutation({
+      mutationFn: (args: {
+        fieldId: string
+        payload: Partial<TemplateFieldPayload>
+      }) => updateTemplateField(args.fieldId, args.payload),
+      onSuccess: invalidate,
+    }),
     removeField: useMutation({
       mutationFn: removeTemplateField,
       onSuccess: invalidate,
     }),
+    bootstrapLegacy: useMutation({
+      mutationFn: bootstrapLegacyColumns,
+      onSuccess: invalidate,
+    }),
   }
 }
+
+export type { CategoryBundlePayload }

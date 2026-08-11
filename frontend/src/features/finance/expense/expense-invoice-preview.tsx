@@ -2,9 +2,10 @@ import { Button } from '../../../components/ui/button'
 import { ResponsiveDialog } from '../components/responsive-dialog'
 import { ExpenseAttachmentsList } from './expense-attachments'
 import { parseExpenseNotes } from './expense-notes'
+import { computeLineTotal, labelFromLineValues } from './expense-line-roles'
 import { sumLineItems } from './expenses.helpers'
 import { formatIsoDateBs, formatMoney, toNumber } from '../finance.utils'
-import type { Expense, LineItem } from '../finance.types'
+import type { Expense, TemplateField } from '../finance.types'
 
 type Props = {
   expense: Expense | null
@@ -12,7 +13,7 @@ type Props = {
   onOpenChange: (open: boolean) => void
 }
 
-type PreviewRow = { name: string; qty: number; price: number; total: number }
+type PreviewRow = { name: string; qty: string; price: string; total: number }
 
 const rowsFromExpense = (expense: Expense): PreviewRow[] => {
   if (expense.category?.isFixed) {
@@ -20,33 +21,37 @@ const rowsFromExpense = (expense: Expense): PreviewRow[] => {
       const price = toNumber(fv.value)
       return {
         name: fv.field?.fieldName ?? 'Polje',
-        qty: 1,
-        price,
+        qty: '1',
+        price: String(price),
         total: price,
       }
     })
   }
-  const items: LineItem[] = parseExpenseNotes(expense.notes).lineItems
+  const fields: TemplateField[] = [...(expense.category?.template?.fields ?? [])].sort(
+    (a, b) => a.sortOrder - b.sortOrder,
+  )
+  const items = parseExpenseNotes(expense.notes, fields).lineItems
   return items.map((item) => ({
-    name: item.name,
-    qty: toNumber(item.qty) || 1,
-    price: toNumber(item.price),
-    total: (toNumber(item.qty) || 1) * toNumber(item.price),
+    name: labelFromLineValues(fields, item.values) || 'Stavka',
+    qty: '—',
+    price: '—',
+    total: computeLineTotal(fields, item.values),
   }))
 }
 
 export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
   if (!expense) return null
 
+  const fields = [...(expense.category?.template?.fields ?? [])].sort(
+    (a, b) => a.sortOrder - b.sortOrder,
+  )
   const rows = rowsFromExpense(expense)
   const notes = expense.category?.isFixed
     ? expense.notes ?? ''
-    : parseExpenseNotes(expense.notes).userNotes
+    : parseExpenseNotes(expense.notes, fields).userNotes
   const computedTotal = expense.category?.isFixed
     ? rows.reduce((sum, row) => sum + row.total, 0)
-    : sumLineItems(
-        rows.map((row) => ({ name: row.name, qty: row.qty, price: row.price })),
-      )
+    : sumLineItems(parseExpenseNotes(expense.notes, fields).lineItems, fields)
   const displayTotal =
     rows.length > 0 ? computedTotal : toNumber(expense.totalAmount)
 
@@ -78,8 +83,6 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
                   <th className="px-3 py-2 font-medium">Stavka</th>
-                  <th className="px-3 py-2 text-right font-medium">Kol.</th>
-                  <th className="px-3 py-2 text-right font-medium">Cijena</th>
                   <th className="px-3 py-2 text-right font-medium">Ukupno</th>
                 </tr>
               </thead>
@@ -92,10 +95,6 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
                     <td className="px-3 py-2 font-medium text-slate-900 dark:text-slate-50">
                       {row.name}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{row.qty}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {formatMoney(row.price)}
-                    </td>
                     <td className="px-3 py-2 text-right tabular-nums font-medium">
                       {formatMoney(row.total)}
                     </td>
@@ -104,10 +103,7 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
               </tbody>
               <tfoot>
                 <tr className="bg-slate-50 dark:bg-slate-900">
-                  <td
-                    colSpan={3}
-                    className="px-3 py-2 text-right text-sm font-medium text-slate-600 dark:text-slate-300"
-                  >
+                  <td className="px-3 py-2 text-right text-sm font-medium text-slate-600 dark:text-slate-300">
                     Ukupno
                   </td>
                   <td className="px-3 py-2 text-right text-sm font-semibold tabular-nums text-rose-700 dark:text-rose-300">

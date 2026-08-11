@@ -3,9 +3,15 @@ import type {
   ExpenseFilters,
   LineItem,
   SortDirection,
+  TemplateField,
 } from '../finance.types'
 import { toNumber } from '../finance.utils'
 import { parseExpenseNotes } from './expense-notes'
+import {
+  computeLinesTotal,
+  createEmptyModularLine,
+  labelFromLineValues,
+} from './expense-line-roles'
 
 export const EMPTY_EXPENSE_FILTERS: ExpenseFilters = {
   search: '',
@@ -33,11 +39,12 @@ export const filterExpenses = (
       return false
     }
     if (term) {
-      const parsed = parseExpenseNotes(expense.notes)
+      const fields = expense.category?.template?.fields ?? []
+      const parsed = parseExpenseNotes(expense.notes, fields)
       const haystack = [
         expense.title,
         parsed.userNotes,
-        ...parsed.lineItems.map((item) => item.name),
+        ...parsed.lineItems.map((item) => labelFromLineValues(fields, item.values)),
         expense.category?.name ?? '',
       ]
         .join(' ')
@@ -68,14 +75,10 @@ export const sortExpenses = (
 export const sumExpenses = (expenses: Expense[]): number =>
   expenses.reduce((sum, expense) => sum + toNumber(expense.totalAmount), 0)
 
-export const sumLineItems = (items: LineItem[]): number =>
-  items.reduce(
-    (sum, item) => sum + toNumber(item.qty) * toNumber(item.price),
-    0,
-  )
+export const sumLineItems = (
+  items: LineItem[],
+  fields: TemplateField[] = [],
+): number => computeLinesTotal(fields, items)
 
-export const createEmptyLineItem = (): LineItem => ({
-  name: '',
-  qty: 1,
-  price: 0,
-})
+export const createEmptyLineItem = (fields: TemplateField[] = []): LineItem =>
+  createEmptyModularLine(fields)

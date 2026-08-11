@@ -11,15 +11,18 @@ export const detailLabelsFor = (expense: Expense): string[] => {
       return `${name}: ${toNumber(fv.value).toFixed(2)} KM`
     })
   }
-  return formatExpenseNotesSummary(expense.notes).lineLabels
+  const fields = expense.category?.template?.fields ?? []
+  return formatExpenseNotesSummary(expense.notes, fields).lineLabels
 }
 
 export const hasInvoiceDetail = (expense: Expense): boolean => {
   if (expense.category?.isFixed) return (expense.fieldValues ?? []).length > 0
-  return parseExpenseNotes(expense.notes).lineItems.length > 0
+  const fields = expense.category?.template?.fields ?? []
+  return parseExpenseNotes(expense.notes, fields).lineItems.length > 0
 }
 
 export const notesPreviewFor = (expense: Expense): string => {
   if (expense.category?.isFixed) return expense.notes ?? ''
-  return formatExpenseNotesSummary(expense.notes).userNotes
+  const fields = expense.category?.template?.fields ?? []
+  return formatExpenseNotesSummary(expense.notes, fields).userNotes
 }

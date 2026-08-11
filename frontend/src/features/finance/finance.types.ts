@@ -119,6 +119,8 @@ export interface ExpenseTemplate {
   fields?: TemplateField[]
 }
 
+export type ExpenseLineRole = 'LABEL' | 'QTY' | 'UNIT_PRICE' | 'AMOUNT' | 'NONE'
+
 export interface TemplateField {
   id: string
   fieldName: string
@@ -126,6 +128,7 @@ export interface TemplateField {
   isRequired: boolean
   sortOrder: number
   defaultValue: string | null
+  lineRole?: ExpenseLineRole | string
 }
 
 export interface ExpenseCategory {
@@ -160,7 +163,11 @@ export interface Expense {
   attachments?: ExpenseAttachment[]
 }
 
-export type LineItem = { name: string; qty: number; price: number }
+/** Legacy hardkodirani red (Materijal prije modularnih kolona). */
+export type LegacyLineItem = { name: string; qty: number; price: number }
+
+/** Modularni red: vrijednosti po template field id. */
+export type LineItem = { values: Record<string, string> }
 
 export type ExpenseBookDetail = ExpenseBook & { expenses?: Expense[] }
 
@@ -218,6 +225,7 @@ export interface TemplateFieldPayload {
   isRequired?: boolean
   sortOrder?: number
   defaultValue?: string
+  lineRole?: ExpenseLineRole
 }
 
 export interface ClientDebtRow {

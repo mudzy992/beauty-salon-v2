@@ -87,16 +87,20 @@ Sve putanje idu kroz `IncomeSyncService.assertBookOpenForDate` odnosno `getEdita
 
 ## Rashodi (KUF)
 
+Detaljan AS-IS snapshot (rollback): [`EXPENSE_CATEGORIES_AS_IS.md`](./EXPENSE_CATEGORIES_AS_IS.md).
+
 Dva moda kategorije:
 
-| | Fiksna (`isFixed`) npr. doprinosi | Faktura (`!isFixed`) npr. materijal |
-|--|----------------------------------|-------------------------------------|
-| Stavke | Template polja + `defaultValue` (PIO 121…) | Slobodne `lineItems` u `notes` JSON |
-| Total | Suma vrijednosti polja | Suma `qty × price` |
+| | Fiksna (`isFixed`) npr. doprinosi | Varijabilna (`!isFixed`) npr. materijal |
+|--|----------------------------------|-----------------------------------------|
+| Stavke | Template polja + `defaultValue` | Template polja = kolone reda; `notes` JSON (`v:2` values po fieldId; legacy `{name,qty,price}`) |
+| Total | Suma vrijednosti polja | Po `lineRole`: `QTY×UNIT_PRICE`, ili `AMOUNT`, ili suma CURRENCY |
 | Prilog | Ako `requiresAttachmentPerItem`: po polju | Ako flag: po liniji; inače na cijeli rashod |
 
-- `create`/`update` u `prisma.$transaction`. Obavezna template polja se forsira **samo** za `isFixed`.
+- Admin UX: kategorija-centric wizard (template ispod haube).
+- `create`/`update` u `prisma.$transaction`. Obavezna template polja: fiksni → `fieldValues`; varijabilni → values po redu.
 - Polje predloška koje je već korišteno u rashodu ne može se obrisati.
+- `ExpenseTemplateField.lineRole`: `LABEL | QTY | UNIT_PRICE | AMOUNT | NONE`.
 
 ## Backend struktura
 

@@ -9,6 +9,7 @@ import {
 } from './expense-form-state'
 import { sumLineItems } from './expenses.helpers'
 import { serializeExpenseNotes } from './expense-notes'
+import { labelFromLineValues } from './expense-line-roles'
 import { toNumber } from '../finance.utils'
 import type {
   Expense,
@@ -56,7 +57,7 @@ export const useExpenseForm = (params: {
     (sum, field) => sum + toNumber(form.fieldValues[field.id]),
     0,
   )
-  const lineItemsTotal = sumLineItems(form.lineItems)
+  const lineItemsTotal = sumLineItems(form.lineItems, templateFields)
   const effectiveTotal = isFixed
     ? fixedTotal
     : form.lineItems.length > 0
@@ -105,14 +106,31 @@ export const useExpenseForm = (params: {
           return `Dodajte prilog za: ${noAtt.map((f) => f.fieldName).join(', ')}.`
         }
       }
-    } else if (requiresPerItem) {
-      const noAtt = form.lineItems.filter(
-        (item, i) =>
-          item.name.trim() &&
-          !form.lineAttachments[i] &&
-          !findAttachmentForLabel(params.editing?.attachments, item.name),
-      )
-      if (noAtt.length) return 'Dodajte prilog uz svaku stavku.'
+    } else {
+      if (templateFields.length === 0) {
+        return 'Kategorija nema kolona — uredite kategoriju.'
+      }
+      const incomplete = form.lineItems.filter((item) => {
+        const requiredMissing = templateFields.some(
+          (f) => f.isRequired && !(item.values[f.id] ?? '').trim(),
+        )
+        return requiredMissing || !labelFromLineValues(templateFields, item.values)
+      })
+      if (form.lineItems.length === 0 || incomplete.length === form.lineItems.length) {
+        return 'Dodajte barem jednu popunjenu stavku.'
+      }
+      if (incomplete.length) return 'Popunite obavezna polja na svim stavkama.'
+      if (requiresPerItem) {
+        const noAtt = form.lineItems.filter((item, i) => {
+          const label = labelFromLineValues(templateFields, item.values)
+          return (
+            label &&
+            !form.lineAttachments[i] &&
+            !findAttachmentForLabel(params.editing?.attachments, label)
+          )
+        })
+        if (noAtt.length) return 'Dodajte prilog uz svaku stavku.'
+      }
     }
     return null
   })()

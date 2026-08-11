@@ -7,7 +7,8 @@ import {
   MaxLength,
   Min,
   MinLength,
-} from 'class-validator'
+} from 'class-validator';
+import { EXPENSE_LINE_ROLES } from '../utils/expense-line-roles';
 
 export const EXPENSE_FIELD_TYPES = [
   'TEXT',
@@ -15,28 +16,32 @@ export const EXPENSE_FIELD_TYPES = [
   'CURRENCY',
   'DATE',
   'FILE',
-] as const
+] as const;
 
 export class CreateExpenseTemplateFieldDto {
   @IsString()
   @MinLength(1)
   @MaxLength(200)
-  fieldName!: string
+  fieldName!: string;
 
   @IsIn(EXPENSE_FIELD_TYPES)
-  fieldType!: (typeof EXPENSE_FIELD_TYPES)[number]
+  fieldType!: (typeof EXPENSE_FIELD_TYPES)[number];
 
   @IsOptional()
   @IsBoolean()
-  isRequired?: boolean
+  isRequired?: boolean;
 
   @IsOptional()
   @IsInt()
   @Min(0)
-  sortOrder?: number
+  sortOrder?: number;
 
   @IsOptional()
   @IsString()
   @MaxLength(2000)
-  defaultValue?: string
+  defaultValue?: string;
+
+  @IsOptional()
+  @IsIn(EXPENSE_LINE_ROLES)
+  lineRole?: (typeof EXPENSE_LINE_ROLES)[number];
 }

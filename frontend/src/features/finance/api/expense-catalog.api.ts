@@ -3,6 +3,7 @@ import type {
   ExpenseCategory,
   ExpenseTemplate,
   TemplateFieldPayload,
+  ExpenseLineRole,
 } from '../finance.types'
 
 const CATEGORIES = '/api/expense-categories'
@@ -13,42 +14,56 @@ export const fetchExpenseCategories = async (): Promise<ExpenseCategory[]> => {
   return Array.isArray(data) ? data : []
 }
 
-/** Backend već vraća `fields` uz svaki predložak – nema potrebe za dodatnim pozivima. */
 export const fetchExpenseTemplates = async (): Promise<ExpenseTemplate[]> => {
   const { data } = await api.get<ExpenseTemplate[]>(TEMPLATES)
   return Array.isArray(data) ? data : []
 }
 
-export const saveExpenseCategory = async (params: {
-  id?: string
-  payload: {
-    name: string
-    description?: string | null
-    templateId: string
-    isActive: boolean
-    isFixed: boolean
-  }
-}): Promise<void> => {
-  if (params.id) {
-    await api.patch(`${CATEGORIES}/${params.id}`, params.payload)
-    return
-  }
-  await api.post(CATEGORIES, params.payload)
+export type CategoryBundlePayload = {
+  name: string
+  description?: string | null
+  isActive: boolean
+  isFixed: boolean
+  requiresAttachmentPerItem: boolean
+  fields?: TemplateFieldPayload[]
 }
 
-export const saveExpenseTemplate = async (params: {
-  id?: string
-  payload: {
-    name: string
-    description?: string | null
-    requiresAttachmentPerItem: boolean
-  }
+export const createCategoryBundle = async (
+  payload: CategoryBundlePayload,
+): Promise<ExpenseCategory> => {
+  const { data: template } = await api.post<ExpenseTemplate>(TEMPLATES, {
+    name: payload.name,
+    description: payload.description,
+    requiresAttachmentPerItem: payload.requiresAttachmentPerItem,
+    fields: payload.fields,
+  })
+  const { data: category } = await api.post<ExpenseCategory>(CATEGORIES, {
+    name: payload.name,
+    description: payload.description,
+    templateId: template.id,
+    isActive: payload.isActive,
+    isFixed: payload.isFixed,
+  })
+  return category
+}
+
+export const updateCategoryBundle = async (params: {
+  categoryId: string
+  templateId: string
+  payload: Omit<CategoryBundlePayload, 'fields'>
 }): Promise<void> => {
-  if (params.id) {
-    await api.patch(`${TEMPLATES}/${params.id}`, params.payload)
-    return
-  }
-  await api.post(TEMPLATES, params.payload)
+  await api.patch(`${TEMPLATES}/${params.templateId}`, {
+    name: params.payload.name,
+    description: params.payload.description,
+    requiresAttachmentPerItem: params.payload.requiresAttachmentPerItem,
+  })
+  await api.patch(`${CATEGORIES}/${params.categoryId}`, {
+    name: params.payload.name,
+    description: params.payload.description,
+    isActive: params.payload.isActive,
+    isFixed: params.payload.isFixed,
+    templateId: params.templateId,
+  })
 }
 
 export const addTemplateField = async (
@@ -58,6 +73,20 @@ export const addTemplateField = async (
   await api.post(`${TEMPLATES}/${templateId}/fields`, payload)
 }
 
+export const updateTemplateField = async (
+  fieldId: string,
+  payload: Partial<TemplateFieldPayload> & { lineRole?: ExpenseLineRole },
+): Promise<void> => {
+  await api.patch(`${TEMPLATES}/fields/${fieldId}`, payload)
+}
+
 export const removeTemplateField = async (fieldId: string): Promise<void> => {
   await api.delete(`${TEMPLATES}/fields/${fieldId}`)
+}
+
+export const bootstrapLegacyColumns = async (): Promise<{ bootstrapped: string[] }> => {
+  const { data } = await api.post<{ bootstrapped: string[] }>(
+    `${TEMPLATES}/bootstrap-legacy-columns`,
+  )
+  return data
 }

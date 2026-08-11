@@ -5,8 +5,10 @@ import {
   IsArray,
   ValidateNested,
   MaxLength,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { EXPENSE_LINE_ROLES } from '../utils/expense-line-roles';
 
 export class CreateTemplateFieldDto {
   @IsString()
@@ -14,7 +16,7 @@ export class CreateTemplateFieldDto {
   fieldName!: string;
 
   @IsString()
-  fieldType!: string; // TEXT | NUMBER | CURRENCY | DATE | FILE
+  fieldType!: string;
 
   @IsOptional()
   @IsBoolean()
@@ -26,6 +28,10 @@ export class CreateTemplateFieldDto {
   @IsOptional()
   @IsString()
   defaultValue?: string;
+
+  @IsOptional()
+  @IsIn(EXPENSE_LINE_ROLES)
+  lineRole?: (typeof EXPENSE_LINE_ROLES)[number];
 }
 
 export class CreateExpenseTemplateDto {

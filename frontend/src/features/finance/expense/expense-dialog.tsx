@@ -128,6 +128,7 @@ export function ExpenseDialog({
         {f.category && !f.isFixed ? (
           <>
             <LineItemsEditor
+              fields={f.templateFields}
               items={f.form.lineItems}
               onChange={f.setLineItems}
               requiresPerItem={f.requiresPerItem}

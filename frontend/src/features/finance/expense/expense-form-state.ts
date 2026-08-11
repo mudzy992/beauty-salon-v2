@@ -1,4 +1,4 @@
-import type { Expense, ExpenseCategory, LineItem } from '../finance.types'
+import type { Expense, ExpenseCategory, LineItem, TemplateField } from '../finance.types'
 import { createEmptyLineItem } from './expenses.helpers'
 import { parseExpenseNotes } from './expense-notes'
 import { toNumber } from '../finance.utils'
@@ -27,6 +27,9 @@ export const emptyExpenseForm = (): ExpenseFormState => ({
   lineAttachments: [],
 })
 
+const sortedFields = (category: ExpenseCategory | null | undefined): TemplateField[] =>
+  [...(category?.template?.fields ?? [])].sort((a, b) => a.sortOrder - b.sortOrder)
+
 export const formFromExpense = (
   expense: Expense,
   category: ExpenseCategory | null,
@@ -44,9 +47,10 @@ export const formFromExpense = (
       ),
     }
   }
-  const parsed = parseExpenseNotes(expense.notes)
+  const fields = sortedFields(category ?? expense.category)
+  const parsed = parseExpenseNotes(expense.notes, fields)
   const lineItems: LineItem[] =
-    parsed.lineItems.length > 0 ? parsed.lineItems : [createEmptyLineItem()]
+    parsed.lineItems.length > 0 ? parsed.lineItems : [createEmptyLineItem(fields)]
   return {
     ...emptyExpenseForm(),
     categoryId: expense.category?.id ?? '',
@@ -59,9 +63,7 @@ export const formFromExpense = (
 }
 
 export const formFromCategory = (category: ExpenseCategory): ExpenseFormState => {
-  const fields = [...(category.template?.fields ?? [])].sort(
-    (a, b) => a.sortOrder - b.sortOrder,
-  )
+  const fields = sortedFields(category)
   if (category.isFixed) {
     return {
       ...emptyExpenseForm(),
@@ -74,7 +76,7 @@ export const formFromCategory = (category: ExpenseCategory): ExpenseFormState =>
     ...emptyExpenseForm(),
     categoryId: category.id,
     title: category.name,
-    lineItems: [createEmptyLineItem()],
+    lineItems: [createEmptyLineItem(fields)],
     lineAttachments: [null],
   }
 }

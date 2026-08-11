@@ -25,7 +25,7 @@ export class ExpenseBooksService {
       include: {
         expenses: {
           include: {
-            category: { include: { template: true } },
+            category: { include: { template: { include: { fields: true } } } },
             fieldValues: { include: { field: true } },
             attachments: { include: { upload: true } },
           },
@@ -38,7 +38,7 @@ export class ExpenseBooksService {
         include: {
           expenses: {
             include: {
-              category: { include: { template: true } },
+              category: { include: { template: { include: { fields: true } } } },
               fieldValues: { include: { field: true } },
               attachments: { include: { upload: true } },
             },
@@ -73,7 +73,7 @@ export class ExpenseBooksService {
       include: {
         expenses: {
           include: {
-            category: { include: { template: true } },
+            category: { include: { template: { include: { fields: true } } } },
             fieldValues: { include: { field: true } },
             attachments: { include: { upload: true } },
           },
@@ -122,7 +122,13 @@ export class ExpenseBooksService {
         },
       },
       include: {
-        expenses: { include: { category: true } },
+        expenses: {
+          include: {
+            category: { include: { template: { include: { fields: true } } } },
+            fieldValues: { include: { field: true } },
+            attachments: { include: { upload: true } },
+          },
+        },
         lockEvents: {
           include: { createdBy: { select: { id: true, username: true } } },
           orderBy: { createdAt: 'desc' },
@@ -151,7 +157,13 @@ export class ExpenseBooksService {
         },
       },
       include: {
-        expenses: { include: { category: true } },
+        expenses: {
+          include: {
+            category: { include: { template: { include: { fields: true } } } },
+            fieldValues: { include: { field: true } },
+            attachments: { include: { upload: true } },
+          },
+        },
         lockEvents: {
           include: { createdBy: { select: { id: true, username: true } } },
           orderBy: { createdAt: 'desc' },

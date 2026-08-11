@@ -111,12 +111,38 @@ describe('ExpensesService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('za nefiksnu kategoriju ne forsira obavezna template polja', async () => {
+    it('za nefiksnu kategoriju bez kolona ne forsira fieldValues', async () => {
       prisma.expenseCategory.findUnique.mockResolvedValue({
         ...category,
         isFixed: false,
+        template: { id: 't1', fields: [] },
       });
       await service.create({ ...baseDto, fieldValues: [] }, user);
+      expect(prisma.$transaction).toHaveBeenCalled();
+    });
+
+    it('za nefiksnu kategoriju validira line items iz notes v2', async () => {
+      prisma.expenseCategory.findUnique.mockResolvedValue({
+        ...category,
+        isFixed: false,
+        template: {
+          id: 't1',
+          fields: [
+            { id: 'l', fieldName: 'Naziv', fieldType: 'TEXT', isRequired: true, lineRole: 'LABEL' },
+            { id: 'q', fieldName: 'Kol', fieldType: 'NUMBER', isRequired: true, lineRole: 'QTY' },
+            { id: 'p', fieldName: 'Cijena', fieldType: 'CURRENCY', isRequired: true, lineRole: 'UNIT_PRICE' },
+          ],
+        },
+      });
+      const notes = JSON.stringify({
+        v: 2,
+        lineItems: [{ values: { l: 'Lak', q: '2', p: '60' } }],
+        userNotes: '',
+      });
+      await service.create(
+        { ...baseDto, totalAmount: 120, notes, fieldValues: [] },
+        user,
+      );
       expect(prisma.$transaction).toHaveBeenCalled();
     });
 

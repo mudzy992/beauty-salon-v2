@@ -517,6 +517,8 @@ model ExpenseTemplateField {
   isRequired   Boolean  @default(false) @map("is_required")
   sortOrder    Int      @default(0) @map("sort_order")
   defaultValue String?  @map("default_value") @db.Text
+  /// LABEL | QTY | UNIT_PRICE | AMOUNT | NONE — used for variable line totals
+  lineRole     String   @default("NONE") @map("line_role")
   createdAt    DateTime @default(now()) @map("created_at")
 
   template ExpenseCategoryTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
