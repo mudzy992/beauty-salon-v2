@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Linking, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
 import { spacing } from '../../theme';
 import { fetchPublicSettings, type PublicSettingItem } from '../../services/publicSettings';
+import { usePublicContentSocketRefresh } from '../../hooks/usePublicContentSocketRefresh';
 import type { ProfileScreenProps } from '../../navigation/types';
 
 function getSettingValue(
@@ -47,16 +48,22 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<PublicSettingItem[] | null>(null);
 
-  useEffect(() => {
-    navigation.setOptions({ title: t('profile.contact.title') });
-  }, [navigation, t]);
-
-  useEffect(() => {
+  const loadSettings = useCallback(() => {
     fetchPublicSettings()
       .then((items) => setSettings(items))
       .catch(() => setSettings(null))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    navigation.setOptions({ title: t('profile.contact.title') });
+  }, [navigation, t]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  usePublicContentSocketRefresh(loadSettings);
 
   const address = getSettingValue(settings, 'public_contact_address', '').trim();
   const phone = getSettingValue(settings, 'public_contact_phone', '').trim();

@@ -12,7 +12,8 @@ Sve operacije moraju koristiti Repository layer i pratiti backend-architecture.m
 2. Dostupnost: kombinuj salon_working_hours, holidays, stylist_working_hours, stylist_services, postojeće rezervacije i pauseBetweenServices.
 3. Lock: jedan stilist LOCKED, ostali PENDING; provjeri lockExpiresAt pri prihvatu/odbijanju.
 4. Ako svi stilisti odbiju -> CANCELLED_BY_STYLISTS; obavijesti klijenta (push/email).
-5. Klijent mora potvrditi dolazak (attendance) najmanje 24h prije; tek tada rezervacija zauzima slot.
+5. Klijent mora potvrditi dolazak najkasnije 24h prije starta; CRON otkazuje CONFIRMED bez potvrde na/poslije roka.
+6. Slot zauzimaju samo CONFIRMED / ATTENDANCE_CONFIRMED / IN_PROGRESS; complete ide isključivo preko dnevne knjige.
 
 ## Reference
 - `.cursor/rules/reservation-engine.mdc`

@@ -21,6 +21,7 @@ import { Input } from '../../components/ui/Input';
 import api, { getUploadUrl } from '../../services/api';
 import { spacing } from '../../theme';
 import { formatDate } from '../../utils/date';
+import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import type { DailyLogEntry } from '../../types';
 import { getCollectedTotal, getSettledDebtsSum } from './daily-log-display';
 
@@ -56,6 +57,8 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   useEffect(() => {
     fetchEntry();
   }, [fetchEntry]);
+
+  useReservationSocketRefresh(fetchEntry);
 
   const handleComplete = useCallback(() => {
     Alert.alert(
@@ -99,6 +102,8 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                             navigation.navigate('ReschedulePreview', {
                               reservationId,
                               includeBreaks: false,
+                              mode: 'actual_overrun',
+                              lockMode: true,
                             }),
                         },
                         {
@@ -107,6 +112,8 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                             navigation.navigate('ReschedulePreview', {
                               reservationId,
                               includeBreaks: true,
+                              mode: 'actual_overrun',
+                              lockMode: true,
                             }),
                         },
                       ],

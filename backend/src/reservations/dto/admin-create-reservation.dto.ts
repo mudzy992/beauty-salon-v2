@@ -5,8 +5,11 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  Validate,
 } from 'class-validator';
+import { RequireServiceSelectionConstraint } from './require-service-selection.validator';
 
+@Validate(RequireServiceSelectionConstraint)
 export class AdminCreateReservationDto {
   @IsUUID()
   clientId!: string;

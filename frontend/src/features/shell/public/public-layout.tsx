@@ -32,6 +32,10 @@ const publicNav = [
   { path: '/rezervacija', labelKey: 'public.nav.reserve' },
 ]
 
+const authNavExtra = [
+  { path: '/moje-rezervacije', labelKey: 'public.nav.myReservations' },
+]
+
 export const PublicLayout = () => {
   const { t } = useTranslation()
   const { user, logout } = useAuth()
@@ -61,15 +65,14 @@ export const PublicLayout = () => {
     getSetting('public_maintenance_message', '').trim() || DEFAULT_MAINTENANCE_TEXT
 
   const activePath = location.pathname
-  const navItems = useMemo(
-    () =>
-      publicNav.map((item) => ({
-        ...item,
-        isActive:
-          item.path === '/' ? activePath === '/' : activePath.startsWith(item.path),
-      })),
-    [activePath],
-  )
+  const navItems = useMemo(() => {
+    const base = user ? [...publicNav, ...authNavExtra] : publicNav
+    return base.map((item) => ({
+      ...item,
+      isActive:
+        item.path === '/' ? activePath === '/' : activePath.startsWith(item.path),
+    }))
+  }, [activePath, user])
 
   const canSeeAdmin =
     !!user && (['SYSTEM_ADMIN', 'OWNER'] as string[]).some((r) => user.roles.includes(r))
@@ -211,6 +214,13 @@ export const PublicLayout = () => {
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem
                     onSelect={() => {
+                      navigate('/moje-rezervacije')
+                    }}
+                  >
+                    {t('public.nav.myReservations')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => {
                       navigate('/profil')
                     }}
                   >
@@ -301,6 +311,11 @@ export const PublicLayout = () => {
                 <div className="mt-auto pt-3 border-t border-slate-200/80 grid gap-1">
                   {user ? (
                     <>
+                      <Link to="/moje-rezervacije" onClick={() => setMobileOpen(false)}>
+                        <Button className="w-full" size="sm" variant="outline">
+                          {t('public.nav.myReservations')}
+                        </Button>
+                      </Link>
                       <Link to="/rezervacija" onClick={() => setMobileOpen(false)}>
                         <Button className="w-full" size="sm">
                           {t('public.nav.reserve')}

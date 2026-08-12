@@ -50,6 +50,7 @@ export interface DailyLogEntry {
   }
   reservation?: {
     id: string
+    status?: string
     loyaltyDiscountPercent: number
     loyaltyDiscountAmount: number | string
     payDebtsIntent?: boolean

@@ -84,7 +84,8 @@ export class ReservationDelayCron {
         orderBy: { startTime: 'asc' },
       });
 
-      // Upozorenje šaljemo svim budućim klijentima osim prvog sljedećeg termina.
+      // First next client is excluded on purpose: stylist overrun flow targets them
+      // via reschedule/reorder; delay_warning is for the rest of the day's queue.
       const warningTargets = future.slice(1);
       if (warningTargets.length > 0) {
         for (const f of warningTargets) {

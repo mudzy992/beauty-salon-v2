@@ -5,12 +5,32 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
+import { ReservationSharedService } from './reservation-shared.service';
+import { ReservationNotifyService } from './reservation-notify.service';
+import { ReservationQueriesService } from './reservation-queries.service';
+import { ReservationListService } from './reservation-list.service';
+import { ReservationCreateService } from './reservation-create.service';
+import { ReservationUpdateService } from './reservation-update.service';
+import { ReservationClientActionsService } from './reservation-client-actions.service';
+import { ReservationStylistLockService } from './reservation-stylist-lock.service';
+import { ReservationStylistAcceptService } from './reservation-stylist-accept.service';
+import { ReservationStylistRejectService } from './reservation-stylist-reject.service';
+import { ReservationRuntimeService } from './reservation-runtime.service';
+import { ReservationRuntimeCancelService } from './reservation-runtime-cancel.service';
+import { ReservationRescheduleService } from './reservation-reschedule.service';
+import { ReservationRescheduleCommitService } from './reservation-reschedule-commit.service';
+import { ReservationRescheduleClientService } from './reservation-reschedule-client.service';
+import { ReservationReorderService } from './reservation-reorder.service';
+import { ReservationCronService } from './reservation-cron.service';
+import { ReservationAttendanceCronService } from './reservation-attendance-cron.service';
+import { ReservationReorderCronService } from './reservation-reorder-cron.service';
 import { AvailabilityService } from './availability.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { ReservationDateService } from './reservation-date.service';
+import { SettingsService } from '../settings/settings.service';
 
 jest.mock('expo-server-sdk', () => {
   class MockExpo {
@@ -34,6 +54,10 @@ Object.assign(mockPrisma, {
   },
   service: {
     findUnique: jest.fn(),
+    findMany: jest.fn(),
+  },
+  reservationServiceItem: {
+    createMany: jest.fn(),
   },
   reservation: {
     create: jest.fn(),
@@ -82,6 +106,9 @@ const mockLoyalty = {
   ensureAccountForUser: jest.fn(),
   redeemForReservation: jest.fn(),
 };
+const mockSettings = {
+  getString: jest.fn().mockResolvedValue('Europe/Sarajevo'),
+};
 
 describe('ReservationsService', () => {
   let service: ReservationsService;
@@ -98,11 +125,31 @@ describe('ReservationsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReservationsService,
+        ReservationSharedService,
+        ReservationNotifyService,
+        ReservationQueriesService,
+        ReservationListService,
+        ReservationCreateService,
+        ReservationUpdateService,
+        ReservationClientActionsService,
+        ReservationStylistLockService,
+        ReservationStylistAcceptService,
+        ReservationStylistRejectService,
+        ReservationRuntimeService,
+        ReservationRuntimeCancelService,
+        ReservationRescheduleService,
+        ReservationRescheduleCommitService,
+        ReservationRescheduleClientService,
+        ReservationReorderService,
+        ReservationCronService,
+        ReservationAttendanceCronService,
+        ReservationReorderCronService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: AvailabilityService, useValue: mockAvailability },
         { provide: NotificationsService, useValue: mockNotifications },
         { provide: EventsGateway, useValue: mockEvents },
         { provide: LoyaltyService, useValue: mockLoyalty },
+        { provide: SettingsService, useValue: mockSettings },
         ReservationDateService,
       ],
     }).compile();
@@ -157,10 +204,10 @@ describe('ReservationsService', () => {
         mustChangePassword: false,
         gender: 'FEMALE',
       });
-      mockPrisma.service.findUnique.mockResolvedValue({
-        id: 'svc-1',
-        gender: 'FEMALE',
-      });
+      mockPrisma.service.findMany.mockResolvedValue([
+        { id: 'svc-1', gender: 'FEMALE', name: 'Test', durationMinutes: 60, price: 50, loyaltyEnabled: false, loyaltyMaxDiscountPercent: 0 },
+      ]);
+      mockPrisma.clientCancellationCount.findUnique.mockResolvedValue(null);
       mockAvailability.getAvailableSlots.mockResolvedValue([
         { startTime: '10:00', endTime: '11:00', availableStylistCount: 1 },
       ]);
@@ -187,10 +234,9 @@ describe('ReservationsService', () => {
         mustChangePassword: false,
         gender: 'FEMALE',
       });
-      mockPrisma.service.findUnique.mockResolvedValue({
-        id: 'svc-1',
-        gender: 'FEMALE',
-      });
+      mockPrisma.service.findMany.mockResolvedValue([
+        { id: 'svc-1', gender: 'FEMALE', name: 'Šišanje', durationMinutes: 60, price: 50, loyaltyEnabled: false, loyaltyMaxDiscountPercent: 0 },
+      ]);
       mockPrisma.clientCancellationCount.findUnique.mockResolvedValue(null);
       mockAvailability.getAvailableSlots.mockResolvedValue([
         { startTime: '09:00', endTime: '10:00', availableStylistCount: 2 },
@@ -204,9 +250,10 @@ describe('ReservationsService', () => {
         service: { name: 'Šišanje' },
         client: { id: 'c1', firstName: 'A', lastName: 'B', email: 'a@b.com' },
       });
+      mockPrisma.reservationServiceItem.createMany.mockResolvedValue({ count: 1 });
       mockPrisma.stylistService.findMany.mockResolvedValue([
-        { stylistProfileId: 'sp1' },
-        { stylistProfileId: 'sp2' },
+        { stylistProfileId: 'sp1', serviceId: 'svc-1' },
+        { stylistProfileId: 'sp2', serviceId: 'svc-1' },
       ]);
       mockPrisma.reservationStylistResponse.createMany.mockResolvedValue({
         count: 2,
@@ -223,6 +270,7 @@ describe('ReservationsService', () => {
         service: {},
         client: {},
         confirmedStylist: null,
+        items: [],
       });
 
       const dto = {
@@ -259,10 +307,9 @@ describe('ReservationsService', () => {
         mustChangePassword: true,
         gender: 'FEMALE',
       });
-      mockPrisma.service.findUnique.mockResolvedValue({
-        id: 'svc-1',
-        gender: 'FEMALE',
-      });
+      mockPrisma.service.findMany.mockResolvedValue([
+        { id: 'svc-1', name: 'Test', gender: 'FEMALE', durationMinutes: 60, price: 50, loyaltyEnabled: false, loyaltyMaxDiscountPercent: 0 },
+      ]);
       mockPrisma.clientCancellationCount.findUnique.mockResolvedValue(null);
       mockAvailability.getAvailableSlots.mockResolvedValue([
         { startTime: '09:00', endTime: '10:00', availableStylistCount: 1 },
@@ -281,14 +328,22 @@ describe('ReservationsService', () => {
         service: { id: 'svc-1', name: 'Test', gender: 'FEMALE' },
         client: { id: 'client-1', firstName: 'A', lastName: 'B', email: 'client@test.com' },
       } as any);
+      mockPrisma.reservationServiceItem.createMany.mockResolvedValue({ count: 1 });
       mockPrisma.stylistService.findMany.mockResolvedValue([
-        { stylistProfileId: 'sty-1' },
+        { stylistProfileId: 'sty-1', serviceId: 'svc-1' },
       ]);
       mockPrisma.reservationStylistResponse.createMany.mockResolvedValue({ count: 1 });
       mockPrisma.stylistProfile.findMany.mockResolvedValue([{ userId: 'u-1' }]);
-      jest
-        .spyOn(service, 'findOne')
-        .mockResolvedValue({ id: 'res-1' } as any);
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-1',
+        clientId: 'client-1',
+        confirmedStylistId: null,
+        stylistResponses: [],
+        service: {},
+        client: {},
+        confirmedStylist: null,
+        items: [],
+      });
 
       await expect(
         service.createByAdmin({
@@ -422,6 +477,7 @@ describe('ReservationsService', () => {
           serviceId: 'svc-1',
           reservationDate: new Date('2026-03-25'),
           startTime: '12:00',
+          status: 'ATTENDANCE_CONFIRMED',
           rescheduleProposedStartTime: '12:30',
           rescheduleProposedEndTime: '13:00',
         },
@@ -459,6 +515,7 @@ describe('ReservationsService', () => {
           serviceId: 'svc-1',
           reservationDate: new Date('2026-03-25'),
           startTime: '12:00',
+          status: 'ATTENDANCE_CONFIRMED',
           rescheduleProposedStartTime: '12:30',
           rescheduleProposedEndTime: '13:00',
         },
@@ -600,6 +657,7 @@ describe('ReservationsService', () => {
           confirmedStylistId: 'sp-1',
           reservationDate: new Date('2026-03-10T00:00:00Z'),
           startTime: '09:00',
+          status: 'ATTENDANCE_CONFIRMED',
         },
       ]);
       mockPrisma.reservation.findFirst.mockResolvedValue(null);
@@ -617,14 +675,47 @@ describe('ReservationsService', () => {
   });
 
   describe('confirmAttendance', () => {
-    it('ne dozvoljava potvrdu dolaska prije 24h od stvarnog starta', async () => {
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    it('dozvoljava potvrdu dok je više od 24h do starta', async () => {
       jest.useFakeTimers()
-      jest.setSystemTime(new Date(2026, 2, 9, 9, 59, 59, 0))
+      jest.setSystemTime(new Date('2026-03-09T08:59:59.000Z'))
       mockPrisma.reservation.findUnique.mockResolvedValue({
         id: 'res-1',
         clientId: 'client-1',
         status: 'CONFIRMED',
-        reservationDate: new Date(2026, 2, 10, 0, 0, 0, 0),
+        reservationDate: new Date('2026-03-10T00:00:00.000Z'),
+        startTime: '10:00',
+        stylistResponses: [],
+        confirmedStylistId: null,
+        service: {},
+        client: {},
+        confirmedStylist: null,
+        items: [],
+      })
+      mockPrisma.salonSettings.findFirst.mockResolvedValue({
+        cancellationDeadlineHours: 24,
+      })
+      mockPrisma.reservation.update.mockResolvedValue({})
+      const result = await service.confirmAttendance('res-1', 'client-1')
+      expect(result).toMatchObject({ id: 'res-1' })
+      expect(mockPrisma.reservation.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: 'ATTENDANCE_CONFIRMED' }),
+        }),
+      )
+    })
+
+    it('odbija potvrdu nakon isteka 24h roka (usklađeno s CRON cancel)', async () => {
+      jest.useFakeTimers()
+      jest.setSystemTime(new Date('2026-03-09T09:00:00.000Z'))
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-1',
+        clientId: 'client-1',
+        status: 'CONFIRMED',
+        reservationDate: new Date('2026-03-10T00:00:00.000Z'),
         startTime: '10:00',
       })
       mockPrisma.salonSettings.findFirst.mockResolvedValue({
@@ -633,6 +724,27 @@ describe('ReservationsService', () => {
       await expect(service.confirmAttendance('res-1', 'client-1')).rejects.toThrow(
         BadRequestException,
       )
+      expect(mockPrisma.reservation.update).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('stylistMarkComplete', () => {
+    it('blokira legacy complete bez dnevne knjige', async () => {
+      mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+        id: 'sp-1',
+      })
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-1',
+        confirmedStylistId: 'sp-1',
+        status: 'IN_PROGRESS',
+      })
+      await expect(service.stylistMarkComplete('res-1', 'user-1')).rejects.toThrow(
+        BadRequestException,
+      )
+      await expect(service.stylistMarkComplete('res-1', 'user-1')).rejects.toThrow(
+        /dnevne knjige/,
+      )
+      expect(mockPrisma.reservation.update).not.toHaveBeenCalled()
     })
   })
 
@@ -686,7 +798,16 @@ describe('ReservationsService', () => {
         penaltyUntil: null,
       })
       mockPrisma.clientCancellationCount.upsert.mockResolvedValue({})
-      jest.spyOn(service as any, 'findOne').mockResolvedValue({ id: 'res-1' })
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-1',
+        clientId: 'client-1',
+        stylistResponses: [],
+        confirmedStylistId: null,
+        service: {},
+        client: {},
+        confirmedStylist: null,
+        items: [],
+      })
       const result = await service.processAttendanceDeadlines()
       expect(result).toEqual({ cancelledCount: 1 })
       expect(mockPrisma.reservation.updateMany).toHaveBeenCalledWith(

@@ -41,6 +41,9 @@ export const DailyLogDeleteDialog = ({
           ? ' i poništiti knjiženje u KIF-u (ako mjesec nije zaključan)'
           : ''}
         .
+        {entry?.status === 'COMPLETED' && entry.reservation
+          ? ' Ako je unos vezan za rezervaciju, termin se vraća u status „U toku“ (IN_PROGRESS) — stilist ga ponovo vidi kao aktivan.'
+          : ''}
       </p>
       <div>
         <Label>Razlog brisanja (obavezno)</Label>

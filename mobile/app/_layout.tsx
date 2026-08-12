@@ -18,6 +18,8 @@ import { useTheme } from '../src/hooks/useTheme';
 import { useAuthStore } from '../src/store/authStore';
 import { useNotificationStore } from '../src/store/notificationStore';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
+import { SocketProvider } from '../src/realtime/SocketContext';
+import { SocketRealtimeSync } from '../src/realtime/SocketRealtimeSync';
 import { LoadingScreen } from '../src/components/ui/LoadingScreen';
 
 // Keep console clean during development.
@@ -57,7 +59,7 @@ function ThemedRootShell({ children }: { children: React.ReactNode }) {
 
 function AppContent() {
   const { colors, isDark } = useTheme();
-  const { isInitialized, initialize, user } = useAuthStore();
+  const { isInitialized, initialize, user, token } = useAuthStore();
   const fetchNotifications = useNotificationStore((s) => s.fetch);
 
   usePushNotifications();
@@ -99,10 +101,13 @@ function AppContent() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {bars}
-      <Stack screenOptions={{ headerShown: false }} />
-    </View>
+    <SocketProvider token={user ? token : null}>
+      <SocketRealtimeSync />
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {bars}
+        <Stack screenOptions={{ headerShown: false }} />
+      </View>
+    </SocketProvider>
   );
 }
 

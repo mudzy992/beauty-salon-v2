@@ -106,3 +106,10 @@
 - [x] **Mobile – Dnevna knjiga**: Lista zapisa (GET /api/daily-log?stylistProfileId=…); detalj zapisa (servis, klijent, cijena, napojnica, status); **Završi zapis** (POST complete → upis u knjigu); **Before/after slike**: prikaz postojećih, **Dodaj prije / Dodaj poslije** (expo-image-picker → upload → POST /api/daily-log/:id/images).
 - [x] **Mobile – Raspored**: SectionList rezervacija po danu (asStylist, fromDate–toDate), grupisano po datumu, prikaz vremena i statusa.
 - [x] **Mobile – Statistika**: Za trenutni mjesec: broj završenih rezervacija, predstojeći potvrđeni termini, ukupan prihod (iz dnevne knjige), napojnice.
+
+## Post-Faza — Modularne kategorije rashoda / KUF (COMPLETED 2026-08-11)
+- [x] AS-IS snapshot + rollback (`EXPENSE_CATEGORIES_AS_IS.md`)
+- [x] Category-centric admin wizard (template ispod haube)
+- [x] `lineRole` na template poljima + notes `v:2` + legacy adapter
+- [x] Dinamički LineItemsEditor; bootstrap-legacy-columns
+- [x] Finance MATRIX + plan folder closed

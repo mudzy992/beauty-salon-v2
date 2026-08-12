@@ -68,15 +68,28 @@ export const useStylistInboxReservations = (params: { stylistProfileId: string |
   }
 }
 
+const SCHEDULE_WINDOW_DAYS = 30
+
+export const getStylistScheduleWindow = () => {
+  const from = new Date()
+  from.setHours(0, 0, 0, 0)
+  const to = new Date(from)
+  to.setDate(to.getDate() + SCHEDULE_WINDOW_DAYS)
+  return {
+    fromDate: from.toISOString().slice(0, 10),
+    toDate: to.toISOString().slice(0, 10),
+  }
+}
+
 export const useStylistScheduleReservations = (params: {
   stylistProfileId: string | null
-  fromDate: string
-  toDate: string
 }) => {
   const listQuery = useQuery({
-    queryKey: ['stylistReservations', 'schedule', params.fromDate, params.toDate],
-    queryFn: () => fetchStylistReservations({ fromDate: params.fromDate, toDate: params.toDate }),
-    enabled: !!params.fromDate && !!params.toDate,
+    queryKey: ['stylistReservations', 'schedule'],
+    queryFn: () => {
+      const { fromDate, toDate } = getStylistScheduleWindow()
+      return fetchStylistReservations({ fromDate, toDate })
+    },
   })
 
   const reservations = useMemo(() => {

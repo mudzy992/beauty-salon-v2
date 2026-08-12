@@ -18,6 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
+import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
+import { useSocket } from '../../realtime/SocketContext';
 import { Card } from '../../components/ui/Card';
 import { Badge, getStatusVariant } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -26,6 +28,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
 import { spacing, borderRadius } from '../../theme';
 import { formatDate, formatTime, isUpcoming } from '../../utils/date';
+import { getReservationServicesLabel } from '../../utils/reservationServices';
 import type { ReservationsScreenProps } from '../../navigation/types';
 import type { Reservation, ReservationStatus } from '../../types';
 
@@ -34,13 +37,19 @@ interface Section {
   data: Reservation[];
 }
 
-const CANCELABLE: ReservationStatus[] = ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED'];
+const CANCELABLE: ReservationStatus[] = [
+  'PENDING',
+  'STYLIST_REVIEW',
+  'CONFIRMED',
+  'ATTENDANCE_CONFIRMED',
+];
 const CONFIRMABLE: ReservationStatus[] = ['CONFIRMED'];
 
-export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'MyReservations'>) {
+export function MyReservationsScreen({ navigation, route }: ReservationsScreenProps<'MyReservations'>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
+  const { connected: socketConnected } = useSocket();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -50,6 +59,7 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
   const [visibleCount, setVisibleCount] = useState(4);
   const listRef = useRef<SectionList<Reservation>>(null);
   const focusReservationId =
+    route.params?.focusReservationId ??
     (navigation as any)?.getState?.()?.routes?.find?.((r: any) => r.name === 'MyReservations')?.params?.focusReservationId ??
     undefined;
 
@@ -64,7 +74,12 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
   }, []);
 
   useEffect(() => { fetchReservations(); }, [fetchReservations]);
-  useAutoRefresh(fetchReservations, { intervalMs: 30000 });
+  useReservationSocketRefresh(fetchReservations);
+  useAutoRefresh(fetchReservations, {
+    intervalMs: 30000,
+    connectedIntervalMs: 120000,
+    isSocketConnected: socketConnected,
+  });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -205,7 +220,7 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
       <Card style={[styles.card, featured ? styles.featuredCard : undefined]}>
         <View style={styles.cardHeader}>
           <Text style={[styles.serviceName, { color: colors.text }]}>
-            {item.service?.name || 'Usluga'}
+            {getReservationServicesLabel(item)}
           </Text>
           <Badge
             label={
@@ -269,12 +284,17 @@ export function MyReservationsScreen({ navigation }: ReservationsScreenProps<'My
             </>
           )}
           {CONFIRMABLE.includes(item.status) && !item.attendanceConfirmedAt && (
-            <Button
-              title={t('myReservations.confirmAttendance')}
-              onPress={() => handleConfirmAttendance(item)}
-              size="sm"
-              variant="primary"
-            />
+            <View style={{ gap: 6 }}>
+              <Button
+                title={t('myReservations.confirmAttendance')}
+                onPress={() => handleConfirmAttendance(item)}
+                size="sm"
+                variant="primary"
+              />
+              <Text style={{ fontSize: 12, color: colors.textSecondary }}>
+                {t('myReservations.confirmAttendanceHint')}
+              </Text>
+            </View>
           )}
           {item.attendanceConfirmedAt && item.status === 'ATTENDANCE_CONFIRMED' && (
             <View style={styles.confirmedBadge}>

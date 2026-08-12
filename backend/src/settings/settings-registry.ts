@@ -83,6 +83,9 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'public_blog_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_blog_subtitle', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
+  // Salon operations (private)
+  { key: 'salon.timezone', scope: 'PRIVATE', type: 'string', defaultValue: 'Europe/Sarajevo' },
+
   // System/general (private)
   { key: 'system_public_app_url', scope: 'PRIVATE', type: 'string', defaultValue: '' },
   { key: 'system_app_version', scope: 'PRIVATE', type: 'string', defaultValue: '' },

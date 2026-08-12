@@ -11,6 +11,7 @@ import PublicGallery from '../../pages/public/PublicGallery'
 import PublicContact from '../../pages/public/PublicContact'
 import PublicReserve from '../../pages/public/PublicReserve'
 import PublicReservationView from '../../pages/public/PublicReservationView'
+import MyReservations from '../../pages/public/MyReservations'
 import PublicSatisfiedClients from '../../pages/public/PublicSatisfiedClients'
 
 export const publicRoutes: RouteObject[] = [
@@ -26,6 +27,7 @@ export const publicRoutes: RouteObject[] = [
       { path: 'galerija', element: <PublicGallery /> },
       { path: 'kontakt', element: <PublicContact /> },
       { path: 'rezervacija', element: <PublicReserve /> },
+      { path: 'moje-rezervacije', element: <MyReservations /> },
       { path: 'moj-termin/:token', element: <PublicReservationView /> },
       { path: 'profil', element: <Profile /> },
       { path: 'zadovoljni-klijenti', element: <PublicSatisfiedClients /> },

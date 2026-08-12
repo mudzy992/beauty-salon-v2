@@ -11,8 +11,9 @@ _Dopunjavati kako se dodaju feature-i._
 
 ## Rezervacije
 - Termin dostupan ako: salon radi, nije praznik, bar jedan stilist nudi servis i radi taj dan, i ima slobodan slot (trajanje servisa + pauza).
-- Slot zauzima samo rezervacija u statusu ATTENDANCE_CONFIRMED ili IN_PROGRESS (ili CONFIRMED nakon potvrde dolaska).
-- Klijent mora potvrditi dolazak najmanje 24h prije početka.
+- Slot zauzima rezervacija u statusu CONFIRMED, ATTENDANCE_CONFIRMED ili IN_PROGRESS (PENDING/STYLIST_REVIEW ne blokiraju).
+- Klijent mora potvrditi dolazak najkasnije 24h prije početka.
+- Završetak rezervacije ide preko dnevne knjige (ne legacy stylist-mark-complete).
 
 ## Finansije
 - Knjiga rashoda: mjesečna, otvara se automatski, zaključava ručno; otključavanje samo kroz bazu.

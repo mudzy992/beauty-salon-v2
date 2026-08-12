@@ -16,6 +16,8 @@ import { getUploadUrl } from '../utils/uploadUrl'
 
 type NavItem = { path: string; label: string }
 
+import { useStylistPortalSocketRefresh } from '../features/stylist-portal/hooks/use-stylist-portal-socket-refresh'
+
 const navItems: NavItem[] = [
   { path: '/stylist/inbox', label: 'Inbox' },
   { path: '/stylist/workbook', label: 'nav.dailyLog' },
@@ -41,6 +43,8 @@ export default function StylistLayout() {
     .toUpperCase()
     .slice(0, 2)
   const avatarSrc = user?.avatar ? getUploadUrl(user.avatar) : ''
+
+  useStylistPortalSocketRefresh()
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">

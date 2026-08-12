@@ -33,3 +33,9 @@ export const getReservationStatusColor = (status: string) => {
   return 'slate'
 }
 
+/** Admin cancel — aligned with FSM (IN_PROGRESS → CANCELLED_BY_STYLISTS). */
+export const canAdminCancelReservation = (status: string) =>
+  ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED', 'IN_PROGRESS'].includes(
+    status,
+  )
+

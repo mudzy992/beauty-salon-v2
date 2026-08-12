@@ -109,13 +109,24 @@ export class NotificationsService {
       notification,
     );
 
-    if (doPush)
+    if (doPush) {
+      const existingKind =
+        typeof options.data?.kind === 'string' && options.data.kind.trim()
+          ? options.data.kind.trim()
+          : null;
+      const pushData: Record<string, unknown> = {
+        ...(options.data ?? {}),
+        type: options.type,
+        kind: existingKind ?? options.type,
+      };
       await this.sendPush(
         options.userId,
         options.title,
         options.body,
-        options.data,
+        pushData,
       );
+    }
+
     if (doEmail) {
       await this.sendEmail(
         options.userId,
@@ -186,6 +197,17 @@ export class NotificationsService {
       create: { userId, token, platform },
       update: { userId, platform, updatedAt: new Date() },
     });
+    return { ok: true };
+  }
+
+  async unregisterPushToken(userId: string, token: string) {
+    try {
+      await this.repo.deletePushToken({
+        where: { token, userId },
+      });
+    } catch {
+      // Token may already be removed or belong to another session.
+    }
     return { ok: true };
   }
 

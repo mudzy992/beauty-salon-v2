@@ -7,6 +7,7 @@ import { getStylistName } from './types'
 import { getServiceAmount, getSettledDebtsSum, getServicesLabel, getTipAmount, getTotalAmount } from './amounts'
 import { DailyLogEntryActions } from './entry-table-actions'
 import { formatMobileAmount, loyaltyLine } from './entry-table-helpers'
+import { getDailyLogStatusLabel, getDailyLogStatusVariant } from './entry-status-label'
 
 type Props = {
   entries: DailyLogEntry[]
@@ -57,14 +58,10 @@ export const DailyLogEntryTable = ({
                   {e.publicReferenceCode ?? e.date?.slice(0, 10)}
                 </p>
                 <Badge
-                  variant={e.deletedAt ? 'secondary' : e.status === 'COMPLETED' ? 'success' : 'warning'}
+                  variant={getDailyLogStatusVariant(e)}
                   className="text-[10px]"
                 >
-                  {e.deletedAt
-                    ? 'Obrisan'
-                    : e.status === 'COMPLETED'
-                      ? 'Kompletiran'
-                      : 'Na čekanju'}
+                  {getDailyLogStatusLabel(e)}
                 </Badge>
               </div>
               <p className="text-xs text-slate-500">{e.date?.slice(0, 10)}</p>
@@ -184,21 +181,8 @@ export const DailyLogEntryTable = ({
                     </Badge>
                   </td>
                   <td className="p-3">
-                    <Badge
-                      variant={
-                        e.deletedAt
-                          ? 'secondary'
-                          : e.status === 'COMPLETED'
-                            ? 'success'
-                            : 'warning'
-                      }
-                      className="text-[10px]"
-                    >
-                      {e.deletedAt
-                        ? 'Obrisan'
-                        : e.status === 'COMPLETED'
-                          ? 'Kompletiran'
-                          : 'Na čekanju'}
+                    <Badge variant={getDailyLogStatusVariant(e)} className="text-[10px]">
+                      {getDailyLogStatusLabel(e)}
                     </Badge>
                   </td>
                   <td className="p-3 text-right">

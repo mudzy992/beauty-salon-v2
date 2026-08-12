@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { IncomeSyncService } from '../finance/income-sync.service';
 import { IncomeBookRepository } from '../finance/repositories/income-book.repository';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { assertReservationTransition } from '../reservations/assert-reservation-transition';
+import { RESERVATION_STATUS } from '../reservations/constants';
 import { getServiceAmount } from './daily-log.amounts';
 
 type TxClient = Prisma.TransactionClient;
@@ -170,9 +172,10 @@ export class DailyLogReversalService {
       select: { id: true, status: true },
     });
     if (!res || res.status !== 'COMPLETED') return;
+    assertReservationTransition(res.status, RESERVATION_STATUS.IN_PROGRESS);
     await tx.reservation.update({
       where: { id: res.id },
-      data: { status: 'IN_PROGRESS', completedAt: null },
+      data: { status: RESERVATION_STATUS.IN_PROGRESS, completedAt: null },
     });
   }
 

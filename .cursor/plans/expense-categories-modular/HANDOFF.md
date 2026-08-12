@@ -1,20 +1,20 @@
 # HANDOFF
 
+**Status: COMPLETED** (2026-08-11) — modul modularnih kategorija rashoda (KUF) zatvoren.
+
 ## Done
 
 - AS-IS snapshot + rollback checklist
 - Category-centric wizard (create template+category)
 - `lineRole` on fields + notes v2 + legacy Materijal read
 - Dynamic line editor + bootstrap-legacy-columns
-- MATRIX updated
+- MATRIX updated; migracija `line_role` deployana
 
-## Ops
+## Ops (post-complete)
 
-1. Apply migration: `cd backend && npx prisma migrate deploy`
-2. In UI: Kategorije → “Dopuni stare kolone” (Materijal bez fields)
-3. Smoke: novi fiksni + varijabilni rashod; otvori stari Materijal/Doprinosi
+- UI: Kategorije → “Dopuni stare kolone” ako neka varijabilna kategorija još nema polja
 
-## Follow-up (van opsega)
+## Follow-up (van opsega / backlog)
 
 - FK priloga na field/line
 - Relacioni ExpenseLineItem

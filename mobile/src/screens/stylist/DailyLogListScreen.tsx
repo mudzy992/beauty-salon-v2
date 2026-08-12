@@ -28,7 +28,7 @@ import {
   startOfWeek,
   subWeeks,
 } from 'date-fns';
-import { getCollectedTotal, getServicesLabel, getSettledDebtsSum } from './daily-log-display';
+import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 
 type DailyLogListScreenProps = {
   navigation: {
@@ -74,6 +74,8 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
   useEffect(() => {
     fetchEntries();
   }, [fetchEntries]);
+
+  useReservationSocketRefresh(fetchEntries);
 
   useLayoutEffect(() => {
     navigation.setOptions({

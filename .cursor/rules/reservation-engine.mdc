@@ -6,8 +6,10 @@ alwaysApply: false
 
 # Reservation Engine
 
-- **Statusi rezervacije**: PENDING -> STYLIST_REVIEW (kad stilist otvori) -> CONFIRMED (stilist prihvati) -> ATTENDANCE_CONFIRMED (klijent potvrdi dolazak min 24h prije) -> IN_PROGRESS -> COMPLETED. Alternativno: CANCELLED_BY_CLIENT, CANCELLED_BY_STYLISTS, NO_SHOW.
+- **Statusi rezervacije**: PENDING -> STYLIST_REVIEW (kad stilist otvori) -> CONFIRMED (stilist prihvati) -> ATTENDANCE_CONFIRMED (klijent potvrdi dolazak najkasnije 24h prije) -> IN_PROGRESS -> COMPLETED. Alternativno: CANCELLED_BY_CLIENT, CANCELLED_BY_STYLISTS, NO_SHOW.
 - **Dostupnost**: (1) Salon radi taj dan (salon_working_hours), (2) nije praznik, (3) bar jedan stilist radi taj dan i nudi servis, (4) slotovi računaju trajanje servisa + pauzu između (salon_settings.pauseBetweenServices). Termini su dinamički, ne fiksni intervali.
 - **Lock**: Stilist zaključava rezervaciju (LOCK); lock ima isteka (reservationLockMinutes). Samo jedan stilist može biti LOCKED po rezervaciji; ostali PENDING. Pri ACCEPTED potvrđuje se confirmedStylistId; pri REJECTED – razlog obavezan. Ako svi odbiju -> CANCELLED_BY_STYLISTS.
-- **Sloti**: Izračun slobodnih slotova po stilistu uz postojeće rezervacije (CONFIRMED, ATTENDANCE_CONFIRMED, IN_PROGRESS) + pauza. Klijent vidi listu termina i broj slobodnih stilista po terminu.
+- **Attendance**: Klijent potvrđuje dolazak najkasnije 24h prije starta (`ATTENDANCE_CONFIRM_DEADLINE_HOURS`). CRON otkazuje `CONFIRMED` bez potvrde na/poslije roka.
+- **Sloti**: Izračun slobodnih slotova po stilistu; zauzimaju `CONFIRMED`, `ATTENDANCE_CONFIRMED`, `IN_PROGRESS` (`SLOT_OCCUPYING_STATUSES`). `PENDING`/`STYLIST_REVIEW` ne blokiraju. Klijent vidi listu termina i broj slobodnih stilista po terminu.
+- **Complete**: isključivo preko dnevne knjige; `stylist-mark-complete` je blokiran (400).
 - **Otkazivanje**: Klijent može otkazati; politika (rok, penalizacija) iz app_settings/salon_settings. Penalty: client_cancellation_counts, penaltyUntil.

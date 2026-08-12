@@ -28,6 +28,8 @@ import Animated, {
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
+import { usePublicContentSocketRefresh } from '../../hooks/usePublicContentSocketRefresh';
+import { useSocket } from '../../realtime/SocketContext';
 import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -188,6 +190,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const tabBarBottom = useFloatingTabBarTotalHeight();
+  const { connected: socketConnected } = useSocket();
   const user = useAuthStore((s) => s.user);
   const serviceCardWidth = Math.min(screenWidth * 0.66, 300);
   const sectionScrollRefs = useRef<Record<number, ScrollView | null>>({});
@@ -301,7 +304,12 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useAutoRefresh(fetchData, { intervalMs: 60000 });
+  usePublicContentSocketRefresh(fetchData);
+  useAutoRefresh(fetchData, {
+    intervalMs: 60000,
+    connectedIntervalMs: 300000,
+    isSocketConnected: socketConnected,
+  });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

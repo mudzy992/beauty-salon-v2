@@ -13,6 +13,8 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 import { IncomeSyncService } from '../finance/income-sync.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { assertReservationTransition } from '../reservations/assert-reservation-transition';
+import { RESERVATION_STATUS } from '../reservations/constants';
 import { getServiceAmount } from './daily-log.amounts';
 import {
   computeDebtPaymentTip,
@@ -47,6 +49,7 @@ export class DailyLogService {
         data: {
           debtAmount: params.amount,
           dailyLogEntryId: params.dailyLogEntryId,
+          kind: 'client_debt',
         },
       });
     } catch (err) {
@@ -661,9 +664,10 @@ export class DailyLogService {
           'Rezervaciju nije moguće završiti u trenutnom statusu.',
         );
       }
+      assertReservationTransition(res.status, RESERVATION_STATUS.COMPLETED);
       await this.prisma.reservation.update({
         where: { id: res.id },
-        data: { status: 'COMPLETED', completedAt: new Date() },
+        data: { status: RESERVATION_STATUS.COMPLETED, completedAt: new Date() },
       });
       // Minimalna loyalty implementacija: osiguraj account
       await this.loyalty.ensureAccountForUser(updated.clientId ?? '').catch(() => {});

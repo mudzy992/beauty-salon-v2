@@ -7,7 +7,7 @@ import { Card } from '../../components/ui/Card';
 import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
 import { spacing } from '../../theme';
-import type { Reservation, DailyLogEntry } from '../../types';
+import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 
 export function StylistStatsScreen() {
   const { colors } = useTheme();
@@ -55,6 +55,8 @@ export function StylistStatsScreen() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useReservationSocketRefresh(fetchData);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

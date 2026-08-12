@@ -5,7 +5,9 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import api from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { useNotificationStore } from '../store/notificationStore';
 import { useRouter } from 'expo-router';
+import { resolvePushRoute } from '../utils/resolve-push-route';
 
 function resolveProjectId(): string | undefined {
   const fromEnv = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
@@ -22,7 +24,7 @@ function configureNotificationHandler() {
       shouldShowBanner: true,
       shouldShowList: true,
       shouldPlaySound: true,
-      shouldSetBadge: false,
+      shouldSetBadge: true,
     }),
   });
 }
@@ -43,10 +45,10 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
   await configureChannels();
 
   const existing = await Notifications.getPermissionsAsync();
-  let granted = !!(existing as any)?.granted;
+  let granted = !!(existing as { granted?: boolean }).granted;
   if (!granted) {
     const req = await Notifications.requestPermissionsAsync();
-    granted = !!(req as any)?.granted;
+    granted = !!(req as { granted?: boolean }).granted;
   }
   if (!granted) {
     console.warn('[Push] Permission not granted.');
@@ -79,22 +81,62 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
   }
 }
 
+async function unregisterPushToken(token: string): Promise<void> {
+  try {
+    await api.delete('/api/notifications/push-token', { data: { token } });
+  } catch {
+    // ignore logout cleanup failures
+  }
+}
+
+function navigateFromPushData(
+  router: ReturnType<typeof useRouter>,
+  data: Record<string, unknown>,
+): void {
+  const target = resolvePushRoute(data);
+  if (!target) return;
+  router.push(target as never);
+}
+
 export function usePushNotifications() {
   const user = useAuthStore((s) => s.user);
+  const fetchNotifications = useNotificationStore((s) => s.fetch);
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
   const responseListener = useRef<Notifications.EventSubscription | null>(null);
+  const receivedListener = useRef<Notifications.EventSubscription | null>(null);
+  const registeredTokenRef = useRef<string | null>(null);
+  const handledColdStartRef = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
     if (!user) {
+      const token = registeredTokenRef.current;
+      if (token) {
+        void unregisterPushToken(token);
+        registeredTokenRef.current = null;
+      }
+      if (Platform.OS !== 'web') {
+        void Notifications.setBadgeCountAsync(0);
+      }
       return;
     }
 
     let isMounted = true;
 
     (async () => {
+      if (!handledColdStartRef.current) {
+        const lastResponse = await Notifications.getLastNotificationResponseAsync();
+        if (lastResponse?.notification) {
+          handledColdStartRef.current = true;
+          const data = (lastResponse.notification.request?.content?.data ?? {}) as Record<string, unknown>;
+          navigateFromPushData(router, data);
+        }
+      }
+
       const token = await registerForPushNotificationsAsync();
       if (!isMounted || !token) return;
 
+      registeredTokenRef.current = token;
       try {
         await api.post('/api/notifications/push-token', {
           token,
@@ -110,30 +152,26 @@ export function usePushNotifications() {
       }
     })();
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((_response) => {
-      const data = (_response?.notification?.request?.content?.data ?? {}) as Record<string, unknown>;
-      const kind = (data.kind as string | undefined) ?? '';
-      const reservationId = (data.reservationId as string | undefined) ?? undefined;
+    receivedListener.current = Notifications.addNotificationReceivedListener(() => {
+      void fetchNotifications();
+    });
 
-      // Routing: reschedule/reorder/delay warning vodi korisnika na listu rezervacija (accept/decline).
-      if (
-        kind === 'reservation_reschedule' ||
-        kind === 'reservation_reorder' ||
-        kind === 'delay_warning'
-      ) {
-        if (reservationId) {
-          router.push({ pathname: '/reservations', params: { focusReservationId: reservationId } } as any);
-        } else {
-          router.push('/reservations');
-        }
-      }
+    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = (response?.notification?.request?.content?.data ?? {}) as Record<string, unknown>;
+      navigateFromPushData(router, data);
     });
 
     return () => {
       isMounted = false;
+      receivedListener.current?.remove();
       responseListener.current?.remove();
     };
-  }, [user]);
+  }, [user, router, fetchNotifications]);
 
-  return { expoPushToken: null as string | null };
+  useEffect(() => {
+    if (Platform.OS === 'web' || !user) return;
+    void Notifications.setBadgeCountAsync(unreadCount);
+  }, [unreadCount, user]);
+
+  return { expoPushToken: registeredTokenRef.current };
 }

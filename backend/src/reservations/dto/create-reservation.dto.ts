@@ -9,8 +9,11 @@ import {
   Max,
   MaxLength,
   Min,
+  Validate,
 } from 'class-validator';
+import { RequireServiceSelectionConstraint } from './require-service-selection.validator';
 
+@Validate(RequireServiceSelectionConstraint)
 export class CreateReservationDto {
   /** Backwards-compat (legacy clients). Prefer `serviceIds`. */
   @IsOptional()

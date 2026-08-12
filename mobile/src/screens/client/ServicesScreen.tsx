@@ -19,6 +19,7 @@ import api, { getImageUrl } from '../../services/api';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { spacing, borderRadius } from '../../theme';
+import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Reservation, Service, ServiceCategory } from '../../types';
 
@@ -52,6 +53,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+  useReservationSocketRefresh(fetchData);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

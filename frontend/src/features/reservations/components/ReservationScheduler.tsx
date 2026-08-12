@@ -26,7 +26,11 @@ import { Badge } from '../../../components/ui/badge'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 
 import type { Reservation, SchedulerView, StylistProfile } from '../types'
-import { getReservationStatusColor, getReservationStatusLabel } from '../status'
+import {
+  canAdminCancelReservation,
+  getReservationStatusColor,
+  getReservationStatusLabel,
+} from '../status'
 
 type SchedulerEvent = {
   id: string
@@ -134,9 +138,6 @@ const reservationTotals = (r: Reservation): { totalMinutes: number; totalPrice: 
   const totalPrice = svcs.reduce((acc, s) => acc + Number(s.price ?? 0), 0)
   return { totalMinutes, totalPrice }
 }
-
-const canCancel = (status: string) =>
-  ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED', 'IN_PROGRESS'].includes(status)
 
 const getReservationResourceId = (r: Reservation): string => {
   const confirmedId = r.confirmedStylist?.id
@@ -777,7 +778,7 @@ export const ReservationScheduler = (props: Props) => {
                   </div>
                 </div>
 
-                {canCancel(activeReservation.status) ? (
+                {canAdminCancelReservation(activeReservation.status) ? (
                   <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
                     <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Otkaži rezervaciju</p>
                     <p className="mt-1 text-xs text-slate-500">Otkazivanje je dozvoljeno za ovaj status.</p>

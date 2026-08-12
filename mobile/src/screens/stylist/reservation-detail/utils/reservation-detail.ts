@@ -1,0 +1,36 @@
+import type { Reservation } from '../../../../types';
+
+export const getPlannedReservationDateTime = (reservationDate: string, time: string): Date => {
+  const [y, m, d] = reservationDate.slice(0, 10).split('-').map(Number);
+  const [h, min] = time.slice(0, 5).split(':').map(Number);
+  return new Date(y ?? 0, (m ?? 1) - 1, d ?? 1, h ?? 0, min ?? 0, 0, 0);
+};
+
+export const getReservationStatusLabel = (
+  reservation: Reservation,
+  t: (key: string) => string,
+): string => {
+  if (
+    reservation.status === 'CANCELLED_BY_CLIENT' &&
+    (reservation.cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
+  ) {
+    return 'Otkazano (nepotvrđen dolazak)';
+  }
+  return t(`myReservations.status.${reservation.status}`);
+};
+
+export const getApiErrorMessage = (err: unknown, fallback: string): string => {
+  const msg =
+    err && typeof err === 'object' && 'response' in err
+      ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
+      : fallback;
+  return Array.isArray(msg) ? (msg[0] ?? fallback) : String(msg ?? fallback);
+};
+
+export const computeCompleteMinCharge = (reservation: Reservation): number => {
+  const basePrice =
+    reservation.service && 'price' in reservation.service
+      ? Number((reservation.service as { price?: number }).price)
+      : 0;
+  return Math.max(0, basePrice - Number(reservation.loyaltyDiscountAmount ?? 0));
+};

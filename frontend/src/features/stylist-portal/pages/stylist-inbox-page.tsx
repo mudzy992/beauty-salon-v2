@@ -6,6 +6,7 @@ import { Card } from '../../../components/ui/card'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import { useStylistProfileMe } from '../../stylist-workbook/hooks/useStylistProfileMe'
 import { fetchClientDebts } from '../api/stylist-portal.api'
+import { RejectReservationDialog } from '../components/reject-reservation-dialog'
 import { useStylistInboxReservations } from '../hooks/useStylistReservations'
 import type { Reservation } from '../types'
 
@@ -29,6 +30,7 @@ export const StylistInboxPage = () => {
   const { toastApiError, warning } = useAppToast()
   const { profileId, isLoading: profileLoading } = useStylistProfileMe()
   const [actingId, setActingId] = useState<string | null>(null)
+  const [rejectId, setRejectId] = useState<string | null>(null)
 
   const { reservations, isLoading, isFetching, refetch, lock, accept, reject } =
     useStylistInboxReservations({ stylistProfileId: profileId })
@@ -99,10 +101,12 @@ export const StylistInboxPage = () => {
     }
   }
 
-  const handleReject = async (reservationId: string) => {
-    setActingId(reservationId)
+  const handleRejectConfirm = async (rejectionReason: string) => {
+    if (!rejectId) return
+    setActingId(rejectId)
     try {
-      await reject.mutateAsync({ reservationId })
+      await reject.mutateAsync({ reservationId: rejectId, rejectionReason })
+      setRejectId(null)
     } catch (err) {
       toastApiError(err, 'Greška pri odbijanju')
     } finally {
@@ -190,7 +194,12 @@ export const StylistInboxPage = () => {
                     <Button type="button" onClick={() => handleAccept(r)} disabled={acting}>
                       Prihvati
                     </Button>
-                    <Button type="button" variant="ghost" onClick={() => handleReject(r.id)} disabled={acting}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setRejectId(r.id)}
+                      disabled={acting}
+                    >
                       Odbij
                     </Button>
                   </>
@@ -200,6 +209,15 @@ export const StylistInboxPage = () => {
           )
         })}
       </div>
+
+      <RejectReservationDialog
+        open={rejectId != null}
+        onOpenChange={(open) => {
+          if (!open) setRejectId(null)
+        }}
+        pending={actingId === rejectId && reject.isPending}
+        onConfirm={handleRejectConfirm}
+      />
     </div>
   )
 }

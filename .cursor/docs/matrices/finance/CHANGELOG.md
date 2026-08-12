@@ -1,10 +1,13 @@
-## 2026-08-11 (Modularne kategorije rashoda)
+## 2026-08-11 (Modularne kategorije rashoda — COMPLETED)
+
+Modul zatvoren kao kompletan.
 
 - Category-centric admin wizard (template ispod haube).
 - `ExpenseTemplateField.lineRole` (LABEL|QTY|UNIT_PRICE|AMOUNT|NONE).
 - Varijabilni redovi: notes JSON `v:2` + legacy adapter za `{name,qty,price}`.
 - `POST api/expense-templates/bootstrap-legacy-columns` za Materijal bez kolona.
 - Dinamički `LineItemsEditor` iz template polja; knjiga uključuje `category.template.fields`.
+
 
 ## 2026-08-11 (Expense categories AS-IS snapshot + modular plan)
 

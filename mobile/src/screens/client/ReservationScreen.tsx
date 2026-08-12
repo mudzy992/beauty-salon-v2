@@ -24,6 +24,7 @@ import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
 import { spacing, borderRadius } from '../../theme';
 import { formatDate, formatTime, getDateRange } from '../../utils/date';
+import { useAvailabilitySocketRefresh } from '../../hooks/useAvailabilitySocketRefresh';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Service, AvailableDate, TimeSlot } from '../../types';
 
@@ -144,37 +145,52 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   }, [initialServiceId, requestId, servicesById, user?.gender, startAtStep]);
 
   // Load available dates when service is selected
-  useEffect(() => {
+  const loadAvailableDates = useCallback(async () => {
     if (selectedServiceIds.length === 0) return;
     setLoading(true);
     const { fromDate, toDate } = getDateRange(60);
-    (async () => {
-      try {
-        const { data } = await api.get<AvailableDate[]>('/api/reservations/availability/dates', {
-          params: { serviceIds: selectedServiceIds.join(','), fromDate, toDate },
-        });
-        const dateMap: Record<string, boolean> = {};
-        data.forEach((d) => { dateMap[d.date] = d.available; });
-        setAvailableDates(dateMap);
-      } catch { /* silent */ }
-      setLoading(false);
-    })();
+    try {
+      const { data } = await api.get<AvailableDate[]>('/api/reservations/availability/dates', {
+        params: { serviceIds: selectedServiceIds.join(','), fromDate, toDate },
+      });
+      const dateMap: Record<string, boolean> = {};
+      data.forEach((d) => { dateMap[d.date] = d.available; });
+      setAvailableDates(dateMap);
+    } catch { /* silent */ }
+    setLoading(false);
   }, [selectedServiceIds]);
 
-  // Load slots when date is selected
-  useEffect(() => {
-    if (selectedServiceIds.length === 0 || !selectedDate) return;
+  const loadSlotsForDate = useCallback(async (date: string) => {
+    if (selectedServiceIds.length === 0 || !date) return;
     setLoading(true);
-    (async () => {
-      try {
-        const { data } = await api.get<TimeSlot[]>('/api/reservations/availability/slots', {
-          params: { serviceIds: selectedServiceIds.join(','), date: selectedDate },
-        });
-        setSlots(data);
-      } catch { /* silent */ }
-      setLoading(false);
-    })();
-  }, [selectedServiceIds, selectedDate]);
+    try {
+      const { data } = await api.get<TimeSlot[]>('/api/reservations/availability/slots', {
+        params: { serviceIds: selectedServiceIds.join(','), date },
+      });
+      setSlots(data);
+    } catch { /* silent */ }
+    setLoading(false);
+  }, [selectedServiceIds]);
+
+  useEffect(() => {
+    void loadAvailableDates();
+  }, [loadAvailableDates]);
+
+  useEffect(() => {
+    if (!selectedDate) return;
+    void loadSlotsForDate(selectedDate);
+  }, [selectedDate, loadSlotsForDate]);
+
+  const onAvailabilityChanged = useCallback(
+    (payload: { date?: string }) => {
+      void loadAvailableDates();
+      if (selectedDate && payload.date === selectedDate) {
+        void loadSlotsForDate(selectedDate);
+      }
+    },
+    [loadAvailableDates, loadSlotsForDate, selectedDate],
+  );
+  useAvailabilitySocketRefresh(selectedServiceIds, onAvailabilityChanged);
 
   const filteredServices = useMemo(() => {
     const servicesByGender = user?.gender

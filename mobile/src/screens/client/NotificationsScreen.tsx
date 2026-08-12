@@ -16,6 +16,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useNotificationStore } from '../../store/notificationStore';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
+import { useSocket } from '../../realtime/SocketContext';
 import { spacing, borderRadius } from '../../theme';
 import type { Notification } from '../../types';
 
@@ -32,10 +33,15 @@ export function NotificationsScreen() {
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { notifications, isLoading, fetch, markAsRead } = useNotificationStore();
+  const { connected: socketConnected } = useSocket();
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => { fetch(); }, [fetch]);
-  useAutoRefresh(fetch, { intervalMs: 30000 });
+  useAutoRefresh(fetch, {
+    intervalMs: 30000,
+    connectedIntervalMs: 120000,
+    isSocketConnected: socketConnected,
+  });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

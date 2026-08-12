@@ -5,13 +5,18 @@ import { CalendarDays, Eye, Loader2 } from 'lucide-react'
 
 import api from '../api/client'
 import { getErrorMessage } from '../api/error'
-import { useSocketEvent } from '../context/SocketContext'
+import { useReservationSocketRefresh } from '../features/reservations/use-reservation-socket-refresh'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { getCalendarMonthRange } from '../lib/date-range'
 import {
   ReservationFilters,
   resetReservationFilters,
 } from '../features/reservations/components/reservation-filters'
+import {
+  RESERVATION_STATUS_OPTIONS,
+  canAdminCancelReservation,
+  getReservationStatusLabel,
+} from '../features/reservations/status'
 
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -73,22 +78,6 @@ interface PaginatedResponse<T> {
   pageSize: number
 }
 
-const STATUS_OPTIONS = [
-  { value: '', label: 'Svi statusi' },
-  { value: 'PENDING', label: 'Na čekanju' },
-  { value: 'STYLIST_REVIEW', label: 'Pregled stiliste' },
-  { value: 'CONFIRMED', label: 'Potvrđena' },
-  { value: 'ATTENDANCE_CONFIRMED', label: 'Dolazak potvrđen' },
-  { value: 'IN_PROGRESS', label: 'U toku' },
-  { value: 'COMPLETED', label: 'Završena' },
-  { value: 'CANCELLED_BY_CLIENT', label: 'Otkazao klijent' },
-  { value: 'CANCELLED_BY_STYLISTS', label: 'Otkazali stilisti' },
-  { value: 'NO_SHOW', label: 'Nije došao' },
-] as const
-
-const getStatusLabel = (status: string) =>
-  STATUS_OPTIONS.find((s) => s.value === status)?.label ?? status
-
 const getStatusBadgeVariant = (status: string) => {
   if (status === 'COMPLETED') return 'success'
   if (status === 'CONFIRMED' || status === 'ATTENDANCE_CONFIRMED') return 'brand'
@@ -97,9 +86,6 @@ const getStatusBadgeVariant = (status: string) => {
   if (status === 'CANCELLED_BY_CLIENT' || status === 'CANCELLED_BY_STYLISTS' || status === 'NO_SHOW') return 'danger'
   return 'secondary'
 }
-
-const canCancel = (status: string) =>
-  ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED'].includes(status)
 
 const getClientName = (c?: ReservationClient) => {
   if (!c) return '-'
@@ -173,11 +159,7 @@ export default function Reservations() {
     setPage(0)
   }, [fromDate, toDate, statusFilter, debouncedClientSearch])
 
-  useSocketEvent('reservation:created', useCallback(() => loadData(), [loadData]))
-  useSocketEvent('reservation:updated', useCallback(() => loadData(), [loadData]))
-  useSocketEvent('reservation:cancelled', useCallback(() => loadData(), [loadData]))
-  useSocketEvent('reservation:confirmed', useCallback(() => loadData(), [loadData]))
-  useSocketEvent('reservation:stylist_response', useCallback(() => loadData(), [loadData]))
+  useReservationSocketRefresh(loadData)
 
   const openDetail = async (r: Reservation) => {
     try {
@@ -272,7 +254,7 @@ export default function Reservations() {
             toDate={toDate}
             statusFilter={statusFilter}
             clientSearch={clientSearch}
-            statusOptions={STATUS_OPTIONS}
+            statusOptions={RESERVATION_STATUS_OPTIONS}
             onFromDateChange={setFromDate}
             onToDateChange={setToDate}
             onStatusChange={setStatusFilter}
@@ -314,7 +296,7 @@ export default function Reservations() {
                         </p>
                       </div>
                       <Badge variant={getStatusBadgeVariant(r.status)} className="text-[10px]">
-                        {getStatusLabel(r.status)}
+                        {getReservationStatusLabel(r.status, r.cancelReason)}
                       </Badge>
                     </div>
                   <p className="mt-2 text-sm text-slate-900 dark:text-slate-50">{serviceSummary(r)}</p>
@@ -384,7 +366,7 @@ export default function Reservations() {
                         </td>
                         <td className="p-3">
                           <Badge variant={getStatusBadgeVariant(r.status)} className="text-[10px]">
-                            {getStatusLabel(r.status)}
+                            {getReservationStatusLabel(r.status, r.cancelReason)}
                           </Badge>
                         </td>
                         <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
@@ -434,7 +416,7 @@ export default function Reservations() {
               <div className="flex items-center justify-between gap-3">
                 <p className="font-medium text-slate-900 dark:text-slate-50">Status</p>
                 <Badge variant={getStatusBadgeVariant(detail.status)} className="px-3 py-1 text-sm">
-                  {getStatusLabel(detail.status)}
+                  {getReservationStatusLabel(detail.status, detail.cancelReason)}
                 </Badge>
               </div>
 
@@ -542,7 +524,7 @@ export default function Reservations() {
                 </div>
               ) : null}
 
-              {canCancel(detail.status) ? (
+              {canAdminCancelReservation(detail.status) ? (
                 <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
                   <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Otkaži rezervaciju</p>
                   <p className="mt-1 text-xs text-slate-500">Otkazivanje je dozvoljeno za ovu fazu.</p>

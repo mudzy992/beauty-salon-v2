@@ -2,6 +2,7 @@
 
 ## 2026-08-11
 
+- Modul **COMPLETED**.
 - AS-IS docs + MATRIX.
 - Category wizard UX; removed split Predlošci card.
 - `lineRole` migration; notes v2; legacy adapter; bootstrap endpoint.

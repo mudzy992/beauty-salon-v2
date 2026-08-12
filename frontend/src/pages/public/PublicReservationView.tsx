@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import api from '../../api/client'
+import { useAuth } from '../../context/AuthContext'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 
 export interface PublicReservationPayload {
@@ -38,6 +39,7 @@ const formatStatus = (s: string) => statusLabel[s] ?? s
 
 export default function PublicReservationView() {
   const { token } = useParams<{ token: string }>()
+  const { token: authToken } = useAuth()
   const [data, setData] = useState<PublicReservationPayload | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -138,8 +140,21 @@ export default function PublicReservationView() {
                       {data.rescheduleProposedStartTime} – {data.rescheduleProposedEndTime}
                     </p>
                     <p className="text-xs text-amber-800 mt-2">
-                      Potvrdite ili odbijte u mobilnoj aplikaciji ili nakon prijave na web.
+                      {authToken
+                        ? 'Otvorite Moje rezervacije da prihvatite ili odbijete predloženi termin.'
+                        : 'Prijavite se ili otvorite mobilnu aplikaciju da potvrdite ili odbijete predloženi termin.'}
                     </p>
+                    {authToken ? (
+                      <Button asChild size="sm" className="mt-3 rounded-full">
+                        <Link to="/moje-rezervacije">Moje rezervacije</Link>
+                      </Button>
+                    ) : (
+                      <Button asChild size="sm" variant="outline" className="mt-3 rounded-full">
+                        <Link to="/login" state={{ from: '/moje-rezervacije' }}>
+                          Prijavi se
+                        </Link>
+                      </Button>
+                    )}
                   </div>
                 ) : null}
                 {data.clientNotes ? (
@@ -157,9 +172,22 @@ export default function PublicReservationView() {
                   </div>
                 ) : null}
               </div>
-              <Button asChild className="w-full rounded-full">
-                <Link to="/rezervacija">Zakaži novi termin</Link>
-              </Button>
+              <div className="grid gap-2">
+                {authToken ? (
+                  <Button asChild className="w-full rounded-full" variant="outline">
+                    <Link to="/moje-rezervacije">Moje rezervacije</Link>
+                  </Button>
+                ) : (
+                  <Button asChild className="w-full rounded-full" variant="outline">
+                    <Link to="/login" state={{ from: '/moje-rezervacije' }}>
+                      Prijavi se
+                    </Link>
+                  </Button>
+                )}
+                <Button asChild className="w-full rounded-full">
+                  <Link to="/rezervacija">Zakaži novi termin</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : null}

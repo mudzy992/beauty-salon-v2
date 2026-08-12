@@ -5,7 +5,10 @@ import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
 import { useStylistProfileMe } from '../../stylist-workbook/hooks/useStylistProfileMe'
-import { useStylistScheduleReservations } from '../hooks/useStylistReservations'
+import {
+  getStylistScheduleWindow,
+  useStylistScheduleReservations,
+} from '../hooks/useStylistReservations'
 import type { Reservation, ReservationStatus } from '../types'
 
 type Section = { title: string; data: Reservation[] }
@@ -72,22 +75,12 @@ const buildSections = (items: Reservation[]): Section[] => {
   return sections
 }
 
-const getWindow = () => {
-  const from = new Date()
-  from.setHours(0, 0, 0, 0)
-  const to = new Date()
-  to.setDate(to.getDate() + 30)
-  return { fromDate: from.toISOString().slice(0, 10), toDate: to.toISOString().slice(0, 10) }
-}
-
 export const StylistSchedulePage = () => {
   const { profileId, isLoading: profileLoading } = useStylistProfileMe()
-  const { fromDate, toDate } = useMemo(() => getWindow(), [])
   const { reservations, isLoading, isFetching, refetch } = useStylistScheduleReservations({
     stylistProfileId: profileId,
-    fromDate,
-    toDate,
   })
+  const scheduleWindow = getStylistScheduleWindow()
 
   const sections = useMemo(() => buildSections(reservations), [reservations])
 
@@ -115,7 +108,9 @@ export const StylistSchedulePage = () => {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Raspored</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300">Prikazuju se termini koje ste preuzeli.</p>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Prikazuju se termini koje ste preuzeli ({scheduleWindow.fromDate} – {scheduleWindow.toDate}).
+          </p>
         </div>
         <Button type="button" variant="outline" onClick={() => refetch()} disabled={isFetching}>
           Osvježi

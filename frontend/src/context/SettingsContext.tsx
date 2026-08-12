@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { useSocketEvent } from './SocketContext';
 
 export interface AppSetting {
   key: string;
@@ -14,26 +15,36 @@ interface SettingsContextValue {
 
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
+function SettingsSocketSync({ onRefresh }: { onRefresh: () => void }) {
+  useSocketEvent(
+    'settings:updated',
+    useCallback(() => {
+      onRefresh();
+    }, [onRefresh]),
+  );
+  return null;
+}
+
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const baseURL = import.meta.env.VITE_API_URL || '';
       const url = baseURL
         ? `${baseURL.replace(/\/$/, '')}/api/settings/public`
         : '/api/settings/public';
-      
+
       const response = await fetch(url, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data: AppSetting[] = await response.json();
       const settingsMap: Record<string, string> = {};
       data.forEach((s) => {
@@ -45,11 +56,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    void fetchSettings();
+  }, [fetchSettings]);
 
   const getSetting = (key: string, defaultValue: string) => {
     return settings[key] !== undefined && settings[key] !== '' ? settings[key] : defaultValue;
@@ -57,6 +68,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   return (
     <SettingsContext.Provider value={{ settings, getSetting, loading, refreshSettings: fetchSettings }}>
+      <SettingsSocketSync onRefresh={fetchSettings} />
       {children}
     </SettingsContext.Provider>
   );

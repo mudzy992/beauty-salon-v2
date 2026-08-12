@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import Constants from 'expo-constants';
 import { useTheme } from '../../hooks/useTheme';
 import api, { getImageUrl } from '../../services/api';
 import { fetchPublicSettings, type PublicSettingItem } from '../../services/publicSettings';
+import { usePublicContentSocketRefresh } from '../../hooks/usePublicContentSocketRefresh';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -65,11 +66,17 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
     })();
   }, [slug, navigation]);
 
-  useEffect(() => {
+  const loadPublicSettings = useCallback(() => {
     fetchPublicSettings()
       .then((items) => setSettings(items))
       .catch(() => setSettings(null));
   }, []);
+
+  useEffect(() => {
+    loadPublicSettings();
+  }, [loadPublicSettings]);
+
+  usePublicContentSocketRefresh(loadPublicSettings);
 
   useEffect(() => {
     if (!post?.id) return;

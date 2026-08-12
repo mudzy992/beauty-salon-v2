@@ -25,6 +25,7 @@ export type StylistDailyLogStackParamList = {
     includeBreaks?: boolean;
     mode?: 'actual_overrun' | 'manual_minutes' | 'use_break_only';
     manualShiftMinutes?: number;
+    lockMode?: boolean;
   };
 };
 

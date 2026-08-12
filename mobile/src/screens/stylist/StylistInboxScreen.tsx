@@ -12,6 +12,9 @@ import {
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
+import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
+import { useSocket } from '../../realtime/SocketContext';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -29,6 +32,7 @@ function getMyResponse(reservation: Reservation, profileId: string): StylistResp
 export function StylistInboxScreen() {
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
+  const { connected: socketConnected } = useSocket();
   const { profileId, loading: profileLoading, refetch: refetchProfile } = useStylistProfile();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +54,13 @@ export function StylistInboxScreen() {
   useEffect(() => {
     fetchReservations();
   }, [fetchReservations]);
+
+  useReservationSocketRefresh(fetchReservations);
+  useAutoRefresh(fetchReservations, {
+    intervalMs: 30000,
+    connectedIntervalMs: 120000,
+    isSocketConnected: socketConnected,
+  });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

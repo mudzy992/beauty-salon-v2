@@ -220,6 +220,12 @@ export const DailyLogEntryFormFields = ({
           <option value="PENDING">Na čekanju</option>
           <option value="COMPLETED">Kompletiran</option>
         </select>
+        {form.status === 'PENDING' ? (
+          <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+            Povratak na „Na čekanju“ za kompletiran unos može poništiti KIF efekte i vratiti
+            povezanu rezervaciju u „U toku“.
+          </p>
+        ) : null}
       </div>
     ) : null}
     <DailyLogPricingPanel

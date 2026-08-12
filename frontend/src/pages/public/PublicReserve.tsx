@@ -646,6 +646,7 @@ export default function PublicReserve() {
       setStep(1)
       setLoyaltyInfo(null)
       setDesiredLoyaltyPercent(0)
+      navigate('/moje-rezervacije')
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||

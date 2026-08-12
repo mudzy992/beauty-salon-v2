@@ -101,6 +101,7 @@ export const useDashboardData = () => {
   useSocketEvent('reservation:updated', useCallback(() => loadData(), [loadData]))
   useSocketEvent('reservation:confirmed', useCallback(() => loadData(), [loadData]))
   useSocketEvent('reservation:cancelled', useCallback(() => loadData(), [loadData]))
+  useSocketEvent('reservation:stylist_response', useCallback(() => loadData(), [loadData]))
 
   return { stats, recentReservations, loading }
 }

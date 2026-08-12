@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
+import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
+import { useSocket } from '../../realtime/SocketContext';
 import { Card } from '../../components/ui/Card';
 import { Badge, getStatusVariant } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -40,6 +42,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const gold = '#D4AF37';
+  const { connected: socketConnected } = useSocket();
   const { profileId, loading: profileLoading } = useStylistProfile();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +85,12 @@ export function StylistScheduleScreen({ navigation }: Props) {
     fetchReservations();
   }, [fetchReservations]);
 
-  useAutoRefresh(fetchReservations, { intervalMs: 30000 });
+  useReservationSocketRefresh(fetchReservations);
+  useAutoRefresh(fetchReservations, {
+    intervalMs: 30000,
+    connectedIntervalMs: 120000,
+    isSocketConnected: socketConnected,
+  });
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

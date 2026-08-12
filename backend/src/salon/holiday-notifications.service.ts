@@ -44,7 +44,7 @@ export class HolidayNotificationsService {
         title,
         body,
         type: 'holiday',
-        data: { holidayId: holiday.id, date: holiday.date.toISOString() },
+        data: { holidayId: holiday.id, date: holiday.date.toISOString(), kind: 'holiday' },
       });
     }
 

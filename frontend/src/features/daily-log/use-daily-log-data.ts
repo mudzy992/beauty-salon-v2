@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import api from '../../api/client'
+import { useReservationSocketRefresh } from '../reservations/use-reservation-socket-refresh'
 import type { ClientOption, DailyLogEntry, ServiceOption, StylistOption } from './types'
 import { getCurrentMonthRange } from './date-range'
 import { resetDailyLogFilters } from './entry-filters'
@@ -43,6 +44,8 @@ export const useDailyLogData = () => {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  useReservationSocketRefresh(loadData)
 
   useEffect(() => {
     api

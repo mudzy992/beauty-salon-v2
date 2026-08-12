@@ -1,0 +1,166 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { ReservationSharedService } from './reservation-shared.service';
+import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+
+@Injectable()
+export class ReservationListService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly shared: ReservationSharedService,
+  ) {}
+
+  private buildClientNameSearch(
+    search: string,
+  ): Array<Record<string, unknown>> {
+    const tokens = search.split(/\s+/).filter(Boolean);
+    const clauses: Array<Record<string, unknown>> = [
+      { firstName: { contains: search } },
+      { lastName: { contains: search } },
+    ];
+    if (tokens.length >= 2) {
+      const first = tokens[0];
+      const last = tokens.slice(1).join(' ');
+      clauses.push(
+        {
+          AND: [
+            { firstName: { contains: first } },
+            { lastName: { contains: last } },
+          ],
+        },
+        {
+          AND: [
+            { firstName: { contains: last } },
+            { lastName: { contains: first } },
+          ],
+        },
+      );
+    }
+    return clauses;
+  }
+
+  async findAll(
+    query: {
+      fromDate?: string;
+      toDate?: string;
+      status?: string;
+      clientSearch?: string;
+      asClient?: boolean;
+      asStylist?: boolean;
+      page?: number;
+      pageSize?: number;
+    },
+    user: CurrentUserPayload,
+  ) {
+    const where: {
+      reservationDate?: { gte?: Date; lte?: Date };
+      status?: string;
+      clientId?: string;
+      client?: { OR: Array<Record<string, unknown>> };
+      OR?: Array<{
+        confirmedStylistId?: string;
+        stylistResponses?: { some: { stylistProfileId: string } };
+      }>;
+    } = {};
+    if (query.fromDate) {
+      where.reservationDate = {
+        ...where.reservationDate,
+        gte: new Date(query.fromDate),
+      };
+    }
+    if (query.toDate) {
+      where.reservationDate = {
+        ...where.reservationDate,
+        lte: new Date(query.toDate),
+      };
+    }
+    if (query.status) where.status = query.status;
+    const clientSearch = query.clientSearch?.trim();
+    if (clientSearch) {
+      where.client = { OR: this.buildClientNameSearch(clientSearch) };
+    }
+    if (query.asClient) where.clientId = user.sub;
+    if (query.asStylist) {
+      const stylistProfileId =
+        await this.shared.getStylistProfileIdByUserId(user.sub);
+      if (stylistProfileId) {
+        where.OR = [
+          { confirmedStylistId: stylistProfileId },
+          { stylistResponses: { some: { stylistProfileId } } },
+        ];
+      }
+    }
+    const include = {
+      service: {
+        select: {
+          id: true,
+          name: true,
+          durationMinutes: true,
+          price: true,
+          heroImage: true,
+        },
+      },
+      items: {
+        orderBy: { sortOrder: 'asc' as const },
+        include: {
+          service: {
+            select: {
+              id: true,
+              name: true,
+              durationMinutes: true,
+              price: true,
+              heroImage: true,
+            },
+          },
+        },
+      },
+      client: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          username: true,
+          cancellationCount: {
+            select: { cancellationCount: true, penaltyUntil: true },
+            take: 1,
+          },
+        },
+      },
+      confirmedStylist: {
+        include: {
+          user: { select: { firstName: true, lastName: true } },
+        },
+      },
+      stylistResponses: {
+        include: {
+          stylistProfile: {
+            include: {
+              user: { select: { firstName: true, lastName: true } },
+            },
+          },
+        },
+      },
+    } as const;
+    const hasPagination = query.page != null && query.pageSize != null;
+    if (!hasPagination) {
+      return this.prisma.reservation.findMany({
+        where,
+        include,
+        orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
+      });
+    }
+    const page = Math.max(0, query.page ?? 0);
+    const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 10));
+    const [items, total] = await Promise.all([
+      this.prisma.reservation.findMany({
+        where,
+        include,
+        orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
+        skip: page * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.reservation.count({ where }),
+    ]);
+    return { items, total, page, pageSize };
+  }
+}

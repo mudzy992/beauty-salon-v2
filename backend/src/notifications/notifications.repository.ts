@@ -38,6 +38,10 @@ export class NotificationsRepository {
     return this.prisma.pushToken.upsert(params)
   }
 
+  deletePushToken(params: Prisma.PushTokenDeleteArgs) {
+    return this.prisma.pushToken.delete(params)
+  }
+
   findPushTokens(params: Prisma.PushTokenFindManyArgs) {
     return this.prisma.pushToken.findMany(params)
   }

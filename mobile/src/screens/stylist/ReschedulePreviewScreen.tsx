@@ -38,6 +38,7 @@ type Props = {
       includeBreaks?: boolean;
       mode?: 'actual_overrun' | 'manual_minutes' | 'use_break_only';
       manualShiftMinutes?: number;
+      lockMode?: boolean;
     };
   };
   navigation: { goBack: () => void };
@@ -45,6 +46,7 @@ type Props = {
 
 export function ReschedulePreviewScreen({ route, navigation }: Props) {
   const { reservationId } = route.params;
+  const lockMode = route.params.lockMode === true;
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const [includeBreaks, setIncludeBreaks] = useState(route.params.includeBreaks === true);
@@ -155,27 +157,35 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
         </View>
 
         <View style={styles.modeRow}>
-          <Button
-            title="Stvarni overrun"
-            onPress={() => setMode('actual_overrun')}
-            size="sm"
-            variant={mode === 'actual_overrun' ? 'primary' : 'outline'}
-            style={styles.modeBtn}
-          />
-          <Button
-            title="Ručni unos"
-            onPress={() => setMode('manual_minutes')}
-            size="sm"
-            variant={mode === 'manual_minutes' ? 'primary' : 'outline'}
-            style={styles.modeBtn}
-          />
-          <Button
-            title="Bez pomjeranja"
-            onPress={() => setMode('use_break_only')}
-            size="sm"
-            variant={mode === 'use_break_only' ? 'primary' : 'outline'}
-            style={styles.modeBtn}
-          />
+          {lockMode ? (
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              Način: stvarni overrun (nakon završetka DK)
+            </Text>
+          ) : (
+            <>
+              <Button
+                title="Stvarni overrun"
+                onPress={() => setMode('actual_overrun')}
+                size="sm"
+                variant={mode === 'actual_overrun' ? 'primary' : 'outline'}
+                style={styles.modeBtn}
+              />
+              <Button
+                title="Ručni unos"
+                onPress={() => setMode('manual_minutes')}
+                size="sm"
+                variant={mode === 'manual_minutes' ? 'primary' : 'outline'}
+                style={styles.modeBtn}
+              />
+              <Button
+                title="Bez pomjeranja"
+                onPress={() => setMode('use_break_only')}
+                size="sm"
+                variant={mode === 'use_break_only' ? 'primary' : 'outline'}
+                style={styles.modeBtn}
+              />
+            </>
+          )}
         </View>
 
         {mode === 'manual_minutes' && (

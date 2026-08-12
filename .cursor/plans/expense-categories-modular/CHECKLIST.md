@@ -1,5 +1,7 @@
 # Checklist
 
+**Modul: COMPLETED** (2026-08-11)
+
 - [x] Faza 0 AS-IS
 - [x] Faza 1 Category UX
 - [x] Faza 2 Schema/backend

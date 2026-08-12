@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -13,6 +14,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { SetPreferenceDto } from './dto/set-preference.dto';
 import { RegisterPushTokenDto } from './dto/register-push-token.dto';
+import { UnregisterPushTokenDto } from './dto/unregister-push-token.dto';
 import { SendTestEmailDto } from './dto/send-test-email.dto';
 import { TestSmtpConnectionDto } from './dto/test-smtp-connection.dto';
 import { CampaignAudienceDto } from './dto/campaign-audience.dto';
@@ -34,6 +36,14 @@ export class NotificationsController {
       dto.token,
       dto.platform,
     );
+  }
+
+  @Delete('push-token')
+  unregisterPushToken(
+    @Body() dto: UnregisterPushTokenDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.notifications.unregisterPushToken(user.sub, dto.token);
   }
 
   @Get()

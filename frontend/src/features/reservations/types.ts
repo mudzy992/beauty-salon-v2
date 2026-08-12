@@ -41,6 +41,11 @@ export interface Reservation {
   clientNotes: string | null
   cancelReason: string | null
   createdAt: string
+  attendanceConfirmedAt?: string | null
+  rescheduleStatus?: string | null
+  rescheduleProposedStartTime?: string | null
+  rescheduleProposedEndTime?: string | null
+  publicReferenceCode?: string | null
   client?: ReservationClient
   service?: ReservationService
   items?: ReservationServiceItem[]

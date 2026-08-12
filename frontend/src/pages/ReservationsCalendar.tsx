@@ -9,6 +9,7 @@ import { useAppToast } from '../lib/toast/useAppToast'
 
 import { ReservationScheduler } from '../features/reservations/components/ReservationScheduler'
 import type { Reservation, StylistProfile } from '../features/reservations/types'
+import { useReservationSocketRefresh } from '../features/reservations/use-reservation-socket-refresh'
 
 const toYmd = (d: Date): string => {
   const yyyy = d.getFullYear()
@@ -59,8 +60,9 @@ export default function ReservationsCalendar() {
     return { fromDate: toYmd(start), toDate: toYmd(end) }
   }, [activeDate, view])
 
-  const loadReservations = useCallback(async () => {
-    setLoading(true)
+  const loadReservations = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true
+    if (!silent) setLoading(true)
     try {
       const { data } = await api.get<Reservation[] | { items: Reservation[] }>('/api/reservations', { params: range })
       const items = Array.isArray(data) ? data : Array.isArray(data.items) ? data.items : []
@@ -68,7 +70,7 @@ export default function ReservationsCalendar() {
     } catch {
       setReservations([])
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [range])
 
@@ -91,6 +93,12 @@ export default function ReservationsCalendar() {
   useEffect(() => {
     void loadReservations()
   }, [loadReservations])
+
+  const refreshFromSocket = useCallback(() => {
+    void loadReservations({ silent: true })
+  }, [loadReservations])
+
+  useReservationSocketRefresh(refreshFromSocket)
 
   const handleCreate = async (payload: {
     clientId: string

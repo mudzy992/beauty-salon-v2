@@ -7,9 +7,18 @@ import { useFocusEffect } from '@react-navigation/native';
  */
 export function useAutoRefresh(
   callback: () => void | Promise<void>,
-  opts?: { intervalMs?: number },
+  opts?: {
+    intervalMs?: number;
+    /** Produži interval kad je Socket.IO spojen (fallback polling). */
+    connectedIntervalMs?: number;
+    isSocketConnected?: boolean;
+  },
 ) {
-  const intervalMs = opts?.intervalMs ?? 30000;
+  const baseIntervalMs = opts?.intervalMs ?? 30000;
+  const intervalMs =
+    opts?.isSocketConnected && opts?.connectedIntervalMs != null
+      ? opts.connectedIntervalMs
+      : baseIntervalMs;
   const cbRef = useRef(callback);
   cbRef.current = callback;
 
