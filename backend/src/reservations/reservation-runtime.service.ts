@@ -11,6 +11,7 @@ import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { RESERVATION_STATUS } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
+import { canStartReservation } from './reservation-policy';
 
 @Injectable()
 export class ReservationRuntimeService {
@@ -56,9 +57,9 @@ export class ReservationRuntimeService {
         'Samo potvrđeni stilist može startovati ovu rezervaciju.',
       );
     }
-    if (r.status !== RESERVATION_STATUS.ATTENDANCE_CONFIRMED) {
+    if (!canStartReservation(r)) {
       throw new BadRequestException(
-        'Samo rezervacije s potvrđenim dolaskom klijenta mogu se startovati.',
+        'Rezervacija još ne ispunjava uslove za start.',
       );
     }
     const now = new Date();

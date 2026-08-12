@@ -9,6 +9,7 @@ import {
   RESERVATION_STATUS,
 } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
+import { shouldRunAttendanceCron } from './reservation-policy';
 
 @Injectable()
 export class ReservationAttendanceCronService {
@@ -42,13 +43,16 @@ export class ReservationAttendanceCronService {
         serviceId: true,
         reservationDate: true,
         startTime: true,
+        status: true,
         confirmedStylistId: true,
+        attendancePolicy: true,
       },
       orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
     });
     let cancelledCount = 0;
     const deadlineHours = await this.dates.getAttendanceConfirmDeadlineHours();
     for (const r of candidates) {
+      if (!shouldRunAttendanceCron(r)) continue;
       const reservationStartAt = this.dates.combineDateAndTime(
         r.reservationDate,
         r.startTime,

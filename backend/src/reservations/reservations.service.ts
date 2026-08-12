@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { ReservationListService } from './reservation-list.service';
 import { ReservationCreateService } from './reservation-create.service';
+import { ReservationDirectCreateService } from './reservation-direct-create.service';
 import { ReservationUpdateService } from './reservation-update.service';
 import { ReservationClientActionsService } from './reservation-client-actions.service';
 import { ReservationStylistLockService } from './reservation-stylist-lock.service';
@@ -18,6 +19,7 @@ import { ReservationAttendanceCronService } from './reservation-attendance-cron.
 import { ReservationReorderCronService } from './reservation-reorder-cron.service';
 import type { CreateReservationDto } from './dto/create-reservation.dto';
 import type { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
+import type { StylistDirectCreateReservationDto } from './dto/stylist-direct-create-reservation.dto';
 import type { CancelReservationDto } from './dto/cancel-reservation.dto';
 import type { StylistRejectDto } from './dto/stylist-respond.dto';
 import type { StylistNoShowDto } from './dto/stylist-no-show.dto';
@@ -32,6 +34,7 @@ export class ReservationsService {
     private readonly queriesSvc: ReservationQueriesService,
     private readonly listSvc: ReservationListService,
     private readonly createSvc: ReservationCreateService,
+    private readonly directCreateSvc: ReservationDirectCreateService,
     private readonly updateSvc: ReservationUpdateService,
     private readonly clientActionsSvc: ReservationClientActionsService,
     private readonly stylistLockSvc: ReservationStylistLockService,
@@ -76,8 +79,15 @@ export class ReservationsService {
     return this.createSvc.create(dto, clientId);
   }
 
-  createByAdmin(dto: AdminCreateReservationDto) {
+  createByAdmin(dto: AdminCreateReservationDto, userId: string) {
+    if (dto.bookingMode === 'STAFF_ADMIN_DIRECT') {
+      return this.directCreateSvc.createByAdmin(dto, userId);
+    }
     return this.createSvc.createByAdmin(dto);
+  }
+
+  createByStylistDirect(dto: StylistDirectCreateReservationDto, userId: string) {
+    return this.directCreateSvc.createByStylist(dto, userId);
   }
 
   updateByAdmin(reservationId: string, dto: UpdateReservationDto) {

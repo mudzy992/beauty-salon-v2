@@ -4,6 +4,7 @@ import { ReservationDateService } from './reservation-date.service';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationNotifyService } from './reservation-notify.service';
 import { RESERVATION_STATUS } from './constants';
+import { getAutoStartEligibleStatuses } from './reservation-policy';
 
 @Injectable()
 export class ReservationCronService {
@@ -133,10 +134,18 @@ export class ReservationCronService {
         reservationDate: true,
         startTime: true,
         status: true,
+        attendancePolicy: true,
       },
       orderBy: { startTime: 'asc' },
     });
     for (const r of candidates) {
+      if (
+        !getAutoStartEligibleStatuses(r.attendancePolicy).includes(
+          r.status as typeof RESERVATION_STATUS[keyof typeof RESERVATION_STATUS],
+        )
+      ) {
+        continue;
+      }
       const plannedStart = this.dates.combineDateAndTime(
         r.reservationDate,
         r.startTime,

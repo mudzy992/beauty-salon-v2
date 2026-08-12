@@ -1,4 +1,4 @@
-# Reservation Matrix (AS-IS)
+# Reservation Matrix (Policy-aware)
 
 Source of truth za statusne prijelaze i ko šta smije. Detaljan opis: `.cursor/docs/reservations/RESERVATION_MODULE.md`.  
 Overrun/reorder: `.cursor/docs/stylist-reservation-matrix.md`.
@@ -17,6 +17,21 @@ Overrun/reorder: `.cursor/docs/stylist-reservation-matrix.md`.
 | CANCELLED_BY_STYLISTS | Otkaz stilisti / admin |
 | NO_SHOW | Nepojavljivanje |
 
+## Policy sloj
+
+| Polje | Vrijednosti | Značenje |
+|------|-------------|----------|
+| `bookingOrigin` | `CLIENT_SELF_SERVICE`, `STAFF_ADMIN`, `STAFF_STYLIST` | Ko je inicirao termin |
+| `acceptanceMode` | `INBOX`, `DIRECT_ASSIGN` | Da li termin ide u inbox stilista ili je odmah dodijeljen |
+| `attendancePolicy` | `CLIENT_REQUIRED`, `STAFF_WAIVED` | Da li klijent mora potvrditi dolazak |
+
+## Tokovi
+
+| Tok | Create | Runtime |
+|-----|--------|---------|
+| Standard | `PENDING -> STYLIST_REVIEW -> CONFIRMED` | `CONFIRMED -> ATTENDANCE_CONFIRMED -> IN_PROGRESS -> COMPLETED` |
+| Staff direct | `CONFIRMED + DIRECT_ASSIGN + STAFF_WAIVED` | `CONFIRMED -> IN_PROGRESS -> COMPLETED` |
+
 ## Dozvoljeni prijelazi (FSM + assertReservationTransition)
 
 | Iz | U | Trigger |
@@ -27,11 +42,11 @@ Overrun/reorder: `.cursor/docs/stylist-reservation-matrix.md`.
 | STYLIST_REVIEW | CONFIRMED | stylistAccept |
 | STYLIST_REVIEW | CANCELLED_BY_STYLISTS | svi reject / cancelByAdmin |
 | STYLIST_REVIEW | CANCELLED_BY_CLIENT | cancelByClient |
-| CONFIRMED | ATTENDANCE_CONFIRMED | confirmAttendance |
+| CONFIRMED | ATTENDANCE_CONFIRMED | confirmAttendance (`CLIENT_REQUIRED` only) |
 | CONFIRMED | CANCELLED_BY_CLIENT | cancelByClient / attendance CRON / decline reschedule |
 | CONFIRMED | CANCELLED_BY_STYLISTS | stylistCancel / cancelByAdmin |
 | CONFIRMED | NO_SHOW | stylistMarkNoShow |
-| CONFIRMED | IN_PROGRESS | autoStart CRON |
+| CONFIRMED | IN_PROGRESS | autoStart CRON (`STAFF_WAIVED` only) |
 | ATTENDANCE_CONFIRMED | IN_PROGRESS | stylistStart / autoStart |
 | ATTENDANCE_CONFIRMED | NO_SHOW | stylistMarkNoShow |
 | ATTENDANCE_CONFIRMED | CANCELLED_BY_CLIENT | cancelByClient / decline reschedule / timeout |
@@ -59,7 +74,7 @@ Blokiraju: `CONFIRMED`, `ATTENDANCE_CONFIRMED`, `IN_PROGRESS`.
 |--------|--------|---------|-------------|
 | Create | Da (self) | Ne | Da (za klijenta) |
 | Lock/Accept/Reject | Ne | Da (vlastiti profil) | Ruta dozvoljava |
-| Confirm attendance | Da (own) | Ne | Ne |
+| Confirm attendance | Da (own, `CLIENT_REQUIRED`) | Ne | Ne |
 | Cancel | Own + deadline | CONFIRMED/IN_PROGRESS | Skoro sve osim COMPLETED |
 | Start / No-show | Ne | Da | Ruta dozvoljava |
 | Reschedule propose/commit | Ne | Da | Da |
@@ -82,10 +97,11 @@ Blokiraju: `CONFIRMED`, `ATTENDANCE_CONFIRMED`, `IN_PROGRESS`.
 - ~~Docs vs kod za slot occupancy (C2)~~ — FIXED C2-B 2026-08-11
 - ~~`RESERVATION_TRANSITIONS` ne pokriva sve runtime prijelaze~~ — FIXED M1 2026-08-11 (`assertReservationTransition`)
 
-## Attendance rok
+## Attendance rok / policy
 
-- Potvrda dozvoljena dok `now < start − ATTENDANCE_CONFIRM_DEADLINE_HOURS` (24)
-- CRON cancel na `now ≥ start − 24h` za `CONFIRMED` bez attendance
+- Potvrda dozvoljena dok `now < start − ATTENDANCE_CONFIRM_DEADLINE_HOURS` (24) samo za `attendancePolicy=CLIENT_REQUIRED`
+- Attendance CRON cancel na `now ≥ start − 24h` samo za `CONFIRMED + CLIENT_REQUIRED`
+- `STAFF_WAIVED` nikad ne prolazi attendance CTA ni attendance timeout
 
 ## Timezone
 

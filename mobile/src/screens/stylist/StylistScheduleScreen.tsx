@@ -254,7 +254,14 @@ export function StylistScheduleScreen({ navigation }: Props) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListHeaderComponent={
-          activeReservation ? (
+          <View style={{ gap: spacing.md }}>
+            <Button
+              title="Dogovoreni termin"
+              onPress={() => navigation.navigate('StylistDirectBooking')}
+              variant="outline"
+              icon={<Ionicons name="add-circle-outline" size={18} color={colors.primary} />}
+            />
+            {activeReservation ? (
             <Card style={[styles.activeCard, { backgroundColor: colors.card }]} padded={false}>
               {activeHeroUri ? (
                 <ImageBackground
@@ -464,7 +471,8 @@ export function StylistScheduleScreen({ navigation }: Props) {
                 </>
               )}
             </Card>
-          ) : null
+          ) : null}
+          </View>
         }
         renderSectionHeader={({ section }) => (
           <Text style={[styles.sectionHeader, { color: colors.primary }]}>{section.title}</Text>

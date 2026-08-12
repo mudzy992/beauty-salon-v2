@@ -95,6 +95,9 @@ export interface Reservation {
   startTime: string;
   endTime: string;
   status: ReservationStatus;
+  bookingOrigin?: 'CLIENT_SELF_SERVICE' | 'STAFF_ADMIN' | 'STAFF_STYLIST';
+  acceptanceMode?: 'INBOX' | 'DIRECT_ASSIGN';
+  attendancePolicy?: 'CLIENT_REQUIRED' | 'STAFF_WAIVED';
   clientNotes?: string;
   confirmedStylistId?: string;
   attendanceConfirmedAt?: string;

@@ -77,6 +77,8 @@ model User {
   clientDebtsAsClient         ClientDebt[]                 @relation("ClientDebtsClient")
   clientDebtsCreated          ClientDebt[]                 @relation("ClientDebtsCreatedBy")
   clientDebtsSettled          ClientDebt[]                 @relation("ClientDebtsSettledBy")
+  reservationsCreated        Reservation[]                @relation("ReservationsCreatedBy")
+  reservationsAttendanceWaived Reservation[]             @relation("AttendanceWaivedByUser")
 
   @@map("users")
 }
@@ -296,8 +298,15 @@ model Reservation {
   endTime               String    @map("end_time") // "10:00"
   status                String // PENDING | STYLIST_REVIEW | CONFIRMED | ATTENDANCE_CONFIRMED | IN_PROGRESS | COMPLETED | CANCELLED_BY_CLIENT | CANCELLED_BY_STYLISTS | NO_SHOW
   clientNotes           String?   @map("client_notes") @db.Text
+  bookingOrigin         String    @default("CLIENT_SELF_SERVICE") @map("booking_origin")
+  acceptanceMode        String    @default("INBOX") @map("acceptance_mode")
+  attendancePolicy      String    @default("CLIENT_REQUIRED") @map("attendance_policy")
+  createdByUserId       String?   @map("created_by_user_id")
   confirmedStylistId    String?   @map("confirmed_stylist_id")
   attendanceConfirmedAt DateTime? @map("attendance_confirmed_at")
+  attendanceConfirmedBy String?   @map("attendance_confirmed_by")
+  attendanceWaivedAt    DateTime? @map("attendance_waived_at")
+  attendanceWaivedByUserId String? @map("attendance_waived_by_user_id")
   startedAt             DateTime? @map("started_at")
   completedAt           DateTime? @map("completed_at")
   cancelledAt           DateTime? @map("cancelled_at")
@@ -328,14 +337,16 @@ model Reservation {
   publicReferenceCode String @unique @map("public_reference_code")
   clientViewToken     String @unique @map("client_view_token")
 
-  client           User                         @relation("ClientReservations", fields: [clientId], references: [id], onDelete: Cascade)
-  service          Service                      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  items            ReservationServiceItem[]
-  confirmedStylist StylistProfile?              @relation("ConfirmedByStylist", fields: [confirmedStylistId], references: [id], onDelete: SetNull)
-  stylistResponses ReservationStylistResponse[]
-  dailyLogEntry    DailyLogEntry[]
-  reviews          Review[]
-  clientDebts      ClientDebt[]
+  client                    User                         @relation("ClientReservations", fields: [clientId], references: [id], onDelete: Cascade)
+  service                   Service                      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  items                     ReservationServiceItem[]
+  createdByUser             User?                        @relation("ReservationsCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  confirmedStylist          StylistProfile?              @relation("ConfirmedByStylist", fields: [confirmedStylistId], references: [id], onDelete: SetNull)
+  stylistResponses          ReservationStylistResponse[]
+  dailyLogEntry             DailyLogEntry[]
+  reviews                   Review[]
+  clientDebts               ClientDebt[]
+  attendanceWaivedByUser    User?                        @relation("AttendanceWaivedByUser", fields: [attendanceWaivedByUserId], references: [id], onDelete: SetNull)
 
   @@map("reservations")
 }

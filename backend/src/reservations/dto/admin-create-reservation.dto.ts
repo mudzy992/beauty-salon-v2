@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsDateString,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
@@ -12,6 +13,14 @@ import { RequireServiceSelectionConstraint } from './require-service-selection.v
 export class AdminCreateReservationDto {
   @IsUUID()
   clientId!: string;
+
+  @IsString()
+  @IsIn(['STANDARD', 'STAFF_ADMIN_DIRECT'])
+  bookingMode!: 'STANDARD' | 'STAFF_ADMIN_DIRECT';
+
+  @IsOptional()
+  @IsUUID()
+  stylistProfileId?: string;
 
   /** Backwards-compat (legacy UI). Prefer `serviceIds`. */
   @IsOptional()

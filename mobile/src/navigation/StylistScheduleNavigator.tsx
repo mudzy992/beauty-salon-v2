@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useTheme } from '../hooks/useTheme';
 import type { StylistScheduleStackParamList } from './types';
 import { StylistScheduleScreen } from '../screens/stylist/StylistScheduleScreen';
+import { StylistDirectBookingScreen } from '../screens/stylist/StylistDirectBookingScreen';
 import { StylistReservationDetailScreen } from '../screens/stylist/StylistReservationDetailScreen';
 
 const Stack = createNativeStackNavigator<StylistScheduleStackParamList>();
@@ -22,6 +23,11 @@ export function StylistScheduleNavigator() {
         name="ScheduleList"
         component={StylistScheduleScreen}
         options={{ title: 'Raspored' }}
+      />
+      <Stack.Screen
+        name="StylistDirectBooking"
+        component={StylistDirectBookingScreen}
+        options={{ title: 'Dogovoreni termin' }}
       />
       <Stack.Screen
         name="StylistReservationDetail"

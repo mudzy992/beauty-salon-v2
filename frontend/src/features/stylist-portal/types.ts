@@ -33,6 +33,9 @@ export type Reservation = {
   startTime: string
   endTime: string
   status: ReservationStatus
+  bookingOrigin?: 'CLIENT_SELF_SERVICE' | 'STAFF_ADMIN' | 'STAFF_STYLIST'
+  acceptanceMode?: 'INBOX' | 'DIRECT_ASSIGN'
+  attendancePolicy?: 'CLIENT_REQUIRED' | 'STAFF_WAIVED'
   clientNotes?: string | null
   confirmedStylistId?: string | null
   attendanceConfirmedAt?: string | null

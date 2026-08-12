@@ -11,10 +11,12 @@ import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
 import {
+  ATTENDANCE_CONFIRMED_BY,
   RESERVATION_STATUS,
 } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { NotificationsService } from '../notifications/notifications.service';
+import { canConfirmAttendance } from './reservation-policy';
 
 @Injectable()
 export class ReservationClientActionsService {
@@ -167,7 +169,7 @@ export class ReservationClientActionsService {
       throw new ForbiddenException(
         'Samo klijent može potvrditi dolazak.',
       );
-    if (r.status !== RESERVATION_STATUS.CONFIRMED) {
+    if (!canConfirmAttendance(r)) {
       throw new BadRequestException(
         'Rezervacija mora biti potvrđena od strane stilista.',
       );
@@ -196,6 +198,7 @@ export class ReservationClientActionsService {
           RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
         ),
         attendanceConfirmedAt: now,
+        attendanceConfirmedBy: ATTENDANCE_CONFIRMED_BY.CLIENT,
       },
     });
     const confirmed = await this.queries.findOne(id, {

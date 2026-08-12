@@ -11,7 +11,11 @@ export const canClientCancel = (status: string): boolean =>
 export const canClientConfirmAttendance = (
   status: string,
   attendanceConfirmedAt?: string | null,
-): boolean => status === 'CONFIRMED' && !attendanceConfirmedAt
+  attendancePolicy?: string | null,
+): boolean =>
+  status === 'CONFIRMED' &&
+  attendancePolicy !== 'STAFF_WAIVED' &&
+  !attendanceConfirmedAt
 
 export const canClientDecideReschedule = (rescheduleStatus?: string | null): boolean =>
   rescheduleStatus === 'PENDING'

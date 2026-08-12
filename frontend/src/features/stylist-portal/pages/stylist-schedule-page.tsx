@@ -115,6 +115,9 @@ export const StylistSchedulePage = () => {
         <Button type="button" variant="outline" onClick={() => refetch()} disabled={isFetching}>
           Osvježi
         </Button>
+        <Link to="/stylist/schedule/new">
+          <Button type="button">Dogovoreni termin</Button>
+        </Link>
       </div>
 
       {empty ? (

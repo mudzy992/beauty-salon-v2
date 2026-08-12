@@ -7,6 +7,7 @@ import { ReservationNotifyService } from './reservation-notify.service';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { ReservationListService } from './reservation-list.service';
 import { ReservationCreateService } from './reservation-create.service';
+import { ReservationDirectCreateService } from './reservation-direct-create.service';
 import { ReservationUpdateService } from './reservation-update.service';
 import { ReservationClientActionsService } from './reservation-client-actions.service';
 import { ReservationStylistLockService } from './reservation-stylist-lock.service';
@@ -41,6 +42,7 @@ import { ReservationDateService } from './reservation-date.service';
     ReservationQueriesService,
     ReservationListService,
     ReservationCreateService,
+    ReservationDirectCreateService,
     ReservationUpdateService,
     ReservationClientActionsService,
     ReservationStylistLockService,

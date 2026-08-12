@@ -25,6 +25,40 @@ export const STYLIST_RESPONSE_STATUS = {
 export type StylistResponseStatus =
   (typeof STYLIST_RESPONSE_STATUS)[keyof typeof STYLIST_RESPONSE_STATUS];
 
+export const RESERVATION_BOOKING_ORIGIN = {
+  CLIENT_SELF_SERVICE: 'CLIENT_SELF_SERVICE',
+  STAFF_ADMIN: 'STAFF_ADMIN',
+  STAFF_STYLIST: 'STAFF_STYLIST',
+} as const;
+
+export type ReservationBookingOrigin =
+  (typeof RESERVATION_BOOKING_ORIGIN)[keyof typeof RESERVATION_BOOKING_ORIGIN];
+
+export const RESERVATION_ACCEPTANCE_MODE = {
+  INBOX: 'INBOX',
+  DIRECT_ASSIGN: 'DIRECT_ASSIGN',
+} as const;
+
+export type ReservationAcceptanceMode =
+  (typeof RESERVATION_ACCEPTANCE_MODE)[keyof typeof RESERVATION_ACCEPTANCE_MODE];
+
+export const RESERVATION_ATTENDANCE_POLICY = {
+  CLIENT_REQUIRED: 'CLIENT_REQUIRED',
+  STAFF_WAIVED: 'STAFF_WAIVED',
+} as const;
+
+export type ReservationAttendancePolicy =
+  (typeof RESERVATION_ATTENDANCE_POLICY)[keyof typeof RESERVATION_ATTENDANCE_POLICY];
+
+export const ATTENDANCE_CONFIRMED_BY = {
+  CLIENT: 'CLIENT',
+  STAFF: 'STAFF',
+  SYSTEM: 'SYSTEM',
+} as const;
+
+export type AttendanceConfirmedBy =
+  (typeof ATTENDANCE_CONFIRMED_BY)[keyof typeof ATTENDANCE_CONFIRMED_BY];
+
 /** Rok: klijent mora potvrditi dolazak najkasnije ovoliko sati prije starta. */
 export const ATTENDANCE_CONFIRM_DEADLINE_HOURS = 24;
 

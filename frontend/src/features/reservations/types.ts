@@ -38,6 +38,9 @@ export interface Reservation {
   startTime: string
   endTime: string
   status: string
+  bookingOrigin?: 'CLIENT_SELF_SERVICE' | 'STAFF_ADMIN' | 'STAFF_STYLIST'
+  acceptanceMode?: 'INBOX' | 'DIRECT_ASSIGN'
+  attendancePolicy?: 'CLIENT_REQUIRED' | 'STAFF_WAIVED'
   clientNotes: string | null
   cancelReason: string | null
   createdAt: string

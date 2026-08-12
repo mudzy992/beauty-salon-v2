@@ -45,6 +45,11 @@ const CANCELABLE: ReservationStatus[] = [
 ];
 const CONFIRMABLE: ReservationStatus[] = ['CONFIRMED'];
 
+const canConfirmAttendance = (reservation: Reservation): boolean =>
+  CONFIRMABLE.includes(reservation.status) &&
+  reservation.attendancePolicy !== 'STAFF_WAIVED' &&
+  !reservation.attendanceConfirmedAt;
+
 export function MyReservationsScreen({ navigation, route }: ReservationsScreenProps<'MyReservations'>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -283,7 +288,7 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
               />
             </>
           )}
-          {CONFIRMABLE.includes(item.status) && !item.attendanceConfirmedAt && (
+          {canConfirmAttendance(item) && (
             <View style={{ gap: 6 }}>
               <Button
                 title={t('myReservations.confirmAttendance')}

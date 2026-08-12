@@ -1,5 +1,11 @@
 # Reservation matrix changelog
 
+## 2026-08-12 (Staff direct booking)
+
+- Dodan policy sloj: `bookingOrigin`, `acceptanceMode`, `attendancePolicy`.
+- Dokumentovan dual-flow model: standard self-service tok i direct staff tok.
+- Attendance CTA/CRON/start pravila sada se čitaju iz `status + policy`, ne samo iz statusa.
+
 ## 2026-08-11 (P2 M8 — Salon timezone)
 
 - `ReservationDateService` koristi `salon.timezone` setting (default `Europe/Sarajevo`) umjesto server local TZ.

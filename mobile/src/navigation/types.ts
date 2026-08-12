@@ -31,6 +31,7 @@ export type StylistDailyLogStackParamList = {
 
 export type StylistScheduleStackParamList = {
   ScheduleList: undefined;
+  StylistDirectBooking: undefined;
   StylistReservationDetail: { reservationId: string };
 };
 

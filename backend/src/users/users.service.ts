@@ -113,7 +113,9 @@ export class UsersService {
     pagination?: { page?: number; pageSize?: number },
     q?: string,
   ) {
-    this.requireAdminOrOwner(roles);
+    if (!this.isAdminOrOwner(roles) && !roles.includes('STYLIST')) {
+      throw new ForbiddenException('Nemate dozvolu.');
+    }
     const trimmed = (q ?? '').trim();
     const where = {
       userRoles: {

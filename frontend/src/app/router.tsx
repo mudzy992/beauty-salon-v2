@@ -19,6 +19,7 @@ import { WorkbookDetailPage } from '../features/stylist-workbook/pages/workbook-
 import { WorkbookReschedulePreviewPage } from '../features/stylist-workbook/pages/workbook-reschedule-preview-page'
 import { StylistInboxPage } from '../features/stylist-portal/pages/stylist-inbox-page'
 import { StylistSchedulePage } from '../features/stylist-portal/pages/stylist-schedule-page'
+import { StylistDirectBookingPage } from '../features/stylist-portal/pages/stylist-direct-booking-page'
 import { StylistReservationDetailPage } from '../features/stylist-portal/pages/stylist-reservation-detail-page'
 import { StylistStatsPage } from '../features/stylist-portal/pages/stylist-stats-page'
 import { StylistDebtsPage } from '../features/stylist-portal/pages/stylist-debts-page'
@@ -60,6 +61,10 @@ export const AppRouter = () => {
         {
           path: 'schedule',
           element: <StylistSchedulePage />,
+        },
+        {
+          path: 'schedule/new',
+          element: <StylistDirectBookingPage />,
         },
         {
           path: 'schedule/:reservationId',

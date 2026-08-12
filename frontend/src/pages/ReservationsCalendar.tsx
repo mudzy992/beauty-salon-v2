@@ -102,6 +102,8 @@ export default function ReservationsCalendar() {
 
   const handleCreate = async (payload: {
     clientId: string
+    bookingMode: 'STANDARD' | 'STAFF_ADMIN_DIRECT'
+    stylistProfileId?: string
     serviceIds: string[]
     reservationDate: string
     startTime: string

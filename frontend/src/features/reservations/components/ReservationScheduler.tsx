@@ -86,6 +86,8 @@ type Props = {
   onSelectedStylistIdsChange: (ids: string[]) => void
   onCreateRequest: (payload: {
     clientId: string
+    bookingMode: 'STANDARD' | 'STAFF_ADMIN_DIRECT'
+    stylistProfileId?: string
     serviceIds: string[]
     reservationDate: string
     startTime: string
@@ -220,6 +222,8 @@ export const ReservationScheduler = (props: Props) => {
   const serviceDropdownRef = useRef<HTMLDivElement | null>(null)
   const [showServiceDropdown, setShowServiceDropdown] = useState(false)
   const [createDraft, setCreateDraft] = useState<{
+    bookingMode: 'STANDARD' | 'STAFF_ADMIN_DIRECT'
+    stylistProfileId: string
     clientSearch: string
     clientId: string
     serviceSearch: string
@@ -229,6 +233,8 @@ export const ReservationScheduler = (props: Props) => {
     endTime: string
     clientNotes: string
   }>({
+    bookingMode: 'STANDARD',
+    stylistProfileId: '',
     clientSearch: '',
     clientId: '',
     serviceSearch: '',
@@ -389,7 +395,13 @@ export const ReservationScheduler = (props: Props) => {
   const openCreate = (slot?: SlotInfo) => {
     const start = slot?.start instanceof Date ? slot.start : new Date(props.date)
     const end = slot?.end instanceof Date ? slot.end : new Date(props.date)
+    const preselectedStylistId =
+      props.selectedStylistIds.length === 1 && props.selectedStylistIds[0] !== 'unassigned'
+        ? props.selectedStylistIds[0] ?? ''
+        : ''
     setCreateDraft({
+      bookingMode: 'STANDARD',
+      stylistProfileId: preselectedStylistId,
       clientSearch: '',
       clientId: '',
       serviceSearch: '',
@@ -834,6 +846,69 @@ export const ReservationScheduler = (props: Props) => {
               </div>
 
               <div className="space-y-2">
+                <Label>Način kreiranja</Label>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    className={
+                      createDraft.bookingMode === 'STANDARD'
+                        ? 'rounded-lg border border-slate-900 bg-slate-900 px-3 py-3 text-left text-sm text-white'
+                        : 'rounded-lg border border-slate-200 bg-white px-3 py-3 text-left text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200'
+                    }
+                    onClick={() =>
+                      setCreateDraft((p) => ({ ...p, bookingMode: 'STANDARD', stylistProfileId: '' }))
+                    }
+                  >
+                    <div className="font-semibold">Standard rezervacija</div>
+                    <div className="mt-1 text-xs opacity-80">
+                      Ide u inbox stilista i prolazi puni standardni tok.
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className={
+                      createDraft.bookingMode === 'STAFF_ADMIN_DIRECT'
+                        ? 'rounded-lg border border-slate-900 bg-slate-900 px-3 py-3 text-left text-sm text-white'
+                        : 'rounded-lg border border-slate-200 bg-white px-3 py-3 text-left text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200'
+                    }
+                    onClick={() => setCreateDraft((p) => ({ ...p, bookingMode: 'STAFF_ADMIN_DIRECT' }))}
+                  >
+                    <div className="font-semibold">Direct booking</div>
+                    <div className="mt-1 text-xs opacity-80">
+                      Odmah dodijeljen stilisti, bez client attendance potvrde.
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {createDraft.bookingMode === 'STAFF_ADMIN_DIRECT' ? (
+                <div className="space-y-2">
+                  <Label>Stilist</Label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {props.stylists.map((stylist) => {
+                      const label = stylistName(stylist)
+                      const active = createDraft.stylistProfileId === stylist.id
+                      return (
+                        <button
+                          key={stylist.id}
+                          type="button"
+                          className={
+                            active
+                              ? 'rounded-lg border border-brand-gold bg-brand-champagne/20 px-3 py-2 text-left text-sm'
+                              : 'rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/40'
+                          }
+                          onClick={() => setCreateDraft((p) => ({ ...p, stylistProfileId: stylist.id }))}
+                        >
+                          <div className="font-medium text-slate-900 dark:text-slate-50">{label}</div>
+                          <div className="text-xs text-slate-500">{stylist.id}</div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="space-y-2">
                 <Label>Klijent</Label>
                 <Input
                   placeholder="Pretraži klijente (ime, prezime, username)..."
@@ -994,6 +1069,11 @@ export const ReservationScheduler = (props: Props) => {
                     try {
                       await props.onCreateRequest({
                         clientId: createDraft.clientId.trim(),
+                        bookingMode: createDraft.bookingMode,
+                        stylistProfileId:
+                          createDraft.bookingMode === 'STAFF_ADMIN_DIRECT'
+                            ? createDraft.stylistProfileId.trim() || undefined
+                            : undefined,
                         serviceIds: createDraft.serviceIds.map((x) => x.trim()).filter(Boolean),
                         reservationDate: createDraft.reservationDate,
                         startTime: createDraft.startTime,
@@ -1007,6 +1087,8 @@ export const ReservationScheduler = (props: Props) => {
                   }}
                   disabled={
                     !createDraft.clientId.trim() ||
+                    (createDraft.bookingMode === 'STAFF_ADMIN_DIRECT' &&
+                      !createDraft.stylistProfileId.trim()) ||
                     createDraft.serviceIds.length === 0 ||
                     !createDraft.reservationDate ||
                     !createDraft.startTime ||

@@ -42,7 +42,7 @@ export class UsersController {
 
   @Get('clients')
   @UseGuards(RolesGuard)
-  @Roles('SYSTEM_ADMIN', 'OWNER')
+  @Roles('SYSTEM_ADMIN', 'OWNER', 'STYLIST')
   findClients(
     @CurrentUser() user: CurrentUserPayload,
     @Query('page') page?: string,

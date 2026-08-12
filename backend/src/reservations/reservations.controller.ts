@@ -12,6 +12,7 @@ import { ReservationsService } from './reservations.service';
 import { AvailabilityService } from './availability.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
+import { StylistDirectCreateReservationDto } from './dto/stylist-direct-create-reservation.dto';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
 import { StylistRejectDto } from './dto/stylist-respond.dto';
 import { QueryReservationsDto } from './dto/query-reservations.dto';
@@ -42,8 +43,21 @@ export class ReservationsController {
   @Post('admin')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  createByAdmin(@Body() dto: AdminCreateReservationDto) {
-    return this.reservations.createByAdmin(dto);
+  createByAdmin(
+    @Body() dto: AdminCreateReservationDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.createByAdmin(dto, user.sub);
+  }
+
+  @Post('stylist/direct')
+  @UseGuards(RolesGuard)
+  @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
+  createByStylistDirect(
+    @Body() dto: StylistDirectCreateReservationDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.createByStylistDirect(dto, user.sub);
   }
 
   @Get()

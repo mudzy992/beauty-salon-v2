@@ -1,222 +1,187 @@
-# HANDOFF — Reservation module hardening
+# HANDOFF — Reservation module (dual-flow)
 
 **Datum:** 2026-08-12  
-**Status:** P0–P3 + R3–R6 + T1/T6/M8 **završeno** · mobile detail split **DONE** · L2/L5/L6/M10/C1/R2 **DONE** · Mobile Socket.IO **još nije**  
+**Status:** P0–P3 + R3–R6 + mobile split + staff direct booking **sve završeno**  
 **Commit:** nije rađen (namjerno — čeka eksplicitni zahtjev)
 
 ---
 
 ## 1. Executive summary
 
-Reservation hardening plan je u praksi **gotov do Mobile Socket.IO faze**. Kritični bugovi (C1/C2), FSM, timezone, service split, test coverage, web/mobile klijent UX, admin calendar realtime, stylist complete flow (R3–R6) — sve riješeno ili dokumentovano BY DESIGN.
+Reservation hardening je kompletiran. Dodan je i cijeli **Staff Direct Booking** plan koji uvodi policy-based dual-flow model bez fake statusa.
 
-**Preostalo po prioritetu:**
+**Jedino što preostaje:**
 
-1. **Mobile Socket.IO** — **ZADNJE**, vidi [MOBILE_SOCKETIO.md](./MOBILE_SOCKETIO.md)
-2. **Tech debt** — T2/T3/T4 (repository layer, Prisma enum)
-
----
-
-## 2. Urađeno po fazama
-
-### P0 — Critical (DONE)
-
-| ID | Šta |
-|----|-----|
-| **C1** | Attendance confirm vs CRON — 24h deadline, `ATTENDANCE_CONFIRM_DEADLINE_HOURS` |
-| **C2-B** | Slot occupancy: samo CONFIRMED / ATTENDANCE_CONFIRMED / IN_PROGRESS |
-| **M11** | `stylist-mark-complete` → 400; završetak isključivo preko DK |
-
-### P1 — High (DONE)
-
-| ID | Šta |
-|----|-----|
-| **H1** | Web `/moje-rezervacije` — cancel, attendance, reschedule |
-| **H2** | Mobile cancel uključuje `ATTENDANCE_CONFIRMED` |
-| **H3** | Push deep-link routing (`resolveReservationPushRoute`) |
-| **H4** | Inbox auto-refresh (polling 30s) — Socket.IO odgođen |
-
-### P2 — Medium / Tech (DONE)
-
-| ID | Šta |
-|----|-----|
-| **M1** | FSM `assertReservationTransition` na svim putanjama |
-| **M2** | Admin calendar Socket.IO silent refetch |
-| **M8** | Salon timezone (`salon.timezone`, `zoned-time.ts`) |
-| **T1/T1b** | `reservations.service.ts` 2369 → facade ~183 + **21 domain servisa** (svi ≤200 linija) |
-| **T6** | Test gaps: accept/reject/no-show/reschedule-commit/availability |
-| **M5** | Admin working hours validacija (`assert-admin-working-hours.ts`) |
-| **Availability split** | facade + `availability-dates/slots/debug.service.ts` |
-
-### P3 — UX polish (DONE)
-
-| ID | Šta |
-|----|-----|
-| **M3** | Admin status labele → `features/reservations/status.ts` |
-| **M4** | Web reject dialog s razlogom |
-| **M6** | `getAvailableDates` honesty (samo ako ima slotova) |
-| **L1** | Reorder HH:mm UX (web `type="time"`, mobile validacija + auto-end) |
-| **M7** | `future.slice(1)` BY DESIGN — dokumentovano |
-| **Web detail split** | `stylist-reservation-detail-page.tsx` 721 → ~153 linija |
-
-### R3–R6 — Complete / DK UX (DONE)
-
-| ID | Šta |
-|----|-----|
-| **R3** | KIF-lock copy + toast u complete flow |
-| **R4** | Loyalty hint u complete dialogu |
-| **R5** | `payDebtsIntent` — odabir dugova ili “namjerno ne naplaćujem” |
-| **R6** | DK delete/status edit copy → rezervacija IN_PROGRESS |
-
-### Zadnja sesija (2026-08-12)
-
-| ID | Šta |
-|----|-----|
-| **M12** | `canAdminCancelReservation` — admin lista + scheduler usklađeni (`IN_PROGRESS`) |
-| **M9** | `RequireServiceSelectionConstraint` na Create + AdminCreate DTO |
-| **L3** | `PublicReservationView` footer: Prijavi se / Moje rezervacije |
-| **L4** | Multi-service label: mobile MyReservations + public API |
-| **Mobile split (partial)** | Modali → `mobile/.../reservation-detail/*`; screen **1024 → 766 linija** |
-| **Mobile split (DONE)** | Hook + summary + actions; screen **~168 linija** (web pattern) |
-| **L2** | Web stylist schedule: rolling 30-day window (fresh on refetch, prikaz raspona) |
-| **L5/L6** | use_break_only dokumentovano; ReschedulePreview `lockMode` iz DK complete flow-a |
-| **M10** | `payDebtsIntent` by design dokumentovano u RESERVATION_MODULE §12.1 |
-| **C1 setting** | `system_reservation_attendance_hours` → `ReservationDateService.getAttendanceConfirmDeadlineHours()` |
-| **R2** | Admin DK lista: “Na čekanju (termin u toku)” kad je rezervacija IN_PROGRESS |
+1. **Prisma migracija** — kreirati i primijeniti SQL za nove policy kolone (DB konekcija bila nedostupna tokom sesije)
+2. **Mobile Socket.IO** — odgođeno do prvog zahtjeva; plan u [MOBILE_SOCKETIO.md](./MOBILE_SOCKETIO.md)
+3. **Tech debt T2–T4** — repository layer, Prisma enum — opcionalno
 
 ---
 
-## 3. Ključni fajlovi (reference)
+## 2. Urađeno u ovoj sesiji (Staff Direct Booking)
 
-### Backend
+### Phase 1 — Schema + policy foundation
+
+| Fajl | Šta |
+|------|-----|
+| `backend/prisma/schema.prisma` | Dodana polja: `bookingOrigin`, `acceptanceMode`, `attendancePolicy`, `createdByUserId`, `attendanceConfirmedBy`, `attendanceWaivedAt`, `attendanceWaivedByUserId` + relacije |
+| `backend/src/reservations/constants.ts` | Novi konstanti: `RESERVATION_BOOKING_ORIGIN`, `RESERVATION_ACCEPTANCE_MODE`, `RESERVATION_ATTENDANCE_POLICY`, `ATTENDANCE_CONFIRMED_BY` |
+| `backend/src/reservations/reservation-policy.ts` | **Nova datoteka** — centralni policy helper: `canConfirmAttendance`, `canStartReservation`, `shouldRunAttendanceCron`, `isDirectAssignedReservation`, `getAutoStartEligibleStatuses` |
+
+### Phase 2 — Create path split
+
+| Fajl | Šta |
+|------|-----|
+| `backend/src/reservations/dto/admin-create-reservation.dto.ts` | Dodano `bookingMode` + `stylistProfileId` |
+| `backend/src/reservations/dto/stylist-direct-create-reservation.dto.ts` | **Nova datoteka** — DTO za stylist direct |
+| `backend/src/reservations/reservation-direct-create.service.ts` | **Nova datoteka** — `createByAdmin` + `createByStylist`, bez inbox, direktno `CONFIRMED + STAFF_WAIVED` |
+| `backend/src/reservations/reservations.service.ts` | Routing: `bookingMode` → standard ili direct |
+| `backend/src/reservations/reservations.controller.ts` | Novi endpoint `POST /api/reservations/stylist/direct` |
+| `backend/src/reservations/reservations.module.ts` | Registriran `ReservationDirectCreateService` |
+
+### Phase 3 — Runtime + CRON policy guards
+
+| Fajl | Šta |
+|------|-----|
+| `backend/src/reservations/reservation-runtime.service.ts` | `stylistStart` koristi `canStartReservation()` umjesto hardkodiranog status provjere |
+| `backend/src/reservations/reservation-client-actions.service.ts` | `confirmAttendance` koristi `canConfirmAttendance()` + bilježi `attendanceConfirmedBy=CLIENT` |
+| `backend/src/reservations/reservation-attendance-cron.service.ts` | Selektuje `attendancePolicy`; `shouldRunAttendanceCron()` filter za direct booking |
+| `backend/src/reservations/reservation-cron.service.ts` | `autoStartUpcomingReservations` koristi `getAutoStartEligibleStatuses()` per policy |
+
+### Phase 4 — API surface + web/mobile UX
+
+| Fajl | Šta |
+|------|-----|
+| `frontend/src/features/reservations/types.ts` | Dodani policy tipovi na `Reservation` interface |
+| `frontend/src/features/stylist-portal/types.ts` | Isto |
+| `mobile/src/types/index.ts` | Isto |
+| `frontend/src/features/client-reservations/client-reservation-actions.ts` | `canClientConfirmAttendance` prima `attendancePolicy` param; returns false za STAFF_WAIVED |
+| `frontend/src/features/client-reservations/my-reservation-card.tsx` | Prosljeđuje `attendancePolicy` |
+| `mobile/src/screens/client/MyReservationsScreen.tsx` | `canConfirmAttendance` helper koji štiti STAFF_WAIVED |
+| `frontend/src/features/reservations/components/ReservationScheduler.tsx` | Mode picker (Standard vs Direct) + stilist selector za admin calendar |
+| `frontend/src/pages/ReservationsCalendar.tsx` | Prosljeđuje `bookingMode` + `stylistProfileId` |
+| `frontend/src/features/stylist-portal/pages/stylist-direct-booking-page.tsx` | **Nova stranica** — stylist web form za dogovoreni termin |
+| `frontend/src/features/stylist-portal/pages/stylist-schedule-page.tsx` | Dugme "Dogovoreni termin" |
+| `frontend/src/app/router.tsx` | Nova ruta `/stylist/schedule/new` |
+| `mobile/src/screens/stylist/StylistDirectBookingScreen.tsx` | **Novi screen** — stylist mobile form |
+| `mobile/src/navigation/StylistScheduleNavigator.tsx` | Registriran `StylistDirectBooking` screen |
+| `mobile/src/navigation/types.ts` | Dodan `StylistDirectBooking` u `StylistScheduleStackParamList` |
+| `mobile/src/screens/stylist/StylistScheduleScreen.tsx` | Dugme "Dogovoreni termin" u header |
+| `backend/src/users/users.controller.ts` + `users.service.ts` | `GET /api/users/clients` dostupno i za STYLIST rolu |
+
+### Phase 5 — Tests + docs
+
+| Fajl | Šta |
+|------|-----|
+| `backend/src/reservations/reservation-policy.spec.ts` | **Nova datoteka** — 5/5 testova proše |
+| `.cursor/docs/matrices/reservations/MATRIX.md` | Dodan policy sloj, dual-flow tabela, ažurirana attendance/start pravila |
+| `.cursor/docs/matrices/reservations/CHANGELOG.md` | Entry za 2026-08-12 |
+| `.cursor/docs/reservations/RESERVATION_MODULE.md` | §2, §6 i §9 ažurirani (nova polja, admin/stylist direct create, start uvjeti) |
+
+---
+
+## 3. Build/test status
+
+| Target | Rezultat |
+|--------|----------|
+| `backend npm run build` | **PASS** ✅ |
+| `backend npm test -- reservation-policy.spec.ts` | **5/5 PASS** ✅ |
+| `frontend npm run build` | **PASS** ✅ |
+| `mobile npx tsc --noEmit` | Pre-existing greške u starим datotekama (nisu iz ove sesije) |
+
+---
+
+## 4. Kritično otvoreno — Prisma migracija
+
+Schema je ažurirana, ali **migracija nije kreirana** (DB konekcija visila). Sljedeća sesija mora prvo:
+
+```bash
+cd backend
+npx prisma migrate dev --name staff_direct_booking_policy --create-only
+# pregledaj generisani SQL, pa:
+npx prisma migrate dev --name staff_direct_booking_policy
+npx prisma generate
+```
+
+Nove kolone s DEFAULT vrijednostima — **nema risk data loss**:
+- `booking_origin VARCHAR DEFAULT 'CLIENT_SELF_SERVICE'`
+- `acceptance_mode VARCHAR DEFAULT 'INBOX'`
+- `attendance_policy VARCHAR DEFAULT 'CLIENT_REQUIRED'`
+- ostale nullable kolone
+
+Backfill nije potreban jer su defaulti sigurni za sve postojeće rezervacije.
+
+---
+
+## 5. Locked decisions (staff direct booking)
+
+- Admin **mora** eksplicitno birati `bookingMode` svaki put — nema defaulta
+- Direct booking ne koristi lažni `ATTENDANCE_CONFIRMED` — koristi `CONFIRMED + STAFF_WAIVED`
+- Stylist direct booking: dodjeljuje se samo sebi (ne može za drugog stilista)
+- Admin direct booking: mora odabrati `stylistProfileId`; ide direktno u raspored bez inboxa
+- Standardni admin create i dalje prolazi punu matricu (`PENDING` → inbox)
+- `attendancePolicy = STAFF_WAIVED` → attendance CTA skriva se na svim klijentima (web + mobile)
+
+---
+
+## 6. Ključni fajlovi — reference
 
 ```
 backend/src/reservations/
-  reservations.service.ts          # facade (~183 linija)
-  reservation-*.service.ts         # 21 domain servisa
-  assert-reservation-transition.ts
-  availability.service.ts          # facade
-  availability-dates/slots/debug.service.ts
-  dto/require-service-selection.validator.ts
-  utils/assert-admin-working-hours.ts
-  utils/reservation-services-label.ts
-backend/src/common/utils/zoned-time.ts
-```
-
-### Frontend (web)
-
-```
+  reservation-policy.ts               # centralni policy helper (NOVI)
+  reservation-direct-create.service.ts # direct create logic (NOVI)
+  constants.ts                        # + booking origin/acceptance/attendance policy
+  reservations.service.ts             # facade, routing
+  reservations.controller.ts          # + POST /stylist/direct
+  reservation-runtime.service.ts      # canStartReservation()
+  reservation-client-actions.service.ts # canConfirmAttendance()
+  reservation-attendance-cron.service.ts # shouldRunAttendanceCron()
+  reservation-cron.service.ts         # getAutoStartEligibleStatuses()
+  dto/admin-create-reservation.dto.ts
+  dto/stylist-direct-create-reservation.dto.ts  # NOVI
+  
 frontend/src/features/reservations/
-  status.ts                        # canAdminCancelReservation, labele
-  use-reservation-socket-refresh.ts
-frontend/src/features/stylist-portal/
-  pages/stylist-reservation-detail-page.tsx  (~153 linija)
-  components/*-reservation-dialog.tsx
-  hooks/use-reservation-detail-*.ts
-frontend/src/pages/public/
-  PublicReservationView.tsx
-  MyReservations.tsx
-```
+  components/ReservationScheduler.tsx  # mode picker + stylist selector
+frontend/src/features/stylist-portal/pages/
+  stylist-direct-booking-page.tsx      # NOVI
+  stylist-schedule-page.tsx            # + button
 
-### Mobile
-
-```
 mobile/src/screens/stylist/
-  StylistReservationDetailScreen.tsx   # ~168 linija (split DONE)
-  reservation-detail/
-    hooks/use-stylist-reservation-detail.ts
-    hooks/use-reservation-detail-status.ts
-    hooks/use-reservation-detail-actions.ts
-    hooks/use-reservation-complete-flow.ts
-    reservation-detail-summary.tsx
-    reservation-detail-actions.tsx
-    utils/reservation-detail.ts
-    complete-reservation-modal.tsx
-    no-show-reservation-modal.tsx
-    overrun-reservation-modal.tsx
-    reorder-reservation-modal.tsx
-    reservation-detail-modal-shell.tsx
-    modal-styles.ts
-mobile/src/screens/client/MyReservationsScreen.tsx
-mobile/src/utils/reservationServices.ts
+  StylistDirectBookingScreen.tsx       # NOVI
+  StylistScheduleScreen.tsx            # + button
+mobile/src/navigation/
+  StylistScheduleNavigator.tsx         # + screen
+  types.ts                             # + param type
 ```
 
 ---
 
-## 4. Test status (zadnji poznati)
+## 7. Preostalo po prioritetu
 
-| Suite | Rezultat |
-|-------|----------|
-| Reservations (facade + domain) | **66/66** |
-| Availability | **9/9** |
-| M8 timezone (`zoned-time`) | **16/16** |
-| M5 admin working hours | **4/4** |
-| `reservation-services-label` | **3/3** |
-
-Pokreni prije commita:
-
-```bash
-cd backend && npm test -- --testPathPatterns=reservations --no-coverage
-```
+| # | Zadatak | Napomena |
+|---|---------|----------|
+| 1 | **Prisma migracija** | `prisma migrate dev --name staff_direct_booking_policy` kada DB dostupan |
+| 2 | **Mobile Socket.IO** | [MOBILE_SOCKETIO.md](./MOBILE_SOCKETIO.md) |
+| 3 | **Tech debt T2–T4** | Repository layer, Prisma enum — opcionalno |
 
 ---
 
-## 5. Otvoreno (prioritetni backlog)
-
-### Sljedeća sesija — redoslijed
-
-| # | ID | Opis | Napomena |
-|---|-----|------|----------|
-| 1 | **12b Mobile Socket.IO** | **ZADNJE** | [MOBILE_SOCKETIO.md](./MOBILE_SOCKETIO.md) |
-| 2 | **T2/T3/T4** | Repository layer, Prisma enum | Tech debt |
-
-### Eksplicitno odgođeno
-
-- **Mobile Socket.IO** — tek nakon mobile detail split-a (ili ako owner traži ranije)
-- **Git commit** — samo na eksplicitni zahtjev
-
----
-
-## 6. Source of truth (red čitanja)
-
-1. **[HANDOFF.md](./HANDOFF.md)** — ovaj fajl  
-2. **[FINDINGS.md](./FINDINGS.md)** — svi nalazi + FIXED statusi  
-3. **[MOBILE_SOCKETIO.md](./MOBILE_SOCKETIO.md)** — Socket plan (zadnje)  
-4. **[../matrices/reservations/MATRIX.md](../matrices/reservations/MATRIX.md)** — FSM matrica  
-5. **[RESERVATION_MODULE.md](./RESERVATION_MODULE.md)** — modul overview  
-
----
-
-## 7. Copy-paste prompt za sljedeću sesiju
+## 8. Copy-paste prompt za sljedeću sesiju
 
 ```
-Nastavi reservation hardening po HANDOFF:
+Nastavi na Staff Direct Booking HANDOFF:
 `.cursor/docs/reservations/HANDOFF.md`
 
-Kontekst: P0–P3 + R3–R6 + M12/M9/L3/L4 DONE. Mobile detail modals split DONE (766 linija).
+Kontekst: svi planovi completed; jedino otvoreno je Prisma migracija za policy kolone.
 
-Sljedeće po prioritetu:
-1. Mobile detail hook/summary split (StylistReservationDetailScreen → ≤200 linija)
-2. L2/L5/L6/M10/C1/R2 po FINDINGS backlogu
-3. Mobile Socket.IO ZADNJE po MOBILE_SOCKETIO.md
+Sljedeće:
+1. Kreiraj i primijeni Prisma migraciju (staff_direct_booking_policy) ako DB dostupan
+2. Mobile Socket.IO po MOBILE_SOCKETIO.md (opcionalno)
 
 Ne commitati bez eksplicitnog zahtjeva.
-Referenca web split: frontend/src/features/stylist-portal/
+Referenca plana: .cursor/plans/staff-direct-booking_ff95262f.plan.md
 ```
 
 ---
 
-## 8. Definition of Done — preostalo
-
-- [x] C1, C2, FSM, timezone, T1 split, T6 tests, admin calendar realtime
-- [x] Web + mobile klijent akcije, push routing, complete → DK only
-- [x] P3 UX (reject, reorder, dates honesty, status labele)
-- [x] M12, M9, L3, L4
-- [x] Mobile detail modals extracted
-- [x] Mobile detail hook + summary extracted
-- [ ] Mobile Socket.IO (12b)
-- [ ] Repository layer (T2–T4) — opcionalno kasnije
-
----
-
-*Handoff generisan 2026-08-12. Nastavak: mobile detail ostatak → Mobile Socket.IO.*
+*Handoff generisan 2026-08-12. Sve faze staff direct booking plana završene. Preostaje samo Prisma migracija.*

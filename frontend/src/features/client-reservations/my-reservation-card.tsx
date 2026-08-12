@@ -33,7 +33,11 @@ export const MyReservationCard = ({
   const busy = busyId === r.id
   const stylist = getClientReservationStylistLabel(r)
   const showReschedule = canClientDecideReschedule(r.rescheduleStatus)
-  const showConfirm = canClientConfirmAttendance(r.status, r.attendanceConfirmedAt)
+  const showConfirm = canClientConfirmAttendance(
+    r.status,
+    r.attendanceConfirmedAt,
+    r.attendancePolicy,
+  )
   const showCancel = canClientCancel(r.status)
 
   return (

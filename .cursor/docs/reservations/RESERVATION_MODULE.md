@@ -1,4 +1,4 @@
-# Modul rezervacija — kompletna dokumentacija (AS-IS)
+# Modul rezervacija — kompletna dokumentacija (policy-aware)
 
 **Datum:** 2026-08-11  
 **Scope:** Backend NestJS + Web (Vite/React) + Mobile (Expo) + utjecaj na dnevnu knjigu i finansije (KIF/dugovi/loyalty).  
@@ -37,8 +37,11 @@ Ključna polja:
 | `items[]` (`ReservationServiceItem`) | Multi-service lista (snapshot redoslijeda) |
 | `reservationDate`, `startTime`, `endTime` | Datum + `HH:mm` stringovi |
 | `status` | FSM status (string, ne Prisma enum) |
-| `confirmedStylistId` | Stilist koji je ACCEPTED |
+| `bookingOrigin` / `acceptanceMode` / `attendancePolicy` | Policy sloj koji razlikuje standardni tok od direct staff bookinga |
+| `createdByUserId` | Audit ko je kreirao staff booking |
+| `confirmedStylistId` | Stilist koji je ACCEPTED ili direktno dodijeljen |
 | `attendanceConfirmedAt` | Vrijeme potvrde dolaska |
+| `attendanceConfirmedBy` / `attendanceWaivedAt` / `attendanceWaivedByUserId` | Trag attendance odluke |
 | `startedAt` / `completedAt` / `cancelledAt` / `cancelReason` | Lifecycle trag |
 | `rescheduleProposedStartTime/EndTime`, `rescheduleStatus` | PENDING \| ACCEPTED \| DECLINED |
 | `delayNotifiedAt` | Jednokratno delay upozorenje |
@@ -166,9 +169,23 @@ Polja UI: `clientNotes`, `desiredLoyaltyPercent`, `payDebtsIntent`.
 
 ### 6.2 Admin — `POST /api/reservations/admin`
 
-Isto kao create, plus `clientId`; zanemaruje `mustChangePassword`. Bez loyalty / `payDebtsIntent` u admin DTO.
+Admin sada eksplicitno bira `bookingMode`:
 
-### 6.3 Admin update — `PATCH /api/reservations/:id`
+- `STANDARD` → isti tok kao klijentski booking (`PENDING`, inbox stilista, attendance obavezna)
+- `STAFF_ADMIN_DIRECT` → odmah kreira `CONFIRMED + DIRECT_ASSIGN + STAFF_WAIVED` i traži `stylistProfileId`
+
+Oba moda i dalje prolaze slot i working-hours validaciju. Admin create i dalje zanemaruje `mustChangePassword`.
+
+### 6.3 Stylist direct — `POST /api/reservations/stylist/direct`
+
+Stilist kreira dogovoreni termin samo za sebe:
+
+- `bookingOrigin=STAFF_STYLIST`
+- `acceptanceMode=DIRECT_ASSIGN`
+- `attendancePolicy=STAFF_WAIVED`
+- nema inbox redova ni fake `ATTENDANCE_CONFIRMED`
+
+### 6.4 Admin update — `PATCH /api/reservations/:id`
 
 Pomjera date/time; conflict check samo vs `CONFIRMED | ATTENDANCE_CONFIRMED | IN_PROGRESS`. **Ne** revalidira salon/stylist working hours.
 
@@ -206,7 +223,7 @@ Endpointi:
 
 ## 8. Potvrda dolaska (attendance)
 
-`POST /:id/confirm-attendance` — samo vlasnik rezervacije, status mora biti `CONFIRMED`.
+`POST /:id/confirm-attendance` — samo vlasnik rezervacije, status mora biti `CONFIRMED` i `attendancePolicy=CLIENT_REQUIRED`.
 
 ### Pravilo (usklađeno kod ↔ dokumentacija)
 
@@ -227,7 +244,7 @@ Prozor za potvrdu je otvoren od trenutka `CONFIRMED` do roka `T−24h`. Nakon us
 
 | Akcija | Endpoint | Ulazni status | Izlaz |
 |--------|----------|---------------|-------|
-| Start | `POST /:id/stylist-start` | `ATTENDANCE_CONFIRMED` | `IN_PROGRESS` |
+| Start | `POST /:id/stylist-start` | `ATTENDANCE_CONFIRMED` ili `CONFIRMED + STAFF_WAIVED` | `IN_PROGRESS` |
 | Complete (legacy, blokiran) | `POST /:id/stylist-mark-complete` | — | 400 — koristi DK |
 | Complete (produkcijski) | `POST /api/daily-log/from-reservation/:id` pa complete dnevnog unosa | vidi §12 | rezervacija → `COMPLETED` pri complete DK |
 | Cancel stilist | `POST /:id/stylist-cancel` | `CONFIRMED` \| `IN_PROGRESS` | `CANCELLED_BY_STYLISTS` |
