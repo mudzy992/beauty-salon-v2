@@ -236,6 +236,12 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
     return (
     <Animated.View layout={LinearTransition.springify().damping(18)}>
       <Card style={[styles.card, featured ? styles.featuredCard : undefined]}>
+        <TouchableOpacity
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('ReservationDetail', { reservationId: item.id })}
+          accessibilityRole="button"
+          accessibilityLabel={t('reservationDetail.title')}
+        >
         <View style={styles.cardHeader}>
           <Text style={[styles.serviceName, { color: colors.text }]}>
             {title}
@@ -307,6 +313,7 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
             </View>
           )}
         </View>
+        </TouchableOpacity>
 
         <View style={[styles.actions, { borderTopColor: colors.borderLight }]}>
           {item.rescheduleStatus === 'PENDING' && (

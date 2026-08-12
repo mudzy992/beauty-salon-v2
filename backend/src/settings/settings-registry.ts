@@ -128,6 +128,7 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'system_email_template_reservation_reminder', scope: 'PRIVATE', type: 'json', defaultValue: '{}' },
   { key: 'system_email_template_reservation_reschedule', scope: 'PRIVATE', type: 'json', defaultValue: '{}' },
   { key: 'system_email_template_holiday', scope: 'PRIVATE', type: 'json', defaultValue: '{}' },
+  { key: 'system_email_template_payment_receipt', scope: 'PRIVATE', type: 'json', defaultValue: '{}' },
   { key: 'system_email_template_general', scope: 'PRIVATE', type: 'json', defaultValue: '{}' },
 
   // Loyalty (private)

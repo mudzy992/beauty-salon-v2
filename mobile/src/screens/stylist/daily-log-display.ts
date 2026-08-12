@@ -1,10 +1,24 @@
 import type { DailyLogEntry } from '../../types';
 
+export const getTipAmount = (e: Pick<DailyLogEntry, 'tipAmount'>): number => {
+  const n = Number(e.tipAmount ?? 0);
+  return Number.isFinite(n) ? Math.max(0, n) : 0;
+};
+
 export const getSettledDebtsSum = (e: DailyLogEntry): number =>
   (e.debtPaymentEntries ?? []).reduce((acc, row) => {
     const n = Number(row.actualPrice ?? 0);
     return acc + (Number.isFinite(n) ? Math.max(0, n) : 0);
   }, 0);
+
+/** actualPrice includes tip; service revenue = actualPrice − tip. */
+export const getServiceAmount = (
+  e: Pick<DailyLogEntry, 'actualPrice' | 'tipAmount'>,
+): number => {
+  const total = Number(e.actualPrice ?? 0);
+  if (!Number.isFinite(total)) return 0;
+  return Math.max(0, total - getTipAmount(e));
+};
 
 export const getCollectedTotal = (e: DailyLogEntry): number =>
   Math.max(0, Number(e.actualPrice ?? 0)) + getSettledDebtsSum(e);

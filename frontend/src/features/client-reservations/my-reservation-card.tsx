@@ -16,6 +16,7 @@ import {
 type MyReservationCardProps = {
   reservation: Reservation
   busyId: string | null
+  onOpenDetail: (r: Reservation) => void
   onConfirmAttendance: (r: Reservation) => void
   onAcceptReschedule: (r: Reservation) => void
   onDeclineReschedule: (r: Reservation) => void
@@ -25,6 +26,7 @@ type MyReservationCardProps = {
 export const MyReservationCard = ({
   reservation: r,
   busyId,
+  onOpenDetail,
   onConfirmAttendance,
   onAcceptReschedule,
   onDeclineReschedule,
@@ -43,6 +45,12 @@ export const MyReservationCard = ({
   return (
     <Card className="rounded-2xl border-slate-200/80 shadow-soft">
       <CardContent className="p-5 space-y-4">
+        <button
+          type="button"
+          className="w-full text-left space-y-4 rounded-xl transition hover:bg-slate-50/80 -m-2 p-2"
+          onClick={() => onOpenDetail(r)}
+          aria-label="Otvori detalje rezervacije"
+        >
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <p className="font-semibold text-slate-950">
@@ -66,6 +74,7 @@ export const MyReservationCard = ({
             <p className="text-slate-500 line-clamp-2">{r.clientNotes}</p>
           ) : null}
         </div>
+        </button>
 
         {showReschedule &&
         r.rescheduleProposedStartTime &&

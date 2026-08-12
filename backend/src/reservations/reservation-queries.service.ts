@@ -9,6 +9,7 @@ import { ReservationSharedService } from './reservation-shared.service';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import type { PublicReservationViewDto } from './dto/public-reservation-view.dto';
 import { formatReservationServicesLabel } from './utils/reservation-services-label';
+import { mapReservationPaymentSummary } from './reservation-payment-summary';
 
 @Injectable()
 export class ReservationQueriesService {
@@ -122,6 +123,24 @@ export class ReservationQueriesService {
       user.roles.includes('OWNER');
     if (!canAccess)
       throw new ForbiddenException('Nemate pristup ovoj rezervaciji.');
-    return r;
+    const paymentEntry = await this.prisma.dailyLogEntry.findFirst({
+      where: {
+        reservationId: id,
+        kind: 'SERVICE',
+        status: 'COMPLETED',
+        deletedAt: null,
+      },
+      orderBy: { completedAt: 'desc' },
+      include: {
+        items: {
+          orderBy: { sortOrder: 'asc' },
+          include: { service: { select: { name: true } } },
+        },
+      },
+    });
+    return {
+      ...r,
+      paymentSummary: mapReservationPaymentSummary(paymentEntry),
+    };
   }
 }

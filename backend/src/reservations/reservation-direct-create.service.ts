@@ -78,6 +78,7 @@ export class ReservationDirectCreateService {
       params;
     const client = await this.shared.getClientForReservation(dto.clientId, {
       ignoreMustChangePassword: true,
+      relaxContactRequirements: true,
     });
     const serviceIdsRaw =
       dto.serviceIds && dto.serviceIds.length > 0

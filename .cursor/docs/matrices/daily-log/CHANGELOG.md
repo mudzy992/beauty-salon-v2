@@ -1,5 +1,11 @@
 # Daily Log Matrix Changelog
 
+## 2026-08-12 (payment receipt on complete)
+
+- PENDING → COMPLETED: klijent dobija push/in-app `payment_receipt`; email potvrda uplate (receipt styling) samo ako je `isEmailVerified`.
+- Walk-in (bez rezervacije): i dalje push/email; deep link na detalj samo kad postoji `reservationId`.
+- Klijentski UI (mobile + web): detalj rezervacije prikazuje `paymentSummary` iz proknjiženog SERVICE zapisa.
+
 ## 2026-08-11 (admin detail dialog)
 
 - Admin web dnevna knjiga: Eye → read-only detail dialog/drawer (ref, meta, lista servisa + unitPrice, naplata dugova, iznosi, bilješke).

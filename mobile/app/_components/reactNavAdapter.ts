@@ -133,7 +133,17 @@ export function useReactNavAdapter(ctx: ReactNavAdapterContext) {
           case 'ReservationsTab': {
             switch (screenName) {
               case 'MyReservations':
-                return { pathname: '/reservations' };
+                return {
+                  pathname: '/reservations',
+                  params: params?.focusReservationId
+                    ? { focusReservationId: params.focusReservationId }
+                    : undefined,
+                };
+              case 'ReservationDetail':
+                return {
+                  pathname: '/reservations/[reservationId]',
+                  params: { reservationId: params?.reservationId },
+                };
               case 'WriteReview':
                 return {
                   pathname: '/reservations/write-review',

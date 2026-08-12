@@ -27,7 +27,7 @@
 
 | Prelaz | KIF | Loyalty | Dugovanja | Rezervacija |
 |--------|-----|---------|-----------|-------------|
-| PENDING → COMPLETED | `IncomeBookEntry` + rekalkulacija totala | EARN bodovi | — | Ako vezana: → COMPLETED |
+| PENDING → COMPLETED | `IncomeBookEntry` + rekalkulacija totala | EARN bodovi | — | Ako vezana: → COMPLETED | Push `payment_receipt` klijentu; email potvrda uplate ako je mail verifikovan |
 | COMPLETED → PENDING (revert) | Briše KIF stavku + totali | Reverzija EARN/REDEEM (clamp ≥ 0) | Reopen SETTLED via `sourceEntryId`; briše OPEN dug kreiran iz unosa | Ako COMPLETED → IN_PROGRESS |
 | Soft delete COMPLETED | Isto kao revert | Isto | Isto | Isto |
 | Soft delete DEBT_PAYMENT | Briše manual KIF | — | Dug → OPEN | — |

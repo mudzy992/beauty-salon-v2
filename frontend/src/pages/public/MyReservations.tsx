@@ -107,6 +107,7 @@ export default function MyReservations() {
             key={r.id}
             reservation={r}
             busyId={busyId}
+            onOpenDetail={(row) => navigate(`/moje-rezervacije/${row.id}`)}
             onConfirmAttendance={(row) =>
               void runAction(
                 row,

@@ -9,7 +9,7 @@ import api from '../../services/api';
 import { spacing } from '../../theme';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import type { DailyLogEntry, Reservation } from '../../types';
-import { getSettledDebtsSum } from './daily-log-display';
+import { getServiceAmount, getSettledDebtsSum, getTipAmount } from './daily-log-display';
 
 export function StylistStatsScreen() {
   const { colors } = useTheme();
@@ -73,11 +73,11 @@ export function StylistStatsScreen() {
   );
   const completedLogEntries = dailyLog.filter((e) => e.status === 'COMPLETED');
   const serviceRevenue = completedLogEntries.reduce(
-    (sum, e) => sum + Math.max(0, Number(e.actualPrice) || 0),
+    (sum, e) => sum + getServiceAmount(e),
     0,
   );
   const totalTips = completedLogEntries.reduce(
-    (sum, e) => sum + Math.max(0, Number(e.tipAmount) || 0),
+    (sum, e) => sum + getTipAmount(e),
     0,
   );
   const totalDebts = completedLogEntries.reduce(

@@ -65,7 +65,10 @@ export class ReservationSharedService {
 
   async getClientForReservation(
     clientId: string,
-    opts?: { ignoreMustChangePassword?: boolean },
+    opts?: {
+      ignoreMustChangePassword?: boolean;
+      relaxContactRequirements?: boolean;
+    },
   ) {
     const client = await this.prisma.user.findUnique({
       where: { id: clientId },
@@ -81,10 +84,12 @@ export class ReservationSharedService {
     if (!client) throw new NotFoundException('Korisnik nije pronađen.');
     if (client.mustChangePassword && !opts?.ignoreMustChangePassword)
       throw new BadRequestException('MUST_CHANGE_PASSWORD');
-    if (!client.email) throw new BadRequestException('EMAIL_REQUIRED');
-    if (!client.phone) throw new BadRequestException('PHONE_REQUIRED');
-    if (!client.isEmailVerified)
-      throw new BadRequestException('EMAIL_NOT_VERIFIED');
+    if (!opts?.relaxContactRequirements) {
+      if (!client.email) throw new BadRequestException('EMAIL_REQUIRED');
+      if (!client.phone) throw new BadRequestException('PHONE_REQUIRED');
+      if (!client.isEmailVerified)
+        throw new BadRequestException('EMAIL_NOT_VERIFIED');
+    }
     if (!client.gender) throw new BadRequestException('GENDER_REQUIRED');
     return client;
   }

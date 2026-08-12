@@ -127,6 +127,16 @@ export interface Reservation {
   stylistResponses?: StylistResponse[];
 }
 
+export interface ReservationPaymentSummary {
+  publicReferenceCode: string;
+  actualPrice: number;
+  tipAmount: number;
+  serviceAmount: number;
+  completedAt: string;
+  loyaltyDiscountAmount: number;
+  items: Array<{ name: string; unitPrice: number }>;
+}
+
 export interface StylistResponse {
   id: string;
   reservationId: string;

@@ -17,6 +17,7 @@ export default function ReservationsStackLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: t('myReservations.title') }} />
+      <Stack.Screen name="[reservationId]" options={{ title: t('reservationDetail.title') }} />
       <Stack.Screen name="write-review" options={{ title: t('reviews.writeReview') }} />
     </Stack>
   );

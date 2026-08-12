@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { IncomeSyncService } from '../finance/income-sync.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { DailyLogReceiptService } from './daily-log-receipt.service';
 
 const mockPrisma = {
   dailyLogEntry: {
@@ -20,6 +21,10 @@ const mockPrisma = {
 
 const mockIncomeSync = {
   addEntryFromDailyLog: jest.fn(),
+};
+
+const mockReceipt = {
+  notifyAfterComplete: jest.fn(),
 };
 
 describe('DailyLogService', () => {
@@ -41,6 +46,7 @@ describe('DailyLogService', () => {
         { provide: IncomeSyncService, useValue: mockIncomeSync },
         { provide: LoyaltyService, useValue: { earnFromDailyLog: jest.fn() } },
         { provide: NotificationsService, useValue: { send: jest.fn() } },
+        { provide: DailyLogReceiptService, useValue: mockReceipt },
       ],
     }).compile();
     service = module.get<DailyLogService>(DailyLogService);
@@ -85,6 +91,7 @@ describe('DailyLogService', () => {
     });
     await service.complete('e1', user as any);
     expect(mockIncomeSync.addEntryFromDailyLog).toHaveBeenCalledWith('e1');
+    expect(mockReceipt.notifyAfterComplete).toHaveBeenCalledWith('e1');
   });
 
   it('findOne baca NotFoundException kada zapis ne postoji', async () => {

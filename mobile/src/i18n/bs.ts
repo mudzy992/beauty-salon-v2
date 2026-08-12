@@ -108,6 +108,16 @@ export const bs = {
       NO_SHOW: 'Nedolazak',
     },
   },
+  reservationDetail: {
+    title: 'Detalji rezervacije',
+    notFound: 'Rezervacija nije pronađena.',
+    paymentTitle: 'Uplata',
+    loyaltyDiscount: 'Loyalty popust',
+    tip: 'Napojnica',
+    totalPaid: 'Ukupno naplaćeno',
+    thankYou: 'Hvala vam na povjerenju!',
+    paymentPending: 'Detalji uplate još nisu dostupni.',
+  },
   blog: {
     title: 'Blog',
     readMore: 'Pročitaj više',

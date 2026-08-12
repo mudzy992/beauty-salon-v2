@@ -23,6 +23,7 @@ import {
   sumUnitPrices,
 } from './daily-log.pricing';
 import { allocateDailyLogReferenceCode } from './daily-log.reference';
+import { DailyLogReceiptService } from './daily-log-receipt.service';
 
 @Injectable()
 export class DailyLogService {
@@ -33,6 +34,7 @@ export class DailyLogService {
     private readonly incomeSync: IncomeSyncService,
     private readonly loyalty: LoyaltyService,
     private readonly notifications: NotificationsService,
+    private readonly receipt: DailyLogReceiptService,
   ) {}
 
   private async notifyClientDebt(params: {
@@ -695,6 +697,7 @@ export class DailyLogService {
         })
         .catch(() => {});
     }
+    this.receipt.notifyAfterComplete(updated.id);
     return updated;
   }
 

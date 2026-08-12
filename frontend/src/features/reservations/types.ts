@@ -59,6 +59,17 @@ export interface Reservation {
     rejectionReason: string | null
     stylistProfile?: StylistProfile | null
   }>
+  paymentSummary?: ReservationPaymentSummary | null
+}
+
+export interface ReservationPaymentSummary {
+  publicReferenceCode: string
+  actualPrice: number
+  tipAmount: number
+  serviceAmount: number
+  completedAt: string
+  loyaltyDiscountAmount: number
+  items: Array<{ name: string; unitPrice: number }>
 }
 
 export type SchedulerView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'agenda'

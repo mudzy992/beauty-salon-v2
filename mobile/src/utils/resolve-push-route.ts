@@ -15,8 +15,8 @@ const CLIENT_RESERVATION_KINDS = new Set([
 function clientReservationsRoute(reservationId?: string): PushRouteTarget {
   if (reservationId) {
     return {
-      pathname: '/reservations',
-      params: { focusReservationId: reservationId },
+      pathname: '/reservations/[reservationId]',
+      params: { reservationId },
     };
   }
   return { pathname: '/reservations' };
@@ -62,6 +62,13 @@ export const resolvePushRoute = (
 
   if (type === 'client_debt' || kind === 'client_debt') {
     return { pathname: '/profile' };
+  }
+
+  if (type === 'payment_receipt' || kind === 'payment_receipt') {
+    if (reservationId) {
+      return clientReservationsRoute(reservationId);
+    }
+    return { pathname: '/profile/notifications' };
   }
 
   if (type === 'holiday' || kind === 'holiday') {

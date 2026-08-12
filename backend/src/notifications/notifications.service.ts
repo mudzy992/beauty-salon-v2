@@ -18,6 +18,7 @@ export type NotificationType =
   | 'reservation_reschedule'
   | 'holiday'
   | 'client_debt'
+  | 'payment_receipt'
   | 'general';
 
 export interface SendNotificationOptions {
@@ -483,6 +484,83 @@ export class NotificationsService {
     });
   }
 
+  async sendPaymentReceiptEmail(params: {
+    to: string;
+    firstName?: string | null;
+    publicReferenceCode: string;
+    reservationId?: string | null;
+    items: Array<{ name: string; unitPrice: number }>;
+    actualPrice: number;
+    tipAmount: number;
+    serviceAmount: number;
+    loyaltyDiscountAmount: number;
+    stylistName?: string;
+    completedAt: Date;
+  }) {
+    const mailConfig = await this.resolveMailConfig();
+    if (!mailConfig) return;
+    const transporter = this.createSmtpTransporter(mailConfig);
+    const appUrl = await this.resolveAppBaseUrl();
+    const greetingName = params.firstName?.trim() || 'korisniče';
+    const template = await this.getEmailTemplateConfig('payment_receipt');
+    const ctaUrl = params.reservationId
+      ? `${appUrl}/moje-rezervacije/${encodeURIComponent(params.reservationId)}`
+      : appUrl;
+    const completedLabel = params.completedAt.toLocaleDateString('bs-BA', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+    const rowsHtml = params.items
+      .map(
+        (item) =>
+          `<tr><td style="padding:8px 0;border-bottom:1px solid #f2e7e2">${item.name}</td>` +
+          `<td style="padding:8px 0;border-bottom:1px solid #f2e7e2;text-align:right">${item.unitPrice.toFixed(2)} KM</td></tr>`,
+      )
+      .join('');
+    const loyaltyLine =
+      params.loyaltyDiscountAmount > 0
+        ? `<p style="margin:8px 0 0;font-size:14px;color:#4b3a35">Loyalty popust: −${params.loyaltyDiscountAmount.toFixed(2)} KM</p>`
+        : '';
+    const stylistLine = params.stylistName?.trim()
+      ? `<p style="margin:0 0 12px;font-size:14px;color:#4b3a35">Stilista: ${params.stylistName.trim()}</p>`
+      : '';
+    const receiptBody =
+      `${stylistLine}` +
+      `<p style="margin:0 0 12px;font-size:14px;color:#4b3a35">Referenca: ${params.publicReferenceCode} · Datum: ${completedLabel}</p>` +
+      `<table style="width:100%;border-collapse:collapse;font-size:14px;color:#2d1f1c;margin:0 0 12px">` +
+      `<thead><tr><th style="text-align:left;padding:8px 0;border-bottom:2px solid #e8d9d2">Usluga</th>` +
+      `<th style="text-align:right;padding:8px 0;border-bottom:2px solid #e8d9d2">Iznos</th></tr></thead>` +
+      `<tbody>${rowsHtml}</tbody></table>` +
+      `<p style="margin:0;font-size:15px;color:#2d1f1c"><strong>Usluge:</strong> ${params.serviceAmount.toFixed(2)} KM</p>` +
+      `${loyaltyLine}` +
+      `<p style="margin:8px 0 0;font-size:15px;color:#2d1f1c"><strong>Napojnica:</strong> ${params.tipAmount.toFixed(2)} KM</p>` +
+      `<p style="margin:12px 0 0;font-size:17px;color:#2d1f1c"><strong>Ukupno naplaćeno:</strong> ${params.actualPrice.toFixed(2)} KM</p>` +
+      `<p style="margin:16px 0 0;font-size:15px;color:#4b3a35">Hvala vam na povjerenju. Radujemo se sljedećem susretu!</p>`;
+    const subject = template.subject || 'Potvrda uplate — Beauty Salon Nejra';
+    const plainText =
+      template.plainText ||
+      `Poštovani ${greetingName}, vaša uplata od ${params.actualPrice.toFixed(2)} KM je evidentirana (ref. ${params.publicReferenceCode}). Detalji: ${ctaUrl}`;
+    const html = this.buildDefaultEmailTemplate({
+      title: template.title || 'Potvrda uplate',
+      intro: template.intro || `Poštovani ${greetingName},`,
+      body: template.body || receiptBody,
+      ctaLabel:
+        template.ctaLabel ||
+        (params.reservationId ? 'Pogledaj rezervaciju' : 'Otvori aplikaciju'),
+      ctaUrl: template.ctaUrl ? this.applyNotificationEmailPlaceholders(template.ctaUrl, { appUrl, reservationId: params.reservationId ?? '' }) : ctaUrl,
+      signature: mailConfig.signature,
+    });
+    await transporter.sendMail({
+      from: `"${mailConfig.fromName}" <${mailConfig.fromEmail}>`,
+      to: params.to,
+      subject,
+      text: plainText,
+      html,
+      ...(mailConfig.replyTo ? { replyTo: mailConfig.replyTo } : {}),
+    });
+  }
+
   private createSmtpTransporter(mailConfig: MailConfig) {
     return nodemailer.createTransport({
       host: mailConfig.host,
@@ -577,6 +655,12 @@ export class NotificationsService {
       },
       holiday: { label: 'Otvori aplikaciju', url: appUrl },
       client_debt: { label: 'Moj profil', url: appUrl },
+      payment_receipt: {
+        label: 'Pogledaj rezervaciju',
+        url: reservationId
+          ? `${appUrl}/moje-rezervacije/${encodeURIComponent(reservationId)}`
+          : appUrl,
+      },
       general: { label: 'Otvori aplikaciju', url: appUrl },
     };
     const plainTextByType: Record<NotificationType, string> = {
@@ -594,6 +678,8 @@ export class NotificationsService {
         'Obavijest o neradnom danu/prazniku. Provjerite kalendar i obavijesti.',
       client_debt:
         'Kreirano je novo dugovanje na vašem računu. Pregledajte iznos u profilu.',
+      payment_receipt:
+        'Vaša uplata je uspješno evidentirana. U prilogu su detalji plaćenih usluga.',
       general:
         'Imate novu opću notifikaciju iz sistema.',
     };
