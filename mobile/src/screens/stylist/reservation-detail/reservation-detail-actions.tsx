@@ -3,11 +3,11 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
-import { Card } from '../../../../components/ui/Card';
-import { Button } from '../../../../components/ui/Button';
-import { spacing } from '../../../../theme';
-import { useTheme } from '../../../../hooks/useTheme';
-import type { Reservation } from '../../../../types';
+import { Card } from '../../../components/ui/Card';
+import { Button } from '../../../components/ui/Button';
+import { spacing } from '../../../theme';
+import { useTheme } from '../../../hooks/useTheme';
+import type { Reservation } from '../../../types';
 
 type ReservationDetailActionsProps = {
   reservation: Reservation;

@@ -3,13 +3,13 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
-import { Card } from '../../../../components/ui/Card';
-import { Badge, getStatusVariant } from '../../../../components/ui/Badge';
-import { spacing } from '../../../../theme';
-import { formatDate, formatTime } from '../../../../utils/date';
-import { getReservationServicesLabel, getReservationTotalDurationMinutes } from '../../../../utils/reservationServices';
-import { useTheme } from '../../../../hooks/useTheme';
-import type { Reservation } from '../../../../types';
+import { Card } from '../../../components/ui/Card';
+import { Badge, getStatusVariant } from '../../../components/ui/Badge';
+import { spacing } from '../../../theme';
+import { formatDate, formatTime } from '../../../utils/date';
+import { getReservationServicesLabel, getReservationTotalDurationMinutes } from '../../../utils/reservationServices';
+import { useTheme } from '../../../hooks/useTheme';
+import type { Reservation } from '../../../types';
 import { getReservationStatusLabel } from './utils/reservation-detail';
 
 type ReservationDetailSummaryProps = {
