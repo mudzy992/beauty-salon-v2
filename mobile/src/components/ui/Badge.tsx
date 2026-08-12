@@ -18,6 +18,7 @@ const STATUS_VARIANT_MAP: Record<ReservationStatus, NonNullable<BadgeProps['vari
   CONFIRMED: 'success',
   ATTENDANCE_CONFIRMED: 'success',
   IN_PROGRESS: 'info',
+  AWAITING_DAILY_LOG: 'warning',
   COMPLETED: 'default',
   CANCELLED_BY_CLIENT: 'error',
   CANCELLED_BY_STYLISTS: 'error',

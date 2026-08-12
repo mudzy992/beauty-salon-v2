@@ -8,6 +8,8 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
 import { spacing } from '../../theme';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
+import type { DailyLogEntry, Reservation } from '../../types';
+import { getSettledDebtsSum } from './daily-log-display';
 
 export function StylistStatsScreen() {
   const { colors } = useTheme();
@@ -43,8 +45,8 @@ export function StylistStatsScreen() {
           },
         }),
       ]);
-      setReservations(resRes.data);
-      setDailyLog(logRes.data);
+      setReservations(Array.isArray(resRes.data) ? resRes.data : []);
+      setDailyLog(Array.isArray(logRes.data) ? logRes.data : []);
     } catch {
       setReservations([]);
       setDailyLog([]);
@@ -70,8 +72,19 @@ export function StylistStatsScreen() {
       r.status === 'CONFIRMED' || r.status === 'ATTENDANCE_CONFIRMED' || r.status === 'IN_PROGRESS',
   );
   const completedLogEntries = dailyLog.filter((e) => e.status === 'COMPLETED');
-  const totalRevenue = completedLogEntries.reduce((sum, e) => sum + Number(e.actualPrice), 0);
-  const totalTips = completedLogEntries.reduce((sum, e) => sum + Number(e.tipAmount), 0);
+  const serviceRevenue = completedLogEntries.reduce(
+    (sum, e) => sum + Math.max(0, Number(e.actualPrice) || 0),
+    0,
+  );
+  const totalTips = completedLogEntries.reduce(
+    (sum, e) => sum + Math.max(0, Number(e.tipAmount) || 0),
+    0,
+  );
+  const totalDebts = completedLogEntries.reduce(
+    (sum, e) => sum + getSettledDebtsSum(e),
+    0,
+  );
+  const totalRevenue = serviceRevenue + totalTips + totalDebts;
 
   if (profileLoading || (loading && !profileId)) {
     return (
@@ -120,14 +133,29 @@ export function StylistStatsScreen() {
         <Text style={[styles.statValue, { color: colors.primary }]}>
           {totalRevenue.toFixed(2)} KM
         </Text>
-        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Ukupan prihod (dnevna knjiga, mjesec)</Text>
-      </Card>
-
-      <Card style={styles.card}>
-        <Text style={[styles.statValue, { color: colors.primary }]}>
-          {totalTips.toFixed(2)} KM
+        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+          Ukupan prihod (dnevna knjiga, mjesec)
         </Text>
-        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Napojnice (mjesec)</Text>
+        <View style={[styles.breakdown, { borderTopColor: colors.borderLight }]}>
+          <View style={styles.breakdownRow}>
+            <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Prihod iz servisa</Text>
+            <Text style={[styles.breakdownValue, { color: colors.text }]}>
+              {serviceRevenue.toFixed(2)} KM
+            </Text>
+          </View>
+          <View style={styles.breakdownRow}>
+            <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Napojnice</Text>
+            <Text style={[styles.breakdownValue, { color: colors.text }]}>
+              {totalTips.toFixed(2)} KM
+            </Text>
+          </View>
+          <View style={styles.breakdownRow}>
+            <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Dugovi</Text>
+            <Text style={[styles.breakdownValue, { color: colors.text }]}>
+              {totalDebts.toFixed(2)} KM
+            </Text>
+          </View>
+        </View>
       </Card>
     </ScrollView>
   );
@@ -140,4 +168,17 @@ const styles = StyleSheet.create({
   card: { marginBottom: spacing.sm },
   statValue: { fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] },
   statLabel: { fontSize: 14, marginTop: 4 },
+  breakdown: {
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: spacing.xs,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  breakdownLabel: { fontSize: 13 },
+  breakdownValue: { fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] },
 });

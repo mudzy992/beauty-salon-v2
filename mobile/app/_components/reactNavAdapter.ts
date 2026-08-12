@@ -204,6 +204,8 @@ export function useReactNavAdapter(ctx: ReactNavAdapterContext) {
             switch (screenName) {
               case 'ScheduleList':
                 return { pathname: '/stylist/schedule' };
+              case 'StylistDirectBooking':
+                return { pathname: '/stylist/schedule/direct-booking' };
               case 'StylistReservationDetail':
                 return {
                   pathname: '/stylist/schedule/reservation-detail/[reservationId]',
@@ -273,6 +275,9 @@ export function useReactNavAdapter(ctx: ReactNavAdapterContext) {
           switch (screenName) {
             case 'ScheduleList':
               router.push('/stylist/schedule');
+              return;
+            case 'StylistDirectBooking':
+              router.push('/stylist/schedule/direct-booking');
               return;
             case 'StylistReservationDetail':
               router.push({

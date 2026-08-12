@@ -23,12 +23,18 @@ import type { DailyLogEntry } from '../../types';
 import {
   endOfWeek,
   isSameDay,
+  isValid,
   isWithinInterval,
   parseISO,
   startOfWeek,
   subWeeks,
 } from 'date-fns';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
+import {
+  getCollectedTotal,
+  getServicesLabel,
+  getSettledDebtsSum,
+} from './daily-log-display';
 
 type DailyLogListScreenProps = {
   navigation: {
@@ -120,7 +126,12 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
     };
 
     for (const e of entries) {
-      const d = parseISO(e.date);
+      const raw = String(e.date ?? '').slice(0, 10);
+      const d = parseISO(raw);
+      if (!isValid(d)) {
+        buckets.other.push(e);
+        continue;
+      }
       if (isSameDay(d, today)) buckets.today.push(e);
       else if (isWithinInterval(d, { start: thisWeekStart, end: thisWeekEnd })) buckets.thisWeek.push(e);
       else if (isWithinInterval(d, { start: lastWeekStart, end: lastWeekEnd })) buckets.lastWeek.push(e);

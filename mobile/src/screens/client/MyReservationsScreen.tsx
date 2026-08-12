@@ -73,7 +73,12 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
       const { data } = await api.get<Reservation[]>('/api/reservations', {
         params: { asClient: true },
       });
-      setReservations(data);
+      // Direktne rezervacije u dnevniku više nisu klijentov posao.
+      setReservations(
+        (Array.isArray(data) ? data : []).filter(
+          (r) => r.status !== 'AWAITING_DAILY_LOG',
+        ),
+      );
     } catch { /* silent */ }
     setLoading(false);
   }, []);
@@ -223,6 +228,10 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
   const renderReservationCard = (item: Reservation, featured = false) => {
     const services = getReservationServices(item);
     const title = item.publicReferenceCode?.trim() || services[0]?.name || 'Rezervacija';
+    const estimatedCost = services.reduce(
+      (sum, service) => sum + (Number(service.price) || 0),
+      0,
+    );
 
     return (
     <Animated.View layout={LinearTransition.springify().damping(18)}>
@@ -254,6 +263,19 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
                   </Text>
                 </View>
               ))}
+            </View>
+          ) : null}
+          {estimatedCost > 0 ? (
+            <View style={styles.estimateBlock}>
+              <View style={styles.infoRow}>
+                <Ionicons name="cash-outline" size={16} color={colors.textSecondary} />
+                <Text style={[styles.infoText, { color: colors.text }]}>
+                  Procjenjeni trošak: {estimatedCost.toFixed(2)} KM
+                </Text>
+              </View>
+              <Text style={[styles.estimateHint, { color: colors.textMuted }]}>
+                Cijena može varirati ovisno o utrošenom materijalu i vremenu.
+              </Text>
             </View>
           ) : null}
           <View style={styles.infoRow}>
@@ -517,6 +539,8 @@ const styles = StyleSheet.create({
   serviceName: { fontSize: 17, fontWeight: '600', flex: 1, marginRight: spacing.sm },
   cardBody: { gap: spacing.xs },
   servicesList: { gap: spacing.xs, marginBottom: spacing.xs },
+  estimateBlock: { gap: 2, marginBottom: spacing.xs },
+  estimateHint: { fontSize: 12, lineHeight: 16, marginLeft: 24 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   infoText: { fontSize: 14 },
   actions: {

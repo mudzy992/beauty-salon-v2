@@ -1,15 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { useTheme } from '../../hooks/useTheme';
-import type { StylistScheduleStackParamList } from '../../navigation/types';
 import api from '../../services/api';
 import { spacing } from '../../theme';
-
-type Props = NativeStackScreenProps<StylistScheduleStackParamList, 'StylistDirectBooking'>;
 
 type ClientOption = {
   id: string;
@@ -27,7 +23,11 @@ type ServiceOption = {
   gender?: 'MALE' | 'FEMALE';
 };
 
-export function StylistDirectBookingScreen({ navigation }: Props) {
+export function StylistDirectBookingScreen({
+  navigation,
+}: {
+  navigation: { goBack: () => void };
+}) {
   const { colors } = useTheme();
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [services, setServices] = useState<ServiceOption[]>([]);

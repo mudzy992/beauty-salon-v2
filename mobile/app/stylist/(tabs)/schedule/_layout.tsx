@@ -15,6 +15,7 @@ export default function ScheduleStackLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Raspored' }} />
+      <Stack.Screen name="direct-booking" options={{ title: 'Direktna rezervacija' }} />
       <Stack.Screen name="reservation-detail/[reservationId]" options={{ title: 'Detalji termina' }} />
     </Stack>
   );
