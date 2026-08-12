@@ -68,6 +68,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
       });
       const filtered = (Array.isArray(data) ? data : [])
         .filter((r) => r.status !== 'CANCELLED_BY_CLIENT' && r.status !== 'CANCELLED_BY_STYLISTS')
+      .filter((r) => r.status !== 'AWAITING_DAILY_LOG')
         // Raspored prikazuje samo termine koje je stilist zaista preuzeo
         // (ili aktivni termin), a ne sve koji su mu samo stigli u inbox.
         .filter(
@@ -256,7 +257,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
         ListHeaderComponent={
           <View style={{ gap: spacing.md }}>
             <Button
-              title="Dogovoreni termin"
+              title="Direktna rezervacija"
               onPress={() => navigation.navigate('StylistDirectBooking')}
               variant="outline"
               icon={<Ionicons name="add-circle-outline" size={18} color={colors.primary} />}

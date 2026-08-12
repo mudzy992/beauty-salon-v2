@@ -22,6 +22,7 @@ import {
   uploadDailyLogImage,
 } from '../api/stylist-workbook.api'
 import { useWorkbookEntry } from '../hooks/useWorkbookEntry'
+import { DailyLogDispositionPanel } from '../components/daily-log-disposition-panel'
 import { getCollectedTotal, getSettledDebtsSum } from '../workbook-display'
 
 const formatKm = (v: number) => `${Number(v || 0).toFixed(2)} KM`
@@ -350,6 +351,14 @@ export const WorkbookDetailPage = () => {
           ) : null}
         </Card>
       ) : null}
+
+      <DailyLogDispositionPanel
+        entry={entry}
+        onDone={() => {
+          void refetch()
+          navigate('/stylist/workbook')
+        }}
+      />
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>

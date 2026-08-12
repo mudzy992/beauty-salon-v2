@@ -1,5 +1,12 @@
 # Reservation matrix changelog
 
+## 2026-08-12 (Direct booking auto DK + disposition)
+
+- Novi status `AWAITING_DAILY_LOG` za direktne rezervacije nakon auto-seeda u dnevnu knjigu.
+- CRON nakon `endTime` kreira PENDING DK zapis s cjenovnikom + loyalty-adjusted min charge.
+- Disposition akcije na PENDING DK: discard, reorder, cancel_as_client, cancel_as_stylist, no_show.
+- UI rename: „Direktna rezervacija“; mobile client card prikazuje ref + listu servisa.
+
 ## 2026-08-12 (Staff direct booking)
 
 - Dodan policy sloj: `bookingOrigin`, `acceptanceMode`, `attendancePolicy`.

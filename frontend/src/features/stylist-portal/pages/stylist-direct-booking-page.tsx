@@ -105,7 +105,7 @@ export const StylistDirectBookingPage = () => {
         endTime,
         clientNotes: clientNotes.trim() || undefined,
       })
-      toast.success('Dogovoreni termin je kreiran')
+      toast.success('Direktna rezervacija je kreirana')
       navigate('/stylist/schedule')
     } catch (error) {
       toast.error(getErrorMessage(error, 'Kreiranje termina nije uspjelo'))
@@ -118,7 +118,7 @@ export const StylistDirectBookingPage = () => {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Dogovoreni termin</h1>
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Direktna rezervacija</h1>
           <p className="text-sm text-slate-600 dark:text-slate-300">
             Termin se odmah dodjeljuje vama i ne traži attendance potvrdu klijenta.
           </p>

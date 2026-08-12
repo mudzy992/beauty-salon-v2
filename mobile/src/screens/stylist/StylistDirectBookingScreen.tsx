@@ -105,7 +105,7 @@ export function StylistDirectBookingScreen({ navigation }: Props) {
         endTime,
         clientNotes: clientNotes.trim() || undefined,
       });
-      Alert.alert('Termin kreiran', 'Dogovoreni termin je odmah dodan u raspored.', [
+      Alert.alert('Termin kreiran', 'Direktna rezervacija je odmah dodana u raspored.', [
         { text: 'U redu', onPress: () => navigation.goBack() },
       ]);
     } catch (error: any) {
@@ -118,7 +118,7 @@ export function StylistDirectBookingScreen({ navigation }: Props) {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={styles.content}>
       <Card style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-        <Text style={[styles.title, { color: colors.text }]}>Dogovoreni termin</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Direktna rezervacija</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Termin ide direktno u vaš raspored i ne traži attendance potvrdu klijenta.
         </Text>

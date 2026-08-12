@@ -659,7 +659,9 @@ export class DailyLogService {
           'Samo potvrđeni stilist može završiti ovu rezervaciju.',
         );
       }
-      if (res.status !== 'IN_PROGRESS' && res.status !== 'ATTENDANCE_CONFIRMED') {
+      if (res.status !== 'IN_PROGRESS' &&
+        res.status !== 'ATTENDANCE_CONFIRMED' &&
+        res.status !== RESERVATION_STATUS.AWAITING_DAILY_LOG) {
         throw new BadRequestException(
           'Rezervaciju nije moguće završiti u trenutnom statusu.',
         );

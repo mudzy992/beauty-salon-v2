@@ -84,6 +84,24 @@ export const completeDailyLogEntry = async (entryId: string): Promise<DailyLogEn
   return data
 }
 
+export const disposeDailyLogEntry = async (params: {
+  entryId: string
+  action: 'discard' | 'reorder' | 'cancel_as_client' | 'cancel_as_stylist' | 'no_show'
+  reason: string
+  targetStartTime?: string
+  targetEndTime?: string
+  applyPenalty?: boolean
+}): Promise<{ ok: boolean }> => {
+  const { data } = await api.post<{ ok: boolean }>(`/api/daily-log/${params.entryId}/dispose`, {
+    action: params.action,
+    reason: params.reason,
+    targetStartTime: params.targetStartTime,
+    targetEndTime: params.targetEndTime,
+    applyPenalty: params.applyPenalty,
+  })
+  return data
+}
+
 export const uploadDailyLogImage = async (file: File): Promise<{ id: string }> => {
   const formData = new FormData()
   formData.append('file', file)

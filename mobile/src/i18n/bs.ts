@@ -101,6 +101,7 @@ export const bs = {
       CONFIRMED: 'Potvrđeno',
       ATTENDANCE_CONFIRMED: 'Dolazak potvrđen',
       IN_PROGRESS: 'U toku',
+      AWAITING_DAILY_LOG: 'Na čekanju (dnevnik)',
       COMPLETED: 'Završeno',
       CANCELLED_BY_CLIENT: 'Otkazano',
       CANCELLED_BY_STYLISTS: 'Otkazano od stilista',

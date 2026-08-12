@@ -27,7 +27,7 @@ export function StylistScheduleNavigator() {
       <Stack.Screen
         name="StylistDirectBooking"
         component={StylistDirectBookingScreen}
-        options={{ title: 'Dogovoreni termin' }}
+        options={{ title: 'Direktna rezervacija' }}
       />
       <Stack.Screen
         name="StylistReservationDetail"

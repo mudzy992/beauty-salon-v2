@@ -5,6 +5,7 @@ export const RESERVATION_STATUS_OPTIONS = [
   { value: 'CONFIRMED', label: 'Potvrđena' },
   { value: 'ATTENDANCE_CONFIRMED', label: 'Dolazak potvrđen' },
   { value: 'IN_PROGRESS', label: 'U toku' },
+  { value: 'AWAITING_DAILY_LOG', label: 'Na čekanju (dnevnik)' },
   { value: 'COMPLETED', label: 'Završena' },
   { value: 'CANCELLED_BY_CLIENT', label: 'Otkazao klijent' },
   { value: 'CANCELLED_BY_STYLISTS', label: 'Otkazali stilisti' },

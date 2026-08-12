@@ -97,6 +97,7 @@ export const useStylistScheduleReservations = (params: {
     const all = listQuery.data ?? []
     const filtered = all
       .filter((r) => r.status !== 'CANCELLED_BY_CLIENT' && r.status !== 'CANCELLED_BY_STYLISTS')
+      .filter((r) => r.status !== 'AWAITING_DAILY_LOG')
       .filter((r) => (profileId ? r.confirmedStylistId === profileId : false))
     return filtered
   }, [listQuery.data, params.stylistProfileId])

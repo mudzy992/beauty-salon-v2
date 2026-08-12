@@ -116,7 +116,7 @@ export const StylistSchedulePage = () => {
           Osvježi
         </Button>
         <Link to="/stylist/schedule/new">
-          <Button type="button">Dogovoreni termin</Button>
+          <Button type="button">Direktna rezervacija</Button>
         </Link>
       </div>
 

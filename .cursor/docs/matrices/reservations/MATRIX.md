@@ -12,6 +12,7 @@ Overrun/reorder: `.cursor/docs/stylist-reservation-matrix.md`.
 | CONFIRMED | Stilist prihvatio |
 | ATTENDANCE_CONFIRMED | Klijent potvrdio dolazak |
 | IN_PROGRESS | Termin u toku |
+| AWAITING_DAILY_LOG | Direktna rezervacija prešla u DK (van rasporeda) |
 | COMPLETED | Završeno (obično uz DK complete) |
 | CANCELLED_BY_CLIENT | Otkaz klijent / attendance timeout / decline reschedule |
 | CANCELLED_BY_STYLISTS | Otkaz stilisti / admin |
@@ -30,7 +31,7 @@ Overrun/reorder: `.cursor/docs/stylist-reservation-matrix.md`.
 | Tok | Create | Runtime |
 |-----|--------|---------|
 | Standard | `PENDING -> STYLIST_REVIEW -> CONFIRMED` | `CONFIRMED -> ATTENDANCE_CONFIRMED -> IN_PROGRESS -> COMPLETED` |
-| Staff direct | `CONFIRMED + DIRECT_ASSIGN + STAFF_WAIVED` | `CONFIRMED -> IN_PROGRESS -> COMPLETED` |
+| Staff direct | `CONFIRMED + DIRECT_ASSIGN + STAFF_WAIVED` | `CONFIRMED -> IN_PROGRESS -> AWAITING_DAILY_LOG -> COMPLETED` |
 
 ## Dozvoljeni prijelazi (FSM + assertReservationTransition)
 
@@ -47,13 +48,20 @@ Overrun/reorder: `.cursor/docs/stylist-reservation-matrix.md`.
 | CONFIRMED | CANCELLED_BY_STYLISTS | stylistCancel / cancelByAdmin |
 | CONFIRMED | NO_SHOW | stylistMarkNoShow |
 | CONFIRMED | IN_PROGRESS | autoStart CRON (`STAFF_WAIVED` only) |
+| CONFIRMED | AWAITING_DAILY_LOG | direct booking auto-seed CRON (poslije endTime) |
 | ATTENDANCE_CONFIRMED | IN_PROGRESS | stylistStart / autoStart |
 | ATTENDANCE_CONFIRMED | NO_SHOW | stylistMarkNoShow |
 | ATTENDANCE_CONFIRMED | CANCELLED_BY_CLIENT | cancelByClient / decline reschedule / timeout |
 | ATTENDANCE_CONFIRMED | CANCELLED_BY_STYLISTS | cancelByAdmin |
 | ATTENDANCE_CONFIRMED | COMPLETED | dailyLog.complete |
 | IN_PROGRESS | COMPLETED | dailyLog.complete |
+| IN_PROGRESS | AWAITING_DAILY_LOG | direct booking auto-seed CRON (poslije endTime) |
 | IN_PROGRESS | CANCELLED_BY_STYLISTS | stylistCancel / cancelByAdmin |
+| AWAITING_DAILY_LOG | COMPLETED | dailyLog.complete |
+| AWAITING_DAILY_LOG | CONFIRMED | disposition reorder |
+| AWAITING_DAILY_LOG | CANCELLED_BY_CLIENT | disposition cancel_as_client |
+| AWAITING_DAILY_LOG | CANCELLED_BY_STYLISTS | disposition discard / cancel_as_stylist |
+| AWAITING_DAILY_LOG | NO_SHOW | disposition no_show |
 | COMPLETED | IN_PROGRESS | daily-log revert |
 
 Svi status update-i u `reservations.service` / DK complete+revert prolaze kroz `assertReservationTransition`.
@@ -61,7 +69,7 @@ Svi status update-i u `reservations.service` / DK complete+revert prolaze kroz `
 ## Slot blocking (availability AS-IS / C2-B)
 
 Blokiraju: `CONFIRMED`, `ATTENDANCE_CONFIRMED`, `IN_PROGRESS`.  
-**Ne blokiraju:** `PENDING`, `STYLIST_REVIEW` (više zahtjeva može dijeliti isti slot dok stilist ne prihvati; accept ima overlap guard).
+**Ne blokiraju:** `PENDING`, `STYLIST_REVIEW`, `AWAITING_DAILY_LOG` (direct booking nakon auto-seeda nije u rasporedu).
 
 ## Complete path
 

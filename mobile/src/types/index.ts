@@ -74,6 +74,7 @@ export type ReservationStatus =
   | 'CONFIRMED'
   | 'ATTENDANCE_CONFIRMED'
   | 'IN_PROGRESS'
+  | 'AWAITING_DAILY_LOG'
   | 'COMPLETED'
   | 'CANCELLED_BY_CLIENT'
   | 'CANCELLED_BY_STYLISTS'
@@ -112,6 +113,7 @@ export interface Reservation {
   loyaltyDiscountAmount?: number;
   loyaltyPointsUsed?: number;
   payDebtsIntent?: boolean;
+  publicReferenceCode?: string | null;
   createdAt: string;
   service?: Service;
   items?: ReservationServiceItem[];

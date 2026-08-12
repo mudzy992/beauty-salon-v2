@@ -77,3 +77,27 @@ export const getAutoStartEligibleStatuses = (
   attendancePolicy === RESERVATION_ATTENDANCE_POLICY.STAFF_WAIVED
     ? [RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.ATTENDANCE_CONFIRMED]
     : [RESERVATION_STATUS.ATTENDANCE_CONFIRMED];
+
+export const isDirectStaffWaived = (
+  reservation: Pick<
+    ReservationPolicyShape,
+    'acceptanceMode' | 'attendancePolicy'
+  >,
+): boolean =>
+  isDirectAssignedReservation(reservation) &&
+  getReservationAttendancePolicy(reservation) ===
+    RESERVATION_ATTENDANCE_POLICY.STAFF_WAIVED;
+
+export const shouldAutoSeedDailyLog = (
+  reservation: Pick<
+    ReservationPolicyShape,
+    'status' | 'acceptanceMode' | 'attendancePolicy' | 'confirmedStylistId'
+  >,
+): boolean => {
+  if (!reservation.confirmedStylistId) return false;
+  if (!isDirectStaffWaived(reservation)) return false;
+  return (
+    reservation.status === RESERVATION_STATUS.CONFIRMED ||
+    reservation.status === RESERVATION_STATUS.IN_PROGRESS
+  );
+};

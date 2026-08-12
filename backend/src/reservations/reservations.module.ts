@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ReservationsController } from './reservations.controller';
 import { PublicReservationsController } from './public-reservations.controller';
 import { ReservationsService } from './reservations.service';
@@ -29,11 +29,18 @@ import { AvailabilityDebugService } from './availability-debug.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { LoyaltyModule } from '../loyalty/loyalty.module';
 import { SettingsModule } from '../settings/settings.module';
+import { ReservationDirectDailyLogCronService } from './reservation-direct-daily-log-cron.service';
 import { ReservationDelayCron } from './reservation-delay.cron';
 import { ReservationDateService } from './reservation-date.service';
+import { DailyLogModule } from '../daily-log/daily-log.module';
 
 @Module({
-  imports: [NotificationsModule, LoyaltyModule, SettingsModule],
+  imports: [
+    NotificationsModule,
+    LoyaltyModule,
+    SettingsModule,
+    forwardRef(() => DailyLogModule),
+  ],
   controllers: [ReservationsController, PublicReservationsController],
   providers: [
     ReservationsService,
@@ -57,6 +64,7 @@ import { ReservationDateService } from './reservation-date.service';
     ReservationCronService,
     ReservationAttendanceCronService,
     ReservationReorderCronService,
+    ReservationDirectDailyLogCronService,
     AvailabilityService,
     AvailabilityDatesService,
     AvailabilitySlotsService,
@@ -64,6 +72,12 @@ import { ReservationDateService } from './reservation-date.service';
     ReservationDelayCron,
     ReservationDateService,
   ],
-  exports: [ReservationsService, AvailabilityService],
+  exports: [
+    ReservationsService,
+    AvailabilityService,
+    ReservationSharedService,
+    ReservationReorderService,
+    ReservationQueriesService,
+  ],
 })
 export class ReservationsModule {}

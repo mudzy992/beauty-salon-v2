@@ -24,6 +24,7 @@ import { formatDate } from '../../utils/date';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import type { DailyLogEntry } from '../../types';
 import { getCollectedTotal, getSettledDebtsSum } from './daily-log-display';
+import { DailyLogDispositionPanel } from './DailyLogDispositionPanel';
 
 type DailyLogDetailScreenProps = {
   route: { params: { entryId: string } };
@@ -470,6 +471,12 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           )}
         </Card>
       )}
+
+      <DailyLogDispositionPanel
+        entry={entry}
+        colors={colors}
+        onDone={() => navigation.goBack()}
+      />
     </ScrollView>
 
       <Modal visible={deleteModalOpen} animationType="slide" transparent>

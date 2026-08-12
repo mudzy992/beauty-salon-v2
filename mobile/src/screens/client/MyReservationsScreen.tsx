@@ -28,7 +28,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
 import { spacing, borderRadius } from '../../theme';
 import { formatDate, formatTime, isUpcoming } from '../../utils/date';
-import { getReservationServicesLabel } from '../../utils/reservationServices';
+import { getReservationServices } from '../../utils/reservationServices';
 import type { ReservationsScreenProps } from '../../navigation/types';
 import type { Reservation, ReservationStatus } from '../../types';
 
@@ -220,12 +220,16 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
     return () => clearTimeout(tmr);
   }, [focusLocation]);
 
-  const renderReservationCard = (item: Reservation, featured = false) => (
+  const renderReservationCard = (item: Reservation, featured = false) => {
+    const services = getReservationServices(item);
+    const title = item.publicReferenceCode?.trim() || services[0]?.name || 'Rezervacija';
+
+    return (
     <Animated.View layout={LinearTransition.springify().damping(18)}>
       <Card style={[styles.card, featured ? styles.featuredCard : undefined]}>
         <View style={styles.cardHeader}>
           <Text style={[styles.serviceName, { color: colors.text }]}>
-            {getReservationServicesLabel(item)}
+            {title}
           </Text>
           <Badge
             label={
@@ -240,6 +244,18 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
         </View>
 
         <View style={styles.cardBody}>
+          {services.length > 0 ? (
+            <View style={styles.servicesList}>
+              {services.map((service) => (
+                <View key={service.id} style={styles.infoRow}>
+                  <Ionicons name="cut-outline" size={16} color={colors.textSecondary} />
+                  <Text style={[styles.infoText, { color: colors.text }]}>
+                    {service.name}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
             <Text style={[styles.infoText, { color: colors.text }]}>
@@ -334,7 +350,8 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
         </View>
       </Card>
     </Animated.View>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -499,6 +516,7 @@ const styles = StyleSheet.create({
   },
   serviceName: { fontSize: 17, fontWeight: '600', flex: 1, marginRight: spacing.sm },
   cardBody: { gap: spacing.xs },
+  servicesList: { gap: spacing.xs, marginBottom: spacing.xs },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   infoText: { fontSize: 14 },
   actions: {

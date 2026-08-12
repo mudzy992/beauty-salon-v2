@@ -873,9 +873,9 @@ export const ReservationScheduler = (props: Props) => {
                     }
                     onClick={() => setCreateDraft((p) => ({ ...p, bookingMode: 'STAFF_ADMIN_DIRECT' }))}
                   >
-                    <div className="font-semibold">Direct booking</div>
+                    <div className="font-semibold">Direktna rezervacija</div>
                     <div className="mt-1 text-xs opacity-80">
-                      Odmah dodijeljen stilisti, bez client attendance potvrde.
+                      Odmah dodijeljena stilisti, bez potvrde dolaska klijenta.
                     </div>
                   </button>
                 </div>

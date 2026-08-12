@@ -4,6 +4,7 @@ export type ReservationStatus =
   | 'CONFIRMED'
   | 'ATTENDANCE_CONFIRMED'
   | 'IN_PROGRESS'
+  | 'AWAITING_DAILY_LOG'
   | 'COMPLETED'
   | 'CANCELLED_BY_CLIENT'
   | 'CANCELLED_BY_STYLISTS'

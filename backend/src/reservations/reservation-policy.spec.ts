@@ -8,6 +8,8 @@ import {
   canStartReservation,
   getAutoStartEligibleStatuses,
   isDirectAssignedReservation,
+  isDirectStaffWaived,
+  shouldAutoSeedDailyLog,
   shouldRunAttendanceCron,
 } from './reservation-policy';
 
@@ -89,5 +91,47 @@ describe('reservation-policy', () => {
       RESERVATION_STATUS.CONFIRMED,
       RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
     ]);
+  });
+
+  it('prepoznaje direct staff waived rezervacije', () => {
+    expect(
+      isDirectStaffWaived({
+        acceptanceMode: RESERVATION_ACCEPTANCE_MODE.DIRECT_ASSIGN,
+        attendancePolicy: RESERVATION_ATTENDANCE_POLICY.STAFF_WAIVED,
+      }),
+    ).toBe(true);
+    expect(
+      isDirectStaffWaived({
+        acceptanceMode: RESERVATION_ACCEPTANCE_MODE.INBOX,
+        attendancePolicy: RESERVATION_ATTENDANCE_POLICY.STAFF_WAIVED,
+      }),
+    ).toBe(false);
+  });
+
+  it('auto-seed daily log samo za direct waived confirmed/in-progress', () => {
+    expect(
+      shouldAutoSeedDailyLog({
+        status: RESERVATION_STATUS.CONFIRMED,
+        acceptanceMode: RESERVATION_ACCEPTANCE_MODE.DIRECT_ASSIGN,
+        attendancePolicy: RESERVATION_ATTENDANCE_POLICY.STAFF_WAIVED,
+        confirmedStylistId: 'stylist-1',
+      }),
+    ).toBe(true);
+    expect(
+      shouldAutoSeedDailyLog({
+        status: RESERVATION_STATUS.IN_PROGRESS,
+        acceptanceMode: RESERVATION_ACCEPTANCE_MODE.DIRECT_ASSIGN,
+        attendancePolicy: RESERVATION_ATTENDANCE_POLICY.STAFF_WAIVED,
+        confirmedStylistId: 'stylist-1',
+      }),
+    ).toBe(true);
+    expect(
+      shouldAutoSeedDailyLog({
+        status: RESERVATION_STATUS.CONFIRMED,
+        acceptanceMode: RESERVATION_ACCEPTANCE_MODE.INBOX,
+        attendancePolicy: RESERVATION_ATTENDANCE_POLICY.CLIENT_REQUIRED,
+        confirmedStylistId: 'stylist-1',
+      }),
+    ).toBe(false);
   });
 });

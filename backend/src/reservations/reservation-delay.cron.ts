@@ -27,6 +27,7 @@ export class ReservationDelayCron {
     if ((attendanceResult?.cancelledCount ?? 0) > 0) {
       await this.reservations.processAutoReordersAfterAttendanceCancellations();
     }
+    await this.reservations.processDirectBookingDailyLogSeeds();
 
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) return;

@@ -16,7 +16,9 @@ import { CreateDailyLogEntryDto } from './dto/create-daily-log-entry.dto';
 import { UpdateDailyLogEntryDto } from './dto/update-daily-log-entry.dto';
 import { AddDailyLogImageDto } from './dto/add-daily-log-image.dto';
 import { CreateFromReservationDto } from './dto/create-from-reservation.dto';
+import { DailyLogDispositionService } from './daily-log-disposition.service';
 import { DeleteDailyLogEntryDto } from './dto/delete-daily-log-entry.dto';
+import { DailyLogDispositionDto } from './dto/daily-log-disposition.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
@@ -29,6 +31,7 @@ export class DailyLogController {
     private readonly dailyLog: DailyLogService,
     private readonly dailyLogPublic: DailyLogPublicService,
     private readonly dailyLogAdmin: DailyLogAdminService,
+    private readonly dailyLogDisposition: DailyLogDispositionService,
   ) {}
 
   @Post()
@@ -113,6 +116,15 @@ export class DailyLogController {
   @Roles('SYSTEM_ADMIN', 'OWNER')
   revert(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
     return this.dailyLogAdmin.revertToPending(id, user);
+  }
+
+  @Post(':id/dispose')
+  dispose(
+    @Param('id') id: string,
+    @Body() dto: DailyLogDispositionDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.dailyLogDisposition.dispose(id, dto, user);
   }
 
   @Delete(':id')

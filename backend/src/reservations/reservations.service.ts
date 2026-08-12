@@ -16,6 +16,7 @@ import { ReservationRescheduleClientService } from './reservation-reschedule-cli
 import { ReservationReorderService } from './reservation-reorder.service';
 import { ReservationCronService } from './reservation-cron.service';
 import { ReservationAttendanceCronService } from './reservation-attendance-cron.service';
+import { ReservationDirectDailyLogCronService } from './reservation-direct-daily-log-cron.service';
 import { ReservationReorderCronService } from './reservation-reorder-cron.service';
 import type { CreateReservationDto } from './dto/create-reservation.dto';
 import type { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
@@ -49,6 +50,7 @@ export class ReservationsService {
     private readonly cronSvc: ReservationCronService,
     private readonly attendanceCronSvc: ReservationAttendanceCronService,
     private readonly reorderCronSvc: ReservationReorderCronService,
+    private readonly directDailyLogCronSvc: ReservationDirectDailyLogCronService,
   ) {}
 
   findPublicByViewToken(token: string): Promise<PublicReservationViewDto> {
@@ -189,5 +191,9 @@ export class ReservationsService {
 
   autoStartUpcomingReservations() {
     return this.cronSvc.autoStartUpcomingReservations();
+  }
+
+  processDirectBookingDailyLogSeeds() {
+    return this.directDailyLogCronSvc.processDirectBookingDailyLogSeeds();
   }
 }
