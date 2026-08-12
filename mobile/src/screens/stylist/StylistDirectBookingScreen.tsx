@@ -12,7 +12,7 @@ type ClientOption = {
   username: string;
   firstName: string | null;
   lastName: string | null;
-  gender?: 'MALE' | 'FEMALE';
+  gender?: 'MALE' | 'FEMALE' | null;
 };
 
 type ServiceOption = {
@@ -23,6 +23,11 @@ type ServiceOption = {
   gender?: 'MALE' | 'FEMALE';
 };
 
+const clientLabel = (client: ClientOption): string =>
+  `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim() ||
+  client.username ||
+  client.id;
+
 export function StylistDirectBookingScreen({
   navigation,
 }: {
@@ -32,7 +37,7 @@ export function StylistDirectBookingScreen({
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [clientSearch, setClientSearch] = useState('');
-  const [clientId, setClientId] = useState('');
+  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
   const [serviceIds, setServiceIds] = useState<string[]>([]);
   const [reservationDate, setReservationDate] = useState(new Date().toISOString().slice(0, 10));
   const [startTime, setStartTime] = useState('09:00');
@@ -56,6 +61,10 @@ export function StylistDirectBookingScreen({
         setClients([]);
         return;
       }
+      if (selectedClient && q === clientLabel(selectedClient)) {
+        setClients([selectedClient]);
+        return;
+      }
       api
         .get<{ items: ClientOption[] }>('/api/users/clients', {
           params: { page: 0, pageSize: 10, q },
@@ -64,17 +73,19 @@ export function StylistDirectBookingScreen({
         .catch(() => setClients([]));
     }, 250);
     return () => clearTimeout(handle);
-  }, [clientSearch]);
-
-  const selectedClient = useMemo(
-    () => clients.find((client) => client.id === clientId) ?? null,
-    [clientId, clients],
-  );
+  }, [clientSearch, selectedClient]);
 
   const filteredServices = useMemo(() => {
-    if (!selectedClient?.gender) return services;
-    return services.filter((service) => service.gender === selectedClient.gender);
+    const gender = selectedClient?.gender;
+    if (gender !== 'MALE' && gender !== 'FEMALE') return [];
+    return services.filter((service) => service.gender === gender);
   }, [selectedClient?.gender, services]);
+
+  useEffect(() => {
+    setServiceIds((current) =>
+      current.filter((id) => filteredServices.some((service) => service.id === id)),
+    );
+  }, [filteredServices]);
 
   useEffect(() => {
     const totalMinutes = serviceIds
@@ -83,7 +94,9 @@ export function StylistDirectBookingScreen({
     if (totalMinutes <= 0 || !startTime) return;
     const [hours, minutes] = startTime.split(':').map(Number);
     const total = hours * 60 + minutes + totalMinutes;
-    setEndTime(`${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`);
+    setEndTime(
+      `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`,
+    );
   }, [filteredServices, serviceIds, startTime]);
 
   const toggleServiceId = (serviceId: string) => {
@@ -94,11 +107,25 @@ export function StylistDirectBookingScreen({
     );
   };
 
+  const handleSelectClient = (client: ClientOption) => {
+    setSelectedClient(client);
+    setClientSearch(clientLabel(client));
+    setServiceIds([]);
+  };
+
   const handleSubmit = async () => {
+    if (!selectedClient) {
+      Alert.alert('Greška', 'Odaberite klijenta.');
+      return;
+    }
+    if (!selectedClient.gender) {
+      Alert.alert('Greška', 'Klijent nema definisan spol — ažurirajte profil klijenta.');
+      return;
+    }
     setSaving(true);
     try {
       await api.post('/api/reservations/stylist/direct', {
-        clientId,
+        clientId: selectedClient.id,
         serviceIds,
         reservationDate,
         startTime,
@@ -122,54 +149,86 @@ export function StylistDirectBookingScreen({
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
           Termin ide direktno u vaš raspored i ne traži attendance potvrdu klijenta.
         </Text>
-        <Input label="Klijent" value={clientSearch} onChangeText={setClientSearch} placeholder="Pretraži klijenta..." />
+        <Input
+          label="Klijent"
+          value={clientSearch}
+          onChangeText={(value) => {
+            setClientSearch(value);
+            if (selectedClient && value.trim() !== clientLabel(selectedClient)) {
+              setSelectedClient(null);
+              setServiceIds([]);
+            }
+          }}
+          placeholder="Pretraži klijenta..."
+        />
         <View style={styles.list}>
           {clients.map((client) => {
-            const label =
-              `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim() ||
-              client.username ||
-              client.id;
-            const selected = client.id === clientId;
+            const selected = client.id === selectedClient?.id;
             return (
               <TouchableOpacity
                 key={client.id}
                 style={[
                   styles.option,
-                  { borderColor: selected ? colors.primary : colors.borderLight, backgroundColor: colors.card },
+                  {
+                    borderColor: selected ? colors.primary : colors.borderLight,
+                    backgroundColor: colors.card,
+                  },
                 ]}
-                onPress={() => {
-                  setClientId(client.id);
-                  setClientSearch(label);
-                }}
+                onPress={() => handleSelectClient(client)}
               >
-                <Text style={[styles.optionTitle, { color: colors.text }]}>{label}</Text>
-                <Text style={[styles.optionMeta, { color: colors.textSecondary }]}>{client.id}</Text>
+                <Text style={[styles.optionTitle, { color: colors.text }]}>
+                  {clientLabel(client)}
+                </Text>
+                <Text style={[styles.optionMeta, { color: colors.textSecondary }]}>
+                  {client.gender === 'MALE'
+                    ? 'Muški'
+                    : client.gender === 'FEMALE'
+                      ? 'Ženski'
+                      : 'Spol nije definisan'}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </View>
 
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Servisi</Text>
-        <View style={styles.list}>
-          {filteredServices.map((service) => {
-            const selected = serviceIds.includes(service.id);
-            return (
-              <TouchableOpacity
-                key={service.id}
-                style={[
-                  styles.option,
-                  { borderColor: selected ? colors.primary : colors.borderLight, backgroundColor: colors.card },
-                ]}
-                onPress={() => toggleServiceId(service.id)}
-              >
-                <Text style={[styles.optionTitle, { color: colors.text }]}>{service.name}</Text>
-                <Text style={[styles.optionMeta, { color: colors.textSecondary }]}>
-                  {Number(service.price ?? 0).toFixed(2)} KM
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {!selectedClient ? (
+          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+            Prvo odaberite klijenta — lista servisa se filtrira po spolu.
+          </Text>
+        ) : !selectedClient.gender ? (
+          <Text style={{ color: colors.warning, fontSize: 13 }}>
+            Klijent nema definisan spol. Servisi se ne mogu filtrirati.
+          </Text>
+        ) : filteredServices.length === 0 ? (
+          <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+            Nema aktivnih servisa za odabrani spol.
+          </Text>
+        ) : (
+          <View style={styles.list}>
+            {filteredServices.map((service) => {
+              const selected = serviceIds.includes(service.id);
+              return (
+                <TouchableOpacity
+                  key={service.id}
+                  style={[
+                    styles.option,
+                    {
+                      borderColor: selected ? colors.primary : colors.borderLight,
+                      backgroundColor: colors.card,
+                    },
+                  ]}
+                  onPress={() => toggleServiceId(service.id)}
+                >
+                  <Text style={[styles.optionTitle, { color: colors.text }]}>{service.name}</Text>
+                  <Text style={[styles.optionMeta, { color: colors.textSecondary }]}>
+                    {Number(service.price ?? 0).toFixed(2)} KM
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
 
         <Input label="Datum" value={reservationDate} onChangeText={setReservationDate} placeholder="YYYY-MM-DD" />
         <Input label="Početak" value={startTime} onChangeText={setStartTime} placeholder="09:00" />
@@ -189,7 +248,14 @@ export function StylistDirectBookingScreen({
             title="Kreiraj termin"
             onPress={handleSubmit}
             loading={saving}
-            disabled={!clientId || serviceIds.length === 0 || !reservationDate || !startTime || !endTime}
+            disabled={
+              !selectedClient ||
+              !selectedClient.gender ||
+              serviceIds.length === 0 ||
+              !reservationDate ||
+              !startTime ||
+              !endTime
+            }
           />
         </View>
       </Card>

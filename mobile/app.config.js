@@ -29,8 +29,10 @@ module.exports = {
         backgroundColor: '#1A1A1A',
       },
       package: 'com.beautysalon.nejra',
+      versionCode: 1,
       googleServicesFile: './google-services.json',
       softwareKeyboardLayoutMode: 'pan',
+      permissions: ['REQUEST_INSTALL_PACKAGES'],
     },
     /** `androidNavigationBar` uklonjen — zastarjelo (Android 15 edge-to-edge / Expo SDK); koristi `expo-navigation-bar` + `react-native-edge-to-edge` + App `SystemBars`. */
     web: {

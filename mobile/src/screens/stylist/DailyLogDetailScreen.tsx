@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Modal,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Image } from 'expo-image';
@@ -31,6 +32,7 @@ type DailyLogDetailScreenProps = {
   navigation: {
     goBack: () => void;
     navigate: (name: string, params?: any) => void;
+    setOptions: (opts: { headerRight?: () => React.ReactNode }) => void;
   };
 };
 
@@ -219,6 +221,53 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
     [entryId, fetchEntry],
   );
 
+  const openActionsMenu = useCallback(() => {
+    if (!entry || entry.status === 'COMPLETED') return;
+    Alert.alert('Akcije zapisa', undefined, [
+      {
+        text: 'Uredi unos',
+        onPress: () => navigation.navigate('DailyLogNewEntry', { entryId }),
+      },
+      {
+        text: 'Dodaj sliku prije',
+        onPress: () => void addImage(true),
+      },
+      {
+        text: 'Dodaj sliku poslije',
+        onPress: () => void addImage(false),
+      },
+      {
+        text: 'Obriši unos',
+        style: 'destructive',
+        onPress: handleDelete,
+      },
+      { text: 'Odustani', style: 'cancel' },
+    ]);
+  }, [addImage, entry, entryId, handleDelete, navigation]);
+
+  useLayoutEffect(() => {
+    const canAct = !!entry && entry.status !== 'COMPLETED';
+    navigation.setOptions({
+      headerRight: canAct
+        ? () => (
+            <TouchableOpacity
+              onPress={openActionsMenu}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel="Akcije zapisa"
+              style={{ marginRight: spacing.sm }}
+            >
+              <Ionicons
+                name="ellipsis-horizontal"
+                size={24}
+                color={colors.headerText}
+              />
+            </TouchableOpacity>
+          )
+        : undefined,
+    });
+  }, [colors.headerText, entry, navigation, openActionsMenu]);
+
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -371,29 +420,12 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           ) : null}
 
           {canComplete ? (
-            <>
-              <Button
-                title={entry.reservationId ? 'Završi zapis (završava i rezervaciju)' : 'Završi zapis (upis u knjigu)'}
-                onPress={handleComplete}
-                loading={acting}
-                style={{ marginTop: spacing.md }}
-              />
-              <Button
-                title="Uredi unos"
-                variant="outline"
-                onPress={() =>
-                  navigation.navigate('DailyLogNewEntry', { entryId })
-                }
-                style={{ marginTop: spacing.sm }}
-              />
-              <Button
-                title="Obriši unos"
-                variant="outline"
-                onPress={handleDelete}
-                loading={acting}
-                style={{ marginTop: spacing.sm }}
-              />
-            </>
+            <Button
+              title={entry.reservationId ? 'Završi zapis (završava i rezervaciju)' : 'Završi zapis (upis u knjigu)'}
+              onPress={handleComplete}
+              loading={acting}
+              style={{ marginTop: spacing.md }}
+            />
           ) : (
             <Text style={[styles.infoText, { color: colors.textSecondary, marginTop: spacing.md }]}>
               Kompletirani unos može mijenjati ili vratiti na čekanje samo administrator (web).
@@ -451,24 +483,11 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
               </View>
             </>
           )}
-          {canComplete && (
-            <View style={styles.addImageRow}>
-              <Button
-                title="Dodaj prije"
-                onPress={() => addImage(true)}
-                loading={uploading}
-                variant="outline"
-                size="sm"
-              />
-              <Button
-                title="Dodaj poslije"
-                onPress={() => addImage(false)}
-                loading={uploading}
-                variant="outline"
-                size="sm"
-              />
-            </View>
-          )}
+          {canComplete && !hasBeforeAfter ? (
+            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+              Dodajte prije/poslije fotografije preko menija akcija (⋯).
+            </Text>
+          ) : null}
         </Card>
       )}
 
@@ -534,7 +553,6 @@ const styles = StyleSheet.create({
   subLabel: { fontSize: 13, marginTop: 6, marginBottom: 4 },
   imageRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   thumb: { width: 80, height: 80, borderRadius: 8 },
-  addImageRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',

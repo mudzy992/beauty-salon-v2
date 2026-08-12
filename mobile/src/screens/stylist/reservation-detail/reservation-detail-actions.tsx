@@ -8,6 +8,7 @@ import { Button } from '../../../components/ui/Button';
 import { spacing } from '../../../theme';
 import { useTheme } from '../../../hooks/useTheme';
 import type { Reservation } from '../../../types';
+import { isStaffWaivedAttendance } from './utils/reservation-detail';
 
 type ReservationDetailActionsProps = {
   reservation: Reservation;
@@ -97,7 +98,8 @@ export const ReservationDetailActions = ({
       ) : null}
       {(reservation.status === 'CONFIRMED' || reservation.status === 'ATTENDANCE_CONFIRMED') &&
       reservation.confirmedStylistId === profileId &&
-      !isStartOverdue ? (
+      !isStartOverdue &&
+      !isStaffWaivedAttendance(reservation) ? (
         <Button
           title="Predloži pomjeranje termina (reorder)"
           onPress={onOpenReorder}

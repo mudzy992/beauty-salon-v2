@@ -1,10 +1,8 @@
 import {
   BadRequestException,
   ForbiddenException,
-  Inject,
   Injectable,
   NotFoundException,
-  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
@@ -12,12 +10,20 @@ import { SOCKET_EVENTS } from '../events/socket-events';
 import { DailyLogAdminService } from './daily-log-admin.service';
 import { DailyLogService } from './daily-log.service';
 import { ReservationSharedService } from '../reservations/reservation-shared.service';
-import { ReservationReorderService } from '../reservations/reservation-reorder.service';
 import { ReservationQueriesService } from '../reservations/reservation-queries.service';
+import { ReservationDateService } from '../reservations/reservation-date.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RESERVATION_STATUS } from '../reservations/constants';
+import { timeToMinutes } from '../reservations/utils/time-slot.utils';
 import type { DailyLogDispositionDto } from './dto/daily-log-disposition.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import {
+  applyClientCancel,
+  applyDirectReorder,
+  applyNoShow,
+  applyStylistCancel,
+  assertReorderSlotFree,
+} from './daily-log-disposition-apply';
 
 @Injectable()
 export class DailyLogDispositionService {
@@ -26,12 +32,20 @@ export class DailyLogDispositionService {
     private readonly dailyLog: DailyLogService,
     private readonly dailyLogAdmin: DailyLogAdminService,
     private readonly shared: ReservationSharedService,
-    @Inject(forwardRef(() => ReservationReorderService))
-    private readonly reorder: ReservationReorderService,
+    private readonly dates: ReservationDateService,
     private readonly queries: ReservationQueriesService,
     private readonly notifications: NotificationsService,
     private readonly events: EventsGateway,
   ) {}
+
+  private get applyDeps() {
+    return {
+      prisma: this.prisma,
+      shared: this.shared,
+      dates: this.dates,
+      notifications: this.notifications,
+    };
+  }
 
   async dispose(
     entryId: string,
@@ -83,34 +97,41 @@ export class DailyLogDispositionService {
           'Za pomjeranje termina unesite targetStartTime i targetEndTime.',
         );
       }
+      if (
+        timeToMinutes(dto.targetEndTime) <= timeToMinutes(dto.targetStartTime)
+      ) {
+        throw new BadRequestException(
+          'Vrijeme završetka mora biti nakon početka.',
+        );
+      }
+      await assertReorderSlotFree(this.applyDeps, reservation, {
+        targetDate: dto.targetDate,
+        targetStartTime: dto.targetStartTime,
+        targetEndTime: dto.targetEndTime,
+      });
     }
 
     await this.dailyLogAdmin.softDelete(entryId, { reason }, user);
 
     switch (dto.action) {
       case 'discard':
-        await this.applyStylistCancel(reservation.id, reason, user.sub);
-        break;
       case 'cancel_as_stylist':
-        await this.applyStylistCancel(reservation.id, reason, user.sub);
+        await applyStylistCancel(this.applyDeps, reservation.id, reason);
         break;
       case 'cancel_as_client':
-        await this.applyClientCancel(reservation.id, reason);
+        await applyClientCancel(this.applyDeps, reservation.id, reason);
         break;
       case 'no_show':
-        await this.applyNoShow(reservation.id, reason, dto.applyPenalty !== false);
+        await applyNoShow(
+          this.applyDeps,
+          reservation.id,
+          reason,
+          dto.applyPenalty !== false,
+        );
         break;
       case 'reorder':
-        await this.prisma.reservation.update({
-          where: { id: reservation.id },
-          data: {
-            status: this.shared.transitionTo(
-              reservation.status,
-              RESERVATION_STATUS.CONFIRMED,
-            ),
-          },
-        });
-        await this.reorder.requestReorder(reservation.id, user.sub, {
+        await applyDirectReorder(this.applyDeps, reservation, {
+          targetDate: dto.targetDate,
           targetStartTime: dto.targetStartTime!,
           targetEndTime: dto.targetEndTime!,
         });
@@ -129,124 +150,9 @@ export class DailyLogDispositionService {
       );
       this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
         serviceId: reservation.serviceId,
-        date: reservation.reservationDate,
+        date: updated.reservationDate ?? reservation.reservationDate,
       });
     }
     return { ok: true, reservation: updated };
-  }
-
-  private async applyStylistCancel(
-    reservationId: string,
-    reason: string,
-    userId: string,
-  ) {
-    const r = await this.prisma.reservation.findUnique({
-      where: { id: reservationId },
-    });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
-    await this.prisma.reservation.update({
-      where: { id: reservationId },
-      data: {
-        status: this.shared.transitionTo(
-          r.status,
-          RESERVATION_STATUS.CANCELLED_BY_STYLISTS,
-        ),
-        cancelledAt: new Date(),
-        cancelReason: reason,
-      },
-    });
-    await this.notifyClientCancelled(reservationId, r.clientId, reason);
-  }
-
-  private async applyClientCancel(reservationId: string, reason: string) {
-    const r = await this.prisma.reservation.findUnique({
-      where: { id: reservationId },
-    });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
-    await this.prisma.reservation.update({
-      where: { id: reservationId },
-      data: {
-        status: this.shared.transitionTo(
-          r.status,
-          RESERVATION_STATUS.CANCELLED_BY_CLIENT,
-        ),
-        cancelledAt: new Date(),
-        cancelReason: reason,
-      },
-    });
-    const salon = await this.prisma.salonSettings.findFirst();
-    if (salon) {
-      await this.shared.incrementCancellationCount(r.clientId, {
-        maxCancellationsBeforePenalty: salon.maxCancellationsBeforePenalty,
-        penaltyDurationDays: salon.penaltyDurationDays,
-      });
-    }
-    await this.notifyClientCancelled(reservationId, r.clientId, reason);
-  }
-
-  private async applyNoShow(
-    reservationId: string,
-    reason: string,
-    applyPenalty: boolean,
-  ) {
-    const r = await this.prisma.reservation.findUnique({
-      where: { id: reservationId },
-    });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
-    await this.prisma.reservation.update({
-      where: { id: reservationId },
-      data: {
-        status: this.shared.transitionTo(r.status, RESERVATION_STATUS.NO_SHOW),
-        cancelledAt: new Date(),
-        cancelReason: reason,
-        rescheduleStatus: null,
-        rescheduleProposedStartTime: null,
-        rescheduleProposedEndTime: null,
-      },
-    });
-    if (applyPenalty) {
-      const salon = await this.prisma.salonSettings.findFirst();
-      if (salon) {
-        await this.shared.incrementCancellationCount(r.clientId, {
-          maxCancellationsBeforePenalty: salon.maxCancellationsBeforePenalty,
-          penaltyDurationDays: salon.penaltyDurationDays,
-        });
-      }
-    }
-    await this.notifications.send({
-      userId: r.clientId,
-      title: 'No-show',
-      body: 'Rezervacija je označena kao "nije se pojavio/la". Ako je greška, kontaktirajte salon.',
-      type: 'reservation_cancelled',
-      data: { reservationId, kind: 'reservation_cancelled' },
-      channel: 'PUSH',
-    });
-  }
-
-  private async notifyClientCancelled(
-    reservationId: string,
-    clientId: string,
-    reason: string,
-  ) {
-    const resWithClient = await this.prisma.reservation.findUnique({
-      where: { id: reservationId },
-      select: {
-        publicReferenceCode: true,
-        clientViewToken: true,
-      },
-    });
-    await this.notifications.send({
-      userId: clientId,
-      title: 'Rezervacija otkazana',
-      body: reason,
-      type: 'reservation_cancelled',
-      data: {
-        reservationId,
-        kind: 'reservation_cancelled',
-        publicReferenceCode: resWithClient?.publicReferenceCode,
-        clientViewToken: resWithClient?.clientViewToken,
-      },
-      channel: 'PUSH',
-    });
   }
 }

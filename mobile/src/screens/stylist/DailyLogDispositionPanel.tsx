@@ -1,5 +1,13 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from 'react-native';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -38,6 +46,9 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
   const [action, setAction] = useState<DispositionAction | null>(null);
   const [reason, setReason] = useState('');
+  const [targetDate, setTargetDate] = useState(
+    String(entry.reservation?.reservationDate ?? entry.date ?? '').slice(0, 10),
+  );
   const [targetStartTime, setTargetStartTime] = useState(
     entry.reservation?.startTime?.slice(0, 5) ?? '',
   );
@@ -56,25 +67,65 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
     setModalOpen(true);
   }, []);
 
+  const openMenu = useCallback(() => {
+    Alert.alert(
+      'Upravljanje rezervacijom',
+      'Odaberite akciju za direktnu rezervaciju.',
+      [
+        ...(Object.keys(ACTION_LABELS) as DispositionAction[]).map((key) => ({
+          text: ACTION_LABELS[key],
+          onPress: () => openAction(key),
+          style: (key === 'discard' || key === 'no_show' ? 'destructive' : 'default') as
+            | 'default'
+            | 'cancel'
+            | 'destructive',
+        })),
+        { text: 'Odustani', style: 'cancel' as const },
+      ],
+    );
+  }, [openAction]);
+
   const handleSubmit = useCallback(async () => {
     if (!action) return;
     const trimmed = reason.trim();
     if (!trimmed) return;
+    if (action === 'reorder') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate.trim())) return;
+      if (!/^\d{2}:\d{2}$/.test(targetStartTime.trim())) return;
+      if (!/^\d{2}:\d{2}$/.test(targetEndTime.trim())) return;
+    }
     setSubmitting(true);
     try {
       await api.post(`/api/daily-log/${entry.id}/dispose`, {
         action,
         reason: trimmed,
-        targetStartTime: action === 'reorder' ? targetStartTime : undefined,
-        targetEndTime: action === 'reorder' ? targetEndTime : undefined,
+        targetDate: action === 'reorder' ? targetDate.trim() : undefined,
+        targetStartTime: action === 'reorder' ? targetStartTime.trim() : undefined,
+        targetEndTime: action === 'reorder' ? targetEndTime.trim() : undefined,
         applyPenalty: action === 'no_show' || action === 'cancel_as_client',
       });
       setModalOpen(false);
-      onDone();
+      if (action === 'reorder') {
+        Alert.alert(
+          'Termin pomjeren',
+          'Novi datum i vrijeme su odmah primijenjeni. Klijent ne mora potvrđivati.',
+          [{ text: 'U redu', onPress: onDone }],
+        );
+      } else {
+        onDone();
+      }
     } finally {
       setSubmitting(false);
     }
-  }, [action, entry.id, onDone, reason, targetEndTime, targetStartTime]);
+  }, [
+    action,
+    entry.id,
+    onDone,
+    reason,
+    targetDate,
+    targetEndTime,
+    targetStartTime,
+  ]);
 
   if (!showPanel) return null;
 
@@ -87,17 +138,7 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
         <Text style={[styles.hint, { color: colors.textSecondary }]}>
           Rezervacija je prešla u dnevnu knjigu. Završite zapis ili odaberite akciju.
         </Text>
-        <View style={styles.actions}>
-          {(Object.keys(ACTION_LABELS) as DispositionAction[]).map((key) => (
-            <Button
-              key={key}
-              title={ACTION_LABELS[key]}
-              variant="outline"
-              size="sm"
-              onPress={() => openAction(key)}
-            />
-          ))}
-        </View>
+        <Button title="Akcije rezervacije" variant="outline" onPress={openMenu} />
       </Card>
 
       <Modal visible={modalOpen} animationType="slide" transparent>
@@ -112,6 +153,12 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
               </Text>
               {action === 'reorder' ? (
                 <>
+                  <Input
+                    label="Novi datum"
+                    value={targetDate}
+                    onChangeText={setTargetDate}
+                    placeholder="YYYY-MM-DD"
+                  />
                   <Input
                     label="Novi početak"
                     value={targetStartTime}
@@ -159,7 +206,6 @@ const styles = StyleSheet.create({
   card: { marginBottom: spacing.md, padding: spacing.md, borderWidth: 1 },
   title: { fontSize: 16, fontWeight: '700', marginBottom: spacing.xs },
   hint: { fontSize: 13, lineHeight: 18, marginBottom: spacing.sm },
-  actions: { gap: spacing.sm },
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',

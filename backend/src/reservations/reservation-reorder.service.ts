@@ -11,6 +11,7 @@ import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { RESERVATION_STATUS } from './constants';
 import { timeToMinutes } from './utils/time-slot.utils';
+import { isDirectStaffWaived } from './reservation-policy';
 
 @Injectable()
 export class ReservationReorderService {
@@ -42,6 +43,8 @@ export class ReservationReorderService {
         endTime: true,
         status: true,
         serviceId: true,
+        acceptanceMode: true,
+        attendancePolicy: true,
         rescheduleStatus: true,
         rescheduleProposedStartTime: true,
         rescheduleProposedEndTime: true,
@@ -49,6 +52,11 @@ export class ReservationReorderService {
     });
     if (!reservation)
       throw new NotFoundException('Rezervacija nije pronađena.');
+    if (isDirectStaffWaived(reservation)) {
+      throw new BadRequestException(
+        'Direktna rezervacija se ne šalje klijentu na potvrdu. Pomjerite termin iz dnevne knjige (disposition) ili ažurirajte termin direktno.',
+      );
+    }
     if (reservation.confirmedStylistId !== stylistProfileId) {
       throw new ForbiddenException(
         'Samo potvrđeni stilist može predložiti pomjeranje termina.',

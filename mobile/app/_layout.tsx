@@ -18,6 +18,8 @@ import { useTheme } from '../src/hooks/useTheme';
 import { useAuthStore } from '../src/store/authStore';
 import { useNotificationStore } from '../src/store/notificationStore';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
+import { useApkUpdateCheck } from '../src/features/app-update/use-apk-update-check';
+import { ApkForceUpdateModal } from '../src/features/app-update/apk-force-update-modal';
 import { SocketProvider } from '../src/realtime/SocketContext';
 import { SocketRealtimeSync } from '../src/realtime/SocketRealtimeSync';
 import { LoadingScreen } from '../src/components/ui/LoadingScreen';
@@ -63,6 +65,7 @@ function AppContent() {
   const fetchNotifications = useNotificationStore((s) => s.fetch);
 
   usePushNotifications();
+  const apkUpdate = useApkUpdateCheck();
 
   // User requirement:
   // - status bar icons always white
@@ -106,6 +109,17 @@ function AppContent() {
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         {bars}
         <Stack screenOptions={{ headerShown: false }} />
+        <ApkForceUpdateModal
+          release={apkUpdate.forceRelease}
+          downloading={apkUpdate.downloading}
+          progress={apkUpdate.progress}
+          error={apkUpdate.error}
+          onUpdate={() => {
+            if (apkUpdate.forceRelease) {
+              void apkUpdate.startDownload(apkUpdate.forceRelease);
+            }
+          }}
+        />
       </View>
     </SocketProvider>
   );

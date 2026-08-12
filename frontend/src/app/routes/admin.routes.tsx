@@ -21,6 +21,7 @@ import StylistAnalytics from '../../pages/StylistAnalytics'
 import Analytics from '../../pages/Analytics'
 import Loyalty from '../../pages/Loyalty'
 import ServiceWorkGallery from '../../pages/ServiceWorkGallery'
+import AppReleases from '../../pages/AppReleases'
 
 export const adminRoutes: RouteObject[] = [
   {
@@ -45,6 +46,7 @@ export const adminRoutes: RouteObject[] = [
       { path: 'gallery', element: <Gallery /> },
       { path: 'reviews', element: <Reviews /> },
       { path: 'settings', element: <Settings /> },
+      { path: 'app-releases', element: <AppReleases /> },
       { path: 'notifications', element: <Notifications /> },
       { path: 'email-settings', element: <EmailSettings /> },
       { path: 'client-analytics', element: <ClientAnalytics /> },

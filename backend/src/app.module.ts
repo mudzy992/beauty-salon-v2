@@ -22,6 +22,7 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { EventsModule } from './events/events.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
+import { AppReleasesModule } from './app-releases/app-releases.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 
 @Module({
@@ -46,6 +47,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     EventsModule,
     AnalyticsModule,
     LoyaltyModule,
+    AppReleasesModule,
   ],
   controllers: [AppController],
   providers: [

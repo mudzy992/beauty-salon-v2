@@ -32,7 +32,7 @@ export const StylistDirectBookingPage = () => {
   const [services, setServices] = useState<ServiceOption[]>([])
   const [clients, setClients] = useState<ClientOption[]>([])
   const [clientSearch, setClientSearch] = useState('')
-  const [clientId, setClientId] = useState('')
+  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null)
   const [serviceIds, setServiceIds] = useState<string[]>([])
   const [reservationDate, setReservationDate] = useState(new Date().toISOString().slice(0, 10))
   const [startTime, setStartTime] = useState('09:00')
@@ -56,6 +56,14 @@ export const StylistDirectBookingPage = () => {
         setClients([])
         return
       }
+      const selectedLabel = selectedClient
+        ? [selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ').trim() ||
+          selectedClient.username
+        : ''
+      if (selectedClient && q === selectedLabel) {
+        setClients([selectedClient])
+        return
+      }
       api
         .get<{ items: ClientOption[] }>('/api/users/clients', {
           params: { page: 0, pageSize: 10, q },
@@ -64,17 +72,19 @@ export const StylistDirectBookingPage = () => {
         .catch(() => setClients([]))
     }, 250)
     return () => window.clearTimeout(handle)
-  }, [clientSearch])
-
-  const selectedClient = useMemo(
-    () => clients.find((client) => client.id === clientId) ?? null,
-    [clientId, clients],
-  )
+  }, [clientSearch, selectedClient])
 
   const filteredServices = useMemo(() => {
-    if (!selectedClient?.gender) return services
-    return services.filter((service) => service.gender === selectedClient.gender)
+    const gender = selectedClient?.gender
+    if (gender !== 'MALE' && gender !== 'FEMALE') return []
+    return services.filter((service) => service.gender === gender)
   }, [selectedClient?.gender, services])
+
+  useEffect(() => {
+    setServiceIds((current) =>
+      current.filter((id) => filteredServices.some((service) => service.id === id)),
+    )
+  }, [filteredServices])
 
   useEffect(() => {
     const totalMinutes = serviceIds
@@ -94,11 +104,23 @@ export const StylistDirectBookingPage = () => {
     )
   }
 
+  const handleSelectClient = (client: ClientOption) => {
+    const label =
+      [client.firstName, client.lastName].filter(Boolean).join(' ').trim() || client.username
+    setSelectedClient(client)
+    setClientSearch(label)
+    setServiceIds([])
+  }
+
   const handleSubmit = async () => {
+    if (!selectedClient?.gender) {
+      toast.error('Odaberite klijenta sa definisanim spolom')
+      return
+    }
     setSaving(true)
     try {
       await api.post('/api/reservations/stylist/direct', {
-        clientId,
+        clientId: selectedClient.id,
         serviceIds,
         reservationDate,
         startTime,
@@ -131,23 +153,48 @@ export const StylistDirectBookingPage = () => {
       <Card className="space-y-4 p-4">
         <div className="space-y-2">
           <Label>Klijent</Label>
-          <Input value={clientSearch} onChange={(e) => setClientSearch(e.target.value)} placeholder="Pretraži klijenta..." />
+          <Input
+            value={clientSearch}
+            onChange={(e) => {
+              const value = e.target.value
+              setClientSearch(value)
+              if (selectedClient) {
+                const label =
+                  [selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ').trim() ||
+                  selectedClient.username
+                if (value.trim() !== label) {
+                  setSelectedClient(null)
+                  setServiceIds([])
+                }
+              }
+            }}
+            placeholder="Pretraži klijenta..."
+          />
           {clients.length > 0 ? (
             <div className="grid gap-2">
               {clients.map((client) => {
-                const label = [client.firstName, client.lastName].filter(Boolean).join(' ').trim() || client.username
+                const label =
+                  [client.firstName, client.lastName].filter(Boolean).join(' ').trim() || client.username
+                const selected = selectedClient?.id === client.id
                 return (
                   <button
                     key={client.id}
                     type="button"
-                    className={clientId === client.id ? 'rounded-lg border border-brand-gold bg-brand-champagne/20 px-3 py-2 text-left text-sm' : 'rounded-lg border border-slate-200 px-3 py-2 text-left text-sm dark:border-slate-800'}
-                    onClick={() => {
-                      setClientId(client.id)
-                      setClientSearch(label)
-                    }}
+                    className={
+                      selected
+                        ? 'rounded-lg border border-brand-gold bg-brand-champagne/20 px-3 py-2 text-left text-sm'
+                        : 'rounded-lg border border-slate-200 px-3 py-2 text-left text-sm dark:border-slate-800'
+                    }
+                    onClick={() => handleSelectClient(client)}
                   >
                     <div className="font-medium text-slate-900 dark:text-slate-50">{label}</div>
-                    <div className="text-xs text-slate-500">{client.id}</div>
+                    <div className="text-xs text-slate-500">
+                      {client.gender === 'MALE'
+                        ? 'Muški'
+                        : client.gender === 'FEMALE'
+                          ? 'Ženski'
+                          : 'Spol nije definisan'}
+                    </div>
                   </button>
                 )
               })}
@@ -157,19 +204,31 @@ export const StylistDirectBookingPage = () => {
 
         <div className="space-y-2">
           <Label>Servisi</Label>
-          <div className="grid gap-2">
-            {filteredServices.map((service) => (
-              <button
-                key={service.id}
-                type="button"
-                className={serviceIds.includes(service.id) ? 'rounded-lg border border-brand-gold bg-brand-champagne/20 px-3 py-2 text-left text-sm' : 'rounded-lg border border-slate-200 px-3 py-2 text-left text-sm dark:border-slate-800'}
-                onClick={() => toggleServiceId(service.id)}
-              >
-                <div className="font-medium text-slate-900 dark:text-slate-50">{service.name}</div>
-                <div className="text-xs text-slate-500">{Number(service.price ?? 0).toFixed(2)} KM</div>
-              </button>
-            ))}
-          </div>
+          {!selectedClient ? (
+            <p className="text-sm text-slate-500">Prvo odaberite klijenta — lista se filtrira po spolu.</p>
+          ) : !selectedClient.gender ? (
+            <p className="text-sm text-amber-600">Klijent nema definisan spol.</p>
+          ) : filteredServices.length === 0 ? (
+            <p className="text-sm text-slate-500">Nema aktivnih servisa za odabrani spol.</p>
+          ) : (
+            <div className="grid gap-2">
+              {filteredServices.map((service) => (
+                <button
+                  key={service.id}
+                  type="button"
+                  className={
+                    serviceIds.includes(service.id)
+                      ? 'rounded-lg border border-brand-gold bg-brand-champagne/20 px-3 py-2 text-left text-sm'
+                      : 'rounded-lg border border-slate-200 px-3 py-2 text-left text-sm dark:border-slate-800'
+                  }
+                  onClick={() => toggleServiceId(service.id)}
+                >
+                  <div className="font-medium text-slate-900 dark:text-slate-50">{service.name}</div>
+                  <div className="text-xs text-slate-500">{Number(service.price ?? 0).toFixed(2)} KM</div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
@@ -198,7 +257,14 @@ export const StylistDirectBookingPage = () => {
           </Button>
           <Button
             type="button"
-            disabled={saving || !clientId || serviceIds.length === 0 || !reservationDate || !startTime || !endTime}
+            disabled={
+              saving ||
+              !selectedClient?.gender ||
+              serviceIds.length === 0 ||
+              !reservationDate ||
+              !startTime ||
+              !endTime
+            }
             onClick={() => void handleSubmit()}
           >
             {saving ? 'Kreiranje...' : 'Kreiraj termin'}

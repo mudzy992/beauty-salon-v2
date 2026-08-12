@@ -218,6 +218,20 @@ export const bs = {
     noNotifications: 'Nemate obavještenja',
     markAsRead: 'Označi kao pročitano',
   },
+  appUpdate: {
+    title: 'Ažuriranje aplikacije',
+    forceTitle: 'Obavezno ažuriranje',
+    available: 'Dostupna je verzija {{version}}.',
+    later: 'Kasnije',
+    update: 'Ažuriraj',
+    check: 'Provjeri ažuriranja',
+    upToDate: 'Koristite najnoviju verziju.',
+    checkError: 'Provjera ažuriranja nije uspjela.',
+    downloadError: 'Preuzimanje ili instalacija nije uspjela.',
+    downloading: 'Preuzimanje… {{percent}}%',
+    downloadingShort: 'Preuzimanje…',
+    androidOnly: 'In-app update je dostupan samo na Androidu.',
+  },
   stylist: {
     schedule: {
       completeTitle: 'Završi i upiši u dnevnu knjigu',

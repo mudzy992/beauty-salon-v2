@@ -1,5 +1,10 @@
 # Reservation matrix changelog
 
+## 2026-08-12 (Disposition reorder + date)
+
+- Disposition `reorder` sada direktno postavlja `reservationDate` + vrijeme (bez client propose).
+- DTO: opcioni `targetDate` (`YYYY-MM-DD`); konflikt slot-a se validira prije soft-delete DK zapisa.
+
 ## 2026-08-12 (Direct booking auto DK + disposition)
 
 - Novi status `AWAITING_DAILY_LOG` za direktne rezervacije nakon auto-seeda u dnevnu knjigu.

@@ -33,6 +33,11 @@ export class DailyLogDispositionDto {
   @Matches(/^\d{2}:\d{2}$/)
   targetEndTime?: string;
 
+  /** YYYY-MM-DD — optional new date when action is reorder. */
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  targetDate?: string;
+
   @IsOptional()
   applyPenalty?: boolean;
 }

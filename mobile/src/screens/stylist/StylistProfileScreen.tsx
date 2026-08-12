@@ -9,13 +9,18 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { isClient } from '../../utils/roles';
 import { spacing } from '../../theme';
+import { useApkUpdateCheck } from '../../features/app-update/use-apk-update-check';
+import { ApkForceUpdateModal } from '../../features/app-update/apk-force-update-modal';
+import { useTranslation } from 'react-i18next';
 
 export function StylistProfileScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { user, logout } = useAuthStore();
   const setMode = useAppModeStore((s) => s.setMode);
   const canSwitchToClient = user && isClient(user);
+  const apkUpdate = useApkUpdateCheck({ auto: false });
 
   const handleSwitchToClient = () => {
     setMode('client');
@@ -64,8 +69,29 @@ export function StylistProfileScreen() {
       )}
 
       <Card style={styles.menuCard}>
+        <Button
+          title={t('appUpdate.check')}
+          onPress={() => {
+            void apkUpdate.checkNow({ manual: true });
+          }}
+          variant="outline"
+          fullWidth
+        />
+      </Card>
+
+      <Card style={styles.menuCard}>
         <Button title="Odjavi se" onPress={handleLogout} variant="ghost" textStyle={{ color: colors.error }} fullWidth />
       </Card>
+
+      <ApkForceUpdateModal
+        release={apkUpdate.forceRelease}
+        downloading={apkUpdate.downloading}
+        progress={apkUpdate.progress}
+        error={apkUpdate.error}
+        onUpdate={() => {
+          if (apkUpdate.forceRelease) void apkUpdate.startDownload(apkUpdate.forceRelease);
+        }}
+      />
     </ScrollView>
   );
 }

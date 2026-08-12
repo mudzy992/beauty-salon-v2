@@ -29,6 +29,16 @@ enum DailyLogEntryKind {
   DEBT_PAYMENT
 }
 
+enum AppReleasePlatform {
+  ANDROID
+}
+
+enum AppReleaseStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+}
+
 // ============ AUTH & USERS ============
 
 model User {
@@ -77,7 +87,8 @@ model User {
   clientDebtsAsClient         ClientDebt[]                 @relation("ClientDebtsClient")
   clientDebtsCreated          ClientDebt[]                 @relation("ClientDebtsCreatedBy")
   clientDebtsSettled          ClientDebt[]                 @relation("ClientDebtsSettledBy")
-  reservationsCreated        Reservation[]                @relation("ReservationsCreatedBy")
+  reservationsCreated         Reservation[]                @relation("ReservationsCreatedBy")
+  appReleasesCreated          AppRelease[]                 @relation("AppReleasesCreatedBy")
   reservationsAttendanceWaived Reservation[]             @relation("AttendanceWaivedByUser")
 
   @@map("users")
@@ -939,4 +950,30 @@ model LoyaltyTransaction {
   account LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
   @@map("loyalty_transactions")
+}
+
+// ============ MOBILE APP RELEASES (Android APK) ============
+
+model AppRelease {
+  id                       String             @id @default(uuid())
+  platform                 AppReleasePlatform @default(ANDROID)
+  version                  String
+  versionCode              Int                @map("version_code")
+  minSupportedVersionCode  Int                @default(1) @map("min_supported_version_code")
+  forceUpdate              Boolean            @default(false) @map("force_update")
+  apkPath                  String             @map("apk_path")
+  apkSha256                String             @map("apk_sha256")
+  apkSizeBytes             Int                @map("apk_size_bytes")
+  releaseNotes             String?            @map("release_notes") @db.Text
+  status                   AppReleaseStatus   @default(DRAFT)
+  publishedAt              DateTime?          @map("published_at")
+  createdById              String?            @map("created_by_id")
+  createdAt                DateTime           @default(now()) @map("created_at")
+  updatedAt                DateTime           @updatedAt @map("updated_at")
+
+  createdBy User? @relation("AppReleasesCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([platform, versionCode])
+  @@index([platform, status, versionCode])
+  @@map("app_releases")
 }

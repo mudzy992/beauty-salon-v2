@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -47,6 +47,22 @@ export function StylistScheduleScreen({ navigation }: Props) {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('StylistDirectBooking')}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          accessibilityRole="button"
+          accessibilityLabel="Direktna rezervacija"
+          style={{ marginRight: spacing.sm }}
+        >
+          <Ionicons name="add-circle-outline" size={26} color={colors.headerText} />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, colors.headerText]);
 
   const fetchReservations = useCallback(async () => {
     if (!profileId) {
@@ -255,14 +271,8 @@ export function StylistScheduleScreen({ navigation }: Props) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListHeaderComponent={
-          <View style={{ gap: spacing.md }}>
-            <Button
-              title="Direktna rezervacija"
-              onPress={() => navigation.navigate('StylistDirectBooking')}
-              variant="outline"
-              icon={<Ionicons name="add-circle-outline" size={18} color={colors.primary} />}
-            />
-            {activeReservation ? (
+          activeReservation ? (
+            <View style={{ gap: spacing.md }}>
             <Card style={[styles.activeCard, { backgroundColor: colors.card }]} padded={false}>
               {activeHeroUri ? (
                 <ImageBackground
@@ -472,8 +482,8 @@ export function StylistScheduleScreen({ navigation }: Props) {
                 </>
               )}
             </Card>
-          ) : null}
           </View>
+          ) : null
         }
         renderSectionHeader={({ section }) => (
           <Text style={[styles.sectionHeader, { color: colors.primary }]}>{section.title}</Text>

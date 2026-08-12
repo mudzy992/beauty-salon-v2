@@ -27,6 +27,9 @@ import api, { getImageUrl } from '../../services/api';
 import { spacing } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
 import type { ProfileScreenProps } from '../../navigation/types';
+import { useApkUpdateCheck } from '../../features/app-update/use-apk-update-check';
+import { ApkForceUpdateModal } from '../../features/app-update/apk-force-update-modal';
+import { runManualApkUpdateCheck } from '../../features/app-update/run-manual-check';
 
 interface MenuItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -58,6 +61,7 @@ function hasGender(user: { gender?: string | null } | null): boolean {
 
 export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const { t } = useTranslation();
+  const apkUpdate = useApkUpdateCheck({ auto: false });
   const { colors, mode, toggle } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { user, logout, refreshProfile } = useAuthStore();
@@ -309,11 +313,29 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
           label="Kontakt"
           onPress={() => navigation.navigate('Contact')}
         />
+        <View style={[styles.separator, { backgroundColor: colors.borderLight }]} />
+        <MenuItem
+          icon="cloud-download-outline"
+          label={t('appUpdate.check')}
+          onPress={() => {
+            void apkUpdate.checkNow({ manual: true });
+          }}
+        />
       </Card>
 
       <Card style={styles.menuCard}>
         <MenuItem icon="log-out-outline" label={t('auth.logout')} onPress={handleLogout} danger />
       </Card>
+
+      <ApkForceUpdateModal
+        release={apkUpdate.forceRelease}
+        downloading={apkUpdate.downloading}
+        progress={apkUpdate.progress}
+        error={apkUpdate.error}
+        onUpdate={() => {
+          if (apkUpdate.forceRelease) void apkUpdate.startDownload(apkUpdate.forceRelease);
+        }}
+      />
 
       <Modal visible={verifyModalVisible} animationType="slide" transparent>
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>

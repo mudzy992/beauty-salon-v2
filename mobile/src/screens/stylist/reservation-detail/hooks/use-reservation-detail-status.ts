@@ -5,7 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 import api from '../../../../services/api';
 import { formatTime } from '../../../../utils/date';
 import type { Reservation } from '../../../../types';
-import { getPlannedReservationDateTime } from '../utils/reservation-detail';
+import { getPlannedReservationDateTime, canStartReservationUi } from '../utils/reservation-detail';
 
 type RescheduleMode = 'actual_overrun' | 'manual_minutes' | 'use_break_only';
 
@@ -48,7 +48,7 @@ export const useReservationDetailStatus = ({
 
   const canStart = useMemo(() => {
     if (!reservation) return false;
-    return reservation.status === 'ATTENDANCE_CONFIRMED' && isConfirmedStylist;
+    return canStartReservationUi(reservation, isConfirmedStylist);
   }, [reservation, isConfirmedStylist]);
 
   const canComplete = useMemo(() => {
@@ -59,12 +59,12 @@ export const useReservationDetailStatus = ({
   const hasAnyAction = canStart || canComplete || canCancelByStylist || canMarkNoShow;
 
   const isStartOverdue = useMemo(() => {
-    if (!reservation || reservation.status !== 'ATTENDANCE_CONFIRMED') return false;
+    if (!reservation || !canStart) return false;
     return (
       Date.now() >
       getPlannedReservationDateTime(reservation.reservationDate, reservation.endTime).getTime()
     );
-  }, [reservation, timeTick]);
+  }, [reservation, canStart, timeTick]);
 
   useEffect(() => {
     const id = setInterval(() => setTimeTick((v) => v + 1), 30000);
@@ -81,7 +81,11 @@ export const useReservationDetailStatus = ({
   useEffect(() => {
     let cancelled = false;
     async function resolveStartBlockReason() {
-      if (!reservation || !profileId || reservation.status !== 'ATTENDANCE_CONFIRMED') {
+      if (!reservation || !profileId || !canStartReservationUi(reservation, true)) {
+        if (!cancelled) setStartBlockedReason(null);
+        return;
+      }
+      if (reservation.confirmedStylistId !== profileId) {
         if (!cancelled) setStartBlockedReason(null);
         return;
       }
@@ -107,7 +111,13 @@ export const useReservationDetailStatus = ({
           .filter((r) => r.id !== reservation.id)
           .filter((r) => r.confirmedStylistId === profileId)
           .filter((r) => r.startTime < reservation.startTime)
-          .find((r) => r.status === 'CONFIRMED' || r.status === 'ATTENDANCE_CONFIRMED');
+          .find(
+            (r) =>
+              r.status === 'ATTENDANCE_CONFIRMED' ||
+              (r.status === 'CONFIRMED' &&
+                (r.attendancePolicy === 'STAFF_WAIVED' ||
+                  r.acceptanceMode === 'DIRECT_ASSIGN')),
+          );
         if (!cancelled) {
           setStartBlockedReason(
             earlierPending

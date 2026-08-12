@@ -78,6 +78,7 @@ import { DailyLogModule } from '../daily-log/daily-log.module';
     ReservationSharedService,
     ReservationReorderService,
     ReservationQueriesService,
+    ReservationDateService,
   ],
 })
 export class ReservationsModule {}

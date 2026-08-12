@@ -6,6 +6,24 @@ export const getPlannedReservationDateTime = (reservationDate: string, time: str
   return new Date(y ?? 0, (m ?? 1) - 1, d ?? 1, h ?? 0, min ?? 0, 0, 0);
 };
 
+export const isStaffWaivedAttendance = (
+  reservation: Pick<Reservation, 'attendancePolicy' | 'acceptanceMode'>,
+): boolean =>
+  reservation.attendancePolicy === 'STAFF_WAIVED' ||
+  reservation.acceptanceMode === 'DIRECT_ASSIGN';
+
+/** Mirrors backend `canStartReservation` for stylist UI. */
+export const canStartReservationUi = (
+  reservation: Reservation,
+  isConfirmedStylist: boolean,
+): boolean => {
+  if (!isConfirmedStylist || !reservation.confirmedStylistId) return false;
+  if (reservation.status === 'ATTENDANCE_CONFIRMED') return true;
+  return (
+    reservation.status === 'CONFIRMED' && isStaffWaivedAttendance(reservation)
+  );
+};
+
 export const getReservationStatusLabel = (
   reservation: Reservation,
   t: (key: string) => string,

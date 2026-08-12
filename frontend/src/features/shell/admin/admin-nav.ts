@@ -56,6 +56,7 @@ export const adminNavGroups: AdminNavGroup[] = [
     labelKey: 'nav.sectionSystem',
     items: [
       { path: '/admin/settings', labelKey: 'nav.settings' },
+      { path: '/admin/app-releases', labelKey: 'nav.appReleases' },
       { path: '/admin/notifications', labelKey: 'nav.notifications' },
       { path: '/admin/email-settings', labelKey: 'nav.emailSettings' },
     ],
