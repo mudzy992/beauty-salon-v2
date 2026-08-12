@@ -9,7 +9,6 @@ import {
 } from 'class-validator';
 import { RequireServiceSelectionConstraint } from './require-service-selection.validator';
 
-@Validate(RequireServiceSelectionConstraint)
 export class AdminCreateReservationDto {
   @IsUUID()
   clientId!: string;
@@ -17,6 +16,7 @@ export class AdminCreateReservationDto {
   /** Backwards-compat (legacy UI). Prefer `serviceIds`. */
   @IsOptional()
   @IsUUID()
+  @Validate(RequireServiceSelectionConstraint)
   serviceId?: string;
 
   /** Multi-service reservation. */

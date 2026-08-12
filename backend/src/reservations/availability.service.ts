@@ -4,7 +4,7 @@ import { AvailabilitySlotsService } from './availability-slots.service';
 import { AvailabilityDebugService } from './availability-debug.service';
 import type { AvailableDateDto, AvailableSlotDto } from './availability.types';
 
-export { AvailableSlotDto, AvailableDateDto } from './availability.types';
+export type { AvailableSlotDto, AvailableDateDto } from './availability.types';
 
 @Injectable()
 export class AvailabilityService {

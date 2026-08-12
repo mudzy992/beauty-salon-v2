@@ -159,6 +159,8 @@ export class ReservationClientActionsService {
     }
     return cancelled;
   }
+
+  async confirmAttendance(id: string, clientId: string) {
     const r = await this.prisma.reservation.findUnique({ where: { id } });
     if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
     if (r.clientId !== clientId)
