@@ -384,6 +384,7 @@ model ReservationStylistResponse {
   status           String // PENDING | LOCKED | ACCEPTED | REJECTED
   lockedAt         DateTime? @map("locked_at")
   lockExpiresAt    DateTime? @map("lock_expires_at")
+  hasLockedOnce    Boolean   @default(false) @map("has_locked_once")
   rejectionReason  String?   @map("rejection_reason") @db.Text
   respondedAt      DateTime? @map("responded_at")
   createdAt        DateTime  @default(now()) @map("created_at")
@@ -420,6 +421,7 @@ model DailyLogEntry {
   notes       String?   @db.Text
   status      String    @default("PENDING") // PENDING | COMPLETED
   completedAt DateTime? @map("completed_at")
+  pendingReminderSentAt DateTime? @map("pending_reminder_sent_at")
   sourceEntryId String? @map("source_entry_id")
   deletedAt     DateTime? @map("deleted_at")
   deletedById   String?   @map("deleted_by_id")

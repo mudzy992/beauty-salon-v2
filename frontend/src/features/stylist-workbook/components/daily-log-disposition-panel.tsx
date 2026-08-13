@@ -13,21 +13,14 @@ import {
 } from '../../../components/ui/dialog'
 import { disposeDailyLogEntry } from '../api/stylist-workbook.api'
 import type { DailyLogEntry } from '../types'
-
-type DispositionAction =
-  | 'discard'
-  | 'reorder'
-  | 'cancel_as_client'
-  | 'cancel_as_stylist'
-  | 'no_show'
-
-const ACTION_LABELS: Record<DispositionAction, string> = {
-  discard: 'Obriši zapis i rezervaciju',
-  reorder: 'Pomjeri termin',
-  cancel_as_client: 'Otkaži u ime klijenta',
-  cancel_as_stylist: 'Otkaži u svoje ime',
-  no_show: 'Označi no-show',
-}
+import {
+  DISPOSITION_ACTION_HINTS,
+  DISPOSITION_ACTION_KEYS,
+  DISPOSITION_ACTION_LABELS,
+  DISPOSITION_PANEL_HINT,
+  DISPOSITION_PANEL_TITLE,
+  type DispositionAction,
+} from './disposition-copy'
 
 type Props = {
   entry: DailyLogEntry
@@ -38,8 +31,15 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
   const [open, setOpen] = useState(false)
   const [action, setAction] = useState<DispositionAction | null>(null)
   const [reason, setReason] = useState('')
-  const [targetStartTime, setTargetStartTime] = useState(entry.reservation?.startTime?.slice(0, 5) ?? '')
-  const [targetEndTime, setTargetEndTime] = useState(entry.reservation?.endTime?.slice(0, 5) ?? '')
+  const [targetDate, setTargetDate] = useState(
+    String(entry.reservation?.reservationDate ?? entry.date ?? '').slice(0, 10),
+  )
+  const [targetStartTime, setTargetStartTime] = useState(
+    entry.reservation?.startTime?.slice(0, 5) ?? '',
+  )
+  const [targetEndTime, setTargetEndTime] = useState(
+    entry.reservation?.endTime?.slice(0, 5) ?? '',
+  )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -63,6 +63,16 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
       setError('Razlog je obavezan.')
       return
     }
+    if (action === 'reorder') {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate.trim())) {
+        setError('Unesite datum (YYYY-MM-DD).')
+        return
+      }
+      if (!/^\d{2}:\d{2}$/.test(targetStartTime.trim()) || !/^\d{2}:\d{2}$/.test(targetEndTime.trim())) {
+        setError('Unesite vrijeme u formatu HH:mm.')
+        return
+      }
+    }
     setSubmitting(true)
     setError(null)
     try {
@@ -70,8 +80,9 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
         entryId: entry.id,
         action,
         reason: trimmed,
-        targetStartTime: action === 'reorder' ? targetStartTime : undefined,
-        targetEndTime: action === 'reorder' ? targetEndTime : undefined,
+        targetDate: action === 'reorder' ? targetDate.trim() : undefined,
+        targetStartTime: action === 'reorder' ? targetStartTime.trim() : undefined,
+        targetEndTime: action === 'reorder' ? targetEndTime.trim() : undefined,
         applyPenalty: action === 'no_show' || action === 'cancel_as_client',
       })
       setOpen(false)
@@ -90,15 +101,13 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
   return (
     <div className="mt-6 space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
       <div>
-        <p className="font-semibold text-slate-900 dark:text-slate-50">Upravljanje direktnom rezervacijom</p>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Rezervacija je prešla u dnevnu knjigu. Možete završiti zapis ili odabrati jednu od akcija ispod.
-        </p>
+        <p className="font-semibold text-slate-900 dark:text-slate-50">{DISPOSITION_PANEL_TITLE}</p>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{DISPOSITION_PANEL_HINT}</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        {(Object.keys(ACTION_LABELS) as DispositionAction[]).map((key) => (
+        {DISPOSITION_ACTION_KEYS.map((key) => (
           <Button key={key} type="button" variant="outline" size="sm" onClick={() => openAction(key)}>
-            {ACTION_LABELS[key]}
+            {DISPOSITION_ACTION_LABELS[key]}
           </Button>
         ))}
       </div>
@@ -106,12 +115,23 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{action ? ACTION_LABELS[action] : 'Akcija'}</DialogTitle>
-            <DialogDescription>Unesite razlog. Akcija je nepovratna.</DialogDescription>
+            <DialogTitle>{action ? DISPOSITION_ACTION_LABELS[action] : 'Akcija'}</DialogTitle>
+            <DialogDescription>
+              {action ? DISPOSITION_ACTION_HINTS[action] : 'Akcija je nepovratna.'} Unesite razlog.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             {action === 'reorder' ? (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                  <Label htmlFor="targetDate">Novi datum</Label>
+                  <Input
+                    id="targetDate"
+                    type="date"
+                    value={targetDate}
+                    onChange={(e) => setTargetDate(e.target.value)}
+                  />
+                </div>
                 <div>
                   <Label htmlFor="targetStart">Novi početak</Label>
                   <Input

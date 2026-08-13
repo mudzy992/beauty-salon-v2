@@ -2,6 +2,7 @@ export interface AvailableSlotDto {
   startTime: string;
   endTime: string;
   availableStylistCount: number;
+  holdState?: 'none' | 'pending_hold';
 }
 
 export interface AvailableDateDto {

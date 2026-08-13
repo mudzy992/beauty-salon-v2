@@ -12,6 +12,7 @@ import { ReservationQueriesService } from './reservation-queries.service';
 import { RESERVATION_STATUS } from './constants';
 import { timeToMinutes } from './utils/time-slot.utils';
 import { isDirectStaffWaived } from './reservation-policy';
+import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
 
 @Injectable()
 export class ReservationReorderService {
@@ -48,6 +49,7 @@ export class ReservationReorderService {
         rescheduleStatus: true,
         rescheduleProposedStartTime: true,
         rescheduleProposedEndTime: true,
+        items: { select: { serviceId: true } },
       },
     });
     if (!reservation)
@@ -116,6 +118,19 @@ export class ReservationReorderService {
     });
     if (conflict)
       throw new BadRequestException('Odabrani termin je zauzet.');
+    const serviceIds =
+      reservation.items.length > 0
+        ? reservation.items.map((item) => item.serviceId)
+        : [reservation.serviceId];
+    await assertClientDayBookingAllowed({
+      prisma: this.prisma,
+      clientId: reservation.clientId,
+      reservationDate: reservation.reservationDate,
+      startTime: dto.targetStartTime,
+      endTime: dto.targetEndTime,
+      serviceIds,
+      excludeReservationId: reservation.id,
+    });
     await this.prisma.reservation.update({
       where: { id: reservation.id },
       data: {

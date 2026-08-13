@@ -5,9 +5,11 @@ import {
   getZonedDateParts,
   zonedWallTimeToUtc,
 } from '../common/utils/zoned-time'
-import { ATTENDANCE_CONFIRM_DEADLINE_HOURS } from './constants'
+import { ATTENDANCE_CONFIRM_DEADLINE_HOURS, DAILY_LOG_REMINDER_HOURS, INBOX_TIMEOUT_HOURS } from './constants'
 
 const ATTENDANCE_HOURS_SETTING = 'system_reservation_attendance_hours'
+const INBOX_HOURS_SETTING = 'system_reservation_inbox_timeout_hours'
+const DAILY_LOG_REMINDER_HOURS_SETTING = 'system_reservation_daily_log_reminder_hours'
 
 @Injectable()
 export class ReservationDateService implements OnModuleInit {
@@ -36,6 +38,22 @@ export class ReservationDateService implements OnModuleInit {
       return await this.settings.getNumber(ATTENDANCE_HOURS_SETTING)
     } catch {
       return ATTENDANCE_CONFIRM_DEADLINE_HOURS
+    }
+  }
+
+  async getInboxTimeoutHours(): Promise<number> {
+    try {
+      return await this.settings.getNumber(INBOX_HOURS_SETTING)
+    } catch {
+      return INBOX_TIMEOUT_HOURS
+    }
+  }
+
+  async getDailyLogReminderHours(): Promise<number> {
+    try {
+      return await this.settings.getNumber(DAILY_LOG_REMINDER_HOURS_SETTING)
+    } catch {
+      return DAILY_LOG_REMINDER_HOURS
     }
   }
 

@@ -8,12 +8,14 @@ import { AvailabilityService } from './availability.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EventsGateway } from '../events/events.gateway';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { ReservationDateService } from './reservation-date.service';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
 import { RESERVATION_STATUS } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
+import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
 
 @Injectable()
 export class ReservationCreateService {
@@ -23,6 +25,7 @@ export class ReservationCreateService {
     private readonly notifications: NotificationsService,
     private readonly events: EventsGateway,
     private readonly loyalty: LoyaltyService,
+    private readonly dates: ReservationDateService,
     private readonly shared: ReservationSharedService,
     private readonly queries: ReservationQueriesService,
   ) {}
@@ -71,32 +74,15 @@ export class ReservationCreateService {
     );
     if (!match || match.availableStylistCount === 0)
       throw new BadRequestException('Odabrani termin nije dostupan.');
-    const reservationDate = new Date(dto.reservationDate);
-    reservationDate.setHours(0, 0, 0, 0);
-    const dayStart = new Date(reservationDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(reservationDate);
-    dayEnd.setHours(23, 59, 59, 999);
-    const activeStatuses: string[] = [
-      RESERVATION_STATUS.PENDING,
-      RESERVATION_STATUS.STYLIST_REVIEW,
-      RESERVATION_STATUS.CONFIRMED,
-      RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
-      RESERVATION_STATUS.IN_PROGRESS,
-    ];
-    const existingSameDay = await this.prisma.reservation.findFirst({
-      where: {
-        clientId,
-        reservationDate: { gte: dayStart, lte: dayEnd },
-        status: { in: activeStatuses as any },
-      },
-      select: { id: true, startTime: true, status: true },
+    const reservationDate = this.dates.parseDateOnly(dto.reservationDate);
+    await assertClientDayBookingAllowed({
+      prisma: this.prisma,
+      clientId,
+      reservationDate,
+      startTime: dto.startTime,
+      endTime: dto.endTime,
+      serviceIds,
     });
-    if (existingSameDay) {
-      throw new BadRequestException(
-        'Već imate aktivnu rezervaciju za odabrani dan. Molimo otkažite postojeću ili odaberite drugi dan.',
-      );
-    }
     const { publicReferenceCode, clientViewToken } =
       await this.shared.allocateReservationPublicCodes(reservationDate);
     const reservation = await this.prisma.reservation.create({

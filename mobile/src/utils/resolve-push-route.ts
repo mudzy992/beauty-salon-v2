@@ -9,6 +9,7 @@ const CLIENT_RESERVATION_KINDS = new Set([
   'attendance_timeout_cancelled',
   'reservation_reschedule',
   'reservation_reorder',
+  'reservation_time_changed',
   'delay_warning',
 ]);
 
@@ -50,6 +51,20 @@ export const resolvePushRoute = (
 
   if (kind === 'stylist_reschedule_decision' || kind === 'stylist_reservation_cancelled') {
     return stylistScheduleDetailRoute(reservationId);
+  }
+
+  if (kind === 'daily_log_pending_reminder') {
+    const entryId =
+      typeof data.dailyLogEntryId === 'string' && data.dailyLogEntryId.trim()
+        ? data.dailyLogEntryId.trim()
+        : undefined;
+    if (entryId) {
+      return {
+        pathname: '/stylist/daily-log/detail/[entryId]',
+        params: { entryId },
+      };
+    }
+    return { pathname: '/stylist/daily-log' };
   }
 
   if (CLIENT_RESERVATION_KINDS.has(kind)) {

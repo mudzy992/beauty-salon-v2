@@ -15,6 +15,7 @@ import {
 } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { intervalsOverlap, timeToMinutes } from './utils/time-slot.utils';
+import { isActiveLock } from './utils/slot-hold.utils';
 
 @Injectable()
 export class ReservationStylistAcceptService {
@@ -51,14 +52,26 @@ export class ReservationStylistAcceptService {
       throw new NotFoundException(
         'Odgovor za ovog stilista nije pronađen.',
       );
-    if (response.status !== 'LOCKED')
+    const now = new Date();
+    const otherLock = res.stylistResponses.find(
+      (r) =>
+        r.stylistProfileId !== stylistProfileId && isActiveLock(r, now),
+    );
+    if (otherLock) {
+      throw new BadRequestException(
+        'Drugi stilist trenutno razmatra ovu rezervaciju.',
+      );
+    }
+    const ownActive = isActiveLock(response, now);
+    const canAcceptWithoutLock =
+      !ownActive &&
+      response.hasLockedOnce &&
+      (response.status === 'PENDING' || response.status === 'LOCKED');
+    if (!ownActive && !canAcceptWithoutLock) {
       throw new BadRequestException(
         'Prvo zaključajte rezervaciju (lock).',
       );
-    if (response.lockExpiresAt && new Date() > response.lockExpiresAt)
-      throw new BadRequestException(
-        'Lock je istekao. Zaključajte ponovo.',
-      );
+    }
     const dayStart = new Date(res.reservationDate);
     dayStart.setHours(0, 0, 0, 0);
     const dayEnd = new Date(res.reservationDate);

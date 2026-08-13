@@ -4,6 +4,9 @@
 
 This document defines the stylist-side reservation matrix for overrun handling, recalculation, client reconfirmation, reorder requests, timeout behavior, penalties, and auto-start.
 
+**Full FSM / policy / direct booking:** `.cursor/docs/matrices/reservations/MATRIX.md` and `.cursor/docs/reservations/RESERVATION_MODULE.md`.  
+Direct `AWAITING_DAILY_LOG` + disposition is **not** an overrun flow — see MODULE §6.5.
+
 ## Reservation States
 
 - `PENDING`
@@ -11,6 +14,7 @@ This document defines the stylist-side reservation matrix for overrun handling, 
 - `CONFIRMED`
 - `ATTENDANCE_CONFIRMED`
 - `IN_PROGRESS`
+- `AWAITING_DAILY_LOG` (direct staff only; after DK auto-seed — out of schedule / not slot-blocking)
 - `COMPLETED`
 - `CANCELLED_BY_CLIENT`
 - `CANCELLED_BY_STYLISTS`
@@ -96,10 +100,11 @@ Client accepts/declines by push flow.
 
 ## Auto-Start
 
-A periodic job auto-starts first due `ATTENDANCE_CONFIRMED` reservations when:
+A periodic job auto-starts due reservations when:
 
 - Start time is reached.
 - Same stylist has no existing `IN_PROGRESS` reservation.
+- Status is `ATTENDANCE_CONFIRMED` (standard), **or** `CONFIRMED` with `attendancePolicy=STAFF_WAIVED` (direct).
 
 ## Notifications
 

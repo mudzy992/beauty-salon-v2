@@ -22,12 +22,14 @@ export class ReservationDelayCron {
   async tick() {
     // 1) Timeout za pending potvrde nakon rekalkulacije/reorder zahtjeva
     await this.reservations.processPendingRescheduleTimeouts();
-    // 2) Attendance deadline enforcement (auto-otkaz za nepotvrđene dolaske)
     const attendanceResult = await this.reservations.processAttendanceDeadlines();
     if ((attendanceResult?.cancelledCount ?? 0) > 0) {
       await this.reservations.processAutoReordersAfterAttendanceCancellations();
     }
     await this.reservations.processDirectBookingDailyLogSeeds();
+    await this.reservations.processPendingDailyLogReminders();
+    await this.reservations.processExpiredLocks();
+    await this.reservations.processInboxTimeouts();
 
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) return;

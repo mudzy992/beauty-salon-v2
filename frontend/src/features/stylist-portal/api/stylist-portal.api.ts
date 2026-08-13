@@ -24,6 +24,13 @@ export const lockReservationForStylist = async (params: {
   await api.post(`/api/reservations/${params.reservationId}/stylist/${params.stylistProfileId}/lock`)
 }
 
+export const unlockReservationForStylist = async (params: {
+  reservationId: string
+  stylistProfileId: string
+}): Promise<void> => {
+  await api.post(`/api/reservations/${params.reservationId}/stylist/${params.stylistProfileId}/unlock`)
+}
+
 export const acceptReservationForStylist = async (params: {
   reservationId: string
   stylistProfileId: string

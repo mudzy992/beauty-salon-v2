@@ -144,7 +144,13 @@ describe('AvailabilityService', () => {
       },
     ]);
     mockPrisma.reservation.findMany.mockResolvedValue([
-      { startTime: '09:00', endTime: '10:00', confirmedStylistId: 'sp-1' },
+      {
+        startTime: '09:00',
+        endTime: '10:00',
+        status: 'CONFIRMED',
+        confirmedStylistId: 'sp-1',
+        stylistResponses: [],
+      },
     ]);
     const result = await service.getAvailableSlots('svc-1', '2026-03-16');
     const blocked = result.find((s) => s.startTime === '09:00');
@@ -153,7 +159,7 @@ describe('AvailabilityService', () => {
     expect(allStarts).not.toContain('09:00');
   });
 
-  it('getAvailableSlots ne učitava PENDING/STYLIST_REVIEW kao zauzete (C2-B)', async () => {
+  it('PENDING hold s 1 stilistom vraća slot kao pending_hold', async () => {
     mockPrisma.salonSettings.findFirst.mockResolvedValue({
       id: 'salon-1',
       pauseBetweenServices: 0,
@@ -185,17 +191,21 @@ describe('AvailabilityService', () => {
         ],
       },
     ]);
-    mockPrisma.reservation.findMany.mockResolvedValue([]);
-    await service.getAvailableSlots('svc-1', '2026-03-16');
-    expect(mockPrisma.reservation.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          status: {
-            in: ['CONFIRMED', 'ATTENDANCE_CONFIRMED', 'IN_PROGRESS'],
-          },
-        }),
-      }),
-    );
+    mockPrisma.reservation.findMany.mockResolvedValue([
+      {
+        startTime: '09:00',
+        endTime: '10:00',
+        status: 'PENDING',
+        confirmedStylistId: null,
+        stylistResponses: [
+          { stylistProfileId: 'sp-1', status: 'PENDING', lockExpiresAt: null },
+        ],
+      },
+    ]);
+    const result = await service.getAvailableSlots('svc-1', '2026-03-16');
+    const held = result.find((s) => s.startTime === '09:00');
+    expect(held?.availableStylistCount).toBe(0);
+    expect(held?.holdState).toBe('pending_hold');
   });
 
   it('getAvailableDates honesty: dan bez slotova nije available', async () => {

@@ -5,6 +5,7 @@ import {
   acceptReservationForStylist,
   fetchStylistReservations,
   lockReservationForStylist,
+  unlockReservationForStylist,
   rejectReservationForStylist,
 } from '../api/stylist-portal.api'
 import type { Reservation } from '../types'
@@ -26,6 +27,16 @@ export const useStylistInboxReservations = (params: { stylistProfileId: string |
     mutationFn: async (reservationId: string) => {
       if (!params.stylistProfileId) return
       await lockReservationForStylist({ reservationId, stylistProfileId: params.stylistProfileId })
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['stylistReservations'] })
+    },
+  })
+
+  const unlockMutation = useMutation({
+    mutationFn: async (reservationId: string) => {
+      if (!params.stylistProfileId) return
+      await unlockReservationForStylist({ reservationId, stylistProfileId: params.stylistProfileId })
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['stylistReservations'] })
@@ -63,6 +74,7 @@ export const useStylistInboxReservations = (params: { stylistProfileId: string |
     error: listQuery.error,
     refetch: listQuery.refetch,
     lock: lockMutation,
+    unlock: unlockMutation,
     accept: acceptMutation,
     reject: rejectMutation,
   }

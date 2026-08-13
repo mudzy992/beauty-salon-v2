@@ -21,6 +21,7 @@ export type ReservationStylistResponse = {
   status: StylistResponseStatus
   lockedAt?: string
   lockExpiresAt?: string
+  hasLockedOnce?: boolean
   respondedAt?: string
   rejectionReason?: string | null
   stylistProfile?: { id: string; user?: { username?: string } } | null

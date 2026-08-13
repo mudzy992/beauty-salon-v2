@@ -5,10 +5,10 @@ import { getDayStartEnd } from '../common/utils/date-range';
 import {
   generateSlots,
   timeToMinutes,
-  intervalsOverlap,
 } from './utils/time-slot.utils';
 import { getStylistProfilesForSlots } from './utils/availability-helpers';
-import { SLOT_OCCUPYING_STATUSES } from './constants';
+import { SLOT_HOLD_INBOX_STATUSES, SLOT_OCCUPYING_STATUSES } from './constants';
+import { computeSlotCapacity } from './utils/slot-hold.utils';
 import type { AvailableSlotDto } from './availability.types';
 
 @Injectable()
@@ -92,34 +92,47 @@ export class AvailabilitySlotsService {
     const reservations = await this.prisma.reservation.findMany({
       where: {
         reservationDate: { gte: dateStart, lte: dateEnd },
-        status: { in: [...SLOT_OCCUPYING_STATUSES] },
+        status: {
+          in: [...SLOT_OCCUPYING_STATUSES, ...SLOT_HOLD_INBOX_STATUSES],
+        },
       },
-      select: { startTime: true, endTime: true, confirmedStylistId: true },
+      select: {
+        startTime: true,
+        endTime: true,
+        status: true,
+        confirmedStylistId: true,
+        stylistResponses: {
+          select: {
+            stylistProfileId: true,
+            status: true,
+            lockExpiresAt: true,
+          },
+        },
+      },
     });
 
     return filteredSlots
       .map((slot) => {
         const slotStart = timeToMinutes(slot.startTime);
         const slotEnd = timeToMinutes(slot.endTime);
-        let count = 0;
-        for (const sp of stylists) {
-          if (slotStart < sp.window.end && slotEnd > sp.window.start) {
-            const busy = reservations.some((r) => {
-              if (r.confirmedStylistId != null && r.confirmedStylistId !== sp.id)
-                return false;
-              const rStart = timeToMinutes(r.startTime);
-              const rEnd = timeToMinutes(r.endTime);
-              return intervalsOverlap(slotStart, slotEnd, rStart, rEnd);
-            });
-            if (!busy) count++;
-          }
-        }
+        const stylistIdsInWindow = stylists
+          .filter((sp) => slotStart < sp.window.end && slotEnd > sp.window.start)
+          .map((sp) => sp.id);
+        const { availableStylistCount, hasInboxHold } = computeSlotCapacity({
+          slotStart: slot.startTime,
+          slotEnd: slot.endTime,
+          stylistIdsInWindow,
+          reservations,
+        });
+        const holdState =
+          availableStylistCount === 0 && hasInboxHold ? 'pending_hold' : 'none';
         return {
           startTime: slot.startTime,
           endTime: slot.endTime,
-          availableStylistCount: count,
-        };
+          availableStylistCount,
+          holdState,
+        } satisfies AvailableSlotDto;
       })
-      .filter((s) => s.availableStylistCount > 0);
+      .filter((s) => s.availableStylistCount > 0 || s.holdState === 'pending_hold');
   }
 }

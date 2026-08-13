@@ -12,6 +12,7 @@ import { DailyLogService } from './daily-log.service';
 import { ReservationSharedService } from '../reservations/reservation-shared.service';
 import { ReservationQueriesService } from '../reservations/reservation-queries.service';
 import { ReservationDateService } from '../reservations/reservation-date.service';
+import { ReservationNotifyService } from '../reservations/reservation-notify.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RESERVATION_STATUS } from '../reservations/constants';
 import { timeToMinutes } from '../reservations/utils/time-slot.utils';
@@ -24,6 +25,7 @@ import {
   applyStylistCancel,
   assertReorderSlotFree,
 } from './daily-log-disposition-apply';
+import { assertClientDayBookingAllowed } from '../reservations/utils/assert-client-day-booking';
 
 @Injectable()
 export class DailyLogDispositionService {
@@ -36,6 +38,7 @@ export class DailyLogDispositionService {
     private readonly queries: ReservationQueriesService,
     private readonly notifications: NotificationsService,
     private readonly events: EventsGateway,
+    private readonly reservationNotify: ReservationNotifyService,
   ) {}
 
   private get applyDeps() {
@@ -64,6 +67,7 @@ export class DailyLogDispositionService {
 
     const reservation = await this.prisma.reservation.findUnique({
       where: { id: entry.reservationId },
+      include: { items: { select: { serviceId: true } } },
     });
     if (!reservation) {
       throw new NotFoundException('Rezervacija nije pronađena.');
@@ -109,6 +113,19 @@ export class DailyLogDispositionService {
         targetStartTime: dto.targetStartTime,
         targetEndTime: dto.targetEndTime,
       });
+      const serviceIds =
+        reservation.items.length > 0
+          ? reservation.items.map((item) => item.serviceId)
+          : [reservation.serviceId];
+      await assertClientDayBookingAllowed({
+        prisma: this.prisma,
+        clientId: reservation.clientId,
+        reservationDate: dto.targetDate ?? reservation.reservationDate,
+        startTime: dto.targetStartTime,
+        endTime: dto.targetEndTime,
+        serviceIds,
+        excludeReservationId: reservation.id,
+      });
     }
 
     await this.dailyLogAdmin.softDelete(entryId, { reason }, user);
@@ -134,6 +151,17 @@ export class DailyLogDispositionService {
           targetDate: dto.targetDate,
           targetStartTime: dto.targetStartTime!,
           targetEndTime: dto.targetEndTime!,
+        });
+        await this.reservationNotify.notifyClientTimeChanged({
+          clientId: reservation.clientId,
+          reservationId: reservation.id,
+          date:
+            dto.targetDate ??
+            this.dates.toLocalDateOnlyString(reservation.reservationDate),
+          startTime: dto.targetStartTime!,
+          endTime: dto.targetEndTime!,
+          publicReferenceCode: reservation.publicReferenceCode,
+          clientViewToken: reservation.clientViewToken,
         });
         break;
     }

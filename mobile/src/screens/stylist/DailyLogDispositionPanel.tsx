@@ -16,11 +16,14 @@ import { Input } from '../../components/ui/Input';
 import api from '../../services/api';
 import { spacing } from '../../theme';
 import type { DailyLogEntry } from '../../types';
+import { DispositionActionMenuModal } from './disposition-action-menu-modal';
 import {
-  DispositionActionMenuModal,
+  DISPOSITION_ACTION_HINTS,
   DISPOSITION_ACTION_LABELS,
+  DISPOSITION_PANEL_HINT,
+  DISPOSITION_PANEL_TITLE,
   type DispositionAction,
-} from './disposition-action-menu-modal';
+} from './disposition-copy';
 
 type Props = {
   entry: DailyLogEntry;
@@ -85,7 +88,7 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
       if (action === 'reorder') {
         Alert.alert(
           'Termin pomjeren',
-          'Novi datum i vrijeme su odmah primijenjeni. Klijent ne mora potvrđivati.',
+          'Novi datum i vrijeme su odmah primijenjeni. Klijent je obaviješten i ne mora potvrđivati.',
           [{ text: 'U redu', onPress: onDone }],
         );
       } else {
@@ -101,13 +104,9 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
   return (
     <>
       <Card style={[styles.card, { borderColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.text }]}>
-          Upravljanje direktnom rezervacijom
-        </Text>
-        <Text style={[styles.hint, { color: colors.textSecondary }]}>
-          Rezervacija je prešla u dnevnu knjigu. Završite zapis ili odaberite akciju.
-        </Text>
-        <Button title="Akcije rezervacije" variant="outline" onPress={() => setMenuOpen(true)} />
+        <Text style={[styles.title, { color: colors.text }]}>{DISPOSITION_PANEL_TITLE}</Text>
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>{DISPOSITION_PANEL_HINT}</Text>
+        <Button title="Izuzeci (otkaz / no-show / pomjeri)" variant="outline" onPress={() => setMenuOpen(true)} />
       </Card>
 
       <DispositionActionMenuModal
@@ -128,6 +127,11 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
               <Text style={[styles.title, { color: colors.text }]}>
                 {action ? DISPOSITION_ACTION_LABELS[action] : 'Akcija'}
               </Text>
+              {action ? (
+                <Text style={[styles.hint, { color: colors.textSecondary }]}>
+                  {DISPOSITION_ACTION_HINTS[action]}
+                </Text>
+              ) : null}
               {action === 'reorder' ? (
                 <>
                   <DateTimeField label="Novi datum" mode="date" value={targetDate} onChange={setTargetDate} />

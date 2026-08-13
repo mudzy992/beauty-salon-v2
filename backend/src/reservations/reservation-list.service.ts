@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReservationSharedService } from './reservation-shared.service';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { hideOverlappingInboxWhileLocked } from './utils/inbox-lock-filter';
 
 @Injectable()
 export class ReservationListService {
@@ -143,11 +144,16 @@ export class ReservationListService {
     } as const;
     const hasPagination = query.page != null && query.pageSize != null;
     if (!hasPagination) {
-      return this.prisma.reservation.findMany({
+      const rows = await this.prisma.reservation.findMany({
         where,
         include,
         orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
       });
+      if (!query.asStylist) return rows;
+      const stylistProfileId =
+        await this.shared.getStylistProfileIdByUserId(user.sub);
+      if (!stylistProfileId) return rows;
+      return hideOverlappingInboxWhileLocked(rows, stylistProfileId);
     }
     const page = Math.max(0, query.page ?? 0);
     const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 10));

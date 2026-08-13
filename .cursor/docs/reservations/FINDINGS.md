@@ -163,9 +163,9 @@ Zajednički `canAdminCancelReservation` u `features/reservations/status.ts` (ukl
 | ID | Opis |
 |----|------|
 | T1 | ~~`reservations.service.ts` ~2315 linija~~ — **DONE**. T1b DONE. Availability split DONE 2026-08-12 (facade + dates/slots/debug ≤200). |
-| T2 | Repository layer za reservations (pravilo `backend-architecture.mdc`) — Prisma direktno u god-object servisu |
-| T3 | Statusi kao string umjesto Prisma enum — lakše drift |
-| T4 | Skill kaže “Repository layer obavezan” — trenutno nije |
+| T2 | Repository layer za reservations — `wontfix-for-now` (POLICY_BACKLOG); Prisma u domain servisima OK nakon T1 split |
+| T3 | Statusi kao string umjesto Prisma enum — `wontfix-for-now` |
+| T4 | Skill “Repository layer obavezan” — uskladiti skill kasnije; praksa = domain services |
 | T5 | Matrica rezervacija nije bila u `.cursor/docs/matrices/reservations/` do ovog review-a |
 | T6 | ~~Test gaps~~ — **DONE** (2026-08-11): accept lock/overlap, reject all→cancel, no-show±penalty, commitReschedule, availability CONFIRMED blocks |
 
@@ -219,7 +219,7 @@ Zajednički `canAdminCancelReservation` u `features/reservations/status.ts` (ukl
 | Complete → DK → KIF | ✅ | — | ✅ | (admin DK) | — | ✅ |
 | Reschedule accept/decline | ✅ | ✅ | propose/commit ✅ | — | ✅ | propose/commit ✅ |
 | Reorder | ✅ | — | ✅ | — | — | ✅ |
-| Realtime list | ✅ | public slots ✅ | partial | list ✅ / cal ✅ | polling | schedule+inbox polling |
+| Realtime list | ✅ | public slots ✅ | portal ✅ | list ✅ / cal ✅ | socket+poll | socket+poll |
 
 ---
 
@@ -247,10 +247,11 @@ Zajednički `canAdminCancelReservation` u `features/reservations/status.ts` (ukl
 - [x] Timezone salona  
 - [x] Service split (T1+T1b) — facade + 21 domain servisa, svi ≤200 linija  
 - [x] T6 unit test coverage: accept/reject/no-show/reschedule-commit/availability overlap (41/41 pass)  
-- [ ] Repository layer (ostaje P3 kandidat)  
+- [x] Repository layer — **wontfix-for-now** (vidi POLICY_BACKLOG; T1 split dovoljan)  
 - [x] Admin calendar realtime  
 - [x] Matrice u `.cursor/docs/matrices/reservations/` ažurirane uz logičke promjene  
+- [x] Docs sync 2026-08-13 — `RESERVATION_MODULE.md` = living SoT  
 
 ---
 
-*Review baziran na kodu (backend/frontend/mobile), postojećim matricama i skill/engine pravilima — AS-IS stanje 2026-08-11.*
+*Historical review (2026-08-11) + fix log. Aktivni backlog: [POLICY_BACKLOG.md](./POLICY_BACKLOG.md). Living AS-IS: [RESERVATION_MODULE.md](./RESERVATION_MODULE.md).*

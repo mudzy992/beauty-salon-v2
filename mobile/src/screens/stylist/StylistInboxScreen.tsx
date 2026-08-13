@@ -92,6 +92,26 @@ export function StylistInboxScreen() {
     [profileId, fetchReservations],
   );
 
+  const handleUnlock = useCallback(
+    async (reservationId: string) => {
+      if (!profileId) return;
+      setActingId(reservationId);
+      try {
+        await api.post(`/api/reservations/${reservationId}/stylist/${profileId}/unlock`);
+        await fetchReservations();
+      } catch (err: unknown) {
+        const msg =
+          err && typeof err === 'object' && 'response' in err
+            ? (err as any).response?.data?.message
+            : 'Greška pri oslobađanju.';
+        Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+      } finally {
+        setActingId(null);
+      }
+    },
+    [profileId, fetchReservations],
+  );
+
   const handleAccept = useCallback(
     async (reservation: Reservation) => {
       if (!profileId) return;
@@ -222,8 +242,25 @@ export function StylistInboxScreen() {
       }
       renderItem={({ item }) => {
         const myResponse = getMyResponse(item, profileId);
-        const isLockedByMe = item.status === 'STYLIST_REVIEW' && myResponse?.status === 'LOCKED';
-        const canLock = item.status === 'PENDING';
+        const lockActive =
+          myResponse?.status === 'LOCKED' &&
+          (!myResponse.lockExpiresAt || new Date(myResponse.lockExpiresAt).getTime() > Date.now());
+        const isLockedByMe = lockActive;
+        const lockedByOther =
+          item.status === 'STYLIST_REVIEW' &&
+          !isLockedByMe &&
+          (item.stylistResponses ?? []).some(
+            (x) =>
+              x.stylistProfileId !== profileId &&
+              x.status === 'LOCKED' &&
+              (!x.lockExpiresAt || new Date(x.lockExpiresAt).getTime() > Date.now()),
+          );
+        const canLock =
+          !isLockedByMe &&
+          !lockedByOther &&
+          !myResponse?.hasLockedOnce &&
+          myResponse?.status !== 'REJECTED';
+        const canAccept = !lockedByOther && (isLockedByMe || !!myResponse?.hasLockedOnce);
         const acting = actingId === item.id;
 
         return (
@@ -284,6 +321,11 @@ export function StylistInboxScreen() {
               </Text>
             )}
             <View style={styles.actions}>
+              {lockedByOther ? (
+                <Text style={[styles.notes, { color: colors.textMuted }]}>
+                  Drugi stilist trenutno razmatra ovaj zahtjev.
+                </Text>
+              ) : null}
               {canLock && (
                 <Button
                   title="Zaključaj"
@@ -293,24 +335,33 @@ export function StylistInboxScreen() {
                   size="sm"
                 />
               )}
+              {canAccept && (
+                <Button
+                  title="Prihvati"
+                  onPress={() => handleAccept(item)}
+                  loading={acting}
+                  size="sm"
+                  style={styles.actionBtn}
+                />
+              )}
               {isLockedByMe && (
-                <>
-                  <Button
-                    title="Prihvati"
-                    onPress={() => handleAccept(item)}
-                    loading={acting}
-                    size="sm"
-                    style={styles.actionBtn}
-                  />
-                  <Button
-                    title="Odbij"
-                    onPress={() => handleReject(item.id)}
-                    loading={acting}
-                    variant="ghost"
-                    textStyle={{ color: colors.error }}
-                    size="sm"
-                  />
-                </>
+                <Button
+                  title="Oslobodi"
+                  onPress={() => handleUnlock(item.id)}
+                  loading={acting}
+                  variant="outline"
+                  size="sm"
+                />
+              )}
+              {(isLockedByMe || canAccept) && (
+                <Button
+                  title="Odbij"
+                  onPress={() => handleReject(item.id)}
+                  loading={acting}
+                  variant="ghost"
+                  textStyle={{ color: colors.error }}
+                  size="sm"
+                />
               )}
             </View>
           </Card>

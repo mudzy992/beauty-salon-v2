@@ -116,12 +116,10 @@ export class ReservationStylistRejectService {
       SOCKET_EVENTS.RESERVATION_STYLIST_RESPONSE,
       result,
     );
-    if (stillPendingOrLocked.length === 0) {
-      this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
-        serviceId: res.serviceId,
-        date: res.reservationDate,
-      });
-    }
+    this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
+      serviceId: res.serviceId,
+      date: res.reservationDate,
+    });
     return result;
   }
 }

@@ -144,6 +144,7 @@ export interface StylistResponse {
   status: 'PENDING' | 'LOCKED' | 'ACCEPTED' | 'REJECTED';
   lockedAt?: string;
   lockExpiresAt?: string;
+  hasLockedOnce?: boolean;
   respondedAt?: string;
   rejectionReason?: string;
   stylistProfile?: StylistProfile;
@@ -224,6 +225,7 @@ export interface TimeSlot {
   startTime: string;
   endTime: string;
   availableStylistCount: number;
+  holdState?: 'none' | 'pending_hold';
 }
 
 export interface BlogPost {

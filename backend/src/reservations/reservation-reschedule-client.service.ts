@@ -12,6 +12,7 @@ import { ReservationNotifyService } from './reservation-notify.service';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { RESERVATION_STATUS } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
+import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
 
 @Injectable()
 export class ReservationRescheduleClientService {
@@ -27,6 +28,7 @@ export class ReservationRescheduleClientService {
   async acceptReschedule(reservationId: string, userId: string) {
     const r = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
+      include: { items: { select: { serviceId: true } } },
     });
     if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
     if (r.clientId !== userId)
@@ -74,6 +76,17 @@ export class ReservationRescheduleClientService {
         'Novi termin više nije dostupan zbog preklapanja. Pokušajte ponovo.',
       );
     }
+    const serviceIds =
+      r.items.length > 0 ? r.items.map((item) => item.serviceId) : [r.serviceId];
+    await assertClientDayBookingAllowed({
+      prisma: this.prisma,
+      clientId: r.clientId,
+      reservationDate: r.reservationDate,
+      startTime: r.rescheduleProposedStartTime,
+      endTime: r.rescheduleProposedEndTime,
+      serviceIds,
+      excludeReservationId: r.id,
+    });
     await this.prisma.reservation.update({
       where: { id: reservationId },
       data: {

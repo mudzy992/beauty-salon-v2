@@ -1,5 +1,30 @@
 # Reservation matrix changelog
 
+## 2026-08-13 (multi-booking)
+
+- Client-day: uklonjen max 1 aktivna / dan.
+- M2: overlap vremena na živim statusima; unique `serviceId` po danu uključuje `AWAITING_DAILY_LOG` + `COMPLETED`.
+- Guard na create, direct create, PATCH, reorder, reschedule accept/commit, disposition reorder.
+
+## 2026-08-13 (direct-disposition)
+
+- Disposition UI: `discard` sakriven (API alias ostaje); complete = naplata, disposition = izuzeci.
+- Disposition `reorder` i admin calendar PATCH šalju klijentu `reservation_time_changed` (nema CTA).
+- Reminder stilistu za stuck PENDING DK: `system_reservation_daily_log_reminder_hours` (default 12), bez auto-timeouta.
+
+## 2026-08-13 (slot-hold)
+
+- Inbox hold: `PENDING`/`STYLIST_REVIEW` troše 1 kapacitet po intervalu (max = broj eligible stilista).
+- Lock je ekskluzivan (nema steal); unlock + TTL vraća `STYLIST_REVIEW → PENDING`.
+- Inbox timeout: `system_reservation_inbox_timeout_hours` (default 24), bez klijentske kazne.
+- API slot `holdState=pending_hold` za UI “može se uskoro osloboditi”.
+
+## 2026-08-13 (docs-sync)
+
+- `RESERVATION_MODULE.md` usklađen s kodom (living SoT): FSM + direct/`AWAITING_DAILY_LOG`, settings attendance hours, admin working-hours, mobile socket, dispose API, S11.
+- Attendance u MATRIX: `N` iz `system_reservation_attendance_hours` (ne hardcode 24 u prose).
+- FINDINGS označen kao arhiva; aktivni backlog = `POLICY_BACKLOG.md`.
+
 ## 2026-08-12 (Disposition reorder + date)
 
 - Disposition `reorder` sada direktno postavlja `reservationDate` + vrijeme (bez client propose).

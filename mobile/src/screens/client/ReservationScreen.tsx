@@ -249,6 +249,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   }, [availableDates]);
 
   const handleSelectSlot = useCallback((slot: TimeSlot) => {
+    if (slot.holdState === 'pending_hold' && slot.availableStylistCount === 0) return;
     setSelectedSlot(slot);
     setStep(4);
     setDesiredLoyaltyPercent(0);
@@ -572,36 +573,45 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
                 const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
                 const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                 const isPastSlot = selectedDate === todayLocal && slot.startTime.slice(0, 5) < nowHHMM;
+                const isHeld = slot.holdState === 'pending_hold' && slot.availableStylistCount === 0;
+                const isDisabled = isPastSlot || isHeld;
                 return (
                   <TouchableOpacity
                     key={idx}
-                    onPress={() => !isPastSlot && handleSelectSlot(slot)}
-                    disabled={isPastSlot}
+                    onPress={() => !isDisabled && handleSelectSlot(slot)}
+                    disabled={isDisabled}
                     style={[
                       styles.slotChip,
                       {
                         backgroundColor: isPastSlot
                           ? colors.background
-                          : isSelected
-                            ? colors.primary
-                            : colors.surface,
-                        borderColor: isPastSlot
+                          : isHeld
+                            ? colors.background
+                            : isSelected
+                              ? colors.primary
+                              : colors.surface,
+                        borderColor: isHeld
+                          ? colors.border
+                          : isPastSlot
                           ? colors.border
                           : isSelected
                             ? colors.primary
                             : colors.border,
-                        opacity: isPastSlot ? 0.5 : 1,
+                        opacity: isDisabled ? 0.7 : 1,
                       },
                     ]}
                   >
                     <Text
                       style={[
                         styles.slotText,
-                        { color: isSelected ? colors.primaryText : colors.text },
+                        { color: isSelected && !isHeld ? colors.primaryText : colors.text },
                       ]}
                     >
                       {formatTime(slot.startTime)}
                     </Text>
+                    {isHeld ? (
+                      <Text style={[styles.slotHint, { color: colors.textMuted }]}>uskoro?</Text>
+                    ) : null}
                   </TouchableOpacity>
                 );
               })}
@@ -855,6 +865,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   slotText: { fontSize: 15, fontWeight: '500' },
+  slotHint: { fontSize: 10, marginTop: 2 },
   reviewTitle: { fontSize: 22, fontWeight: '700', marginBottom: spacing.md },
   reviewRow: {
     flexDirection: 'row',

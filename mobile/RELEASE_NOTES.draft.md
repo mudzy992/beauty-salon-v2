@@ -1,11 +1,11 @@
 # Draft — napomene za korisnike
 
-- Verzija (predloženo): 1.0.1
-- versionCode (predloženo): 2
+- Verzija (predloženo): 1.0.2
+- versionCode (predloženo): 3
 
 ## Napomene (BS, za AppRelease.releaseNotes)
 
-- Ispravljen scroll na ekranu direktne rezervacije — dugmad više nisu sakrivena ispod menija.
-- Datum i vrijeme birate pickerom umjesto ručnog unosa (direktna rezervacija, pomjeranje, dnevna knjiga).
-- Dijalozi akcija (pomjeri / otkaži / no-show) mogu se zatvoriti dugmetom Odustani ili dodirom pored.
-- U detalju termina vidite referencu, listu usluga i procjenjenu naplatu.
+- Pri rezervaciji, termini koje stilisti još razmatraju vide se kao „uskoro?“ i nisu odmah dostupni.
+- U inboxu možete osloboditi zaključan zahtjev, pa ga prihvatiti bez ponovnog zaključavanja.
+- U dnevnoj knjizi su jasnije akcije kad se termin nije desio (otkaz, no-show, pomjeri), uz objašnjenje posljedica.
+- Ako se termin pomjeri, klijent dobija obavijest; stilist dobija podsjetnik kad dnevna knjiga dugo čeka.

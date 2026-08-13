@@ -63,12 +63,38 @@ export type AttendanceConfirmedBy =
 /** Rok: klijent mora potvrditi dolazak najkasnije ovoliko sati prije starta. */
 export const ATTENDANCE_CONFIRM_DEADLINE_HOURS = 24;
 
-/** Statusi koji zauzimaju slot u availability (C2-B: PENDING/STYLIST_REVIEW ne blokiraju). */
+/** Statusi koji zauzimaju slot po stilistu (potvrđeni termini). */
 export const SLOT_OCCUPYING_STATUSES: ReservationStatus[] = [
   RESERVATION_STATUS.CONFIRMED,
   RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
   RESERVATION_STATUS.IN_PROGRESS,
 ];
+
+/** Inbox hold: svaki zahtjev troši 1 kapacitet na tom intervalu. */
+export const SLOT_HOLD_INBOX_STATUSES: ReservationStatus[] = [
+  RESERVATION_STATUS.PENDING,
+  RESERVATION_STATUS.STYLIST_REVIEW,
+];
+
+/** Live termini klijenta — overlap check (isti dan). */
+export const CLIENT_LIVE_STATUSES: ReservationStatus[] = [
+  RESERVATION_STATUS.PENDING,
+  RESERVATION_STATUS.STYLIST_REVIEW,
+  RESERVATION_STATUS.CONFIRMED,
+  RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
+  RESERVATION_STATUS.IN_PROGRESS,
+];
+
+/** Unique serviceId po danu — uključuje urađene termine. */
+export const CLIENT_SERVICE_DAY_STATUSES: ReservationStatus[] = [
+  ...CLIENT_LIVE_STATUSES,
+  RESERVATION_STATUS.AWAITING_DAILY_LOG,
+  RESERVATION_STATUS.COMPLETED,
+];
+
+export const INBOX_TIMEOUT_HOURS = 24;
+
+export const DAILY_LOG_REMINDER_HOURS = 12;
 
 // Dozvoljeni prijelazi FSM (usklađeno s runtime + admin + DK revert/auto-start)
 export const RESERVATION_TRANSITIONS: Record<
@@ -82,6 +108,7 @@ export const RESERVATION_TRANSITIONS: Record<
   ],
   [RESERVATION_STATUS.STYLIST_REVIEW]: [
     RESERVATION_STATUS.CONFIRMED,
+    RESERVATION_STATUS.PENDING, // unlock / lock TTL
     RESERVATION_STATUS.CANCELLED_BY_STYLISTS,
     RESERVATION_STATUS.CANCELLED_BY_CLIENT,
   ],

@@ -88,6 +88,7 @@ export const disposeDailyLogEntry = async (params: {
   entryId: string
   action: 'discard' | 'reorder' | 'cancel_as_client' | 'cancel_as_stylist' | 'no_show'
   reason: string
+  targetDate?: string
   targetStartTime?: string
   targetEndTime?: string
   applyPenalty?: boolean
@@ -95,6 +96,7 @@ export const disposeDailyLogEntry = async (params: {
   const { data } = await api.post<{ ok: boolean }>(`/api/daily-log/${params.entryId}/dispose`, {
     action: params.action,
     reason: params.reason,
+    targetDate: params.targetDate,
     targetStartTime: params.targetStartTime,
     targetEndTime: params.targetEndTime,
     applyPenalty: params.applyPenalty,

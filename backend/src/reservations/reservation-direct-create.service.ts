@@ -22,6 +22,7 @@ import {
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { timeToMinutes } from './utils/time-slot.utils';
 import { assertAdminSlotWithinWorkingHours } from './utils/assert-admin-working-hours';
+import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
 
 @Injectable()
 export class ReservationDirectCreateService {
@@ -122,29 +123,18 @@ export class ReservationDirectCreateService {
       endTime: dto.endTime,
       confirmedStylistId: stylistProfileId,
     });
+    await assertClientDayBookingAllowed({
+      prisma: this.prisma,
+      clientId: dto.clientId,
+      reservationDate,
+      startTime: dto.startTime,
+      endTime: dto.endTime,
+      serviceIds,
+    });
     const dayStart = new Date(reservationDate);
     dayStart.setUTCHours(0, 0, 0, 0);
     const dayEnd = new Date(reservationDate);
     dayEnd.setUTCHours(23, 59, 59, 999);
-    const sameDay = await this.prisma.reservation.findFirst({
-      where: {
-        clientId: dto.clientId,
-        reservationDate: { gte: dayStart, lte: dayEnd },
-        status: {
-          in: [
-            RESERVATION_STATUS.PENDING,
-            RESERVATION_STATUS.STYLIST_REVIEW,
-            ...SLOT_OCCUPYING_STATUSES,
-          ] as any,
-        },
-      },
-      select: { id: true },
-    });
-    if (sameDay) {
-      throw new BadRequestException(
-        'Klijent već ima aktivnu rezervaciju za odabrani dan.',
-      );
-    }
     const conflict = await this.prisma.reservation.findFirst({
       where: {
         confirmedStylistId: stylistProfileId,

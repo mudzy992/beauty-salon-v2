@@ -41,6 +41,7 @@ Overrun/reorder: `.cursor/docs/stylist-reservation-matrix.md`.
 | PENDING | CANCELLED_BY_CLIENT | cancelByClient |
 | PENDING | CANCELLED_BY_STYLISTS | cancelByAdmin |
 | STYLIST_REVIEW | CONFIRMED | stylistAccept |
+| STYLIST_REVIEW | PENDING | unlock / lock TTL |
 | STYLIST_REVIEW | CANCELLED_BY_STYLISTS | svi reject / cancelByAdmin |
 | STYLIST_REVIEW | CANCELLED_BY_CLIENT | cancelByClient |
 | CONFIRMED | ATTENDANCE_CONFIRMED | confirmAttendance (`CLIENT_REQUIRED` only) |
@@ -66,10 +67,23 @@ Overrun/reorder: `.cursor/docs/stylist-reservation-matrix.md`.
 
 Svi status update-i u `reservations.service` / DK complete+revert prolaze kroz `assertReservationTransition`.
 
-## Slot blocking (availability AS-IS / C2-B)
+## Slot blocking (capacity hold)
 
-Blokiraju: `CONFIRMED`, `ATTENDANCE_CONFIRMED`, `IN_PROGRESS`.  
-**Ne blokiraju:** `PENDING`, `STYLIST_REVIEW`, `AWAITING_DAILY_LOG` (direct booking nakon auto-seeda nije u rasporedu).
+Blokiraju po stilistu: `CONFIRMED`, `ATTENDANCE_CONFIRMED`, `IN_PROGRESS`.  
+Inbox hold: svaki `PENDING` / `STYLIST_REVIEW` na tom intervalu troši **1** od broja eligible stilista (i bez locka).  
+Aktivni lock troši tog stilista (isti zahtjev se ne broji dvaput).  
+**Ne blokiraju:** `AWAITING_DAILY_LOG`.
+
+Kad je kapacitet 0 zbog inbox holda, slot ostaje vidljiv klijentu kao `holdState=pending_hold` (nije bookable).
+
+## Client day booking
+
+Klijent smije više rezervacija isti dan.
+
+- **Overlap vremena** (`PENDING` … `IN_PROGRESS`): `start < other.end && end > other.start` → 400.
+- **Isti `serviceId` isti dan** (živi + `AWAITING_DAILY_LOG` + `COMPLETED`): presjek `ReservationServiceItem` (fallback `serviceId`) → 400. Cancel / `NO_SHOW` ne broje se.
+- Više različitih servisa u **jednoj** rezervaciji je dozvoljeno.
+- Isto za klijentski create, admin STANDARD, staff direct, admin PATCH, stylist reorder, klijent accept reschedule, overrun commit, disposition reorder.
 
 ## Complete path
 
@@ -88,6 +102,9 @@ Blokiraju: `CONFIRMED`, `ATTENDANCE_CONFIRMED`, `IN_PROGRESS`.
 | Reschedule propose/commit | Ne | Da | Da |
 | Reschedule accept/decline | Da (own) | Ne | Ne |
 | Create DK from reservation | Ne | Da (confirmed stylist) | Da (access rules DK) |
+| DK disposition (direct) | Ne | Da (confirmed stylist) | Da |
+
+Admin PATCH datuma/vremena i disposition `reorder` šalju klijentu informational push (`reservation_time_changed`); klijent ne potvrđuje.
 
 ## Nuspojave na DK / finansije
 
@@ -107,8 +124,8 @@ Blokiraju: `CONFIRMED`, `ATTENDANCE_CONFIRMED`, `IN_PROGRESS`.
 
 ## Attendance rok / policy
 
-- Potvrda dozvoljena dok `now < start − ATTENDANCE_CONFIRM_DEADLINE_HOURS` (24) samo za `attendancePolicy=CLIENT_REQUIRED`
-- Attendance CRON cancel na `now ≥ start − 24h` samo za `CONFIRMED + CLIENT_REQUIRED`
+- Potvrda dozvoljena dok `now < start − N h` (`N` = `system_reservation_attendance_hours`, fallback `ATTENDANCE_CONFIRM_DEADLINE_HOURS` = 24) samo za `attendancePolicy=CLIENT_REQUIRED`
+- Attendance CRON cancel na `now ≥ start − N h` samo za `CONFIRMED + CLIENT_REQUIRED`
 - `STAFF_WAIVED` nikad ne prolazi attendance CTA ni attendance timeout
 
 ## Timezone

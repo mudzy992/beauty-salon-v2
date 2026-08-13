@@ -168,6 +168,17 @@ export class ReservationsController {
     return this.reservations.stylistLock(id, stylistProfileId, user.sub);
   }
 
+  @Post(':id/stylist/:stylistProfileId/unlock')
+  @UseGuards(RolesGuard)
+  @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
+  stylistUnlock(
+    @Param('id') id: string,
+    @Param('stylistProfileId') stylistProfileId: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.stylistUnlock(id, stylistProfileId, user.sub);
+  }
+
   @Post(':id/stylist/:stylistProfileId/accept')
   @UseGuards(RolesGuard)
   @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')

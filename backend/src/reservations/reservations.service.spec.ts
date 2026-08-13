@@ -24,6 +24,9 @@ import { ReservationReorderService } from './reservation-reorder.service';
 import { ReservationCronService } from './reservation-cron.service';
 import { ReservationAttendanceCronService } from './reservation-attendance-cron.service';
 import { ReservationReorderCronService } from './reservation-reorder-cron.service';
+import { ReservationDirectCreateService } from './reservation-direct-create.service';
+import { ReservationDirectDailyLogCronService } from './reservation-direct-daily-log-cron.service';
+import { ReservationInboxCronService } from './reservation-inbox-cron.service';
 import { AvailabilityService } from './availability.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -66,6 +69,9 @@ Object.assign(mockPrisma, {
     findFirst: jest.fn(),
     update: jest.fn(),
     updateMany: jest.fn(),
+  },
+  dailyLogEntry: {
+    findFirst: jest.fn(),
   },
   notification: {
     findFirst: jest.fn(),
@@ -122,6 +128,7 @@ describe('ReservationsService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockPrisma.reservation.findMany.mockResolvedValue([]);
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReservationsService,
@@ -144,6 +151,15 @@ describe('ReservationsService', () => {
         ReservationCronService,
         ReservationAttendanceCronService,
         ReservationReorderCronService,
+        ReservationDirectCreateService,
+        ReservationInboxCronService,
+        {
+          provide: ReservationDirectDailyLogCronService,
+          useValue: {
+            processDirectBookingDailyLogSeeds: jest.fn(),
+            processPendingDailyLogReminders: jest.fn(),
+          },
+        },
         { provide: PrismaService, useValue: mockPrisma },
         { provide: AvailabilityService, useValue: mockAvailability },
         { provide: NotificationsService, useValue: mockNotifications },

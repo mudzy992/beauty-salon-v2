@@ -146,6 +146,8 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   // Deprecated (kept for migration visibility; not consumed by backend today)
   { key: 'system_reservation_lock_minutes', scope: 'PRIVATE', type: 'number', defaultValue: '15', min: 1, max: 120 },
   { key: 'system_reservation_attendance_hours', scope: 'PRIVATE', type: 'number', defaultValue: '24', min: 1, max: 72 },
+  { key: 'system_reservation_inbox_timeout_hours', scope: 'PRIVATE', type: 'number', defaultValue: '24', min: 1, max: 168 },
+  { key: 'system_reservation_daily_log_reminder_hours', scope: 'PRIVATE', type: 'number', defaultValue: '12', min: 1, max: 168 },
   { key: 'system_reservation_auto_cancel', scope: 'PRIVATE', type: 'boolean', defaultValue: 'false' },
 ] as const
 

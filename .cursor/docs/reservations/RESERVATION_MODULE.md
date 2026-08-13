@@ -1,16 +1,19 @@
 # Modul rezervacija — kompletna dokumentacija (policy-aware)
 
-**Datum:** 2026-08-11  
+**Datum:** 2026-08-13 (sync s kodom)  
 **Scope:** Backend NestJS + Web (Vite/React) + Mobile (Expo) + utjecaj na dnevnu knjigu i finansije (KIF/dugovi/loyalty).  
-**Source of truth (kod):** `backend/src/reservations/*`, Prisma `Reservation*`, matrice u `.cursor/docs/matrices/` i `.cursor/docs/stylist-reservation-matrix.md`.
+**Source of truth (kod):** `backend/src/reservations/*`, Prisma `Reservation*`, matrice u `.cursor/docs/matrices/` i `.cursor/docs/stylist-reservation-matrix.md`.  
+**Napomena:** Ovaj dokument je **living AS-IS**. Review snapshot od 2026-08-11 + FINDINGS FIXED + direct booking (`AWAITING_DAILY_LOG`) su ovdje usklađeni. Arhiva nalaza: [FINDINGS.md](./FINDINGS.md). Aktivni product backlog: [POLICY_BACKLOG.md](./POLICY_BACKLOG.md).
 
 Povezani dokumenti:
 
 | Dokument | Sadržaj |
 |----------|---------|
-| [HANDOFF.md](./HANDOFF.md) | Nastavak rada (sljedeća sesija) |
-| [FINDINGS.md](./FINDINGS.md) | Bugovi, nedostaci, prijedlozi |
-| [MOBILE_SOCKETIO.md](./MOBILE_SOCKETIO.md) | Plan uvođenja Socket.IO na mobile |
+| [POLICY_BACKLOG.md](./POLICY_BACKLOG.md) | Policy tačke: Ask → Plan mode → odobrenje → Agent (jedna po sesiji) |
+| [HANDOFF_SESSION.md](./HANDOFF_SESSION.md) | Session handoff 2026-08-13 (do multi-booking) + prompt za `attendance-policy` |
+| [HANDOFF.md](./HANDOFF.md) | Snapshot: direct booking auto DK + disposition (2026-08-12) |
+| [FINDINGS.md](./FINDINGS.md) | Arhiva review nalaza (FIXED / BY DESIGN) |
+| [MOBILE_SOCKETIO.md](./MOBILE_SOCKETIO.md) | Mobile Socket.IO AS-IS |
 | [../matrices/reservations/MATRIX.md](../matrices/reservations/MATRIX.md) | Sažeta status/akcija matrica |
 | [../stylist-reservation-matrix.md](../stylist-reservation-matrix.md) | Overrun / reorder / auto-start |
 | [../matrices/daily-log/MATRIX.md](../matrices/daily-log/MATRIX.md) | Dnevna knjiga |
@@ -69,7 +72,10 @@ Samo **jedan** stilist može biti `LOCKED` u isto vrijeme.
 ## 3. FSM statusi
 
 Definirano u `backend/src/reservations/constants.ts` (`RESERVATION_STATUS`, `RESERVATION_TRANSITIONS`).  
-Enforcement: `assertReservationTransition` (`transitionTo` u `reservations.service`, te DK complete/revert).
+Enforcement: `assertReservationTransition` (svi status update putovi + DK complete/revert).  
+Sažeta matrica: [MATRIX.md](../matrices/reservations/MATRIX.md).
+
+### 3.1 Standardni tok (klijent / inbox)
 
 ```
 PENDING
@@ -79,7 +85,7 @@ STYLIST_REVIEW
   → CONFIRMED | CANCELLED_BY_STYLISTS | CANCELLED_BY_CLIENT
 
 CONFIRMED
-  → ATTENDANCE_CONFIRMED | CANCELLED_* | NO_SHOW | IN_PROGRESS(auto-start)
+  → ATTENDANCE_CONFIRMED | CANCELLED_* | NO_SHOW
 
 ATTENDANCE_CONFIRMED
   → IN_PROGRESS | NO_SHOW | CANCELLED_BY_CLIENT | CANCELLED_BY_STYLISTS(admin) | COMPLETED(DK)
@@ -93,25 +99,45 @@ COMPLETED
 CANCELLED_* / NO_SHOW → (terminalno)
 ```
 
+### 3.2 Direktni staff tok (`DIRECT_ASSIGN` + `STAFF_WAIVED`)
+
+```
+CONFIRMED (create)
+  → IN_PROGRESS (stylist-start / auto-start)
+  → AWAITING_DAILY_LOG (CRON poslije endTime + seed PENDING DK)
+  → NO_SHOW | CANCELLED_BY_STYLISTS
+
+AWAITING_DAILY_LOG
+  → COMPLETED (DK complete)
+  → CONFIRMED (disposition reorder — novi datum/vrijeme, bez klijentskog propose)
+  → CANCELLED_BY_CLIENT | CANCELLED_BY_STYLISTS | NO_SHOW (disposition)
+```
+
+`AWAITING_DAILY_LOG` **ne** zauzima slot i nije na stilistovom rasporedu (termin je već “prošao” u DK).
+
 ---
 
-## 4. Konfiguracija salona (`SalonSettings`)
+## 4. Konfiguracija salona (`SalonSettings` + settings registry)
 
-| Polje | Default (seed/create) | Uloga |
-|-------|----------------------|--------|
+| Polje / setting | Default | Uloga |
+|-----------------|---------|--------|
 | `pauseBetweenServices` | 10 min | Grid slotova + overrun apsorpcija |
 | `cancellationDeadlineHours` | 24 | Rok klijentskog otkazivanja prije starta |
 | `maxCancellationsBeforePenalty` | (salon) | Prag za penalizaciju |
 | `penaltyDurationDays` | 30 | Trajanje zabrane bookinga |
 | `reservationLockMinutes` | 15 | TTL lock-a stilista |
+| `salon.timezone` | `Europe/Sarajevo` | Wall-time → UTC za start/end / CRON |
+| `system_reservation_attendance_hours` | 24 | Rok potvrde dolaska (`ReservationDateService.getAttendanceConfirmDeadlineHours`) |
+| `system_reservation_inbox_timeout_hours` | 24 | Inbox PENDING/REVIEW auto-cancel (bez klijentske kazne) |
+| `system_reservation_daily_log_reminder_hours` | 12 | Push stilistu ako PENDING DK (direct / `AWAITING_DAILY_LOG`) stoji duže; **ne** zatvara zapis |
 
-Attendance prozor / timeout je trenutno **hardkodiran na 24h** (nije salon setting).
+Attendance prozor **nije** hardkodiran u runtime-u — čita se iz settings registryja (fallback 24h).
 
 ---
 
 ## 5. Dostupnost (Availability Engine)
 
-**Fajlovi:** `availability.service.ts`, `utils/time-slot.utils.ts`
+**Fajlovi:** `availability.service.ts` (facade), `availability-dates.service.ts`, `availability-slots.service.ts`, `utils/time-slot.utils.ts`
 
 ### 5.1 Dostupni datumi — `GET /api/reservations/availability/dates`
 
@@ -122,8 +148,9 @@ Dan je `available: true` ako:
 1. Nije praznik (`Holiday`)
 2. Salon radi taj `dayOfWeek` (`salonWorkingHours`)
 3. Postoji bar jedan aktivan stilist koji nudi **sve** tražene servise i radi taj dan (regular hours **ili** date override)
+4. `getAvailableSlots` za taj dan vrati **≥ 1** slot (honesty check — M6)
 
-**Ne** provjerava da li su svi slotovi tog dana popunjeni — datum može biti “dostupan” a slots API vratiti praznu listu.
+Ako coarse check prođe ali nema slobodnih slotova → `available: false`.
 
 ### 5.2 Slobodni termini — `GET /api/reservations/availability/slots`
 
@@ -131,15 +158,20 @@ Dan je `available: true` ako:
 2. Generiše grid: `open → close` korakom `duration + pauseBetweenServices` (fiksni korak, ne rolling)
 3. Filtrira prošle slotove ako je danas
 4. Po stilistu: slot mora stati u stilistov radni prozor
-5. Slot je zauzet ako postoji rezervacija koja se **preklapa** i (`confirmedStylistId` je null **ili** = taj stilist)
+5. Slot je zauzet po **kapacitetu stilista**:
+   - `CONFIRMED` / `ATTENDANCE_CONFIRMED` / `IN_PROGRESS` → zauzet `confirmedStylistId`
+   - `PENDING` / `STYLIST_REVIEW` → svaki zahtjev troši **1** od eligible stilista na tom intervalu
+   - aktivni lock troši **tog** stilista (isti zahtjev se ne broji dvaput)
 
-**Statusi koji blokiraju slot (`SLOT_OCCUPYING_STATUSES`):**
+Kad je `availableStylistCount = 0` zbog inbox holda, API i dalje vraća slot s `holdState: pending_hold` (klijent vidi “može se uskoro osloboditi”, nije bookable).
+
+**Statusi koji blokiraju potvrđeni termin (`SLOT_OCCUPYING_STATUSES`):**
 
 `CONFIRMED`, `ATTENDANCE_CONFIRMED`, `IN_PROGRESS`
 
-`PENDING` i `STYLIST_REVIEW` **ne** zauzimaju slot (C2-B). Pri `stylistAccept` se provjerava overlap s već potvrđenim terminima istog stilista.
+Inbox hold: `PENDING`, `STYLIST_REVIEW`. `AWAITING_DAILY_LOG` ne blokira.
 
-Realtime: `availability:changed` socket event nakon create/cancel itd.
+Realtime: `availability:changed` socket event nakon create/cancel/lock/unlock/reject/timeout.
 
 ---
 
@@ -154,7 +186,7 @@ Guards (client):
 - Aktivna penalizacija (`penaltyUntil`) blokira
 - Gender servisa mora odgovarati klijentu
 - Slot mora biti u `getAvailableSlots` rezultatu
-- Max **jedna aktivna** rezervacija po klijentu **po danu**
+- **Client-day (M2):** više rezervacija isti dan je dozvoljeno ako (1) se vremena ne preklapaju (`PENDING`…`IN_PROGRESS`) i (2) nijedan `serviceId` nije već na drugoj rezervaciji tog dana (živi + `AWAITING_DAILY_LOG` + `COMPLETED`). Cancel / `NO_SHOW` ne broje se. Više servisa u **jednoj** rezervaciji ostaje. Isti guard na staff direct, admin PATCH, reorder, reschedule accept/commit, disposition reorder.
 
 Tok:
 
@@ -187,7 +219,31 @@ Stilist kreira dogovoreni termin samo za sebe:
 
 ### 6.4 Admin update — `PATCH /api/reservations/:id`
 
-Pomjera date/time; conflict check samo vs `CONFIRMED | ATTENDANCE_CONFIRMED | IN_PROGRESS`. **Ne** revalidira salon/stylist working hours.
+Pomjera date/time; conflict check vs `SLOT_OCCUPYING_STATUSES`.  
+Revalidira praznik, salon open/close i stilistov radni prozor (ako postoji `confirmedStylistId`) preko `assertAdminSlotWithinWorkingHours` (M5).  
+Ako se datum ili vrijeme stvarno promijene: push klijentu `reservation_time_changed` + socket `reservation:updated` na klijenta (isti informational kind kao disposition reorder).
+
+---
+
+### 6.5 Direct booking → dnevna knjiga (auto-seed + disposition)
+
+Nakon što direct (`STAFF_WAIVED`) termin prođe `endTime`:
+
+1. CRON (`reservation-direct-daily-log-cron.service`) + `DailyLogSeedFromDirectService` kreira PENDING DK unos
+2. Rezervacija → `AWAITING_DAILY_LOG` (van rasporeda, ne blokira slot)
+3. Stilist/admin završava preko DK:
+   - **Complete** — naplata → `COMPLETED` + KIF (primarni put)
+   - **Disposition** `POST /api/daily-log/:id/dispose` (razlog obavezan; izuzeci — termin se nije desio / treba drugi slot):
+     | Akcija | Rezultat rezervacije |
+     |--------|----------------------|
+     | `discard` (API alias) / `cancel_as_stylist` | `CANCELLED_BY_STYLISTS` (bez kazne) |
+     | `cancel_as_client` | `CANCELLED_BY_CLIENT` (+ penalty) |
+     | `no_show` | `NO_SHOW` (+ penalty, default) |
+     | `reorder` | `CONFIRMED` na novi datum/vrijeme (bez klijentskog propose); klijent dobija informational push `reservation_time_changed` |
+
+UI: web stylist workbook + mobile `DailyLogDispositionPanel` (`discard` nije u UI).
+
+Reminder: CRON šalje jednokratni push stilistu (`daily_log_pending_reminder`) ako PENDING DK stoji duže od `system_reservation_daily_log_reminder_hours` (default 12). Nema auto-timeouta.
 
 ---
 
@@ -198,6 +254,7 @@ Endpointi:
 | Akcija | Endpoint |
 |--------|----------|
 | Lock | `POST /:id/stylist/:stylistProfileId/lock` |
+| Unlock | `POST /:id/stylist/:stylistProfileId/unlock` |
 | Accept | `POST /:id/stylist/:stylistProfileId/accept` |
 | Reject | `POST /:id/stylist/:stylistProfileId/reject` |
 
@@ -205,12 +262,15 @@ Endpointi:
 
 - Dozvoljeno iz `PENDING` / `STYLIST_REVIEW`
 - Postavlja status rezervacije na `STYLIST_REVIEW`
-- Atomarno: ostali lockovi se čiste; TTL = `reservationLockMinutes`
+- Atomarno: **nema preuzimanja** tuđeg aktivnog locka; TTL = `reservationLockMinutes` (auto-release → `PENDING`)
+- Isti stilist ne locka istu rezervaciju 2× (`hasLockedOnce`); nakon unlock može accept
+- Unlock: `POST .../unlock` — obavezna akcija uz accept/reject
+- Dok traje lock, inbox stilista **ne prikazuje** overlapping zahtjeve na tom terminu
 - Samo vlasnik `stylistProfile` (ili admin/owner role na ruti)
 
 ### Accept
 
-- Zahtijeva vlastiti response u `LOCKED` i neistekao lock
+- Zahtijeva aktivni lock **ili** `hasLockedOnce` (i niko drugi nema lock)
 - `CONFIRMED` + `confirmedStylistId`
 - Notifikacija klijentu + socket `reservation:confirmed`
 
@@ -227,16 +287,18 @@ Endpointi:
 
 ### Pravilo (usklađeno kod ↔ dokumentacija)
 
-Klijent potvrđuje dolazak **najkasnije 24h prije** starta (`ATTENDANCE_CONFIRM_DEADLINE_HOURS`).
+Klijent potvrđuje dolazak **najkasnije N sati prije** starta, gdje je N = `system_reservation_attendance_hours` (default/fallback 24; konstanta `ATTENDANCE_CONFIRM_DEADLINE_HOURS` samo kao fallback).
 
 | Trenutak | `confirmAttendance` | `processAttendanceDeadlines` |
 |----------|---------------------|------------------------------|
-| `now < start − 24h` | Dozvoljeno → `ATTENDANCE_CONFIRMED` | Ne dira |
-| `now ≥ start − 24h` | Odbijeno (rok istekao) | Auto-cancel → `CANCELLED_BY_CLIENT` + penalty |
+| `now < start − N h` | Dozvoljeno → `ATTENDANCE_CONFIRMED` | Ne dira |
+| `now ≥ start − N h` | Odbijeno (rok istekao) | Auto-cancel → `CANCELLED_BY_CLIENT` + penalty |
 
-Prozor za potvrdu je otvoren od trenutka `CONFIRMED` do roka `T−24h`. Nakon uspješne potvrde: socket `reservation:updated`.
+Samo za `attendancePolicy=CLIENT_REQUIRED`. `STAFF_WAIVED` (direct) nema attendance CTA ni CRON cancel.
 
-> **Napomena (fix 2026-08-11):** Ranije je guard bio invertovan (“najranije 24h”) i sudarao se s CRON-om — ispravljeno.
+Prozor za potvrdu je otvoren od trenutka `CONFIRMED` do roka `T−N h`. Nakon uspješne potvrde: socket `reservation:updated`.
+
+> **Napomena:** Guard je usklađen s CRON-om (C1 FIXED 2026-08-11); sati su settings-driven (2026-08-12).
 
 ---
 
@@ -260,7 +322,16 @@ Prozor za potvrdu je otvoren od trenutka `CONFIRMED` do roka `T−24h`. Nakon us
 
 ### Auto-start (CRON svake minute)
 
-`autoStartUpcomingReservations`: za danas, prošao start, status `CONFIRMED` ili `ATTENDANCE_CONFIRMED`, max 24h staro, stilist nema drugi `IN_PROGRESS` → postavi `IN_PROGRESS`.
+`autoStartUpcomingReservations`: za danas, prošao start, max 24h staro, stilist nema drugi `IN_PROGRESS`:
+
+- `ATTENDANCE_CONFIRMED` (standard), **ili**
+- `CONFIRMED` + `STAFF_WAIVED` (direct)
+
+→ `IN_PROGRESS`.
+
+### Direct → DK seed (CRON)
+
+Za `STAFF_WAIVED` rezervacije u `CONFIRMED` / `IN_PROGRESS` nakon `endTime` → seed PENDING DK + `AWAITING_DAILY_LOG` (vidi §6.5).
 
 ---
 
@@ -325,7 +396,7 @@ Nakon dovoljno otkazivanja → `penaltyUntil` blokira nove rezervacije.
 
 `POST /api/daily-log/from-reservation/:reservationId`
 
-Dozvoljeni statusi rezervacije: `COMPLETED` \| `ATTENDANCE_CONFIRMED` \| `IN_PROGRESS`  
+Dozvoljeni statusi rezervacije: `COMPLETED` \| `ATTENDANCE_CONFIRMED` \| `IN_PROGRESS` \| `AWAITING_DAILY_LOG`  
 Samo potvrđeni stilist. Jedan unos po rezervaciji.
 
 Tok naplate (usklađeno s client-debts matricom):
@@ -345,7 +416,7 @@ Tok naplate (usklađeno s client-debts matricom):
 Pri `DailyLogService.complete`:
 
 1. DK `PENDING → COMPLETED`
-2. Ako postoji `reservationId`: rezervacija → `COMPLETED` (ulaz: `IN_PROGRESS` ili `ATTENDANCE_CONFIRMED`)
+2. Ako postoji `reservationId`: rezervacija → `COMPLETED` (ulaz: `IN_PROGRESS` \| `ATTENDANCE_CONFIRMED` \| `AWAITING_DAILY_LOG`)
 3. `IncomeSyncService.addEntryFromDailyLog` → `IncomeBookEntry` (KIF)
 4. Loyalty `earnFromDailyLog`
 
@@ -374,15 +445,19 @@ Ako se COMPLETED DK revertuje/briše:
 
 ---
 
-## 13. CRON poslovi (`reservation-delay.cron.ts`)
+## 13. CRON poslovi
 
-`@Cron('*/1 * * * *')` svake minute:
+Glavni tick (`reservation-delay.cron.ts` / `reservation-cron.service`, `@Cron('*/1 * * * *')`):
 
 1. `processPendingRescheduleTimeouts`
 2. `processAttendanceDeadlines`
 3. Ako je bilo attendance cancel → `processAutoReordersAfterAttendanceCancellations`
 4. Delay warning za overrun
-5. (modul također pokreće) `autoStartUpcomingReservations` — vidi service
+5. `autoStartUpcomingReservations`
+6. Direct booking DK seed → `AWAITING_DAILY_LOG` (`reservation-direct-daily-log-cron.service`)
+7. Direct PENDING DK reminder → push stilistu (`processPendingDailyLogReminders`; default 12h; bez auto-zatvaranja)
+8. `processExpiredLocks` — lock TTL → unlock
+9. `processInboxTimeouts` — `PENDING`/`STYLIST_REVIEW` stariji od `system_reservation_inbox_timeout_hours` (default 24) → `CANCELLED_BY_STYLISTS` bez klijentske kazne
 
 ---
 
@@ -413,10 +488,12 @@ Admin lista i kalendar na webu slušaju reservation evente.
 | `attendance_timeout_cancelled` | Klijent (u data) | Attendance CRON |
 | `reservation_reschedule` | Klijent | Overrun cascade |
 | `reservation_reorder` | Klijent | Reorder prijedlog |
+| `reservation_time_changed` | Klijent | Termin odmah pomjeren (disposition reorder ili admin kalendar PATCH); nema CTA |
+| `daily_log_pending_reminder` | Stilist | PENDING DK (direct) čeka complete/dispose |
 | `delay_warning` | Budući klijenti | Kašnjenje |
 | `stylist_reschedule_decision` | Stilist | Klijent odlučio |
 
-Mobile deep-link obrađuje: `reservation_new` (inbox), `stylist_reschedule_decision` (detail), te klijentske: `reservation_confirmed`, `reservation_cancelled`, `attendance_timeout_cancelled`, `reservation_reschedule`, `reservation_reorder`, `delay_warning` → lista rezervacija s focusom. Push payload uvijek uključuje `kind` (+ `type`).
+Mobile deep-link obrađuje: `reservation_new` (inbox), `stylist_reschedule_decision` (detail), `daily_log_pending_reminder` (DK detail), te klijentske: `reservation_confirmed`, `reservation_cancelled`, `attendance_timeout_cancelled`, `reservation_reschedule`, `reservation_reorder`, `reservation_time_changed`, `delay_warning` → lista rezervacija s focusom. Push payload uvijek uključuje `kind` (+ `type`).
 
 ---
 
@@ -431,8 +508,9 @@ Mobile deep-link obrađuje: `reservation_new` (inbox), `stylist_reschedule_decis
 | `/admin/reservations/calendar` | Admin | Kalendar create/move/resize/cancel |
 | `/stylist/inbox` | Stilist | Lock / accept / reject |
 | `/stylist/schedule` (+ detail) | Stilist | Start, complete→DK, cancel, no-show, reorder, overrun |
+| Stylist workbook / DK detail | Stilist | Disposition panel za `AWAITING_DAILY_LOG` |
 
-**Nedostaje na webu za klijenta:** (H1 riješeno) ranije My Reservations / cancel / attendance / reschedule.
+Klijent web: `/moje-rezervacije` — lista, cancel, confirm attendance, accept/decline reschedule (H1 FIXED).
 
 ---
 
@@ -443,18 +521,19 @@ Mobile deep-link obrađuje: `reservation_new` (inbox), `stylist_reschedule_decis
 | Screen | Akcije |
 |--------|--------|
 | Booking wizard | Multi-service, dates/slots, loyalty, payDebtsIntent |
-| My Reservations | Cancel (`PENDING`/`STYLIST_REVIEW`/`CONFIRMED` — **bez** `ATTENDANCE_CONFIRMED`), confirm attendance, accept/decline reschedule, review nakon COMPLETED |
+| My Reservations | Cancel (`PENDING`/`STYLIST_REVIEW`/`CONFIRMED`/`ATTENDANCE_CONFIRMED`), confirm attendance, accept/decline reschedule, review nakon COMPLETED |
 
 ### Stilist
 
 | Screen | Akcije |
 |--------|--------|
-| Inbox | Lock / accept / reject (+ debt warning) |
-| Schedule | Lista dana, countdown aktivne |
+| Inbox | Lock / accept / reject (+ debt warning); socket + polling fallback |
+| Schedule | Lista dana, countdown aktivne; socket + polling |
 | Detail | Start / complete→DK / cancel / no-show / reorder / overrun |
 | Reschedule preview | propose + commit (3 moda) |
+| Daily log detail | Disposition panel (`AWAITING_DAILY_LOG`) |
 
-Inbox **nema** auto-refresh (schedule ima 30s polling).
+Realtime: `SocketProvider` + `useReservationSocketRefresh`; polling 30s / 120s kad je socket spojen. Vidi [MOBILE_SOCKETIO.md](./MOBILE_SOCKETIO.md).
 
 ---
 
@@ -464,6 +543,7 @@ Inbox **nema** auto-refresh (schedule ima 30s polling).
 |--------|------|-----|
 | POST | `/api/reservations` | Client |
 | POST | `/api/reservations/admin` | Admin/Owner |
+| POST | `/api/reservations/stylist/direct` | Stylist+ |
 | GET | `/api/reservations` | Po roli |
 | GET | `/api/reservations/:id` | Po roli |
 | PATCH | `/api/reservations/:id` | Admin/Owner |
@@ -473,23 +553,22 @@ Inbox **nema** auto-refresh (schedule ima 30s polling).
 | POST | `/api/reservations/:id/cancel` | Client |
 | POST | `/api/reservations/:id/admin-cancel` | Admin/Owner |
 | POST | `/api/reservations/:id/confirm-attendance` | Client |
-| POST | `.../stylist/:pid/lock\|accept\|reject` | Stylist+ |
+| POST | `.../stylist/:pid/lock\|unlock\|accept\|reject` | Stylist+ |
 | POST | `.../stylist-start\|stylist-cancel\|stylist-no-show\|stylist-mark-complete` | Stylist+ |
 | POST | `.../reschedule/propose\|commit\|accept\|decline` | Stylist+ / Client |
 | POST | `.../reorder/request` | Stylist+ |
 | POST | `.../use-break` | Stylist+ |
 | GET | `/api/public/reservations/by-token/:token` | Public |
 | POST | `/api/daily-log/from-reservation/:id` | Stylist+ |
+| POST | `/api/daily-log/:id/dispose` | Stylist+ / Admin (direct `AWAITING_DAILY_LOG`) |
 
 ---
 
 ## 19. Testovi (postojeći)
 
-`reservations.service.spec.ts` pokriva: create guards, cancel deadline, decline/timeout reschedule vs reorder, propose modes, accept conflict, reorder duration, auto-start, confirmAttendance 24h guard, attendance deadlines, auto-reorder.
+Pokrivenost uključuje (između ostalog): create guards, cancel deadline, attendance 24h/settings guard + deadlines, accept lock/overlap, reject-all→cancel, no-show±penalty, reschedule propose/commit/decline/timeout vs reorder, auto-start, auto-reorder, admin working-hours assert, availability closed/holiday + CONFIRMED blocks slot, reservation-policy (direct / STAFF_WAIVED).
 
-`availability.service.spec.ts` pokriva uglavnom prazne/closed/holiday slučajeve.
-
-Nedostajući testovi: vidi FINDINGS § Test gaps.
+Facade `reservations.service.ts` je tanak; domain specovi su uz pojedinačne servise.
 
 ---
 
@@ -529,7 +608,7 @@ Klijent bookuje s `payDebtsIntent` + redeem bodova → stilist pri complete sele
 
 ### S8 — Admin pomjeranje
 
-Admin drag na kalendaru → PATCH; može postaviti van radnog vremena (nema revalidacije hours).
+Admin drag na kalendaru → PATCH; validira praznik / salon / stilist radno vrijeme (`assertAdminSlotWithinWorkingHours`). Overlap vs `SLOT_OCCUPYING_STATUSES`.
 
 ### S9 — Penalizacija
 
@@ -537,7 +616,15 @@ Dovoljno otkazivanja → `penaltyUntil` → create odbija novi booking.
 
 ### S10 — Public token
 
-Email link `/termin/:token` → read-only status + prikaz pending reschedule (akcija samo na mobilnoj).
+Email link `/termin/:token` → read-only status + prikaz pending reschedule; link na login / Moje rezervacije. Akcije (cancel, attendance, reschedule accept/decline) na `/moje-rezervacije` (web) i mobile My Reservations.
+
+### S11 — Direktna rezervacija + disposition
+
+1. Admin/stilist kreira direct (`CONFIRMED` + `STAFF_WAIVED`)  
+2. Start / auto-start → `IN_PROGRESS` (bez attendance)  
+3. Poslije `endTime` CRON → PENDING DK + `AWAITING_DAILY_LOG`  
+4a. Complete DK → `COMPLETED` + KIF, **ili**  
+4b. Disposition (no_show / cancel / reorder) → odgovarajući status  
 
 ---
 
@@ -545,26 +632,33 @@ Email link `/termin/:token` → read-only status + prikaz pending reschedule (ak
 
 ```
 backend/src/reservations/
-  reservations.service.ts      # ~2300 linija — jezgro FSM
-  availability.service.ts
-  reservation-delay.cron.ts
-  reservation-date.service.ts
-  reservations.controller.ts
-  public-reservations.controller.ts
-  constants.ts
+  reservations.service.ts          # facade (~170 linija)
+  reservation-*.service.ts         # domain: create, direct-create, lock/accept/reject,
+                                   # client-actions, runtime, reschedule*, reorder*,
+                                   # attendance/direct-daily-log cron, list, update, …
+  availability.service.ts          # facade
+  availability-dates|slots|debug.service.ts
+  reservation-policy.ts / constants.ts / assert-reservation-transition.ts
+  reservations.controller.ts / public-reservations.controller.ts
   dto/*, utils/*
+
+backend/src/daily-log/
+  daily-log-seed-from-direct.service.ts
+  daily-log-disposition.service.ts (+ apply helpers)
 
 frontend/src/
   pages/Reservations.tsx, ReservationsCalendar.tsx
   pages/public/PublicReserve.tsx, PublicReservationView.tsx
   features/reservations/*, features/stylist-portal/*
+  features/stylist-workbook/.../daily-log-disposition-panel.tsx
 
 mobile/src/screens/
   client/ReservationScreen.tsx, MyReservationsScreen.tsx
   stylist/StylistInboxScreen.tsx, StylistScheduleScreen.tsx
   stylist/StylistReservationDetailScreen.tsx, ReschedulePreviewScreen.tsx
+  stylist/DailyLogDispositionPanel.tsx
 ```
 
 ---
 
-*Kraj AS-IS dokumentacije. Za bugove i roadmap vidi FINDINGS.md.*
+*Living AS-IS dokumentacija (sync 2026-08-13). Product backlog: [POLICY_BACKLOG.md](./POLICY_BACKLOG.md). Arhiva review nalaza: [FINDINGS.md](./FINDINGS.md).*

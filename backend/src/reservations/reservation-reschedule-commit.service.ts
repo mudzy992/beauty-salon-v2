@@ -6,6 +6,7 @@ import {
   ReservationRescheduleService,
   type RescheduleMode,
 } from './reservation-reschedule.service';
+import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
 
 @Injectable()
 export class ReservationRescheduleCommitService {
@@ -41,6 +42,34 @@ export class ReservationRescheduleCommitService {
       return proposal;
     }
     if (!proposal.items.length) return proposal;
+    const proposedIds = proposal.items.map((item) => item.id);
+    const rows = await this.prisma.reservation.findMany({
+      where: { id: { in: proposedIds } },
+      select: {
+        id: true,
+        clientId: true,
+        reservationDate: true,
+        serviceId: true,
+        items: { select: { serviceId: true } },
+      },
+    });
+    for (const item of proposal.items) {
+      const row = rows.find((candidate) => candidate.id === item.id);
+      if (!row) continue;
+      const serviceIds =
+        row.items.length > 0
+          ? row.items.map((entry) => entry.serviceId)
+          : [row.serviceId];
+      await assertClientDayBookingAllowed({
+        prisma: this.prisma,
+        clientId: item.clientId,
+        reservationDate: row.reservationDate,
+        startTime: item.newStartTime,
+        endTime: item.newEndTime,
+        serviceIds,
+        excludeReservationId: item.id,
+      });
+    }
     await this.prisma.$transaction(async (tx) => {
       for (const item of proposal.items) {
         await tx.reservation.update({

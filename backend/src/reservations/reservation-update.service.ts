@@ -7,11 +7,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { ReservationDateService } from './reservation-date.service';
 import { ReservationQueriesService } from './reservation-queries.service';
+import { ReservationNotifyService } from './reservation-notify.service';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
 import { SLOT_OCCUPYING_STATUSES } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { timeToMinutes } from './utils/time-slot.utils';
 import { assertAdminSlotWithinWorkingHours } from './utils/assert-admin-working-hours';
+import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
 
 @Injectable()
 export class ReservationUpdateService {
@@ -20,6 +22,7 @@ export class ReservationUpdateService {
     private readonly events: EventsGateway,
     private readonly dates: ReservationDateService,
     private readonly queries: ReservationQueriesService,
+    private readonly notify: ReservationNotifyService,
   ) {}
 
   async updateByAdmin(reservationId: string, dto: UpdateReservationDto) {
@@ -33,6 +36,10 @@ export class ReservationUpdateService {
         status: true,
         confirmedStylistId: true,
         serviceId: true,
+        clientId: true,
+        publicReferenceCode: true,
+        clientViewToken: true,
+        items: { select: { serviceId: true } },
       },
     });
     if (!existing)
@@ -54,6 +61,19 @@ export class ReservationUpdateService {
       startTime: nextStartTime,
       endTime: nextEndTime,
       confirmedStylistId: existing.confirmedStylistId,
+    });
+    const serviceIds =
+      existing.items.length > 0
+        ? existing.items.map((item) => item.serviceId)
+        : [existing.serviceId];
+    await assertClientDayBookingAllowed({
+      prisma: this.prisma,
+      clientId: existing.clientId,
+      reservationDate: nextDate,
+      startTime: nextStartTime,
+      endTime: nextEndTime,
+      serviceIds,
+      excludeReservationId: existing.id,
     });
     const stylistId = existing.confirmedStylistId;
     if (stylistId) {
@@ -84,6 +104,12 @@ export class ReservationUpdateService {
         );
       }
     }
+    const nextDateStr = this.dates.toLocalDateOnlyString(nextDate);
+    const scheduleChanged =
+      this.dates.toLocalDateOnlyString(existing.reservationDate) !==
+        nextDateStr ||
+      existing.startTime.trim().slice(0, 5) !== nextStartTime.slice(0, 5) ||
+      existing.endTime.trim().slice(0, 5) !== nextEndTime.slice(0, 5);
     const updated = await this.prisma.reservation.update({
       where: { id: reservationId },
       data: {
@@ -99,10 +125,22 @@ export class ReservationUpdateService {
       email: '',
     });
     this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_UPDATED, full);
+    this.events.emitToUser(existing.clientId, SOCKET_EVENTS.RESERVATION_UPDATED, full);
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
       serviceId: existing.serviceId,
-      date: this.dates.toLocalDateOnlyString(nextDate),
+      date: nextDateStr,
     });
+    if (scheduleChanged) {
+      await this.notify.notifyClientTimeChanged({
+        clientId: existing.clientId,
+        reservationId: existing.id,
+        date: nextDateStr,
+        startTime: nextStartTime.slice(0, 5),
+        endTime: nextEndTime.slice(0, 5),
+        publicReferenceCode: existing.publicReferenceCode,
+        clientViewToken: existing.clientViewToken,
+      });
+    }
     return full;
   }
 }

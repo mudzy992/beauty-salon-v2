@@ -34,6 +34,7 @@ interface SlotOption {
   startTime: string
   endTime: string
   availableStylistCount: number
+  holdState?: 'none' | 'pending_hold'
 }
 
 interface LoyaltyInfo {
@@ -779,20 +780,24 @@ export default function PublicReserve() {
                           const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
                           const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
                           const isPastSlot = selectedDate === todayLocal && slot.startTime < nowHHMM
+                          const isHeld = slot.holdState === 'pending_hold' && slot.availableStylistCount === 0
+                          const isDisabled = isPastSlot || isHeld
                           return (
                             <button
                               key={`${slot.startTime}-${slot.endTime}`}
                               type="button"
-                              disabled={isPastSlot}
+                              disabled={isDisabled}
                               className={[
                                 'rounded-md border px-3 py-2 text-left transition',
                                 isSelected
                                   ? 'border-slate-900 bg-slate-900 text-white'
-                                  : 'border-slate-200 bg-white hover:bg-slate-50',
-                                isPastSlot ? 'opacity-40 cursor-not-allowed' : '',
+                                  : isHeld
+                                    ? 'border-amber-200 bg-amber-50'
+                                    : 'border-slate-200 bg-white hover:bg-slate-50',
+                                isDisabled ? 'opacity-70 cursor-not-allowed' : '',
                               ].join(' ')}
                               onClick={() => {
-                                if (isPastSlot) return
+                                if (isDisabled) return
                                 setSelectedSlot({ start: slot.startTime, end: slot.endTime })
                                 setStep(4)
                                 setPayDebtsIntent(false)
@@ -818,8 +823,9 @@ export default function PublicReserve() {
                                 {slot.startTime}
                               </div>
                               <div className={isSelected ? 'text-xs opacity-80' : 'text-xs text-slate-500'}>
-                                {slot.availableStylistCount}{' '}
-                                {slot.availableStylistCount === 1 ? 'stilist' : 'stilista'}
+                                {isHeld
+                                  ? 'Možda će uskoro biti slobodan'
+                                  : `${slot.availableStylistCount} ${slot.availableStylistCount === 1 ? 'stilist' : 'stilista'}`}
                               </div>
                             </button>
                           )

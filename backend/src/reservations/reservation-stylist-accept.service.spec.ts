@@ -48,29 +48,37 @@ describe('ReservationStylistAcceptService', () => {
     service = module.get(ReservationStylistAcceptService);
   });
 
-  it('rejects when lock expired', async () => {
+  it('accepts after expired lock when hasLockedOnce', async () => {
     mockPrisma.stylistProfile.findUnique.mockResolvedValue({ userId: 'user-1' });
-    mockPrisma.reservation.findUnique.mockResolvedValue({
-      id: 'res-1',
-      status: 'STYLIST_REVIEW',
-      startTime: '10:00',
-      endTime: '11:00',
-      reservationDate: new Date('2026-03-20'),
-      stylistResponses: [
-        {
-          stylistProfileId: 'sp-1',
-          status: 'LOCKED',
-          lockExpiresAt: new Date(Date.now() - 60_000),
-        },
-      ],
-    });
+    mockPrisma.reservation.findUnique
+      .mockResolvedValueOnce({
+        id: 'res-1',
+        status: 'STYLIST_REVIEW',
+        startTime: '10:00',
+        endTime: '11:00',
+        reservationDate: new Date('2026-03-20'),
+        stylistResponses: [
+          {
+            stylistProfileId: 'sp-1',
+            status: 'LOCKED',
+            hasLockedOnce: true,
+            lockExpiresAt: new Date(Date.now() - 60_000),
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        clientId: 'client-1',
+        service: { name: 'Šišanje' },
+        reservationDate: new Date('2026-03-20'),
+        startTime: '10:00',
+        publicReferenceCode: 'RZ-20260320-ABC',
+        clientViewToken: 'token-abc',
+      });
+    mockPrisma.reservation.findMany.mockResolvedValue([]);
 
-    await expect(
-      service.stylistAccept('res-1', 'sp-1', 'user-1'),
-    ).rejects.toThrow(BadRequestException);
-    await expect(
-      service.stylistAccept('res-1', 'sp-1', 'user-1'),
-    ).rejects.toThrow(/Lock.*istekao/i);
+    const result = await service.stylistAccept('res-1', 'sp-1', 'user-1');
+    expect(mockPrisma.$transaction).toHaveBeenCalled();
+    expect(result).toBeDefined();
   });
 
   it('rejects when overlapping SLOT_OCCUPYING reservation on same stylist/day', async () => {

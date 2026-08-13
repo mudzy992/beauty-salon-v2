@@ -1,7 +1,8 @@
 # HANDOFF — Direct booking auto DK + disposition
 
 **Datum:** 2026-08-12  
-**Status:** Implementirano (bez commit-a)
+**Status:** Implementirano  
+**Living docs:** opis toka je u [RESERVATION_MODULE.md](./RESERVATION_MODULE.md) §6.5 / §3.2 (docs-sync 2026-08-13). Ovaj fajl ostaje implementacioni snapshot.
 
 ## Urađeno
 

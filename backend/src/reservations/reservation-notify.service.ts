@@ -7,12 +7,63 @@ export type PendingRescheduleKind =
   | 'reservation_reorder'
   | null;
 
+const TIME_CHANGED_KIND = 'reservation_time_changed';
+const DAILY_LOG_REMINDER_KIND = 'daily_log_pending_reminder';
+
 @Injectable()
 export class ReservationNotifyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
   ) {}
+
+  async notifyClientTimeChanged(params: {
+    clientId: string;
+    reservationId: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    publicReferenceCode?: string | null;
+    clientViewToken?: string | null;
+  }): Promise<void> {
+    await this.notifications.send({
+      userId: params.clientId,
+      title: 'Termin pomjeren',
+      body: `Termin je pomjeren na ${params.date} ${params.startTime}–${params.endTime}. Nije potrebna vaša potvrda.`,
+      type: 'reservation_reminder',
+      data: {
+        kind: TIME_CHANGED_KIND,
+        reservationId: params.reservationId,
+        publicReferenceCode: params.publicReferenceCode,
+        clientViewToken: params.clientViewToken,
+        date: params.date,
+        startTime: params.startTime,
+        endTime: params.endTime,
+      },
+      channel: 'PUSH',
+    });
+  }
+
+  async notifyStylistPendingDailyLog(params: {
+    stylistUserId: string;
+    reservationId: string;
+    dailyLogEntryId: string;
+    publicReferenceCode?: string | null;
+  }): Promise<void> {
+    await this.notifications.send({
+      userId: params.stylistUserId,
+      title: 'Dnevna knjiga čeka završetak',
+      body: 'Direktna rezervacija čeka naplatu ili odluku u dnevnoj knjizi.',
+      type: 'reservation_reminder',
+      data: {
+        kind: DAILY_LOG_REMINDER_KIND,
+        reservationId: params.reservationId,
+        dailyLogEntryId: params.dailyLogEntryId,
+        publicReferenceCode: params.publicReferenceCode,
+      },
+      channel: 'PUSH',
+    });
+  }
 
   async getPendingRescheduleKind(
     reservationId: string,

@@ -17,6 +17,7 @@ import { ReservationReorderService } from './reservation-reorder.service';
 import { ReservationCronService } from './reservation-cron.service';
 import { ReservationAttendanceCronService } from './reservation-attendance-cron.service';
 import { ReservationDirectDailyLogCronService } from './reservation-direct-daily-log-cron.service';
+import { ReservationInboxCronService } from './reservation-inbox-cron.service';
 import { ReservationReorderCronService } from './reservation-reorder-cron.service';
 import type { CreateReservationDto } from './dto/create-reservation.dto';
 import type { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
@@ -51,6 +52,7 @@ export class ReservationsService {
     private readonly attendanceCronSvc: ReservationAttendanceCronService,
     private readonly reorderCronSvc: ReservationReorderCronService,
     private readonly directDailyLogCronSvc: ReservationDirectDailyLogCronService,
+    private readonly inboxCronSvc: ReservationInboxCronService,
   ) {}
 
   findPublicByViewToken(token: string): Promise<PublicReservationViewDto> {
@@ -110,6 +112,10 @@ export class ReservationsService {
 
   stylistLock(reservationId: string, stylistProfileId: string, userId: string) {
     return this.stylistLockSvc.stylistLock(reservationId, stylistProfileId, userId);
+  }
+
+  stylistUnlock(reservationId: string, stylistProfileId: string, userId: string) {
+    return this.stylistLockSvc.stylistUnlock(reservationId, stylistProfileId, userId);
   }
 
   stylistAccept(reservationId: string, stylistProfileId: string, userId: string) {
@@ -195,5 +201,17 @@ export class ReservationsService {
 
   processDirectBookingDailyLogSeeds() {
     return this.directDailyLogCronSvc.processDirectBookingDailyLogSeeds();
+  }
+
+  processPendingDailyLogReminders() {
+    return this.directDailyLogCronSvc.processPendingDailyLogReminders();
+  }
+
+  processExpiredLocks() {
+    return this.inboxCronSvc.processExpiredLocks();
+  }
+
+  processInboxTimeouts() {
+    return this.inboxCronSvc.processInboxTimeouts();
   }
 }

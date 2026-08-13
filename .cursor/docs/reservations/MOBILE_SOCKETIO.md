@@ -1,46 +1,33 @@
-# Mobile Socket.IO — follow-up (kad uvesti)
+# Mobile Socket.IO — AS-IS
 
 **Status:** implementirano (2026-08-12)  
-**Datum:** 2026-08-11  
-**Related:** [FINDINGS.md](./FINDINGS.md) H4, global `GlobalRealtimePolicy` (Socket.IO opt-in za reservations/notifications/settings)
+**Related:** [FINDINGS.md](./FINDINGS.md) H4, [RESERVATION_MODULE.md](./RESERVATION_MODULE.md) §14, `GlobalRealtimePolicy`
 
-## Zašto još ne sada
+## Sažetak
 
-- ~~Mobile stylist **inbox + schedule** već koriste `useAutoRefresh` (30s, focus + AppState) — dovoljno za operativni UX.~~
-- ~~Nema postojeće Socket.IO infrastrukture u `mobile/` (web ima `SocketContext`).~~
-- ~~Uvođenje sada = novi dependency + root provider + auth handshake + wiring više ekrana, bez dobiti na FSM/ispravnosti.~~
+Socket.IO je na mobile-u aktivan: `SocketProvider` u root layoutu, JWT handshake, event wiring na inbox/schedule/detail/My Reservations/notifications (+ ostalo po reviewu). Polling ostaje fallback; interval 120s kad je socket spojen, inače ~30s.
 
-**Napomena:** Polling ostaje kao fallback; interval se produži na 120s kad je socket spojen.
+## Pokrivenost
 
-## Pravi trenutak za uvođenje
+**Mobile:** inbox, schedule, detail, My Reservations, Services, Stats, Daily log list/detail, Reservation booking (`availability:changed`), Home/Contact/Blog (`settings`/`salon`), global `SocketRealtimeSync` (notification badge).
 
-Uvesti Socket.IO na mobile kad je **barem jedno** od ovoga istinito:
+**Web:** admin reservations lista/kalendar, dashboard, daily log, stylist portal layout, client My Reservations, PublicReserve availability, SettingsProvider, Salon, Notifications.
 
-1. **P2/M2 zatvoren** (admin calendar sockets) i želimo isti realtime ugovor na sve klijente, **ili**
-2. Operativa traži **sub-sekundni** refresh inboxa/schedulea (polling 30s više nije OK), **ili**
-3. Radimo **in-app notifications** realtime refresh na mobile (isti event bus kao web `notification:new`), **ili**
-4. Nakon **T1 split** `reservations.service` — manji rizik paralelnih izmjena na rezervacijskom jezgru.
+## Definition of Done
 
-**Ne uvoditi** usred FSM/refaktor sprinta (M1 / T1) — prvo stabilna matrica statusa.
+- [x] Provider + JWT reconnect
+- [x] Inbox + schedule + client My Reservations slušaju relevantne evente
+- [x] Fallback polling (120s kad je socket connected)
+- [ ] Kratki smoke: create na webu → mobile inbox bez čekanja 30s (ops)
+- [x] Update FINDINGS + RESERVATION_MODULE § Realtime
 
-## Predloženi scope (kad dođe red)
+## Referenca
 
-### Dependency / setup
+- `mobile/src/realtime/*`, wiring u `app/_layout.tsx`
+- Web: `frontend/src/context/SocketContext.tsx`
+- Backend: `backend/src/events/events.gateway.ts`, `socket-events.ts`
 
-- `socket.io-client` u `mobile/package.json`
-- `EXPO_PUBLIC_API_URL` kao socket base URL (isti kao axios)
-- Auth: `handshake.auth.token` = JWT iz SecureStore (kompatibilno s `EventsGateway`)
-
-### Fajlovi (cilj)
-
-| Fajl | Uloga |
-|------|--------|
-| `mobile/src/realtime/socket-events.ts` | Mirror `SOCKET_EVENTS` (shared names) |
-| `mobile/src/realtime/socket-client.ts` | connect/disconnect, token refresh |
-| `mobile/src/hooks/useSocketEvent.ts` | subscribe/unsubscribe po eventima |
-| Wiring u `app/_layout.tsx` | connect kad je user ulogovan |
-
-### Eventi (minimum za rezervacije)
+## Eventi (rezervacije)
 
 | Event | Ekrani |
 |-------|--------|
@@ -51,24 +38,3 @@ Uvesti Socket.IO na mobile kad je **barem jedno** od ovoga istinito:
 | `reservation:stylist_response` | Inbox |
 | `availability:changed` | Client booking (opcionalno) |
 | `notification:new` | Notifications tab + global badge |
-
-Polling (`useAutoRefresh`) **zadržati** kao fallback kad socket nije connected.
-
-### Pokrivenost (2026-08-12 review)
-
-**Mobile:** inbox, schedule, detail, My Reservations, Services, Stats, Daily log list/detail, Reservation booking (`availability:changed`), Home/Contact/Blog (`settings`/`salon`), global `SocketRealtimeSync` (notification badge).
-
-**Web:** admin reservations lista/kalendar, dashboard, daily log, stylist portal layout (inbox/schedule/workbook/stats/debts), client My Reservations, PublicReserve availability, SettingsProvider (`settings:updated`), Salon, Notifications page.
-
-### Definition of Done
-
-- [x] Provider + JWT reconnect
-- [x] Inbox + schedule + client My Reservations slušaju relevantne evente
-- [x] Fallback polling ostaje (interval produžen na 120s kad je socket connected)
-- [ ] Kratki smoke: create reservation na webu → pojavi se u mobile inboxu bez čekanja 30s
-- [x] Update FINDINGS + RESERVATION_MODULE § Realtime
-
-## Referenca (web AS-IS)
-
-- `frontend/src/context/SocketContext.tsx`
-- Backend: `backend/src/events/events.gateway.ts`, `socket-events.ts`

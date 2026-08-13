@@ -29,7 +29,7 @@ import { AvailabilityDebugService } from './availability-debug.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { LoyaltyModule } from '../loyalty/loyalty.module';
 import { SettingsModule } from '../settings/settings.module';
-import { ReservationDirectDailyLogCronService } from './reservation-direct-daily-log-cron.service';
+import { ReservationInboxCronService } from './reservation-inbox-cron.service';
 import { ReservationDelayCron } from './reservation-delay.cron';
 import { ReservationDateService } from './reservation-date.service';
 import { DailyLogModule } from '../daily-log/daily-log.module';
@@ -65,6 +65,7 @@ import { DailyLogModule } from '../daily-log/daily-log.module';
     ReservationAttendanceCronService,
     ReservationReorderCronService,
     ReservationDirectDailyLogCronService,
+    ReservationInboxCronService,
     AvailabilityService,
     AvailabilityDatesService,
     AvailabilitySlotsService,
@@ -79,6 +80,7 @@ import { DailyLogModule } from '../daily-log/daily-log.module';
     ReservationReorderService,
     ReservationQueriesService,
     ReservationDateService,
+    ReservationNotifyService,
   ],
 })
 export class ReservationsModule {}

@@ -32,7 +32,7 @@ export const StylistInboxPage = () => {
   const [actingId, setActingId] = useState<string | null>(null)
   const [rejectId, setRejectId] = useState<string | null>(null)
 
-  const { reservations, isLoading, isFetching, refetch, lock, accept, reject } =
+  const { reservations, isLoading, isFetching, refetch, lock, unlock, accept, reject } =
     useStylistInboxReservations({ stylistProfileId: profileId })
 
   const pending = useMemo(() => reservations, [reservations])
@@ -60,6 +60,17 @@ export const StylistInboxPage = () => {
       await lock.mutateAsync(reservationId)
     } catch (err) {
       toastApiError(err, 'Greška pri zaključavanju')
+    } finally {
+      setActingId(null)
+    }
+  }
+
+  const handleUnlock = async (reservationId: string) => {
+    setActingId(reservationId)
+    try {
+      await unlock.mutateAsync(reservationId)
+    } catch (err) {
+      toastApiError(err, 'Greška pri oslobađanju')
     } finally {
       setActingId(null)
     }
@@ -142,8 +153,21 @@ export const StylistInboxPage = () => {
       <div className="grid gap-3">
         {pending.map((r) => {
           const myResponse = getMyResponse(r, profileId)
-          const isLockedByMe = r.status === 'STYLIST_REVIEW' && myResponse?.status === 'LOCKED'
-          const canLock = r.status === 'PENDING'
+          const lockActive =
+            myResponse?.status === 'LOCKED' &&
+            (!myResponse.lockExpiresAt || new Date(myResponse.lockExpiresAt).getTime() > Date.now())
+          const isLockedByMe = lockActive
+          const lockedByOther =
+            r.status === 'STYLIST_REVIEW' &&
+            !isLockedByMe &&
+            (r.stylistResponses ?? []).some(
+              (x) =>
+                x.stylistProfileId !== profileId &&
+                x.status === 'LOCKED' &&
+                (!x.lockExpiresAt || new Date(x.lockExpiresAt).getTime() > Date.now()),
+            )
+          const canLock = !isLockedByMe && !lockedByOther && !myResponse?.hasLockedOnce && myResponse?.status !== 'REJECTED'
+          const canAccept = !lockedByOther && (isLockedByMe || !!myResponse?.hasLockedOnce)
           const acting = actingId === r.id
           const status = getStatusBadge(r)
 
@@ -183,26 +207,36 @@ export const StylistInboxPage = () => {
               ) : null}
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
+                {lockedByOther ? (
+                  <p className="text-sm text-slate-500">Drugi stilist trenutno razmatra ovaj zahtjev.</p>
+                ) : null}
                 {canLock ? (
                   <Button type="button" variant="outline" onClick={() => handleLock(r.id)} disabled={acting}>
                     Zaključaj
                   </Button>
                 ) : null}
 
+                {canAccept ? (
+                  <Button type="button" onClick={() => handleAccept(r)} disabled={acting}>
+                    Prihvati
+                  </Button>
+                ) : null}
+
                 {isLockedByMe ? (
-                  <>
-                    <Button type="button" onClick={() => handleAccept(r)} disabled={acting}>
-                      Prihvati
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => setRejectId(r.id)}
-                      disabled={acting}
-                    >
-                      Odbij
-                    </Button>
-                  </>
+                  <Button type="button" variant="outline" onClick={() => handleUnlock(r.id)} disabled={acting}>
+                    Oslobodi
+                  </Button>
+                ) : null}
+
+                {(isLockedByMe || canAccept) && myResponse?.status !== 'REJECTED' ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setRejectId(r.id)}
+                    disabled={acting}
+                  >
+                    Odbij
+                  </Button>
                 ) : null}
               </div>
             </Card>
