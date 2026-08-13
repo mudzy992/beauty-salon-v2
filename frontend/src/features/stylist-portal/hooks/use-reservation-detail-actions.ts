@@ -51,6 +51,17 @@ export const useReservationDetailActions = ({
     }
   }
 
+  const handleStaffConfirm = async () => {
+    if (!reservation) return
+    try {
+      await actions.staffConfirm.mutateAsync(reservation.id)
+      await refetch()
+      success('Dolazak potvrđen', 'Potvrda dolaska je zabilježena.')
+    } catch (error) {
+      toastApiError(error, 'Greška pri potvrdi dolaska')
+    }
+  }
+
   const handleComplete = async (payload: CompleteReservationPayload) => {
     if (!reservation) return
     try {
@@ -172,6 +183,7 @@ export const useReservationDetailActions = ({
     handleNoShow,
     handleReorder,
     handleStart,
+    handleStaffConfirm,
     handleOverrunActual: () => handleOverrun('actual_overrun'),
     handleOverrunManual: (minutes: number) =>
       handleOverrun('manual_minutes', minutes),

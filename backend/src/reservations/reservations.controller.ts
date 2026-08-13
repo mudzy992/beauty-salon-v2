@@ -157,6 +157,16 @@ export class ReservationsController {
     return this.reservations.confirmAttendance(id, user.sub);
   }
 
+  @Post(':id/staff-confirm-attendance')
+  @UseGuards(RolesGuard)
+  @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
+  staffConfirmAttendance(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.staffConfirmAttendance(id, user);
+  }
+
   @Post(':id/stylist/:stylistProfileId/lock')
   @UseGuards(RolesGuard)
   @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')

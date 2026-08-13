@@ -44,7 +44,7 @@ Overrun/reorder: `.cursor/docs/stylist-reservation-matrix.md`.
 | STYLIST_REVIEW | PENDING | unlock / lock TTL |
 | STYLIST_REVIEW | CANCELLED_BY_STYLISTS | svi reject / cancelByAdmin |
 | STYLIST_REVIEW | CANCELLED_BY_CLIENT | cancelByClient |
-| CONFIRMED | ATTENDANCE_CONFIRMED | confirmAttendance (`CLIENT_REQUIRED` only) |
+| CONFIRMED | ATTENDANCE_CONFIRMED | confirmAttendance / staffConfirmAttendance (`CLIENT_REQUIRED` only) |
 | CONFIRMED | CANCELLED_BY_CLIENT | cancelByClient / attendance CRON / decline reschedule |
 | CONFIRMED | CANCELLED_BY_STYLISTS | stylistCancel / cancelByAdmin |
 | CONFIRMED | NO_SHOW | stylistMarkNoShow |
@@ -96,7 +96,7 @@ Klijent smije više rezervacija isti dan.
 |--------|--------|---------|-------------|
 | Create | Da (self) | Ne | Da (za klijenta) |
 | Lock/Accept/Reject | Ne | Da (vlastiti profil) | Ruta dozvoljava |
-| Confirm attendance | Da (own, `CLIENT_REQUIRED`) | Ne | Ne |
+| Confirm attendance | Da (own, `CLIENT_REQUIRED`, do `T−N`) | Da (`confirmedStylistId`, do starta) | Da (do starta) |
 | Cancel | Own + deadline | CONFIRMED/IN_PROGRESS | Skoro sve osim COMPLETED |
 | Start / No-show | Ne | Da | Ruta dozvoljava |
 | Reschedule propose/commit | Ne | Da | Da |
@@ -124,9 +124,11 @@ Admin PATCH datuma/vremena i disposition `reorder` šalju klijentu informational
 
 ## Attendance rok / policy
 
-- Potvrda dozvoljena dok `now < start − N h` (`N` = `system_reservation_attendance_hours`, fallback `ATTENDANCE_CONFIRM_DEADLINE_HOURS` = 24) samo za `attendancePolicy=CLIENT_REQUIRED`
-- Attendance CRON cancel na `now ≥ start − N h` samo za `CONFIRMED + CLIENT_REQUIRED`
+- Klijent: potvrda dok `now < start − N h` (`N` = `system_reservation_attendance_hours`, registry default/fallback `ATTENDANCE_CONFIRM_DEADLINE_HOURS` = 12) samo za `attendancePolicy=CLIENT_REQUIRED`
+- Staff (dodijeljeni stilist ili admin/owner): `POST /:id/staff-confirm-attendance` dok `now < start`, isti status/policy; `attendanceConfirmedBy=STAFF`
+- Attendance CRON cancel na `now ≥ start` samo za `CONFIRMED + CLIENT_REQUIRED` + `attendanceConfirmedAt` null (query jučer–danas)
 - `STAFF_WAIVED` nikad ne prolazi attendance CTA ni attendance timeout
+- List/detail: `attendanceClientDeadlineAt` za klijentski CTA
 
 ## Timezone
 

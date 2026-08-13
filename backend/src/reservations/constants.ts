@@ -61,7 +61,7 @@ export type AttendanceConfirmedBy =
   (typeof ATTENDANCE_CONFIRMED_BY)[keyof typeof ATTENDANCE_CONFIRMED_BY];
 
 /** Rok: klijent mora potvrditi dolazak najkasnije ovoliko sati prije starta. */
-export const ATTENDANCE_CONFIRM_DEADLINE_HOURS = 24;
+export const ATTENDANCE_CONFIRM_DEADLINE_HOURS = 12;
 
 /** Statusi koji zauzimaju slot po stilistu (potvrđeni termini). */
 export const SLOT_OCCUPYING_STATUSES: ReservationStatus[] = [

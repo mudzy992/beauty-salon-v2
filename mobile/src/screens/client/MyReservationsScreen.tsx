@@ -45,10 +45,27 @@ const CANCELABLE: ReservationStatus[] = [
 ];
 const CONFIRMABLE: ReservationStatus[] = ['CONFIRMED'];
 
-const canConfirmAttendance = (reservation: Reservation): boolean =>
-  CONFIRMABLE.includes(reservation.status) &&
-  reservation.attendancePolicy !== 'STAFF_WAIVED' &&
-  !reservation.attendanceConfirmedAt;
+const canConfirmAttendance = (reservation: Reservation): boolean => {
+  if (
+    !CONFIRMABLE.includes(reservation.status) ||
+    reservation.attendancePolicy === 'STAFF_WAIVED' ||
+    reservation.attendanceConfirmedAt
+  ) {
+    return false;
+  }
+  if (!reservation.attendanceClientDeadlineAt) return true;
+  return Date.now() < new Date(reservation.attendanceClientDeadlineAt).getTime();
+};
+
+const getAttendanceConfirmHours = (reservation: Reservation, fallback = 12): number => {
+  if (!reservation.attendanceClientDeadlineAt) return fallback;
+  const [year, month, day] = reservation.reservationDate.slice(0, 10).split('-').map(Number);
+  const [hours, minutes] = reservation.startTime.slice(0, 5).split(':').map(Number);
+  const start = new Date(year ?? 0, (month ?? 1) - 1, day ?? 1, hours ?? 0, minutes ?? 0, 0, 0);
+  const deadline = new Date(reservation.attendanceClientDeadlineAt);
+  const diffHours = Math.round((start.getTime() - deadline.getTime()) / 3_600_000);
+  return diffHours > 0 ? diffHours : fallback;
+};
 
 export function MyReservationsScreen({ navigation, route }: ReservationsScreenProps<'MyReservations'>) {
   const { t } = useTranslation();
@@ -342,7 +359,9 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
                 variant="primary"
               />
               <Text style={{ fontSize: 12, color: colors.textSecondary }}>
-                {t('myReservations.confirmAttendanceHint')}
+                {t('myReservations.confirmAttendanceHint', {
+                  hours: getAttendanceConfirmHours(item),
+                })}
               </Text>
             </View>
           )}

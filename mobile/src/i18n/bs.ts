@@ -93,7 +93,8 @@ export const bs = {
     cancelConfirm: 'Da li ste sigurni da želite otkazati ovu rezervaciju?',
     cancelReason: 'Razlog otkazivanja (opciono)',
     confirmAttendance: 'Potvrdi dolazak',
-    confirmAttendanceHint: 'Potvrdite najkasnije 24h prije termina, inače se rezervacija automatski otkazuje.',
+    confirmAttendanceHint:
+      'Potvrdite najkasnije {{hours}}h prije termina. Ako niko ne potvrdi, rezervacija se otkazuje na početku termina.',
     attendanceConfirmed: 'Dolazak potvrđen',
     status: {
       PENDING: 'Na čekanju',

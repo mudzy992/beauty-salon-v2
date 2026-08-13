@@ -27,15 +27,13 @@ export class ReservationAttendanceCronService {
     if (!salon) return { cancelledCount: 0 };
     const now = new Date();
     const today = this.dates.parseDateOnly(now);
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
     const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-    const dayAfterTomorrow = new Date(
-      tomorrow.getTime() + 24 * 60 * 60 * 1000,
-    );
     const candidates = await this.prisma.reservation.findMany({
       where: {
         status: RESERVATION_STATUS.CONFIRMED,
         attendanceConfirmedAt: null,
-        reservationDate: { gte: today, lt: dayAfterTomorrow },
+        reservationDate: { gte: yesterday, lt: tomorrow },
       },
       select: {
         id: true,
@@ -50,17 +48,13 @@ export class ReservationAttendanceCronService {
       orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
     });
     let cancelledCount = 0;
-    const deadlineHours = await this.dates.getAttendanceConfirmDeadlineHours();
     for (const r of candidates) {
       if (!shouldRunAttendanceCron(r)) continue;
       const reservationStartAt = this.dates.combineDateAndTime(
         r.reservationDate,
         r.startTime,
       );
-      const attendanceDeadline = new Date(
-        reservationStartAt.getTime() - deadlineHours * 60 * 60 * 1000,
-      );
-      if (now.getTime() < attendanceDeadline.getTime()) continue;
+      if (now.getTime() < reservationStartAt.getTime()) continue;
       const nextStatus = this.shared.transitionTo(
         RESERVATION_STATUS.CONFIRMED,
         RESERVATION_STATUS.CANCELLED_BY_CLIENT,

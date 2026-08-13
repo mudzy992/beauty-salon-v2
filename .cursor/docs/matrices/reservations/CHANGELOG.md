@@ -1,5 +1,11 @@
 # Reservation matrix changelog
 
+## 2026-08-13 (attendance-policy A3)
+
+- Klijent potvrđuje do `T − N` (default/fallback 12h). Staff (stilist + admin) do starta.
+- CRON auto-cancel na `now ≥ start` (ne na `T − N`), uz kaznu; query jučer–danas.
+- Payload: `attendanceClientDeadlineAt` za klijentski CTA.
+
 ## 2026-08-13 (multi-booking)
 
 - Client-day: uklonjen max 1 aktivna / dan.

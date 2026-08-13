@@ -9,6 +9,7 @@ import {
   stylistCancelReservation,
   stylistNoShowReservation,
   stylistStartReservation,
+  staffConfirmAttendance,
 } from '../api/stylist-portal.api'
 
 export const useStylistReservationDetail = (params: { reservationId: string }) => {
@@ -57,6 +58,14 @@ export const useReservationActions = () => {
     },
   })
 
+  const staffConfirm = useMutation({
+    mutationFn: (reservationId: string) => staffConfirmAttendance(reservationId),
+    onSuccess: async (_, reservationId) => {
+      await queryClient.invalidateQueries({ queryKey: ['stylistReservations'] })
+      await queryClient.invalidateQueries({ queryKey: ['stylistReservations', 'detail', reservationId] })
+    },
+  })
+
   const cancel = useMutation({
     mutationFn: (args: { reservationId: string; cancelReason: string }) => stylistCancelReservation(args),
     onSuccess: async (_, args) => {
@@ -97,6 +106,7 @@ export const useReservationActions = () => {
 
   return {
     start,
+    staffConfirm,
     cancel,
     noShow,
     reorder,

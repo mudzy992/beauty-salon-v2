@@ -43,7 +43,7 @@
 | 1   | `slot-hold`          | Slot hold policy                                         | `done`   |
 | 2   | `direct-disposition` | Direct disposition polish                                | `done`   |
 | 3   | `multi-booking`      | Multi-booking / dan                                      | `done`   |
-| 4   | `attendance-policy`  | Attendance default sati + staff confirm umjesto klijenta | `next`   |
+| 4   | `attendance-policy`  | Attendance default sati + staff confirm umjesto klijenta | `done`     |
 
 
 ---
@@ -112,13 +112,13 @@
 ## 4. Attendance policy
 
 - **ID:** `attendance-policy`
-- **Status:** `next`
+- **Status:** `done`
 - **Prioritet:** P1
-- **Diskusija:** *(nakon Ask)*
-- **AS-IS:** Rok iz settings (`system_reservation_attendance_hours`, fallback 24h); `confirmAttendance` samo klijent; direct = `STAFF_WAIVED`.
-- **Otvorena pitanja:** Default sati? Staff confirm na `CLIENT_REQUIRED` — admin only ili admin+stilist? Dozvoljeno i nakon `T−Nh`?
-- **Plan:** *(link kad postoji)*
-- **Implementacija:** —
+- **Diskusija:** A3 — klijent do `T − N` (default 12h); staff (stilist + admin) do starta; CRON cancel na startu + kazna. Direct `STAFF_WAIVED` bez izmjene.
+- **AS-IS (prije ove tačke):** Rok iz settings (`system_reservation_attendance_hours`, fallback 24h); `confirmAttendance` samo klijent; CRON na `T − N`.
+- **Otvorena pitanja:** —
+- **Plan:** [.cursor/plans/attendance-policy/](../../plans/attendance-policy/00_overview.md)
+- **Implementacija:** 2026-08-13 — default 12; staff confirm; CRON na startu; `attendanceClientDeadlineAt`.
 
 ---
 
@@ -142,6 +142,8 @@
 
 | Datum      | Šta                                                                                                                                 |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-13 | `attendance-policy` **done** — A3: klijent T−N (default 12), staff do starta, CRON na startu. Plan: `.cursor/plans/attendance-policy/`. |
+| 2026-08-13 | `attendance-policy` **planned** — A3. Plan: `.cursor/plans/attendance-policy/`.                                                     |
 | 2026-08-13 | `multi-booking` **done** — M2 + unique servis/dan. Plan: `.cursor/plans/multi-booking/`. Sljedeće: Ask `attendance-policy`.        |
 | 2026-08-13 | `multi-booking` **planned** — M2 + unique servis/dan. Plan: `.cursor/plans/multi-booking/`.                                         |
 | 2026-08-13 | Session HANDOFF: [HANDOFF_SESSION.md](./HANDOFF_SESSION.md). Sljedeće: Ask `multi-booking`.                                         |

@@ -52,6 +52,10 @@ export const stylistStartReservation = async (reservationId: string): Promise<vo
   await api.post(`/api/reservations/${reservationId}/stylist-start`)
 }
 
+export const staffConfirmAttendance = async (reservationId: string): Promise<void> => {
+  await api.post(`/api/reservations/${reservationId}/staff-confirm-attendance`)
+}
+
 export const stylistCancelReservation = async (params: {
   reservationId: string
   cancelReason: string

@@ -1,13 +1,12 @@
-# HANDOFF — Policy backlog sesija (docs-sync → slot-hold → direct-disposition → multi-booking)
+# HANDOFF — Policy backlog sesija (docs-sync → … → attendance-policy)
 
 **Datum:** 2026-08-13
-**Status:** docs-sync `done` · slot-hold `done` · direct-disposition `done` · multi-booking `done`
-**Sljedeća tačka:** `attendance-policy` (`queued`)
+**Status:** docs-sync `done` · slot-hold `done` · direct-disposition `done` · multi-booking `done` · attendance-policy `done`
+**Sljedeća tačka:** — (product backlog zatvoren)
 
 Living SoT: [RESERVATION_MODULE.md](./RESERVATION_MODULE.md)
 Backlog: [POLICY_BACKLOG.md](./POLICY_BACKLOG.md)
-Direct snapshot: [HANDOFF.md](./HANDOFF.md) (2026-08-12)
-Disposition plan: [.cursor/plans/direct-disposition/](../../plans/direct-disposition/00_overview.md)
+Attendance plan: [.cursor/plans/attendance-policy/](../../plans/attendance-policy/00_overview.md)
 
 ---
 
@@ -57,6 +56,14 @@ Ključni fajlovi:
 - `frontend/.../daily-log-disposition-panel.tsx` + Settings grupa Rezervacije
 - `mobile/.../DailyLogDispositionPanel.tsx` + `resolve-push-route.ts`
 
+### 3. `multi-booking`
+
+M2 + unique `serviceId` po danu. Plan: `.cursor/plans/multi-booking/`
+
+### 4. `attendance-policy` (A3)
+
+Klijent do `T − N` (registry default 12). Staff (stilist + admin) do starta. CRON cancel na startu + kazna. Direct `STAFF_WAIVED` bez izmjene. Plan: `.cursor/plans/attendance-policy/`
+
 ---
 
 ## Odluke + razlozi
@@ -74,7 +81,7 @@ Ključni fajlovi:
 ## Otvoreno / rizici
 
 1. Migracije: `has_locked_once` **i** `pending_reminder_sent_at` — `cd backend && npm run db:migrate`.
-2. Test: `processAttendanceDeadlines` u `reservations.service.spec.ts` faila (cancelledCount 0) — pre-existing TZ/mock.
+2. Attendance CRON spec je prepisan na cancel na startu (A3).
 3. Slot-hold i disposition nisu ručno smoke-testirani.
 4. Auto-start nije u `reservation-delay.cron` ticku (pre-existing; van backlog reda).
 
@@ -82,47 +89,26 @@ Ključni fajlovi:
 
 ## Next steps
 
-1. Nova sesija s promptom ispod.
-2. Ask: samo `attendance-policy`.
-3. Plan mode → odobrenje → Agent implementacija.
+Product backlog (docs-sync → slot-hold → disposition → multi-booking → attendance) je zatvoren.
 
 ---
 
 ## Test status
 
-Pokrenuto (multi-booking): Jest `assert-client-day-booking.spec`, `reservation-update.service.spec`, `reservation-reschedule-commit.service.spec`, create/reorder/accept u `reservations.service.spec` — **pass**.
-
-Pre-existing fail: attendance CRON spec (`cancelledCount` 0).
-
-Nije pokrenuto: `db:migrate` (obje starije migracije), frontend/mobile build, E2E.
+Attendance A3 specovi: staff confirm, klijent T−N, CRON na startu.
 
 ---
 
 ## Prompt za nastavak (copy-paste u novi chat)
 
 ```
-Nastavi beauty-salon-v2 rezervacije policy backlog.
+Nastavi beauty-salon-v2.
 
 Pročitaj:
 - .cursor/docs/reservations/HANDOFF_SESSION.md
 - .cursor/docs/reservations/POLICY_BACKLOG.md
 - .cursor/docs/reservations/RESERVATION_MODULE.md
-- .cursor/docs/matrices/reservations/MATRIX.md
 
-Proces (obavezno):
-1. Ask diskusija — SAMO jedna tačka.
-2. Plan mode — snimi plan, link u POLICY_BACKLOG, ČEKAJ odobrenje.
-3. Agent implementacija — tek nakon odobrenog plana.
-Ne radi kod u istom runu kao plan.
-
-Urađeno: docs-sync done, slot-hold done, direct-disposition done, multi-booking done.
-Migracije (ako nisu primijenjene): cd backend && npm run db:migrate
-  (has_locked_once + pending_reminder_sent_at).
-
-Sljedeća tačka: attendance-policy (status next).
-AS-IS: Rok iz settings (system_reservation_attendance_hours, fallback 24h);
-confirmAttendance samo klijent; direct = STAFF_WAIVED.
-Otvorena pitanja: Default sati? Staff confirm na CLIENT_REQUIRED — admin only ili admin+stilist? Dozvoljeno i nakon T−Nh?
-
-Počni Ask diskusijom za attendance-policy. Ne diraj slot-hold/direct-disposition/multi-booking dok ova tačka nema odobren plan.
+Urađeno: docs-sync, slot-hold, direct-disposition, multi-booking, attendance-policy (A3) — sve done.
+Owner treba u Settings postaviti system_reservation_attendance_hours na 12 ako je DB još 24.
 ```

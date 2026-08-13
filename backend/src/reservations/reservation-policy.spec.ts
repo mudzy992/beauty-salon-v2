@@ -5,6 +5,7 @@ import {
 } from './constants';
 import {
   canConfirmAttendance,
+  canStaffConfirmAttendance,
   canStartReservation,
   getAutoStartEligibleStatuses,
   isDirectAssignedReservation,
@@ -32,6 +33,18 @@ describe('reservation-policy', () => {
     ).toBe(true);
     expect(
       canConfirmAttendance({
+        status: RESERVATION_STATUS.CONFIRMED,
+        attendancePolicy: RESERVATION_ATTENDANCE_POLICY.STAFF_WAIVED,
+      }),
+    ).toBe(false);
+    expect(
+      canStaffConfirmAttendance({
+        status: RESERVATION_STATUS.CONFIRMED,
+        attendancePolicy: RESERVATION_ATTENDANCE_POLICY.CLIENT_REQUIRED,
+      }),
+    ).toBe(true);
+    expect(
+      canStaffConfirmAttendance({
         status: RESERVATION_STATUS.CONFIRMED,
         attendancePolicy: RESERVATION_ATTENDANCE_POLICY.STAFF_WAIVED,
       }),

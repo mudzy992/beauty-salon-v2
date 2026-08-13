@@ -10,7 +10,7 @@ Povezani dokumenti:
 | Dokument | Sadržaj |
 |----------|---------|
 | [POLICY_BACKLOG.md](./POLICY_BACKLOG.md) | Policy tačke: Ask → Plan mode → odobrenje → Agent (jedna po sesiji) |
-| [HANDOFF_SESSION.md](./HANDOFF_SESSION.md) | Session handoff 2026-08-13 (do multi-booking) + prompt za `attendance-policy` |
+| [HANDOFF_SESSION.md](./HANDOFF_SESSION.md) | Session handoff 2026-08-13 (backlog zatvoren; attendance-policy A3 done) |
 | [HANDOFF.md](./HANDOFF.md) | Snapshot: direct booking auto DK + disposition (2026-08-12) |
 | [FINDINGS.md](./FINDINGS.md) | Arhiva review nalaza (FIXED / BY DESIGN) |
 | [MOBILE_SOCKETIO.md](./MOBILE_SOCKETIO.md) | Mobile Socket.IO AS-IS |
@@ -127,11 +127,11 @@ AWAITING_DAILY_LOG
 | `penaltyDurationDays` | 30 | Trajanje zabrane bookinga |
 | `reservationLockMinutes` | 15 | TTL lock-a stilista |
 | `salon.timezone` | `Europe/Sarajevo` | Wall-time → UTC za start/end / CRON |
-| `system_reservation_attendance_hours` | 24 | Rok potvrde dolaska (`ReservationDateService.getAttendanceConfirmDeadlineHours`) |
+| `system_reservation_attendance_hours` | 12 | Klijentski rok potvrde dolaska (`ReservationDateService.getAttendanceConfirmDeadlineHours`) |
 | `system_reservation_inbox_timeout_hours` | 24 | Inbox PENDING/REVIEW auto-cancel (bez klijentske kazne) |
 | `system_reservation_daily_log_reminder_hours` | 12 | Push stilistu ako PENDING DK (direct / `AWAITING_DAILY_LOG`) stoji duže; **ne** zatvara zapis |
 
-Attendance prozor **nije** hardkodiran u runtime-u — čita se iz settings registryja (fallback 24h).
+Attendance prozor **nije** hardkodiran u runtime-u — čita se iz settings registryja (fallback 12h). Postojeći DB red ostaje 24 dok owner ne promijeni Settings.
 
 ---
 
@@ -283,22 +283,25 @@ Endpointi:
 
 ## 8. Potvrda dolaska (attendance)
 
-`POST /:id/confirm-attendance` — samo vlasnik rezervacije, status mora biti `CONFIRMED` i `attendancePolicy=CLIENT_REQUIRED`.
+`POST /:id/confirm-attendance` — samo vlasnik rezervacije, status mora biti `CONFIRMED` i `attendancePolicy=CLIENT_REQUIRED`. `attendanceConfirmedBy=CLIENT`.
 
-### Pravilo (usklađeno kod ↔ dokumentacija)
+`POST /:id/staff-confirm-attendance` — `STYLIST` (samo `confirmedStylistId`) ili `SYSTEM_ADMIN`/`OWNER`. Isti status/policy, rok je **početak termina**. `attendanceConfirmedBy=STAFF`. Bez novog pusha klijentu.
 
-Klijent potvrđuje dolazak **najkasnije N sati prije** starta, gdje je N = `system_reservation_attendance_hours` (default/fallback 24; konstanta `ATTENDANCE_CONFIRM_DEADLINE_HOURS` samo kao fallback).
+### Pravilo (A3)
 
-| Trenutak | `confirmAttendance` | `processAttendanceDeadlines` |
-|----------|---------------------|------------------------------|
-| `now < start − N h` | Dozvoljeno → `ATTENDANCE_CONFIRMED` | Ne dira |
-| `now ≥ start − N h` | Odbijeno (rok istekao) | Auto-cancel → `CANCELLED_BY_CLIENT` + penalty |
+Klijent potvrđuje dolazak **najkasnije N sati prije** starta, gdje je N = `system_reservation_attendance_hours` (registry default/fallback 12; konstanta `ATTENDANCE_CONFIRM_DEADLINE_HOURS` samo kao fallback).
+
+| Trenutak | Klijent | Staff | `processAttendanceDeadlines` |
+|----------|---------|-------|------------------------------|
+| `now < start − N h` | Dozvoljeno → `ATTENDANCE_CONFIRMED` | Dozvoljeno | Ne dira |
+| `start − N h ≤ now < start` | Odbijeno (rok istekao) | Dozvoljeno | Ne dira |
+| `now ≥ start` | Odbijeno | Odbijeno | Auto-cancel → `CANCELLED_BY_CLIENT` + penalty |
 
 Samo za `attendancePolicy=CLIENT_REQUIRED`. `STAFF_WAIVED` (direct) nema attendance CTA ni CRON cancel.
 
-Prozor za potvrdu je otvoren od trenutka `CONFIRMED` do roka `T−N h`. Nakon uspješne potvrde: socket `reservation:updated`.
+List/detail payload: `attendanceClientDeadlineAt` (ISO) za `CONFIRMED` + `CLIENT_REQUIRED`.
 
-> **Napomena:** Guard je usklađen s CRON-om (C1 FIXED 2026-08-11); sati su settings-driven (2026-08-12).
+> **Napomena:** CRON gleda `reservationDate` jučer–danas (ne lookahead za `T − N`).
 
 ---
 
@@ -553,6 +556,7 @@ Realtime: `SocketProvider` + `useReservationSocketRefresh`; polling 30s / 120s k
 | POST | `/api/reservations/:id/cancel` | Client |
 | POST | `/api/reservations/:id/admin-cancel` | Admin/Owner |
 | POST | `/api/reservations/:id/confirm-attendance` | Client |
+| POST | `/api/reservations/:id/staff-confirm-attendance` | Stylist (confirmed) / Admin / Owner |
 | POST | `.../stylist/:pid/lock\|unlock\|accept\|reject` | Stylist+ |
 | POST | `.../stylist-start\|stylist-cancel\|stylist-no-show\|stylist-mark-complete` | Stylist+ |
 | POST | `.../reschedule/propose\|commit\|accept\|decline` | Stylist+ / Client |
@@ -566,7 +570,7 @@ Realtime: `SocketProvider` + `useReservationSocketRefresh`; polling 30s / 120s k
 
 ## 19. Testovi (postojeći)
 
-Pokrivenost uključuje (između ostalog): create guards, cancel deadline, attendance 24h/settings guard + deadlines, accept lock/overlap, reject-all→cancel, no-show±penalty, reschedule propose/commit/decline/timeout vs reorder, auto-start, auto-reorder, admin working-hours assert, availability closed/holiday + CONFIRMED blocks slot, reservation-policy (direct / STAFF_WAIVED).
+Pokrivenost uključuje (između ostalog): create guards, cancel deadline, attendance 12h/settings guard + CRON na startu, staff confirm, accept lock/overlap, reject-all→cancel, no-show±penalty, reschedule propose/commit/decline/timeout vs reorder, auto-start, auto-reorder, admin working-hours assert, availability closed/holiday + CONFIRMED blocks slot, reservation-policy (direct / STAFF_WAIVED).
 
 Facade `reservations.service.ts` je tanak; domain specovi su uz pojedinačne servise.
 
@@ -578,7 +582,7 @@ Facade `reservations.service.ts` je tanak; domain specovi su uz pojedinačne ser
 
 1. Klijent bookuje 2 servisa na slobodan slot  
 2. Stilisti dobiju push; jedan lock → accept → `CONFIRMED`  
-3. Klijent potvrdi dolazak → `ATTENDANCE_CONFIRMED`  
+3. Klijent ili staff potvrdi dolazak → `ATTENDANCE_CONFIRMED`  
 4. Stilist start → `IN_PROGRESS`  
 5. Complete → DK PENDING → complete DK → rezervacija `COMPLETED` + KIF + loyalty earn  
 

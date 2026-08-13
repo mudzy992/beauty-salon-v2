@@ -6,6 +6,7 @@ import {
   canClientCancel,
   canClientConfirmAttendance,
   canClientDecideReschedule,
+  getAttendanceConfirmHours,
 } from './client-reservation-actions'
 import {
   formatReservationDate,
@@ -39,6 +40,7 @@ export const MyReservationCard = ({
     r.status,
     r.attendanceConfirmedAt,
     r.attendancePolicy,
+    r.attendanceClientDeadlineAt,
   )
   const showCancel = canClientCancel(r.status)
 
@@ -136,7 +138,8 @@ export const MyReservationCard = ({
         </div>
         {showConfirm ? (
           <p className="text-xs text-slate-500">
-            Potvrdite najkasnije 24h prije termina, inače se rezervacija automatski otkazuje.
+            Potvrdite najkasnije {getAttendanceConfirmHours(r)}h prije termina. Ako niko ne
+            potvrdi, rezervacija se otkazuje na početku termina.
           </p>
         ) : null}
       </CardContent>

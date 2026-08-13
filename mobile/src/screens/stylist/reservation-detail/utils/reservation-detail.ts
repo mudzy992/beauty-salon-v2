@@ -6,6 +6,18 @@ export const getPlannedReservationDateTime = (reservationDate: string, time: str
   return new Date(y ?? 0, (m ?? 1) - 1, d ?? 1, h ?? 0, min ?? 0, 0, 0);
 };
 
+export const canStaffConfirmAttendanceUi = (
+  reservation: Pick<Reservation, 'status' | 'attendancePolicy' | 'reservationDate' | 'startTime'>,
+  now = Date.now(),
+): boolean => {
+  if (reservation.status !== 'CONFIRMED') return false;
+  if (reservation.attendancePolicy === 'STAFF_WAIVED') return false;
+  return (
+    now <
+    getPlannedReservationDateTime(reservation.reservationDate, reservation.startTime).getTime()
+  );
+};
+
 export const isStaffWaivedAttendance = (
   reservation: Pick<Reservation, 'attendancePolicy' | 'acceptanceMode'>,
 ): boolean =>

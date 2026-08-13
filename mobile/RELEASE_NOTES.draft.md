@@ -9,3 +9,5 @@
 - U inboxu možete osloboditi zaključan zahtjev, pa ga prihvatiti bez ponovnog zaključavanja.
 - U dnevnoj knjizi su jasnije akcije kad se termin nije desio (otkaz, no-show, pomjeri), uz objašnjenje posljedica.
 - Ako se termin pomjeri, klijent dobija obavijest; stilist dobija podsjetnik kad dnevna knjiga dugo čeka.
+- Dolazak se potvrđuje do roka prije termina; stilist ili salon mogu potvrditi umjesto klijenta do početka.
+- Ako niko ne potvrdi dolazak, rezervacija se automatski otkazuje na početku termina.

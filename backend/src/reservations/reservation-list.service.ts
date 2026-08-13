@@ -1,14 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReservationSharedService } from './reservation-shared.service';
+import { ReservationDateService } from './reservation-date.service';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { hideOverlappingInboxWhileLocked } from './utils/inbox-lock-filter';
+import { resolveAttendanceClientDeadlineAt } from './utils/attendance-client-deadline';
 
 @Injectable()
 export class ReservationListService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly shared: ReservationSharedService,
+    private readonly dates: ReservationDateService,
   ) {}
 
   private buildClientNameSearch(
@@ -142,6 +145,23 @@ export class ReservationListService {
         },
       },
     } as const;
+    const hours = await this.dates.getAttendanceConfirmDeadlineHours();
+    const attachDeadline = <T extends {
+      status: string;
+      attendancePolicy?: string | null;
+      reservationDate: Date;
+      startTime: string;
+    }>(
+      rows: T[],
+    ) =>
+      rows.map((row) => ({
+        ...row,
+        attendanceClientDeadlineAt: resolveAttendanceClientDeadlineAt(
+          row,
+          hours,
+          (date, time) => this.dates.combineDateAndTime(date, time),
+        ),
+      }));
     const hasPagination = query.page != null && query.pageSize != null;
     if (!hasPagination) {
       const rows = await this.prisma.reservation.findMany({
@@ -149,11 +169,13 @@ export class ReservationListService {
         include,
         orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
       });
-      if (!query.asStylist) return rows;
+      if (!query.asStylist) return attachDeadline(rows);
       const stylistProfileId =
         await this.shared.getStylistProfileIdByUserId(user.sub);
-      if (!stylistProfileId) return rows;
-      return hideOverlappingInboxWhileLocked(rows, stylistProfileId);
+      if (!stylistProfileId) return attachDeadline(rows);
+      return attachDeadline(
+        hideOverlappingInboxWhileLocked(rows, stylistProfileId),
+      );
     }
     const page = Math.max(0, query.page ?? 0);
     const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 10));
@@ -167,6 +189,6 @@ export class ReservationListService {
       }),
       this.prisma.reservation.count({ where }),
     ]);
-    return { items, total, page, pageSize };
+    return { items: attachDeadline(items), total, page, pageSize };
   }
 }

@@ -12,6 +12,7 @@ import { ReservationListService } from './reservation-list.service';
 import { ReservationCreateService } from './reservation-create.service';
 import { ReservationUpdateService } from './reservation-update.service';
 import { ReservationClientActionsService } from './reservation-client-actions.service';
+import { ReservationStaffAttendanceService } from './reservation-staff-attendance.service';
 import { ReservationStylistLockService } from './reservation-stylist-lock.service';
 import { ReservationStylistAcceptService } from './reservation-stylist-accept.service';
 import { ReservationStylistRejectService } from './reservation-stylist-reject.service';
@@ -139,6 +140,7 @@ describe('ReservationsService', () => {
         ReservationCreateService,
         ReservationUpdateService,
         ReservationClientActionsService,
+        ReservationStaffAttendanceService,
         ReservationStylistLockService,
         ReservationStylistAcceptService,
         ReservationStylistRejectService,
@@ -695,9 +697,9 @@ describe('ReservationsService', () => {
       jest.useRealTimers()
     })
 
-    it('dozvoljava potvrdu dok je više od 24h do starta', async () => {
+    it('dozvoljava potvrdu dok je više od 12h do starta', async () => {
       jest.useFakeTimers()
-      jest.setSystemTime(new Date('2026-03-09T08:59:59.000Z'))
+      jest.setSystemTime(new Date('2026-03-09T20:59:59.000Z'))
       mockPrisma.reservation.findUnique.mockResolvedValue({
         id: 'res-1',
         clientId: 'client-1',
@@ -724,9 +726,9 @@ describe('ReservationsService', () => {
       )
     })
 
-    it('odbija potvrdu nakon isteka 24h roka (usklađeno s CRON cancel)', async () => {
+    it('odbija potvrdu nakon isteka 12h roka', async () => {
       jest.useFakeTimers()
-      jest.setSystemTime(new Date('2026-03-09T09:00:00.000Z'))
+      jest.setSystemTime(new Date('2026-03-09T21:00:00.000Z'))
       mockPrisma.reservation.findUnique.mockResolvedValue({
         id: 'res-1',
         clientId: 'client-1',
@@ -788,9 +790,13 @@ describe('ReservationsService', () => {
   })
 
   describe('processAttendanceDeadlines', () => {
-    it('auto-otkazuje CONFIRMED bez attendance u 24h window i primjenjuje penal', async () => {
+    afterEach(() => {
+      jest.useRealTimers()
+    })
+
+    it('auto-otkazuje CONFIRMED bez attendance na početku termina i primjenjuje penal', async () => {
       jest.useFakeTimers()
-      jest.setSystemTime(new Date('2026-03-09T10:01:00.000Z'))
+      jest.setSystemTime(new Date('2026-03-10T09:00:00.000Z'))
       mockPrisma.salonSettings.findFirst.mockResolvedValue({
         maxCancellationsBeforePenalty: 3,
         penaltyDurationDays: 30,
@@ -804,6 +810,8 @@ describe('ReservationsService', () => {
           serviceId: 'svc-1',
           reservationDate: new Date('2026-03-10T00:00:00.000Z'),
           startTime: '10:00',
+          status: 'CONFIRMED',
+          attendancePolicy: 'CLIENT_REQUIRED',
           confirmedStylistId: 'sp-1',
         },
       ])
@@ -817,6 +825,10 @@ describe('ReservationsService', () => {
       mockPrisma.reservation.findUnique.mockResolvedValue({
         id: 'res-1',
         clientId: 'client-1',
+        status: 'CANCELLED_BY_CLIENT',
+        reservationDate: new Date('2026-03-10T00:00:00.000Z'),
+        startTime: '10:00',
+        attendancePolicy: 'CLIENT_REQUIRED',
         stylistResponses: [],
         confirmedStylistId: null,
         service: {},
@@ -841,6 +853,31 @@ describe('ReservationsService', () => {
           data: expect.objectContaining({ kind: 'attendance_timeout_cancelled' }),
         }),
       )
+    })
+
+    it('ne otkazuje CONFIRMED prije početka termina', async () => {
+      jest.useFakeTimers()
+      jest.setSystemTime(new Date('2026-03-10T08:59:59.000Z'))
+      mockPrisma.salonSettings.findFirst.mockResolvedValue({
+        maxCancellationsBeforePenalty: 3,
+        penaltyDurationDays: 30,
+        id: 'salon-1',
+      })
+      mockPrisma.reservation.findMany.mockResolvedValue([
+        {
+          id: 'res-1',
+          clientId: 'client-1',
+          serviceId: 'svc-1',
+          reservationDate: new Date('2026-03-10T00:00:00.000Z'),
+          startTime: '10:00',
+          status: 'CONFIRMED',
+          attendancePolicy: 'CLIENT_REQUIRED',
+          confirmedStylistId: 'sp-1',
+        },
+      ])
+      const result = await service.processAttendanceDeadlines()
+      expect(result).toEqual({ cancelledCount: 0 })
+      expect(mockPrisma.reservation.updateMany).not.toHaveBeenCalled()
     })
   })
 

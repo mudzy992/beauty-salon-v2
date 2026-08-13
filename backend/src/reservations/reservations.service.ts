@@ -5,6 +5,7 @@ import { ReservationCreateService } from './reservation-create.service';
 import { ReservationDirectCreateService } from './reservation-direct-create.service';
 import { ReservationUpdateService } from './reservation-update.service';
 import { ReservationClientActionsService } from './reservation-client-actions.service';
+import { ReservationStaffAttendanceService } from './reservation-staff-attendance.service';
 import { ReservationStylistLockService } from './reservation-stylist-lock.service';
 import { ReservationStylistAcceptService } from './reservation-stylist-accept.service';
 import { ReservationStylistRejectService } from './reservation-stylist-reject.service';
@@ -39,6 +40,7 @@ export class ReservationsService {
     private readonly directCreateSvc: ReservationDirectCreateService,
     private readonly updateSvc: ReservationUpdateService,
     private readonly clientActionsSvc: ReservationClientActionsService,
+    private readonly staffAttendanceSvc: ReservationStaffAttendanceService,
     private readonly stylistLockSvc: ReservationStylistLockService,
     private readonly stylistAcceptSvc: ReservationStylistAcceptService,
     private readonly stylistRejectSvc: ReservationStylistRejectService,
@@ -108,6 +110,10 @@ export class ReservationsService {
 
   confirmAttendance(id: string, clientId: string) {
     return this.clientActionsSvc.confirmAttendance(id, clientId);
+  }
+
+  staffConfirmAttendance(id: string, user: CurrentUserPayload) {
+    return this.staffAttendanceSvc.confirmAttendanceByStaff(id, user);
   }
 
   stylistLock(reservationId: string, stylistProfileId: string, userId: string) {

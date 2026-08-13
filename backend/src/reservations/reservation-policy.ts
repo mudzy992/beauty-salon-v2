@@ -44,6 +44,8 @@ export const canConfirmAttendance = (
   getReservationAttendancePolicy(reservation) ===
     RESERVATION_ATTENDANCE_POLICY.CLIENT_REQUIRED;
 
+export const canStaffConfirmAttendance = canConfirmAttendance;
+
 export const canStartReservation = (
   reservation: Pick<
     ReservationPolicyShape,

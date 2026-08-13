@@ -10,6 +10,7 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 import type { PublicReservationViewDto } from './dto/public-reservation-view.dto';
 import { formatReservationServicesLabel } from './utils/reservation-services-label';
 import { mapReservationPaymentSummary } from './reservation-payment-summary';
+import { resolveAttendanceClientDeadlineAt } from './utils/attendance-client-deadline';
 
 @Injectable()
 export class ReservationQueriesService {
@@ -138,9 +139,15 @@ export class ReservationQueriesService {
         },
       },
     });
+    const deadlineHours = await this.dates.getAttendanceConfirmDeadlineHours();
     return {
       ...r,
       paymentSummary: mapReservationPaymentSummary(paymentEntry),
+      attendanceClientDeadlineAt: resolveAttendanceClientDeadlineAt(
+        r,
+        deadlineHours,
+        (date, time) => this.dates.combineDateAndTime(date, time),
+      ),
     };
   }
 }

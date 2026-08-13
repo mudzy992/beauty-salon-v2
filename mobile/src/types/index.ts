@@ -102,6 +102,7 @@ export interface Reservation {
   clientNotes?: string;
   confirmedStylistId?: string;
   attendanceConfirmedAt?: string;
+  attendanceClientDeadlineAt?: string | null;
   startedAt?: string;
   completedAt?: string;
   cancelledAt?: string;

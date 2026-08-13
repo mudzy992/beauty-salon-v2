@@ -53,6 +53,7 @@ interface Reservation {
   startTime: string
   endTime: string
   status: string
+  attendancePolicy?: 'CLIENT_REQUIRED' | 'STAFF_WAIVED'
   clientNotes: string | null
   cancelReason: string | null
   createdAt: string
@@ -97,6 +98,14 @@ const getStylistName = (s?: Reservation['confirmedStylist']) => {
   return `${s.user.firstName ?? ''} ${s.user.lastName ?? ''}`.trim() || s.user.username || 'Stilista'
 }
 
+const canAdminConfirmAttendance = (r: Reservation) => {
+  if (r.status !== 'CONFIRMED' || r.attendancePolicy === 'STAFF_WAIVED') return false
+  const [year, month, day] = r.reservationDate.slice(0, 10).split('-').map(Number)
+  const [hours, minutes] = r.startTime.slice(0, 5).split(':').map(Number)
+  const start = new Date(year ?? 0, (month ?? 1) - 1, day ?? 1, hours ?? 0, minutes ?? 0, 0, 0)
+  return Date.now() < start.getTime()
+}
+
 export default function Reservations() {
   const { t } = useTranslation()
   const { success, error } = useAppToast()
@@ -118,6 +127,7 @@ export default function Reservations() {
   const [detail, setDetail] = useState<Reservation | null>(null)
   const [cancelReason, setCancelReason] = useState('')
   const [cancelling, setCancelling] = useState(false)
+  const [confirmingAttendance, setConfirmingAttendance] = useState(false)
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedClientSearch(clientSearch.trim()), 300)
@@ -170,6 +180,22 @@ export default function Reservations() {
     }
     setCancelReason('')
     setOpen(true)
+  }
+
+  const handleStaffConfirmAttendance = async () => {
+    if (!detail) return
+    setConfirmingAttendance(true)
+    try {
+      await api.post(`/api/reservations/${detail.id}/staff-confirm-attendance`)
+      success('Dolazak potvrđen')
+      loadData()
+      const { data } = await api.get<Reservation>(`/api/reservations/${detail.id}`)
+      setDetail(data)
+    } catch (err) {
+      error(getErrorMessage(err, 'Greška pri potvrdi dolaska'))
+    } finally {
+      setConfirmingAttendance(false)
+    }
   }
 
   const handleCancel = async () => {
@@ -520,6 +546,26 @@ export default function Reservations() {
                         {sr.rejectionReason ? <p className="text-xs text-slate-500">{sr.rejectionReason}</p> : null}
                       </div>
                     ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {canAdminConfirmAttendance(detail) ? (
+                <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
+                    Potvrdi dolazak
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Klijentski rok je istekao ili još traje — salon može potvrditi do početka termina.
+                  </p>
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      type="button"
+                      onClick={() => void handleStaffConfirmAttendance()}
+                      disabled={confirmingAttendance}
+                    >
+                      {confirmingAttendance ? 'Potvrđivanje...' : 'Potvrdi dolazak'}
+                    </Button>
                   </div>
                 </div>
               ) : null}

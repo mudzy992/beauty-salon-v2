@@ -45,6 +45,7 @@ export interface Reservation {
   cancelReason: string | null
   createdAt: string
   attendanceConfirmedAt?: string | null
+  attendanceClientDeadlineAt?: string | null
   rescheduleStatus?: string | null
   rescheduleProposedStartTime?: string | null
   rescheduleProposedEndTime?: string | null

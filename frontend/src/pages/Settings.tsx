@@ -300,7 +300,7 @@ const SYSTEM_GROUPS: SettingGroup[] = [
     defaults: [
       {
         key: 'system_reservation_attendance_hours',
-        desc: 'Koliko sati prije početka klijent mora potvrditi dolazak (standardni tok)',
+        desc: 'Klijentski rok: koliko sati prije početka klijent mora potvrditi dolazak. Salon/stilist može potvrditi do početka. Auto-otkaz je na početku termina ako niko nije potvrdio.',
         type: 'number',
         min: 1,
         max: 72,

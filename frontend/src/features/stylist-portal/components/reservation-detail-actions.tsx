@@ -24,6 +24,9 @@ type ReservationDetailActionsProps = {
   onOpenCancel: () => void
   onOpenReorder: () => void
   onRefresh: () => void
+  canStaffConfirm: boolean
+  isConfirmingAttendance: boolean
+  onStaffConfirm: () => void
 }
 
 export const ReservationDetailActions = ({
@@ -48,6 +51,9 @@ export const ReservationDetailActions = ({
   onOpenCancel,
   onOpenReorder,
   onRefresh,
+  canStaffConfirm,
+  isConfirmingAttendance,
+  onStaffConfirm,
 }: ReservationDetailActionsProps) => {
   if (!hasAnyAction) {
     return (
@@ -76,6 +82,15 @@ export const ReservationDetailActions = ({
   return (
     <Card className="space-y-3 p-4">
       <p className="font-semibold text-slate-900 dark:text-slate-50">Akcije</p>
+      {canStaffConfirm ? (
+        <Button
+          type="button"
+          onClick={onStaffConfirm}
+          disabled={isConfirmingAttendance}
+        >
+          Potvrdi dolazak
+        </Button>
+      ) : null}
       {canStart ? (
         <div className="space-y-2">
           <Button

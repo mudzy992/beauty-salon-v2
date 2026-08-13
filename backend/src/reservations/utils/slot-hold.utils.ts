@@ -20,7 +20,7 @@ export type SlotHoldReservation = {
 };
 
 export function isActiveLock(
-  response: SlotHoldResponse,
+  response: Pick<SlotHoldResponse, 'status' | 'lockExpiresAt'>,
   now: Date = new Date(),
 ): boolean {
   if (response.status !== STYLIST_RESPONSE_STATUS.LOCKED) return false;

@@ -10,6 +10,7 @@ import { ReservationCreateService } from './reservation-create.service';
 import { ReservationDirectCreateService } from './reservation-direct-create.service';
 import { ReservationUpdateService } from './reservation-update.service';
 import { ReservationClientActionsService } from './reservation-client-actions.service';
+import { ReservationStaffAttendanceService } from './reservation-staff-attendance.service';
 import { ReservationStylistLockService } from './reservation-stylist-lock.service';
 import { ReservationStylistAcceptService } from './reservation-stylist-accept.service';
 import { ReservationStylistRejectService } from './reservation-stylist-reject.service';
@@ -33,6 +34,7 @@ import { ReservationInboxCronService } from './reservation-inbox-cron.service';
 import { ReservationDelayCron } from './reservation-delay.cron';
 import { ReservationDateService } from './reservation-date.service';
 import { DailyLogModule } from '../daily-log/daily-log.module';
+import { ReservationDirectDailyLogCronService } from './reservation-direct-daily-log-cron.service';
 
 @Module({
   imports: [
@@ -52,6 +54,7 @@ import { DailyLogModule } from '../daily-log/daily-log.module';
     ReservationDirectCreateService,
     ReservationUpdateService,
     ReservationClientActionsService,
+    ReservationStaffAttendanceService,
     ReservationStylistLockService,
     ReservationStylistAcceptService,
     ReservationStylistRejectService,

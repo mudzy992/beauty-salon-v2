@@ -5,6 +5,7 @@ import type { Reservation } from '../types'
 import {
   formatReservationTime,
   getPlannedReservationDateTime,
+  canStaffConfirmAttendanceUi,
 } from '../utils/reservation-detail'
 
 type UseReservationDetailStatusParams = {
@@ -39,9 +40,12 @@ export const useReservationDetailStatus = ({
     isConfirmedStylist
   const canStart =
     !!reservation && reservation.status === 'ATTENDANCE_CONFIRMED' && isConfirmedStylist
+  const canStaffConfirm =
+    !!reservation && isConfirmedStylist && canStaffConfirmAttendanceUi(reservation)
   const canComplete =
     !!reservation && reservation.status === 'IN_PROGRESS' && isConfirmedStylist
-  const hasAnyAction = canStart || canComplete || canCancelByStylist || canMarkNoShow
+  const hasAnyAction =
+    canStart || canComplete || canCancelByStylist || canMarkNoShow || canStaffConfirm
   const isStartOverdue = useMemo(() => {
     if (!reservation || reservation.status !== 'ATTENDANCE_CONFIRMED') return false
     return Date.now() > getPlannedReservationDateTime(
@@ -130,6 +134,7 @@ export const useReservationDetailStatus = ({
     canCancelByStylist,
     canComplete,
     canMarkNoShow,
+    canStaffConfirm,
     canStart,
     hasAnyAction,
     isConfirmedStylist,

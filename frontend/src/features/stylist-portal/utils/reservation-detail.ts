@@ -43,6 +43,15 @@ export const getPlannedReservationDateTime = (reservationDate: string, time: str
   return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1, hours ?? 0, minutes ?? 0, 0, 0)
 }
 
+export const canStaffConfirmAttendanceUi = (
+  reservation: Pick<Reservation, 'status' | 'attendancePolicy' | 'reservationDate' | 'startTime'>,
+  now = Date.now(),
+): boolean => {
+  if (reservation.status !== 'CONFIRMED') return false
+  if (reservation.attendancePolicy === 'STAFF_WAIVED') return false
+  return now < getPlannedReservationDateTime(reservation.reservationDate, reservation.startTime).getTime()
+}
+
 export const computeReservationMinimumCharge = (reservation: Reservation) => {
   const items = (reservation as ReservationWithItems).items
   const base = items?.length

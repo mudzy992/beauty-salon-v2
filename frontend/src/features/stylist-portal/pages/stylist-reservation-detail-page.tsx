@@ -102,6 +102,9 @@ export const StylistReservationDetailPage = () => {
         isCompleting={actions.completeAndCreateDailyLog.isPending}
         isFetching={isFetching}
         onStart={() => void detailActions.handleStart()}
+        onStaffConfirm={() => void detailActions.handleStaffConfirm()}
+        canStaffConfirm={status.canStaffConfirm}
+        isConfirmingAttendance={actions.staffConfirm.isPending}
         onOpenOverrun={() => detailActions.setOverrunOpen(true)}
         onOpenComplete={() => detailActions.setCompleteOpen(true)}
         onOpenNoShow={() => detailActions.setNoShowOpen(true)}

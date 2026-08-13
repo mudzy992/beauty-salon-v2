@@ -25,6 +25,7 @@ import { ReservationDetailActions } from './reservation-detail/reservation-detai
 import { useStylistReservationDetail } from './reservation-detail/hooks/use-stylist-reservation-detail';
 import { useReservationDetailStatus } from './reservation-detail/hooks/use-reservation-detail-status';
 import { useReservationDetailActions } from './reservation-detail/hooks/use-reservation-detail-actions';
+import { useStaffConfirmAttendance } from './reservation-detail/hooks/use-staff-confirm-attendance';
 
 type Props = NativeStackScreenProps<
   StylistScheduleStackParamList,
@@ -44,6 +45,10 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     reservation,
     fetchReservation,
     navigation,
+  });
+  const staffConfirm = useStaffConfirmAttendance({
+    reservationId: reservation?.id,
+    fetchReservation,
   });
 
   const status = useReservationDetailStatus({
@@ -92,6 +97,8 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
           {...status}
           startSubmitting={detailActions.startSubmitting}
           onStart={() => void detailActions.submitStart()}
+          onStaffConfirm={() => void staffConfirm.submit()}
+          staffConfirmSubmitting={staffConfirm.submitting}
           onOpenOverrun={() => detailActions.setOverrunModalOpen(true)}
           onOpenComplete={detailActions.openComplete}
           onOpenNoShow={detailActions.openNoShow}

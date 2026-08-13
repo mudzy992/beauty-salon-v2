@@ -27,6 +27,9 @@ type ReservationDetailActionsProps = {
   onOpenNoShow: () => void;
   onOpenCancel: () => void;
   onOpenReorder: () => void;
+  canStaffConfirm: boolean;
+  staffConfirmSubmitting: boolean;
+  onStaffConfirm: () => void;
 };
 
 export const ReservationDetailActions = ({
@@ -46,6 +49,9 @@ export const ReservationDetailActions = ({
   onOpenNoShow,
   onOpenCancel,
   onOpenReorder,
+  canStaffConfirm,
+  staffConfirmSubmitting,
+  onStaffConfirm,
 }: ReservationDetailActionsProps) => {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -55,6 +61,14 @@ export const ReservationDetailActions = ({
   return (
     <Card style={[styles.card, { borderWidth: 1, borderColor: colors.border }]}>
       <Text style={[styles.sectionTitle, { color: colors.text }]}>Akcije</Text>
+      {canStaffConfirm ? (
+        <Button
+          title="Potvrdi dolazak"
+          onPress={onStaffConfirm}
+          loading={staffConfirmSubmitting}
+          style={{ marginBottom: spacing.sm }}
+        />
+      ) : null}
       {canStart ? (
         <Button
           title={isStartOverdue ? 'Obradi kašnjenje termina' : 'Startuj rezervaciju'}

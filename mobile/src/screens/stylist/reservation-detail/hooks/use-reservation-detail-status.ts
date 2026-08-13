@@ -5,7 +5,7 @@ import { useIsFocused } from '@react-navigation/native';
 import api from '../../../../services/api';
 import { formatTime } from '../../../../utils/date';
 import type { Reservation } from '../../../../types';
-import { getPlannedReservationDateTime, canStartReservationUi } from '../utils/reservation-detail';
+import { getPlannedReservationDateTime, canStartReservationUi, canStaffConfirmAttendanceUi } from '../utils/reservation-detail';
 
 type RescheduleMode = 'actual_overrun' | 'manual_minutes' | 'use_break_only';
 
@@ -56,7 +56,13 @@ export const useReservationDetailStatus = ({
     return reservation.status === 'IN_PROGRESS' && isConfirmedStylist;
   }, [reservation, isConfirmedStylist]);
 
-  const hasAnyAction = canStart || canComplete || canCancelByStylist || canMarkNoShow;
+  const canStaffConfirm = useMemo(() => {
+    if (!reservation) return false;
+    return isConfirmedStylist && canStaffConfirmAttendanceUi(reservation);
+  }, [reservation, isConfirmedStylist, timeTick]);
+
+  const hasAnyAction =
+    canStart || canComplete || canCancelByStylist || canMarkNoShow || canStaffConfirm;
 
   const isStartOverdue = useMemo(() => {
     if (!reservation || !canStart) return false;
@@ -162,6 +168,7 @@ export const useReservationDetailStatus = ({
     canCancelByStylist,
     canComplete,
     canMarkNoShow,
+    canStaffConfirm,
     canStart,
     hasAnyAction,
     isConfirmedStylist,

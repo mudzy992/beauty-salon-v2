@@ -41,6 +41,7 @@ export type Reservation = {
   clientNotes?: string | null
   confirmedStylistId?: string | null
   attendanceConfirmedAt?: string | null
+  attendanceClientDeadlineAt?: string | null
   startedAt?: string | null
   completedAt?: string | null
   cancelledAt?: string | null
