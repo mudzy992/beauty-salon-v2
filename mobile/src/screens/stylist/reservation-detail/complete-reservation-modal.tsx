@@ -58,7 +58,7 @@ export function CompleteReservationModal({
   const shortfall = Math.max(0, completeChargeAmount - paidRaw);
 
   return (
-    <ReservationDetailModalShell visible={visible}>
+    <ReservationDetailModalShell visible={visible} onClose={onClose}>
       <Text style={[styles.title, { color: colors.text }]}>{t('stylist.schedule.completeTitle')}</Text>
       <Input
         label="Naplaćeno (KM)"

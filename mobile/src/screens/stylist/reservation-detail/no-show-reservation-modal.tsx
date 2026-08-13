@@ -32,7 +32,7 @@ export function NoShowReservationModal({
   const { t } = useTranslation();
   const { colors } = useTheme();
   return (
-    <ReservationDetailModalShell visible={visible}>
+    <ReservationDetailModalShell visible={visible} onClose={onClose}>
       <Text style={[styles.title, { color: colors.text }]}>Klijent se nije pojavio</Text>
       <Input
         label="Obrazloženje"

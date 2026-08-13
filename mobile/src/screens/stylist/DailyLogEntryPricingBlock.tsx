@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/ui/Input';
+import { DateTimeField } from '../../components/ui/DateTimeField';
 import { Button } from '../../components/ui/Button';
 import { spacing } from '../../theme';
 import type { OpenDebtRow } from './daily-log-entry-math';
@@ -184,7 +185,7 @@ export function DailyLogEntryPricingBlock(props: Props) {
         </View>
       ) : null}
 
-      <Input label="Datum" value={date} onChangeText={onDateChange} />
+      <DateTimeField label="Datum" mode="date" value={date} onChange={onDateChange} />
       <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
         Servisi: {servicesSum.toFixed(2)} KM
         {loyaltyDiscount > 0 ? ` − loyalty ${loyaltyDiscount.toFixed(2)} KM` : ''}

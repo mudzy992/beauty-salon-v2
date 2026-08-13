@@ -1,0 +1,55 @@
+---
+description: Automatski generiši "Napomene za korisnike" pri mobilnim izmjenama (APK release notes).
+globs: ["mobile/**", "frontend/src/pages/AppReleases.tsx", "frontend/src/features/app-releases/**", "backend/src/app-releases/**"]
+alwaysApply: false
+---
+
+# Mobile release notes (Napomene za korisnike)
+
+Kad radiš **korisnički vidljive** izmjene u mobilnoj app (`mobile/**`), **obavezno** ažuriraj draft napomena — ne čekaj da korisnik pita.
+
+## Gdje
+
+- Draft (source of truth do objave): [`mobile/RELEASE_NOTES.draft.md`](mobile/RELEASE_NOTES.draft.md)
+- Pri APK objavi u adminu polje **Napomene za korisnike** = sadržaj drafta (bez naslova/meta)
+- Matrica updatea: `.cursor/docs/matrices/mobile-apk-update/`
+
+## Kad
+
+Ažuriraj draft **na kraju** taska koji mijenja mobile UX/ponašanje (ekrani, tokovi, notifikacije, i18n copy, bugfix koji korisnik osjeti).
+
+**Ne** upisuj: čisti refaktor, tipovi, lint, interne konstante, testovi bez UX efekta.
+
+## Format drafta
+
+```markdown
+# Draft — napomene za korisnike
+
+- Verzija (predloženo): x.y.z
+- versionCode (predloženo): N
+
+## Napomene (BS, za AppRelease.releaseNotes)
+
+- Kratka stavka 1
+- Kratka stavka 2
+```
+
+## Stil napomena
+
+- Jezik: **bosanski (BS)**
+- Za **krajnje korisnike** (stiliste/klijente), ne developere
+- 1–5 bullet-a; max ~1 rečenica po stavu
+- Fokus: šta je novo / popravljeno / kako koristiti
+- Bez putanja fajlova, ticket ID-eva, commit hash-eva, jargon-a (API, hook, Prisma…)
+
+### Primjeri
+
+- Dobro: `Ispravljeno učitavanje dnevne knjige na sporoj mreži.`
+- Dobro: `Na profilu možete ručno provjeriti ažuriranja aplikacije.`
+- Loše: `Refaktor useApkUpdateCheck + FileSystem legacy digest.`
+
+## Release workflow (agent)
+
+1. Nakon mobilnih UX izmjena → update `RELEASE_NOTES.draft.md`
+2. Kad se priprema APK: predloži bump `version` + `android.versionCode` u `app.config.js` i finalni tekst napomena
+3. Nakon uspješne objave release-a u adminu → isprazni/resetuj sekciju napomena u draftu (ostavi template)

@@ -28,7 +28,7 @@ export function OverrunReservationModal({
 }: OverrunReservationModalProps) {
   const { colors } = useTheme();
   return (
-    <ReservationDetailModalShell visible={visible}>
+    <ReservationDetailModalShell visible={visible} onClose={onClose}>
       <Text style={[styles.title, { color: colors.text }]}>Kašnjenje termina</Text>
       <Text style={[styles.infoText, { color: colors.textSecondary }]}>
         Odaberite kako želite obraditi kašnjenje prije nastavka rada.
@@ -63,6 +63,7 @@ export function OverrunReservationModal({
         }}
         variant="ghost"
       />
+      <Button title="Odustani" onPress={onClose} variant="outline" style={{ marginTop: spacing.sm }} />
     </ReservationDetailModalShell>
   );
 }

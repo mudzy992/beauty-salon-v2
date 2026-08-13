@@ -10,6 +10,7 @@ Ovaj fajl je **ulazna tačka** za pravila projekta.
   - `finance-system.mdc` – KIF/KUF, templatei, CRON
   - `api-conventions.mdc` – REST, error handling, guardi
   - `testing-strategy.mdc` – obavezni testovi, coverage, naming
+  - `mobile-release-notes.mdc` – automatske „Napomene za korisnike“ pri mobilnim UX izmjenama (`mobile/RELEASE_NOTES.draft.md`)
 
 - **Skillovi** su u **`.cursor/skills/`** (svaki ima `SKILL.md`):
   - `schema-review` – pregled Prisma šeme

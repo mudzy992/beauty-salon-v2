@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../components/ui/Button';
-import { Input } from '../../../components/ui/Input';
+import { DateTimeField } from '../../../components/ui/DateTimeField';
 import { useTheme } from '../../../hooks/useTheme';
 import { spacing } from '../../../theme';
 import {
@@ -40,27 +40,18 @@ export function ReorderReservationModal({
   const previewDuration = durationMinutesFromRange(startTime, endTime);
 
   return (
-    <ReservationDetailModalShell visible={visible}>
+    <ReservationDetailModalShell visible={visible} onClose={onClose}>
       <Text style={[styles.title, { color: colors.text }]}>Reorder termina</Text>
       <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
-        Unesite HH:mm. Kraj se automatski računa iz trajanja kad mijenjate početak.
+        Odaberite novo vrijeme. Kraj se automatski računa iz trajanja kad mijenjate početak.
       </Text>
-      <Input
-        label="Novi početak (HH:mm)"
+      <DateTimeField
+        label="Novi početak"
+        mode="time"
         value={startTime}
-        onChangeText={onStartTimeChange}
-        placeholder="11:15"
-        keyboardType="numbers-and-punctuation"
-        autoCapitalize="none"
+        onChange={onStartTimeChange}
       />
-      <Input
-        label="Novi kraj (HH:mm)"
-        value={endTime}
-        onChangeText={onEndTimeChange}
-        placeholder="11:45"
-        keyboardType="numbers-and-punctuation"
-        autoCapitalize="none"
-      />
+      <DateTimeField label="Novi kraj" mode="time" value={endTime} onChange={onEndTimeChange} />
       <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
         Pregled:{' '}
         {previewStart && previewEnd

@@ -8,7 +8,7 @@ export const reservationDetailModalStyles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     padding: spacing.md,
   },
-  contentWrap: { maxHeight: '80%' },
+  contentWrap: { maxHeight: '80%', zIndex: 1 },
   card: { padding: spacing.lg },
   title: { fontSize: 18, fontWeight: '700', marginBottom: spacing.md },
   actions: { flexDirection: 'row', gap: 8, marginTop: spacing.md },

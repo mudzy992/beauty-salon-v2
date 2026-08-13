@@ -1,22 +1,36 @@
 import React from 'react';
-import { KeyboardAvoidingView, Modal, Platform, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  View,
+} from 'react-native';
 import { Card } from '../../../components/ui/Card';
 import { useTheme } from '../../../hooks/useTheme';
 import { reservationDetailModalStyles as styles } from './modal-styles';
 
 type ReservationDetailModalShellProps = {
   visible: boolean;
+  onClose: () => void;
   children: React.ReactNode;
 };
 
 export function ReservationDetailModalShell({
   visible,
+  onClose,
   children,
 }: ReservationDetailModalShellProps) {
   const { colors } = useTheme();
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
+        <Pressable
+          style={StyleSheetAbsoluteFill}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Zatvori"
+        />
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.contentWrap}
@@ -27,3 +41,11 @@ export function ReservationDetailModalShell({
     </Modal>
   );
 }
+
+const StyleSheetAbsoluteFill = {
+  position: 'absolute' as const,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+};

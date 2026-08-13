@@ -7,28 +7,20 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Pressable,
 } from 'react-native';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { DateTimeField } from '../../components/ui/DateTimeField';
 import { Input } from '../../components/ui/Input';
 import api from '../../services/api';
 import { spacing } from '../../theme';
 import type { DailyLogEntry } from '../../types';
-
-type DispositionAction =
-  | 'discard'
-  | 'reorder'
-  | 'cancel_as_client'
-  | 'cancel_as_stylist'
-  | 'no_show';
-
-const ACTION_LABELS: Record<DispositionAction, string> = {
-  discard: 'Obriši zapis i rezervaciju',
-  reorder: 'Pomjeri termin',
-  cancel_as_client: 'Otkaži u ime klijenta',
-  cancel_as_stylist: 'Otkaži u svoje ime',
-  no_show: 'Označi no-show',
-};
+import {
+  DispositionActionMenuModal,
+  DISPOSITION_ACTION_LABELS,
+  type DispositionAction,
+} from './disposition-action-menu-modal';
 
 type Props = {
   entry: DailyLogEntry;
@@ -38,11 +30,13 @@ type Props = {
     surface: string;
     border: string;
     warning: string;
+    error?: string;
   };
   onDone: () => void;
 };
 
 export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [action, setAction] = useState<DispositionAction | null>(null);
   const [reason, setReason] = useState('');
@@ -50,10 +44,10 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
     String(entry.reservation?.reservationDate ?? entry.date ?? '').slice(0, 10),
   );
   const [targetStartTime, setTargetStartTime] = useState(
-    entry.reservation?.startTime?.slice(0, 5) ?? '',
+    entry.reservation?.startTime?.slice(0, 5) ?? '09:00',
   );
   const [targetEndTime, setTargetEndTime] = useState(
-    entry.reservation?.endTime?.slice(0, 5) ?? '',
+    entry.reservation?.endTime?.slice(0, 5) ?? '10:00',
   );
   const [submitting, setSubmitting] = useState(false);
 
@@ -62,28 +56,11 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
     entry.reservation?.status === 'AWAITING_DAILY_LOG';
 
   const openAction = useCallback((next: DispositionAction) => {
+    setMenuOpen(false);
     setAction(next);
     setReason('');
     setModalOpen(true);
   }, []);
-
-  const openMenu = useCallback(() => {
-    Alert.alert(
-      'Upravljanje rezervacijom',
-      'Odaberite akciju za direktnu rezervaciju.',
-      [
-        ...(Object.keys(ACTION_LABELS) as DispositionAction[]).map((key) => ({
-          text: ACTION_LABELS[key],
-          onPress: () => openAction(key),
-          style: (key === 'discard' || key === 'no_show' ? 'destructive' : 'default') as
-            | 'default'
-            | 'cancel'
-            | 'destructive',
-        })),
-        { text: 'Odustani', style: 'cancel' as const },
-      ],
-    );
-  }, [openAction]);
 
   const handleSubmit = useCallback(async () => {
     if (!action) return;
@@ -117,15 +94,7 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [
-    action,
-    entry.id,
-    onDone,
-    reason,
-    targetDate,
-    targetEndTime,
-    targetStartTime,
-  ]);
+  }, [action, entry.id, onDone, reason, targetDate, targetEndTime, targetStartTime]);
 
   if (!showPanel) return null;
 
@@ -138,38 +107,41 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
         <Text style={[styles.hint, { color: colors.textSecondary }]}>
           Rezervacija je prešla u dnevnu knjigu. Završite zapis ili odaberite akciju.
         </Text>
-        <Button title="Akcije rezervacije" variant="outline" onPress={openMenu} />
+        <Button title="Akcije rezervacije" variant="outline" onPress={() => setMenuOpen(true)} />
       </Card>
 
-      <Modal visible={modalOpen} animationType="slide" transparent>
+      <DispositionActionMenuModal
+        visible={menuOpen}
+        colors={colors}
+        onClose={() => setMenuOpen(false)}
+        onSelect={openAction}
+      />
+
+      <Modal visible={modalOpen} animationType="slide" transparent onRequestClose={() => setModalOpen(false)}>
         <View style={styles.modalOverlay}>
+          <Pressable style={styles.backdrop} onPress={() => setModalOpen(false)} />
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={{ width: '100%' }}
+            style={{ width: '100%', zIndex: 1 }}
           >
             <Card style={{ ...styles.modalCard, backgroundColor: colors.surface }}>
               <Text style={[styles.title, { color: colors.text }]}>
-                {action ? ACTION_LABELS[action] : 'Akcija'}
+                {action ? DISPOSITION_ACTION_LABELS[action] : 'Akcija'}
               </Text>
               {action === 'reorder' ? (
                 <>
-                  <Input
-                    label="Novi datum"
-                    value={targetDate}
-                    onChangeText={setTargetDate}
-                    placeholder="YYYY-MM-DD"
-                  />
-                  <Input
+                  <DateTimeField label="Novi datum" mode="date" value={targetDate} onChange={setTargetDate} />
+                  <DateTimeField
                     label="Novi početak"
+                    mode="time"
                     value={targetStartTime}
-                    onChangeText={setTargetStartTime}
-                    placeholder="09:00"
+                    onChange={setTargetStartTime}
                   />
-                  <Input
+                  <DateTimeField
                     label="Novi kraj"
+                    mode="time"
                     value={targetEndTime}
-                    onChangeText={setTargetEndTime}
-                    placeholder="10:00"
+                    onChange={setTargetEndTime}
                   />
                 </>
               ) : null}
@@ -212,6 +184,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
     padding: spacing.md,
   },
+  backdrop: { ...StyleSheet.absoluteFillObject },
   modalCard: { padding: spacing.md, gap: spacing.sm },
   modalActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
 });

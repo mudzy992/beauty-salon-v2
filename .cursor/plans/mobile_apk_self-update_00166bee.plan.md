@@ -53,57 +53,67 @@ sequenceDiagram
   App->>App: Install intent
 ```
 
+
+
 ## Matrica (source of truth)
 
 Implementacija piše i održava:
 
-- [`.cursor/docs/matrices/mobile-apk-update/MATRIX.md`](.cursor/docs/matrices/mobile-apk-update/MATRIX.md)
-- [`.cursor/docs/matrices/mobile-apk-update/CHANGELOG.md`](.cursor/docs/matrices/mobile-apk-update/CHANGELOG.md)
+- `[.cursor/docs/matrices/mobile-apk-update/MATRIX.md](.cursor/docs/matrices/mobile-apk-update/MATRIX.md)`
+- `[.cursor/docs/matrices/mobile-apk-update/CHANGELOG.md](.cursor/docs/matrices/mobile-apk-update/CHANGELOG.md)`
 
 ### Statusi release-a
 
-| Status | Značenje |
-|--------|----------|
-| `DRAFT` | Upload/metadata postoji; nije vidljiv mobilnom clientu |
-| `PUBLISHED` | Aktivan kandidat za `latest` (najveći `versionCode` među PUBLISHED) |
-| `RETIRED` | Zamijenjen; više nije `latest`, fajl može ostati |
 
-Pravilo: jedan platform `ANDROID` može imati više PUBLISHED historijski, ali **`latest` = max(`versionCode`) gdje `status=PUBLISHED`**. Objava novog release-a automatski prethodni PUBLISHED → RETIRED (ili ostavi historiju PUBLISHED samo ako želimo rollback preko “re-publish”; default: prethodni → RETIRED).
+| Status      | Značenje                                                            |
+| ----------- | ------------------------------------------------------------------- |
+| `DRAFT`     | Upload/metadata postoji; nije vidljiv mobilnom clientu              |
+| `PUBLISHED` | Aktivan kandidat za `latest` (najveći `versionCode` među PUBLISHED) |
+| `RETIRED`   | Zamijenjen; više nije `latest`, fajl može ostati                    |
+
+
+Pravilo: jedan platform `ANDROID` može imati više PUBLISHED historijski, ali `**latest` = max(`versionCode`) gdje `status=PUBLISHED**`. Objava novog release-a automatski prethodni PUBLISHED → RETIRED (ili ostavi historiju PUBLISHED samo ako želimo rollback preko “re-publish”; default: prethodni → RETIRED).
 
 ### Polja i usporedba
 
-| Polje | Tip | Pravilo |
-|-------|-----|---------|
-| `platform` | enum `ANDROID` | samo Android u v1 |
-| `version` | semver string | prikaz u UI (`1.0.1`) |
-| `versionCode` | int, unique per platform | **jedini** kriterij “novije” |
-| `minSupportedVersionCode` | int | ako `local < min` → force |
-| `forceUpdate` | bool | ako true → force bez obzira na soft |
-| `apkPath` | relative upload path | servira se kao `/uploads/...` |
-| `apkSha256` | hex string | obavezna verifikacija prije install |
-| `apkSizeBytes` | int | progress / sanity check |
-| `releaseNotes` | text | prikaz u dijalogu |
-| `status` | DRAFT/PUBLISHED/RETIRED | vidi gore |
+
+| Polje                     | Tip                      | Pravilo                             |
+| ------------------------- | ------------------------ | ----------------------------------- |
+| `platform`                | enum `ANDROID`           | samo Android u v1                   |
+| `version`                 | semver string            | prikaz u UI (`1.0.1`)               |
+| `versionCode`             | int, unique per platform | **jedini** kriterij “novije”        |
+| `minSupportedVersionCode` | int                      | ako `local < min` → force           |
+| `forceUpdate`             | bool                     | ako true → force bez obzira na soft |
+| `apkPath`                 | relative upload path     | servira se kao `/uploads/...`       |
+| `apkSha256`               | hex string               | obavezna verifikacija prije install |
+| `apkSizeBytes`            | int                      | progress / sanity check             |
+| `releaseNotes`            | text                     | prikaz u dijalogu                   |
+| `status`                  | DRAFT/PUBLISHED/RETIRED  | vidi gore                           |
+
 
 ### Client odluke (matrica ponašanja)
 
-| Uvjet | Soft dijalog | Force wall | Download | Install |
-|-------|--------------|------------|----------|---------|
-| `remote.versionCode <= local` | Ne | Ne | Ne | Ne |
-| `remote > local` i `!force` i `local >= min` | Da (Kasnije / Ažuriraj) | Ne | Na Ažuriraj | Nakon verify |
-| `forceUpdate=true` | Ne | Da | Da (jedini CTA) | Nakon verify |
-| `local < minSupportedVersionCode` | Ne | Da | Da | Nakon verify |
-| SHA-256 mismatch | — | — | Obriši fajl, error | **Nikad** |
-| Download fail / offline | Soft: dismiss; Force: retry | Retry | — | — |
-| iOS / web | Nema checka | — | — | — |
+
+| Uvjet                                        | Soft dijalog                | Force wall | Download           | Install      |
+| -------------------------------------------- | --------------------------- | ---------- | ------------------ | ------------ |
+| `remote.versionCode <= local`                | Ne                          | Ne         | Ne                 | Ne           |
+| `remote > local` i `!force` i `local >= min` | Da (Kasnije / Ažuriraj)     | Ne         | Na Ažuriraj        | Nakon verify |
+| `forceUpdate=true`                           | Ne                          | Da         | Da (jedini CTA)    | Nakon verify |
+| `local < minSupportedVersionCode`            | Ne                          | Da         | Da                 | Nakon verify |
+| SHA-256 mismatch                             | —                           | —          | Obriši fajl, error | **Nikad**    |
+| Download fail / offline                      | Soft: dismiss; Force: retry | Retry      | —                  | —            |
+| iOS / web                                    | Nema checka                 | —          | —                  | —            |
+
 
 ### Auth / uloge
 
-| Endpoint / akcija | Auth |
-|-------------------|------|
-| `GET /api/public/app-releases/android/latest` | `@Public()` |
-| Admin CRUD + upload APK | JWT + `SYSTEM_ADMIN` \| `OWNER` |
-| Download APK fajla | Javni static `/uploads/app-releases/...` (HTTPS); integrity = SHA-256 |
+
+| Endpoint / akcija                             | Auth                                                                  |
+| --------------------------------------------- | --------------------------------------------------------------------- |
+| `GET /api/public/app-releases/android/latest` | `@Public()`                                                           |
+| Admin CRUD + upload APK                       | JWT + `SYSTEM_ADMIN`                                                  |
+| Download APK fajla                            | Javni static `/uploads/app-releases/...` (HTTPS); integrity = SHA-256 |
+
 
 ### Sigurnosna pravila
 
@@ -147,7 +157,7 @@ Public DTO response:
 }
 ```
 
-Ne širiti postojeći [`uploads.controller.ts`](backend/src/uploads/uploads.controller.ts) MIME/limit — zaseban upload u app-releases modulu.
+Ne širiti postojeći `[uploads.controller.ts](backend/src/uploads/uploads.controller.ts)` MIME/limit — zaseban upload u app-releases modulu.
 
 Testovi: latest selection, force flags, auth na admin, reject non-APK, publish retires previous.
 
@@ -157,7 +167,7 @@ Matrica + CHANGELOG kreirati u ovoj fazi.
 
 ## Faza 2 — Admin web UI
 
-- Nav: [`frontend/src/features/shell/admin/admin-nav.ts`](frontend/src/features/shell/admin/admin-nav.ts) → System: `/admin/app-releases`
+- Nav: `[frontend/src/features/shell/admin/admin-nav.ts](frontend/src/features/shell/admin/admin-nav.ts)` → System: `/admin/app-releases`
 - Stranica: lista release-ova + forma “Novi release” (file, version, versionCode, minSupported, force, notes, Publish)
 - Prikaži computed SHA-256/size s backend responsea (read-only)
 - i18n BS (+ EN keys infrastruktura)
@@ -166,7 +176,7 @@ Matrica + CHANGELOG kreirati u ovoj fazi.
 
 ## Faza 3 — Mobile client
 
-**Config** [`mobile/app.config.js`](mobile/app.config.js):
+**Config** `[mobile/app.config.js](mobile/app.config.js)`:
 
 - `android.versionCode: 1` (bump na svaki native release)
 - `permissions`: `REQUEST_INSTALL_PACKAGES` (cache download — bez legacy storage)
@@ -177,7 +187,7 @@ Matrica + CHANGELOG kreirati u ovoj fazi.
 
 - `mobile/src/features/app-update/apk-update.ts` — fetch latest, compare, download, hash verify, install intent
 - `mobile/src/features/app-update/use-apk-update-check.ts` — mount check (Android only), soft throttle, force modal state
-- Wire u [`mobile/app/_layout.tsx`](mobile/app/_layout.tsx) `AppContent`
+- Wire u `[mobile/app/_layout.tsx](mobile/app/_layout.tsx)` `AppContent`
 - UI: soft `Alert.alert`; force = blocking `Modal` (nema dismiss)
 - Progress download u modalu
 - Ručni check: Profile (client + stylist) “Provjeri ažuriranja”
@@ -203,13 +213,15 @@ Runbook (u overview/checklist): bump version+versionCode → EAS APK → upload 
 
 ## Ključni fajlovi
 
-| Sloj | Fajlovi |
-|------|---------|
-| DB | `backend/prisma/schema.prisma` + migracija |
-| API | `backend/src/app-releases/*` |
-| Admin | `frontend/src/features/.../app-releases/*`, `admin-nav.ts` |
+
+| Sloj   | Fajlovi                                                                          |
+| ------ | -------------------------------------------------------------------------------- |
+| DB     | `backend/prisma/schema.prisma` + migracija                                       |
+| API    | `backend/src/app-releases/*`                                                     |
+| Admin  | `frontend/src/features/.../app-releases/*`, `admin-nav.ts`                       |
 | Mobile | `app.config.js`, `app/_layout.tsx`, `src/features/app-update/*`, profile screens |
-| Matrix | `.cursor/docs/matrices/mobile-apk-update/{MATRIX,CHANGELOG}.md` |
+| Matrix | `.cursor/docs/matrices/mobile-apk-update/{MATRIX,CHANGELOG}.md`                  |
+
 
 ## Van opsega
 

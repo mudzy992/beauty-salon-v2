@@ -51,6 +51,22 @@ export function getReservationTotalDurationMinutes(reservation: Reservation | nu
   return diff > 0 ? diff : 0;
 }
 
+export function getReservationEstimatedTotal(reservation: Reservation | null | undefined): number {
+  return getReservationServices(reservation).reduce(
+    (sum, service) => sum + (Number(service.price) || 0),
+    0,
+  );
+}
+
+export function getReservationBookingOriginLabel(reservation: Reservation | null | undefined): string {
+  if (!reservation) return '—';
+  if (reservation.bookingOrigin === 'STAFF_STYLIST') return 'Direktna (stilista)';
+  if (reservation.bookingOrigin === 'STAFF_ADMIN') return 'Direktna (admin)';
+  if (reservation.acceptanceMode === 'INBOX') return 'Inbox';
+  if (reservation.bookingOrigin === 'CLIENT_SELF_SERVICE') return 'Klijent (online)';
+  return 'Rezervacija';
+}
+
 export function pickReservationBackdropHeroImage(reservation: Reservation | null | undefined): string | null {
   if (!reservation) return null;
   const services = getReservationServices(reservation);

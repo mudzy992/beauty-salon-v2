@@ -27,7 +27,7 @@ export function CancelReservationModal({
   const { t } = useTranslation();
   const { colors } = useTheme();
   return (
-    <ReservationDetailModalShell visible={visible}>
+    <ReservationDetailModalShell visible={visible} onClose={onClose}>
       <Text style={[styles.title, { color: colors.text }]}>{t('stylist.schedule.cancelTitle')}</Text>
       <Input
         label={t('stylist.schedule.cancelReasonLabel')}
