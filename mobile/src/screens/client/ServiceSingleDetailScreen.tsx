@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  ImageBackground,
   useWindowDimensions,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
@@ -14,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
+import { MediaBackdrop } from '../../components/MediaImage';
 import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
@@ -118,9 +118,8 @@ export function ServiceSingleDetailScreen({
     >
       {/* Hero / backdrop */}
       <View style={styles.heroWrap}>
-        {heroUri ? (
-          <ImageBackground
-            source={{ uri: heroUri }}
+          <MediaBackdrop
+            uri={heroUri}
             style={styles.heroImage}
             imageStyle={styles.heroImageStyle}
           >
@@ -132,19 +131,7 @@ export function ServiceSingleDetailScreen({
                 <Text style={styles.heroMetaText}>{service.durationMinutes} min</Text>
               </View>
             </View>
-          </ImageBackground>
-        ) : (
-          <View style={[styles.heroPlaceholder, { backgroundColor: colors.accent }]}>
-            <Ionicons name="cut" size={48} color={colors.primary} />
-            <Text style={[styles.heroTitle, { color: colors.text }]}>{service.name}</Text>
-            <View style={styles.heroMeta}>
-              <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
-              <Text style={[styles.heroMetaText, { color: colors.textSecondary }]}>
-                {service.durationMinutes} min
-              </Text>
-            </View>
-          </View>
-        )}
+          </MediaBackdrop>
       </View>
 
       {/* Description */}

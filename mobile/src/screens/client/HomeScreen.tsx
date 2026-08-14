@@ -13,7 +13,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
+import { MediaImage } from '../../components/MediaImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colorWithAlpha } from '../../theme/colorAlpha';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,8 +52,19 @@ const HERO_HEIGHT = 300;
 const PRESS_SPRING = { damping: 15, stiffness: 400 };
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const DEFAULT_HERO_IMAGE = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=2000';
-const DEFAULT_BLOG_IMAGE = 'https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&q=80&w=1200';
+function resolveHeroImageUrl(value: string): string {
+  if (!value?.trim()) return '';
+  const v = value.trim();
+  if (v.startsWith('http')) return v;
+  return getImageUrl(v) || '';
+}
+
+function resolveBlogImageUrl(value?: string): string {
+  if (!value?.trim()) return '';
+  const v = value.trim();
+  if (v.startsWith('http')) return v;
+  return getImageUrl(v) || '';
+}
 
 interface CategoryWithServices {
   category: ServiceCategory;
@@ -375,10 +386,9 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
       >
         <View style={styles.heroWrap}>
           <View style={[styles.hero, { height: heroBlockHeight, borderCurve: 'continuous' }]}>
-            <Image
-              source={{ uri: heroImageUrl }}
+            <MediaImage
+              uri={heroImageUrl}
               style={StyleSheet.absoluteFill}
-              contentFit="cover"
             />
             <View style={styles.heroDim} pointerEvents="none" />
             <LinearGradient
@@ -397,8 +407,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     entering={FadeInDown.delay(220).duration(520).springify()}
                     style={styles.heroLogoBlock}
                   >
-                    <Image
-                      source={{ uri: getImageUrl(appLogo) || getUploadUrl(appLogo) || appLogo }}
+                    <MediaImage
+                      uri={getImageUrl(appLogo) || getUploadUrl(appLogo) || appLogo}
                       style={styles.heroLogoLarge}
                       contentFit="contain"
                       accessibilityLabel={appTitle}
@@ -592,17 +602,10 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                           { width: serviceCardWidth, height: cardHeight, borderRadius: borderRadius.xxl },
                         ]}
                       >
-                        {service.heroImage ? (
-                          <Image
-                            source={{ uri: getImageUrl(service.heroImage) }}
+                          <MediaImage
+                            uri={getImageUrl(service.heroImage)}
                             style={StyleSheet.absoluteFill}
-                            contentFit="cover"
                           />
-                        ) : (
-                          <View style={[styles.serviceCardPlaceholder, { backgroundColor: colors.accent }]}>
-                            <Ionicons name="cut" size={36} color={colors.primary} />
-                          </View>
-                        )}
                         <LinearGradient
                           colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.06)', 'rgba(0,0,0,0.42)']}
                           locations={[0, 0.5, 1]}
@@ -719,10 +722,9 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                   onPress={() => navigation.navigate('BlogPost', { slug: post.slug })}
                 >
                   <View style={styles.blogCoverWrap}>
-                    <Image
-                      source={{ uri: resolveBlogImageUrl(post.heroImage) }}
+                    <MediaImage
+                      uri={resolveBlogImageUrl(post.heroImage)}
                       style={styles.blogCover}
-                      contentFit="cover"
                       transition={120}
                     />
                     <LinearGradient

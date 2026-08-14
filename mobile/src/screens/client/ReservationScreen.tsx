@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   FlatList,
-  ImageBackground,
   BackHandler,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
@@ -20,6 +19,7 @@ import { router } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
+import { MediaBackdrop } from '../../components/MediaImage';
 import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
 import { spacing, borderRadius } from '../../theme';
@@ -428,9 +428,8 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
               const isSelected = selectedServiceIds.includes(item.id);
               return (
                 <Card onPress={() => handleToggleService(item)} style={[styles.serviceItem, styles.serviceItemBackdrop]} padded={false}>
-                  {heroUri ? (
-                    <ImageBackground
-                      source={{ uri: heroUri }}
+                    <MediaBackdrop
+                      uri={heroUri}
                       style={styles.serviceItemBackdropImage}
                       imageStyle={styles.serviceItemBackdropImageStyle}
                     >
@@ -449,24 +448,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
                           <Ionicons name="checkmark" size={14} color="#fff" />
                         </View>
                       ) : null}
-                    </ImageBackground>
-                  ) : (
-                    <View
-                      style={[
-                        styles.serviceItemPlaceholder,
-                        {
-                          backgroundColor: colors.surface,
-                          borderColor: isSelected ? colors.primary : colors.border,
-                          borderWidth: 1,
-                        },
-                      ]}
-                    >
-                      <Text style={[styles.serviceItemName, { color: colors.text }]}>{item.name}</Text>
-                      <Text style={[styles.serviceItemDuration, { color: colors.textSecondary }]}>
-                        {item.durationMinutes} min
-                      </Text>
-                    </View>
-                  )}
+                    </MediaBackdrop>
                 </Card>
               );
             }}

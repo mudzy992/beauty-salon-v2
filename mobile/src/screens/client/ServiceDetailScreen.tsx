@@ -6,7 +6,6 @@ import {
   SectionList,
   ActivityIndicator,
   TouchableOpacity,
-  ImageBackground,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
+import { MediaBackdrop } from '../../components/MediaImage';
 import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
 import { spacing } from '../../theme';
@@ -81,9 +81,8 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
         return (
           <Animated.View entering={FadeInRight.delay(Math.min(index, 8) * 45).duration(320).springify()}>
           <Card style={{ ...styles.card, ...styles.cardBackdrop }}>
-            {heroUri ? (
-              <ImageBackground
-                source={{ uri: heroUri }}
+              <MediaBackdrop
+                uri={heroUri}
                 style={styles.cardBackdropImage}
                 imageStyle={styles.cardBackdropImageStyle}
               >
@@ -134,57 +133,7 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
                     />
                   ) : null}
                 </View>
-              </ImageBackground>
-            ) : (
-              <View style={[styles.cardBackdropPlaceholder, { backgroundColor: colors.surface }]}>
-                <View style={styles.serviceRow}>
-                  <TouchableOpacity
-                    style={styles.serviceInfo}
-                    onPress={() =>
-                      navigation.navigate('ServiceSingleDetail', {
-                        serviceId: item.id,
-                        serviceName: item.name,
-                      })
-                    }
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[styles.serviceName, { color: colors.text }]}>
-                      {item.name}
-                    </Text>
-                    {item.shortDescription && (
-                      <Text
-                        style={[styles.serviceDesc, { color: colors.textSecondary }]}
-                        numberOfLines={2}
-                      >
-                        {item.shortDescription}
-                      </Text>
-                    )}
-                    <View style={styles.meta}>
-                      <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
-                      <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                        {item.durationMinutes} min
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                  {canBook ? (
-                    <Button
-                      title={t('services.bookService')}
-                      onPress={() =>
-                        navigation.navigate('Reservation', {
-                          serviceId: item.id,
-                          serviceName: item.name,
-                          origin: 'service-detail',
-                          originCategoryId: categoryId,
-                          originCategoryName: categoryName,
-                        })
-                      }
-                      size="sm"
-                      variant="outline"
-                    />
-                  ) : null}
-                </View>
-              </View>
-            )}
+              </MediaBackdrop>
           </Card>
           </Animated.View>
         );

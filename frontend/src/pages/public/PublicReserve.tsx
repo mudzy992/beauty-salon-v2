@@ -13,6 +13,7 @@ import { Textarea } from '../../components/ui/textarea'
 import { useAuth } from '../../context/AuthContext'
 import { useSettings } from '../../context/SettingsContext'
 import { useSocketEvent } from '../../context/SocketContext'
+import { cssBackgroundImage } from '../../constants/media-fallback'
 import { useAppToast } from '../../lib/toast/useAppToast'
 
 interface ServiceOption {
@@ -660,16 +661,13 @@ export default function PublicReserve() {
 
   if (!user) return null
 
-  const bgUrl = getSetting(
-    'public_reserve_bg',
-    'https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&q=80&w=2000',
-  )
+  const bgUrl = getSetting('public_reserve_bg', '')
 
   return (
     <div className="min-h-screen pt-8 pb-20 relative bg-white">
       <div
         className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.04]"
-        style={{ backgroundImage: `url('${bgUrl}')` }}
+        style={{ backgroundImage: cssBackgroundImage(bgUrl) }}
       />
 
       <MotionDiv

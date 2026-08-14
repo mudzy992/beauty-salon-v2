@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { View, StyleSheet, PanResponder, useWindowDimensions } from 'react-native';
-import { Image } from 'expo-image';
+import { MediaImage } from './MediaImage';
 import { useTheme } from '../hooks/useTheme';
 import { borderRadius } from '../theme';
 
@@ -50,12 +50,11 @@ export function BeforeAfterSlider({
       style={[styles.container, { width, height, borderRadius: borderRadius.lg }]}
       {...panResponder.panHandlers}
     >
-      <Image source={{ uri: beforeSrc }} style={styles.beforeImage} contentFit="cover" />
+      <MediaImage uri={beforeSrc} style={styles.beforeImage} />
       <View style={[styles.afterClip, { width: width * position }]}>
-        <Image
-          source={{ uri: afterSrc }}
+        <MediaImage
+          uri={afterSrc}
           style={[styles.afterImage, { width }]}
-          contentFit="cover"
         />
       </View>
       <View style={[styles.handleLine, { left: width * position - 2, backgroundColor: lineColor }]}>

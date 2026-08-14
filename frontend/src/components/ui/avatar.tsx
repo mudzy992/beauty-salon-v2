@@ -1,6 +1,7 @@
 import * as React from 'react'
 import * as AvatarPrimitive from '@radix-ui/react-avatar'
 
+import { MEDIA_FALLBACK_SRC } from '../../constants/media-fallback'
 import { cn } from '../../lib/cn'
 
 export const Avatar = React.forwardRef<
@@ -21,11 +22,18 @@ Avatar.displayName = AvatarPrimitive.Root.displayName
 export const AvatarImage = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Image>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
+>(({ className, src, onError, ...props }, ref) => (
   <AvatarPrimitive.Image
     ref={ref}
-    className={cn('aspect-square h-full w-full', className)}
+    className={cn('aspect-square h-full w-full object-cover', className)}
     {...props}
+    src={typeof src === 'string' && src.trim() ? src : MEDIA_FALLBACK_SRC}
+    onError={(event) => {
+      const img = event.currentTarget
+      if (img.src.includes(MEDIA_FALLBACK_SRC)) return
+      img.src = MEDIA_FALLBACK_SRC
+      onError?.(event)
+    }}
   />
 ))
 AvatarImage.displayName = AvatarPrimitive.Image.displayName

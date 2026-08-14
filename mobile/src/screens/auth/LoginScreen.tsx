@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Image } from 'expo-image';
+import { MediaImage } from '../../components/MediaImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +27,12 @@ import { fontFamily } from '../../theme/fonts';
 import type { AuthScreenProps } from '../../navigation/types';
 import { AxiosError } from 'axios';
 
-const DEFAULT_LOGIN_IMAGE = 'https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&q=80&w=1200';
+function resolveLoginImageUrl(value: string): string {
+  if (!value?.trim()) return '';
+  const v = value.trim();
+  if (v.startsWith('http')) return v;
+  return getImageUrl(v) || '';
+}
 
 interface PublicSetting {
   key: string;
@@ -54,13 +59,6 @@ function getSettingValue(settings: PublicSetting[] | null | undefined, key: stri
   if (!Array.isArray(settings)) return fallback;
   const item = settings.find((s) => s.key === key);
   return item?.value?.trim() || fallback;
-}
-
-function resolveLoginImageUrl(value: string): string {
-  if (!value?.trim()) return DEFAULT_LOGIN_IMAGE;
-  const v = value.trim();
-  if (v.startsWith('http')) return v;
-  return getImageUrl(v) || DEFAULT_LOGIN_IMAGE;
 }
 
 function getLoginErrorMessage(error: unknown): string {
@@ -120,7 +118,7 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
 
   return (
     <View style={styles.container}>
-      <Image source={{ uri: loginImageUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      <MediaImage uri={loginImageUrl} style={StyleSheet.absoluteFill} />
       <LinearGradient
         colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.85)']}
         style={StyleSheet.absoluteFill}

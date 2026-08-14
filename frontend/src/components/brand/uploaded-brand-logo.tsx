@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useState } from 'react'
 
+import { MediaImage } from './media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
 
 type UploadedBrandLogoProps = {
@@ -67,7 +68,7 @@ export const UploadedBrandLogo = memo(
         })
         .catch(() => {
           if (cancelled) return
-          setSvgMarkup(null)
+          setSvgMarkup('')
         })
       return () => {
         cancelled = true
@@ -88,7 +89,7 @@ export const UploadedBrandLogo = memo(
             dangerouslySetInnerHTML={{ __html: svgMarkup }}
           />
         ) : (
-          <img
+          <MediaImage
             src={logoUrl}
             alt={displayWord}
             className="h-10 w-10 shrink-0 object-contain"

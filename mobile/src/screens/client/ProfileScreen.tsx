@@ -6,12 +6,12 @@ import {
   ScrollView,
   Alert,
   TouchableOpacity,
-  Image,
   Modal,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MediaImage } from '../../components/MediaImage';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -174,14 +174,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
             style={[styles.avatarWrap, { backgroundColor: colors.accent }]}
             activeOpacity={0.85}
           >
-            {user?.avatar && getImageUrl(user.avatar) ? (
-              <Image source={{ uri: getImageUrl(user.avatar)! }} style={styles.avatarImage} />
-            ) : (
-              <Text style={[styles.avatarText, { color: colors.primary }]}>
-                {user?.firstName?.[0]}
-                {user?.lastName?.[0]}
-              </Text>
-            )}
+            <MediaImage uri={getImageUrl(user?.avatar)} style={styles.avatarImage} />
             <View
               style={[
                 styles.avatarEditBadge,

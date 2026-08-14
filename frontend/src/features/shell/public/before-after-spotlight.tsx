@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
+import { MediaImage } from '../../../components/media-image'
 import { BeforeAfterSlider } from '../../../components/BeforeAfterSlider'
 
 const MotionDiv = motion.div
@@ -106,13 +107,13 @@ const MarqueeThumbColumn = ({
             className="w-full overflow-hidden rounded-xl bg-white text-left shadow-sm ring-1 ring-slate-900/[0.06] transition hover:shadow-md hover:ring-slate-900/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/15"
           >
             <div className="grid grid-cols-2 gap-px bg-slate-200">
-              <img
+              <MediaImage
                 src={resolveBefore(row.pair)}
                 alt=""
                 className="h-20 w-full object-cover"
                 height={THUMB_ROW_H}
               />
-              <img
+              <MediaImage
                 src={resolveAfter(row.pair)}
                 alt=""
                 className="h-20 w-full object-cover"
@@ -235,12 +236,12 @@ export const BeforeAfterSpotlight = ({
                   aria-label="Prikaži ovu transformaciju u pregledu"
                 >
                   <div className="grid grid-cols-2 gap-px bg-slate-200">
-                    <img
+                    <MediaImage
                       src={resolveBefore(pair)}
                       alt=""
                       className="h-20 w-full object-cover"
                     />
-                    <img
+                    <MediaImage
                       src={resolveAfter(pair)}
                       alt=""
                       className="h-20 w-full object-cover"

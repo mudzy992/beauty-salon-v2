@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
+import { cssBackgroundImage } from '../../constants/media-fallback'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 
 interface ServiceOption {
@@ -53,17 +54,14 @@ export default function PublicServices() {
       .finally(() => setLoading(false));
   }, []);
 
-  const servicesHeroBg = getSetting(
-    'public_services_bg',
-    'https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=2000',
-  )
+  const servicesHeroBg = getSetting('public_services_bg', '')
 
   return (
     <div className="bg-white min-h-screen pb-20">
       <div className={`${publicPageHero.section} relative overflow-hidden`}>
         <div
           className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.08]"
-          style={{ backgroundImage: `url('${servicesHeroBg}')` }}
+          style={{ backgroundImage: cssBackgroundImage(servicesHeroBg) }}
         />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/85 to-white" />
         <div className={`${publicPageHero.innerNarrow} text-center relative z-[1]`}>

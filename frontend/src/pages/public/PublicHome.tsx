@@ -10,6 +10,8 @@ import { Card, CardContent } from '../../components/ui/card'
 import { BeforeAfterSpotlight } from '../../features/shell/public/before-after-spotlight'
 import { publicHeader, publicPage, publicSection } from '../../features/shell/public/public-ui'
 import { useSettings } from '../../context/SettingsContext'
+import { MediaImage } from '../../components/media-image'
+import { cssBackgroundImage, resolveRemoteMediaUrl } from '../../constants/media-fallback'
 import { getUploadUrl } from '../../utils/uploadUrl'
 
 const MotionDiv = motion.div
@@ -69,20 +71,14 @@ export default function PublicHome() {
       .catch(() => setFeaturedReview(null))
   }, [])
 
-  const heroImage = getSetting(
-    'public_hero_image',
-    'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=2000',
-  )
+  const heroImage = getSetting('public_hero_image', '')
   const heroTitle = getSetting('public_hero_title', 'Otkrijte Svoju\nSavršenu Ljepotu')
   const heroSubtitle = getSetting(
     'public_hero_subtitle',
     'Vaš ekskluzivni muško-ženski frizerski salon. Prepustite se rukama profesionalaca za moderni rez i njegu kakvu zaslužujete.',
   )
 
-  const aboutImage = getSetting(
-    'public_about_image',
-    'https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&q=80&w=800',
-  )
+  const aboutImage = getSetting('public_about_image', '')
   const aboutTitle = getSetting('public_about_title', 'Vaša Kosa Je Naša Strast')
   const aboutText = getSetting(
     'public_about_text',
@@ -125,7 +121,7 @@ export default function PublicHome() {
       <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url('${heroImage}')` }}
+          style={{ backgroundImage: cssBackgroundImage(heroImage) }}
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 to-black/60" />
         <div className="relative z-10 mx-auto max-w-5xl px-4 py-24 md:py-28 text-center text-white">
@@ -204,7 +200,7 @@ export default function PublicHome() {
         <div className="mx-auto max-w-6xl px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <div className="relative overflow-hidden rounded-2xl shadow-sm border border-slate-200 bg-slate-100">
-              <img src={aboutImage} alt="" className="h-full w-full object-cover" />
+              <MediaImage src={resolveRemoteMediaUrl(aboutImage)} alt="" className="h-full w-full object-cover" />
             </div>
             <div>
               <div className="text-brand-gold font-semibold uppercase tracking-widest text-sm">

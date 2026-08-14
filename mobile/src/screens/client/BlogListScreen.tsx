@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
-import { Image } from 'expo-image';
+import { MediaImage } from '../../components/MediaImage';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
@@ -74,13 +74,10 @@ export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
           style={styles.card}
           padded={false}
         >
-          {item.heroImage && (
-            <Image
-              source={{ uri: getImageUrl(item.heroImage) }}
+          <MediaImage
+              uri={getImageUrl(item.heroImage)}
               style={styles.heroImage}
-              contentFit="cover"
             />
-          )}
           <View style={styles.cardContent}>
             <Text style={[styles.title, { color: colors.text }]} numberOfLines={2}>
               {item.title}

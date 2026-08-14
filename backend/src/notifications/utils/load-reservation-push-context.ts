@@ -1,22 +1,9 @@
+import type { PrismaClient } from '@prisma/client';
 import { RESERVATION_ATTENDANCE_POLICY } from '../../reservations/constants';
 import {
   emptyPushContext,
   type ReservationPushContext,
 } from './reservation-push-copy';
-
-type PrismaLike = {
-  reservation: {
-    findUnique: (args: unknown) => Promise<{
-      publicReferenceCode: string;
-      reservationDate: Date;
-      startTime: string;
-      endTime: string;
-      attendancePolicy: string;
-      service: { name: string } | null;
-      items: Array<{ sortOrder: number; service: { name: string } | null }>;
-    } | null>;
-  };
-};
 
 const PUSH_CONTEXT_SELECT = {
   publicReferenceCode: true,
@@ -27,12 +14,12 @@ const PUSH_CONTEXT_SELECT = {
   service: { select: { name: true } },
   items: {
     select: { sortOrder: true, service: { select: { name: true } } },
-    orderBy: { sortOrder: 'asc' },
+    orderBy: { sortOrder: 'asc' as const },
   },
-} as const;
+};
 
 export const loadReservationPushContext = async (
-  prisma: PrismaLike,
+  prisma: PrismaClient,
   reservationId: string,
 ): Promise<ReservationPushContext | null> => {
   const row = await prisma.reservation.findUnique({
@@ -58,7 +45,7 @@ export const loadReservationPushContext = async (
 };
 
 export const resolvePushContext = async (
-  prisma: PrismaLike,
+  prisma: PrismaClient,
   reservationId: string,
   ref?: string | null,
 ): Promise<ReservationPushContext> =>

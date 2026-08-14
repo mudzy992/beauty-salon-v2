@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '../../../components/ui/dialog'
 import { useAppToast } from '../../../lib/toast/useAppToast'
+import { MediaImage } from '../../../components/media-image'
 import { getUploadUrl } from '../../../utils/uploadUrl'
 import {
   attachDailyLogImage,
@@ -279,9 +280,8 @@ export const WorkbookDetailPage = () => {
               <div className="mt-2 flex flex-wrap gap-2">
                 {beforeImages.map((img) => {
                   const uri = getUploadUrl(img.upload?.pathMedium ?? img.upload?.pathThumb ?? img.upload?.pathOriginal)
-                  if (!uri) return null
                   return (
-                    <img
+                    <MediaImage
                       key={img.id}
                       src={uri}
                       alt="Prije"
@@ -300,9 +300,8 @@ export const WorkbookDetailPage = () => {
               <div className="mt-2 flex flex-wrap gap-2">
                 {afterImages.map((img) => {
                   const uri = getUploadUrl(img.upload?.pathMedium ?? img.upload?.pathThumb ?? img.upload?.pathOriginal)
-                  if (!uri) return null
                   return (
-                    <img
+                    <MediaImage
                       key={img.id}
                       src={uri}
                       alt="Poslije"

@@ -16,7 +16,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import api, { getImageUrl } from '../../services/api';
-import { Image } from 'expo-image';
+import { MediaImage } from '../../components/MediaImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { spacing, borderRadius } from '../../theme';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
@@ -135,10 +135,9 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                     })
                   }
                 >
-                  <Image
-                    source={{ uri: featuredService.heroImage ? getImageUrl(featuredService.heroImage) : undefined }}
+                  <MediaImage
+                    uri={featuredService.heroImage ? getImageUrl(featuredService.heroImage) : undefined}
                     style={styles.featuredImage}
-                    contentFit="cover"
                   />
                   <LinearGradient
                     colors={['rgba(0,0,0,0.02)', 'rgba(0,0,0,0.5)']}

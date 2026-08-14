@@ -7,6 +7,7 @@ import { publicHeader, publicPage } from '../../features/shell/public/public-ui'
 import { Textarea } from '../../components/ui/textarea'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import api from '../../api/client'
+import { MediaImage } from '../../components/media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { useAuth } from '../../context/AuthContext'
 import { Seo } from '../../seo/Seo'
@@ -180,41 +181,25 @@ export default function PublicBlogPost() {
         </Link>
 
         <div className="relative min-h-[220px] md:min-h-[300px] overflow-hidden rounded-2xl border border-slate-200/80 shadow-soft">
-          {post.heroImage ? (
-            <>
-              <img
-                src={getUploadUrl(post.heroImage)}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 flex flex-col items-start">
-                <div className="flex items-center gap-2 text-white/85 text-sm mb-2">
-                  <Calendar className="h-4 w-4" aria-hidden />
-                  <div>
-                    {post.publishedAt
-                      ? new Date(post.publishedAt).toLocaleDateString('bs-BA')
-                      : ''}
-                  </div>
-                </div>
-                <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-white leading-tight">
-                  {post.title}
-                </h1>
+          <MediaImage
+            src={post.heroImage ? getUploadUrl(post.heroImage) : ''}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 flex flex-col items-start">
+            <div className="flex items-center gap-2 text-white/85 text-sm mb-2">
+              <Calendar className="h-4 w-4" aria-hidden />
+              <div>
+                {post.publishedAt
+                  ? new Date(post.publishedAt).toLocaleDateString('bs-BA')
+                  : ''}
               </div>
-            </>
-          ) : (
-            <div className="p-8 md:p-10 bg-gradient-to-br from-slate-50 to-slate-100 min-h-[220px] flex flex-col justify-end">
-              <div className="flex items-center gap-2 text-slate-500 text-sm mb-2">
-                <Calendar className="h-4 w-4" aria-hidden />
-                <div>
-                  {post.publishedAt
-                    ? new Date(post.publishedAt).toLocaleDateString('bs-BA')
-                    : ''}
-                </div>
-              </div>
-              <h1 className={`${publicHeader.title} text-slate-950`}>{post.title}</h1>
             </div>
-          )}
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-white leading-tight">
+              {post.title}
+            </h1>
+          </div>
         </div>
 
         <div className={`px-0 md:px-2 ${publicPage.contentAfterHero}`}>

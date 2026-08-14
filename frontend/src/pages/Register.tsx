@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 
+import { MediaImage } from '../components/media-image'
 import api from '../api/client'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -70,11 +71,8 @@ export default function Register() {
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
       <div className="hidden lg:block relative overflow-hidden">
-        <img
-          src={getSetting(
-            'public_register_image',
-            'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1200',
-          )}
+        <MediaImage
+          src={getSetting('public_register_image', '')}
           alt="Salon Details"
           className="h-full w-full object-cover scale-[1.05] hover:scale-100 transition-transform duration-[10000ms] ease-out"
         />

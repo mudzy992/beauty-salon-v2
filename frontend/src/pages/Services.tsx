@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Eye, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 
 import api from '../api/client'
+import { MediaImage } from '../components/media-image'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { useAppToast } from '../lib/toast/useAppToast'
 
@@ -521,13 +522,11 @@ export default function Services() {
               </div>
               <div>
                 <Label>Hero slika</Label>
-                {svcForm.heroImage ? (
-                  <img
+                <MediaImage
                     src={getUploadUrl(svcForm.heroImage)}
                     alt="Hero"
                     className="mt-2 max-h-32 w-full rounded-md object-cover"
                   />
-                ) : null}
                 <input
                   type="file"
                   accept="image/*"

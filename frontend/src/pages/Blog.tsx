@@ -5,6 +5,7 @@ import { Check, Loader2, MessageSquareText, Pencil, Plus, Trash2 } from 'lucide-
 import api from '../api/client'
 import { getErrorMessage } from '../api/error'
 import { useAppToast } from '../lib/toast/useAppToast'
+import { MediaImage } from '../components/media-image'
 import { getUploadUrl } from '../utils/uploadUrl'
 
 import { Badge } from '../components/ui/badge'
@@ -288,9 +289,7 @@ export default function Blog() {
 
             <div className="space-y-2">
               <Label>Hero slika</Label>
-              {heroPreviewUrl ? (
-                <img src={heroPreviewUrl} alt="Hero" className="h-[150px] w-full rounded-md object-cover" />
-              ) : null}
+              <MediaImage src={heroPreviewUrl ?? ''} alt="Hero" className="h-[150px] w-full rounded-md object-cover" />
               <input
                 type="file"
                 accept="image/*"

@@ -11,7 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
-import { Image } from 'expo-image';
+import { MediaImage } from '../../components/MediaImage';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useTheme } from '../../hooks/useTheme';
@@ -172,13 +172,10 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
-      {post.heroImage && (
-        <Image
-          source={{ uri: getImageUrl(post.heroImage) }}
+      <MediaImage
+          uri={getImageUrl(post.heroImage)}
           style={[styles.hero, { width }]}
-          contentFit="cover"
         />
-      )}
 
       <View style={styles.body}>
         <View style={styles.titleRow}>

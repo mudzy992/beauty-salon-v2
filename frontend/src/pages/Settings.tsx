@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next'
 import api from '../api/client'
 import { useSettings } from '../context/SettingsContext'
 import { useSocketEvent } from '../context/SocketContext'
+import { MediaImage } from '../components/media-image'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { cn } from '../lib/cn'
@@ -533,13 +534,10 @@ function SettingEditor({
 
             {hasValue && def.type === 'image' && setting?.value ? (
               <div className="mb-2 mt-2">
-                <img
+                <MediaImage
                   src={getUploadUrl(setting.value)}
                   alt={def.key}
                   className="max-h-20 w-auto rounded-md object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
                 />
               </div>
             ) : null}
@@ -692,13 +690,10 @@ function SettingEditor({
                   ) : null}
                 </div>
                 {value ? (
-                  <img
+                  <MediaImage
                     src={getUploadUrl(value)}
                     alt="Preview"
                     className="max-h-24 w-auto rounded-md bg-slate-50 object-contain dark:bg-slate-900/40"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
                   />
                 ) : null}
               </div>

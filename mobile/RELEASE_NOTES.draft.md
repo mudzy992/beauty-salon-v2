@@ -12,3 +12,4 @@
 - Dolazak se potvrđuje do roka prije termina; stilist ili salon mogu potvrditi umjesto klijenta do početka.
 - Ako niko ne potvrdi dolazak, rezervacija se automatski otkazuje na početku termina.
 - Meni akcija na zapisu dnevnika se zatvara i na Androidu (Odustani uvijek vidljiv).
+- Ako slika usluge, vijesti, galerije ili profila nije dostupna, prikazuje se salon slika umjesto praznog polja.

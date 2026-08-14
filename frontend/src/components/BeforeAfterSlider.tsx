@@ -1,6 +1,9 @@
 import { useRef, useState, useCallback } from 'react'
 import { ChevronsLeftRight } from 'lucide-react'
 
+import { MediaImage } from './media-image'
+import { cssBackgroundImage } from '../constants/media-fallback'
+
 interface BeforeAfterSliderProps {
   beforeSrc: string
   afterSrc: string
@@ -99,7 +102,7 @@ export function BeforeAfterSlider({
     >
       {/* Before – cijela slika u pozadini */}
       <div className="absolute inset-0">
-        <img src={beforeSrc} alt={alt} className="h-full w-full object-cover" />
+        <MediaImage src={beforeSrc} alt={alt} className="h-full w-full object-cover" />
       </div>
       {/* After – samo clip po širini (position%); slika fiksirana backgroundom da ne klizi */}
       <div
@@ -110,7 +113,7 @@ export function BeforeAfterSlider({
           className="absolute top-0 left-0 h-full"
           style={{
             width: position > 0 ? `${10000 / position}%` : '100%',
-            backgroundImage: `url(${afterSrc})`,
+            backgroundImage: cssBackgroundImage(afterSrc),
             backgroundSize: 'cover',
             backgroundPosition: 'left center',
             backgroundRepeat: 'no-repeat',

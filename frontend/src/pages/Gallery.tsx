@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Loader2, Pencil, Plus, Trash2, Upload } from 'lucide-react'
 
 import api from '../api/client'
+import { MediaImage } from '../components/media-image'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { useAppToast } from '../lib/toast/useAppToast'
 
@@ -289,9 +290,7 @@ export default function Gallery() {
                     return (
                       <div key={img.id} className="group overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
                         <div className="relative aspect-[4/3] bg-slate-50 dark:bg-slate-900/40">
-                          {src ? (
-                            <img src={src} alt={img.title ?? 'Gallery'} className="h-full w-full object-cover" />
-                          ) : null}
+                          <MediaImage src={src} alt={img.title ?? 'Gallery'} className="h-full w-full object-cover" />
                           <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/40 p-2 opacity-100">
                             <div className="min-w-0">
                               <p className="truncate text-xs font-semibold text-white">{img.title ?? 'Bez naslova'}</p>

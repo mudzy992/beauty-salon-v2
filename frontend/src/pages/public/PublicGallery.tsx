@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { MediaImage } from '../../components/media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { Button } from '../../components/ui/button'
 
@@ -128,17 +129,11 @@ export default function PublicGallery() {
                             }}
                             aria-label="Otvori sliku"
                           >
-                            {thumbUrl ? (
-                              <img
+                            <MediaImage
                                 src={thumbUrl}
                                 alt=""
                                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                               />
-                            ) : (
-                              <div className="h-full w-full flex items-center justify-center text-slate-400">
-                                —
-                              </div>
-                            )}
                             <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                           </MotionDiv>
                         )
@@ -169,7 +164,7 @@ export default function PublicGallery() {
             >
               <X className="h-4 w-4" />
             </button>
-            <img
+            <MediaImage
               src={lightboxSrc}
               alt=""
               className="max-w-[90vw] max-h-[80vh] object-contain"

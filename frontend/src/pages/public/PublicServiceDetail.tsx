@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Info } from 'lucide-react'
 import api from '../../api/client'
+import { MediaImage } from '../../components/media-image'
+import { cssBackgroundImage, MEDIA_FALLBACK_SRC } from '../../constants/media-fallback'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { BeforeAfterSpotlight } from '../../features/shell/public/before-after-spotlight'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
@@ -10,9 +12,6 @@ import { Card, CardContent } from '../../components/ui/card'
 import { useSettings } from '../../context/SettingsContext'
 import { Seo } from '../../seo/Seo'
 import { site } from '../../seo/site'
-
-const DEFAULT_SERVICES_HERO_BG =
-  'https://images.unsplash.com/photo-1595476108010-b4d1f10d5e43?auto=format&fit=crop&q=80&w=2000'
 
 type Service = {
   id: string
@@ -142,7 +141,7 @@ export default function PublicServiceDetail() {
   const hasServiceHeroImage = Boolean(service.heroImage?.trim())
   const detailHeroBg = hasServiceHeroImage
     ? getUploadUrl(service.heroImage as string)
-    : getSetting('public_services_bg', DEFAULT_SERVICES_HERO_BG)
+    : getSetting('public_services_bg', '')
   const heroImageAlt = `${service.name} — vizual usluge`
 
   const canonicalPath = `/usluge/${service.id}`
@@ -185,7 +184,7 @@ export default function PublicServiceDetail() {
               ? 'pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.16] sm:opacity-[0.14]'
               : 'pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.09]'
           }
-          style={{ backgroundImage: `url(${JSON.stringify(detailHeroBg)})` }}
+          style={{ backgroundImage: cssBackgroundImage(detailHeroBg) }}
         />
         <div
           className={
@@ -210,17 +209,10 @@ export default function PublicServiceDetail() {
                 </p>
               ) : null}
             </div>
-            <div
-              className={
-                hasServiceHeroImage
-                  ? 'flex w-full shrink-0 flex-col gap-5 md:max-w-[min(100%,15rem)] lg:max-w-[min(100%,20rem)] xl:max-w-[min(100%,26.25rem)]'
-                  : 'flex w-full shrink-0 flex-col gap-5'
-              }
-            >
-              {hasServiceHeroImage ? (
-                <div className="relative w-full max-w-full overflow-hidden rounded-2xl border border-slate-200/70 bg-slate-100 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_12px_40px_-12px_rgba(15,23,42,0.12)] aspect-[4/3] sm:aspect-[16/10] md:aspect-[4/3]">
-                  <img
-                    src={detailHeroBg}
+            <div className="flex w-full shrink-0 flex-col gap-5 md:max-w-[min(100%,15rem)] lg:max-w-[min(100%,20rem)] xl:max-w-[min(100%,26.25rem)]">
+              <div className="relative w-full max-w-full overflow-hidden rounded-2xl border border-slate-200/70 bg-slate-100 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_12px_40px_-12px_rgba(15,23,42,0.12)] aspect-[4/3] sm:aspect-[16/10] md:aspect-[4/3]">
+                  <MediaImage
+                    src={hasServiceHeroImage ? detailHeroBg : MEDIA_FALLBACK_SRC}
                     alt={heroImageAlt}
                     className="h-full w-full object-cover"
                     loading="eager"
@@ -231,7 +223,6 @@ export default function PublicServiceDetail() {
                     aria-hidden
                   />
                 </div>
-              ) : null}
               <div className="flex flex-wrap gap-3">
                 <Link to={`/rezervacija?serviceId=${encodeURIComponent(service.id)}`}>
                   <Button className="px-6">

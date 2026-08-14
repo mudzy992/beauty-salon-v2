@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   SectionList,
   TouchableOpacity,
-  ImageBackground,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +16,7 @@ import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import { useSocket } from '../../realtime/SocketContext';
 import { Card } from '../../components/ui/Card';
+import { MediaBackdrop } from '../../components/MediaImage';
 import { Badge, getStatusVariant } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -274,12 +274,10 @@ export function StylistScheduleScreen({ navigation }: Props) {
           activeReservation ? (
             <View style={{ gap: spacing.md }}>
             <Card style={[styles.activeCard, { backgroundColor: colors.card }]} padded={false}>
-              {activeHeroUri ? (
-                <ImageBackground
-                  source={{ uri: activeHeroUri }}
+                <MediaBackdrop
+                  uri={activeHeroUri}
                   style={styles.cardBackdropImage}
                   imageStyle={styles.cardBackdropImageStyle}
-                  resizeMode="cover"
                 >
                   <View
                     style={[
@@ -381,106 +379,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                       style={{ flex: 1 }}
                     />
                   </View>
-                </ImageBackground>
-              ) : (
-                <>
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    style={[styles.activeContent, { padding: spacing.lg }]}
-                    onPress={() =>
-                      navigation.navigate('StylistReservationDetail', {
-                        reservationId: activeReservation.id,
-                      })
-                    }
-                  >
-                    <View style={styles.activeHeaderRow}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.activeTitle, { color: colors.text }]}>
-                          Aktivna rezervacija
-                        </Text>
-                        <Text style={[styles.activeTimeRange, { color: colors.textSecondary }]}>
-                          {formatTime(activeReservation.startTime)} –{' '}
-                          {formatTime(activeReservation.endTime)}
-                        </Text>
-                      </View>
-                      <Badge
-                        label={
-                          activeReservation.status === 'CANCELLED_BY_CLIENT' &&
-                          (activeReservation.cancelReason ?? '').trim() ===
-                            'Nije potvrđen dolazak u roku'
-                            ? 'Otkazano (nepotvrđen dolazak)'
-                            : t(`myReservations.status.${activeReservation.status}` as any)
-                        }
-                        variant={getStatusVariant(activeReservation.status)}
-                        status={activeReservation.status}
-                      />
-                    </View>
-
-                    {activeTimeText ? (
-                      <Text style={[styles.activeCountdown, { color: colors.primary }]}>
-                        {activeTimeText}
-                      </Text>
-                    ) : null}
-
-                    <Text style={[styles.activeServiceName, { color: colors.text }]}>
-                      {getReservationServicesLabel(activeReservation)}
-                    </Text>
-                    {activeReservation.client ? (
-                      <View style={styles.activeMetaRow}>
-                        <Ionicons name="person-outline" size={16} color={colors.textSecondary} />
-                        <Text style={[styles.activeClient, { color: colors.textSecondary }]}>
-                          {activeReservation.client.firstName} {activeReservation.client.lastName}
-                        </Text>
-                      </View>
-                    ) : null}
-
-                    <View style={styles.activeMetaRow}>
-                      <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
-                      <Text style={[styles.activeMetaText, { color: colors.textSecondary }]}>
-                        {formatDate(activeReservation.reservationDate.slice(0, 10))}
-                      </Text>
-                    </View>
-
-                    <View style={{ marginTop: spacing.sm }}>
-                      <Text style={[styles.activeHint, { color: colors.textMuted }]}>
-                        Dodirnite karticu za naplatu, završetak i slike.
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  <View style={[styles.activeActionsRow, { paddingHorizontal: spacing.lg, paddingBottom: spacing.lg }]}>
-                    <Button
-                      title="Detalji"
-                      onPress={() =>
-                        navigation.navigate('StylistReservationDetail', {
-                          reservationId: activeReservation.id,
-                        })
-                      }
-                      variant="outline"
-                      size="sm"
-                      icon={
-                        <Ionicons
-                          name="information-circle-outline"
-                          size={18}
-                          color={colors.primary}
-                        />
-                      }
-                      style={{ flex: 1 }}
-                    />
-                    <Button
-                      title="Naplata"
-                      onPress={() =>
-                        navigation.navigate('StylistReservationDetail', {
-                          reservationId: activeReservation.id,
-                        })
-                      }
-                      size="sm"
-                      icon={<Ionicons name="cash-outline" size={18} color={colors.primaryText} />}
-                      style={{ flex: 1 }}
-                    />
-                  </View>
-                </>
-              )}
+                </MediaBackdrop>
             </Card>
           </View>
           ) : null
@@ -495,20 +394,18 @@ export function StylistScheduleScreen({ navigation }: Props) {
           const durationSuffix = totalMinutes > 0 ? ` · ${totalMinutes} min` : '';
           return (
             <Card
-              style={[styles.card, heroUri ? styles.cardBackdrop : null]}
-              padded={!heroUri}
+              style={[styles.card, styles.cardBackdrop]}
+              padded={false}
               onPress={() =>
                 navigation.navigate('StylistReservationDetail', {
                   reservationId: item.id,
                 })
               }
             >
-              {heroUri ? (
-                <ImageBackground
-                  source={{ uri: heroUri }}
+                <MediaBackdrop
+                  uri={heroUri}
                   style={styles.cardBackdropImage}
                   imageStyle={styles.cardBackdropImageStyle}
-                  resizeMode="cover"
                 >
                   <View
                     style={[
@@ -561,53 +458,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                       </View>
                     )}
                   </View>
-                </ImageBackground>
-              ) : (
-                <View style={styles.listContent}>
-                  <View style={styles.row}>
-                    <View style={styles.inlineRow}>
-                      <Ionicons name="time-outline" size={16} color={gold} />
-                      <Text style={[styles.time, { color: colors.text }]}>
-                        {formatTime(item.startTime)} – {formatTime(item.endTime)}
-                        {durationSuffix}
-                      </Text>
-                    </View>
-                    <Badge
-                      label={
-                        item.status === 'CANCELLED_BY_CLIENT' &&
-                        (item.cancelReason ?? '').trim() ===
-                          'Nije potvrđen dolazak u roku'
-                          ? 'Otkazano (nepotvrđen dolazak)'
-                          : t(`myReservations.status.${item.status}` as any)
-                      }
-                      variant={getStatusVariant(item.status)}
-                      status={item.status}
-                    />
-                  </View>
-                  <View style={[styles.inlineRow, { marginTop: 2 }]}>
-                    <Ionicons name="cut-outline" size={16} color={gold} />
-                    <Text style={[styles.serviceName, { color: colors.text }]}>
-                      {getReservationServicesLabel(item)}
-                    </Text>
-                  </View>
-                  {item.client && (
-                    <View style={[styles.inlineRow, { marginTop: 4 }]}>
-                      <Ionicons name="person-outline" size={16} color={gold} />
-                      <Text style={[styles.client, { color: colors.textSecondary }]}>
-                        {item.client.firstName} {item.client.lastName}
-                      </Text>
-                    </View>
-                  )}
-                  {item.rescheduleStatus === 'PENDING' && (
-                    <View style={[styles.inlineRow, { marginTop: 6 }]}>
-                      <Ionicons name="alert-circle-outline" size={15} color={colors.warning} />
-                      <Text style={[styles.client, { color: colors.warning }]}>
-                        Klijent treba potvrditi novi termin
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
+                </MediaBackdrop>
             </Card>
           );
         }}

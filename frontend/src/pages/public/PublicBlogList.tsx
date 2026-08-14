@@ -7,6 +7,7 @@ import { ArrowRight, Calendar } from 'lucide-react'
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
+import { MediaImage } from '../../components/media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
 
 interface BlogPost {
@@ -74,15 +75,11 @@ export default function PublicBlogList() {
                 >
                   <Link to={`/blog/${p.slug}`} className="block no-underline">
                     <div className="h-[180px] bg-slate-200 relative overflow-hidden">
-                      {p.heroImage ? (
-                        <img
-                          src={getUploadUrl(p.heroImage)}
+                        <MediaImage
+                          src={p.heroImage ? getUploadUrl(p.heroImage) : ''}
                           alt={p.title}
                           className="h-full w-full object-cover transition-transform duration-300 hover:scale-[1.03]"
                         />
-                      ) : (
-                        <div className="h-full w-full bg-gradient-to-br from-slate-200 to-slate-100" />
-                      )}
                     </div>
                     <div className="p-6">
                       <div className="flex items-center gap-2 text-slate-500 text-sm mb-3">

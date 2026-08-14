@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
-import { Image } from 'expo-image';
+import { MediaImage } from '../../components/MediaImage';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
@@ -429,13 +429,11 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                       img.upload?.pathThumb ??
                       img.upload?.pathOriginal,
                   );
-                  if (!uri) return null;
                   return (
-                    <Image
+                    <MediaImage
                       key={img.id}
-                      source={{ uri }}
+                      uri={uri}
                       style={styles.thumb}
-                      contentFit="cover"
                     />
                   );
                 })}
@@ -452,13 +450,11 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                       img.upload?.pathThumb ??
                       img.upload?.pathOriginal,
                   );
-                  if (!uri) return null;
                   return (
-                    <Image
+                    <MediaImage
                       key={img.id}
-                      source={{ uri }}
+                      uri={uri}
                       style={styles.thumb}
-                      contentFit="cover"
                     />
                   );
                 })}
