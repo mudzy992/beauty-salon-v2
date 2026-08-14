@@ -37,16 +37,6 @@ export class SettingsService {
     return v.toUpperCase();
   }
 
-  private normalizeLogoText(value: string): string {
-    const raw = String(value ?? '').trim();
-    const oneWord = raw.split(/\s+/)[0] ?? '';
-    const upper = oneWord.slice(0, 8).toLocaleUpperCase('bs-BA');
-    const cleaned = upper.replace(/[^A-Z0-9ČĆŽŠĐ]/gu, '');
-    const finalValue = cleaned.slice(0, 8);
-    if (!finalValue) throw new BadRequestException('Logo naslov mora imati barem 1 karakter.');
-    return finalValue;
-  }
-
   private normalizeBoolean(value: string): string {
     const normalized = value.trim().toLowerCase();
     if (normalized === 'true') return 'true';
@@ -218,12 +208,14 @@ export class SettingsService {
   async set(key: string, dto: SetSettingDto, updatedBy?: string) {
     const registry = this.getRegistryItemOrThrow(key);
     const rawValue = this.normalizeString(dto.value ?? '');
-    const keySpecific =
-      key === 'app_logo_text'
-        ? this.normalizeLogoText(rawValue)
-        : key === 'app_logo_svg_color' || key === 'app_logo_text_color'
-          ? this.normalizeHexColor(rawValue)
-          : rawValue;
+    const hexKeys = new Set([
+      'app_logo_svg_color',
+      'app_logo_text_color',
+      'app_logo_accent',
+      'theme_primary',
+      'theme_accent',
+    ]);
+    const keySpecific = hexKeys.has(key) ? this.normalizeHexColor(rawValue) : rawValue;
     const normalizedValue =
       registry.type === 'boolean'
         ? this.normalizeBoolean(keySpecific)

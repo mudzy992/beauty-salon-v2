@@ -87,8 +87,14 @@ export class NotificationsService {
       options.userId,
       options.type,
     );
+    let pushMaster = true;
+    try {
+      pushMaster = await this.settings.getBoolean('system_push_enabled');
+    } catch {
+      pushMaster = true;
+    }
     const doPush =
-      (channel === 'PUSH' || channel === 'BOTH') && prefs.pushEnabled;
+      (channel === 'PUSH' || channel === 'BOTH') && prefs.pushEnabled && pushMaster;
     const doEmail =
       (channel === 'EMAIL' || channel === 'BOTH') && prefs.emailEnabled;
 

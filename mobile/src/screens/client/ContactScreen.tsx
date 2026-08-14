@@ -7,6 +7,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
 import { spacing } from '../../theme';
 import { fetchPublicSettings, type PublicSettingItem } from '../../services/publicSettings';
+import { formatSalonWorkingHours } from '../../utils/formatSalonHours';
+import api from '../../services/api';
 import { usePublicContentSocketRefresh } from '../../hooks/usePublicContentSocketRefresh';
 import type { ProfileScreenProps } from '../../navigation/types';
 
@@ -47,12 +49,19 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<PublicSettingItem[] | null>(null);
+  const [workingHours, setWorkingHours] = useState('');
 
   const loadSettings = useCallback(() => {
     fetchPublicSettings()
       .then((items) => setSettings(items))
       .catch(() => setSettings(null))
       .finally(() => setLoading(false));
+    api
+      .get<{ workingHours?: { dayOfWeek: number; isWorkingDay: boolean; openTime: string; closeTime: string }[] } | null>(
+        '/api/salon',
+      )
+      .then((r) => setWorkingHours(formatSalonWorkingHours(r.data?.workingHours)))
+      .catch(() => setWorkingHours(''));
   }, []);
 
   useEffect(() => {
@@ -68,7 +77,6 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
   const address = getSettingValue(settings, 'public_contact_address', '').trim();
   const phone = getSettingValue(settings, 'public_contact_phone', '').trim();
   const email = getSettingValue(settings, 'public_contact_email', '').trim();
-  const workingHours = getSettingValue(settings, 'public_contact_working_hours_text', '').trim();
   const latRaw = getSettingValue(settings, 'public_contact_lat', '').trim();
   const lngRaw = getSettingValue(settings, 'public_contact_lng', '').trim();
 

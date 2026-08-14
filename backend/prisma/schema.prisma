@@ -332,6 +332,7 @@ model Reservation {
 
   // Auto delay upozorenja (da se push ne šalje više puta)
   delayNotifiedAt DateTime? @map("delay_notified_at")
+  reminderSentAt DateTime? @map("reminder_sent_at")
 
   // Stilist može eksplicitno označiti da koristi pauzu nakon probijanja termina
   useBreakAfterOverrun Boolean?  @map("use_break_after_overrun")

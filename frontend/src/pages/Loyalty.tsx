@@ -12,8 +12,7 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Switch } from '../components/ui/switch'
 import { Textarea } from '../components/ui/textarea'
-
-const LOYALTY_ENABLED_KEY = 'loyalty_enabled'
+import { LoyaltyProgramSettings } from '../features/loyalty/loyalty-program-settings'
 
 interface LoyaltyAccountRow {
   id: string
@@ -25,18 +24,10 @@ interface LoyaltyAccountRow {
   _count: { transactions: number }
 }
 
-interface AppSetting {
-  key: string
-  value: string | null
-}
-
 export default function Loyalty() {
   const { success, error } = useAppToast()
 
-  const [programEnabled, setProgramEnabled] = useState(false)
   const [accounts, setAccounts] = useState<LoyaltyAccountRow[]>([])
-  const [loadingSettings, setLoadingSettings] = useState(true)
-  const [loadingAccounts, setLoadingAccounts] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
 
   const [redeemTarget, setRedeemTarget] = useState<LoyaltyAccountRow | null>(null)
@@ -46,19 +37,6 @@ export default function Loyalty() {
   const [redeemReason, setRedeemReason] = useState('')
   const [adjustDelta, setAdjustDelta] = useState<number>(0)
   const [adjustNote, setAdjustNote] = useState('')
-
-  const loadSettings = useCallback(() => {
-    setLoadingSettings(true)
-    api
-      .get<AppSetting[] | AppSetting>('/api/loyalty/settings')
-      .then((res) => {
-        const list: AppSetting[] = Array.isArray(res.data) ? res.data : [res.data]
-        const enabled = list.find((s) => s.key === LOYALTY_ENABLED_KEY)?.value === 'true'
-        setProgramEnabled(enabled)
-      })
-      .catch(() => setProgramEnabled(false))
-      .finally(() => setLoadingSettings(false))
-  }, [])
 
   const loadAccounts = useCallback(() => {
     setLoadingAccounts(true)
@@ -70,27 +48,8 @@ export default function Loyalty() {
   }, [])
 
   useEffect(() => {
-    loadSettings()
-  }, [loadSettings])
-
-  useEffect(() => {
     loadAccounts()
   }, [loadAccounts])
-
-  const handleProgramToggle = (checked: boolean) => {
-    setUpdating('program')
-    api
-      .put(`/api/settings/${LOYALTY_ENABLED_KEY}`, {
-        value: checked ? 'true' : 'false',
-        description: 'Loyalty program uključen (true) ili isključen (false).',
-      })
-      .then(() => {
-        setProgramEnabled(checked)
-        success(checked ? 'Program uključen' : 'Program isključen')
-      })
-      .catch(() => error('Greška pri spremanju'))
-      .finally(() => setUpdating(null))
-  }
 
   const handleAccountActiveToggle = (id: string, isActive: boolean) => {
     setUpdating(id)
@@ -165,31 +124,7 @@ export default function Loyalty() {
         </p>
       </div>
 
-      <Card className="mb-6">
-        <div className="p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Program uključen</p>
-              <p className="text-xs text-slate-500">Vidljiv klijentima i spreman za buduće bodovanje</p>
-            </div>
-            <Switch
-              checked={programEnabled}
-              disabled={loadingSettings || updating === 'program'}
-              onCheckedChange={(checked) => handleProgramToggle(checked)}
-            />
-          </div>
-
-          {!loadingSettings ? (
-            <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 dark:border-slate-800 dark:bg-slate-900/30 dark:text-slate-200">
-              <p className="font-medium">Gdje podesiti loyalty pravila</p>
-              <p className="mt-1">
-                Detaljna konfiguracija (bodovi po valuti, tierovi, pravila za korištenje bodova) se uređuje kroz stranicu Postavke → Sistem → &quot;Loyalty
-                program&quot;. Ovdje vidite račune i možete ručno koristiti ili korigovati bodove.
-              </p>
-            </div>
-          ) : null}
-        </div>
-      </Card>
+      <LoyaltyProgramSettings />
 
       <Card>
         <div className="p-6">

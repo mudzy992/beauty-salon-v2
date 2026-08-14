@@ -14,6 +14,9 @@ import Blog from '../../pages/Blog'
 import Gallery from '../../pages/Gallery'
 import Reviews from '../../pages/Reviews'
 import Settings from '../../pages/Settings'
+import SettingsOperations from '../../pages/SettingsOperations'
+import SettingsAppearance from '../../pages/SettingsAppearance'
+import SettingsSeo from '../../pages/SettingsSeo'
 import Notifications from '../../pages/Notifications'
 import EmailSettings from '../../pages/EmailSettings'
 import ClientAnalytics from '../../pages/ClientAnalytics'
@@ -46,6 +49,9 @@ export const adminRoutes: RouteObject[] = [
       { path: 'gallery', element: <Gallery /> },
       { path: 'reviews', element: <Reviews /> },
       { path: 'settings', element: <Settings /> },
+      { path: 'settings/operations', element: <SettingsOperations /> },
+      { path: 'settings/appearance', element: <SettingsAppearance /> },
+      { path: 'settings/seo', element: <SettingsSeo /> },
       { path: 'app-releases', element: <AppReleases /> },
       { path: 'notifications', element: <Notifications /> },
       { path: 'email-settings', element: <EmailSettings /> },

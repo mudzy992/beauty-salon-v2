@@ -83,7 +83,6 @@ const PRESETS: Record<ProviderType, { host: string; port: string; secure: boolea
 };
 
 const KEYS = {
-  provider: 'system_email_provider',
   host: 'system_email_host',
   port: 'system_email_port',
   secure: 'system_email_secure',
@@ -306,12 +305,17 @@ export default function EmailSettings() {
     try {
       const { data } = await api.get<AppSetting[]>('/api/settings');
       const list = Array.isArray(data) ? data : [];
-      const rawProvider = setValueFromSettings(list, KEYS.provider);
-      const providerValue = PROVIDERS.some((item) => item.id === rawProvider)
-        ? (rawProvider as ProviderType)
-        : 'google';
+      const hostVal = setValueFromSettings(list, KEYS.host)
+      const providerValue: ProviderType =
+        hostVal.includes('gmail')
+          ? 'google'
+          : hostVal.includes('office365') || hostVal.includes('outlook')
+            ? 'office365'
+            : hostVal
+              ? 'custom'
+              : 'google'
       setProvider(providerValue);
-      setHost(setValueFromSettings(list, KEYS.host) || PRESETS[providerValue].host);
+      setHost(hostVal || PRESETS[providerValue].host);
       setPort(setValueFromSettings(list, KEYS.port) || PRESETS[providerValue].port);
       setSecure((setValueFromSettings(list, KEYS.secure) || String(PRESETS[providerValue].secure)) === 'true');
       setUsername(setValueFromSettings(list, KEYS.username));
@@ -404,7 +408,6 @@ export default function EmailSettings() {
     setSaving(true);
     try {
       const ops: Array<Promise<unknown>> = [
-        upsertSetting(KEYS.provider, provider, 'Email provider: google|office365|exchange|custom'),
         upsertSetting(KEYS.host, host.trim(), 'SMTP host'),
         upsertSetting(KEYS.port, port.trim(), 'SMTP port'),
         upsertSetting(KEYS.secure, String(secure), 'SMTP secure (SSL/TLS)'),

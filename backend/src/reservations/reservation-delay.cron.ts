@@ -7,6 +7,7 @@ import { buildDelayWarningCopy } from '../notifications/utils/reservation-push-c
 import { RESERVATION_STATUS } from './constants';
 import { timeToMinutes } from './utils/time-slot.utils';
 import { ReservationsService } from './reservations.service';
+import { ReservationAppointmentReminderService } from './reservation-appointment-reminder.service';
 
 @Injectable()
 export class ReservationDelayCron {
@@ -14,6 +15,7 @@ export class ReservationDelayCron {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly reservations: ReservationsService,
+    private readonly appointmentReminders: ReservationAppointmentReminderService,
   ) {}
 
   /**
@@ -30,6 +32,7 @@ export class ReservationDelayCron {
     }
     await this.reservations.processDirectBookingDailyLogSeeds();
     await this.reservations.processPendingDailyLogReminders();
+    await this.appointmentReminders.processAppointmentReminders();
     await this.reservations.processExpiredLocks();
     await this.reservations.processInboxTimeouts();
 

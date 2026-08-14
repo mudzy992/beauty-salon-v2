@@ -197,6 +197,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
       }
 
       setSettings(normalizeSettings(settingsRes));
+      const blogOn = getSettingValue(normalizeSettings(settingsRes), 'public_feature_blog', 'true').toLowerCase() !== 'false';
+      setBlogPosts(blogOn ? blogRes.data.slice(0, 3) : []);
 
       const withServices: CategoryWithServices[] = [];
       for (const cat of catRes.data) {
@@ -212,7 +214,6 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         } catch { /* skip */ }
       }
       setCategoriesWithServices(withServices);
-      setBlogPosts(blogRes.data.slice(0, 3));
       try {
         const { data } = await api.get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
           params: { limit: 6, random: 1 },
@@ -229,7 +230,11 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           user?: { firstName: string | null; lastName: string | null };
           service?: { name: string };
         } | null>('/api/reviews/featured/random');
-        setFeaturedReview(review ?? null);
+        setFeaturedReview(
+          getSettingValue(normalizeSettings(settingsRes), 'public_feature_reviews', 'true').toLowerCase() === 'false'
+            ? null
+            : review ?? null,
+        );
       } catch {
         setFeaturedReview(null);
       }

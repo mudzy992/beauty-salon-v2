@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
+import { cssBackgroundImage } from '../../constants/media-fallback'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 import { MediaImage } from '../../components/media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
@@ -66,10 +67,17 @@ export default function PublicGallery() {
 
   const handleClose = () => setLightboxSrc(null)
 
+  const galleryBg = getSetting('public_gallery_bg', '')
+
   return (
     <div className="bg-white min-h-screen pb-20">
-      <div className={publicPageHero.section}>
-        <div className={`${publicPageHero.innerNarrow} text-center`}>
+      <div className={`${publicPageHero.section} relative overflow-hidden`}>
+        <div
+          className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.08]"
+          style={{ backgroundImage: cssBackgroundImage(galleryBg) }}
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/85 to-white" />
+        <div className={`${publicPageHero.innerNarrow} text-center relative z-[1]`}>
           <h1 className={publicHeader.title}>
             {getSetting('public_gallery_title', 'Galerija Naših Radova')}
           </h1>

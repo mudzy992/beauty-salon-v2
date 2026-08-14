@@ -6,6 +6,7 @@ import { ArrowRight, Calendar } from 'lucide-react'
 
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
+import { cssBackgroundImage } from '../../constants/media-fallback'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 import { MediaImage } from '../../components/media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
@@ -46,10 +47,17 @@ export default function PublicBlogList() {
       .finally(() => setLoading(false));
   }, []);
 
+  const blogBg = getSetting('public_blog_bg', '')
+
   return (
     <div className="bg-white min-h-screen pb-20">
-      <div className={publicPageHero.section}>
-        <div className={`${publicPageHero.innerNarrow} text-center`}>
+      <div className={`${publicPageHero.section} relative overflow-hidden`}>
+        <div
+          className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.08]"
+          style={{ backgroundImage: cssBackgroundImage(blogBg) }}
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/85 to-white" />
+        <div className={`${publicPageHero.innerNarrow} text-center relative z-[1]`}>
           <div className={publicHeader.kicker}>
             {getSetting('public_blog_subtitle', 'Novosti & savjeti')}
           </div>

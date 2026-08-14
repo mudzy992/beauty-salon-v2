@@ -62,6 +62,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     void fetchSettings();
   }, [fetchSettings]);
 
+  useEffect(() => {
+    const root = document.documentElement
+    const primary = settings.theme_primary?.trim() || '#632238'
+    const accent = settings.theme_accent?.trim() || '#D4A843'
+    root.style.setProperty('--brand-primary', primary)
+    root.style.setProperty('--brand-accent', accent)
+  }, [settings])
+
   const getSetting = (key: string, defaultValue: string) => {
     return settings[key] !== undefined && settings[key] !== '' ? settings[key] : defaultValue;
   };

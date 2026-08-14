@@ -53,6 +53,9 @@ describe('SettingsService', () => {
       expect(map.get('app_title')).toBe('My Salon')
       expect(map.has('system_email_password')).toBe(false)
       expect(map.get('app_logo')).toBeDefined()
+      expect(map.get('public_hero_cta_text_web')).toBe('Rezervišite termin')
+      expect(map.get('public_feature_blog')).toBe('true')
+      expect(map.has('public_hero_cta_link')).toBe(false)
     })
   })
 

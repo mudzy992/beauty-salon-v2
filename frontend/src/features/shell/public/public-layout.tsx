@@ -18,6 +18,7 @@ import { UploadedBrandLogo } from '../../../components/brand/uploaded-brand-logo
 import { useAuth } from '../../../context/AuthContext'
 import { useSettings } from '../../../context/SettingsContext'
 import { getClientMandatoryOnboardingPath, normalizeRoles } from '../../../utils/clientOnboarding'
+import { isPublicFeatureOn } from './public-features'
 import { getUploadUrl } from '../../../utils/uploadUrl'
 
 const DEFAULT_MAINTENANCE_TEXT =
@@ -26,8 +27,8 @@ const DEFAULT_MAINTENANCE_TEXT =
 const publicNav = [
   { path: '/', labelKey: 'public.nav.home' },
   { path: '/usluge', labelKey: 'public.nav.services' },
-  { path: '/blog', labelKey: 'public.nav.blog' },
-  { path: '/galerija', labelKey: 'public.nav.gallery' },
+  { path: '/blog', labelKey: 'public.nav.blog', flag: 'public_feature_blog' as const },
+  { path: '/galerija', labelKey: 'public.nav.gallery', flag: 'public_feature_gallery' as const },
   { path: '/kontakt', labelKey: 'public.nav.contact' },
   { path: '/rezervacija', labelKey: 'public.nav.reserve' },
 ]
@@ -67,12 +68,14 @@ export const PublicLayout = () => {
   const activePath = location.pathname
   const navItems = useMemo(() => {
     const base = user ? [...publicNav, ...authNavExtra] : publicNav
-    return base.map((item) => ({
-      ...item,
-      isActive:
-        item.path === '/' ? activePath === '/' : activePath.startsWith(item.path),
-    }))
-  }, [activePath, user])
+    return base
+      .filter((item) => !('flag' in item && item.flag) || isPublicFeatureOn(getSetting, item.flag!))
+      .map((item) => ({
+        ...item,
+        isActive:
+          item.path === '/' ? activePath === '/' : activePath.startsWith(item.path),
+      }))
+  }, [activePath, user, getSetting])
 
   const canSeeAdmin =
     !!user && (['SYSTEM_ADMIN', 'OWNER'] as string[]).some((r) => user.roles.includes(r))

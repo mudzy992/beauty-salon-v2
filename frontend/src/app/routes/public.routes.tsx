@@ -13,6 +13,7 @@ import PublicReserve from '../../pages/public/PublicReserve'
 import PublicReservationView from '../../pages/public/PublicReservationView'
 import MyReservations from '../../pages/public/MyReservations'
 import MyReservationDetail from '../../pages/public/MyReservationDetail'
+import { PublicFeatureGate } from '../../features/shell/public/public-feature-gate'
 import PublicSatisfiedClients from '../../pages/public/PublicSatisfiedClients'
 
 export const publicRoutes: RouteObject[] = [
@@ -23,16 +24,16 @@ export const publicRoutes: RouteObject[] = [
       { index: true, element: <PublicHome /> },
       { path: 'usluge', element: <PublicServices /> },
       { path: 'usluge/:serviceId', element: <PublicServiceDetail /> },
-      { path: 'blog', element: <PublicBlogList /> },
-      { path: 'blog/:slug', element: <PublicBlogPost /> },
-      { path: 'galerija', element: <PublicGallery /> },
+      { path: 'blog', element: <PublicFeatureGate flag="public_feature_blog"><PublicBlogList /></PublicFeatureGate> },
+      { path: 'blog/:slug', element: <PublicFeatureGate flag="public_feature_blog"><PublicBlogPost /></PublicFeatureGate> },
+      { path: 'galerija', element: <PublicFeatureGate flag="public_feature_gallery"><PublicGallery /></PublicFeatureGate> },
       { path: 'kontakt', element: <PublicContact /> },
       { path: 'rezervacija', element: <PublicReserve /> },
       { path: 'moje-rezervacije', element: <MyReservations /> },
       { path: 'moje-rezervacije/:id', element: <MyReservationDetail /> },
       { path: 'moj-termin/:token', element: <PublicReservationView /> },
       { path: 'profil', element: <Profile /> },
-      { path: 'zadovoljni-klijenti', element: <PublicSatisfiedClients /> },
+      { path: 'zadovoljni-klijenti', element: <PublicFeatureGate flag="public_feature_reviews"><PublicSatisfiedClients /></PublicFeatureGate> },
     ],
   },
 ]

@@ -113,6 +113,15 @@ export const buildCancelledCopy = (params: {
   ),
 });
 
+export const buildAppointmentReminderCopy = (
+  ctx: ReservationPushContext,
+): { title: string; body: string } => ({
+  title: 'Podsjetnik na termin',
+  body: capPushBody(
+    `Podsjećamo vas na ${reservationClause(ctx)} — ${slotLabel(ctx)}.`,
+  ),
+});
+
 export const buildDailyLogReminderCopy = (
   ctx: Pick<ReservationPushContext, 'ref'>,
 ): { title: string; body: string } => ({

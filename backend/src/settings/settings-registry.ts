@@ -3,21 +3,23 @@ import type { SettingRegistryItem } from './settings-registry.types'
 export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'app_title', scope: 'PUBLIC', type: 'string', defaultValue: 'Beauty Salon' },
   { key: 'app_logo', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-  { key: 'app_logo_text', scope: 'PUBLIC', type: 'string', defaultValue: 'NEJRA' },
   { key: 'app_logo_svg_color', scope: 'PUBLIC', type: 'string', defaultValue: '#632238' },
   { key: 'app_logo_text_color', scope: 'PUBLIC', type: 'string', defaultValue: '#632238' },
-  { key: 'app_logo_icon', scope: 'PUBLIC', type: 'string', defaultValue: 'n' },
   { key: 'app_logo_accent', scope: 'PUBLIC', type: 'string', defaultValue: '#D4A843' },
   { key: 'app_logo_animated', scope: 'PUBLIC', type: 'boolean', defaultValue: 'true' },
+  { key: 'theme_primary', scope: 'PUBLIC', type: 'string', defaultValue: '#632238' },
+  { key: 'theme_accent', scope: 'PUBLIC', type: 'string', defaultValue: '#D4A843' },
   { key: 'system_maintenance_mode', scope: 'PUBLIC', type: 'boolean', defaultValue: 'false' },
   { key: 'public_maintenance_message', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
-  // Public site sections
   { key: 'public_hero_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_hero_subtitle', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_hero_image', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_hero_cta_text', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-  { key: 'public_hero_cta_link', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'public_hero_cta_text_web', scope: 'PUBLIC', type: 'string', defaultValue: 'Rezervišite termin' },
+
+  { key: 'public_cta_title', scope: 'PUBLIC', type: 'string', defaultValue: 'Spremni za novu frizuru?' },
+  { key: 'public_cta_subtitle', scope: 'PUBLIC', type: 'string', defaultValue: 'Rezervišite termin online u par klikova.' },
 
   { key: 'public_about_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_about_text', scope: 'PUBLIC', type: 'string', defaultValue: '' },
@@ -29,15 +31,6 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'public_highlight_2_text', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_highlight_3_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_highlight_3_text', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-
-  { key: 'public_services_peek_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-  { key: 'public_services_peek_subtitle', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-  { key: 'public_service_1_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-  { key: 'public_service_1_img', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-  { key: 'public_service_2_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-  { key: 'public_service_2_img', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-  { key: 'public_service_3_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-  { key: 'public_service_3_img', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
   { key: 'public_reserve_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_reserve_subtitle', scope: 'PUBLIC', type: 'string', defaultValue: '' },
@@ -52,19 +45,13 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'public_contact_map_embed', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_contact_lat', scope: 'PUBLIC', type: 'number', defaultValue: '0', min: -90, max: 90 },
   { key: 'public_contact_lng', scope: 'PUBLIC', type: 'number', defaultValue: '0', min: -180, max: 180 },
-  { key: 'public_contact_working_hours_text', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
   { key: 'public_social_facebook', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_social_instagram', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_social_tiktok', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-
-  // Canonical public site base URL (used for sharing links from mobile)
   { key: 'public_site_base_url', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-
   { key: 'public_footer_text', scope: 'PUBLIC', type: 'string', defaultValue: '' },
-  { key: 'public_footer_copyright', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
-  // Auth pages visuals (public)
   { key: 'public_login_image', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_login_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_login_subtitle', scope: 'PUBLIC', type: 'string', defaultValue: '' },
@@ -72,7 +59,6 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'public_register_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_register_subtitle', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
-  // Public content pages backgrounds/titles
   { key: 'public_services_bg', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_services_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_services_subtitle', scope: 'PUBLIC', type: 'string', defaultValue: '' },
@@ -83,25 +69,37 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'public_blog_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_blog_subtitle', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
-  // Salon operations (private)
+  { key: 'public_feature_blog', scope: 'PUBLIC', type: 'boolean', defaultValue: 'true' },
+  { key: 'public_feature_gallery', scope: 'PUBLIC', type: 'boolean', defaultValue: 'true' },
+  { key: 'public_feature_reviews', scope: 'PUBLIC', type: 'boolean', defaultValue: 'true' },
+
+  { key: 'seo_default_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_default_description', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_og_image', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_page_home_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_page_home_description', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_page_services_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_page_services_description', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_page_blog_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_page_blog_description', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_page_gallery_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_page_gallery_description', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_page_contact_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_page_contact_description', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_page_reserve_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+  { key: 'seo_page_reserve_description', scope: 'PUBLIC', type: 'string', defaultValue: '' },
+
   { key: 'salon.timezone', scope: 'PRIVATE', type: 'string', defaultValue: 'Europe/Sarajevo' },
-
-  // System/general (private)
   { key: 'system_public_app_url', scope: 'PRIVATE', type: 'string', defaultValue: '' },
-  { key: 'system_app_version', scope: 'PRIVATE', type: 'string', defaultValue: '' },
-
-  // Notifications (private)
   { key: 'system_notif_email_from', scope: 'PRIVATE', type: 'string', defaultValue: '' },
   { key: 'system_notif_email_name', scope: 'PRIVATE', type: 'string', defaultValue: '' },
   { key: 'system_notif_reminder_hours', scope: 'PRIVATE', type: 'number', defaultValue: '24', min: 1, max: 168 },
+  { key: 'system_push_enabled', scope: 'PRIVATE', type: 'boolean', defaultValue: 'true' },
 
-  // Blog comments (private)
   { key: 'comments_auto_approve', scope: 'PRIVATE', type: 'boolean', defaultValue: 'false' },
   { key: 'comments_badwords', scope: 'PRIVATE', type: 'string', defaultValue: '' },
   { key: 'comments_blocked_user_ids', scope: 'PRIVATE', type: 'string', defaultValue: '' },
 
-  // Email (private, includes secrets)
-  { key: 'system_email_provider', scope: 'PRIVATE', type: 'string', defaultValue: 'google' },
   { key: 'system_email_host', scope: 'PRIVATE', type: 'string', defaultValue: '' },
   { key: 'system_email_port', scope: 'PRIVATE', type: 'number', defaultValue: '587', min: 1, max: 65535 },
   { key: 'system_email_secure', scope: 'PRIVATE', type: 'boolean', defaultValue: 'false' },
@@ -119,7 +117,6 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'system_email_reply_to', scope: 'PRIVATE', type: 'string', defaultValue: '' },
   { key: 'system_email_signature', scope: 'PRIVATE', type: 'string', defaultValue: '' },
 
-  // Email templates/campaigns (private)
   { key: 'system_email_campaign_templates', scope: 'PRIVATE', type: 'json', defaultValue: '[]' },
   { key: 'system_email_template_verification', scope: 'PRIVATE', type: 'json', defaultValue: '{}' },
   { key: 'system_email_template_reservation_new', scope: 'PRIVATE', type: 'json', defaultValue: '{}' },
@@ -131,7 +128,6 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'system_email_template_payment_receipt', scope: 'PRIVATE', type: 'json', defaultValue: '{}' },
   { key: 'system_email_template_general', scope: 'PRIVATE', type: 'json', defaultValue: '{}' },
 
-  // Loyalty (private)
   { key: 'loyalty_enabled', scope: 'PRIVATE', type: 'boolean', defaultValue: 'false' },
   { key: 'loyalty_points_per_currency', scope: 'PRIVATE', type: 'number', defaultValue: '1', min: 0, max: 100 },
   { key: 'loyalty_earn_on_tip', scope: 'PRIVATE', type: 'boolean', defaultValue: 'false' },
@@ -143,11 +139,7 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'loyalty_max_discount_percent', scope: 'PRIVATE', type: 'number', defaultValue: '100', min: 0, max: 100 },
   { key: 'loyalty_tiers', scope: 'PRIVATE', type: 'json', defaultValue: '[]' },
 
-  // Deprecated (kept for migration visibility; not consumed by backend today)
-  { key: 'system_reservation_lock_minutes', scope: 'PRIVATE', type: 'number', defaultValue: '15', min: 1, max: 120 },
   { key: 'system_reservation_attendance_hours', scope: 'PRIVATE', type: 'number', defaultValue: '12', min: 1, max: 72 },
   { key: 'system_reservation_inbox_timeout_hours', scope: 'PRIVATE', type: 'number', defaultValue: '24', min: 1, max: 168 },
   { key: 'system_reservation_daily_log_reminder_hours', scope: 'PRIVATE', type: 'number', defaultValue: '12', min: 1, max: 168 },
-  { key: 'system_reservation_auto_cancel', scope: 'PRIVATE', type: 'boolean', defaultValue: 'false' },
 ] as const
-

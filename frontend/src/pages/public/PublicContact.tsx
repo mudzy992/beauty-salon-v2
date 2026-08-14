@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { motion } from 'framer-motion'
 
 import { Card, CardContent } from '../../components/ui/card'
@@ -7,7 +7,10 @@ import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
 import { useAppToast } from '../../lib/toast/useAppToast'
+import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
+import { cssBackgroundImage } from '../../constants/media-fallback'
+import { formatSalonWorkingHours } from '../../utils/format-salon-hours'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 import { Seo } from '../../seo/Seo'
 import { site } from '../../seo/site'
@@ -18,6 +21,17 @@ const MotionDiv = motion.div
 export default function PublicContact() {
   const { getSetting } = useSettings()
   const toast = useAppToast()
+  const [hoursText, setHoursText] = useState('')
+  const contactBg = getSetting('public_contact_bg', '')
+
+  useEffect(() => {
+    api
+      .get<{ workingHours?: { dayOfWeek: number; isWorkingDay: boolean; openTime: string; closeTime: string }[] } | null>(
+        '/api/salon',
+      )
+      .then((r) => setHoursText(formatSalonWorkingHours(r.data?.workingHours)))
+      .catch(() => setHoursText(''))
+  }, [])
   
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -73,8 +87,13 @@ export default function PublicContact() {
         canonicalUrl={canonicalPath}
         jsonLd={jsonLd}
       />
-      <div className={publicPageHero.section}>
-        <div className={`${publicPageHero.innerNarrow} text-center`}>
+      <div className={`${publicPageHero.section} relative overflow-hidden`}>
+        <div
+          className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.08]"
+          style={{ backgroundImage: cssBackgroundImage(contactBg) }}
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/85 to-white" />
+        <div className={`${publicPageHero.innerNarrow} text-center relative z-[1]`}>
           <h1 className={publicHeader.title}>
             {contactTitle}
           </h1>
@@ -173,10 +192,7 @@ export default function PublicContact() {
                         Radno vrijeme
                       </div>
                       <div className="whitespace-pre-line">
-                        {getSetting(
-                          'public_contact_working_hours_text',
-                          'Pon - Sub: 09:00 - 18:00\nNedjelja: Zatvoreno',
-                        )}
+                        {hoursText || '—'}
                       </div>
                     </div>
                     {facebook || instagram || tiktok ? (

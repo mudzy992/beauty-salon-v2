@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
 import { BeforeAfterSpotlight } from '../../features/shell/public/before-after-spotlight'
 import { publicHeader, publicPage, publicSection } from '../../features/shell/public/public-ui'
+import { isPublicFeatureOn } from '../../features/shell/public/public-features'
 import { useSettings } from '../../context/SettingsContext'
 import { MediaImage } from '../../components/media-image'
 import { cssBackgroundImage, resolveRemoteMediaUrl } from '../../constants/media-fallback'
@@ -78,7 +79,7 @@ export default function PublicHome() {
     'Vaš ekskluzivni muško-ženski frizerski salon. Prepustite se rukama profesionalaca za moderni rez i njegu kakvu zaslužujete.',
   )
 
-  const aboutImage = getSetting('public_about_image', '')
+  const reviewsOn = isPublicFeatureOn(getSetting, 'public_feature_reviews')
   const aboutTitle = getSetting('public_about_title', 'Vaša Kosa Je Naša Strast')
   const aboutText = getSetting(
     'public_about_text',
@@ -153,7 +154,7 @@ export default function PublicHome() {
               <div className="flex items-center justify-center gap-4 flex-wrap">
                 <Link to="/rezervacija">
                   <Button variant="onDark" size="lg" className="px-8">
-                    {t('public.nav.reserve')}
+                    {getSetting('public_hero_cta_text_web', 'Rezervišite termin')}
                   </Button>
                 </Link>
                 <Link to="/usluge">
@@ -237,6 +238,7 @@ export default function PublicHome() {
                 usporedbu ili pričekajte da se lista lagano pomiče.
               </p>
             </div>
+            {reviewsOn ? (
             <Link
               to="/zadovoljni-klijenti"
               className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 hover:text-slate-600 transition-colors shrink-0"
@@ -244,6 +246,7 @@ export default function PublicHome() {
               Pogledaj sve
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
+            ) : null}
           </div>
 
           <BeforeAfterSpotlight
@@ -259,7 +262,7 @@ export default function PublicHome() {
             }
           />
 
-          {featuredReview ? (
+          {reviewsOn && featuredReview ? (
             <div className="mt-12 md:mt-16 max-w-2xl mx-auto">
               <Card className="border-slate-200/80 shadow-soft rounded-2xl">
                 <CardContent className="p-6 sm:p-8">

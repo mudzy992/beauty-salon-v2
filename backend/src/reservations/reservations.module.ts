@@ -35,6 +35,7 @@ import { ReservationDelayCron } from './reservation-delay.cron';
 import { ReservationDateService } from './reservation-date.service';
 import { DailyLogModule } from '../daily-log/daily-log.module';
 import { ReservationDirectDailyLogCronService } from './reservation-direct-daily-log-cron.service';
+import { ReservationAppointmentReminderService } from './reservation-appointment-reminder.service';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { ReservationDirectDailyLogCronService } from './reservation-direct-daily
     AvailabilityDebugService,
     ReservationDelayCron,
     ReservationDateService,
+    ReservationAppointmentReminderService,
   ],
   exports: [
     ReservationsService,

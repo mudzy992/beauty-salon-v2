@@ -3,66 +3,30 @@
 ## Overview
 
 `app_settings` is a key/value store used for:
-- **PUBLIC**: content and branding consumed by the public website and mobile home (logo, hero text, contact, etc.), plus **`system_maintenance_mode`** and **`public_maintenance_message`** so visitors see a maintenance screen without any private configuration leaking
-- **PRIVATE**: system/admin configuration (email/notifications, loyalty rules, etc.)
+- **PUBLIC**: branding, CMS copy, feature flags, SEO, theme colors, maintenance
+- **PRIVATE**: email/SMTP, loyalty, reservation timeouts, push master switch, comments
 
-The authoritative contract is defined in:
-- `backend/src/settings/settings-registry.ts`
+Authoritative contract: `backend/src/settings/settings-registry.ts`
 
-## API endpoints
+## Admin UI modules
 
-### Public (no auth)
-- `GET /api/settings/public`
-  - Returns only **PUBLIC** keys
-  - Payload: `Array<{ key: string; value: string }>`
+- `/admin/settings` — public CMS + flags + comments
+- `/admin/settings/operations` — timezone, reservation hours, appointment reminder, push
+- `/admin/settings/appearance` — logo, title, theme colors
+- `/admin/settings/seo` — SEO titles/descriptions/OG
+- `/admin/email-settings` — SMTP + templates (`system_notif_email_*`, `system_public_app_url`)
+- `/admin/loyalty` — all loyalty keys (UI, not JSON)
 
-### Admin (SYSTEM_ADMIN/OWNER)
-- `GET /api/settings`
-  - Returns admin list. Secret values are **never returned** in plaintext.
-  - Payload includes `isSecret` and `isConfigured`
-- `GET /api/settings/registry`
-  - Returns the current settings contract (keys, scope, types, constraints)
-- `GET /api/settings/:key`, `PUT /api/settings/:key`, `DELETE /api/settings/:key`
+## Deprecated / removed keys
 
-## Secrets (encryption at rest)
+Removed from registry (legacy DB rows may remain):
+`public_hero_cta_link`, `public_services_peek_*`, `public_service_*`, `public_footer_copyright`, `app_logo_icon`, `app_logo_text`, `system_app_version`, `system_email_provider`, `system_reservation_lock_minutes`, `system_reservation_auto_cancel`, `public_contact_working_hours_text`.
 
-Some keys (e.g. `system_email_password`) are marked as `isSecret` in the registry:
-- Stored encrypted in DB `app_settings.value` when `APP_SETTINGS_ENCRYPTION_KEY` is configured
-- Decrypted only inside backend services via `SettingsService.getValue()`
-- Admin list endpoints return `value: null` and expose `isConfigured` instead
+Working hours on contact pages come from `GET /api/salon` (`workingHours`), not app_settings.
+Reservation lock minutes stay on `SalonSettings`.
 
-### Required env
+## Consumers
 
-Backend `.env` / `.env.example`:
-- `APP_SETTINGS_ENCRYPTION_KEY` — base64 of 32 random bytes (AES-256-GCM)
-
-## Validation and types
-
-All writes go through the registry contract:
-- Unknown keys are rejected
-- Types are normalized on write (`boolean`, `number`, `json`, `string`)
-- JSON keys must be valid JSON and some keys have extra shape checks
-
-## Deprecated keys
-
-These keys exist for backward compatibility / migration visibility but are **not** used by reservation logic:
-- `system_reservation_lock_minutes`
-- `system_reservation_attendance_hours`
-- `system_reservation_auto_cancel`
-
-Reservation timing is controlled by `SalonSettings` (admin → Salon page), e.g.:
-- `SalonSettings.reservationLockMinutes`
-
-## Maintenance mode
-
-When `system_maintenance_mode` is `true`, the public website layout (`frontend/src/layouts/PublicLayout.tsx`) shows a full-page message instead of the normal header/footer and routes. The mobile client home (`mobile/src/screens/client/HomeScreen.tsx`) shows the same message on the home tab. Admin routes under `/admin` and auth routes `/login` and `/register` are **not** wrapped by `PublicLayout`, so staff can still sign in and turn maintenance off.
-
-## Consumers map
-
-- **Frontend (public)**: `frontend/src/context/SettingsContext.tsx` → `GET /api/settings/public`
-- **Frontend (admin)**: `frontend/src/pages/Settings.tsx`, `frontend/src/pages/EmailSettings.tsx`
-- **Mobile**: `mobile/src/services/publicSettings.ts` → `GET /api/settings/public`
-- **Backend**:
-  - `backend/src/notifications/notifications.service.ts` reads email config/templates via `SettingsService`
-  - `backend/src/loyalty/loyalty.service.ts` reads loyalty config via `SettingsService`
-
+- Public web: `SettingsContext` → `GET /api/settings/public`
+- Mobile: `publicSettings.ts`
+- Backend: notifications (email + `system_push_enabled`), loyalty, comments, reservation dates/reminders
