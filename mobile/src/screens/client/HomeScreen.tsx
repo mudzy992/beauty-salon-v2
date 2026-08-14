@@ -48,7 +48,7 @@ interface BeforeAfterPair {
   after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
 }
 
-const HERO_HEIGHT = 300;
+const HERO_HEIGHT = 260;
 const PRESS_SPRING = { damping: 15, stiffness: 400 };
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -98,27 +98,6 @@ function getSettingValue(settings: PublicSetting[] | null | undefined, key: stri
   return item?.value?.trim() || fallback;
 }
 
-function formatBrandWordDisplay(word: string): string {
-  const raw = String(word ?? '').trim();
-  const oneWord = raw.split(/\s+/)[0] ?? '';
-  const upper = oneWord.slice(0, 8).toLocaleUpperCase('bs-BA');
-  return upper || 'LOGO';
-}
-
-function resolveHeroImageUrl(value: string): string {
-  if (!value?.trim()) return DEFAULT_HERO_IMAGE;
-  const v = value.trim();
-  if (v.startsWith('http')) return v;
-  return getImageUrl(v) || DEFAULT_HERO_IMAGE;
-}
-
-function resolveBlogImageUrl(value?: string): string {
-  if (!value?.trim()) return DEFAULT_BLOG_IMAGE;
-  const v = value.trim();
-  if (v.startsWith('http')) return v;
-  return getImageUrl(v) || DEFAULT_BLOG_IMAGE;
-}
-
 function formatBlogDate(value?: string): string {
   if (!value) return '';
   return new Date(value).toLocaleDateString('bs-BA', {
@@ -140,29 +119,6 @@ function getBlogExcerpt(content: string, max = 110): string {
 function formatServicePrice(amount?: number): string {
   if (typeof amount !== 'number' || Number.isNaN(amount)) return '';
   return `${Math.round(amount)} KM`;
-}
-
-/** Tačan broj za hero metrike (bez skraćivanja tipa 1.2k+). */
-function formatExactStatCount(value?: number | null): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '—';
-  const n = Math.max(0, Math.round(value));
-  return n.toLocaleString('bs-BA');
-}
-
-function extractHomeStatsPayload(
-  input: unknown,
-): { servicesCount?: unknown; clientsCount?: unknown } | null {
-  if (!input || typeof input !== 'object') return null;
-  const direct = input as { servicesCount?: unknown; clientsCount?: unknown };
-  if ('servicesCount' in direct || 'clientsCount' in direct) return direct;
-
-  const nested = input as {
-    data?: { servicesCount?: unknown; clientsCount?: unknown };
-    items?: { servicesCount?: unknown; clientsCount?: unknown };
-  };
-  if (nested.data && typeof nested.data === 'object') return nested.data;
-  if (nested.items && typeof nested.items === 'object') return nested.items;
-  return null;
 }
 
 function ServiceTilePress({
@@ -197,7 +153,7 @@ function ServiceTilePress({
 
 export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const { t } = useTranslation();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { width: screenWidth } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const tabBarBottom = useFloatingTabBarTotalHeight();
@@ -209,7 +165,6 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
   const [settings, setSettings] = useState<PublicSetting[] | null>(null);
   const [categoriesWithServices, setCategoriesWithServices] = useState<CategoryWithServices[]>([]);
-  const [homeStats, setHomeStats] = useState<{ servicesCount: number; clientsCount: number } | null>(null);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [beforeAfterPairs, setBeforeAfterPairs] = useState<BeforeAfterPair[]>([]);
   const [featuredReview, setFeaturedReview] = useState<{
@@ -222,22 +177,12 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const [openDebtsTotal, setOpenDebtsTotal] = useState(0);
   const [openDebtsCount, setOpenDebtsCount] = useState(0);
 
-  const parseStatCount = (value: unknown): number | null => {
-    if (typeof value === 'number' && Number.isFinite(value)) return Math.max(0, Math.round(value));
-    if (typeof value === 'string' && value.trim()) {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) return Math.max(0, Math.round(parsed));
-    }
-    return null;
-  };
-
   const fetchData = useCallback(async () => {
     try {
-      const [settingsRes, catRes, blogRes, homeStatsRes, debtsRes] = await Promise.all([
+      const [settingsRes, catRes, blogRes, debtsRes] = await Promise.all([
         fetchPublicSettings(),
         api.get<ServiceCategory[]>('/api/services/categories', { params: { activeOnly: true } }),
         api.get<BlogPost[]>('/api/blog', { params: { published: true } }),
-        api.get<{ servicesCount: number; clientsCount: number }>('/api/services/home-stats').catch(() => null),
         user
           ? api.get<Array<{ amount: number | string }>>('/api/client-debts/me').catch(() => null)
           : Promise.resolve(null),
@@ -268,29 +213,6 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
       }
       setCategoriesWithServices(withServices);
       setBlogPosts(blogRes.data.slice(0, 3));
-      if (homeStatsRes?.data) {
-        const statsPayload = extractHomeStatsPayload(homeStatsRes.data);
-        const servicesCount = parseStatCount(statsPayload?.servicesCount);
-        const clientsCount = parseStatCount(statsPayload?.clientsCount);
-        if (servicesCount !== null && clientsCount !== null) {
-          setHomeStats({ servicesCount, clientsCount });
-        } else {
-          // Fallback: servis count iz trenutno učitanih kategorija, klijenti ostaju nepoznati.
-          const fallbackServicesCount = withServices.reduce((sum, item) => sum + item.services.length, 0);
-          setHomeStats(
-            fallbackServicesCount > 0
-              ? { servicesCount: fallbackServicesCount, clientsCount: Number.NaN }
-              : null,
-          );
-        }
-      } else {
-        const fallbackServicesCount = withServices.reduce((sum, item) => sum + item.services.length, 0);
-        setHomeStats(
-          fallbackServicesCount > 0
-            ? { servicesCount: fallbackServicesCount, clientsCount: Number.NaN }
-            : null,
-        );
-      }
       try {
         const { data } = await api.get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
           params: { limit: 6, random: 1 },
@@ -328,16 +250,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
     setRefreshing(false);
   }, [fetchData]);
 
-  const appLogo = getSettingValue(settings, 'app_logo', '');
-  const appTitle = getSettingValue(settings, 'app_title', t('home.heroTitle'));
-  const appLogoTextColor =
-    getSettingValue(settings, 'app_logo_text_color', '').trim() || colors.primary;
-  const hasLogo = !!appLogo?.trim();
   const heroImageUrl = resolveHeroImageUrl(getSettingValue(settings, 'public_hero_image', ''));
-  const heroTitle = getSettingValue(settings, 'public_hero_title', appTitle);
   const heroSubtitle = getSettingValue(settings, 'public_hero_subtitle', t('home.heroSubtitle'));
-  const servicesCountLabel = homeStats ? formatExactStatCount(homeStats.servicesCount) : '—';
-  const clientsCountLabel = homeStats ? formatExactStatCount(homeStats.clientsCount) : '—';
 
   const heroBg = colors.background;
   const heroBottomBlend: [string, string, string, string] = [
@@ -400,57 +314,24 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               pointerEvents="none"
             />
             <View style={[styles.heroContent, { paddingTop: insets.top }]}>
-
-              {hasLogo ? (
-                <>
-                  <Animated.View
-                    entering={FadeInDown.delay(220).duration(520).springify()}
-                    style={styles.heroLogoBlock}
-                  >
-                    <MediaImage
-                      uri={getImageUrl(appLogo) || getUploadUrl(appLogo) || appLogo}
-                      style={styles.heroLogoLarge}
-                      contentFit="contain"
-                      accessibilityLabel={appTitle}
-                      tintColor="#FFF"
-                    />
-                  </Animated.View>
-                  {user ? (
-                    <Animated.View
-                    entering={FadeInDown.delay(140).duration(400).springify()}
-                    style={styles.heroWelcomeAbove}
-                    >
-                    <Text style={styles.welcome}>
-                        {t('home.welcome')}, {user.firstName}!
-                    </Text>
-                    </Animated.View>
-                ) : null}
-                  <Animated.Text
-                    entering={FadeInDown.delay(380).duration(480).springify()}
-                    style={styles.heroSubtitleUnderLogo}
-                    numberOfLines={2}
-                  >
-                    {heroSubtitle}
-                  </Animated.Text>
-                </>
-              ) : (
-                <>
-                  <Animated.Text
-                    entering={FadeInDown.delay(220).duration(520).springify()}
-                    style={styles.heroTitle}
-                  >
-                    {heroTitle.replace(/\\n/g, '\n')}
-                  </Animated.Text>
-                  <Animated.Text
-                    entering={FadeInDown.delay(360).duration(500).springify()}
-                    style={styles.heroSubtitle}
-                    numberOfLines={2}
-                  >
-                    {heroSubtitle}
-                  </Animated.Text>
-                </>
-              )}
-              <Animated.View entering={FadeInDown.delay(520).duration(480).springify()} style={styles.heroCta}>
+              {user ? (
+                <Animated.View
+                  entering={FadeInDown.delay(140).duration(400).springify()}
+                  style={styles.heroWelcomeAbove}
+                >
+                  <Text style={styles.welcome}>
+                    {t('home.welcome')}, {user.firstName}!
+                  </Text>
+                </Animated.View>
+              ) : null}
+              <Animated.Text
+                entering={FadeInDown.delay(280).duration(480).springify()}
+                style={styles.heroSubtitle}
+                numberOfLines={2}
+              >
+                {heroSubtitle}
+              </Animated.Text>
+              <Animated.View entering={FadeInDown.delay(420).duration(480).springify()} style={styles.heroCta}>
                 <Button
                   title={getSettingValue(settings, 'public_hero_cta_text', t('home.bookNow'))}
                   onPress={() =>
@@ -461,30 +342,6 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                   }
                   icon={<Ionicons name="calendar-outline" size={18} color={colors.primaryText} />}
                 />
-              </Animated.View>
-              <Animated.View entering={FadeInDown.delay(620).duration(480).springify()} style={styles.heroStatsRow}>
-                <View
-                  style={[
-                    styles.heroStatChip,
-                    isDark
-                      ? styles.heroStatChipDark
-                      : { backgroundColor: 'rgba(0,0,0,0.66)', borderColor: 'rgba(0,0,0,0.98)' },
-                  ]}
-                >
-                  <Ionicons name="diamond-outline" size={13} color="#fff" />
-                  <Text style={styles.heroStatText}>{servicesCountLabel} servisa</Text>
-                </View>
-                <View
-                  style={[
-                    styles.heroStatChip,
-                    isDark
-                      ? styles.heroStatChipDark
-                      : { backgroundColor: 'rgba(0,0,0,0.66)', borderColor: 'rgba(0,0,0,0.98)' },
-                  ]}
-                >
-                  <Ionicons name="people-outline" size={13} color="#fff" />
-                  <Text style={styles.heroStatText}>{clientsCountLabel} klijenata</Text>
-                </View>
               </Animated.View>
             </View>
           </View>
@@ -927,46 +784,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 2,
   },
-  heroDecoration: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  heroLine: {
-    width: 40,
-    height: 2,
-    marginHorizontal: spacing.sm,
-  },
-  heroSparkLeft: { opacity: 0.9 },
-  heroSparkRight: { opacity: 0.9, transform: [{ scaleX: -1 }] },
-  heroLogoBlock: {
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  heroLogoLarge: {
-    width: 300,
-    height: 150
-  },
-  heroBrandTitle: {
-    marginTop: spacing.sm,
-    fontSize: 22,
-    fontFamily: fontFamily.bodySemiBold,
-    letterSpacing: 5,
-    textAlign: 'center',
-  },
-  heroSubtitleUnderLogo: {
-    fontSize: 14,
-    marginTop: spacing.xs,
-    fontFamily: fontFamily.body,
-    letterSpacing: 0.35,
-    lineHeight: 21,
-    textAlign: 'center',
-    paddingHorizontal: spacing.md,
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
   heroTitle: {
     fontSize: 36,
     fontFamily: fontFamily.heading,
@@ -979,11 +796,11 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   heroSubtitle: {
-    fontSize: 15,
+    fontSize: 17,
     marginTop: spacing.sm,
     fontFamily: fontFamily.body,
     letterSpacing: 0.35,
-    lineHeight: 23,
+    lineHeight: 24,
     textAlign: 'center',
     paddingHorizontal: spacing.md,
     color: '#FFFFFF',
@@ -992,10 +809,10 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   welcome: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: fontFamily.bodyMedium,
     letterSpacing: 0.45,
-    lineHeight: 15,
+    lineHeight: 18,
     textAlign: 'center',
     color: '#FFFFFF',
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
@@ -1003,32 +820,6 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   heroCta: { marginTop: spacing.md, width: '100%', alignItems: 'center' },
-  heroStatsRow: {
-    marginTop: spacing.md,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  heroStatChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  heroStatChipDark: {
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderColor: 'rgba(255,255,255,0.28)',
-  },
-  heroStatText: {
-    color: '#fff',
-    fontSize: 11,
-    fontFamily: fontFamily.bodyMedium,
-    letterSpacing: 0.25,
-  },
   section: { marginTop: spacing.md, paddingHorizontal: spacing.md },
   sectionHeader: {
     flexDirection: 'row',
