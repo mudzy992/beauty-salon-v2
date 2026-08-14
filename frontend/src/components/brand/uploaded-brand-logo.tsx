@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useState } from 'react'
 
-import { MediaImage } from './media-image'
+import { MediaImage } from '../media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
 
 type UploadedBrandLogoProps = {

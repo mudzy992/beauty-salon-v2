@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Calendar, Copy, ExternalLink, MessageCircle, Share2 } from 'lucide-react'
 
 import { Button } from '../../components/ui/button'
-import { publicHeader, publicPage } from '../../features/shell/public/public-ui'
+import { publicPage } from '../../features/shell/public/public-ui'
 import { Textarea } from '../../components/ui/textarea'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import api from '../../api/client'
