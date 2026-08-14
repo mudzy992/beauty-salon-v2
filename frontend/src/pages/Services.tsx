@@ -358,8 +358,8 @@ export default function Services() {
                           </div>
 
                           {sub.services?.length ? (
-                            <div className="overflow-x-auto rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-                              <table className="w-full border-collapse text-sm">
+                            <div className="app-table-wrap rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+                              <table className="app-table w-full border-collapse">
                                 <thead>
                                   <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                                     <th className="p-3 font-medium">Usluga</th>

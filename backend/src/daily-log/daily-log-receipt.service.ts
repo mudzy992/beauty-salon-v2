@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { getServiceAmount } from './daily-log.amounts';
 import { NotificationsService } from '../notifications/notifications.service';
+import { buildReceiptCopy } from '../notifications/utils/reservation-push-copy';
 
 @Injectable()
 export class DailyLogReceiptService {
@@ -46,10 +47,11 @@ export class DailyLogReceiptService {
       ? [stylistUser.firstName, stylistUser.lastName].filter(Boolean).join(' ')
       : '';
     const receiptLabel = entry.publicReferenceCode || entryId.slice(0, 8);
+    const copy = buildReceiptCopy({ ref: receiptLabel, amount: actualPrice });
     await this.notifications.send({
       userId: entry.clientId,
-      title: 'Potvrda uplate',
-      body: `Uplata od ${actualPrice.toFixed(2)} KM je evidentirana (${receiptLabel}).`,
+      title: copy.title,
+      body: copy.body,
       type: 'payment_receipt',
       channel: 'PUSH',
       data: {

@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
+import { buildCancelledCopy } from '../notifications/utils/reservation-push-copy';
 import { EventsGateway } from '../events/events.gateway';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
@@ -94,10 +96,20 @@ export class ReservationRuntimeCancelService {
       },
     });
     if (resWithClient?.clientId) {
+      const ctx = await resolvePushContext(
+        this.prisma,
+        reservationId,
+        resWithClient.publicReferenceCode,
+      );
+      const copy = buildCancelledCopy({
+        ctx,
+        title: 'Rezervacija otkazana',
+        reason: reason.trim() || 'Rezervacija je otkazana.',
+      });
       await this.notifications.send({
         userId: resWithClient.clientId,
-        title: 'Rezervacija otkazana',
-        body: reason,
+        title: copy.title,
+        body: copy.body,
         type: 'reservation_cancelled',
         data: {
           reservationId,
@@ -191,10 +203,16 @@ export class ReservationRuntimeCancelService {
       serviceId: r.serviceId,
       date: r.reservationDate,
     });
+    const ctx = await resolvePushContext(this.prisma, reservationId);
+    const copy = buildCancelledCopy({
+      ctx,
+      title: 'Niste došli',
+      reason: 'Rezervacija je označena kao da se klijent nije pojavio. Ako je greška, kontaktirajte salon.',
+    });
     await this.notifications.send({
       userId: r.clientId,
-      title: 'No-show',
-      body: 'Rezervacija je označena kao "nije se pojavio/la". Ako je greška, kontaktirajte salon.',
+      title: copy.title,
+      body: copy.body,
       type: 'reservation_cancelled',
       data: { reservationId, kind: 'reservation_cancelled' },
       channel: 'PUSH',

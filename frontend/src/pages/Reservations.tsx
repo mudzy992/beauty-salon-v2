@@ -325,8 +325,8 @@ export default function Reservations() {
               )}
             </div>
 
-            <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full border-collapse text-sm">
+            <div className="hidden app-table-wrap lg:block">
+              <table className="app-table w-full border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                     <th className="p-3 font-medium">Datum</th>

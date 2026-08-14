@@ -16,6 +16,8 @@ import {
 } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { NotificationsService } from '../notifications/notifications.service';
+import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
+import { buildCancelledCopy } from '../notifications/utils/reservation-push-copy';
 import { canConfirmAttendance } from './reservation-policy';
 
 @Injectable()
@@ -98,10 +100,16 @@ export class ReservationClientActionsService {
         select: { userId: true },
       });
       if (stylist?.userId) {
+        const ctx = await resolvePushContext(this.prisma, id, r.publicReferenceCode);
+        const copy = buildCancelledCopy({
+          ctx,
+          title: 'Rezervacija otkazana',
+          reason: 'Klijent je otkazao rezervaciju.',
+        });
         await this.notifications.send({
           userId: stylist.userId,
-          title: 'Rezervacija otkazana',
-          body: 'Klijent je otkazao rezervaciju.',
+          title: copy.title,
+          body: copy.body,
           type: 'reservation_cancelled',
           data: { reservationId: id, kind: 'stylist_reservation_cancelled' },
           channel: 'PUSH',
@@ -145,10 +153,16 @@ export class ReservationClientActionsService {
       date: r.reservationDate,
     });
     if (r.clientId) {
+      const ctx = await resolvePushContext(this.prisma, id, r.publicReferenceCode);
+      const copy = buildCancelledCopy({
+        ctx,
+        title: 'Rezervacija otkazana',
+        reason: dto?.cancelReason?.trim() || 'Rezervacija je otkazana od strane salona.',
+      });
       await this.notifications.send({
         userId: r.clientId,
-        title: 'Rezervacija otkazana',
-        body: dto?.cancelReason?.trim() || 'Rezervacija je otkazana od strane salona.',
+        title: copy.title,
+        body: copy.body,
         type: 'reservation_cancelled',
         data: {
           reservationId: id,

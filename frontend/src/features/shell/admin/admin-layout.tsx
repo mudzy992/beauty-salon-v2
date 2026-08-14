@@ -69,7 +69,7 @@ export const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <Drawer open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <DrawerContent className="p-5">
@@ -143,7 +143,7 @@ export const AdminLayout = () => {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[260px_1fr]">
+      <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[220px_1fr]">
         <aside className="hidden lg:block">
           <div className="rounded-lg border border-slate-200 bg-white p-2">
             <AdminNav pathname={location.pathname} pendingBlogComments={pendingBlogComments} />

@@ -13,6 +13,7 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 import { IncomeSyncService } from '../finance/income-sync.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { buildDebtCopy } from '../notifications/utils/reservation-push-copy';
 import { assertReservationTransition } from '../reservations/assert-reservation-transition';
 import { RESERVATION_STATUS } from '../reservations/constants';
 import { getServiceAmount } from './daily-log.amounts';
@@ -41,12 +42,14 @@ export class DailyLogService {
     clientId: string;
     amount: number;
     dailyLogEntryId: string;
+    ref?: string | null;
   }): Promise<void> {
     try {
+      const copy = buildDebtCopy({ ref: params.ref ?? undefined, amount: params.amount });
       await this.notifications.send({
         userId: params.clientId,
-        title: 'Novo dugovanje',
-        body: `Evidentirano je dugovanje od ${params.amount.toFixed(2)} KM.`,
+        title: copy.title,
+        body: copy.body,
         type: 'client_debt',
         data: {
           debtAmount: params.amount,

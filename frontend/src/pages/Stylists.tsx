@@ -222,8 +222,8 @@ export default function Stylists() {
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
+          <div className="app-table-wrap">
+            <table className="app-table w-full border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                   <th className="p-3 font-medium">Korisnik</th>
@@ -365,8 +365,8 @@ export default function Stylists() {
             </TabsContent>
 
             <TabsContent value="hours" className="mt-4">
-              <div className="overflow-x-auto rounded-md border border-slate-200 dark:border-slate-800">
-                <table className="w-full border-collapse text-sm">
+              <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
+                <table className="app-table w-full border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                       <th className="p-3 font-medium">Dan</th>

@@ -205,8 +205,8 @@ export default function Loyalty() {
               Nema loyalty računa. Kada je program uključen i klijent ima barem jednu završenu rezervaciju, račun će se automatski kreirati.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-sm">
+            <div className="app-table-wrap">
+              <table className="app-table w-full border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                     <th className="p-3 font-medium">Korisnik</th>

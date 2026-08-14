@@ -4,13 +4,25 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 const mockNotifications = { send: jest.fn() };
-const mockPrisma = { notification: { findFirst: jest.fn() } };
+const mockPrisma = {
+  notification: { findFirst: jest.fn() },
+  reservation: { findUnique: jest.fn() },
+};
 
 describe('ReservationNotifyService', () => {
   let service: ReservationNotifyService;
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockPrisma.reservation.findUnique.mockResolvedValue({
+      publicReferenceCode: 'RZ-1',
+      reservationDate: new Date('2026-08-20T00:00:00.000Z'),
+      startTime: '09:00',
+      endTime: '10:00',
+      attendancePolicy: 'STAFF_WAIVED',
+      service: { name: 'Šišanje' },
+      items: [{ sortOrder: 0, service: { name: 'Šišanje' } }],
+    });
     const module = await Test.createTestingModule({
       providers: [
         ReservationNotifyService,
@@ -42,9 +54,10 @@ describe('ReservationNotifyService', () => {
       }),
     );
     const body = mockNotifications.send.mock.calls[0][0].body as string;
-    expect(body).toContain('2026-08-20');
-    expect(body).toContain('09:00–10:00');
-    expect(body).toContain('Nije potrebna vaša potvrda');
+    expect(body).toContain('RZ-1');
+    expect(body).toContain('20.08.2026.');
+    expect(body).toContain('09:00 do 10:00');
+    expect(body).toContain('Potvrda dolaska nije potrebna');
   });
 
   it('notifyStylistPendingDailyLog šalje daily_log_pending_reminder', async () => {

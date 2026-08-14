@@ -56,8 +56,8 @@ export function ExpenseTable({
 
   return (
     <>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
+      <div className="app-table-wrap">
+        <table className="app-table w-full">
           <caption className="sr-only">Stavke knjige rashoda</caption>
           <thead>
             <tr className="border-b border-slate-200 text-left dark:border-slate-800">

@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { loadReservationPushContext } from '../notifications/utils/load-reservation-push-context';
+import {
+  buildDailyLogReminderCopy,
+  buildTimeChangedCopy,
+  type ReservationPushContext,
+} from '../notifications/utils/reservation-push-copy';
 
 export type PendingRescheduleKind =
   | 'reservation_reschedule'
@@ -26,10 +32,23 @@ export class ReservationNotifyService {
     publicReferenceCode?: string | null;
     clientViewToken?: string | null;
   }): Promise<void> {
+    const loaded = await loadReservationPushContext(
+      this.prisma,
+      params.reservationId,
+    );
+    const ctx: ReservationPushContext = {
+      ref: loaded?.ref ?? params.publicReferenceCode ?? params.reservationId.slice(0, 8),
+      serviceNames: loaded?.serviceNames?.length ? loaded.serviceNames : ['uslugu'],
+      date: params.date,
+      startTime: params.startTime,
+      endTime: params.endTime,
+      attendanceRequired: loaded?.attendanceRequired ?? true,
+    };
+    const copy = buildTimeChangedCopy(ctx);
     await this.notifications.send({
       userId: params.clientId,
-      title: 'Termin pomjeren',
-      body: `Termin je pomjeren na ${params.date} ${params.startTime}–${params.endTime}. Nije potrebna vaša potvrda.`,
+      title: copy.title,
+      body: copy.body,
       type: 'reservation_reminder',
       data: {
         kind: TIME_CHANGED_KIND,
@@ -50,10 +69,17 @@ export class ReservationNotifyService {
     dailyLogEntryId: string;
     publicReferenceCode?: string | null;
   }): Promise<void> {
+    const loaded = await loadReservationPushContext(
+      this.prisma,
+      params.reservationId,
+    );
+    const copy = buildDailyLogReminderCopy({
+      ref: loaded?.ref ?? params.publicReferenceCode ?? params.reservationId.slice(0, 8),
+    });
     await this.notifications.send({
       userId: params.stylistUserId,
-      title: 'Dnevna knjiga čeka završetak',
-      body: 'Direktna rezervacija čeka naplatu ili odluku u dnevnoj knjizi.',
+      title: copy.title,
+      body: copy.body,
       type: 'reservation_reminder',
       data: {
         kind: DAILY_LOG_REMINDER_KIND,
@@ -95,12 +121,15 @@ export class ReservationNotifyService {
       where: { id: reservationId },
       select: {
         id: true,
+        publicReferenceCode: true,
         confirmedStylist: { select: { userId: true } },
         service: { select: { name: true } },
       },
     });
     const stylistUserId = reservation?.confirmedStylist?.userId;
     if (!stylistUserId) return;
+    const ref = reservation.publicReferenceCode;
+    const serviceName = reservation.service?.name ?? 'uslugu';
     const title =
       decision === 'accepted'
         ? 'Klijent potvrdio novi termin'
@@ -109,10 +138,10 @@ export class ReservationNotifyService {
           : 'Termin auto-otkazan';
     const body =
       decision === 'accepted'
-        ? `Klijent je potvrdio novi termin za ${reservation?.service?.name ?? 'uslugu'}.`
+        ? `Klijent je potvrdio novi termin za ${ref} (${serviceName}).`
         : decision === 'declined'
-          ? `Klijent je odbio predloženi termin za ${reservation?.service?.name ?? 'uslugu'}.`
-          : `Klijent nije odgovorio na vrijeme. Termin je auto-otkazan.`;
+          ? `Klijent je odbio predloženi termin za ${ref} (${serviceName}).`
+          : `Klijent nije odgovorio na vrijeme. Termin ${ref} je auto-otkazan.`;
     await this.notifications.send({
       userId: stylistUserId,
       title,

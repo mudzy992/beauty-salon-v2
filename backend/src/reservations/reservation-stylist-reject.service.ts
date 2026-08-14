@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
+import { buildCancelledCopy } from '../notifications/utils/reservation-push-copy';
 import { EventsGateway } from '../events/events.gateway';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
@@ -92,10 +94,20 @@ export class ReservationStylistRejectService {
         },
       });
       if (resWithClient?.clientId) {
+        const ctx = await resolvePushContext(
+          this.prisma,
+          reservationId,
+          resWithClient.publicReferenceCode,
+        );
+        const copy = buildCancelledCopy({
+          ctx,
+          title: 'Rezervacija otkazana',
+          reason: 'Nijedan stilist nije mogao prihvatiti termin.',
+        });
         await this.notifications.send({
           userId: resWithClient.clientId,
-          title: 'Rezervacija otkazana',
-          body: 'Rezervacija je otkazana jer nijedan stilist nije mogao prihvatiti termin.',
+          title: copy.title,
+          body: copy.body,
           type: 'reservation_cancelled',
           data: {
             reservationId,

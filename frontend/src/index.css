@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .app-table-wrap {
+    @apply w-full min-w-0 overflow-x-auto xl:overflow-x-visible;
+  }
+  table.app-table {
+    @apply w-full table-fixed text-sm;
+  }
+  table.app-table th,
+  table.app-table td {
+    @apply px-2 py-1.5 align-middle;
+  }
+  table.app-table th {
+    @apply font-medium text-slate-500;
+  }
+}

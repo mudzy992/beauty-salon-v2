@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
+import { buildCancelledCopy } from '../notifications/utils/reservation-push-copy';
 import { EventsGateway } from '../events/events.gateway';
 import { ReservationDateService } from './reservation-date.service';
 import { ReservationSharedService } from './reservation-shared.service';
@@ -78,10 +80,16 @@ export class ReservationAttendanceCronService {
           salon.maxCancellationsBeforePenalty,
         penaltyDurationDays: salon.penaltyDurationDays,
       });
+      const ctx = await resolvePushContext(this.prisma, r.id);
+      const copy = buildCancelledCopy({
+        ctx,
+        title: 'Termin je otkazan',
+        reason: 'Dolazak nije potvrđen u predviđenom roku.',
+      });
       await this.notifications.send({
         userId: r.clientId,
-        title: 'Termin je otkazan',
-        body: 'Termin je otkazan jer dolazak nije potvrđen u predviđenom roku.',
+        title: copy.title,
+        body: copy.body,
         type: 'reservation_cancelled',
         data: {
           kind: 'attendance_timeout_cancelled',

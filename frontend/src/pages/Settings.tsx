@@ -864,7 +864,7 @@ export default function Settings() {
 
   return (
     <TooltipProvider>
-      <div className="mx-auto max-w-6xl px-4 pb-10">
+      <div className="pb-10">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-[240px] flex-1">
             <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.settings')}</h1>

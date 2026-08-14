@@ -428,8 +428,8 @@ export default function Salon() {
             </TabsContent>
 
             <TabsContent value="hours" className="mt-4">
-              <div className="overflow-x-auto rounded-md border border-slate-200 dark:border-slate-800">
-                <table className="w-full border-collapse text-sm">
+              <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
+                <table className="app-table w-full border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                       <th className="p-3 font-medium">Dan</th>
@@ -491,8 +491,8 @@ export default function Salon() {
               {holidays.length === 0 ? (
                 <p className="text-sm text-slate-500">Nema praznika.</p>
               ) : (
-                <div className="overflow-x-auto rounded-md border border-slate-200 dark:border-slate-800">
-                  <table className="w-full border-collapse text-sm">
+                <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
+                  <table className="app-table w-full border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                         <th className="p-3 font-medium">Datum</th>

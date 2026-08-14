@@ -49,7 +49,7 @@ export default function StylistLayout() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-3">
+        <div className="mx-auto max-w-[1600px] px-4 py-3 flex items-center justify-between gap-3">
           <div className="min-w-0 flex items-center gap-4">
             <Link to="/stylist/inbox" className="font-semibold text-slate-900 dark:text-slate-50">
               Stylist
@@ -141,7 +141,7 @@ export default function StylistLayout() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="mx-auto max-w-[1600px] px-4 py-4">
         <Outlet />
       </main>
     </div>

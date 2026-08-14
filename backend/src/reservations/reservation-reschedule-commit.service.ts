@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
+import { buildRescheduleShiftCopy } from '../notifications/utils/reservation-push-copy';
 import { ReservationSharedService } from './reservation-shared.service';
 import {
   ReservationRescheduleService,
@@ -86,27 +88,30 @@ export class ReservationRescheduleCommitService {
         });
       }
     });
-    const metaBody =
-      opts.mode === 'manual_minutes'
-        ? `Ručna rekalkulacija: +${Math.max(0, Math.floor(opts.manualShiftMinutes ?? 0))} min.`
-        : 'Rekalkulacija na osnovu kašnjenja prethodnog termina.';
     for (const item of proposal.items) {
-      const reservationDate = await this.prisma.reservation.findUnique({
-        where: { id: item.id },
-        select: { reservationDate: true },
-      });
+      const row = rows.find((candidate) => candidate.id === item.id);
+      const ctx = await resolvePushContext(this.prisma, item.id);
       const sentAt = new Date();
-      const confirmIn = reservationDate
+      const confirmIn = row
         ? this.shared.computeRescheduleDeadlineMinutes(
             sentAt,
             item.newStartTime,
-            reservationDate.reservationDate,
+            row.reservationDate,
           )
         : 30;
+      const copy = buildRescheduleShiftCopy(
+        {
+          ...ctx,
+          startTime: item.newStartTime,
+          endTime: item.newEndTime,
+        },
+        item.shiftMinutes,
+        confirmIn,
+      );
       await this.notifications.send({
         userId: item.clientId,
-        title: 'Promjena termina',
-        body: `Vaš termin je pomjeren za ${item.shiftMinutes} min. Potvrdite dolazak u narednih ${confirmIn} min. ${metaBody}`,
+        title: copy.title,
+        body: copy.body,
         type: 'reservation_reschedule',
         data: {
           kind: 'reservation_reschedule',

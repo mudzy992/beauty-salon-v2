@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
+import { buildDelayWarningCopy } from '../notifications/utils/reservation-push-copy';
 import { RESERVATION_STATUS } from './constants';
 import { timeToMinutes } from './utils/time-slot.utils';
 import { ReservationsService } from './reservations.service';
@@ -92,10 +94,12 @@ export class ReservationDelayCron {
       const warningTargets = future.slice(1);
       if (warningTargets.length > 0) {
         for (const f of warningTargets) {
+          const ctx = await resolvePushContext(this.prisma, f.id);
+          const copy = buildDelayWarningCopy(ctx);
           await this.notifications.send({
             userId: f.clientId,
-            title: 'Moguće kašnjenje',
-            body: 'Današnji termini mogu kasniti. Obavijestit ćemo vas o tačnom vremenu.',
+            title: copy.title,
+            body: copy.body,
             type: 'reservation_reminder',
             data: { kind: 'delay_warning', reservationId: f.id },
             channel: 'PUSH',

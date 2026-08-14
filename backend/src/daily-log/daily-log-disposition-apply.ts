@@ -6,6 +6,8 @@ import type { PrismaService } from '../prisma/prisma.service';
 import type { ReservationSharedService } from '../reservations/reservation-shared.service';
 import type { ReservationDateService } from '../reservations/reservation-date.service';
 import type { NotificationsService } from '../notifications/notifications.service';
+import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
+import { buildCancelledCopy } from '../notifications/utils/reservation-push-copy';
 import {
   RESERVATION_STATUS,
   SLOT_OCCUPYING_STATUSES,
@@ -113,10 +115,20 @@ export const notifyClientCancelled = async (
       clientViewToken: true,
     },
   });
+  const ctx = await resolvePushContext(
+    deps.prisma,
+    reservationId,
+    resWithClient?.publicReferenceCode,
+  );
+  const copy = buildCancelledCopy({
+    ctx,
+    title: 'Rezervacija otkazana',
+    reason,
+  });
   await deps.notifications.send({
     userId: clientId,
-    title: 'Rezervacija otkazana',
-    body: reason,
+    title: copy.title,
+    body: copy.body,
     type: 'reservation_cancelled',
     data: {
       reservationId,
@@ -211,10 +223,17 @@ export const applyNoShow = async (
       });
     }
   }
+  const ctx = await resolvePushContext(deps.prisma, reservationId);
+  const copy = buildCancelledCopy({
+    ctx,
+    title: 'Niste došli',
+    reason:
+      'Rezervacija je označena kao da se klijent nije pojavio. Ako je greška, kontaktirajte salon.',
+  });
   await deps.notifications.send({
     userId: r.clientId,
-    title: 'No-show',
-    body: 'Rezervacija je označena kao "nije se pojavio/la". Ako je greška, kontaktirajte salon.',
+    title: copy.title,
+    body: copy.body,
     type: 'reservation_cancelled',
     data: { reservationId, kind: 'reservation_cancelled' },
     channel: 'PUSH',

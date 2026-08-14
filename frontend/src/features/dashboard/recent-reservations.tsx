@@ -13,7 +13,7 @@ export const DashboardRecentReservations = ({ reservations }: Props) => (
     <CardContent className="p-5">
       <div className="mb-3 text-sm font-semibold text-slate-900">Posljednje rezervacije</div>
       <div className="overflow-auto">
-        <table className="w-full text-sm">
+        <table className="app-table w-full">
           <thead className="text-left text-slate-500">
             <tr className="border-b border-slate-200">
               <th className="py-2 pr-3 font-medium">Datum</th>

@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
+import { buildCancelledCopy } from '../notifications/utils/reservation-push-copy';
 import { ReservationDateService } from './reservation-date.service';
 import { ReservationSharedService } from './reservation-shared.service';
 import {
@@ -100,10 +102,20 @@ export class ReservationInboxCronService {
         },
       });
       cancelledCount += 1;
+      const ctx = await resolvePushContext(
+        this.prisma,
+        r.id,
+        r.publicReferenceCode,
+      );
+      const copy = buildCancelledCopy({
+        ctx,
+        title: 'Rezervacija nije potvrđena',
+        reason: 'Termin nije preuzet na vrijeme. Možete ponovo zakazati.',
+      });
       await this.notifications.send({
         userId: r.clientId,
-        title: 'Rezervacija nije potvrđena',
-        body: 'Termin nije preuzet na vrijeme. Možete ponovo zakazati.',
+        title: copy.title,
+        body: copy.body,
         type: 'reservation_cancelled',
         data: {
           reservationId: r.id,

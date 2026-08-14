@@ -297,8 +297,8 @@ export default function Analytics() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="p-5">
           <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">Performanse stilista</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
+          <div className="app-table-wrap">
+            <table className="app-table w-full border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                   <th className="py-2 pr-3 font-medium">Stilista</th>
@@ -338,8 +338,8 @@ export default function Analytics() {
 
         <Card className="p-5">
           <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">Top usluge</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
+          <div className="app-table-wrap">
+            <table className="app-table w-full border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                   <th className="py-2 pr-3 font-medium">Usluga</th>

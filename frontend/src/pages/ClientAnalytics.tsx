@@ -376,8 +376,8 @@ export default function ClientAnalytics() {
           {analytics.topServices.length > 0 ? (
             <Card className="p-5">
               <p className="mb-3 font-semibold text-slate-900 dark:text-slate-50">Najčešći servisi</p>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
+              <div className="app-table-wrap">
+                <table className="app-table w-full border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                       <th className="py-2 pr-3 font-medium">Servis</th>
@@ -409,8 +409,8 @@ export default function ClientAnalytics() {
 
             <TabsContent value="reservations" className="mt-4">
               <Card className="overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-sm">
+                <div className="app-table-wrap">
+                  <table className="app-table w-full border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                         <th className="py-3 pl-4 pr-3 font-medium">Datum</th>
@@ -475,8 +475,8 @@ export default function ClientAnalytics() {
 
             <TabsContent value="manual" className="mt-4">
               <Card className="overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-sm">
+                <div className="app-table-wrap">
+                  <table className="app-table w-full border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
                         <th className="py-3 pl-4 pr-3 font-medium">Datum</th>

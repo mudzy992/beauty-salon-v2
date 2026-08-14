@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
+import { buildConfirmedCopy } from '../notifications/utils/reservation-push-copy';
 import { EventsGateway } from '../events/events.gateway';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
@@ -145,10 +147,12 @@ export class ReservationStylistAcceptService {
       },
     });
     if (resWithClient?.clientId) {
+      const ctx = await resolvePushContext(this.prisma, reservationId);
+      const copy = buildConfirmedCopy(ctx);
       await this.notifications.send({
         userId: resWithClient.clientId,
-        title: 'Rezervacija potvrđena',
-        body: `Vaša rezervacija za ${resWithClient.service.name} je potvrđena.`,
+        title: copy.title,
+        body: copy.body,
         type: 'reservation_confirmed',
         data: {
           reservationId,

@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
+import { buildProposalCopy } from '../notifications/utils/reservation-push-copy';
 import { ReservationDateService } from './reservation-date.service';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
@@ -145,10 +147,20 @@ export class ReservationReorderService {
       dto.targetStartTime,
       reservation.reservationDate,
     );
+    const ctx = await resolvePushContext(this.prisma, reservation.id);
+    const copy = buildProposalCopy(
+      {
+        ...ctx,
+        date: this.dates.toLocalDateOnlyString(reservation.reservationDate),
+        startTime: dto.targetStartTime,
+        endTime: dto.targetEndTime,
+      },
+      confirmIn,
+    );
     await this.notifications.send({
       userId: reservation.clientId,
-      title: 'Prijedlog pomjeranja termina',
-      body: `Stilist predlaže novi termin ${dto.targetStartTime}–${dto.targetEndTime}. Potvrdite u narednih ${confirmIn} min.`,
+      title: copy.title,
+      body: copy.body,
       type: 'reservation_reminder',
       data: {
         kind: 'reservation_reorder',
