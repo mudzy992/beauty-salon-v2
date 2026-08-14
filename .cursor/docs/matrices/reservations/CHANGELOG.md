@@ -1,5 +1,9 @@
 # Reservation matrix changelog
 
+## 2026-08-14 (calendar PATCH + DK)
+
+- Admin `PATCH /api/reservations/:id` na `AWAITING_DAILY_LOG` + promjena datuma/vremena zatvara PENDING DK i vraća rezervaciju na `CONFIRMED` (isti ishod kao disposition reorder).
+
 ## 2026-08-13 (attendance-policy A3)
 
 - Klijent potvrđuje do `T − N` (default/fallback 12h). Staff (stilist + admin) do starta.

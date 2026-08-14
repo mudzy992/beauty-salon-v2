@@ -1,6 +1,7 @@
 import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
 import type { Reservation } from '../types'
+import { getReservationStatusLabel } from '../../reservations/status'
 
 type ReservationDetailActionsProps = {
   reservation: Reservation
@@ -66,7 +67,7 @@ export const ReservationDetailActions = ({
           za ovaj termin.
         </p>
         <div className="space-y-1 rounded-md border border-slate-200 p-3 text-xs text-slate-700 dark:border-slate-800 dark:text-slate-200">
-          <div><span className="font-semibold">status:</span> {reservation.status}</div>
+          <div><span className="font-semibold">status:</span> {getReservationStatusLabel(reservation.status, reservation.cancelReason)}</div>
           <div><span className="font-semibold">profileId:</span> {profileId ?? 'null'}</div>
           <div><span className="font-semibold">confirmedStylistId:</span> {reservation.confirmedStylistId ?? 'null'}</div>
           <div><span className="font-semibold">confirmedStylist.id:</span> {reservation.confirmedStylist?.id ?? 'null'}</div>

@@ -15,6 +15,7 @@ import {
 import {
   RESERVATION_STATUS_OPTIONS,
   canAdminCancelReservation,
+  canAdminConfirmAttendance,
   getReservationStatusLabel,
 } from '../features/reservations/status'
 
@@ -83,7 +84,7 @@ const getStatusBadgeVariant = (status: string) => {
   if (status === 'COMPLETED') return 'success'
   if (status === 'CONFIRMED' || status === 'ATTENDANCE_CONFIRMED') return 'brand'
   if (status === 'IN_PROGRESS') return 'secondary'
-  if (status === 'PENDING' || status === 'STYLIST_REVIEW') return 'warning'
+  if (status === 'PENDING' || status === 'STYLIST_REVIEW' || status === 'AWAITING_DAILY_LOG') return 'warning'
   if (status === 'CANCELLED_BY_CLIENT' || status === 'CANCELLED_BY_STYLISTS' || status === 'NO_SHOW') return 'danger'
   return 'secondary'
 }
@@ -96,14 +97,6 @@ const getClientName = (c?: ReservationClient) => {
 const getStylistName = (s?: Reservation['confirmedStylist']) => {
   if (!s?.user) return 'Nije potvrđen'
   return `${s.user.firstName ?? ''} ${s.user.lastName ?? ''}`.trim() || s.user.username || 'Stilista'
-}
-
-const canAdminConfirmAttendance = (r: Reservation) => {
-  if (r.status !== 'CONFIRMED' || r.attendancePolicy === 'STAFF_WAIVED') return false
-  const [year, month, day] = r.reservationDate.slice(0, 10).split('-').map(Number)
-  const [hours, minutes] = r.startTime.slice(0, 5).split(':').map(Number)
-  const start = new Date(year ?? 0, (month ?? 1) - 1, day ?? 1, hours ?? 0, minutes ?? 0, 0, 0)
-  return Date.now() < start.getTime()
 }
 
 export default function Reservations() {
@@ -546,6 +539,22 @@ export default function Reservations() {
                         {sr.rejectionReason ? <p className="text-xs text-slate-500">{sr.rejectionReason}</p> : null}
                       </div>
                     ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {detail.status === 'AWAITING_DAILY_LOG' ? (
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
+                    Termin je u dnevnoj knjizi
+                  </p>
+                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                    Pomjeranje na kalendaru zatvara dnevnik i vraća termin u raspored.
+                  </p>
+                  <div className="mt-3 flex justify-end">
+                    <Button type="button" variant="outline" asChild>
+                      <RouterLink to="/admin/daily-log">Otvori dnevnu knjigu</RouterLink>
+                    </Button>
                   </div>
                 </div>
               ) : null}

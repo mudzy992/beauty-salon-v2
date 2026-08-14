@@ -29,7 +29,7 @@ export const getReservationStatusColor = (status: string) => {
   if (status === 'COMPLETED') return 'emerald'
   if (status === 'CONFIRMED' || status === 'ATTENDANCE_CONFIRMED') return 'brand'
   if (status === 'IN_PROGRESS') return 'slate'
-  if (status === 'PENDING' || status === 'STYLIST_REVIEW') return 'amber'
+  if (status === 'PENDING' || status === 'STYLIST_REVIEW' || status === 'AWAITING_DAILY_LOG') return 'amber'
   if (status === 'CANCELLED_BY_CLIENT' || status === 'CANCELLED_BY_STYLISTS' || status === 'NO_SHOW') return 'rose'
   return 'slate'
 }
@@ -39,4 +39,17 @@ export const canAdminCancelReservation = (status: string) =>
   ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED', 'IN_PROGRESS'].includes(
     status,
   )
+
+export const canAdminConfirmAttendance = (r: {
+  status: string
+  attendancePolicy?: string | null
+  reservationDate: string
+  startTime: string
+}): boolean => {
+  if (r.status !== 'CONFIRMED' || r.attendancePolicy === 'STAFF_WAIVED') return false
+  const [year, month, day] = r.reservationDate.slice(0, 10).split('-').map(Number)
+  const [hours, minutes] = r.startTime.slice(0, 5).split(':').map(Number)
+  const start = new Date(year ?? 0, (month ?? 1) - 1, day ?? 1, hours ?? 0, minutes ?? 0, 0, 0)
+  return Date.now() < start.getTime()
+}
 

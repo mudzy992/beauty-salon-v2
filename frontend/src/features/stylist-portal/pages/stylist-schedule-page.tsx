@@ -10,6 +10,7 @@ import {
   useStylistScheduleReservations,
 } from '../hooks/useStylistReservations'
 import type { Reservation, ReservationStatus } from '../types'
+import { getReservationStatusLabel } from '../../reservations/status'
 
 type Section = { title: string; data: Reservation[] }
 
@@ -152,7 +153,9 @@ export const StylistSchedulePage = () => {
                       </div>
 
                       <div className="flex flex-wrap items-center justify-end gap-2">
-                        <Badge variant={getStatusVariant(r.status)}>{r.status}</Badge>
+                        <Badge variant={getStatusVariant(r.status)}>
+                          {getReservationStatusLabel(r.status, r.cancelReason)}
+                        </Badge>
                         <Link to={detailHref}>
                           <Button type="button" variant="outline" size="sm">
                             Detalji

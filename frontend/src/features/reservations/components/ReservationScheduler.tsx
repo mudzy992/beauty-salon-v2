@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Filter, Plus, Search } from 'lucide-react'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
@@ -28,6 +29,7 @@ import { useAppToast } from '../../../lib/toast/useAppToast'
 import type { Reservation, SchedulerView, StylistProfile } from '../types'
 import {
   canAdminCancelReservation,
+  canAdminConfirmAttendance,
   getReservationStatusColor,
   getReservationStatusLabel,
 } from '../status'
@@ -196,7 +198,10 @@ export const ReservationScheduler = (props: Props) => {
         const serviceTitle = reservationServiceTitle(r)
         const clientTitle =
           [r.client?.firstName, r.client?.lastName].filter(Boolean).join(' ').trim() || r.client?.username || 'Klijent'
-        const title = `${serviceTitle} • ${clientTitle}`
+        const title =
+          r.status === 'AWAITING_DAILY_LOG'
+            ? `Dnevnik • ${serviceTitle} • ${clientTitle}`
+            : `${serviceTitle} • ${clientTitle}`
         const start = combineLocal(String(r.reservationDate).slice(0, 10), r.startTime)
         const end = combineLocal(String(r.reservationDate).slice(0, 10), r.endTime)
         const resourceId = getReservationResourceId(r)
@@ -216,6 +221,7 @@ export const ReservationScheduler = (props: Props) => {
     endTime: '',
   })
   const [savingEdit, setSavingEdit] = useState(false)
+  const [confirmingAttendance, setConfirmingAttendance] = useState(false)
   const [services, setServices] = useState<ServiceOption[]>([])
   const [clientsLoading, setClientsLoading] = useState(false)
   const [clients, setClients] = useState<ClientOption[]>([])
@@ -564,6 +570,7 @@ export const ReservationScheduler = (props: Props) => {
             {[
               { status: 'CONFIRMED', label: getReservationStatusLabel('CONFIRMED') },
               { status: 'PENDING', label: getReservationStatusLabel('PENDING') },
+              { status: 'AWAITING_DAILY_LOG', label: 'Dnevnik' },
               { status: 'CANCELLED_BY_CLIENT', label: getReservationStatusLabel('CANCELLED_BY_CLIENT') },
               { status: 'COMPLETED', label: getReservationStatusLabel('COMPLETED') },
             ].map((x) => (
@@ -572,7 +579,7 @@ export const ReservationScheduler = (props: Props) => {
                   className={
                     x.status === 'COMPLETED'
                       ? 'h-2 w-2 rounded-full bg-emerald-500'
-                      : x.status === 'PENDING'
+                      : x.status === 'PENDING' || x.status === 'AWAITING_DAILY_LOG'
                         ? 'h-2 w-2 rounded-full bg-amber-500'
                         : x.status.startsWith('CANCELLED')
                           ? 'h-2 w-2 rounded-full bg-rose-500'
@@ -651,14 +658,9 @@ export const ReservationScheduler = (props: Props) => {
               <div className="space-y-4">
               <div>
                 <p className="text-xs text-slate-500">Status</p>
-                <div className="mt-1 flex items-center justify-between gap-2">
-                  <p className="font-semibold text-slate-900 dark:text-slate-50">
-                    {getReservationStatusLabel(activeReservation.status, activeReservation.cancelReason)}
-                  </p>
-                  <Badge variant="secondary" className="text-[10px]">
-                    {activeReservation.status}
-                  </Badge>
-                </div>
+                <p className="mt-1 font-semibold text-slate-900 dark:text-slate-50">
+                  {getReservationStatusLabel(activeReservation.status, activeReservation.cancelReason)}
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-3">
@@ -724,7 +726,11 @@ export const ReservationScheduler = (props: Props) => {
 
                 <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Uredi termin</p>
-                  <p className="mt-1 text-xs text-slate-500">Promjena datuma/vremena (admin).</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {activeReservation.status === 'AWAITING_DAILY_LOG'
+                      ? 'Pomjeranje zatvara dnevnu knjigu i vraća termin u raspored.'
+                      : 'Promjena datuma/vremena (admin).'}
+                  </p>
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div className="space-y-2">
                       <Label>Datum</Label>
@@ -789,6 +795,46 @@ export const ReservationScheduler = (props: Props) => {
                     </Button>
                   </div>
                 </div>
+
+                {activeReservation.status === 'AWAITING_DAILY_LOG' ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Dnevna knjiga</p>
+                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                      Termin čeka unos. Pomjeranje na kalendaru zatvara zapis.
+                    </p>
+                    <Button type="button" variant="outline" className="mt-3" asChild>
+                      <Link to="/admin/daily-log">Otvori dnevnu knjigu</Link>
+                    </Button>
+                  </div>
+                ) : null}
+
+                {canAdminConfirmAttendance(activeReservation) ? (
+                  <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Potvrdi dolazak</p>
+                    <p className="mt-1 text-xs text-slate-500">Salon može potvrditi do početka termina.</p>
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        type="button"
+                        disabled={confirmingAttendance}
+                        onClick={async () => {
+                          if (!activeReservation) return
+                          setConfirmingAttendance(true)
+                          try {
+                            await api.post(`/api/reservations/${activeReservation.id}/staff-confirm-attendance`)
+                            toast.success('Dolazak potvrđen')
+                            setDrawerOpen(false)
+                          } catch (err) {
+                            toast.error(getErrorMessage(err, 'Potvrda nije moguća'))
+                          } finally {
+                            setConfirmingAttendance(false)
+                          }
+                        }}
+                      >
+                        {confirmingAttendance ? 'Potvrđivanje...' : 'Potvrdi dolazak'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
 
                 {canAdminCancelReservation(activeReservation.status) ? (
                   <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">

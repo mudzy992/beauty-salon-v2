@@ -37,7 +37,7 @@ export const canStartReservationUi = (
 };
 
 export const getReservationStatusLabel = (
-  reservation: Reservation,
+  reservation: Pick<Reservation, 'status' | 'cancelReason'>,
   t: (key: string) => string,
 ): string => {
   if (

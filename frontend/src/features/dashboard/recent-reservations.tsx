@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Card, CardContent } from '../../components/ui/card'
 import type { RecentReservation } from './types'
 import { statusClassMap } from './types'
+import { getReservationStatusLabel } from '../reservations/status'
 
 type Props = {
   reservations: RecentReservation[]
@@ -61,7 +62,7 @@ export const DashboardRecentReservations = ({ reservations }: Props) => (
                       <span
                         className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${statusClass}`}
                       >
-                        {r.status}
+                        {getReservationStatusLabel(r.status)}
                       </span>
                     </td>
                   </tr>

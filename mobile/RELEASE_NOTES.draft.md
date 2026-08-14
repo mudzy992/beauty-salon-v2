@@ -11,3 +11,4 @@
 - Ako se termin pomjeri, klijent dobija obavijest; stilist dobija podsjetnik kad dnevna knjiga dugo čeka.
 - Dolazak se potvrđuje do roka prije termina; stilist ili salon mogu potvrditi umjesto klijenta do početka.
 - Ako niko ne potvrdi dolazak, rezervacija se automatski otkazuje na početku termina.
+- Meni akcija na zapisu dnevnika se zatvara i na Androidu (Odustani uvijek vidljiv).

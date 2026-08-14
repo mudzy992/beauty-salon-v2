@@ -59,7 +59,7 @@ Overrun/reorder: `.cursor/docs/stylist-reservation-matrix.md`.
 | IN_PROGRESS | AWAITING_DAILY_LOG | direct booking auto-seed CRON (poslije endTime) |
 | IN_PROGRESS | CANCELLED_BY_STYLISTS | stylistCancel / cancelByAdmin |
 | AWAITING_DAILY_LOG | COMPLETED | dailyLog.complete |
-| AWAITING_DAILY_LOG | CONFIRMED | disposition reorder (direktno: datum + vrijeme; bez client propose) |
+| AWAITING_DAILY_LOG | CONFIRMED | disposition reorder ili admin PATCH datuma/vremena (zatvara PENDING DK) |
 | AWAITING_DAILY_LOG | CANCELLED_BY_CLIENT | disposition cancel_as_client |
 | AWAITING_DAILY_LOG | CANCELLED_BY_STYLISTS | disposition discard / cancel_as_stylist |
 | AWAITING_DAILY_LOG | NO_SHOW | disposition no_show |

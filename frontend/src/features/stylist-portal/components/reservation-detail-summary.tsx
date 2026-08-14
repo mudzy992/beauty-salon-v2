@@ -4,6 +4,7 @@ import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
 import type { Reservation } from '../types'
+import { getReservationStatusLabel } from '../../reservations/status'
 import {
   formatReservationDate,
   formatReservationTime,
@@ -55,7 +56,7 @@ export const ReservationDetailSummary = ({
             </p>
           </div>
           <Badge variant={getReservationStatusVariant(reservation.status)}>
-            {reservation.status}
+            {getReservationStatusLabel(reservation.status, reservation.cancelReason)}
           </Badge>
         </div>
         <div className="mt-3 grid gap-2">

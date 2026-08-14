@@ -223,6 +223,8 @@ Pomjera date/time; conflict check vs `SLOT_OCCUPYING_STATUSES`.
 Revalidira praznik, salon open/close i stilistov radni prozor (ako postoji `confirmedStylistId`) preko `assertAdminSlotWithinWorkingHours` (M5).  
 Ako se datum ili vrijeme stvarno promijene: push klijentu `reservation_time_changed` + socket `reservation:updated` na klijenta (isti informational kind kao disposition reorder).
 
+Ako je status `AWAITING_DAILY_LOG` **i** se raspored mijenja: isti ishod kao disposition `reorder` — `CONFIRMED` na novom slotu, PENDING DK se soft-delete (`Pomjereno sa kalendara`). Kalendar/lista ne traže obrazac za razlog.
+
 ---
 
 ### 6.5 Direct booking → dnevna knjiga (auto-seed + disposition)

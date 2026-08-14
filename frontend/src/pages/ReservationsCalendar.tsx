@@ -122,12 +122,19 @@ export default function ReservationsCalendar() {
 
   const handleMove = async (payload: { reservationId: string; reservationDate: string; startTime: string; endTime: string }) => {
     try {
+      const wasAwaitingDailyLog = reservations.some(
+        (r) => r.id === payload.reservationId && r.status === 'AWAITING_DAILY_LOG',
+      )
       await api.patch(`/api/reservations/${payload.reservationId}`, {
         reservationDate: payload.reservationDate,
         startTime: payload.startTime,
         endTime: payload.endTime,
       })
-      toast.success('Termin pomjeren')
+      toast.success(
+        wasAwaitingDailyLog
+          ? 'Termin je izašao iz dnevne knjige i vraćen u raspored.'
+          : 'Termin pomjeren',
+      )
       await loadReservations()
     } catch (err) {
       toast.error(getErrorMessage(err, 'Pomjeranje nije moguće'))

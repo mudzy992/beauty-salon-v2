@@ -8,12 +8,15 @@ import { EventsGateway } from '../events/events.gateway';
 import { ReservationDateService } from './reservation-date.service';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { ReservationNotifyService } from './reservation-notify.service';
+import { ReservationSharedService } from './reservation-shared.service';
 import { UpdateReservationDto } from './dto/update-reservation.dto';
-import { SLOT_OCCUPYING_STATUSES } from './constants';
+import { RESERVATION_STATUS, SLOT_OCCUPYING_STATUSES } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { timeToMinutes } from './utils/time-slot.utils';
 import { assertAdminSlotWithinWorkingHours } from './utils/assert-admin-working-hours';
 import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
+import { applyDirectReorder } from '../daily-log/daily-log-disposition-apply';
+import { closePendingDailyLogForReorder } from './utils/close-pending-daily-log';
 
 @Injectable()
 export class ReservationUpdateService {
@@ -23,6 +26,7 @@ export class ReservationUpdateService {
     private readonly dates: ReservationDateService,
     private readonly queries: ReservationQueriesService,
     private readonly notify: ReservationNotifyService,
+    private readonly shared: ReservationSharedService,
   ) {}
 
   async updateByAdmin(reservationId: string, dto: UpdateReservationDto) {
@@ -110,15 +114,31 @@ export class ReservationUpdateService {
         nextDateStr ||
       existing.startTime.trim().slice(0, 5) !== nextStartTime.slice(0, 5) ||
       existing.endTime.trim().slice(0, 5) !== nextEndTime.slice(0, 5);
-    const updated = await this.prisma.reservation.update({
-      where: { id: reservationId },
-      data: {
-        reservationDate: nextDate,
-        startTime: nextStartTime,
-        endTime: nextEndTime,
-      },
-    });
-    const full = await this.queries.findOne(updated.id, {
+    const leaveDailyLog =
+      scheduleChanged &&
+      existing.status === RESERVATION_STATUS.AWAITING_DAILY_LOG;
+    if (leaveDailyLog) {
+      await applyDirectReorder(
+        { prisma: this.prisma, shared: this.shared, dates: this.dates },
+        existing,
+        {
+          targetDate: nextDateStr,
+          targetStartTime: nextStartTime,
+          targetEndTime: nextEndTime,
+        },
+      );
+      await closePendingDailyLogForReorder(this.prisma, existing.id);
+    } else {
+      await this.prisma.reservation.update({
+        where: { id: reservationId },
+        data: {
+          reservationDate: nextDate,
+          startTime: nextStartTime,
+          endTime: nextEndTime,
+        },
+      });
+    }
+    const full = await this.queries.findOne(reservationId, {
       sub: '',
       roles: ['SYSTEM_ADMIN'],
       username: '',

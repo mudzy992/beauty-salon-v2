@@ -26,6 +26,9 @@ import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRef
 import type { DailyLogEntry } from '../../types';
 import { getCollectedTotal, getSettledDebtsSum } from './daily-log-display';
 import { DailyLogDispositionPanel } from './DailyLogDispositionPanel';
+import { DailyLogEntryActionsModal } from './daily-log-entry-actions-modal';
+import { getReservationStatusLabel } from './reservation-detail/utils/reservation-detail';
+import { useTranslation } from 'react-i18next';
 
 type DailyLogDetailScreenProps = {
   route: { params: { entryId: string } };
@@ -44,7 +47,9 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const { t } = useTranslation();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
 
   const fetchEntry = useCallback(async () => {
@@ -223,27 +228,8 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
 
   const openActionsMenu = useCallback(() => {
     if (!entry || entry.status === 'COMPLETED') return;
-    Alert.alert('Akcije zapisa', undefined, [
-      {
-        text: 'Uredi unos',
-        onPress: () => navigation.navigate('DailyLogNewEntry', { entryId }),
-      },
-      {
-        text: 'Dodaj sliku prije',
-        onPress: () => void addImage(true),
-      },
-      {
-        text: 'Dodaj sliku poslije',
-        onPress: () => void addImage(false),
-      },
-      {
-        text: 'Obriši unos',
-        style: 'destructive',
-        onPress: handleDelete,
-      },
-      { text: 'Odustani', style: 'cancel' },
-    ]);
-  }, [addImage, entry, entryId, handleDelete, navigation]);
+    setActionsMenuOpen(true);
+  }, [entry]);
 
   useLayoutEffect(() => {
     const canAct = !!entry && entry.status !== 'COMPLETED';
@@ -289,13 +275,9 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const beforeImages = entry.images?.filter((i) => i.isBefore) ?? [];
   const afterImages = entry.images?.filter((i) => i.isAfter) ?? [];
   const hasBeforeAfter = beforeImages.length > 0 || afterImages.length > 0;
-  const reservationStatusLabel =
-    entry.reservation?.status === 'CANCELLED_BY_CLIENT' &&
-    (entry.reservation?.cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
-      ? 'Otkazano (nepotvrđen dolazak)'
-      : entry.reservation?.status
-        ? entry.reservation.status
-        : null;
+  const reservationStatusLabel = entry.reservation
+    ? getReservationStatusLabel(entry.reservation, t)
+    : null;
 
   return (
     <>
@@ -534,6 +516,27 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           </KeyboardAvoidingView>
         </View>
       </Modal>
+      <DailyLogEntryActionsModal
+        visible={actionsMenuOpen}
+        colors={colors}
+        onClose={() => setActionsMenuOpen(false)}
+        onEdit={() => {
+          setActionsMenuOpen(false);
+          navigation.navigate('DailyLogNewEntry', { entryId });
+        }}
+        onAddBeforePhoto={() => {
+          setActionsMenuOpen(false);
+          void addImage(true);
+        }}
+        onAddAfterPhoto={() => {
+          setActionsMenuOpen(false);
+          void addImage(false);
+        }}
+        onDelete={() => {
+          setActionsMenuOpen(false);
+          handleDelete();
+        }}
+      />
     </>
   );
 }
