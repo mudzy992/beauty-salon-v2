@@ -28,6 +28,7 @@ export default function Loyalty() {
   const { success, error } = useAppToast()
 
   const [accounts, setAccounts] = useState<LoyaltyAccountRow[]>([])
+  const [loadingAccounts, setLoadingAccounts] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
 
   const [redeemTarget, setRedeemTarget] = useState<LoyaltyAccountRow | null>(null)

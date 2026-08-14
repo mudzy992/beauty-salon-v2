@@ -80,6 +80,7 @@ export default function PublicHome() {
   )
 
   const reviewsOn = isPublicFeatureOn(getSetting, 'public_feature_reviews')
+  const aboutImage = getSetting('public_about_image', '')
   const aboutTitle = getSetting('public_about_title', 'Vaša Kosa Je Naša Strast')
   const aboutText = getSetting(
     'public_about_text',

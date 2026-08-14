@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useSettings } from '../../context/SettingsContext'
-import { isPublicFeatureOn } from '../../features/shell/public/public-features'
+import { useSettings } from '../../../context/SettingsContext'
+import { isPublicFeatureOn } from './public-features'
 
 export function PublicFeatureGate({
   flag,

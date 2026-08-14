@@ -21,19 +21,22 @@ import { getClientMandatoryOnboardingPath, normalizeRoles } from '../../../utils
 import { isPublicFeatureOn } from './public-features'
 import { getUploadUrl } from '../../../utils/uploadUrl'
 
+type PublicFeatureFlag = 'public_feature_blog' | 'public_feature_gallery' | 'public_feature_reviews'
+type PublicNavItem = { path: string; labelKey: string; flag?: PublicFeatureFlag }
+
 const DEFAULT_MAINTENANCE_TEXT =
   'Radimo na poboljšanjima. Javna stranica je privremeno nedostupna. Pokušajte kasnije.'
 
-const publicNav = [
+const publicNav: PublicNavItem[] = [
   { path: '/', labelKey: 'public.nav.home' },
   { path: '/usluge', labelKey: 'public.nav.services' },
-  { path: '/blog', labelKey: 'public.nav.blog', flag: 'public_feature_blog' as const },
-  { path: '/galerija', labelKey: 'public.nav.gallery', flag: 'public_feature_gallery' as const },
+  { path: '/blog', labelKey: 'public.nav.blog', flag: 'public_feature_blog' },
+  { path: '/galerija', labelKey: 'public.nav.gallery', flag: 'public_feature_gallery' },
   { path: '/kontakt', labelKey: 'public.nav.contact' },
   { path: '/rezervacija', labelKey: 'public.nav.reserve' },
 ]
 
-const authNavExtra = [
+const authNavExtra: PublicNavItem[] = [
   { path: '/moje-rezervacije', labelKey: 'public.nav.myReservations' },
 ]
 
@@ -69,7 +72,7 @@ export const PublicLayout = () => {
   const navItems = useMemo(() => {
     const base = user ? [...publicNav, ...authNavExtra] : publicNav
     return base
-      .filter((item) => !('flag' in item && item.flag) || isPublicFeatureOn(getSetting, item.flag!))
+      .filter((item) => !item.flag || isPublicFeatureOn(getSetting, item.flag))
       .map((item) => ({
         ...item,
         isActive:
