@@ -1,17 +1,22 @@
 ---
-description: Draft napomena + bump mobile version/versionCode pri commit/push ako ima korisnički vidljivih mobile izmjena.
+description: Draft napomena na kraju UX taska; bump version/versionCode samo kad commit/push ide u mobile APK build.
 alwaysApply: true
 ---
 
 # Mobile release notes + version bump
 
-## Draft (svaki mobile UX task)
+Draft: [`mobile/RELEASE_NOTES.draft.md`](mobile/RELEASE_NOTES.draft.md).  
+Verzija: [`mobile/app.config.js`](mobile/app.config.js) (`expo.version`, `expo.android.versionCode`).
 
-Korisnički vidljive izmjene u `mobile/**` (ekrani, tokovi, notifikacije, i18n, bugfix koji korisnik osjeti) → na kraju taska ažuriraj [`mobile/RELEASE_NOTES.draft.md`](mobile/RELEASE_NOTES.draft.md).
+**Bump = novi APK.** Draft skuplja tekst za tu objavu. Agent ne pokreće EAS/APK.
 
-**Ne** upisuj: čisti refaktor, tipovi, lint, interne konstante, testovi bez UX efekta.
+## 1. Draft — čim je kod gotov
 
-Format drafta:
+Korisnički vidljive izmjene u `mobile/**` (ekrani, tokovi, notifikacije, i18n, bugfix koji korisnik osjeti) → **na kraju implementacije** ažuriraj draft. Ne čekaj commit. Važi u svakoj sesiji.
+
+**Ne** upisuj: refaktor, tipovi, lint, interne konstante, testovi bez UX efekta.
+
+Format:
 
 ```markdown
 # Draft — napomene za korisnike
@@ -24,24 +29,41 @@ Format drafta:
 - Kratka stavka 1
 ```
 
-Stil: bosanski, za stiliste/klijente, 1–5 bullet-a, ~1 rečenica. Bez putanja, ticket ID, commit hash, jargon (API, hook, Prisma).
+Dok nema build-commita, predložena verzija u draftu = **trenutne** vrijednosti iz `app.config.js` (ne +1 unaprijed).
+
+Stil: bosanski, stilisti/klijenti, 1–5 bullet-a, ~1 rečenica. Bez putanja, ticket ID, commit hash, jargon.
 
 - Dobro: `Ispravljeno učitavanje dnevne knjige na sporoj mreži.`
 - Loše: `Refaktor useApkUpdateCheck + FileSystem legacy digest.`
 
-## Commit / push (obavezno)
+### Ista tema = jedan bullet
 
-Kad korisnik kaže **commit** i/ili **push**:
+Isti ekran / dugme / bug → **izmijeni postojeću liniju** na konačno stanje. Ne dodavaj istoriju („žuto“ pa „crveno“). Nova tema → novi bullet. Više od 5 → spoji srodne.
 
-1. `git status` + `git diff` — ima li korisnički vidljivih izmjena u `mobile/**` (uključujući već upisan draft)?
-2. Ako **nema** → ne bumpaj verziju, ne lažiraj napomene; nastavi običan commit/push.
-3. Ako **ima**:
-   - Dopuni `RELEASE_NOTES.draft.md` (ako još nije).
-   - U [`mobile/app.config.js`](mobile/app.config.js): `expo.version` patch `x.y.Z+1` (minor `x.Y+1.0` samo za novi korisnički feature); `expo.android.versionCode` **uvijek +1**.
-   - Uskladi predloženu verziju/versionCode u draftu.
-   - Uključi `app.config.js` + `RELEASE_NOTES.draft.md` u **isti** commit.
-   - Ne bumpaj dva puta za isti set izmjena u istoj sesiji.
-4. Nakon commit/push, u odgovoru korisniku **uvijek** vrati (ako je bilo bump-a):
+## 2. Commit / push
+
+1. `git status` + `git diff`.
+2. Nema korisnički vidljivog `mobile/**` i draft nije bitan → običan commit/push, bez bump-a.
+3. Ima mobile UX i/ili draft s napomenama → da li commit **ide u APK build**:
+
+| Korisnik kaže | Bump `version` / `versionCode` |
+| --- | --- |
+| `commit`/`push` **bez builda** (mobilne, APK) | ne |
+| `commit`/`push` **sa buildom** / **ide build** / **za APK** | da |
+| samo `commit` i/ili `push` | **pitaj jednom**: „Ide li ovaj commit u mobile APK build?“ Ako nema odgovora → **ne bumpaj** |
+
+### Bez builda
+
+Uključi draft ako je mijenjan. Ne diraj verzije u `app.config.js`. Draft ostaje za dalje dopune.
+
+### Sa buildom
+
+- Dopuni draft ako treba.
+- `expo.version`: patch `x.y.Z+1`; minor `x.Y+1.0` samo za novi korisnički feature.
+- `expo.android.versionCode` uvijek +1.
+- Uskladi predloženu verziju u draftu.
+- **Jedan** commit: kod + `app.config.js` + draft s **finalnim** bulletima. Ne bumpaj dvaput u istoj sesiji za isti set.
+- U odgovoru korisniku (copy-paste za admin **Napomene**):
 
 ```
 Verzija: x.y.z
@@ -50,6 +72,11 @@ Napomene:
 - …
 ```
 
-(samo bullet-i iz drafta, bez naslova/meta)
+- Poslije uspješnog commita: u working tree resetuj draft na prazan template (predloženo = nove vrijednosti iz `app.config.js`, bez bullet-a). **Ne** radi drugi commit samo zbog reseta. Prazan draft uđe u sljedeći commit koji korisnik zatraži.
 
-Pri APK objavi u adminu: polje Napomene = ti bullet-i. Nakon uspješne objave → resetuj draft na prazan template.
+Bez bump-a ne ispisuj novu verziju.
+
+## 3. APK objava (admin)
+
+Polje Napomene = bullet-i iz odgovora uz **build** commit (sačuvani i u tom git commitu).  
+Draft s bulletima koji nije prošao build-commit = sljedeća objava, ne prošla.
