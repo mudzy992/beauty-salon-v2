@@ -1,6 +1,6 @@
 import { getUploadUrl } from '../utils/uploadUrl'
 
-export const MEDIA_FALLBACK_SRC = '/brand/media-fallback.png'
+export const MEDIA_FALLBACK_SRC = '/brand/media-fallback.jpg'
 
 export const resolveRemoteMediaUrl = (path?: string | null): string => {
   const p = path?.trim() ?? ''
