@@ -45,7 +45,9 @@ export function SettingEditorForm({
       const formData = new FormData()
       formData.append('file', file)
       formData.append('entity', 'branding')
-      const { data } = await api.post<{ pathOriginal: string }>('/api/uploads', formData)
+      const { data } = await api.post<{ pathOriginal: string }>('/api/uploads', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
       if (!data?.pathOriginal) throw new Error('fail')
       setValue(data.pathOriginal)
       setFile(null)

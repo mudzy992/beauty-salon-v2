@@ -1,97 +1,192 @@
- FAILURE: Build failed with an exception.
+```
 
-[RUN_GRADLEW] * What went wrong:
+```
 
-[RUN_GRADLEW] Execution failed for task ':app:mergeReleaseResources'.
 
-[RUN_GRADLEW] > A failure occurred while executing [com.android.build](http://com.android.build).gradle.internal.res.Aapt2CompileRunnable
+    modelName: 'Reservation',
 
-[RUN_GRADLEW]    > Android resource compilation failed
+    driverAdapterError: DriverAdapterError: ColumnNotFound
 
-[RUN_GRADLEW]      ERROR: /tmp/administrator/eas-build-local-nodejs/0de6b829-bec5-4bee-88ec-485a0f1ac8d3/build/mobile/android/app/build/generated/res/react/release/drawable-mdpi/assets_images_mediafallback.png: AAPT: error: file failed to compile.
+        at PrismaMariaDbAdapter.onError (/usr/app/node_modules/@prisma/adapter-mariadb/dist/index.js:354:11)
 
-[RUN_GRADLEW]          
+        at PrismaMariaDbAdapter.performIO (/usr/app/node_modules/@prisma/adapter-mariadb/dist/index.js:349:12)
 
-[RUN_GRADLEW] * Try:
+        at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
 
-[RUN_GRADLEW] > Run with --stacktrace option to get the stack trace.
+        at async PrismaMariaDbAdapter.queryRaw (/usr/app/node_modules/@prisma/adapter-mariadb/dist/index.js:315:20)
 
-[RUN_GRADLEW] > Run with --info or --debug option to get more log output.
+        at async e.interpretNode (/usr/app/node_modules/@prisma/client/runtime/client.js:11:44573)
 
-[RUN_GRADLEW] > Run with --scan to generate a Build Scan (Powered by Develocity).
+        at async e.interpretNode (/usr/app/node_modules/@prisma/client/runtime/client.js:11:46237)
 
-[RUN_GRADLEW] > Get more help at [https://help.gradle.org](https://help.gradle.org).
+        at async [e.run](http://e.run) (/usr/app/node_modules/@prisma/client/runtime/client.js:11:43287)
 
-[RUN_GRADLEW] BUILD FAILED in 7m 38s
+        at async e.execute (/usr/app/node_modules/@prisma/client/runtime/client.js:57:815)
 
-[RUN_GRADLEW] See the profiling report at: [file:///tmp/administrator/eas-build-local-nodejs/0de6b829-bec5-4bee-88ec-485a0f1ac8d3/build/mobile/android/build/reports/profile/profile-2026-08-14-14-41-08.html](file:///tmp/administrator/eas-build-local-nodejs/0de6b829-bec5-4bee-88ec-485a0f1ac8d3/build/mobile/android/build/reports/profile/profile-2026-08-14-14-41-08.html)
+        at async jt.request (/usr/app/node_modules/@prisma/client/runtime/client.js:58:2327)
 
-[RUN_GRADLEW] A fine-grained performance profile is available: use the --scan option.
+        at async Object.singleLoader (/usr/app/node_modules/@prisma/client/runtime/client.js:65:6569) {
 
-[RUN_GRADLEW] Error: Gradle build failed with unknown error. See logs for the "Run gradlew" phase for more information.
+      cause: {
 
-Build failed
+        originalCode: '1054',
 
-Gradle build failed with unknown error. See logs for the "Run gradlew" phase for more information.
+        originalMessage: "Unknown column 'reservations.reminder_sent_at' in 'where clause'",
 
-Error: Gradle build failed with unknown error. See logs for the "Run gradlew" phase for more information.
+        kind: 'ColumnNotFound',
 
-    at resolveBuildPhaseErrorAsync (/home/administrator/.npm/_npx/36e7aa1ad536a557/node_modules/@expo/build-tools/dist/buildErrors/detectError.js:61:12)
+        column: 'reservations.reminder_sent_at'
 
-    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      }
 
-    at async BuildContext.handleBuildPhaseErrorAsync (/home/administrator/.npm/_npx/36e7aa1ad536a557/node_modules/@expo/build-tools/dist/context.js:193:28)
+    }
 
-    at async BuildContext.runBuildPhase (/home/administrator/.npm/_npx/36e7aa1ad536a557/node_modules/@expo/build-tools/dist/context.js:138:35)
+  },
 
-    at async buildInnerAsync (/home/administrator/.npm/_npx/36e7aa1ad536a557/node_modules/@expo/build-tools/dist/builders/android.js:152:5)
+  clientVersion: '7.5.0'
 
-    at async buildAsync (/home/administrator/.npm/_npx/36e7aa1ad536a557/node_modules/@expo/build-tools/dist/builders/android.js:46:9)
+}
 
-    at async runBuilderWithHooksAsync (/home/administrator/.npm/_npx/36e7aa1ad536a557/node_modules/@expo/build-tools/dist/builders/common.js:12:13)
+[Nest] 1  - 08/15/2026, 8:04:00 AM   ERROR [Scheduler] PrismaClientKnownRequestError:
 
-    at async Object.androidBuilder (/home/administrator/.npm/_npx/36e7aa1ad536a557/node_modules/@expo/build-tools/dist/builders/android.js:31:16)
+Invalid `prisma.reservation.findMany()` invocation:
 
-    at async buildAndroidAsync (/home/administrator/.npm/_npx/36e7aa1ad536a557/node_modules/eas-cli-local-build-plugin/dist/android.js:43:12)
+The column `reservations.reminder_sent_at` does not exist in the current database.
 
-    at async buildAsync (/home/administrator/.npm/_npx/36e7aa1ad536a557/node_modules/eas-cli-local-build-plugin/dist/build.js:54:29)
+    at Gr.handleRequestError (/usr/app/node_modules/@prisma/client/runtime/client.js:65:8286)
 
-Build context (for debugging this failed local build):
+    at Gr.handleAndLogRequestError (/usr/app/node_modules/@prisma/client/runtime/client.js:65:7581)
 
-  Platform: android
+    at Gr.request (/usr/app/node_modules/@prisma/client/runtime/client.js:65:7288)
 
-  Build profile: production
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
 
-  Workflow: managed
+    at async a (/usr/app/node_modules/@prisma/client/runtime/client.js:75:6730)
 
-  Distribution: store
+    at async ReservationAppointmentReminderService.processAppointmentReminders (/usr/app/dist/src/reservations/reservation-appointment-reminder.service.js:40:22)
 
-  Credentials source: remote
+    at async ReservationDelayCron.tick (/usr/app/dist/src/reservations/reservation-delay.cron.js:42:9)
 
-  Project root directory: mobile
+    at async CronJob.<anonymous> (/usr/app/node_modules/@nestjs/schedule/dist/schedule.explorer.js:119:17) {
 
-  Required package manager: npm
+  code: 'P2022',
 
-  eas-cli version: 21.8.0
+
 
-  SDK version: 55.0.0
+{
 
-  React Native version: 0.83.10
+    modelName: 'Reservation',
 
-  Expo package version: 55.0.28
+    driverAdapterError: DriverAdapterError: ColumnNotFound
 
-  App version: 1.0.3
+        at PrismaMariaDbAdapter.onError (/usr/app/node_modules/@prisma/adapter-mariadb/dist/index.js:354:11)
 
-  Fingerprint hash: cc62a9e36861957eab4cdae64cef7900236e95a2
+        at PrismaMariaDbAdapter.performIO (/usr/app/node_modules/@prisma/adapter-mariadb/dist/index.js:349:12)
 
-  Git commit: 2bee3fbb48513d71bcbf105b88d567d71f6d3785
+        at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
 
-  Git working tree dirty: true
+        at async PrismaMariaDbAdapter.queryRaw (/usr/app/node_modules/@prisma/adapter-mariadb/dist/index.js:315:20)
 
-  Build tracking ID: 2b6afaa0-c3b3-48fb-891b-5402a42fb4f2
+        at async e.interpretNode (/usr/app/node_modules/@prisma/client/runtime/client.js:11:44573)
 
-  Project ID: a697c506-8426-4064-99d8-780f9fc70700
+        at async e.interpretNode (/usr/app/node_modules/@prisma/client/runtime/client.js:11:46237)
 
-npx -y eas-cli-local-build-plugin@21.6.0 exited with non-zero code: 1
+        at async [e.run](http://e.run) (/usr/app/node_modules/@prisma/client/runtime/client.js:11:43287)
 
-    Error: build command failed.
+        at async e.execute (/usr/app/node_modules/@prisma/client/runtime/client.js:57:815)
+
+        at async jt.request (/usr/app/node_modules/@prisma/client/runtime/client.js:58:2327)
+
+        at async Object.singleLoader (/usr/app/node_modules/@prisma/client/runtime/client.js:65:6569) {
+
+      cause: {
+
+        originalCode: '1054',
+
+        originalMessage: "Unknown column 'reservations.reminder_sent_at' in 'where clause'",
+
+        kind: 'ColumnNotFound',
+
+        column: 'reservations.reminder_sent_at'
+
+      }
+
+    }
+
+  },
+
+  clientVersion: '7.5.0'
+
+}
+
+[Nest] 1  - 08/15/2026, 8:05:00 AM   ERROR [Scheduler] PrismaClientKnownRequestError:
+
+Invalid `prisma.reservation.findMany()` invocation:
+
+The column `reservations.reminder_sent_at` does not exist in the current database.
+
+    at Gr.handleRequestError (/usr/app/node_modules/@prisma/client/runtime/client.js:65:8286)
+
+    at Gr.handleAndLogRequestError (/usr/app/node_modules/@prisma/client/runtime/client.js:65:7581)
+
+    at Gr.request (/usr/app/node_modules/@prisma/client/runtime/client.js:65:7288)
+
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+
+    at async a (/usr/app/node_modules/@prisma/client/runtime/client.js:75:6730)
+
+    at async ReservationAppointmentReminderService.processAppointmentReminders (/usr/app/dist/src/reservations/reservation-appointment-reminder.service.js:40:22)
+
+    at async ReservationDelayCron.tick (/usr/app/dist/src/reservations/reservation-delay.cron.js:42:9)
+
+    at async CronJob.<anonymous> (/usr/app/node_modules/@nestjs/schedule/dist/schedule.explorer.js:119:17) {
+
+  code: 'P2022',
+
+
+
+{
+
+    modelName: 'Reservation',
+
+    driverAdapterError: DriverAdapterError: ColumnNotFound
+
+        at PrismaMariaDbAdapter.onError (/usr/app/node_modules/@prisma/adapter-mariadb/dist/index.js:354:11)
+
+        at PrismaMariaDbAdapter.performIO (/usr/app/node_modules/@prisma/adapter-mariadb/dist/index.js:349:12)
+
+        at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+
+        at async PrismaMariaDbAdapter.queryRaw (/usr/app/node_modules/@prisma/adapter-mariadb/dist/index.js:315:20)
+
+        at async e.interpretNode (/usr/app/node_modules/@prisma/client/runtime/client.js:11:44573)
+
+        at async e.interpretNode (/usr/app/node_modules/@prisma/client/runtime/client.js:11:46237)
+
+        at async [e.run](http://e.run) (/usr/app/node_modules/@prisma/client/runtime/client.js:11:43287)
+
+        at async e.execute (/usr/app/node_modules/@prisma/client/runtime/client.js:57:815)
+
+        at async jt.request (/usr/app/node_modules/@prisma/client/runtime/client.js:58:2327)
+
+        at async Object.singleLoader (/usr/app/node_modules/@prisma/client/runtime/client.js:65:6569) {
+
+      cause: {
+
+        originalCode: '1054',
+
+        originalMessage: "Unknown column 'reservations.reminder_sent_at' in 'where clause'",
+
+        kind: 'ColumnNotFound',
+
+        column: 'reservations.reminder_sent_at'
+
+      }
+
+    }
+
+  },
+
+  clientVersion: '7.5.0'
+
+}
