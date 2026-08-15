@@ -80,7 +80,7 @@ Klijent do `T − N` (registry default 12). Staff (stilist + admin) do starta. C
 
 ## Otvoreno / rizici
 
-1. Migracije: `has_locked_once` **i** `pending_reminder_sent_at` — `cd backend && npm run db:migrate`.
+1. Migracije: `has_locked_once`, `pending_reminder_sent_at` **i** `reminder_sent_at` — backend Docker sada radi `prisma migrate deploy` na startu.
 2. Attendance CRON spec je prepisan na cancel na startu (A3).
 3. Slot-hold i disposition nisu ručno smoke-testirani.
 4. Auto-start nije u `reservation-delay.cron` ticku (pre-existing; van backlog reda).

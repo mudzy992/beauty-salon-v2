@@ -33,4 +33,4 @@ ENV JWT_EXPIRES_IN=7d
 
 EXPOSE 10001
 
-CMD ["node", "dist/src/main.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/src/main.js"]
