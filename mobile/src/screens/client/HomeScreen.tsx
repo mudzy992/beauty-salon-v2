@@ -47,7 +47,7 @@ interface BeforeAfterPair {
   after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
 }
 
-const HERO_HEIGHT = 280;
+const HERO_HEIGHT = 168;
 const PRESS_SPRING = { damping: 15, stiffness: 400 };
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -301,36 +301,44 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               uri={heroImageUrl}
               style={StyleSheet.absoluteFill}
             />
+            <View style={styles.heroGrayVeil} pointerEvents="none" />
+            <LinearGradient
+              colors={['rgba(0,0,0,0.62)', 'rgba(0,0,0,0.28)', 'rgba(0,0,0,0.08)', 'transparent']}
+              locations={[0, 0.18, 0.48, 1]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
           </View>
         </View>
         <View style={[styles.heroIntro, { backgroundColor: colors.background }]}>
           {user ? (
-            <Animated.View
-              entering={FadeInDown.delay(140).duration(400).springify()}
-              style={styles.heroWelcomeAbove}
+            <Animated.Text
+              entering={FadeInDown.delay(80).duration(360).springify()}
+              style={[styles.welcome, { color: colors.textMuted }]}
             >
-              <Text style={[styles.welcome, { color: colors.text }]}>
-                {t('home.welcome')}, {user.firstName}!
-              </Text>
-            </Animated.View>
+              {t('home.welcome')}, {user.firstName}
+            </Animated.Text>
           ) : null}
           <Animated.Text
-            entering={FadeInDown.delay(280).duration(480).springify()}
-            style={[styles.heroSubtitle, { color: colors.textSecondary }]}
+            entering={FadeInDown.delay(160).duration(400).springify()}
+            style={[styles.heroSubtitle, { color: colors.text }]}
             numberOfLines={2}
           >
             {heroSubtitle}
           </Animated.Text>
-          <Animated.View entering={FadeInDown.delay(420).duration(480).springify()} style={styles.heroCta}>
+          <Animated.View entering={FadeInDown.delay(240).duration(400).springify()} style={styles.heroCta}>
             <Button
               title={heroCtaText}
+              size="sm"
               onPress={() =>
                 navigation.getParent()?.navigate('ServicesTab', {
                   screen: 'Reservation',
                   params: { origin: 'home' },
                 })
               }
-              icon={<Ionicons name="calendar-outline" size={18} color={colors.primaryText} />}
+              icon={<Ionicons name="calendar-outline" size={16} color={colors.primaryText} />}
             />
           </Animated.View>
         </View>
@@ -747,16 +755,16 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     width: '100%',
   },
-  heroIntro: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-    alignItems: 'center',
+  heroGrayVeil: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(28, 28, 30, 0.18)',
   },
-  heroWelcomeAbove: {
-    alignSelf: 'stretch',
-    alignItems: 'center',
-    marginBottom: 2,
+  heroIntro: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+    alignItems: 'flex-start',
+    gap: 6,
   },
   heroTitle: {
     fontSize: 36,
@@ -770,22 +778,20 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   heroSubtitle: {
-    fontSize: 17,
-    marginTop: spacing.sm,
-    fontFamily: fontFamily.body,
-    letterSpacing: 0.35,
-    lineHeight: 24,
-    textAlign: 'center',
-    paddingHorizontal: spacing.md,
+    fontSize: 22,
+    fontFamily: fontFamily.bodySemiBold,
+    letterSpacing: -0.3,
+    lineHeight: 28,
+    textAlign: 'left',
   },
   welcome: {
-    fontSize: 15,
+    fontSize: 13,
     fontFamily: fontFamily.bodyMedium,
     letterSpacing: 0.2,
-    lineHeight: 20,
-    textAlign: 'center',
+    lineHeight: 18,
+    textAlign: 'left',
   },
-  heroCta: { marginTop: spacing.md, width: '100%', alignItems: 'center' },
+  heroCta: { marginTop: 6, alignSelf: 'flex-start' },
   section: { marginTop: spacing.md, paddingHorizontal: spacing.md },
   sectionFirst: { marginTop: spacing.sm },
   sectionHeader: {
