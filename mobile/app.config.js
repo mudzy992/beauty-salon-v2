@@ -9,34 +9,38 @@ module.exports = {
     name: 'Beauty Salon Nejra',
     slug: 'beauty-salon-nejra',
     scheme: 'beauty-salon-nejra',
-    version: '1.0.3',
+    version: '1.0.4',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'automatic',
     owner: 'mudzahud',
     splash: {
-      image: './assets/icon.png',
+      image: './assets/splash.png',
       resizeMode: 'contain',
-      backgroundColor: '#1A1A1A',
+      backgroundColor: '#031638',
     },
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.beautysalon.nejra',
+      icon: './assets/icon.png',
     },
     android: {
+      icon: './assets/icon.png',
       adaptiveIcon: {
-        foregroundImage: './assets/icon.png',
-        backgroundColor: '#1A1A1A',
+        foregroundImage: './assets/adaptive-icon/foreground.png',
+        backgroundImage: './assets/adaptive-icon/background.png',
+        monochromeImage: './assets/adaptive-icon/monochrome.png',
+        backgroundColor: '#031638',
       },
       package: 'com.beautysalon.nejra',
-      versionCode: 4,
+      versionCode: 5,
       googleServicesFile: './google-services.json',
       softwareKeyboardLayoutMode: 'pan',
       permissions: ['REQUEST_INSTALL_PACKAGES'],
     },
     /** `androidNavigationBar` uklonjen — zastarjelo (Android 15 edge-to-edge / Expo SDK); koristi `expo-navigation-bar` + `react-native-edge-to-edge` + App `SystemBars`. */
     web: {
-      favicon: './assets/icon.png',
+      favicon: './assets/favicon.png',
     },
     plugins: [
       'react-native-edge-to-edge',
@@ -71,7 +75,7 @@ module.exports = {
       [
         'expo-notifications',
         {
-          icon: './assets/icon.png',
+          icon: './assets/adaptive-icon/monochrome.png',
           color: '#D4A843',
         },
       ],
