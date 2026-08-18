@@ -5,3 +5,6 @@
 
 ## Napomene (BS, za AppRelease.releaseNotes)
 
+- Početni ekran: gornji dio je malo viši, a kategorije su bliže njemu.
+- Aplikacija sada radi na najnovijem Expo.
+

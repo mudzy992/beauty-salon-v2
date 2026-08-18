@@ -30,8 +30,7 @@ import {
   pickReservationBackdropHeroImage,
 } from '../../utils/reservationServices';
 import type { Reservation, DailyLogEntry } from '../../types';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { StylistScheduleStackParamList } from '../../navigation/types';
+import type { NativeStackScreenProps, StylistScheduleStackParamList } from '../../navigation/types';
 
 type Section = { title: string; data: Reservation[] };
 

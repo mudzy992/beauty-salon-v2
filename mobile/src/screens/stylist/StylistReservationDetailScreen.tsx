@@ -7,14 +7,12 @@ import {
   RefreshControl,
   ScrollView,
 } from 'react-native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { Button } from '../../components/ui/Button';
 import { spacing } from '../../theme';
-import type { StylistScheduleStackParamList } from '../../navigation/types';
+import type { NativeStackScreenProps, StylistScheduleStackParamList } from '../../navigation/types';
 import { CancelReservationModal } from './reservation-detail/cancel-reservation-modal';
 import { CompleteReservationModal } from './reservation-detail/complete-reservation-modal';
 import { NoShowReservationModal } from './reservation-detail/no-show-reservation-modal';

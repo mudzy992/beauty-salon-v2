@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
 import api from '../../../../services/api';
 import type { ClientDebt, DailyLogEntry, Reservation } from '../../../../types';
-import type { StylistScheduleStackParamList } from '../../../../navigation/types';
+import type {
+  NativeStackNavigationProp,
+  StylistScheduleStackParamList,
+} from '../../../../navigation/types';
 import { computeCompleteMinCharge, getApiErrorMessage } from '../utils/reservation-detail';
 
 type Navigation = NativeStackNavigationProp<

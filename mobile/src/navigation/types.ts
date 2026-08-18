@@ -1,6 +1,10 @@
-import type { NavigatorScreenParams } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { NavigatorScreenParams } from 'expo-router/react-navigation';
+import type {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from 'expo-router/build/react-navigation/native-stack';
+
+export type { NativeStackNavigationProp, NativeStackScreenProps };
 
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;

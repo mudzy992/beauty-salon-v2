@@ -1,7 +1,5 @@
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
 import api from '../../../../services/api';
 import {
   durationMinutesFromRange,
@@ -11,7 +9,10 @@ import {
 } from '../../../../utils/reservation-time';
 import { getReservationTotalDurationMinutes } from '../../../../utils/reservationServices';
 import type { Reservation } from '../../../../types';
-import type { StylistScheduleStackParamList } from '../../../../navigation/types';
+import type {
+  NativeStackNavigationProp,
+  StylistScheduleStackParamList,
+} from '../../../../navigation/types';
 import { getApiErrorMessage } from '../utils/reservation-detail';
 import { useReservationCompleteFlow } from './use-reservation-complete-flow';
 

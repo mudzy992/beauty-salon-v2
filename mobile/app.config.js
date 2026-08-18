@@ -63,11 +63,10 @@ module.exports = {
         'expo-navigation-bar',
         {
           enforceContrast: false,
-          // expo-navigation-bar expects `barStyle` to be either `light` or `dark`
-          // (button foreground color), not `*-content` values.
-          barStyle: 'light',
+          // `style` is button foreground: `light` | `dark` (not `*-content`).
+          style: 'light',
           /* Ne koristiti `backgroundColor` ovdje — Expo SDK prijavljuje deprecation (isti kao androidNavigationBar). Transparentan nav bar i dalje dolazi iz plugin stilova (`navigationBarColor` = transparent) + edge-to-edge. */
-          visibility: 'visible',
+          hidden: false,
         },
       ],
       'expo-secure-store',

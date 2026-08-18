@@ -48,7 +48,7 @@ interface BeforeAfterPair {
   after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
 }
 
-const HERO_HEIGHT = 260;
+const HERO_HEIGHT = 280;
 const PRESS_SPRING = { damping: 15, stiffness: 400 };
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -358,7 +358,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           style={styles.homeBelowHeroFade}
           pointerEvents="none"
         />
-        <View style={{ backgroundColor: colors.background, paddingBottom: spacing.xxl, paddingTop: spacing.xs }}>
+        <View style={{ backgroundColor: colors.background, paddingBottom: spacing.xxl, paddingTop: 0 }}>
         {user && openDebtsCount > 0 ? (
           <TouchableOpacity
             onPress={() =>
@@ -399,7 +399,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           <Animated.View
             key={category.id}
             entering={FadeInUp.delay(200 + sectionIndex * 100).duration(400).springify()}
-            style={styles.section}
+            style={[styles.section, sectionIndex === 0 && styles.sectionFirst]}
           >
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
@@ -754,14 +754,14 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   homeBelowHero: {
-    marginTop: -50,
+    marginTop: -28,
   },
   homeBelowHeroSurface: {
     position: 'relative',
     backgroundColor: 'transparent',
   },
   homeBelowHeroFade: {
-    height: 45,
+    height: 20,
     width: '100%',
   },
   heroWrap: {
@@ -780,8 +780,8 @@ const styles = StyleSheet.create({
   heroContent: {
     flex: 1,
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.lg,
-    justifyContent: 'center',
+    paddingBottom: spacing.md,
+    justifyContent: 'flex-end',
     alignItems: 'center',
   },
   heroWelcomeAbove: {
@@ -826,6 +826,7 @@ const styles = StyleSheet.create({
   },
   heroCta: { marginTop: spacing.md, width: '100%', alignItems: 'center' },
   section: { marginTop: spacing.md, paddingHorizontal: spacing.md },
+  sectionFirst: { marginTop: spacing.sm },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
