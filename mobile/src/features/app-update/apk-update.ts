@@ -89,11 +89,15 @@ export const hashFileSha256 = async (fileUri: string): Promise<string> => {
   return hasher.hex();
 };
 
+export type ApkInstallPhase = 'download' | 'verify' | 'install';
+
 export const downloadAndInstallApk = async (
   release: LatestAndroidRelease,
   onProgress?: (ratio: number) => void,
+  onPhase?: (phase: ApkInstallPhase) => void,
 ): Promise<void> => {
   if (!isAndroid()) throw new Error('android_only');
+  onPhase?.('download');
   const url = resolveApkAbsoluteUrl(release.apkUrl);
   const target = `${FileSystem.cacheDirectory}app-update-${release.versionCode}.apk`;
   const download = FileSystem.createDownloadResumable(
@@ -107,11 +111,14 @@ export const downloadAndInstallApk = async (
   );
   const result = await download.downloadAsync();
   if (!result?.uri) throw new Error('download_failed');
+  onProgress?.(1);
+  onPhase?.('verify');
   const sha = await hashFileSha256(result.uri);
   if (sha.toLowerCase() !== release.apkSha256.toLowerCase()) {
     await FileSystem.deleteAsync(result.uri, { idempotent: true });
     throw new Error('sha256_mismatch');
   }
+  onPhase?.('install');
   const contentUri = await FileSystem.getContentUriAsync(result.uri);
   await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
     data: contentUri,

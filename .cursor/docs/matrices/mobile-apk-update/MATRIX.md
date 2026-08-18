@@ -33,13 +33,18 @@ Pri publish novog release-a svi ostali PUBLISHED za isti platform → RETIRED.
 | Uvjet | Soft dijalog | Force wall | Download | Install |
 |-------|--------------|------------|----------|---------|
 | remote.versionCode ≤ local | Ne | Ne | Ne | Ne |
-| remote > local, !force, local ≥ min | Da (Kasnije / Ažuriraj) | Ne | Na Ažuriraj | Nakon SHA-256 |
-| forceUpdate=true | Ne | Da | Da | Nakon SHA-256 |
-| local < minSupportedVersionCode | Ne | Da | Da | Nakon SHA-256 |
+| remote > local, !force, local ≥ min | Da (isti modal: Kasnije / Ažuriraj) | Ne | Na Ažuriraj, modal ostaje | Nakon SHA-256 + poruka korisniku |
+| forceUpdate=true | Ne | Da | Na Ažuriraj, modal ostaje | Nakon SHA-256 + poruka korisniku |
+| local < minSupportedVersionCode | Ne | Da | Na Ažuriraj, modal ostaje | Nakon SHA-256 + poruka korisniku |
 | SHA-256 mismatch | — | — | Obriši fajl, error | Nikad |
-| Download fail (soft) | Dismiss | — | — | — |
+| Download fail (soft) | Modal ostaje, Retry | — | — | — |
 | Download fail (force) | — | Retry | — | — |
+| Nakon 100% downloada | — | — | SHA-256 verify (može potrajati) | Android installer intent |
 | iOS / web | Nema checka | — | — | — |
+
+Soft Ažuriraj **ne** koristi sistemski Alert (Alert se zatvori pa download ne krene pouzdano). Soft i force dijele isti in-app modal.
+
+Nakon 100% UI prelazi na „provjera“ pa „instalacija“ dok se hash i installer ne pokrenu — korisnik ne treba zatvarati app.
 
 ## Soft throttle
 

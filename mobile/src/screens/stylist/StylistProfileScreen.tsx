@@ -84,13 +84,16 @@ export function StylistProfileScreen() {
       </Card>
 
       <ApkForceUpdateModal
-        release={apkUpdate.forceRelease}
+        release={apkUpdate.release}
+        isForce={apkUpdate.isForce}
         downloading={apkUpdate.downloading}
         progress={apkUpdate.progress}
+        phase={apkUpdate.phase}
         error={apkUpdate.error}
         onUpdate={() => {
-          if (apkUpdate.forceRelease) void apkUpdate.startDownload(apkUpdate.forceRelease);
+          if (apkUpdate.release) void apkUpdate.startDownload(apkUpdate.release);
         }}
+        onLater={apkUpdate.dismissSoft}
       />
     </ScrollView>
   );

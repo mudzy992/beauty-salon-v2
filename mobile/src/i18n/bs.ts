@@ -231,6 +231,8 @@ export const bs = {
     downloadError: 'Preuzimanje ili instalacija nije uspjela.',
     downloading: 'Preuzimanje… {{percent}}%',
     downloadingShort: 'Preuzimanje…',
+    verifying: 'Fajl je preuzet. Provjeravamo ga — sačekajte, instalacija slijedi.',
+    installing: 'Preuzimanje je gotovo. Otvara se instalacija — ne zatvarajte aplikaciju.',
     androidOnly: 'In-app update je dostupan samo na Androidu.',
   },
   stylist: {

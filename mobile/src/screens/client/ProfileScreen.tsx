@@ -29,7 +29,6 @@ import { fontFamily } from '../../theme/fonts';
 import type { ProfileScreenProps } from '../../navigation/types';
 import { useApkUpdateCheck } from '../../features/app-update/use-apk-update-check';
 import { ApkForceUpdateModal } from '../../features/app-update/apk-force-update-modal';
-import { runManualApkUpdateCheck } from '../../features/app-update/run-manual-check';
 
 interface MenuItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -321,13 +320,16 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
       </Card>
 
       <ApkForceUpdateModal
-        release={apkUpdate.forceRelease}
+        release={apkUpdate.release}
+        isForce={apkUpdate.isForce}
         downloading={apkUpdate.downloading}
         progress={apkUpdate.progress}
+        phase={apkUpdate.phase}
         error={apkUpdate.error}
         onUpdate={() => {
-          if (apkUpdate.forceRelease) void apkUpdate.startDownload(apkUpdate.forceRelease);
+          if (apkUpdate.release) void apkUpdate.startDownload(apkUpdate.release);
         }}
+        onLater={apkUpdate.dismissSoft}
       />
 
       <Modal visible={verifyModalVisible} animationType="slide" transparent>

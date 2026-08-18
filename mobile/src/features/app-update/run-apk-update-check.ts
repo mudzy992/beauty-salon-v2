@@ -1,7 +1,6 @@
 import { Alert } from 'react-native';
 import {
   decideUpdate,
-  downloadAndInstallApk,
   fetchLatestAndroidRelease,
   getLocalVersionCode,
   isAndroid,
@@ -16,14 +15,14 @@ type Options = {
   manual?: boolean;
   t: Translate;
   onForce?: (release: LatestAndroidRelease) => void;
-  onDownload?: (release: LatestAndroidRelease) => void;
+  onSoft?: (release: LatestAndroidRelease) => void;
 };
 
 export const runApkUpdateCheck = async ({
   manual = false,
   t,
   onForce,
-  onDownload,
+  onSoft,
 }: Options): Promise<void> => {
   if (!isAndroid()) {
     if (manual) Alert.alert(t('appUpdate.title'), t('appUpdate.androidOnly'));
@@ -46,22 +45,7 @@ export const runApkUpdateCheck = async ({
     }
     if (!manual && (await wasSoftPromptShownToday())) return;
     if (!manual) await markSoftPromptShownToday();
-    Alert.alert(
-      t('appUpdate.title'),
-      `${t('appUpdate.available', { version: decision.release.version })}\n\n${
-        decision.release.releaseNotes ?? ''
-      }`.trim(),
-      [
-        { text: t('appUpdate.later'), style: 'cancel' },
-        {
-          text: t('appUpdate.update'),
-          onPress: () => {
-            if (onDownload) onDownload(decision.release);
-            else void downloadAndInstallApk(decision.release);
-          },
-        },
-      ],
-    );
+    onSoft?.(decision.release);
   } catch {
     if (manual) Alert.alert(t('appUpdate.title'), t('appUpdate.checkError'));
   }

@@ -15,7 +15,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MediaImage } from '../../components/MediaImage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colorWithAlpha } from '../../theme/colorAlpha';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   FadeInDown,
@@ -257,14 +256,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
   const heroImageUrl = resolveHeroImageUrl(getSettingValue(settings, 'public_hero_image', ''));
   const heroSubtitle = getSettingValue(settings, 'public_hero_subtitle', t('home.heroSubtitle'));
-
-  const heroBg = colors.background;
-  const heroBottomBlend: [string, string, string, string] = [
-    colorWithAlpha(heroBg, 0),
-    colorWithAlpha(heroBg, 0),
-    colorWithAlpha(heroBg, 0.88),
-    heroBg,
-  ];
+  const heroCtaText = getSettingValue(settings, 'public_hero_cta_text', t('home.bookNow'));
 
   const heroBlockHeight = insets.top + HERO_HEIGHT;
 
@@ -309,55 +301,41 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               uri={heroImageUrl}
               style={StyleSheet.absoluteFill}
             />
-            <View style={styles.heroDim} pointerEvents="none" />
-            <LinearGradient
-              colors={heroBottomBlend}
-              locations={[0, 0.38, 0.78, 1]}
-              start={{ x: 0.5, y: 0 }}
-              end={{ x: 0.5, y: 1 }}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            />
-            <View style={[styles.heroContent, { paddingTop: insets.top }]}>
-              {user ? (
-                <Animated.View
-                  entering={FadeInDown.delay(140).duration(400).springify()}
-                  style={styles.heroWelcomeAbove}
-                >
-                  <Text style={styles.welcome}>
-                    {t('home.welcome')}, {user.firstName}!
-                  </Text>
-                </Animated.View>
-              ) : null}
-              <Animated.Text
-                entering={FadeInDown.delay(280).duration(480).springify()}
-                style={styles.heroSubtitle}
-                numberOfLines={2}
-              >
-                {heroSubtitle}
-              </Animated.Text>
-              <Animated.View entering={FadeInDown.delay(420).duration(480).springify()} style={styles.heroCta}>
-                <Button
-                  title={getSettingValue(settings, 'public_hero_cta_text', t('home.bookNow'))}
-                  onPress={() =>
-                    navigation.getParent()?.navigate('ServicesTab', {
-                      screen: 'Reservation',
-                      params: { origin: 'home' },
-                    })
-                  }
-                  icon={<Ionicons name="calendar-outline" size={18} color={colors.primaryText} />}
-                />
-              </Animated.View>
-            </View>
           </View>
+        </View>
+        <View style={[styles.heroIntro, { backgroundColor: colors.background }]}>
+          {user ? (
+            <Animated.View
+              entering={FadeInDown.delay(140).duration(400).springify()}
+              style={styles.heroWelcomeAbove}
+            >
+              <Text style={[styles.welcome, { color: colors.text }]}>
+                {t('home.welcome')}, {user.firstName}!
+              </Text>
+            </Animated.View>
+          ) : null}
+          <Animated.Text
+            entering={FadeInDown.delay(280).duration(480).springify()}
+            style={[styles.heroSubtitle, { color: colors.textSecondary }]}
+            numberOfLines={2}
+          >
+            {heroSubtitle}
+          </Animated.Text>
+          <Animated.View entering={FadeInDown.delay(420).duration(480).springify()} style={styles.heroCta}>
+            <Button
+              title={heroCtaText}
+              onPress={() =>
+                navigation.getParent()?.navigate('ServicesTab', {
+                  screen: 'Reservation',
+                  params: { origin: 'home' },
+                })
+              }
+              icon={<Ionicons name="calendar-outline" size={18} color={colors.primaryText} />}
+            />
+          </Animated.View>
         </View>
         <View style={styles.homeBelowHero}>
         <View style={styles.homeBelowHeroSurface}>
-        <LinearGradient
-          colors={['transparent', colors.background]}
-          style={styles.homeBelowHeroFade}
-          pointerEvents="none"
-        />
         <View style={{ backgroundColor: colors.background, paddingBottom: spacing.xxl, paddingTop: 0 }}>
         {user && openDebtsCount > 0 ? (
           <TouchableOpacity
@@ -754,15 +732,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   homeBelowHero: {
-    marginTop: -28,
+    marginTop: 0,
   },
   homeBelowHeroSurface: {
     position: 'relative',
     backgroundColor: 'transparent',
-  },
-  homeBelowHeroFade: {
-    height: 20,
-    width: '100%',
   },
   heroWrap: {
     marginTop: 0,
@@ -773,15 +747,10 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     width: '100%',
   },
-  heroDim: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  heroContent: {
-    flex: 1,
+  heroIntro: {
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.md,
-    justifyContent: 'flex-end',
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
     alignItems: 'center',
   },
   heroWelcomeAbove: {
@@ -808,21 +777,13 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'center',
     paddingHorizontal: spacing.md,
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
   },
   welcome: {
-    fontSize: 13,
+    fontSize: 15,
     fontFamily: fontFamily.bodyMedium,
-    letterSpacing: 0.45,
-    lineHeight: 18,
+    letterSpacing: 0.2,
+    lineHeight: 20,
     textAlign: 'center',
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
   },
   heroCta: { marginTop: spacing.md, width: '100%', alignItems: 'center' },
   section: { marginTop: spacing.md, paddingHorizontal: spacing.md },

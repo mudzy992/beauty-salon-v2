@@ -5,7 +5,7 @@ import { LogBox, View } from 'react-native';
 import { SystemBars } from 'react-native-edge-to-edge';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Stack } from 'expo-router';
+import { SplashScreen, Stack } from 'expo-router';
 import { useFonts } from 'expo-font';
 import {
   Inter_400Regular,
@@ -22,7 +22,7 @@ import { useApkUpdateCheck } from '../src/features/app-update/use-apk-update-che
 import { ApkForceUpdateModal } from '../src/features/app-update/apk-force-update-modal';
 import { SocketProvider } from '../src/realtime/SocketContext';
 import { SocketRealtimeSync } from '../src/realtime/SocketRealtimeSync';
-import { LoadingScreen } from '../src/components/ui/LoadingScreen';
+void SplashScreen.preventAutoHideAsync();
 
 // Keep console clean during development.
 LogBox.ignoreLogs(['ExpoKeepAwake', 'current activity is no longer available']);
@@ -85,22 +85,23 @@ function AppContent() {
     if (user?.id) fetchNotifications();
   }, [user?.id, fetchNotifications]);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontsError] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
   });
+  const isAppReady = (fontsLoaded || !!fontsError) && isInitialized;
+
+  useEffect(() => {
+    if (!isAppReady) return;
+    void SplashScreen.hideAsync();
+  }, [isAppReady]);
 
   const bars = <SystemBars style={systemBarStyle} />;
 
-  if (!fontsLoaded || !isInitialized) {
-    return (
-      <>
-        {bars}
-        <LoadingScreen />
-      </>
-    );
+  if (!isAppReady) {
+    return null;
   }
 
   return (
@@ -110,15 +111,18 @@ function AppContent() {
         {bars}
         <Stack screenOptions={{ headerShown: false }} />
         <ApkForceUpdateModal
-          release={apkUpdate.forceRelease}
+          release={apkUpdate.release}
+          isForce={apkUpdate.isForce}
           downloading={apkUpdate.downloading}
           progress={apkUpdate.progress}
+          phase={apkUpdate.phase}
           error={apkUpdate.error}
           onUpdate={() => {
-            if (apkUpdate.forceRelease) {
-              void apkUpdate.startDownload(apkUpdate.forceRelease);
+            if (apkUpdate.release) {
+              void apkUpdate.startDownload(apkUpdate.release);
             }
           }}
+          onLater={apkUpdate.dismissSoft}
         />
       </View>
     </SocketProvider>

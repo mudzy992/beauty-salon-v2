@@ -9,7 +9,7 @@ module.exports = {
     name: 'Beauty Salon Nejra',
     slug: 'beauty-salon-nejra',
     scheme: 'beauty-salon-nejra',
-    version: '1.0.4',
+    version: '1.0.5',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'automatic',
@@ -33,7 +33,7 @@ module.exports = {
         backgroundColor: '#031638',
       },
       package: 'com.beautysalon.nejra',
-      versionCode: 5,
+      versionCode: 6,
       googleServicesFile: './google-services.json',
       softwareKeyboardLayoutMode: 'pan',
       permissions: ['REQUEST_INSTALL_PACKAGES'],
@@ -43,6 +43,15 @@ module.exports = {
       favicon: './assets/favicon.png',
     },
     plugins: [
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/splash.png',
+          backgroundColor: '#031638',
+          resizeMode: 'contain',
+          imageWidth: 280,
+        },
+      ],
       'react-native-edge-to-edge',
       'expo-router',
       '@react-native-community/datetimepicker',
