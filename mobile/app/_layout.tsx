@@ -2,7 +2,7 @@ import '../src/i18n';
 
 import React, { useEffect } from 'react';
 import { LogBox, View } from 'react-native';
-import { SystemBars } from 'react-native-edge-to-edge';
+import { SystemBars } from '../src/components/system-bars';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SplashScreen, Stack } from 'expo-router';

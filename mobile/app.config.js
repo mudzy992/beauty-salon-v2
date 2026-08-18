@@ -17,7 +17,7 @@ module.exports = {
     splash: {
       image: './assets/splash.png',
       resizeMode: 'contain',
-      backgroundColor: '#031638',
+      backgroundColor: '#FFFFFF',
     },
     ios: {
       supportsTablet: true,
@@ -30,7 +30,7 @@ module.exports = {
         foregroundImage: './assets/adaptive-icon/foreground.png',
         backgroundImage: './assets/adaptive-icon/background.png',
         monochromeImage: './assets/adaptive-icon/monochrome.png',
-        backgroundColor: '#031638',
+        backgroundColor: '#FFFFFF',
       },
       package: 'com.beautysalon.nejra',
       versionCode: 6,
@@ -47,7 +47,7 @@ module.exports = {
         'expo-splash-screen',
         {
           image: './assets/splash.png',
-          backgroundColor: '#031638',
+          backgroundColor: '#FFFFFF',
           resizeMode: 'contain',
           imageWidth: 280,
         },
