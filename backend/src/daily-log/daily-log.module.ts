@@ -8,6 +8,7 @@ import { DailyLogValidators } from './daily-log.validators';
 import { DailyLogSeedFromDirectService } from './daily-log-seed-from-direct.service';
 import { DailyLogDispositionService } from './daily-log-disposition.service';
 import { DailyLogReceiptService } from './daily-log-receipt.service';
+import { DailyLogRestoreService } from './daily-log-restore.service';
 import { FinanceModule } from '../finance/finance.module';
 import { LoyaltyModule } from '../loyalty/loyalty.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -30,6 +31,7 @@ import { ReservationsModule } from '../reservations/reservations.module';
     DailyLogSeedFromDirectService,
     DailyLogDispositionService,
     DailyLogReceiptService,
+    DailyLogRestoreService,
   ],
   exports: [DailyLogService, DailyLogSeedFromDirectService, DailyLogDispositionService],
 })

@@ -17,7 +17,7 @@ type Props = {
   onEdit: (entry: DailyLogEntry) => void
   onComplete: (id: string) => void
   onDelete: (entry: DailyLogEntry) => void
-  onRestore: (id: string) => void
+  onRestore: (entry: DailyLogEntry) => void
 }
 
 export const DailyLogEntryTable = ({

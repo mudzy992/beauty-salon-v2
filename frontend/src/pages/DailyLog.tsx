@@ -7,6 +7,7 @@ import { DailyLogEntryTable } from '../features/daily-log/entry-table'
 import { DailyLogEntryDetailDialog } from '../features/daily-log/entry-detail-dialog'
 import { DailyLogEntryFormDialog } from '../features/daily-log/entry-form-dialog'
 import { DailyLogDeleteDialog } from '../features/daily-log/entry-delete-dialog'
+import { EntryRestoreDialog } from '../features/daily-log/entry-restore-dialog'
 import { DailyLogStats } from '../features/daily-log/entry-stats'
 import { DailyLogEntryFilters } from '../features/daily-log/entry-filters'
 import { useDailyLogData } from '../features/daily-log/use-daily-log-data'
@@ -64,7 +65,7 @@ export default function DailyLog() {
           mutations.setDeleteTarget(entry)
           mutations.setDeleteReason('')
         }}
-        onRestore={(id) => void mutations.handleRestore(id)}
+        onRestore={(entry) => mutations.setRestoreTarget(entry)}
       />
       <DailyLogEntryDetailDialog
         entry={detailEntry}
@@ -116,6 +117,12 @@ export default function DailyLog() {
         onReasonChange={mutations.setDeleteReason}
         saving={form.saving}
         onConfirm={() => void mutations.handleDelete()}
+      />
+      <EntryRestoreDialog
+        entry={mutations.restoreTarget}
+        onClose={() => mutations.setRestoreTarget(null)}
+        onConfirm={(id, date) => void mutations.handleRestoreConfirm(id, date)}
+        loading={mutations.restoring}
       />
     </div>
   )

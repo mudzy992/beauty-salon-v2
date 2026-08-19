@@ -19,7 +19,7 @@
 | Vratiti COMPLETED → PENDING | Ne | Da |
 | Soft delete PENDING | Da (razlog obavezan) | Da (razlog obavezan) |
 | Soft delete COMPLETED | Ne | Da (razlog obavezan) |
-| Restore deleted | Ne | Da (vraća kao PENDING) |
+| Restore deleted | Ne | Da (vraća kao PENDING; ili nova rezervacija ako je source=RESERVATION i datum u budućnosti) |
 | Dodati slike na PENDING | Da | Da |
 | Dodati/obrisati slike na COMPLETED | Ne | Da |
 
@@ -32,6 +32,18 @@
 | Soft delete COMPLETED | Isto kao revert | Isto | Isto | Isto |
 | Soft delete DEBT_PAYMENT | Briše manual KIF | — | Dug → OPEN | — |
 | Soft delete PENDING | Reverzija linked DEBT_PAYMENT (KIF manual) | — | SETTLED via `sourceEntryId` → OPEN; briše OPEN dug kreiran iz unosa | — |
+
+## Restore logika (DELETED → PENDING / nova rezervacija)
+
+| Izvor | Odabrani datum | Rezultat |
+|-------|---------------|----------|
+| `isManual=true` (Ručno) | bilo koji | Vraća u PENDING na odabranom datumu; bez rezervacione logike |
+| `isManual=false` + rezervacija | prošlost / danas | Vraća u PENDING na odabranom datumu; bez rezervacione logike |
+| `isManual=false` + rezervacija | budućnost | Kreira novu rezervaciju; policy (acceptanceMode, attendancePolicy, bookingOrigin) nasljeđen iz originalne; DIRECT_ASSIGN → CONFIRMED+STAFF_WAIVED; INBOX → PENDING flow |
+
+- Admin bira: originalni datum ili novi datum (date picker u dijalogu).
+- Provjera konflikta stilista obavezna za budući datum + rezervacija.
+- KIF knjiga mora biti otvorena za ciljni datum (za non-rezervacioni path).
 
 ## Pravila
 

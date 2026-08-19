@@ -15,6 +15,8 @@ export const useDailyLogMutations = ({ loadData, setSaving, toast }: Args) => {
   const { success, error } = toast
   const [deleteTarget, setDeleteTarget] = useState<DailyLogEntry | null>(null)
   const [deleteReason, setDeleteReason] = useState('')
+  const [restoreTarget, setRestoreTarget] = useState<DailyLogEntry | null>(null)
+  const [restoring, setRestoring] = useState(false)
 
   const handleComplete = async (id: string) => {
     try {
@@ -44,13 +46,17 @@ export const useDailyLogMutations = ({ loadData, setSaving, toast }: Args) => {
     }
   }
 
-  const handleRestore = async (id: string) => {
+  const handleRestoreConfirm = async (id: string, date?: string) => {
+    setRestoring(true)
     try {
-      await api.post(`/api/daily-log/${id}/restore`)
+      await api.post(`/api/daily-log/${id}/restore`, date ? { date } : {})
       success('Unos vraćen')
+      setRestoreTarget(null)
       loadData()
     } catch {
       error('Greška pri vraćanju')
+    } finally {
+      setRestoring(false)
     }
   }
 
@@ -61,6 +67,9 @@ export const useDailyLogMutations = ({ loadData, setSaving, toast }: Args) => {
     setDeleteReason,
     handleComplete,
     handleDelete,
-    handleRestore,
+    restoreTarget,
+    setRestoreTarget,
+    restoring,
+    handleRestoreConfirm,
   }
 }

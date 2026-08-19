@@ -1,5 +1,13 @@
 # Daily Log Matrix Changelog
 
+## 2026-08-19 (smart restore)
+
+- Restore DELETED zapisa sada podržava odabir datuma (originalni ili novi) u dijalogu.
+- Logika grananja: `isManual=true` ili prošli datum → PENDING; `isManual=false` + rezervacija + budući datum → nova rezervacija s nasljeđenim policyem (acceptanceMode, attendancePolicy, bookingOrigin).
+- DIRECT_ASSIGN restore → nova rezervacija CONFIRMED+STAFF_WAIVED; INBOX restore → PENDING flow.
+- Backend: `DailyLogRestoreService` (odvojen iz `DailyLogAdminService`); DTO `RestoreDailyLogEntryDto { date?: string }`.
+- Frontend: `EntryRestoreDialog` s radio izborom datuma + info poruka za rezervacioni path.
+
 ## 2026-08-12 (payment receipt on complete)
 
 - PENDING → COMPLETED: klijent dobija push/in-app `payment_receipt`; email potvrda uplate (receipt styling) samo ako je `isEmailVerified`.

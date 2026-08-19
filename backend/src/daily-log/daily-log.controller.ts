@@ -19,6 +19,8 @@ import { CreateFromReservationDto } from './dto/create-from-reservation.dto';
 import { DailyLogDispositionService } from './daily-log-disposition.service';
 import { DeleteDailyLogEntryDto } from './dto/delete-daily-log-entry.dto';
 import { DailyLogDispositionDto } from './dto/daily-log-disposition.dto';
+import { RestoreDailyLogEntryDto } from './dto/restore-daily-log-entry.dto';
+import { DailyLogRestoreService } from './daily-log-restore.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
@@ -32,6 +34,7 @@ export class DailyLogController {
     private readonly dailyLogPublic: DailyLogPublicService,
     private readonly dailyLogAdmin: DailyLogAdminService,
     private readonly dailyLogDisposition: DailyLogDispositionService,
+    private readonly dailyLogRestore: DailyLogRestoreService,
   ) {}
 
   @Post()
@@ -139,8 +142,12 @@ export class DailyLogController {
   @Post(':id/restore')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  restore(@Param('id') id: string, @CurrentUser() user: CurrentUserPayload) {
-    return this.dailyLogAdmin.restore(id, user);
+  restore(
+    @Param('id') id: string,
+    @Body() dto: RestoreDailyLogEntryDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.dailyLogRestore.restore(id, dto, user);
   }
 
   @Post(':id/images')

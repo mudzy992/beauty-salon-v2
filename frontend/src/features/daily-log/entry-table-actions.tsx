@@ -8,7 +8,7 @@ type Props = {
   onEdit: (entry: DailyLogEntry) => void
   onComplete: (id: string) => void
   onDelete: (entry: DailyLogEntry) => void
-  onRestore: (id: string) => void
+  onRestore: (entry: DailyLogEntry) => void
 }
 
 export const DailyLogEntryActions = ({
@@ -38,7 +38,7 @@ export const DailyLogEntryActions = ({
           variant="ghost"
           className="h-8 w-8"
           aria-label="Vrati"
-          onClick={() => onRestore(entry.id)}
+          onClick={() => onRestore(entry)}
         >
           <RotateCcw className="h-4 w-4" />
         </Button>

@@ -129,33 +129,6 @@ export class DailyLogAdminService {
     });
   }
 
-  async restore(id: string, user: CurrentUserPayload) {
-    if (!this.dailyLog.isAdminOrOwner(user)) {
-      throw new ForbiddenException('Nemate dozvolu.');
-    }
-    const entry = await this.prisma.dailyLogEntry.findUnique({
-      where: { id },
-      include: this.dailyLog.entryInclude(),
-    });
-    if (!entry) throw new NotFoundException('Zapis nije pronađen.');
-    if (!entry.deletedAt) {
-      throw new BadRequestException('Zapis nije obrisan.');
-    }
-    await this.incomeSync.assertBookOpenForDate(new Date(entry.date));
-    const restored = await this.prisma.dailyLogEntry.update({
-      where: { id },
-      data: {
-        deletedAt: null,
-        deletedById: null,
-        deleteReason: null,
-        status: 'PENDING',
-        completedAt: null,
-      },
-      include: this.dailyLog.entryInclude(),
-    });
-    return restored;
-  }
-
   async addImage(
     entryId: string,
     dto: {
