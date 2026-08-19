@@ -32,26 +32,30 @@ function resolveShim(moduleName) {
   return null;
 }
 
-if (useExpoGoShims) {
-  config.resolver.extraNodeModules = {
-    ...(config.resolver.extraNodeModules ?? {}),
-    'react-native-reanimated': reanimatedShimPkg,
-    'react-native-worklets': workletsShimPkg,
-  };
+// Na EAS/dev-client buildu: osiguraj da react-native-reanimated/worklets
+// uvijek resolveuju na lokalne node_modules, a ne na stare shim putanje
+// iz prethodnih buildova (problem s react-native-css internim importom).
+const reanimatedPkg = path.resolve(__dirname, 'node_modules/react-native-reanimated');
+const workletsPkg = path.resolve(__dirname, 'node_modules/react-native-worklets');
 
-  const previousResolveRequest = config.resolver.resolveRequest;
-  config.resolver.resolveRequest = (context, moduleName, platform) => {
-    if (isShimTarget(moduleName)) {
-      const shimPath = resolveShim(moduleName);
-      if (shimPath) {
-        return { type: 'sourceFile', filePath: shimPath };
-      }
+config.resolver.extraNodeModules = {
+  ...(config.resolver.extraNodeModules ?? {}),
+  'react-native-reanimated': useExpoGoShims ? reanimatedShimPkg : reanimatedPkg,
+  'react-native-worklets': useExpoGoShims ? workletsShimPkg : workletsPkg,
+};
+
+const previousResolveRequest = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (useExpoGoShims && isShimTarget(moduleName)) {
+    const shimPath = resolveShim(moduleName);
+    if (shimPath) {
+      return { type: 'sourceFile', filePath: shimPath };
     }
-    if (previousResolveRequest) {
-      return previousResolveRequest(context, moduleName, platform);
-    }
-    return context.resolveRequest(context, moduleName, platform);
-  };
-}
+  }
+  if (previousResolveRequest) {
+    return previousResolveRequest(context, moduleName, platform);
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
 
 module.exports = config;
