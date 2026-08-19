@@ -9,7 +9,7 @@ module.exports = {
     name: 'Beauty Salon Nejra',
     slug: 'beauty-salon-nejra',
     scheme: 'beauty-salon-nejra',
-    version: '1.0.5',
+    version: '1.0.6',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'automatic',
@@ -17,7 +17,7 @@ module.exports = {
     splash: {
       image: './assets/splash.png',
       resizeMode: 'contain',
-      backgroundColor: '#FFFFFF',
+      backgroundColor: '#fff8f0',
     },
     ios: {
       supportsTablet: true,
@@ -29,11 +29,11 @@ module.exports = {
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon/foreground.png',
         backgroundImage: './assets/adaptive-icon/background.png',
-        monochromeImage: './assets/adaptive-icon/monochrome.png',
-        backgroundColor: '#FFFFFF',
+        monochromeImage: './assets/monochrome-v3.png',
+        backgroundColor: '#fff8f0',
       },
       package: 'com.beautysalon.nejra',
-      versionCode: 6,
+      versionCode: 7,
       googleServicesFile: './google-services.json',
       softwareKeyboardLayoutMode: 'pan',
       permissions: ['REQUEST_INSTALL_PACKAGES'],
@@ -47,7 +47,7 @@ module.exports = {
         'expo-splash-screen',
         {
           image: './assets/splash.png',
-          backgroundColor: '#FFFFFF',
+          backgroundColor: '#fff8f0',
           resizeMode: 'contain',
           imageWidth: 280,
         },
@@ -83,8 +83,8 @@ module.exports = {
       [
         'expo-notifications',
         {
-          icon: './assets/adaptive-icon/monochrome.png',
-          color: '#D4A843',
+          icon: './assets/monochrome-v3.png',
+          color: '#fff8f0',
         },
       ],
       'expo-font',

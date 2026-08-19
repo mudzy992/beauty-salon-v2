@@ -1,9 +1,9 @@
 # Draft — napomene za korisnike
 
-- Verzija (predloženo): 1.0.5
-- versionCode (predloženo): 6
+- Verzija (predloženo): 1.0.6
+- versionCode (predloženo): 7
 
 ## Napomene (BS, za AppRelease.releaseNotes)
 
-- Početni ekran: manja slika, tamniji gornji dio zbog ikona, uredniji tekst i rezervacija.
+- Početni ekran ima full-width naslovnu sliku, uredniji staklasti panel za dobrodošlicu i rezervaciju te prozračniji sadržaj ispod hero sekcije.
 

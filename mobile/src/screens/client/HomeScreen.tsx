@@ -12,6 +12,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MediaImage } from '../../components/MediaImage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,7 +48,7 @@ interface BeforeAfterPair {
   after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
 }
 
-const HERO_HEIGHT = 168;
+const HERO_HEIGHT = 220;
 const PRESS_SPRING = { damping: 15, stiffness: 400 };
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -296,6 +297,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroWrap}>
+          <View style={[styles.heroShell, { backgroundColor: colors.background }]}>
           <View style={[styles.hero, { height: heroBlockHeight, borderCurve: 'continuous' }]}>
             <MediaImage
               uri={heroImageUrl}
@@ -310,41 +312,55 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               style={StyleSheet.absoluteFill}
               pointerEvents="none"
             />
+            <Animated.View entering={FadeInDown.delay(140).duration(420).springify()} style={styles.heroOverlay}>
+              <BlurView
+                intensity={72}
+                tint="light"
+                style={styles.heroOverlayBlur}
+              />
+              <LinearGradient
+                colors={['rgba(255,255,255,0.32)', 'rgba(255,255,255,0.14)']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.heroOverlayGloss}
+                pointerEvents="none"
+              />
+              <View style={styles.heroOverlayContent}>
+                <View style={styles.heroOverlayCopy}>
+                  {user ? (
+                    <Text style={styles.welcome}>
+                      {t('home.welcome')}, {user.firstName}
+                    </Text>
+                  ) : null}
+                  <Text
+                    style={styles.heroSubtitle}
+                    numberOfLines={2}
+                  >
+                    {heroSubtitle}
+                  </Text>
+                </View>
+                <View style={styles.heroOverlayAction}>
+                  <Button
+                    title={heroCtaText}
+                    size="sm"
+                    style={styles.heroOverlayButton}
+                    onPress={() =>
+                      navigation.getParent()?.navigate('ServicesTab', {
+                        screen: 'Reservation',
+                        params: { origin: 'home' },
+                      })
+                    }
+                    icon={<Ionicons name="calendar-outline" size={16} color={colors.text} />}
+                  />
+                </View>
+              </View>
+            </Animated.View>
           </View>
-        </View>
-        <View style={[styles.heroIntro, { backgroundColor: colors.background }]}>
-          {user ? (
-            <Animated.Text
-              entering={FadeInDown.delay(80).duration(360).springify()}
-              style={[styles.welcome, { color: colors.textMuted }]}
-            >
-              {t('home.welcome')}, {user.firstName}
-            </Animated.Text>
-          ) : null}
-          <Animated.Text
-            entering={FadeInDown.delay(160).duration(400).springify()}
-            style={[styles.heroSubtitle, { color: colors.text }]}
-            numberOfLines={2}
-          >
-            {heroSubtitle}
-          </Animated.Text>
-          <Animated.View entering={FadeInDown.delay(240).duration(400).springify()} style={styles.heroCta}>
-            <Button
-              title={heroCtaText}
-              size="sm"
-              onPress={() =>
-                navigation.getParent()?.navigate('ServicesTab', {
-                  screen: 'Reservation',
-                  params: { origin: 'home' },
-                })
-              }
-              icon={<Ionicons name="calendar-outline" size={16} color={colors.primaryText} />}
-            />
-          </Animated.View>
+          </View>
         </View>
         <View style={styles.homeBelowHero}>
         <View style={styles.homeBelowHeroSurface}>
-        <View style={{ backgroundColor: colors.background, paddingBottom: spacing.xxl, paddingTop: 0 }}>
+        <View style={{ backgroundColor: 'transparent', paddingBottom: spacing.xxl, paddingTop: 0 }}>
         {user && openDebtsCount > 0 ? (
           <TouchableOpacity
             onPress={() =>
@@ -749,6 +765,12 @@ const styles = StyleSheet.create({
   heroWrap: {
     marginTop: 0,
     marginBottom: 0,
+    paddingHorizontal: 0,
+  },
+  heroShell: {
+    borderRadius: 0,
+    overflow: 'hidden',
+    boxShadow: '0px 12px 24px rgba(15, 23, 42, 0.08)',
   },
   hero: {
     overflow: 'hidden',
@@ -759,12 +781,40 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(28, 28, 30, 0.18)',
   },
-  heroIntro: {
+  heroOverlay: {
+    position: 'absolute',
+    left: spacing.sm,
+    right: spacing.sm,
+    bottom: spacing.sm,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
+  },
+  heroOverlayBlur: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroOverlayGloss: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  heroOverlayContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     paddingHorizontal: spacing.md,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
-    alignItems: 'flex-start',
-    gap: 6,
+    paddingVertical: spacing.sm + 2,
+  },
+  heroOverlayCopy: {
+    flex: 1,
+  },
+  heroOverlayAction: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingTop: 2,
+  },
+  heroOverlayButton: {
+    paddingVertical: 9,
   },
   heroTitle: {
     fontSize: 36,
@@ -778,11 +828,12 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   heroSubtitle: {
-    fontSize: 22,
+    fontSize: 16,
     fontFamily: fontFamily.bodySemiBold,
-    letterSpacing: -0.3,
-    lineHeight: 28,
+    letterSpacing: -0.1,
+    lineHeight: 22,
     textAlign: 'left',
+    color: 'rgba(17, 24, 39, 0.94)',
   },
   welcome: {
     fontSize: 13,
@@ -790,10 +841,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     lineHeight: 18,
     textAlign: 'left',
+    color: 'rgba(31, 41, 55, 0.78)',
   },
   heroCta: { marginTop: 6, alignSelf: 'flex-start' },
   section: { marginTop: spacing.md, paddingHorizontal: spacing.md },
-  sectionFirst: { marginTop: spacing.sm },
+  sectionFirst: { marginTop: spacing.md },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
