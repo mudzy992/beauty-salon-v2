@@ -10,7 +10,6 @@ import {
 } from '../../components/ui/dialog'
 import { Button } from '../../components/ui/button'
 import { Label } from '../../components/ui/label'
-import { RadioGroup, RadioGroupItem } from '../../components/ui/radio-group'
 import { Input } from '../../components/ui/input'
 import type { DailyLogEntry } from './types'
 
@@ -72,26 +71,33 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <RadioGroup
-            value={mode}
-            onValueChange={(v) => {
-              setMode(v as 'original' | 'new')
-              setNewDate('')
-            }}
-            className="space-y-2"
-          >
-            <div className="flex items-center gap-3 rounded-lg border p-3">
-              <RadioGroupItem value="original" id="r-original" />
-              <Label htmlFor="r-original" className="cursor-pointer">
+          <div className="space-y-2">
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary">
+              <input
+                type="radio"
+                name="restore-mode"
+                value="original"
+                checked={mode === 'original'}
+                onChange={() => { setMode('original'); setNewDate('') }}
+                className="accent-primary"
+              />
+              <span className="text-sm">
                 Vrati na originalni datum{' '}
                 <span className="font-semibold">{formatDate(originalDate)}</span>
-              </Label>
-            </div>
-            <div className="flex items-center gap-3 rounded-lg border p-3">
-              <RadioGroupItem value="new" id="r-new" />
-              <Label htmlFor="r-new" className="cursor-pointer">Definiši novi datum</Label>
-            </div>
-          </RadioGroup>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary">
+              <input
+                type="radio"
+                name="restore-mode"
+                value="new"
+                checked={mode === 'new'}
+                onChange={() => setMode('new')}
+                className="accent-primary"
+              />
+              <span className="text-sm">Definiši novi datum</span>
+            </label>
+          </div>
 
           {mode === 'new' && (
             <div className="space-y-1">

@@ -60,7 +60,6 @@ jobs:
           BACKEND_CHANGED: ${{ steps.changes.outputs.backend_changed }}
           FRONTEND_CHANGED: ${{ steps.changes.outputs.frontend_changed }}
         run: |
-          # Trim APP_PATH (secrets often have trailing newline when pasted)
           APP_PATH=$(printf '%s' "$APP_PATH" | tr -d '\n\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
           if [ -z "$APP_PATH" ]; then
             echo "::error::APP_PATH secret is empty or invalid."
@@ -72,10 +71,8 @@ jobs:
 
           ssh -p "$SERVER_SSH_PORT" "$SERVER_USER@$SERVER_IP" bash << EOF
           set -euo pipefail
-          if [ ! -d "$APP_PATH" ]; then
-            echo "::error::APP_PATH does not exist on server (check repository secrets.APP_PATH)."
-            exit 1
-          fi
+
+          [ -d "$APP_PATH" ] || { echo "::error::APP_PATH does not exist on server."; exit 1; }
           cd "$APP_PATH"
           echo "Working directory: \$(pwd)"
 
@@ -83,53 +80,38 @@ jobs:
           git fetch origin master
           git reset --hard origin/master
 
-          echo "Checking existing containers (including stopped)..."
-          BACKEND_CONTAINER_ID=\$(docker compose ps -a -q backend || true)
-          FRONTEND_CONTAINER_ID=\$(docker compose ps -a -q frontend || true)
+          BACKEND_CONTAINER_ID=\$(docker compose ps -a -q backend 2>/dev/null || true)
+          FRONTEND_CONTAINER_ID=\$(docker compose ps -a -q frontend 2>/dev/null || true)
 
-          NEED_BACKEND_BOOTSTRAP=false
-          NEED_FRONTEND_BOOTSTRAP=false
+          DEPLOY_BACKEND=false
+          DEPLOY_FRONTEND=false
 
-          if [ -z "\$BACKEND_CONTAINER_ID" ]; then
-            echo "Backend container does not exist yet. Will bootstrap backend."
-            NEED_BACKEND_BOOTSTRAP=true
+          [ "$BACKEND_CHANGED" = "true" ] || [ -z "\$BACKEND_CONTAINER_ID" ] && DEPLOY_BACKEND=true
+          [ "$FRONTEND_CHANGED" = "true" ] || [ -z "\$FRONTEND_CONTAINER_ID" ] && DEPLOY_FRONTEND=true
+
+          if [ "\$DEPLOY_BACKEND" = "true" ] || [ "\$DEPLOY_FRONTEND" = "true" ]; then
+            echo "Pruning unused Docker build cache and images..."
+            docker builder prune -f || true
+            docker image prune -f || true
           fi
 
-          if [ -z "\$FRONTEND_CONTAINER_ID" ]; then
-            echo "Frontend container does not exist yet. Will bootstrap frontend."
-            NEED_FRONTEND_BOOTSTRAP=true
-          fi
-
-          echo "Deploying services based on changes and container state..."
-
-          if [ "$BACKEND_CHANGED" = "true" ] || [ "\$NEED_BACKEND_BOOTSTRAP" = "true" ]; then
-            echo "Recreating backend: stop, remove, clear cache, rebuild, start..."
+          if [ "\$DEPLOY_BACKEND" = "true" ]; then
+            echo "--- Deploying backend ---"
             docker compose stop backend || true
             docker compose rm -f backend || true
-            if [ "$BACKEND_CHANGED" = "true" ]; then
-              echo "Pruning unused Docker build cache and images before backend rebuild..."
-              docker builder prune -f || true
-              docker image prune -f || true
-            fi
             docker compose build --no-cache backend
             docker compose up -d backend
           fi
 
-          if [ "$FRONTEND_CHANGED" = "true" ] || [ "\$NEED_FRONTEND_BOOTSTRAP" = "true" ]; then
-            echo "Recreating frontend: stop, remove, clear cache, rebuild, start..."
+          if [ "\$DEPLOY_FRONTEND" = "true" ]; then
+            echo "--- Deploying frontend ---"
             docker compose stop frontend || true
             docker compose rm -f frontend || true
-            if [ "$FRONTEND_CHANGED" = "true" ]; then
-              echo "Pruning unused Docker build cache and images before frontend rebuild..."
-              docker builder prune -f || true
-              docker image prune -f || true
-            fi
             docker compose build --no-cache frontend
             docker compose up -d frontend
           fi
 
-          if [ "$BACKEND_CHANGED" != "true" ] && [ "$FRONTEND_CHANGED" != "true" ] && \
-             [ "\$NEED_BACKEND_BOOTSTRAP" != "true" ] && [ "\$NEED_FRONTEND_BOOTSTRAP" != "true" ]; then
-            echo "No changes in backend/ or frontend/ directories and both containers already built; nothing to redeploy."
+          if [ "\$DEPLOY_BACKEND" != "true" ] && [ "\$DEPLOY_FRONTEND" != "true" ]; then
+            echo "No changes detected; nothing to redeploy."
           fi
           EOF

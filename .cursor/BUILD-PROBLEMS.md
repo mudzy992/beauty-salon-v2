@@ -1,71 +1,15 @@
-# 13 0.493
+# 0.349 > beauty-salon-v2-frontend@0.0.1 build
 
-#13 12.39 src/daily-log/daily-log-restore.service.ts:120:30 - error TS2339: Property 'items' does not exist on type '{ id: string; updatedAt: Date; createdAt: Date; kind: DailyLogEntryKind; date: Date; publicReferenceCode: string; reservationId: string | null; ... 17 more ...; deleteReason: string | null; } & { ...; }'.
+0.349 > tsc -b && vite build
 
-#13 12.39
+Dockerfile:10
 
-#13 12.39 120     const serviceIds = entry.items?.length
+0.349
 
-#13 12.39                                  ~~~~~
+18.21 src/features/daily-log/entry-restore-dialog.tsx(13,44): error TS2307: Cannot find module '../../components/ui/radio-group' or its corresponding type declarations.
 
-#13 12.39 src/daily-log/daily-log-restore.service.ts:121:15 - error TS2339: Property 'items' does not exist on type '{ id: string; updatedAt: Date; createdAt: Date; kind: DailyLogEntryKind; date: Date; publicReferenceCode: string; reservationId: string | null; ... 17 more ...; deleteReason: string | null; } & { ...; }'.
+--------------------
 
-#13 12.39
+   8 |     COPY . .
 
-#13 12.39 121       ? [entry.items.map](http://entry.items.map)((i) => i.serviceId)
-
-#13 12.39                   ~~~~~
-
-#13 12.39 src/daily-log/daily-log-restore.service.ts:121:26 - error TS7006: Parameter 'i' implicitly has an 'any' type.
-
-#13 12.39
-
-#13 12.39 121       ? [entry.items.map](http://entry.items.map)((i) => i.serviceId)
-
-#13 12.39                              ~
-
-#13 12.39 src/daily-log/daily-log-restore.service.ts:174:31 - error TS7006: Parameter 'sid' implicitly has an 'any' type.
-
-#13 12.39
-
-#13 12.39 174         data: [serviceIds.map](http://serviceIds.map)((sid, idx) => ({
-
-#13 12.39                                   ~~~
-
-#13 12.39 src/daily-log/daily-log-restore.service.ts:174:36 - error TS7006: Parameter 'idx' implicitly has an 'any' type.
-
-#13 12.39
-
-#13 12.39 174         data: [serviceIds.map](http://serviceIds.map)((sid, idx) => ({
-
-#13 12.39                                        ~~~
-
-#13 12.39
-
-#13 12.39 Found 5 error(s).
-
-#13 12.39
-
-#13 ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
-
-------
-
- > [builder 8/8] RUN npm run build:
-
-12.39
-
-12.39 174         data: [serviceIds.map](http://serviceIds.map)((sid, idx) => ({
-
-12.39                                   ~~~
-
-12.39 src/daily-log/daily-log-restore.service.ts:174:36 - error TS7006: Parameter 'idx' implicitly has an 'any' type.
-
-12.39
-
-12.39 174         data: [serviceIds.map](http://serviceIds.map)((sid, idx) => ({
-
-12.39                                        ~~~
-
-12.39
-
-12.39 Found 5 error(s).
+   9 |
