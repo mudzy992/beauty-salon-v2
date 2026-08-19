@@ -17,7 +17,6 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { spacing } from '../../theme';
-import Animated, { FadeInUp } from 'react-native-reanimated';
 import type { AuthScreenProps } from '../../navigation/types';
 import { AxiosError } from 'axios';
 
@@ -94,7 +93,7 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
             {t('auth.registerSubtitle')}
           </Text>
 
-          <Animated.View entering={FadeInUp.duration(400).springify()}>
+          <View>
             <Card style={{ marginBottom: spacing.md }}>
           <View style={styles.row}>
             <View style={styles.halfInput}>
@@ -169,7 +168,7 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
             style={{ marginTop: spacing.sm }}
           />
             </Card>
-          </Animated.View>
+          </View>
 
           <View style={styles.footer}>
             <Text style={[styles.footerText, { color: colors.textSecondary }]}>

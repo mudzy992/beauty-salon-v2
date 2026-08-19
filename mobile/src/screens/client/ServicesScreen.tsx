@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
@@ -107,7 +106,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
           <EmptyState icon="cut-outline" title={t('services.noServices')} />
         ) : (
           <>
-            <Animated.View entering={FadeInDown.duration(340).springify()} style={styles.heroCardWrap}>
+            <View style={styles.heroCardWrap}>
               <Card style={styles.heroCard}>
                 <View style={styles.heroWatermark} pointerEvents="none">
                   <Ionicons name="diamond-outline" size={54} color={colors.primary} style={styles.heroWatermarkMain} />
@@ -119,10 +118,10 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                   Muškarci i žene kategorije su brzo dostupne ispod, uz preporuke po tvojoj historiji.
                 </Text>
               </Card>
-            </Animated.View>
+            </View>
 
             {featuredService ? (
-              <Animated.View entering={FadeInDown.delay(50).duration(340).springify()} style={styles.section}>
+              <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>Najpopularniji servis</Text>
                 </View>
@@ -154,11 +153,11 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                     </Text>
                   </View>
                 </Card>
-              </Animated.View>
+              </View>
             ) : null}
 
             {lastUsedService ? (
-              <Animated.View entering={FadeInDown.delay(80).duration(340).springify()} style={styles.section}>
+              <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>Tvoj zadnji servis</Text>
                 </View>
@@ -191,10 +190,10 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                     }
                   />
                 </Card>
-              </Animated.View>
+              </View>
             ) : null}
 
-            <Animated.View entering={FadeInDown.delay(120).duration(340).springify()} style={styles.section}>
+            <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Kategorije</Text>
               </View>
@@ -226,7 +225,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                     </Card>
                 ))}
               </View>
-            </Animated.View>
+            </View>
           </>
         )}
       </View>

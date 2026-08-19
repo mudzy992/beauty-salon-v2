@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInRight } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -53,8 +52,8 @@ export function NotificationsScreen() {
     return ICON_MAP[type] || 'notifications-outline';
   };
 
-  const renderItem = ({ item, index }: { item: Notification; index: number }) => (
-    <Animated.View entering={FadeInRight.delay(Math.min(index, 14) * 40).duration(280).springify()}>
+  const renderItem = ({ item }: { item: Notification }) => (
+    <View>
     <TouchableOpacity
       onPress={() => !item.isRead && markAsRead(item.id)}
       style={[
@@ -89,7 +88,7 @@ export function NotificationsScreen() {
         <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />
       )}
     </TouchableOpacity>
-    </Animated.View>
+    </View>
   );
 
   if (isLoading && notifications.length === 0) {

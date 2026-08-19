@@ -13,7 +13,6 @@ import {
   Platform,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
-import Animated, { LinearTransition } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
@@ -251,7 +250,7 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
     );
 
     return (
-    <Animated.View layout={LinearTransition.springify().damping(18)}>
+    <View>
       <Card style={[styles.card, featured ? styles.featuredCard : undefined]}>
         <TouchableOpacity
           activeOpacity={0.85}
@@ -397,7 +396,7 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
           )}
         </View>
       </Card>
-    </Animated.View>
+    </View>
     );
   };
 

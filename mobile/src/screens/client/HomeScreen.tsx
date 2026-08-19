@@ -17,14 +17,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MediaImage } from '../../components/MediaImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-  FadeInRight,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
@@ -40,7 +32,7 @@ import { fontFamily } from '../../theme/fonts';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import type { HomeScreenProps } from '../../navigation/types';
-import type { Service, BlogPost, ServiceCategory } from '../../types';
+import type { Service, BlogPost, ServiceCategory, Reservation, ReservationStatus } from '../../types';
 
 interface BeforeAfterPair {
   id: string;
@@ -49,9 +41,6 @@ interface BeforeAfterPair {
 }
 
 const HERO_HEIGHT = 220;
-const PRESS_SPRING = { damping: 15, stiffness: 400 };
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 function resolveHeroImageUrl(value: string): string {
   if (!value?.trim()) return '';
   const v = value.trim();
@@ -107,6 +96,29 @@ function formatBlogDate(value?: string): string {
   });
 }
 
+function formatReservationDate(dateStr: string, timeStr: string): string {
+  const date = new Date(`${dateStr}T${timeStr}`);
+  return date.toLocaleDateString('bs-BA', { weekday: 'long', day: 'numeric', month: 'long' }) +
+    ' u ' + date.toLocaleTimeString('bs-BA', { hour: '2-digit', minute: '2-digit' });
+}
+
+function getStatusLabel(status: ReservationStatus): string {
+  const map: Partial<Record<ReservationStatus, string>> = {
+    PENDING: 'Na čekanju',
+    STYLIST_REVIEW: 'U pregledu',
+    CONFIRMED: 'Potvrđeno',
+    ATTENDANCE_CONFIRMED: 'Dolazak potvrđen',
+    IN_PROGRESS: 'U toku',
+  };
+  return map[status] ?? status;
+}
+
+function getStatusColor(status: ReservationStatus): string {
+  if (status === 'CONFIRMED' || status === 'ATTENDANCE_CONFIRMED') return '#22c55e';
+  if (status === 'IN_PROGRESS') return '#3b82f6';
+  return '#f59e0b';
+}
+
 function getBlogExcerpt(content: string, max = 110): string {
   const plain = (content || '')
     .replace(/<[^>]*>/g, ' ')
@@ -130,24 +142,14 @@ function ServiceTilePress({
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
 }) {
-  const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
   return (
-    <AnimatedPressable
+    <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      onPressIn={() => {
-        scale.value = withSpring(0.97, PRESS_SPRING);
-      }}
-      onPressOut={() => {
-        scale.value = withSpring(1, { damping: 14, stiffness: 320 });
-      }}
-      style={[style, animatedStyle]}
+      style={({ pressed }) => [style, pressed && { opacity: 0.85 }]}
     >
       {children}
-    </AnimatedPressable>
+    </Pressable>
   );
 }
 
@@ -176,6 +178,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const [refreshing, setRefreshing] = useState(false);
   const [openDebtsTotal, setOpenDebtsTotal] = useState(0);
   const [openDebtsCount, setOpenDebtsCount] = useState(0);
+  const [upcomingReservation, setUpcomingReservation] = useState<Reservation | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -242,6 +245,24 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) { setUpcomingReservation(null); return; }
+    const ACTIVE_STATUSES: ReservationStatus[] = ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED', 'IN_PROGRESS'];
+    let cancelled = false;
+    api.get<Reservation[]>('/api/reservations', { params: { asClient: true, limit: 20 } })
+      .then(({ data }) => {
+        if (cancelled) return;
+        const today = new Date().toISOString().slice(0, 10);
+        const next = data.find(
+          (r) => ACTIVE_STATUSES.includes(r.status) && r.reservationDate >= today,
+        ) ?? null;
+        setUpcomingReservation(next);
+      })
+      .catch(() => { if (!cancelled) setUpcomingReservation(null); });
+    return () => { cancelled = true; };
+  }, [userId]);
   usePublicContentSocketRefresh(fetchData);
   useAutoRefresh(fetchData, {
     intervalMs: 60000,
@@ -258,6 +279,10 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const heroImageUrl = resolveHeroImageUrl(getSettingValue(settings, 'public_hero_image', ''));
   const heroSubtitle = getSettingValue(settings, 'public_hero_subtitle', t('home.heroSubtitle'));
   const heroCtaText = getSettingValue(settings, 'public_hero_cta_text', t('home.bookNow'));
+
+  const upcomingServiceName = upcomingReservation?.items?.[0]?.service?.name
+    ?? upcomingReservation?.service?.name
+    ?? 'Rezervacija';
 
   const heroBlockHeight = insets.top + HERO_HEIGHT;
 
@@ -312,18 +337,11 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               style={StyleSheet.absoluteFill}
               pointerEvents="none"
             />
-            <Animated.View entering={FadeInDown.delay(140).duration(420).springify()} style={styles.heroOverlay}>
+            <View style={styles.heroOverlay}>
               <BlurView
-                intensity={72}
-                tint="light"
+                intensity={55}
+                tint="dark"
                 style={styles.heroOverlayBlur}
-              />
-              <LinearGradient
-                colors={['rgba(255,255,255,0.32)', 'rgba(255,255,255,0.14)']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.heroOverlayGloss}
-                pointerEvents="none"
               />
               <View style={styles.heroOverlayContent}>
                 <View style={styles.heroOverlayCopy}>
@@ -342,25 +360,27 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 <View style={styles.heroOverlayAction}>
                   <Button
                     title={heroCtaText}
+                    variant="ghost"
                     size="sm"
                     style={styles.heroOverlayButton}
+                    textStyle={styles.heroOverlayButtonText}
                     onPress={() =>
                       navigation.getParent()?.navigate('ServicesTab', {
                         screen: 'Reservation',
                         params: { origin: 'home' },
                       })
                     }
-                    icon={<Ionicons name="calendar-outline" size={16} color={colors.text} />}
+                    icon={<Ionicons name="calendar-outline" size={15} color="rgba(0,0,0,0.8)" />}
                   />
                 </View>
               </View>
-            </Animated.View>
+            </View>
           </View>
           </View>
         </View>
         <View style={styles.homeBelowHero}>
-        <View style={styles.homeBelowHeroSurface}>
-        <View style={{ backgroundColor: 'transparent', paddingBottom: spacing.xxl, paddingTop: 0 }}>
+        <View style={[styles.homeBelowHeroSurface, { backgroundColor: colors.background }]}>
+        <View style={{ backgroundColor: 'transparent', paddingBottom: spacing.xxl, paddingTop: spacing.sm }}>
         {user && openDebtsCount > 0 ? (
           <TouchableOpacity
             onPress={() =>
@@ -391,6 +411,44 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </TouchableOpacity>
         ) : null}
+        
+        {/* Kartica sljedećeg termina — prikazuje se samo ako postoji */}
+        {upcomingReservation ? (
+          <Pressable
+            onPress={() =>
+              navigation.getParent()?.navigate('ReservationsTab', {
+                screen: 'ReservationDetail',
+                params: { reservationId: upcomingReservation.id },
+              })
+            }
+            style={({ pressed }) => [
+              styles.infoCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+              pressed && { opacity: 0.85 },
+            ]}
+          >
+            <View style={styles.upcomingInner}>
+              <View style={styles.upcomingLeft}>
+                <View style={[styles.upcomingDot, { backgroundColor: getStatusColor(upcomingReservation.status) }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.upcomingLabel, { color: colors.textSecondary }]}>Sljedeći termin</Text>
+                  <Text style={[styles.upcomingService, { color: colors.text }]} numberOfLines={1}>
+                    {upcomingServiceName}
+                  </Text>
+                  <Text style={[styles.upcomingDate, { color: colors.textMuted }]}>
+                    {formatReservationDate(upcomingReservation.reservationDate, upcomingReservation.startTime)}
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.upcomingBadge, { backgroundColor: getStatusColor(upcomingReservation.status) + '22' }]}>
+                <Text style={[styles.upcomingBadgeText, { color: getStatusColor(upcomingReservation.status) }]}>
+                  {getStatusLabel(upcomingReservation.status)}
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+        ) : null}
+
         {/* Services by category */}
         {categoriesWithServices.map(({ category, services }, sectionIndex) => {
           const isMenRow = sectionIndex % 2 === 0;
@@ -398,9 +456,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           // Žene: normalan početak (prvi servis prvi vidljiv).
           const displayedServices = services;
           return (
-          <Animated.View
+          <View
             key={category.id}
-            entering={FadeInUp.delay(200 + sectionIndex * 100).duration(400).springify()}
             style={[styles.section, sectionIndex === 0 && styles.sectionFirst]}
           >
             <View style={styles.sectionHeader}>
@@ -438,10 +495,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 }}
               >
                 {displayedServices.map((service, index) => (
-                  <Animated.View
-                    key={service.id}
-                    entering={FadeInRight.delay(300 + sectionIndex * 80 + index * 60).duration(350).springify()}
-                  >
+                  <View key={service.id}>
                     {(() => {
                       const variant = index % 3;
                       const cardHeight = variant === 0 ? 182 : variant === 1 ? 158 : 170;
@@ -495,19 +549,16 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     </ServiceTilePress>
                       );
                     })()}
-                  </Animated.View>
+                  </View>
                 ))}
               </ScrollView>
             </View>
-          </Animated.View>
+          </View>
           );
         })}
 
         {/* Zadovoljni klijenti – 1 featured recenzija + prije/poslije + CTA */}
-        <Animated.View
-          entering={FadeInUp.delay(300).duration(400).springify()}
-          style={styles.section}
-        >
+        <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Zadovoljni klijenti
@@ -560,14 +611,11 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               />
             </View>
           </Card>
-        </Animated.View>
+        </View>
 
         {/* Latest Blog Posts */}
         {blogPosts.length > 0 && (
-          <Animated.View
-            entering={FadeInUp.delay(400).duration(400).springify()}
-            style={styles.section}
-          >
+          <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
                 {t('home.latestBlog')}
@@ -576,11 +624,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 <Text style={[styles.seeAll, { color: colors.primary }]}>{t('common.seeAll')}</Text>
               </TouchableOpacity>
             </View>
-            {blogPosts.map((post, index) => (
-              <Animated.View
-                key={post.id}
-                entering={FadeInUp.delay(500 + index * 100).duration(350).springify()}
-              >
+            {blogPosts.map((post) => (
+              <View key={post.id}>
                 <Card
                   style={styles.blogCard}
                   onPress={() => navigation.navigate('BlogPost', { slug: post.slug })}
@@ -617,11 +662,11 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     {formatBlogDate(post.publishedAt)}
                   </Text>
                 </Card>
-              </Animated.View>
+              </View>
             ))}
-          </Animated.View>
+          </View>
         )}
-
+        {/* Contact details */}
         {(() => {
           const address = getSettingValue(settings, 'public_contact_address', '').trim();
           const phone = getSettingValue(settings, 'public_contact_phone', '').trim();
@@ -632,7 +677,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           const hasAny = !!(address || phone || email || facebook || instagram || tiktok);
           if (!hasAny) return null;
           return (
-            <Animated.View entering={FadeInUp.delay(460).duration(420).springify()} style={styles.section}>
+            <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Kontakt</Text>
                 <TouchableOpacity
@@ -736,7 +781,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                   </View>
                 ) : null}
               </Card>
-            </Animated.View>
+            </View>
           );
         })()}
         </View>
@@ -756,16 +801,25 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   homeBelowHero: {
-    marginTop: 0,
+    marginTop: -48,
+    zIndex: 10,
   },
   homeBelowHeroSurface: {
     position: 'relative',
     backgroundColor: 'transparent',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 10,
   },
   heroWrap: {
     marginTop: 0,
     marginBottom: 0,
     paddingHorizontal: 0,
+    zIndex: 1,
   },
   heroShell: {
     borderRadius: 0,
@@ -781,16 +835,23 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(28, 28, 30, 0.18)',
   },
+  heroBottomFade: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '55%',
+  },
   heroOverlay: {
     position: 'absolute',
     left: spacing.sm,
     right: spacing.sm,
-    bottom: spacing.sm,
+    bottom: 64,
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.28)',
+    backgroundColor: 'rgba(0, 0, 0, 0.22)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   heroOverlayBlur: {
     ...StyleSheet.absoluteFillObject,
@@ -803,7 +864,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.sm + 4,
   },
   heroOverlayCopy: {
     flex: 1,
@@ -811,10 +872,17 @@ const styles = StyleSheet.create({
   heroOverlayAction: {
     alignItems: 'flex-end',
     justifyContent: 'center',
-    paddingTop: 2,
   },
   heroOverlayButton: {
-    paddingVertical: 9,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: borderRadius.md,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  heroOverlayButtonText: {
+    color: 'rgba(0,0,0,0.85)',
+    fontWeight: '700',
+    fontSize: 13,
   },
   heroTitle: {
     fontSize: 36,
@@ -828,22 +896,77 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   heroSubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: fontFamily.bodySemiBold,
     letterSpacing: -0.1,
-    lineHeight: 22,
+    lineHeight: 21,
     textAlign: 'left',
-    color: 'rgba(17, 24, 39, 0.94)',
+    color: 'rgba(255, 255, 255, 0.96)',
   },
   welcome: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: fontFamily.bodyMedium,
     letterSpacing: 0.2,
-    lineHeight: 18,
+    lineHeight: 17,
     textAlign: 'left',
-    color: 'rgba(31, 41, 55, 0.78)',
+    color: 'rgba(255, 255, 255, 0.82)',
+    marginBottom: 2,
+    textShadowColor: 'rgba(0,0,0,0.45)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   heroCta: { marginTop: 6, alignSelf: 'flex-start' },
+  infoCard: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+  },
+  upcomingInner: {
+    padding: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  upcomingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  upcomingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  upcomingLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  upcomingService: {
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  upcomingDate: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  upcomingBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  upcomingBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
   section: { marginTop: spacing.md, paddingHorizontal: spacing.md },
   sectionFirst: { marginTop: spacing.md },
   sectionHeader: {

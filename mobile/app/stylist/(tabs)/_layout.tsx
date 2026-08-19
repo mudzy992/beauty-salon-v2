@@ -1,41 +1,35 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 import { Redirect, Tabs } from 'expo-router';
-import { BlurTargetView } from 'expo-blur';
 import { BottomNavMenu } from '../../../src/navigation/BottomNavMenu';
 import { useAuthStore } from '../../../src/store/authStore';
 import { isStylist } from '../../../src/utils/roles';
 
 export default function StylistTabsLayout() {
   const { user, isInitialized } = useAuthStore();
-  const blurTargetRef = useRef<View | null>(null);
 
   if (!isInitialized) return null;
   if (!user || !isStylist(user)) return <Redirect href="/login" />;
 
   return (
     <View style={{ flex: 1 }}>
-      <BlurTargetView ref={blurTargetRef} style={{ flex: 1 }}>
-        <Tabs
-          screenOptions={
-            {
-              headerShown: false,
-              // Hide Expo Router built-in tab bar; we render our own.
-              tabBarStyle: { display: 'none' },
-            } as any
-          }
-        >
-          <Tabs.Screen name="inbox" options={{ headerShown: false }} />
-          <Tabs.Screen name="daily-log" options={{ headerShown: false }} />
-          <Tabs.Screen name="schedule" options={{ headerShown: false }} />
-          <Tabs.Screen name="stats" options={{ headerShown: false }} />
-          <Tabs.Screen name="profile" options={{ headerShown: false }} />
-        </Tabs>
-      </BlurTargetView>
+      <Tabs
+        screenOptions={
+          {
+            headerShown: false,
+            tabBarStyle: { display: 'none' },
+          } as any
+        }
+      >
+        <Tabs.Screen name="inbox" options={{ headerShown: false }} />
+        <Tabs.Screen name="daily-log" options={{ headerShown: false }} />
+        <Tabs.Screen name="schedule" options={{ headerShown: false }} />
+        <Tabs.Screen name="stats" options={{ headerShown: false }} />
+        <Tabs.Screen name="profile" options={{ headerShown: false }} />
+      </Tabs>
 
       <BottomNavMenu
         borderTopRadius={22}
-        blurTargetRef={blurTargetRef}
         items={[
           {
             key: 'inbox',
@@ -82,4 +76,3 @@ export default function StylistTabsLayout() {
     </View>
   );
 }
-

@@ -8,15 +8,8 @@ import {
   type TextStyle,
   type StyleProp,
 } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
 import { useTheme } from '../../hooks/useTheme';
 import { borderRadius, spacing } from '../../theme';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface ButtonProps {
   title: string;
@@ -44,11 +37,6 @@ export function Button({
   icon,
 }: ButtonProps) {
   const { colors } = useTheme();
-  const scale = useSharedValue(1);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
 
   const sizeStyles: Record<string, { paddingVertical: number; paddingHorizontal: number; fontSize: number }> = {
     sm: { paddingVertical: 8, paddingHorizontal: 16, fontSize: 14 },
@@ -65,29 +53,21 @@ export function Button({
 
   const s = sizeStyles[size];
   const v = variantStyles[variant];
-
   const inactive = disabled || loading;
 
   return (
-    <AnimatedPressable
+    <Pressable
       onPress={onPress}
       disabled={inactive}
-      onPressIn={() => {
-        if (!inactive) scale.value = withSpring(0.97, { damping: 15, stiffness: 400 });
-      }}
-      onPressOut={() => {
-        scale.value = withSpring(1, { damping: 14, stiffness: 320 });
-      }}
-      style={[
+      style={({ pressed }) => [
         styles.base,
-        animatedStyle,
         {
           backgroundColor: v.bg,
           paddingVertical: s.paddingVertical,
           paddingHorizontal: s.paddingHorizontal,
           borderColor: v.border || 'transparent',
           borderWidth: v.border ? 1.5 : 0,
-          opacity: inactive ? 0.42 : 1,
+          opacity: inactive ? 0.42 : pressed ? 0.8 : 1,
           borderCurve: 'continuous',
         },
         fullWidth && styles.fullWidth,
@@ -111,7 +91,7 @@ export function Button({
           </Text>
         </>
       )}
-    </AnimatedPressable>
+    </Pressable>
   );
 }
 

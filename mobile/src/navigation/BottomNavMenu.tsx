@@ -1,6 +1,5 @@
-import React, { useMemo, type RefObject } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { BlurView } from 'expo-blur';
+import React, { useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,11 +19,10 @@ type BottomNavItem = {
 export function BottomNavMenu({
   items,
   borderTopRadius = 22,
-  blurTargetRef,
 }: {
   items: BottomNavItem[];
   borderTopRadius?: number;
-  blurTargetRef?: RefObject<View | null>;
+  blurTargetRef?: React.RefObject<View | null>;
 }) {
   const { colors, isDark } = useTheme();
   const pathname = usePathname();
@@ -37,11 +35,10 @@ export function BottomNavMenu({
     return items.find((it) => it.isActive(p))?.key ?? items[0]?.key ?? '';
   }, [items, pathname]);
 
-  const blurIntensity = Platform.OS === 'ios' ? 40 : 28;
-  // Inactive items can lose contrast on blurred backgrounds.
-  // Light theme: use a darker tone for legibility over bright blur.
-  const inactiveColor = isDark ? colors.textSecondary : colors.text;
-  const inactiveOpacity = 1;
+  const inactiveColor = isDark ? colors.textSecondary : colors.textMuted;
+
+  const bgColor = isDark ? 'rgba(18,18,20,0.96)' : 'rgba(252,252,253,0.96)';
+  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.09)';
 
   return (
     <View
@@ -52,25 +49,17 @@ export function BottomNavMenu({
           height: tabBarHeight,
           borderTopLeftRadius: borderTopRadius,
           borderTopRightRadius: borderTopRadius,
+          backgroundColor: bgColor,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: borderColor,
+          borderLeftWidth: StyleSheet.hairlineWidth,
+          borderLeftColor: borderColor,
+          borderRightWidth: StyleSheet.hairlineWidth,
+          borderRightColor: borderColor,
         },
-        isDark ? styles.noShadow : styles.lightShadow,
+        isDark ? styles.shadowDark : styles.shadowLight,
       ]}
     >
-      <BlurView
-        intensity={blurIntensity}
-        tint={isDark ? 'dark' : 'default'}
-        blurMethod="dimezisBlurViewSdk31Plus"
-        blurReductionFactor={3}
-        blurTarget={blurTargetRef as any}
-        style={[
-          styles.background,
-          {
-            borderTopLeftRadius: borderTopRadius,
-            borderTopRightRadius: borderTopRadius,
-          },
-        ]}
-      />
-
       <View style={styles.inner} pointerEvents="box-none">
         {items.map((item) => {
           const focused = item.key === activeKey;
@@ -78,7 +67,7 @@ export function BottomNavMenu({
           return (
             <Pressable
               key={item.key}
-              style={styles.item}
+              style={({ pressed }) => [styles.item, pressed && styles.itemPressed]}
               onPress={() => router.push(item.href as any)}
               accessibilityRole="button"
               accessibilityState={{ selected: focused }}
@@ -88,7 +77,6 @@ export function BottomNavMenu({
                   name={(focused ? item.iconActive : item.iconInactive) as any}
                   color={color}
                   size={24}
-                  style={!isDark && !focused ? styles.lightIconShadow : undefined}
                 />
                 {typeof item.badge === 'number' && item.badge > 0 ? (
                   <View style={[styles.badge, { backgroundColor: colors.primary }]}>
@@ -97,11 +85,7 @@ export function BottomNavMenu({
                 ) : null}
               </View>
               <Text
-                style={[
-                  styles.label,
-                  { color, opacity: focused ? 1 : inactiveOpacity },
-                  !isDark && !focused ? styles.lightLabelShadow : undefined,
-                ]}
+                style={[styles.label, { color }]}
                 numberOfLines={1}
               >
                 {item.label}
@@ -120,26 +104,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'transparent',
     zIndex: 20,
-  },
-  noShadow: {
-    elevation: 0,
-    shadowOpacity: 0,
-    shadowRadius: 0,
-    shadowColor: 'transparent',
-  },
-  lightShadow: {
-    elevation: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.64,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -4 },
-  },
-  background: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'transparent',
     overflow: 'hidden',
+  },
+  shadowDark: {
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 8,
+  },
+  shadowLight: {
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 6,
   },
   inner: {
     flex: 1,
@@ -153,6 +133,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingHorizontal: 4,
+  },
+  itemPressed: {
+    opacity: 0.7,
   },
   iconWrap: {
     width: 40,
@@ -181,15 +164,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     maxWidth: 92,
-  },
-  lightIconShadow: {
-    textShadowColor: 'rgba(255,255,255,0.55)',
-    textShadowRadius: 3,
-    textShadowOffset: { width: 0, height: 0 },
-  },
-  lightLabelShadow: {
-    textShadowColor: 'rgba(255,255,255,0.6)',
-    textShadowRadius: 2,
-    textShadowOffset: { width: 0, height: 0 },
   },
 });

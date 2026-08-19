@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { MediaImage } from '../../components/MediaImage';
-import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
@@ -67,8 +66,8 @@ export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
       ListEmptyComponent={
         <EmptyState icon="newspaper-outline" title={t('blog.noPosts')} />
       }
-      renderItem={({ item, index }) => (
-        <Animated.View entering={FadeInUp.delay(Math.min(index, 10) * 55).duration(340).springify()}>
+      renderItem={({ item }) => (
+        <View>
         <Card
           onPress={() => navigation.navigate('BlogPost', { slug: item.slug })}
           style={styles.card}
@@ -96,7 +95,7 @@ export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
             </Text>
           </View>
         </Card>
-        </Animated.View>
+        </View>
       )}
     />
   );

@@ -1,43 +1,257 @@
-# Mobile UX/UI redizajn — inventar aplikacije
+# Mobile UX/UI redizajn — implementacijska specifikacija
 
-> **Svrha:** Referentni dokument za agenta koji radi vizuelni redizajn mobilne aplikacije Beauty Salon Nejra v2.  
+> **Svrha:** Referentni dokument za agenta koji implementira potpuni vizuelni rebrand mobilne aplikacije Beauty Salon Nejra v2.  
 > **Opseg:** samo `mobile/` — bez promjene business logike, API-ja ili backend-a.  
-> **Stack:** Expo Router, React Native, TypeScript, Zustand, Socket.IO realtime, i18n (BS default).
+> **Stack:** Expo Router, React Native, TypeScript, Zustand, Socket.IO realtime, i18n (BS default).  
+> **Vizuelni source of truth:** `C:\Dokumentacija\Projekti web\Bauty\mobile-app-ui-redesign` — React/Vite mockup koji prikazuje sve 34 ekrana u simuliranim mobilnim frame-ovima. Agent čita odgovarajuću komponentu iz tog mockup-a za svaki ekran i implementira isti vizuelni obrazac u React Native/Expo.
 
 ---
 
-## 1. Pravila rebrenda i vizuelnog smjera
+## 1. Brand Identity — konkretan vizuelni identitet
 
-Ovaj zadatak je **potpuni rebrand mobilne aplikacije**, ne samo polishing postojećeg UI-ja.
+Ovo nije slobodan izbor agenta. Vizuelni identitet je **definisan** u mockup-u i ovdje je precizno specificiran za implementaciju.
 
-Agent ima slobodu da promijeni:
+### 1.1 Vizuelni pravac
 
-- **kolor šemu**
-- **vizuelni identitet**
-- **layout ekrana**
-- **raspored sekcija**
-- **hijerarhiju informacija**
-- **UX obrazac toka** (npr. wizard, single-screen flow, cards, tabs, accordion, bottom sheets)
+**Dark-first** premium beauty brand. Obsidian baza, Champagne Gold akcent. Isti vizuelni jezik važi i za light varijantu — tople neutralne površine umjesto čisto bijele.
 
-Sve ispod je **obavezno** za redizajn:
+Mockup URL: `C:\Dokumentacija\Projekti web\Bauty\mobile-app-ui-redesign`  
+Svi ekrani su prikazani u sekcijama: Design System → Auth → Onboarding → Početna → Usluge → Rezervacije → Profil → Stilist.
+
+### 1.2 Paleta boja
+
+| Naziv | Hex | Uloga |
+| --- | --- | --- |
+| **Champagne Gold** | `#C9A96E` | Brand akcent, CTA button, label, aktivni tab, ikone |
+| **Deep Gold** | `#8B6914` | CTA gradient kraj, pressed state |
+| **Gold Light** | `#E8D5A3` | Suptilni tekst na tamnima |
+| **Obsidian** | `#0A0A0A` | Glavni background, app pozadina |
+| **Surface 01** | `#121212` | Page background |
+| **Surface 02** | `#1C1C1C` | Kartice (cards), elevated sections |
+| **Surface 03** | `#262626` | Input fields, još elevated |
+| **Surface 04** | `#303030` | Modali, bottom sheets |
+| **Border** | `#2E2E2E` | Dividers, card outline |
+| **Success** | `#4CAF87` | CONFIRMED, completed, verified |
+| **Warning** | `#E8A020` | PENDING, STYLIST_REVIEW, inbox badge |
+| **Error** | `#E85A4F` | Cancelled, debt, error state |
+| **Info** | `#5B8DEF` | COMPLETED badge, system notifikacije |
+| **No-show** | `#9B59B6` | NO_SHOW status |
+| **Text primary** | `#FFFFFF` | Primarni tekst |
+| **Text secondary** | `rgba(255,255,255,0.50)` | Opisi, subtitles |
+| **Text muted** | `rgba(255,255,255,0.25)` | Placeholder, hints, meta |
+| **Text ultra-muted** | `rgba(255,255,255,0.15)` | Footer, version info |
+
+**CTA button gradient:** `from-[#C9A96E] to-[#B8904A]` — tekst na buttonu je `#0A0A0A` (tamni).
+
+### 1.3 Token mapa — `mobile/src/theme/colors.ts`
+
+Ovo su **obavezne vrijednosti** za ažuriranje `colors.ts` tokena:
+
+#### Dark tema
+
+| Token | Nova vrijednost |
+| --- | --- |
+| `background` | `#0A0A0A` |
+| `surface` | `#121212` |
+| `surfaceElevated` | `#1C1C1C` |
+| `card` | `#1C1C1C` |
+| `border` | `#2E2E2E` |
+| `borderLight` | `rgba(255,255,255,0.05)` |
+| `primary` | `#C9A96E` |
+| `primaryText` | `#0A0A0A` |
+| `text` | `#FFFFFF` |
+| `textSecondary` | `rgba(255,255,255,0.50)` |
+| `textMuted` | `rgba(255,255,255,0.25)` |
+| `inputBg` | `#1C1C1C` |
+| `inputBorder` | `rgba(255,255,255,0.08)` |
+| `inputText` | `#FFFFFF` |
+| `inputPlaceholder` | `rgba(255,255,255,0.25)` |
+| `headerBg` | `#0A0A0A` |
+| `headerText` | `#C9A96E` |
+| `tabBar` | `#0D0D0D` |
+| `tabActive` | `#C9A96E` |
+| `tabInactive` | `rgba(255,255,255,0.25)` |
+| `success` | `#4CAF87` |
+| `successLight` | `rgba(76,175,135,0.15)` |
+| `warning` | `#E8A020` |
+| `warningLight` | `rgba(232,160,32,0.15)` |
+| `error` | `#E85A4F` |
+| `errorLight` | `rgba(232,90,79,0.15)` |
+| `info` | `#5B8DEF` |
+| `infoLight` | `rgba(91,141,239,0.15)` |
+| `accent` | `rgba(201,169,110,0.10)` |
+| `accentLight` | `rgba(201,169,110,0.06)` |
+
+#### Light tema
+
+Light tema koristi **tople neutralne** — nije čisto bijela, nego champagne bijela baza.
+
+| Token | Light vrijednost |
+| --- | --- |
+| `background` | `#F8F5F0` |
+| `surface` | `#FFFFFF` |
+| `surfaceElevated` | `#FFFFFF` |
+| `card` | `#FFFFFF` |
+| `border` | `#E8E0D5` |
+| `borderLight` | `rgba(0,0,0,0.05)` |
+| `primary` | `#C9A96E` |
+| `primaryText` | `#FFFFFF` |
+| `text` | `#0A0A0A` |
+| `textSecondary` | `rgba(10,10,10,0.55)` |
+| `textMuted` | `rgba(10,10,10,0.35)` |
+| `inputBg` | `#F2EDE6` |
+| `inputBorder` | `rgba(0,0,0,0.10)` |
+| `inputText` | `#0A0A0A` |
+| `inputPlaceholder` | `rgba(10,10,10,0.35)` |
+| `headerBg` | `#0A0A0A` |
+| `headerText` | `#C9A96E` |
+| `tabBar` | `#FFFFFF` |
+| `tabActive` | `#C9A96E` |
+| `tabInactive` | `rgba(10,10,10,0.35)` |
+| `accent` | `rgba(201,169,110,0.12)` |
+| `accentLight` | `rgba(201,169,110,0.06)` |
+
+> Napomena: `success`, `warning`, `error`, `info` i njihovi light varijanti ostaju isti za obje teme — semantičke boje su universalne.
+
+### 1.4 Tipografija
+
+Novi vizuelni identitet koristi **dva fonta**. Potrebno ih je instalirati i koristiti konzistentno.
+
+| Uloga | Font | Weights |
+| --- | --- | --- |
+| **Display / naslovi** | Cormorant Garamond | Light 300, Regular 400 |
+| **UI / interface** | DM Sans | Light 300, Regular 400, Medium 500, SemiBold 600 |
+
+**Expo instalacija:**
+```
+npx expo install @expo-google-fonts/cormorant-garamond @expo-google-fonts/dm-sans
+```
+
+**Ažurirati u `mobile/app/_layout.tsx`** — `useFonts` hook:
+```ts
+CormorantGaramond_300Light,
+CormorantGaramond_400Regular,
+DMSans_300Light,
+DMSans_400Regular,
+DMSans_500Medium,
+DMSans_600SemiBold,
+```
+
+**Ažurirati `mobile/src/theme/fonts.ts`** — `fontFamily` konstante:
+```ts
+export const fontFamily = {
+  display: 'CormorantGaramond_300Light',
+  displayRegular: 'CormorantGaramond_400Regular',
+  sans: 'DMSans_400Regular',
+  sansLight: 'DMSans_300Light',
+  sansMedium: 'DMSans_500Medium',
+  sansSemiBold: 'DMSans_600SemiBold',
+};
+```
+
+**Tipografska skala:**
+
+| Nivo | Veličina | Weight | Font | Upotreba |
+| --- | --- | --- | --- | --- |
+| Display | 32px | 300 | Cormorant Garamond | Hero, naslov salona |
+| H1 | 24px | 400 | Cormorant Garamond | Screen naslovi |
+| H2 | 18px | 500 | DM Sans | Section naslovi |
+| Body | 15px | 400 | DM Sans | Tekst sadržaj |
+| Small | 13px | 400 | DM Sans | Meta, opisi |
+| Caption | 11px | 600 | DM Sans | Badges, labels, uppercase tracking |
+
+### 1.5 Shape language i elevation
+
+| Element | Border radius |
+| --- | --- |
+| Kartice (cards) | `16px` (`rounded-2xl`) |
+| Modali, bottom sheets | `24px` (`rounded-3xl`) |
+| Inputi | `12px` (`rounded-xl`) |
+| Badges | `full` (pill) |
+| Avatari | `12px` ili `full` (krug) |
+| Manje akcione ćelije | `8–10px` |
+
+Elevation sistem:
+- **Level 0** `#0A0A0A` — app background
+- **Level 1** `#121212` — page background
+- **Level 2** `#1C1C1C` — cards, sections
+- **Level 3** `#262626` — inputi, elevated elements
+- **Level 4** `#303030` — modali, sheets
+
+### 1.6 Status badge vizuelni standard
+
+Svi statusi koriste **pill format** sa dot indikatorom i border outline. Uzor iz mockup-a:
+
+```
+● POTVRĐENO    — #4CAF87   bg: rgba(76,175,135,0.15)   border: rgba(76,175,135,0.3)
+● NA ČEKANJU   — #E8A020   bg: rgba(232,160,32,0.15)   border: rgba(232,160,32,0.3)
+● OTKAZANO     — #E85A4F   bg: rgba(232,90,79,0.15)    border: rgba(232,90,79,0.3)
+● ZAVRŠENO     — #5B8DEF   bg: rgba(91,141,239,0.15)   border: rgba(91,141,239,0.3)
+● U TOKU       — #C9A96E   bg: rgba(201,169,110,0.15)  border: rgba(201,169,110,0.3)
+● NIJE STIGAO  — #9B59B6   bg: rgba(155,89,182,0.15)   border: rgba(155,89,182,0.3)
+● ST. PREGLED  — #FF9F45   bg: rgba(255,159,69,0.15)   border: rgba(255,159,69,0.3)
+```
+
+Veličina teksta: `9–10px`, font: `DMSans_600SemiBold`, `tracking-wider`, `uppercase`.
+
+### 1.7 Tab bar standard
+
+**Klijent — 4 taba:** Početna · Usluge · Termini · Profil  
+**Stilist — 5 tabova:** Inbox · Dnevnik · Raspored · Statistika · Profil
+
+Vizuelni standard (iz mockup-a `shared.tsx`):
+- Background: `#0D0D0D/95` sa `backdrop-blur`
+- Border top: `rgba(255,255,255,0.08)`
+- Aktivni tab: `rgba(201,169,110,0.10)` background chip + gold tekst + gold indicator linija (`4px wide, 2px height, rounded-full`) na dnu
+- Neaktivni: `rgba(255,255,255,0.20)` ikona/tekst
+- Inbox badge za stilista: `#E8A020` (narančasta za STYLIST_REVIEW)
+- Profile badge: `#E85A4F` (crvena za unread notifications)
+
+### 1.8 Motion principi
+
+| Tip interakcije | Trajanje | Easing | Biblioteka |
+| --- | --- | --- | --- |
+| Page / stack transition | 300ms | ease-out | Reanimated |
+| Tab switch | 200ms | ease-in-out | Reanimated |
+| Modal / bottom sheet open | 350ms | spring | Reanimated |
+| Button press scale | 150ms | ease | Reanimated |
+| Card / list item appear | 200ms | FadeInDown | Reanimated |
+| In-progress status pulse | 2s loop | — | Reanimated |
+
+### 1.9 Ekran-specifični vizuelni obrasci
+
+Za svaki ekran, agent uzima konkretan mockup iz `C:\Dokumentacija\Projekti web\Bauty\mobile-app-ui-redesign\src\components\` kao primarni vizuelni referent:
+
+| Sekcija | Mockup fajl |
+| --- | --- |
+| Design system, paleta, komponente | `DesignSystem.tsx` |
+| Login, Register | `AuthScreens.tsx` |
+| Onboarding (4 koraka) | `OnboardingScreens.tsx` |
+| Home, Blog lista, Blog post, Transformacije | `ClientHomeScreens.tsx` |
+| Usluge hub, Kategorija, Detalj, Galerija, Rezervacija wizard | `ClientServicesScreens.tsx` |
+| Moje rezervacije, Detalj, Recenzija | `ClientReservationsScreens.tsx` |
+| Profil, Edit, Lozinka, Notifikacije, Kontakt | `ClientProfileScreens.tsx` |
+| Inbox, Dnevnik, Raspored, Statistika, Stilist profil | `StylistScreens.tsx` |
+
+**Pravilo:** za svaki ekran koji se implementira, agent mora pročitati odgovarajuću komponentu iz gore navedenog fajla i koristiti isti layout, vizuelne elemente i kompoziciju kao osnovu za React Native implementaciju.
+
+### 1.10 Header standard
+
+Svi stack screen headeri (ne tab root ekrani):
+- Background: `#0A0A0A/95` + `backdrop-blur`
+- Border bottom: `rgba(255,255,255,0.05)`
+- Naslov: `DMSans_600SemiBold`, `14px`, `#FFFFFF`
+- Back dugme: `32px` kružni chip, `rgba(255,255,255,0.06)` background, `←` ikona `rgba(255,255,255,0.60)`
+
+### 1.11 Principi koji se ne smiju kršiti
 
 | Princip | Opis |
 | --- | --- |
-| **Potpuni novi identitet** | Dizajn ne mora pratiti postojeći izgled, postojeće boje ni postojeću kompoziciju. Dozvoljen je potpuno novi premium brend izraz. |
-| **Smislena paleta** | Ne postoji unaprijed zaključana paleta. Agent smije definisati novu kolor šemu ako je konzistentna, elegantna, čitljiva i semantički ispravna. |
-| **Funkcionalna potpunost** | Nijedna postojeća funkcionalnost, informacija ili capability ne smije biti izgubljen. Sve što danas postoji mora ostati dostupno korisniku. |
-| **Slobodan raspored** | Ekrani ne moraju ostati u istim koracima, istim sekcijama ni istom redoslijedu ako nova organizacija bolje podržava UX. |
-| **HD / HQ** | Slike i mediji u punoj rezoluciji gdje je moguće (`MediaImage`, `expo-image`, thumb/medium/original putanje). Bez mutnih hero i galerijskih prikaza. |
-| **Čisto i moderno** | Puno vazduha, jaka hijerarhija, jasan fokus, bez vizuelnog šuma. Finalni rezultat treba djelovati savremeno, samouvjereno i premium. |
-| **Profesionalno i ultra premium** | Beauty/salon segment mora djelovati luksuzno, ozbiljno i kvalitetno, bez kiča ili prenatrpanosti. |
-| **Animacije samo kad pomažu** | Animacije smiju postojati, ali samo ako poboljšavaju jasnoću, feedback ili osjećaj kvaliteta. Bez dekorativnih i napadnih efekata. |
-| **Bolji UX prije vjernosti starom UI-ju** | Ako postojeći koraci, raspored ili struktura nisu idealni, smiju se zamijeniti boljim UX rješenjem, sve dok funkcionalnost ostaje kompletna. |
-
-**Važno:** postojeći design tokeni (`mobile/src/theme/colors.ts`, `spacing.ts`, `typography.ts`, `fonts.ts`) su samo referenca za trenutno stanje, a ne ograničenje za novi identitet.
-
-**Navigacija danas:** custom floating tab bar (`BottomNavMenu`) sa blur pozadinom — 4 taba (klijent) / 5 tabova (stilist). To je informacija za audit, ne obaveza da isti obrazac mora ostati nepromijenjen.
-
-**Ne dirati u redizajnu:** API pozive, Zustand store logiku, FSM rezervacija, validacije, push routing i poslovna pravila.
+| **Funkcionalna potpunost** | Nijedna postojeća funkcionalnost ne smije biti izgubljena ili nepristupačna |
+| **Slike HD/HQ** | Uvijek `MediaImage` / upload URL helperi; nikad hardkodirane dimenzije koje krše aspect ratio |
+| **Ne dirati business logiku** | JSX struktura, stilovi, spacing, tipografija, animacije — DA. API pozivi, Zustand store, FSM, validacije, push routing — NE |
+| **Light + dark konzistentnost** | Oba moda moraju biti implementirana i konzistentna; light tema je topla champagne bijela, nije inverz dark-a |
+| **Safe area** | Uvijek `useSafeAreaInsets` za bottom padding; testirati Android 3-button + gesture varijante |
 
 ---
 
@@ -600,35 +814,39 @@ Ako redesign uvede velike probleme, regresije ili nezadovoljavajući rezultat, b
 
 ---
 
-## 11. Prioriteti redizajna (predlog agentu)
+## 11. Prioriteti implementacije
 
-1. **Novi brand sistem** — definisati novu paletu, tipografski pravac, shape language, elevation, ikonografiju i tone of UI
-2. **Novi design system** — Button, Card, Input, Badge, list items, tabs, sheets, empty states, feedback states
-3. **Client landing** — Home kao novi identitetski ekran i prvi dojam aplikacije
-4. **Booking UX** — rezervacije su najvažniji conversion flow i smiju biti potpuno reorganizovane ako UX postane bolji
-5. **My Reservations** — statusi, akcije, čitljivost i pregled toka nakon rezervacije
-6. **Stylist core flow** — Inbox, Schedule, Reservation detail kao radni alat stilista
-7. **Daily log** — finansijski zapis, transformacije, disposition i ručni unos
-8. **Auth + Onboarding** — prvi kontakt i ulazni flow, bez obaveze da ostane identičan po koracima
-9. **Profil + Contact + Notifications** — sekundarni ali važni ekrani za povjerenje i account management
+Redoslijed koji agent treba pratiti:
+
+1. **Design system foundation** — ažurirati `colors.ts` (token mapa, sekcija 1.3), `fonts.ts` (sekcija 1.4), instalirati fontove, ažurirati `_layout.tsx`
+2. **Shared komponente** — `Button`, `Card`, `Input`, `Badge`, `EmptyState`, `LoadingScreen` prema mockup `DesignSystem.tsx`
+3. **Tab bar** — `BottomNavMenu` prema novom vizuelnom standardu iz sekcije 1.7
+4. **Auth ekrani** — `LoginScreen`, `RegisterScreen` prema `AuthScreens.tsx` u mockup-u
+5. **Onboarding** — 4 koraka prema `OnboardingScreens.tsx` u mockup-u
+6. **Client: Home** — `HomeScreen` i nested ekrani prema `ClientHomeScreens.tsx`
+7. **Client: Usluge + Rezervacija** — svi ekrani usluga uključujući wizard prema `ClientServicesScreens.tsx`
+8. **Client: Rezervacije** — lista, detalj, recenzija prema `ClientReservationsScreens.tsx`
+9. **Client: Profil** — svi profil ekrani prema `ClientProfileScreens.tsx`
+10. **Stylist: svi ekrani** — Inbox, Dnevnik (sa svim pod-ekranima), Raspored, Statistika, Profil prema `StylistScreens.tsx`
 
 ---
 
 ## 12. Handoff uputstvo za redesign agenta
 
-1. Pročitaj ovaj dokument prije bilo koje UI izmjene.
-2. Prije prve implementacije obavezno ispoštuj `Backup protokol prije implementacije` iz ovog dokumenta.
-3. Tretiraj zadatak kao **potpuni rebrand**, ne kao vizuelno dotjerivanje postojećeg interfejsa.
-4. Slobodno definiši **novu paletu**, novi vizuelni jezik, nove kompozicije i nove UX obrasce ako to vodi boljem rezultatu.
-5. Nisi vezan za postojeći raspored ekrana, postojeće sekcije ni postojeći step-by-step model, osim gdje backend logika eksplicitno traži određeni uslov ili redoslijed.
-6. **Obavezno sačuvaj svu funkcionalnost**: ništa ne smije nestati, biti zaboravljeno ili ostati bez jasnog pristupa.
-7. Ako reorganizuješ flow, provjeri da su sve postojeće akcije i sva bitna stanja i dalje pokriveni.
-8. **Ne mijenjaj** business logiku — dozvoljene su izmjene u JSX strukturi, vizuelnoj hijerarhiji, komponentama, stilovima, spacingu, tipografiji i animacijama.
-9. Testiraj **light + dark** i **Android 3-button + gesture** safe area, osim ako novi brand pravac traži svjesno drugačiju temu strategiju koja i dalje mora ostati konzistentna i čitljiva.
-10. Slike: uvijek `MediaImage` / upload URL helperi — ne hardcodiraj dimenzije koje kvare aspect ratio.
-11. Animacije: koristi ih selektivno; cilj je kvalitet i jasnoća, ne vizuelni spektakl.
-12. Referenca prethodnog tehničkog audita: `.cursor/plans/mobile_ui_redesign_audit_24155cab.plan.md` (tehnički setup NativeWind, edge-to-edge).
+1. **Pročitaj ovaj dokument u potpunosti** prije bilo koje UI izmjene.
+2. **Prije prve implementacije ispoštuj Backup protokol** iz sekcije 10 ovog dokumenta — obavezan commit + push + tag.
+3. **Vizuelni source of truth** je mockup na `C:\Dokumentacija\Projekti web\Bauty\mobile-app-ui-redesign`. Za svaki ekran čitaj odgovarajuću komponentu iz tog mockup-a i koristi je kao primarni vizuelni referent. Mapa fajlova je u sekciji 1.9.
+4. **Počni sa `colors.ts` i `fonts.ts`** — bez ispravnih tokena i fontova sve ostalo nema smisla. Token mapa je u sekciji 1.3, font spec u sekciji 1.4.
+5. **Instaliraj fontove** (`@expo-google-fonts/cormorant-garamond`, `@expo-google-fonts/dm-sans`) i ažuriraj `_layout.tsx` + `fonts.ts` prije nego krenesš na ekrane.
+6. **Redoslijed implementacije:** design system (tokeni + fontovi + shared komponente) → tab bar → auth → onboarding → client ekrani → stylist ekrani.
+7. **Obavezno sačuvaj svu funkcionalnost** — nijedna akcija, informacija ni flow ne smije nestati ili biti nepristupačna. Inventar ekrana u sekcijama 4–7 je funkcionalna mapa onoga što mora biti pokriveno.
+8. **Ne mijenjaj business logiku** — dozvoljeno: JSX struktura, vizuelna hijerarhija, komponente, stilovi, spacing, tipografija, animacije. Zabranjeno: API pozivi, Zustand store logika, FSM rezervacija, validacije, push routing.
+9. **Light + dark** moraju oba raditi. Light je topla champagne bijela (`#F8F5F0` baza), nije inverz dark-a. Token mapa za obje teme je u sekciji 1.3.
+10. **Safe area** — uvijek `useSafeAreaInsets` za bottom padding; testirati Android 3-button + gesture bar.
+11. **Slike** — uvijek `MediaImage` / upload URL helperi; nikad hardkodirane dimenzije koje kvare aspect ratio.
+12. **Animacije** — koristiti selektivno prema motion principima iz sekcije 1.8; cilj je kvalitet UX feedbacka, ne vizuelni spektakl.
+13. **Referenca tehničkog audita** (NativeWind setup, edge-to-edge, Expo SDK): `.cursor/plans/mobile_ui_redesign_audit_24155cab.plan.md`.
 
 ---
 
-*Generisano: inventar mobilne aplikacije za UX/UI redizajn — Beauty Salon Nejra v2.*
+*Implementacijska specifikacija — Beauty Salon Nejra v2 mobile rebrand.*

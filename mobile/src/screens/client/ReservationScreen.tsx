@@ -320,9 +320,13 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   };
 
   const goBackToOrigin = useCallback(() => {
-    if (navigation.canGoBack()) {
-      navigation.goBack();
-      return;
+    try {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return;
+      }
+    } catch {
+      // navigation not ready or stack empty
     }
 
     const parent = navigation.getParent();

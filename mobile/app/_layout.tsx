@@ -67,6 +67,7 @@ function AppContent() {
   usePushNotifications();
   const apkUpdate = useApkUpdateCheck();
 
+
   // User requirement:
   // - status bar icons always white
   // - navigation bar icons swap with theme (so 3-button home/back/recent stay readable)

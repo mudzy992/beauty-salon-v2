@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInRight } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
@@ -79,7 +78,7 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
         const heroUri = item.heroImage ? getUploadUrl(item.heroImage) : null;
         const canBook = !user?.gender || item.gender === user.gender;
         return (
-          <Animated.View entering={FadeInRight.delay(Math.min(index, 8) * 45).duration(320).springify()}>
+          <View>
           <Card style={{ ...styles.card, ...styles.cardBackdrop }}>
               <MediaBackdrop
                 uri={heroUri}
@@ -135,7 +134,7 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
                 </View>
               </MediaBackdrop>
           </Card>
-          </Animated.View>
+          </View>
         );
       }}
     />

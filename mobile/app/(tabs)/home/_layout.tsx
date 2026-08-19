@@ -12,6 +12,8 @@ export default function HomeStackLayout() {
         headerTintColor: colors.headerText,
         headerTitleStyle: { fontWeight: '600' },
         contentStyle: { backgroundColor: colors.background },
+        gestureEnabled: true,
+        animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
