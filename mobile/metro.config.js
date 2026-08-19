@@ -6,7 +6,6 @@ const projectRoot = __dirname;
 const defaultConfig = getDefaultConfig(projectRoot);
 
 // 1. ISKLJUČUJEMO CACHE I FORSIRAMO INLINE REQUIRES
-// Ovo sprječava SHA-1 mismatch jer Metro ne analizira statički cijelo stablo unaprijed
 defaultConfig.transformer.getTransformOptions = async () => ({
   transform: {
     experimentalImportSupport: false,
@@ -21,16 +20,20 @@ defaultConfig.projectRoot = projectRoot;
 const originalResolveRequest = defaultConfig.resolver.resolveRequest;
 
 defaultConfig.resolver.resolveRequest = (context, moduleName, platform) => {
-  // A) AGRESIVNI FIKS ZA REANIMATED PATH BUG (react-native-css)
-  // Ako moduleName sadrži "react-native-reanimated" i NIJE obični import (ima putanju u sebi)
-  if (moduleName.includes('react-native-reanimated') && moduleName.length > 25) {
+  // A) AGRESIVNI FIKS ZA REANIMATED I WORKLETS PATH BUG (v5 bug)
+  // Presreće bilo koju apsolutnu putanju (/tmp/...) koja pokušava učitati ove pakete
+  if ((moduleName.includes('react-native-reanimated') || moduleName.includes('react-native-worklets')) && moduleName.length > 25) {
     try {
-      // Dinamički pronalazimo pravi ulazni file za Reanimated na trenutnoj mašini
-      const reanimatedMain = require.resolve('react-native-reanimated', { paths: [projectRoot] });
-      return { type: 'sourceFile', filePath: reanimatedMain };
+      // Dinamički pronalazimo pravi paket na trenutnoj mašini (u trenutnom /tmp/ build folderu)
+      const targetPackage = moduleName.includes('reanimated') ? 'react-native-reanimated' : 'react-native-worklets';
+      const resolvedMain = require.resolve(targetPackage, { paths: [projectRoot] });
+      return { type: 'sourceFile', filePath: resolvedMain };
     } catch (e) {
       // Fallback ako require.resolve ne uspije
-      return { type: 'sourceFile', filePath: path.join(projectRoot, 'node_modules/react-native-reanimated/src/index.ts') };
+      const fallbackPath = moduleName.includes('reanimated') 
+        ? 'node_modules/react-native-reanimated/src/index.ts'
+        : 'node_modules/react-native-worklets/src/index.ts';
+      return { type: 'sourceFile', filePath: path.join(projectRoot, fallbackPath) };
     }
   }
 

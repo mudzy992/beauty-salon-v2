@@ -255,32 +255,49 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
   const userId = user?.id;
   useEffect(() => {
-    if (!userId) { setUpcomingReservation(null); return; }
-    const ACTIVE_STATUSES: ReservationStatus[] = ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED', 'IN_PROGRESS'];
+    if (!userId) { 
+      setUpcomingReservation(null); 
+      return; 
+    }
+  
+    const ACTIVE_STATUSES: ReservationStatus[] = [
+      'PENDING', 
+      'STYLIST_REVIEW', 
+      'CONFIRMED', 
+      'ATTENDANCE_CONFIRMED', 
+      'IN_PROGRESS'
+    ];
     let cancelled = false;
+  
     api.get<Reservation[]>('/api/reservations', { params: { asClient: true } })
       .then(({ data }) => {
         if (cancelled) return;
+  
         const today = new Date().toISOString().slice(0, 10);
-        console.log('[upcoming] raw data type:', Array.isArray(data) ? 'array' : typeof data);
-        console.log('[upcoming] raw data:', JSON.stringify(data).slice(0, 500));
-        console.log('[upcoming] today:', today);
         const arr = Array.isArray(data) ? data : (data as any)?.data ?? [];
-        arr.forEach((r: any) => {
-          console.log('[upcoming] r.id:', r.id, 'status:', r.status, 'reservationDate:', r.reservationDate);
-        });
+  
         const next = arr.find(
-          (r: any) => ACTIVE_STATUSES.includes(r.status) && r.reservationDate >= today,
+          (r: any) => {
+            // Uzimamo samo prvih 10 znakova datuma (YYYY-MM-DD) za ispravnu usporedbu
+            const cleanDateStr = r.reservationDate?.includes('T') 
+              ? r.reservationDate.slice(0, 10) 
+              : r.reservationDate;
+  
+            return ACTIVE_STATUSES.includes(r.status) && cleanDateStr >= today;
+          }
         ) ?? null;
-        console.log('[upcoming] next:', next ? next.id : null);
+  
         setUpcomingReservation(next);
       })
-      .catch((err) => {
-        console.log('[upcoming] fetch error:', err?.message);
+      .catch(() => {
         if (!cancelled) setUpcomingReservation(null);
       });
-    return () => { cancelled = true; };
+  
+    return () => { 
+      cancelled = true; 
+    };
   }, [userId]);
+  
   usePublicContentSocketRefresh(fetchData);
   useAutoRefresh(fetchData, {
     intervalMs: 60000,
