@@ -35,6 +35,13 @@ const formatDate = (dateStr: string) => {
   }
 }
 
+const getPolicyLabel = (acceptanceMode?: string | null): string => {
+  if (acceptanceMode === 'DIRECT_ASSIGN') {
+    return 'Direktna rezervacija — automatski potvrđena, bez čekanja klijenta.'
+  }
+  return 'Standardna rezervacija — klijent treba potvrditi termin.'
+}
+
 export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props) => {
   const [mode, setMode] = useState<'original' | 'new'>('original')
   const [newDate, setNewDate] = useState('')
@@ -43,7 +50,8 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
 
   const originalDate = entry.date?.slice(0, 10) ?? ''
   const hasReservation = !!entry.reservation && !entry.isManual
-  const willBeReservation = hasReservation && mode === 'new' && newDate && isFutureDate(newDate)
+  const activeDate = mode === 'original' ? originalDate : newDate
+  const willCreateReservation = hasReservation && !!activeDate && isFutureDate(activeDate)
 
   const handleConfirm = () => {
     if (mode === 'original') {
@@ -66,7 +74,10 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
         <div className="space-y-4 py-2">
           <RadioGroup
             value={mode}
-            onValueChange={(v) => setMode(v as 'original' | 'new')}
+            onValueChange={(v) => {
+              setMode(v as 'original' | 'new')
+              setNewDate('')
+            }}
             className="space-y-2"
           >
             <div className="flex items-center gap-3 rounded-lg border p-3">
@@ -97,14 +108,26 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
             </div>
           )}
 
-          {willBeReservation && (
-            <div className="flex gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+          {hasReservation && (
+            <div className={`flex gap-2 rounded-lg border p-3 text-sm ${
+              willCreateReservation
+                ? 'border-blue-200 bg-blue-50 text-blue-800'
+                : 'border-slate-200 bg-slate-50 text-slate-700'
+            }`}>
               <Info className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>
-                Datum je u budućnosti — zapis će biti vraćen kao{' '}
-                <strong>nova rezervacija</strong> s istim terminima i stilistom.
-                Policy (direktna dodjela / inbox) nasljeđuje se iz originalne rezervacije.
-              </p>
+              <div className="space-y-1">
+                {willCreateReservation ? (
+                  <p>
+                    Datum je u budućnosti — kreiraće se{' '}
+                    <strong>nova rezervacija</strong> s istim terminima i stilistom.
+                  </p>
+                ) : (
+                  <p>Zapis će biti vraćen u dnevnu knjigu kao PENDING na odabrani datum.</p>
+                )}
+                <p className="text-xs opacity-80">
+                  {getPolicyLabel(entry.reservation?.acceptanceMode)}
+                </p>
+              </div>
             </div>
           )}
         </div>

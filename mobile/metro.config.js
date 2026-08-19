@@ -1,8 +1,10 @@
 const path = require('path');
 const { getDefaultConfig } = require('expo/metro-config');
-const { withNativeWind } = require('nativewind/metro');
+// PROMJENA: malo slovo 'w' u withNativewind za v5
+const { withNativewind } = require('nativewind/metro');
 
-const config = withNativeWind(getDefaultConfig(__dirname));
+// PROMJENA: Omotano s novom ispravnom v5 funkcijom (bez drugog argumenta)
+const config = withNativewind(getDefaultConfig(__dirname));
 
 const isEasBuild = process.env.EAS_BUILD === 'true';
 const isDevClient = process.argv.includes('--dev-client');

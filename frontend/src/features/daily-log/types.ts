@@ -54,6 +54,10 @@ export interface DailyLogEntry {
     loyaltyDiscountPercent: number
     loyaltyDiscountAmount: number | string
     payDebtsIntent?: boolean
+    acceptanceMode?: string | null
+    bookingOrigin?: string | null
+    attendancePolicy?: string | null
+    confirmedStylistId?: string | null
   } | null
 }
 

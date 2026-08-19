@@ -95,10 +95,9 @@ export class DailyLogRestoreService {
       ? this.dates.parseDateOnly(dto.date)
       : new Date(entry.date);
 
-    const isFutureDate = this.isFuture(targetDate);
-    const hasReservation = !!entry.reservation;
+    const hasReservation = !!entry.reservation && !entry.isManual;
 
-    if (hasReservation && isFutureDate && !entry.isManual) {
+    if (hasReservation && this.isFuture(targetDate)) {
       return this.restoreAsReservation(entry, targetDate, user);
     }
 
