@@ -1,61 +1,42 @@
 const path = require('path');
 const { getDefaultConfig } = require('expo/metro-config');
-// PROMJENA: malo slovo 'w' u withNativewind za v5
 const { withNativewind } = require('nativewind/metro');
 
-// PROMJENA: Omotano s novom ispravnom v5 funkcijom (bez drugog argumenta)
 const config = withNativewind(getDefaultConfig(__dirname));
 
 const isEasBuild = process.env.EAS_BUILD === 'true';
 const isDevClient = process.argv.includes('--dev-client');
 const useExpoGoShims = !isEasBuild && !isDevClient;
 
-const reanimatedShimPkg = path.resolve(__dirname, 'shims/packages/react-native-reanimated');
-const workletsShimPkg = path.resolve(__dirname, 'shims/packages/react-native-worklets');
-const reanimatedShimFile = path.resolve(__dirname, 'shims/react-native-reanimated.expo-go.js');
-const workletsShimFile = path.resolve(__dirname, 'shims/react-native-worklets.expo-go.js');
-
-function isShimTarget(moduleName) {
-  return (
-    moduleName === 'react-native-reanimated' ||
-    moduleName.startsWith('react-native-reanimated/') ||
-    moduleName === 'react-native-worklets' ||
-    moduleName.startsWith('react-native-worklets/')
-  );
-}
-
-function resolveShim(moduleName) {
-  if (moduleName === 'react-native-reanimated' || moduleName.startsWith('react-native-reanimated/')) {
-    return reanimatedShimFile;
-  }
-  if (moduleName === 'react-native-worklets' || moduleName.startsWith('react-native-worklets/')) {
-    return workletsShimFile;
-  }
-  return null;
-}
-
-// Na EAS/dev-client buildu: osiguraj da react-native-reanimated/worklets
-// uvijek resolveuju na lokalne node_modules, a ne na stare shim putanje
-// iz prethodnih buildova (problem s react-native-css internim importom).
+// Pravi paketi u tvojim node_modules
 const reanimatedPkg = path.resolve(__dirname, 'node_modules/react-native-reanimated');
 const workletsPkg = path.resolve(__dirname, 'node_modules/react-native-worklets');
 
-config.resolver.extraNodeModules = {
-  ...(config.resolver.extraNodeModules ?? {}),
-  'react-native-reanimated': useExpoGoShims ? reanimatedShimPkg : reanimatedPkg,
-  'react-native-worklets': useExpoGoShims ? workletsShimPkg : workletsPkg,
-};
+// Shims za Expo Go
+const reanimatedShimFile = path.resolve(__dirname, 'shims/react-native-reanimated.expo-go.js');
+const workletsShimFile = path.resolve(__dirname, 'shims/react-native-worklets.expo-go.js');
 
-const previousResolveRequest = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (useExpoGoShims && isShimTarget(moduleName)) {
-    const shimPath = resolveShim(moduleName);
-    if (shimPath) {
-      return { type: 'sourceFile', filePath: shimPath };
-    }
+  // 1. PRESRETANJE: Bilo koja apsolutna putanja koja ide u /tmp/administrator/eas-build...
+  // Ovo "ubija" bug iz react-native-css paketa
+  if (moduleName.includes('eas-build-local-nodejs') && moduleName.includes('react-native-reanimated')) {
+    return { type: 'sourceFile', filePath: reanimatedPkg };
   }
-  if (previousResolveRequest) {
-    return previousResolveRequest(context, moduleName, platform);
+
+  // 2. LOGIKA ZA SHIM-ove (Expo Go vs Production Build)
+  if (moduleName === 'react-native-reanimated' || moduleName.startsWith('react-native-reanimated/')) {
+    const targetPath = useExpoGoShims ? reanimatedShimFile : reanimatedPkg;
+    return { type: 'sourceFile', filePath: targetPath };
+  }
+
+  if (moduleName === 'react-native-worklets' || moduleName.startsWith('react-native-worklets/')) {
+    const targetPath = useExpoGoShims ? workletsShimFile : workletsPkg;
+    return { type: 'sourceFile', filePath: targetPath };
+  }
+
+  // Za sve ostalo koristi standardni resolver
+  if (config.resolver.resolveRequest && config.resolver.resolveRequest !== context.resolveRequest) {
+     return config.resolver.resolveRequest(context, moduleName, platform);
   }
   return context.resolveRequest(context, moduleName, platform);
 };
