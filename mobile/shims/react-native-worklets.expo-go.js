@@ -39,3 +39,28 @@ export const serializableMappingCache = {
 };
 export const toggleSlowAnimationsOnUIRuntime = () => {};
 export const WorkletsModule = null;
+
+const workletsShim = {
+  RuntimeKind,
+  UIRuntimeId,
+  createSerializable,
+  createShareable,
+  createSynchronizable,
+  createWorkletRuntime,
+  executeOnUIRuntimeSync,
+  getUIRuntimeHolder,
+  getUISchedulerHolder,
+  isWorkletFunction,
+  makeShareable,
+  runOnJS,
+  runOnRuntime,
+  runOnUI,
+  runOnUISync,
+  scheduleOnRN,
+  scheduleOnUI,
+  serializableMappingCache,
+  toggleSlowAnimationsOnUIRuntime,
+  WorkletsModule,
+};
+
+export default workletsShim;

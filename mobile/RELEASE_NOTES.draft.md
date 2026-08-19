@@ -5,5 +5,4 @@
 
 ## Napomene (BS, za AppRelease.releaseNotes)
 
-- Početni ekran ima full-width naslovnu sliku, uredniji staklasti panel za dobrodošlicu i rezervaciju te prozračniji sadržaj ispod hero sekcije.
 

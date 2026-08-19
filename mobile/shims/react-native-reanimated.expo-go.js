@@ -52,3 +52,33 @@ const Animated = {
 };
 
 export default Animated;
+
+export const ReduceMotion = {
+  System: 'system',
+  Always: 'always',
+  Never: 'never',
+};
+
+export const SensorType = {};
+export const IOSReferenceFrame = {};
+export const InterfaceOrientation = {};
+
+export const useAnimatedProps = () => ({});
+export const useAnimatedReaction = () => {};
+export const useAnimatedScrollHandler = () => () => {};
+export const useDerivedValue = (updater) => {
+  try {
+    return { value: typeof updater === 'function' ? updater() : updater };
+  } catch {
+    return { value: undefined };
+  }
+};
+export const useEvent = () => ({});
+export const useHandler = () => ({});
+export const useReducedMotion = () => ({ value: false });
+export const cancelAnimation = () => {};
+export const interpolate = (value) => value;
+export const Extrapolation = { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' };
+export const scrollTo = () => {};
+export const runOnUI = (fn) => fn;
+export const runOnJS = (fn) => fn;
