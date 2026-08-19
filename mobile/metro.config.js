@@ -1,8 +1,8 @@
 const path = require('path');
 const { getDefaultConfig } = require('expo/metro-config');
-const { withNativewind } = require('nativewind/metro');
+const { withNativeWind } = require('nativewind/metro');
 
-const config = withNativewind(getDefaultConfig(__dirname));
+const config = withNativeWind(getDefaultConfig(__dirname));
 
 const isEasBuild = process.env.EAS_BUILD === 'true';
 const isDevClient = process.argv.includes('--dev-client');
