@@ -49,7 +49,7 @@ module.exports = {
           image: './assets/splash.png',
           backgroundColor: '#E8A027',
           resizeMode: 'contain',
-          imageWidth: 280,
+          imageWidth: 200,
         },
       ],
       'react-native-edge-to-edge',

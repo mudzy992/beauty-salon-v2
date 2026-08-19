@@ -97,10 +97,16 @@ function formatBlogDate(value?: string): string {
 }
 
 function formatReservationDate(dateStr: string, timeStr: string): string {
-  const date = new Date(`${dateStr}T${timeStr}`);
-  return date.toLocaleDateString('bs-BA', { weekday: 'long', day: 'numeric', month: 'long' }) +
-    ' u ' + date.toLocaleTimeString('bs-BA', { hour: '2-digit', minute: '2-digit' });
-}
+    if (!dateStr) return '';
+    const cleanDateStr = dateStr.includes('T') ? dateStr.slice(0, 10) : dateStr;
+    const date = new Date(`${cleanDateStr}T${timeStr}`);
+    if (isNaN(date.getTime())) return `${cleanDateStr} u ${timeStr}`;
+    const datePart = date.toLocaleDateString('bs-BA', { weekday: 'long', day: 'numeric', month: 'long' });
+    const timePart = date.toLocaleTimeString('bs-BA', { hour: '2-digit', minute: '2-digit' });
+    const formattedDate = datePart.charAt(0).toUpperCase() + datePart.slice(1);
+    return `${formattedDate} u ${timePart}`;
+  }
+  
 
 function getStatusLabel(status: ReservationStatus): string {
   const map: Partial<Record<ReservationStatus, string>> = {
@@ -116,7 +122,8 @@ function getStatusLabel(status: ReservationStatus): string {
 function getStatusColor(status: ReservationStatus): string {
   if (status === 'CONFIRMED' || status === 'ATTENDANCE_CONFIRMED') return '#22c55e';
   if (status === 'IN_PROGRESS') return '#3b82f6';
-  return '#f59e0b';
+  if (status === 'PENDING' || status === 'STYLIST_REVIEW') return '#eab308';
+  return '#94a3b8';
 }
 
 function getBlogExcerpt(content: string, max = 110): string {
@@ -251,16 +258,27 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
     if (!userId) { setUpcomingReservation(null); return; }
     const ACTIVE_STATUSES: ReservationStatus[] = ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED', 'IN_PROGRESS'];
     let cancelled = false;
-    api.get<Reservation[]>('/api/reservations', { params: { asClient: true, limit: 20 } })
+    api.get<Reservation[]>('/api/reservations', { params: { asClient: true } })
       .then(({ data }) => {
         if (cancelled) return;
         const today = new Date().toISOString().slice(0, 10);
-        const next = data.find(
-          (r) => ACTIVE_STATUSES.includes(r.status) && r.reservationDate >= today,
+        console.log('[upcoming] raw data type:', Array.isArray(data) ? 'array' : typeof data);
+        console.log('[upcoming] raw data:', JSON.stringify(data).slice(0, 500));
+        console.log('[upcoming] today:', today);
+        const arr = Array.isArray(data) ? data : (data as any)?.data ?? [];
+        arr.forEach((r: any) => {
+          console.log('[upcoming] r.id:', r.id, 'status:', r.status, 'reservationDate:', r.reservationDate);
+        });
+        const next = arr.find(
+          (r: any) => ACTIVE_STATUSES.includes(r.status) && r.reservationDate >= today,
         ) ?? null;
+        console.log('[upcoming] next:', next ? next.id : null);
         setUpcomingReservation(next);
       })
-      .catch(() => { if (!cancelled) setUpcomingReservation(null); });
+      .catch((err) => {
+        console.log('[upcoming] fetch error:', err?.message);
+        if (!cancelled) setUpcomingReservation(null);
+      });
     return () => { cancelled = true; };
   }, [userId]);
   usePublicContentSocketRefresh(fetchData);
@@ -280,9 +298,22 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const heroSubtitle = getSettingValue(settings, 'public_hero_subtitle', t('home.heroSubtitle'));
   const heroCtaText = getSettingValue(settings, 'public_hero_cta_text', t('home.bookNow'));
 
-  const upcomingServiceName = upcomingReservation?.items?.[0]?.service?.name
-    ?? upcomingReservation?.service?.name
-    ?? 'Rezervacija';
+  const upcomingServiceName = (() => {
+    if (!upcomingReservation) return 'Rezervacija';
+  
+    // 1. Ako imamo niz stavki (items) i u njima nazive servisa, spoji ih zarezom
+    if (upcomingReservation.items && upcomingReservation.items.length > 0) {
+      const names = upcomingReservation.items
+        .map(item => item.service?.name)
+        .filter(Boolean); // Uklanja null/undefined vrijednosti
+      
+      if (names.length > 0) return names.join(' + ');
+    }
+  
+    // 2. Fallback na pojedinačni service objekt ako items ne postoje
+    return upcomingReservation.service?.name ?? 'Rezervacija';
+  })();
+  
 
   const heroBlockHeight = insets.top + HERO_HEIGHT;
 
@@ -432,9 +463,13 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 <View style={[styles.upcomingDot, { backgroundColor: getStatusColor(upcomingReservation.status) }]} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.upcomingLabel, { color: colors.textSecondary }]}>Sljedeći termin</Text>
-                  <Text style={[styles.upcomingService, { color: colors.text }]} numberOfLines={1}>
+                  <Text 
+                    style={[styles.upcomingService, { color: colors.text }]} 
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    >
                     {upcomingServiceName}
-                  </Text>
+                    </Text>
                   <Text style={[styles.upcomingDate, { color: colors.textMuted }]}>
                     {formatReservationDate(upcomingReservation.reservationDate, upcomingReservation.startTime)}
                   </Text>
@@ -919,7 +954,7 @@ const styles = StyleSheet.create({
   infoCard: {
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderCurve: 'continuous',
     overflow: 'hidden',
@@ -953,6 +988,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     lineHeight: 20,
+    flexShrink: 1
   },
   upcomingDate: {
     fontSize: 12,
