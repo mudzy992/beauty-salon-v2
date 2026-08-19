@@ -5,33 +5,36 @@ const { withNativewind } = require('nativewind/metro');
 const projectRoot = __dirname;
 const defaultConfig = getDefaultConfig(projectRoot);
 
-// 1. ISKLJUČUJEMO CACHE (Ovo je ključno za SHA-1 grešku na serveru)
+// 1. ISKLJUČUJEMO CACHE I FORSIRAMO INLINE REQUIRES
+// Ovo sprječava SHA-1 mismatch jer Metro ne analizira statički cijelo stablo unaprijed
 defaultConfig.transformer.getTransformOptions = async () => ({
   transform: {
     experimentalImportSupport: false,
-    inlineRequires: true, // Pomaže kod performansi i resolve-a
+    inlineRequires: true,
   },
 });
 
-// 2. PRISILNO ČIŠĆENJE WATCH FOLDERA
+// 2. WATCH FOLDERS I PROJECT ROOT
 defaultConfig.watchFolders = [projectRoot];
+defaultConfig.projectRoot = projectRoot;
 
 const originalResolveRequest = defaultConfig.resolver.resolveRequest;
 
 defaultConfig.resolver.resolveRequest = (context, moduleName, platform) => {
-  // A) Presretanje bilo kakvog uvoza koji sadrži "react-native-reanimated"
-  // Ako vidimo putanju (slash), ili ako vidimo fiksni ID iz greške
-  if (moduleName.includes('react-native-reanimated')) {
-    // Ako uvoz nije čisti "react-native-reanimated", preusmjeri ga na lokalni paket
-    if (moduleName !== 'react-native-reanimated') {
-       return {
-         type: 'sourceFile',
-         filePath: path.resolve(projectRoot, 'node_modules/react-native-reanimated/lib/commonjs/index.js'),
-       };
+  // A) AGRESIVNI FIKS ZA REANIMATED PATH BUG (react-native-css)
+  // Ako moduleName sadrži "react-native-reanimated" i NIJE obični import (ima putanju u sebi)
+  if (moduleName.includes('react-native-reanimated') && moduleName.length > 25) {
+    try {
+      // Dinamički pronalazimo pravi ulazni file za Reanimated na trenutnoj mašini
+      const reanimatedMain = require.resolve('react-native-reanimated', { paths: [projectRoot] });
+      return { type: 'sourceFile', filePath: reanimatedMain };
+    } catch (e) {
+      // Fallback ako require.resolve ne uspije
+      return { type: 'sourceFile', filePath: path.join(projectRoot, 'node_modules/react-native-reanimated/src/index.ts') };
     }
   }
 
-  // B) Standardna logika za shims (Expo Go podrška)
+  // B) LOGIKA ZA SHIMS (Expo Go podrška)
   const isEasBuild = process.env.EAS_BUILD === 'true';
   const isDevClient = process.argv.includes('--dev-client');
   const useExpoGoShims = !isEasBuild && !isDevClient;
@@ -45,6 +48,7 @@ defaultConfig.resolver.resolveRequest = (context, moduleName, platform) => {
     }
   }
 
+  // C) PROSLJEĐIVANJE NA ORIGINALNI RESOLVER
   if (originalResolveRequest) {
     return originalResolveRequest(context, moduleName, platform);
   }
