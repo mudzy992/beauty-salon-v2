@@ -43,7 +43,7 @@
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.2",
     "i18next": "^25.8.18",
-    "nativewind": "^5.0.0-preview.2",
+    "nativewind": "^4.2.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-i18next": "^16.5.8",
