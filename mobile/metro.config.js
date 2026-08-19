@@ -5,42 +5,44 @@ const { withNativewind } = require('nativewind/metro');
 const projectRoot = __dirname;
 const defaultConfig = getDefaultConfig(projectRoot);
 
-// Spremamo originalni resolver
-const originalResolveRequest = defaultConfig.resolver.resolveRequest;
+// 1. ISKLJUČUJEMO CACHE (Ovo je ključno za SHA-1 grešku na serveru)
+defaultConfig.transformer.getTransformOptions = async () => ({
+  transform: {
+    experimentalImportSupport: false,
+    inlineRequires: true, // Pomaže kod performansi i resolve-a
+  },
+});
 
-// Putanje do paketa na trenutnoj mašini (dinamički)
-const reanimatedPkg = path.resolve(projectRoot, 'node_modules/react-native-reanimated');
-const workletsPkg = path.resolve(projectRoot, 'node_modules/react-native-worklets');
-const reanimatedShimFile = path.resolve(projectRoot, 'shims/react-native-reanimated.expo-go.js');
-const workletsShimFile = path.resolve(projectRoot, 'shims/react-native-worklets.expo-go.js');
-
-const isEasBuild = process.env.EAS_BUILD === 'true';
-const isDevClient = process.argv.includes('--dev-client');
-const useExpoGoShims = !isEasBuild && !isDevClient;
-
-// Dodajemo u watchFolders da izbjegnemo SHA-1 grešku na bilo kojem OS-u
+// 2. PRISILNO ČIŠĆENJE WATCH FOLDERA
 defaultConfig.watchFolders = [projectRoot];
 
+const originalResolveRequest = defaultConfig.resolver.resolveRequest;
+
 defaultConfig.resolver.resolveRequest = (context, moduleName, platform) => {
-  // 1. Uhvati bilo koji pokvareni import koji sadrži "react-native-reanimated" 
-  // i ima neku čudnu putanju (kao onaj /tmp/ bug iz react-native-css)
-  if (moduleName.includes('react-native-reanimated') && (moduleName.includes('/') || moduleName.includes('\\'))) {
-    // Ako modul NIJE obični 'react-native-reanimated', nego neka duga putanja, 
-    // prisilno ga vrati na pravi paket u node_modules
-    if (!moduleName.startsWith('react-native-reanimated')) {
-       return { type: 'sourceFile', filePath: reanimatedPkg };
+  // A) Presretanje bilo kakvog uvoza koji sadrži "react-native-reanimated"
+  // Ako vidimo putanju (slash), ili ako vidimo fiksni ID iz greške
+  if (moduleName.includes('react-native-reanimated')) {
+    // Ako uvoz nije čisti "react-native-reanimated", preusmjeri ga na lokalni paket
+    if (moduleName !== 'react-native-reanimated') {
+       return {
+         type: 'sourceFile',
+         filePath: path.resolve(projectRoot, 'node_modules/react-native-reanimated/lib/commonjs/index.js'),
+       };
     }
   }
 
-  // 2. Standardna logika za shims
-  if (moduleName === 'react-native-reanimated' || moduleName.startsWith('react-native-reanimated/')) {
-    const targetPath = useExpoGoShims ? reanimatedShimFile : reanimatedPkg;
-    return { type: 'sourceFile', filePath: targetPath };
-  }
+  // B) Standardna logika za shims (Expo Go podrška)
+  const isEasBuild = process.env.EAS_BUILD === 'true';
+  const isDevClient = process.argv.includes('--dev-client');
+  const useExpoGoShims = !isEasBuild && !isDevClient;
 
-  if (moduleName === 'react-native-worklets' || moduleName.startsWith('react-native-worklets/')) {
-    const targetPath = useExpoGoShims ? workletsShimFile : workletsPkg;
-    return { type: 'sourceFile', filePath: targetPath };
+  if (useExpoGoShims) {
+    if (moduleName === 'react-native-reanimated' || moduleName.startsWith('react-native-reanimated/')) {
+      return { type: 'sourceFile', filePath: path.resolve(projectRoot, 'shims/react-native-reanimated.expo-go.js') };
+    }
+    if (moduleName === 'react-native-worklets' || moduleName.startsWith('react-native-worklets/')) {
+      return { type: 'sourceFile', filePath: path.resolve(projectRoot, 'shims/react-native-worklets.expo-go.js') };
+    }
   }
 
   if (originalResolveRequest) {
