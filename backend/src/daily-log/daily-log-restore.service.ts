@@ -20,6 +20,30 @@ import {
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import type { RestoreDailyLogEntryDto } from './dto/restore-daily-log-entry.dto';
 
+interface EntryReservationSnapshot {
+  id: string;
+  status: string;
+  bookingOrigin: string;
+  acceptanceMode: string;
+  attendancePolicy: string;
+  confirmedStylistId: string | null;
+  startTime: string;
+  endTime: string;
+  serviceId: string;
+  clientId: string | null;
+}
+
+interface EntryForRestore {
+  id: string;
+  date: Date;
+  clientId: string | null;
+  serviceId: string;
+  isManual: boolean;
+  deletedAt: Date | null;
+  items: Array<{ serviceId: string }>;
+  reservation: EntryReservationSnapshot | null;
+}
+
 @Injectable()
 export class DailyLogRestoreService {
   constructor(
@@ -40,8 +64,14 @@ export class DailyLogRestoreService {
     }
     const entry = await this.prisma.dailyLogEntry.findUnique({
       where: { id },
-      include: {
-        ...this.dailyLog.entryInclude(),
+      select: {
+        id: true,
+        date: true,
+        clientId: true,
+        serviceId: true,
+        isManual: true,
+        deletedAt: true,
+        items: { select: { serviceId: true } },
         reservation: {
           select: {
             id: true,
@@ -57,7 +87,7 @@ export class DailyLogRestoreService {
           },
         },
       },
-    });
+    }) as EntryForRestore | null;
     if (!entry) throw new NotFoundException('Zapis nije pronađen.');
     if (!entry.deletedAt) throw new BadRequestException('Zapis nije obrisan.');
 
@@ -96,20 +126,7 @@ export class DailyLogRestoreService {
   }
 
   private async restoreAsReservation(
-    entry: Awaited<ReturnType<typeof this.prisma.dailyLogEntry.findUnique>> & {
-      reservation: {
-        id: string;
-        status: string;
-        bookingOrigin: string;
-        acceptanceMode: string;
-        attendancePolicy: string;
-        confirmedStylistId: string | null;
-        startTime: string;
-        endTime: string;
-        serviceId: string;
-        clientId: string | null;
-      } | null;
-    },
+    entry: EntryForRestore,
     targetDate: Date,
     user: CurrentUserPayload,
   ) {
@@ -117,9 +134,9 @@ export class DailyLogRestoreService {
     const isDirect =
       res.acceptanceMode === RESERVATION_ACCEPTANCE_MODE.DIRECT_ASSIGN;
 
-    const serviceIds = entry.items?.length
-      ? entry.items.map((i) => i.serviceId)
-      : [entry.serviceId].filter(Boolean) as string[];
+    const serviceIds: string[] = entry.items.length
+      ? entry.items.map((i: { serviceId: string }) => i.serviceId)
+      : [entry.serviceId].filter((s): s is string => !!s);
 
     if (!entry.clientId) {
       throw new BadRequestException(
@@ -171,7 +188,7 @@ export class DailyLogRestoreService {
 
     if (serviceIds.length > 1) {
       await this.prisma.reservationServiceItem.createMany({
-        data: serviceIds.map((sid, idx) => ({
+        data: serviceIds.map((sid: string, idx: number) => ({
           reservationId: newReservation.id,
           serviceId: sid,
           sortOrder: idx,
