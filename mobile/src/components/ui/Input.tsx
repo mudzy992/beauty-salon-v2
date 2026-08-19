@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, StyleSheet, TextInputProps, TouchableOpacity } from 'react-native';
+import { View, TextInput, Text, StyleSheet, TextInputProps, TouchableOpacity, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { borderRadius, spacing } from '../../theme';
 
 interface InputProps extends TextInputProps {
   label?: string;
+  labelStyle?: TextStyle;
   error?: string;
   leftIcon?: keyof typeof Ionicons.glyphMap;
   isPassword?: boolean;
 }
 
-export function Input({ label, error, leftIcon, isPassword, style, onFocus, onBlur, ...props }: InputProps) {
+export function Input({ label, labelStyle, error, leftIcon, isPassword, style, onFocus, onBlur, ...props }: InputProps) {
   const { colors } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -22,7 +23,7 @@ export function Input({ label, error, leftIcon, isPassword, style, onFocus, onBl
   return (
     <View style={styles.container}>
       {label && (
-        <Text style={[styles.label, { color: colors.textSecondary }]} selectable>
+        <Text style={[styles.label, { color: colors.textSecondary }, labelStyle]} selectable>
           {label}
         </Text>
       )}

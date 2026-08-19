@@ -13,8 +13,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MediaImage } from '../../components/MediaImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
@@ -22,7 +20,6 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import api, { getImageUrl } from '../../services/api';
 import { spacing, borderRadius } from '../../theme';
-import { cardElevationStyle } from '../../theme/shadows';
 import { fontFamily } from '../../theme/fonts';
 import type { AuthScreenProps } from '../../navigation/types';
 import { AxiosError } from 'axios';
@@ -78,7 +75,7 @@ function getLoginErrorMessage(error: unknown): string {
 
 export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
   const { t } = useTranslation();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { login, isLoading } = useAuthStore();
 
@@ -88,7 +85,7 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
   const [errors, setErrors] = useState<{ login?: string; password?: string }>({});
 
   useEffect(() => {
-    api.get<unknown>('/api/settings').then(({ data }) => setSettings(normalizeSettings(data))).catch(() => {});
+    api.get<unknown>('/api/settings/public').then(({ data }) => setSettings(normalizeSettings(data))).catch(() => {});
   }, []);
 
   const validate = (): boolean => {
@@ -103,8 +100,6 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
     if (!validate()) return;
     try {
       await login(loginValue.trim(), password);
-      // U expo-router setup-u auth route se ne mijenja automatski nakon store update-a.
-      // Nakon uspješne prijave preusmjeravamo na root koji onda odluči ciljnu sekciju.
       router.replace('/');
     } catch (error) {
       const message = getLoginErrorMessage(error);
@@ -118,9 +113,13 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
 
   return (
     <View style={styles.container}>
-      <MediaImage uri={loginImageUrl} style={StyleSheet.absoluteFill} />
+      <MediaImage
+        uri={settings !== null ? loginImageUrl : undefined}
+        style={StyleSheet.absoluteFill}
+      />
       <LinearGradient
-        colors={['rgba(0,0,0,0.4)', 'rgba(0,0,0,0.6)', 'rgba(0,0,0,0.85)']}
+        colors={['transparent', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.88)']}
+        locations={[0, 0.25, 0.55, 1]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -130,19 +129,14 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
           style={styles.flex}
         >
           <ScrollView
-            contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxl + insets.bottom + 12 }]}
+            contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxl + insets.bottom + 16 }]}
             contentInsetAdjustmentBehavior="automatic"
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {/* Title block */}
+            {/* Header */}
             <View style={styles.header}>
-              <View style={styles.titleDecoration}>
-                <Ionicons name="sparkles" size={18} color={colors.primary} />
-                <View style={[styles.titleLine, { backgroundColor: colors.primary }]} />
-                <Ionicons name="sparkles" size={18} color={colors.primary} style={{ transform: [{ scaleX: -1 }] }} />
-              </View>
-              <Text style={[styles.title, { color: colors.primary }]}>
+              <Text style={[styles.title, { color: colors.white }]}>
                 {loginTitle}
               </Text>
               <Text style={[styles.subtitle, { color: colors.champagne }]}>
@@ -151,23 +145,7 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
             </View>
 
             {/* Form card */}
-            <Animated.View
-              entering={FadeInDown.duration(420).springify()}
-              style={[
-                styles.formCard,
-                {
-                  backgroundColor: colors.card,
-                  borderCurve: 'continuous',
-                  borderWidth: isDark ? 0 : 1,
-                  borderColor: colors.borderLight,
-                },
-                cardElevationStyle(isDark),
-              ]}
-            >
-              <Text style={[styles.formLabel, { color: colors.textSecondary }]}>
-                {t('auth.login')}
-              </Text>
-
+            <View style={[styles.formCard, { borderColor: 'rgba(212,168,67,0.30)' }]}>
               <Input
                 label={t('auth.loginOrUsername')}
                 value={loginValue}
@@ -176,6 +154,7 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 error={errors.login}
+                labelStyle={styles.inputLabel}
               />
 
               <Input
@@ -185,19 +164,22 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
                 leftIcon="lock-closed-outline"
                 isPassword
                 error={errors.password}
+                labelStyle={styles.inputLabel}
               />
 
-              <Button
-                title={t('auth.loginButton')}
-                onPress={handleLogin}
-                loading={isLoading}
-                fullWidth
-                style={{ marginTop: spacing.sm }}
-              />
-            </Animated.View>
+                <Button
+                  title={t('auth.loginButton')}
+                  onPress={handleLogin}
+                  loading={isLoading}
+                  fullWidth
+                  size="lg"
+                  style={styles.loginButton}
+                />
+            </View>
 
+            {/* Footer */}
             <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: colors.champagne }]}>
+              <Text style={styles.footerText}>
                 {t('auth.noAccount')}{' '}
               </Text>
               <TouchableOpacity onPress={() => navigation.navigate('Register')}>
@@ -225,28 +207,18 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     padding: spacing.lg,
-    paddingVertical: spacing.xxl,
+    paddingTop: spacing.xxl,
   },
   header: {
     alignItems: 'center',
     marginBottom: spacing.xl,
   },
-  titleDecoration: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  titleLine: {
-    width: 32,
-    height: 2,
-    marginHorizontal: spacing.xs,
-  },
   title: {
-    fontSize: 28,
+    fontSize: 34,
     fontFamily: fontFamily.heading,
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     textAlign: 'center',
     paddingHorizontal: spacing.md,
   },
@@ -257,19 +229,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.sm,
     paddingHorizontal: spacing.lg,
-    opacity: 0.95,
+    opacity: 0.8,
   },
   formCard: {
     padding: spacing.lg,
     borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     marginBottom: spacing.xl,
   },
-  formLabel: {
-    fontSize: 13,
-    fontFamily: fontFamily.body,
-    marginBottom: spacing.md,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  loginButton: {
+    marginTop: spacing.sm,
+    borderRadius: borderRadius.lg,
+  },
+  inputLabel: {
+    color: 'rgba(255,255,255,0.75)',
   },
   footer: {
     flexDirection: 'row',
@@ -278,6 +252,7 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 15,
     fontFamily: fontFamily.body,
+    color: 'rgba(255,255,255,0.60)',
   },
   footerLink: {
     fontSize: 15,
