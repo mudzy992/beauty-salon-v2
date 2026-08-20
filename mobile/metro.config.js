@@ -6,10 +6,10 @@ const { withNativewind } = require('nativewind/metro');
 const projectRoot = __dirname;
 const config = getDefaultConfig(projectRoot);
 
-const isEasBuild = process.env.EAS_BUILD === 'true';
 const isDevClient = process.argv.includes('--dev-client');
-// Šimove koristimo ISKLJUČIVO za Expo Go (ako nije EAS build i nije Dev Client)
-const useExpoGoShims = !isEasBuild && !isDevClient;
+// Šimove koristimo ISKLJUČIVO za `expo start` u Expo Go (ne za EAS/Gradle/release bundle)
+const useExpoGoShims =
+  process.argv.includes('start') && !isDevClient && process.env.EAS_BUILD !== 'true';
 
 // 2. Definiranje putanja do paketa
 const reanimatedPkg = path.resolve(projectRoot, 'node_modules/react-native-reanimated');
@@ -22,15 +22,15 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   // A) FIKS ZA KRIVE PUTANJE (Bug iz react-native-css/reanimated)
   // Ako import sadrži apsolutnu putanju (/tmp/...) ili krive shims putanje, vraćamo na pravi node_modules
   if (moduleName.includes('react-native-reanimated') && moduleName.length > 30) {
-    return { 
-      type: 'sourceFile', 
-      filePath: path.resolve(reanimatedPkg, 'lib/commonjs/index.js') 
+    return {
+      type: 'sourceFile',
+      filePath: require.resolve('react-native-reanimated', { paths: [projectRoot] }),
     };
   }
   if (moduleName.includes('react-native-worklets') && moduleName.length > 30) {
-    return { 
-      type: 'sourceFile', 
-      filePath: path.resolve(workletsPkg, 'lib/commonjs/index.js') 
+    return {
+      type: 'sourceFile',
+      filePath: require.resolve('react-native-worklets', { paths: [projectRoot] }),
     };
   }
 
