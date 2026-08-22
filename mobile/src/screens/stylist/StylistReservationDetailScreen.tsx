@@ -51,7 +51,7 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
 
   const status = useReservationDetailStatus({
     reservation,
-    profileId,
+    profileId: profileId ?? undefined,
     onOverrunReschedule: detailActions.navigateToReschedulePreview,
   });
 
@@ -91,7 +91,7 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
         <ReservationDetailSummary reservation={reservation} />
         <ReservationDetailActions
           reservation={reservation}
-          profileId={profileId}
+          profileId={profileId ?? undefined}
           {...status}
           startSubmitting={detailActions.startSubmitting}
           onStart={() => void detailActions.submitStart()}
@@ -126,7 +126,7 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
       <CompleteReservationModal
         visible={detailActions.completeModalOpen}
         reservation={reservation}
-        profileId={profileId}
+        profileId={profileId ?? undefined}
         actualPrice={detailActions.completeActualPrice}
         notes={detailActions.completeNotes}
         createDebt={detailActions.createDebt}

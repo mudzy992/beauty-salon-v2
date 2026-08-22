@@ -307,7 +307,11 @@ const styles = StyleSheet.create({
   avatarImage: { width: 96, height: 96, borderRadius: 48 },
   avatarText: { fontSize: 32, fontWeight: '700' },
   avatarOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',

@@ -106,7 +106,7 @@ function formatReservationDate(dateStr: string, timeStr: string): string {
     const formattedDate = datePart.charAt(0).toUpperCase() + datePart.slice(1);
     return `${formattedDate} u ${timePart}`;
   }
-  
+
 
 function getStatusLabel(status: ReservationStatus): string {
   const map: Partial<Record<ReservationStatus, string>> = {
@@ -255,49 +255,49 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
   const userId = user?.id;
   useEffect(() => {
-    if (!userId) { 
-      setUpcomingReservation(null); 
-      return; 
+    if (!userId) {
+      setUpcomingReservation(null);
+      return;
     }
-  
+
     const ACTIVE_STATUSES: ReservationStatus[] = [
-      'PENDING', 
-      'STYLIST_REVIEW', 
-      'CONFIRMED', 
-      'ATTENDANCE_CONFIRMED', 
+      'PENDING',
+      'STYLIST_REVIEW',
+      'CONFIRMED',
+      'ATTENDANCE_CONFIRMED',
       'IN_PROGRESS'
     ];
     let cancelled = false;
-  
+
     api.get<Reservation[]>('/api/reservations', { params: { asClient: true } })
       .then(({ data }) => {
         if (cancelled) return;
-  
+
         const today = new Date().toISOString().slice(0, 10);
         const arr = Array.isArray(data) ? data : (data as any)?.data ?? [];
-  
+
         const next = arr.find(
           (r: any) => {
             // Uzimamo samo prvih 10 znakova datuma (YYYY-MM-DD) za ispravnu usporedbu
-            const cleanDateStr = r.reservationDate?.includes('T') 
-              ? r.reservationDate.slice(0, 10) 
+            const cleanDateStr = r.reservationDate?.includes('T')
+              ? r.reservationDate.slice(0, 10)
               : r.reservationDate;
-  
+
             return ACTIVE_STATUSES.includes(r.status) && cleanDateStr >= today;
           }
         ) ?? null;
-  
+
         setUpcomingReservation(next);
       })
       .catch(() => {
         if (!cancelled) setUpcomingReservation(null);
       });
-  
-    return () => { 
-      cancelled = true; 
+
+    return () => {
+      cancelled = true;
     };
   }, [userId]);
-  
+
   usePublicContentSocketRefresh(fetchData);
   useAutoRefresh(fetchData, {
     intervalMs: 60000,
@@ -317,20 +317,20 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
   const upcomingServiceName = (() => {
     if (!upcomingReservation) return 'Rezervacija';
-  
+
     // 1. Ako imamo niz stavki (items) i u njima nazive servisa, spoji ih zarezom
     if (upcomingReservation.items && upcomingReservation.items.length > 0) {
       const names = upcomingReservation.items
         .map(item => item.service?.name)
         .filter(Boolean); // Uklanja null/undefined vrijednosti
-      
+
       if (names.length > 0) return names.join(' + ');
     }
-  
+
     // 2. Fallback na pojedinačni service objekt ako items ne postoje
     return upcomingReservation.service?.name ?? 'Rezervacija';
   })();
-  
+
 
   const heroBlockHeight = insets.top + HERO_HEIGHT;
 
@@ -459,7 +459,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </TouchableOpacity>
         ) : null}
-        
+
         {/* Kartica sljedećeg termina — prikazuje se samo ako postoji */}
         {upcomingReservation ? (
           <Pressable
@@ -480,8 +480,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 <View style={[styles.upcomingDot, { backgroundColor: getStatusColor(upcomingReservation.status) }]} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.upcomingLabel, { color: colors.textSecondary }]}>Sljedeći termin</Text>
-                  <Text 
-                    style={[styles.upcomingService, { color: colors.text }]} 
+                  <Text
+                    style={[styles.upcomingService, { color: colors.text }]}
                     numberOfLines={1}
                     ellipsizeMode="tail"
                     >
@@ -906,10 +906,18 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.18)',
   },
   heroOverlayBlur: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   heroOverlayGloss: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   heroOverlayContent: {
     flexDirection: 'row',
@@ -1135,7 +1143,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.08)',
   },
   blogCoverOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   blogTag: {
     position: 'absolute',

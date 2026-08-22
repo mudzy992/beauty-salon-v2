@@ -133,10 +133,11 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         setClientId(data.clientId ?? data.client?.id ?? '');
         setPaidTouched(true);
         const servicesPortion = Number(data.actualPrice ?? 0);
-        const debtsPortion = Array.isArray(
-          (data as { debtPaymentEntries?: Array<{ actualPrice?: number | string }> }).debtPaymentEntries,
-        )
-          ? (data as { debtPaymentEntries: Array<{ actualPrice?: number | string }> }).debtPaymentEntries.reduce(
+        const debtPaymentEntries = (data as unknown as {
+          debtPaymentEntries?: Array<{ actualPrice?: number | string }>;
+        }).debtPaymentEntries;
+        const debtsPortion = Array.isArray(debtPaymentEntries)
+          ? debtPaymentEntries.reduce(
               (acc, row) => acc + Number(row.actualPrice ?? 0),
               0,
             )

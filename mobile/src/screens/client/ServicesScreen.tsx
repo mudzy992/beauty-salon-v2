@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   heroTitle: { fontSize: 24, fontWeight: '700', marginBottom: 6 },
   heroSubtitle: { fontSize: 14, lineHeight: 20 },
   featuredCard: { overflow: 'hidden', height: 188, borderRadius: borderRadius.xl, padding: 0 },
-  featuredImage: { ...StyleSheet.absoluteFillObject },
+  featuredImage: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   featuredLabel: {
     position: 'absolute',
     left: spacing.md,

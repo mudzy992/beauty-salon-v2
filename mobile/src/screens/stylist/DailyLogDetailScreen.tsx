@@ -276,7 +276,10 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const afterImages = entry.images?.filter((i) => i.isAfter) ?? [];
   const hasBeforeAfter = beforeImages.length > 0 || afterImages.length > 0;
   const reservationStatusLabel = entry.reservation
-    ? getReservationStatusLabel(entry.reservation, t)
+    ? getReservationStatusLabel(
+        { ...entry.reservation, cancelReason: entry.reservation.cancelReason ?? undefined },
+        t,
+      )
     : null;
 
   return (
