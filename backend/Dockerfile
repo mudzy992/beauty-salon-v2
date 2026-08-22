@@ -4,10 +4,11 @@ WORKDIR /usr/app
 
 COPY package*.json ./
 COPY prisma ./prisma/
-RUN npm ci
+RUN npm install
 COPY . .
 # Prisma 7 prisma.config.ts zahtijeva DATABASE_URL; generate ne koristi konekciju, pa je placeholder dovoljan
-ENV DATABASE_URL="mysql://mudzy:nije,kikiriki@sql.ba101.top:3306/beauty-salon-v2"
+ENV DATABASE_PROVIDER="postgres"
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/beauty_salon_v2?schema=public"
 RUN npx prisma generate
 RUN npm run build
 
@@ -22,7 +23,8 @@ COPY --from=builder /usr/app/prisma ./prisma/
 COPY --from=builder /usr/app/prisma.config.ts ./
 
 # Prisma generate u runtime slici opet treba DATABASE_URL (config ga ucitava); prava vrijednost stize preko env u runtimeu
-ENV DATABASE_URL="mysql://mudzy:nije,kikiriki@sql.ba101.top:3306/beauty-salon-v2"
+ENV DATABASE_PROVIDER="postgres"
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/beauty_salon_v2?schema=public"
 RUN npx prisma generate
 
 ENV NODE_ENV=production

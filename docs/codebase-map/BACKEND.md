@@ -77,8 +77,8 @@ Authoritative implementation notes:
 - **App type**: NestJS (Express) monolith with feature modules and a global `JwtAuthGuard`
 - **Runtime entrypoint**: `backend/src/main.ts`
 - **Root module**: `backend/src/app.module.ts`
-- **Database access**: Prisma Client with MariaDB adapter (`@prisma/adapter-mariadb`) via global `PrismaService` (`backend/src/prisma/prisma.service.ts`)
-- **Database**: MySQL (Prisma schema in `backend/prisma/schema.prisma`, Prisma 7 config in `backend/prisma.config.ts`)
+- **Database access**: Prisma Client with PostgreSQL adapter (`@prisma/adapter-pg`) via global `PrismaService` (`backend/src/prisma/prisma.service.ts`)
+- **Database**: PostgreSQL (Prisma schema in `backend/prisma/schema.prisma`, Prisma 7 config in `backend/prisma.config.ts`)
 - **Auth**: JWT (Passport strategy `backend/src/auth/strategies/jwt.strategy.ts`), public endpoints marked with `@Public()` (`backend/src/common/decorators/public.decorator.ts`)
 - **Uploads**: Local filesystem under `UPLOAD_ROOT` and exposed as static assets at `/uploads/*` (`backend/src/main.ts`, `backend/src/uploads/uploads.service.ts`)
 - **Realtime**: Socket.IO gateway with JWT verification (`backend/src/events/events.gateway.ts`)
@@ -91,10 +91,10 @@ Authoritative implementation notes:
 - `backend/src/app.module.ts`: composes all feature modules and applies global guard
 - `backend/src/prisma/`: DB client wiring
   - `prisma.module.ts`: `@Global()` Prisma provider
-  - `prisma.service.ts`: PrismaClient with MariaDB adapter, requires `DATABASE_URL`
+  - `prisma.service.ts`: PrismaClient with PostgreSQL adapter, requires `DATABASE_URL`
 - `backend/prisma/`: schema + migrations + seed
   - `schema.prisma`: authoritative data model
-  - `migrations/*/migration.sql`: Prisma migrations (MySQL)
+  - `migrations/*/migration.sql`: Prisma migrations (PostgreSQL); legacy MySQL migrations are in `migrations_mysql_backup/`
   - `seed.ts`: seed script referenced from `backend/package.json` and `backend/prisma.config.ts`
 - `backend/src/common/`: cross-cutting helpers
   - `filters/http-exception.filter.ts`: consistent JSON errors

@@ -139,7 +139,10 @@ export class UsersService {
       return this.repo.user.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        include: { userRoles: { include: { role: true } }, stylistProfile: true },
+        include: {
+          userRoles: { include: { role: true } },
+          stylistProfile: true,
+        },
       });
     }
     const page = Math.max(0, pagination?.page ?? 0);
@@ -148,7 +151,10 @@ export class UsersService {
       this.repo.user.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        include: { userRoles: { include: { role: true } }, stylistProfile: true },
+        include: {
+          userRoles: { include: { role: true } },
+          stylistProfile: true,
+        },
         skip: page * pageSize,
         take: pageSize,
       }),
@@ -229,18 +235,23 @@ export class UsersService {
       this.repo.role.findUnique({ where: { name: UsersService.CLIENT_ROLE } }),
     ]);
     if (!clientRole)
-      throw new NotFoundException(`Rola ${UsersService.CLIENT_ROLE} nije pronađena.`);
+      throw new NotFoundException(
+        `Rola ${UsersService.CLIENT_ROLE} nije pronađena.`,
+      );
     if (!requestedRole)
       throw new NotFoundException(`Rola ${requestedRoleName} nije pronađena.`);
     if (!dto.gender) {
       throw new BadRequestException('Spol je obavezan.');
     }
-    const initialPassword = dto.password?.trim() || UsersService.DEFAULT_INITIAL_PASSWORD;
+    const initialPassword =
+      dto.password?.trim() || UsersService.DEFAULT_INITIAL_PASSWORD;
     const passwordHash = await bcrypt.hash(initialPassword, 10);
     const roleIds = Array.from(
       new Set([
         clientRole.id,
-        ...(requestedRoleName !== UsersService.CLIENT_ROLE ? [requestedRole.id] : []),
+        ...(requestedRoleName !== UsersService.CLIENT_ROLE
+          ? [requestedRole.id]
+          : []),
       ]),
     );
     const user = await this.repo.user.create({
@@ -338,7 +349,7 @@ export class UsersService {
       (userRole) => userRole.role.name === UsersService.CLIENT_ROLE,
     );
     const nextGender =
-      dto.gender !== undefined ? dto.gender : user.gender ?? null;
+      dto.gender !== undefined ? dto.gender : (user.gender ?? null);
     if (isClient && !nextGender) {
       throw new BadRequestException('Spol je obavezan za klijente.');
     }
@@ -365,7 +376,9 @@ export class UsersService {
         ...(dto.lastName != null && { lastName: dto.lastName }),
         ...(dto.email !== undefined && {
           email: nextEmail,
-          isEmailVerified: shouldResetEmailVerification ? false : user.isEmailVerified,
+          isEmailVerified: shouldResetEmailVerification
+            ? false
+            : user.isEmailVerified,
           emailVerificationToken: shouldResetEmailVerification
             ? null
             : user.emailVerificationToken,
@@ -397,7 +410,7 @@ export class UsersService {
       (userRole) => userRole.role.name === UsersService.CLIENT_ROLE,
     );
     const nextGender =
-      dto.gender !== undefined ? dto.gender : user.gender ?? null;
+      dto.gender !== undefined ? dto.gender : (user.gender ?? null);
     if (isClient && !nextGender) {
       throw new BadRequestException('Spol je obavezan za klijente.');
     }
@@ -417,7 +430,8 @@ export class UsersService {
       data: {
         ...(dto.email !== undefined && {
           email: dto.email.trim(),
-          isEmailVerified: dto.email.trim() === user.email ? user.isEmailVerified : false,
+          isEmailVerified:
+            dto.email.trim() === user.email ? user.isEmailVerified : false,
           emailVerificationToken: null,
           emailVerificationExpiresAt: null,
         }),
@@ -507,13 +521,23 @@ export class UsersService {
     const stylistProfileId = user.stylistProfile?.id;
     if (!stylistProfileId)
       throw new NotFoundException('Korisnik nema profil stiliste.');
-    const [dailyLogEntriesCount, confirmedReservationsCount, reservationResponsesCount, reviewsCount] =
-      await Promise.all([
-        this.repo.dailyLogEntry.count({ where: { stylistProfileId, deletedAt: null } }),
-        this.repo.reservation.count({ where: { confirmedStylistId: stylistProfileId } }),
-        this.repo.reservationStylistResponse.count({ where: { stylistProfileId } }),
-        this.repo.review.count({ where: { stylistProfileId } }),
-      ]);
+    const [
+      dailyLogEntriesCount,
+      confirmedReservationsCount,
+      reservationResponsesCount,
+      reviewsCount,
+    ] = await Promise.all([
+      this.repo.dailyLogEntry.count({
+        where: { stylistProfileId, deletedAt: null },
+      }),
+      this.repo.reservation.count({
+        where: { confirmedStylistId: stylistProfileId },
+      }),
+      this.repo.reservationStylistResponse.count({
+        where: { stylistProfileId },
+      }),
+      this.repo.review.count({ where: { stylistProfileId } }),
+    ]);
     return {
       stylistProfileId,
       counts: {
@@ -533,19 +557,28 @@ export class UsersService {
     this.requireAdminOrOwner(roles);
     const user = await this.repo.user.findUnique({
       where: { id: userId },
-      include: { stylistProfile: { select: { id: true } }, userRoles: { include: { role: true } } },
+      include: {
+        stylistProfile: { select: { id: true } },
+        userRoles: { include: { role: true } },
+      },
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
     const stylistProfileId = user.stylistProfile?.id;
     if (!stylistProfileId)
       throw new NotFoundException('Korisnik nema profil stiliste.');
 
-    const validateTransferTarget = async (category: { mode: string; targetStylistProfileId?: string }) => {
+    const validateTransferTarget = async (category: {
+      mode: string;
+      targetStylistProfileId?: string;
+    }) => {
       if (category.mode !== 'TRANSFER') return null;
       const targetId = category.targetStylistProfileId?.trim();
-      if (!targetId) throw new BadRequestException('Nedostaje targetStylistProfileId.');
+      if (!targetId)
+        throw new BadRequestException('Nedostaje targetStylistProfileId.');
       if (targetId === stylistProfileId) {
-        throw new BadRequestException('Target stilist ne može biti isti stilist.');
+        throw new BadRequestException(
+          'Target stilist ne može biti isti stilist.',
+        );
       }
       const target = await this.repo.stylistProfile.findUnique({
         where: { id: targetId },
@@ -556,8 +589,12 @@ export class UsersService {
     };
 
     const dailyLogsTarget = await validateTransferTarget(dto.dailyLogs);
-    const confirmedReservationsTarget = await validateTransferTarget(dto.confirmedReservations);
-    const reservationResponsesTarget = await validateTransferTarget(dto.reservationResponses);
+    const confirmedReservationsTarget = await validateTransferTarget(
+      dto.confirmedReservations,
+    );
+    const reservationResponsesTarget = await validateTransferTarget(
+      dto.reservationResponses,
+    );
     const reviewsTarget = await validateTransferTarget(dto.reviews);
 
     return this.repo.transaction(async (tx) => {
@@ -601,15 +638,17 @@ export class UsersService {
           select: { id: true, reservationId: true },
         });
         for (const r of responses) {
-          const existsOnTarget = await tx.reservationStylistResponse.findUnique({
-            where: {
-              reservationId_stylistProfileId: {
-                reservationId: r.reservationId,
-                stylistProfileId: reservationResponsesTarget,
+          const existsOnTarget = await tx.reservationStylistResponse.findUnique(
+            {
+              where: {
+                reservationId_stylistProfileId: {
+                  reservationId: r.reservationId,
+                  stylistProfileId: reservationResponsesTarget,
+                },
               },
+              select: { id: true },
             },
-            select: { id: true },
-          });
+          );
           if (existsOnTarget) {
             await tx.reservationStylistResponse.delete({ where: { id: r.id } });
             continue;
@@ -635,7 +674,10 @@ export class UsersService {
 
       return tx.user.findUnique({
         where: { id: userId },
-        include: { userRoles: { include: { role: true } }, stylistProfile: true },
+        include: {
+          userRoles: { include: { role: true } },
+          stylistProfile: true,
+        },
       });
     });
   }
@@ -686,66 +728,71 @@ export class UsersService {
           }
         : {};
 
-    const [reservations, reviews, cancellationData, manualEntries, incomeManualEntries] =
-      await Promise.all([
-        this.repo.reservation.findMany({
-          where: { clientId: userId, ...dateFilter },
-          include: {
-            service: { select: { id: true, name: true, price: true } },
-            confirmedStylist: {
-              include: {
-                user: {
-                  select: { firstName: true, lastName: true, username: true },
-                },
+    const [
+      reservations,
+      reviews,
+      cancellationData,
+      manualEntries,
+      incomeManualEntries,
+    ] = await Promise.all([
+      this.repo.reservation.findMany({
+        where: { clientId: userId, ...dateFilter },
+        include: {
+          service: { select: { id: true, name: true, price: true } },
+          confirmedStylist: {
+            include: {
+              user: {
+                select: { firstName: true, lastName: true, username: true },
               },
             },
           },
-          orderBy: { createdAt: 'desc' },
-        }),
-        this.repo.review.findMany({
-          where: { userId, ...reviewDateFilter },
-          include: {
-            service: { select: { name: true } },
-            stylist: {
-              include: {
-                user: {
-                  select: { firstName: true, lastName: true, username: true },
-                },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.repo.review.findMany({
+        where: { userId, ...reviewDateFilter },
+        include: {
+          service: { select: { name: true } },
+          stylist: {
+            include: {
+              user: {
+                select: { firstName: true, lastName: true, username: true },
               },
             },
           },
-          orderBy: { createdAt: 'desc' },
-        }),
-        this.repo.clientCancellationCount.findUnique({ where: { userId } }),
-        this.repo.dailyLogEntry.findMany({
-          where: { clientId: userId, deletedAt: null, ...dailyLogDateFilter },
-          include: {
-            service: { select: { id: true, name: true, price: true } },
-            stylistProfile: {
-              include: {
-                user: {
-                  select: { firstName: true, lastName: true, username: true },
-                },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.repo.clientCancellationCount.findUnique({ where: { userId } }),
+      this.repo.dailyLogEntry.findMany({
+        where: { clientId: userId, deletedAt: null, ...dailyLogDateFilter },
+        include: {
+          service: { select: { id: true, name: true, price: true } },
+          stylistProfile: {
+            include: {
+              user: {
+                select: { firstName: true, lastName: true, username: true },
               },
             },
           },
-          orderBy: { date: 'desc' },
-        }),
-        this.repo.incomeBookManualEntry.findMany({
-          where: { clientId: userId, ...dailyLogDateFilter },
-          include: {
-            service: { select: { id: true, name: true, price: true } },
-            stylistProfile: {
-              include: {
-                user: {
-                  select: { firstName: true, lastName: true, username: true },
-                },
+        },
+        orderBy: { date: 'desc' },
+      }),
+      this.repo.incomeBookManualEntry.findMany({
+        where: { clientId: userId, ...dailyLogDateFilter },
+        include: {
+          service: { select: { id: true, name: true, price: true } },
+          stylistProfile: {
+            include: {
+              user: {
+                select: { firstName: true, lastName: true, username: true },
               },
             },
           },
-          orderBy: { date: 'desc' },
-        }),
-      ]);
+        },
+        orderBy: { date: 'desc' },
+      }),
+    ]);
 
     const combinedManualEntries = [
       ...(manualEntries ?? []),
@@ -815,7 +862,10 @@ export class UsersService {
 
     const avgServiceRating =
       reviews.length > 0
-        ? reviews.reduce((s, r) => s + r.serviceRating, 0) / reviews.length
+        ? reviews.reduce(
+            (s: number, r: { serviceRating: number }) => s + r.serviceRating,
+            0,
+          ) / reviews.length
         : null;
 
     const isPenalized = cancellationData?.penaltyUntil
@@ -879,8 +929,12 @@ export class UsersService {
   }): Promise<string> {
     const first = this.normalizeUsername(input.firstName);
     const last = this.normalizeUsername(input.lastName);
-    const base = `${first}.${last}`.replace(/\.+/g, '.').replace(/^\./, '').replace(/\.$/, '');
-    if (!base) throw new BadRequestException('Nije moguće generisati korisničko ime.');
+    const base = `${first}.${last}`
+      .replace(/\.+/g, '.')
+      .replace(/^\./, '')
+      .replace(/\.$/, '');
+    if (!base)
+      throw new BadRequestException('Nije moguće generisati korisničko ime.');
     const takenBase = await this.repo.user.findUnique({
       where: { username: base },
       select: { id: true },
@@ -896,7 +950,9 @@ export class UsersService {
       if (!taken) return candidate;
       suffix += 1;
     }
-    throw new ConflictException('Nije moguće automatski generisati korisničko ime.');
+    throw new ConflictException(
+      'Nije moguće automatski generisati korisničko ime.',
+    );
   }
 
   private async generateUsernameSuggestions(base: string, count: number) {

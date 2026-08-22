@@ -45,12 +45,9 @@ export class ReservationCronService {
         where: {
           userId: r.clientId,
           type: {
-            in: [
-              'reservation_reschedule',
-              'reservation_reminder',
-            ] as any,
+            in: ['reservation_reschedule', 'reservation_reminder'] as any,
           },
-          data: { path: '$.reservationId', equals: r.id },
+          data: { path: ['reservationId'], equals: r.id },
         },
         orderBy: { sentAt: 'desc' },
         select: { sentAt: true, data: true },

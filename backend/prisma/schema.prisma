@@ -1,12 +1,12 @@
 // Beauty Salon Nejra v2 - Prisma Schema
-// MySQL database - modularna, proširiva šema
+// PostgreSQL database - modularna, proširiva šema
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 enum Gender {
@@ -64,32 +64,32 @@ model User {
   createdAt                  DateTime  @default(now()) @map("created_at")
   updatedAt                  DateTime  @updatedAt @map("updated_at")
 
-  userRoles                   UserRole[]
-  stylistProfile              StylistProfile?
-  reservationsAsClient        Reservation[]                @relation("ClientReservations")
-  reviews                     Review[]
-  blogComments                BlogComment[]
-  pushTokens                  PushToken[]
-  notificationPreferences     NotificationPreference[]
-  notifications               Notification[]
-  loyaltyAccount              LoyaltyAccount?
-  uploads                     Upload[]                     @relation("UploadedBy")
-  expenseCreatedBy            Expense[]                    @relation("ExpenseCreatedBy")
-  incomeManualEntriesCreated  IncomeBookManualEntry[]      @relation("IncomeManualEntriesCreated")
-  incomeManualEntriesAsClient IncomeBookManualEntry[]      @relation("IncomeManualEntriesClient")
-  incomeBookLockEvents        IncomeBookLockEvent[]        @relation("IncomeBookLockEventsCreated")
-  expenseBookLockEvents       ExpenseBookLockEvent[]       @relation("ExpenseBookLockEventsCreated")
-  incomeManualEntryAudits     IncomeBookManualEntryAudit[] @relation("IncomeManualEntryAuditsCreated")
-  blogPosts                   BlogPost[]                   @relation("BlogAuthor")
-  cancellationCount           ClientCancellationCount[]
-  dailyLogEntriesAsClient     DailyLogEntry[]              @relation("DailyLogClient")
-  dailyLogEntriesDeleted      DailyLogEntry[]              @relation("DailyLogDeletedBy")
-  clientDebtsAsClient         ClientDebt[]                 @relation("ClientDebtsClient")
-  clientDebtsCreated          ClientDebt[]                 @relation("ClientDebtsCreatedBy")
-  clientDebtsSettled          ClientDebt[]                 @relation("ClientDebtsSettledBy")
-  reservationsCreated         Reservation[]                @relation("ReservationsCreatedBy")
-  appReleasesCreated          AppRelease[]                 @relation("AppReleasesCreatedBy")
-  reservationsAttendanceWaived Reservation[]             @relation("AttendanceWaivedByUser")
+  userRoles                    UserRole[]
+  stylistProfile               StylistProfile?
+  reservationsAsClient         Reservation[]                @relation("ClientReservations")
+  reviews                      Review[]
+  blogComments                 BlogComment[]
+  pushTokens                   PushToken[]
+  notificationPreferences      NotificationPreference[]
+  notifications                Notification[]
+  loyaltyAccount               LoyaltyAccount?
+  uploads                      Upload[]                     @relation("UploadedBy")
+  expenseCreatedBy             Expense[]                    @relation("ExpenseCreatedBy")
+  incomeManualEntriesCreated   IncomeBookManualEntry[]      @relation("IncomeManualEntriesCreated")
+  incomeManualEntriesAsClient  IncomeBookManualEntry[]      @relation("IncomeManualEntriesClient")
+  incomeBookLockEvents         IncomeBookLockEvent[]        @relation("IncomeBookLockEventsCreated")
+  expenseBookLockEvents        ExpenseBookLockEvent[]       @relation("ExpenseBookLockEventsCreated")
+  incomeManualEntryAudits      IncomeBookManualEntryAudit[] @relation("IncomeManualEntryAuditsCreated")
+  blogPosts                    BlogPost[]                   @relation("BlogAuthor")
+  cancellationCount            ClientCancellationCount[]
+  dailyLogEntriesAsClient      DailyLogEntry[]              @relation("DailyLogClient")
+  dailyLogEntriesDeleted       DailyLogEntry[]              @relation("DailyLogDeletedBy")
+  clientDebtsAsClient          ClientDebt[]                 @relation("ClientDebtsClient")
+  clientDebtsCreated           ClientDebt[]                 @relation("ClientDebtsCreatedBy")
+  clientDebtsSettled           ClientDebt[]                 @relation("ClientDebtsSettledBy")
+  reservationsCreated          Reservation[]                @relation("ReservationsCreatedBy")
+  appReleasesCreated           AppRelease[]                 @relation("AppReleasesCreatedBy")
+  reservationsAttendanceWaived Reservation[]                @relation("AttendanceWaivedByUser")
 
   @@map("users")
 }
@@ -301,29 +301,29 @@ model StylistService {
 // ============ RESERVATIONS ============
 
 model Reservation {
-  id                    String    @id @default(uuid())
-  clientId              String    @map("client_id")
-  serviceId             String    @map("service_id")
-  reservationDate       DateTime  @map("reservation_date") @db.Date
-  startTime             String    @map("start_time") // "09:00"
-  endTime               String    @map("end_time") // "10:00"
-  status                String // PENDING | STYLIST_REVIEW | CONFIRMED | ATTENDANCE_CONFIRMED | IN_PROGRESS | COMPLETED | CANCELLED_BY_CLIENT | CANCELLED_BY_STYLISTS | NO_SHOW
-  clientNotes           String?   @map("client_notes") @db.Text
-  bookingOrigin         String    @default("CLIENT_SELF_SERVICE") @map("booking_origin")
-  acceptanceMode        String    @default("INBOX") @map("acceptance_mode")
-  attendancePolicy      String    @default("CLIENT_REQUIRED") @map("attendance_policy")
-  createdByUserId       String?   @map("created_by_user_id")
-  confirmedStylistId    String?   @map("confirmed_stylist_id")
-  attendanceConfirmedAt DateTime? @map("attendance_confirmed_at")
-  attendanceConfirmedBy String?   @map("attendance_confirmed_by")
-  attendanceWaivedAt    DateTime? @map("attendance_waived_at")
-  attendanceWaivedByUserId String? @map("attendance_waived_by_user_id")
-  startedAt             DateTime? @map("started_at")
-  completedAt           DateTime? @map("completed_at")
-  cancelledAt           DateTime? @map("cancelled_at")
-  cancelReason          String?   @map("cancel_reason") @db.Text
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  id                       String    @id @default(uuid())
+  clientId                 String    @map("client_id")
+  serviceId                String    @map("service_id")
+  reservationDate          DateTime  @map("reservation_date") @db.Date
+  startTime                String    @map("start_time") // "09:00"
+  endTime                  String    @map("end_time") // "10:00"
+  status                   String // PENDING | STYLIST_REVIEW | CONFIRMED | ATTENDANCE_CONFIRMED | IN_PROGRESS | COMPLETED | CANCELLED_BY_CLIENT | CANCELLED_BY_STYLISTS | NO_SHOW
+  clientNotes              String?   @map("client_notes") @db.Text
+  bookingOrigin            String    @default("CLIENT_SELF_SERVICE") @map("booking_origin")
+  acceptanceMode           String    @default("INBOX") @map("acceptance_mode")
+  attendancePolicy         String    @default("CLIENT_REQUIRED") @map("attendance_policy")
+  createdByUserId          String?   @map("created_by_user_id")
+  confirmedStylistId       String?   @map("confirmed_stylist_id")
+  attendanceConfirmedAt    DateTime? @map("attendance_confirmed_at")
+  attendanceConfirmedBy    String?   @map("attendance_confirmed_by")
+  attendanceWaivedAt       DateTime? @map("attendance_waived_at")
+  attendanceWaivedByUserId String?   @map("attendance_waived_by_user_id")
+  startedAt                DateTime? @map("started_at")
+  completedAt              DateTime? @map("completed_at")
+  cancelledAt              DateTime? @map("cancelled_at")
+  cancelReason             String?   @map("cancel_reason") @db.Text
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
 
   // Reschedule potvrda klijenta (obavezna) nakon pomjeranja termina
   rescheduleProposedStartTime String? @map("reschedule_proposed_start_time")
@@ -332,7 +332,7 @@ model Reservation {
 
   // Auto delay upozorenja (da se push ne šalje više puta)
   delayNotifiedAt DateTime? @map("delay_notified_at")
-  reminderSentAt DateTime? @map("reminder_sent_at")
+  reminderSentAt  DateTime? @map("reminder_sent_at")
 
   // Stilist može eksplicitno označiti da koristi pauzu nakon probijanja termina
   useBreakAfterOverrun Boolean?  @map("use_break_after_overrun")
@@ -349,16 +349,16 @@ model Reservation {
   publicReferenceCode String @unique @map("public_reference_code")
   clientViewToken     String @unique @map("client_view_token")
 
-  client                    User                         @relation("ClientReservations", fields: [clientId], references: [id], onDelete: Cascade)
-  service                   Service                      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  items                     ReservationServiceItem[]
-  createdByUser             User?                        @relation("ReservationsCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  confirmedStylist          StylistProfile?              @relation("ConfirmedByStylist", fields: [confirmedStylistId], references: [id], onDelete: SetNull)
-  stylistResponses          ReservationStylistResponse[]
-  dailyLogEntry             DailyLogEntry[]
-  reviews                   Review[]
-  clientDebts               ClientDebt[]
-  attendanceWaivedByUser    User?                        @relation("AttendanceWaivedByUser", fields: [attendanceWaivedByUserId], references: [id], onDelete: SetNull)
+  client                 User                         @relation("ClientReservations", fields: [clientId], references: [id], onDelete: Cascade)
+  service                Service                      @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  items                  ReservationServiceItem[]
+  createdByUser          User?                        @relation("ReservationsCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  confirmedStylist       StylistProfile?              @relation("ConfirmedByStylist", fields: [confirmedStylistId], references: [id], onDelete: SetNull)
+  stylistResponses       ReservationStylistResponse[]
+  dailyLogEntry          DailyLogEntry[]
+  reviews                Review[]
+  clientDebts            ClientDebt[]
+  attendanceWaivedByUser User?                        @relation("AttendanceWaivedByUser", fields: [attendanceWaivedByUserId], references: [id], onDelete: SetNull)
 
   @@map("reservations")
 }
@@ -401,47 +401,47 @@ model ReservationStylistResponse {
 // ============ DAILY LOG ============
 
 model DailyLogEntry {
-  id               String   @id @default(uuid())
-  stylistProfileId String   @map("stylist_profile_id")
-  reservationId    String?  @map("reservation_id")
-  serviceId        String   @map("service_id")
-  clientId         String?  @map("client_id")
-  kind             DailyLogEntryKind @default(SERVICE)
-  debtId           String?  @map("debt_id")
-  date             DateTime @db.Date
-  actualPrice      Decimal  @map("actual_price") @db.Decimal(10, 2)
-  tipAmount        Decimal  @default(0) @map("tip_amount") @db.Decimal(10, 2)
-  publicReferenceCode String @unique @map("public_reference_code")
+  id                  String            @id @default(uuid())
+  stylistProfileId    String            @map("stylist_profile_id")
+  reservationId       String?           @map("reservation_id")
+  serviceId           String            @map("service_id")
+  clientId            String?           @map("client_id")
+  kind                DailyLogEntryKind @default(SERVICE)
+  debtId              String?           @map("debt_id")
+  date                DateTime          @db.Date
+  actualPrice         Decimal           @map("actual_price") @db.Decimal(10, 2)
+  tipAmount           Decimal           @default(0) @map("tip_amount") @db.Decimal(10, 2)
+  publicReferenceCode String            @unique @map("public_reference_code")
 
   // Loyalty popust (ako je klijent iskoristio bodove pri ručnom unosu)
   loyaltyDiscountPercent Int     @default(0) @map("loyalty_discount_percent")
   loyaltyDiscountAmount  Decimal @default(0) @map("loyalty_discount_amount") @db.Decimal(10, 2)
   loyaltyPointsUsed      Int     @default(0) @map("loyalty_points_used")
 
-  isManual    Boolean   @default(false) @map("is_manual")
-  notes       String?   @db.Text
-  status      String    @default("PENDING") // PENDING | COMPLETED
-  completedAt DateTime? @map("completed_at")
+  isManual              Boolean   @default(false) @map("is_manual")
+  notes                 String?   @db.Text
+  status                String    @default("PENDING") // PENDING | COMPLETED
+  completedAt           DateTime? @map("completed_at")
   pendingReminderSentAt DateTime? @map("pending_reminder_sent_at")
-  sourceEntryId String? @map("source_entry_id")
-  deletedAt     DateTime? @map("deleted_at")
-  deletedById   String?   @map("deleted_by_id")
-  deleteReason  String?   @map("delete_reason") @db.Text
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  sourceEntryId         String?   @map("source_entry_id")
+  deletedAt             DateTime? @map("deleted_at")
+  deletedById           String?   @map("deleted_by_id")
+  deleteReason          String?   @map("delete_reason") @db.Text
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
-  stylistProfile StylistProfile             @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
-  reservation    Reservation?               @relation(fields: [reservationId], references: [id], onDelete: SetNull)
-  service        Service                    @relation(fields: [serviceId], references: [id], onDelete: Restrict)
-  items          DailyLogEntryServiceItem[]
-  client         User?                      @relation("DailyLogClient", fields: [clientId], references: [id], onDelete: SetNull)
-  debt           ClientDebt?                @relation("DebtPaymentEntries", fields: [debtId], references: [id], onDelete: SetNull)
-  images         DailyLogImage[]
-  incomeEntries  IncomeBookEntry[]
-  clientDebts    ClientDebt[]
-  deletedBy      User?                      @relation("DailyLogDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
-  sourceEntry    DailyLogEntry?             @relation("DailyLogDebtPayments", fields: [sourceEntryId], references: [id], onDelete: SetNull)
-  debtPaymentEntries DailyLogEntry[]        @relation("DailyLogDebtPayments")
+  stylistProfile      StylistProfile             @relation(fields: [stylistProfileId], references: [id], onDelete: Cascade)
+  reservation         Reservation?               @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  service             Service                    @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  items               DailyLogEntryServiceItem[]
+  client              User?                      @relation("DailyLogClient", fields: [clientId], references: [id], onDelete: SetNull)
+  debt                ClientDebt?                @relation("DebtPaymentEntries", fields: [debtId], references: [id], onDelete: SetNull)
+  images              DailyLogImage[]
+  incomeEntries       IncomeBookEntry[]
+  clientDebts         ClientDebt[]
+  deletedBy           User?                      @relation("DailyLogDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+  sourceEntry         DailyLogEntry?             @relation("DailyLogDebtPayments", fields: [sourceEntryId], references: [id], onDelete: SetNull)
+  debtPaymentEntries  DailyLogEntry[]            @relation("DailyLogDebtPayments")
   incomeManualEntries IncomeBookManualEntry[]
 
   @@index([debtId])
@@ -706,7 +706,7 @@ model ClientDebt {
   stylistProfile StylistProfile         @relation(fields: [stylistProfileId], references: [id], onDelete: Restrict)
   service        Service?               @relation(fields: [serviceId], references: [id], onDelete: SetNull)
   manualEntry    IncomeBookManualEntry? @relation(fields: [manualEntryId], references: [id], onDelete: SetNull)
-  reservation    Reservation?          @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+  reservation    Reservation?           @relation(fields: [reservationId], references: [id], onDelete: SetNull)
   dailyLogEntry  DailyLogEntry?         @relation(fields: [dailyLogEntryId], references: [id], onDelete: SetNull)
   debtPayments   DailyLogEntry[]        @relation("DebtPaymentEntries")
   createdBy      User                   @relation("ClientDebtsCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
@@ -761,7 +761,7 @@ model BlogPost {
   authorId    String    @map("author_id")
   title       String
   slug        String    @unique
-  content     String    @db.LongText
+  content     String    @db.Text
   heroImage   String?   @map("hero_image")
   isPublished Boolean   @default(false) @map("is_published")
   publishedAt DateTime? @map("published_at")
@@ -958,21 +958,21 @@ model LoyaltyTransaction {
 // ============ MOBILE APP RELEASES (Android APK) ============
 
 model AppRelease {
-  id                       String             @id @default(uuid())
-  platform                 AppReleasePlatform @default(ANDROID)
-  version                  String
-  versionCode              Int                @map("version_code")
-  minSupportedVersionCode  Int                @default(1) @map("min_supported_version_code")
-  forceUpdate              Boolean            @default(false) @map("force_update")
-  apkPath                  String             @map("apk_path")
-  apkSha256                String             @map("apk_sha256")
-  apkSizeBytes             Int                @map("apk_size_bytes")
-  releaseNotes             String?            @map("release_notes") @db.Text
-  status                   AppReleaseStatus   @default(DRAFT)
-  publishedAt              DateTime?          @map("published_at")
-  createdById              String?            @map("created_by_id")
-  createdAt                DateTime           @default(now()) @map("created_at")
-  updatedAt                DateTime           @updatedAt @map("updated_at")
+  id                      String             @id @default(uuid())
+  platform                AppReleasePlatform @default(ANDROID)
+  version                 String
+  versionCode             Int                @map("version_code")
+  minSupportedVersionCode Int                @default(1) @map("min_supported_version_code")
+  forceUpdate             Boolean            @default(false) @map("force_update")
+  apkPath                 String             @map("apk_path")
+  apkSha256               String             @map("apk_sha256")
+  apkSizeBytes            Int                @map("apk_size_bytes")
+  releaseNotes            String?            @map("release_notes") @db.Text
+  status                  AppReleaseStatus   @default(DRAFT)
+  publishedAt             DateTime?          @map("published_at")
+  createdById             String?            @map("created_by_id")
+  createdAt               DateTime           @default(now()) @map("created_at")
+  updatedAt               DateTime           @updatedAt @map("updated_at")
 
   createdBy User? @relation("AppReleasesCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 

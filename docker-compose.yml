@@ -17,6 +17,7 @@ services:
     build: ./backend
     environment:
       - PORT=10001
+      - DATABASE_PROVIDER=postgres
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.bsv2-backend.rule=Host(`nejra-v2.ba101.top`) && PathPrefix(`/backend`)"

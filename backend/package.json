@@ -22,7 +22,12 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:init": "prisma migrate deploy && prisma db seed",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status",
+    "db:validate": "prisma validate",
+    "db:format": "prisma format"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -50,7 +55,9 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sharp": "^0.34.5",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "@prisma/adapter-pg": "^7.5.0",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

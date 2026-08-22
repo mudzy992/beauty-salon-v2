@@ -96,3 +96,21 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+
+## PostgreSQL
+
+Backend je pripremljen za PostgreSQL. Detaljan postupak migracije nalazi se u `POSTGRES_MIGRATION.md`.
+
+Korisne Prisma komande:
+
+```bash
+npm run db:validate
+npm run db:generate
+npm run db:migrate:dev -- --name postgresql_baseline
+npm run db:migrate:status
+npm run db:migrate:deploy
+npm run db:seed
+```
+
+MySQL Prisma migracije su sačuvane u `prisma/migrations_mysql_backup/` i ne izvršavaju se nad PostgreSQL bazom.

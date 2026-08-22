@@ -132,7 +132,7 @@ cd ../mobile && npm ci
 ## Environment variable conventions
 
 - **Backend (Nest):**
-  - Prisma DB: `DATABASE_URL` (`backend/.env.example`, `backend/prisma.config.ts`)
+  - Prisma DB: PostgreSQL via `DATABASE_URL` (`backend/.env.example`, `backend/prisma.config.ts`)
   - JWT: `JWT_SECRET`, `JWT_EXPIRES_IN` (`backend/.env.example`)
   - Upload root: `UPLOAD_ROOT` (used in `backend/src/main.ts`)
 - **Frontend (Vite):** `VITE_*` in `frontend/.env`
@@ -152,7 +152,7 @@ docker compose up -d --build
 ## Repo-level risks (tooling/workflow)
 
 - **Committed secrets / sensitive files:**
-  - `backend/.env` contains `DATABASE_URL`, `JWT_SECRET`, and `APP_SETTINGS_ENCRYPTION_KEY`
+  - `backend/.env` contains PostgreSQL `DATABASE_URL`, JWT secret, and `APP_SETTINGS_ENCRYPTION_KEY`
   - `mobile/beauty-salon-v2-firebase-adminsdk-fbsvc-8ad4c42277.json` is a Firebase Admin SDK credential
 - **Lint scripts likely broken in frontend/mobile:** ESLint is not installed/configured despite `lint` scripts.
 - **Backend e2e test script likely broken in-repo:** references missing `backend/test/jest-e2e.json`.

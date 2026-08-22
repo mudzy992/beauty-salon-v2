@@ -1,11 +1,19 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { PrismaPg } from '@prisma/adapter-pg';
 
+const provider = process.env.DATABASE_PROVIDER?.toLowerCase() ?? 'postgres';
 const url = process.env.DATABASE_URL;
+
+if (provider !== 'postgres') {
+  throw new Error(
+    `Nepodržan DATABASE_PROVIDER: ${provider}. Seed koristi PostgreSQL.`,
+  );
+}
+
 if (!url) throw new Error('DATABASE_URL nije postavljen.');
 
-const adapter = new PrismaMariaDb(url);
+const adapter = new PrismaPg({ connectionString: url });
 const prisma = new PrismaClient({ adapter });
 
 const ROLES = [

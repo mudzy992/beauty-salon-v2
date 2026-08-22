@@ -99,7 +99,7 @@ export class ReservationNotifyService {
         type: {
           in: ['reservation_reschedule', 'reservation_reminder'] as any,
         },
-        data: { path: '$.reservationId', equals: reservationId },
+        data: { path: ['reservationId'], equals: reservationId },
       },
       orderBy: { sentAt: 'desc' },
       select: { type: true, data: true },

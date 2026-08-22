@@ -4,12 +4,19 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { DecimalToNumberInterceptor } from './common/interceptors/decimal-to-number.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Consistent JSON for 404 and other HTTP exceptions
   app.useGlobalFilters(new HttpExceptionFilter());
+
+  // Prisma Decimal fields (price, tipAmount, actualPrice, ...) serialize
+  // as strings by default; the frontend/mobile clients type them as
+  // `number`. Convert them to real JSON numbers so the wire format
+  // matches what the clients already expect.
+  app.useGlobalInterceptors(new DecimalToNumberInterceptor());
 
   // Serve uploaded files at /uploads so frontend can use BASE_URL/uploads/... path
   const uploadRoot = process.env.UPLOAD_ROOT || join(process.cwd(), 'uploads');
