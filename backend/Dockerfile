@@ -5,11 +5,8 @@ WORKDIR /usr/app
 COPY package*.json ./
 RUN npm ci
 
-COPY prisma ./prisma/
 COPY . .
 
-# Prisma 7 prisma.config.ts zahtijeva DATABASE_URL.
-# Ovo je samo build-time placeholder i NE koristi produkcijsku bazu.
 ARG DATABASE_PROVIDER=postgres
 ARG DATABASE_URL=postgresql://postgres:postgres@localhost:5432/beautysalon?schema=public
 
@@ -32,15 +29,11 @@ COPY --from=builder /usr/app/package*.json ./
 COPY --from=builder /usr/app/prisma ./prisma/
 COPY --from=builder /usr/app/prisma.config.ts ./
 
-# Build-time placeholder za Prisma config.
-# Stvarni DATABASE_URL dolazi kroz docker-compose/Coolify runtime environment.
 ARG DATABASE_PROVIDER=postgres
 ARG DATABASE_URL=postgresql://postgres:postgres@localhost:5432/beautysalon?schema=public
 
 ENV DATABASE_PROVIDER=${DATABASE_PROVIDER}
 ENV DATABASE_URL=${DATABASE_URL}
-
-RUN npx prisma generate
 
 ENV PORT=10001
 ENV UPLOAD_ROOT=/usr/app/uploads

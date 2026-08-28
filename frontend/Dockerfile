@@ -7,7 +7,6 @@ RUN npm ci
 
 COPY . .
 
-# Vite varijable moraju biti dostupne tokom builda.
 ARG VITE_API_URL
 ARG VITE_API_FILES_URL
 

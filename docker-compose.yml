@@ -13,6 +13,7 @@ services:
       args:
         DATABASE_PROVIDER: ${DATABASE_PROVIDER:-postgres}
         DATABASE_URL: ${DATABASE_URL_BUILD}
+
     environment:
       DATABASE_PROVIDER: ${DATABASE_PROVIDER:-postgres}
       PORT: ${PORT:-10001}
@@ -22,6 +23,16 @@ services:
       UPLOAD_ROOT: ${UPLOAD_ROOT:-/usr/app/uploads}
       APP_SETTINGS_ENCRYPTION_KEY: ${APP_SETTINGS_ENCRYPTION_KEY}
       NODE_ENV: production
+
     volumes:
       - /mnt/shared-app-files/beauty-salon-v2:/usr/app/uploads
+
     restart: unless-stopped
+
+    networks:
+      - db_net
+
+networks:
+  db_net:
+    external: true
+    name: db_net
