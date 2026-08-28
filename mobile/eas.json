@@ -8,8 +8,8 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_PUSH_ENABLED": "true",
-        "EXPO_PUBLIC_API_URL": "https://nejra-v2.ba101.top/backend",
-        "EXPO_PUBLIC_API_FILES_URL": "https://nejra-v2.ba101.top/backend/uploads",
+        "EXPO_PUBLIC_API_URL": "https://api.nejra.ba101.top",
+        "EXPO_PUBLIC_API_FILES_URL": "https://api.nejra.ba101.top/uploads",
         "EXPO_PUBLIC_EAS_PROJECT_ID": "a697c506-8426-4064-99d8-780f9fc70700"
       },
       "android": {
@@ -30,8 +30,8 @@
       },
       "env": {
         "EXPO_PUBLIC_PUSH_ENABLED": "true",
-        "EXPO_PUBLIC_API_URL": "https://nejra-v2.ba101.top/backend",
-        "EXPO_PUBLIC_API_FILES_URL": "https://nejra-v2.ba101.top/backend/uploads",
+        "EXPO_PUBLIC_API_URL": "https://api.nejra.ba101.top",
+        "EXPO_PUBLIC_API_FILES_URL": "https://api.nejra.ba101.top/uploads",
         "EXPO_PUBLIC_EAS_PROJECT_ID": "a697c506-8426-4064-99d8-780f9fc70700"
       }
     },
@@ -41,8 +41,8 @@
       },
       "env": {
         "EXPO_PUBLIC_PUSH_ENABLED": "true",
-        "EXPO_PUBLIC_API_URL": "https://nejra-v2.ba101.top/backend",
-        "EXPO_PUBLIC_API_FILES_URL": "https://nejra-v2.ba101.top/backend/uploads",
+        "EXPO_PUBLIC_API_URL": "https://api.nejra.ba101.top",
+        "EXPO_PUBLIC_API_FILES_URL": "https://api.nejra.ba101.top/uploads",
         "EXPO_PUBLIC_EAS_PROJECT_ID": "a697c506-8426-4064-99d8-780f9fc70700"
       }
     }
