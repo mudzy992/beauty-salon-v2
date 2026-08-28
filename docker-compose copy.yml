@@ -1,0 +1,39 @@
+services:
+  frontend:
+    build: ./frontend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bsv2-frontend.rule=Host(`nejra-v2.ba101.top`)"
+      - "traefik.http.routers.bsv2-frontend.entrypoints=websecure"
+      - "traefik.http.routers.bsv2-frontend.tls=true"
+      - "traefik.http.services.bsv2-frontend.loadbalancer.server.port=10000"
+    env_file:
+      - ./frontend/.env
+    restart: unless-stopped
+    networks:
+      - web
+
+  backend:
+    build: ./backend
+    environment:
+      - PORT=10001
+      - DATABASE_PROVIDER=postgres
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bsv2-backend.rule=Host(`nejra-v2.ba101.top`) && PathPrefix(`/backend`)"
+      - "traefik.http.routers.bsv2-backend.entrypoints=websecure"
+      - "traefik.http.routers.bsv2-backend.tls=true"
+      - "traefik.http.routers.bsv2-backend.middlewares=bsv2-stripprefix"
+      - "traefik.http.middlewares.bsv2-stripprefix.stripprefix.prefixes=/backend"
+      - "traefik.http.services.bsv2-backend.loadbalancer.server.port=10001"
+    volumes:
+      - /mnt/shared-app-files/beauty-salon-v2:/usr/app/uploads
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

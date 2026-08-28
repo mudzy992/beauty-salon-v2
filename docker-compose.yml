@@ -1,39 +1,27 @@
 services:
   frontend:
-    build: ./frontend
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.bsv2-frontend.rule=Host(`nejra-v2.ba101.top`)"
-      - "traefik.http.routers.bsv2-frontend.entrypoints=websecure"
-      - "traefik.http.routers.bsv2-frontend.tls=true"
-      - "traefik.http.services.bsv2-frontend.loadbalancer.server.port=10000"
-    env_file:
-      - ./frontend/.env
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_API_FILES_URL: ${VITE_API_FILES_URL}
     restart: unless-stopped
-    networks:
-      - web
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      args:
+        DATABASE_PROVIDER: ${DATABASE_PROVIDER:-postgres}
+        DATABASE_URL: ${DATABASE_URL_BUILD}
     environment:
-      - PORT=10001
-      - DATABASE_PROVIDER=postgres
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.bsv2-backend.rule=Host(`nejra-v2.ba101.top`) && PathPrefix(`/backend`)"
-      - "traefik.http.routers.bsv2-backend.entrypoints=websecure"
-      - "traefik.http.routers.bsv2-backend.tls=true"
-      - "traefik.http.routers.bsv2-backend.middlewares=bsv2-stripprefix"
-      - "traefik.http.middlewares.bsv2-stripprefix.stripprefix.prefixes=/backend"
-      - "traefik.http.services.bsv2-backend.loadbalancer.server.port=10001"
+      DATABASE_PROVIDER: ${DATABASE_PROVIDER:-postgres}
+      PORT: ${PORT:-10001}
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      UPLOAD_ROOT: ${UPLOAD_ROOT:-/usr/app/uploads}
+      APP_SETTINGS_ENCRYPTION_KEY: ${APP_SETTINGS_ENCRYPTION_KEY}
+      NODE_ENV: production
     volumes:
       - /mnt/shared-app-files/beauty-salon-v2:/usr/app/uploads
-    env_file:
-      - ./backend/.env
     restart: unless-stopped
-    networks:
-      - web
-
-networks:
-  web:
-    external: true
