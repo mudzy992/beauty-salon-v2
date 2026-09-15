@@ -56,7 +56,10 @@ export const updateExpense = async (
   id: string,
   payload: Partial<ExpensePayload>,
 ): Promise<Expense> => {
-  const { data } = await api.patch<Expense>(`${EXPENSES}/${id}`, payload)
+  const body: Partial<ExpensePayload> = { ...payload }
+  delete body.bookId
+  delete body.categoryId
+  const { data } = await api.patch<Expense>(`${EXPENSES}/${id}`, body)
   return data
 }
 

@@ -47,7 +47,7 @@ Buduće mjesece nije moguće otvoriti (`isFutureMonth`); zaključavanje budućeg
 | `IncomeBook.totalRevenue` | suma `amount` svih auto + ručnih stavki |
 | `IncomeBook.totalTips` | suma `tipAmount` svih auto + ručnih stavki |
 | Stvarno naplaćeno | `totalRevenue + totalTips` |
-| `ExpenseBook.totalExpenses` | suma `Expense.amount` knjige |
+| `ExpenseBook.totalExpenses` | suma `Expense.totalAmount` knjige (računa se u API-ju na listi i na detalju) |
 | Neto mjeseca | `IncomeBook.totalRevenue - ExpenseBook.totalExpenses` |
 
 `recalculateTotals(bookId, tx)` se **uvijek** poziva unutar iste transakcije kao i izmjena stavke — nikad nakon commita.

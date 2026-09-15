@@ -53,4 +53,30 @@ describe('BlogService', () => {
       service.update('p1', { title: 'Novi naslov' }, user as any),
     ).rejects.toThrow(ForbiddenException);
   });
+
+  it('create upisuje SEO polja', async () => {
+    mockPrisma.blogPost.findUnique.mockResolvedValue(null);
+    mockPrisma.blogPost.create.mockResolvedValue({ id: 'p1' });
+    await service.create(
+      {
+        title: 'Naslov',
+        content: 'Tekst',
+        excerpt: 'Kratko',
+        seoTitle: 'SEO naslov',
+        seoDescription: 'SEO opis',
+        noIndex: true,
+      },
+      'author-1',
+    );
+    expect(mockPrisma.blogPost.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          excerpt: 'Kratko',
+          seoTitle: 'SEO naslov',
+          seoDescription: 'SEO opis',
+          noIndex: true,
+        }),
+      }),
+    );
+  });
 });

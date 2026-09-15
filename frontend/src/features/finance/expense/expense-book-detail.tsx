@@ -200,7 +200,10 @@ export function ExpenseBookDetail({
         items={[
           {
             label: t('finance.summary.totalExpenses'),
-            value: toNumber(book.totalExpenses),
+            value:
+              book.totalExpenses == null
+                ? sumExpenses(allExpenses)
+                : toNumber(book.totalExpenses),
             tone: 'negative',
           },
           { label: t('finance.summary.filtered'), value: filteredTotal, tone: 'muted' },

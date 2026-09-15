@@ -15,6 +15,7 @@ interface BlogPost {
   id: string;
   title: string;
   slug: string;
+  excerpt?: string | null;
   isPublished: boolean;
   publishedAt: string | null;
   createdAt: string;
@@ -98,9 +99,12 @@ export default function PublicBlogList() {
                             : ''}
                         </div>
                       </div>
-                      <div className="text-lg font-semibold text-slate-900 mb-4 leading-snug">
+                      <div className={`text-lg font-semibold text-slate-900 leading-snug ${p.excerpt ? 'mb-2' : 'mb-4'}`}>
                         {p.title}
                       </div>
+                      {p.excerpt ? (
+                        <p className="text-sm text-slate-600 mb-4 line-clamp-3">{p.excerpt}</p>
+                      ) : null}
                       <div className="inline-flex items-center gap-2 text-slate-900 font-medium text-sm">
                         Pročitaj više <ArrowRight className="h-4 w-4" aria-hidden />
                       </div>

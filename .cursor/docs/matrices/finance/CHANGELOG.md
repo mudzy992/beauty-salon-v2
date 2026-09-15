@@ -1,3 +1,8 @@
+## 2026-09-15 (KUF detalj + izmjena rashoda)
+
+- `GET api/expense-books/:id` (i getOrCreate/lock/unlock) sada vraća `totalExpenses` kao zbir `Expense.totalAmount`.
+- `PATCH api/expenses/:id` prima `bookId`/`categoryId` (ignoriraju se) i `attachmentUploadIds` (dodaje priloge u istoj transakciji).
+
 ## 2026-08-11 (Modularne kategorije rashoda — COMPLETED)
 
 Modul zatvoren kao kompletan.

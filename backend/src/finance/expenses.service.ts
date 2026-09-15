@@ -8,12 +8,7 @@ import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { AddExpenseAttachmentDto } from './dto/add-expense-attachment.dto';
-import { assertFieldValuesMatchTemplate } from './utils/expense-field-values';
-import {
-  assertVariableLineItemsMatchTemplate,
-  expectedTotalFromLines,
-  resolveModularLineItems,
-} from './utils/expense-line-items';
+import { assertExpensePayload } from './utils/expense-payload';
 
 @Injectable()
 export class ExpensesService {
@@ -30,7 +25,7 @@ export class ExpensesService {
       );
     }
     const category = await this.getCategoryWithTemplate(dto.categoryId);
-    this.assertExpensePayload(category, dto.fieldValues, dto.notes, dto.totalAmount);
+    assertExpensePayload(category, dto.fieldValues, dto.notes, dto.totalAmount);
 
     const expense = await this.prisma.$transaction(async (tx) => {
       const created = await tx.expense.create({
@@ -97,7 +92,7 @@ export class ExpensesService {
     const expense = await this.assertEditable(id, 'mijenjati rashod');
     if (dto.fieldValues !== undefined || dto.notes !== undefined || dto.totalAmount != null) {
       const category = await this.getCategoryWithTemplate(expense.categoryId);
-      this.assertExpensePayload(
+      assertExpensePayload(
         category,
         dto.fieldValues !== undefined ? dto.fieldValues : undefined,
         dto.notes !== undefined ? dto.notes : expense.notes,
@@ -118,6 +113,14 @@ export class ExpensesService {
           ...(dto.notes !== undefined && { notes: dto.notes }),
         },
       });
+      if (dto.attachmentUploadIds?.length) {
+        await tx.expenseAttachment.createMany({
+          data: dto.attachmentUploadIds.map((uploadId) => ({
+            expenseId: id,
+            uploadId,
+          })),
+        });
+      }
       if (dto.fieldValues === undefined) return;
       await tx.expenseFieldValue.deleteMany({ where: { expenseId: id } });
       if (!dto.fieldValues.length) return;
@@ -159,52 +162,6 @@ export class ExpensesService {
     await this.assertEditable(id, 'brisati rashod');
     await this.prisma.expense.delete({ where: { id } });
     return { deleted: true };
-  }
-
-  private assertExpensePayload(
-    category: {
-      isFixed: boolean;
-      template: {
-        fields: Array<{
-          id: string;
-          fieldName: string;
-          fieldType: string;
-          isRequired: boolean;
-          lineRole: string;
-        }>;
-      };
-    },
-    fieldValues: CreateExpenseDto['fieldValues'] | undefined,
-    notes: string | null | undefined,
-    totalAmount: number,
-    options?: { skipFieldValues?: boolean },
-  ) {
-    if (category.isFixed) {
-      if (options?.skipFieldValues) return;
-      assertFieldValuesMatchTemplate(
-        category.template.fields.map((f) => ({
-          id: f.id,
-          fieldName: f.fieldName,
-          fieldType: f.fieldType,
-          isRequired: f.isRequired,
-        })),
-        fieldValues,
-        {
-          requireRequiredFields: true,
-        },
-      );
-      return;
-    }
-    const fields = category.template.fields;
-    if (fields.length === 0) return;
-    const { lineItems } = resolveModularLineItems(notes, fields);
-    assertVariableLineItemsMatchTemplate(fields, lineItems);
-    const expected = expectedTotalFromLines(fields, lineItems);
-    if (Math.abs(expected - Number(totalAmount)) > 0.02) {
-      throw new BadRequestException(
-        `Ukupan iznos (${totalAmount}) ne odgovara zbiru stavki (${expected}).`,
-      );
-    }
   }
 
   private async assertEditable(id: string, action: string) {

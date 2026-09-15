@@ -757,16 +757,21 @@ model IncomeBookManualEntryAudit {
 // ============ BLOG ============
 
 model BlogPost {
-  id          String    @id @default(uuid())
-  authorId    String    @map("author_id")
-  title       String
-  slug        String    @unique
-  content     String    @db.Text
-  heroImage   String?   @map("hero_image")
-  isPublished Boolean   @default(false) @map("is_published")
-  publishedAt DateTime? @map("published_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(uuid())
+  authorId       String    @map("author_id")
+  title          String
+  slug           String    @unique
+  excerpt        String?   @db.Text
+  content        String    @db.Text
+  heroImage      String?   @map("hero_image")
+  ogImage        String?   @map("og_image")
+  seoTitle       String?   @map("seo_title") @db.VarChar(70)
+  seoDescription String?   @map("seo_description") @db.VarChar(320)
+  noIndex        Boolean   @default(false) @map("no_index")
+  isPublished    Boolean   @default(false) @map("is_published")
+  publishedAt    DateTime? @map("published_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   author   User          @relation("BlogAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   comments BlogComment[]

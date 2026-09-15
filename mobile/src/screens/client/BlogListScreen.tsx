@@ -90,6 +90,11 @@ export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
                   })
                 : ''}
             </Text>
+            {item.excerpt ? (
+              <Text style={[styles.excerpt, { color: colors.textSecondary }]} numberOfLines={3}>
+                {item.excerpt}
+              </Text>
+            ) : null}
             <Text style={[styles.readMore, { color: colors.primary }]}>
               {t('blog.readMore')}
             </Text>
@@ -113,5 +118,6 @@ const styles = StyleSheet.create({
   cardContent: { padding: spacing.md },
   title: { fontSize: 18, fontWeight: '700', lineHeight: 24 },
   date: { fontSize: 13, marginTop: spacing.xs },
+  excerpt: { fontSize: 14, marginTop: spacing.xs, lineHeight: 20 },
   readMore: { fontSize: 14, fontWeight: '600', marginTop: spacing.sm },
 });

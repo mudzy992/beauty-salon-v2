@@ -13,11 +13,34 @@ export class UpdateBlogPostDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
+  excerpt?: string | null;
+
+  @IsOptional()
+  @IsString()
   content?: string;
 
   @IsOptional()
   @IsString()
-  heroImage?: string;
+  heroImage?: string | null;
+
+  @IsOptional()
+  @IsString()
+  ogImage?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(70)
+  seoTitle?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(320)
+  seoDescription?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  noIndex?: boolean;
 
   @IsOptional()
   @IsBoolean()

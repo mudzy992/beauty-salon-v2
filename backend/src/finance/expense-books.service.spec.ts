@@ -36,10 +36,10 @@ describe('ExpenseBooksService', () => {
     });
     const result = await service.getOrCreateForMonth(2026, 3);
     expect(result.id).toBe('b1');
-    expect(mockPrisma.expenseBook.create).toHaveBeenCalledWith({
-      data: { year: 2026, month: 3 },
-      include: { expenses: { include: { category: true } } },
-    });
+    expect(result.totalExpenses).toBe(0);
+    expect(mockPrisma.expenseBook.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { year: 2026, month: 3 } }),
+    );
   });
 
   it('close baca BadRequestException kada je knjiga već zatvorena', async () => {
@@ -55,5 +55,15 @@ describe('ExpenseBooksService', () => {
   it('findOne baca NotFoundException kada knjiga ne postoji', async () => {
     mockPrisma.expenseBook.findUnique.mockResolvedValue(null);
     await expect(service.findOne('nope')).rejects.toThrow(NotFoundException);
+  });
+
+  it('findOne vraća zbir totalExpenses iz stavki', async () => {
+    mockPrisma.expenseBook.findUnique.mockResolvedValue({
+      id: 'b1',
+      expenses: [{ totalAmount: 96.65 }, { totalAmount: '10' }],
+      lockEvents: [],
+    });
+    const result = await service.findOne('b1');
+    expect(result.totalExpenses).toBe(106.65);
   });
 });

@@ -9,6 +9,11 @@ import {
   isFutureMonth,
   isPastMonth,
 } from '../common/utils/book-period';
+import {
+  expenseBookDetailInclude,
+  expenseBookExpensesInclude,
+} from './utils/expense-book-include';
+import { withTotalExpenses } from './utils/expense-book-totals';
 
 @Injectable()
 export class ExpenseBooksService {
@@ -22,31 +27,15 @@ export class ExpenseBooksService {
     }
     let book = await this.prisma.expenseBook.findUnique({
       where: { year_month: { year, month } },
-      include: {
-        expenses: {
-          include: {
-            category: { include: { template: { include: { fields: true } } } },
-            fieldValues: { include: { field: true } },
-            attachments: { include: { upload: true } },
-          },
-        },
-      },
+      include: expenseBookExpensesInclude,
     });
     if (!book) {
       book = await this.prisma.expenseBook.create({
         data: { year, month },
-        include: {
-          expenses: {
-            include: {
-              category: { include: { template: { include: { fields: true } } } },
-              fieldValues: { include: { field: true } },
-              attachments: { include: { upload: true } },
-            },
-          },
-        },
+        include: expenseBookExpensesInclude,
       });
     }
-    return book;
+    return withTotalExpenses(book);
   }
 
   async findAll() {
@@ -70,22 +59,10 @@ export class ExpenseBooksService {
   async findOne(id: string) {
     const book = await this.prisma.expenseBook.findUnique({
       where: { id },
-      include: {
-        expenses: {
-          include: {
-            category: { include: { template: { include: { fields: true } } } },
-            fieldValues: { include: { field: true } },
-            attachments: { include: { upload: true } },
-          },
-        },
-        lockEvents: {
-          include: { createdBy: { select: { id: true, username: true } } },
-          orderBy: { createdAt: 'desc' },
-        },
-      },
+      include: expenseBookDetailInclude,
     });
     if (!book) throw new NotFoundException('Knjiga rashoda nije pronađena.');
-    return book;
+    return withTotalExpenses(book);
   }
 
   async close(id: string, closedBy: string) {
@@ -108,33 +85,18 @@ export class ExpenseBooksService {
     if (!isPastMonth(book.year, book.month)) {
       throw new BadRequestException('Otključavanje je dozvoljeno samo za knjige iz prošlosti.');
     }
-    return this.prisma.expenseBook.update({
+    const unlocked = await this.prisma.expenseBook.update({
       where: { id },
       data: {
         isClosed: false,
         closedAt: null,
         lockEvents: {
-          create: {
-            action: 'UNLOCK',
-            reason: trimmedReason,
-            createdById: userId,
-          },
+          create: { action: 'UNLOCK', reason: trimmedReason, createdById: userId },
         },
       },
-      include: {
-        expenses: {
-          include: {
-            category: { include: { template: { include: { fields: true } } } },
-            fieldValues: { include: { field: true } },
-            attachments: { include: { upload: true } },
-          },
-        },
-        lockEvents: {
-          include: { createdBy: { select: { id: true, username: true } } },
-          orderBy: { createdAt: 'desc' },
-        },
-      },
+      include: expenseBookDetailInclude,
     });
+    return withTotalExpenses(unlocked);
   }
 
   async lockBook(id: string, userId: string) {
@@ -143,33 +105,16 @@ export class ExpenseBooksService {
     if (book.isClosed) {
       throw new BadRequestException('Knjiga je već zaključana.');
     }
-    return this.prisma.expenseBook.update({
+    const locked = await this.prisma.expenseBook.update({
       where: { id },
       data: {
         isClosed: true,
         closedAt: new Date(),
         closedBy: userId,
-        lockEvents: {
-          create: {
-            action: 'LOCK',
-            createdById: userId,
-          },
-        },
+        lockEvents: { create: { action: 'LOCK', createdById: userId } },
       },
-      include: {
-        expenses: {
-          include: {
-            category: { include: { template: { include: { fields: true } } } },
-            fieldValues: { include: { field: true } },
-            attachments: { include: { upload: true } },
-          },
-        },
-        lockEvents: {
-          include: { createdBy: { select: { id: true, username: true } } },
-          orderBy: { createdAt: 'desc' },
-        },
-      },
+      include: expenseBookDetailInclude,
     });
+    return withTotalExpenses(locked);
   }
-
 }

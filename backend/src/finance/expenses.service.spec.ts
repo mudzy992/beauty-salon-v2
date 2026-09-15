@@ -196,6 +196,20 @@ describe('ExpensesService', () => {
       await service.update('ex1', { title: 'Novi naziv' }, user);
       expect(prisma.expenseFieldValue.deleteMany).not.toHaveBeenCalled();
     });
+
+    it('dodaje priloge pri izmjeni i prihvata bookId u payloadu', async () => {
+      await service.update(
+        'ex1',
+        { bookId: 'b1', attachmentUploadIds: ['u1', 'u2'] },
+        user,
+      );
+      expect(prisma.expenseAttachment.createMany).toHaveBeenCalledWith({
+        data: [
+          { expenseId: 'ex1', uploadId: 'u1' },
+          { expenseId: 'ex1', uploadId: 'u2' },
+        ],
+      });
+    });
   });
 
   describe('findOne', () => {

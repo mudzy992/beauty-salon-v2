@@ -6,7 +6,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBlogPostDto } from './dto/create-blog-post.dto';
 import { UpdateBlogPostDto } from './dto/update-blog-post.dto';
-import { slugify } from './utils/slug.utils';
+import { optionalSeoFields, slugSource } from './utils/blog-post-data';
+import { emptyToNull } from '../common/utils/empty-to-null';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 
 @Injectable()
@@ -14,7 +15,7 @@ export class BlogService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateBlogPostDto, authorId: string) {
-    const slug = await this.ensureUniqueSlug(dto.slug ?? slugify(dto.title));
+    const slug = await this.ensureUniqueSlug(slugSource(dto, dto.title));
     const isPublished = dto.isPublished ?? false;
     return this.prisma.blogPost.create({
       data: {
@@ -22,7 +23,8 @@ export class BlogService {
         title: dto.title,
         slug,
         content: dto.content,
-        heroImage: dto.heroImage,
+        ...optionalSeoFields(dto),
+        noIndex: dto.noIndex ?? false,
         isPublished,
         publishedAt: isPublished ? new Date() : null,
       },
@@ -110,10 +112,7 @@ export class BlogService {
     }
     let slug = post.slug;
     if (dto.slug != null || dto.title != null) {
-      slug = await this.ensureUniqueSlug(
-        dto.slug ?? slugify(dto.title ?? post.title),
-        id,
-      );
+      slug = await this.ensureUniqueSlug(slugSource(dto, post.title), id);
     }
     const isPublished = dto.isPublished ?? post.isPublished;
     const publishedAt =
@@ -123,7 +122,14 @@ export class BlogService {
       data: {
         ...(dto.title != null && { title: dto.title }),
         ...(dto.content !== undefined && { content: dto.content }),
-        ...(dto.heroImage !== undefined && { heroImage: dto.heroImage }),
+        ...(dto.excerpt !== undefined && { excerpt: emptyToNull(dto.excerpt) }),
+        ...(dto.heroImage !== undefined && { heroImage: emptyToNull(dto.heroImage) }),
+        ...(dto.ogImage !== undefined && { ogImage: emptyToNull(dto.ogImage) }),
+        ...(dto.seoTitle !== undefined && { seoTitle: emptyToNull(dto.seoTitle) }),
+        ...(dto.seoDescription !== undefined && {
+          seoDescription: emptyToNull(dto.seoDescription),
+        }),
+        ...(dto.noIndex !== undefined && { noIndex: dto.noIndex }),
         slug,
         isPublished,
         publishedAt,

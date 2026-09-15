@@ -13,6 +13,14 @@ import { ExpenseFieldValueDto } from './create-expense.dto';
 
 export class UpdateExpenseDto {
   @IsOptional()
+  @IsUUID()
+  bookId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+
+  @IsOptional()
   @IsString()
   @MaxLength(500)
   title?: string;
@@ -36,4 +44,9 @@ export class UpdateExpenseDto {
   @ValidateNested({ each: true })
   @Type(() => ExpenseFieldValueDto)
   fieldValues?: ExpenseFieldValueDto[];
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  attachmentUploadIds?: string[];
 }
