@@ -1,4 +1,4 @@
-import { useRef, useState, type RefObject } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
@@ -38,8 +38,6 @@ export function BlogPostFormDialog({
   onUploaded,
 }: Props) {
   const { t } = useTranslation()
-  const heroFileRef = useRef<HTMLInputElement>(null)
-  const ogFileRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState<'hero' | 'og' | null>(null)
 
   const uploadImage = async (file: File, field: 'heroImage' | 'ogImage') => {
@@ -96,14 +94,12 @@ export function BlogPostFormDialog({
             label="Hero slika"
             value={form.heroImage}
             uploading={uploading === 'hero'}
-            fileRef={heroFileRef}
             onPick={(file) => void uploadImage(file, 'heroImage')}
           />
           <ImageUpload
             label="OG slika (dijeljenje)"
             value={form.ogImage}
             uploading={uploading === 'og'}
-            fileRef={ogFileRef}
             onPick={(file) => void uploadImage(file, 'ogImage')}
             hint="Ako je prazna, koristi se hero slika."
           />
@@ -137,17 +133,16 @@ function ImageUpload({
   label,
   value,
   uploading,
-  fileRef,
   onPick,
   hint,
 }: {
   label: string
   value: string
   uploading: boolean
-  fileRef: RefObject<HTMLInputElement | null>
   onPick: (file: File) => void
   hint?: string
 }) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
@@ -155,15 +150,17 @@ function ImageUpload({
       <input
         type="file"
         accept="image/*"
-        ref={fileRef}
+        ref={(node) => {
+          inputRef.current = node
+        }}
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0]
           if (file) onPick(file)
-          if (fileRef.current) fileRef.current.value = ''
+          e.target.value = ''
         }}
       />
-      <Button type="button" size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
+      <Button type="button" size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={uploading}>
         {uploading ? 'Upload...' : value ? 'Promijeni sliku' : 'Upload sliku'}
       </Button>
       {hint ? <p className="text-xs text-slate-500">{hint}</p> : null}
