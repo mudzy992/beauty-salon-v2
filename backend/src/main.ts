@@ -11,8 +11,12 @@ import { DecimalToNumberInterceptor } from './common/interceptors/decimal-to-num
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const socketIoRuntime = resolveSocketIoRuntimeConfig(process.env);
-  if (socketIoRuntime.redisUrl) {
-    const redisIoAdapter = new RedisIoAdapter(app, socketIoRuntime.redisUrl);
+  if (socketIoRuntime.multiInstance && socketIoRuntime.redisUrl) {
+    const redisIoAdapter = new RedisIoAdapter(
+      app,
+      socketIoRuntime.redisUrl,
+      socketIoRuntime.channelPrefix,
+    );
     await redisIoAdapter.connectToRedis();
     app.useWebSocketAdapter(redisIoAdapter);
   }

@@ -178,20 +178,22 @@ Severity P0/P1/P2 i finding IDs definisani su u `FINDINGS.md`.
 
 ## 9. Faza 7 — odobreni Socket.IO Redis adapter i uslovne dodatne namjene
 
-User reports shared Redis service `redis-core` on standard port, but the audit has not independently verified network/ACL or durability. Do not put its credentials in repo/docs.
+User confirms the global Redis container is `redis-core` on standard port `6379` on the same Docker host, reachable through external Docker network `redis_net`; other applications have their own ACL users/prefixes/workers. Compose now attaches only this backend to `redis_net` in addition to its existing `db_net`. This is user-reported topology, not a runtime connectivity check. Do not put credentials in repo/docs.
+
+**Terminology:** `SOCKET_IO_MULTI_INSTANCE=true` refers to multiple running instances/replicas of this same backend, not to multiple unrelated applications using the shared Redis server. Check the deployed backend container count before choosing the in-memory single-instance override.
 
 ### Use cases that can justify Redis
 
 - **Rate limiting** shared by multiple backend replicas (if in-memory limiter is insufficient).
 - **BullMQ** notifications/campaign jobs after transactional outbox/idempotency and operational metrics are in place.
-- **Socket.IO Redis adapter implemented on this branch:** multi-instance mode is the production default and requires `SOCKET_IO_REDIS_URL`; an explicit `SOCKET_IO_MULTI_INSTANCE=false` selects process-local single-instance mode. Adapter readiness/reconnect behavior has mocked-client tests, but no real Redis endpoint, cross-instance delivery or deployment has been validated.
+- **Socket.IO Redis adapter implemented on this branch:** production Compose explicitly defaults `SOCKET_IO_MULTI_INSTANCE=true` and requires `SOCKET_IO_REDIS_URL`; `SOCKET_IO_MULTI_INSTANCE=false` selects process-local single-instance mode and may not be combined with a Redis URL. `SOCKET_IO_REDIS_CHANNEL_PREFIX` is passed as the adapter key (default `beauty-salon-v2:<NODE_ENV>`; Compose defaults to `beauty-salon-v2:production`) so multiple applications/environments can isolate Pub/Sub channels. Runtime rejects URLs without a non-default ACL username/password. Adapter readiness/reconnect/config tests use mocks; no real Redis endpoint, cross-instance delivery or deployment has been validated.
 - **Distributed scheduler lock** only after job operations are idempotent; PostgreSQL advisory lock is a reasonable alternative.
 
 ### Conditions before use
 
-- Owner confirms `redis-core` DNS/network from API container, TLS/ACL/user, key prefix, TTL, memory policy/eviction, persistence, HA/failover, backup and monitoring.
-- Create separate least-privileged app ACL user; credential supplied only through runtime secret store; no shared default user; set connection timeout/retry/backoff and safe shutdown.
-- Prefix keys per app/environment; TTL/cache invalidation and data classification documented; no auth tokens, PII, financial balance or sole source-of-truth in cache.
+- Owner reports `redis-core:6379` on external `redis_net`; this branch attaches the backend container to that network. Still verify container DNS/reachability, Redis TLS state/version, the dedicated ACL user, backend replica count, memory/eviction policy, persistence, HA/failover, backup and monitoring in a non-production environment.
+- Create a dedicated least-privileged ACL user specifically for this app's Socket.IO adapter, separate from other apps and BullMQ workers; provide its username/password only through runtime secret storage, never the default user. The adapter uses Pub/Sub channels, not Redis key storage. Candidate command permissions for current `@socket.io/redis-adapter@8.3.0` + `redis@6.3.0`: `HELLO`, `PUBLISH`, `SUBSCRIBE`, `PSUBSCRIBE`, `UNSUBSCRIBE`, `PUNSUBSCRIBE`, and `PUBSUB NUMSUB`; verify against the actual Redis version and a non-production ACL before applying. `CLIENT SETINFO` is attempted by node-redis but its failure is explicitly ignored.
+- Use a unique `SOCKET_IO_REDIS_CHANNEL_PREFIX` per app/environment (all replicas of the same app/environment share one value); for `beauty-salon-v2:production`, restrict Redis channel ACL with a pattern such as `&beauty-salon-v2:production*` if supported. Use a different prefix/user for staging or other apps; do not rely on ACL usernames alone while all adapters share the default `socket.io` prefix. This prefix scopes Pub/Sub channels, not Redis keys.
 - Queue jobs have idempotency keys, retry ceilings, DLQ, alerting, metrics, operator replay; Redis loss/restart is exercised.
 - Add integration tests with ephemeral Redis, but CI should not require shared environment Redis.
 

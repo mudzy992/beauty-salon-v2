@@ -22,6 +22,7 @@ export class RedisIoAdapter extends IoAdapter {
   constructor(
     app: INestApplicationContext,
     private readonly redisUrl: string,
+    private readonly channelPrefix: string,
   ) {
     super(app);
   }
@@ -55,7 +56,9 @@ export class RedisIoAdapter extends IoAdapter {
 
       this.setClientReady('publisher', true);
       this.setClientReady('subscriber', true);
-      this.adapterConstructor = createAdapter(publisher, subscriber);
+      this.adapterConstructor = createAdapter(publisher, subscriber, {
+        key: this.channelPrefix,
+      });
     } catch {
       this.destroyRedisClients();
       throw new Error('Socket.IO Redis adapter initial connection failed.');

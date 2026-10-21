@@ -20,8 +20,9 @@ services:
       UPLOAD_ROOT: ${UPLOAD_ROOT:-/usr/app/uploads}
       APP_SETTINGS_ENCRYPTION_KEY: ${APP_SETTINGS_ENCRYPTION_KEY}
       NODE_ENV: production
-      SOCKET_IO_MULTI_INSTANCE: ${SOCKET_IO_MULTI_INSTANCE:-}
+      SOCKET_IO_MULTI_INSTANCE: ${SOCKET_IO_MULTI_INSTANCE:-true}
       SOCKET_IO_REDIS_URL: ${SOCKET_IO_REDIS_URL:-}
+      SOCKET_IO_REDIS_CHANNEL_PREFIX: "${SOCKET_IO_REDIS_CHANNEL_PREFIX:-beauty-salon-v2:production}"
 
     volumes:
       - /mnt/shared-app-files/beauty-salon-v2:/usr/app/uploads
@@ -30,8 +31,12 @@ services:
 
     networks:
       - db_net
+      - redis_net
 
 networks:
   db_net:
     external: true
     name: db_net
+  redis_net:
+    external: true
+    name: redis_net

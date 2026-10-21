@@ -57,6 +57,7 @@ describe('RedisIoAdapter', () => {
     new RedisIoAdapter(
       { getHttpServer: jest.fn() } as unknown as INestApplicationContext,
       'rediss://redis.example:6379',
+      'beauty-salon-v2:test',
     );
 
   beforeEach(() => {
@@ -95,6 +96,9 @@ describe('RedisIoAdapter', () => {
     });
     expect(publisher.connect).toHaveBeenCalledTimes(1);
     expect(subscriber.connect).toHaveBeenCalledTimes(1);
+    expect(createAdapter).toHaveBeenCalledWith(publisher, subscriber, {
+      key: 'beauty-salon-v2:test',
+    });
     expect(server).toBe(mockServer);
     expect(mockServer.adapter).toHaveBeenCalledWith(adapterConstructor);
     expect(readinessMiddleware).toBeDefined();
