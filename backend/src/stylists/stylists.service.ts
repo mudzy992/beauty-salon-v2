@@ -8,10 +8,14 @@ import { CreateStylistProfileDto } from './dto/create-stylist-profile.dto';
 import { UpdateStylistProfileDto } from './dto/update-stylist-profile.dto';
 import { StylistWorkingHoursDto } from './dto/stylist-working-hours.dto';
 import { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class StylistsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: EventsGateway,
+  ) {}
 
   async findAll(
     activeOnly = false,
@@ -148,6 +152,7 @@ export class StylistsService {
         user: { select: { id: true, firstName: true, lastName: true } },
       },
     });
+    this.events.disconnectUserSockets(dto.userId);
 
     // Automatski dodjeli STYLIST rolu korisniku (ne može se ručno u User managementu)
     const stylistRole = await this.prisma.role.findUnique({
@@ -189,6 +194,22 @@ export class StylistsService {
       throw new ForbiddenException('Nemate dozvolu za izmjenu ovog profila.');
     }
     const shouldAllowAdminFields = this.isAdminOrOwner(currentUser.roles);
+    const nextIsActive =
+      shouldAllowAdminFields && dto.isActive !== undefined
+        ? dto.isActive
+        : shouldAllowAdminFields &&
+            dto.status === 'ACTIVE' &&
+            dto.isActive === undefined
+          ? true
+          : stylist.isActive;
+    const nextStatus =
+      shouldAllowAdminFields && dto.status !== undefined
+        ? dto.status
+        : stylist.status;
+    const socketAccessChanged =
+      (stylist.isActive && stylist.status === 'ACTIVE') !==
+      (nextIsActive && nextStatus === 'ACTIVE');
+
     await this.prisma.stylistProfile.update({
       where: { id },
       data: {
@@ -210,6 +231,9 @@ export class StylistsService {
         }),
       },
     });
+    if (socketAccessChanged) {
+      this.events.disconnectUserSockets(stylist.userId);
+    }
     if (dto.serviceIds) await this.setServices(id, dto.serviceIds);
     if (dto.workingHours) await this.setWorkingHours(id, dto.workingHours);
     return this.findOne(id);
@@ -223,6 +247,7 @@ export class StylistsService {
     if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
     const userId = stylist.userId;
     await this.prisma.stylistProfile.delete({ where: { id } });
+    this.events.disconnectUserSockets(userId);
     // Ukloni STYLIST rolu korisniku kad više nema profil stilista
     const stylistRole = await this.prisma.role.findUnique({
       where: { name: 'STYLIST' },

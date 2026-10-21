@@ -13,12 +13,13 @@ jest.mock('../prisma/prisma.service', () => ({
 }));
 
 const JWT_SECRET = 'socket-integration-test-secret';
-const EVENT_TIMEOUT_MS = 2_000;
+const EVENT_TIMEOUT_MS = 3_000;
 const EVENT_ABSENCE_WINDOW_MS = 500;
 
 type SocketUserRecord = {
   isActive: boolean;
   userRoles: { role: { name: string } }[];
+  stylistProfile?: { isActive: boolean; status: 'PENDING' | 'ACTIVE' } | null;
 };
 
 describe('EventsGateway live Socket.IO integration', () => {
@@ -31,7 +32,31 @@ describe('EventsGateway live Socket.IO integration', () => {
     ['client-1', { isActive: true, userRoles: [{ role: { name: 'CLIENT' } }] }],
     [
       'stylist-1',
-      { isActive: true, userRoles: [{ role: { name: 'STYLIST' } }] },
+      {
+        isActive: true,
+        userRoles: [{ role: { name: 'STYLIST' } }],
+        stylistProfile: { isActive: true, status: 'ACTIVE' },
+      },
+    ],
+    [
+      'pending-stylist-1',
+      {
+        isActive: true,
+        userRoles: [{ role: { name: 'STYLIST' } }],
+        stylistProfile: { isActive: false, status: 'PENDING' },
+      },
+    ],
+    [
+      'revoked-stylist-1',
+      {
+        isActive: true,
+        userRoles: [{ role: { name: 'STYLIST' } }],
+        stylistProfile: { isActive: true, status: 'ACTIVE' },
+      },
+    ],
+    [
+      'expiring-1',
+      { isActive: true, userRoles: [{ role: { name: 'CLIENT' } }] },
     ],
     [
       'admin-1',
@@ -83,10 +108,16 @@ describe('EventsGateway live Socket.IO integration', () => {
   const connectSocket = async (
     userId?: string,
     tokenRoles: string[] = [],
+    expiresInSeconds = 3_600,
   ): Promise<Socket> =>
     connectWithAuth(
       userId
-        ? { token: jwtService.sign({ sub: userId, roles: tokenRoles }) }
+        ? {
+            token: jwtService.sign(
+              { sub: userId, roles: tokenRoles },
+              { expiresIn: expiresInSeconds },
+            ),
+          }
         : {},
     );
 
@@ -100,6 +131,18 @@ describe('EventsGateway live Socket.IO integration', () => {
       socket.once(event, (payload: unknown) => {
         clearTimeout(timeout);
         resolve(payload);
+      });
+    });
+
+  const waitForDisconnect = (socket: Socket): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const timeout = setTimeout(
+        () => reject(new Error('Timed out waiting for socket disconnect')),
+        EVENT_TIMEOUT_MS,
+      );
+      socket.once('disconnect', (reason) => {
+        clearTimeout(timeout);
+        resolve(reason);
       });
     });
 
@@ -177,15 +220,27 @@ describe('EventsGateway live Socket.IO integration', () => {
     const anonymous = await connectSocket();
     const client = await connectSocket('client-1', ['SYSTEM_ADMIN']);
     const stylist = await connectSocket('stylist-1', ['CLIENT']);
+    const pendingStylist = await connectSocket('pending-stylist-1', [
+      'SYSTEM_ADMIN',
+      'STYLIST',
+    ]);
     const admin = await connectSocket('admin-1', ['CLIENT']);
     const owner = await connectSocket('owner-1', ['CLIENT']);
 
     await waitForRoomMembers('public', [anonymous.id]);
     await waitForRoomMembers('user:client-1', [client.id]);
+    await waitForRoomMembers('user:pending-stylist-1', [pendingStylist.id]);
     await waitForRoomMembers('stylists', [stylist.id]);
     await waitForRoomMembers('admin', [admin.id, owner.id]);
 
-    const connectedClients = [anonymous, client, stylist, admin, owner];
+    const connectedClients = [
+      anonymous,
+      client,
+      stylist,
+      pendingStylist,
+      admin,
+      owner,
+    ];
     const salonInvalidations = connectedClients.map((socket) =>
       waitForEvent(socket, SOCKET_EVENTS.SALON_UPDATED),
     );
@@ -208,8 +263,13 @@ describe('EventsGateway live Socket.IO integration', () => {
     const privateSettingEvents = [admin, owner].map((socket) =>
       waitForEvent(socket, SOCKET_EVENTS.SETTINGS_UPDATED),
     );
-    const privateSettingNonRecipients = [anonymous, client, stylist].map(
-      (socket) => hasNotReceivedEvent(socket, SOCKET_EVENTS.SETTINGS_UPDATED),
+    const privateSettingNonRecipients = [
+      anonymous,
+      client,
+      stylist,
+      pendingStylist,
+    ].map((socket) =>
+      hasNotReceivedEvent(socket, SOCKET_EVENTS.SETTINGS_UPDATED),
     );
     gateway.emitToAdmins(SOCKET_EVENTS.SETTINGS_UPDATED, {
       key: 'system_email_host',
@@ -219,6 +279,7 @@ describe('EventsGateway live Socket.IO integration', () => {
       { key: 'system_email_host' },
     ]);
     await expect(Promise.all(privateSettingNonRecipients)).resolves.toEqual([
+      true,
       true,
       true,
       true,
@@ -235,5 +296,62 @@ describe('EventsGateway live Socket.IO integration', () => {
     await expect(connectWithAuth({ token: 'not-a-valid-jwt' })).rejects.toThrow(
       'Unauthorized',
     );
+    await expect(
+      connectWithAuth({ token: jwtService.sign({ sub: 'client-1' }) }),
+    ).rejects.toThrow('Unauthorized');
+
+    mockPrisma.user.findUnique.mockRejectedValueOnce(
+      new Error('Prisma unavailable'),
+    );
+    await expect(connectSocket('client-1', ['CLIENT'])).rejects.toThrow(
+      'Unauthorized',
+    );
+  });
+
+  it('revokes all user sockets on role/account changes and token expiry', async () => {
+    const firstSession = await connectSocket('revoked-stylist-1', ['CLIENT']);
+    const secondSession = await connectSocket('revoked-stylist-1', ['STYLIST']);
+    await waitForRoomMembers('user:revoked-stylist-1', [
+      firstSession.id,
+      secondSession.id,
+    ]);
+
+    const firstDisconnect = waitForDisconnect(firstSession);
+    const secondDisconnect = waitForDisconnect(secondSession);
+    currentUsers.set('revoked-stylist-1', {
+      isActive: true,
+      userRoles: [{ role: { name: 'CLIENT' } }],
+      stylistProfile: null,
+    });
+    gateway.disconnectUserSockets('revoked-stylist-1');
+    await expect(
+      Promise.all([firstDisconnect, secondDisconnect]),
+    ).resolves.toEqual(['io server disconnect', 'io server disconnect']);
+    await waitForRoomMembers('user:revoked-stylist-1', []);
+
+    const reconnected = await connectSocket('revoked-stylist-1', ['STYLIST']);
+    await waitForRoomMembers('user:revoked-stylist-1', [reconnected.id]);
+    const stylistRoom = await gateway.server.in('stylists').fetchSockets();
+    expect(
+      stylistRoom.some((socket) => socket.data.userId === 'revoked-stylist-1'),
+    ).toBe(false);
+
+    const accountDisconnect = waitForDisconnect(reconnected);
+    currentUsers.set('revoked-stylist-1', {
+      isActive: false,
+      userRoles: [{ role: { name: 'CLIENT' } }],
+      stylistProfile: null,
+    });
+    gateway.disconnectUserSockets('revoked-stylist-1');
+    await expect(accountDisconnect).resolves.toBe('io server disconnect');
+    await expect(
+      connectSocket('revoked-stylist-1', ['SYSTEM_ADMIN']),
+    ).rejects.toThrow('Unauthorized');
+
+    const expiringSession = await connectSocket('expiring-1', ['CLIENT'], 2);
+    const expiryDisconnect = waitForDisconnect(expiringSession);
+    await waitForRoomMembers('user:expiring-1', [expiringSession.id]);
+    await expect(expiryDisconnect).resolves.toBe('io server disconnect');
+    await waitForRoomMembers('user:expiring-1', []);
   });
 });

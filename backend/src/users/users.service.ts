@@ -12,6 +12,7 @@ import { AssignRoleDto } from './dto/assign-role.dto';
 import { RemoveStylistRoleDto } from './dto/remove-stylist-role.dto';
 import { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { UsersRepository } from './users.repository';
+import { EventsGateway } from '../events/events.gateway';
 
 const CLIENT_PICKER_SELECT = {
   id: true,
@@ -41,7 +42,10 @@ export class UsersService {
   private static readonly DEFAULT_INITIAL_PASSWORD = 'Init2026!';
   private static readonly CLIENT_ROLE = 'CLIENT';
 
-  constructor(private readonly repo: UsersRepository) {}
+  constructor(
+    private readonly repo: UsersRepository,
+    private readonly events: EventsGateway,
+  ) {}
 
   /** Lista korisnika za odabir klijenta u dnevnoj knjizi (stilist ili admin). */
   async findForDailyLog(roles: string[]) {
@@ -429,7 +433,7 @@ export class UsersService {
     const nextEmail = dto.email?.trim() ?? null;
     const shouldResetEmailVerification =
       dto.email !== undefined && nextEmail !== user.email;
-    return this.repo.user.update({
+    const updated = await this.repo.user.update({
       where: { id },
       data: {
         ...(dto.firstName != null && { firstName: dto.firstName }),
@@ -458,6 +462,14 @@ export class UsersService {
       },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
     });
+    if (
+      this.isAdminOrOwner(currentUser.roles) &&
+      dto.isActive !== undefined &&
+      dto.isActive !== user.isActive
+    ) {
+      this.events.disconnectUserSockets(id);
+    }
+    return updated;
   }
 
   async updateProfile(userId: string, dto: UpdateUserDto) {
@@ -526,6 +538,7 @@ export class UsersService {
     );
     if (existing) return user;
     await this.repo.userRole.create({ data: { userId, roleId: role.id } });
+    this.events.disconnectUserSockets(userId);
     if (requestedRoleName === 'STYLIST') {
       const existingProfile = await this.repo.stylistProfile.findUnique({
         where: { userId },
@@ -565,6 +578,7 @@ export class UsersService {
     const userRole = user.userRoles.find((ur) => ur.role.name === roleName);
     if (!userRole) throw new NotFoundException('Korisnik nema tu rol u.');
     await this.repo.userRole.delete({ where: { id: userRole.id } });
+    this.events.disconnectUserSockets(userId);
     return this.repo.user.findUnique({
       where: { id: userId },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
@@ -657,7 +671,7 @@ export class UsersService {
     );
     const reviewsTarget = await validateTransferTarget(dto.reviews);
 
-    return this.repo.transaction(async (tx) => {
+    const removed = await this.repo.transaction(async (tx) => {
       if (dto.dailyLogs.mode === 'DELETE') {
         await tx.dailyLogEntry.deleteMany({ where: { stylistProfileId } });
       } else if (dailyLogsTarget) {
@@ -740,6 +754,8 @@ export class UsersService {
         },
       });
     });
+    this.events.disconnectUserSockets(userId);
+    return removed;
   }
 
   async getClientAnalytics(

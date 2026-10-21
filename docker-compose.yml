@@ -20,6 +20,8 @@ services:
       UPLOAD_ROOT: ${UPLOAD_ROOT:-/usr/app/uploads}
       APP_SETTINGS_ENCRYPTION_KEY: ${APP_SETTINGS_ENCRYPTION_KEY}
       NODE_ENV: production
+      SOCKET_IO_MULTI_INSTANCE: ${SOCKET_IO_MULTI_INSTANCE:-}
+      SOCKET_IO_REDIS_URL: ${SOCKET_IO_REDIS_URL:-}
 
     volumes:
       - /mnt/shared-app-files/beauty-salon-v2:/usr/app/uploads

@@ -11,7 +11,11 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 
-type GatewaySocketData = { userId?: string; roles?: string[] };
+type GatewaySocketData = {
+  userId?: string;
+  roles?: string[];
+  tokenExpiresAt?: number;
+};
 type GatewaySocket = Socket<
   DefaultEventsMap,
   DefaultEventsMap,
@@ -25,6 +29,8 @@ type GatewayServer = Server<
   GatewaySocketData
 >;
 
+const MAX_TIMER_DELAY_MS = 2_147_483_647;
+
 @WebSocketGateway({
   cors: { origin: '*', credentials: true },
   namespace: '/',
@@ -35,6 +41,7 @@ export class EventsGateway
   @WebSocketServer() server: GatewayServer;
   private readonly logger = new Logger(EventsGateway.name);
   private readonly connectedUsers = new Map<string, Set<string>>();
+  private readonly expiryTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -77,24 +84,40 @@ export class EventsGateway
     client.data.roles = [];
     if (!token) return;
 
-    const payload = this.jwtService.verify<{ sub?: string }>(token, {
-      secret: this.configService.get<string>('JWT_SECRET'),
-    });
+    const payload = this.jwtService.verify<{ sub?: string; exp?: number }>(
+      token,
+      { secret: this.configService.get<string>('JWT_SECRET') },
+    );
     if (typeof payload.sub !== 'string' || payload.sub.length === 0) {
       throw new Error('Invalid JWT subject');
     }
+    if (!Number.isSafeInteger(payload.exp)) {
+      throw new Error('JWT expiration is required');
+    }
+    const tokenExpiresAt = payload.exp * 1000;
+    if (tokenExpiresAt <= Date.now()) throw new Error('Expired JWT token');
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {
         isActive: true,
         userRoles: { select: { role: { select: { name: true } } } },
+        stylistProfile: { select: { isActive: true, status: true } },
       },
     });
     if (!user?.isActive) throw new Error('Inactive or unknown user');
 
+    const roles = user.userRoles.map((userRole) => userRole.role.name);
+    const effectiveRoles = roles.filter(
+      (role) =>
+        role !== 'STYLIST' ||
+        (user.stylistProfile?.isActive &&
+          user.stylistProfile.status === 'ACTIVE'),
+    );
+
     client.data.userId = payload.sub;
-    client.data.roles = user.userRoles.map((userRole) => userRole.role.name);
+    client.data.tokenExpiresAt = tokenExpiresAt;
+    client.data.roles = effectiveRoles;
   }
 
   async handleConnection(client: GatewaySocket) {
@@ -118,11 +141,45 @@ export class EventsGateway
       this.connectedUsers.set(userId, new Set());
     }
     this.connectedUsers.get(userId)!.add(client.id);
+    this.scheduleTokenExpiry(client);
 
     this.logger.log(`User ${userId} connected (socket: ${client.id})`);
   }
 
+  private scheduleTokenExpiry(client: GatewaySocket) {
+    const expiresAt = client.data.tokenExpiresAt;
+    if (expiresAt === undefined) return;
+
+    const disconnectWhenExpired = () => {
+      const remainingMs = expiresAt - Date.now();
+      if (remainingMs <= 0) {
+        this.expiryTimers.delete(client.id);
+        client.disconnect(true);
+        return;
+      }
+
+      const timer = setTimeout(
+        disconnectWhenExpired,
+        Math.min(remainingMs, MAX_TIMER_DELAY_MS),
+      );
+      timer.unref();
+      this.expiryTimers.set(client.id, timer);
+    };
+
+    disconnectWhenExpired();
+  }
+
+  disconnectUserSockets(userId: string) {
+    this.server.in(`user:${userId}`).disconnectSockets(true);
+  }
+
   handleDisconnect(client: GatewaySocket) {
+    const expiryTimer = this.expiryTimers.get(client.id);
+    if (expiryTimer) {
+      clearTimeout(expiryTimer);
+      this.expiryTimers.delete(client.id);
+    }
+
     const userId = client.data?.userId;
     if (userId) {
       this.connectedUsers.get(userId)?.delete(client.id);

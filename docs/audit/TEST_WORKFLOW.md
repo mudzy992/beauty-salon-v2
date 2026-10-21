@@ -20,8 +20,11 @@
 - From `backend/`, `npm run test:blog-sanitizer` passes 2/2, `npm test -- --runInBand src/blog` passes 4 suites/16 tests, and `npm test -- --runInBand src/security/security-contract.spec.ts` passes 3 in-process Nest HTTP contract tests (real routing/JWT/role guards, mocked services; no database).
 - SEC-06 settings verification: `npm test -- --runInBand src/settings` passes 2 suites/8 tests (SettingsService 6/6). The rerun used `npm ci --ignore-scripts` without a generated Prisma Client, so Jest received a temporary mock of only the `PrismaService` DI token; SettingsRepository, database calls, and Socket.IO runtime were not exercised.
 - SEC-06 salon-event follow-up: `SalonService.update` coverage asserts the global event is key-only even when its service result includes holiday push metadata.
-- SEC-06 live Socket.IO integration: `npm test -- --runInBand src/events/events.gateway.integration.spec.ts` passes 1 suite/1 test against a real ephemeral Nest/Socket.IO server. The test mocks `PrismaService.user.findUnique`; it verifies current DB roles override JWT role claims and invalid/missing/inactive credentials are rejected, but it is not a real DB test. Combined `src/events src/settings src/salon` passes 5 suites/16 tests using the temporary PrismaService DI-token mock for Prisma-dependent suites.
-- Backend full build/test/Prisma checks nisu potpuno potvrđeni locally: generated client/engine download is blocked by sandbox TLS; push-triggered CI has passed Prisma generation/build/full Jest.
+- SEC-06 live Socket.IO/revocation follow-up: `events.gateway.integration.spec.ts` runs a real ephemeral Nest/Socket.IO server but mocks `PrismaService.user.findUnique`. It verifies current-role room assignment, active stylist-profile gating, invalid/missing/inactive/non-expiring-token rejection, disconnecting all user sessions after simulated role/account revocation, and disconnect at JWT expiry.
+- SEC-06 Redis adapter/config coverage: `redis-io.adapter.spec.ts` and `socket-io-runtime-config.spec.ts` pass 2 suites/8 tests with mocked Redis clients. They verify adapter attachment, initial connection failure cleanup, readiness gating, local disconnect and connection-mode validation. No Redis endpoint or multi-process Socket.IO cluster was started.
+- Combined local `npm test -- --runInBand src/events src/users src/stylists src/settings src/salon` passes 11 suites/42 tests using a temporary Jest setup that mocks only the PrismaService DI token; no real DB is queried. `npm ci --ignore-scripts --no-audit --no-fund` installed 963 locked backend packages; generated Prisma Client was not produced.
+- Targeted Prettier/ESLint and isolated TypeScript checks pass for the new Redis adapter/config/main wiring. Other backend lint remains limited by the missing generated Prisma Client and pre-existing diagnostics; do not broad-autofix.
+- Compose YAML parsing confirms pass-through of `SOCKET_IO_MULTI_INSTANCE` and `SOCKET_IO_REDIS_URL`. CI runs `39612726906` and `39613065947` passed for earlier commits; the current local follow-up is uncommitted and has not been CI-validated.
 - Browser-enforced CORS, Playwright, mobile device, real SMTP/push, PostgreSQL race and production endpoints are untested.
 - `npm audit --omit=dev --json` bilježi findings u [FINDINGS.md § SCM-01](FINDINGS.md#scm-01--npm-audit-snapshot-sadrži-61-advisory-među-njima-2-critical); `npm audit fix` nije pokrenut.
 
@@ -80,6 +83,7 @@ npm test -- --runInBand src/blog
 npm test -- --runInBand src/security/security-contract.spec.ts
 npm test -- --runInBand src/settings
 npm test -- --runInBand src/salon
+npm test -- --runInBand src/users src/stylists
 npm test -- --runInBand src/events/events.gateway.integration.spec.ts
 npm test -- --runInBand
 ```

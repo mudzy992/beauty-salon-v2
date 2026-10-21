@@ -5,10 +5,22 @@ jest.mock('../prisma/prisma.service', () => ({
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { UsersRepository } from './users.repository';
+import { EventsGateway } from '../events/events.gateway';
+import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
+
+type UserUpdateArgs = {
+  where: { id: string };
+  data: Record<string, unknown>;
+  include?: unknown;
+};
+
+const mockEventsGateway = {
+  disconnectUserSockets: jest.fn(),
+};
 
 const mockRepo = {
   user: {
@@ -16,13 +28,16 @@ const mockRepo = {
     findMany: jest.fn(),
     count: jest.fn(),
     create: jest.fn(),
+    update: jest.fn<(args: UserUpdateArgs) => Promise<unknown>>(),
   },
   role: {
     findUnique: jest.fn(),
   },
   userRole: {
     create: jest.fn(),
+    delete: jest.fn(),
   },
+  transaction: jest.fn(),
   reservation: {
     findMany: jest.fn(),
   },
@@ -73,6 +88,7 @@ describe('UsersService', () => {
       providers: [
         UsersService,
         { provide: UsersRepository, useValue: mockRepo },
+        { provide: EventsGateway, useValue: mockEventsGateway },
       ],
     }).compile();
     service = module.get<UsersService>(UsersService);
@@ -312,5 +328,104 @@ describe('UsersService', () => {
     expect(result.manualEntries).toHaveLength(2);
     expect(result.manualEntries[0].id).toBe('m1');
     expect(result.manualEntries[0].isManual).toBe(true);
+  });
+
+  it('disconnects sockets after an account activity change', async () => {
+    const user = {
+      id: 'user-1',
+      username: 'user.one',
+      email: null,
+      gender: 'FEMALE',
+      isActive: true,
+      isEmailVerified: false,
+      emailVerificationToken: null,
+      emailVerificationExpiresAt: null,
+    };
+    const updated = { ...user, isActive: false };
+    mockRepo.user.findUnique.mockResolvedValueOnce(user).mockResolvedValueOnce({
+      ...user,
+      userRoles: [{ role: { name: 'CLIENT' } }],
+    });
+    let userUpdateCall: UserUpdateArgs | undefined;
+    mockRepo.user.update.mockImplementationOnce((args: UserUpdateArgs) => {
+      userUpdateCall = args;
+      return Promise.resolve(updated);
+    });
+
+    const currentUser: CurrentUserPayload = {
+      sub: 'admin-1',
+      username: 'admin',
+      email: '',
+      roles: ['OWNER'],
+    };
+    await service.update('user-1', { isActive: false }, currentUser);
+
+    expect(userUpdateCall?.where).toEqual({ id: 'user-1' });
+    expect(userUpdateCall?.data.isActive).toBe(false);
+    expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
+      'user-1',
+    );
+  });
+
+  it('disconnects sockets after assigning or removing a role', async () => {
+    mockRepo.user.findUnique
+      .mockResolvedValueOnce({
+        id: 'user-1',
+        userRoles: [{ role: { name: 'CLIENT' } }],
+      })
+      .mockResolvedValueOnce({ id: 'user-1', userRoles: [] });
+    mockRepo.role.findUnique.mockResolvedValue({
+      id: 'role-admin',
+      name: 'SYSTEM_ADMIN',
+    });
+    mockRepo.userRole.create.mockResolvedValue({});
+
+    await service.assignRole('user-1', { role: 'SYSTEM_ADMIN' }, ['OWNER']);
+    expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
+      'user-1',
+    );
+
+    jest.clearAllMocks();
+    mockRepo.user.findUnique
+      .mockResolvedValueOnce({
+        id: 'user-1',
+        userRoles: [{ id: 'user-role-1', role: { name: 'SYSTEM_ADMIN' } }],
+      })
+      .mockResolvedValueOnce({ id: 'user-1', userRoles: [] });
+    mockRepo.userRole.delete.mockResolvedValue({});
+
+    await service.removeRole('user-1', 'SYSTEM_ADMIN', ['OWNER']);
+    expect(mockRepo.userRole.delete).toHaveBeenCalledWith({
+      where: { id: 'user-role-1' },
+    });
+    expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
+      'user-1',
+    );
+  });
+
+  it('disconnects sockets after the stylist-role removal transaction commits', async () => {
+    mockRepo.user.findUnique.mockResolvedValue({
+      id: 'user-1',
+      stylistProfile: { id: 'stylist-profile-1' },
+      userRoles: [{ role: { name: 'STYLIST' } }],
+    });
+    const removedUser = { id: 'user-1', stylistProfile: null };
+    mockRepo.transaction.mockResolvedValue(removedUser);
+
+    const result = await service.removeStylistRole(
+      'user-1',
+      {
+        dailyLogs: { mode: 'DELETE' },
+        confirmedReservations: { mode: 'DELETE' },
+        reservationResponses: { mode: 'DELETE' },
+        reviews: { mode: 'DELETE' },
+      },
+      ['OWNER'],
+    );
+
+    expect(result).toBe(removedUser);
+    expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
+      'user-1',
+    );
   });
 });
