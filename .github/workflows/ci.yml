@@ -104,6 +104,9 @@ jobs:
       - name: Install locked dependencies
         working-directory: frontend
         run: npm ci --no-audit --no-fund
+      - name: Test socket recovery policy
+        working-directory: frontend
+        run: npm run test:socket-recovery
       - name: Build (includes TypeScript project check)
         working-directory: frontend
         run: npm run build
@@ -123,6 +126,9 @@ jobs:
       - name: Install locked dependencies
         working-directory: mobile
         run: npm ci --no-audit --no-fund
+      - name: Test socket recovery policy
+        working-directory: mobile
+        run: npm run test:socket-recovery
       - name: TypeScript check
         working-directory: mobile
         run: npm run typecheck

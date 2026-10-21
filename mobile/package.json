@@ -8,6 +8,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "test:socket-recovery": "node --test src/realtime/socket-recovery.test.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "postinstall": "node ./scripts/patch-calendars-assets.js"

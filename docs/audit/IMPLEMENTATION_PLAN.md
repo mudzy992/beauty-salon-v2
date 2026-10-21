@@ -12,7 +12,7 @@
 4. **Backward-compatible migrations:** expand → deploy app that supports old/new → data backfill → contract; backup/restore rehearsal prije finansijskih schema promjena.
 5. **Mjeriti, ne pretpostaviti:** svaki severity nalaz se zatvara acceptance testom; runtime/production incident status posebno potvrđuje operator.
 6. **No automatic deployment:** GitHub Actions isključivo radi verifikacije; vlasnik sistema odlučuje o ručnom merge-u i deploymentu.
-7. **Redis je opcionalna infrastruktura:** DB ostaje source-of-truth; shared `redis-core` ne koristi se dok owner ne potvrdi ACL/network/persistence/availability.
+7. **Redis je ograničen na odobrenu Socket.IO multi-instance funkciju:** PostgreSQL ostaje source-of-truth; produkcijski adapter zahtijeva runtime `SOCKET_IO_REDIS_URL` osim eksplicitnog single-instance override-a. Prije deploymenta potvrditi Redis ACL/network/persistence/availability; druge Redis namjene ostaju uslovne.
 
 Severity P0/P1/P2 i finding IDs definisani su u `FINDINGS.md`.
 
@@ -132,7 +132,7 @@ Severity P0/P1/P2 i finding IDs definisani su u `FINDINGS.md`.
 
 **Cilj:** keep Socket.IO/HTTP/containers consistent with API authorization and secrets.
 
-**SEC-06 partial source progress (2026-10-21):** `SettingsService.set` globally broadcasts only non-secret `PUBLIC` setting values and sends key-only invalidation for `PRIVATE`/secret settings to the `admin` room; `SalonService.update` emits only a key-only salon invalidation instead of the full salon/holiday record. `EventsGateway` validates active user/current DB roles, requires an expiring JWT, disconnects authenticated sockets at expiry, and admits `STYLIST` to its room only for an active stylist profile. Known `UsersService` and `StylistsService` account/role/profile eligibility changes disconnect that user's sockets after the DB change. A Redis Socket.IO adapter is now provided for multi-instance room operations: production defaults to multi-instance and requires `SOCKET_IO_REDIS_URL`; `SOCKET_IO_MULTI_INSTANCE=false` is an explicit single-instance override. Socket.IO/service tests use mocked Prisma, and the Redis adapter/config tests use mocked clients; no real Redis or deployed multi-instance test has run. The final combined local run passes 11 suites/42 tests (details in `TEST_WORKFLOW.md`). Push-triggered CI runs `39653882891`, `39654632552` and `39655079268` exposed `TS18048` for optional `payload.exp` in `EventsGateway`; commit `7bc4eaf` added an explicit numeric guard. The subsequent run `39655630416` passes all four jobs, including backend build/sanitizer/full Jest, frontend build, mobile typecheck and repository checks; documentation-only runs `39655988745`, `39656281443` and `39656492431` also pass. Real Redis/database/deployment behavior remains unverified. Web/mobile providers currently mark server-disconnected sockets offline without an explicit manual reconnect; recovery UX remains a follow-up. Password-change token invalidation, the anonymous `public` room policy, browser CORS allowlisting, real DB behavior and Redis failover remain open; Phase 3 acceptance criteria are not complete.
+**SEC-06 partial source progress (2026-10-21):** `SettingsService.set` globally broadcasts only non-secret `PUBLIC` setting values and sends key-only invalidation for `PRIVATE`/secret settings to the `admin` room; `SalonService.update` emits only a key-only salon invalidation instead of the full salon/holiday record. `EventsGateway` validates active user/current DB roles, requires an expiring JWT, disconnects authenticated sockets at expiry, and admits `STYLIST` to its room only for an active stylist profile. Known `UsersService` and `StylistsService` account/role/profile eligibility changes disconnect that user's sockets after the DB change. A Redis Socket.IO adapter is now provided for multi-instance room operations: production defaults to multi-instance and requires `SOCKET_IO_REDIS_URL`; `SOCKET_IO_MULTI_INSTANCE=false` is an explicit single-instance override. Socket.IO/service tests use mocked Prisma, and the Redis adapter/config tests use mocked clients; no real Redis or deployed multi-instance test has run. The final combined local run passes 11 suites/42 tests (details in `TEST_WORKFLOW.md`). Push-triggered CI runs `39653882891`, `39654632552` and `39655079268` exposed `TS18048` for optional `payload.exp` in `EventsGateway`; commit `7bc4eaf` added an explicit numeric guard. The subsequent run `39655630416` passes all four jobs, including backend build/sanitizer/full Jest, frontend build, mobile typecheck and repository checks; documentation-only runs `39655988745`, `39656281443` and `39656492431` also pass. Real Redis/database/deployment behavior remains unverified. The user selected automatic web/mobile socket recovery after server disconnects, using the current token so each backend handshake rechecks DB state, bounded exponential backoff for transient adapter/transport failures, and no retry on `Unauthorized`. Both app-local controllers now disable Socket.IO Manager reconnection, retry server/transport disconnects and non-`Unauthorized` connect errors with 1s/2s/4s/5s-capped backoff, and stop on exact `Unauthorized`. Node regression suites pass 6/6 per app; frontend production build and mobile typecheck pass. These checks do not exercise live Redis, DB, browser/device, or deployment. No auth/logout UX change was made. Password-change token invalidation, the anonymous `public` room policy, browser CORS allowlisting, real DB behavior and Redis failover remain open; Phase 3 acceptance criteria are not complete.
 
 - Settings events broadcast only `PUBLIC` values or key-only invalidation; private setting event to `admin` room; Salon payload projection to public DTO. (`SEC-06`)
 - Socket handshake verifies active account/current DB roles; no anonymous `public` data channel unless explicit event allowlist; role revocation disconnects/re-auths existing sockets; test JWT expiry/revoke/role change.
@@ -174,7 +174,7 @@ Severity P0/P1/P2 i finding IDs definisani su u `FINDINGS.md`.
 - Dependencies upgrades are separate small changes with advisory paths and Expo SDK matrix; no blanket force upgrade. (`SCM-01`)
 - **Acceptance:** clean branch CI passes from lockfiles; code generation/migration reproducible from empty DB; tests cover security/finance/booking; CI has no deploy/SSH credentials.
 
-## 9. Faza 7 — Redis only if measurable requirement exists
+## 9. Faza 7 — odobreni Socket.IO Redis adapter i uslovne dodatne namjene
 
 User reports shared Redis service `redis-core` on standard port, but the audit has not independently verified network/ACL or durability. Do not put its credentials in repo/docs.
 
@@ -182,7 +182,7 @@ User reports shared Redis service `redis-core` on standard port, but the audit h
 
 - **Rate limiting** shared by multiple backend replicas (if in-memory limiter is insufficient).
 - **BullMQ** notifications/campaign jobs after transactional outbox/idempotency and operational metrics are in place.
-- **Socket.IO Redis adapter** only when multiple API replicas must share rooms/broadcasts.
+- **Socket.IO Redis adapter implemented on this branch:** multi-instance mode is the production default and requires `SOCKET_IO_REDIS_URL`; an explicit `SOCKET_IO_MULTI_INSTANCE=false` selects process-local single-instance mode. Adapter readiness/reconnect behavior has mocked-client tests, but no real Redis endpoint, cross-instance delivery or deployment has been validated.
 - **Distributed scheduler lock** only after job operations are idempotent; PostgreSQL advisory lock is a reasonable alternative.
 
 ### Conditions before use
@@ -199,7 +199,7 @@ User reports shared Redis service `redis-core` on standard port, but the audit h
 - A replacement for DB transactions/unique constraints.
 - Long-lived user PII cache with no expiry/purge policy.
 
-**Acceptance to add Redis:** architecture decision record with use case, data classification, failure model, owner approval and cost/ops plan; load comparison; secret path; queue/adapter/restart tests. If requirements are not met, leave Redis absent.
+**Acceptance before production adapter use / additional Redis workloads:** verify the approved adapter endpoint, ACL/network, data classification, failure model, secret path, monitoring and restart/failover behavior in a non-production environment. Any Redis use beyond the existing Socket.IO adapter still requires an architecture decision record, owner approval, operational plan and measured need; no real Redis validation has occurred in this work.
 
 ## 10. Release/rollback gates
 

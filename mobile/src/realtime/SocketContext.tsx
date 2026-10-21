@@ -9,6 +9,7 @@ import React, {
 } from 'react';
 import type { Socket } from 'socket.io-client';
 import { connectSocket, disconnectSocket } from './socket-client';
+import { attachSocketRecovery } from './socket-recovery.mjs';
 import type { SocketEventName } from './socket-events';
 
 interface SocketContextValue {
@@ -38,13 +39,16 @@ export function SocketProvider({
       return;
     }
     const socketInstance = connectSocket(token);
+    const recovery = attachSocketRecovery(socketInstance);
     socketRef.current = socketInstance;
     const onConnect = () => setConnected(true);
     const onDisconnect = () => setConnected(false);
     socketInstance.on('connect', onConnect);
     socketInstance.on('disconnect', onDisconnect);
     if (socketInstance.connected) setConnected(true);
+    else socketInstance.connect();
     return () => {
+      recovery.dispose();
       socketInstance.off('connect', onConnect);
       socketInstance.off('disconnect', onDisconnect);
       disconnectSocket();

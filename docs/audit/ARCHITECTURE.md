@@ -41,6 +41,10 @@ Ključni entrypoint-i: [AppModule](../../backend/src/app.module.ts), [main.ts](.
 
 `SettingsService.set` šalje globalni `settings:updated` sa vrijednošću samo za ne-secret `PUBLIC` ključeve; `PRIVATE`/secret izmjene šalju key-only invalidaciju admin room-u, nakon čega admin klijent ponovo čita preko guarded HTTP API-ja. `SalonService.update` šalje samo `{key: 'salon'}` kao `salon:updated` invalidaciju, umjesto punog salon/holiday objekta; caller i dalje dobija HTTP rezultat. Live Socket.IO integration test pokriva transport, rooms, event payload-e, revocation i expiry uz mock Prisma provider, ne stvarnu bazu. CORS allowlist, browser behavior i deployment ostaju nevalidirani (SEC-06).
 
+### Client reconnect policy
+
+Web and mobile providers use a manual retry controller with Socket.IO Manager reconnection disabled. Server/transport disconnects and every `connect_error` except exact `Unauthorized` retry with 1s, 2s, 4s, then a 5s cap; a successful connection resets the delay. Each retry reuses the current token, so the backend handshake re-reads current DB roles/status. `Unauthorized` stops retries and disconnects locally without clearing the stored token or logging out. Node regression suites pass 6/6 in each app; they do not replace browser/device or live Redis/DB/deployment validation.
+
 ## 3. Backend moduli i glavni tokovi
 
 Backend `AppModule` registruje sljedeće domene:
@@ -108,7 +112,7 @@ Ovaj redoslijed opisuje kod, ne garantuje transakcijsku atomarnost. Kritične dj
 
 - `mobile/package.json` koristi `expo-router-entry-safe.js`, koji zatim učitava `expo-router/entry`; `<Stack>` je u `mobile/app/_layout.tsx`.
 - File routes pod `mobile/app/`: auth, onboarding, client tabs (home/services/reservations/profile) i stylist tabs (inbox/daily-log/schedule/stats/profile). `_components/ReactNavScreenWrapper`/adapter održava stariji screen navigation API.
-- Implementacije ekrana su pretežno u `mobile/src/screens/{client,stylist,auth}`; data stores su Zustand; HTTP preko Axios; token ide u `expo-secure-store`; Socket.IO client se reconnect-a sa trenutnim tokenom.
+- Implementacije ekrana su pretežno u `mobile/src/screens/{client,stylist,auth}`; data stores su Zustand; HTTP preko Axios; token ide u `expo-secure-store`; Socket.IO koristi manuelni retry s trenutnim tokenom, 1s→2s→4s→5s backoffom i stop-on-`Unauthorized` pravilom.
 - Tema je `StyleSheet`-oriented (`mobile/src/theme/colors.ts`, `ThemeContext.tsx`), NativeWind je prisutan, ali nije dominantan. Mobile i18n ima samo BS resurs.
 - Android release updater provjerava dostupnost i SHA-256; API/socket/upload fallback URL je `http://localhost:3000`, što traži eksplicitan `EXPO_PUBLIC_API_URL` na emulatoru/fizičkom uređaju.
 
@@ -118,17 +122,17 @@ Ovaj redoslijed opisuje kod, ne garantuje transakcijsku atomarnost. Kritične dj
 - Uploads se čuvaju pod `UPLOAD_ROOT` (backend Docker default `/usr/app/uploads`) i root se statički izlaže pod `/uploads/`. Root `docker-compose.yml` montira shared host folder `/mnt/shared-app-files/beauty-salon-v2`.
 - Root Compose ima `frontend` i `backend`; PostgreSQL se očekuje vanjski preko external `db_net`. Compose nema Redis/DB service, healthcheck ili migration job; backend Docker `CMD` izvršava `prisma migrate deploy` pri startu.
 - `mobile/Dockerfile` je placeholder, ne produkcijski native build process. GitHub Actions workflow prije ovog audit-a nije postojao; ovaj branch dodaje samo checks workflow, bez deploy/merge koraka.
-- Redis usage/package/socket adapter/BullMQ/distributed lock nisu pronađeni. Redis je moguća opcija samo kad se definišu deployment ACL, idempotency i operativne zahtjeve.
+- `RedisIoAdapter` dijeli Socket.IO room operacije u multi-instance setup-u; produkcijski režim traži `SOCKET_IO_REDIS_URL`, osim eksplicitnog `SOCKET_IO_MULTI_INSTANCE=false` single-instance override-a. Native Cluster/Sentinel adapter, BullMQ i distributed scheduler lock nisu dodani. Adapter readiness je testiran samo s mock Redis klijentima; ACL/network/failover/cross-instance deployment nisu provjereni.
 
 ## 7. Build, test i granice provjere
 
 - `npm ci` je prošao za sve tri aplikacije; frontend reinstall in this continuation reported 16 npm audit advisories.
-- Frontend `npm run build` passes (4,811 modules; 1,999.52 kB JS chunk warning).
-- Mobile `npx tsc --noEmit` passes (previous audit phase).
+- Frontend `npm run build` passes (4,830 modules; 2,002.76 kB JS chunk warning); mobile `npm run typecheck` passes.
+- Frontend and mobile `npm run test:socket-recovery` each pass 6/6 deterministic Node tests. No real Redis/DB/browser/device is used.
 - SEC-08 backend sanitizer Node tests pass 2/2 (`npm run test:blog-sanitizer`); targeted `blog.service.spec.ts` passes 8/8; an isolated TypeScript check of the sanitizer utility passes.
 - Backend `npm run build` currently fails with 650 diagnostics because generated Prisma Client/delegates are absent; sandbox TLS blocked Prisma engine download. Do not read this as a sanitizer-specific type/build failure; the utility's isolated TypeScript check passes.
 - Backend has 53 Jest suite files; full DB-backed/build/generate/validate baseline remains blocked by missing generated Prisma Client.
-- Frontend/mobile have no established test suite; frontend/mobile `lint` scripts have no ESLint dependency/config; backend `lint` was previously reporting missing-client diagnostics.
+- Frontend/mobile still lack broad component/integration suites; each now has a dependency-free Node unit suite for socket recovery. Frontend/mobile `lint` scripts have no ESLint dependency/config; backend `lint` was previously reporting missing-client diagnostics.
 - An in-process Nest HTTP contract test (real routing/JWT/role guards, mocked services) passes 3 tests for SEC-01/SEC-07. No DB-backed/live/deployed HTTP test, browser payload/axe/manual keyboard audit, DB race test, real SMTP/FCM test or production deployment was executed.
 
 ## 8. Dokumenti koji su ranije bili u konfliktu

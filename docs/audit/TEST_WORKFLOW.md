@@ -22,9 +22,10 @@
 - SEC-06 salon-event follow-up: `SalonService.update` coverage asserts the global event is key-only even when its service result includes holiday push metadata.
 - SEC-06 live Socket.IO/revocation follow-up: `events.gateway.integration.spec.ts` runs a real ephemeral Nest/Socket.IO server but mocks `PrismaService.user.findUnique`. It verifies current-role room assignment, active stylist-profile gating, invalid/missing/inactive/non-expiring-token rejection, disconnecting all user sessions after simulated role/account revocation, and disconnect at JWT expiry.
 - SEC-06 Redis adapter/config coverage: `redis-io.adapter.spec.ts` and `socket-io-runtime-config.spec.ts` pass 2 suites/8 tests with mocked Redis clients. They verify adapter attachment, initial connection failure cleanup, readiness gating, local disconnect and connection-mode validation. No Redis endpoint or multi-process Socket.IO cluster was started.
-- Combined local `npm test -- --runInBand src/events src/users src/stylists src/settings src/salon` passes 11 suites/42 tests using a temporary Jest setup that mocks only the PrismaService DI token; no real DB is queried. `npm ci --ignore-scripts --no-audit --no-fund` installed 963 locked backend packages; generated Prisma Client was not produced.
+- Combined local backend `npm test -- --runInBand src/events src/users src/stylists src/settings src/salon` passes 11 suites/42 tests using a temporary Jest setup that mocks only the PrismaService DI token; no real DB is queried. `npm ci --ignore-scripts --no-audit --no-fund` installed 963 locked backend packages; generated Prisma Client was not produced.
+- Web and mobile reconnect policy tests: `npm run test:socket-recovery` passes 6/6 in each app using Node's built-in test runner, a fake Socket.IO socket, and injected timers. Coverage includes server disconnect, Redis readiness/transport errors, capped exponential delays, `Unauthorized` stop, success/reset, and client cleanup. These are deterministic unit tests, not browser/device or live Socket.IO/Redis/DB tests.
 - Targeted Prettier/ESLint and isolated TypeScript checks pass for the new Redis adapter/config/main wiring. Other backend lint remains limited by the missing generated Prisma Client and pre-existing diagnostics; do not broad-autofix.
-- Compose YAML parsing confirms pass-through of `SOCKET_IO_MULTI_INSTANCE` and `SOCKET_IO_REDIS_URL`. Push-triggered CI runs `39653882891`, `39654632552` and `39655079268` initially failed at backend build; run `39655630416` after the `payload.exp` type-guard fix passed all four jobs. Documentation-only runs `39655988745`, `39656281443` and `39656492431` also passed. Repository hygiene, backend Prisma generation/schema/build/sanitizer/Jest, frontend production build and mobile typecheck all passed. The local combined targeted Jest run is 11 suites/42 tests; local gateway ESLint remains affected by missing generated Prisma types, while targeted adapter/config/bootstrap lint and isolated TypeScript checks pass. No real Redis or production DB was used.
+- Compose YAML parsing confirms pass-through of `SOCKET_IO_MULTI_INSTANCE` and `SOCKET_IO_REDIS_URL`. Push-triggered CI runs `39653882891`, `39654632552` and `39655079268` initially failed at backend build; run `39655630416` after the `payload.exp` type-guard fix passed all four jobs. Documentation-only runs `39655988745`, `39656281443`, `39656492431` and `39656768762` also passed. Repository hygiene, backend Prisma generation/schema/build/sanitizer/Jest, frontend production build and mobile typecheck all passed. The local combined targeted Jest run is 11 suites/42 tests; local gateway ESLint remains affected by missing generated Prisma types, while targeted adapter/config/bootstrap lint and isolated TypeScript checks pass. No real Redis or production DB was used.
 - Browser-enforced CORS, Playwright, mobile device, real SMTP/push, PostgreSQL race and production endpoints are untested.
 - `npm audit --omit=dev --json` bilježi findings u [FINDINGS.md § SCM-01](FINDINGS.md#scm-01--npm-audit-snapshot-sadrži-61-advisory-među-njima-2-critical); `npm audit fix` nije pokrenut.
 
@@ -140,13 +141,15 @@ Use transaction barriers/two Prisma clients for race tests. A pair of sequential
 
 ```bash
 cd frontend
+npm run test:socket-recovery
 npm run build
 npm run lint
 ```
 
+- `test:socket-recovery` uses Node's built-in runner and needs no additional dependency; it verifies the reconnect controller, not React rendering or browser/Socket.IO server behavior.
 - `build` executes `tsc -b` and `vite build`; preserve and review Vite bundle-size warning.
 - `lint` is not an established gate until ESLint dependency/config are present and legacy errors resolved. The command must not mutate source.
-- No frontend test runner/test files were detected in baseline.
+- No frontend framework/component test runner was detected in baseline; the socket recovery regression is the current dependency-free unit suite.
 
 ### Add as implementation progresses
 
@@ -164,11 +167,12 @@ Suggested browser flows: public home/services/blog/reviews; login/onboarding/for
 
 ```bash
 cd mobile
+npm run test:socket-recovery
 npm run typecheck
 npm run lint
 ```
 
-`typecheck` script is added in this branch; equivalent baseline command `npx tsc --noEmit` passed. `lint` remains non-gating until ESLint is installed/configured.
+`typecheck` script is added in this branch; equivalent baseline command `npx tsc --noEmit` passed. `test:socket-recovery` uses Node's built-in runner and passes 6/6 for the mobile controller; it does not require a database, Redis or device. `lint` remains non-gating until ESLint is installed/configured.
 
 ### Add as implementation progresses
 
@@ -201,7 +205,7 @@ npm audit --json > /tmp/<app>-audit-all.json
 ## 10. CI acceptance and artifact safety
 
 - CI workflow uses read-only checkout, Node 22, package-local npm ci, branch/manual trigger, no deployment/SSH/GitHub write token, no production secrets.
-- CI baseline runs repo hygiene, web build, mobile typecheck, backend client/schema/build, Node blog-sanitizer regression, and Jest unit suite where engine download works, and report-only locale/contrast checks; flaky/external SMTP/FCM/Expo tests are mocked.
+- CI runs repo hygiene, web/mobile socket-recovery unit tests, web build, mobile typecheck, backend client/schema/build, Node blog-sanitizer regression, and Jest unit suite where engine download works, plus report-only locale/contrast checks; flaky/external SMTP/FCM/Expo tests are mocked.
 - **Future PostgreSQL integration job (not configured in current workflow):** use an ephemeral service and synthetic seed, then tear it down. Do not place shared Redis service credentials in CI.
 - npm audit findings are reported in a separate/manual scheduled workflow until existing critical advisories have a reviewed action plan; do not hide current critical counts with a broad allowlist.
 - Once lint/test baseline is repaired, promote lint, full E2E, locale parity and contrast to hard gates.

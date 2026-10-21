@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../stores/auth.store';
+import { attachSocketRecovery } from './socket-recovery.mjs';
+import type { SocketRecoveryController } from './socket-recovery.mjs';
 
 export const SOCKET_EVENTS = {
   RESERVATION_CREATED: 'reservation:created',
@@ -27,38 +29,47 @@ const SocketContext = createContext<SocketContextValue | null>(null);
 
 export function SocketProvider({ children }: { children: ReactNode }) {
   const socketRef = useRef<Socket | null>(null);
+  const recoveryRef = useRef<SocketRecoveryController | null>(null);
   const [connected, setConnected] = useState(false);
   const token = useAuthStore((s) => s.token);
+  const tokenRef = useRef(token);
 
   useEffect(() => {
     const baseURL = import.meta.env.VITE_API_URL || '';
     const url = baseURL || window.location.origin;
 
     const socket = io(url, {
-      auth: token ? { token } : {},
+      auth: tokenRef.current ? { token: tokenRef.current } : {},
       transports: ['websocket', 'polling'],
-      autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      autoConnect: false,
+      reconnection: false,
     });
+    const recovery = attachSocketRecovery(socket);
 
     socket.on('connect', () => setConnected(true));
     socket.on('disconnect', () => setConnected(false));
 
     socketRef.current = socket;
+    recoveryRef.current = recovery;
+    socket.connect();
 
     return () => {
+      recovery.dispose();
+      if (recoveryRef.current === recovery) recoveryRef.current = null;
       socket.disconnect();
-      socketRef.current = null;
+      if (socketRef.current === socket) socketRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    if (socketRef.current) {
-      socketRef.current.auth = token ? { token } : {};
-      socketRef.current.disconnect().connect();
+    if (tokenRef.current === token) return;
+    tokenRef.current = token;
+
+    const socket = socketRef.current;
+    if (socket) {
+      recoveryRef.current?.reset();
+      socket.auth = token ? { token } : {};
+      socket.disconnect().connect();
     }
   }, [token]);
 
