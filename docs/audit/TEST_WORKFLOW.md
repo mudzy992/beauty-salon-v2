@@ -8,13 +8,15 @@
 - Testirati samo na local/disposable DB i accounts. **Nikada ne koristiti production `DATABASE_URL`, production push tokens, SMTP recipients ili stvarne client fotografije.**
 - Pri implementaciji koristiti ignored local env fajlove iz safe `.env.example`; nikad kopirati pravi secret u tracked file, log, screenshot ili test fixture.
 - Testni data mora biti sintetički/anonymized i removable. Finance tests koriste isolated `beauty_salon_test` DB/period, ne shared DB.
-- Prije DB-backed tests utvrditi PostgreSQL major verziju koja je deployed; lokalni/CI service mora odgovarati. Repo ne definiše DB version/service.
+- Novi GitHub backend job koristi kratkoživući PostgreSQL 16 service (`beauty_salon_ci`), koji se odbacuje po jobu. Ovo potvrđuje migracije i integration contract na CI verziji, ali **ne potvrđuje** PostgreSQL major verziju ili konfiguraciju deploymenta.
+- DB-backed HTTP suite čita samo `E2E_DATABASE_URL` i prije spajanja odbija URL osim ako je PostgreSQL na loopback hostu i ime baze sadrži zaseban segment `test`, `e2e` ili `ci`. Nikad ne preusmjeravati tu varijablu na shared/production bazu.
 - Ne pokretati `prisma migrate dev` na staging/production; deployment migrations imaju odvojenu runbook/review.
 - Database tests/race scenarios ne pokretati paralelno nad istom DB schema-om osim ako test harness pravi per-worker DB/schema.
 
 ## 2. Baseline provedene u ovom auditu
 
 - `npm ci --no-audit --no-fund` prošao u `backend/`, `frontend/`, `mobile/`.
+- Backend DB-backed security HTTP suite is newly added; Jest discovers `backend/test/security-reviews-blog.e2e-spec.ts`, but the current sandbox has no Docker/psql/local PostgreSQL and no disposable `E2E_DATABASE_URL`, so the suite has not been executed locally. Run it in the fresh PostgreSQL CI service; CI result pending.
 - Frontend `npm run build` prolazi (Vite warning za ~2,000 kB JS chunk).
 - Mobile `npx tsc --noEmit` prolazi (raniji audit run).
 - From `backend/`, `npm run test:blog-sanitizer` passes 2/2, `npm test -- --runInBand src/blog` passes 4 suites/16 tests, and `npm test -- --runInBand src/security/security-contract.spec.ts` passes 3 in-process Nest HTTP contract tests (real routing/JWT/role guards, mocked services; no database).
@@ -96,23 +98,24 @@ The Node test runner is used for the direct sanitizer regression because the cur
 npm run test:cov -- --runInBand
 ```
 
-Nema tracked `backend/test/jest-e2e.json` i `backend/test/` direktorija na baseline-u, pa je postojeći `npm run test:e2e` trenutno nevažeći. Kreirati test config/fixtures prije upotrebe te komande.
+`backend/test/jest-e2e.json` i `backend/test/security-reviews-blog.e2e-spec.ts` sada postoje. `npm run test:e2e -- --runInBand` pokreće DB-backed review/blog HTTP contracts. Ne pokretati komandu bez dedicated disposable PostgreSQL baze; test fail-fast validira `E2E_DATABASE_URL` (loopback host + test/e2e/ci DB name), a CI priprema bazu i migrations automatski.
 
 ### 5.3 PostgreSQL migration/integration suite
 
-1. Napraviti empty disposable DB iste major verzije kao deployment.
-2. Postaviti `DATABASE_URL` iz local environment/secret managera; ne echo-ati/printati je.
-3. Iz `backend/`:
+1. Use a fresh local disposable PostgreSQL database (e.g. `beauty_salon_test`) and confirm the service is loopback-only. Never copy production data or reuse a shared application database. CI uses its per-job PostgreSQL 16 service; deployed PostgreSQL version remains unconfirmed.
+2. Set `DATABASE_URL` for Prisma migration commands and `E2E_DATABASE_URL` for the HTTP suite to the same disposable local test DB. Do not print either URL; `E2E_DATABASE_URL` is required and the test refuses remote/non-test URLs.
+3. From `backend/`, run:
 
 ```bash
 npm run db:validate
 npm run db:migrate:deploy
 npm run db:migrate:status
+npm run test:e2e -- --runInBand
 ```
 
-4. Seed samo nakon pregleda [`backend/prisma/seed.ts`](../../backend/prisma/seed.ts) — provjeriti da seed ne kreira production-like shared credentials. Koristiti dedicated integration fixtures.
-5. Integracijski testovi planirani su za `backend/test/` (Prisma real DB, no prod data). Na trenutnom baseline-u e2e config nedostaje.
-6. Po završetku ugasiti test DB/volume i očistiti sintetičke push/email/test user podatke.
+4. The E2E suite creates unique synthetic users, category/service, reviews, posts and comments, then deletes those fixtures. It does not run `prisma/seed.ts`, use production data, call Redis, SMTP, push, browser, or deployment endpoints. Canonical `CLIENT`/`OWNER` role rows are upserted in the disposable DB and may remain there.
+5. CI workflow is configured to apply tracked migrations to a new empty PostgreSQL service before E2E tests; existing mocked unit tests remain a separate step.
+6. After local execution, stop/drop the disposable DB/volume; do not leave the URL pointing at a shared service.
 
 ### 5.4 Obavezni backend security/business contract tests
 

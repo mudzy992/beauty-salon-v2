@@ -34,12 +34,27 @@ jobs:
         run: python scripts/check_ui_contrast.py
 
   backend:
-    name: Backend build and unit tests
+    name: Backend build and tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: beauty_salon_ci
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_only_not_a_secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci_user -d beauty_salon_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       DATABASE_PROVIDER: postgres
-      # Dummy, local-only URL: Prisma generation/schema validation do not connect to this database.
+      # Disposable CI-only service; never use production or shared application data here.
       DATABASE_URL: postgresql://ci_user:ci_only_not_a_secret@127.0.0.1:5432/beauty_salon_ci?schema=public
+      E2E_DATABASE_URL: postgresql://ci_user:ci_only_not_a_secret@127.0.0.1:5432/beauty_salon_ci?schema=public
       JWT_SECRET: ci_only_not_a_secret_value_replace_in_real_environments
       NODE_ENV: test
     steps:
@@ -60,6 +75,9 @@ jobs:
       - name: Validate Prisma schema
         working-directory: backend
         run: npm run db:validate
+      - name: Apply migrations to disposable CI PostgreSQL
+        working-directory: backend
+        run: npm run db:migrate:deploy
       - name: Build backend
         working-directory: backend
         run: |
@@ -81,13 +99,24 @@ jobs:
       - name: Run blog sanitizer regression tests
         working-directory: backend
         run: npm run test:blog-sanitizer
+      - name: Run DB-backed security HTTP tests
+        id: backend-e2e
+        continue-on-error: true
+        working-directory: backend
+        run: npm run test:e2e -- --runInBand --json --outputFile="$RUNNER_TEMP/e2e-jest-results.json"
+      - name: Annotate failing E2E Jest test names
+        if: steps.backend-e2e.outcome == 'failure'
+        run: node scripts/report_jest_failures.cjs "$RUNNER_TEMP/e2e-jest-results.json"
       - name: Run backend unit tests
         id: backend-jest
         working-directory: backend
-        run: npm test -- --runInBand --json --outputFile=jest-results.json
+        run: npm test -- --runInBand --json --outputFile="$RUNNER_TEMP/backend-jest-results.json"
       - name: Annotate failing Jest test names
         if: failure() && steps.backend-jest.outcome == 'failure'
-        run: node scripts/report_jest_failures.cjs backend/jest-results.json
+        run: node scripts/report_jest_failures.cjs "$RUNNER_TEMP/backend-jest-results.json"
+      - name: Fail backend job if DB-backed HTTP tests failed
+        if: always() && steps.backend-e2e.outcome == 'failure'
+        run: exit 1
 
   frontend:
     name: Frontend typecheck and production build

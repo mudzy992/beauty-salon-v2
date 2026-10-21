@@ -8,14 +8,14 @@
 - `push` on `arena/**` and manual `workflow_dispatch` only.
 - No `pull_request` trigger, no `master` push trigger, no production environment/SSH/registry credentials, no write permission. The only declared GitHub permission is `contents: read`.
 - No workflow step deploys, merges, opens a PR, pushes commits, rewrites Git history, mutates a production DB or provisions shared Redis.
-- CI uses a dummy, non-secret PostgreSQL URL for Prisma generation/schema validation; those steps do not connect to a DB. Backend checks run the Node blog-sanitizer regression before the Jest unit suite; neither connects to a DB.
+- Backend CI starts a fresh, per-job PostgreSQL 16 service with an obviously disposable `beauty_salon_ci` database and non-secret CI-only credentials. Prisma generation/schema validation use the same local URL; CI applies only the tracked migrations, runs DB-backed HTTP security tests with synthetic fixtures, and then runs the existing mocked Jest unit suite. No production/shared DB, deployment secret, Redis, mail, push, browser, or production endpoint is used. This service version is a CI contract, not evidence of the deployed PostgreSQL major version.
 
 ## Current jobs
 
 | Job           | Checks                                                                                                                                             | Gate status                                                                                                                                                                                                                    |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `repo-checks` | `check_repo_hygiene.py`, `check_doc_links.py`, report-only `check_i18n.py`, report-only `check_ui_contrast.py`                                     | Hygiene and local Markdown targets/line anchors are hard gates; locale/contrast report known existing baseline until remediated                                                                                                |
-| `backend`     | package-local `npm ci`, Prisma client generation, schema validate, Nest build, `npm run test:blog-sanitizer`, Jest unit tests `--runInBand --json` | Hard gate; sanitizer test runs first; backend build failure adds the last 120 build-output lines to the GitHub step summary and the last 40 lines as a check annotation; on Jest failure, a local script emits failed test/suite names as GitHub check annotations (not raw assertion messages); no PostgreSQL E2E because `backend/test/jest-e2e.json` is absent |
+| `backend`     | package-local `npm ci`, Prisma client generation/schema validation, migrations on disposable PostgreSQL 16, Nest build, sanitizer regression, DB-backed `SEC-01`/`SEC-07` HTTP E2E, then mocked Jest unit tests `--runInBand --json` | Hard gate; E2E URL is restricted to loopback PostgreSQL and a test/e2e/ci database name; E2E failure emits test/suite-name annotations; unit failure annotations remain; no shared/production DB or deployment verification |
 | `frontend`    | package-local `npm ci`, `npm run test:socket-recovery`, `npm run build` (includes `tsc -b`)                                                        | Hard gate; reconnect unit coverage is deterministic Node/fake-socket testing; no browser/component tests yet                                                                                                                   |
 | `mobile`      | package-local `npm ci`, `npm run test:socket-recovery`, `npm run typecheck`                                                                       | Hard gate; reconnect unit coverage is deterministic Node/fake-socket testing; no device/Expo runtime tests yet                                                                                                                 |
 
@@ -25,12 +25,12 @@
 - Frontend/mobile ESLint: package scripts exist but dependency/config were not found, so running these in CI would be a misleading always-failing gate.
 - `npm audit`: current packages have 61 package-level advisories including two critical; the report is documented in `FINDINGS.md`. Bulk `npm audit fix` was intentionally not run. Track/upgrade them in reviewed changes, then promote an audit policy.
 - Locale key parity and selected contrast are report-only for the existing known gaps; add `--strict` after translations/theme tokens meet approved thresholds.
-- PostgreSQL integration/race tests, browser Playwright/axe, mobile simulator/device checks, SMTP/FCM/Expo production calls, Docker image build and EAS build.
+- PostgreSQL business concurrency/race tests, browser Playwright/axe, mobile simulator/device checks, SMTP/FCM/Expo production calls, Docker image build and EAS build. The narrow SEC-01/SEC-07 HTTP E2E suite does use the disposable PostgreSQL service.
 
 ## Safe expansion checklist
 
-1. Add disposable PostgreSQL service matching deployment major; use synthetic seed; run migration deploy/status and DB-backed tests in an isolated schema.
-2. Restore a valid Nest E2E config and test security/API contracts plus concurrency races.
+1. **Implemented for narrow security contracts:** CI starts a fresh PostgreSQL 16 service, applies tracked migrations, and uses synthetic fixtures; verify the deployed major version separately before treating this as deployment compatibility.
+2. **Implemented for SEC-01/SEC-07 HTTP contracts:** `backend/test/jest-e2e.json` runs real Nest routes/JWT/role guards and Prisma reads against that isolated service. Broader security/API contracts and concurrency races remain future work.
 3. Add frontend Vitest/RTL and Playwright + axe; add Expo Jest tests and simulator/device smoke workflow.
 4. Fix lint configurations/baselines and make all scripts read-only by default.
 5. Resolve advisory paths in staged dependency upgrades; re-run builds/native Expo compatibility and produce a time-stamped audit report.
