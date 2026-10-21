@@ -5,6 +5,7 @@ import { ReservationQueriesService } from './reservation-queries.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EventsGateway } from '../events/events.gateway';
+import { SOCKET_EVENTS } from '../events/socket-events';
 
 const mockPrisma: any = {
   stylistProfile: { findUnique: jest.fn() },
@@ -46,7 +47,9 @@ describe('ReservationStylistRejectService', () => {
   });
 
   it('when last stylist rejects → CANCELLED_BY_STYLISTS + notification', async () => {
-    mockPrisma.stylistProfile.findUnique.mockResolvedValue({ userId: 'user-1' });
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      userId: 'user-1',
+    });
     mockPrisma.reservation.findUnique
       .mockResolvedValueOnce({
         id: 'res-1',
@@ -92,7 +95,9 @@ describe('ReservationStylistRejectService', () => {
   });
 
   it('when other stylists still PENDING → does NOT cancel reservation', async () => {
-    mockPrisma.stylistProfile.findUnique.mockResolvedValue({ userId: 'user-1' });
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      userId: 'user-1',
+    });
     mockPrisma.reservation.findUnique.mockResolvedValue({
       id: 'res-1',
       status: 'PENDING',
@@ -118,6 +123,12 @@ describe('ReservationStylistRejectService', () => {
 
     expect(mockPrisma.reservation.update).not.toHaveBeenCalled();
     expect(mockNotifications.send).not.toHaveBeenCalled();
-    expect(mockEvents.emitToAll).not.toHaveBeenCalled();
+    expect(mockEvents.emitToAll).toHaveBeenCalledWith(
+      SOCKET_EVENTS.AVAILABILITY_CHANGED,
+      expect.objectContaining({
+        serviceId: 'svc-1',
+        date: new Date('2026-03-20'),
+      }),
+    );
   });
 });

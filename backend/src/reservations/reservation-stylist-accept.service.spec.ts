@@ -9,7 +9,11 @@ import { EventsGateway } from '../events/events.gateway';
 
 const mockPrisma: any = {
   stylistProfile: { findUnique: jest.fn() },
-  reservation: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+  reservation: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    update: jest.fn(),
+  },
   reservationStylistResponse: { update: jest.fn(), updateMany: jest.fn() },
   $transaction: jest.fn(async (ops: unknown[]) => ops),
 };
@@ -35,6 +39,7 @@ describe('ReservationStylistAcceptService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockPrisma.reservation.findUnique.mockReset();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReservationStylistAcceptService,
@@ -49,7 +54,9 @@ describe('ReservationStylistAcceptService', () => {
   });
 
   it('accepts after expired lock when hasLockedOnce', async () => {
-    mockPrisma.stylistProfile.findUnique.mockResolvedValue({ userId: 'user-1' });
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      userId: 'user-1',
+    });
     mockPrisma.reservation.findUnique
       .mockResolvedValueOnce({
         id: 'res-1',
@@ -73,6 +80,14 @@ describe('ReservationStylistAcceptService', () => {
         startTime: '10:00',
         publicReferenceCode: 'RZ-20260320-ABC',
         clientViewToken: 'token-abc',
+      })
+      .mockResolvedValueOnce({
+        reservationDate: new Date('2026-03-20'),
+        startTime: '10:00',
+        endTime: '11:00',
+        publicReferenceCode: 'RZ-20260320-ABC',
+        service: { name: 'Šišanje' },
+        items: [],
       });
     mockPrisma.reservation.findMany.mockResolvedValue([]);
 
@@ -82,7 +97,9 @@ describe('ReservationStylistAcceptService', () => {
   });
 
   it('rejects when overlapping SLOT_OCCUPYING reservation on same stylist/day', async () => {
-    mockPrisma.stylistProfile.findUnique.mockResolvedValue({ userId: 'user-1' });
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      userId: 'user-1',
+    });
     mockPrisma.reservation.findUnique.mockResolvedValue({
       id: 'res-1',
       status: 'STYLIST_REVIEW',
@@ -110,7 +127,9 @@ describe('ReservationStylistAcceptService', () => {
   });
 
   it('happy path: updates to CONFIRMED, notifies client, emits events', async () => {
-    mockPrisma.stylistProfile.findUnique.mockResolvedValue({ userId: 'user-1' });
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      userId: 'user-1',
+    });
     mockPrisma.reservation.findUnique
       .mockResolvedValueOnce({
         id: 'res-1',
@@ -133,6 +152,14 @@ describe('ReservationStylistAcceptService', () => {
         startTime: '10:00',
         publicReferenceCode: 'RZ-20260320-ABC',
         clientViewToken: 'token-abc',
+      })
+      .mockResolvedValueOnce({
+        reservationDate: new Date('2026-03-20'),
+        startTime: '10:00',
+        endTime: '11:00',
+        publicReferenceCode: 'RZ-20260320-ABC',
+        service: { name: 'Šišanje' },
+        items: [],
       });
     mockPrisma.reservation.findMany.mockResolvedValue([]);
 
