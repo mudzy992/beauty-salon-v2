@@ -62,7 +62,20 @@ jobs:
         run: npm run db:validate
       - name: Build backend
         working-directory: backend
-        run: npm run build
+        run: |
+          if npm run build > "$RUNNER_TEMP/backend-build.log" 2>&1; then
+            cat "$RUNNER_TEMP/backend-build.log"
+          else
+            build_status=$?
+            cat "$RUNNER_TEMP/backend-build.log"
+            {
+              echo '### Backend build failure (last 120 lines)'
+              echo '```text'
+              tail -n 120 "$RUNNER_TEMP/backend-build.log"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit "$build_status"
+          fi
       - name: Run blog sanitizer regression tests
         working-directory: backend
         run: npm run test:blog-sanitizer
