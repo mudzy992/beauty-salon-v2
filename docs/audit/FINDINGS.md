@@ -85,15 +85,18 @@
 
 **Popravka:** pravni/product owner potvrdi opt-in pravilo; dodati timestamp/version/scope consent record i creator; default existing records na *not-public* dok se ponovo ne odobri; public query traži važeći consent; revocation uklanja iz feeda i invalidira cache.
 
-### SEC-05 — JWT hardcoded fallback i tajna settings enkripcija fail-open
+### SEC-05 — JWT hardcoded fallback i tajna settings enkripcija fail-open (djelimična source mitigacija)
 
-- JWT secret ima fallback literal `change-me-in-production` u [`jwt.strategy.ts#L14-L18`](../../backend/src/auth/strategies/jwt.strategy.ts#L14), [`auth.service.ts#L252-L257`](../../backend/src/auth/auth.service.ts#L252) i [`auth.module.ts#L22-L30`](../../backend/src/auth/auth.module.ts#L22). Startup ne odbija missing/short JWT secret.
-- [`settings-encryption.service.ts#L13-L22`](../../backend/src/settings/settings-encryption.service.ts#L13) vraća `null` za missing/neispravan 32-byte key; [`encrypt` L29-L41](../../backend/src/settings/settings-encryption.service.ts#L29) tad čuva plaintext, a [`decrypt` L44-L58](../../backend/src/settings/settings-encryption.service.ts#L44) kod missing key vrati ciphertext string.
+- JWT secret ima fallback literal `change-me-in-production` u [`jwt.strategy.ts#L14-L18`](../../backend/src/auth/strategies/jwt.strategy.ts#L14), [`auth.service.ts#L252-L257`](../../backend/src/auth/auth.service.ts#L252) i [`auth.module.ts#L22-L30`](../../backend/src/auth/auth.module.ts#L22). Startup ne odbija missing/short JWT secret; taj dio nije mijenjan.
+- [`SettingsEncryptionService.getKey`](../../backend/src/settings/settings-encryption.service.ts#L13-L23) sada prihvata samo kanonski Base64 koji dekodira u tačno 32 bajta. [`encrypt`](../../backend/src/settings/settings-encryption.service.ts#L29-L46) baca `InternalServerErrorException` kada ključ nedostaje/neispravan je, umjesto plaintext fallbacka. [`SettingsService.set`](../../backend/src/settings/settings.service.ts#L227-L245) enkriptuje non-empty secret vrijednost prije repository upsert-a; izuzetak zato zaustavlja upis. Prazna vrijednost ostaje dozvoljena radi brisanja.
+- [`decrypt`](../../backend/src/settings/settings-encryption.service.ts#L48-L62) nije mijenjan: legacy plaintext se i dalje čita kao plaintext, a postojeći ciphertext bez validnog ključa vraća se kao ciphertext string. Nema migracije ni rotacije ključa.
 - Registry označava SMTP password kao secret, ali `.env.example` encryption key je komentarisani optional template; production config nije provjeren.
 
-**Uticaj:** pogrešno konfigurisan deployment može izdavati forgeable JWT-e ili čuvati SMTP secret plaintext. Existing ciphertext bez ključа se ne dešifruje, pa startup fail-closed mora ići uz migration/key handling plan.
+**Trenutna mitigacija (2026-10-21):** regresijski testovi pokrivaju missing, non-canonical i wrong-length key, potvrđuju da repository/eventi nisu pozvani, da se prazna secret vrijednost može obrisati i da validan ključ i dalje čuva enkriptovani format. Ciljani SettingsService i controller testovi prolaze 2 suite/11 testova uz privremeni mock samo Prisma DI tokena; nema stvarne baze.
 
-**Popravka:** validation at startup: production bez jakog random `JWT_SECRET` (min 32 bytes/appropriate entropy) i bez validnog base64 32-byte `APP_SETTINGS_ENCRYPTION_KEY` ne smije bootati; development mora koristiti eksplicitni local-only key, nikad shared fallback. Test missing/invalid key; migration job pre re-key.
+**Preostali uticaj:** JWT fallback i startup policy ostaju nepromijenjeni. Source guard sprječava budući plaintext upis non-empty secret vrijednosti kroz ovaj settings write path, ali ne dokazuje stanje postojećih zapisa, ne migrira raniji plaintext i ne omogućava dešifrovanje postojećeg ciphertexta bez ključa. Production env/config nije provjeren.
+
+**Preostali rad:** zasebno odobriti i planirati JWT-secret/startup fail-closed pravilo i sigurno rukovanje legacy vrijednostima/rotacijom ključa prije re-key. Ne pokretati takvu promjenu bez dogovorenog migration i deployment plana.
 
 ### SEC-06 — Socket.IO global payload disclosure and room revocation (partial source mitigations)
 

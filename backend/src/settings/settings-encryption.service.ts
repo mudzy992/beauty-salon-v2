@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, InternalServerErrorException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import crypto from 'crypto'
 
@@ -16,6 +16,7 @@ export class SettingsEncryptionService {
     try {
       const buf = Buffer.from(raw, 'base64')
       if (buf.length !== KEY_BYTES) return null
+      if (buf.toString('base64') !== raw) return null
       return buf
     } catch {
       return null
@@ -28,7 +29,11 @@ export class SettingsEncryptionService {
 
   encrypt(plainText: string): string {
     const key = this.getKey()
-    if (!key) return plainText
+    if (!key) {
+      throw new InternalServerErrorException(
+        'Šifriranje tajnih postavki nije konfigurirano.',
+      )
+    }
     const iv = crypto.randomBytes(IV_BYTES)
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv)
     const enc = Buffer.concat([cipher.update(plainText, 'utf8'), cipher.final()])

@@ -67,6 +67,8 @@ Severity P0/P1/P2 i finding IDs definisani su u `FINDINGS.md`.
 
 **SEC-08 source progress (2026-10-21):** blog write/public-read sanitization and the SVG no-inline rendering change are implemented on this branch; unit/regression results and exact policy are in [FINDINGS.md](FINDINGS.md#sec-08--stored-html-xss-na-javnom-blogu-i-inline-svg-source-mitigations-runtimedeployment-unverified). Browser-level payload testing, CSP rollout, production/runtime validation, and any email-template HTML review remain open. This does not mark the entire Phase 0E complete.
 
+**SEC-05 narrow source progress (2026-10-21):** following the approved limited scope, non-empty secret settings writes now require a canonical Base64 key decoding to exactly 32 bytes; a missing/invalid key raises before repository upsert, while an empty value can still clear the secret. No startup policy, JWT fallback, password/logout UX, decryption path, or existing DB value was changed. The targeted settings suites pass 2/2 suites and 11/11 tests with only the Prisma DI token mocked; the encryption service passes an isolated TypeScript check. Details and residual risks are in [FINDINGS.md](FINDINGS.md#sec-05--jwt-hardcoded-fallback-i-tajna-settings-enkripcija-fail-open-djelimicna-source-mitigacija). Startup validation, JWT fallback removal, and legacy-secret/key-migration work remain open and are not implied complete. This does not mark the entire Phase 0E complete.
+
 - **Acceptance:** integration tests missing env boot failure, weak env boot failure, forced-password blocked route matrix, rate-limit 429/cooldown, password reset single-use/replay denial, browser-level stored-XSS payloads rendered inert, supported rich text regression.
 
 ## 3. Faza 1 — DB/business consistency and idempotency
