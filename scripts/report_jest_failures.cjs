@@ -72,10 +72,21 @@ for (const suite of report.testResults) {
         (assertion) => assertion.status === "failed",
       )
     : [];
+  const rawDetails =
+    suite.failureMessage ||
+    suite.message ||
+    suite.testExecError?.message ||
+    (Array.isArray(suite.failureMessages)
+      ? suite.failureMessages.join("\n")
+      : "");
   const details = includeFailureDetails
-    ? sanitizeFailureDetails(suite.failureMessage)
+    ? sanitizeFailureDetails(rawDetails)
     : "";
-  const detailSuffix = details ? ` Failure details (redacted): ${details}` : "";
+  const detailSuffix = details
+    ? ` Failure details (redacted): ${details}`
+    : includeFailureDetails
+      ? ` Diagnostic fields: ${Object.keys(suite).join(", ")}`
+      : "";
 
   if (failedAssertions.length > 0) {
     for (const assertion of failedAssertions) {
