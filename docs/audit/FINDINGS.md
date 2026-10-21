@@ -15,7 +15,7 @@
 
 ## Prioritetni sažetak
 
-1. **SEC-01 — baseline public review detail je mogao vratiti puni `stylist.user`; source branch sada uklanja anonimni pristup detail ruti, koristi approved-only display allowlists i odvaja admin moderaciju.** Nije deployan ni HTTP/production-provjeren; incident status ostaje owner action.
+1. **SEC-01 — baseline public review detail je mogao vratiti puni `stylist.user`; source branch sada uklanja anonimni pristup detail ruti, koristi approved-only display allowlists i odvaja admin moderaciju.** In-process Nest HTTP contract test s mock service-om pokriva 401/authenticated response/404; deployed/live HTTP nije provjeren, a incident status ostaje owner action.
 2. **Trenutni Git index više ne sadrži ranije tracked env/Firebase Admin credential fajlove, ali Git historija nije rewrite-ovana i rotacija nije potvrđena.** Tretirati ih kao kompromitovane dok credential owner ne potvrdi rotaciju/revokaciju.
 3. **SEC-02 — baseline `/api/users/clients` vraćao je full User modele; source branch sada koristi minimalni picker, a expanded client list je admin-only allowlist.** Deployment/HTTP potvrda još nedostaje.
 4. **Upload root je javno statički poslužen** i uključuje dokumente; delete endpoint nema vlasničku/reference provjeru.
@@ -34,7 +34,7 @@
 
 **Preostala reakcija:** provjeriti access logove, deployed app version i exposure window; prema incident policy-ju procijeniti poništenje verification tokena / credential reset. Source branch promjena sama po sebi ne utiče na već deployanu aplikaciju.
 
-**Stanje:** source-branch containment uključuje uklanjanje `@Public()` sa detail rute, approved-only display queries i admin-only moderation route; 9 review-specific targeted unit tests prolazi. Regression test potvrđuje da detail nije public. Nema generated-Prisma typecheck, HTTP integracijskog testa (anonymous 401 + approved detail s JWT) ni deploy/production provjere; owner incident review ostaje otvoren.
+**Stanje:** source-branch containment uključuje uklanjanje `@Public()` sa detail rute, approved-only display queries i admin-only moderation route; review service/controller unit tests prolaze, a `security-contract.spec.ts` koristi stvarni Nest routing, JWT guard i service stub da provjeri anonymous 401, authenticated display response i pending 404. HTTP contract test nije DB-backed i mock service ne potvrđuje Prisma response u runtime-u. Generated-Prisma typecheck, live/deployed HTTP provjera i incident review ostaju otvoreni.
 
 ### OPS-SEC-01 — Vjerodajnice su ranije bile commitovane; historija ostaje
 
@@ -112,9 +112,9 @@
 
 Review-list baseline is separately contained under SEC-01: public `GET /api/reviews` is approved-only and moderation uses an admin-only route. `PublicBlogPost` still renders published post HTML, but SEC-08 now sanitizes content on the backend write and public-read paths; this SEC-07 access-control change does not itself validate that separate trust boundary or prove its deployment.
 
-**Uticaj:** baseline je omogućavao anonimno čitanje editorial drafts i pending comments, te svakom autentifikovanom nalogu čitanje drafta po ID-u. Source branch sada razdvaja javne i admin read surface, ali HTTP integracijski/deployment test nije izvršen, pa runtime `401`/`403` i deployed ponašanje nisu potvrđeni.
+**Uticaj:** baseline je omogućavao anonimno čitanje editorial drafts i pending comments, te svakom autentifikovanom nalogu čitanje drafta po ID-u. Source branch sada razdvaja javne i admin read surface. In-process Nest HTTP contract test with mocked services verifies public list/comments paths ignore legacy filter flags and client role receives `403` on admin reads; this does not prove database query behavior or deployment behavior.
 
-**Stanje:** SEC-07 code mitigation je implementiran u ovom source branch-u. Blog-specific tests prolaze (3 suites/12 tests); kombinovani targeted review/users/blog tests prolaze (8 suites/31 tests), frontend production build i mobile typecheck prolaze. Backend generated-Prisma typecheck/source lint i HTTP/DB/live deployment validation ostaju pending.
+**Stanje:** SEC-07 source mitigation is implemented. All blog Jest suites pass (4 suites/16 tests); the targeted HTTP contract suite covers review detail and public/admin blog route behavior (3 tests), while existing service tests check actual Prisma filters/projections. Frontend build and mobile typecheck pass. Generated-Prisma full typecheck, DB-backed/live HTTP integration and deployment verification remain pending.
 
 ### SEC-08 — Stored HTML XSS na javnom blogu i inline SVG (source mitigations; runtime/deployment unverified)
 

@@ -8,14 +8,14 @@
 - `push` on `arena/**` and manual `workflow_dispatch` only.
 - No `pull_request` trigger, no `master` push trigger, no production environment/SSH/registry credentials, no write permission. The only declared GitHub permission is `contents: read`.
 - No workflow step deploys, merges, opens a PR, pushes commits, rewrites Git history, mutates a production DB or provisions shared Redis.
-- CI uses a dummy, non-secret PostgreSQL URL for Prisma generation/schema validation; those steps do not connect to a DB. Backend checks run the Jest unit suite plus the Node blog-sanitizer regression test; neither connects to a DB.
+- CI uses a dummy, non-secret PostgreSQL URL for Prisma generation/schema validation; those steps do not connect to a DB. Backend checks run the Node blog-sanitizer regression before the Jest unit suite; neither connects to a DB.
 
 ## Current jobs
 
 | Job | Checks | Gate status |
 |---|---|---|
 | `repo-checks` | `check_repo_hygiene.py`, `check_doc_links.py`, report-only `check_i18n.py`, report-only `check_ui_contrast.py` | Hygiene and local Markdown targets/line anchors are hard gates; locale/contrast report known existing baseline until remediated |
-| `backend` | package-local `npm ci`, Prisma client generation, schema validate, Nest build, Jest unit tests `--runInBand`, `npm run test:blog-sanitizer` | Hard gate; does not run PostgreSQL E2E because `backend/test/jest-e2e.json` is absent |
+| `backend` | package-local `npm ci`, Prisma client generation, schema validate, Nest build, `npm run test:blog-sanitizer`, Jest unit tests `--runInBand` | Hard gate; sanitizer test runs first so a later Jest failure does not skip it; no PostgreSQL E2E because `backend/test/jest-e2e.json` is absent |
 | `frontend` | package-local `npm ci`, `npm run build` (includes `tsc -b`) | Hard gate; no browser/unit tests yet |
 | `mobile` | package-local `npm ci`, `npm run typecheck` | Hard gate; no device/Expo runtime tests yet |
 
@@ -45,7 +45,7 @@ python3 scripts/check_doc_links.py
 python3 scripts/check_i18n.py
 python3 scripts/check_ui_contrast.py
 
-(cd backend && npm ci --no-audit --no-fund && npm run db:generate && npm run db:validate && npm run build && npm test -- --runInBand && npm run test:blog-sanitizer)
+(cd backend && npm ci --no-audit --no-fund && npm run db:generate && npm run db:validate && npm run build && npm run test:blog-sanitizer && npm test -- --runInBand)
 (cd frontend && npm ci --no-audit --no-fund && npm run build)
 (cd mobile && npm ci --no-audit --no-fund && npm run typecheck)
 ```

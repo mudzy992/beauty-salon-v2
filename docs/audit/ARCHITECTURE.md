@@ -125,7 +125,7 @@ Ovaj redoslijed opisuje kod, ne garantuje transakcijsku atomarnost. Kritične dj
 - Backend `npm run build` currently fails with 650 diagnostics because generated Prisma Client/delegates are absent; sandbox TLS blocked Prisma engine download. Do not read this as a sanitizer-specific type/build failure; the utility's isolated TypeScript check passes.
 - Backend has 53 Jest suite files; full DB-backed/build/generate/validate baseline remains blocked by missing generated Prisma Client.
 - Frontend/mobile have no established test suite; frontend/mobile `lint` scripts have no ESLint dependency/config; backend `lint` was previously reporting missing-client diagnostics.
-- No live HTTP test, browser payload/axe/manual keyboard audit, DB race test, real SMTP/FCM test or production deployment was executed.
+- An in-process Nest HTTP contract test (real routing/JWT/role guards, mocked services) passes 3 tests for SEC-01/SEC-07. No DB-backed/live/deployed HTTP test, browser payload/axe/manual keyboard audit, DB race test, real SMTP/FCM test or production deployment was executed.
 
 ## 8. Dokumenti koji su ranije bili u konfliktu
 
