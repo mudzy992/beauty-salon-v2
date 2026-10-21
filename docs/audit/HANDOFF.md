@@ -295,6 +295,6 @@ Završni checkovi: `check_repo_hygiene.py` PASS (1025 tracked path names pregled
 3. Define a deployment-compatible HTTP/Socket.IO origin allowlist from actual web/mobile deployment origins before changing CORS defaults; do not silently break clients.
 4. Continue SEC-01/SEC-07 with DB-backed HTTP tests once a disposable PostgreSQL/test config is available; current in-process HTTP and SEC-06 service/gateway tests use mocked services/Prisma.
 5. Add browser-level stored-XSS probes and verify the logo mask under supported browsers; no browser validation yet.
-6. Previous CI run `39656768762` passed all four jobs; CI for the new client-recovery commit is pending. Local frontend build/mobile typecheck now pass, but full local backend build still depends on generated Prisma Client; do not use production DB/secrets.
+6. Push-triggered CI run `39660109865` for `ee4ac80` passed all four jobs, including frontend/mobile recovery suites, frontend build, mobile typecheck and backend generation/schema/build/sanitizer/Jest. No real Redis, DB, browser/device or deployment test was performed.
 7. `SEC-03` debt visibility requires the owner decision in `IMPLEMENTATION_PLAN.md`; `SEC-04` upload isolation needs a storage/consent migration plan. Credential rotation/history handling stays with the credential owner.
 8. Continue on this branch only; push to `origin/arena/657dba19-beauty-salon-v2`; user will handle merge/deploy manually. No PR to `master`, merge, session close, branch change, or deployment.
