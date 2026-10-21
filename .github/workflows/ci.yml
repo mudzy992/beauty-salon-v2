@@ -74,6 +74,8 @@ jobs:
               tail -n 120 "$RUNNER_TEMP/backend-build.log"
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
+            build_tail=$(tail -n 40 "$RUNNER_TEMP/backend-build.log" | sed -e ':a' -e 'N' -e '$!ba' -e 's/%/%25/g' -e 's/\r/%0D/g' -e 's/\n/%0A/g')
+            echo "::error title=Backend build diagnostic::$build_tail"
             exit "$build_status"
           fi
       - name: Run blog sanitizer regression tests
