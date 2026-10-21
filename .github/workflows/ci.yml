@@ -104,9 +104,9 @@ jobs:
         continue-on-error: true
         working-directory: backend
         run: npm run test:e2e -- --runInBand --json --outputFile="$RUNNER_TEMP/e2e-jest-results.json"
-      - name: Annotate failing E2E Jest test names
+      - name: Annotate failing E2E Jest names and redacted errors
         if: steps.backend-e2e.outcome == 'failure'
-        run: node scripts/report_jest_failures.cjs "$RUNNER_TEMP/e2e-jest-results.json"
+        run: node scripts/report_jest_failures.cjs "$RUNNER_TEMP/e2e-jest-results.json" --details
       - name: Run backend unit tests
         id: backend-jest
         working-directory: backend

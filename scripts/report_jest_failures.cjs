@@ -5,6 +5,27 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const reportPath = process.argv[2];
+const includeFailureDetails = process.argv.includes("--details");
+
+function sanitizeFailureDetails(value) {
+  return String(value || "")
+    .replace(/postgres(?:ql)?:\/\/[^\s"'`]+/gi, "[DATABASE_URL_REDACTED]")
+    .replace(/\bBearer\s+["']?[^\s"'`]+["']?/gi, "Bearer [REDACTED]")
+    .replace(
+      /\b[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\b/g,
+      "[JWT_REDACTED]",
+    )
+    .replace(
+      /(["']?(?:password|pass|token|secret)["']?)(\s*[:=]\s*)["']?[^\s,"']+["']?/gi,
+      "$1$2[REDACTED]",
+    )
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(" | ")
+    .slice(0, 700);
+}
 
 function escapeData(value) {
   return String(value)
@@ -51,17 +72,24 @@ for (const suite of report.testResults) {
         (assertion) => assertion.status === "failed",
       )
     : [];
+  const details = includeFailureDetails
+    ? sanitizeFailureDetails(suite.failureMessage)
+    : "";
+  const detailSuffix = details ? ` Failure details (redacted): ${details}` : "";
 
   if (failedAssertions.length > 0) {
     for (const assertion of failedAssertions) {
       const testName =
         assertion.fullName || assertion.title || "unnamed Jest test";
-      failures.push({ file, message: `Jest test failed: ${testName}` });
+      failures.push({
+        file,
+        message: `Jest test failed: ${testName}${detailSuffix}`,
+      });
     }
   } else if (suite.status === "failed") {
     failures.push({
       file,
-      message: "Jest suite failed before reporting an assertion.",
+      message: `Jest suite failed before reporting an assertion.${detailSuffix}`,
     });
   }
 }
