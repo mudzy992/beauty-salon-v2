@@ -19,9 +19,10 @@
 - Mobile `npx tsc --noEmit` prolazi (raniji audit run).
 - From `backend/`, `npm run test:blog-sanitizer` passes 2/2, `npm test -- --runInBand src/blog` passes 4 suites/16 tests, and `npm test -- --runInBand src/security/security-contract.spec.ts` passes 3 in-process Nest HTTP contract tests (real routing/JWT/role guards, mocked services; no database).
 - SEC-06 settings verification: `npm test -- --runInBand src/settings` passes 2 suites/8 tests (SettingsService 6/6). The rerun used `npm ci --ignore-scripts` without a generated Prisma Client, so Jest received a temporary mock of only the `PrismaService` DI token; SettingsRepository, database calls, and Socket.IO runtime were not exercised.
-- SEC-06 salon-event follow-up: combined `npm test -- --runInBand src/settings src/salon` passes 4 suites/15 tests with the same temporary DI-token mock. `SalonService.update` coverage asserts the global event is key-only even when its service result includes holiday push metadata; no Socket.IO server/DB is used.
-- Backend full build/test/Prisma checks nisu potpuno potvrđeni: generated client/engine download je blokiran sandbox TLS problemom.
-- Browser, Playwright, mobile device, real SMTP/push, PostgreSQL race and live/production endpoints are untested.
+- SEC-06 salon-event follow-up: `SalonService.update` coverage asserts the global event is key-only even when its service result includes holiday push metadata.
+- SEC-06 live Socket.IO integration: `npm test -- --runInBand src/events/events.gateway.integration.spec.ts` passes 1 suite/1 test against a real ephemeral Nest/Socket.IO server. The test mocks `PrismaService.user.findUnique`; it verifies current DB roles override JWT role claims and invalid/missing/inactive credentials are rejected, but it is not a real DB test. Combined `src/events src/settings src/salon` passes 5 suites/16 tests using the temporary PrismaService DI-token mock for Prisma-dependent suites.
+- Backend full build/test/Prisma checks nisu potpuno potvrđeni locally: generated client/engine download is blocked by sandbox TLS; push-triggered CI has passed Prisma generation/build/full Jest.
+- Browser-enforced CORS, Playwright, mobile device, real SMTP/push, PostgreSQL race and production endpoints are untested.
 - `npm audit --omit=dev --json` bilježi findings u [FINDINGS.md § SCM-01](FINDINGS.md#scm-01--npm-audit-snapshot-sadrži-61-advisory-među-njima-2-critical); `npm audit fix` nije pokrenut.
 
 ## 3. Machine/tool prereqs
@@ -79,6 +80,7 @@ npm test -- --runInBand src/blog
 npm test -- --runInBand src/security/security-contract.spec.ts
 npm test -- --runInBand src/settings
 npm test -- --runInBand src/salon
+npm test -- --runInBand src/events/events.gateway.integration.spec.ts
 npm test -- --runInBand
 ```
 
