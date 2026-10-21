@@ -19,6 +19,8 @@
 | `frontend`    | package-local `npm ci`, `npm run test:socket-recovery`, `npm run build` (includes `tsc -b`)                                                        | Hard gate; reconnect unit coverage is deterministic Node/fake-socket testing; no browser/component tests yet                                                                                                                   |
 | `mobile`      | package-local `npm ci`, `npm run test:socket-recovery`, `npm run typecheck`                                                                       | Hard gate; reconnect unit coverage is deterministic Node/fake-socket testing; no device/Expo runtime tests yet                                                                                                                 |
 
+**Latest result:** GitHub Actions run `39683834085` passed all four jobs, including disposable PostgreSQL migrations, DB-backed SEC-01/SEC-07 HTTP tests, and backend unit tests. This is not production/shared database or deployment verification.
+
 ## Deliberately not gated yet
 
 - Backend `npm run lint`: the prior command mutated files via `--fix`; it is now made read-only and a separate `lint:fix` is explicit, but legacy diagnostics/config need review before a stable gate.

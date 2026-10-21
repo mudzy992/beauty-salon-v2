@@ -16,7 +16,7 @@
 ## 2. Baseline provedene u ovom auditu
 
 - `npm ci --no-audit --no-fund` prošao u `backend/`, `frontend/`, `mobile/`.
-- Backend DB-backed security HTTP suite is newly added; Jest discovers `backend/test/security-reviews-blog.e2e-spec.ts`, but the current sandbox has no Docker/psql/local PostgreSQL and no disposable `E2E_DATABASE_URL`, so the suite has not been executed locally. Run it in the fresh PostgreSQL CI service; CI result pending.
+- Backend DB-backed security HTTP suite is implemented; Jest discovers `backend/test/security-reviews-blog.e2e-spec.ts`. It could not be executed locally because the sandbox has no Docker/psql/local PostgreSQL, but it passed against the fresh disposable PostgreSQL 16 CI service in run `39683834085`.
 - Frontend `npm run build` prolazi (Vite warning za ~2,000 kB JS chunk).
 - Mobile `npx tsc --noEmit` prolazi (raniji audit run).
 - From `backend/`, `npm run test:blog-sanitizer` passes 2/2, `npm test -- --runInBand src/blog` passes 4 suites/16 tests, and `npm test -- --runInBand src/security/security-contract.spec.ts` passes 3 in-process Nest HTTP contract tests (real routing/JWT/role guards, mocked services; no database).
