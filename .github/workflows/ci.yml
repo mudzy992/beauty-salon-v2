@@ -67,8 +67,12 @@ jobs:
         working-directory: backend
         run: npm run test:blog-sanitizer
       - name: Run backend unit tests
+        id: backend-jest
         working-directory: backend
-        run: npm test -- --runInBand
+        run: npm test -- --runInBand --json --outputFile=jest-results.json
+      - name: Annotate failing Jest test names
+        if: failure() && steps.backend-jest.outcome == 'failure'
+        run: node scripts/report_jest_failures.cjs backend/jest-results.json
 
   frontend:
     name: Frontend typecheck and production build

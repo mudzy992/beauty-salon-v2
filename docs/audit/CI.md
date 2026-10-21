@@ -12,12 +12,12 @@
 
 ## Current jobs
 
-| Job | Checks | Gate status |
-|---|---|---|
-| `repo-checks` | `check_repo_hygiene.py`, `check_doc_links.py`, report-only `check_i18n.py`, report-only `check_ui_contrast.py` | Hygiene and local Markdown targets/line anchors are hard gates; locale/contrast report known existing baseline until remediated |
-| `backend` | package-local `npm ci`, Prisma client generation, schema validate, Nest build, `npm run test:blog-sanitizer`, Jest unit tests `--runInBand` | Hard gate; sanitizer test runs first so a later Jest failure does not skip it; no PostgreSQL E2E because `backend/test/jest-e2e.json` is absent |
-| `frontend` | package-local `npm ci`, `npm run build` (includes `tsc -b`) | Hard gate; no browser/unit tests yet |
-| `mobile` | package-local `npm ci`, `npm run typecheck` | Hard gate; no device/Expo runtime tests yet |
+| Job           | Checks                                                                                                                                             | Gate status                                                                                                                                                                                                                    |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `repo-checks` | `check_repo_hygiene.py`, `check_doc_links.py`, report-only `check_i18n.py`, report-only `check_ui_contrast.py`                                     | Hygiene and local Markdown targets/line anchors are hard gates; locale/contrast report known existing baseline until remediated                                                                                                |
+| `backend`     | package-local `npm ci`, Prisma client generation, schema validate, Nest build, `npm run test:blog-sanitizer`, Jest unit tests `--runInBand --json` | Hard gate; sanitizer test runs first; on Jest failure, a local script emits failed test/suite names as GitHub check annotations (not raw assertion messages); no PostgreSQL E2E because `backend/test/jest-e2e.json` is absent |
+| `frontend`    | package-local `npm ci`, `npm run build` (includes `tsc -b`)                                                                                        | Hard gate; no browser/unit tests yet                                                                                                                                                                                           |
+| `mobile`      | package-local `npm ci`, `npm run typecheck`                                                                                                        | Hard gate; no device/Expo runtime tests yet                                                                                                                                                                                    |
 
 ## Deliberately not gated yet
 
