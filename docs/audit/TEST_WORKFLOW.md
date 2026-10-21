@@ -15,9 +15,10 @@
 ## 2. Baseline provedene u ovom auditu
 
 - `npm ci --no-audit --no-fund` prošao u `backend/`, `frontend/`, `mobile/`.
-- Frontend `npm run build` prolazi (Vite warning za ~2,003 kB JS chunk).
-- Mobile `npx tsc --noEmit` prolazi.
-- Backend runtime build/test/Prisma checks nisu potpuno potvrđeni: generated client/engine download je blokiran sandbox TLS problemom.
+- Frontend `npm run build` prolazi (Vite warning za ~2,000 kB JS chunk).
+- Mobile `npx tsc --noEmit` prolazi (raniji audit run).
+- From `backend/`, `npm run test:blog-sanitizer` passes 2/2 and `npm test -- --runInBand src/blog` passes 4 suites/16 tests (the BlogService spec is 8/8); isolated sanitizer utility TypeScript check passes.
+- Backend full build/test/Prisma checks nisu potpuno potvrđeni: generated client/engine download je blokiran sandbox TLS problemom.
 - Browser, Playwright, mobile device, real SMTP/push, PostgreSQL race i production endpoints nisu testirani.
 - `npm audit --omit=dev --json` bilježi findings u [FINDINGS.md § SCM-01](FINDINGS.md#scm-01--npm-audit-snapshot-sadrži-61-advisory-među-njima-2-critical); `npm audit fix` nije pokrenut.
 
@@ -72,9 +73,11 @@ npm run lint
 
 ```bash
 npm test -- --runInBand
+npm run test:blog-sanitizer
+npm test -- --runInBand src/blog
 ```
 
-Očekivanje nakon generated client/network setup-a: pokrenuti cijeli backend Jest suite (`src/**/*.spec.ts`); test fail se istražuje, ne preskače radi zelenog statusa. Coverage:
+The Node test runner is used for the direct sanitizer regression because the current Jest CJS runtime cannot load sanitize-html's ESM parser dependency directly; blog Jest specs mock the sanitizer module at the service/controller boundary, while the Node test exercises the real package. BlogService tests verify create/update/public-read paths call the sanitizer. Očekivanje nakon generated client/network setup-a: pokrenuti cijeli backend Jest suite (`src/**/*.spec.ts`); test fail se istražuje, ne preskače radi zelenog statusa. Coverage:
 
 ```bash
 npm run test:cov -- --runInBand
@@ -107,7 +110,7 @@ npm run db:migrate:status
 | Debt privacy | Own stylist/other stylist/unrelated client/admin matrix; policy expectation confirmed by product owner. |
 | Uploads | Anonymous public asset vs private document, owner/other-owner delete, attachment referenced delete, MIME spoof/size/traversal, retention. |
 | Before/after | No consent hidden, consented visible, revoked hidden, deleted/completed policy, response paths. |
-| Blog/comments/reviews | Public defaults published/approved only; admin preview protected; HTML payloads inert. |
+| Blog/comments/reviews | Public defaults published/approved only; admin preview protected; `sanitizeBlogContent` allows intended formatting but removes active HTML, unsafe protocols/attributes; legacy public slug content is sanitized too; HTML payloads inert. |
 | Auth | Missing/weak production secrets fail startup; rate limits; verification expiry/replay; reset token single-use; forced password blocks protected mutation endpoints. |
 | Socket.IO | Anonymous sees only allowlisted public events; PRIVATE setting never broadcast; removed role loses admin room; expired/revoked token rejected. |
 | Booking | Inactive service rejects; stale slot; policy/penalty; multi-service duration; idempotent retry; cancelled/lock expiry. |
@@ -187,7 +190,7 @@ npm audit --json > /tmp/<app>-audit-all.json
 ## 10. CI acceptance and artifact safety
 
 - CI workflow uses read-only checkout, Node 22, package-local npm ci, branch/manual trigger, no deployment/SSH/GitHub write token, no production secrets.
-- CI baseline runs repo hygiene, web build, mobile typecheck, backend client/schema/build/unit where engine download works, and report-only locale/contrast checks; flaky/external SMTP/FCM/Expo tests are mocked.
+- CI baseline runs repo hygiene, web build, mobile typecheck, backend client/schema/build/Jest unit suite where engine download works, the Node blog-sanitizer regression test, and report-only locale/contrast checks; flaky/external SMTP/FCM/Expo tests are mocked.
 - **Future PostgreSQL integration job (not configured in current workflow):** use an ephemeral service and synthetic seed, then tear it down. Do not place shared Redis service credentials in CI.
 - npm audit findings are reported in a separate/manual scheduled workflow until existing critical advisories have a reviewed action plan; do not hide current critical counts with a broad allowlist.
 - Once lint/test baseline is repaired, promote lint, full E2E, locale parity and contrast to hard gates.

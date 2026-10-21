@@ -64,7 +64,10 @@ Severity P0/P1/P2 i finding IDs definisani su u `FINDINGS.md`.
 - Implement secure password-reset (one-time high entropy token, hashed at rest, short expiry, atomic consume, email enumeration-safe response) and add email verified policy separately.
 - Render blog as plain text/Markdown or use allowlisted sanitizer on write and at output; safe URL protocol/attribute policy; sanitize campaign email templates. Use CSP report-only then enforce after allowlist.
 - Inline user SVG: avoid `dangerouslySetInnerHTML`; prefer `<img>` or rasterized output. If inline required, vetted SVG parser/allowlist and fuzz/test malicious payloads.
-- **Acceptance:** integration tests missing env boot failure, weak env boot failure, forced-password blocked route matrix, rate-limit 429/cooldown, password reset single-use/replay denial, stored-XSS payloads rendered inert, supported rich text regression.
+
+**SEC-08 source progress (2026-10-21):** blog write/public-read sanitization and the SVG no-inline rendering change are implemented on this branch; unit/regression results and exact policy are in [FINDINGS.md](FINDINGS.md#sec-08--stored-html-xss-na-javnom-blogu-i-inline-svg-source-mitigations-runtimedeployment-unverified). Browser-level payload testing, CSP rollout, production/runtime validation, and any email-template HTML review remain open. This does not mark the entire Phase 0E complete.
+
+- **Acceptance:** integration tests missing env boot failure, weak env boot failure, forced-password blocked route matrix, rate-limit 429/cooldown, password reset single-use/replay denial, browser-level stored-XSS payloads rendered inert, supported rich text regression.
 
 ## 3. Faza 1 — DB/business consistency and idempotency
 

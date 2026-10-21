@@ -1,6 +1,9 @@
 jest.mock('../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
+jest.mock('./utils/sanitize-blog-content', () => ({
+  sanitizeBlogContent: jest.fn((content: string) => `safe:${content}`),
+}));
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
@@ -8,6 +11,7 @@ import { BlogService } from './blog.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 type BlogPostCreateArgs = { data: Record<string, unknown> };
+type BlogPostUpdateArgs = { data: Record<string, unknown> };
 
 const mockPrisma = {
   blogPost: {
@@ -15,7 +19,7 @@ const mockPrisma = {
     findUnique: jest.fn(),
     findMany: jest.fn(),
     findFirst: jest.fn(),
-    update: jest.fn(),
+    update: jest.fn<Promise<unknown>, [args: BlogPostUpdateArgs]>(),
     delete: jest.fn(),
   },
   blogComment: {
@@ -91,9 +95,13 @@ describe('BlogService', () => {
   });
 
   it('public slug lookup only selects published display fields', async () => {
-    mockPrisma.blogPost.findUnique.mockResolvedValue({ id: 'published-1' });
+    mockPrisma.blogPost.findUnique.mockResolvedValue({
+      id: 'published-1',
+      content: '<p>Legacy content</p>',
+    });
 
-    await service.findBySlug('published-slug');
+    const result: unknown = await service.findBySlug('published-slug');
+    expect(result).toMatchObject({ content: 'safe:<p>Legacy content</p>' });
 
     expect(mockPrisma.blogPost.findUnique).toHaveBeenCalledWith({
       where: { slug: 'published-slug', isPublished: true },
@@ -126,6 +134,32 @@ describe('BlogService', () => {
     await expect(service.findBySlug('nema')).rejects.toThrow(NotFoundException);
   });
 
+  it('update sanitizes blog HTML before persisting it', async () => {
+    mockPrisma.blogPost.findUnique.mockResolvedValue({
+      id: 'p1',
+      authorId: 'author-1',
+    });
+    mockPrisma.blogPost.update.mockResolvedValue({ id: 'p1' });
+
+    await service.update(
+      'p1',
+      {
+        content: '<p onmouseover="alert(1)">Sadržaj</p><script>bad()</script>',
+      },
+      {
+        sub: 'author-1',
+        username: 'author',
+        email: 'author@example.com',
+        roles: ['CLIENT'],
+      },
+    );
+
+    const updateCall = mockPrisma.blogPost.update.mock.calls[0]?.[0];
+    expect(updateCall.data.content).toBe(
+      'safe:<p onmouseover="alert(1)">Sadržaj</p><script>bad()</script>',
+    );
+  });
+
   it('update baca ForbiddenException kada user nije autor niti admin', async () => {
     mockPrisma.blogPost.findUnique.mockResolvedValue({
       id: 'p1',
@@ -148,7 +182,7 @@ describe('BlogService', () => {
     await service.create(
       {
         title: 'Naslov',
-        content: 'Tekst',
+        content: '<p onclick="alert(1)">Tekst</p><script>alert(2)</script>',
         excerpt: 'Kratko',
         seoTitle: 'SEO naslov',
         seoDescription: 'SEO opis',
@@ -158,6 +192,7 @@ describe('BlogService', () => {
     );
     const createCall = mockPrisma.blogPost.create.mock.calls[0]?.[0];
     expect(createCall?.data).toMatchObject({
+      content: 'safe:<p onclick="alert(1)">Tekst</p><script>alert(2)</script>',
       excerpt: 'Kratko',
       seoTitle: 'SEO naslov',
       seoDescription: 'SEO opis',

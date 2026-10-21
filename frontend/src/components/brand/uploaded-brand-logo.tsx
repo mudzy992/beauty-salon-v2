@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useState } from 'react'
+import { memo, useMemo } from 'react'
 
 import { MediaImage } from '../media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
@@ -11,69 +11,31 @@ type UploadedBrandLogoProps = {
   className?: string
 }
 
-const isSvgPath = (p: string) => p.trim().toLowerCase().endsWith('.svg')
-
-const normalizeInlineSvg = (input: string): string => {
-  let s = input
-  s = s.replace(/<\?xml[\s\S]*?\?>/gi, '')
-  s = s.replace(/<!doctype[\s\S]*?>/gi, '')
-  s = s.replace(/\swidth\s*=\s*["'][^"']*["']/gi, '')
-  s = s.replace(/\sheight\s*=\s*["'][^"']*["']/gi, '')
-  s = s.replace(
-    /<svg\b/i,
-    '<svg class="uploaded-brand-logo-svg" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" fill="currentColor" style="display:block"',
-  )
-  return s
-}
-
-const sanitizeSvg = (input: string): string => {
-  let s = input
-  s = s.replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
-  s = s.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
-  s = s.replace(/\son\w+="[^"]*"/gi, '')
-  s = s.replace(/\son\w+='[^']*'/gi, '')
-  s = s.replace(/href\s*=\s*["']\s*javascript:[^"']*["']/gi, 'href="#"')
-  s = s.replace(/\sfill\s*=\s*["'][^"']*["']/gi, ' fill="currentColor"')
-  s = s.replace(/\sstroke\s*=\s*["'][^"']*["']/gi, ' stroke="currentColor"')
-  const normalized = normalizeInlineSvg(s)
-  // Scoped so `*` cannot leak to Lucide / other page SVGs (unscoped SVG <style> may apply document-wide).
-  return normalized.replace(
-    /<svg\b([^>]*)>/i,
-    '<svg$1><style>.uploaded-brand-logo-svg *{fill:currentColor !important;stroke:currentColor !important}</style>',
-  )
-}
+const isSvgPath = (path: string) => path.trim().toLowerCase().endsWith('.svg')
 
 export const UploadedBrandLogo = memo(
   ({ logoPath, word, svgColor, textColor, className }: UploadedBrandLogoProps) => {
     const logoUrl = useMemo(() => getUploadUrl(logoPath), [logoPath])
+    const svgMaskStyle = useMemo<React.CSSProperties>(() => {
+      const maskUrl = `url("${encodeURI(logoUrl)}")`
+      return {
+        backgroundColor: svgColor,
+        maskImage: maskUrl,
+        WebkitMaskImage: maskUrl,
+        maskPosition: 'center',
+        WebkitMaskPosition: 'center',
+        maskRepeat: 'no-repeat',
+        WebkitMaskRepeat: 'no-repeat',
+        maskSize: 'contain',
+        WebkitMaskSize: 'contain',
+      }
+    }, [logoUrl, svgColor])
     const displayWord = useMemo(() => {
       const raw = String(word ?? '').trim()
       const oneWord = raw.split(/\s+/)[0] ?? ''
       const upper = oneWord.slice(0, 8).toLocaleUpperCase('bs-BA')
       return upper || 'LOGO'
     }, [word])
-    const [svgMarkup, setSvgMarkup] = useState<string | null>(null)
-
-    useEffect(() => {
-      if (!isSvgPath(logoPath)) {
-        setSvgMarkup(null)
-        return
-      }
-      let cancelled = false
-      fetch(logoUrl)
-        .then((r) => r.text())
-        .then((text) => {
-          if (cancelled) return
-          setSvgMarkup(sanitizeSvg(text))
-        })
-        .catch(() => {
-          if (cancelled) return
-          setSvgMarkup('')
-        })
-      return () => {
-        cancelled = true
-      }
-    }, [logoPath, logoUrl])
 
     return (
       <div
@@ -81,12 +43,11 @@ export const UploadedBrandLogo = memo(
           .filter(Boolean)
           .join(' ')}
       >
-        {isSvgPath(logoPath) && svgMarkup ? (
+        {isSvgPath(logoPath) ? (
           <span
             aria-hidden="true"
-            className="h-10 w-10 shrink-0 [&>svg]:h-full [&>svg]:w-full"
-            style={{ color: svgColor }}
-            dangerouslySetInnerHTML={{ __html: svgMarkup }}
+            className="h-10 w-10 shrink-0"
+            style={svgMaskStyle}
           />
         ) : (
           <MediaImage
@@ -109,4 +70,3 @@ export const UploadedBrandLogo = memo(
 )
 
 UploadedBrandLogo.displayName = 'UploadedBrandLogo'
-

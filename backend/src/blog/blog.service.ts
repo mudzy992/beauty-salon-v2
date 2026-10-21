@@ -9,6 +9,7 @@ import { UpdateBlogPostDto } from './dto/update-blog-post.dto';
 import { optionalSeoFields, slugSource } from './utils/blog-post-data';
 import { emptyToNull } from '../common/utils/empty-to-null';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { sanitizeBlogContent } from './utils/sanitize-blog-content';
 
 const PUBLIC_BLOG_LIST_SELECT = {
   id: true,
@@ -50,7 +51,7 @@ export class BlogService {
         authorId,
         title: dto.title,
         slug,
-        content: dto.content,
+        content: sanitizeBlogContent(dto.content),
         ...optionalSeoFields(dto),
         noIndex: dto.noIndex ?? false,
         isPublished,
@@ -122,7 +123,7 @@ export class BlogService {
       select: PUBLIC_BLOG_DETAIL_SELECT,
     });
     if (!post) throw new NotFoundException('Članak nije pronađen.');
-    return post;
+    return { ...post, content: sanitizeBlogContent(post.content) };
   }
 
   async update(id: string, dto: UpdateBlogPostDto, user: CurrentUserPayload) {
@@ -146,7 +147,9 @@ export class BlogService {
       where: { id },
       data: {
         ...(dto.title != null && { title: dto.title }),
-        ...(dto.content !== undefined && { content: dto.content }),
+        ...(dto.content !== undefined && {
+          content: sanitizeBlogContent(dto.content),
+        }),
         ...(dto.excerpt !== undefined && { excerpt: emptyToNull(dto.excerpt) }),
         ...(dto.heroImage !== undefined && {
           heroImage: emptyToNull(dto.heroImage),

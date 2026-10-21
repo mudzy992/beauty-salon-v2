@@ -2,6 +2,9 @@ import 'reflect-metadata';
 jest.mock('../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
+jest.mock('./utils/sanitize-blog-content', () => ({
+  sanitizeBlogContent: (content: string) => content,
+}));
 
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Reflector } from '@nestjs/core';

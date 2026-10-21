@@ -162,6 +162,7 @@ export default function PublicBlogPost() {
             onShare={() => void handleShare()}
             onCopy={() => void copyShareUrl()}
           />
+          {/* Backend sanitizes on writes and public slug reads; keep this API boundary mandatory. */}
           <div
             className="blog-content mb-14 text-lg leading-relaxed text-slate-700"
             dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }}

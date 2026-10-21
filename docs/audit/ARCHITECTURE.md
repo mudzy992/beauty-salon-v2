@@ -57,7 +57,7 @@ Backend `AppModule` registruje sljedeće domene:
 | `analytics` | Dashboard/agregati za prihod, rashod, stiliste, usluge i booking funnel. |
 | `settings` | Registry-based AppSetting, public/admin scope, tajna enkripcija, theme/feature/system postavke. |
 | `uploads` | Auth upload endpoint, slike/dokumenti, image resize i metadata u DB; Express statički servira upload root. |
-| `blog` | Public list is published-only with display projection; public slug detail is published-only; public comments require approved comment + published parent. Admin all-posts, draft-by-ID and all-comments routes are role-guarded. |
+| `blog` | Public list is published-only with display projection; public slug detail is published-only and sanitizes HTML on output; create/update sanitize stored content with an explicit allowlist. Public comments require approved comment + published parent. Admin all-posts, draft-by-ID and all-comments routes are role-guarded. |
 | `gallery` | Public galerija i admin kategorije/slike povezane s Upload zapisima. |
 | `reviews` | Review create/approval/delete; public featured/list use approved-only allowlist projection; detail requires JWT and only returns approved display fields; moderation list is role-guarded at `/api/reviews/admin`. |
 | `app-releases` | Admin APK upload/release metadata; public latest Android release. Mobile provjerava SHA-256 prije pokretanja Android install intent-a. |
@@ -83,7 +83,8 @@ Ovaj redoslijed opisuje kod, ne garantuje transakcijsku atomarnost. Kritične dj
 
 ### Content, notification i release
 
-- Public blog list/detail uvijek filtriraju objavljene postove; public comments endpoint vraća samo odobrene komentare za published post. Admin list/draft/comment-moderation reads su role-guarded; XSS sanitization ostaje zaseban security finding.
+- Public blog list/detail uvijek filtriraju objavljene postove; public slug response sanitizes HTML with the backend allowlist before `PublicBlogPost` inserts it, and create/update sanitize before persistence. Admin list/draft/comment-moderation reads su role-guarded; browser/runtime/deployment verification za SEC-08 još nije izvršena.
+- Uploaded SVG brand logo više se ne ubacuje kao inline markup; web component koristi URL kao CSS mask image da sačuva monochrome `svgColor` bez `dangerouslySetInnerHTML`.
 - Public review/galerija/before-after su odvojene API surface granice.
 - App notification se čuva u DB, zatim emituje korisniku i opciono šalje Expo push/SMTP prema preferencama i sistemskom flagu. Kampanje se šalju sinhrono kroz recipient loop.
 - APK release JSON daje `versionCode`, `minSupportedVersionCode`, `forceUpdate`, `apkUrl` i SHA-256; mobile downloader validira hash prije installer intent-a.
@@ -117,12 +118,14 @@ Ovaj redoslijed opisuje kod, ne garantuje transakcijsku atomarnost. Kritične dj
 
 ## 7. Build, test i granice provjere
 
-- `npm ci` je prošao za sve tri aplikacije.
-- Frontend `npm run build` prolazi uz ~2,003 kB JS chunk warning.
-- Mobile `npx tsc --noEmit` prolazi.
-- Backend ima 53 Jest suite fajla; test/build/generate/validate baseline je djelimično blokiran nedostajućim generisanim Prisma Client-om i TLS prekidom preuzimanja Prisma engine-a u sandboxu.
-- Frontend/mobile nemaju pronađene test suite fajlove. Frontend/mobile `lint` skripte nemaju ESLint dependency/config; backend `lint` je prvobitno pozivao `--fix`.
-- Nisu izvršeni live HTTP test, browser axe/manual keyboard audit, DB race test, real SMTP/FCM test ili produkcijski deployment.
+- `npm ci` je prošao za sve tri aplikacije; frontend reinstall in this continuation reported 16 npm audit advisories.
+- Frontend `npm run build` passes (4,811 modules; 1,999.52 kB JS chunk warning).
+- Mobile `npx tsc --noEmit` passes (previous audit phase).
+- SEC-08 backend sanitizer Node tests pass 2/2 (`npm run test:blog-sanitizer`); targeted `blog.service.spec.ts` passes 8/8; an isolated TypeScript check of the sanitizer utility passes.
+- Backend `npm run build` currently fails with 650 diagnostics because generated Prisma Client/delegates are absent; sandbox TLS blocked Prisma engine download. Do not read this as a sanitizer-specific type/build failure; the utility's isolated TypeScript check passes.
+- Backend has 53 Jest suite files; full DB-backed/build/generate/validate baseline remains blocked by missing generated Prisma Client.
+- Frontend/mobile have no established test suite; frontend/mobile `lint` scripts have no ESLint dependency/config; backend `lint` was previously reporting missing-client diagnostics.
+- No live HTTP test, browser payload/axe/manual keyboard audit, DB race test, real SMTP/FCM test or production deployment was executed.
 
 ## 8. Dokumenti koji su ranije bili u konfliktu
 

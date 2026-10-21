@@ -105,6 +105,10 @@ export function BlogPostFormDialog({
           />
           <div className="space-y-2">
             <Label htmlFor="blog-content">Sadržaj (HTML/Tekst)</Label>
+            <p className="text-xs text-slate-500">
+              Osnovni naslovi, pasusi, liste, linkovi i slike su dozvoljeni; skripte,
+              stilovi i ugrađeni sadržaj se uklanjaju.
+            </p>
             <Textarea id="blog-content" rows={10} value={form.content} onChange={(e) => onChange({ content: e.target.value })} />
           </div>
           <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
