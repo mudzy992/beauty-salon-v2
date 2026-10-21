@@ -242,10 +242,14 @@ export class SettingsService {
         updatedBy: updatedBy ?? undefined,
       },
     });
-    this.events.emitToAll(SOCKET_EVENTS.SETTINGS_UPDATED, {
-      key,
-      value: registry.isSecret ? null : normalizedValue,
-    });
+    if (registry.scope === 'PUBLIC' && !registry.isSecret) {
+      this.events.emitToAll(SOCKET_EVENTS.SETTINGS_UPDATED, {
+        key,
+        value: normalizedValue,
+      });
+    } else {
+      this.events.emitToAdmins(SOCKET_EVENTS.SETTINGS_UPDATED, { key });
+    }
     return result;
   }
 

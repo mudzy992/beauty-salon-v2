@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { BadRequestException } from '@nestjs/common'
 import { SettingsService } from './settings.service'
 import { EventsGateway } from '../events/events.gateway'
+import { SOCKET_EVENTS } from '../events/socket-events'
 import { SettingsEncryptionService } from './settings-encryption.service'
 import { ConfigService } from '@nestjs/config'
 import { SettingsRepository } from './settings.repository'
@@ -16,6 +17,7 @@ const mockRepo = {
 
 const mockEvents = {
   emitToAll: jest.fn(),
+  emitToAdmins: jest.fn(),
 }
 
 describe('SettingsService', () => {
@@ -75,6 +77,30 @@ describe('SettingsService', () => {
           update: expect.objectContaining({ value: 'true' }),
         }),
       )
+      expect(mockEvents.emitToAll).toHaveBeenCalledWith(
+        SOCKET_EVENTS.SETTINGS_UPDATED,
+        { key: 'system_maintenance_mode', value: 'true' },
+      )
+      expect(mockEvents.emitToAdmins).not.toHaveBeenCalled()
+    })
+
+    it('sends PRIVATE setting update only to admins without broadcasting the value', async () => {
+      mockRepo.upsertByKey.mockResolvedValueOnce({
+        key: 'system_email_host',
+        value: 'smtp.internal.example',
+      })
+
+      await service.set(
+        'system_email_host',
+        { value: 'smtp.internal.example' },
+        'u1',
+      )
+
+      expect(mockEvents.emitToAll).not.toHaveBeenCalled()
+      expect(mockEvents.emitToAdmins).toHaveBeenCalledWith(
+        SOCKET_EVENTS.SETTINGS_UPDATED,
+        { key: 'system_email_host' },
+      )
     })
 
     it('enkriptuje secret vrijednost kada je key prisutan', async () => {
@@ -96,6 +122,11 @@ describe('SettingsService', () => {
       const call = mockRepo.upsertByKey.mock.calls[0][0]
       expect(call.create.value).toMatch(/^enc:v1:/)
       expect(call.update.value).toMatch(/^enc:v1:/)
+      expect(mockEvents.emitToAll).not.toHaveBeenCalled()
+      expect(mockEvents.emitToAdmins).toHaveBeenCalledWith(
+        SOCKET_EVENTS.SETTINGS_UPDATED,
+        { key: 'system_email_password' },
+      )
     })
   })
 

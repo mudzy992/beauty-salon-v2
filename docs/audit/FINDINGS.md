@@ -95,14 +95,17 @@
 
 **Popravka:** validation at startup: production bez jakog random `JWT_SECRET` (min 32 bytes/appropriate entropy) i bez validnog base64 32-byte `APP_SETTINGS_ENCRYPTION_KEY` ne smije bootati; development mora koristiti eksplicitni local-only key, nikad shared fallback. Test missing/invalid key; migration job pre re-key.
 
-### SEC-06 — Socket.IO šalje PRIVATE setting vrijednosti svim konekcijama i koristi JWT role claims bez DB refresh-a
+### SEC-06 — Socket.IO private-setting broadcast and stale role claims (partial source mitigation)
 
-- `EventsGateway` dopušta anonymous konekciju i spaja je u `public`; valjan token stavlja korisnika u rooms na osnovu **JWT payload role claims**, bez ponovne DB provjere ([`events.gateway.ts#L33-L73`](../../backend/src/events/events.gateway.ts#L33)). JWT važi 7d po podrazumijevanju; HTTP JWT strategy osvježava role iz DB-a, Socket.IO ne.
-- `emitToAll` je `server.emit` na sve konekcije ([`events.gateway.ts#L87-L105`](../../backend/src/events/events.gateway.ts#L87)). [`settings.service.ts#L245-L248`](../../backend/src/settings/settings.service.ts#L245) šalje key/value; null se postavlja samo za `isSecret`, ne za `scope === PRIVATE`. Registry ima private vrijednosti kao salon timezone, email host/username, settings/policy toggles ([`settings-registry.ts#L92-L110`](../../backend/src/settings/settings-registry.ts#L92)); samo email password je označen `isSecret` u tom segmentu.
+**Baseline evidence:** `EventsGateway` accepts anonymous connections and joins authenticated sockets to rooms from JWT role claims without a DB role refresh ([`events.gateway.ts#L33-L73`](../../backend/src/events/events.gateway.ts#L33)); `emitToAll` calls `server.emit` to every socket ([`events.gateway.ts#L99-L101`](../../backend/src/events/events.gateway.ts#L99)). Before the mitigation, `SettingsService.set` sent every setting key and non-secret value globally, ignoring registry scope; the registry contains `PRIVATE` non-secret values such as salon timezone, SMTP host/username, and internal policy toggles ([`settings-registry.ts#L92-L110`](../../backend/src/settings/settings-registry.ts#L92)). This was a source-path finding; no Socket.IO runtime probe was performed.
 
-**Uticaj:** anonymous/stale-role sockets mogu čuti internal setting metadata/value, odnosno zadržati privileged room poslije promjene/ukidanja role do reconnect/token expiry. Nisu urađeni Socket.IO runtime probes.
+**Mitigation in this branch:** [`SettingsService.set`](../../backend/src/settings/settings.service.ts#L245-L252) broadcasts `{key,value}` only when the registry entry is `PUBLIC` and not secret. `PRIVATE` and secret setting updates emit a key-only `SETTINGS_UPDATED` notification through `emitToAdmins`; the admin UI then refreshes via its role-guarded HTTP endpoints. No private value or secret ciphertext is included in the socket payload.
 
-**Popravka:** broadcast samo safe `PUBLIC` keys ili event `key` bez vrijednosti; private updates preko admin room; DB-validate active user/current roles pri handshake i re-auth/revoke strategy; disconnect/rejoin nakon role changes; odrediti allowlisted origins i payload DTO.
+**Verification:** `settings.service.spec.ts` covers public broadcast, private admin-room key-only notification, and secret non-disclosure (6 tests pass in a local Jest run using a temporary `PrismaService` DI-token mock because the generated client is unavailable locally). This validates service routing/payload decisions, not an actual Socket.IO connection or room membership.
+
+**Residual impact:** anonymous/invalid-token sockets still join `public`; authenticated socket room membership still trusts potentially stale JWT role claims; `cors: { origin: '*', credentials: true }` remains. A stale admin socket can still receive key-only private-setting invalidations, though not their values. Socket.IO handshake revalidation/revocation, origin allowlisting, and runtime tests remain open.
+
+**Remaining remediation:** validate active user/current roles at handshake and support re-auth/disconnect on role changes; restrict CORS origins; retain safe DTOs and add live socket tests for anonymous, invalid, client, stylist, admin, role-revoked and private/public setting updates.
 
 ### SEC-07 — Public blog/comments draft and pending exposure (baseline; source-branch mitigation)
 

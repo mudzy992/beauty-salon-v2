@@ -18,6 +18,7 @@
 - Frontend `npm run build` prolazi (Vite warning za ~2,000 kB JS chunk).
 - Mobile `npx tsc --noEmit` prolazi (raniji audit run).
 - From `backend/`, `npm run test:blog-sanitizer` passes 2/2, `npm test -- --runInBand src/blog` passes 4 suites/16 tests, and `npm test -- --runInBand src/security/security-contract.spec.ts` passes 3 in-process Nest HTTP contract tests (real routing/JWT/role guards, mocked services; no database).
+- SEC-06 local verification: `npm test -- --runInBand src/settings` passes 2 suites/8 tests (SettingsService 6/6). Because this rerun used `npm ci --ignore-scripts` without a generated Prisma Client, Jest received a temporary mock of only the `PrismaService` DI token; SettingsRepository, database calls, and Socket.IO runtime were not exercised.
 - Backend full build/test/Prisma checks nisu potpuno potvrđeni: generated client/engine download je blokiran sandbox TLS problemom.
 - Browser, Playwright, mobile device, real SMTP/push, PostgreSQL race and live/production endpoints are untested.
 - `npm audit --omit=dev --json` bilježi findings u [FINDINGS.md § SCM-01](FINDINGS.md#scm-01--npm-audit-snapshot-sadrži-61-advisory-među-njima-2-critical); `npm audit fix` nije pokrenut.
@@ -75,6 +76,7 @@ npm run lint
 npm run test:blog-sanitizer
 npm test -- --runInBand src/blog
 npm test -- --runInBand src/security/security-contract.spec.ts
+npm test -- --runInBand src/settings
 npm test -- --runInBand
 ```
 

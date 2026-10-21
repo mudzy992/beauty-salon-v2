@@ -132,6 +132,8 @@ Severity P0/P1/P2 i finding IDs definisani su u `FINDINGS.md`.
 
 **Cilj:** keep Socket.IO/HTTP/containers consistent with API authorization and secrets.
 
+**SEC-06 partial source progress (2026-10-21):** `SettingsService.set` now globally broadcasts only non-secret `PUBLIC` setting values and sends key-only invalidation for `PRIVATE`/secret settings to the `admin` room; SettingsService unit coverage passes 6 tests in the local Prisma-token mock harness. This does not update current DB role checks at handshake, disconnect stale admin rooms, restrict CORS origins, or validate a live Socket.IO runtime. The remaining Phase 3 acceptance criteria stay open.
+
 - Settings events broadcast only `PUBLIC` values or key-only invalidation; private setting event to `admin` room; Salon payload projection to public DTO. (`SEC-06`)
 - Socket handshake verifies active account/current DB roles; no anonymous `public` data channel unless explicit event allowlist; role revocation disconnects/re-auths existing sockets; test JWT expiry/revoke/role change.
 - CORS uses environment allowlist for HTTP and Socket.IO; set trusted proxy explicitly; add security headers/CSP with safe staged rollout. (`AUTH-03`)
