@@ -91,7 +91,7 @@ export class EventsGateway
     if (typeof payload.sub !== 'string' || payload.sub.length === 0) {
       throw new Error('Invalid JWT subject');
     }
-    if (!Number.isSafeInteger(payload.exp)) {
+    if (typeof payload.exp !== 'number' || !Number.isSafeInteger(payload.exp)) {
       throw new Error('JWT expiration is required');
     }
     const tokenExpiresAt = payload.exp * 1000;
