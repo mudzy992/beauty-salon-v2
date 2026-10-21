@@ -39,14 +39,14 @@ isProject: false
 
 ## Backend promjene (predloženo)
 ### 1) Dozvoli ručne prihode i za tekući mjesec
-- Fajl: [backend/src/finance/income-books.service.ts](backend/src/finance/income-books.service.ts)
+- Fajl: [backend/src/finance/income-books.service.ts](../../backend/src/finance/income-books.service.ts)
 - Promjena: u `createManualEntry` i relevantnim update/delete metodama ukloniti/izmijeniti restrikciju:
   - trenutno: `if (!this.isPastMonth(book.year, book.month)) throw ...`
   - novo: dozvoli ako je mjesec **<= trenutni mjesec** (ne dozvoliti buduće knjige), uz postojeće `ensureDateMatchesBookMonth`.
 - Zadržati pravilo zaključavanja: ne može se dodavati u zaključanu knjigu (`closedAt`), a za knjige u prošlosti je i dalje potreban `unlock`.
 
 ### 2) Kreiranje knjiga u prošlosti (pojedinačno)
-- Fajl: [backend/src/finance/income.controller.ts](backend/src/finance/income.controller.ts)
+- Fajl: [backend/src/finance/income.controller.ts](../../backend/src/finance/income.controller.ts)
 - `GET /api/income-books/month/:year/:month` već radi `getOrCreateForMonth`.
 - Doraditi `IncomeBooksService.getOrCreateForMonth` da:
   - validira `year/month` raspon (1–12)
@@ -54,13 +54,13 @@ isProject: false
   - opcionalno: zabrani kreiranje za budući mjesec (da ne “otvara” buduće knjige slučajno)
 
 ### 3) Uvezivanje ručnih prihoda sa generalnom analitikom
-- Fajl: [backend/src/analytics/analytics.service.ts](backend/src/analytics/analytics.service.ts)
+- Fajl: [backend/src/analytics/analytics.service.ts](../../backend/src/analytics/analytics.service.ts)
 - `monthlyFinance` je već pokriven preko `incomeBook.totalRevenue/totalTips`.
 - Provjeriti i dopuniti ostale dijelove dashboard-a koji zavise od “izvora prihoda”, posebno:
   - `getTopServices(fromDate, toDate)`: proširiti da uključuje `IncomeBookManualEntry` (group by `serviceId`) u datom rasponu
 
 ### 4) Uvezivanje analitike po stilisti sa manualnim prihodima
-- Fajl: [backend/src/analytics/analytics.service.ts](backend/src/analytics/analytics.service.ts)
+- Fajl: [backend/src/analytics/analytics.service.ts](../../backend/src/analytics/analytics.service.ts)
 - U `getStylistPerformance(fromDate,toDate)`:
   - zadržati postojeće agregacije iz `DailyLogEntry`
   - dodati agregaciju iz `IncomeBookManualEntry` gdje je `stylistProfileId != null` i `date` u rasponu

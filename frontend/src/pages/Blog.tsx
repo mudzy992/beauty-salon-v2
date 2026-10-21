@@ -31,7 +31,7 @@ export default function Blog() {
   const loadData = useCallback(() => {
     setLoading(true)
     api
-      .get<BlogPost[]>('/api/blog')
+      .get<BlogPost[]>('/api/blog/admin')
       .then((r) => setPosts(Array.isArray(r.data) ? r.data : []))
       .catch(() => setPosts([]))
       .finally(() => setLoading(false))
@@ -98,7 +98,7 @@ export default function Blog() {
     setCommentsLoading(true)
     setCommentsOpen(true)
     try {
-      const { data } = await api.get<BlogComment[]>(`/api/blog/${postId}/comments`)
+      const { data } = await api.get<BlogComment[]>(`/api/blog/${postId}/comments/admin`)
       setComments(Array.isArray(data) ? data : [])
     } catch {
       setComments([])

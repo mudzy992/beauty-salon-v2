@@ -57,9 +57,9 @@ Uvesti pouzdan dnevni orkestrator termina za stilistu: kontrolu kašnjenja, reka
   - termin je probijen (overrun scenario) i traži odluku stiliste
 - Ažurirati akcije u stylist detail/schedule da više ne nude “slijepo” start/cancel bez konteksta.
 - Primarni fajlovi:
-  - [backend/src/reservations/reservations.service.ts](backend/src/reservations/reservations.service.ts)
-  - [mobile/src/screens/stylist/StylistReservationDetailScreen.tsx](mobile/src/screens/stylist/StylistReservationDetailScreen.tsx)
-  - [mobile/src/screens/stylist/StylistScheduleScreen.tsx](mobile/src/screens/stylist/StylistScheduleScreen.tsx)
+  - [backend/src/reservations/reservations.service.ts](../../backend/src/reservations/reservations.service.ts)
+  - [mobile/src/screens/stylist/StylistReservationDetailScreen.tsx](../../mobile/src/screens/stylist/StylistReservationDetailScreen.tsx)
+  - [mobile/src/screens/stylist/StylistScheduleScreen.tsx](../../mobile/src/screens/stylist/StylistScheduleScreen.tsx)
 
 ### 2) Overrun odluka i rekalkulacija lanca termina
 
@@ -70,10 +70,10 @@ Uvesti pouzdan dnevni orkestrator termina za stilistu: kontrolu kašnjenja, reka
   - `use_break_only`
 - U `commit` upisivati metadata promjene (koji mode, koliko minuta, timestamp, initiator).
 - Primarni fajlovi:
-  - [backend/src/reservations/reservations.controller.ts](backend/src/reservations/reservations.controller.ts)
-  - [backend/src/reservations/reservations.service.ts](backend/src/reservations/reservations.service.ts)
-  - [mobile/src/screens/stylist/ReschedulePreviewScreen.tsx](mobile/src/screens/stylist/ReschedulePreviewScreen.tsx)
-  - [mobile/src/screens/stylist/DailyLogDetailScreen.tsx](mobile/src/screens/stylist/DailyLogDetailScreen.tsx)
+  - [backend/src/reservations/reservations.controller.ts](../../backend/src/reservations/reservations.controller.ts)
+  - [backend/src/reservations/reservations.service.ts](../../backend/src/reservations/reservations.service.ts)
+  - [mobile/src/screens/stylist/ReschedulePreviewScreen.tsx](../../mobile/src/screens/stylist/ReschedulePreviewScreen.tsx)
+  - [mobile/src/screens/stylist/DailyLogDetailScreen.tsx](../../mobile/src/screens/stylist/DailyLogDetailScreen.tsx)
 
 ### 3) Klijentsko ponovno potvrđivanje sa dinamičkim deadline-om
 
@@ -85,11 +85,11 @@ Uvesti pouzdan dnevni orkestrator termina za stilistu: kontrolu kašnjenja, reka
 - Uvesti cron/worker za istek pending potvrda:
   - expired + no response => auto-cancel + penalizacija
 - Primarni fajlovi:
-  - [backend/src/reservations/reservations.service.ts](backend/src/reservations/reservations.service.ts)
-  - [backend/src/reservations/reservation-delay.cron.ts](backend/src/reservations/reservation-delay.cron.ts)
-  - [backend/src/notifications/notifications.service.ts](backend/src/notifications/notifications.service.ts)
-  - [mobile/src/screens/client/MyReservationsScreen.tsx](mobile/src/screens/client/MyReservationsScreen.tsx)
-  - [mobile/src/hooks/usePushNotifications.real.ts](mobile/src/hooks/usePushNotifications.real.ts)
+  - [backend/src/reservations/reservations.service.ts](../../backend/src/reservations/reservations.service.ts)
+  - [backend/src/reservations/reservation-delay.cron.ts](../../backend/src/reservations/reservation-delay.cron.ts)
+  - [backend/src/notifications/notifications.service.ts](../../backend/src/notifications/notifications.service.ts)
+  - [mobile/src/screens/client/MyReservationsScreen.tsx](../../mobile/src/screens/client/MyReservationsScreen.tsx)
+  - [mobile/src/hooks/usePushNotifications.real.ts](../../mobile/src/hooks/usePushNotifications.real.ts)
 
 ### 4) Reorder termina (slobodan slot -> push ponuda klijentu)
 
@@ -102,20 +102,20 @@ Uvesti pouzdan dnevni orkestrator termina za stilistu: kontrolu kašnjenja, reka
   - bez penalizacije
 - Dodati status/trag zahtjeva radi audit-a i prikaza u rasporedu.
 - Primarni fajlovi:
-  - [backend/src/reservations/reservations.controller.ts](backend/src/reservations/reservations.controller.ts)
-  - [backend/src/reservations/reservations.service.ts](backend/src/reservations/reservations.service.ts)
-  - [mobile/src/screens/stylist/StylistScheduleScreen.tsx](mobile/src/screens/stylist/StylistScheduleScreen.tsx)
-  - [mobile/src/screens/stylist/StylistReservationDetailScreen.tsx](mobile/src/screens/stylist/StylistReservationDetailScreen.tsx)
-  - [mobile/src/screens/client/MyReservationsScreen.tsx](mobile/src/screens/client/MyReservationsScreen.tsx)
+  - [backend/src/reservations/reservations.controller.ts](../../backend/src/reservations/reservations.controller.ts)
+  - [backend/src/reservations/reservations.service.ts](../../backend/src/reservations/reservations.service.ts)
+  - [mobile/src/screens/stylist/StylistScheduleScreen.tsx](../../mobile/src/screens/stylist/StylistScheduleScreen.tsx)
+  - [mobile/src/screens/stylist/StylistReservationDetailScreen.tsx](../../mobile/src/screens/stylist/StylistReservationDetailScreen.tsx)
+  - [mobile/src/screens/client/MyReservationsScreen.tsx](../../mobile/src/screens/client/MyReservationsScreen.tsx)
 
 ### 5) Auto-start nadolazećeg termina (kad prethodni nije pokrenut)
 
 - Uvesti pravilo za “first upcoming” termin koji treba auto-prelazak u `IN_PROGRESS` kada vrijeme starta dođe, uz zaštite da ne starta pogrešan termin.
 - Logika mora poštovati konflikt sa postojećim `IN_PROGRESS` terminom.
 - Primarni fajlovi:
-  - [backend/src/reservations/reservation-delay.cron.ts](backend/src/reservations/reservation-delay.cron.ts)
-  - [backend/src/reservations/reservations.service.ts](backend/src/reservations/reservations.service.ts)
-  - [mobile/src/screens/stylist/StylistScheduleScreen.tsx](mobile/src/screens/stylist/StylistScheduleScreen.tsx)
+  - [backend/src/reservations/reservation-delay.cron.ts](../../backend/src/reservations/reservation-delay.cron.ts)
+  - [backend/src/reservations/reservations.service.ts](../../backend/src/reservations/reservations.service.ts)
+  - [mobile/src/screens/stylist/StylistScheduleScreen.tsx](../../mobile/src/screens/stylist/StylistScheduleScreen.tsx)
 
 ### 6) Statusi, prikaz i notifikacije u stylist rasporedu
 
@@ -126,9 +126,9 @@ Uvesti pouzdan dnevni orkestrator termina za stilistu: kontrolu kašnjenja, reka
   - reordered
 - Uskladiti wording i filtere na scheduler listi i detailu.
 - Primarni fajlovi:
-  - [mobile/src/screens/stylist/StylistScheduleScreen.tsx](mobile/src/screens/stylist/StylistReservationDetailScreen.tsx)
-  - [mobile/src/screens/stylist/StylistReservationDetailScreen.tsx](mobile/src/screens/stylist/StylistReservationDetailScreen.tsx)
-  - [mobile/src/i18n/bs.ts](mobile/src/i18n/bs.ts)
+  - [mobile/src/screens/stylist/StylistScheduleScreen.tsx](../../mobile/src/screens/stylist/StylistReservationDetailScreen.tsx)
+  - [mobile/src/screens/stylist/StylistReservationDetailScreen.tsx](../../mobile/src/screens/stylist/StylistReservationDetailScreen.tsx)
+  - [mobile/src/i18n/bs.ts](../../mobile/src/i18n/bs.ts)
 
 ### 7) Testovi (obavezno prije produkcije)
 
@@ -144,9 +144,9 @@ Uvesti pouzdan dnevni orkestrator termina za stilistu: kontrolu kašnjenja, reka
   - client acceptance flow from push/in-app
   - schedule status rendering
 - Primarni fajlovi:
-  - [backend/src/reservations/reservations.service.spec.ts](backend/src/reservations/reservations.service.spec.ts)
-  - [backend/src/reservations/availability.service.spec.ts](backend/src/reservations/availability.service.spec.ts)
-  - [backend/src/daily-log/daily-log.service.spec.ts](backend/src/daily-log/daily-log.service.spec.ts)
+  - [backend/src/reservations/reservations.service.spec.ts](../../backend/src/reservations/reservations.service.spec.ts)
+  - [backend/src/reservations/availability.service.spec.ts](../../backend/src/reservations/availability.service.spec.ts)
+  - [backend/src/daily-log/daily-log.service.spec.ts](../../backend/src/daily-log/daily-log.service.spec.ts)
 
 ### 8) Dokumentacija matrice
 
@@ -158,7 +158,7 @@ Uvesti pouzdan dnevni orkestrator termina za stilistu: kontrolu kašnjenja, reka
   - notifikacije i penalizacija
   - test matrix + rollback notes
 - Predloženi fajl:
-  - [docs/stylist-reservation-matrix.md](docs/stylist-reservation-matrix.md)
+  - [stylist-reservation-matrix.md](../docs/stylist-reservation-matrix.md)
 
 ## Operativni tok (visok nivo)
 

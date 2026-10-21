@@ -46,10 +46,13 @@ export class BlogCommentsService {
     const blockedUserIds = new Set(this.parseList(blockedRaw));
 
     if (blockedUserIds.has(userId)) {
-      throw new ForbiddenException('Komentarisanje nije dozvoljeno za ovaj račun.');
+      throw new ForbiddenException(
+        'Komentarisanje nije dozvoljeno za ovaj račun.',
+      );
     }
 
-    const flaggedByBadwords = badwords.length > 0 && this.containsBadword(dto.content, badwords);
+    const flaggedByBadwords =
+      badwords.length > 0 && this.containsBadword(dto.content, badwords);
     const isApproved = autoApprove && !flaggedByBadwords;
 
     return this.prisma.blogComment.create({
@@ -65,11 +68,34 @@ export class BlogCommentsService {
     });
   }
 
-  async findAllForPost(postId: string, approvedOnly = false) {
+  findPublicForPost(postId: string) {
     return this.prisma.blogComment.findMany({
-      where: { postId, ...(approvedOnly ? { isApproved: true } : {}) },
-      include: {
-        user: { select: { id: true, firstName: true, lastName: true } },
+      where: {
+        postId,
+        isApproved: true,
+        post: { isPublished: true },
+      },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        user: { select: { firstName: true, lastName: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  findAllForPost(postId: string) {
+    return this.prisma.blogComment.findMany({
+      where: { postId },
+      select: {
+        id: true,
+        content: true,
+        isApproved: true,
+        createdAt: true,
+        user: {
+          select: { username: true, firstName: true, lastName: true },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });

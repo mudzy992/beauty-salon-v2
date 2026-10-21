@@ -34,7 +34,7 @@ interface BlogComment {
   id: string
   content: string
   createdAt: string
-  user: { id: string; firstName: string; lastName: string }
+  user: { firstName: string; lastName: string }
 }
 
 export default function PublicBlogPost() {
@@ -63,7 +63,7 @@ export default function PublicBlogPost() {
     if (!post?.id) return
     setCommentsLoading(true)
     api
-      .get<BlogComment[]>(`/api/blog/${post.id}/comments`, { params: { approved: 'true' } })
+      .get<BlogComment[]>(`/api/blog/${post.id}/comments`)
       .then((r) => setComments(Array.isArray(r.data) ? r.data : []))
       .catch(() => setComments([]))
       .finally(() => setCommentsLoading(false))

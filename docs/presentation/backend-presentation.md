@@ -1,11 +1,11 @@
 # Backend prezentacija (NestJS + Prisma) — workflow rezervacije
 
-Ovaj dokument opisuje **jedan kompletan workflow rezervacije** iz ugla backend-a: API, FSM statusi, cron scenariji, realtime (Socket.IO), notifikacije, te sprega sa dnevnom knjigom i finansijama.
+Ovaj dokument je walkthrough za prezentaciju, ne test report ni formalni API ugovor. Implementacija u trenutnom kodu i statički audit imaju prednost nad sažetim opisom ispod. Cron, integrations, security i runtime ponašanje nisu produkcijski testirani.
 
 - Referenca (mapa koda): [docs/codebase-map/BACKEND.md](../codebase-map/BACKEND.md)
-- Autoritativni sažetak sistema: [SOURCE_OF_TRUTH.md](../../SOURCE_OF_TRUTH.md)
-- Poslovna pravila (role + rezervacije + loyalty): `.cursor/docs/05_matrice_i_poslovna_pravila.md`
-- Notifikacije (SDK55 ograničenja): `.cursor/docs/10_phase10_notifications.md`
+- Aktuelni sažetak: [SOURCE_OF_TRUTH.md](../../SOURCE_OF_TRUTH.md)
+- Arhitektura i evidence: [docs/audit/ARCHITECTURE.md](../audit/ARCHITECTURE.md), [docs/audit/FINDINGS.md](../audit/FINDINGS.md)
+- PostgreSQL migration caveats: [backend/POSTGRES_MIGRATION.md](../../backend/POSTGRES_MIGRATION.md)
 
 ## 1) Kontekst sistema (backend u sredini)
 
@@ -16,7 +16,7 @@ flowchart LR
   mobileClient[MobileClient(Expo)] -->|REST+Push| api
   mobileStylist[MobileStylist(Expo)] -->|REST+Push| api
 
-  api -->|Prisma| db[(MySQL)]
+  api -->|PrismaPg| db[(PostgreSQL)]
   api -->|Socket.IO| ws[RealtimeGateway]
   api -->|FS| uploads[(UploadsFS)]
   api -->|ExpoPushAPI| expo[ExpoPush]
@@ -27,7 +27,7 @@ flowchart LR
 - **Auth**: JWT auth + globalni guard, `@Public()` escape hatch
 - **Reservations**: kreiranje, dostupnost, FSM, stylist response, attendance, start/complete/no-show, reschedule/reorder
 - **Events**: Socket.IO gateway + sobe + standardizirani eventi
-- **Notifications**: in-app notifikacije, push tokeni, Expo push; email stub
+- **Notifications**: in-app notifikacije, Expo push i Nodemailer/SMTP email transport (isporuka zavisi od runtime konfiguracije)
 - **Daily log**: zapis izvršene usluge (manual ili iz rezervacije) + zaključavanje zapisa
 - **Finance**: KIF (IncomeBook) i KUF (ExpenseBook) + ručni prihodi i dugovanja
 - **Uploads**: univerzalni upload servis (slike + derivati, dokumenti)
@@ -102,12 +102,12 @@ Definicije eventa: `backend/src/events/socket-events.ts`.
 
 Praksa: nakon promjene stanja rezervacije, servis emituje događaj relevantnim sobama (admin/stylists/user).
 
-## 6) Notifikacije (in-app + push + email stub)
+## 6) Notifikacije (in-app + push + email)
 
-Backend behavior (sažeto, prema `.cursor/docs/10_phase10_notifications.md`):
-- **In-app**: `NotificationsService.send()` upisuje notifikaciju u DB i emituje Socket.IO `notification:new`.
-- **Push**: Expo push token se registruje preko `POST /api/notifications/push-token`. Slanje ide preko Expo Push API (opcioni `EXPO_ACCESS_TOKEN`).
-- **Email**: logika i preference postoje, ali je slanje označeno kao stub (nije kompletno spojeno).
+Backend behavior (kod-level pregled; eksterno slanje nije runtime-verified):
+- **In-app**: notification service upisuje notifikaciju u DB i emituje Socket.IO `notification:new`.
+- **Push**: Expo push token se registruje preko `POST /api/notifications/push-token`; kod poziva Expo Push API uz opcioni `EXPO_ACCESS_TOKEN`.
+- **Email**: Nodemailer transport i `sendMail` pozivi postoje; isporuka zavisi od runtime SMTP konfiguracije i nije testirana u ovom auditu.
 
 ## 7) Cron scenariji (svaka minuta)
 
@@ -166,8 +166,8 @@ Poslovna pravila (sažetak iz `.cursor/docs/05_matrice_i_poslovna_pravila.md`):
 
 ## 11) Checklist za system administratore (operativna stabilnost)
 
-- **CORS + Socket**: provjeriti da frontend i backend rade na očekivanim URL-ovima (compose + traefik).
+- **CORS + Socket**: potvrditi stvarne deployed origins i reverse-proxy path/WebSocket upgrade izvan repo-a; code-level CORS/socket risks su u [FINDINGS.md](../audit/FINDINGS.md).
 - **Uploads**: `UPLOAD_ROOT` i mount path; `/uploads/*` javno serviranje (provjeriti disk).
 - **Cron**: osigurati da scheduler radi (minute tick) i da server ima tačno vrijeme/timezone.
-- **Push**: za testiranje Android push-a (SDK55) koristiti dev/prod build, ne Expo Go; backend treba Expo token i (opciono) `EXPO_ACCESS_TOKEN`.
+- **Push**: za testiranje koristiti konfigurisan Expo development/production build i synthetic token/account; backend koristi Expo push endpoint, a opcioni `EXPO_ACCESS_TOKEN` dolazi samo iz runtime secret configuration. Isporuka nije testirana.
 

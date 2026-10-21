@@ -1,9 +1,10 @@
 # Frontend prezentacija (React + Vite) — workflow rezervacije
 
-Ovaj dokument opisuje **jedan kompletan workflow rezervacije** iz ugla web aplikacije: public site (rezervacija) + admin dashboard (operativni pregled), uključujući real-time ponašanje kroz Socket.IO.
+Ovaj dokument je walkthrough za prezentaciju, ne test report ni formalni API ugovor. Implementacija u kodu i statički audit imaju prednost; browser/production runtime ponašanje nije ovdje dokazano.
 
 - Referenca (mapa koda): [docs/codebase-map/FRONTEND.md](../codebase-map/FRONTEND.md)
-- Autoritativni sažetak sistema: [SOURCE_OF_TRUTH.md](../../SOURCE_OF_TRUTH.md)
+- Aktuelni sažetak: [SOURCE_OF_TRUTH.md](../../SOURCE_OF_TRUTH.md)
+- Arhitektura i evidence: [docs/audit/ARCHITECTURE.md](../audit/ARCHITECTURE.md), [docs/audit/FINDINGS.md](../audit/FINDINGS.md)
 
 ## 1) Kontekst (web slojevi)
 
@@ -11,7 +12,7 @@ Ovaj dokument opisuje **jedan kompletan workflow rezervacije** iz ugla web aplik
 flowchart LR
   publicSite[PublicSite(/)] -->|REST| backend[Backend(/api)]
   adminDash[AdminDashboard(/admin)] -->|REST+Socket.IO| backend
-  backend --> db[(MySQL)]
+  backend --> db[(PostgreSQL)]
 ```
 
 ## 2) Ključne rute i stranice

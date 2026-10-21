@@ -8,6 +8,22 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 
+const REVIEW_DISPLAY_SELECT = {
+  id: true,
+  serviceRating: true,
+  stylistRating: true,
+  comment: true,
+  isApproved: true,
+  createdAt: true,
+  user: { select: { firstName: true, lastName: true } },
+  service: { select: { name: true } },
+  stylist: {
+    select: {
+      user: { select: { firstName: true, lastName: true } },
+    },
+  },
+} as const;
+
 @Injectable()
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -73,18 +89,30 @@ export class ReviewsService {
       where: { isApproved: true },
       take: 1,
       skip,
-      include: {
-        user: { select: { firstName: true, lastName: true } },
-        service: { select: { name: true } },
-      },
+      select: REVIEW_DISPLAY_SELECT,
     });
     return review[0] ?? null;
   }
 
-  async findAll(query: {
+  findAllPublic(query: { serviceId?: string; stylistProfileId?: string }) {
+    const where: {
+      serviceId?: string;
+      stylistProfileId?: string;
+      isApproved: true;
+    } = { isApproved: true };
+    if (query.serviceId) where.serviceId = query.serviceId;
+    if (query.stylistProfileId) where.stylistProfileId = query.stylistProfileId;
+    return this.prisma.review.findMany({
+      where,
+      select: REVIEW_DISPLAY_SELECT,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  findAllForAdmin(query: {
     serviceId?: string;
     stylistProfileId?: string;
-    approvedOnly?: boolean;
+    approved?: string;
   }) {
     const where: {
       serviceId?: string;
@@ -93,32 +121,22 @@ export class ReviewsService {
     } = {};
     if (query.serviceId) where.serviceId = query.serviceId;
     if (query.stylistProfileId) where.stylistProfileId = query.stylistProfileId;
-    if (query.approvedOnly) where.isApproved = true;
+    if (query.approved === 'true') where.isApproved = true;
+    if (query.approved === 'false') where.isApproved = false;
     return this.prisma.review.findMany({
       where,
-      include: {
-        user: { select: { id: true, firstName: true, lastName: true } },
-        service: { select: { id: true, name: true } },
-        stylist: {
-          include: { user: { select: { firstName: true, lastName: true } } },
-        },
-      },
+      select: REVIEW_DISPLAY_SELECT,
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async findOne(id: string) {
-    const r = await this.prisma.review.findUnique({
-      where: { id },
-      include: {
-        user: { select: { id: true, firstName: true, lastName: true } },
-        service: true,
-        stylist: { include: { user: true } },
-        reservation: { select: { id: true } },
-      },
+    const review = await this.prisma.review.findFirst({
+      where: { id, isApproved: true },
+      select: REVIEW_DISPLAY_SELECT,
     });
-    if (!r) throw new NotFoundException('Recenzija nije pronađena.');
-    return r;
+    if (!review) throw new NotFoundException('Recenzija nije pronađena.');
+    return review;
   }
 
   async approve(id: string, user: CurrentUserPayload) {
@@ -130,7 +148,7 @@ export class ReviewsService {
     return this.prisma.review.update({
       where: { id },
       data: { isApproved: true },
-      include: { user: true, service: true, stylist: true },
+      select: REVIEW_DISPLAY_SELECT,
     });
   }
 

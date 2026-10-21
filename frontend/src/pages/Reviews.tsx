@@ -18,8 +18,8 @@ interface Review {
   isApproved: boolean | null
   createdAt: string
   service?: { name: string }
-  stylistProfile?: { user?: { username: string; firstName: string | null; lastName: string | null } }
-  user?: { username: string; firstName: string | null; lastName: string | null }
+  stylist?: { user?: { firstName: string | null; lastName: string | null } }
+  user?: { firstName: string | null; lastName: string | null }
 }
 
 function Stars({ count }: { count: number }) {
@@ -52,7 +52,7 @@ export default function Reviews() {
     if (filter === 'approved') params.approved = 'true'
     else if (filter === 'pending') params.approved = 'false'
     api
-      .get<Review[]>('/api/reviews', { params })
+      .get<Review[]>('/api/reviews/admin', { params })
       .then((r) => setReviews(Array.isArray(r.data) ? r.data : []))
       .catch(() => setReviews([]))
       .finally(() => setLoading(false))
@@ -95,10 +95,10 @@ export default function Reviews() {
     return <Badge variant="warning">Na čekanju</Badge>
   }
 
-  const getUserName = (user?: { username: string; firstName: string | null; lastName: string | null }) => {
+  const getUserName = (user?: { firstName: string | null; lastName: string | null }) => {
     if (!user) return '-'
     const full = `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
-    return full || user.username
+    return full || '-'
   }
 
   const detailDate = useMemo(() => {
@@ -158,7 +158,7 @@ export default function Reviews() {
                     >
                       <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{getUserName(r.user)}</td>
                       <td className="p-3">{r.service?.name ?? '-'}</td>
-                      <td className="p-3">{getUserName(r.stylistProfile?.user)}</td>
+                      <td className="p-3">{getUserName(r.stylist?.user)}</td>
                       <td className="p-3">
                         <Stars count={r.serviceRating} />
                       </td>
@@ -225,7 +225,7 @@ export default function Reviews() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500">Stilista</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-50">{getUserName(detail.stylistProfile?.user)}</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-50">{getUserName(detail.stylist?.user)}</p>
                 </div>
               </div>
 

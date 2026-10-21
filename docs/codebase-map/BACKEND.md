@@ -1,292 +1,86 @@
-## Backend (NestJS + Prisma)
-
-### Stack
-
-- NestJS 11 (`backend/src/`)
-- Prisma 7 (`backend/prisma/schema.prisma`) with `@prisma/adapter-mariadb`
-- MySQL/MariaDB as DB
-- Socket.IO via `@nestjs/websockets` + `@nestjs/platform-socket.io`
-
-### Entrypoints
-
-- `backend/src/main.ts`
-  - global `ValidationPipe` (whitelist, forbidNonWhitelisted, transform)
-  - global `HttpExceptionFilter`
-  - serves uploads from `process.env.UPLOAD_ROOT || <repo>/uploads` at `/uploads/*`
-  - enables CORS
-- `backend/src/app.module.ts`
-  - installs modules and global `JwtAuthGuard` via `APP_GUARD`
-
-### Module map (high level)
-
-`AppModule` imports:
-
-- **Core**
-  - `config/`: configuration
-  - `prisma/`: Prisma client + DB access
-  - `auth/`: JWT auth + register/login
-  - `events/`: Socket.IO gateway + rooms/events
-- **Domain**
-  - `users/`
-  - `salon/`
-  - `services/`
-  - `stylists/`
-  - `settings/`
-  - `reservations/`
-  - `notifications/`
-  - `daily-log/`
-  - `finance/`
-  - `blog/`
-  - `gallery/`
-  - `reviews/`
-  - `analytics/`
-  - `loyalty/`
-
-The intent-level description of the modules & behaviors lives in `SOURCE_OF_TRUTH.md` (section “Trenutno stanje”).
-
-### Database
-
-- **Schema**: `backend/prisma/schema.prisma`
-- **Scripts** (from `backend/package.json`)
-  - `npm run db:migrate` → `prisma migrate deploy`
-  - `npm run db:seed` → `prisma db seed` (seed entrypoint `prisma/seed.ts`)
-  - `npm run db:init` → migrate + seed
-  - `npm run db:studio` → Prisma Studio
-
-### Realtime (Socket.IO)
-
-As documented in `SOURCE_OF_TRUTH.md`:
-
-- JWT-authenticated socket connection
-- rooms like `user:{id}`, `admin`, `stylists`, `public`
-- events for reservations/settings/salon/notifications/etc.
-
-### Notifications
-
-Authoritative implementation notes:
-
-- `.cursor/docs/10_phase10_notifications.md`
-
-### Business rules (authoritative)
-
-- `.cursor/docs/05_matrice_i_poslovna_pravila.md`
-# Backend Codebase Map
-
-## Overview
-
-- **App type**: NestJS (Express) monolith with feature modules and a global `JwtAuthGuard`
-- **Runtime entrypoint**: `backend/src/main.ts`
-- **Root module**: `backend/src/app.module.ts`
-- **Database access**: Prisma Client with PostgreSQL adapter (`@prisma/adapter-pg`) via global `PrismaService` (`backend/src/prisma/prisma.service.ts`)
-- **Database**: PostgreSQL (Prisma schema in `backend/prisma/schema.prisma`, Prisma 7 config in `backend/prisma.config.ts`)
-- **Auth**: JWT (Passport strategy `backend/src/auth/strategies/jwt.strategy.ts`), public endpoints marked with `@Public()` (`backend/src/common/decorators/public.decorator.ts`)
-- **Uploads**: Local filesystem under `UPLOAD_ROOT` and exposed as static assets at `/uploads/*` (`backend/src/main.ts`, `backend/src/uploads/uploads.service.ts`)
-- **Realtime**: Socket.IO gateway with JWT verification (`backend/src/events/events.gateway.ts`)
-
-## Folder map
-
-### Top-level backend
-
-- `backend/src/main.ts`: creates Nest app, sets global filters/pipes, CORS, serves `UPLOAD_ROOT` at `/uploads/`, listens on `PORT`
-- `backend/src/app.module.ts`: composes all feature modules and applies global guard
-- `backend/src/prisma/`: DB client wiring
-  - `prisma.module.ts`: `@Global()` Prisma provider
-  - `prisma.service.ts`: PrismaClient with PostgreSQL adapter, requires `DATABASE_URL`
-- `backend/prisma/`: schema + migrations + seed
-  - `schema.prisma`: authoritative data model
-  - `migrations/*/migration.sql`: Prisma migrations (PostgreSQL); legacy MySQL migrations are in `migrations_mysql_backup/`
-  - `seed.ts`: seed script referenced from `backend/package.json` and `backend/prisma.config.ts`
-- `backend/src/common/`: cross-cutting helpers
-  - `filters/http-exception.filter.ts`: consistent JSON errors
-  - `guards/jwt-auth.guard.ts`: global auth guard + `@Public()` escape hatch
-  - `guards/roles.guard.ts` + `decorators/roles.decorator.ts`: role-based access
-  - `decorators/current-user.decorator.ts`: typed `request.user` injection
-  - `utils/*`: shared utilities (roles/date/pagination/parse/json)
-- `backend/src/config/config.module.ts`: global env loader (`.env.local`, `.env`)
-
-### Feature modules (module boundary = `*.module.ts`)
-
-App composition in `backend/src/app.module.ts`:
-
-- **Auth**: `backend/src/auth/`
-  - Public routes under `auth/*` via `backend/src/auth/auth.controller.ts`
-  - Uses Prisma `User/Role/UserRole`, bcrypt, email verification, and avatar upload via `UploadsService`
-- **Users**: `backend/src/users/` (`UsersController`, `UsersService`)
-- **Salon**: `backend/src/salon/` (salon settings, working hours, holidays)
-- **Services**: `backend/src/services/` (service categories/subcategories/services)
-- **Stylists**: `backend/src/stylists/` (stylist profiles, working hours, stylist-service mapping)
-- **Reservations**: `backend/src/reservations/` (availability engine, stylist lock/accept/reject, reschedule/reorder)
-- **Uploads**: `backend/src/uploads/` (multipart upload + sharp image derivatives + DB record)
-- **Notifications**: `backend/src/notifications/` (push tokens, Expo push, SMTP email, in-app notifications)
-- **Daily log**: `backend/src/daily-log/` (daily entries + images + income linkage)
-- **Finance**: `backend/src/finance/` (income books, expense books, templates, categories, client debts, cron services)
-- **Blog**: `backend/src/blog/` (posts, comments, slugs)
-- **Gallery**: `backend/src/gallery/` (categories, images mapped to `Upload`)
-- **Reviews**: `backend/src/reviews/` (service reviews)
-- **Events**: `backend/src/events/` (Socket.IO gateway; exported as global module)
-- **Analytics**: `backend/src/analytics/`
-- **Settings**: `backend/src/settings/` (app settings registry + encryption)
-- **Loyalty**: `backend/src/loyalty/` (accounts/transactions, reservation discount fields)
-
-## Data model notes (Prisma)
-
-Source of truth is `backend/prisma/schema.prisma`.
-
-### Core identities & authorization
-
-- `User`, `Role`, `UserRole`
-  - Roles are strings like `SYSTEM_ADMIN | OWNER | STYLIST | CLIENT` (see `backend/prisma/schema.prisma`, `backend/src/common/utils/roles.ts`)
-  - Email verification is code-based: `emailVerificationToken` + `emailVerificationExpiresAt` with `isEmailVerified`
-
-### Reservation engine
-
-- `Reservation` + `ReservationStylistResponse`
-  - Reservation has lifecycle/status string fields (enforced in services; constants in `backend/src/reservations/constants`)
-  - Stylist locking/accept/reject is modeled in `ReservationStylistResponse` with `lockedAt/lockExpiresAt/respondedAt`
-  - Reschedule/reorder uses `rescheduleProposedStartTime/rescheduleProposedEndTime/rescheduleStatus`
-- `SalonSettings`, `SalonWorkingHours`, `Holiday` influence availability and cancellation policy
-- `ClientCancellationCount` enforces penalty windows
+# Backend codebase map
 
-### Uploads as a shared primitive
-
-- `Upload` stores **paths only**: `pathOriginal/pathThumb/pathSmall/pathMedium` (no blobs)
-- Other domains reference `Upload`:
-  - `DailyLogImage.uploadId`
-  - `ExpenseAttachment.uploadId`
-  - `GalleryImage.uploadId`
-
-### Finance
-
-- KUF: `ExpenseBook`, `Expense`, `ExpenseCategory`, template-driven `ExpenseCategoryTemplate/ExpenseTemplateField/ExpenseFieldValue`
-- KIF: `IncomeBook`, `IncomeBookEntry`, `IncomeBookManualEntry`, audit `IncomeBookManualEntryAudit`
-- `ClientDebt` can link to service/manualEntry/reservation (optional foreign keys)
-
-### Notifications & messaging
-
-- `Notification`, `NotificationPreference`, `PushToken`
-  - Push uses Expo SDK; email uses SMTP + templates stored in `AppSetting`
-- `AppSetting` is a key/value store (optionally encrypted)
-
-## Key flows
-
-### Boot / configuration
-
-- **Startup**: `backend/src/main.ts`
-  - Global `HttpExceptionFilter` → consistent `{ statusCode, message, error? }`
-  - Global `ValidationPipe` with `whitelist`, `forbidNonWhitelisted`, `transform`
-  - Static serving of uploads: `UPLOAD_ROOT` mounted at `/uploads/`
-  - CORS enabled with `origin: true` and `credentials: true`
-- **Env loading**: `backend/src/config/config.module.ts` loads `.env.local` then `.env`
-
-### Auth (JWT) and route protection
-
-- **Global auth**: `APP_GUARD` uses `JwtAuthGuard` (`backend/src/app.module.ts`, `backend/src/common/guards/jwt-auth.guard.ts`)
-- **Public endpoints**: `@Public()` metadata (`backend/src/common/decorators/public.decorator.ts`)
-- **JWT parsing/validation**: `JwtStrategy` reads bearer token and calls `AuthService.validateUser` (`backend/src/auth/strategies/jwt.strategy.ts`, `backend/src/auth/auth.service.ts`)
-- **Role checks**: `RolesGuard` + `@Roles(...)` (`backend/src/common/guards/roles.guard.ts`)
-
-Auth routes are under `auth/*` (`backend/src/auth/auth.controller.ts`):
-
-- `POST auth/register` (public) supports optional multipart avatar → stored via `UploadsService.saveFile('avatars')`
-- `POST auth/login` (public) returns `{ access_token, user }`
-- `POST auth/change-password` (JWT required)
-- `POST auth/send-verification-email` (JWT required)
-- `POST auth/verify-email` (public) verifies the email code
-
-### Uploads
-
-- Controller: `backend/src/uploads/uploads.controller.ts` (`@Controller('api/uploads')`, JWT required)
-  - `POST api/uploads` with multipart `file` and optional body `entity` → stored under `UPLOAD_ROOT/{entity}/{YYYY}/{MM}` (validated to `^[a-z0-9_-]+$`)
-  - `DELETE api/uploads/by-path-original` deletes filesystem variants + DB record
-- Service: `backend/src/uploads/uploads.service.ts`
-  - Image derivatives generated with `sharp` for non-vector images: `thumb/small/medium` in WebP
-  - Allowed docs: PDF/Word/Excel mime types
-
-### Reservations (domain-heavy)
-
-- Controller: `backend/src/reservations/reservations.controller.ts` under `api/reservations`
-  - Client create/cancel/confirm attendance + availability endpoints
-  - Admin-only endpoints protected by `@Roles('SYSTEM_ADMIN','OWNER')`
-  - Stylist actions protected by `@Roles('STYLIST', ...)`: lock/accept/reject/start/complete/no-show
-  - Reschedule/reorder flow has propose/commit + client accept/decline
-- Service: `backend/src/reservations/reservations.service.ts`
-  - Uses Prisma transactions for lock and accept flows
-  - Emits Socket.IO events via `EventsGateway` and triggers notifications
-
-### Notifications (push + email + in-app)
-
-- Service: `backend/src/notifications/notifications.service.ts`
-  - In-app notifications persisted in DB and emitted over Socket.IO
-  - Push uses Expo tokens (`PushToken`) and optional `EXPO_ACCESS_TOKEN`
-  - Email uses SMTP resolved from `AppSetting` first, env vars fallback (e.g. `SMTP_HOST`, `SMTP_FROM`)
-  - Base app URL resolved from `AppSetting` (`system_public_app_url`) or env (`APP_PUBLIC_URL`, `FRONTEND_URL`)
-
-### Realtime / websocket events
-
-- Gateway: `backend/src/events/events.gateway.ts`
-  - Accepts token via socket handshake auth or `Authorization` header
-  - Joins rooms `admin`, `stylists`, and `user:{id}` based on JWT roles
-
-### Settings + encryption
-
-- Admin settings API: `backend/src/settings/settings.controller.ts` under `api/settings`
-  - Protected by roles `SYSTEM_ADMIN|OWNER`
-  - Public read endpoint: `GET api/settings/public` marked `@Public()`
-- Encryption: `backend/src/settings/settings-encryption.service.ts`
-  - Uses `APP_SETTINGS_ENCRYPTION_KEY` (base64 32 bytes) to encrypt certain setting values (`enc:v1:*`)
-
-## API surface (controller prefixes)
-
-Public:
-
-- `/` and `/health`: `backend/src/app.controller.ts` (`@Public()`)
-- `auth/*`: `backend/src/auth/auth.controller.ts` (`register`, `login`, `verify-email` are public)
-
-Protected (JWT by default):
-
-- `api/users`: `backend/src/users/users.controller.ts`
-- `api/salon`: `backend/src/salon/salon.controller.ts`
-- `api/services`: `backend/src/services/services.controller.ts`
-- `api/stylists`: `backend/src/stylists/stylists.controller.ts`
-- `api/reservations`: `backend/src/reservations/reservations.controller.ts`
-- `api/uploads`: `backend/src/uploads/uploads.controller.ts`
-- `api/notifications`: `backend/src/notifications/notifications.controller.ts`
-- `api/daily-log`: `backend/src/daily-log/daily-log.controller.ts`
-- `api/income-books`: `backend/src/finance/income.controller.ts`
-- `api/expense-books`: `backend/src/finance/expense-books.controller.ts`
-- `api/expense-categories`: `backend/src/finance/expense-categories.controller.ts`
-- `api/expense-templates`: `backend/src/finance/expense-templates.controller.ts`
-- `api/expenses`: `backend/src/finance/expenses.controller.ts`
-- `api/client-debts`: `backend/src/finance/client-debts.controller.ts`
-- `api/blog`: `backend/src/blog/blog.controller.ts`
-- `api/gallery`: `backend/src/gallery/gallery.controller.ts`
-- `api/reviews`: `backend/src/reviews/reviews.controller.ts`
-- `api/settings`: `backend/src/settings/settings.controller.ts` (admin-only; has `api/settings/public`)
-- `api/analytics`: `backend/src/analytics/analytics.controller.ts`
-- `api/loyalty`: `backend/src/loyalty/loyalty.controller.ts`
-- `api/loyalty/client`: `backend/src/loyalty/loyalty-client.controller.ts`
-- `api/loyalty/stylist`: `backend/src/loyalty/loyalty-stylist.controller.ts`
-
-## Risks / tech debt
-
-- **Hardcoded DB URL in Docker image build/runtime**: `backend/Dockerfile` sets `ENV DATABASE_URL="mysql://mudzy:...@sql.ba101.top:3306/beauty-salon-v2"` as a placeholder for `prisma generate`. This risks leaking credentials and can confuse runtime configuration (even if overridden by compose).
-- **Permissive CORS**:
-  - HTTP: `origin: true` with `credentials: true` (`backend/src/main.ts`)
-  - Websocket: `cors: { origin: '*', credentials: true }` (`backend/src/events/events.gateway.ts`)
-- **Uploads surface area**:
-  - `entity` affects filesystem path; it’s validated but still allows creating many folders (`backend/src/uploads/uploads.controller.ts`)
-  - `deleteByPathOriginal` is available to any authenticated user (no ownership checks) (`backend/src/uploads/uploads.controller.ts`, `backend/src/uploads/uploads.service.ts`)
-- **Mixed formatting conventions**: some files omit semicolons and use different lint style (e.g. `backend/src/uploads/uploads.repository.ts`, `backend/src/settings/settings-encryption.service.ts`)
-- **Role strings are ad-hoc**: roles are plain strings in JWT payload and checks; central constants aren’t enforced at the type level (`backend/src/common/decorators/current-user.decorator.ts`, `backend/src/common/guards/roles.guard.ts`)
-- **Env/config surface is split**: some settings come from env, others from DB-backed `AppSetting` (e.g. email config); this is flexible but increases debugging complexity (`backend/src/notifications/notifications.service.ts`, `backend/src/settings/*`)
-
-## Suggested starting points
-
-- **Boot & request lifecycle**: `backend/src/main.ts`, `backend/src/common/filters/http-exception.filter.ts`
-- **Module graph**: `backend/src/app.module.ts`
-- **Auth & guards**: `backend/src/auth/auth.module.ts`, `backend/src/auth/auth.controller.ts`, `backend/src/auth/auth.service.ts`, `backend/src/common/guards/jwt-auth.guard.ts`, `backend/src/common/guards/roles.guard.ts`
-- **DB layer**: `backend/src/prisma/prisma.service.ts`, `backend/prisma/schema.prisma`, `backend/prisma.config.ts`
-- **Core business domain**: `backend/src/reservations/reservations.service.ts`, `backend/src/reservations/availability.service.ts`
-- **Uploads**: `backend/src/uploads/uploads.controller.ts`, `backend/src/uploads/uploads.service.ts`
-- **Notifications + email/push**: `backend/src/notifications/notifications.service.ts`
+**Current snapshot:** 2026-10-21 · NestJS 11 · TypeScript · Prisma 7 · PostgreSQL. For cross-app architecture see [ARCHITECTURE.md](../audit/ARCHITECTURE.md); security/business evidence and caveats are in [FINDINGS.md](../audit/FINDINGS.md).
 
+## Stack and entrypoints
+
+- `backend/src/main.ts`: app bootstrap, `/uploads/` static root, CORS/validation setup and listener.
+- `backend/src/app.module.ts`: feature module composition.
+- `backend/prisma/schema.prisma`, `backend/prisma.config.ts`: Prisma schema and Prisma 7 config.
+- `backend/src/prisma/prisma.service.ts`: `PrismaPg` adapter; runtime rejects provider values other than `postgres`.
+- `backend/src/auth/`: JWT strategy, guards, role decorators and auth controllers.
+- `backend/src/common/`: shared decorators, guards, pipes, filters and helpers.
+
+Global HTTP authentication is default-deny for protected routes; `@Public()` explicitly opens endpoints. Role guards apply role-specific access. This describes code-level architecture, not a complete penetration-test result.
+
+## Feature module map
+
+| Module | Responsibility / controller prefix |
+|---|---|
+| `auth` | login/register, JWT, password/onboarding actions (`/auth`) |
+| `users` | profiles/users/roles; bounded client picker (`/api/users/clients`) and admin-only expanded list (`/api/users/clients/admin`) |
+| `salon` | salon settings, schedules and holidays (`/api/salon`) |
+| `services` | service/category catalog (`/api/services`) |
+| `stylists` | stylist profile, work schedule and availability (`/api/stylists`) |
+| `reservations` | booking, availability, lifecycle, public reservation views (`/api/reservations`, `/api/public/reservations`) |
+| `daily-log` | completed/manual service records (`/api/daily-log`) |
+| `finance` | income/expense books, expenses/templates/categories, client debts (`/api/income-books`, `/api/expense-books`, `/api/expenses`, `/api/expense-templates`, `/api/expense-categories`, `/api/client-debts`) |
+| `loyalty` | client/stylist/admin loyalty surfaces (`/api/loyalty`) |
+| `notifications` | in-app and push-token operations (`/api/notifications`) |
+| `events` | Socket.IO gateway and rooms (no REST controller) |
+| `blog`, `gallery`, `reviews` | `/api/blog` public list/detail/comment reads are published/approved-only with display projections; draft/all-content reads use admin routes. Review public list/featured are approved-only, detail requires JWT, moderation list is role-guarded (`/api/reviews/admin`) |
+| `settings` | app configuration/settings (`/api/settings`) |
+| `analytics` | dashboard reporting (`/api/analytics`) |
+| `app-releases` | mobile release metadata/public update routes (`/api/app-releases`, `/api/public/app-releases`) |
+| `uploads` | file upload/delete API (`/api/uploads`) |
+| `config`, `prisma`, `i18n` | configuration, persistence and translations |
+
+Controller files define the precise route/guard/DTO contract; the table is only a module index.
+
+## Core data and request flows
+
+### Authentication and route access
+
+JWT strategy loads the user and current roles; global guards protect routes unless `@Public()` opts out. Authenticated identity comes from request claims plus DB lookups. See `src/auth/` and per-controller decorators. The audit identifies places where returned projections/ownership checks may be insufficient; see the user/client, review and upload findings in [FINDINGS.md](../audit/FINDINGS.md).
+
+### Reservation lifecycle and availability
+
+1. Availability service loads service, salon, stylist schedules, holidays and existing appointments, then builds available dates/slots.
+2. `ReservationsService` validates request, selects/reserves stylist responses and persists service items/status.
+3. Stylist/admin lifecycle actions advance or cancel a reservation; attendance/start/complete/no-show and optional reschedule/reorder actions are separate transitions.
+4. `DailyLogService` can create/complete an entry for performed service. Finance and loyalty may then receive derived writes; downstream consistency/races need PostgreSQL tests.
+5. Services emit Socket.IO events and notifications around relevant operations.
+
+Read implementation in `src/reservations/`, `src/daily-log/`, `src/finance/` and `src/loyalty/`; this list is not a concurrency proof. Several writes need transaction/idempotency review in the phased plan.
+
+### Finance and debts
+
+Finance maintains monthly income/expense books, entries, manual income, expense configuration and client debt/repayment flows. Closed-book checks exist in individual services; verify transactional semantics under concurrent close/write with the planned isolated PostgreSQL tests. Financial correctness findings are linked in [FINDINGS.md](../audit/FINDINGS.md).
+
+### Files and external services
+
+- Upload handler is in `src/uploads/`; files are stored beneath `UPLOAD_ROOT` and the upload root is statically served by `main.ts` under `/uploads/`.
+- Notifications include in-app persistence/socket delivery and Expo push integration. External SMTP/push delivery configuration is not runtime-verified.
+- Blog content may include HTML; public rendering/sanitization review is documented in the findings.
+
+### Socket.IO and scheduled work
+
+- `src/events/events.gateway.ts` manages authentication/rooms; `src/events/socket-events.ts` lists event contracts. There is no Redis Socket.IO adapter in current wiring; room and connection maps are process-local.
+- `@nestjs/schedule` jobs are registered in-process (reservation timeout/delay and finance rollover/reminder jobs). No distributed lock/queue is configured. Horizontal replica safety must be established before scaling these jobs.
+
+## Database and migration layout
+
+- Active PostgreSQL migration files: `prisma/migrations/20260822100257_postgresql_baseline/` and `prisma/migrations/20260915085100_blog_post_seo/`.
+- Historical MySQL migration archive: `prisma/migrations_mysql_backup/` (tracked, separate from the active path; do not apply through the PostgreSQL migrator).
+- Root Compose does not provide a DB; backend connects through external network `db_net`.
+- No claim is made here about production DB version, data migration history, backup or restore status.
+
+Migration operations and caveats: [`backend/POSTGRES_MIGRATION.md`](../../backend/POSTGRES_MIGRATION.md).
+
+## Build, tests and deployment boundary
+
+- Package scripts live in `backend/package.json`; backend Jest specs are colocated with source. `test:e2e` currently references absent `test/jest-e2e.json`.
+- `npm run lint` is read-only; `npm run lint:fix` is explicitly mutating. The existing type-aware lint baseline is not a gate while Prisma Client generation is blocked/missing and diagnostics remain.
+- The backend Docker entrypoint runs `prisma migrate deploy` before Nest. Docker build uses a dummy generate-only URL; runtime `DATABASE_URL`/JWT/encryption key come from environment.
+- Root Compose contains frontend/backend only, expects external `db_net`, and mounts uploads. It does not declare PostgreSQL, Redis, healthchecks or deployment proxy labels.
+- No live production API/database, browser, device or external notification service was accessed for the audit. See [TEST_WORKFLOW.md](../audit/TEST_WORKFLOW.md).

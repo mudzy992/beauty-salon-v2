@@ -15,8 +15,8 @@ isProject: false
 Frontend `ClientAnalytics` (`/admin/client-analytics?userId=...`) prikazuje **Manuelni unosi 0** jer backend endpoint `GET /api/users/:id/analytics` trenutno puni `manualEntries` samo iz `DailyLogEntry` (`repo.dailyLogEntry.findMany`), dok su ručni prihodi uneseni kroz knjigu prihoda zapisani u `IncomeBookManualEntry`.
 
 Relevantno:
-- FE očekuje `manualEntries: ManualEntry[]` sa poljima `actualPrice`, `tipAmount`, `isManual`, `notes`, `status`, `service`, `stylistProfile` u [frontend/src/pages/ClientAnalytics.tsx](frontend/src/pages/ClientAnalytics.tsx).
-- Backend trenutno vraća `manualEntries` iz `DailyLogEntry` u [backend/src/users/users.service.ts](backend/src/users/users.service.ts) (vidi `getClientAnalytics`).
+- FE očekuje `manualEntries: ManualEntry[]` sa poljima `actualPrice`, `tipAmount`, `isManual`, `notes`, `status`, `service`, `stylistProfile` u [frontend/src/pages/ClientAnalytics.tsx](../../frontend/src/pages/ClientAnalytics.tsx).
+- Backend trenutno vraća `manualEntries` iz `DailyLogEntry` u [backend/src/users/users.service.ts](../../backend/src/users/users.service.ts) (vidi `getClientAnalytics`).
 
 ## Cilj
 - U `getClientAnalytics` uključiti i `IncomeBookManualEntry` zapise gdje je `clientId = userId` (uz isti `fromDate/toDate` filter).
@@ -29,7 +29,7 @@ Relevantno:
 
 ## Backend izmjene
 ### 1) Proširi `getClientAnalytics` da čita i iz `IncomeBookManualEntry`
-- Fajl: [backend/src/users/users.service.ts](backend/src/users/users.service.ts)
+- Fajl: [backend/src/users/users.service.ts](../../backend/src/users/users.service.ts)
 - U `Promise.all` dodati dodatni upit:
   - `incomeBookManualEntry.findMany({ where: { clientId: userId, date: { gte/lte } }, include: { service: { select: { id,name,price } }, stylistProfile: { include: { user: { select: { firstName,lastName,username } } } } }, orderBy: { date: 'desc' } })`
 - Mapirati svaku manual-income stavku u shape koji FE već očekuje:

@@ -93,5 +93,5 @@ Ako koristite pauzu između servisa za “upijanje kašnjenja”, moguće je ozn
   - provjerite postoji li raniji termin koji treba prvo obraditi
   - provjerite da li klijent ima pending reschedule/reorder prijedlog
 - **Ne stižu push notifikacije**:
-  - na Androidu u Expo Go push ne radi (SDK55 ograničenje); treba dev/prod build
+  - push zavisi od uređaja, permisija, Expo projekta i build konfiguracije; za dijagnostiku koristite konfigurisan development/production build i provjerite registraciju tokena
 

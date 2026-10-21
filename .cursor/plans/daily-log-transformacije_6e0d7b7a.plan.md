@@ -51,7 +51,7 @@ const entries = await this.prisma.dailyLogEntry.findMany({
 
 Većina završenih unosa nema slike, pa u tih ~30 najnovijih redova nema nijednog para. Kad se filtrira po `serviceId`, kandidata je malo i pravi parovi upadnu u prozor - zato slider na `/usluge/:serviceId` radi. Dodatno je i paginacija neispravna: `hasMore: pairs.length >= limit` naspram `nextOffset: offset + entries.length`, pa infinite scroll stane prerano.
 
-Naslovna stranica dodatno maskira problem sa `DEFAULT_BEFORE_AFTER_PAIRS` (5 hardkodiranih Unsplash slika) u [frontend/src/pages/public/PublicHome.tsx](frontend/src/pages/public/PublicHome.tsx).
+Naslovna stranica dodatno maskira problem sa `DEFAULT_BEFORE_AFTER_PAIRS` (5 hardkodiranih Unsplash slika) u [frontend/src/pages/public/PublicHome.tsx](../../frontend/src/pages/public/PublicHome.tsx).
 
 Mobilne ekrane (`SatisfiedClientsScreen`, `HomeScreen`, `ServiceWorkGalleryScreen`, `ServiceSingleDetailScreen`) koriste isti endpoint, pa se popravljaju automatski uz backend fix.
 
@@ -95,7 +95,7 @@ flowchart TD
 
 ## Faza 0 - Šema i migracija
 
-[backend/prisma/schema.prisma](backend/prisma/schema.prisma)
+[backend/prisma/schema.prisma](../../backend/prisma/schema.prisma)
 
 `DailyLogEntry` (linija 375):
 
@@ -139,10 +139,10 @@ const total = await this.prisma.dailyLogEntry.count({ where });
 - Novi query param `random=1`: dohvat `id`-eva svih eligible unosa, Fisher-Yates shuffle, pa `findMany` po odabranim ID-evima. Naslovna time dobija stvarni random iz svih završenih radova, a ne samo iz 20 najnovijih.
 - Guard: preskoči unos ako `upload` nedostaje (defenzivno, jer je relacija obavezna).
 
-**Frontend** - [frontend/src/pages/public/PublicHome.tsx](frontend/src/pages/public/PublicHome.tsx):
+**Frontend** - [frontend/src/pages/public/PublicHome.tsx](../../frontend/src/pages/public/PublicHome.tsx):
 - Ukloniti `DEFAULT_BEFORE_AFTER_PAIRS` (linije 32-108) i lokalni shuffle; zvati `/api/daily-log/before-after?random=1&limit=6`.
 - Ako je lista prazna i nije loading, ne renderovati cijelu sekciju (i link "Zadovoljni klijenti").
-- [frontend/src/pages/public/PublicSatisfiedClients.tsx](frontend/src/pages/public/PublicSatisfiedClients.tsx) i [frontend/src/pages/public/PublicServiceDetail.tsx](frontend/src/pages/public/PublicServiceDetail.tsx) rade bez izmjena čim backend vrati ispravan `hasMore`/`nextOffset`.
+- [frontend/src/pages/public/PublicSatisfiedClients.tsx](../../frontend/src/pages/public/PublicSatisfiedClients.tsx) i [frontend/src/pages/public/PublicServiceDetail.tsx](../../frontend/src/pages/public/PublicServiceDetail.tsx) rade bez izmjena čim backend vrati ispravan `hasMore`/`nextOffset`.
 
 **Provjera podataka**: prije zaključka pokrenuti kontrolni upit koliko unosa ima `status=COMPLETED` uz obje slike - ako je 0, problem je u tome što `addImage` blokira dodavanje slika na COMPLETED unos, pa su slike vezane za PENDING unose (rješava Faza 2).
 
@@ -158,7 +158,7 @@ Podjela modula radi limita veličine fajla:
 - `UpdateDailyLogEntryDto`: dodati `date?`, `stylistProfileId?`, `serviceIds?: string[]`, `clientId?: string | null`, `status?: 'PENDING' | 'COMPLETED'`.
 - Novi `delete-daily-log-entry.dto.ts`: `reason?: string`.
 
-**Endpointi** u [backend/src/daily-log/daily-log.controller.ts](backend/src/daily-log/daily-log.controller.ts) (svi ispod postojećeg `before-after` da ne kolidiraju s `:id`):
+**Endpointi** u [backend/src/daily-log/daily-log.controller.ts](../../backend/src/daily-log/daily-log.controller.ts) (svi ispod postojećeg `before-after` da ne kolidiraju s `:id`):
 - `PATCH /api/daily-log/:id` - prošireno; polja izvan `price/tip/notes` i promjena statusa dozvoljeni samo `SYSTEM_ADMIN`/`OWNER`.
 - `POST /api/daily-log/:id/revert` - COMPLETED u PENDING, admin only.
 - `DELETE /api/daily-log/:id` - soft delete; admin bilo koji unos (razlog obavezan), stilista samo vlastiti PENDING.
@@ -179,18 +179,18 @@ Podjela modula radi limita veličine fajla:
 ## Faza 3 - Filtriranje soft-deleted unosa
 
 Dodati `deletedAt: null` na svako produkcijsko čitanje `dailyLogEntry` (8 mjesta):
-- [backend/src/analytics/analytics.service.ts](backend/src/analytics/analytics.service.ts) linije 254 i 342
-- [backend/src/stylists/stylists.service.ts](backend/src/stylists/stylists.service.ts) linija 343
-- [backend/src/users/users.service.ts](backend/src/users/users.service.ts) linije 510 i 718
-- [backend/src/finance/income-books.service.ts](backend/src/finance/income-books.service.ts) linija 436
-- [backend/src/loyalty/loyalty.service.ts](backend/src/loyalty/loyalty.service.ts) linija 691
+- [backend/src/analytics/analytics.service.ts](../../backend/src/analytics/analytics.service.ts) linije 254 i 342
+- [backend/src/stylists/stylists.service.ts](../../backend/src/stylists/stylists.service.ts) linija 343
+- [backend/src/users/users.service.ts](../../backend/src/users/users.service.ts) linije 510 i 718
+- [backend/src/finance/income-books.service.ts](../../backend/src/finance/income-books.service.ts) linija 436
+- [backend/src/loyalty/loyalty.service.ts](../../backend/src/loyalty/loyalty.service.ts) linija 691
 - `daily-log.service.ts` - `findAll` (424), `findOne` (432), javni upit
 
 `findAll` dobija opcioni `includeDeleted` (samo admin) za web filter.
 
 ## Faza 4 - Web admin UI
 
-[frontend/src/pages/DailyLog.tsx](frontend/src/pages/DailyLog.tsx) ima 910 linija - obavezan split prije dodavanja funkcionalnosti:
+[frontend/src/pages/DailyLog.tsx](../../frontend/src/pages/DailyLog.tsx) ima 910 linija - obavezan split prije dodavanja funkcionalnosti:
 - `frontend/src/features/daily-log/use-daily-log.ts` - fetch, filteri, mutacije
 - `frontend/src/features/daily-log/entry-table.tsx` - lista + akcije po redu
 - `frontend/src/features/daily-log/entry-form-dialog.tsx` - create i edit forma
@@ -206,9 +206,9 @@ Funkcionalno:
 
 ## Faza 5 - Mobilna aplikacija
 
-- [mobile/src/screens/stylist/DailyLogNewEntryScreen.tsx](mobile/src/screens/stylist/DailyLogNewEntryScreen.tsx) (491 linija) - izdvojiti formu u `mobile/src/features/daily-log/entry-form.tsx` i dodati edit mod preko route parametra `entryId`. Bez polja za stilistu.
-- [mobile/src/screens/stylist/DailyLogDetailScreen.tsx](mobile/src/screens/stylist/DailyLogDetailScreen.tsx) - dodati "Uredi" i "Obriši" (Alert potvrda) vidljive samo dok je `status !== 'COMPLETED'`. Za COMPLETED prikazati info da izmjenu radi administrator.
-- [mobile/src/screens/stylist/DailyLogListScreen.tsx](mobile/src/screens/stylist/DailyLogListScreen.tsx) - refresh liste nakon brisanja.
+- [mobile/src/screens/stylist/DailyLogNewEntryScreen.tsx](../../mobile/src/screens/stylist/DailyLogNewEntryScreen.tsx) (491 linija) - izdvojiti formu u `mobile/src/features/daily-log/entry-form.tsx` i dodati edit mod preko route parametra `entryId`. Bez polja za stilistu.
+- [mobile/src/screens/stylist/DailyLogDetailScreen.tsx](../../mobile/src/screens/stylist/DailyLogDetailScreen.tsx) - dodati "Uredi" i "Obriši" (Alert potvrda) vidljive samo dok je `status !== 'COMPLETED'`. Za COMPLETED prikazati info da izmjenu radi administrator.
+- [mobile/src/screens/stylist/DailyLogListScreen.tsx](../../mobile/src/screens/stylist/DailyLogListScreen.tsx) - refresh liste nakon brisanja.
 - Transformacije na mobilnoj (`HomeScreen`, `SatisfiedClientsScreen`, `ServiceWorkGalleryScreen`) - samo provjeriti da koriste `hasMore`/`nextOffset` iz odgovora; ukloniti eventualne lokalne fallback slike po istom principu kao na webu.
 
 ## Faza 6 - Testovi i dokumentacija

@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "arena/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repo-checks:
+    name: Repository hygiene and static reports
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check repository hygiene
+        run: python scripts/check_repo_hygiene.py
+      - name: Check local Markdown links
+        run: python scripts/check_doc_links.py
+      - name: Report locale parity (baseline is not strict yet)
+        run: python scripts/check_i18n.py
+      - name: Report selected theme contrast (baseline is not strict yet)
+        run: python scripts/check_ui_contrast.py
+
+  backend:
+    name: Backend build and unit tests
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_PROVIDER: postgres
+      # Dummy, local-only URL: Prisma generation/schema validation do not connect to this database.
+      DATABASE_URL: postgresql://ci_user:ci_only_not_a_secret@127.0.0.1:5432/beauty_salon_ci?schema=public
+      JWT_SECRET: ci_only_not_a_secret_value_replace_in_real_environments
+      NODE_ENV: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install locked dependencies
+        working-directory: backend
+        run: npm ci --no-audit --no-fund
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npm run db:generate
+      - name: Validate Prisma schema
+        working-directory: backend
+        run: npm run db:validate
+      - name: Build backend
+        working-directory: backend
+        run: npm run build
+      - name: Run backend unit tests
+        working-directory: backend
+        run: npm test -- --runInBand
+
+  frontend:
+    name: Frontend typecheck and production build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install locked dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      - name: Build (includes TypeScript project check)
+        working-directory: frontend
+        run: npm run build
+
+  mobile:
+    name: Mobile TypeScript check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install locked dependencies
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+      - name: TypeScript check
+        working-directory: mobile
+        run: npm run typecheck

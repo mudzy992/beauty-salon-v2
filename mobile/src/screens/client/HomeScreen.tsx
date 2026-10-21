@@ -48,7 +48,7 @@ function resolveHeroImageUrl(value: string): string {
   return getImageUrl(v) || '';
 }
 
-function resolveBlogImageUrl(value?: string): string {
+function resolveBlogImageUrl(value?: string | null): string {
   if (!value?.trim()) return '';
   const v = value.trim();
   if (v.startsWith('http')) return v;
@@ -87,7 +87,7 @@ function getSettingValue(settings: PublicSetting[] | null | undefined, key: stri
   return item?.value?.trim() || fallback;
 }
 
-function formatBlogDate(value?: string): string {
+function formatBlogDate(value?: string | null): string {
   if (!value) return '';
   return new Date(value).toLocaleDateString('bs-BA', {
     day: 'numeric',
@@ -192,7 +192,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
       const [settingsRes, catRes, blogRes, debtsRes] = await Promise.all([
         fetchPublicSettings(),
         api.get<ServiceCategory[]>('/api/services/categories', { params: { activeOnly: true } }),
-        api.get<BlogPost[]>('/api/blog', { params: { published: true } }),
+        api.get<BlogPost[]>('/api/blog'),
         user
           ? api.get<Array<{ amount: number | string }>>('/api/client-debts/me').catch(() => null)
           : Promise.resolve(null),
@@ -708,7 +708,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     {post.title}
                   </Text>
                   <Text style={[styles.blogExcerpt, { color: colors.textSecondary }]} numberOfLines={2}>
-                    {getBlogExcerpt(post.content)}
+                    {getBlogExcerpt(post.excerpt ?? post.content ?? '')}
                   </Text>
                   <Text style={[styles.blogDate, { color: colors.textSecondary }]}>
                     {formatBlogDate(post.publishedAt)}

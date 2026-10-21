@@ -81,7 +81,7 @@ flowchart TD
 
 ### Šema
 
-[`DailyLogEntryServiceItem`](backend/prisma/schema.prisma) danas nema cijenu — dodati:
+[`DailyLogEntryServiceItem`](../../backend/prisma/schema.prisma) danas nema cijenu — dodati:
 
 ```prisma
 unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
@@ -95,11 +95,11 @@ Loyalty (ako aktivan): `chargeBase = max(0, sum(unitPrices) − loyaltyDiscount)
 
 ## Faza 1 — Pretraga klijenata (web)
 
-Web load: `GET /api/users/for-daily-log` umjesto `/api/users?pageSize=500` ([use-daily-log-data.ts](frontend/src/features/daily-log/use-daily-log-data.ts)).
+Web load: `GET /api/users/for-daily-log` umjesto `/api/users?pageSize=500` ([use-daily-log-data.ts](../../frontend/src/features/daily-log/use-daily-log-data.ts)).
 
 ## Faza 2 — UI + backend nove matrice
 
-**Web:** [entry-form-fields.tsx](frontend/src/features/daily-log/entry-form-fields.tsx), [use-daily-log-form.ts](frontend/src/features/daily-log/use-daily-log-form.ts)
+**Web:** [entry-form-fields.tsx](../../frontend/src/features/daily-log/entry-form-fields.tsx), [use-daily-log-form.ts](../../frontend/src/features/daily-log/use-daily-log-form.ts)
 
 - Lista odabranih servisa s number inputom cijene po redu.
 - Sažetak Za naplatu; Naplaćeno (sync default kad se mijenjaju cijene/servisi, dok korisnik nije ručno override-ao — flag `paidTouched`).
@@ -107,9 +107,9 @@ Web load: `GET /api/users/for-daily-log` umjesto `/api/users?pageSize=500` ([use
 - Preview napojnice kad paid &gt; chargeBase.
 - Ukloniti `DailyLogPartialDialog` / `partialOpen`.
 
-**Mobile:** [DailyLogNewEntryScreen.tsx](mobile/src/screens/stylist/DailyLogNewEntryScreen.tsx) — isti UX.
+**Mobile:** [DailyLogNewEntryScreen.tsx](../../mobile/src/screens/stylist/DailyLogNewEntryScreen.tsx) — isti UX.
 
-**Backend:** [daily-log.service.ts](backend/src/daily-log/daily-log.service.ts)
+**Backend:** [daily-log.service.ts](../../backend/src/daily-log/daily-log.service.ts)
 
 - Snimi `unitPrice` po itemu.
 - `chargeBase = sum(unitPrice) − loyalty`.
@@ -157,7 +157,7 @@ Ako `paid < sum(debts)` → greška “Nedovoljno za naplatu označenih dugova�
 
 ## Faza 6 — Matrica + testovi
 
-- [`.cursor/docs/matrices/client-debts/MATRIX.md`](.cursor/docs/matrices/client-debts/MATRIX.md): unitPrice, Za naplatu/Naplaćeno, tip, shortfall toggle, settle linije, KIF mapping, KUF N/A.
+- [`.cursor/docs/matrices/client-debts/MATRIX.md`](../docs/matrices/client-debts/MATRIX.md): unitPrice, Za naplatu/Naplaćeno, tip, shortfall toggle, settle linije, KIF mapping, KUF N/A.
 - Update daily-log MATRIX.
 - Testovi: edit farbanje 30→40; paid 60 tip 10; paid 40 + debt toggle; settle + services u jednoj formi; KIF amount excludes tip.
 

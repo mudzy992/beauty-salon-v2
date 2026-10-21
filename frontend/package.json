@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "vite --config vite.config.ts",
+    "build": "tsc -b && vite build --config vite.config.ts",
     "gen:favicons": "node ./scripts/generate-favicons.mjs",
-    "preview": "vite preview --port 10000",
+    "preview": "vite preview --port 10000 --config vite.config.ts",
     "lint": "eslint . --ext ts,tsx"
   },
   "dependencies": {

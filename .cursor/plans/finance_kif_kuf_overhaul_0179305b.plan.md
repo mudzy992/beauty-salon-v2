@@ -68,7 +68,7 @@ Analiza je pokrila `backend/src/finance/**`, `backend/src/daily-log/**` i `front
 
 ### 1.1 Dupli i orphan `ClientDebt` (najkritičnije)
 
-[backend/src/finance/income-books.service.ts](backend/src/finance/income-books.service.ts)
+[backend/src/finance/income-books.service.ts](../../backend/src/finance/income-books.service.ts)
 
 - `updateManualEntry` (linija 376-388) na **svaki** update sa `debtHandling: 'CREATE_DEBT'` radi `tx.clientDebt.create(...)`. Tri uzastopna save-a = tri OPEN duga za istu stavku.
 - Ako korisnik poveća `paidAmount` tako da `debtAmount === 0`, postojeći dug ostaje OPEN — nikad se ne zatvara.
@@ -81,8 +81,8 @@ Analiza je pokrila `backend/src/finance/**`, `backend/src/daily-log/**` i `front
 
 ### 1.2 Zaobilaženje zaključane knjige
 
-- `POST api/income-books/sync-from-daily-log/:id` → [income.controller.ts:80](backend/src/finance/income.controller.ts) poziva `addEntryFromDailyLog` koji **ne provjerava** `book.closedAt`. Upisuje u zaključanu knjigu.
-- `ClientDebtsService.repayDebt` → [client-debts.service.ts:163](backend/src/finance/client-debts.service.ts) koristi `getOrCreateForMonth` umjesto `assertBookOpenForDate`, pa kreira `IncomeBookManualEntry` u zaključanoj knjizi.
+- `POST api/income-books/sync-from-daily-log/:id` → [income.controller.ts:80](../../backend/src/finance/income.controller.ts) poziva `addEntryFromDailyLog` koji **ne provjerava** `book.closedAt`. Upisuje u zaključanu knjigu.
+- `ClientDebtsService.repayDebt` → [client-debts.service.ts:163](../../backend/src/finance/client-debts.service.ts) koristi `getOrCreateForMonth` umjesto `assertBookOpenForDate`, pa kreira `IncomeBookManualEntry` u zaključanoj knjizi.
 
 **Fix:** oba puta koriste `assertBookOpenForDate`; `addEntryFromDailyLog` dobija provjeru `book.closedAt`.
 
@@ -117,18 +117,18 @@ Pozivi na linijama 263, 391, 431, 477 u `income-books.service.ts` su **poslije**
 ## FAZA 2 — Validacije i integritet
 
 - **Obavezna polja predloška se ne validiraju.** `ExpensesService.create` učitava `category.template.fields` (linija 25-28) ali ih nikad ne koristi; ostaje mrtvi `if` na liniji 30-32. Dodati provjeru `isRequired` polja i da svaki `fieldValues[].fieldId` pripada predlošku te kategorije (trenutno se može poslati bilo koji `fieldId`).
-- **`POST api/expense-templates/:id/fields` nema DTO** ([expense-templates.controller.ts:44](backend/src/finance/expense-templates.controller.ts)) — `fieldType` je neograničen string. Dodati `CreateExpenseTemplateFieldDto` sa `@IsIn(['TEXT','NUMBER','CURRENCY','DATE','FILE'])`.
+- **`POST api/expense-templates/:id/fields` nema DTO** ([expense-templates.controller.ts:44](../../backend/src/finance/expense-templates.controller.ts)) — `fieldType` je neograničen string. Dodati `CreateExpenseTemplateFieldDto` sa `@IsIn(['TEXT','NUMBER','CURRENCY','DATE','FILE'])`.
 - **Nedostaje `@@index([bookId])` na `Expense`** — `findAll(bookId)` radi full scan. Migracija + index i na `ExpenseTemplateField.templateId`.
-- **`status as any`** u [client-debts.service.ts:84](backend/src/finance/client-debts.service.ts) → koristiti `ClientDebtStatus` enum.
+- **`status as any`** u [client-debts.service.ts:84](../../backend/src/finance/client-debts.service.ts) → koristiti `ClientDebtStatus` enum.
 - **Mrtav kod:** `tipAmount` u `CreateIncomeBookManualEntryDto` (servis ga nikad ne čita) i `create-client-debt.dto.ts` (nema endpointa) — obrisati.
-- **CRON bez zaštite:** [income-cron.service.ts](backend/src/finance/income-cron.service.ts) nema try/catch, ne piše `IncomeBookLockEvent` pri automatskom zaključavanju (rupa u auditu), i ne otvara `ExpenseBook`. Dodati try/catch + logger, `LOCK` event sa `reason: 'AUTO_CLOSE'`, i otvaranje KUF knjige.
+- **CRON bez zaštite:** [income-cron.service.ts](../../backend/src/finance/income-cron.service.ts) nema try/catch, ne piše `IncomeBookLockEvent` pri automatskom zaključavanju (rupa u auditu), i ne otvara `ExpenseBook`. Dodati try/catch + logger, `LOCK` event sa `reason: 'AUTO_CLOSE'`, i otvaranje KUF knjige.
 - **`settle` vs `repay` nekonzistentnost:** `settle` (linija 102-122) zatvara dug **bez** KIF stavke — to je otpis, ne naplata. Preimenovati semantiku u UI/API kao "otpis duga" i tražiti obavezan razlog.
 
 ---
 
 ## FAZA 3 — Backend struktura
 
-`income-books.service.ts` ima 515 linija (limit je 200). Prema [.cursor/rules/backend-architecture.mdc](.cursor/rules/backend-architecture.mdc) finance treba repository sloj.
+`income-books.service.ts` ima 515 linija (limit je 200). Prema [.cursor/rules/backend-architecture.mdc](../rules/backend-architecture.mdc) finance treba repository sloj.
 
 Podjela:
 - `finance/repositories/income-book.repository.ts` — Prisma upiti (`findOne` include blokovi, agregacije)
@@ -188,7 +188,7 @@ Ključne izmjene:
 - **Loading/empty/error**: skeleton redovi, prazna stanja sa CTA, error state sa retry
 - **A11y**: `aria-label` na akcijskim ikonama, focus trap u dijalozima, zamijeniti programske `input[type=file]` klikove pravim `<label htmlFor>`
 - **Panel integriteta**: prikaz rezultata `GET :id/integrity` u detalju knjige (COMPLETED zapisi bez KIF stavke) sa dugmetom za re-sync
-- **i18n**: `finance.*` ključevi u BS locale postoje ali se skoro ne koriste; EN je prazan stub. Prebaciti hardkodirane stringove (uklj. labele tabova u [finance-page.tsx:20-22](frontend/src/features/finance/finance-page.tsx)) na `t()` i popuniti EN
+- **i18n**: `finance.*` ključevi u BS locale postoje ali se skoro ne koriste; EN je prazan stub. Prebaciti hardkodirane stringove (uklj. labele tabova u [finance-page.tsx:20-22](../../frontend/src/features/finance/finance-page.tsx)) na `t()` i popuniti EN
 
 ---
 
@@ -197,4 +197,4 @@ Ključne izmjene:
 `.cursor/docs/matrices/` trenutno ima samo `daily-log/`. Kreirati:
 - `.cursor/docs/matrices/finance/MATRIX.md` — lifecycle knjige (open → lock → unlock), matrica dozvola po roli, pravila iznosa (`amount = actualPrice − tipAmount`), životni ciklus duga (OPEN → SETTLED / otpis), šta blokira zaključana knjiga
 - `.cursor/docs/matrices/finance/CHANGELOG.md`
-- Ažurirati [.cursor/rules/finance-system.mdc](.cursor/rules/finance-system.mdc) (13 linija, ne pominje lock/unlock, ručne stavke ni dugove) i [.cursor/skills/finance-operations/SKILL.md](.cursor/skills/finance-operations/SKILL.md)
+- Ažurirati [.cursor/rules/finance-system.mdc](../rules/finance-system.mdc) (13 linija, ne pominje lock/unlock, ručne stavke ni dugove) i [.cursor/skills/finance-operations/SKILL.md](../skills/finance-operations/SKILL.md)

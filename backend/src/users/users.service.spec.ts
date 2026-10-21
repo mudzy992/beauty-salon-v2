@@ -1,7 +1,11 @@
+jest.mock('../prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { UsersRepository } from './users.repository';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
@@ -9,6 +13,8 @@ jest.mock('bcrypt');
 const mockRepo = {
   user: {
     findUnique: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
     create: jest.fn(),
   },
   role: {
@@ -34,6 +40,30 @@ const mockRepo = {
   },
 };
 
+type ClientQuery = {
+  where: Record<string, unknown>;
+  select: Record<string, unknown>;
+  skip: number;
+  take: number;
+};
+
+const firstClientQuery = (mock: {
+  mock: { calls: ReadonlyArray<ReadonlyArray<unknown>> };
+}): ClientQuery => {
+  const query = mock.mock.calls[0]?.[0];
+  if (
+    typeof query !== 'object' ||
+    query === null ||
+    !('where' in query) ||
+    !('select' in query) ||
+    !('skip' in query) ||
+    !('take' in query)
+  ) {
+    throw new Error('Expected a paginated Prisma client query');
+  }
+  return query as ClientQuery;
+};
+
 describe('UsersService', () => {
   let service: UsersService;
 
@@ -48,6 +78,114 @@ describe('UsersService', () => {
     service = module.get<UsersService>(UsersService);
   });
 
+  it('client picker is paginated and returns only booking display fields', async () => {
+    const client = {
+      id: 'client-1',
+      username: 'client.one',
+      firstName: 'Client',
+      lastName: 'One',
+      gender: 'FEMALE',
+    };
+    mockRepo.user.count.mockResolvedValue(12);
+    mockRepo.user.findMany.mockResolvedValue([client]);
+
+    const result = await service.findClientPicker(
+      ['STYLIST'],
+      { page: 0, pageSize: 10 },
+      ' Client ',
+    );
+
+    expect(result).toEqual({ items: [client], page: 0, pageSize: 10 });
+    const query = firstClientQuery(mockRepo.user.findMany);
+    expect(query.skip).toBe(0);
+    expect(query.take).toBe(10);
+    expect(query.select).toEqual({
+      id: true,
+      username: true,
+      firstName: true,
+      lastName: true,
+      gender: true,
+    });
+    expect(query.select).not.toHaveProperty('passwordHash');
+    expect(query.select).not.toHaveProperty('emailVerificationToken');
+    expect(query.select).not.toHaveProperty('email');
+    expect(query.where).toMatchObject({
+      OR: [
+        { username: { contains: 'Client' } },
+        { firstName: { contains: 'Client' } },
+        { lastName: { contains: 'Client' } },
+      ],
+    });
+    expect(query.where.OR).toEqual([
+      { username: { contains: 'Client' } },
+      { firstName: { contains: 'Client' } },
+      { lastName: { contains: 'Client' } },
+    ]);
+  });
+
+  it('admin client list is role restricted and uses an allowlist', async () => {
+    await expect(service.findClientsForAdmin(['STYLIST'])).rejects.toThrow(
+      ForbiddenException,
+    );
+
+    const client = { id: 'client-1' };
+    mockRepo.user.count.mockResolvedValue(1);
+    mockRepo.user.findMany.mockResolvedValue([client]);
+    const result = await service.findClientsForAdmin(
+      ['OWNER'],
+      { page: 5, pageSize: 10 },
+      'client@example.com',
+    );
+
+    expect(result).toEqual({
+      items: [client],
+      total: 1,
+      page: 0,
+      pageSize: 10,
+    });
+    const query = firstClientQuery(mockRepo.user.findMany);
+    expect(query.skip).toBe(0);
+    expect(query.take).toBe(10);
+    expect(query.where).toMatchObject({
+      OR: [
+        { username: { contains: 'client@example.com' } },
+        { email: { contains: 'client@example.com' } },
+        { firstName: { contains: 'client@example.com' } },
+        { lastName: { contains: 'client@example.com' } },
+      ],
+    });
+    expect(query.where.OR).toEqual([
+      { username: { contains: 'client@example.com' } },
+      { email: { contains: 'client@example.com' } },
+      { firstName: { contains: 'client@example.com' } },
+      { lastName: { contains: 'client@example.com' } },
+    ]);
+    expect(query.select).toEqual({
+      id: true,
+      username: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      gender: true,
+      avatar: true,
+      isActive: true,
+      isEmailVerified: true,
+      createdAt: true,
+      userRoles: { select: { role: { select: { name: true } } } },
+    });
+    for (const privateField of [
+      'passwordHash',
+      'emailVerificationToken',
+      'emailVerificationExpiresAt',
+      'googleId',
+      'facebookId',
+      'mustChangePassword',
+    ]) {
+      expect(query.select).not.toHaveProperty(privateField);
+    }
+  });
+
   it('predlaže slobodan username kada je bazni zauzet', async () => {
     mockRepo.user.findUnique
       .mockResolvedValueOnce({ id: 'taken' })
@@ -55,7 +193,9 @@ describe('UsersService', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null);
 
-    const result = await service.getUsernameAvailability('ime.prezime', ['OWNER']);
+    const result = await service.getUsernameAvailability('ime.prezime', [
+      'OWNER',
+    ]);
     expect(result.available).toBe(false);
     expect(result.suggestions.length).toBeGreaterThan(0);
   });
@@ -146,7 +286,9 @@ describe('UsersService', () => {
         notes: null,
         status: 'COMPLETED',
         service: { id: 's1', name: 'Manicure', price: 20 },
-        stylistProfile: { user: { firstName: 'Ana', lastName: 'A', username: 'ana' } },
+        stylistProfile: {
+          user: { firstName: 'Ana', lastName: 'A', username: 'ana' },
+        },
       },
     ]);
     mockRepo.incomeBookManualEntry.findMany.mockResolvedValue([
@@ -158,7 +300,9 @@ describe('UsersService', () => {
         tipAmount: 5,
         notes: 'ručno kroz knjigu',
         service: { id: 's2', name: 'Pedicure', price: 50 },
-        stylistProfile: { user: { firstName: 'Ena', lastName: 'E', username: 'ena' } },
+        stylistProfile: {
+          user: { firstName: 'Ena', lastName: 'E', username: 'ena' },
+        },
       },
     ]);
 

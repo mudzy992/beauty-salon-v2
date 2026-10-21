@@ -14,6 +14,15 @@ export default defineConfig({
         target: 'http://localhost:10001',
         changeOrigin: true,
       },
+      '/socket.io': {
+        target: 'http://localhost:10001',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/uploads': {
+        target: 'http://localhost:10001',
+        changeOrigin: true,
+      },
     },
   },
 });

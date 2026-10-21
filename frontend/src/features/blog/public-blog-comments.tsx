@@ -8,7 +8,7 @@ type Comment = {
   id: string
   content: string
   createdAt: string
-  user: { id: string; firstName: string; lastName: string }
+  user: { firstName: string; lastName: string }
 }
 
 type Props = {

@@ -59,7 +59,7 @@ U praksi: ako stilist prihvati/odbije ili se desi auto-otkaz zbog attendance dea
 ### 4.2 “Klijent kaže da nije dobio push”
 
 **Bitno ograničenje**:
-- Expo Go na Androidu ne podržava remote push u SDK55 kontekstu; test mora biti kroz dev build/production build.
+- push zavisi od Expo projekta, build profila, permisija i provider runtime-a; za dijagnostiku koristite konfigurisan development/production build i sintetički nalog. Eksterna isporuka nije potvrđena ovim vodičem.
 
 **ADMIN checklist**:
 - da li je u mobile build-u uključen `EXPO_PUBLIC_PUSH_ENABLED=true`
@@ -97,7 +97,7 @@ Najvažnije kategorije (zavisno od implementacije u Settings):
 - radno vrijeme salona i pauza između servisa (utiče na slotove i delay warning prag)
 - praznici (disabled datumi)
 - maintenance mode (blokiranje public UI-ja)
-- push/email konfiguracija (push radi kroz Expo; email je stub ako SMTP nije kompletno spojen)
+- push/email konfiguracija (kod koristi Expo push API i Nodemailer/SMTP; stvarna isporuka zahtijeva ispravnu runtime konfiguraciju i nije potvrđena ovim auditom)
 
 ## 6) Brzi troubleshooting (najčešće greške)
 

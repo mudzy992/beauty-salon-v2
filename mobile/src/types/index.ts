@@ -234,12 +234,12 @@ export interface BlogPost {
   title: string;
   slug: string;
   excerpt?: string | null;
-  content: string;
-  heroImage?: string;
+  content?: string;
+  heroImage?: string | null;
   isPublished: boolean;
-  publishedAt?: string;
-  createdAt: string;
-  author?: User;
+  publishedAt?: string | null;
+  createdAt?: string;
+  author?: { firstName: string; lastName: string };
 }
 
 export interface Review {

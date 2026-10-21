@@ -15,6 +15,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { RemoveStylistRoleDto } from './dto/remove-stylist-role.dto';
+import { ClientListQueryDto } from './dto/client-list-query.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -40,23 +41,24 @@ export class UsersController {
     return this.usersService.findStylists(user.roles);
   }
 
+  @Get('clients/admin')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findClientsForAdmin(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: ClientListQueryDto,
+  ) {
+    return this.usersService.findClientsForAdmin(user.roles, query, query.q);
+  }
+
   @Get('clients')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER', 'STYLIST')
   findClients(
     @CurrentUser() user: CurrentUserPayload,
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-    @Query('q') q?: string,
+    @Query() query: ClientListQueryDto,
   ) {
-    return this.usersService.findStrictClients(
-      user.roles,
-      {
-        page: page != null ? parseInt(page, 10) : undefined,
-        pageSize: pageSize != null ? parseInt(pageSize, 10) : undefined,
-      },
-      q,
-    );
+    return this.usersService.findClientPicker(user.roles, query, query.q);
   }
 
   @Get()

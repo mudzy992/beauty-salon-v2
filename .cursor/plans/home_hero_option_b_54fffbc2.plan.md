@@ -17,7 +17,7 @@ isProject: false
 # Home hero — opcija B
 
 ## Cilj
-Hero u [`mobile/src/screens/client/HomeScreen.tsx`](mobile/src/screens/client/HomeScreen.tsx) ostaje: **fotka + dobrodošlica + slogan + CTA**. Logo se samo uklanja iz hero-a (ne ide u tab bar). Chipovi servisa/klijenata se uklanjaju.
+Hero u [`mobile/src/screens/client/HomeScreen.tsx`](../../mobile/src/screens/client/HomeScreen.tsx) ostaje: **fotka + dobrodošlica + slogan + CTA**. Logo se samo uklanja iz hero-a (ne ide u tab bar). Chipovi servisa/klijenata se uklanjaju.
 
 ## Layout (hero overlay)
 
@@ -44,8 +44,8 @@ Hero u [`mobile/src/screens/client/HomeScreen.tsx`](mobile/src/screens/client/Ho
 **Stilovi:** zadržati `heroSubtitle` / `welcome` / `heroCta`. Može se malo smanjiti vizuelni šum (welcome iznad slogana, slogan kao glavni tekst ~15–18px). `HERO_HEIGHT` ostaje ~300 osim ako overlay postane prazan — tada blago smanjiti (npr. 260) da fotka ne bude prazan zid.
 
 ## Ostalo
-- Tab bar ([`BottomNavMenu.tsx`](mobile/src/navigation/BottomNavMenu.tsx)) bez izmjena.
-- Draft napomena u [`mobile/RELEASE_NOTES.draft.md`](mobile/RELEASE_NOTES.draft.md): jedan BS bullet da je početni ekran čišći (bez loga i brojeva u hero-u). Verziju u `app.config.js` **ne bumpati** (nema APK build zahtjeva).
+- Tab bar ([`BottomNavMenu.tsx`](../../mobile/src/navigation/BottomNavMenu.tsx)) bez izmjena.
+- Draft napomena u [`mobile/RELEASE_NOTES.draft.md`](../../mobile/RELEASE_NOTES.draft.md): jedan BS bullet da je početni ekran čišći (bez loga i brojeva u hero-u). Verziju u `app.config.js` **ne bumpati** (nema APK build zahtjeva).
 
 ## Van opsega
 - Backend, public settings ključevi za logo/title, web home.

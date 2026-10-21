@@ -10,6 +10,34 @@ import { optionalSeoFields, slugSource } from './utils/blog-post-data';
 import { emptyToNull } from '../common/utils/empty-to-null';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 
+const PUBLIC_BLOG_LIST_SELECT = {
+  id: true,
+  title: true,
+  slug: true,
+  excerpt: true,
+  heroImage: true,
+  isPublished: true,
+  publishedAt: true,
+  createdAt: true,
+} as const;
+
+const PUBLIC_BLOG_DETAIL_SELECT = {
+  id: true,
+  title: true,
+  slug: true,
+  excerpt: true,
+  content: true,
+  heroImage: true,
+  ogImage: true,
+  seoTitle: true,
+  seoDescription: true,
+  noIndex: true,
+  isPublished: true,
+  publishedAt: true,
+  updatedAt: true,
+  author: { select: { firstName: true, lastName: true } },
+} as const;
+
 @Injectable()
 export class BlogService {
   constructor(private readonly prisma: PrismaService) {}
@@ -34,9 +62,16 @@ export class BlogService {
     });
   }
 
-  async findAll(publishedOnly = false) {
+  findAllPublic() {
+    return this.prisma.blogPost.findMany({
+      where: { isPublished: true },
+      select: PUBLIC_BLOG_LIST_SELECT,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findAllForAdmin() {
     const posts = await this.prisma.blogPost.findMany({
-      where: publishedOnly ? { isPublished: true } : undefined,
       include: {
         author: { select: { id: true, firstName: true, lastName: true } },
         _count: { select: { comments: true } },
@@ -46,13 +81,12 @@ export class BlogService {
 
     const pendingByPost = await this.prisma.blogComment.groupBy({
       by: ['postId'],
-      where: {
-        isApproved: false,
-        ...(publishedOnly ? { post: { isPublished: true } } : {}),
-      },
+      where: { isApproved: false },
       _count: { _all: true },
     });
-    const pendingMap = new Map(pendingByPost.map((x) => [x.postId, x._count._all]));
+    const pendingMap = new Map(
+      pendingByPost.map((x) => [x.postId, x._count._all]),
+    );
 
     return posts.map((p) => {
       const total = p._count?.comments ?? 0;
@@ -85,16 +119,7 @@ export class BlogService {
   async findBySlug(slug: string) {
     const post = await this.prisma.blogPost.findUnique({
       where: { slug, isPublished: true },
-      include: {
-        author: { select: { id: true, firstName: true, lastName: true } },
-        comments: {
-          where: { isApproved: true },
-          include: {
-            user: { select: { id: true, firstName: true, lastName: true } },
-          },
-          orderBy: { createdAt: 'asc' },
-        },
-      },
+      select: PUBLIC_BLOG_DETAIL_SELECT,
     });
     if (!post) throw new NotFoundException('Članak nije pronađen.');
     return post;
@@ -123,9 +148,13 @@ export class BlogService {
         ...(dto.title != null && { title: dto.title }),
         ...(dto.content !== undefined && { content: dto.content }),
         ...(dto.excerpt !== undefined && { excerpt: emptyToNull(dto.excerpt) }),
-        ...(dto.heroImage !== undefined && { heroImage: emptyToNull(dto.heroImage) }),
+        ...(dto.heroImage !== undefined && {
+          heroImage: emptyToNull(dto.heroImage),
+        }),
         ...(dto.ogImage !== undefined && { ogImage: emptyToNull(dto.ogImage) }),
-        ...(dto.seoTitle !== undefined && { seoTitle: emptyToNull(dto.seoTitle) }),
+        ...(dto.seoTitle !== undefined && {
+          seoTitle: emptyToNull(dto.seoTitle),
+        }),
         ...(dto.seoDescription !== undefined && {
           seoDescription: emptyToNull(dto.seoDescription),
         }),

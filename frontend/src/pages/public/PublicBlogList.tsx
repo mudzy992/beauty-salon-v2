@@ -42,7 +42,7 @@ export default function PublicBlogList() {
 
   useEffect(() => {
     api
-      .get<BlogPost[]>('/api/blog', { params: { published: 'true' } })
+      .get<BlogPost[]>('/api/blog')
       .then((r) => setPosts(Array.isArray(r.data) ? r.data : []))
       .catch(() => setPosts([]))
       .finally(() => setLoading(false));

@@ -13,6 +13,29 @@ import { RemoveStylistRoleDto } from './dto/remove-stylist-role.dto';
 import { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { UsersRepository } from './users.repository';
 
+const CLIENT_PICKER_SELECT = {
+  id: true,
+  username: true,
+  firstName: true,
+  lastName: true,
+  gender: true,
+} as const;
+
+const ADMIN_CLIENT_SELECT = {
+  id: true,
+  username: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  gender: true,
+  avatar: true,
+  isActive: true,
+  isEmailVerified: true,
+  createdAt: true,
+  userRoles: { select: { role: { select: { name: true } } } },
+} as const;
+
 @Injectable()
 export class UsersService {
   private static readonly DEFAULT_INITIAL_PASSWORD = 'Init2026!';
@@ -108,7 +131,7 @@ export class UsersService {
     });
   }
 
-  async findStrictClients(
+  async findClientPicker(
     roles: string[],
     pagination?: { page?: number; pageSize?: number },
     q?: string,
@@ -116,8 +139,45 @@ export class UsersService {
     if (!this.isAdminOrOwner(roles) && !roles.includes('STYLIST')) {
       throw new ForbiddenException('Nemate dozvolu.');
     }
+    const where = this.strictClientWhere(q);
+    const { requestedPage, pageSize } =
+      this.normalizeClientPagination(pagination);
+    const total = await this.repo.user.count({ where });
+    const page = this.pageWithinResults(requestedPage, pageSize, total);
+    const items = await this.repo.user.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: CLIENT_PICKER_SELECT,
+      skip: page * pageSize,
+      take: pageSize,
+    });
+    return { items, page, pageSize };
+  }
+
+  async findClientsForAdmin(
+    roles: string[],
+    pagination?: { page?: number; pageSize?: number },
+    q?: string,
+  ) {
+    this.requireAdminOrOwner(roles);
+    const where = this.strictClientWhere(q, true);
+    const { requestedPage, pageSize } =
+      this.normalizeClientPagination(pagination);
+    const total = await this.repo.user.count({ where });
+    const page = this.pageWithinResults(requestedPage, pageSize, total);
+    const items = await this.repo.user.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: ADMIN_CLIENT_SELECT,
+      skip: page * pageSize,
+      take: pageSize,
+    });
+    return { items, total, page, pageSize };
+  }
+
+  private strictClientWhere(q?: string, includeEmail = false) {
     const trimmed = (q ?? '').trim();
-    const where = {
+    return {
       userRoles: {
         some: { role: { name: 'CLIENT' } },
         none: { role: { name: { in: ['SYSTEM_ADMIN', 'STYLIST', 'OWNER'] } } },
@@ -126,41 +186,41 @@ export class UsersService {
         ? {
             OR: [
               { username: { contains: trimmed } },
-              { email: { contains: trimmed } },
+              ...(includeEmail ? [{ email: { contains: trimmed } }] : []),
               { firstName: { contains: trimmed } },
               { lastName: { contains: trimmed } },
             ],
           }
         : {}),
     };
-    const hasPagination =
-      pagination?.page != null && pagination?.pageSize != null;
-    if (!hasPagination) {
-      return this.repo.user.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          userRoles: { include: { role: true } },
-          stylistProfile: true,
-        },
-      });
-    }
-    const page = Math.max(0, pagination?.page ?? 0);
-    const pageSize = Math.min(100, Math.max(1, pagination?.pageSize ?? 10));
-    const [items, total] = await Promise.all([
-      this.repo.user.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          userRoles: { include: { role: true } },
-          stylistProfile: true,
-        },
-        skip: page * pageSize,
-        take: pageSize,
-      }),
-      this.repo.user.count({ where }),
-    ]);
-    return { items, total, page, pageSize };
+  }
+
+  private normalizeClientPagination(pagination?: {
+    page?: number;
+    pageSize?: number;
+  }) {
+    const requestedPage =
+      typeof pagination?.page === 'number' &&
+      Number.isSafeInteger(pagination.page) &&
+      pagination.page >= 0
+        ? Math.min(pagination.page, 100_000)
+        : 0;
+    const pageSize =
+      typeof pagination?.pageSize === 'number' &&
+      Number.isSafeInteger(pagination.pageSize) &&
+      pagination.pageSize > 0
+        ? Math.min(pagination.pageSize, 100)
+        : 20;
+    return { requestedPage, pageSize };
+  }
+
+  private pageWithinResults(
+    requestedPage: number,
+    pageSize: number,
+    total: number,
+  ) {
+    const lastPage = Math.max(0, Math.ceil(total / pageSize) - 1);
+    return Math.min(requestedPage, lastPage);
   }
 
   async findOne(id: string, currentUser: CurrentUserPayload) {

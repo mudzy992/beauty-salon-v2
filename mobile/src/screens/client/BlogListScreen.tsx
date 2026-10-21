@@ -28,7 +28,7 @@ export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
 
   const fetchPosts = useCallback(async () => {
     try {
-      const { data } = await api.get<BlogPost[]>('/api/blog', { params: { published: true } });
+      const { data } = await api.get<BlogPost[]>('/api/blog');
       setPosts(data);
     } catch { /* silent */ }
     setLoading(false);

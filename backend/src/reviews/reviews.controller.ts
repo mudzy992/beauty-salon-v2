@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
@@ -15,7 +16,6 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { UseGuards } from '@nestjs/common';
 
 @Controller('api/reviews')
 export class ReviewsController {
@@ -40,17 +40,26 @@ export class ReviewsController {
   findAll(
     @Query('serviceId') serviceId: string,
     @Query('stylistProfileId') stylistProfileId: string,
+  ) {
+    return this.reviews.findAllPublic({ serviceId, stylistProfileId });
+  }
+
+  @Get('admin')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findAllForAdmin(
+    @Query('serviceId') serviceId: string,
+    @Query('stylistProfileId') stylistProfileId: string,
     @Query('approved') approved: string,
   ) {
-    return this.reviews.findAll({
+    return this.reviews.findAllForAdmin({
       serviceId,
       stylistProfileId,
-      approvedOnly: approved === 'true',
+      approved,
     });
   }
 
   @Get(':id')
-  @Public()
   findOne(@Param('id') id: string) {
     return this.reviews.findOne(id);
   }

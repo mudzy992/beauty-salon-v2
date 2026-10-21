@@ -29,7 +29,7 @@ type BlogComment = {
   id: string;
   content: string;
   createdAt: string;
-  user: { id: string; firstName: string; lastName: string };
+  user: { firstName: string; lastName: string };
 };
 
 function getSettingValue(
@@ -83,9 +83,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
     (async () => {
       setCommentsLoading(true);
       try {
-        const { data } = await api.get<BlogComment[]>(`/api/blog/${post.id}/comments`, {
-          params: { approved: true },
-        });
+        const { data } = await api.get<BlogComment[]>(`/api/blog/${post.id}/comments`);
         setComments(Array.isArray(data) ? data : []);
       } catch {
         setComments([]);
@@ -119,9 +117,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
   const reloadApprovedComments = async (postId: string) => {
     setCommentsLoading(true);
     try {
-      const { data } = await api.get<BlogComment[]>(`/api/blog/${postId}/comments`, {
-        params: { approved: true },
-      });
+      const { data } = await api.get<BlogComment[]>(`/api/blog/${postId}/comments`);
       setComments(Array.isArray(data) ? data : []);
     } catch {
       setComments([]);
@@ -200,7 +196,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
         </Text>
 
         <Text style={[styles.contentText, { color: colors.text }]} selectable>
-          {post.content.replace(/<[^>]+>/g, '')}
+          {(post.content ?? '').replace(/<[^>]+>/g, '')}
         </Text>
 
         <View style={[styles.divider, { backgroundColor: colors.border }]} />

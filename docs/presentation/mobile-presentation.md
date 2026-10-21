@@ -1,10 +1,10 @@
-# Mobile prezentacija (Expo SDK 55) — workflow rezervacije
+# Mobile prezentacija (Expo SDK 57) — workflow rezervacije
 
-Ovaj dokument opisuje **jedan kompletan workflow rezervacije** iz ugla mobilne aplikacije: **Client app** i **Stylist app**, uključujući notifikacije (Expo) i tipične edge-case scenarije.
+Ovaj dokument je walkthrough za prezentaciju, ne runtime test ni formalni API ugovor. Kod i audit dokumenti imaju prednost; device/push ponašanje nije ovdje runtime-verified.
 
 - Referenca (mapa koda): [docs/codebase-map/MOBILE.md](../codebase-map/MOBILE.md)
-- Autoritativni sažetak sistema: [SOURCE_OF_TRUTH.md](../../SOURCE_OF_TRUTH.md)
-- Push ograničenja (SDK55): `.cursor/docs/10_phase10_notifications.md`
+- Aktuelni sažetak: [SOURCE_OF_TRUTH.md](../../SOURCE_OF_TRUTH.md)
+- Arhitektura, findings i test scope: [docs/audit/ARCHITECTURE.md](../audit/ARCHITECTURE.md), [docs/audit/FINDINGS.md](../audit/FINDINGS.md), [docs/audit/TEST_WORKFLOW.md](../audit/TEST_WORKFLOW.md)
 
 ## 1) Dvije aplikacije u jednoj: Client vs Stylist mode
 
@@ -95,7 +95,7 @@ Implementacija: `mobile/src/screens/stylist/StylistReservationDetailScreen.tsx`
 **Reschedule/Reorder**:
 - ekran ima modal/unos za `reorder` (target start/end time) i preview tokove za reschedule zbog overruna ili manual shift-a (povezano sa backend reschedule API-jima).
 
-## 4) Push notifikacije (SDK55) — šta radi, šta ne radi
+## 4) Push notifikacije (Expo SDK 57) — kod-level behavior
 
 Implementacija: `mobile/src/hooks/usePushNotifications.real.ts` + wrapper `usePushNotifications.ts`
 
@@ -107,5 +107,5 @@ Implementacija: `mobile/src/hooks/usePushNotifications.real.ts` + wrapper `usePu
   - `reservation_reschedule|reservation_reorder|delay_warning` vodi korisnika na `/reservations` i fokusira odgovarajuću rezervaciju ako `reservationId` postoji
 
 **Ograničenje (bitno za prezentaciju)**:
-- remote push u Expo Go na Androidu ne radi od novijih SDK verzija; testiranje zahtijeva **development build** ili produkcijski build (vidi `.cursor/docs/10_phase10_notifications.md`).
+- Push zavisi od Expo projekta, build profila, uređaja i runtime permissions. Test delivery samo u konfigurisanom development/production build-u i sa sintetičkim nalogom; ova isporuka nije provjerena u auditu.
 

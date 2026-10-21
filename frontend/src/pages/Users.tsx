@@ -231,7 +231,7 @@ export default function Users() {
     Promise.all([
       api.get<UserRow[]>('/api/users/system-admins'),
       api.get<UserRow[]>('/api/users/stylists'),
-      api.get<PaginatedResponse<UserRow>>('/api/users/clients', {
+      api.get<PaginatedResponse<UserRow>>('/api/users/clients/admin', {
         params: { page, pageSize, q: debouncedClientsSearch.trim() || undefined },
       }),
     ])

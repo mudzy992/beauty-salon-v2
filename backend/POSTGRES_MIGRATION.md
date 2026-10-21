@@ -1,94 +1,58 @@
-# MySQL → PostgreSQL migracija
+# PostgreSQL schema and migration operations
 
-Repo je pripremljen za PostgreSQL. **Podaci nisu migrirani ovim repozitorijem.**
+**Current status from repository code (2026-10-21):** the active Prisma datasource/runtime adapter are PostgreSQL (`@prisma/adapter-pg`), and `PrismaService` rejects a non-PostgreSQL provider. Active migrations exist at `prisma/migrations/20260822100257_postgresql_baseline/` and `prisma/migrations/20260915085100_blog_post_seo/`. Historical MySQL SQL is retained at `prisma/migrations_mysql_backup/` and is not an input to the active PostgreSQL migrator.
 
-## Šta je promijenjeno
+This document describes repository commands and safe preconditions. It does **not** establish production database state, data migration history, backup health or permission to run commands against a live system.
 
-- Prisma datasource je prebačen sa MySQL na PostgreSQL.
-- `@db.LongText` je zamijenjen PostgreSQL-kompatibilnim `@db.Text`.
-- Prisma runtime koristi `@prisma/adapter-pg`.
-- MySQL adapter i `mariadb` dependency ostaju u projektu kao backup/migration tooling.
-- Stare MySQL Prisma migracije su sačuvane u `prisma/migrations_mysql_backup/` i više se ne izvršavaju automatski.
-- PostgreSQL `prisma/migrations/` je namjerno pripremljen bez migracije: prvu PostgreSQL migraciju treba generisati nad čistom PostgreSQL bazom.
-- Docker više ne sadrži hardkodovane MySQL kredencijale.
+## Configure an isolated database
 
-## Prije prve PostgreSQL migracije
-
-1. Napraviti PostgreSQL bazu, npr. `beauty_salon_v2`.
-2. U `backend/.env` postaviti: `DATABASE_PROVIDER=postgres` i ispravan `DATABASE_URL`.
-3. Sačuvati MySQL backup i provjeriti da je izvorna baza dostupna prije bilo kakve migracije podataka.
-4. U `backend/` instalirati dependencies. Pošto su dodani PostgreSQL driver i adapter, prvi `npm install` treba osvježiti `package-lock.json`.
+1. Install a supported PostgreSQL instance/schema dedicated to local development or tests; do not use production.
+2. Copy `.env.example` to an ignored `.env` and set `DATABASE_PROVIDER=postgres`, a PostgreSQL `DATABASE_URL`, and a unique local JWT secret.
+3. Do not paste credentials into tracked files, command history, tickets or CI logs.
+4. Install from the lockfile and check the current schema:
 
 ```bash
-npm install
+npm ci --no-audit --no-fund
+npm run db:validate
+npm run db:generate
+npm run db:migrate:status
 ```
 
-Nakon toga commitovati ažurirani `package-lock.json`. Tek nakon tog commita koristiti `npm ci` u CI/produkciji.
+Prisma 7 loads the datasource URL through `prisma.config.ts`. Generation/schema validation should not connect to the configured database, but migration status does.
 
-5. Provjeriti Prisma šemu:
+## Applying reviewed migrations
+
+For an existing schema in a deliberately selected disposable/local DB:
 
 ```bash
-npx prisma validate
-npx prisma format
-npx prisma generate
+npm run db:migrate:deploy
 ```
 
-## Kreiranje prve PostgreSQL migracije
-
-Na **praznoj PostgreSQL bazi** pokrenuti:
+For a new schema change during development, use a disposable PostgreSQL database and the configured development workflow:
 
 ```bash
-npx prisma migrate dev --name postgresql_baseline
+npm run db:migrate:dev -- --name descriptive_change
 ```
 
-Ova komanda treba da kreira novu migraciju u `prisma/migrations/` i primijeni je na bazu. Nakon toga obavezno pregledati generisani `migration.sql` prije commita.
+Review the generated migration SQL, constraints, data impact, lock duration and rollback/recovery path before committing or scheduling deployment. Never use `migrate dev` against production. Do not regenerate or replace the checked-in PostgreSQL baseline to address a validation failure; investigate the failed check and preserve migration history.
 
-Provjera statusa:
+The baseline and later migrations have not been proven against a fresh PostgreSQL server in this audit environment. Add that to the isolated integration/CI workflow before claiming fresh-database reproducibility. CI's current dummy URL is for client generation/schema validation only and does not create a database connection.
 
-```bash
-npx prisma migrate status
-```
+## Seed and runtime
 
-Seed osnovnih roleova:
+`npm run db:seed` writes data. Run it only against an explicitly identified local/test database after reviewing `prisma/seed.ts`. `npm run db:init` runs migration deploy followed by seed and therefore is also mutating. The production Docker entrypoint runs `prisma migrate deploy` before the server process; a deployment should have an approved backup/restore and migration ownership procedure before using that image.
 
-```bash
-npx prisma db seed
-```
+## MySQL archive and data-history caveat
 
-## Bitno: migracija podataka nije dio ovog koraka
+`prisma/migrations_mysql_backup/` is present in the repository as a historical SQL archive. It is separate from active `prisma/migrations/`; do not move/copy its SQL into the active directory or run it with the PostgreSQL migrator.
 
-Nakon što schema migracija prođe, tek onda raditi MySQL → PostgreSQL data migration. Preporuka je:
+The existence of PostgreSQL schema migrations does not establish whether customer/business rows were migrated from MySQL, when production switched databases, whether IDs/financial totals were reconciled, or whether a rollback source exists. Those facts require owner/runbook evidence and non-production reconciliation. No production DB was queried or modified for this audit.
 
-1. MySQL ostaje read-only/source-of-truth tokom migracije.
-2. Migrirati tabele uz očuvanje postojećih UUID vrijednosti.
-3. Posebno validirati `Date`, `DateTime`, `Decimal`, `Boolean`, `Json`, enum vrijednosti i foreign keys.
-4. Nakon migracije uporediti broj redova po tabelama i ključne finansijske agregate.
-5. Tek nakon uspješne validacije pustiti aplikaciju na PostgreSQL.
+## Operational/secret handling
 
-## Produkcijski deployment
+- `DATABASE_URL` is supplied at runtime and must not be baked into Docker build args or image `ENV`.
+- The backend Docker build uses a dummy, non-routable generate-only URL for Prisma Client generation; it is not a database credential and is not used at runtime.
+- Keep local `.env` ignored. Historical credential material was removed from the current Git index, but Git history was not rewritten; coordinate credential revocation/rotation with the owning administrator.
+- Do not rotate `APP_SETTINGS_ENCRYPTION_KEY` without a controlled dual-key/re-encryption plan and tested recovery.
 
-Na produkciji se **ne koristi** `prisma migrate dev`. Nakon što je `postgresql_baseline` generisan i committovan, koristiti:
-
-```bash
-npm install
-npx prisma generate
-npx prisma migrate deploy
-npm run build
-npm run start:prod
-```
-
-Docker entrypoint već izvršava `prisma migrate deploy` prije pokretanja aplikacije.
-
-## MySQL backup
-
-Stara Prisma istorija je sačuvana u:
-
-```text
-prisma/migrations_mysql_backup/
-```
-
-Stara konekcija može se držati u `.env` kao komentarisani `MYSQL_DATABASE_URL`. Nemoj koristiti MySQL `migration.sql` fajlove kroz PostgreSQL Prisma migrator.
-
-## Sigurnost
-
-Ako su raniji MySQL credentials, JWT secret ili drugi production secrets ikada commitovani u Git, treba ih rotirati. `.env` mora ostati van Git repozitorija.
+See [`docs/audit/TEST_WORKFLOW.md`](../docs/audit/TEST_WORKFLOW.md) for safe integration tests and [`docs/audit/IMPLEMENTATION_PLAN.md`](../docs/audit/IMPLEMENTATION_PLAN.md) for migration/idempotency phases.

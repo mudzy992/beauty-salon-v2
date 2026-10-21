@@ -1,3 +1,7 @@
+jest.mock('../prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadRequestException,
@@ -13,11 +17,36 @@ const mockPrisma = {
   reservation: { findUnique: jest.fn() },
   review: {
     findFirst: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
     create: jest.fn(),
     findUnique: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
   },
+};
+
+type ReviewQuery = {
+  where: Record<string, unknown>;
+  select: {
+    [field: string]: unknown;
+    user: { select: Record<string, unknown> };
+  };
+};
+
+const firstReviewQuery = (mock: {
+  mock: { calls: ReadonlyArray<ReadonlyArray<unknown>> };
+}): ReviewQuery => {
+  const query = mock.mock.calls[0]?.[0];
+  if (
+    typeof query !== 'object' ||
+    query === null ||
+    !('where' in query) ||
+    !('select' in query)
+  ) {
+    throw new Error('Expected a Prisma review query');
+  }
+  return query as ReviewQuery;
 };
 
 describe('ReviewsService', () => {
@@ -64,13 +93,76 @@ describe('ReviewsService', () => {
       email: 'e@e.com',
       roles: ['CLIENT'],
     };
-    await expect(service.approve('rev-1', user as any)).rejects.toThrow(
+    await expect(service.approve('rev-1', user)).rejects.toThrow(
       ForbiddenException,
     );
   });
 
-  it('findOne baca NotFoundException kada recenzija ne postoji', async () => {
-    mockPrisma.review.findUnique.mockResolvedValue(null);
-    await expect(service.findOne('nope')).rejects.toThrow(NotFoundException);
+  it('findOne hides unapproved reviews and selects only public display fields', async () => {
+    mockPrisma.review.findFirst.mockResolvedValue(null);
+    await expect(service.findOne('rev-1')).rejects.toThrow(NotFoundException);
+
+    const query = firstReviewQuery(mockPrisma.review.findFirst);
+    expect(query.where).toEqual({ id: 'rev-1', isApproved: true });
+    expect(query.select.user.select).toEqual({
+      firstName: true,
+      lastName: true,
+    });
+    expect(query.select.user.select).not.toHaveProperty('passwordHash');
+    expect(query.select.user.select).not.toHaveProperty(
+      'emailVerificationToken',
+    );
+    expect(query.select.user.select).not.toHaveProperty('email');
+    expect(query.select).not.toHaveProperty('userId');
+    expect(query.select).not.toHaveProperty('reservationId');
+  });
+
+  it('featured review uses the same approved display projection', async () => {
+    mockPrisma.review.count.mockResolvedValue(1);
+    mockPrisma.review.findMany.mockResolvedValue([{ id: 'rev-1' }]);
+
+    await service.findOneRandomApproved();
+
+    const query = firstReviewQuery(mockPrisma.review.findMany);
+    expect(query.where).toEqual({ isApproved: true });
+    expect(query.select).not.toHaveProperty('userId');
+    expect(query.select).not.toHaveProperty('reservationId');
+    expect(query.select.user.select).not.toHaveProperty('passwordHash');
+  });
+
+  it('public list always filters to approved reviews', async () => {
+    mockPrisma.review.findMany.mockResolvedValue([]);
+
+    await service.findAllPublic({
+      serviceId: 'service-1',
+      stylistProfileId: 'stylist-1',
+    });
+
+    const query = firstReviewQuery(mockPrisma.review.findMany);
+    expect(query.where).toEqual({
+      isApproved: true,
+      serviceId: 'service-1',
+      stylistProfileId: 'stylist-1',
+    });
+    expect(query.select.user.select).toEqual({
+      firstName: true,
+      lastName: true,
+    });
+    expect(query.select).not.toHaveProperty('userId');
+    expect(query.select).not.toHaveProperty('reservationId');
+  });
+
+  it('admin list can filter pending reviews without full User projection', async () => {
+    mockPrisma.review.findMany.mockResolvedValue([]);
+
+    await service.findAllForAdmin({ approved: 'false' });
+
+    const query = firstReviewQuery(mockPrisma.review.findMany);
+    expect(query.where).toEqual({ isApproved: false });
+    expect(query.select.user.select).toEqual({
+      firstName: true,
+      lastName: true,
+    });
+    expect(query.select.user.select).not.toHaveProperty('passwordHash');
   });
 });

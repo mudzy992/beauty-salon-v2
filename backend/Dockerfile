@@ -7,11 +7,9 @@ RUN npm ci
 
 COPY . .
 
-ARG DATABASE_PROVIDER=postgres
-ARG DATABASE_URL=postgresql://postgres:postgres@localhost:5432/beautysalon?schema=public
-
-ENV DATABASE_PROVIDER=${DATABASE_PROVIDER}
-ENV DATABASE_URL=${DATABASE_URL}
+# Prisma generation needs a syntactically valid URL but never a real DB credential.
+ENV DATABASE_PROVIDER=postgres
+ENV DATABASE_URL=postgresql://prisma:generate-only@localhost:5432/beautysalon?schema=public
 
 RUN npx prisma generate
 RUN npm run build
@@ -29,12 +27,7 @@ COPY --from=builder /usr/app/package*.json ./
 COPY --from=builder /usr/app/prisma ./prisma/
 COPY --from=builder /usr/app/prisma.config.ts ./
 
-ARG DATABASE_PROVIDER=postgres
-ARG DATABASE_URL=postgresql://postgres:postgres@localhost:5432/beautysalon?schema=public
-
-ENV DATABASE_PROVIDER=${DATABASE_PROVIDER}
-ENV DATABASE_URL=${DATABASE_URL}
-
+# DATABASE_URL and other credentials are injected only at container runtime.
 ENV PORT=10001
 ENV UPLOAD_ROOT=/usr/app/uploads
 ENV JWT_EXPIRES_IN=7d

@@ -1,0 +1,19 @@
+# Root-level fallback for any future root Docker build context.
+.git
+**/node_modules
+**/dist
+**/coverage
+**/.expo
+**/uploads
+**/.env
+**/.env.*
+!**/.env.example
+**/*firebase-adminsdk*.json
+**/*service-account*.json
+**/*service_account*.json
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.keystore
+**/*.log

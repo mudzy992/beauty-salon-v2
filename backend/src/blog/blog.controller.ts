@@ -6,7 +6,7 @@ import {
   Param,
   Patch,
   Post,
-  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { BlogService } from './blog.service';
 import { BlogCommentsService } from './blog-comments.service';
@@ -18,7 +18,6 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { UseGuards } from '@nestjs/common';
 
 @Controller('api/blog')
 export class BlogController {
@@ -39,8 +38,15 @@ export class BlogController {
 
   @Get()
   @Public()
-  findAll(@Query('published') published: string) {
-    return this.blog.findAll(published === 'true');
+  findAll() {
+    return this.blog.findAllPublic();
+  }
+
+  @Get('admin')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findAllForAdmin() {
+    return this.blog.findAllForAdmin();
   }
 
   @Get('slug/:slug')
@@ -50,6 +56,8 @@ export class BlogController {
   }
 
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
   findOne(@Param('id') id: string) {
     return this.blog.findOne(id);
   }
@@ -68,13 +76,17 @@ export class BlogController {
     return this.blog.remove(id, user);
   }
 
+  @Get(':postId/comments/admin')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getCommentsForAdmin(@Param('postId') postId: string) {
+    return this.comments.findAllForPost(postId);
+  }
+
   @Get(':postId/comments')
   @Public()
-  getComments(
-    @Param('postId') postId: string,
-    @Query('approved') approved: string,
-  ) {
-    return this.comments.findAllForPost(postId, approved === 'true');
+  getComments(@Param('postId') postId: string) {
+    return this.comments.findPublicForPost(postId);
   }
 
   @Post(':postId/comments')

@@ -36,8 +36,8 @@ export const useDashboardData = () => {
           `/api/expense-books/month/${year}/${month}`,
         )
         .catch(() => ({ data: null })),
-      api.get('/api/reviews', { params: { approved: 'false' } }).catch(() => ({ data: [] })),
-      api.get('/api/blog').catch(() => ({ data: [] })),
+      api.get('/api/reviews/admin', { params: { approved: 'false' } }).catch(() => ({ data: [] })),
+      api.get('/api/blog/admin').catch(() => ({ data: [] })),
     ])
       .then(
         ([

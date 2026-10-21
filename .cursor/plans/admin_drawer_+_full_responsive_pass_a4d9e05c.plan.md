@@ -31,7 +31,7 @@ isProject: false
 
 ### 1) Admin shell refactor (navigation as drawer everywhere)
 
-- Refaktorisati [DashboardLayout](frontend/src/layouts/DashboardLayout.tsx):
+- Refaktorisati [DashboardLayout](../../frontend/src/layouts/DashboardLayout.tsx):
   - ukloniti desktop-only sidebar blok (`w='240px'`),
   - zadržati jedan izvor navigacije (`SidebarNav`) unutar `Drawer`-a za sve veličine,
   - osigurati da je content kontejner uvijek full-width (`minW={0}`, bez skupljanja zbog navigacije),
@@ -49,26 +49,26 @@ isProject: false
 ### 3) Full admin page pass (high → medium)
 
 - High-priority dorade:
-  - [Users](frontend/src/pages/Users.tsx)
-  - [Reservations](frontend/src/pages/Reservations.tsx)
-  - [DailyLog](frontend/src/pages/DailyLog.tsx)
-  - [Finance](frontend/src/pages/Finance.tsx)
+  - [Users](../../frontend/src/pages/Users.tsx)
+  - [Reservations](../../frontend/src/pages/Reservations.tsx)
+  - [DailyLog](../../frontend/src/pages/DailyLog.tsx)
+  - [Finance](../../frontend/src/pages/Finance.tsx)
 - Medium-priority dorade:
-  - [Services](frontend/src/pages/Services.tsx)
-  - [Stylists](frontend/src/pages/Stylists.tsx)
-  - [Salon](frontend/src/pages/Salon.tsx)
-  - [ClientAnalytics](frontend/src/pages/ClientAnalytics.tsx)
-  - [Gallery](frontend/src/pages/Gallery.tsx)
-  - [Analytics](frontend/src/pages/Analytics.tsx)
-  - [Reviews](frontend/src/pages/Reviews.tsx)
-  - [Blog](frontend/src/pages/Blog.tsx)
-  - [Notifications](frontend/src/pages/Notifications.tsx)
-  - [Loyalty](frontend/src/pages/Loyalty.tsx)
-  - [Dashboard](frontend/src/pages/Dashboard.tsx)
+  - [Services](../../frontend/src/pages/Services.tsx)
+  - [Stylists](../../frontend/src/pages/Stylists.tsx)
+  - [Salon](../../frontend/src/pages/Salon.tsx)
+  - [ClientAnalytics](../../frontend/src/pages/ClientAnalytics.tsx)
+  - [Gallery](../../frontend/src/pages/Gallery.tsx)
+  - [Analytics](../../frontend/src/pages/Analytics.tsx)
+  - [Reviews](../../frontend/src/pages/Reviews.tsx)
+  - [Blog](../../frontend/src/pages/Blog.tsx)
+  - [Notifications](../../frontend/src/pages/Notifications.tsx)
+  - [Loyalty](../../frontend/src/pages/Loyalty.tsx)
+  - [Dashboard](../../frontend/src/pages/Dashboard.tsx)
 
 ### 4) Route-level sanity check
 
-- Verifikovati da admin mount i auth flow ostaju netaknuti kroz [App](frontend/src/App.tsx) (posebno `/admin` grana).
+- Verifikovati da admin mount i auth flow ostaju netaknuti kroz [App](../../frontend/src/App.tsx) (posebno `/admin` grana).
 
 ### 5) Verification
 

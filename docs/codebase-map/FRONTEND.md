@@ -1,6 +1,6 @@
 # FRONTEND Codebase Map (React + Vite)
 
-**Last refreshed:** 2026-04-10
+**Verified snapshot:** 2026-10-21 · See [audit findings](../audit/FINDINGS.md), [test workflow](../audit/TEST_WORKFLOW.md) and [handoff](../audit/HANDOFF.md) for behavior limits and test results.
 
 ## Overview
 
@@ -19,7 +19,7 @@ From `frontend/package.json`:
 - **dev**: `npm run dev`
 - **build**: `npm run build` (runs `tsc -b` then `vite build`)
 - **preview**: `npm run preview` (serves on port `10000`)
-- **lint**: `npm run lint`
+- **lint**: `npm run lint` (ESLint dependency/config not present; it is not an audit/CI gate)
 
 ## App entrypoints
 
@@ -157,6 +157,7 @@ Defined directly in `frontend/src/app/router.tsx`:
 - **Upload URL helper**: `frontend/src/utils/uploadUrl.ts`
   - prefers `VITE_API_FILES_URL`, falls back to `VITE_API_URL`
 - **Types**: `frontend/src/vite-env.d.ts` declares `VITE_API_URL` and `VITE_API_FILES_URL`
+- **Local dev proxy**: `frontend/vite.config.ts` proxies `/api`, `/auth`, `/uploads` and Socket.IO `/socket.io` (with WebSocket upgrade) to `http://localhost:10001`; package scripts explicitly select the TypeScript config to avoid the tracked emitted `.js` taking precedence. Production URLs are configured separately at Docker build time.
 
 ## UI system (Tailwind + shadcn-style components)
 
