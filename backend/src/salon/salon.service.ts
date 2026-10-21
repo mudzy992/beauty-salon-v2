@@ -122,7 +122,7 @@ export class SalonService {
       await this.setWorkingHours(id, dto.workingHours);
     }
     const updated = await this.findOne(id);
-    this.events.emitToAll(SOCKET_EVENTS.SALON_UPDATED, updated);
+    this.events.emitToAll(SOCKET_EVENTS.SALON_UPDATED, { key: 'salon' });
     return updated;
   }
 

@@ -37,7 +37,7 @@ Ključni entrypoint-i: [AppModule](../../backend/src/app.module.ts), [main.ts](.
 
 `EventsGateway` koristi Socket.IO root namespace. Konekcije bez tokena, kao i konekcije s nevažećim tokenom, ulaze u `public` room; valjan JWT ulazi u `user:<id>` i po claims-u u `admin`/`stylists`. `emitToUser`, `emitToAdmins` i `emitToStylists` ciljaju room; `emitToAll` je globalni `server.emit`. Nije konfigurisan Redis Socket.IO adapter, pa room state i connected-user mapa žive u procesu. Vidi [events.gateway.ts](../../backend/src/events/events.gateway.ts).
 
-`SettingsService.set` sada šalje globalni `settings:updated` sa vrijednošću samo za ne-secret `PUBLIC` ključeve; `PRIVATE`/secret izmjene šalju key-only invalidaciju admin room-u, nakon čega admin klijent ponovo čita preko guarded HTTP API-ja. Ovo je source-level mitigation pokrivena service unit testom; stvarni Socket.IO room/runtime nije testiran. Anonymous/invalid sockets, stale JWT role claims i wildcard CORS ostaju otvoreni rizici (SEC-06).
+`SettingsService.set` šalje globalni `settings:updated` sa vrijednošću samo za ne-secret `PUBLIC` ključeve; `PRIVATE`/secret izmjene šalju key-only invalidaciju admin room-u, nakon čega admin klijent ponovo čita preko guarded HTTP API-ja. `SalonService.update` šalje samo `{key: 'salon'}` kao `salon:updated` invalidaciju, umjesto punog salon/holiday objekta; caller i dalje dobija HTTP rezultat. Ove source-level mitigations imaju service unit coverage; stvarni Socket.IO room/runtime nije testiran. Anonymous/invalid sockets, stale JWT role claims i wildcard CORS ostaju otvoreni rizici (SEC-06).
 
 ## 3. Backend moduli i glavni tokovi
 
