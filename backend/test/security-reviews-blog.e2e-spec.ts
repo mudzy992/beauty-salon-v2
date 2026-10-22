@@ -26,6 +26,12 @@ import { DailyLogDispositionService } from '../src/daily-log/daily-log-dispositi
 import { DailyLogPublicService } from '../src/daily-log/daily-log-public.service';
 import { DailyLogRestoreService } from '../src/daily-log/daily-log-restore.service';
 import { DailyLogService } from '../src/daily-log/daily-log.service';
+import { AvailabilityDebugService } from '../src/reservations/availability-debug.service';
+import { AvailabilityDatesService } from '../src/reservations/availability-dates.service';
+import { AvailabilityService } from '../src/reservations/availability.service';
+import { AvailabilitySlotsService } from '../src/reservations/availability-slots.service';
+import { ReservationsController } from '../src/reservations/reservations.controller';
+import { ReservationsService } from '../src/reservations/reservations.service';
 import { NotificationsService } from '../src/notifications/notifications.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { ReviewsController } from '../src/reviews/reviews.controller';
@@ -88,6 +94,7 @@ type FixtureIds = {
   serviceCategory?: string;
   serviceSubcategory?: string;
   service?: string;
+  salonSettings?: string;
 };
 
 const fixtureIds: FixtureIds = {
@@ -122,6 +129,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
   let draftPostSlug: string;
   let approvedCommentId: string;
   let pendingCommentId: string;
+  let availabilityDate: string;
 
   beforeAll(async () => {
     const databaseUrl = getDisposableDatabaseUrl();
@@ -145,6 +153,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
         BlogController,
         UsersController,
         DailyLogController,
+        ReservationsController,
       ],
       providers: [
         PrismaService,
@@ -158,6 +167,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
         { provide: DailyLogAdminService, useValue: {} },
         { provide: DailyLogDispositionService, useValue: {} },
         { provide: DailyLogRestoreService, useValue: {} },
+        { provide: ReservationsService, useValue: {} },
+        AvailabilityService,
+        AvailabilityDatesService,
+        AvailabilitySlotsService,
+        AvailabilityDebugService,
         AuthService,
         JwtStrategy,
         RolesGuard,
@@ -340,6 +354,43 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
     fixtureIds.service = service.id;
     serviceId = service.id;
 
+    const salon = await prisma.salonSettings.create({
+      data: { name: `API-02 availability ${suffix}` },
+    });
+    fixtureIds.salonSettings = salon.id;
+
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 14);
+    futureDate.setHours(12, 0, 0, 0);
+    availabilityDate = [
+      futureDate.getFullYear(),
+      String(futureDate.getMonth() + 1).padStart(2, '0'),
+      String(futureDate.getDate()).padStart(2, '0'),
+    ].join('-');
+    const availabilityDay = futureDate.getDay();
+
+    await prisma.salonWorkingHours.create({
+      data: {
+        salonSettingsId: salon.id,
+        dayOfWeek: availabilityDay,
+        openTime: '09:00',
+        closeTime: '17:00',
+        isWorkingDay: true,
+      },
+    });
+    await prisma.stylistWorkingHours.create({
+      data: {
+        stylistProfileId: stylistProfile.id,
+        dayOfWeek: availabilityDay,
+        startTime: '09:00',
+        endTime: '17:00',
+        isWorkingDay: true,
+      },
+    });
+    await prisma.stylistService.create({
+      data: { stylistProfileId: stylistProfile.id, serviceId: service.id },
+    });
+
     const beforeUpload = await prisma.upload.create({
       data: {
         originalName: `api02-before-${suffix}.jpg`,
@@ -508,6 +559,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
           where: { id: fixtureIds.stylistProfile },
         });
       }
+      if (fixtureIds.salonSettings) {
+        await prisma.salonSettings.deleteMany({
+          where: { id: fixtureIds.salonSettings },
+        });
+      }
       if (fixtureIds.service) {
         await prisma.service.deleteMany({
           where: { id: fixtureIds.service },
@@ -575,6 +631,58 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
     expect(secondPage.body.items[0].id).toBe(fixtureIds.dailyLogEntries[1]);
     expect(secondPage.body.hasMore).toBe(false);
     expect(secondPage.body.nextOffset).toBe(2);
+  });
+
+  it('validates availability date ranges and returns database-backed dates and slots', async () => {
+    const httpServer = getHttpServer(app!);
+    const dateQuery = {
+      serviceIds: serviceId,
+      fromDate: availabilityDate,
+      toDate: availabilityDate,
+    };
+
+    await request(httpServer)
+      .get('/api/reservations/availability/dates')
+      .query(dateQuery)
+      .expect(401);
+
+    await request(httpServer)
+      .get('/api/reservations/availability/dates')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .query({ ...dateQuery, fromDate: 'not-a-date' })
+      .expect(400);
+
+    await request(httpServer)
+      .get('/api/reservations/availability/dates')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .query({ fromDate: '2030-01-02', toDate: '2030-01-01', serviceId })
+      .expect(400);
+
+    await request(httpServer)
+      .get('/api/reservations/availability/dates')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .query({ fromDate: '2030-01-01', toDate: '2030-04-01', serviceId })
+      .expect(400);
+
+    const dates = await request(httpServer)
+      .get('/api/reservations/availability/dates')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .query(dateQuery)
+      .expect(200);
+    expect(dates.body).toEqual([{ date: availabilityDate, available: true }]);
+
+    const slots = await request(httpServer)
+      .get('/api/reservations/availability/slots')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .query({ serviceId, date: availabilityDate })
+      .expect(200);
+    expect(slots.body.length).toBeGreaterThan(0);
+    expect(slots.body[0]).toMatchObject({
+      startTime: '09:00',
+      endTime: '09:45',
+      availableStylistCount: 1,
+      holdState: 'none',
+    });
   });
 
   it('filters public reviews, protects detail, and reserves pending reads for moderators', async () => {
