@@ -37,6 +37,31 @@ const ADMIN_CLIENT_SELECT = {
   userRoles: { select: { role: { select: { name: true } } } },
 } as const;
 
+// Exclude authentication secrets from user-detail responses.
+const USER_DETAIL_SELECT = {
+  id: true,
+  username: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  gender: true,
+  genderOnboardingCompleted: true,
+  avatar: true,
+  isActive: true,
+  isEmailVerified: true,
+  mustChangePassword: true,
+  createdAt: true,
+  updatedAt: true,
+  userRoles: { include: { role: true } },
+  stylistProfile: {
+    include: {
+      stylistServices: { include: { service: true } },
+      workingHours: true,
+    },
+  },
+} as const;
+
 @Injectable()
 export class UsersService {
   private static readonly DEFAULT_INITIAL_PASSWORD = 'Init2026!';
@@ -233,15 +258,7 @@ export class UsersService {
     }
     const user = await this.repo.user.findUnique({
       where: { id },
-      include: {
-        userRoles: { include: { role: true } },
-        stylistProfile: {
-          include: {
-            stylistServices: { include: { service: true } },
-            workingHours: true,
-          },
-        },
-      },
+      select: USER_DETAIL_SELECT,
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
     return user;

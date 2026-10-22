@@ -5,6 +5,7 @@ jest.mock('../src/blog/utils/sanitize-blog-content', () => ({
 
 import { randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
+import { ValidationPipe } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -23,7 +24,11 @@ import { NotificationsService } from '../src/notifications/notifications.service
 import { PrismaService } from '../src/prisma/prisma.service';
 import { ReviewsController } from '../src/reviews/reviews.controller';
 import { ReviewsService } from '../src/reviews/reviews.service';
+import { EventsGateway } from '../src/events/events.gateway';
 import { SettingsService } from '../src/settings/settings.service';
+import { UsersController } from '../src/users/users.controller';
+import { UsersRepository } from '../src/users/users.repository';
+import { UsersService } from '../src/users/users.service';
 
 const TEST_JWT_SECRET = 'db-backed-security-http-tests-only-secret';
 const LOCAL_TEST_DATABASE_HOSTS = new Set([
@@ -83,12 +88,19 @@ const fixtureIds: FixtureIds = {
   reviews: [],
 };
 
-describe('DB-backed HTTP security contracts for SEC-01 and SEC-07', () => {
+describe('DB-backed HTTP security contracts for SEC-01, SEC-02 and SEC-07', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
   let clientToken: string;
+  let clientUserId: string;
   let ownerToken: string;
+  let stylistToken: string;
+  let systemAdminToken: string;
+  let clientEmail: string;
+  let pickerQueryPrefix: string;
+  let pickerClientIds: string[];
+  let mixedRoleClientId: string;
   let serviceId: string;
   let serviceName: string;
   let publishedReviewId: string;
@@ -117,9 +129,11 @@ describe('DB-backed HTTP security contracts for SEC-01 and SEC-07', () => {
         PassportModule.register({ defaultStrategy: 'jwt' }),
         JwtModule.register({ secret: TEST_JWT_SECRET }),
       ],
-      controllers: [ReviewsController, BlogController],
+      controllers: [ReviewsController, BlogController, UsersController],
       providers: [
         PrismaService,
+        UsersRepository,
+        UsersService,
         ReviewsService,
         BlogService,
         BlogCommentsService,
@@ -135,11 +149,19 @@ describe('DB-backed HTTP security contracts for SEC-01 and SEC-07', () => {
             getString: () => Promise.resolve(''),
           },
         },
+        { provide: EventsGateway, useValue: {} },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
       ],
     }).compile();
 
     const nestApp = moduleRef.createNestApplication({ logger: false });
+    nestApp.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
     app = nestApp;
     await nestApp.init();
     prisma = nestApp.get(PrismaService);
@@ -156,16 +178,36 @@ describe('DB-backed HTTP security contracts for SEC-01 and SEC-07', () => {
       update: {},
       create: { name: 'OWNER' },
     });
+    const stylistRole = await prisma.role.upsert({
+      where: { name: 'STYLIST' },
+      update: {},
+      create: { name: 'STYLIST' },
+    });
+    const systemAdminRole = await prisma.role.upsert({
+      where: { name: 'SYSTEM_ADMIN' },
+      update: {},
+      create: { name: 'SYSTEM_ADMIN' },
+    });
+    pickerQueryPrefix = `sec-picker-${suffix}`;
+    pickerClientIds = [];
 
+    clientEmail = `sec-client-${suffix}@example.test`;
     const client = await prisma.user.create({
       data: {
         username: `sec-client-${suffix}`,
-        email: `sec-client-${suffix}@example.test`,
+        email: clientEmail,
+        passwordHash: `synthetic-hash-${suffix}`,
+        emailVerificationToken: `synthetic-verification-${suffix}`,
+        emailVerificationExpiresAt: new Date(Date.now() + 60_000),
+        googleId: `synthetic-google-${suffix}`,
+        facebookId: `synthetic-facebook-${suffix}`,
+        phone: '+38761000000',
         firstName: 'Test',
         lastName: 'Client',
       },
     });
     fixtureIds.users.push(client.id);
+    clientUserId = client.id;
     await prisma.userRole.create({
       data: { userId: client.id, roleId: clientRole.id },
     });
@@ -185,6 +227,70 @@ describe('DB-backed HTTP security contracts for SEC-01 and SEC-07', () => {
 
     clientToken = jwtService.sign({ sub: client.id }, { expiresIn: '5m' });
     ownerToken = jwtService.sign({ sub: owner.id }, { expiresIn: '5m' });
+
+    const stylist = await prisma.user.create({
+      data: {
+        username: `sec-stylist-${suffix}`,
+        email: `sec-stylist-${suffix}@example.test`,
+        firstName: 'Test',
+        lastName: 'Stylist',
+      },
+    });
+    fixtureIds.users.push(stylist.id);
+    await prisma.userRole.create({
+      data: { userId: stylist.id, roleId: stylistRole.id },
+    });
+    stylistToken = jwtService.sign({ sub: stylist.id }, { expiresIn: '5m' });
+
+    const systemAdmin = await prisma.user.create({
+      data: {
+        username: `sec-admin-${suffix}`,
+        email: `sec-admin-${suffix}@example.test`,
+        firstName: 'Test',
+        lastName: 'Administrator',
+      },
+    });
+    fixtureIds.users.push(systemAdmin.id);
+    await prisma.userRole.create({
+      data: { userId: systemAdmin.id, roleId: systemAdminRole.id },
+    });
+    systemAdminToken = jwtService.sign(
+      { sub: systemAdmin.id },
+      { expiresIn: '5m' },
+    );
+
+    for (const suffixPart of ['a', 'b']) {
+      const pickerClient = await prisma.user.create({
+        data: {
+          username: `${pickerQueryPrefix}-${suffixPart}`,
+          email: `${pickerQueryPrefix}-${suffixPart}@example.test`,
+          firstName: 'Picker',
+          lastName: 'Fixture',
+        },
+      });
+      fixtureIds.users.push(pickerClient.id);
+      pickerClientIds.push(pickerClient.id);
+      await prisma.userRole.create({
+        data: { userId: pickerClient.id, roleId: clientRole.id },
+      });
+    }
+
+    const mixedRoleClient = await prisma.user.create({
+      data: {
+        username: `${pickerQueryPrefix}-mixed-role`,
+        email: `${pickerQueryPrefix}-mixed@example.test`,
+        firstName: 'Picker',
+        lastName: 'Mixed',
+      },
+    });
+    fixtureIds.users.push(mixedRoleClient.id);
+    mixedRoleClientId = mixedRoleClient.id;
+    await prisma.userRole.createMany({
+      data: [
+        { userId: mixedRoleClient.id, roleId: clientRole.id },
+        { userId: mixedRoleClient.id, roleId: stylistRole.id },
+      ],
+    });
 
     const category = await prisma.serviceCategory.create({
       data: { name: `Security category ${suffix}` },
@@ -482,5 +588,196 @@ describe('DB-backed HTTP security contracts for SEC-01 and SEC-07', () => {
     expect(
       adminComments.body.map((comment: { id: string }) => comment.id),
     ).toEqual(expect.arrayContaining([approvedCommentId, pendingCommentId]));
+  });
+
+  it('applies the SEC-02 role matrix to the client picker and admin route', async () => {
+    await request(getHttpServer(app!)).get('/api/users/clients').expect(401);
+    await request(getHttpServer(app!))
+      .get('/api/users/clients/admin')
+      .expect(401);
+
+    await request(getHttpServer(app!))
+      .get('/api/users/clients')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+    await request(getHttpServer(app!))
+      .get('/api/users/clients/admin')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+
+    await request(getHttpServer(app!))
+      .get('/api/users/clients')
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(200);
+    await request(getHttpServer(app!))
+      .get('/api/users/clients/admin')
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(403);
+
+    await request(getHttpServer(app!))
+      .get('/api/users/clients/admin')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    await request(getHttpServer(app!))
+      .get('/api/users/clients/admin')
+      .set('Authorization', `Bearer ${systemAdminToken}`)
+      .expect(200);
+  });
+
+  it('allows self/admin user detail, denies other-client/stylist access, and omits credentials', async () => {
+    const self = await request(getHttpServer(app!))
+      .get(`/api/users/${clientUserId}`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+    expect(self.body).toMatchObject({
+      id: clientUserId,
+      email: clientEmail,
+      phone: '+38761000000',
+    });
+
+    for (const privateField of [
+      'passwordHash',
+      'emailVerificationToken',
+      'emailVerificationExpiresAt',
+      'googleId',
+      'facebookId',
+      'lastLoginAt',
+      'passwordChangedAt',
+    ]) {
+      expect(self.body).not.toHaveProperty(privateField);
+    }
+
+    const otherClientId = pickerClientIds[0];
+    await request(getHttpServer(app!))
+      .get(`/api/users/${otherClientId}`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+    await request(getHttpServer(app!))
+      .get(`/api/users/${clientUserId}`)
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(403);
+
+    const ownerDetail = await request(getHttpServer(app!))
+      .get(`/api/users/${clientUserId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(ownerDetail.body.id).toBe(clientUserId);
+    expect(ownerDetail.body).not.toHaveProperty('passwordHash');
+    expect(ownerDetail.body).not.toHaveProperty('emailVerificationToken');
+
+    const systemAdminDetail = await request(getHttpServer(app!))
+      .get(`/api/users/${clientUserId}`)
+      .set('Authorization', `Bearer ${systemAdminToken}`)
+      .expect(200);
+    expect(systemAdminDetail.body.id).toBe(clientUserId);
+    expect(systemAdminDetail.body).not.toHaveProperty('passwordHash');
+  });
+
+  it('returns a minimal picker projection and clamps validated pagination', async () => {
+    const response = await request(getHttpServer(app!))
+      .get('/api/users/clients')
+      .query({ q: pickerQueryPrefix })
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(200);
+
+    expect(response.body).toMatchObject({ page: 0, pageSize: 20 });
+    expect(response.body).not.toHaveProperty('total');
+    expect(response.body.items).toHaveLength(2);
+    expect(response.body.items.map((user: { id: string }) => user.id)).toEqual(
+      expect.arrayContaining(pickerClientIds),
+    );
+    expect(
+      response.body.items.map((user: { id: string }) => user.id),
+    ).not.toContain(mixedRoleClientId);
+
+    const pickerFields = ['id', 'username', 'firstName', 'lastName', 'gender'];
+    for (const user of response.body.items as Array<Record<string, unknown>>) {
+      expect(Object.keys(user).sort()).toEqual([...pickerFields].sort());
+      for (const privateField of [
+        'email',
+        'phone',
+        'passwordHash',
+        'emailVerificationToken',
+        'emailVerificationExpiresAt',
+        'googleId',
+        'facebookId',
+        'mustChangePassword',
+      ]) {
+        expect(user).not.toHaveProperty(privateField);
+      }
+    }
+
+    const emailSearch = await request(getHttpServer(app!))
+      .get('/api/users/clients')
+      .query({ q: clientEmail })
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(200);
+    expect(emailSearch.body.items).toEqual([]);
+
+    const clampedPage = await request(getHttpServer(app!))
+      .get('/api/users/clients')
+      .query({ q: pickerQueryPrefix, page: 999, pageSize: 1 })
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(200);
+    expect(clampedPage.body).toMatchObject({ page: 1, pageSize: 1 });
+    expect(clampedPage.body.items).toHaveLength(1);
+
+    await request(getHttpServer(app!))
+      .get('/api/users/clients')
+      .query({ pageSize: 101 })
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(400);
+  });
+
+  it('allows only admin/owner expanded fields and reserves email search for them', async () => {
+    const ownerList = await request(getHttpServer(app!))
+      .get('/api/users/clients/admin')
+      .query({ q: clientEmail, page: 0, pageSize: 10 })
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(ownerList.body).toMatchObject({ total: 1, page: 0, pageSize: 10 });
+    expect(ownerList.body.items).toHaveLength(1);
+    const clientRow = ownerList.body.items[0] as Record<string, unknown>;
+    expect(clientRow).toMatchObject({
+      email: clientEmail,
+      phone: '+38761000000',
+      userRoles: [{ role: { name: 'CLIENT' } }],
+    });
+    expect(Object.keys(clientRow).sort()).toEqual(
+      [
+        'id',
+        'username',
+        'email',
+        'firstName',
+        'lastName',
+        'phone',
+        'gender',
+        'avatar',
+        'isActive',
+        'isEmailVerified',
+        'createdAt',
+        'userRoles',
+      ].sort(),
+    );
+    for (const privateField of [
+      'passwordHash',
+      'emailVerificationToken',
+      'emailVerificationExpiresAt',
+      'googleId',
+      'facebookId',
+      'mustChangePassword',
+      'passwordChangedAt',
+      'lastLoginAt',
+    ]) {
+      expect(clientRow).not.toHaveProperty(privateField);
+    }
+
+    const systemAdminList = await request(getHttpServer(app!))
+      .get('/api/users/clients/admin')
+      .query({ q: clientEmail })
+      .set('Authorization', `Bearer ${systemAdminToken}`)
+      .expect(200);
+    expect(systemAdminList.body.total).toBe(1);
+    expect(systemAdminList.body.items[0].email).toBe(clientEmail);
   });
 });
