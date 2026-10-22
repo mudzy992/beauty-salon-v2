@@ -1,6 +1,11 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DailyLogPublicService } from './daily-log-public.service';
 import { PrismaService } from '../prisma/prisma.service';
+
+jest.mock('../prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
 
 const mockPrisma = {
   dailyLogEntry: {
@@ -8,6 +13,34 @@ const mockPrisma = {
     findMany: jest.fn(),
   },
 };
+
+function makePairEntry(id: string) {
+  return {
+    id,
+    completedAt: new Date(),
+    service: { id: 's1', name: 'Šišanje' },
+    images: [
+      {
+        isBefore: true,
+        isAfter: false,
+        upload: {
+          pathOriginal: `/${id}-before.jpg`,
+          pathMedium: null,
+          pathThumb: null,
+        },
+      },
+      {
+        isBefore: false,
+        isAfter: true,
+        upload: {
+          pathOriginal: `/${id}-after.jpg`,
+          pathMedium: null,
+          pathThumb: null,
+        },
+      },
+    ],
+  };
+}
 
 describe('DailyLogPublicService', () => {
   let service: DailyLogPublicService;
@@ -82,6 +115,8 @@ describe('DailyLogPublicService', () => {
     ]);
     const actual = await service.findBeforeAfterPairs({ limit: 10 });
     expect(actual.items).toHaveLength(0);
+    expect(actual.nextOffset).toBe(1);
+    expect(actual.hasMore).toBe(false);
   });
 
   it('queries with deletedAt null and both image flags', async () => {
@@ -101,6 +136,45 @@ describe('DailyLogPublicService', () => {
     );
   });
 
+  it('caps the requested page size at 50 items', async () => {
+    mockPrisma.dailyLogEntry.count.mockResolvedValue(0);
+    mockPrisma.dailyLogEntry.findMany.mockResolvedValue([]);
+
+    await service.findBeforeAfterPairs({ limit: 100 });
+
+    expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 50 }),
+    );
+  });
+
+  it('rejects an excessive pagination offset before database access', async () => {
+    await expect(
+      service.findBeforeAfterPairs({ offset: 1001 }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(mockPrisma.dailyLogEntry.count).not.toHaveBeenCalled();
+    expect(mockPrisma.dailyLogEntry.findMany).not.toHaveBeenCalled();
+  });
+
+  it('stops paginated traversal after the maximum permitted offset', async () => {
+    mockPrisma.dailyLogEntry.count.mockResolvedValue(2000);
+    mockPrisma.dailyLogEntry.findMany.mockResolvedValue(
+      Array.from({ length: 50 }, (_, index) => makePairEntry(`e${index}`)),
+    );
+
+    const actual = await service.findBeforeAfterPairs({
+      limit: 50,
+      offset: 1000,
+    });
+
+    expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 1000, take: 50 }),
+    );
+    expect(actual.items).toHaveLength(50);
+    expect(actual.nextOffset).toBe(1050);
+    expect(actual.hasMore).toBe(false);
+  });
+
   it('random mode returns shuffled subset without pagination', async () => {
     mockPrisma.dailyLogEntry.findMany
       .mockResolvedValueOnce([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
@@ -113,17 +187,29 @@ describe('DailyLogPublicService', () => {
             {
               isBefore: true,
               isAfter: false,
-              upload: { pathOriginal: '/b1.jpg', pathMedium: null, pathThumb: null },
+              upload: {
+                pathOriginal: '/b1.jpg',
+                pathMedium: null,
+                pathThumb: null,
+              },
             },
             {
               isBefore: false,
               isAfter: true,
-              upload: { pathOriginal: '/a1.jpg', pathMedium: null, pathThumb: null },
+              upload: {
+                pathOriginal: '/a1.jpg',
+                pathMedium: null,
+                pathThumb: null,
+              },
             },
           ],
         },
       ]);
-    const actual = await service.findBeforeAfterPairs({ limit: 1, random: true });
+    const actual = await service.findBeforeAfterPairs({
+      limit: 1,
+      offset: 5001,
+      random: true,
+    });
     expect(actual.items.length).toBeLessThanOrEqual(1);
     expect(actual.hasMore).toBe(false);
   });

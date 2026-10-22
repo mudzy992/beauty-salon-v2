@@ -1,5 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import {
+  DEFAULT_BEFORE_AFTER_LIMIT,
+  MAX_BEFORE_AFTER_LIMIT,
+  MAX_BEFORE_AFTER_OFFSET,
+} from './before-after-query.constants';
 import { PrismaService } from '../prisma/prisma.service';
 
 export type BeforeAfterPair = {
@@ -32,14 +37,29 @@ export class DailyLogPublicService {
     hasMore: boolean;
     nextOffset: number;
   }> {
-    const limit = Math.min(Math.max(opts?.limit ?? 20, 1), 50);
-    const offset = Math.max(opts?.offset ?? 0, 0);
+    const requestedLimit = opts?.limit ?? DEFAULT_BEFORE_AFTER_LIMIT;
+    if (!Number.isSafeInteger(requestedLimit) || requestedLimit < 1) {
+      throw new BadRequestException('limit mora biti pozitivan cijeli broj.');
+    }
+    const limit = Math.min(requestedLimit, MAX_BEFORE_AFTER_LIMIT);
     const serviceId = opts?.serviceId?.trim() || undefined;
     const where = this.buildEligibleWhere(serviceId);
 
     if (opts?.random) {
       return this.findRandomPairs(where, limit);
     }
+
+    const requestedOffset = opts?.offset ?? 0;
+    if (
+      !Number.isSafeInteger(requestedOffset) ||
+      requestedOffset < 0 ||
+      requestedOffset > MAX_BEFORE_AFTER_OFFSET
+    ) {
+      throw new BadRequestException(
+        `offset mora biti cijeli broj između 0 i ${MAX_BEFORE_AFTER_OFFSET}.`,
+      );
+    }
+    const offset = requestedOffset;
 
     const [total, entries] = await Promise.all([
       this.prisma.dailyLogEntry.count({ where }),
@@ -56,10 +76,14 @@ export class DailyLogPublicService {
     ]);
 
     const items = this.mapPairs(entries);
+    const nextOffset = offset + entries.length;
     return {
       items,
-      hasMore: offset + items.length < total,
-      nextOffset: offset + items.length,
+      hasMore:
+        entries.length > 0 &&
+        nextOffset < total &&
+        nextOffset <= MAX_BEFORE_AFTER_OFFSET,
+      nextOffset,
     };
   }
 

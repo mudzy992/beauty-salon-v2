@@ -80,7 +80,7 @@
 
 ### PRIV-01 — Before/after galerija javno vraća fotografije bez consent polja u pregledanom modelu
 
-[`daily-log.controller.ts#L82-L95`](../../backend/src/daily-log/daily-log.controller.ts#L82) izlaže `GET /api/daily-log/before-after` anonymous. [`daily-log-public.service.ts#L66-L76`](../../backend/src/daily-log/daily-log-public.service.ts#L66) bira sve completed, undeleted service zapise sa before i after slikom; mapper vraća direktne upload path-ove ([L129-L149](../../backend/src/daily-log/daily-log-public.service.ts#L129)). Pregledani [`DailyLogImage` model](../../backend/prisma/schema.prisma#L470-L485) nema consent/status/expiry polja.
+[`daily-log.controller.ts#L83-L92`](../../backend/src/daily-log/daily-log.controller.ts#L83) izlaže `GET /api/daily-log/before-after` anonymous. [`daily-log-public.service.ts#L90-L100`](../../backend/src/daily-log/daily-log-public.service.ts#L90) bira sve completed, undeleted service zapise sa before i after slikom; mapper vraća direktne upload path-ove ([L138-L170](../../backend/src/daily-log/daily-log-public.service.ts#L138)). Pregledani [`DailyLogImage` model](../../backend/prisma/schema.prisma#L470-L485) nema consent/status/expiry polja.
 
 **Uticaj:** fotografije ili prepoznatljivi klijenti mogu biti javno prikazani bez dokazivog consent state-a u ovom modelu. Moguće je da postoji zaseban papirni/UI policy izvan pregledanog scope-a; njegovo postojanje nije dokazano ni opovrgnuto.
 
@@ -148,7 +148,7 @@ Review-list baseline is separately contained under SEC-01: public `GET /api/revi
 
 **Uticaj:** bivši/inactive stylist kontakt podaci i neaktivna ponuda mogu ostati javni; online clients ne mogu razlikovati internal catalog od public catalog.
 
-**Popravka:** public DTO sa poljima eksplicitno odobrenim za display; public `isActive=true` kao nepromjenjiv default i detail provjera; admin route za neaktivne; email/phone po eksplicitnoj business policy.
+**Popravka:** publc DTO sa poljima eksplicitno odobrenim za display; public `isActive=true` kao nepromjenjiv default i detail provjera; admin route za neaktivne; email/phone po eksplicitnoj business policy.
 
 ### BIZ-01 — Deaktivirani servis i dalje prolazi API booking validaciju
 
@@ -210,16 +210,17 @@ Review-list baseline is separately contained under SEC-01: public `GET /api/revi
 
 ## P2 — srednje / preventivno
 
-### API-02 — Availability range bounded; random before/after query still unbounded (partial source mitigation)
+### API-02 — Availability and non-random gallery bounds; random before/after query still unbounded (partial source mitigation)
 
-- Authenticated availability-date flow prima `fromDate`/`toDate`; source now rejects invalid/reversed dates and inclusive ranges over 90 calendar days before database access in [`availability-dates.service.ts#L26-L32`](../../backend/src/reservations/availability-dates.service.ts#L26) and [`#L166-L194`](../../backend/src/reservations/availability-dates.service.ts#L166). The per-request five-lookup concurrency cap is implemented at [`#L131-L163`](../../backend/src/reservations/availability-dates.service.ts#L131). The web and mobile reservation clients currently request 60 days ([`PublicReserve.tsx#L519-L530`](../../frontend/src/pages/public/PublicReserve.tsx#L519), [`ReservationScreen.tsx#L151-L155`](../../mobile/src/screens/client/ReservationScreen.tsx#L151)).
-- Anonymous `random=true` before/after branch still loads all eligible DailyLog IDs before an in-memory shuffle ([`daily-log-public.service.ts#L79-L112`](../../backend/src/daily-log/daily-log-public.service.ts#L79)). The returned `limit` is capped, but the candidate-ID query and non-random offset are not upper-bounded.
+- Authenticated availability-date flow rejects invalid/reversed dates and inclusive ranges above 90 calendar days before database access in [`availability-dates.service.ts#L26-L32`](../../backend/src/reservations/availability-dates.service.ts#L26) and [`#L166-L194`](../../backend/src/reservations/availability-dates.service.ts#L166). The per-request five-lookup concurrency cap is implemented at [`#L131-L163`](../../backend/src/reservations/availability-dates.service.ts#L131). The web and mobile reservation clients currently request 60 days ([`PublicReserve.tsx#L519-L530`](../../frontend/src/pages/public/PublicReserve.tsx#L519), [`ReservationScreen.tsx#L151-L155`](../../mobile/src/screens/client/ReservationScreen.tsx#L151)).
+- Non-random public before/after pagination now validates typed query parameters in [`BeforeAfterQueryDto`](../../backend/src/daily-log/dto/before-after-query.dto.ts#L17-L42), caps page size at 50, and limits `offset` to 0–1,000; `hasMore` stops pagination at the bound ([`DailyLogPublicService.findBeforeAfterPairs`](../../backend/src/daily-log/daily-log-public.service.ts#L30-L87)).
+- Anonymous `random=true` before/after remains separate and still loads every eligible DailyLog ID before an in-memory shuffle ([`daily-log-public.service.ts#L103-L134`](../../backend/src/daily-log/daily-log-public.service.ts#L103)). Its candidate-ID materialization has not been optimized.
 
-**Uticaj:** requested availability dates are capped at 90 per request, and the source now limits this request's slot lookups to five concurrent calls. This bounds per-request fan-out concurrency, not total query work or aggregate concurrency across simultaneous requests. Remaining before/after ID loading, large skip offsets and anonymous gallery request volume can still grow with data/request patterns. No load test was run.
+**Uticaj:** requested availability dates are capped at 90 per request and slot fan-out is limited to five concurrent lookups per availability request; aggregate concurrency across simultaneous requests remains unbounded. Non-random gallery pagination now bounds each database skip to 1,000 and stops `hasMore` at that boundary. This does not limit gallery request rate or total requests. The random before/after ID load is unchanged, and no load test was run.
 
-**Source mitigacija (2026-10-22):** `AvailabilityDatesService` rejects invalid dates, reversed ranges and ranges above 90 inclusive calendar days before any Prisma query. It now resolves eligible dates in batches of at most five slot lookups while preserving result ordering. Targeted availability tests pass 1 suite/16 tests locally, including concurrency-cap coverage. Commit `cc954ec` passed CI run `39758303548` across all four jobs, including generated-Prisma backend build and backend unit tests. The existing disposable-PostgreSQL HTTP suite does not exercise this availability endpoint; no DB-backed assertion or load test was added.
+**Source mitigacija (2026-10-22):** `AvailabilityDatesService` rejects invalid dates, reversed ranges and ranges above 90 inclusive calendar days before Prisma access; it processes eligible slot lookups in batches of at most five. `DailyLogPublicService` now validates pagination integers, caps the page size at 50 and the non-random `offset` at 1,000; `hasMore` stops traversal at that bound. `nextOffset` advances by fetched database rows so rows omitted by the response mapper do not pin the page. Targeted availability tests pass 1 suite/16 tests; gallery service and query-DTO tests pass 2 suites/10 tests locally. The new gallery offset change is not yet covered by CI. The service unit spec mocks only the Prisma DI token and the DTO spec exercises class transformation/validation; no gallery HTTP/DB or load test was run.
 
-**Preostala popravka:** random sampling without materializing all eligible IDs; cap/replace large offsets; anonymous gallery rate limit and request budget; disposable DB-backed availability HTTP tests and load measurement. Keep the anonymous random-query design separate and avoid changing public gallery semantics without explicit review.
+**Preostala popravka:** random sampling without materializing all eligible IDs; anonymous gallery rate limiting/request budget; disposable DB-backed availability/gallery HTTP coverage and load measurement. Keep the random-query design separate and avoid changing its public semantics without explicit review.
 
 ### BIZ-06 — Date-only UI koristi UTC ISO string umjesto salon calendar timezone
 

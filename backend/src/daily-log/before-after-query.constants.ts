@@ -1,0 +1,3 @@
+export const DEFAULT_BEFORE_AFTER_LIMIT = 20;
+export const MAX_BEFORE_AFTER_LIMIT = 50;
+export const MAX_BEFORE_AFTER_OFFSET = 1000;
