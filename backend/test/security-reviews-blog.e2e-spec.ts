@@ -738,6 +738,118 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
     }
   });
 
+  it('reports a bounded 60-second synthetic availability and gallery soak sample', async () => {
+    const httpServer = getHttpServer(app!);
+    const durationMs = 60_000;
+    const concurrencyPerEndpoint = 4;
+
+    const measureEndpoint = async (
+      sendRequest: () => Promise<number>,
+    ): Promise<{
+      attempts: number;
+      elapsedMs: number;
+      error?: unknown;
+      latencies: number[];
+    }> => {
+      const startedAt = performance.now();
+      const deadline = startedAt + durationMs;
+      let attempts = 0;
+      let error: unknown;
+      const latencies: number[] = [];
+
+      const worker = async () => {
+        while (!error && performance.now() < deadline) {
+          attempts += 1;
+          try {
+            latencies.push(await sendRequest());
+          } catch (caught) {
+            error = caught;
+          }
+        }
+      };
+
+      await Promise.all(Array.from({ length: concurrencyPerEndpoint }, worker));
+      return {
+        attempts,
+        elapsedMs: performance.now() - startedAt,
+        error,
+        latencies,
+      };
+    };
+
+    const requestAvailability = async () => {
+      const startedAt = performance.now();
+      const response = await request(httpServer)
+        .get('/api/reservations/availability/dates')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .query({
+          serviceIds: serviceId,
+          fromDate: availabilityDate,
+          toDate: availabilityDate,
+        })
+        .expect(200);
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0]).toMatchObject({
+        date: availabilityDate,
+        available: true,
+      });
+      return performance.now() - startedAt;
+    };
+
+    const requestGallery = async () => {
+      const startedAt = performance.now();
+      const response = await request(httpServer)
+        .get('/api/daily-log/before-after')
+        .query({ serviceId, limit: 1, offset: 0 })
+        .expect(200);
+      expect(response.body.items).toHaveLength(1);
+      expect(response.body.items[0].id).toBe(fixtureIds.dailyLogEntries[0]);
+      expect(response.body.hasMore).toBe(true);
+      return performance.now() - startedAt;
+    };
+
+    const [availability, gallery] = await Promise.all([
+      measureEndpoint(requestAvailability),
+      measureEndpoint(requestGallery),
+    ]);
+    const describeSample = (
+      name: string,
+      sample: { attempts: number; elapsedMs: number; latencies: number[] },
+    ) => {
+      const sorted = [...sample.latencies].sort((a, b) => a - b);
+      const percentile = (ratio: number) =>
+        sorted.length ? sorted[Math.ceil(ratio * sorted.length) - 1] : 0;
+      const requestsPerSecond =
+        sample.latencies.length / (sample.elapsedMs / 1000);
+      const failed = sample.attempts - sample.latencies.length;
+      return `- ${name}: ${sample.latencies.length}/${sample.attempts} successful requests (${failed} failed) over ${(sample.elapsedMs / 1000).toFixed(1)} s; ${requestsPerSecond.toFixed(1)} successful requests/s; client-observed p50 ${percentile(0.5).toFixed(1)} ms, p95 ${percentile(0.95).toFixed(1)} ms, max ${(sorted.at(-1) ?? 0).toFixed(1)} ms.`;
+    };
+    const summary = [
+      '### API-02 synthetic CI soak sample',
+      '',
+      `- Disposable PostgreSQL fixtures; ${durationMs / 1000}-second window; ${concurrencyPerEndpoint} concurrent requests per endpoint (up to ${concurrencyPerEndpoint * 2} HTTP requests across both).`,
+      describeSample('Authenticated one-day availability dates', availability),
+      describeSample('Public non-random gallery page', gallery),
+      '- Report-only synthetic CI measurement with no latency/throughput gate; not representative production load testing. Random gallery mode was not exercised.',
+      '',
+    ].join('\n');
+
+    console.info(summary);
+    const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+    if (summaryPath) {
+      try {
+        await appendFile(summaryPath, summary);
+      } catch {
+        console.warn(
+          'Could not append API-02 soak metrics to the job summary.',
+        );
+      }
+    }
+
+    expect(availability.error).toBeUndefined();
+    expect(gallery.error).toBeUndefined();
+  }, 90_000);
+
   it('filters public reviews, protects detail, and reserves pending reads for moderators', async () => {
     const publicList = await request(getHttpServer(app!))
       .get(`/api/reviews?serviceId=${serviceId}`)
