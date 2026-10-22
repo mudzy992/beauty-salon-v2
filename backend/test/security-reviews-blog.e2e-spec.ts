@@ -4,6 +4,8 @@ jest.mock('../src/blog/utils/sanitize-blog-content', () => ({
 }));
 
 import { randomUUID } from 'node:crypto';
+import { appendFile } from 'node:fs/promises';
+import { performance } from 'node:perf_hooks';
 import type { Server } from 'node:http';
 import { ValidationPipe } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
@@ -684,6 +686,56 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
       availableStylistCount: 1,
       holdState: 'none',
     });
+  });
+
+  it('reports a bounded concurrent availability HTTP smoke sample', async () => {
+    const httpServer = getHttpServer(app!);
+    const requestCount = 10;
+    const latencies = await Promise.all(
+      Array.from({ length: requestCount }, async () => {
+        const startedAt = performance.now();
+        const response = await request(httpServer)
+          .get('/api/reservations/availability/dates')
+          .set('Authorization', `Bearer ${clientToken}`)
+          .query({
+            serviceIds: serviceId,
+            fromDate: availabilityDate,
+            toDate: availabilityDate,
+          })
+          .expect(200);
+        const elapsedMs = performance.now() - startedAt;
+
+        expect(response.body).toHaveLength(1);
+        expect(response.body[0]).toMatchObject({
+          date: availabilityDate,
+          available: true,
+        });
+        return elapsedMs;
+      }),
+    );
+    const sortedLatencies = [...latencies].sort((a, b) => a - b);
+    const percentile = (ratio: number) =>
+      sortedLatencies[Math.ceil(ratio * sortedLatencies.length) - 1];
+    const summary = [
+      '### API-02 availability HTTP smoke sample',
+      '',
+      `- Synthetic disposable-PostgreSQL fixture; ${requestCount} parallel authenticated one-day requests.`,
+      `- Client-observed latency on this CI runner: p50 ${percentile(0.5).toFixed(1)} ms; p95 ${percentile(0.95).toFixed(1)} ms; max ${sortedLatencies[sortedLatencies.length - 1].toFixed(1)} ms.`,
+      '- Report-only smoke sample; not a representative production load test or latency gate.',
+      '',
+    ].join('\n');
+
+    console.info(summary);
+    const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+    if (summaryPath) {
+      try {
+        await appendFile(summaryPath, summary);
+      } catch {
+        console.warn(
+          'Could not append API-02 smoke metrics to the job summary.',
+        );
+      }
+    }
   });
 
   it('filters public reviews, protects detail, and reserves pending reads for moderators', async () => {
