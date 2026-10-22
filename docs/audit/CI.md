@@ -19,7 +19,7 @@
 | `frontend`    | package-local `npm ci`, `npm run test:socket-recovery`, `npm run build` (includes `tsc -b`)                                                        | Hard gate; reconnect unit coverage is deterministic Node/fake-socket testing; no browser/component tests yet                                                                                                                   |
 | `mobile`      | package-local `npm ci`, `npm run test:socket-recovery`, `npm run typecheck`                                                                       | Hard gate; reconnect unit coverage is deterministic Node/fake-socket testing; no device/Expo runtime tests yet                                                                                                                 |
 
-**Latest passing result:** GitHub Actions run `39736393872` for commit `ac1bfff` passed all four jobs, including disposable PostgreSQL migrations, DB-backed SEC-01/SEC-02/SEC-07 HTTP tests, and backend unit tests. This is not production/shared database or deployment verification. Run `39683834085` was the preceding pass before the SEC-02 extension.
+**Latest passing result:** GitHub Actions run `39753417714` for commit `2558d18` passed all four jobs. The backend job generated/validated Prisma, applied migrations to disposable PostgreSQL 16, built, ran the existing SEC-01/SEC-02/SEC-07 HTTP E2E suite, and passed backend unit tests including the upload-delete controller/repository/service tests. Those upload-delete tests use mocked repository/filesystem behavior; the DELETE endpoint itself was not added to the DB-backed HTTP suite. Repository checks, frontend build/typecheck and mobile typecheck also passed. This is not production/shared database, storage, or deployment verification. Run `39736393872` was the preceding SEC-02 pass.
 
 ## Deliberately not gated yet
 
@@ -27,17 +27,18 @@
 - Frontend/mobile ESLint: package scripts exist but dependency/config were not found, so running these in CI would be a misleading always-failing gate.
 - `npm audit`: current packages have 61 package-level advisories including two critical; the report is documented in `FINDINGS.md`. Bulk `npm audit fix` was intentionally not run. Track/upgrade them in reviewed changes, then promote an audit policy.
 - Locale key parity and selected contrast are report-only for the existing known gaps; add `--strict` after translations/theme tokens meet approved thresholds.
-- PostgreSQL business concurrency/race tests, browser Playwright/axe, mobile simulator/device checks, SMTP/FCM/Expo production calls, Docker image build and EAS build. The SEC-01/SEC-02/SEC-07 HTTP E2E suite uses the disposable PostgreSQL service; the new SEC-02 assertions passed run `39736393872`.
+- PostgreSQL business concurrency/race tests, browser Playwright/axe, mobile simulator/device checks, SMTP/FCM/Expo production calls, Docker image build and EAS build. The SEC-01/SEC-02/SEC-07 HTTP E2E suite uses the disposable PostgreSQL service; the new SEC-02 assertions passed run `39736393872`. The narrow SEC-04 upload-delete source mitigation passed backend unit tests in run `39753417714`, but the upload DELETE route itself has no DB-backed HTTP test yet.
 
 ## Safe expansion checklist
 
 1. **Implemented for narrow security contracts:** CI starts a fresh PostgreSQL 16 service, applies tracked migrations, and uses synthetic fixtures; verify the deployed major version separately before treating this as deployment compatibility.
 2. **Implemented for SEC-01/SEC-02/SEC-07 HTTP contracts:** `backend/test/jest-e2e.json` runs real Nest routes/JWT/role guards and Prisma reads against that isolated service. SEC-01/SEC-07 passed run `39683834085`; the SEC-02 user-detail/client-list assertions passed run `39736393872`. Broader security/API contracts and concurrency races remain future work.
-3. Add frontend Vitest/RTL and Playwright + axe; add Expo Jest tests and simulator/device smoke workflow.
-4. Fix lint configurations/baselines and make all scripts read-only by default.
-5. Resolve advisory paths in staged dependency upgrades; re-run builds/native Expo compatibility and produce a time-stamped audit report.
-6. Promote locale and contrast checks to strict gates after approved complete baseline.
-7. Keep all deployment/release operations manual and outside this workflow unless product owner separately approves a deployment design. This task explicitly does not create or enable deployment automation.
+3. **Narrow SEC-04 source control:** uploader/admin authorization, known-reference preflight and upload-root containment are covered by mocked upload controller/repository/service unit tests and passed the full backend unit CI in run `39753417714`. The upload DELETE HTTP endpoint is not in the DB-backed suite; public/private storage separation and consent migration remain open.
+4. Add frontend Vitest/RTL and Playwright + axe; add Expo Jest tests and simulator/device smoke workflow.
+5. Fix lint configurations/baselines and make all scripts read-only by default.
+6. Resolve advisory paths in staged dependency upgrades; re-run builds/native Expo compatibility and produce a time-stamped audit report.
+7. Promote locale and contrast checks to strict gates after approved complete baseline.
+8. Keep all deployment/release operations manual and outside this workflow unless product owner separately approves a deployment design. This task explicitly does not create or enable deployment automation.
 
 ## Local execution
 

@@ -74,7 +74,7 @@
 
 **Uticaj:** privatni dokumenti (npr. finance attachment) i dalje mogu biti javni svakome ko sazna/otkrije URL. Putanje mogu biti iz API-ja/DB-a; nije dokazano da su sve putanje enumerabilne. Cross-owner brisanje je mitigirano u source-u; reference preflight pokriva trenutno poznate relacije i putanjska polja, ali nije atomski zaštićen od konkurentnog upisa.
 
-**Source mitigacija (2026-10-22):** unit testovi pokrivaju zabranu cross-owner brisanja, uploader/admin dopuštenja, blokiranje referenciranih fajlova i containment unutar upload root-a (3 suite/13 testova lokalno). Nije izvršena HTTP/DB E2E provjera ovog endpointa.
+**Source mitigacija (2026-10-22):** unit testovi pokrivaju zabranu cross-owner brisanja, uploader/admin dopuštenja, blokiranje referenciranih fajlova i containment unutar upload root-a (3 suite/13 testova lokalno). Commit `2558d18` prošao je CI run `39753417714` sa sva četiri joba, uključujući generated-Prisma backend build i punu backend unit suite. Postojeća DB-backed HTTP suite nije dodala coverage za ovaj upload endpoint; HTTP/DB E2E provjera ovog endpointa nije izvršena.
 
 **Preostala popravka:** odvojiti `public-assets` i private upload storage uz mapiranje postojećih URL-ova; privatne fajlove servirati preko autorizovanog controllera ili kratkoživućeg signed URL-a; provjeravati file signature i per-category allowlist; razmotriti soft delete/audit i DB enforcement za reference; bez SVG/HTML direktnog public serve-a; limits/rate limit/quota. Ova source mitigacija ne zatvara SEC-04 niti PRIV-01.
 
