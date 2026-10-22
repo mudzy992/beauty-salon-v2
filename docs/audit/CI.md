@@ -19,7 +19,7 @@
 | `frontend`    | package-local `npm ci`, `npm run test:socket-recovery`, `npm run build` (includes `tsc -b`)                                                        | Hard gate; reconnect unit coverage is deterministic Node/fake-socket testing; no browser/component tests yet                                                                                                                   |
 | `mobile`      | package-local `npm ci`, `npm run test:socket-recovery`, `npm run typecheck`                                                                       | Hard gate; reconnect unit coverage is deterministic Node/fake-socket testing; no device/Expo runtime tests yet                                                                                                                 |
 
-**Latest passing result:** GitHub Actions run `39683834085` passed all four jobs, including disposable PostgreSQL migrations, DB-backed SEC-01/SEC-07 HTTP tests, and backend unit tests. The SEC-02 user-detail and client-list E2E extension was added afterwards and awaits a new run. This is not production/shared database or deployment verification.
+**Latest passing result:** GitHub Actions run `39736393872` for commit `ac1bfff` passed all four jobs, including disposable PostgreSQL migrations, DB-backed SEC-01/SEC-02/SEC-07 HTTP tests, and backend unit tests. This is not production/shared database or deployment verification. Run `39683834085` was the preceding pass before the SEC-02 extension.
 
 ## Deliberately not gated yet
 
@@ -27,12 +27,12 @@
 - Frontend/mobile ESLint: package scripts exist but dependency/config were not found, so running these in CI would be a misleading always-failing gate.
 - `npm audit`: current packages have 61 package-level advisories including two critical; the report is documented in `FINDINGS.md`. Bulk `npm audit fix` was intentionally not run. Track/upgrade them in reviewed changes, then promote an audit policy.
 - Locale key parity and selected contrast are report-only for the existing known gaps; add `--strict` after translations/theme tokens meet approved thresholds.
-- PostgreSQL business concurrency/race tests, browser Playwright/axe, mobile simulator/device checks, SMTP/FCM/Expo production calls, Docker image build and EAS build. The SEC-01/SEC-02/SEC-07 HTTP E2E suite uses the disposable PostgreSQL service; the new SEC-02 assertions await CI.
+- PostgreSQL business concurrency/race tests, browser Playwright/axe, mobile simulator/device checks, SMTP/FCM/Expo production calls, Docker image build and EAS build. The SEC-01/SEC-02/SEC-07 HTTP E2E suite uses the disposable PostgreSQL service; the new SEC-02 assertions passed run `39736393872`.
 
 ## Safe expansion checklist
 
 1. **Implemented for narrow security contracts:** CI starts a fresh PostgreSQL 16 service, applies tracked migrations, and uses synthetic fixtures; verify the deployed major version separately before treating this as deployment compatibility.
-2. **Implemented for SEC-01/SEC-02/SEC-07 HTTP contracts:** `backend/test/jest-e2e.json` runs real Nest routes/JWT/role guards and Prisma reads against that isolated service. SEC-01/SEC-07 passed run `39683834085`; the new SEC-02 user-detail/client-list assertions await their CI result. Broader security/API contracts and concurrency races remain future work.
+2. **Implemented for SEC-01/SEC-02/SEC-07 HTTP contracts:** `backend/test/jest-e2e.json` runs real Nest routes/JWT/role guards and Prisma reads against that isolated service. SEC-01/SEC-07 passed run `39683834085`; the SEC-02 user-detail/client-list assertions passed run `39736393872`. Broader security/API contracts and concurrency races remain future work.
 3. Add frontend Vitest/RTL and Playwright + axe; add Expo Jest tests and simulator/device smoke workflow.
 4. Fix lint configurations/baselines and make all scripts read-only by default.
 5. Resolve advisory paths in staged dependency upgrades; re-run builds/native Expo compatibility and produce a time-stamped audit report.

@@ -16,7 +16,7 @@
 ## 2. Baseline provedene u ovom auditu
 
 - `npm ci --no-audit --no-fund` prošao u `backend/`, `frontend/`, `mobile/`.
-- Backend DB-backed security HTTP suite is implemented; Jest discovers `backend/test/security-reviews-blog.e2e-spec.ts`. SEC-01/SEC-07 passed against the fresh disposable PostgreSQL 16 CI service in run `39683834085`. New SEC-02 user-detail self/other role checks and client-list role/projection/search/pagination cases were added in this iteration and await CI; local execution is unavailable because the sandbox has no Docker/psql/local PostgreSQL.
+- Backend DB-backed security HTTP suite is implemented; Jest discovers `backend/test/security-reviews-blog.e2e-spec.ts`. SEC-01/SEC-07 passed against the fresh disposable PostgreSQL 16 CI service in run `39683834085`. New SEC-02 user-detail self/other role checks and client-list role/projection/search/pagination cases passed against disposable PostgreSQL 16 in CI run `39736393872`; local execution is unavailable because the sandbox has no Docker/psql/local PostgreSQL.
 - Frontend `npm run build` prolazi (Vite warning za ~2,000 kB JS chunk).
 - Mobile `npx tsc --noEmit` prolazi (raniji audit run).
 - From `backend/`, `npm run test:blog-sanitizer` passes 2/2, `npm test -- --runInBand src/blog` passes 4 suites/16 tests, and `npm test -- --runInBand src/security/security-contract.spec.ts` passes 3 in-process Nest HTTP contract tests (real routing/JWT/role guards, mocked services; no database).
