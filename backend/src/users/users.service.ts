@@ -11,6 +11,10 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { RemoveStylistRoleDto } from './dto/remove-stylist-role.dto';
 import { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import {
+  analyticsDateBounds,
+  resolveAnalyticsDateRange,
+} from '../common/analytics-date-range';
 import { UsersRepository } from './users.repository';
 import { EventsGateway } from '../events/events.gateway';
 
@@ -782,6 +786,8 @@ export class UsersService {
     toDate?: string,
   ) {
     this.requireAdminOrOwner(roles);
+    const analyticsRange = resolveAnalyticsDateRange(fromDate, toDate);
+    const dateBounds = analyticsDateBounds(analyticsRange);
     const user = await this.repo.user.findUnique({
       where: { id: userId },
       select: {
@@ -798,28 +804,9 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
 
-    const dateFilter =
-      fromDate && toDate
-        ? {
-            reservationDate: {
-              gte: new Date(fromDate),
-              lte: new Date(toDate),
-            } as const,
-          }
-        : {};
-    const dailyLogDateFilter =
-      fromDate && toDate
-        ? { date: { gte: new Date(fromDate), lte: new Date(toDate) } as const }
-        : {};
-    const reviewDateFilter =
-      fromDate && toDate
-        ? {
-            createdAt: {
-              gte: new Date(fromDate),
-              lte: new Date(toDate),
-            } as const,
-          }
-        : {};
+    const dateFilter = { reservationDate: dateBounds };
+    const dailyLogDateFilter = { date: dateBounds };
+    const reviewDateFilter = { createdAt: dateBounds };
 
     const [
       reservations,
@@ -967,8 +954,8 @@ export class UsersService {
 
     return {
       user,
-      fromDate: fromDate ?? null,
-      toDate: toDate ?? null,
+      fromDate: analyticsRange.fromDate,
+      toDate: analyticsRange.toDate,
       stats: {
         totalReservations,
         completedReservations,

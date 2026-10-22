@@ -175,42 +175,59 @@ describe('DailyLogPublicService', () => {
     expect(actual.hasMore).toBe(false);
   });
 
-  it('random mode returns shuffled subset without pagination', async () => {
+  it('uses an indexed circular random window without loading every candidate ID', async () => {
+    jest.spyOn(Math, 'random').mockReturnValueOnce(0.5);
     mockPrisma.dailyLogEntry.findMany
-      .mockResolvedValueOnce([{ id: 'a' }, { id: 'b' }, { id: 'c' }])
-      .mockResolvedValueOnce([
-        {
-          id: 'a',
-          completedAt: null,
-          service: { id: 's1', name: 'A' },
-          images: [
-            {
-              isBefore: true,
-              isAfter: false,
-              upload: {
-                pathOriginal: '/b1.jpg',
-                pathMedium: null,
-                pathThumb: null,
-              },
-            },
-            {
-              isBefore: false,
-              isAfter: true,
-              upload: {
-                pathOriginal: '/a1.jpg',
-                pathMedium: null,
-                pathThumb: null,
-              },
-            },
-          ],
-        },
-      ]);
+      .mockResolvedValueOnce([makePairEntry('from-start')])
+      .mockResolvedValueOnce([makePairEntry('wrapped')]);
+
     const actual = await service.findBeforeAfterPairs({
-      limit: 1,
+      limit: 2,
       offset: 5001,
       random: true,
     });
-    expect(actual.items.length).toBeLessThanOrEqual(1);
-    expect(actual.hasMore).toBe(false);
+
+    expect(actual.items.map((item) => item.id)).toEqual([
+      'from-start',
+      'wrapped',
+    ]);
+    expect(actual).toMatchObject({ hasMore: false, nextOffset: 0 });
+    expect(mockPrisma.dailyLogEntry.count).not.toHaveBeenCalled();
+    expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: expect.objectContaining({ randomKey: { gte: 0.5 } }),
+        orderBy: [{ randomKey: 'asc' }, { id: 'asc' }],
+        take: 2,
+        include: expect.objectContaining({ images: expect.any(Object) }),
+      }),
+    );
+    expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({ randomKey: { lt: 0.5 } }),
+        orderBy: [{ randomKey: 'asc' }, { id: 'asc' }],
+        take: 1,
+      }),
+    );
+  });
+
+  it('caps random gallery selection at 50 rows', async () => {
+    jest.spyOn(Math, 'random').mockReturnValueOnce(0.25);
+    mockPrisma.dailyLogEntry.findMany.mockResolvedValueOnce(
+      Array.from({ length: 50 }, (_, index) => makePairEntry(`e${index}`)),
+    );
+
+    const actual = await service.findBeforeAfterPairs({
+      limit: 100,
+      random: true,
+    });
+
+    expect(actual.items).toHaveLength(50);
+    expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 50 }),
+    );
   });
 });

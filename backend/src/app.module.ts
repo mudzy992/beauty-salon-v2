@@ -24,11 +24,13 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { LoyaltyModule } from './loyalty/loyalty.module';
 import { AppReleasesModule } from './app-releases/app-releases.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { HttpRateLimitModule } from './common/rate-limiting/http-rate-limit.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     ConfigModule,
+    HttpRateLimitModule,
     PrismaModule,
     AuthModule,
     UploadsModule,

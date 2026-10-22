@@ -27,6 +27,10 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import api, { getImageUrl, getUploadUrl } from '../../services/api';
 import { fetchPublicSettings } from '../../services/publicSettings';
+import {
+  fetchAllPublicServiceCategories,
+  fetchAllPublicServices,
+} from '../../services/catalog';
 import { spacing, borderRadius } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
@@ -189,10 +193,11 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
   const fetchData = useCallback(async () => {
     try {
-      const [settingsRes, catRes, blogRes, debtsRes] = await Promise.all([
+      const [settingsRes, categories, catalogServices, blogRes, debtsRes] = await Promise.all([
         fetchPublicSettings(),
-        api.get<ServiceCategory[]>('/api/services/categories', { params: { activeOnly: true } }),
-        api.get<BlogPost[]>('/api/blog'),
+        fetchAllPublicServiceCategories<ServiceCategory>({ activeOnly: true }),
+        fetchAllPublicServices<Service>({ activeOnly: true }),
+        api.get<BlogPost[] | { items: BlogPost[] }>('/api/blog', { params: { limit: 3, offset: 0 } }),
         user
           ? api.get<Array<{ amount: number | string }>>('/api/client-debts/me').catch(() => null)
           : Promise.resolve(null),
@@ -208,22 +213,23 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
       setSettings(normalizeSettings(settingsRes));
       const blogOn = getSettingValue(normalizeSettings(settingsRes), 'public_feature_blog', 'true').toLowerCase() !== 'false';
-      setBlogPosts(blogOn ? blogRes.data.slice(0, 3) : []);
+      const blogItems = Array.isArray(blogRes.data) ? blogRes.data : blogRes.data.items;
+      setBlogPosts(blogOn ? blogItems.slice(0, 3) : []);
 
-      const withServices: CategoryWithServices[] = [];
-      for (const cat of catRes.data) {
-        try {
-          const { data } = await api.get<ServiceCategory>(`/api/services/categories/${cat.id}`);
-          const services: Service[] = [];
-          data.subcategories?.forEach((sub) => {
-            sub.services?.forEach((s) => services.push(s));
-          });
-          if (services.length > 0) {
-            withServices.push({ category: data, services });
-          }
-        } catch { /* skip */ }
-      }
-      setCategoriesWithServices(withServices);
+      const servicesByCategory = new Map<string, Service[]>();
+      catalogServices.forEach((service) => {
+        const categoryId = service.subcategory?.categoryId;
+        if (!categoryId) return;
+        const services = servicesByCategory.get(categoryId) ?? [];
+        services.push(service);
+        servicesByCategory.set(categoryId, services);
+      });
+      setCategoriesWithServices(
+        categories.flatMap((category) => {
+          const services = servicesByCategory.get(category.id) ?? [];
+          return services.length > 0 ? [{ category, services }] : [];
+        }),
+      );
       try {
         const { data } = await api.get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
           params: { limit: 6, random: 1 },

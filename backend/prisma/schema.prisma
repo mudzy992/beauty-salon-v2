@@ -424,6 +424,7 @@ model DailyLogEntry {
   completedAt           DateTime? @map("completed_at")
   pendingReminderSentAt DateTime? @map("pending_reminder_sent_at")
   sourceEntryId         String?   @map("source_entry_id")
+  randomKey             Float     @default(dbgenerated("random()")) @map("random_key")
   deletedAt             DateTime? @map("deleted_at")
   deletedById           String?   @map("deleted_by_id")
   deleteReason          String?   @map("delete_reason") @db.Text
@@ -448,6 +449,7 @@ model DailyLogEntry {
   @@index([deletedAt])
   @@index([status, deletedAt])
   @@index([sourceEntryId])
+  @@index([randomKey, id], map: "daily_log_entries_random_key_id_idx")
   @@map("daily_log_entries")
 }
 

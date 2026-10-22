@@ -32,6 +32,17 @@ type BlogComment = {
   user: { firstName: string; lastName: string };
 };
 
+type BlogCommentPage = {
+  items: BlogComment[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  nextOffset: number;
+};
+
+const COMMENT_PAGE_SIZE = 20;
+
 function getSettingValue(
   settings: PublicSettingItem[] | null | undefined,
   key: string,
@@ -51,7 +62,11 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
   const user = useAuthStore((state) => state.user);
   const [settings, setSettings] = useState<PublicSettingItem[] | null>(null);
   const [comments, setComments] = useState<BlogComment[]>([]);
+  const [commentsTotal, setCommentsTotal] = useState(0);
   const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentsLoadingMore, setCommentsLoadingMore] = useState(false);
+  const [commentsHasMore, setCommentsHasMore] = useState(false);
+  const [commentsNextOffset, setCommentsNextOffset] = useState(0);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
 
@@ -78,20 +93,41 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
 
   usePublicContentSocketRefresh(loadPublicSettings);
 
+  const loadPublicComments = useCallback(async (postId: string, offset = 0, append = false) => {
+    if (append) setCommentsLoadingMore(true);
+    else setCommentsLoading(true);
+    try {
+      const { data } = await api.get<BlogCommentPage | BlogComment[]>(
+        `/api/blog/${postId}/comments`,
+        { params: { limit: COMMENT_PAGE_SIZE, offset } },
+      );
+      const items = Array.isArray(data) ? data : data.items;
+      setComments((current) => (append ? [...current, ...items] : items));
+      if (Array.isArray(data)) {
+        setCommentsTotal(items.length);
+        setCommentsHasMore(false);
+        setCommentsNextOffset(offset + items.length);
+      } else {
+        setCommentsTotal(data.total);
+        setCommentsHasMore(data.hasMore);
+        setCommentsNextOffset(data.nextOffset);
+      }
+    } catch {
+      if (!append) {
+        setComments([]);
+        setCommentsTotal(0);
+        setCommentsHasMore(false);
+      }
+    } finally {
+      setCommentsLoading(false);
+      setCommentsLoadingMore(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!post?.id) return;
-    (async () => {
-      setCommentsLoading(true);
-      try {
-        const { data } = await api.get<BlogComment[]>(`/api/blog/${post.id}/comments`);
-        setComments(Array.isArray(data) ? data : []);
-      } catch {
-        setComments([]);
-      } finally {
-        setCommentsLoading(false);
-      }
-    })();
-  }, [post?.id]);
+    void loadPublicComments(post.id, 0, false);
+  }, [loadPublicComments, post?.id]);
 
   const handleShare = async () => {
     if (!post) return;
@@ -115,15 +151,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
   };
 
   const reloadApprovedComments = async (postId: string) => {
-    setCommentsLoading(true);
-    try {
-      const { data } = await api.get<BlogComment[]>(`/api/blog/${postId}/comments`);
-      setComments(Array.isArray(data) ? data : []);
-    } catch {
-      setComments([]);
-    } finally {
-      setCommentsLoading(false);
-    }
+    await loadPublicComments(postId, 0, false);
   };
 
   const handleSubmitComment = async () => {
@@ -204,7 +232,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
         <View style={styles.commentsHeader}>
           <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.textSecondary} />
           <Text style={[styles.commentsTitle, { color: colors.text }]}>
-            Komentari{comments.length ? ` (${comments.length})` : ''}
+            Komentari{commentsTotal ? ` (${commentsTotal})` : ''}
           </Text>
         </View>
 
@@ -259,6 +287,16 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
             ))}
           </View>
         )}
+        {commentsHasMore ? (
+          <Button
+            title="Učitaj još komentara"
+            onPress={() => void loadPublicComments(post.id, commentsNextOffset, true)}
+            disabled={commentsLoadingMore}
+            loading={commentsLoadingMore}
+            variant="outline"
+            style={{ marginTop: spacing.md, alignSelf: 'flex-start' }}
+          />
+        ) : null}
       </View>
     </ScrollView>
   );

@@ -18,6 +18,7 @@ const mockPrisma = {
     create: jest.fn<Promise<unknown>, [args: BlogPostCreateArgs]>(),
     findUnique: jest.fn(),
     findMany: jest.fn(),
+    count: jest.fn(),
     findFirst: jest.fn(),
     update: jest.fn<Promise<unknown>, [args: BlogPostUpdateArgs]>(),
     delete: jest.fn(),
@@ -41,11 +42,20 @@ describe('BlogService', () => {
     service = module.get<BlogService>(BlogService);
   });
 
-  it('public post list is always published-only and uses a display allowlist', async () => {
+  it('public post list is published-only, allowlisted, stably ordered and bounded', async () => {
     mockPrisma.blogPost.findMany.mockResolvedValue([{ id: 'public-1' }]);
+    mockPrisma.blogPost.count.mockResolvedValue(2);
 
-    await service.findAllPublic();
+    const result = await service.findAllPublic();
 
+    expect(result).toEqual({
+      items: [{ id: 'public-1' }],
+      total: 2,
+      limit: 20,
+      offset: 0,
+      hasMore: true,
+      nextOffset: 1,
+    });
     expect(mockPrisma.blogPost.findMany).toHaveBeenCalledWith({
       where: { isPublished: true },
       select: {
@@ -58,7 +68,12 @@ describe('BlogService', () => {
         publishedAt: true,
         createdAt: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: 0,
+      take: 20,
+    });
+    expect(mockPrisma.blogPost.count).toHaveBeenCalledWith({
+      where: { isPublished: true },
     });
   });
 

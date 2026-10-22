@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import api from '../../api/client'
+import { fetchAllPublicServices } from '../../api/catalog'
 import { Button } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
@@ -34,7 +35,7 @@ export function LoyaltyProgramSettings() {
     setLoading(true)
     Promise.all([
       api.get<SettingRow[]>('/api/loyalty/settings'),
-      api.get<ServiceOpt[] | { items: ServiceOpt[] }>('/api/services'),
+      fetchAllPublicServices<ServiceOpt>(),
     ])
       .then(([setRes, svcRes]) => {
         const map = new Map((Array.isArray(setRes.data) ? setRes.data : []).map((s) => [s.key, s.value ?? '']))
@@ -58,9 +59,7 @@ export function LoyaltyProgramSettings() {
         } catch {
           setTiers([])
         }
-        const rawSvc = svcRes.data
-        const list = Array.isArray(rawSvc) ? rawSvc : rawSvc.items
-        setServices(Array.isArray(list) ? list : [])
+        setServices(svcRes)
       })
       .catch(() => error('Greška pri učitavanju loyalty postavki'))
       .finally(() => setLoading(false))

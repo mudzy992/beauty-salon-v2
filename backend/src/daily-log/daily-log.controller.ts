@@ -27,6 +27,11 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
+import {
+  HTTP_RATE_LIMIT_PUBLIC_IP,
+  HTTP_RATE_LIMIT_WINDOW_SECONDS,
+} from '../common/rate-limiting/http-rate-limit.constants';
 
 @Controller('api/daily-log')
 export class DailyLogController {
@@ -82,6 +87,12 @@ export class DailyLogController {
 
   @Get('before-after')
   @Public()
+  @HttpRateLimit({
+    bucket: 'gallery:before-after',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   getBeforeAfterPairs(@Query() query: BeforeAfterQueryDto) {
     return this.dailyLogPublic.findBeforeAfterPairs({
       limit: query.limit,

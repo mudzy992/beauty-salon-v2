@@ -22,6 +22,7 @@ import { Card } from '../../components/ui/Card';
 import { MediaBackdrop } from '../../components/MediaImage';
 import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
+import { fetchAllPublicServices } from '../../services/catalog';
 import { spacing, borderRadius } from '../../theme';
 import { formatDate, formatTime, getDateRange } from '../../utils/date';
 import { useAvailabilitySocketRefresh } from '../../hooks/useAvailabilitySocketRefresh';
@@ -93,10 +94,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get<Service[]>('/api/services', {
-          params: { activeOnly: true },
-        });
-        setServices(Array.isArray(data) ? data : []);
+        setServices(await fetchAllPublicServices<Service>({ activeOnly: true }));
       } catch { /* silent */ }
     })();
   }, []);

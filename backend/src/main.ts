@@ -10,6 +10,8 @@ import { DecimalToNumberInterceptor } from './common/interceptors/decimal-to-num
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Trust the single reverse-proxy hop provided by the approved Coolify topology.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
   const socketIoRuntime = resolveSocketIoRuntimeConfig(process.env);
   if (socketIoRuntime.multiInstance && socketIoRuntime.redisUrl) {
     const redisIoAdapter = new RedisIoAdapter(

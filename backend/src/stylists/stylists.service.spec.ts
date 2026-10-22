@@ -18,8 +18,17 @@ const mockEventsGateway = {
 
 const mockPrisma = {
   user: { findUnique: jest.fn() },
+  reservation: { findMany: jest.fn() },
+  dailyLogEntry: { findMany: jest.fn() },
+  incomeBookManualEntry: { findMany: jest.fn() },
+  stylistService: {
+    findMany: jest.fn(),
+    count: jest.fn(),
+  },
   stylistProfile: {
     findUnique: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
     create: jest.fn(),
     update: jest.fn<(args: ProfileUpdateArgs) => Promise<unknown>>(),
     delete: jest.fn(),
@@ -47,6 +56,172 @@ describe('StylistsService socket revocation', () => {
     service = new StylistsService(
       mockPrisma as unknown as PrismaService,
       mockEventsGateway as unknown as EventsGateway,
+    );
+  });
+
+  it('returns a bounded, stable stylist page with total metadata', async () => {
+    const items = [{ id: 'profile-1' }];
+    mockPrisma.stylistProfile.findMany.mockResolvedValue(items);
+    mockPrisma.stylistProfile.count.mockResolvedValue(4);
+
+    await expect(
+      service.findAll(true, { page: 1, pageSize: 2 }),
+    ).resolves.toEqual({
+      items,
+      total: 4,
+      page: 1,
+      pageSize: 2,
+      hasMore: true,
+      nextPage: 2,
+    });
+    expect(mockPrisma.stylistProfile.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { isActive: true },
+        include: expect.objectContaining({
+          stylistServices: {
+            take: 50,
+            include: { service: true },
+            orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
+          },
+        }) as unknown,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: 2,
+        take: 2,
+      }),
+    );
+    expect(mockPrisma.stylistProfile.count).toHaveBeenCalledWith({
+      where: { isActive: true },
+    });
+  });
+
+  it('rejects a stylist offset beyond the public catalog cap before querying Prisma', async () => {
+    await expect(
+      service.findAll(false, { page: 21, pageSize: 50 }),
+    ).rejects.toThrow('Raspon kataloga stilista prelazi dozvoljeni limit.');
+    expect(mockPrisma.stylistProfile.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.stylistProfile.count).not.toHaveBeenCalled();
+  });
+
+  it('caps nested service associations on public stylist detail', async () => {
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({ id: 'profile-1' });
+
+    await service.findOne('profile-1');
+
+    expect(mockPrisma.stylistProfile.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          stylistServices: {
+            take: 50,
+            orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
+            include: {
+              service: {
+                include: { subcategory: { include: { category: true } } },
+              },
+            },
+          },
+        }) as unknown,
+      }),
+    );
+  });
+
+  it('returns a bounded, ordered page for a stylist service catalog', async () => {
+    const items = [{ serviceId: 'service-1' }];
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({ id: 'profile-1' });
+    mockPrisma.stylistService.findMany.mockResolvedValue(items);
+    mockPrisma.stylistService.count.mockResolvedValue(3);
+
+    await expect(
+      service.getServices('profile-1', { page: 1, pageSize: 2 }),
+    ).resolves.toEqual({
+      items,
+      total: 3,
+      page: 1,
+      pageSize: 2,
+      hasMore: false,
+      nextPage: null,
+    });
+    expect(mockPrisma.stylistService.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { stylistProfileId: 'profile-1' },
+        orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
+        skip: 2,
+        take: 2,
+      }),
+    );
+    expect(mockPrisma.stylistService.count).toHaveBeenCalledWith({
+      where: { stylistProfileId: 'profile-1' },
+    });
+  });
+
+  it('rejects out-of-range stylist service pages before database access', async () => {
+    await expect(
+      service.getServices('profile-1', { page: 21, pageSize: 50 }),
+    ).rejects.toThrow('Raspon servisa stiliste prelazi dozvoljeni limit.');
+    expect(mockPrisma.stylistProfile.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.stylistService.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.stylistService.count).not.toHaveBeenCalled();
+  });
+
+  it('rejects incomplete analytics ranges before reading a stylist profile', async () => {
+    await expect(
+      service.getStylistAnalytics('profile-1', ['OWNER'], '2026-01-01'),
+    ).rejects.toThrow('fromDate i toDate moraju biti navedeni zajedno.');
+    expect(mockPrisma.stylistProfile.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('applies inclusive date bounds to every stylist analytics query', async () => {
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      id: 'profile-1',
+      user: {
+        id: 'user-1',
+        username: 'stylist',
+        firstName: 'Ana',
+        lastName: 'A',
+        email: null,
+      },
+    });
+    mockPrisma.reservation.findMany.mockResolvedValue([]);
+    mockPrisma.dailyLogEntry.findMany.mockResolvedValue([]);
+    mockPrisma.incomeBookManualEntry.findMany.mockResolvedValue([]);
+
+    const result = await service.getStylistAnalytics(
+      'profile-1',
+      ['OWNER'],
+      '2026-03-01',
+      '2026-03-31',
+    );
+    const dateBounds = {
+      gte: new Date('2026-03-01T00:00:00.000Z'),
+      lte: new Date('2026-03-31T23:59:59.999Z'),
+    };
+
+    expect(result).toMatchObject({
+      fromDate: '2026-03-01',
+      toDate: '2026-03-31',
+    });
+    expect(mockPrisma.reservation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          confirmedStylistId: 'profile-1',
+          status: 'COMPLETED',
+          reservationDate: dateBounds,
+        },
+      }),
+    );
+    expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          stylistProfileId: 'profile-1',
+          status: 'COMPLETED',
+          deletedAt: null,
+          date: dateBounds,
+        },
+      }),
+    );
+    expect(mockPrisma.incomeBookManualEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { stylistProfileId: 'profile-1', date: dateBounds },
+      }),
     );
   });
 

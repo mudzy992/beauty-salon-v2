@@ -1,19 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import api from '../../api/client'
+import { fetchAllPublicServices, fetchAllPublicStylists } from '../../api/catalog'
 import { useReservationSocketRefresh } from '../reservations/use-reservation-socket-refresh'
 import type { ClientOption, DailyLogEntry, ServiceOption, StylistOption } from './types'
 import { getCurrentMonthRange } from './date-range'
 import { resetDailyLogFilters } from './entry-filters'
-
-interface PaginatedResponse<T> {
-  items: T[]
-  total: number
-}
-
-const unwrapList = <T,>(data: T[] | PaginatedResponse<T>): T[] => {
-  if (Array.isArray(data)) return data
-  return Array.isArray(data.items) ? data.items : []
-}
 
 export const useDailyLogData = () => {
   const initial = getCurrentMonthRange()
@@ -48,17 +39,11 @@ export const useDailyLogData = () => {
   useReservationSocketRefresh(loadData)
 
   useEffect(() => {
-    api
-      .get<StylistOption[] | PaginatedResponse<StylistOption>>('/api/stylists', {
-        params: { page: 0, pageSize: 200 },
-      })
-      .then((r) => setStylists(unwrapList(r.data)))
+    fetchAllPublicStylists<StylistOption>()
+      .then(setStylists)
       .catch(() => {})
-    api
-      .get<ServiceOption[] | PaginatedResponse<ServiceOption>>('/api/services', {
-        params: { activeOnly: true, page: 0, pageSize: 300 },
-      })
-      .then((r) => setServices(unwrapList(r.data)))
+    fetchAllPublicServices<ServiceOption>({ activeOnly: true })
+      .then(setServices)
       .catch(() => {})
     api
       .get<ClientOption[]>('/api/users/for-daily-log')

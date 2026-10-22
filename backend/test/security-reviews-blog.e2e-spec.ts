@@ -35,6 +35,12 @@ import { AvailabilitySlotsService } from '../src/reservations/availability-slots
 import { ReservationsController } from '../src/reservations/reservations.controller';
 import { ReservationsService } from '../src/reservations/reservations.service';
 import { NotificationsService } from '../src/notifications/notifications.service';
+import { AnalyticsController } from '../src/analytics/analytics.controller';
+import { AnalyticsService } from '../src/analytics/analytics.service';
+import { ServicesController } from '../src/services/services.controller';
+import { ServicesService } from '../src/services/services.service';
+import { StylistsController } from '../src/stylists/stylists.controller';
+import { StylistsService } from '../src/stylists/stylists.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { ReviewsController } from '../src/reviews/reviews.controller';
 import { ReviewsService } from '../src/reviews/reviews.service';
@@ -153,16 +159,25 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
       ],
       controllers: [
         ReviewsController,
+        AnalyticsController,
         BlogController,
         UsersController,
         DailyLogController,
         ReservationsController,
+        ServicesController,
+        StylistsController,
       ],
       providers: [
         PrismaService,
         UsersRepository,
         UsersService,
         ReviewsService,
+        {
+          provide: AnalyticsService,
+          useValue: { getDashboard: jest.fn().mockResolvedValue({}) },
+        },
+        ServicesService,
+        StylistsService,
         BlogService,
         BlogCommentsService,
         DailyLogPublicService,
@@ -649,6 +664,16 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
     expect(secondPage.body.items[0].id).toBe(fixtureIds.dailyLogEntries[1]);
     expect(secondPage.body.hasMore).toBe(false);
     expect(secondPage.body.nextOffset).toBe(2);
+
+    const randomPage = await request(getHttpServer(app!))
+      .get('/api/daily-log/before-after')
+      .query({ serviceId, random: 'true', limit: 100, offset: 1001 })
+      .expect(200);
+    expect(randomPage.body.items).toHaveLength(2);
+    expect(
+      randomPage.body.items.map((item: { id: string }) => item.id),
+    ).toEqual(expect.arrayContaining(fixtureIds.dailyLogEntries));
+    expect(randomPage.body).toMatchObject({ hasMore: false, nextOffset: 0 });
   });
 
   it('validates availability date ranges and returns database-backed dates and slots', async () => {
@@ -966,16 +991,200 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
     });
   });
 
-  it('keeps the public blog list published-only and returns the selected detail', async () => {
-    const publicList = await request(getHttpServer(app!))
-      .get('/api/blog?published=false')
+  it('bounds and strictly validates public service and stylist catalog pages', async () => {
+    const categoryPage = await request(getHttpServer(app!))
+      .get('/api/services/categories?activeOnly=true&page=0&pageSize=1')
       .expect(200);
-    const publicSlugs = publicList.body.map(
+    expect(categoryPage.body).toMatchObject({
+      total: 1,
+      page: 0,
+      pageSize: 1,
+      hasMore: false,
+      nextPage: null,
+    });
+    expect(categoryPage.body.items[0]).toMatchObject({
+      id: fixtureIds.serviceCategory,
+    });
+
+    const subcategoryPage = await request(getHttpServer(app!))
+      .get(
+        `/api/services/subcategories?categoryId=${fixtureIds.serviceCategory}&activeOnly=true&page=0&pageSize=1`,
+      )
+      .expect(200);
+    expect(subcategoryPage.body).toMatchObject({
+      total: 1,
+      page: 0,
+      pageSize: 1,
+      hasMore: false,
+      nextPage: null,
+    });
+    expect(subcategoryPage.body.items[0]).toMatchObject({
+      id: fixtureIds.serviceSubcategory,
+      categoryId: fixtureIds.serviceCategory,
+    });
+
+    const servicePage = await request(getHttpServer(app!))
+      .get(
+        `/api/services?subcategoryId=${fixtureIds.serviceSubcategory}&activeOnly=true&page=0&pageSize=1`,
+      )
+      .expect(200);
+    expect(servicePage.body).toMatchObject({
+      total: 1,
+      page: 0,
+      pageSize: 1,
+      hasMore: false,
+      nextPage: null,
+    });
+    expect(servicePage.body.items).toHaveLength(1);
+    expect(servicePage.body.items[0].id).toBe(serviceId);
+
+    const stylistPage = await request(getHttpServer(app!))
+      .get('/api/stylists?activeOnly=true')
+      .expect(200);
+    expect(stylistPage.body).toMatchObject({
+      page: 0,
+      pageSize: 20,
+    });
+    expect(stylistPage.body.total).toBeGreaterThanOrEqual(1);
+    expect(stylistPage.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: fixtureIds.stylistProfile }),
+      ]),
+    );
+
+    const stylistServicesPage = await request(getHttpServer(app!))
+      .get(
+        `/api/stylists/${fixtureIds.stylistProfile}/services?page=0&pageSize=1`,
+      )
+      .expect(200);
+    expect(stylistServicesPage.body).toMatchObject({
+      total: 1,
+      page: 0,
+      pageSize: 1,
+      hasMore: false,
+      nextPage: null,
+    });
+    expect(stylistServicesPage.body.items[0].serviceId).toBe(serviceId);
+
+    await request(getHttpServer(app!))
+      .get(
+        `/api/stylists/${fixtureIds.stylistProfile}/services?page=21&pageSize=50`,
+      )
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/services/categories?page=invalid')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/services/categories?pageSize=51')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/services/categories?activeOnly=yes')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/services/subcategories?categoryId=&activeOnly=true')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get(`/api/services/subcategories?categoryId=${'x'.repeat(129)}`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/services/subcategories?page=21&pageSize=50')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/services/subcategories?unexpected=true')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/services?page=invalid')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/services?page=0&pageSize=51')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/services?page=21&pageSize=50')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/services?activeOnly=yes')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/services?sort=name')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/stylists?page=1.5')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/stylists?page=0&pageSize=51')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/stylists?activeOnly=maybe')
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/stylists?limit=50')
+      .expect(400);
+  });
+
+  it('strictly bounds admin, client and stylist analytics date inputs', async () => {
+    await request(getHttpServer(app!))
+      .get('/api/analytics/dashboard?monthsBack=61')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get(
+        '/api/analytics/dashboard?monthsBack=12&fromDate=2026-01-01&toDate=2026-12-31',
+      )
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/analytics/dashboard?monthsBack=abc')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/analytics/dashboard?fromDate=2026-01-01')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/analytics/dashboard?monthsBack=12&unexpected=true')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(400);
+
+    await request(getHttpServer(app!))
+      .get(`/api/users/${clientUserId}/analytics?fromDate=2026-01-01`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get(
+        `/api/users/${clientUserId}/analytics?fromDate=2020-01-01&toDate=2025-01-02`,
+      )
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get(
+        `/api/stylists/${fixtureIds.stylistProfile}/analytics?fromDate=2026-02-31&toDate=2026-03-01`,
+      )
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(400);
+  });
+
+  it('keeps the public blog list published-only and returns the selected detail', async () => {
+    await request(getHttpServer(app!))
+      .get('/api/blog?published=false')
+      .expect(400);
+    await request(getHttpServer(app!)).get('/api/blog?limit=51').expect(400);
+    await request(getHttpServer(app!)).get('/api/blog?offset=1001').expect(400);
+    const publicList = await request(getHttpServer(app!))
+      .get('/api/blog?limit=20&offset=0')
+      .expect(200);
+    expect(publicList.body).toMatchObject({
+      limit: 20,
+      offset: 0,
+      hasMore: false,
+      nextOffset: 1,
+    });
+    expect(publicList.body.total).toBeGreaterThanOrEqual(1);
+    const publicSlugs = publicList.body.items.map(
       (post: { slug: string }) => post.slug,
     );
     expect(publicSlugs).toContain(publishedPostSlug);
     expect(publicSlugs).not.toContain(draftPostSlug);
-    const listRow = publicList.body.find(
+    const listRow = publicList.body.items.find(
       (post: { slug: string }) => post.slug === publishedPostSlug,
     );
     expect(listRow).not.toHaveProperty('content');
@@ -998,22 +1207,43 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
   });
 
   it('returns only approved comments for published posts and guards admin/draft reads', async () => {
-    const publicComments = await request(getHttpServer(app!))
+    await request(getHttpServer(app!))
       .get(`/api/blog/${publishedPostId}/comments?approved=false`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get(`/api/blog/${publishedPostId}/comments?limit=51`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get(`/api/blog/${publishedPostId}/comments?offset=1001`)
+      .expect(400);
+    const publicComments = await request(getHttpServer(app!))
+      .get(`/api/blog/${publishedPostId}/comments?limit=20&offset=0`)
       .expect(200);
+    expect(publicComments.body).toMatchObject({
+      total: 1,
+      limit: 20,
+      offset: 0,
+      hasMore: false,
+      nextOffset: 1,
+    });
     expect(
-      publicComments.body.map((comment: { id: string }) => comment.id),
+      publicComments.body.items.map((comment: { id: string }) => comment.id),
     ).toEqual([approvedCommentId]);
-    expect(publicComments.body[0].user).toEqual({
+    expect(publicComments.body.items[0].user).toEqual({
       firstName: 'Test',
       lastName: 'Client',
     });
-    expect(publicComments.body[0].user).not.toHaveProperty('email');
+    expect(publicComments.body.items[0].user).not.toHaveProperty('email');
 
     const commentsOnDraft = await request(getHttpServer(app!))
       .get(`/api/blog/${draftPostId}/comments`)
       .expect(200);
-    expect(commentsOnDraft.body).toEqual([]);
+    expect(commentsOnDraft.body).toMatchObject({
+      items: [],
+      total: 0,
+      hasMore: false,
+      nextOffset: 0,
+    });
 
     await request(getHttpServer(app!)).get('/api/blog/admin').expect(401);
     await request(getHttpServer(app!))

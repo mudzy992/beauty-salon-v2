@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import api from '../../../api/client'
+import { fetchAllPublicServices } from '../../../api/catalog'
 import { getErrorMessage } from '../../../api/error'
 import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
@@ -41,11 +42,8 @@ export const StylistDirectBookingPage = () => {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    api
-      .get<ServiceOption[] | { items: ServiceOption[] }>('/api/services', {
-        params: { page: 0, pageSize: 300, activeOnly: 'true' },
-      })
-      .then(({ data }) => setServices(Array.isArray(data) ? data : data.items ?? []))
+    fetchAllPublicServices<ServiceOption>({ activeOnly: 'true' })
+      .then(setServices)
       .catch(() => setServices([]))
   }, [])
 

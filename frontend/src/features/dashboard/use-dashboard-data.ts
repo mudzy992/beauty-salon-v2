@@ -14,6 +14,14 @@ const currentMonthBounds = () => {
 
 const asArray = <T,>(data: unknown): T[] => (Array.isArray(data) ? data : [])
 
+const catalogCount = (data: unknown) => {
+  if (Array.isArray(data)) return data.length
+  if (data && typeof data === 'object' && 'total' in data && typeof data.total === 'number') {
+    return data.total
+  }
+  return 0
+}
+
 export const useDashboardData = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentReservations, setRecentReservations] = useState<RecentReservation[]>([])
@@ -24,8 +32,8 @@ export const useDashboardData = () => {
     const { year, month, firstDay, lastDay } = currentMonthBounds()
     Promise.all([
       api.get('/api/users').catch(() => ({ data: [] })),
-      api.get('/api/stylists').catch(() => ({ data: [] })),
-      api.get('/api/services').catch(() => ({ data: [] })),
+      api.get('/api/stylists', { params: { page: 0, pageSize: 1 } }).catch(() => ({ data: [] })),
+      api.get('/api/services', { params: { page: 0, pageSize: 1 } }).catch(() => ({ data: [] })),
       api
         .get('/api/reservations', { params: { fromDate: firstDay, toDate: lastDay } })
         .catch(() => ({ data: [] })),
@@ -66,8 +74,8 @@ export const useDashboardData = () => {
 
           setStats({
             usersCount: asArray(usersRes.data).length,
-            stylistsCount: asArray(stylistsRes.data).length,
-            servicesCount: asArray(servicesRes.data).length,
+            stylistsCount: catalogCount(stylistsRes.data),
+            servicesCount: catalogCount(servicesRes.data),
             reservationsThisMonth: allReservations.length,
             pendingReservations: asArray(pendingRes.data).length,
             completedReservations: allReservations.filter((r) => r.status === 'COMPLETED')

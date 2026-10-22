@@ -15,29 +15,37 @@ type Props = {
   slug: string
   user: unknown
   comments: Comment[]
+  total: number
   loading: boolean
+  loadingMore: boolean
+  hasMore: boolean
   newComment: string
   submitting: boolean
   onChange: (value: string) => void
   onSubmit: () => void
+  onLoadMore: () => void
 }
 
 export function PublicBlogComments({
   slug,
   user,
   comments,
+  total,
   loading,
+  loadingMore,
+  hasMore,
   newComment,
   submitting,
   onChange,
   onSubmit,
+  onLoadMore,
 }: Props) {
   return (
     <>
       <div className="my-10 h-px bg-slate-200" />
       <div className="mb-6 flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-950">
         <MessageCircle className="h-5 w-5 text-slate-500" aria-hidden />
-        Komentari {comments.length > 0 && `(${comments.length})`}
+        Komentari {total > 0 && `(${total})`}
       </div>
       {user ? (
         <div className="mb-8 space-y-4">
@@ -83,6 +91,13 @@ export function PublicBlogComments({
           ))}
         </div>
       )}
+      {hasMore ? (
+        <div className="mt-6">
+          <Button onClick={onLoadMore} disabled={loadingMore} variant="outline">
+            {loadingMore ? 'Učitavanje…' : 'Učitaj još komentara'}
+          </Button>
+        </div>
+      ) : null}
     </>
   )
 }

@@ -3,6 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  DEFAULT_API_PAGE_LIMIT,
+  MAX_API_PAGE_OFFSET,
+} from '../common/pagination.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBlogPostDto } from './dto/create-blog-post.dto';
 import { UpdateBlogPostDto } from './dto/update-blog-post.dto';
@@ -63,12 +67,32 @@ export class BlogService {
     });
   }
 
-  findAllPublic() {
-    return this.prisma.blogPost.findMany({
-      where: { isPublished: true },
-      select: PUBLIC_BLOG_LIST_SELECT,
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAllPublic(pagination?: { limit?: number; offset?: number }) {
+    const limit = pagination?.limit ?? DEFAULT_API_PAGE_LIMIT;
+    const offset = pagination?.offset ?? 0;
+    const where = { isPublished: true };
+    const [items, total] = await Promise.all([
+      this.prisma.blogPost.findMany({
+        where,
+        select: PUBLIC_BLOG_LIST_SELECT,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: offset,
+        take: limit,
+      }),
+      this.prisma.blogPost.count({ where }),
+    ]);
+    const nextOffset = offset + items.length;
+    return {
+      items,
+      total,
+      limit,
+      offset,
+      hasMore:
+        items.length > 0 &&
+        nextOffset < total &&
+        nextOffset <= MAX_API_PAGE_OFFSET,
+      nextOffset,
+    };
   }
 
   async findAllForAdmin() {

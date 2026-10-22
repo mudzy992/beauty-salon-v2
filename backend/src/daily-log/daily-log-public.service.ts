@@ -108,28 +108,35 @@ export class DailyLogPublicService {
     hasMore: boolean;
     nextOffset: number;
   }> {
-    const ids = await this.prisma.dailyLogEntry.findMany({
-      where,
-      select: { id: true },
-    });
-    const shuffled = this.shuffleIds(ids.map((x) => x.id));
-    const selected = shuffled.slice(0, limit);
-    if (selected.length === 0) {
-      return { items: [], hasMore: false, nextOffset: 0 };
-    }
-    const entries = await this.prisma.dailyLogEntry.findMany({
-      where: { id: { in: selected } },
-      include: {
-        images: { include: { upload: true }, orderBy: { sortOrder: 'asc' } },
-        service: { select: { id: true, name: true } },
+    const randomStart = Math.random();
+    const randomOrder = [{ randomKey: 'asc' as const }, { id: 'asc' as const }];
+    const include = {
+      images: {
+        include: { upload: true },
+        orderBy: { sortOrder: 'asc' as const },
       },
+      service: { select: { id: true, name: true } },
+    };
+    const firstWindow = await this.prisma.dailyLogEntry.findMany({
+      where: { ...where, randomKey: { gte: randomStart } },
+      include,
+      orderBy: randomOrder,
+      take: limit,
     });
-    const byId = new Map(entries.map((e) => [e.id, e]));
-    const ordered = selected
-      .map((id) => byId.get(id))
-      .filter((e): e is NonNullable<typeof e> => !!e);
+
+    const remaining = limit - firstWindow.length;
+    const wrappedWindow =
+      remaining > 0
+        ? await this.prisma.dailyLogEntry.findMany({
+            where: { ...where, randomKey: { lt: randomStart } },
+            include,
+            orderBy: randomOrder,
+            take: remaining,
+          })
+        : [];
+
     return {
-      items: this.mapPairs(ordered),
+      items: this.mapPairs([...firstWindow, ...wrappedWindow]),
       hasMore: false,
       nextOffset: 0,
     };
@@ -173,16 +180,5 @@ export class DailyLogPublicService {
       });
     }
     return pairs;
-  }
-
-  private shuffleIds(ids: string[]): string[] {
-    const arr = [...ids];
-    for (let i = arr.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const tmp = arr[i]!;
-      arr[i] = arr[j]!;
-      arr[j] = tmp;
-    }
-    return arr;
   }
 }

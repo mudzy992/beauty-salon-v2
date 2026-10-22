@@ -3,21 +3,37 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 
-import api from '../../api/client'
+import {
+  fetchAllPublicServiceCategories,
+  fetchAllPublicServices,
+  fetchAllPublicServiceSubcategories,
+} from '../../api/catalog'
 import { useSettings } from '../../context/SettingsContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 
 interface ServiceOption {
   id: string;
+  subcategoryId: string;
   name: string;
   durationMinutes: number;
+}
+
+interface ServiceSubcategory {
+  id: string;
+  categoryId: string;
+  name: string;
+  services?: ServiceOption[];
 }
 
 interface ServiceCategory {
   id: string;
   name: string;
-  subcategories?: { id: string; name: string; services?: ServiceOption[] }[];
+  subcategories?: ServiceSubcategory[];
+}
+
+interface CatalogService extends ServiceOption {
+  subcategory?: { categoryId: string };
 }
 
 const MotionDiv = motion.div;
@@ -39,16 +55,31 @@ export default function PublicServices() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api
-      .get<ServiceCategory[]>('/api/services/categories', { params: { activeOnly: 'true' } })
-      .then(async (r) => {
-        const list = Array.isArray(r.data) ? r.data : [];
-        const withServices = await Promise.all(
-          list.map((c) =>
-            api.get<ServiceCategory>(`/api/services/categories/${c.id}`).then((res) => res.data)
-          )
+    Promise.all([
+      fetchAllPublicServiceCategories<ServiceCategory>({ activeOnly: true }),
+      fetchAllPublicServiceSubcategories<ServiceSubcategory>({ activeOnly: true }),
+      fetchAllPublicServices<CatalogService>({ activeOnly: true }),
+    ])
+      .then(([categoryList, subcategoryList, serviceList]) => {
+        const servicesBySubcategory = new Map<string, ServiceOption[]>();
+        serviceList.forEach((service) => {
+          const services = servicesBySubcategory.get(service.subcategoryId) ?? [];
+          services.push(service);
+          servicesBySubcategory.set(service.subcategoryId, services);
+        });
+        const subcategoriesByCategory = new Map<string, ServiceSubcategory[]>();
+        subcategoryList.forEach((subcategory) => {
+          subcategory.services = servicesBySubcategory.get(subcategory.id) ?? [];
+          const subcategories = subcategoriesByCategory.get(subcategory.categoryId) ?? [];
+          subcategories.push(subcategory);
+          subcategoriesByCategory.set(subcategory.categoryId, subcategories);
+        });
+        setCategories(
+          categoryList.map((category) => ({
+            ...category,
+            subcategories: subcategoriesByCategory.get(category.id) ?? [],
+          })),
         );
-        setCategories(withServices);
       })
       .catch(() => setCategories([]))
       .finally(() => setLoading(false));

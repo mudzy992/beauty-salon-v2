@@ -20,6 +20,14 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { PublicServiceListQueryDto } from './dto/public-service-list-query.dto';
+import { PublicServiceCategoryListQueryDto } from './dto/public-service-category-list-query.dto';
+import { PublicServiceSubcategoryListQueryDto } from './dto/public-service-subcategory-list-query.dto';
+import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
+import {
+  HTTP_RATE_LIMIT_PUBLIC_IP,
+  HTTP_RATE_LIMIT_WINDOW_SECONDS,
+} from '../common/rate-limiting/http-rate-limit.constants';
 
 @Controller('api/services')
 export class ServicesController {
@@ -27,24 +35,51 @@ export class ServicesController {
 
   @Get('home-stats')
   @Public()
+  @HttpRateLimit({
+    bucket: 'catalog:service-home-stats',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   getPublicHomeStats() {
     return this.servicesService.getPublicHomeStats();
   }
 
   @Get('popular')
   @Public()
+  @HttpRateLimit({
+    bucket: 'catalog:popular-service',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   getMostPopularService() {
     return this.servicesService.getMostPopularService();
   }
 
   @Get('categories')
   @Public()
-  findAllCategories(@Query('activeOnly') activeOnly?: string) {
-    return this.servicesService.findAllCategories(activeOnly === 'true');
+  @HttpRateLimit({
+    bucket: 'catalog:service-categories',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
+  findAllCategories(@Query() query: PublicServiceCategoryListQueryDto) {
+    return this.servicesService.findAllCategories(query.activeOnly === 'true', {
+      page: query.page,
+      pageSize: query.pageSize,
+    });
   }
 
   @Get('categories/:id')
   @Public()
+  @HttpRateLimit({
+    bucket: 'catalog:service-category-detail',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   findOneCategory(@Param('id') id: string) {
     return this.servicesService.findOneCategory(id);
   }
@@ -72,18 +107,28 @@ export class ServicesController {
 
   @Get('subcategories')
   @Public()
-  findAllSubcategories(
-    @Query('categoryId') categoryId?: string,
-    @Query('activeOnly') activeOnly?: string,
-  ) {
+  @HttpRateLimit({
+    bucket: 'catalog:service-subcategories',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
+  findAllSubcategories(@Query() query: PublicServiceSubcategoryListQueryDto) {
     return this.servicesService.findAllSubcategories(
-      categoryId,
-      activeOnly === 'true',
+      query.categoryId,
+      query.activeOnly === 'true',
+      { page: query.page, pageSize: query.pageSize },
     );
   }
 
   @Get('subcategories/:id')
   @Public()
+  @HttpRateLimit({
+    bucket: 'catalog:service-subcategory-detail',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   findOneSubcategory(@Param('id') id: string) {
     return this.servicesService.findOneSubcategory(id);
   }
@@ -114,24 +159,28 @@ export class ServicesController {
 
   @Get()
   @Public()
-  findAllServices(
-    @Query('subcategoryId') subcategoryId?: string,
-    @Query('activeOnly') activeOnly?: string,
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-  ) {
+  @HttpRateLimit({
+    bucket: 'catalog:services',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
+  findAllServices(@Query() query: PublicServiceListQueryDto) {
     return this.servicesService.findAllServices(
-      subcategoryId,
-      activeOnly === 'true',
-      {
-        page: page != null ? parseInt(page, 10) : undefined,
-        pageSize: pageSize != null ? parseInt(pageSize, 10) : undefined,
-      },
+      query.subcategoryId,
+      query.activeOnly === 'true',
+      { page: query.page, pageSize: query.pageSize },
     );
   }
 
   @Get(':id')
   @Public()
+  @HttpRateLimit({
+    bucket: 'catalog:service-detail',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   findOneService(@Param('id') id: string) {
     return this.servicesService.findOneService(id);
   }

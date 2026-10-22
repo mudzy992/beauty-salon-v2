@@ -1,8 +1,18 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import {
+  DEFAULT_API_PAGE_LIMIT,
+  MAX_API_PAGE_LIMIT,
+  MAX_API_PAGE_OFFSET,
+} from '../common/pagination.constants';
+import {
+  analyticsDateBounds,
+  resolveAnalyticsDateRange,
+} from '../common/analytics-date-range';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStylistProfileDto } from './dto/create-stylist-profile.dto';
 import { UpdateStylistProfileDto } from './dto/update-stylist-profile.dto';
@@ -19,33 +29,28 @@ export class StylistsService {
 
   async findAll(
     activeOnly = false,
-    pagination?: { page?: number; pageSize?: number },
+    pagination: { page: number; pageSize: number } = {
+      page: 0,
+      pageSize: DEFAULT_API_PAGE_LIMIT,
+    },
   ) {
     const where = activeOnly ? { isActive: true } : {};
-    const hasPagination =
-      pagination?.page != null && pagination?.pageSize != null;
-    if (!hasPagination) {
-      return this.prisma.stylistProfile.findMany({
-        where,
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              avatar: true,
-            },
-          },
-          workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
-          stylistServices: { include: { service: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+    const page = pagination.page;
+    const pageSize = pagination.pageSize;
+    const offset = page * pageSize;
+    if (
+      !Number.isSafeInteger(page) ||
+      page < 0 ||
+      !Number.isSafeInteger(pageSize) ||
+      pageSize < 1 ||
+      pageSize > MAX_API_PAGE_LIMIT ||
+      !Number.isSafeInteger(offset) ||
+      offset > MAX_API_PAGE_OFFSET
+    ) {
+      throw new BadRequestException(
+        'Raspon kataloga stilista prelazi dozvoljeni limit.',
+      );
     }
-    const page = Math.max(0, pagination?.page ?? 0);
-    const pageSize = Math.min(100, Math.max(1, pagination?.pageSize ?? 10));
     const [items, total] = await Promise.all([
       this.prisma.stylistProfile.findMany({
         where,
@@ -60,20 +65,33 @@ export class StylistsService {
               avatar: true,
             },
           },
-          workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
-          stylistServices: { include: { service: true } },
+          workingHours: {
+            orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
+          },
+          stylistServices: {
+            take: MAX_API_PAGE_LIMIT,
+            include: { service: true },
+            orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
+          },
         },
-        orderBy: { createdAt: 'desc' },
-        skip: page * pageSize,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: offset,
         take: pageSize,
       }),
       this.prisma.stylistProfile.count({ where }),
     ]);
+    const nextOffset = offset + items.length;
+    const hasMore =
+      items.length > 0 &&
+      total > nextOffset &&
+      nextOffset <= MAX_API_PAGE_OFFSET;
     return {
       items,
       total,
       page,
       pageSize,
+      hasMore,
+      nextPage: hasMore ? page + 1 : null,
     };
   }
 
@@ -94,6 +112,8 @@ export class StylistsService {
         },
         workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
         stylistServices: {
+          take: MAX_API_PAGE_LIMIT,
+          orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
           include: {
             service: {
               include: { subcategory: { include: { category: true } } },
@@ -310,14 +330,62 @@ export class StylistsService {
     });
   }
 
-  async getServices(stylistProfileId: string) {
-    await this.findOne(stylistProfileId);
-    return this.prisma.stylistService.findMany({
-      where: { stylistProfileId },
-      include: {
-        service: { include: { subcategory: { include: { category: true } } } },
-      },
+  async getServices(
+    stylistProfileId: string,
+    pagination: { page: number; pageSize: number } = {
+      page: 0,
+      pageSize: DEFAULT_API_PAGE_LIMIT,
+    },
+  ) {
+    const page = pagination.page;
+    const pageSize = pagination.pageSize;
+    const offset = page * pageSize;
+    if (
+      !Number.isSafeInteger(page) ||
+      page < 0 ||
+      !Number.isSafeInteger(pageSize) ||
+      pageSize < 1 ||
+      pageSize > MAX_API_PAGE_LIMIT ||
+      !Number.isSafeInteger(offset) ||
+      offset > MAX_API_PAGE_OFFSET
+    ) {
+      throw new BadRequestException(
+        'Raspon servisa stiliste prelazi dozvoljeni limit.',
+      );
+    }
+
+    const profile = await this.prisma.stylistProfile.findUnique({
+      where: { id: stylistProfileId },
+      select: { id: true },
     });
+    if (!profile) throw new NotFoundException('Stilist nije pronađen.');
+
+    const where = { stylistProfileId };
+    const [items, total] = await Promise.all([
+      this.prisma.stylistService.findMany({
+        where,
+        include: {
+          service: { include: { subcategory: { include: { category: true } } } },
+        },
+        orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
+        skip: offset,
+        take: pageSize,
+      }),
+      this.prisma.stylistService.count({ where }),
+    ]);
+    const nextOffset = offset + items.length;
+    const hasMore =
+      items.length > 0 &&
+      total > nextOffset &&
+      nextOffset <= MAX_API_PAGE_OFFSET;
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      hasMore,
+      nextPage: hasMore ? page + 1 : null,
+    };
   }
 
   async getStylistAnalytics(
@@ -327,6 +395,8 @@ export class StylistsService {
     toDate?: string,
   ) {
     this.requireAdminOrOwner(roles);
+    const analyticsRange = resolveAnalyticsDateRange(fromDate, toDate);
+    const dateFilter = analyticsDateBounds(analyticsRange);
     const profile = await this.prisma.stylistProfile.findUnique({
       where: { id: stylistProfileId },
       include: {
@@ -343,13 +413,8 @@ export class StylistsService {
     });
     if (!profile) throw new NotFoundException('Stilist nije pronađen.');
 
-    let dateFilter: { gte?: Date; lte?: Date } = {};
-    if (fromDate && toDate) {
-      dateFilter = { gte: new Date(fromDate), lte: new Date(toDate) };
-    }
-
-    const [fromReservations, fromDailyLog, fromManualIncome] = await Promise.all(
-      [
+    const [fromReservations, fromDailyLog, fromManualIncome] =
+      await Promise.all([
         this.prisma.reservation.findMany({
           where: {
             confirmedStylistId: stylistProfileId,
@@ -388,8 +453,7 @@ export class StylistsService {
           orderBy: { date: 'desc' },
           take: 100,
         }),
-      ],
-    );
+      ]);
 
     const completedCount =
       fromReservations.length + fromDailyLog.length + fromManualIncome.length;
@@ -451,8 +515,8 @@ export class StylistsService {
 
     return {
       stylist: { id: profile.id, name: stylistName, user: profile.user },
-      fromDate: fromDate ?? null,
-      toDate: toDate ?? null,
+      fromDate: analyticsRange.fromDate,
+      toDate: analyticsRange.toDate,
       completedCount,
       revenue: Math.round(revenue * 100) / 100,
       tips: Math.round(tips * 100) / 100,

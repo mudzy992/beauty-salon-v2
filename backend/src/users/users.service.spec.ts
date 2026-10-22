@@ -322,12 +322,51 @@ describe('UsersService', () => {
       },
     ]);
 
-    const result = await service.getClientAnalytics('u1', ['OWNER']);
+    const result = await service.getClientAnalytics(
+      'u1',
+      ['OWNER'],
+      '2026-03-01',
+      '2026-03-31',
+    );
+    const dateBounds = {
+      gte: new Date('2026-03-01T00:00:00.000Z'),
+      lte: new Date('2026-03-31T23:59:59.999Z'),
+    };
+    expect(mockRepo.reservation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { clientId: 'u1', reservationDate: dateBounds },
+      }),
+    );
+    expect(mockRepo.review.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: 'u1', createdAt: dateBounds },
+      }),
+    );
+    expect(mockRepo.dailyLogEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { clientId: 'u1', deletedAt: null, date: dateBounds },
+      }),
+    );
+    expect(mockRepo.incomeBookManualEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { clientId: 'u1', date: dateBounds } }),
+    );
+    expect(result.fromDate).toBe('2026-03-01');
+    expect(result.toDate).toBe('2026-03-31');
     expect(result.stats.manualEntryCount).toBe(2);
     expect(result.stats.manualSpent).toBe(70);
     expect(result.manualEntries).toHaveLength(2);
     expect(result.manualEntries[0].id).toBe('m1');
     expect(result.manualEntries[0].isManual).toBe(true);
+  });
+
+  it('rejects incomplete or overlong client analytics ranges before database reads', async () => {
+    await expect(
+      service.getClientAnalytics('user-1', ['OWNER'], '2026-01-01'),
+    ).rejects.toThrow('fromDate i toDate moraju biti navedeni zajedno.');
+    await expect(
+      service.getClientAnalytics('user-1', ['OWNER'], '2020-01-01', '2025-01-02'),
+    ).rejects.toThrow('Analytics date range ne može biti duži od 60 mjeseci.');
+    expect(mockRepo.user.findUnique).not.toHaveBeenCalled();
   });
 
   it('disconnects sockets after an account activity change', async () => {

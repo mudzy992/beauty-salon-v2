@@ -4,6 +4,11 @@ import { useTranslation } from 'react-i18next'
 import { Eye, Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 
 import api from '../api/client'
+import {
+  fetchAllPublicServiceCategories,
+  fetchAllPublicServices,
+  fetchAllPublicServiceSubcategories,
+} from '../api/catalog'
 import { MediaImage } from '../components/media-image'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { useAppToast } from '../lib/toast/useAppToast'
@@ -20,6 +25,7 @@ import { Textarea } from '../components/ui/textarea'
 
 interface Service {
   id: string
+  subcategoryId: string
   name: string
   shortDescription: string | null
   heroImage: string | null
@@ -34,6 +40,7 @@ interface Service {
 
 interface Subcategory {
   id: string
+  categoryId: string
   name: string
   description: string | null
   sortOrder: number
@@ -87,14 +94,26 @@ export default function Services() {
 
   const loadData = useCallback(() => {
     setLoading(true)
-    api
-      .get<Category[]>('/api/services/categories')
-      .then(async (r) => {
-        const list = Array.isArray(r.data) ? r.data : []
-        const withDetails = await Promise.all(
-          list.map((c) => api.get<Category>(`/api/services/categories/${c.id}`).then((res) => res.data)),
+    Promise.all([
+      fetchAllPublicServiceCategories<Category>(),
+      fetchAllPublicServiceSubcategories<Subcategory>(),
+      fetchAllPublicServices<Service>(),
+    ])
+      .then(([categoryList, subcategoryList, serviceList]) => {
+        const subcategoriesById = new Map(
+          subcategoryList.map((subcategory) => [subcategory.id, { ...subcategory, services: [] as Service[] }]),
         )
-        setCategories(withDetails)
+        serviceList.forEach((service) => {
+          subcategoriesById.get(service.subcategoryId)?.services.push(service)
+        })
+        setCategories(
+          categoryList.map((category) => ({
+            ...category,
+            subcategories: subcategoryList
+              .filter((subcategory) => subcategory.categoryId === category.id)
+              .map((subcategory) => subcategoriesById.get(subcategory.id) ?? subcategory),
+          })),
+        )
       })
       .catch(() => setCategories([]))
       .finally(() => setLoading(false))

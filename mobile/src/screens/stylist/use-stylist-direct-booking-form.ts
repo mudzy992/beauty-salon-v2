@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import api from '../../services/api';
+import { fetchAllPublicServices } from '../../services/catalog';
 import {
   clientLabel,
   type DirectBookingClient,
@@ -20,11 +21,8 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api
-      .get<DirectBookingService[] | { items: DirectBookingService[] }>('/api/services', {
-        params: { page: 0, pageSize: 300, activeOnly: 'true' },
-      })
-      .then(({ data }) => setServices(Array.isArray(data) ? data : data.items ?? []))
+    fetchAllPublicServices<DirectBookingService>({ activeOnly: 'true' })
+      .then(setServices)
       .catch(() => setServices([]));
   }, []);
 

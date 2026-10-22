@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 
 import api from '../api/client'
+import { fetchAllPublicStylists } from '../api/catalog'
 import { getErrorMessage } from '../api/error'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { getUploadUrl } from '../utils/uploadUrl'
@@ -594,14 +595,7 @@ export default function Users() {
         return
       }
 
-      const stylistsRes = await api.get<StylistOption[] | { items: StylistOption[] }>('/api/stylists', {
-        params: { page: 0, pageSize: 300 },
-      })
-      const items = Array.isArray((stylistsRes.data as any)?.items)
-        ? (stylistsRes.data as any).items
-        : Array.isArray(stylistsRes.data)
-          ? stylistsRes.data
-          : []
+      const items = await fetchAllPublicStylists<StylistOption>()
       setAllStylists(items)
     } catch (err) {
       error(getErrorMessage(err, 'Greška pri pripremi uklanjanja stiliste'))

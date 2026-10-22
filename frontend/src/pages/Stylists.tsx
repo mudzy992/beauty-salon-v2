@@ -4,6 +4,10 @@ import { useTranslation } from 'react-i18next'
 import { Eye, Loader2, Pencil, X } from 'lucide-react'
 
 import api from '../api/client'
+import {
+  fetchAllPublicServices,
+  fetchAllPublicStylistServices,
+} from '../api/catalog'
 import { useAppToast } from '../lib/toast/useAppToast'
 
 import { Badge } from '../components/ui/badge'
@@ -99,18 +103,9 @@ export default function Stylists() {
   }, [page, pageSize])
 
   const loadAllServices = useCallback(() => {
-    api
-      .get<ServiceOption[] | PaginatedResponse<ServiceOption>>('/api/services', {
-        params: { page: 0, pageSize: 300 },
-      })
-      .then((r) => {
-        if (Array.isArray(r.data)) {
-          setAllServices(r.data)
-          return
-        }
-        setAllServices(Array.isArray(r.data.items) ? r.data.items : [])
-      })
-      .catch(() => {})
+    fetchAllPublicServices<ServiceOption>()
+      .then(setAllServices)
+      .catch(() => setAllServices([]))
   }, [])
 
   useEffect(() => {
@@ -128,9 +123,9 @@ export default function Stylists() {
       hireDate: s.hireDate?.slice(0, 10) ?? '',
     })
     try {
-      const [whRes, svcRes] = await Promise.all([
+      const [whRes, serviceRows] = await Promise.all([
         api.get<WorkingHours[]>(`/api/stylists/${s.id}/working-hours`),
-        api.get<{ serviceId: string }[]>(`/api/stylists/${s.id}/services`),
+        fetchAllPublicStylistServices<{ serviceId?: string; id?: string }>(s.id),
       ])
       const existing = Array.isArray(whRes.data) ? whRes.data : []
       const full: WorkingHours[] = Array.from({ length: 7 }, (_, i) => {
@@ -138,9 +133,9 @@ export default function Stylists() {
         return found ?? { dayOfWeek: i, startTime: '09:00', endTime: '17:00', isWorkingDay: i >= 1 && i <= 5 }
       })
       setWorkingHours(full)
-      const ids = Array.isArray(svcRes.data)
-        ? svcRes.data.map((x) => (x as any).serviceId ?? (x as any).id).filter(Boolean)
-        : []
+      const ids = serviceRows
+        .map((service) => service.serviceId ?? service.id)
+        .filter((id): id is string => Boolean(id))
       setStylistServiceIds(ids)
       setForm((prev) => ({
         ...prev,

@@ -17,6 +17,7 @@ import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import './reservation-scheduler.css'
 
 import api from '../../../api/client'
+import { fetchAllPublicServices } from '../../../api/catalog'
 import { getErrorMessage } from '../../../api/error'
 import { Button } from '../../../components/ui/button'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
@@ -253,11 +254,7 @@ export const ReservationScheduler = (props: Props) => {
 
   const loadServices = useCallback(async () => {
     try {
-      const { data } = await api.get<ServiceOption[] | { items: ServiceOption[] }>('/api/services', {
-        params: { page: 0, pageSize: 300, activeOnly: 'true' },
-      })
-      const items = Array.isArray(data) ? data : Array.isArray((data as any).items) ? (data as any).items : []
-      setServices(items)
+      setServices(await fetchAllPublicServices<ServiceOption>({ activeOnly: 'true' }))
     } catch {
       setServices([])
     }

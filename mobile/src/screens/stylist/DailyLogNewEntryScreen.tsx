@@ -17,6 +17,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import api from '../../services/api';
+import { fetchAllPublicServices } from '../../services/catalog';
 import { spacing } from '../../theme';
 import type { Service } from '../../types';
 import { DailyLogEntryPricingBlock } from './DailyLogEntryPricingBlock';
@@ -80,11 +81,11 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     Promise.all([
-      api.get<Service[]>('/api/services', { params: { activeOnly: true } }),
+      fetchAllPublicServices<Service>({ activeOnly: true }),
       api.get<ClientOption[]>('/api/users/for-daily-log'),
     ])
-      .then(([svcRes, cliRes]) => {
-        setServices(Array.isArray(svcRes.data) ? svcRes.data : []);
+      .then(([serviceItems, cliRes]) => {
+        setServices(serviceItems);
         setClients(Array.isArray(cliRes.data) ? cliRes.data : []);
       })
       .catch(() => {

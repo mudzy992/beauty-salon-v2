@@ -23,6 +23,8 @@ services:
       SOCKET_IO_MULTI_INSTANCE: ${SOCKET_IO_MULTI_INSTANCE:-true}
       SOCKET_IO_REDIS_URL: ${SOCKET_IO_REDIS_URL:-}
       SOCKET_IO_REDIS_CHANNEL_PREFIX: "${SOCKET_IO_REDIS_CHANNEL_PREFIX:-beauty-salon-v2:production}"
+      HTTP_RATE_LIMIT_REDIS_URL: ${HTTP_RATE_LIMIT_REDIS_URL:-}
+      HTTP_RATE_LIMIT_PREFIX: "${HTTP_RATE_LIMIT_PREFIX:-beauty-salon-v2:http-rate-limit:production}"
 
     volumes:
       - /mnt/shared-app-files/beauty-salon-v2:/usr/app/uploads

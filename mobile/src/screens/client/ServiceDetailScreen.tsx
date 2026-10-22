@@ -15,10 +15,11 @@ import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { MediaBackdrop } from '../../components/MediaImage';
 import { Button } from '../../components/ui/Button';
-import api, { getUploadUrl } from '../../services/api';
+import { getUploadUrl } from '../../services/api';
+import { fetchAllPublicServices } from '../../services/catalog';
 import { spacing } from '../../theme';
 import type { ServicesScreenProps } from '../../navigation/types';
-import type { ServiceCategory, ServiceSubcategory, Service } from '../../types';
+import type { Service } from '../../types';
 
 interface Section {
   title: string;
@@ -41,14 +42,19 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get<ServiceCategory>(`/api/services/categories/${categoryId}`);
-        const sectionData: Section[] = (data.subcategories || [])
-          .filter((sub) => sub.services && sub.services.length > 0)
-          .map((sub) => ({
-            title: sub.name,
-            data: sub.services!,
-          }));
-        setSections(sectionData);
+        const catalogServices = await fetchAllPublicServices<Service>({ activeOnly: true });
+        const sectionMap = new Map<string, Section>();
+        catalogServices.forEach((service) => {
+          const subcategory = service.subcategory;
+          if (subcategory?.categoryId !== categoryId) return;
+          const section = sectionMap.get(service.subcategoryId) ?? {
+            title: subcategory.name,
+            data: [],
+          };
+          section.data.push(service);
+          sectionMap.set(service.subcategoryId, section);
+        });
+        setSections(Array.from(sectionMap.values()));
       } catch { /* silent */ }
       setLoading(false);
     })();

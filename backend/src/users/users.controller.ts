@@ -16,6 +16,12 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { RemoveStylistRoleDto } from './dto/remove-stylist-role.dto';
 import { ClientListQueryDto } from './dto/client-list-query.dto';
+import { AnalyticsDateRangeQueryDto } from '../analytics/dto/analytics-date-range-query.dto';
+import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
+import {
+  HTTP_RATE_LIMIT_ADMIN_USER,
+  HTTP_RATE_LIMIT_WINDOW_SECONDS,
+} from '../common/rate-limiting/http-rate-limit.constants';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -136,17 +142,22 @@ export class UsersController {
   @Get(':id/analytics')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
+  @HttpRateLimit({
+    bucket: 'analytics:client',
+    limit: HTTP_RATE_LIMIT_ADMIN_USER,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'user',
+  })
   getClientAnalytics(
     @Param('id') id: string,
     @CurrentUser() user: CurrentUserPayload,
-    @Query('fromDate') fromDate?: string,
-    @Query('toDate') toDate?: string,
+    @Query() query: AnalyticsDateRangeQueryDto,
   ) {
     return this.usersService.getClientAnalytics(
       id,
       user.roles,
-      fromDate,
-      toDate,
+      query.fromDate,
+      query.toDate,
     );
   }
 

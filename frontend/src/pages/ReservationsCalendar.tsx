@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 
 import api from '../api/client'
+import { fetchAllPublicStylists } from '../api/catalog'
 import { getErrorMessage } from '../api/error'
 import { Button } from '../components/ui/button'
 import { useAppToast } from '../lib/toast/useAppToast'
@@ -76,11 +77,7 @@ export default function ReservationsCalendar() {
 
   const loadStylists = useCallback(async () => {
     try {
-      const { data } = await api.get<StylistProfile[] | { items: StylistProfile[] }>('/api/stylists', {
-        params: { page: 0, pageSize: 300 },
-      })
-      const items = Array.isArray(data) ? data : Array.isArray((data as any).items) ? (data as any).items : []
-      setStylists(items)
+      setStylists(await fetchAllPublicStylists<StylistProfile>())
     } catch {
       setStylists([])
     }

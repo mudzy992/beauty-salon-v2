@@ -1,7 +1,15 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import {
+  analyticsDateBounds,
+  DEFAULT_ANALYTICS_MONTHS_BACK,
+  MAX_ANALYTICS_RANGE_MONTHS,
+  resolveAnalyticsDateRange,
+} from '../common/analytics-date-range';
 import { PrismaService } from '../prisma/prisma.service';
-import { toLocalDateOnlyString } from '../common/utils/date-only';
-import { iterateMonthsInclusive } from '../common/utils/date-range';
 
 export interface MonthlyFinance {
   year: number;
@@ -62,40 +70,105 @@ export interface AnalyticsDashboardParams {
   monthsBack?: number; // default 12
 }
 
-/** Iz parametara izračunaj [fromDate, toDate] i listu mjeseci { year, month } za prikaz. */
+const makeUtcDate = (year: number, month: number, day: number): Date => {
+  const date = new Date(0);
+  date.setUTCFullYear(year, month, day);
+  date.setUTCHours(0, 0, 0, 0);
+  return date;
+};
+
+const formatUtcDateOnly = (date: Date): string =>
+  date.toISOString().slice(0, 10);
+
+const iterateAnalyticsMonths = (
+  fromDate: string,
+  toDate: string,
+): { year: number; month: number }[] => {
+  const endYear = Number(toDate.slice(0, 4));
+  const endMonth = Number(toDate.slice(5, 7));
+  const months: { year: number; month: number }[] = [];
+  let year = Number(fromDate.slice(0, 4));
+  let month = Number(fromDate.slice(5, 7));
+
+  while (year < endYear || (year === endYear && month <= endMonth)) {
+    months.push({ year, month });
+    if (month === 12) {
+      year += 1;
+      month = 1;
+    } else {
+      month += 1;
+    }
+  }
+
+  return months;
+};
+
+/** Resolve bounded UTC date inputs and monthly dashboard buckets. */
 function resolveDateRange(params: AnalyticsDashboardParams): {
-  fromDate: Date;
-  toDate: Date;
   fromDateStr: string;
   toDateStr: string;
   months: { year: number; month: number }[];
 } {
   const now = new Date();
-  let fromDate: Date;
-  let toDate: Date;
+  let fromDateStr: string;
+  let toDateStr: string;
 
-  if (params.fromDate && params.toDate) {
-    fromDate = new Date(params.fromDate);
-    toDate = new Date(params.toDate);
-    if (fromDate > toDate) [fromDate, toDate] = [toDate, fromDate];
-  } else if (params.year != null && params.month != null) {
-    const y = Number(params.year);
-    const m = Number(params.month);
-    fromDate = new Date(y, m - 1, 1);
-    toDate = new Date(y, m, 0);
+  if (params.fromDate !== undefined || params.toDate !== undefined) {
+    const range = resolveAnalyticsDateRange(
+      params.fromDate,
+      params.toDate,
+      now,
+    );
+    fromDateStr = range.fromDate;
+    toDateStr = range.toDate;
+  } else if (params.year != null || params.month != null) {
+    if (
+      params.year == null ||
+      params.month == null ||
+      !Number.isInteger(params.year) ||
+      params.year < 100 ||
+      params.year > 9999 ||
+      !Number.isInteger(params.month) ||
+      params.month < 1 ||
+      params.month > 12
+    ) {
+      throw new BadRequestException(
+        'year i month moraju biti važeći cijeli brojevi.',
+      );
+    }
+    fromDateStr = formatUtcDateOnly(
+      makeUtcDate(params.year, params.month - 1, 1),
+    );
+    toDateStr = formatUtcDateOnly(makeUtcDate(params.year, params.month, 0));
   } else {
-    const back = Math.min(Number(params.monthsBack) || 12, 60);
-    toDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    fromDate = new Date(toDate);
-    fromDate.setMonth(fromDate.getMonth() - back);
-    fromDate.setDate(1);
+    const back = params.monthsBack ?? DEFAULT_ANALYTICS_MONTHS_BACK;
+    if (
+      !Number.isInteger(back) ||
+      back < 1 ||
+      back > MAX_ANALYTICS_RANGE_MONTHS
+    ) {
+      throw new BadRequestException(
+        `monthsBack mora biti između 1 i ${MAX_ANALYTICS_RANGE_MONTHS}.`,
+      );
+    }
+
+    const today = makeUtcDate(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate(),
+    );
+    const fromMonth = makeUtcDate(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      1,
+    );
+    fromMonth.setUTCMonth(fromMonth.getUTCMonth() - back);
+    fromDateStr = formatUtcDateOnly(fromMonth);
+    toDateStr = formatUtcDateOnly(today);
   }
 
-  const fromDateStr = toLocalDateOnlyString(fromDate);
-  const toDateStr = toLocalDateOnlyString(toDate);
-  const months = iterateMonthsInclusive(fromDate, toDate);
-
-  return { fromDate, toDate, fromDateStr, toDateStr, months };
+  const months = iterateAnalyticsMonths(fromDateStr, toDateStr);
+  return { fromDateStr, toDateStr, months };
 }
 
 const roundFinance2 = (n: number): number => Math.round(n * 100) / 100;
@@ -114,8 +187,7 @@ export class AnalyticsService {
       );
     }
 
-    const { fromDate, toDate, fromDateStr, toDateStr, months } =
-      resolveDateRange(params);
+    const { fromDateStr, toDateStr, months } = resolveDateRange(params);
     const monthlyFinance: MonthlyFinance[] = [];
     const categoryTotals = new Map<
       string,
@@ -193,14 +265,18 @@ export class AnalyticsService {
       netProfit: roundFinance2(totalIncomeRaw - totalExpensesRaw),
     };
 
+    const queryDateBounds = analyticsDateBounds({
+      fromDate: fromDateStr,
+      toDate: toDateStr,
+    });
     const [stylistAgg, topServicesRaw, reservationCounts] = await Promise.all([
-      this.getStylistPerformance(fromDate, toDate),
-      this.getTopServices(fromDate, toDate),
+      this.getStylistPerformance(queryDateBounds),
+      this.getTopServices(queryDateBounds),
       this.prisma.reservation.groupBy({
         by: ['status'],
         _count: { id: true },
         where: {
-          reservationDate: { gte: fromDate, lte: toDate },
+          reservationDate: queryDateBounds,
           status: {
             in: [
               'PENDING',
@@ -246,13 +322,13 @@ export class AnalyticsService {
     };
   }
 
-  private async getStylistPerformance(
-    fromDate: Date,
-    toDate: Date,
-  ): Promise<StylistPerformance[]> {
+  private async getStylistPerformance(dateBounds: {
+    gte: Date;
+    lte: Date;
+  }): Promise<StylistPerformance[]> {
     const [entries, manualEntries] = await Promise.all([
       this.prisma.dailyLogEntry.findMany({
-        where: { status: 'COMPLETED', deletedAt: null, date: { gte: fromDate, lte: toDate } },
+        where: { status: 'COMPLETED', deletedAt: null, date: dateBounds },
         include: {
           stylistProfile: {
             include: {
@@ -266,7 +342,7 @@ export class AnalyticsService {
       this.prisma.incomeBookManualEntry.findMany({
         where: {
           stylistProfileId: { not: null },
-          date: { gte: fromDate, lte: toDate },
+          date: dateBounds,
         },
         include: {
           stylistProfile: {
@@ -327,27 +403,32 @@ export class AnalyticsService {
     }));
   }
 
-  private async getTopServices(
-    fromDate: Date,
-    toDate: Date,
-  ): Promise<TopServiceRow[]> {
-    const [fromReservations, fromDailyLog, fromManualIncome] = await Promise.all([
-      this.prisma.reservation.findMany({
-        where: {
-          status: 'COMPLETED',
-          reservationDate: { gte: fromDate, lte: toDate },
-        },
-        include: { service: { select: { id: true, name: true, price: true } } },
-      }),
-      this.prisma.dailyLogEntry.findMany({
-        where: { status: 'COMPLETED', deletedAt: null, date: { gte: fromDate, lte: toDate } },
-        include: { service: { select: { id: true, name: true, price: true } } },
-      }),
-      this.prisma.incomeBookManualEntry.findMany({
-        where: { date: { gte: fromDate, lte: toDate } },
-        include: { service: { select: { id: true, name: true } } },
-      }),
-    ]);
+  private async getTopServices(dateBounds: {
+    gte: Date;
+    lte: Date;
+  }): Promise<TopServiceRow[]> {
+    const [fromReservations, fromDailyLog, fromManualIncome] =
+      await Promise.all([
+        this.prisma.reservation.findMany({
+          where: {
+            status: 'COMPLETED',
+            reservationDate: dateBounds,
+          },
+          include: {
+            service: { select: { id: true, name: true, price: true } },
+          },
+        }),
+        this.prisma.dailyLogEntry.findMany({
+          where: { status: 'COMPLETED', deletedAt: null, date: dateBounds },
+          include: {
+            service: { select: { id: true, name: true, price: true } },
+          },
+        }),
+        this.prisma.incomeBookManualEntry.findMany({
+          where: { date: dateBounds },
+          include: { service: { select: { id: true, name: true } } },
+        }),
+      ]);
 
     const byService = new Map<
       string,

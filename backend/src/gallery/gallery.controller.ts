@@ -14,6 +14,11 @@ import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UseGuards } from '@nestjs/common';
+import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
+import {
+  HTTP_RATE_LIMIT_PUBLIC_IP,
+  HTTP_RATE_LIMIT_WINDOW_SECONDS,
+} from '../common/rate-limiting/http-rate-limit.constants';
 
 @Controller('api/gallery')
 export class GalleryController {
@@ -28,12 +33,24 @@ export class GalleryController {
 
   @Get('categories')
   @Public()
+  @HttpRateLimit({
+    bucket: 'gallery:categories',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   findAllCategories() {
     return this.gallery.findAllCategories();
   }
 
   @Get('categories/:id')
   @Public()
+  @HttpRateLimit({
+    bucket: 'gallery:category-detail',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   findOneCategory(@Param('id') id: string) {
     return this.gallery.findOneCategory(id);
   }

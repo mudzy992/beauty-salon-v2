@@ -5,6 +5,7 @@ import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, Search } from
 import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
+import { fetchAllPublicServices } from '../../api/catalog'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
@@ -494,9 +495,8 @@ export default function PublicReserve() {
       navigate('/profil', { replace: true })
       return
     }
-    api
-      .get<ServiceOption[]>('/api/services', { params: { activeOnly: 'true' } })
-      .then((r) => setServices(Array.isArray(r.data) ? r.data : []))
+    fetchAllPublicServices<ServiceOption>({ activeOnly: 'true' })
+      .then(setServices)
       .catch(() => setServices([]))
       .finally(() => setLoadingServices(false))
   }, [isReady, token, navigate, user])

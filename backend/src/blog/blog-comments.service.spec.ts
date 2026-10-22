@@ -13,6 +13,7 @@ import { SettingsService } from '../settings/settings.service';
 const mockPrisma = {
   blogComment: {
     findMany: jest.fn(),
+    count: jest.fn(),
   },
 };
 
@@ -31,11 +32,23 @@ describe('BlogCommentsService public/admin lists', () => {
     service = module.get<BlogCommentsService>(BlogCommentsService);
   });
 
-  it('public comments require an approved comment on a published post', async () => {
-    mockPrisma.blogComment.findMany.mockResolvedValue([]);
+  it('public comments are approved-only, ordered and returned as a bounded page', async () => {
+    mockPrisma.blogComment.findMany.mockResolvedValue([{ id: 'comment-1' }]);
+    mockPrisma.blogComment.count.mockResolvedValue(2);
 
-    await service.findPublicForPost('post-1');
+    const result = await service.findPublicForPost('post-1', {
+      limit: 1,
+      offset: 1,
+    });
 
+    expect(result).toEqual({
+      items: [{ id: 'comment-1' }],
+      total: 2,
+      limit: 1,
+      offset: 1,
+      hasMore: false,
+      nextOffset: 2,
+    });
     expect(mockPrisma.blogComment.findMany).toHaveBeenCalledWith({
       where: {
         postId: 'post-1',
@@ -48,7 +61,16 @@ describe('BlogCommentsService public/admin lists', () => {
         createdAt: true,
         user: { select: { firstName: true, lastName: true } },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      skip: 1,
+      take: 1,
+    });
+    expect(mockPrisma.blogComment.count).toHaveBeenCalledWith({
+      where: {
+        postId: 'post-1',
+        isApproved: true,
+        post: { isPublished: true },
+      },
     });
   });
 

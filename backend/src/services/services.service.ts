@@ -1,4 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  DEFAULT_API_PAGE,
+  DEFAULT_API_PAGE_LIMIT,
+  MAX_API_PAGE_LIMIT,
+  MAX_API_PAGE_OFFSET,
+} from '../common/pagination.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -11,6 +21,46 @@ import { Prisma } from '@prisma/client';
 @Injectable()
 export class ServicesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private getCatalogOffset(page: number, pageSize: number, label: string) {
+    const offset = page * pageSize;
+    if (
+      !Number.isSafeInteger(page) ||
+      page < 0 ||
+      !Number.isSafeInteger(pageSize) ||
+      pageSize < 1 ||
+      pageSize > MAX_API_PAGE_LIMIT ||
+      !Number.isSafeInteger(offset) ||
+      offset > MAX_API_PAGE_OFFSET
+    ) {
+      throw new BadRequestException(
+        `Raspon kataloga ${label} prelazi dozvoljeni limit.`,
+      );
+    }
+    return offset;
+  }
+
+  private getCatalogPage<T>(
+    items: T[],
+    total: number,
+    page: number,
+    pageSize: number,
+    offset: number,
+  ) {
+    const nextOffset = offset + items.length;
+    const hasMore =
+      items.length > 0 &&
+      total > nextOffset &&
+      nextOffset <= MAX_API_PAGE_OFFSET;
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      hasMore,
+      nextPage: hasMore ? page + 1 : null,
+    };
+  }
 
   async getPublicHomeStats() {
     const [servicesCount, clientsCount] = await Promise.all([
@@ -77,12 +127,41 @@ export class ServicesService {
     };
   }
 
-  async findAllCategories(activeOnly = false) {
-    return this.prisma.serviceCategory.findMany({
-      where: activeOnly ? { isActive: true } : undefined,
-      include: { subcategories: { orderBy: { sortOrder: 'asc' } } },
-      orderBy: { sortOrder: 'asc' },
-    });
+  async findAllCategories(
+    activeOnly = false,
+    pagination: { page: number; pageSize: number } = {
+      page: DEFAULT_API_PAGE,
+      pageSize: DEFAULT_API_PAGE_LIMIT,
+    },
+  ) {
+    const where = activeOnly ? { isActive: true } : undefined;
+    const offset = this.getCatalogOffset(
+      pagination.page,
+      pagination.pageSize,
+      'kategorija',
+    );
+    const [items, total] = await Promise.all([
+      this.prisma.serviceCategory.findMany({
+        where,
+        include: {
+          subcategories: {
+            take: MAX_API_PAGE_LIMIT,
+            orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+          },
+        },
+        orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        skip: offset,
+        take: pagination.pageSize,
+      }),
+      this.prisma.serviceCategory.count({ where }),
+    ]);
+    return this.getCatalogPage(
+      items,
+      total,
+      pagination.page,
+      pagination.pageSize,
+      offset,
+    );
   }
 
   async findOneCategory(id: string) {
@@ -90,8 +169,14 @@ export class ServicesService {
       where: { id },
       include: {
         subcategories: {
-          include: { services: { orderBy: { sortOrder: 'asc' } } },
-          orderBy: { sortOrder: 'asc' },
+          take: MAX_API_PAGE_LIMIT,
+          include: {
+            services: {
+              take: MAX_API_PAGE_LIMIT,
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+            },
+          },
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
         },
       },
     });
@@ -129,22 +214,62 @@ export class ServicesService {
     return { deleted: true };
   }
 
-  async findAllSubcategories(categoryId?: string, activeOnly = false) {
+  async findAllSubcategories(
+    categoryId?: string,
+    activeOnly = false,
+    pagination: { page: number; pageSize: number } = {
+      page: DEFAULT_API_PAGE,
+      pageSize: DEFAULT_API_PAGE_LIMIT,
+    },
+  ) {
     const where: Prisma.ServiceSubcategoryWhereInput = activeOnly
       ? { isActive: true }
       : {};
     if (categoryId) where.categoryId = categoryId;
-    return this.prisma.serviceSubcategory.findMany({
-      where,
-      include: { category: true, services: { orderBy: { sortOrder: 'asc' } } },
-      orderBy: [{ category: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
-    });
+    const offset = this.getCatalogOffset(
+      pagination.page,
+      pagination.pageSize,
+      'potkategorija',
+    );
+    const [items, total] = await Promise.all([
+      this.prisma.serviceSubcategory.findMany({
+        where,
+        include: {
+          category: true,
+          services: {
+            take: MAX_API_PAGE_LIMIT,
+            orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+          },
+        },
+        orderBy: [
+          { category: { sortOrder: 'asc' } },
+          { sortOrder: 'asc' },
+          { id: 'asc' },
+        ],
+        skip: offset,
+        take: pagination.pageSize,
+      }),
+      this.prisma.serviceSubcategory.count({ where }),
+    ]);
+    return this.getCatalogPage(
+      items,
+      total,
+      pagination.page,
+      pagination.pageSize,
+      offset,
+    );
   }
 
   async findOneSubcategory(id: string) {
     const sub = await this.prisma.serviceSubcategory.findUnique({
       where: { id },
-      include: { category: true, services: { orderBy: { sortOrder: 'asc' } } },
+      include: {
+        category: true,
+        services: {
+          take: MAX_API_PAGE_LIMIT,
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        },
+      },
     });
     if (!sub) throw new NotFoundException('Podkategorija nije pronađena.');
     return sub;
@@ -188,39 +313,33 @@ export class ServicesService {
   async findAllServices(
     subcategoryId?: string,
     activeOnly = false,
-    pagination?: { page?: number; pageSize?: number },
+    pagination: { page: number; pageSize: number } = {
+      page: 0,
+      pageSize: DEFAULT_API_PAGE_LIMIT,
+    },
   ) {
     const where: Prisma.ServiceWhereInput = activeOnly
       ? { isActive: true }
       : {};
     if (subcategoryId) where.subcategoryId = subcategoryId;
-    const hasPagination =
-      pagination?.page != null && pagination?.pageSize != null;
-    if (!hasPagination) {
-      return this.prisma.service.findMany({
-        where,
-        include: { subcategory: { include: { category: true } } },
-        orderBy: [{ subcategory: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
-      });
-    }
-    const page = Math.max(0, pagination?.page ?? 0);
-    const pageSize = Math.min(100, Math.max(1, pagination?.pageSize ?? 10));
+    const page = pagination.page;
+    const pageSize = pagination.pageSize;
+    const offset = this.getCatalogOffset(page, pageSize, 'servisa');
     const [items, total] = await Promise.all([
       this.prisma.service.findMany({
         where,
         include: { subcategory: { include: { category: true } } },
-        orderBy: [{ subcategory: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
-        skip: page * pageSize,
+        orderBy: [
+          { subcategory: { sortOrder: 'asc' } },
+          { sortOrder: 'asc' },
+          { id: 'asc' },
+        ],
+        skip: offset,
         take: pageSize,
       }),
       this.prisma.service.count({ where }),
     ]);
-    return {
-      items,
-      total,
-      page,
-      pageSize,
-    };
+    return this.getCatalogPage(items, total, page, pageSize, offset);
   }
 
   async findOneService(id: string) {

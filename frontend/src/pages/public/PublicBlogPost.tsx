@@ -37,6 +37,17 @@ interface BlogComment {
   user: { firstName: string; lastName: string }
 }
 
+interface BlogCommentPage {
+  items: BlogComment[]
+  total: number
+  limit: number
+  offset: number
+  hasMore: boolean
+  nextOffset: number
+}
+
+const COMMENT_PAGE_SIZE = 20
+
 export default function PublicBlogPost() {
   const { slug } = useParams<{ slug: string }>()
   const toast = useAppToast()
@@ -44,7 +55,11 @@ export default function PublicBlogPost() {
   const [post, setPost] = useState<BlogPost | null>(null)
   const [loading, setLoading] = useState(true)
   const [comments, setComments] = useState<BlogComment[]>([])
+  const [commentsTotal, setCommentsTotal] = useState(0)
   const [commentsLoading, setCommentsLoading] = useState(false)
+  const [commentsLoadingMore, setCommentsLoadingMore] = useState(false)
+  const [commentsHasMore, setCommentsHasMore] = useState(false)
+  const [commentsNextOffset, setCommentsNextOffset] = useState(0)
   const [newComment, setNewComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
@@ -59,14 +74,36 @@ export default function PublicBlogPost() {
       .finally(() => setLoading(false))
   }, [slug])
 
-  const loadComments = useCallback(() => {
+  const loadComments = useCallback(async (offset = 0, append = false) => {
     if (!post?.id) return
-    setCommentsLoading(true)
-    api
-      .get<BlogComment[]>(`/api/blog/${post.id}/comments`)
-      .then((r) => setComments(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setComments([]))
-      .finally(() => setCommentsLoading(false))
+    if (append) setCommentsLoadingMore(true)
+    else setCommentsLoading(true)
+    try {
+      const { data } = await api.get<BlogCommentPage | BlogComment[]>(
+        `/api/blog/${post.id}/comments`,
+        { params: { limit: COMMENT_PAGE_SIZE, offset } },
+      )
+      const items = Array.isArray(data) ? data : data.items
+      setComments((current) => (append ? [...current, ...items] : items))
+      if (Array.isArray(data)) {
+        setCommentsTotal(items.length)
+        setCommentsHasMore(false)
+        setCommentsNextOffset(offset + items.length)
+      } else {
+        setCommentsTotal(data.total)
+        setCommentsHasMore(data.hasMore)
+        setCommentsNextOffset(data.nextOffset)
+      }
+    } catch {
+      if (!append) {
+        setComments([])
+        setCommentsTotal(0)
+        setCommentsHasMore(false)
+      }
+    } finally {
+      setCommentsLoading(false)
+      setCommentsLoadingMore(false)
+    }
   }, [post?.id])
 
   useEffect(() => { loadPost() }, [loadPost])
@@ -78,7 +115,7 @@ export default function PublicBlogPost() {
     try {
       await api.post(`/api/blog/${post.id}/comments`, { content: newComment.trim() })
       setNewComment('')
-      loadComments()
+      void loadComments(0, false)
       toast.success('Komentar je poslan na odobrenje.')
     } catch {
       toast.error('Greška pri slanju komentara.')
@@ -171,11 +208,15 @@ export default function PublicBlogPost() {
             slug={post.slug}
             user={user}
             comments={comments}
+            total={commentsTotal}
             loading={commentsLoading}
+            loadingMore={commentsLoadingMore}
+            hasMore={commentsHasMore}
             newComment={newComment}
             submitting={submitting}
             onChange={setNewComment}
             onSubmit={() => void handleSubmitComment()}
+            onLoadMore={() => void loadComments(commentsNextOffset, true)}
           />
         </div>
       </div>
