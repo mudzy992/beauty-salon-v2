@@ -53,6 +53,7 @@ export class AvailabilityDatesService {
     const end = toDate
       ? new Date(toDate)
       : new Date(fromDate.getTime() + 30 * DAY_MS);
+    end.setHours(12, 0, 0, 0);
 
     const salonHoursList = await this.prisma.salonWorkingHours.findMany({
       where: { salonSettingsId: salon.id },

@@ -82,6 +82,23 @@ describe('AvailabilityService', () => {
     expect(mockPrisma.salonSettings.findFirst).not.toHaveBeenCalled();
   });
 
+  it('uključuje završni dan u jednodnevnom date-only opsegu', async () => {
+    mockPrisma.salonSettings.findFirst.mockResolvedValue({ id: 'salon-1' });
+    mockPrisma.service.findMany.mockResolvedValue([{ id: 'svc-1' }]);
+    mockPrisma.salonWorkingHours.findMany.mockResolvedValue([]);
+    mockPrisma.holiday.findMany.mockResolvedValue([]);
+    mockPrisma.stylistService.findMany.mockResolvedValue([]);
+
+    const result = await service.getAvailableDates(
+      'svc-1',
+      new Date('2026-03-15'),
+      new Date('2026-03-15'),
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].available).toBe(false);
+  });
+
   it('ne dopušta da godine ispod 100 zaobiđu range cap', async () => {
     await expect(
       service.getAvailableDates(

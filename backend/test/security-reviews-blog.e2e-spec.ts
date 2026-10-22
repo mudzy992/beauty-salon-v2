@@ -368,7 +368,6 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
       String(futureDate.getDate()).padStart(2, '0'),
     ].join('-');
     const availabilityDay = futureDate.getDay();
-
     await prisma.salonWorkingHours.create({
       data: {
         salonSettingsId: salon.id,
@@ -669,7 +668,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
       .set('Authorization', `Bearer ${clientToken}`)
       .query(dateQuery)
       .expect(200);
-    expect(dates.body).toEqual([{ date: availabilityDate, available: true }]);
+    expect(dates.body).toHaveLength(1);
+    expect(dates.body[0].date).toBe(availabilityDate);
+    expect(dates.body[0].available).toBe(true);
 
     const slots = await request(httpServer)
       .get('/api/reservations/availability/slots')
