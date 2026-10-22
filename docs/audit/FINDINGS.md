@@ -210,14 +210,16 @@ Review-list baseline is separately contained under SEC-01: public `GET /api/revi
 
 ## P2 — srednje / preventivno
 
-### API-02 — Availability date range i random before/after query nemaju DB-work cap
+### API-02 — Availability range bounded; random before/after query still unbounded (partial source mitigation)
 
-- Authenticated availability-date flow prima `fromDate`/`toDate` i nema maksimalan broj dana u [`availability-dates.service.ts#L17-L43`](../../backend/src/reservations/availability-dates.service.ts#L17). Za svaki radni/eligible dan pokreće `getAvailableSlots` paralelno kroz `Promise.all` ([L89-L122](../../backend/src/reservations/availability-dates.service.ts#L89)). Public Reserve client šalje 60 dana ([`PublicReserve.tsx#L519-L530`](../../frontend/src/pages/public/PublicReserve.tsx#L519)), ali attacker može poslati širi range uz auth.
-- Anonymous `random=true` before/after grana učitava sve eligible DailyLog IDs prije memory shuffle ([`daily-log-public.service.ts#L79-L112`](../../backend/src/daily-log/daily-log-public.service.ts#L79)). `limit` je capped, ali ID query nije; offset nije gornje ograničen.
+- Authenticated availability-date flow prima `fromDate`/`toDate`; source now rejects invalid/reversed dates and inclusive ranges over 90 calendar days before database access in [`availability-dates.service.ts#L16-L26`](../../backend/src/reservations/availability-dates.service.ts#L16) and [`#L143-L177`](../../backend/src/reservations/availability-dates.service.ts#L143). The web and mobile reservation clients currently request 60 days ([`PublicReserve.tsx#L519-L530`](../../frontend/src/pages/public/PublicReserve.tsx#L519), [`ReservationScreen.tsx#L151-L155`](../../mobile/src/screens/client/ReservationScreen.tsx#L151)).
+- Anonymous `random=true` before/after branch still loads all eligible DailyLog IDs before an in-memory shuffle ([`daily-log-public.service.ts#L79-L112`](../../backend/src/daily-log/daily-log-public.service.ts#L79)). The returned `limit` is capped, but the candidate-ID query and non-random offset are not upper-bounded.
 
-**Uticaj:** database burst/memory/latency growth kada data volume ili caller range poraste; load test nije urađen.
+**Uticaj:** availability slot lookups are now bounded by 90 requested calendar dates at source; remaining before/after ID loading, large skip offsets and anonymous gallery request volume can still grow with data/request patterns. No load test was run.
 
-**Popravka:** availability `MAX_RANGE_DAYS` (npr. 90), `from<=to`, query budget; bounded concurrency/batched SQL; random sampling u DB ili deterministic pagination/cache; rate limit anonymous gallery.
+**Source mitigacija (2026-10-22):** `AvailabilityDatesService` validates date objects and `fromDate <= toDate` and rejects ranges above 90 inclusive calendar days before any Prisma query. Targeted availability tests pass 1 suite/15 tests locally; no DB-backed HTTP assertion was added.
+
+**Preostala popravka:** random sampling without materializing all eligible IDs; cap/replace large offsets; bounded slot-query concurrency or batched SQL; anonymous gallery rate limit and request budget. Keep load/race tests disposable and avoid changing public gallery semantics without explicit review.
 
 ### BIZ-06 — Date-only UI koristi UTC ISO string umjesto salon calendar timezone
 
