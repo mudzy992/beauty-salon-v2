@@ -20,6 +20,12 @@ import { RolesGuard } from '../src/common/guards/roles.guard';
 import { BlogCommentsService } from '../src/blog/blog-comments.service';
 import { BlogController } from '../src/blog/blog.controller';
 import { BlogService } from '../src/blog/blog.service';
+import { DailyLogAdminService } from '../src/daily-log/daily-log-admin.service';
+import { DailyLogController } from '../src/daily-log/daily-log.controller';
+import { DailyLogDispositionService } from '../src/daily-log/daily-log-disposition.service';
+import { DailyLogPublicService } from '../src/daily-log/daily-log-public.service';
+import { DailyLogRestoreService } from '../src/daily-log/daily-log-restore.service';
+import { DailyLogService } from '../src/daily-log/daily-log.service';
 import { NotificationsService } from '../src/notifications/notifications.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { ReviewsController } from '../src/reviews/reviews.controller';
@@ -76,6 +82,9 @@ type FixtureIds = {
   posts: string[];
   comments: string[];
   reviews: string[];
+  dailyLogEntries: string[];
+  uploads: string[];
+  stylistProfile?: string;
   serviceCategory?: string;
   serviceSubcategory?: string;
   service?: string;
@@ -86,9 +95,11 @@ const fixtureIds: FixtureIds = {
   posts: [],
   comments: [],
   reviews: [],
+  dailyLogEntries: [],
+  uploads: [],
 };
 
-describe('DB-backed HTTP security contracts for SEC-01, SEC-02 and SEC-07', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -129,7 +140,12 @@ describe('DB-backed HTTP security contracts for SEC-01, SEC-02 and SEC-07', () =
         PassportModule.register({ defaultStrategy: 'jwt' }),
         JwtModule.register({ secret: TEST_JWT_SECRET }),
       ],
-      controllers: [ReviewsController, BlogController, UsersController],
+      controllers: [
+        ReviewsController,
+        BlogController,
+        UsersController,
+        DailyLogController,
+      ],
       providers: [
         PrismaService,
         UsersRepository,
@@ -137,6 +153,11 @@ describe('DB-backed HTTP security contracts for SEC-01, SEC-02 and SEC-07', () =
         ReviewsService,
         BlogService,
         BlogCommentsService,
+        DailyLogPublicService,
+        { provide: DailyLogService, useValue: {} },
+        { provide: DailyLogAdminService, useValue: {} },
+        { provide: DailyLogDispositionService, useValue: {} },
+        { provide: DailyLogRestoreService, useValue: {} },
         AuthService,
         JwtStrategy,
         RolesGuard,
@@ -240,6 +261,10 @@ describe('DB-backed HTTP security contracts for SEC-01, SEC-02 and SEC-07', () =
     await prisma.userRole.create({
       data: { userId: stylist.id, roleId: stylistRole.id },
     });
+    const stylistProfile = await prisma.stylistProfile.create({
+      data: { userId: stylist.id, status: 'ACTIVE' },
+    });
+    fixtureIds.stylistProfile = stylistProfile.id;
     stylistToken = jwtService.sign({ sub: stylist.id }, { expiresIn: '5m' });
 
     const systemAdmin = await prisma.user.create({
@@ -314,6 +339,56 @@ describe('DB-backed HTTP security contracts for SEC-01, SEC-02 and SEC-07', () =
     });
     fixtureIds.service = service.id;
     serviceId = service.id;
+
+    const beforeUpload = await prisma.upload.create({
+      data: {
+        originalName: `api02-before-${suffix}.jpg`,
+        mimeType: 'image/jpeg',
+        sizeBytes: 1,
+        pathOriginal: `/uploads/api02-before-${suffix}.jpg`,
+      },
+    });
+    const afterUpload = await prisma.upload.create({
+      data: {
+        originalName: `api02-after-${suffix}.jpg`,
+        mimeType: 'image/jpeg',
+        sizeBytes: 1,
+        pathOriginal: `/uploads/api02-after-${suffix}.jpg`,
+      },
+    });
+    fixtureIds.uploads.push(beforeUpload.id, afterUpload.id);
+
+    for (const index of [0, 1]) {
+      const entry = await prisma.dailyLogEntry.create({
+        data: {
+          stylistProfileId: stylistProfile.id,
+          serviceId: service.id,
+          kind: 'SERVICE',
+          date: new Date(),
+          actualPrice: 25,
+          publicReferenceCode: `api02-gallery-${suffix}-${index}`,
+          status: 'COMPLETED',
+          completedAt: new Date(Date.now() - index * 60_000),
+        },
+      });
+      fixtureIds.dailyLogEntries.push(entry.id);
+      await prisma.dailyLogImage.createMany({
+        data: [
+          {
+            dailyLogEntryId: entry.id,
+            uploadId: beforeUpload.id,
+            isBefore: true,
+            sortOrder: 0,
+          },
+          {
+            dailyLogEntryId: entry.id,
+            uploadId: afterUpload.id,
+            isAfter: true,
+            sortOrder: 1,
+          },
+        ],
+      });
+    }
 
     const publishedReview = await prisma.review.create({
       data: {
@@ -418,6 +493,21 @@ describe('DB-backed HTTP security contracts for SEC-01, SEC-02 and SEC-07', () =
           where: { id: { in: fixtureIds.reviews } },
         });
       }
+      if (fixtureIds.dailyLogEntries.length) {
+        await prisma.dailyLogEntry.deleteMany({
+          where: { id: { in: fixtureIds.dailyLogEntries } },
+        });
+      }
+      if (fixtureIds.uploads.length) {
+        await prisma.upload.deleteMany({
+          where: { id: { in: fixtureIds.uploads } },
+        });
+      }
+      if (fixtureIds.stylistProfile) {
+        await prisma.stylistProfile.deleteMany({
+          where: { id: fixtureIds.stylistProfile },
+        });
+      }
       if (fixtureIds.service) {
         await prisma.service.deleteMany({
           where: { id: fixtureIds.service },
@@ -444,6 +534,47 @@ describe('DB-backed HTTP security contracts for SEC-01, SEC-02 and SEC-07', () =
     } finally {
       if (app) await app.close();
     }
+  });
+
+  it('validates and paginates the public non-random before/after gallery', async () => {
+    await request(getHttpServer(app!))
+      .get('/api/daily-log/before-after')
+      .query({ serviceId, limit: 1.5 })
+      .expect(400);
+
+    await request(getHttpServer(app!))
+      .get('/api/daily-log/before-after')
+      .query({ serviceId, offset: 1001 })
+      .expect(400);
+
+    const firstPage = await request(getHttpServer(app!))
+      .get('/api/daily-log/before-after')
+      .query({ serviceId, limit: 1, offset: 0 })
+      .expect(200);
+
+    expect(firstPage.body.items).toHaveLength(1);
+    expect(firstPage.body.items[0]).toMatchObject({
+      id: fixtureIds.dailyLogEntries[0],
+      service: { id: serviceId, name: serviceName },
+    });
+    expect(firstPage.body.items[0].before.pathOriginal).toContain(
+      '/uploads/api02-before-',
+    );
+    expect(firstPage.body.items[0].after.pathOriginal).toContain(
+      '/uploads/api02-after-',
+    );
+    expect(firstPage.body.hasMore).toBe(true);
+    expect(firstPage.body.nextOffset).toBe(1);
+
+    const secondPage = await request(getHttpServer(app!))
+      .get('/api/daily-log/before-after')
+      .query({ serviceId, limit: 1, offset: 1 })
+      .expect(200);
+
+    expect(secondPage.body.items).toHaveLength(1);
+    expect(secondPage.body.items[0].id).toBe(fixtureIds.dailyLogEntries[1]);
+    expect(secondPage.body.hasMore).toBe(false);
+    expect(secondPage.body.nextOffset).toBe(2);
   });
 
   it('filters public reviews, protects detail, and reserves pending reads for moderators', async () => {
