@@ -740,6 +740,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
 
   it('reports a bounded 60-second synthetic availability and gallery soak sample', async () => {
     const httpServer = getHttpServer(app!);
+    if (!httpServer.listening) await app!.listen(0);
     const durationMs = 60_000;
     const concurrencyPerEndpoint = 4;
 
