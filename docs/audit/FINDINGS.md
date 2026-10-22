@@ -217,7 +217,7 @@ Review-list baseline is separately contained under SEC-01: public `GET /api/revi
 
 **Uticaj:** availability slot lookups are now bounded by 90 requested calendar dates at source; remaining before/after ID loading, large skip offsets and anonymous gallery request volume can still grow with data/request patterns. No load test was run.
 
-**Source mitigacija (2026-10-22):** `AvailabilityDatesService` validates date objects and `fromDate <= toDate` and rejects ranges above 90 inclusive calendar days before any Prisma query. Targeted availability tests pass 1 suite/15 tests locally; no DB-backed HTTP assertion was added.
+**Source mitigacija (2026-10-22):** `AvailabilityDatesService` validates date objects and `fromDate <= toDate` and rejects ranges above 90 inclusive calendar days before any Prisma query. Targeted availability tests pass 1 suite/15 tests locally. Commit `fc7ed78` passed CI run `39756404643` across all four jobs, including generated-Prisma backend build and full backend unit tests. The existing disposable-PostgreSQL HTTP suite does not exercise this availability endpoint/range guard; no DB-backed assertion or load test was added.
 
 **Preostala popravka:** random sampling without materializing all eligible IDs; cap/replace large offsets; bounded slot-query concurrency or batched SQL; anonymous gallery rate limit and request budget. Keep load/race tests disposable and avoid changing public gallery semantics without explicit review.
 
