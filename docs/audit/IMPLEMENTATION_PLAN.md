@@ -6,7 +6,7 @@
 
 ## 1. Principi i redoslijed
 
-1. **Zaštititi korisničke podatke prije feature rada:** prvo `SEC-01`, `OPS-SEC-01`, `SEC-02`–`SEC-08`, `PRIV-01`.
+1. **Zaštititi korisničke podatke prije feature rada:** prvo `SEC-01`, `SEC-02`–`SEC-08`, `PRIV-01`. `OPS-SEC-01` (rotacija historijski commitovanih vjerodajnica i incident/log review) vlasnik je izričito odgodio do posljednje ukupne faze; rizik ostaje otvoren i vrijednosti se tretiraju kao kompromitovane dok vlasnik ne potvrdi opoziv/rotaciju.
 2. **Transakcijska DB konzistentnost prije paralelizacije/queue-a:** prvo idempotency i PostgreSQL concurrency tests, pa background processing/Redis.
 3. **API sigurnost ne zavisi od web/mobile UI-a:** svi access/status/ownership/business pravila se validiraju backend-om.
 4. **Backward-compatible migrations:** expand → deploy app that supports old/new → data backfill → contract; backup/restore rehearsal prije finansijskih schema promjena.
@@ -31,6 +31,8 @@ Severity P0/P1/P2 i finding IDs definisani su u `FINDINGS.md`.
 - **Incident check (owner):** review access logs / deployed app version / exposure window; do not infer exfiltration from source code.
 
 ### 0B. Credential incident response — `OPS-SEC-01`
+
+**Sekvenciranje (owner odluka, 2026-10-22):** OPS-SEC-01 se ne izvršava sada; vlasnik traži da bude doslovno posljednja ukupna faza. Ovo je samo odgoda, ne zatvaranje nalaza ni potvrda da su vjerodajnice opozvane. Do završne faze ne čitati/tražiti tajne u chatu niti rotirati `APP_SETTINGS_ENCRYPTION_KEY` bez posebnog re-encryption/dual-key plana.
 
 - Credential owner identifikuje sve vrijednosti koje su ikad commitovane (Git history i artefakti/image/cache).
 - Revokovati/rotirati Firebase Admin key, DB user password, JWT signing secret, SMTP credentials i ostale stvarne secrets koji su bili prisutni; provjeriti access logs/audit.
