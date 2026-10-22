@@ -212,14 +212,14 @@ Review-list baseline is separately contained under SEC-01: public `GET /api/revi
 
 ### API-02 — Availability range bounded; random before/after query still unbounded (partial source mitigation)
 
-- Authenticated availability-date flow prima `fromDate`/`toDate`; source now rejects invalid/reversed dates and inclusive ranges over 90 calendar days before database access in [`availability-dates.service.ts#L16-L26`](../../backend/src/reservations/availability-dates.service.ts#L16) and [`#L143-L177`](../../backend/src/reservations/availability-dates.service.ts#L143). The web and mobile reservation clients currently request 60 days ([`PublicReserve.tsx#L519-L530`](../../frontend/src/pages/public/PublicReserve.tsx#L519), [`ReservationScreen.tsx#L151-L155`](../../mobile/src/screens/client/ReservationScreen.tsx#L151)).
+- Authenticated availability-date flow prima `fromDate`/`toDate`; source now rejects invalid/reversed dates and inclusive ranges over 90 calendar days before database access in [`availability-dates.service.ts#L26-L32`](../../backend/src/reservations/availability-dates.service.ts#L26) and [`#L166-L194`](../../backend/src/reservations/availability-dates.service.ts#L166). The per-request five-lookup concurrency cap is implemented at [`#L131-L163`](../../backend/src/reservations/availability-dates.service.ts#L131). The web and mobile reservation clients currently request 60 days ([`PublicReserve.tsx#L519-L530`](../../frontend/src/pages/public/PublicReserve.tsx#L519), [`ReservationScreen.tsx#L151-L155`](../../mobile/src/screens/client/ReservationScreen.tsx#L151)).
 - Anonymous `random=true` before/after branch still loads all eligible DailyLog IDs before an in-memory shuffle ([`daily-log-public.service.ts#L79-L112`](../../backend/src/daily-log/daily-log-public.service.ts#L79)). The returned `limit` is capped, but the candidate-ID query and non-random offset are not upper-bounded.
 
-**Uticaj:** availability slot lookups are now bounded by 90 requested calendar dates at source; remaining before/after ID loading, large skip offsets and anonymous gallery request volume can still grow with data/request patterns. No load test was run.
+**Uticaj:** requested availability dates are capped at 90 per request, and the source now limits this request's slot lookups to five concurrent calls. This bounds per-request fan-out concurrency, not total query work or aggregate concurrency across simultaneous requests. Remaining before/after ID loading, large skip offsets and anonymous gallery request volume can still grow with data/request patterns. No load test was run.
 
-**Source mitigacija (2026-10-22):** `AvailabilityDatesService` validates date objects and `fromDate <= toDate` and rejects ranges above 90 inclusive calendar days before any Prisma query. Targeted availability tests pass 1 suite/15 tests locally. Commit `fc7ed78` passed CI run `39756404643` across all four jobs, including generated-Prisma backend build and full backend unit tests. The existing disposable-PostgreSQL HTTP suite does not exercise this availability endpoint/range guard; no DB-backed assertion or load test was added.
+**Source mitigacija (2026-10-22):** `AvailabilityDatesService` rejects invalid dates, reversed ranges and ranges above 90 inclusive calendar days before any Prisma query. It now resolves eligible dates in batches of at most five slot lookups while preserving result ordering. Targeted availability tests pass 1 suite/16 tests locally, including concurrency-cap coverage. Commit `fc7ed78` and docs-only run `39756864159` verify the prior range-cap change, not this new concurrency change; CI verification for the latter is pending. The existing disposable-PostgreSQL HTTP suite does not exercise this availability endpoint; no DB-backed assertion or load test was added.
 
-**Preostala popravka:** random sampling without materializing all eligible IDs; cap/replace large offsets; bounded slot-query concurrency or batched SQL; anonymous gallery rate limit and request budget. Keep load/race tests disposable and avoid changing public gallery semantics without explicit review.
+**Preostala popravka:** random sampling without materializing all eligible IDs; cap/replace large offsets; anonymous gallery rate limit and request budget; disposable DB-backed availability HTTP tests and load measurement. Keep the anonymous random-query design separate and avoid changing public gallery semantics without explicit review.
 
 ### BIZ-06 — Date-only UI koristi UTC ISO string umjesto salon calendar timezone
 
@@ -243,6 +243,10 @@ Availability i `assertClientDayBookingAllowed` prvo čitaju zauzeća, a create k
 - `ClientCancellationCount` se prebroji pa upsert-uje apsolutna vrijednost u reservation shared service (nalaz u [HANDOFF §12-13](HANDOFF.md)); parallel cancel/reorder može izgubiti increment.
 
 **Popravka:** conditional update/transaction + lock event; ledger create check i write u jednoj tx; counter `increment` atomically; test concurrency. Finansijski lock policy i staff cancellation edge cases trebaju owner sign-off.
+
+### Neprovjereni korisnički prijavljeni simptom — novi zapis u knjizi rashoda
+
+Korisnik prijavljuje da ne može dodati novi zapis u knjigu rashoda (KUF). Ovo je simptom za provjeru, ne potvrđen source finding: nema reprodukcije, konkretne forme/rute, statusa/greške iz API-ja ni utvrđenog uzroka. Postojeći `BIZ-08` opisuje lock-vs-write i cancellation-count race kandidate; nije dokaz niti popravka ovog simptoma. Prije ikakve izmjene treba ga reproducirati u neprodukcijskom okruženju i prikupiti tačan tok forme/requesta, ulogu, odabranu knjigu i njen open/closed status, validaciju/template polja te sanitizovanu API/DB grešku. U ovoj iteraciji finansijski kod nije mijenjan.
 
 ### API-03 — Review može nastati bez završenog booking evidence-a
 

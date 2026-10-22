@@ -110,6 +110,67 @@ describe('AvailabilityService', () => {
     expect(result.length).toBeLessThanOrEqual(90);
   });
 
+  it('ograničava broj paralelnih provjera slotova na jedan zahtjev', async () => {
+    mockPrisma.salonSettings.findFirst.mockResolvedValue({ id: 'salon-1' });
+    mockPrisma.service.findMany.mockResolvedValue([{ id: 'svc-1' }]);
+    mockPrisma.salonWorkingHours.findMany.mockResolvedValue(
+      Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        dayOfWeek,
+        isWorkingDay: true,
+      })),
+    );
+    mockPrisma.holiday.findMany.mockResolvedValue([]);
+    mockPrisma.stylistService.findMany.mockResolvedValue([
+      { stylistProfileId: 'sp-1', serviceId: 'svc-1' },
+    ]);
+    mockPrisma.stylistWorkingHours.findMany.mockResolvedValue(
+      Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        dayOfWeek,
+        dateOverride: null,
+      })),
+    );
+
+    let activeLookups = 0;
+    let maximumConcurrentLookups = 0;
+    const slotsSpy = jest
+      .spyOn(slotsService, 'getAvailableSlots')
+      .mockImplementation(async () => {
+        activeLookups++;
+        maximumConcurrentLookups = Math.max(
+          maximumConcurrentLookups,
+          activeLookups,
+        );
+        try {
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          return [
+            {
+              startTime: '09:00',
+              endTime: '10:00',
+              availableStylistCount: 1,
+            },
+          ];
+        } finally {
+          activeLookups--;
+        }
+      });
+
+    try {
+      const result = await service.getAvailableDates(
+        'svc-1',
+        new Date('2026-01-01T12:00:00.000Z'),
+        new Date('2026-01-12T12:00:00.000Z'),
+      );
+
+      expect(result).toHaveLength(12);
+      expect(result.every((row) => row.available)).toBe(true);
+      expect(slotsSpy).toHaveBeenCalledTimes(12);
+      expect(maximumConcurrentLookups).toBeGreaterThan(1);
+      expect(maximumConcurrentLookups).toBeLessThanOrEqual(5);
+    } finally {
+      slotsSpy.mockRestore();
+    }
+  });
+
   it('getAvailableDates baca NotFoundException kada nema salona', async () => {
     mockPrisma.salonSettings.findFirst.mockResolvedValue(null);
     await expect(

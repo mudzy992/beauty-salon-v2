@@ -12,6 +12,7 @@ import type { AvailableDateDto } from './availability.types';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_AVAILABILITY_RANGE_DAYS = 90;
+const MAX_CONCURRENT_SLOT_LOOKUPS = 5;
 
 @Injectable()
 export class AvailabilityDatesService {
@@ -127,16 +128,39 @@ export class AvailabilityDatesService {
       cursor.setDate(cursor.getDate() + 1);
     }
 
-    return Promise.all(
-      results.map(async (row) => {
-        if (!row.available) return row;
-        const slots = await this.slotsService.getAvailableSlots(
-          normalized,
-          row.date,
-        );
-        return { date: row.date, available: slots.length > 0 };
-      }),
-    );
+    const availableRows = results
+      .map((row, index) => ({ row, index }))
+      .filter(({ row }) => row.available);
+    const resolvedResults = [...results];
+
+    for (
+      let offset = 0;
+      offset < availableRows.length;
+      offset += MAX_CONCURRENT_SLOT_LOOKUPS
+    ) {
+      const batch = availableRows.slice(
+        offset,
+        offset + MAX_CONCURRENT_SLOT_LOOKUPS,
+      );
+      const updates = await Promise.all(
+        batch.map(async ({ row, index }) => ({
+          index,
+          date: row.date,
+          available:
+            (await this.slotsService.getAvailableSlots(normalized, row.date))
+              .length > 0,
+        })),
+      );
+
+      for (const update of updates) {
+        resolvedResults[update.index] = {
+          date: update.date,
+          available: update.available,
+        };
+      }
+    }
+
+    return resolvedResults;
   }
 
   private validateDateRange(fromDate: Date, toDate?: Date): void {
