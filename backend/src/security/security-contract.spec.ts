@@ -5,7 +5,7 @@ jest.mock('../blog/utils/sanitize-blog-content', () => ({
   sanitizeBlogContent: (content: string) => content,
 }));
 
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, ValidationPipe } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule, JwtService } from '@nestjs/jwt';
@@ -62,14 +62,25 @@ const mockReviewsService = {
 };
 
 const mockBlogService = {
-  findAllPublic: jest.fn(() => [
-    {
-      id: 'published-1',
-      title: 'Objavljen',
-      slug: 'objavljen',
-      excerpt: 'Sažetak',
-    },
-  ]),
+  findAllPublic: jest.fn((pagination?: { limit?: number; offset?: number }) => {
+    const limit = pagination?.limit ?? 20;
+    const offset = pagination?.offset ?? 0;
+    return {
+      items: [
+        {
+          id: 'published-1',
+          title: 'Objavljen',
+          slug: 'objavljen',
+          excerpt: 'Sažetak',
+        },
+      ],
+      total: 1,
+      limit,
+      offset,
+      hasMore: false,
+      nextOffset: offset + 1,
+    };
+  }),
   findAllForAdmin: jest.fn(() => [
     { id: 'draft-1', title: 'Nacrt', isPublished: false },
   ]),
@@ -78,9 +89,20 @@ const mockBlogService = {
 };
 
 const mockBlogCommentsService = {
-  findPublicForPost: jest.fn((postId: string) => [
-    { id: 'approved-1', postId, content: 'Odobren komentar.' },
-  ]),
+  findPublicForPost: jest.fn(
+    (postId: string, pagination?: { limit?: number; offset?: number }) => {
+      const limit = pagination?.limit ?? 20;
+      const offset = pagination?.offset ?? 0;
+      return {
+        items: [{ id: 'approved-1', postId, content: 'Odobren komentar.' }],
+        total: 1,
+        limit,
+        offset,
+        hasMore: false,
+        nextOffset: offset + 1,
+      };
+    },
+  ),
   findAllForPost: jest.fn((postId: string) => [
     { id: 'pending-1', postId, content: 'Čeka moderaciju.', isApproved: false },
   ]),
@@ -118,6 +140,13 @@ describe('HTTP security contracts for reviews and public blog reads', () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
     await app.init();
     jwtService = moduleRef.get(JwtService);
     clientToken = jwtService.sign({ sub: clientUser.sub });
@@ -153,29 +182,74 @@ describe('HTTP security contracts for reviews and public blog reads', () => {
       .expect(404);
   });
 
-  it('keeps public blog list/comments public and ignores legacy filter flags', async () => {
+  it('keeps public blog list/comments public with bounded pagination', async () => {
     const posts = await request(getHttpServer(app))
-      .get('/api/blog?published=false')
+      .get('/api/blog?limit=5&offset=2')
       .expect(200);
-    expect(posts.body).toEqual([
-      {
-        id: 'published-1',
-        title: 'Objavljen',
-        slug: 'objavljen',
-        excerpt: 'Sažetak',
-      },
-    ]);
-    expect(mockBlogService.findAllPublic).toHaveBeenCalledWith();
+    expect(posts.body).toEqual({
+      items: [
+        {
+          id: 'published-1',
+          title: 'Objavljen',
+          slug: 'objavljen',
+          excerpt: 'Sažetak',
+        },
+      ],
+      total: 1,
+      limit: 5,
+      offset: 2,
+      hasMore: false,
+      nextOffset: 3,
+    });
+    expect(mockBlogService.findAllPublic).toHaveBeenCalledWith({
+      limit: 5,
+      offset: 2,
+    });
+
+    const defaultPosts = await request(getHttpServer(app))
+      .get('/api/blog')
+      .expect(200);
+    expect(defaultPosts.body.limit).toBe(20);
+    expect(defaultPosts.body.offset).toBe(0);
+    expect(mockBlogService.findAllPublic).toHaveBeenLastCalledWith({
+      limit: 20,
+      offset: 0,
+    });
 
     const comments = await request(getHttpServer(app))
-      .get('/api/blog/post-1/comments?approved=false')
+      .get('/api/blog/post-1/comments?limit=3&offset=4')
       .expect(200);
-    expect(comments.body).toEqual([
-      { id: 'approved-1', postId: 'post-1', content: 'Odobren komentar.' },
-    ]);
+    expect(comments.body).toEqual({
+      items: [
+        { id: 'approved-1', postId: 'post-1', content: 'Odobren komentar.' },
+      ],
+      total: 1,
+      limit: 3,
+      offset: 4,
+      hasMore: false,
+      nextOffset: 5,
+    });
     expect(mockBlogCommentsService.findPublicForPost).toHaveBeenCalledWith(
       'post-1',
+      { limit: 3, offset: 4 },
     );
+
+    const defaultComments = await request(getHttpServer(app))
+      .get('/api/blog/post-1/comments')
+      .expect(200);
+    expect(defaultComments.body.limit).toBe(20);
+    expect(defaultComments.body.offset).toBe(0);
+    expect(mockBlogCommentsService.findPublicForPost).toHaveBeenLastCalledWith(
+      'post-1',
+      { limit: 20, offset: 0 },
+    );
+
+    await request(getHttpServer(app))
+      .get('/api/blog?published=false')
+      .expect(400);
+    await request(getHttpServer(app))
+      .get('/api/blog/post-1/comments?approved=false')
+      .expect(400);
   });
 
   it('restricts blog drafts and admin reads to owner/admin roles', async () => {
