@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,49 @@ type BeforeAfterPair = {
   after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
 };
 
+type PublicReviewPage = {
+  items?: Review[];
+  total?: number;
+  hasMore?: boolean;
+  nextOffset?: number;
+};
+
+type ReviewPageResult = {
+  items: Review[];
+  total: number;
+  hasMore: boolean;
+  nextOffset: number;
+};
+
+const REVIEW_PAGE_SIZE = 20;
+
+function normalizeReviewPage(
+  data: PublicReviewPage | Review[],
+  offset: number,
+): ReviewPageResult {
+  if (Array.isArray(data)) {
+    const items = data.slice(offset, offset + REVIEW_PAGE_SIZE);
+    const nextOffset = offset + items.length;
+    return {
+      items,
+      total: data.length,
+      hasMore: nextOffset < data.length,
+      nextOffset,
+    };
+  }
+
+  const items = Array.isArray(data?.items) ? data.items : [];
+  const total = typeof data?.total === 'number' ? data.total : items.length;
+  const nextOffset =
+    typeof data?.nextOffset === 'number' ? data.nextOffset : offset + items.length;
+  return {
+    items,
+    total,
+    hasMore: data?.hasMore === true && items.length > 0,
+    nextOffset,
+  };
+}
+
 export function ServiceSingleDetailScreen({
   route,
   navigation,
@@ -40,33 +83,100 @@ export function ServiceSingleDetailScreen({
   const { width } = useWindowDimensions();
   const [service, setService] = useState<Service | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviewsTotal, setReviewsTotal] = useState(0);
+  const [reviewNextOffset, setReviewNextOffset] = useState<number | null>(null);
+  const [loadingMoreReviews, setLoadingMoreReviews] = useState(false);
   const [pairs, setPairs] = useState<BeforeAfterPair[]>([]);
   const [loadingPairs, setLoadingPairs] = useState(false);
   const [loading, setLoading] = useState(true);
+  const reviewRequestGeneration = useRef(0);
 
   useEffect(() => {
     navigation.setOptions({ title: serviceName || t('services.detail') });
   }, [navigation, serviceName, t]);
 
   useEffect(() => {
+    const requestGeneration = ++reviewRequestGeneration.current;
+    setLoading(true);
+    setReviews([]);
+    setReviewsTotal(0);
+    setReviewNextOffset(null);
+    setLoadingMoreReviews(false);
+
     (async () => {
       try {
         const [svcRes, revRes] = await Promise.all([
           api.get<Service>(`/api/services/${serviceId}`),
-          api.get<Review[]>(`/api/reviews`, {
-            params: { serviceId, approved: 'true' },
+          api.get<PublicReviewPage | Review[]>('/api/reviews', {
+            params: {
+              serviceId,
+              approved: 'true',
+              limit: REVIEW_PAGE_SIZE,
+              offset: 0,
+            },
           }),
         ]);
+        if (requestGeneration !== reviewRequestGeneration.current) return;
+        const page = normalizeReviewPage(revRes.data, 0);
         setService(svcRes.data);
-        setReviews(Array.isArray(revRes.data) ? revRes.data : []);
+        setReviews(page.items);
+        setReviewsTotal(page.total);
+        setReviewNextOffset(page.hasMore ? page.nextOffset : null);
       } catch {
+        if (requestGeneration !== reviewRequestGeneration.current) return;
         setService(null);
         setReviews([]);
+        setReviewsTotal(0);
+        setReviewNextOffset(null);
       } finally {
-        setLoading(false);
+        if (requestGeneration === reviewRequestGeneration.current) {
+          setLoading(false);
+        }
       }
     })();
+
+    return () => {
+      if (requestGeneration === reviewRequestGeneration.current) {
+        reviewRequestGeneration.current += 1;
+      }
+    };
   }, [serviceId]);
+
+  const loadMoreReviews = useCallback(async () => {
+    const offset = reviewNextOffset;
+    if (offset === null || loadingMoreReviews) return;
+
+    const requestGeneration = reviewRequestGeneration.current;
+    setLoadingMoreReviews(true);
+    try {
+      const { data } = await api.get<PublicReviewPage | Review[]>('/api/reviews', {
+        params: {
+          serviceId,
+          approved: 'true',
+          limit: REVIEW_PAGE_SIZE,
+          offset,
+        },
+      });
+      if (requestGeneration !== reviewRequestGeneration.current) return;
+
+      const page = normalizeReviewPage(data, offset);
+      setReviews((current) => {
+        const existingIds = new Set(current.map((review) => review.id));
+        return [
+          ...current,
+          ...page.items.filter((review) => !existingIds.has(review.id)),
+        ];
+      });
+      setReviewsTotal(page.total);
+      setReviewNextOffset(page.hasMore ? page.nextOffset : null);
+    } catch {
+      // Keep the current offset so the user can retry.
+    } finally {
+      if (requestGeneration === reviewRequestGeneration.current) {
+        setLoadingMoreReviews(false);
+      }
+    }
+  }, [loadingMoreReviews, reviewNextOffset, serviceId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,7 +257,7 @@ export function ServiceSingleDetailScreen({
       {/* Reviews */}
       <Card style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
-          {t('reviews.title')} ({reviews.length})
+          {t('reviews.title')} ({reviewsTotal})
         </Text>
         {reviews.length === 0 ? (
           <Text style={[styles.bodyText, { color: colors.textMuted }]}>{t('reviews.noReviews')}</Text>
@@ -182,6 +292,16 @@ export function ServiceSingleDetailScreen({
             ))}
           </View>
         )}
+        {reviewNextOffset !== null ? (
+          <Button
+            title={t('reviews.loadMore')}
+            onPress={() => void loadMoreReviews()}
+            loading={loadingMoreReviews}
+            size="sm"
+            variant="ghost"
+            style={styles.loadMoreReviews}
+          />
+        ) : null}
       </Card>
 
       {/* Before / After (work gallery) */}
@@ -285,6 +405,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '600', marginBottom: spacing.sm },
   bodyText: { fontSize: 14, lineHeight: 22 },
   reviewList: {},
+  loadMoreReviews: { marginTop: spacing.sm },
   reviewItem: {
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,

@@ -124,6 +124,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
   let serviceId: string;
   let serviceName: string;
   let publishedReviewId: string;
+  let secondPublishedReviewId: string;
   let pendingReviewId: string;
   let publishedPostId: string;
   let publishedPostSlug: string;
@@ -442,6 +443,8 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
       });
     }
 
+    const reviewPageCreatedAt = new Date('2026-01-02T12:00:00.000Z');
+    const secondReviewPageCreatedAt = new Date('2026-01-01T12:00:00.000Z');
     const publishedReview = await prisma.review.create({
       data: {
         userId: client.id,
@@ -449,10 +452,24 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
         serviceRating: 5,
         comment: 'Approved review fixture.',
         isApproved: true,
+        createdAt: reviewPageCreatedAt,
       },
     });
     fixtureIds.reviews.push(publishedReview.id);
     publishedReviewId = publishedReview.id;
+
+    const secondPublishedReview = await prisma.review.create({
+      data: {
+        userId: owner.id,
+        serviceId: service.id,
+        serviceRating: 4,
+        comment: 'Second approved review fixture.',
+        isApproved: true,
+        createdAt: secondReviewPageCreatedAt,
+      },
+    });
+    fixtureIds.reviews.push(secondPublishedReview.id);
+    secondPublishedReviewId = secondPublishedReview.id;
 
     const pendingReview = await prisma.review.create({
       data: {
@@ -851,12 +868,32 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
     expect(gallery.error).toBeUndefined();
   }, 90_000);
 
-  it('filters public reviews, protects detail, and reserves pending reads for moderators', async () => {
-    const publicList = await request(getHttpServer(app!))
-      .get(`/api/reviews?serviceId=${serviceId}`)
+  it('returns bounded approved review pages and reserves pending reads for moderators', async () => {
+    await request(getHttpServer(app!))
+      .get(`/api/reviews?serviceId=${serviceId}&limit=1.5`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get(`/api/reviews?serviceId=${serviceId}&limit=51`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get(`/api/reviews?serviceId=${serviceId}&offset=1001`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get(`/api/reviews?serviceId=${serviceId}&approved=false`)
+      .expect(400);
+
+    const firstPage = await request(getHttpServer(app!))
+      .get(`/api/reviews?serviceId=${serviceId}&approved=true&limit=1&offset=0`)
       .expect(200);
-    expect(publicList.body).toHaveLength(1);
-    expect(publicList.body[0]).toMatchObject({
+    expect(firstPage.body).toMatchObject({
+      total: 2,
+      limit: 1,
+      offset: 0,
+      hasMore: true,
+      nextOffset: 1,
+    });
+    expect(firstPage.body.items).toHaveLength(1);
+    expect(firstPage.body.items[0]).toMatchObject({
       id: publishedReviewId,
       serviceRating: 5,
       comment: 'Approved review fixture.',
@@ -865,9 +902,34 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
       service: { name: serviceName },
       stylist: null,
     });
-    expect(publicList.body[0]).not.toHaveProperty('user.email');
-    expect(publicList.body[0]).not.toHaveProperty('user.passwordHash');
-    expect(publicList.body[0]).not.toHaveProperty('reservationId');
+    expect(firstPage.body.items[0]).not.toHaveProperty('user.email');
+    expect(firstPage.body.items[0]).not.toHaveProperty('user.passwordHash');
+    expect(firstPage.body.items[0]).not.toHaveProperty('reservationId');
+
+    const secondPage = await request(getHttpServer(app!))
+      .get(`/api/reviews?serviceId=${serviceId}&limit=1&offset=1`)
+      .expect(200);
+    expect(secondPage.body).toMatchObject({
+      total: 2,
+      limit: 1,
+      offset: 1,
+      hasMore: false,
+      nextOffset: 2,
+    });
+    expect(secondPage.body.items).toHaveLength(1);
+    expect(secondPage.body.items[0].id).toBe(secondPublishedReviewId);
+
+    const defaultPage = await request(getHttpServer(app!))
+      .get(`/api/reviews?serviceId=${serviceId}`)
+      .expect(200);
+    expect(defaultPage.body).toMatchObject({
+      total: 2,
+      limit: 20,
+      offset: 0,
+      hasMore: false,
+      nextOffset: 2,
+    });
+    expect(defaultPage.body.items).toHaveLength(2);
 
     await request(getHttpServer(app!))
       .get(`/api/reviews/${publishedReviewId}`)

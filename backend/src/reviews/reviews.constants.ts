@@ -1,0 +1,3 @@
+export const DEFAULT_PUBLIC_REVIEW_LIMIT = 20;
+export const MAX_PUBLIC_REVIEW_LIMIT = 50;
+export const MAX_PUBLIC_REVIEW_OFFSET = 1000;

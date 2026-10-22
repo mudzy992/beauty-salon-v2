@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { PublicReviewsQueryDto } from './dto/public-reviews-query.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
@@ -37,11 +38,8 @@ export class ReviewsController {
 
   @Get()
   @Public()
-  findAll(
-    @Query('serviceId') serviceId: string,
-    @Query('stylistProfileId') stylistProfileId: string,
-  ) {
-    return this.reviews.findAllPublic({ serviceId, stylistProfileId });
+  findAll(@Query() query: PublicReviewsQueryDto) {
+    return this.reviews.findAllPublic(query);
   }
 
   @Get('admin')

@@ -32,6 +32,9 @@ type ReviewQuery = {
     [field: string]: unknown;
     user: { select: Record<string, unknown> };
   };
+  orderBy?: unknown;
+  skip?: number;
+  take?: number;
 };
 
 const firstReviewQuery = (mock: {
@@ -130,26 +133,68 @@ describe('ReviewsService', () => {
     expect(query.select.user.select).not.toHaveProperty('passwordHash');
   });
 
-  it('public list always filters to approved reviews', async () => {
-    mockPrisma.review.findMany.mockResolvedValue([]);
+  it('public list filters approved reviews and returns bounded stable pages', async () => {
+    mockPrisma.review.count.mockResolvedValue(2);
+    mockPrisma.review.findMany.mockResolvedValue([{ id: 'review-1' }]);
 
-    await service.findAllPublic({
+    const result = await service.findAllPublic({
       serviceId: 'service-1',
       stylistProfileId: 'stylist-1',
+      limit: 1,
+      offset: 0,
     });
 
+    expect(result).toMatchObject({
+      items: [{ id: 'review-1' }],
+      total: 2,
+      limit: 1,
+      offset: 0,
+      hasMore: true,
+      nextOffset: 1,
+    });
     const query = firstReviewQuery(mockPrisma.review.findMany);
     expect(query.where).toEqual({
       isApproved: true,
       serviceId: 'service-1',
       stylistProfileId: 'stylist-1',
     });
+    expect(query.orderBy).toEqual([{ createdAt: 'desc' }, { id: 'desc' }]);
+    expect(query.skip).toBe(0);
+    expect(query.take).toBe(1);
     expect(query.select.user.select).toEqual({
       firstName: true,
       lastName: true,
     });
     expect(query.select).not.toHaveProperty('userId');
     expect(query.select).not.toHaveProperty('reservationId');
+  });
+
+  it('defaults public reviews to a bounded first page and stops at the offset cap', async () => {
+    mockPrisma.review.count.mockResolvedValue(2000);
+    mockPrisma.review.findMany.mockResolvedValue(
+      Array.from({ length: 20 }, (_, index) => ({ id: `review-${index}` })),
+    );
+
+    const result = await service.findAllPublic({ offset: 1000 });
+
+    expect(result).toMatchObject({
+      total: 2000,
+      limit: 20,
+      offset: 1000,
+      hasMore: false,
+      nextOffset: 1020,
+    });
+    const query = firstReviewQuery(mockPrisma.review.findMany);
+    expect(query.skip).toBe(1000);
+    expect(query.take).toBe(20);
+  });
+
+  it('rejects an unsafe public reviews offset before Prisma access', async () => {
+    await expect(service.findAllPublic({ offset: 1001 })).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(mockPrisma.review.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.review.count).not.toHaveBeenCalled();
   });
 
   it('admin list can filter pending reviews without full User projection', async () => {

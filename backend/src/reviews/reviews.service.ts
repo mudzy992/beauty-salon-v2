@@ -6,6 +6,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
+import {
+  DEFAULT_PUBLIC_REVIEW_LIMIT,
+  MAX_PUBLIC_REVIEW_LIMIT,
+  MAX_PUBLIC_REVIEW_OFFSET,
+} from './reviews.constants';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 
 const REVIEW_DISPLAY_SELECT = {
@@ -94,7 +99,12 @@ export class ReviewsService {
     return review[0] ?? null;
   }
 
-  findAllPublic(query: { serviceId?: string; stylistProfileId?: string }) {
+  async findAllPublic(query: {
+    serviceId?: string;
+    stylistProfileId?: string;
+    limit?: number;
+    offset?: number;
+  }) {
     const where: {
       serviceId?: string;
       stylistProfileId?: string;
@@ -102,11 +112,46 @@ export class ReviewsService {
     } = { isApproved: true };
     if (query.serviceId) where.serviceId = query.serviceId;
     if (query.stylistProfileId) where.stylistProfileId = query.stylistProfileId;
-    return this.prisma.review.findMany({
-      where,
-      select: REVIEW_DISPLAY_SELECT,
-      orderBy: { createdAt: 'desc' },
-    });
+
+    const requestedLimit = query.limit ?? DEFAULT_PUBLIC_REVIEW_LIMIT;
+    if (!Number.isSafeInteger(requestedLimit) || requestedLimit < 1) {
+      throw new BadRequestException('limit mora biti pozitivan cijeli broj.');
+    }
+    const limit = Math.min(requestedLimit, MAX_PUBLIC_REVIEW_LIMIT);
+    const offset = query.offset ?? 0;
+    if (
+      !Number.isSafeInteger(offset) ||
+      offset < 0 ||
+      offset > MAX_PUBLIC_REVIEW_OFFSET
+    ) {
+      throw new BadRequestException(
+        `offset mora biti cijeli broj između 0 i ${MAX_PUBLIC_REVIEW_OFFSET}.`,
+      );
+    }
+
+    const [total, items] = await Promise.all([
+      this.prisma.review.count({ where }),
+      this.prisma.review.findMany({
+        where,
+        select: REVIEW_DISPLAY_SELECT,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: offset,
+        take: limit,
+      }),
+    ]);
+    const nextOffset = offset + items.length;
+
+    return {
+      items,
+      total,
+      limit,
+      offset,
+      hasMore:
+        items.length > 0 &&
+        nextOffset < total &&
+        nextOffset <= MAX_PUBLIC_REVIEW_OFFSET,
+      nextOffset,
+    };
   }
 
   findAllForAdmin(query: {
