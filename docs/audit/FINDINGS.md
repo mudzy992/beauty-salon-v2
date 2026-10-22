@@ -66,16 +66,17 @@
 
 **Popravka:** eksplicitno usaglasiti policy; ako nije globalni salon-wide pristup, query ograničiti na `stylistProfileId`/reservation/work relationship; dodati tests za own/other stylist/client/admin.
 
-### SEC-04 — Uploadi su javno dohvatljivi, a path-delete nema owner/reference authorization
+### SEC-04 — Javno posluživanje upload-a i nepotpuna delete/reference zaštita
 
 - [`main.ts#L21-L24`](../../backend/src/main.ts#L21) statički servira cijeli `UPLOAD_ROOT` pod `/uploads/` bez auth.
-- [`uploads.controller.ts#L19-L49`](../../backend/src/uploads/uploads.controller.ts#L19) zahtijeva JWT za upload, ali ne za `DELETE by-path-original`; handler ne prosljeđuje `CurrentUser`.
-- [`uploads.service.ts#L69-L74`](../../backend/src/uploads/uploads.service.ts#L69) prihvata MIME vrijednosti sa `file.mimetype`; Multer filter provjerava samo da postoji originalno ime ([controller L24-L35](../../backend/src/uploads/uploads.controller.ts#L24)). PDF/Word/Excel su dopušteni; originali se javno posluže.
-- [`uploads.service.ts#L129-L155`](../../backend/src/uploads/uploads.service.ts#L129) traži record po putanji, briše fajlove i DB record, bez ownership/attachment-reference provjere; controller ruta zahtijeva JWT globalno, ali bilo koji prijavljeni korisnik koji sazna path može pozvati delete.
+- [`uploads.controller.ts#L19-L53`](../../backend/src/uploads/uploads.controller.ts#L19) zahtijeva JWT za upload i brisanje; `DELETE by-path-original` sada prosljeđuje `CurrentUser` servisu. [`uploads.service.ts#L136-L200`](../../backend/src/uploads/uploads.service.ts#L136) ograničava brisanje na uploadera ili `OWNER`/`SYSTEM_ADMIN`, radi preflight provjeru poznatih relacijskih i putanjskih referenci te odbija putanje izvan `UPLOAD_ROOT`.
+- [`uploads.service.ts#L69-L74`](../../backend/src/uploads/uploads.service.ts#L69) i dalje prihvata MIME vrijednosti sa `file.mimetype`; Multer filter provjerava samo da postoji originalno ime ([controller L24-L35](../../backend/src/uploads/uploads.controller.ts#L24)). PDF/Word/Excel su dopušteni; originali se javno posluže.
 
-**Uticaj:** privatni dokumenti (npr. finance attachment) mogu biti javni svakome ko sazna/otkrije URL; prijavljeni korisnik može obrisati tuđi upload na osnovu putanje. Putanje mogu biti iz API-ja/DB-a; nije dokazano da su sve putanje enumerabilne.
+**Uticaj:** privatni dokumenti (npr. finance attachment) i dalje mogu biti javni svakome ko sazna/otkrije URL. Putanje mogu biti iz API-ja/DB-a; nije dokazano da su sve putanje enumerabilne. Cross-owner brisanje je mitigirano u source-u; reference preflight pokriva trenutno poznate relacije i putanjska polja, ali nije atomski zaštićen od konkurentnog upisa.
 
-**Popravka:** odvojiti `public-assets` i private upload storage; privatne fajlove servira autorizovan controller ili kratkoživući signed URL; provjeravati file signature (`file-type`) i per-category allowlist; owner/admin + reference check u delete-u, soft delete/audit; bez SVG/HTML direktnog public serve-a; limits/rate limit/quota.
+**Source mitigacija (2026-10-22):** unit testovi pokrivaju zabranu cross-owner brisanja, uploader/admin dopuštenja, blokiranje referenciranih fajlova i containment unutar upload root-a (3 suite/13 testova lokalno). Nije izvršena HTTP/DB E2E provjera ovog endpointa.
+
+**Preostala popravka:** odvojiti `public-assets` i private upload storage uz mapiranje postojećih URL-ova; privatne fajlove servirati preko autorizovanog controllera ili kratkoživućeg signed URL-a; provjeravati file signature i per-category allowlist; razmotriti soft delete/audit i DB enforcement za reference; bez SVG/HTML direktnog public serve-a; limits/rate limit/quota. Ova source mitigacija ne zatvara SEC-04 niti PRIV-01.
 
 ### PRIV-01 — Before/after galerija javno vraća fotografije bez consent polja u pregledanom modelu
 

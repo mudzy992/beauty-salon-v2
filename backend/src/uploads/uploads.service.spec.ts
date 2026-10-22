@@ -1,11 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UploadsService } from './uploads.service';
 import { UploadsRepository } from './uploads.repository';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
+jest.mock('../prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
 jest.mock('fs/promises');
 jest.mock('sharp', () => {
   const mockChain = {
@@ -20,6 +27,7 @@ jest.mock('sharp', () => {
 const mockUploadsRepo = {
   create: jest.fn(),
   findFirstByPathOriginal: jest.fn(),
+  hasReferences: jest.fn(),
   deleteById: jest.fn(),
 };
 
@@ -35,6 +43,7 @@ describe('UploadsService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockUploadsRepo.hasReferences.mockResolvedValue(false);
     (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
     (fs.writeFile as jest.Mock).mockResolvedValue(undefined);
     mockUploadsRepo.create.mockResolvedValue({
@@ -128,5 +137,100 @@ describe('UploadsService', () => {
         }),
       });
     });
+  });
+
+  describe('deleteByPathOriginal', () => {
+    const upload = {
+      id: 'upload-delete-1',
+      uploadedById: 'uploader-1',
+      pathOriginal: 'documents/2026/10/file-original.pdf',
+      pathThumb: null,
+      pathSmall: null,
+      pathMedium: null,
+    };
+
+    beforeEach(() => {
+      mockUploadsRepo.findFirstByPathOriginal.mockResolvedValue(upload);
+    });
+
+    it('odbija brisanje tuđeg uploada od običnog prijavljenog korisnika', async () => {
+      await expect(
+        service.deleteByPathOriginal(upload.pathOriginal, {
+          sub: 'other-user',
+          roles: ['STYLIST'],
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(mockUploadsRepo.hasReferences).not.toHaveBeenCalled();
+      expect(fs.unlink).not.toHaveBeenCalled();
+      expect(mockUploadsRepo.deleteById).not.toHaveBeenCalled();
+    });
+
+    it('dozvoljava uploaderu brisanje vlastitog nevezanog fajla', async () => {
+      await expect(
+        service.deleteByPathOriginal(upload.pathOriginal, {
+          sub: 'uploader-1',
+          roles: ['STYLIST'],
+        }),
+      ).resolves.toEqual({ deleted: true });
+
+      expect(mockUploadsRepo.hasReferences).toHaveBeenCalledWith(upload.id, [
+        upload.pathOriginal,
+      ]);
+      expect(fs.unlink).toHaveBeenCalledWith(
+        path.join('/tmp/uploads', upload.pathOriginal),
+      );
+      expect(mockUploadsRepo.deleteById).toHaveBeenCalledWith(upload.id);
+    });
+
+    it('dozvoljava OWNER/SYSTEM_ADMIN-u brisanje legacy uploada bez vlasnika', async () => {
+      mockUploadsRepo.findFirstByPathOriginal.mockResolvedValue({
+        ...upload,
+        uploadedById: null,
+      });
+
+      await expect(
+        service.deleteByPathOriginal(upload.pathOriginal, {
+          sub: 'admin-1',
+          roles: ['SYSTEM_ADMIN'],
+        }),
+      ).resolves.toEqual({ deleted: true });
+
+      expect(mockUploadsRepo.deleteById).toHaveBeenCalledWith(upload.id);
+    });
+
+    it('odbija brisanje uploada na koji se postojeći podatak poziva', async () => {
+      mockUploadsRepo.hasReferences.mockResolvedValue(true);
+
+      await expect(
+        service.deleteByPathOriginal(upload.pathOriginal, {
+          sub: 'uploader-1',
+          roles: ['STYLIST'],
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(fs.unlink).not.toHaveBeenCalled();
+      expect(mockUploadsRepo.deleteById).not.toHaveBeenCalled();
+    });
+
+    it.each(['../outside.pdf', '..\\outside.pdf'])(
+      'odbija DB putanju koja izlazi iz upload root direktorija: %s',
+      async (pathOriginal) => {
+        mockUploadsRepo.findFirstByPathOriginal.mockResolvedValue({
+          ...upload,
+          pathOriginal,
+        });
+
+        await expect(
+          service.deleteByPathOriginal(pathOriginal, {
+            sub: 'uploader-1',
+            roles: ['STYLIST'],
+          }),
+        ).rejects.toThrow(BadRequestException);
+
+        expect(fs.unlink).not.toHaveBeenCalled();
+        expect(mockUploadsRepo.deleteById).not.toHaveBeenCalled();
+      },
+    );
   });
 });

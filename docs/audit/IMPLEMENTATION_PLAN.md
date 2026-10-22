@@ -55,6 +55,8 @@ Severity P0/P1/P2 i finding IDs definisani su u `FINDINGS.md`.
 - Consent schema: `consentedAt`, purpose/version, actor/source, revokedAt (policy se usaglašava). Existing rows se backfill-uju na `not public`; admin UI eksplicitno prikazuje consent state; revoke odmah uklanja iz public API.
 - **Acceptance:** anonymous direct URL ne može dohvatiti private document; random other authenticated user ne može delete; referenced upload safe; no-consent image absent; revocation hides it; upload content-type mismatch rejected. Migrate safely uz backup.
 
+**SEC-04 narrow delete mitigation (2026-10-22):** `DELETE by-path-original` now receives the authenticated actor and permits deletion only to the uploader or `OWNER`/`SYSTEM_ADMIN`. A repository preflight blocks uploads referenced through the current relational attachment fields, invoice upload ID, known avatar/logo/service/blog/app-logo/app-release path fields, embedded blog content, or duplicate upload paths; resolved file paths must remain under `UPLOAD_ROOT`. Targeted tests pass 3 suites/13 tests locally. This does not make the preflight atomic against concurrent references and does not implement DB-level restriction, soft delete/audit, public/private storage separation, MIME-signature validation, or consent. SEC-04/PRIV-01 remain open pending the storage/consent migration plan; no anonymous URL or production behavior was tested.
+
 ### 0E. Auth, secrets, HTML/SVG — `SEC-05`, `SEC-08`, `AUTH-01`, `AUTH-02`
 
 - Production startup fail-closed za missing/weak `JWT_SECRET` i missing/invalid 32-byte base64 encryption key. Remove shared signing fallback from code/config; local dev uses ignored env.

@@ -45,7 +45,10 @@ export class UploadsController {
   }
 
   @Delete('by-path-original')
-  async deleteByPathOriginal(@Body('pathOriginal') pathOriginal: string) {
-    return this.uploadsService.deleteByPathOriginal(pathOriginal);
+  async deleteByPathOriginal(
+    @Body('pathOriginal') pathOriginal: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.uploadsService.deleteByPathOriginal(pathOriginal, user);
   }
 }

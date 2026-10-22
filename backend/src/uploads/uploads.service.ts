@@ -1,8 +1,15 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import sharp from 'sharp';
+import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { UploadsRepository } from './uploads.repository';
 
 const IMAGE_SIZES = {
@@ -126,8 +133,11 @@ export class UploadsService {
     };
   }
 
-  async deleteByPathOriginal(pathOriginal: string): Promise<{ deleted: boolean }> {
-    const normalized = (pathOriginal || '').trim().replace(/^\//, '');
+  async deleteByPathOriginal(
+    pathOriginal: string,
+    currentUser: Pick<CurrentUserPayload, 'sub' | 'roles'>,
+  ): Promise<{ deleted: boolean }> {
+    const normalized = (pathOriginal || '').trim().replace(/^\/+/, '');
     if (!normalized) {
       throw new BadRequestException('Putanja fajla nije validna.');
     }
@@ -135,15 +145,36 @@ export class UploadsService {
     const upload = await this.repo.findFirstByPathOriginal(normalized);
     if (!upload) throw new NotFoundException('Upload nije pronađen.');
 
-    const paths = [upload.pathOriginal, upload.pathThumb, upload.pathSmall, upload.pathMedium]
-      .filter((p): p is string => typeof p === 'string' && p.trim().length > 0)
-      .map((p) => p.replace(/^\//, ''));
+    const isAdminOrOwner =
+      currentUser.roles.includes('SYSTEM_ADMIN') ||
+      currentUser.roles.includes('OWNER');
+    if (!isAdminOrOwner && upload.uploadedById !== currentUser.sub) {
+      throw new ForbiddenException('Nemate dozvolu za brisanje ovog uploada.');
+    }
+
+    const paths = [
+      upload.pathOriginal,
+      upload.pathThumb,
+      upload.pathSmall,
+      upload.pathMedium,
+    ]
+      .filter((filePath): filePath is string => typeof filePath === 'string')
+      .map((filePath) => filePath.trim().replace(/^\/+/, ''))
+      .filter(Boolean);
+    const absolutePaths = paths.map((filePath) =>
+      this.resolveUploadPath(filePath),
+    );
+
+    if (await this.repo.hasReferences(upload.id, paths)) {
+      throw new ConflictException(
+        'Upload je vezan za postojeće podatke i ne može se obrisati.',
+      );
+    }
 
     await Promise.all(
-      paths.map(async (p) => {
-        const abs = path.join(this.uploadRoot, p);
+      absolutePaths.map(async (absolutePath) => {
         try {
-          await fs.unlink(abs);
+          await fs.unlink(absolutePath);
         } catch {
           // ignore missing / already deleted
         }
@@ -153,5 +184,18 @@ export class UploadsService {
     await this.repo.deleteById(upload.id);
 
     return { deleted: true };
+  }
+
+  private resolveUploadPath(relativePath: string): string {
+    const uploadRoot = path.resolve(this.uploadRoot);
+    const normalizedRelativePath = relativePath.replace(/\\/g, '/');
+    const absolutePath = path.resolve(uploadRoot, normalizedRelativePath);
+    if (
+      absolutePath === uploadRoot ||
+      !absolutePath.startsWith(`${uploadRoot}${path.sep}`)
+    ) {
+      throw new BadRequestException('Putanja fajla nije validna.');
+    }
+    return absolutePath;
   }
 }
