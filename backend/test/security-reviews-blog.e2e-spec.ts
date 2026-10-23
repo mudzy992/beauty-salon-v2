@@ -22,6 +22,7 @@ import { AuthService } from '../src/auth/auth.service';
 import { JwtStrategy } from '../src/auth/strategies/jwt.strategy';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
 import { RolesGuard } from '../src/common/guards/roles.guard';
+import { DecimalToNumberInterceptor } from '../src/common/interceptors/decimal-to-number.interceptor';
 import { BlogCommentsService } from '../src/blog/blog-comments.service';
 import { BlogController } from '../src/blog/blog.controller';
 import { BlogService } from '../src/blog/blog.service';
@@ -253,6 +254,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
         transform: true,
       }),
     );
+    nestApp.useGlobalInterceptors(new DecimalToNumberInterceptor());
     app = nestApp;
     await nestApp.init();
     prisma = nestApp.get(PrismaService);
