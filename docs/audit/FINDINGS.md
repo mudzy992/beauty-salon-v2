@@ -184,11 +184,25 @@ Review-list baseline is separately contained under SEC-01: public `GET /api/revi
 
 ### BIZ-04 — Dug se pre-čita kao OPEN, a repayment transakcija nema conditional status guard
 
-[`repayDebt`](../../backend/src/finance/client-debts.service.ts#L153-L194) provjerava `status === OPEN` izvan transactiona. U transakciji radi `clientDebt.update({ where: {id}, data: {status: SETTLED} })` bez `where: {status: OPEN}` ([L194-L203](../../backend/src/finance/client-debts.service.ts#L194)), a zatim kreira novi DEBT_PAYMENT `DailyLogEntry` i manual KIF stavku ([L205-L236](../../backend/src/finance/client-debts.service.ts#L205)). Pregledani schema nema unique constraint na `dailyLogEntry.debtId`/payment reference ([`schema.prisma#L403-L451`](../../backend/prisma/schema.prisma#L403), [`#L660-L720`](../../backend/prisma/schema.prisma#L660)).
+**Baseline prije mitigacije:** [`repayDebt`](../../backend/src/finance/client-debts.service.ts#L165-L211) je provjeravao `status === OPEN` izvan transactiona, a zatim radio unconditional `clientDebt.update` prije kreiranja `DEBT_PAYMENT` i manual KIF stavke. Nije postojao unique index koji bi ograničio aktivne payment rows za jedan `debtId`. To je bio statički potvrđen race kandidat, ne dokaz duplog knjiženja u produkciji.
 
-**Uticaj:** dvije concurrent repayment operacije mogu obje proći stari OPEN read i napraviti dvije payment/KIF stavke. Race nije reproduciran.
+**Uticaj:** konkurentni repayment zahtjevi mogli su proći stale OPEN read i pokušati kreirati dvije payment/KIF stavke. Live/deployed race nije testiran.
 
-**Popravka:** unutar transactiona prvo `updateMany({ where: {id,status:OPEN}, data: SETTLED })`; zahtijevati `count===1`; unique idempotency/debt repayment relation; reconciliation query; concurrency test sa dva clients/barrier.
+**Izvorna mitigacija (2026-10-23; push-CI pending):** zajednički [`claimOpenClientDebt`](../../backend/src/finance/utils/claim-open-client-debt.ts) koristi `updateMany` sa `status=OPEN`, zahtijeva `count === 1` i opcionalno veže claim za klijenta/stilistu. Direct repay, write-off i batch debt settlement iz [`DailyLogService`](../../backend/src/daily-log/daily-log.service.ts#L499-L508) koriste claim unutar transakcije; promašeni claim postaje `409 Conflict`. Repayment nakon claim-a ponovo čita iznos i servis unutar iste transakcije. Sekvencijalni retry vraća postojeći aktivni `COMPLETED` `DEBT_PAYMENT`, bez novog dnevnog zapisa/KIF stavke. Nije uveden novi request field; deduplikacijski identitet je dug + njegov jedini aktivni payment.
+
+Dodana je PostgreSQL partial unique index zaštita na `daily_log_entries.debt_id` za `kind='DEBT_PAYMENT'`, `deleted_at IS NULL`; soft-delete/reversal dozvoljava novi payment nakon što se dug ponovo otvori. [Migracija](../../backend/prisma/migrations/20261023133000_single_active_debt_payment/migration.sql) prvo odbija postojeće duplikate i nikad ih automatski ne briše/odabire. Read-only preflight za vlasnika prije migracije:
+
+```sql
+SELECT debt_id, COUNT(*) AS active_payments
+FROM daily_log_entries
+WHERE kind = 'DEBT_PAYMENT'
+  AND debt_id IS NOT NULL
+  AND deleted_at IS NULL
+GROUP BY debt_id
+HAVING COUNT(*) > 1;
+```
+
+**Verifikacija:** dodani su unit regresije za direktnu naplatu, otpis i batch settlement; batch slučaj potvrđuje `clientId`-scoped `OPEN` claim i da izgubljeni claim ne piše payment/KIF redove. DB-backed HTTP slučaj sa loopback/test-only zaštitom provjerava direktni concurrent repayment uz barijeru nakon stale OPEN reads (tačno jedan `201` i jedan `409`), odbijanje drugog aktivnog payment insert-a partial unique indexom, replay istog duga, jednu aktivnu payment/KIF stavku i rollback kada sintetički PostgreSQL trigger odbije manual KIF insert. Lokalni backend Jest/DB E2E nisu pokrenuti jer dependencies/generated Prisma Client i disposable PostgreSQL nisu dostupni; push-triggered CI je na čekanju. Produkcijska/shared baza nije čitana niti migrirana. Dok CI ne prođe i vlasnik ne izvrši eventualni preflight/reconciliation, ne tvrditi da je nalaz prihvaćen ili da je migracija spremna za cutover.
 
 ### BIZ-05 — Loyalty redeem/earn concurrency i idempotency su slabi
 

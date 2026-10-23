@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ClientDebtStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { IncomeSyncService } from './income-sync.service';
@@ -7,6 +13,7 @@ import { parseAndNormalizeDate } from '../common/utils/book-period';
 import { allocateDailyLogReferenceCode } from '../daily-log/daily-log.reference';
 import type { RepayClientDebtDto } from './dto/repay-client-debt.dto';
 import type { SettleClientDebtDto } from './dto/settle-client-debt.dto';
+import { claimOpenClientDebt } from './utils/claim-open-client-debt';
 
 @Injectable()
 export class ClientDebtsService {
@@ -139,14 +146,19 @@ export class ClientDebtsService {
       throw new ForbiddenException('Otpis duga može izvršiti samo vlasnik ili administrator.');
     }
 
-    return this.prisma.clientDebt.update({
-      where: { id: debtId },
-      data: {
-        status: ClientDebtStatus.SETTLED,
-        settledAt: new Date(),
+    return this.prisma.$transaction(async (tx) => {
+      const claimed = await claimOpenClientDebt(tx, {
+        debtId,
         settledById: currentUser.sub,
         note: `[OTPIS] ${reason}`,
-      },
+      });
+      if (!claimed) {
+        throw new ConflictException('Dug je u međuvremenu zatvoren.');
+      }
+
+      const settled = await tx.clientDebt.findUnique({ where: { id: debtId } });
+      if (!settled) throw new NotFoundException('Dug nije pronađen.');
+      return settled;
     });
   }
 
@@ -159,32 +171,57 @@ export class ClientDebtsService {
       },
     });
     if (!debt) throw new NotFoundException('Dug nije pronađen.');
-    if (debt.status !== ClientDebtStatus.OPEN) {
-      throw new BadRequestException('Dug je već zatvoren.');
-    }
 
     const isAdminOrOwner =
       currentUser.roles.includes('SYSTEM_ADMIN') || currentUser.roles.includes('OWNER');
+    let authorizedStylistProfileId: string | undefined;
     if (!isAdminOrOwner) {
       if (!currentUser.roles.includes('STYLIST')) throw new ForbiddenException('Nemate dozvolu.');
       const myStylistProfileId = await this.getStylistProfileIdByUserId(currentUser.sub);
       if (!myStylistProfileId || myStylistProfileId !== debt.stylistProfileId) {
         throw new ForbiddenException('Nemate dozvolu.');
       }
+      authorizedStylistProfileId = myStylistProfileId;
+    }
+
+    if (debt.status !== ClientDebtStatus.OPEN) {
+      const existingPayment =
+        debt.status === ClientDebtStatus.SETTLED
+          ? await this.prisma.dailyLogEntry.findFirst({
+              where: {
+                debtId,
+                kind: 'DEBT_PAYMENT',
+                status: 'COMPLETED',
+                deletedAt: null,
+              },
+              select: { id: true },
+            })
+          : null;
+      if (existingPayment) {
+        const settled = await this.prisma.clientDebt.findUnique({
+          where: { id: debtId },
+        });
+        if (!settled) throw new NotFoundException('Dug nije pronađen.');
+        return {
+          settled,
+          debtPaymentDailyLogId: existingPayment.id,
+        };
+      }
+      throw new BadRequestException('Dug je već zatvoren.');
     }
 
     const date = dto.date ? parseAndNormalizeDate(dto.date) : new Date();
     date.setHours(0, 0, 0, 0);
 
-    const serviceId =
+    const initialServiceId =
       debt.serviceId ??
       debt.dailyLogEntry?.serviceId ??
       debt.reservation?.serviceId ??
       null;
-    if (!serviceId) throw new BadRequestException('Nedostaje servis za knjiženje naplate duga.');
+    if (!initialServiceId) throw new BadRequestException('Nedostaje servis za knjiženje naplate duga.');
 
-    const amount = Number(debt.amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
+    const initialAmount = Number(debt.amount);
+    if (!Number.isFinite(initialAmount) || initialAmount <= 0) {
       throw new BadRequestException('Iznos duga nije validan.');
     }
 
@@ -192,15 +229,46 @@ export class ClientDebtsService {
     const note = dto.note?.trim() || undefined;
 
     return this.prisma.$transaction(async (tx) => {
-      const settled = await tx.clientDebt.update({
-        where: { id: debtId },
-        data: {
-          status: ClientDebtStatus.SETTLED,
-          settledAt: new Date(),
-          settledById: currentUser.sub,
-          ...(note ? { note } : {}),
-        },
+      const claimed = await claimOpenClientDebt(tx, {
+        debtId,
+        settledById: currentUser.sub,
+        ...(authorizedStylistProfileId
+          ? { stylistProfileId: authorizedStylistProfileId }
+          : {}),
+        ...(note ? { note } : {}),
       });
+      if (!claimed) {
+        throw new ConflictException(
+          'Dug je u međuvremenu zatvoren. Pokušajte ponovo.',
+        );
+      }
+
+      const settled = await tx.clientDebt.findUnique({ where: { id: debtId } });
+      if (!settled) throw new NotFoundException('Dug nije pronađen.');
+
+      let serviceId = settled.serviceId;
+      if (!serviceId && settled.dailyLogEntryId) {
+        serviceId =
+          (await tx.dailyLogEntry.findUnique({
+            where: { id: settled.dailyLogEntryId },
+            select: { serviceId: true },
+          }))?.serviceId ?? null;
+      }
+      if (!serviceId && settled.reservationId) {
+        serviceId =
+          (await tx.reservation.findUnique({
+            where: { id: settled.reservationId },
+            select: { serviceId: true },
+          }))?.serviceId ?? null;
+      }
+      if (!serviceId) {
+        throw new BadRequestException('Nedostaje servis za knjiženje naplate duga.');
+      }
+
+      const amount = Number(settled.amount);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        throw new BadRequestException('Iznos duga nije validan.');
+      }
 
       const debtPaymentDailyLog = await tx.dailyLogEntry.create({
         data: {

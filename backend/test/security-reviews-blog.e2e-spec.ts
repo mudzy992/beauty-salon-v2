@@ -37,6 +37,12 @@ import { DailyLogDispositionService } from '../src/daily-log/daily-log-dispositi
 import { DailyLogPublicService } from '../src/daily-log/daily-log-public.service';
 import { DailyLogRestoreService } from '../src/daily-log/daily-log-restore.service';
 import { DailyLogService } from '../src/daily-log/daily-log.service';
+import { ClientDebtsController } from '../src/finance/client-debts.controller';
+import { ClientDebtsService } from '../src/finance/client-debts.service';
+import { IncomeBookRepository } from '../src/finance/repositories/income-book.repository';
+import { IncomeBooksService } from '../src/finance/income-books.service';
+import { IncomeManualEntriesService } from '../src/finance/income-manual-entries.service';
+import { IncomeSyncService } from '../src/finance/income-sync.service';
 import { AvailabilityDebugService } from '../src/reservations/availability-debug.service';
 import { AvailabilityDatesService } from '../src/reservations/availability-dates.service';
 import { AvailabilityService } from '../src/reservations/availability.service';
@@ -112,6 +118,11 @@ type FixtureIds = {
   mediaConsents: string[];
   consentedUploadIds: string[];
   uploads: string[];
+  clientDebts: string[];
+  incomeManualEntries: string[];
+  incomeBookId?: string;
+  incomeBookCreatedByTest?: string;
+  ownerUserId?: string;
   stylistProfile?: string;
   serviceCategory?: string;
   serviceSubcategory?: string;
@@ -131,9 +142,11 @@ const fixtureIds: FixtureIds = {
   mediaConsents: [],
   consentedUploadIds: [],
   uploads: [],
+  clientDebts: [],
+  incomeManualEntries: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 and API-02', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02 and BIZ-04', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -188,6 +201,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
         UsersController,
         UploadsController,
         DailyLogController,
+        ClientDebtsController,
         MediaConsentController,
         ReservationsController,
         ServicesController,
@@ -197,6 +211,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
         PrismaService,
         UsersRepository,
         UsersService,
+        ClientDebtsService,
+        IncomeBookRepository,
+        IncomeBooksService,
+        IncomeManualEntriesService,
+        IncomeSyncService,
         ReviewsService,
         {
           provide: AnalyticsService,
@@ -314,6 +333,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
       },
     });
     fixtureIds.users.push(owner.id);
+    fixtureIds.ownerUserId = owner.id;
     await prisma.userRole.create({
       data: { userId: owner.id, roleId: ownerRole.id },
     });
@@ -709,9 +729,57 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
           where: { id: { in: fixtureIds.mediaConsents } },
         });
       }
+      if (fixtureIds.incomeManualEntries.length) {
+        await prisma.incomeBookManualEntry.deleteMany({
+          where: { id: { in: fixtureIds.incomeManualEntries } },
+        });
+      }
+      if (fixtureIds.clientDebts.length) {
+        await prisma.incomeBookManualEntry.deleteMany({
+          where: {
+            dailyLogEntry: {
+              is: { debtId: { in: fixtureIds.clientDebts } },
+            },
+          },
+        });
+        await prisma.dailyLogEntry.deleteMany({
+          where: { debtId: { in: fixtureIds.clientDebts } },
+        });
+        await prisma.clientDebt.deleteMany({
+          where: { id: { in: fixtureIds.clientDebts } },
+        });
+      }
       if (fixtureIds.dailyLogEntries.length) {
         await prisma.dailyLogEntry.deleteMany({
           where: { id: { in: fixtureIds.dailyLogEntries } },
+        });
+      }
+      if (fixtureIds.incomeBookId) {
+        const [autoTotals, manualTotals] = await Promise.all([
+          prisma.incomeBookEntry.aggregate({
+            where: { bookId: fixtureIds.incomeBookId },
+            _sum: { amount: true, tipAmount: true },
+          }),
+          prisma.incomeBookManualEntry.aggregate({
+            where: { bookId: fixtureIds.incomeBookId },
+            _sum: { amount: true, tipAmount: true },
+          }),
+        ]);
+        await prisma.incomeBook.update({
+          where: { id: fixtureIds.incomeBookId },
+          data: {
+            totalRevenue:
+              Number(autoTotals._sum.amount ?? 0) +
+              Number(manualTotals._sum.amount ?? 0),
+            totalTips:
+              Number(autoTotals._sum.tipAmount ?? 0) +
+              Number(manualTotals._sum.tipAmount ?? 0),
+          },
+        });
+      }
+      if (fixtureIds.incomeBookCreatedByTest) {
+        await prisma.incomeBook.deleteMany({
+          where: { id: fixtureIds.incomeBookCreatedByTest },
         });
       }
       if (fixtureIds.galleryCategories.length) {
@@ -1666,6 +1734,191 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
       .expect(200);
     expect(systemAdminList.body.total).toBe(1);
     expect(systemAdminList.body.items[0].email).toBe(clientEmail);
+  });
+
+  it('serializes concurrent debt repayments, replays the recorded payment, and rolls back failed KIF writes', async () => {
+    const db = prisma!;
+    const httpServer = getHttpServer(app!);
+    const today = new Date();
+    const repaymentDate = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0'),
+    ].join('-');
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+    let book = await db.incomeBook.findUnique({
+      where: { year_month: { year, month } },
+    });
+    if (!book) {
+      book = await db.incomeBook.create({ data: { year, month } });
+      fixtureIds.incomeBookCreatedByTest = book.id;
+    }
+    if (book.closedAt) {
+      throw new Error(
+        'Synthetic debt repayment fixture needs an open KIF book.',
+      );
+    }
+    fixtureIds.incomeBookId = book.id;
+
+    const createDebt = async () => {
+      const debt = await db.clientDebt.create({
+        data: {
+          clientId: clientUserId,
+          stylistProfileId: fixtureIds.stylistProfile!,
+          serviceId,
+          amount: 40,
+          createdById: fixtureIds.ownerUserId!,
+        },
+      });
+      fixtureIds.clientDebts.push(debt.id);
+      return debt;
+    };
+    const repay = (debtId: string, note?: string) =>
+      request(httpServer)
+        .post(`/api/client-debts/${debtId}/repay`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ date: repaymentDate, ...(note ? { note } : {}) });
+
+    const debt = await createDebt();
+    const incomeSync = app!.get(IncomeSyncService);
+    const assertBookOpenForDate =
+      incomeSync.assertBookOpenForDate.bind(incomeSync);
+    let bookChecks = 0;
+    let releaseBookCheck!: () => void;
+    const bookCheckBarrier = new Promise<void>((resolve) => {
+      releaseBookCheck = resolve;
+    });
+    const safetyRelease = setTimeout(releaseBookCheck, 5000);
+    const bookCheckSpy = jest
+      .spyOn(incomeSync, 'assertBookOpenForDate')
+      .mockImplementation(async (date) => {
+        const openBook = await assertBookOpenForDate(date);
+        bookChecks += 1;
+        if (bookChecks === 2) releaseBookCheck();
+        await bookCheckBarrier;
+        return openBook;
+      });
+    let concurrentResponses: Awaited<ReturnType<typeof repay>>[];
+    try {
+      concurrentResponses = await Promise.all([repay(debt.id), repay(debt.id)]);
+    } finally {
+      clearTimeout(safetyRelease);
+      bookCheckSpy.mockRestore();
+    }
+    expect(bookChecks).toBe(2);
+    expect(
+      concurrentResponses.map((response) => response.status).sort(),
+    ).toEqual([201, 409]);
+
+    const activePayments = await db.dailyLogEntry.findMany({
+      where: {
+        debtId: debt.id,
+        kind: 'DEBT_PAYMENT',
+        status: 'COMPLETED',
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+    expect(activePayments).toHaveLength(1);
+    const settledDebt = await db.clientDebt.findUnique({
+      where: { id: debt.id },
+      select: { status: true },
+    });
+    expect(settledDebt?.status).toBe('SETTLED');
+    const paymentId = activePayments[0]!.id;
+    fixtureIds.dailyLogEntries.push(paymentId);
+
+    let duplicatePaymentId: string | null = null;
+    try {
+      const duplicatePayment = await db.dailyLogEntry.create({
+        data: {
+          stylistProfileId: fixtureIds.stylistProfile!,
+          serviceId,
+          clientId: clientUserId,
+          kind: 'DEBT_PAYMENT',
+          debtId: debt.id,
+          date: today,
+          actualPrice: 40,
+          tipAmount: 0,
+          publicReferenceCode: `biz04-duplicate-${randomUUID()}`,
+          isManual: true,
+          status: 'COMPLETED',
+          completedAt: new Date(),
+        },
+      });
+      duplicatePaymentId = duplicatePayment.id;
+    } catch (error) {
+      expect(error).toMatchObject({ code: 'P2002' });
+    }
+    if (duplicatePaymentId) {
+      fixtureIds.dailyLogEntries.push(duplicatePaymentId);
+      throw new Error(
+        'Partial unique index allowed a duplicate active payment.',
+      );
+    }
+
+    const manualEntries = await db.incomeBookManualEntry.findMany({
+      where: { dailyLogEntryId: paymentId },
+      select: { id: true },
+    });
+    expect(manualEntries).toHaveLength(1);
+    fixtureIds.incomeManualEntries.push(manualEntries[0]!.id);
+
+    const replay = await repay(debt.id).expect(201);
+    expect(replay.body.debtPaymentDailyLogId).toBe(paymentId);
+    expect(
+      await db.dailyLogEntry.count({
+        where: {
+          debtId: debt.id,
+          kind: 'DEBT_PAYMENT',
+          deletedAt: null,
+        },
+      }),
+    ).toBe(1);
+
+    const failingDebt = await createDebt();
+    const suffix = randomUUID().replaceAll('-', '');
+    const failureMarker = `synthetic-repayment-failure-${suffix}`;
+    const functionName = `e2e_fail_debt_payment_${suffix}`;
+    const triggerName = `e2e_fail_debt_payment_${suffix}`;
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${functionName}"() RETURNS trigger
+        LANGUAGE plpgsql AS $function$
+        BEGIN
+          IF NEW."notes" = '${failureMarker}' THEN
+            RAISE EXCEPTION 'synthetic debt repayment failure';
+          END IF;
+          RETURN NEW;
+        END;
+        $function$
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE INSERT ON "income_book_manual_entries"
+        FOR EACH ROW EXECUTE FUNCTION "${functionName}"()
+      `);
+
+      const failed = await repay(failingDebt.id, failureMarker);
+      expect(failed.status).toBe(500);
+    } finally {
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "income_book_manual_entries"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+    }
+
+    const rolledBackDebt = await db.clientDebt.findUnique({
+      where: { id: failingDebt.id },
+      select: { status: true },
+    });
+    expect(rolledBackDebt?.status).toBe('OPEN');
+    expect(
+      await db.dailyLogEntry.count({
+        where: { debtId: failingDebt.id, kind: 'DEBT_PAYMENT' },
+      }),
+    ).toBe(0);
   });
 
   it('uploads an owner avatar, persists public opt-in, and serves only the correct variants', async () => {

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -25,6 +26,7 @@ import {
 } from './daily-log.pricing';
 import { allocateDailyLogReferenceCode } from './daily-log.reference';
 import { DailyLogReceiptService } from './daily-log-receipt.service';
+import { claimOpenClientDebt } from '../finance/utils/claim-open-client-debt';
 
 @Injectable()
 export class DailyLogService {
@@ -494,14 +496,16 @@ export class DailyLogService {
         const kifAmount = getServiceAmount(amount, tipAmount);
         const debtRef = await allocateDailyLogReferenceCode(tx as any, date);
 
-        await tx.clientDebt.update({
-          where: { id: d.id },
-          data: {
-            status: 'SETTLED',
-            settledAt: new Date(),
-            settledById: params.userId,
-          },
+        const claimed = await claimOpenClientDebt(tx, {
+          debtId: d.id,
+          clientId: params.clientId,
+          settledById: params.userId,
         });
+        if (!claimed) {
+          throw new ConflictException(
+            'Jedno ili više dugovanja je u međuvremenu zatvoreno. Osvježite stanje i pokušajte ponovo.',
+          );
+        }
 
         const debtPayment = await tx.dailyLogEntry.create({
           data: {

@@ -463,6 +463,7 @@ model DailyLogEntry {
   debtPaymentEntries  DailyLogEntry[]            @relation("DailyLogDebtPayments")
   incomeManualEntries IncomeBookManualEntry[]
 
+  // A partial unique SQL index also enforces one non-deleted DEBT_PAYMENT per debt.
   @@index([debtId])
   @@index([deletedAt])
   @@index([status, deletedAt])
