@@ -415,7 +415,10 @@ export class UploadsService {
       throw new NotFoundException('Fajl nije pronađen.');
     }
 
-    const mimeType = upload.mimeType.toLowerCase();
+    const mimeType =
+      storedPath !== upload.pathOriginal && /\.webp$/i.test(storedPath)
+        ? 'image/webp'
+        : upload.mimeType.toLowerCase();
     const inline = SAFE_INLINE_MIMES.has(mimeType);
     return {
       buffer,

@@ -308,6 +308,20 @@ describe('UploadsService', () => {
       );
     });
 
+    it('serves generated WebP variants with their actual MIME type', async () => {
+      mockUploadsRepo.findByStoredPath.mockResolvedValue(privateUpload);
+
+      const result = await service.readPrivateFile(privateUpload.pathThumb, {
+        sub: 'stylist-1',
+        roles: ['STYLIST'],
+      });
+
+      expect(result).toMatchObject({ mimeType: 'image/webp', inline: true });
+      expect(fs.readFile).toHaveBeenCalledWith(
+        path.join('/tmp/uploads', privateUpload.pathThumb),
+      );
+    });
+
     it('denies protected-file access to a consent derivative after its active relation is revoked', async () => {
       const consentDerivative = {
         ...privateUpload,
@@ -419,7 +433,9 @@ describe('UploadsService', () => {
         },
       });
 
-      await expect(service.readPublicUserAvatar('user-1')).resolves.toMatchObject({
+      await expect(
+        service.readPublicUserAvatar('user-1'),
+      ).resolves.toMatchObject({
         mimeType: 'image/webp',
         inline: true,
       });
@@ -430,9 +446,9 @@ describe('UploadsService', () => {
 
     it('does not read a private or non-variant avatar', async () => {
       mockUploadsRepo.findPublicAvatarUpload.mockResolvedValue(null);
-      await expect(service.readPublicUserAvatar('private-user')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.readPublicUserAvatar('private-user'),
+      ).rejects.toThrow(NotFoundException);
       expect(fs.readFile).not.toHaveBeenCalled();
     });
   });

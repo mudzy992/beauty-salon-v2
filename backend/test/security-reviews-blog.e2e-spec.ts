@@ -4,7 +4,9 @@ jest.mock('../src/blog/utils/sanitize-blog-content', () => ({
 }));
 
 import { randomUUID } from 'node:crypto';
-import { appendFile } from 'node:fs/promises';
+import { appendFile, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import type { Server } from 'node:http';
 import { ValidationPipe } from '@nestjs/common';
@@ -15,6 +17,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
+import sharp from 'sharp';
 import { AuthService } from '../src/auth/auth.service';
 import { JwtStrategy } from '../src/auth/strategies/jwt.strategy';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
@@ -26,6 +29,8 @@ import { DailyLogAdminService } from '../src/daily-log/daily-log-admin.service';
 import { DailyLogController } from '../src/daily-log/daily-log.controller';
 import { MediaConsentController } from '../src/media-consent/media-consent.controller';
 import { MediaConsentService } from '../src/media-consent/media-consent.service';
+import { UploadsController } from '../src/uploads/uploads.controller';
+import { UploadsRepository } from '../src/uploads/uploads.repository';
 import { UploadsService } from '../src/uploads/uploads.service';
 import { DailyLogDispositionService } from '../src/daily-log/daily-log-disposition.service';
 import { DailyLogPublicService } from '../src/daily-log/daily-log-public.service';
@@ -154,23 +159,22 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
   let availabilityDate: string;
   let firstBeforeImageId: string;
   let unconsentedDailyLogEntryId: string;
-  let readConsentDerivativeMock: jest.Mock;
+  let readConsentDerivativeMock: jest.SpyInstance;
+  let uploadRoot: string | undefined;
 
   beforeAll(async () => {
     const databaseUrl = getDisposableDatabaseUrl();
+    uploadRoot = await mkdtemp(join(tmpdir(), 'beauty-salon-avatar-e2e-'));
     const configValues: Record<string, string> = {
       DATABASE_URL: databaseUrl,
       DATABASE_PROVIDER: 'postgres',
       JWT_SECRET: TEST_JWT_SECRET,
+      UPLOAD_ROOT: uploadRoot,
     };
     const configService = {
       get: (key: string, defaultValue?: string) =>
         configValues[key] ?? defaultValue,
     };
-    readConsentDerivativeMock = jest
-      .fn()
-      .mockResolvedValue({ buffer: Buffer.from('synthetic-webp') });
-
     const moduleRef = await Test.createTestingModule({
       imports: [
         PassportModule.register({ defaultStrategy: 'jwt' }),
@@ -181,6 +185,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
         AnalyticsController,
         BlogController,
         UsersController,
+        UploadsController,
         DailyLogController,
         MediaConsentController,
         ReservationsController,
@@ -202,10 +207,8 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
         BlogCommentsService,
         DailyLogPublicService,
         MediaConsentService,
-        {
-          provide: UploadsService,
-          useValue: { readConsentDerivative: readConsentDerivativeMock },
-        },
+        UploadsRepository,
+        UploadsService,
         { provide: DailyLogService, useValue: {} },
         { provide: DailyLogAdminService, useValue: {} },
         { provide: DailyLogDispositionService, useValue: {} },
@@ -231,6 +234,16 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
         { provide: APP_GUARD, useClass: JwtAuthGuard },
       ],
     }).compile();
+
+    const uploadsService = moduleRef.get(UploadsService);
+    readConsentDerivativeMock = jest
+      .spyOn(uploadsService, 'readConsentDerivative')
+      .mockResolvedValue({
+        buffer: Buffer.from('synthetic-webp'),
+        mimeType: 'image/webp',
+        fileName: 'synthetic.webp',
+        inline: true,
+      });
 
     const nestApp = moduleRef.createNestApplication({ logger: false });
     nestApp.useGlobalPipes(
@@ -709,6 +722,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
           where: { id: { in: fixtureIds.uploads } },
         });
       }
+      if (fixtureIds.users.length) {
+        await prisma.upload.deleteMany({
+          where: { uploadedById: { in: fixtureIds.users } },
+        });
+      }
       if (fixtureIds.stylistProfile) {
         await prisma.stylistProfile.deleteMany({
           where: { id: fixtureIds.stylistProfile },
@@ -743,7 +761,13 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
         });
       }
     } finally {
-      if (app) await app.close();
+      try {
+        if (app) await app.close();
+      } finally {
+        if (uploadRoot) {
+          await rm(uploadRoot, { recursive: true, force: true });
+        }
+      }
     }
   });
 
@@ -1640,5 +1664,189 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
       .expect(200);
     expect(systemAdminList.body.total).toBe(1);
     expect(systemAdminList.body.items[0].email).toBe(clientEmail);
+  });
+
+  it('uploads an owner avatar, persists public opt-in, and serves only the correct variants', async () => {
+    const httpServer = getHttpServer(app!);
+    const uploadAvatar = async (background: {
+      r: number;
+      g: number;
+      b: number;
+    }) => {
+      const image = await sharp({
+        create: { width: 16, height: 16, channels: 3, background },
+      })
+        .png()
+        .toBuffer();
+      return request(httpServer)
+        .post('/api/users/profile/avatar')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .attach('file', image, {
+          filename: 'avatar.png',
+          contentType: 'image/png',
+        })
+        .expect(201);
+    };
+    const getClientReviewAvatar = async () => {
+      const response = await request(httpServer)
+        .get('/api/reviews')
+        .query({ serviceId, limit: 20, offset: 0 })
+        .expect(200);
+      const review = (
+        response.body.items as Array<{
+          id: string;
+          user?: { avatar?: string | null };
+        }>
+      ).find((item) => item.id === publishedReviewId);
+      return review?.user?.avatar ?? null;
+    };
+
+    await request(httpServer).post('/api/users/profile/avatar').expect(401);
+
+    const firstUpload = await uploadAvatar({ r: 30, g: 90, b: 150 });
+    const firstAvatarPath = String(firstUpload.body.avatar);
+    expect(firstAvatarPath).toMatch(/^private\/avatars\/.+-thumb\.webp$/);
+    expect(firstUpload.body).toMatchObject({
+      id: clientUserId,
+      avatar: firstAvatarPath,
+      isAvatarPublic: false,
+    });
+
+    const firstUploadRecord = await prisma!.upload.findFirst({
+      where: { pathThumb: firstAvatarPath },
+      select: { id: true, mimeType: true, storageClass: true },
+    });
+    expect(firstUploadRecord).toMatchObject({
+      mimeType: 'image/png',
+      storageClass: 'PRIVATE',
+    });
+    if (firstUploadRecord) fixtureIds.uploads.push(firstUploadRecord.id);
+
+    const profileBeforeOptIn = await request(httpServer)
+      .get('/api/users/profile')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+    expect(profileBeforeOptIn.body).toMatchObject({
+      avatar: firstAvatarPath,
+      isAvatarPublic: false,
+    });
+    expect(await getClientReviewAvatar()).toBeNull();
+
+    await request(httpServer)
+      .get('/api/uploads/content')
+      .query({ path: firstAvatarPath })
+      .expect(401);
+    const firstPrivateImage = await request(httpServer)
+      .get('/api/uploads/content')
+      .query({ path: firstAvatarPath })
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+    expect(firstPrivateImage.headers['content-type']).toMatch(
+      /^image\/webp(?:;|$)/,
+    );
+    expect(firstPrivateImage.headers['content-disposition']).toContain(
+      'inline',
+    );
+    expect(Buffer.isBuffer(firstPrivateImage.body)).toBe(true);
+    expect(firstPrivateImage.body.length).toBeGreaterThan(0);
+
+    await request(httpServer)
+      .get(`/api/uploads/content?path=${encodeURIComponent(firstAvatarPath)}`)
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(404);
+    await request(httpServer)
+      .get(`/api/users/${clientUserId}/avatar`)
+      .expect(404);
+
+    const visibility = await request(httpServer)
+      .patch('/api/users/profile/avatar-visibility')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({ isAvatarPublic: true })
+      .expect(200);
+    expect(visibility.body).toMatchObject({
+      avatar: firstAvatarPath,
+      isAvatarPublic: true,
+    });
+    const persistedVisibility = await prisma!.user.findUnique({
+      where: { id: clientUserId },
+      select: { avatar: true, isAvatarPublic: true },
+    });
+    expect(persistedVisibility).toEqual({
+      avatar: firstAvatarPath,
+      isAvatarPublic: true,
+    });
+    expect(await getClientReviewAvatar()).toBe(
+      `/api/users/${clientUserId}/avatar`,
+    );
+
+    const firstPublicImage = await request(httpServer)
+      .get(`/api/users/${clientUserId}/avatar`)
+      .expect(200);
+    expect(firstPublicImage.headers['content-type']).toMatch(
+      /^image\/webp(?:;|$)/,
+    );
+    expect(firstPublicImage.headers['cache-control']).toContain('no-store');
+    expect(firstPublicImage.headers['content-disposition']).toContain('inline');
+    expect(Buffer.isBuffer(firstPublicImage.body)).toBe(true);
+    expect(firstPublicImage.body.length).toBeGreaterThan(0);
+
+    await request(httpServer)
+      .patch(`/api/users/${clientUserId}`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({ gender: 'FEMALE' })
+      .expect(200);
+    const profileAfterSave = await request(httpServer)
+      .get('/api/users/profile')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+    expect(profileAfterSave.body).toMatchObject({
+      avatar: firstAvatarPath,
+      isAvatarPublic: true,
+      gender: 'FEMALE',
+    });
+
+    const replacementUpload = await uploadAvatar({ r: 180, g: 60, b: 80 });
+    const replacementAvatarPath = String(replacementUpload.body.avatar);
+    expect(replacementAvatarPath).not.toBe(firstAvatarPath);
+    expect(replacementUpload.body.isAvatarPublic).toBe(true);
+    const replacementRecord = await prisma!.upload.findFirst({
+      where: { pathThumb: replacementAvatarPath },
+      select: { id: true },
+    });
+    expect(replacementRecord).not.toBeNull();
+    if (replacementRecord) fixtureIds.uploads.push(replacementRecord.id);
+
+    const replacementPublicImage = await request(httpServer)
+      .get(`/api/users/${clientUserId}/avatar`)
+      .expect(200);
+    expect(replacementPublicImage.headers['content-type']).toMatch(
+      /^image\/webp(?:;|$)/,
+    );
+    expect(replacementPublicImage.body.equals(firstPublicImage.body)).toBe(
+      false,
+    );
+    expect(await getClientReviewAvatar()).toBe(
+      `/api/users/${clientUserId}/avatar`,
+    );
+    await request(httpServer)
+      .get('/api/uploads/content')
+      .query({ path: replacementAvatarPath })
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(404);
+
+    await request(httpServer)
+      .patch('/api/users/profile/avatar-visibility')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({ isAvatarPublic: false })
+      .expect(200);
+    await request(httpServer)
+      .get(`/api/users/${clientUserId}/avatar`)
+      .expect(404);
+    expect(await getClientReviewAvatar()).toBeNull();
+    await request(httpServer)
+      .get('/api/uploads/content')
+      .query({ path: replacementAvatarPath })
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
   });
 });
