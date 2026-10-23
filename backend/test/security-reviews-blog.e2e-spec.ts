@@ -1008,8 +1008,10 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
         .query({ serviceId, limit: 1, offset: 0 })
         .expect(200);
       expect(response.body.items).toHaveLength(1);
-      expect(response.body.items[0].id).toBe(fixtureIds.dailyLogEntries[0]);
-      expect(response.body.hasMore).toBe(true);
+      expect(response.body.items[0].id).toBe(
+        fixtureIds.consentedDailyLogEntries[1],
+      );
+      expect(response.body.hasMore).toBe(false);
       return performance.now() - startedAt;
     };
 
