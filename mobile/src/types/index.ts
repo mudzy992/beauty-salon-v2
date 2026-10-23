@@ -9,6 +9,7 @@ export interface User {
   /** false dok korisnik ne potvrdi spol u onboarding / profilu (admin može imati gender u bazi prije toga) */
   genderOnboardingCompleted?: boolean;
   avatar?: string;
+  isAvatarPublic?: boolean;
   isActive: boolean;
   isEmailVerified: boolean;
   mustChangePassword?: boolean;

@@ -12,6 +12,7 @@ export interface AuthUser {
   mustChangePassword: boolean
   roles: string[]
   avatar: string | null
+  isAvatarPublic: boolean
 }
 
 type ProfilePayload = {
@@ -24,6 +25,7 @@ type ProfilePayload = {
   isEmailVerified?: boolean
   mustChangePassword?: boolean
   avatar?: string | null
+  isAvatarPublic?: boolean
   userRoles?: { role: { name: string } }[]
   roles?: string[]
 }
@@ -78,6 +80,7 @@ const mapProfileToUser = (
     mustChangePassword: asBool(profile.mustChangePassword),
     roles,
     avatar: profile.avatar?.trim() ? profile.avatar.trim() : null,
+    isAvatarPublic: profile.isAvatarPublic === true,
   }
 }
 

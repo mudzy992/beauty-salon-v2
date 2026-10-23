@@ -41,8 +41,29 @@ export interface DirectMediaReference {
 export interface MediaMigrationInventory {
   uploads: LegacyUploadRow[];
   privateUploadIds: string[];
+  /** New, category-bound non-client Gallery assets may remain public. */
+  publicUploadIds?: string[];
   publicReferences: DirectMediaReference[];
   privateReferences: DirectMediaReference[];
+}
+
+export function getPublicGalleryUploadIds(
+  galleryImages: Array<{
+    uploadId: string;
+    upload: Pick<LegacyUploadRow, 'storageClass' | 'pathOriginal'>;
+  }>,
+): string[] {
+  const uploadIds = new Set<string>();
+  for (const { uploadId, upload } of galleryImages) {
+    const pathOriginal = normalizeStoredMediaPath(upload.pathOriginal);
+    if (
+      upload.storageClass === 'PUBLIC' &&
+      pathOriginal?.startsWith('gallery/')
+    ) {
+      uploadIds.add(uploadId);
+    }
+  }
+  return [...uploadIds];
 }
 
 export interface MediaCopyOperation {
@@ -259,6 +280,7 @@ export function planMediaStorageMigration(
   }
 
   const privateUploadIds = new Set(inventory.privateUploadIds);
+  const publicUploadIds = new Set(inventory.publicUploadIds ?? []);
   const uploadPaths = new Map<string, Set<string>>();
   for (const upload of inventory.uploads) {
     const paths = new Set<string>();
@@ -313,9 +335,9 @@ export function planMediaStorageMigration(
   for (const upload of inventory.uploads) {
     if (upload.storageClass === 'CONSENTED_PUBLIC') continue;
     const paths = uploadPaths.get(upload.id) ?? new Set<string>();
-    const hasPublicUse = [...paths].some((filePath) =>
-      publicPaths.has(filePath),
-    );
+    const hasPublicUse =
+      publicUploadIds.has(upload.id) ||
+      [...paths].some((filePath) => publicPaths.has(filePath));
     const hasPrivateUse =
       privateUploadIds.has(upload.id) ||
       [...paths].some((filePath) => privatePaths.has(filePath));

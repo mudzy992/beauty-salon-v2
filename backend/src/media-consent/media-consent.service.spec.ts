@@ -27,6 +27,7 @@ const tx = {
 const prisma = {
   dailyLogImage: { findMany: jest.fn(), findUnique: jest.fn() },
   dailyLogImageConsent: { findUnique: jest.fn() },
+  galleryCategory: { findFirst: jest.fn() },
   $transaction: jest.fn((callback: (client: typeof tx) => unknown) =>
     callback(tx),
   ),
@@ -63,6 +64,41 @@ function imageRecord(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function consentedListImage(
+  id: string,
+  isBefore: boolean,
+  isAfter: boolean,
+) {
+  return imageRecord({
+    id,
+    isBefore,
+    isAfter,
+    consent: {
+      id: `consent-${id}`,
+      clientId: 'client-1',
+      purpose: 'PUBLIC_GALLERY',
+      policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION,
+      revokedAt: null,
+      publishedUploadId: `published-${id}`,
+      consentedAt: new Date('2026-10-22T12:00:00.000Z'),
+      publishedUpload: {
+        storageClass: UploadStorageClass.CONSENTED_PUBLIC,
+        galleryImages: [],
+      },
+    },
+    dailyLogEntry: {
+      id: 'entry-1',
+      clientId: 'client-1',
+      kind: 'SERVICE',
+      status: 'COMPLETED',
+      deletedAt: null,
+      date: new Date('2026-10-22T10:00:00.000Z'),
+      completedAt: new Date('2026-10-22T11:00:00.000Z'),
+      service: { name: 'Usluga' },
+    },
+  });
+}
+
 describe('MediaConsentService', () => {
   let service: MediaConsentService;
 
@@ -83,6 +119,43 @@ describe('MediaConsentService', () => {
       ForbiddenException,
     );
     expect(prisma.dailyLogImage.findMany).not.toHaveBeenCalled();
+  });
+
+  it('reports an auto-published pair only when two distinct images have active consent', async () => {
+    prisma.dailyLogImage.findMany.mockResolvedValue([
+      consentedListImage('before-image', true, false),
+      consentedListImage('after-image', false, true),
+    ]);
+    prisma.galleryCategory.findFirst.mockResolvedValue({
+      id: 'auto-category',
+      name: 'Rezultati',
+    });
+
+    const result = await service.listForClient(client);
+
+    expect(result.active).toHaveLength(2);
+    expect(result.active.every((image) => image.isPublished)).toBe(true);
+    expect(
+      result.active.every((image) =>
+        image.publishedCategories.some((category) => category.id === 'auto-category'),
+      ),
+    ).toBe(true);
+  });
+
+  it('does not mark one photo with both flags as a published pair', async () => {
+    prisma.dailyLogImage.findMany.mockResolvedValue([
+      consentedListImage('same-image', true, true),
+    ]);
+    prisma.galleryCategory.findFirst.mockResolvedValue({
+      id: 'auto-category',
+      name: 'Rezultati',
+    });
+
+    const result = await service.listForClient(client);
+
+    expect(result.active).toHaveLength(1);
+    expect(result.active[0]?.isPublished).toBe(false);
+    expect(result.active[0]?.publishedCategories).toEqual([]);
   });
 
   it('rejects unsupported policy versions before reading or copying media', async () => {

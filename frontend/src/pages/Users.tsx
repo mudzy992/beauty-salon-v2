@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -167,7 +167,6 @@ export default function Users() {
     phone: '',
     gender: '' as '' | 'MALE' | 'FEMALE',
     isActive: true,
-    avatar: '' as string | null,
   })
   const [initialEmail, setInitialEmail] = useState('')
   const [initialUsername, setInitialUsername] = useState('')
@@ -183,7 +182,6 @@ export default function Users() {
     firstName: '',
     lastName: '',
     role: 'CLIENT' as string,
-    avatar: '' as string,
     gender: '' as '' | 'MALE' | 'FEMALE',
   })
   const [isUsernameManuallyEdited, setIsUsernameManuallyEdited] = useState(false)
@@ -197,10 +195,6 @@ export default function Users() {
     username: string
     initialPassword: string
   } | null>(null)
-
-  const [uploadingAvatar, setUploadingAvatar] = useState(false)
-  const avatarEditRef = useRef<HTMLInputElement>(null)
-  const avatarCreateRef = useRef<HTMLInputElement>(null)
 
   const [removeStylistOpen, setRemoveStylistOpen] = useState(false)
   const [removeStylistUser, setRemoveStylistUser] = useState<UserRow | null>(null)
@@ -322,36 +316,12 @@ export default function Users() {
       phone: u.phone ?? '',
       gender: (u.gender ?? '') as '' | 'MALE' | 'FEMALE',
       isActive: u.isActive,
-      avatar: u.avatar ?? null,
     })
     setInitialEmail(u.email ?? '')
     setInitialUsername(u.username ?? '')
     setEditIsUsernameManuallyEdited(!!u.username && baseUsername.trim().length > 0 && u.username.trim() !== baseUsername)
     setEditUsernameStatus({ loading: false, available: null, suggestions: [] })
     setEditOpen(true)
-  }
-
-  const handleUploadAvatar = async (file: File, target: 'edit' | 'create') => {
-    if (!file.type.startsWith('image/')) return
-    setUploadingAvatar(true)
-    try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('entity', 'avatars')
-      const { data } = await api.post<{ pathThumb?: string; pathSmall?: string; pathOriginal: string }>(
-        '/api/uploads',
-        fd,
-        { headers: { 'Content-Type': 'multipart/form-data' } },
-      )
-      const path = data.pathThumb || data.pathSmall || data.pathOriginal
-      if (target === 'edit') setFormData((prev) => ({ ...prev, avatar: path }))
-      else setCreateData((prev) => ({ ...prev, avatar: path }))
-      success('Avatar uploadovan')
-    } catch (err) {
-      error(getErrorMessage(err))
-    } finally {
-      setUploadingAvatar(false)
-    }
   }
 
   const handleSave = async () => {
@@ -384,7 +354,6 @@ export default function Users() {
         phone: trimmedPhone ? trimmedPhone : null,
         gender: formData.gender || null,
         isActive: formData.isActive,
-        avatar: formData.avatar || null,
       })
       success('Korisnik ažuriran')
       loadData()
@@ -449,7 +418,6 @@ export default function Users() {
         ...createData,
         role: 'CLIENT',
         gender: createData.gender || undefined,
-        ...(createData.avatar && { avatar: createData.avatar }),
       })
       success('Korisnik kreiran')
       setCreatedCredentials({
@@ -459,7 +427,7 @@ export default function Users() {
       loadData()
       setCreateOpen(false)
       setCredentialsOpen(true)
-      setCreateData({ username: '', firstName: '', lastName: '', role: 'CLIENT', avatar: '', gender: '' })
+      setCreateData({ username: '', firstName: '', lastName: '', role: 'CLIENT', gender: '' })
       setIsUsernameManuallyEdited(false)
       setUsernameStatus({ loading: false, available: null, suggestions: [] })
     } catch (err) {
@@ -1187,31 +1155,6 @@ export default function Users() {
               </select>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label>Avatar</Label>
-              <div className="flex flex-wrap items-center gap-3">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={formData.avatar ? getUploadUrl(formData.avatar) : undefined} alt="Avatar" />
-                  <AvatarFallback>{initials(formData.firstName, formData.lastName, formData.username)}</AvatarFallback>
-                </Avatar>
-                <div className="space-y-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={avatarEditRef}
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) void handleUploadAvatar(file, 'edit')
-                    }}
-                  />
-                  <Button type="button" size="sm" variant="outline" onClick={() => avatarEditRef.current?.click()} disabled={uploadingAvatar}>
-                    {uploadingAvatar ? 'Upload...' : `${formData.avatar ? 'Promijeni' : 'Dodaj'} avatar`}
-                  </Button>
-                </div>
-              </div>
-            </div>
-
             <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800 md:col-span-2">
               <div className="space-y-0.5">
                 <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Aktivan</p>
@@ -1355,30 +1298,6 @@ export default function Users() {
               </select>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label>Avatar (opciono)</Label>
-              <div className="flex flex-wrap items-center gap-3">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={createData.avatar ? getUploadUrl(createData.avatar) : undefined} alt="Avatar" />
-                  <AvatarFallback>{initials(createData.firstName, createData.lastName, createData.username)}</AvatarFallback>
-                </Avatar>
-                <div className="space-y-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={avatarCreateRef}
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) void handleUploadAvatar(file, 'create')
-                    }}
-                  />
-                  <Button type="button" size="sm" variant="outline" onClick={() => avatarCreateRef.current?.click()} disabled={uploadingAvatar}>
-                    {uploadingAvatar ? 'Upload...' : createData.avatar ? 'Promijeni avatar' : 'Dodaj avatar'}
-                  </Button>
-                </div>
-              </div>
-            </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">

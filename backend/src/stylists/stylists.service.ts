@@ -63,6 +63,7 @@ export class StylistsService {
               firstName: true,
               lastName: true,
               avatar: true,
+              isAvatarPublic: true,
             },
           },
           workingHours: {
@@ -86,7 +87,7 @@ export class StylistsService {
       total > nextOffset &&
       nextOffset <= MAX_API_PAGE_OFFSET;
     return {
-      items,
+      items: items.map((item) => this.withPublicAvatar(item)),
       total,
       page,
       pageSize,
@@ -108,6 +109,7 @@ export class StylistsService {
             lastName: true,
             phone: true,
             avatar: true,
+            isAvatarPublic: true,
           },
         },
         workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
@@ -123,7 +125,7 @@ export class StylistsService {
       },
     });
     if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
-    return stylist;
+    return this.withPublicAvatar(stylist);
   }
 
   async findByUserId(userId: string) {
@@ -531,6 +533,26 @@ export class StylistsService {
         actualPrice: e.actualPrice,
         tipAmount: e.tipAmount,
       })),
+    };
+  }
+
+  private withPublicAvatar<
+    T extends {
+      user: {
+        id: string;
+        avatar: string | null;
+        isAvatarPublic: boolean;
+      };
+    },
+  >(stylist: T) {
+    if (!stylist.user) return stylist;
+    const { isAvatarPublic, ...user } = stylist.user;
+    return {
+      ...stylist,
+      user: {
+        ...user,
+        avatar: isAvatarPublic ? `/api/users/${user.id}/avatar` : null,
+      },
     };
   }
 

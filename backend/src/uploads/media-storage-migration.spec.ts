@@ -1,5 +1,6 @@
 import {
   extractPublishedBlogMediaPaths,
+  getPublicGalleryUploadIds,
   normalizeStoredMediaPath,
   planMediaStorageMigration,
   rewriteBlogContentMediaPaths,
@@ -16,6 +17,34 @@ describe('media storage migration planning', () => {
     ).toBeNull();
     expect(normalizeStoredMediaPath('../private/client.jpg')).toBeNull();
     expect(normalizeStoredMediaPath('private/client.html')).toBeNull();
+  });
+
+  it('recognizes only category-bound public gallery assets from the dedicated path', () => {
+    expect(
+      getPublicGalleryUploadIds([
+        {
+          uploadId: 'manual-gallery-asset',
+          upload: {
+            storageClass: 'PUBLIC',
+            pathOriginal: 'gallery/2026/10/asset.webp',
+          },
+        },
+        {
+          uploadId: 'legacy-gallery-path',
+          upload: {
+            storageClass: 'PUBLIC',
+            pathOriginal: 'uploads/gallery/client-photo.jpg',
+          },
+        },
+        {
+          uploadId: 'private-gallery-asset',
+          upload: {
+            storageClass: 'PRIVATE',
+            pathOriginal: 'gallery/2026/10/private.webp',
+          },
+        },
+      ]),
+    ).toEqual(['manual-gallery-asset']);
   });
 
   it('extracts only local upload images from published blog markup', () => {
@@ -147,6 +176,49 @@ describe('media storage migration planning', () => {
         visibility: 'PRIVATE',
       }),
     ]);
+  });
+
+  it('preserves a new category-bound non-client Gallery upload as public', () => {
+    const inventory: MediaMigrationInventory = {
+      uploads: [
+        {
+          id: 'manual-gallery-asset',
+          storageClass: 'PUBLIC',
+          pathOriginal: 'gallery/2026/10/asset.webp',
+          pathThumb: 'gallery/2026/10/asset-thumb.webp',
+          pathSmall: null,
+          pathMedium: null,
+        },
+      ],
+      privateUploadIds: [],
+      publicUploadIds: ['manual-gallery-asset'],
+      publicReferences: [],
+      privateReferences: [],
+    };
+
+    const plan = planMediaStorageMigration(inventory);
+    expect(plan.conflicts).toEqual([]);
+    expect(plan.uploadUpdates).toEqual([
+      expect.objectContaining({
+        id: 'manual-gallery-asset',
+        storageClass: 'PUBLIC',
+        pathOriginal: 'gallery/2026/10/asset.webp',
+      }),
+    ]);
+    expect(plan.operations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceRelativePath: 'gallery/2026/10/asset.webp',
+          destinationRelativePath: 'public/gallery/2026/10/asset.webp',
+          visibility: 'PUBLIC',
+        }),
+        expect.objectContaining({
+          sourceRelativePath: 'gallery/2026/10/asset-thumb.webp',
+          destinationRelativePath: 'public/gallery/2026/10/asset-thumb.webp',
+          visibility: 'PUBLIC',
+        }),
+      ]),
+    );
   });
 
   it('maps a legacy entity=public client upload to private storage', () => {

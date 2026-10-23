@@ -65,6 +65,8 @@ interface ConsentItem {
   isBefore: boolean;
   previewUrl: string;
   consentedAt: string | null;
+  isPublished: boolean;
+  publishedCategories: Array<{ id: string; name: string }>;
 }
 
 interface ConsentPayload {
@@ -198,7 +200,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
         policyVersion: mediaConsent.policyVersion,
       });
       await loadMediaConsent();
-      setMediaConsentMessage('Saglasnost je zabilježena za odabranu fotografiju.');
+      setMediaConsentMessage('Saglasnost je zabilježena. Status javne objave prikazan je uz aktivnu saglasnost.');
     } catch (error: unknown) {
       const message =
         error && typeof error === 'object' && 'response' in error
@@ -395,6 +397,11 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
                     </Text>
                     <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
                       {new Date(item.serviceDate).toLocaleDateString('bs-BA')}
+                    </Text>
+                    <Text style={{ color: item.isPublished ? colors.success : colors.textSecondary, fontSize: 11, marginTop: 2 }}>
+                      {item.isPublished
+                        ? `Objavljeno: ${item.publishedCategories.map((category) => category.name).join(', ')}`
+                        : 'Saglasnost je aktivna; fotografija još nije u javnom prikazu.'}
                     </Text>
                   </View>
                   <TouchableOpacity

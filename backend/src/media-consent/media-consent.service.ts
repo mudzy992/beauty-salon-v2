@@ -50,7 +50,20 @@ export class MediaConsentService {
             mimeType: true,
           },
         },
-        consent: true,
+        consent: {
+          include: {
+            publishedUpload: {
+              select: {
+                storageClass: true,
+                galleryImages: {
+                  select: {
+                    category: { select: { id: true, name: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
         dailyLogEntry: {
           select: {
             id: true,
@@ -68,37 +81,73 @@ export class MediaConsentService {
         image.upload.mimeType.toLowerCase(),
       ),
     );
-    const mapImage = (image: (typeof eligible)[number]) => ({
-      imageId: image.id,
-      entryId: image.dailyLogEntry.id,
-      serviceName: image.dailyLogEntry.service.name,
-      serviceDate: image.dailyLogEntry.date.toISOString(),
-      completedAt: image.dailyLogEntry.completedAt?.toISOString() ?? null,
-      isBefore: image.isBefore,
-      isAfter: image.isAfter,
-      description: image.description,
-      previewUrl: `/api/uploads/content?path=${encodeURIComponent(image.upload.pathOriginal)}`,
-      consentedAt: image.consent?.consentedAt.toISOString() ?? null,
-      revokedAt: image.consent?.revokedAt?.toISOString() ?? null,
+    const isActiveConsent = (image: (typeof eligible)[number]) =>
+      image.consent?.clientId === user.sub &&
+      image.consent.revokedAt === null &&
+      image.consent.policyVersion === CLIENT_MEDIA_PUBLICATION_POLICY_VERSION &&
+      image.consent.purpose === CONSENT_PURPOSE &&
+      Boolean(image.consent.publishedUploadId) &&
+      image.consent.publishedUpload?.storageClass ===
+        UploadStorageClass.CONSENTED_PUBLIC;
+    const active = eligible.filter(isActiveConsent);
+    const activeImageIds = new Set(active.map((image) => image.id));
+    const pairSides = new Map<
+      string,
+      { beforeImageIds: Set<string>; afterImageIds: Set<string> }
+    >();
+    for (const image of active) {
+      const sides = pairSides.get(image.dailyLogEntry.id) ?? {
+        beforeImageIds: new Set<string>(),
+        afterImageIds: new Set<string>(),
+      };
+      if (image.isBefore) sides.beforeImageIds.add(image.id);
+      if (image.isAfter) sides.afterImageIds.add(image.id);
+      pairSides.set(image.dailyLogEntry.id, sides);
+    }
+    const autoCategory = await this.prisma.galleryCategory.findFirst({
+      where: { autoPublishConsentedPairs: true },
+      select: { id: true, name: true },
     });
-    const active = eligible.filter(
-      (image) =>
-        image.consent?.clientId === user.sub &&
-        image.consent.revokedAt === null &&
-        image.consent.policyVersion ===
-          CLIENT_MEDIA_PUBLICATION_POLICY_VERSION &&
-        Boolean(image.consent.publishedUploadId),
-    );
-    const pending = eligible.filter(
-      (image) =>
-        !image.consent ||
-        image.consent.clientId !== user.sub ||
-        image.consent.revokedAt !== null ||
-        image.consent.policyVersion !==
-          CLIENT_MEDIA_PUBLICATION_POLICY_VERSION ||
-        !image.consent.publishedUploadId,
-    );
-
+    const mapImage = (image: (typeof eligible)[number]) => {
+      const activeConsent = activeImageIds.has(image.id);
+      const pairSidesForEntry = pairSides.get(image.dailyLogEntry.id);
+      const completeAutoPair = Boolean(
+        autoCategory &&
+          pairSidesForEntry &&
+          Array.from(pairSidesForEntry.beforeImageIds).some((beforeId) =>
+            Array.from(pairSidesForEntry.afterImageIds).some(
+              (afterId) => afterId !== beforeId,
+            ),
+          ),
+      );
+      const publishedCategories = activeConsent
+        ? (image.consent?.publishedUpload?.galleryImages.map((item) =>
+            item.category,
+          ) ?? [])
+        : [];
+      if (
+        completeAutoPair &&
+        !publishedCategories.some((category) => category.id === autoCategory?.id)
+      ) {
+        publishedCategories.push({ id: autoCategory!.id, name: autoCategory!.name });
+      }
+      return {
+        imageId: image.id,
+        entryId: image.dailyLogEntry.id,
+        serviceName: image.dailyLogEntry.service.name,
+        serviceDate: image.dailyLogEntry.date.toISOString(),
+        completedAt: image.dailyLogEntry.completedAt?.toISOString() ?? null,
+        isBefore: image.isBefore,
+        isAfter: image.isAfter,
+        description: image.description,
+        previewUrl: `/api/uploads/content?path=${encodeURIComponent(image.upload.pathOriginal)}`,
+        consentedAt: image.consent?.consentedAt.toISOString() ?? null,
+        revokedAt: image.consent?.revokedAt?.toISOString() ?? null,
+        isPublished: publishedCategories.length > 0,
+        publishedCategories: publishedCategories.map(({ id, name }) => ({ id, name })),
+      };
+    };
+    const pending = eligible.filter((image) => !isActiveConsent(image));
     return {
       policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION,
       purpose: CONSENT_PURPOSE,

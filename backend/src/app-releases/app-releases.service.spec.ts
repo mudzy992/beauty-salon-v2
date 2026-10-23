@@ -1,3 +1,7 @@
+jest.mock('../prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AppReleasePlatform, AppReleaseStatus } from '@prisma/client';
 import { AppReleasesService } from './app-releases.service';

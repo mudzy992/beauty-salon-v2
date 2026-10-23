@@ -21,6 +21,7 @@ interface ProfileData {
   phone: string | null
   gender: 'MALE' | 'FEMALE' | null
   avatar: string | null
+  isAvatarPublic: boolean
   isActive: boolean
   isEmailVerified: boolean
   mustChangePassword: boolean
@@ -42,6 +43,8 @@ export default function Profile() {
   const [phone, setPhone] = useState('')
   const [gender, setGender] = useState<'MALE' | 'FEMALE' | ''>('')
   const [avatar, setAvatar] = useState<string | null>(null)
+  const [isAvatarPublic, setIsAvatarPublic] = useState(false)
+  const [avatarPrivacySaving, setAvatarPrivacySaving] = useState(false)
   const [verifyToken, setVerifyToken] = useState('')
 
   const [usernameStatus, setUsernameStatus] = useState<{
@@ -72,6 +75,7 @@ export default function Profile() {
       setPhone(data.phone ?? '')
       setGender(data.gender ?? '')
       setAvatar(data.avatar ?? null)
+      setIsAvatarPublic(Boolean(data.isAvatarPublic))
     } finally {
       setLoading(false)
     }
@@ -121,21 +125,44 @@ export default function Profile() {
     try {
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('entity', 'avatars')
       const { data } = await api.post<{
-        pathThumb?: string
-        pathSmall?: string
-        pathOriginal: string
-      }>('/api/uploads', fd, {
+        avatar: string
+        isAvatarPublic: boolean
+      }>('/api/users/profile/avatar', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      setAvatar(data.pathThumb || data.pathSmall || data.pathOriginal)
-      toast.success('Avatar uploadovan.')
+      setAvatar(data.avatar)
+      setIsAvatarPublic(Boolean(data.isAvatarPublic))
+      await refreshProfile()
+      toast.success('Avatar uploadovan i profil ažuriran.')
     } catch {
       toast.error('Upload avatara nije uspio.')
     } finally {
       setUploadingAvatar(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleAvatarVisibilityChange = async (nextValue: boolean) => {
+    const previousValue = isAvatarPublic
+    setIsAvatarPublic(nextValue)
+    setAvatarPrivacySaving(true)
+    try {
+      const { data } = await api.patch<{ isAvatarPublic: boolean }>(
+        '/api/users/profile/avatar-visibility',
+        { isAvatarPublic: nextValue },
+      )
+      setIsAvatarPublic(Boolean(data.isAvatarPublic))
+      setProfile((current) =>
+        current ? { ...current, isAvatarPublic: Boolean(data.isAvatarPublic) } : current,
+      )
+      await refreshProfile()
+      toast.success(nextValue ? 'Avatar je sada javan.' : 'Avatar je sada privatan.')
+    } catch (error: any) {
+      setIsAvatarPublic(previousValue)
+      toast.error(error?.response?.data?.message || 'Postavka avatara nije sačuvana.')
+    } finally {
+      setAvatarPrivacySaving(false)
     }
   }
 
@@ -167,7 +194,6 @@ export default function Profile() {
         email,
         phone,
         gender: gender || null,
-        avatar,
       })
       await refreshProfile()
       await loadProfile()
@@ -281,6 +307,21 @@ export default function Profile() {
                         ? 'Promijeni avatar'
                         : 'Dodaj avatar'}
                   </Button>
+                  <label className="mt-2 flex items-center gap-2 text-sm text-slate-800">
+                    <input
+                      type="checkbox"
+                      checked={isAvatarPublic}
+                      disabled={!avatar || avatarPrivacySaving}
+                      onChange={(event) =>
+                        void handleAvatarVisibilityChange(event.target.checked)
+                      }
+                      className="h-4 w-4 accent-amber-700"
+                    />
+                    <span>{avatarPrivacySaving ? 'Spremanje…' : 'Moj avatar je javan'}</span>
+                  </label>
+                  <p className="max-w-xs text-right text-xs leading-5 text-slate-500">
+                    Novi avatari su privatni po zadanom. Ova postavka važi samo za avatar i ne daje saglasnost za galeriju, oglase ili društvene mreže.
+                  </p>
                   <div className="text-xs text-slate-500">
                     Kreiran:{' '}
                     {profile?.createdAt

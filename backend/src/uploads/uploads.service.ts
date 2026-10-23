@@ -176,6 +176,12 @@ export class UploadsService {
     }
   }
 
+  /** Avatar uploads are image-only and remain in the owner's private storage. */
+  async saveAvatar(file: Express.Multer.File, uploadedById: string) {
+    await this.validateImage(file);
+    return this.saveFile(file, 'avatars', uploadedById);
+  }
+
   /** Only explicit, approved non-client assets can be written into the public static root. */
   async savePublicAsset(
     file: Express.Multer.File,
@@ -185,6 +191,22 @@ export class UploadsService {
     if (!PUBLIC_ASSET_KINDS.has(assetKind)) {
       throw new BadRequestException('Vrsta javnog asseta nije dozvoljena.');
     }
+    return this.writePublicAsset(file, assetKind, uploadedById);
+  }
+
+  /** Gallery uploads are only reachable through the category-bound gallery workflow. */
+  async saveGalleryAsset(
+    file: Express.Multer.File,
+    uploadedById: string,
+  ): Promise<UploadedFileResult> {
+    return this.writePublicAsset(file, 'gallery', uploadedById);
+  }
+
+  private async writePublicAsset(
+    file: Express.Multer.File,
+    assetKind: string,
+    uploadedById: string,
+  ): Promise<UploadedFileResult> {
     await this.validateImage(file);
     const fileId = randomUUID();
     const now = new Date();
@@ -401,6 +423,39 @@ export class UploadsService {
       fileName: inline ? 'private-image' : 'private-download',
       inline,
     };
+  }
+
+  /** Public avatar access is opt-in and always resolves to an owner-bound private thumbnail. */
+  async readPublicUserAvatar(userId: string): Promise<PrivateFileResult> {
+    const record = await this.repo.findPublicAvatarUpload(userId);
+    if (!record) throw new NotFoundException('Avatar nije pronađen.');
+    const { avatar, upload } = record;
+    const isOwnedVariant = [
+      upload.pathThumb,
+      upload.pathSmall,
+      upload.pathMedium,
+    ].includes(avatar);
+    if (
+      !isOwnedVariant ||
+      !avatar.startsWith('private/avatars/') ||
+      !/-(thumb|small|medium)\.webp$/i.test(avatar) ||
+      !PUBLIC_PHOTO_MIMES.has(upload.mimeType.toLowerCase())
+    ) {
+      throw new NotFoundException('Avatar nije pronađen.');
+    }
+    try {
+      const buffer = await fs.readFile(
+        this.resolveStoredPath(avatar, UploadStorageClass.PRIVATE),
+      );
+      return {
+        buffer,
+        mimeType: 'image/webp',
+        fileName: 'public-avatar.webp',
+        inline: true,
+      };
+    } catch {
+      throw new NotFoundException('Avatar nije pronađen.');
+    }
   }
 
   /** Called only after MediaConsentService has verified an active consent record. */

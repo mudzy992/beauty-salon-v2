@@ -18,6 +18,13 @@ import {
 import { UsersRepository } from './users.repository';
 import { EventsGateway } from '../events/events.gateway';
 
+const AVATAR_SOURCE_MIMES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
+
 const CLIENT_PICKER_SELECT = {
   id: true,
   username: true,
@@ -52,6 +59,7 @@ const USER_DETAIL_SELECT = {
   gender: true,
   genderOnboardingCompleted: true,
   avatar: true,
+  isAvatarPublic: true,
   isActive: true,
   isEmailVerified: true,
   mustChangePassword: true,
@@ -281,6 +289,7 @@ export class UsersService {
         gender: true,
         genderOnboardingCompleted: true,
         avatar: true,
+        isAvatarPublic: true,
         isActive: true,
         isEmailVerified: true,
         mustChangePassword: true,
@@ -349,7 +358,7 @@ export class UsersService {
         phone: dto.phone ?? null,
         gender: dto.gender ?? null,
         genderOnboardingCompleted: false,
-        avatar: dto.avatar ?? null,
+        avatar: null,
         mustChangePassword: true,
         isEmailVerified: false,
         userRoles: {
@@ -423,8 +432,24 @@ export class UsersService {
     if (currentUser.sub !== id && !this.isAdminOrOwner(currentUser.roles)) {
       throw new ForbiddenException('Nemate dozvolu za izmjenu ovog korisnika.');
     }
+    if (
+      currentUser.sub !== id &&
+      (dto.avatar !== undefined || dto.isAvatarPublic !== undefined)
+    ) {
+      throw new ForbiddenException(
+        'Samo korisnik može postaviti avatar ili mijenjati njegovu javnost.',
+      );
+    }
     const user = await this.repo.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (dto.avatar !== undefined && dto.avatar !== null) {
+      await this.assertOwnedAvatar(id, dto.avatar);
+    }
+    const nextAvatar = dto.avatar !== undefined ? dto.avatar : user.avatar;
+    if (dto.isAvatarPublic === true && !nextAvatar) {
+      throw new BadRequestException('Prvo postavite avatar pa ga zatim učinite javnim.');
+    }
+    if (dto.isAvatarPublic === true) await this.assertOwnedAvatar(id, nextAvatar!);
     const userWithRoles = await this.repo.user.findUnique({
       where: { id },
       include: { userRoles: { include: { role: true } } },
@@ -477,7 +502,13 @@ export class UsersService {
           gender: dto.gender,
           genderOnboardingCompleted: true,
         }),
-        ...(dto.avatar !== undefined && { avatar: dto.avatar }),
+        ...(dto.avatar !== undefined && {
+          avatar: dto.avatar,
+          ...(dto.avatar === null && { isAvatarPublic: false }),
+        }),
+        ...(dto.isAvatarPublic !== undefined && {
+          isAvatarPublic: dto.isAvatarPublic,
+        }),
         ...(this.isAdminOrOwner(currentUser.roles) &&
           dto.isActive !== undefined && { isActive: dto.isActive }),
       },
@@ -499,6 +530,14 @@ export class UsersService {
       include: { userRoles: { include: { role: true } } },
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (dto.avatar !== undefined && dto.avatar !== null) {
+      await this.assertOwnedAvatar(userId, dto.avatar);
+    }
+    const nextAvatar = dto.avatar !== undefined ? dto.avatar : user.avatar;
+    if (dto.isAvatarPublic === true && !nextAvatar) {
+      throw new BadRequestException('Prvo postavite avatar pa ga zatim učinite javnim.');
+    }
+    if (dto.isAvatarPublic === true) await this.assertOwnedAvatar(userId, nextAvatar!);
     const isClient = user.userRoles.some(
       (userRole) => userRole.role.name === UsersService.CLIENT_ROLE,
     );
@@ -533,9 +572,60 @@ export class UsersService {
           gender: dto.gender,
           genderOnboardingCompleted: true,
         }),
+        ...(dto.avatar !== undefined && {
+          avatar: dto.avatar,
+          ...(dto.avatar === null && { isAvatarPublic: false }),
+        }),
+        ...(dto.isAvatarPublic !== undefined && {
+          isAvatarPublic: dto.isAvatarPublic,
+        }),
       },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
     });
+  }
+
+  async setOwnAvatar(userId: string, avatarPath: string) {
+    await this.assertOwnedAvatar(userId, avatarPath);
+    return this.repo.user.update({
+      where: { id: userId },
+      data: { avatar: avatarPath },
+      select: { id: true, avatar: true, isAvatarPublic: true },
+    });
+  }
+
+  async setAvatarVisibility(userId: string, isAvatarPublic: boolean) {
+    const user = await this.repo.user.findUnique({
+      where: { id: userId },
+      select: { avatar: true },
+    });
+    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (isAvatarPublic && !user.avatar) {
+      throw new BadRequestException('Prvo postavite avatar pa ga zatim učinite javnim.');
+    }
+    if (isAvatarPublic && user.avatar) {
+      await this.assertOwnedAvatar(userId, user.avatar);
+    }
+    return this.repo.user.update({
+      where: { id: userId },
+      data: { isAvatarPublic },
+      select: { id: true, avatar: true, isAvatarPublic: true },
+    });
+  }
+
+  private async assertOwnedAvatar(userId: string, avatarPath: string) {
+    if (!avatarPath.startsWith('private/avatars/')) {
+      throw new BadRequestException('Avatar mora biti uploadan u vaš profil.');
+    }
+    const upload = await this.repo.findOwnedAvatarUpload(userId, avatarPath);
+    if (
+      !upload ||
+      ![upload.pathThumb, upload.pathSmall, upload.pathMedium].includes(avatarPath) ||
+      !AVATAR_SOURCE_MIMES.has(upload.mimeType.toLowerCase())
+    ) {
+      throw new BadRequestException(
+        'Avatar mora biti validna slika koju ste uploadali na svoj profil.',
+      );
+    }
   }
 
   async assignRole(userId: string, dto: AssignRoleDto, roles: string[]) {

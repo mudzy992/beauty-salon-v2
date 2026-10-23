@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { UploadStorageClass } from '@prisma/client';
 import { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from '../media-consent/media-consent.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '@prisma/client';
@@ -17,6 +18,61 @@ export class UploadsRepository {
 
   findById(id: string) {
     return this.prisma.upload.findUnique({ where: { id } });
+  }
+
+  findOwnedAvatarUpload(userId: string, avatarPath: string) {
+    return this.prisma.upload.findFirst({
+      where: {
+        uploadedById: userId,
+        storageClass: UploadStorageClass.PRIVATE,
+        pathOriginal: { startsWith: 'private/avatars/' },
+        OR: [
+          { pathOriginal: avatarPath },
+          { pathThumb: avatarPath },
+          { pathSmall: avatarPath },
+          { pathMedium: avatarPath },
+        ],
+      },
+      select: {
+        id: true,
+        mimeType: true,
+        pathOriginal: true,
+        pathThumb: true,
+        pathSmall: true,
+        pathMedium: true,
+        uploadedById: true,
+        storageClass: true,
+      },
+    });
+  }
+
+  async findPublicAvatarUpload(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatar: true, isAvatarPublic: true },
+    });
+    if (!user?.isAvatarPublic || !user.avatar) return null;
+    const upload = await this.prisma.upload.findFirst({
+      where: {
+        uploadedById: userId,
+        storageClass: UploadStorageClass.PRIVATE,
+        pathOriginal: { startsWith: 'private/avatars/' },
+        OR: [
+          { pathOriginal: user.avatar },
+          { pathThumb: user.avatar },
+          { pathSmall: user.avatar },
+          { pathMedium: user.avatar },
+        ],
+      },
+      select: {
+        mimeType: true,
+        pathOriginal: true,
+        pathThumb: true,
+        pathSmall: true,
+        pathMedium: true,
+      },
+    });
+    return upload ? { avatar: user.avatar, upload } : null;
   }
 
   findByStoredPath(filePath: string) {

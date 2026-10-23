@@ -1,10 +1,19 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+jest.mock('../prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   DailyLogMediaConsentPurpose,
   UploadStorageClass,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { UploadsService } from '../uploads/uploads.service';
 import { GalleryService } from './gallery.service';
 
 const mockPrisma = {
@@ -13,18 +22,29 @@ const mockPrisma = {
     findMany: jest.fn(),
     findUnique: jest.fn(),
     findUniqueOrThrow: jest.fn(),
+    findFirst: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
   },
   galleryImage: {
     create: jest.fn(),
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn(),
+  },
+  dailyLogImage: {
+    findMany: jest.fn(),
   },
   upload: {
     findUnique: jest.fn(),
   },
+};
+
+const mockUploads = {
+  saveGalleryAsset: jest.fn(),
+  deleteUnreferencedUpload: jest.fn(),
 };
 
 const activeConsent = {
@@ -57,9 +77,74 @@ describe('GalleryService', () => {
       providers: [
         GalleryService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: UploadsService, useValue: mockUploads },
       ],
     }).compile();
     service = module.get<GalleryService>(GalleryService);
+  });
+
+  it('odbija drugu automatsku kategoriju uz jasno Conflict upozorenje', async () => {
+    mockPrisma.galleryCategory.findFirst.mockResolvedValue({
+      id: 'existing-auto-category',
+      name: 'Prije/poslije',
+    });
+
+    await expect(
+      service.createCategory({ name: 'Nova', autoPublishConsentedPairs: true }),
+    ).rejects.toThrow(ConflictException);
+    expect(mockPrisma.galleryCategory.create).not.toHaveBeenCalled();
+  });
+
+  it('prevodi DB unique zaštitu u jasnu grešku pri konkurentnom aktiviranju', async () => {
+    mockPrisma.galleryCategory.findFirst.mockResolvedValue(null);
+    mockPrisma.galleryCategory.create.mockRejectedValue({ code: 'P2002' });
+
+    await expect(
+      service.createCategory({ name: 'Nova', autoPublishConsentedPairs: true }),
+    ).rejects.toThrow(ConflictException);
+  });
+
+  it('odbija direktni manual upload bez potvrde da materijal nije klijentski', async () => {
+    mockPrisma.galleryCategory.findUnique.mockResolvedValue({
+      id: 'manual-category',
+      autoPublishConsentedPairs: false,
+    });
+
+    await expect(
+      service.uploadNonClientImage(
+        'manual-category',
+        {} as Express.Multer.File,
+        'owner-1',
+        { nonClientAssetConfirmed: 'false' },
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockUploads.saveGalleryAsset).not.toHaveBeenCalled();
+  });
+
+  it('veže non-client asset za ručno odabranu kategoriju', async () => {
+    mockPrisma.galleryCategory.findUnique.mockResolvedValue({
+      id: 'manual-category',
+      autoPublishConsentedPairs: false,
+    });
+    mockUploads.saveGalleryAsset.mockResolvedValue({ id: 'upload-1' });
+    mockPrisma.galleryImage.create.mockResolvedValue({
+      id: 'gallery-image-1',
+      categoryId: 'manual-category',
+      uploadId: 'upload-1',
+    });
+
+    await expect(
+      service.uploadNonClientImage(
+        'manual-category',
+        {} as Express.Multer.File,
+        'owner-1',
+        { nonClientAssetConfirmed: 'true' },
+      ),
+    ).resolves.toMatchObject({ uploadId: 'upload-1' });
+    expect(mockUploads.saveGalleryAsset).toHaveBeenCalledWith(
+      expect.anything(),
+      'owner-1',
+    );
   });
 
   it('findOneCategory baca NotFoundException kada kategorija ne postoji', async () => {
@@ -132,37 +217,19 @@ describe('GalleryService', () => {
     mockPrisma.galleryCategory.findMany.mockResolvedValue([]);
 
     await expect(service.findAllCategories()).resolves.toEqual([]);
-    expect(mockPrisma.galleryCategory.findMany).toHaveBeenCalledWith(
+    const query = mockPrisma.galleryCategory.findMany.mock.calls[0][0];
+    const imageWhere = query.include.images.where;
+    expect(imageWhere.OR).toHaveLength(2);
+    expect(imageWhere.OR[0].upload).toEqual({
+      storageClass: UploadStorageClass.PUBLIC,
+      pathOriginal: { startsWith: 'gallery/' },
+    });
+    expect(imageWhere.OR[1].upload.consentCopyFor.is).toEqual(
       expect.objectContaining({
-        include: {
-          images: {
-            where: {
-              upload: {
-                storageClass: UploadStorageClass.CONSENTED_PUBLIC,
-                consentCopyFor: {
-                  is: expect.objectContaining({
-                    purpose: DailyLogMediaConsentPurpose.PUBLIC_GALLERY,
-                    policyVersion: 'client-media-publication-v1',
-                    revokedAt: null,
-                    clientId: { not: null },
-                    dailyLogImage: {
-                      is: {
-                        OR: [{ isBefore: true }, { isAfter: true }],
-                        dailyLogEntry: {
-                          kind: 'SERVICE',
-                          status: 'COMPLETED',
-                          deletedAt: null,
-                          clientId: { not: null },
-                        },
-                      },
-                    },
-                  }),
-                },
-              },
-            },
-            select: { id: true },
-          },
-        },
+        purpose: DailyLogMediaConsentPurpose.PUBLIC_GALLERY,
+        policyVersion: 'client-media-publication-v1',
+        revokedAt: null,
+        clientId: { not: null },
       }),
     );
   });
@@ -256,9 +323,15 @@ describe('GalleryService', () => {
       service.addImage({
         categoryId: 'category-1',
         uploadId: 'upload-1',
+        title: 'Klijentsko ime koje se ne smije javno prikazati',
+        description: 'Privatni kontekst',
       }),
     ).resolves.toEqual({ id: 'gallery-image-1' });
-    expect(mockPrisma.galleryImage.create).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.galleryImage.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ title: null, description: null }),
+      }),
+    );
   });
 
   it('removeImage baca NotFoundException kada slika ne postoji', async () => {

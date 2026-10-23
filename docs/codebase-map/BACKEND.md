@@ -28,7 +28,7 @@ Global HTTP authentication is default-deny for protected routes; `@Public()` exp
 | `loyalty` | client/stylist/admin loyalty surfaces (`/api/loyalty`) |
 | `notifications` | in-app and push-token operations (`/api/notifications`) |
 | `events` | Socket.IO gateway and rooms (no REST controller) |
-| `blog`, `gallery`, `reviews` | `/api/blog` public list/detail/comment reads are published/approved-only with display projections; draft/all-content reads use admin routes. Review public list/featured are approved-only, detail requires JWT, moderation list is role-guarded (`/api/reviews/admin`) |
+| `blog`, `gallery`, `reviews` | `/api/blog` public list/detail/comment reads are published/approved-only with display projections; draft/all-content reads use admin routes. Gallery supports one auto-publish consented before/after category plus manual categories for admin/owner-attested non-client assets and active-consent client photos selected via a restricted picker. Public reviews are approved-only with avatar visibility controlled by the user; moderation is role-guarded (`/api/reviews/admin`). |
 | `settings` | app configuration/settings (`/api/settings`) |
 | `analytics` | dashboard reporting (`/api/analytics`) |
 | `app-releases` | mobile release metadata/public update routes (`/api/app-releases`, `/api/public/app-releases`) |

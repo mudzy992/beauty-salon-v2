@@ -9,6 +9,7 @@ import {
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
   extractPublishedBlogMediaPaths,
+  getPublicGalleryUploadIds,
   normalizeStoredMediaPath,
   planMediaStorageMigration,
   rewriteBlogContentMediaPaths,
@@ -128,7 +129,10 @@ async function loadInventory(): Promise<{
       select: { invoiceUploadId: true },
     }),
     prisma.galleryImage.findMany({
-      select: { uploadId: true, upload: { select: { storageClass: true } } },
+      select: {
+        uploadId: true,
+        upload: { select: { storageClass: true, pathOriginal: true } },
+      },
     }),
     prisma.user.findMany({
       where: { avatar: { not: null } },
@@ -280,6 +284,7 @@ async function loadInventory(): Promise<{
     inventory: {
       uploads,
       privateUploadIds: [...privateUploadIds],
+      publicUploadIds: getPublicGalleryUploadIds(galleryImages),
       publicReferences,
       privateReferences,
     },

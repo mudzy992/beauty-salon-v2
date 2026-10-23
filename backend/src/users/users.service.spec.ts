@@ -7,7 +7,11 @@ import { UsersService } from './users.service';
 import { UsersRepository } from './users.repository';
 import { EventsGateway } from '../events/events.gateway';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
@@ -23,6 +27,7 @@ const mockEventsGateway = {
 };
 
 const mockRepo = {
+  findOwnedAvatarUpload: jest.fn(),
   user: {
     findUnique: jest.fn(),
     findMany: jest.fn(),
@@ -367,6 +372,79 @@ describe('UsersService', () => {
       service.getClientAnalytics('user-1', ['OWNER'], '2020-01-01', '2025-01-02'),
     ).rejects.toThrow('Analytics date range ne može biti duži od 60 mjeseci.');
     expect(mockRepo.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('admin ne može postaviti niti mijenjati tuđi avatar', async () => {
+    const admin: CurrentUserPayload = {
+      sub: 'admin-1',
+      username: 'admin',
+      email: '',
+      roles: ['OWNER'],
+    };
+
+    await expect(
+      service.update(
+        'client-1',
+        { avatar: 'private/avatars/client-thumb.webp' },
+        admin,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+    await expect(
+      service.update('client-1', { isAvatarPublic: true }, admin),
+    ).rejects.toThrow(ForbiddenException);
+    expect(mockRepo.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('korisnik ne može učiniti nepostojeći avatar javnim', async () => {
+    mockRepo.user.findUnique.mockResolvedValue({ avatar: null });
+
+    await expect(service.setAvatarVisibility('user-1', true)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(mockRepo.user.update).not.toHaveBeenCalled();
+  });
+
+  it('ne objavljuje avatar koji nije validna privatna varijanta vlasnika', async () => {
+    mockRepo.user.findUnique.mockResolvedValue({
+      avatar: 'private/avatars/other-thumb.webp',
+    });
+    mockRepo.findOwnedAvatarUpload.mockResolvedValue(null);
+
+    await expect(service.setAvatarVisibility('user-1', true)).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(mockRepo.user.update).not.toHaveBeenCalled();
+  });
+
+  it('self-service avatar visibility updates only the current user setting', async () => {
+    mockRepo.user.findUnique.mockResolvedValue({
+      avatar: 'private/avatars/user-thumb.webp',
+    });
+    mockRepo.findOwnedAvatarUpload.mockResolvedValue({
+      id: 'avatar-upload',
+      mimeType: 'image/jpeg',
+      pathOriginal: 'private/avatars/user-original.jpg',
+      pathThumb: 'private/avatars/user-thumb.webp',
+      pathSmall: 'private/avatars/user-small.webp',
+      pathMedium: 'private/avatars/user-medium.webp',
+      uploadedById: 'user-1',
+      storageClass: 'PRIVATE',
+    });
+    mockRepo.user.update.mockResolvedValue({
+      id: 'user-1',
+      avatar: 'private/avatars/user-thumb.webp',
+      isAvatarPublic: true,
+    });
+
+    await expect(service.setAvatarVisibility('user-1', true)).resolves.toMatchObject({
+      isAvatarPublic: true,
+    });
+    expect(mockRepo.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'user-1' },
+        data: { isAvatarPublic: true },
+      }),
+    );
   });
 
   it('disconnects sockets after an account activity change', async () => {

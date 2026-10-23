@@ -67,6 +67,7 @@ model User {
   gender                     Gender?
   genderOnboardingCompleted  Boolean   @default(false) @map("gender_onboarding_completed")
   avatar                     String?
+  isAvatarPublic             Boolean   @default(false) @map("is_avatar_public")
   isActive                   Boolean   @default(true) @map("is_active")
   isEmailVerified            Boolean   @default(false) @map("is_email_verified")
   emailVerificationToken     String?   @map("email_verification_token")
@@ -856,11 +857,12 @@ model BlogComment {
 // ============ GALLERY ============
 
 model GalleryCategory {
-  id          String   @id @default(uuid())
-  name        String
-  description String?  @db.Text
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id                       String   @id @default(uuid())
+  name                     String
+  description              String?  @db.Text
+  sortOrder                Int      @default(0) @map("sort_order")
+  autoPublishConsentedPairs Boolean  @default(false) @map("auto_publish_consented_pairs")
+  createdAt                DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   images GalleryImage[]

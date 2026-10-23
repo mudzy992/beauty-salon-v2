@@ -10,12 +10,10 @@ import {
   MAX_BEFORE_AFTER_OFFSET,
 } from './before-after-query.constants';
 import { PrismaService } from '../prisma/prisma.service';
-import { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from '../media-consent/media-consent.service';
+import { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from '../media-consent/media-consent.constants';
 
 export type BeforeAfterPair = {
   id: string;
-  service: { id: string; name: string };
-  completedAt: Date | null;
   before: {
     pathOriginal: string;
     pathMedium?: string | null;
@@ -47,6 +45,24 @@ export class DailyLogPublicService {
       throw new BadRequestException('limit mora biti pozitivan cijeli broj.');
     }
     const limit = Math.min(requestedLimit, MAX_BEFORE_AFTER_LIMIT);
+    const requestedOffset = opts?.offset ?? 0;
+    if (
+      !opts?.random &&
+      (!Number.isSafeInteger(requestedOffset) ||
+        requestedOffset < 0 ||
+        requestedOffset > MAX_BEFORE_AFTER_OFFSET)
+    ) {
+      throw new BadRequestException(
+        `offset mora biti cijeli broj između 0 i ${MAX_BEFORE_AFTER_OFFSET}.`,
+      );
+    }
+    const autoCategory = await this.prisma.galleryCategory.findFirst({
+      where: { autoPublishConsentedPairs: true },
+      select: { id: true },
+    });
+    if (!autoCategory) {
+      return { items: [], hasMore: false, nextOffset: 0 };
+    }
     const serviceId = opts?.serviceId?.trim() || undefined;
     const where = this.buildEligibleWhere(serviceId);
 
@@ -54,23 +70,13 @@ export class DailyLogPublicService {
       return this.findRandomPairs(where, limit);
     }
 
-    const requestedOffset = opts?.offset ?? 0;
-    if (
-      !Number.isSafeInteger(requestedOffset) ||
-      requestedOffset < 0 ||
-      requestedOffset > MAX_BEFORE_AFTER_OFFSET
-    ) {
-      throw new BadRequestException(
-        `offset mora biti cijeli broj između 0 i ${MAX_BEFORE_AFTER_OFFSET}.`,
-      );
-    }
     const offset = requestedOffset;
 
     const [total, entries] = await Promise.all([
       this.prisma.dailyLogEntry.count({ where }),
       this.prisma.dailyLogEntry.findMany({
         where,
-        include: this.publicInclude(),
+        select: this.publicSelect(),
         orderBy: { completedAt: 'desc' },
         skip: offset,
         take: limit,
@@ -132,9 +138,11 @@ export class DailyLogPublicService {
     };
   }
 
-  private publicInclude() {
+  private publicSelect() {
     const activeConsent = this.activeConsentWhere();
     return {
+      id: true,
+      clientId: true,
       images: {
         where: {
           OR: [
@@ -150,15 +158,17 @@ export class DailyLogPublicService {
             },
           ],
         },
-        include: {
+        select: {
+          id: true,
+          isBefore: true,
+          isAfter: true,
           consent: {
             select: { id: true, clientId: true },
           },
         },
         orderBy: { sortOrder: 'asc' as const },
       },
-      service: { select: { id: true, name: true } },
-    } satisfies Prisma.DailyLogEntryInclude;
+    } satisfies Prisma.DailyLogEntrySelect;
   }
 
   private async findRandomPairs(
@@ -171,10 +181,10 @@ export class DailyLogPublicService {
   }> {
     const randomStart = Math.random();
     const randomOrder = [{ randomKey: 'asc' as const }, { id: 'asc' as const }];
-    const include = this.publicInclude();
+    const select = this.publicSelect();
     const firstWindow = await this.prisma.dailyLogEntry.findMany({
       where: { ...where, randomKey: { gte: randomStart } },
-      include,
+      select,
       orderBy: randomOrder,
       take: limit,
     });
@@ -184,7 +194,7 @@ export class DailyLogPublicService {
       remaining > 0
         ? await this.prisma.dailyLogEntry.findMany({
             where: { ...where, randomKey: { lt: randomStart } },
-            include,
+            select,
             orderBy: randomOrder,
             take: remaining,
           })
@@ -201,9 +211,8 @@ export class DailyLogPublicService {
     entries: Array<{
       id: string;
       clientId: string | null;
-      completedAt: Date | null;
-      service: { id: string; name: string };
       images: Array<{
+        id: string;
         isBefore: boolean;
         isAfter: boolean;
         consent: { id: string; clientId: string | null } | null;
@@ -219,14 +228,13 @@ export class DailyLogPublicService {
         (image) => image.isBefore && valid(image),
       );
       const afterImg = entry.images.find(
-        (image) => image.isAfter && valid(image),
+        (image) =>
+          image.isAfter && image.id !== beforeImg?.id && valid(image),
       );
       if (!entry.clientId || !beforeImg?.consent || !afterImg?.consent)
         continue;
       pairs.push({
         id: entry.id,
-        service: entry.service,
-        completedAt: entry.completedAt ?? null,
         before: {
           pathOriginal: `/api/media/consents/${beforeImg.consent.id}/file`,
           pathMedium: null,

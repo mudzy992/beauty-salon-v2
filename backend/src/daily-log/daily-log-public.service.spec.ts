@@ -8,6 +8,9 @@ jest.mock('../prisma/prisma.service', () => ({
 }));
 
 const mockPrisma = {
+  galleryCategory: {
+    findFirst: jest.fn(),
+  },
   dailyLogEntry: {
     count: jest.fn(),
     findMany: jest.fn(),
@@ -22,11 +25,13 @@ function makePairEntry(id: string) {
     service: { id: 's1', name: 'Šišanje' },
     images: [
       {
+        id: `${id}-before`,
         isBefore: true,
         isAfter: false,
         consent: { id: `${id}-before-consent`, clientId: 'client-1' },
       },
       {
+        id: `${id}-after`,
         isBefore: false,
         isAfter: true,
         consent: { id: `${id}-after-consent`, clientId: 'client-1' },
@@ -40,6 +45,7 @@ describe('DailyLogPublicService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockPrisma.galleryCategory.findFirst.mockResolvedValue({ id: 'auto-category' });
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DailyLogPublicService,
@@ -47,6 +53,18 @@ describe('DailyLogPublicService', () => {
       ],
     }).compile();
     service = module.get(DailyLogPublicService);
+  });
+
+  it('does not publish before/after pairs unless an automatic category is active', async () => {
+    mockPrisma.galleryCategory.findFirst.mockResolvedValue(null);
+
+    await expect(service.findBeforeAfterPairs({ limit: 10 })).resolves.toEqual({
+      items: [],
+      hasMore: false,
+      nextOffset: 0,
+    });
+    expect(mockPrisma.dailyLogEntry.count).not.toHaveBeenCalled();
+    expect(mockPrisma.dailyLogEntry.findMany).not.toHaveBeenCalled();
   });
 
   it('returns only consented before/after routes and never raw upload paths', async () => {
@@ -63,8 +81,31 @@ describe('DailyLogPublicService', () => {
     );
     expect(actual.items[0]?.before.pathMedium).toBeNull();
     expect(actual.items[0]?.after.pathThumb).toBeNull();
+    expect(actual.items[0]).not.toHaveProperty('service');
+    expect(actual.items[0]).not.toHaveProperty('completedAt');
     expect(actual.hasMore).toBe(false);
     expect(actual.nextOffset).toBe(1);
+  });
+
+  it('does not reuse one image as both sides of an automatic pair', async () => {
+    mockPrisma.dailyLogEntry.count.mockResolvedValue(1);
+    mockPrisma.dailyLogEntry.findMany.mockResolvedValue([
+      {
+        ...makePairEntry('same-photo'),
+        images: [
+          {
+            id: 'same-photo-image',
+            isBefore: true,
+            isAfter: true,
+            consent: { id: 'same-consent', clientId: 'client-1' },
+          },
+        ],
+      },
+    ]);
+
+    const actual = await service.findBeforeAfterPairs({ limit: 10 });
+
+    expect(actual.items).toHaveLength(0);
   });
 
   it('skips entries unless each side has a matching active-consent projection', async () => {
@@ -74,11 +115,13 @@ describe('DailyLogPublicService', () => {
         ...makePairEntry('e2'),
         images: [
           {
+            id: 'e2-before',
             isBefore: true,
             isAfter: false,
             consent: null,
           },
           {
+            id: 'e2-after',
             isBefore: false,
             isAfter: true,
             consent: { id: 'other-client-consent', clientId: 'client-2' },
@@ -174,7 +217,11 @@ describe('DailyLogPublicService', () => {
         where: expect.objectContaining({ randomKey: { gte: 0.5 } }),
         orderBy: [{ randomKey: 'asc' }, { id: 'asc' }],
         take: 2,
-        include: expect.objectContaining({ images: expect.any(Object) }),
+        select: expect.objectContaining({
+          id: true,
+          clientId: true,
+          images: expect.any(Object),
+        }),
       }),
     );
     expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenNthCalledWith(

@@ -108,8 +108,11 @@ describe('ReviewsService', () => {
     const query = firstReviewQuery(mockPrisma.review.findFirst);
     expect(query.where).toEqual({ id: 'rev-1', isApproved: true });
     expect(query.select.user.select).toEqual({
+      id: true,
       firstName: true,
       lastName: true,
+      avatar: true,
+      isAvatarPublic: true,
     });
     expect(query.select.user.select).not.toHaveProperty('passwordHash');
     expect(query.select.user.select).not.toHaveProperty(
@@ -118,6 +121,29 @@ describe('ReviewsService', () => {
     expect(query.select.user.select).not.toHaveProperty('email');
     expect(query.select).not.toHaveProperty('userId');
     expect(query.select).not.toHaveProperty('reservationId');
+  });
+
+  it('public review avatar is exposed only through the opt-in public route', async () => {
+    mockPrisma.review.findFirst.mockResolvedValue({
+      id: 'rev-avatar',
+      user: {
+        id: 'client-1',
+        firstName: 'Test',
+        lastName: 'Client',
+        avatar: 'private/avatars/client-thumb.webp',
+        isAvatarPublic: true,
+      },
+      service: { name: 'Usluga' },
+      stylist: null,
+    });
+
+    await expect(service.findOne('rev-avatar')).resolves.toMatchObject({
+      user: {
+        firstName: 'Test',
+        lastName: 'Client',
+        avatar: '/api/users/client-1/avatar',
+      },
+    });
   });
 
   it('featured review uses the same approved display projection', async () => {
@@ -162,8 +188,11 @@ describe('ReviewsService', () => {
     expect(query.skip).toBe(0);
     expect(query.take).toBe(1);
     expect(query.select.user.select).toEqual({
+      id: true,
       firstName: true,
       lastName: true,
+      avatar: true,
+      isAvatarPublic: true,
     });
     expect(query.select).not.toHaveProperty('userId');
     expect(query.select).not.toHaveProperty('reservationId');
@@ -205,8 +234,11 @@ describe('ReviewsService', () => {
     const query = firstReviewQuery(mockPrisma.review.findMany);
     expect(query.where).toEqual({ isApproved: false });
     expect(query.select.user.select).toEqual({
+      id: true,
       firstName: true,
       lastName: true,
+      avatar: true,
+      isAvatarPublic: true,
     });
     expect(query.select.user.select).not.toHaveProperty('passwordHash');
   });

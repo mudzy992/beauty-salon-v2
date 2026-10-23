@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,11 +10,12 @@ import {
   UploadStorageClass,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateGalleryCategoryDto } from './dto/create-category.dto';
+import { CreateGalleryCategoryDto, UpdateGalleryCategoryDto } from './dto/create-category.dto';
 import { CreateGalleryImageDto } from './dto/create-image.dto';
-import { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from '../media-consent/media-consent.service';
+import { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from '../media-consent/media-consent.constants';
+import { UploadsService } from '../uploads/uploads.service';
 
-const PUBLIC_GALLERY_IMAGE_WHERE: Prisma.GalleryImageWhereInput = {
+const CONSENTED_GALLERY_IMAGE_WHERE: Prisma.GalleryImageWhereInput = {
   upload: {
     storageClass: UploadStorageClass.CONSENTED_PUBLIC,
     consentCopyFor: {
@@ -38,18 +40,52 @@ const PUBLIC_GALLERY_IMAGE_WHERE: Prisma.GalleryImageWhereInput = {
   },
 };
 
+const PUBLIC_GALLERY_IMAGE_WHERE: Prisma.GalleryImageWhereInput = {
+  OR: [
+    {
+      upload: {
+        storageClass: UploadStorageClass.PUBLIC,
+        pathOriginal: { startsWith: 'gallery/' },
+      },
+    },
+    CONSENTED_GALLERY_IMAGE_WHERE,
+  ],
+};
+
+const CATEGORY_FIELDS = {
+  id: true,
+  name: true,
+  description: true,
+  sortOrder: true,
+  autoPublishConsentedPairs: true,
+} as const;
+
 @Injectable()
 export class GalleryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploads: UploadsService,
+  ) {}
 
   async createCategory(dto: CreateGalleryCategoryDto) {
-    return this.prisma.galleryCategory.create({
-      data: {
-        name: dto.name,
-        description: dto.description,
-        sortOrder: dto.sortOrder ?? 0,
-      },
-    });
+    if (dto.autoPublishConsentedPairs) {
+      await this.assertAutoPublishCategoryAvailable();
+    }
+    try {
+      return await this.prisma.galleryCategory.create({
+        data: {
+          name: dto.name,
+          description: dto.description,
+          sortOrder: dto.sortOrder ?? 0,
+          autoPublishConsentedPairs: dto.autoPublishConsentedPairs ?? false,
+        },
+      });
+    } catch (error) {
+      if (dto.autoPublishConsentedPairs && this.isUniqueConstraintError(error)) {
+        throw this.autoPublishConflict();
+      }
+      throw error;
+    }
   }
 
   async findAllCategories() {
@@ -71,7 +107,8 @@ export class GalleryService {
   async findOneCategory(id: string) {
     const category = await this.prisma.galleryCategory.findUnique({
       where: { id },
-      include: {
+      select: {
+        ...CATEGORY_FIELDS,
         images: {
           where: PUBLIC_GALLERY_IMAGE_WHERE,
           include: {
@@ -116,6 +153,26 @@ export class GalleryService {
 
     const images = category.images.flatMap((image) => {
       const upload = image.upload;
+      if (
+        upload.storageClass === UploadStorageClass.PUBLIC &&
+        typeof upload.pathOriginal === 'string' &&
+        upload.pathOriginal.startsWith('gallery/')
+      ) {
+        return [
+          {
+            id: image.id,
+            title: image.title,
+            description: image.description,
+            sortOrder: image.sortOrder,
+            upload: {
+              pathOriginal: upload.pathOriginal,
+              pathThumb: upload.pathThumb,
+              pathMedium: upload.pathMedium,
+            },
+          },
+        ];
+      }
+
       const consent = upload.consentCopyFor;
       const dailyLogImage = consent?.dailyLogImage;
       const entry = dailyLogImage?.dailyLogEntry;
@@ -153,29 +210,109 @@ export class GalleryService {
       name: category.name,
       description: category.description,
       sortOrder: category.sortOrder,
+      autoPublishConsentedPairs: category.autoPublishConsentedPairs,
       images,
     };
   }
 
-  async updateCategory(
-    id: string,
-    dto: { name?: string; description?: string; sortOrder?: number },
-  ) {
-    await this.requireCategory(id);
-    return this.prisma.galleryCategory.update({
-      where: { id },
-      data: {
-        ...(dto.name != null && { name: dto.name }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.sortOrder != null && { sortOrder: dto.sortOrder }),
-      },
-    });
+  async updateCategory(id: string, dto: UpdateGalleryCategoryDto) {
+    const category = await this.requireCategory(id);
+    if (dto.autoPublishConsentedPairs === true) {
+      await this.assertAutoPublishCategoryAvailable(id);
+    }
+    try {
+      return await this.prisma.galleryCategory.update({
+        where: { id },
+        data: {
+          ...(dto.name != null && { name: dto.name }),
+          ...(dto.description !== undefined && { description: dto.description }),
+          ...(dto.sortOrder != null && { sortOrder: dto.sortOrder }),
+          ...(dto.autoPublishConsentedPairs !== undefined && {
+            autoPublishConsentedPairs: dto.autoPublishConsentedPairs,
+          }),
+        },
+      });
+    } catch (error) {
+      if (
+        dto.autoPublishConsentedPairs === true &&
+        this.isUniqueConstraintError(error)
+      ) {
+        throw this.autoPublishConflict();
+      }
+      throw error;
+    }
   }
 
   async removeCategory(id: string) {
     await this.requireCategory(id);
     await this.prisma.galleryCategory.delete({ where: { id } });
     return { deleted: true };
+  }
+
+  async getEligibleConsentedImages() {
+    const images = await this.prisma.dailyLogImage.findMany({
+      where: {
+        OR: [{ isBefore: true }, { isAfter: true }],
+        dailyLogEntry: {
+          is: {
+            kind: 'SERVICE',
+            status: 'COMPLETED',
+            deletedAt: null,
+            clientId: { not: null },
+          },
+        },
+        consent: {
+          is: {
+            purpose: DailyLogMediaConsentPurpose.PUBLIC_GALLERY,
+            policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION,
+            revokedAt: null,
+            clientId: { not: null },
+            publishedUpload: {
+              is: { storageClass: UploadStorageClass.CONSENTED_PUBLIC },
+            },
+          },
+        },
+      },
+      select: {
+        id: true,
+        isBefore: true,
+        isAfter: true,
+        consent: {
+          select: { id: true, clientId: true, publishedUploadId: true },
+        },
+        dailyLogEntry: {
+          select: {
+            clientId: true,
+            date: true,
+            service: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return images.flatMap((image) => {
+      const consent = image.consent;
+      if (
+        !consent?.id ||
+        !consent.publishedUploadId ||
+        !consent.clientId ||
+        consent.clientId !== image.dailyLogEntry.clientId
+      ) {
+        return [];
+      }
+      return [
+        {
+          imageId: image.id,
+          uploadId: consent.publishedUploadId,
+          consentId: consent.id,
+          isBefore: image.isBefore,
+          isAfter: image.isAfter,
+          serviceName: image.dailyLogEntry.service.name,
+          serviceDate: image.dailyLogEntry.date,
+          previewUrl: `/api/media/consents/${consent.id}/file`,
+        },
+      ];
+    });
   }
 
   async addImage(dto: CreateGalleryImageDto) {
@@ -191,7 +328,7 @@ export class GalleryService {
     if (!upload) throw new NotFoundException('Upload nije pronađen.');
     if (upload.storageClass !== UploadStorageClass.CONSENTED_PUBLIC) {
       throw new BadRequestException(
-        'Javna galerija prima samo fotografije s izričitom saglasnošću klijenta.',
+        'Klijentske fotografije u galeriju se dodaju samo preko aktivnog birača saglasnosti.',
       );
     }
     const consent = upload.consentCopyFor;
@@ -213,12 +350,21 @@ export class GalleryService {
       );
     }
 
+    const existing = await this.prisma.galleryImage.findFirst({
+      where: { categoryId: dto.categoryId, uploadId: dto.uploadId },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException('Fotografija je već dodana u ovu kategoriju.');
+    }
+
     return this.prisma.galleryImage.create({
       data: {
         categoryId: dto.categoryId,
         uploadId: dto.uploadId,
-        title: dto.title,
-        description: dto.description,
+        // Consent covers the photo-only gallery use, not arbitrary captions or client metadata.
+        title: null,
+        description: null,
         sortOrder: dto.sortOrder ?? 0,
       },
       select: {
@@ -230,6 +376,49 @@ export class GalleryService {
         sortOrder: true,
       },
     });
+  }
+
+  async uploadNonClientImage(
+    categoryId: string,
+    file: Express.Multer.File,
+    uploadedById: string,
+    options: {
+      nonClientAssetConfirmed: string | undefined;
+      title?: string;
+      description?: string;
+      sortOrder?: number;
+    },
+  ) {
+    await this.requireCategory(categoryId);
+    if (options.nonClientAssetConfirmed !== 'true') {
+      throw new BadRequestException(
+        'Potvrdite da direktno uploadana fotografija ne prikazuje klijenta.',
+      );
+    }
+
+    const uploaded = await this.uploads.saveGalleryAsset(file, uploadedById);
+    try {
+      return await this.prisma.galleryImage.create({
+        data: {
+          categoryId,
+          uploadId: uploaded.id,
+          title: options.title,
+          description: options.description,
+          sortOrder: options.sortOrder ?? 0,
+        },
+        select: {
+          id: true,
+          categoryId: true,
+          uploadId: true,
+          title: true,
+          description: true,
+          sortOrder: true,
+        },
+      });
+    } catch (error) {
+      await this.uploads.deleteUnreferencedUpload(uploaded.id).catch(() => undefined);
+      throw error;
+    }
   }
 
   async updateImage(
@@ -266,9 +455,36 @@ export class GalleryService {
   private async requireCategory(id: string) {
     const category = await this.prisma.galleryCategory.findUnique({
       where: { id },
-      select: { id: true },
+      select: { id: true, autoPublishConsentedPairs: true },
     });
     if (!category) throw new NotFoundException('Kategorija nije pronađena.');
     return category;
+  }
+
+  private async assertAutoPublishCategoryAvailable(exceptId?: string) {
+    const active = await this.prisma.galleryCategory.findFirst({
+      where: {
+        autoPublishConsentedPairs: true,
+        ...(exceptId ? { id: { not: exceptId } } : {}),
+      },
+      select: { id: true, name: true },
+    });
+    if (active) throw this.autoPublishConflict(active.name);
+  }
+
+  private autoPublishConflict(activeName?: string) {
+    const activeText = activeName ? ` („${activeName}“)` : '';
+    return new ConflictException(
+      `Već postoji aktivna automatska kategorija${activeText}. Isključite je prije aktiviranja druge.`,
+    );
+  }
+
+  private isUniqueConstraintError(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'P2002'
+    );
   }
 }

@@ -12,6 +12,7 @@ interface User {
   mustChangePassword: boolean;
   roles: string[];
   avatar: string | null;
+  isAvatarPublic: boolean;
 }
 
 interface AuthContextValue {

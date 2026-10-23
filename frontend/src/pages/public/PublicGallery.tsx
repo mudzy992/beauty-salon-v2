@@ -23,6 +23,7 @@ interface GalleryCategory {
   id: string
   name: string
   sortOrder: number
+  autoPublishConsentedPairs?: boolean
   _count?: { images: number }
   images?: GalleryImage[]
 }
@@ -58,7 +59,11 @@ export default function PublicGallery() {
       .get<GalleryCategory[]>('/api/gallery/categories')
       .then(async (r) => {
         const list = Array.isArray(r.data)
-          ? r.data.filter((category) => (category._count?.images ?? 0) > 0)
+          ? r.data.filter(
+              (category) =>
+                (category._count?.images ?? 0) > 0 ||
+                category.autoPublishConsentedPairs,
+            )
           : []
         return Promise.all(
           list.map((category) =>
@@ -116,7 +121,8 @@ export default function PublicGallery() {
           <div className="py-20 text-center text-slate-600">Učitavanje…</div>
         ) : (
           <div>
-            {consentedPairs.length > 0 ? (
+            {consentedPairs.length > 0 &&
+            !sortedCategories.some((category) => category.autoPublishConsentedPairs) ? (
               <section className="mb-16">
                 <div className="mb-7 max-w-3xl">
                   <h2 className="text-xl font-semibold tracking-tight text-slate-950 pb-3 border-b border-slate-200/80">
@@ -160,6 +166,36 @@ export default function PublicGallery() {
                     <h2 className="text-xl font-semibold tracking-tight text-slate-950 pb-3 mb-8 border-b border-slate-200/80">
                       {cat.name}
                     </h2>
+
+                    {cat.autoPublishConsentedPairs ? (
+                      <div className="mb-8">
+                        <p className="mb-4 text-sm text-slate-600">
+                          Automatski prikazujemo samo parove za koje obje fotografije imaju važeću saglasnost.
+                        </p>
+                        {consentedPairs.length ? (
+                          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+                            {consentedPairs.map((pair) => (
+                              <article key={pair.id} className="min-w-0">
+                                <BeforeAfterSlider
+                                  beforeSrc={getUploadUrl(pair.before.pathOriginal)}
+                                  afterSrc={getUploadUrl(pair.after.pathOriginal)}
+                                  alt="Rezultat prije i poslije"
+                                  ariaLabel="Poređenje rezultata prije i poslije"
+                                />
+                                <div className="mt-2 flex justify-between text-xs font-medium text-slate-500">
+                                  <span>Prije</span>
+                                  <span>Poslije</span>
+                                </div>
+                              </article>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm italic text-slate-500">
+                            Trenutno nema parova s aktivnom saglasnošću za obje fotografije.
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
 
                     {cat.images?.length ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -205,7 +241,7 @@ export default function PublicGallery() {
                             )
                           })}
                       </div>
-                    ) : (
+                    ) : cat.autoPublishConsentedPairs ? null : (
                       <div className="text-slate-500 italic">{t('common.noData')}</div>
                     )}
                   </div>

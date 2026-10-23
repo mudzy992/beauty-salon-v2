@@ -32,6 +32,7 @@ const mockUploadsRepo = {
   create: jest.fn(),
   findById: jest.fn(),
   findByStoredPath: jest.fn(),
+  findPublicAvatarUpload: jest.fn(),
   canReadPrivateUpload: jest.fn(),
   findFirstByPathOriginal: jest.fn(),
   hasReferences: jest.fn(),
@@ -185,6 +186,23 @@ describe('UploadsService', () => {
         service.savePublicAsset(validImageFile, 'gallery', 'owner-1'),
       ).rejects.toThrow(BadRequestException);
       expect(mockUploadsRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('writes gallery assets only through the category-bound internal upload path', async () => {
+      mockUploadsRepo.create.mockImplementation(({ data }) =>
+        Promise.resolve({ id: 'gallery-upload', ...data }),
+      );
+
+      const result = await service.saveGalleryAsset(validImageFile, 'owner-1');
+
+      expect(result.pathOriginal).toMatch(/^gallery\/\d{4}\/\d{2}\/.*\.webp$/);
+      expect(mockUploadsRepo.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          storageClass: 'PUBLIC',
+          uploadedById: 'owner-1',
+          pathOriginal: expect.stringMatching(/^gallery\//),
+        }),
+      });
     });
 
     it('creates consented derivatives outside the static public directory', async () => {
@@ -383,6 +401,38 @@ describe('UploadsService', () => {
       await expect(
         service.readConsentDerivative('consented-escape'),
       ).rejects.toThrow(NotFoundException);
+      expect(fs.readFile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('readPublicUserAvatar', () => {
+    it('serves a sanitized owner-bound avatar variant only when repository says it is public', async () => {
+      const avatarPath = 'private/avatars/2026/10/avatar-thumb.webp';
+      mockUploadsRepo.findPublicAvatarUpload.mockResolvedValue({
+        avatar: avatarPath,
+        upload: {
+          mimeType: 'image/jpeg',
+          pathOriginal: 'private/avatars/2026/10/avatar-original.jpg',
+          pathThumb: avatarPath,
+          pathSmall: 'private/avatars/2026/10/avatar-small.webp',
+          pathMedium: 'private/avatars/2026/10/avatar-medium.webp',
+        },
+      });
+
+      await expect(service.readPublicUserAvatar('user-1')).resolves.toMatchObject({
+        mimeType: 'image/webp',
+        inline: true,
+      });
+      expect(fs.readFile).toHaveBeenCalledWith(
+        path.join('/tmp/uploads', avatarPath),
+      );
+    });
+
+    it('does not read a private or non-variant avatar', async () => {
+      mockUploadsRepo.findPublicAvatarUpload.mockResolvedValue(null);
+      await expect(service.readPublicUserAvatar('private-user')).rejects.toThrow(
+        NotFoundException,
+      );
       expect(fs.readFile).not.toHaveBeenCalled();
     });
   });

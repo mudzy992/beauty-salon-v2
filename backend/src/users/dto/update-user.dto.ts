@@ -41,5 +41,9 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsBoolean()
+  isAvatarPublic?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   isActive?: boolean;
 }

@@ -11,6 +11,7 @@ import {
   Platform,
   ActivityIndicator,
   Pressable,
+  Switch,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,6 +34,7 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { user, refreshProfile } = useAuthStore();
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarPrivacySaving, setAvatarPrivacySaving] = useState(false);
   const [verifyModalVisible, setVerifyModalVisible] = useState(false);
   const [verifyCode, setVerifyCode] = useState('');
   const [verifySending, setVerifySending] = useState(false);
@@ -73,13 +75,7 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
         'file',
         { uri: result.assets[0].uri, name: 'avatar.jpg', type: 'image/jpeg' } as unknown as Blob,
       );
-      formData.append('entity', 'avatars');
-      const { data: uploadRes } = await api.post<{ pathThumb?: string; pathSmall?: string; pathOriginal: string }>(
-        '/api/uploads',
-        formData,
-      );
-      const avatarPath = uploadRes.pathThumb || uploadRes.pathSmall || uploadRes.pathOriginal;
-      await api.patch(`/api/users/${user.id}`, { avatar: avatarPath });
+      await api.post('/api/users/profile/avatar', formData);
       await refreshProfile();
     } catch (err: unknown) {
       const msg =
@@ -91,6 +87,22 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
       setAvatarLoading(false);
     }
   }, [user?.id, refreshProfile, t]);
+
+  const handleAvatarPublicChange = useCallback(async (isAvatarPublic: boolean) => {
+    setAvatarPrivacySaving(true);
+    try {
+      await api.patch('/api/users/profile/avatar-visibility', { isAvatarPublic });
+      await refreshProfile();
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
+          : t('common.error');
+      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
+    } finally {
+      setAvatarPrivacySaving(false);
+    }
+  }, [refreshProfile, t]);
 
   const handleSendVerificationCode = useCallback(async () => {
     setVerifySending(true);
@@ -180,6 +192,20 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
           )}
         </TouchableOpacity>
         <Text style={[styles.avatarHint, { color: colors.textMuted }]}>{t('profile.avatarChange')}</Text>
+        <View style={[styles.avatarPrivacyRow, { borderColor: colors.border }]}>
+          <View style={styles.avatarPrivacyCopy}>
+            <Text style={[styles.avatarPrivacyTitle, { color: colors.text }]}>Moj avatar je javan</Text>
+            <Text style={[styles.avatarPrivacyDescription, { color: colors.textMuted }]}>
+              Avatar je privatan po zadanom. Ova postavka ne važi za galeriju, oglase ili društvene mreže.
+            </Text>
+          </View>
+          <Switch
+            value={Boolean(user?.isAvatarPublic)}
+            onValueChange={(value) => void handleAvatarPublicChange(value)}
+            disabled={!user?.avatar || avatarPrivacySaving}
+            trackColor={{ false: colors.border, true: colors.primary }}
+          />
+        </View>
         <Text style={[styles.nameLine, { color: colors.text }]}>
           {user?.firstName} {user?.lastName}
         </Text>
@@ -317,6 +343,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarHint: { fontSize: 12, marginBottom: spacing.sm },
+  avatarPrivacyRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e5e7eb',
+  },
+  avatarPrivacyCopy: { flex: 1 },
+  avatarPrivacyTitle: { fontSize: 13, fontFamily: fontFamily.bodySemiBold },
+  avatarPrivacyDescription: { fontSize: 11, lineHeight: 16, marginTop: 2 },
   nameLine: { fontSize: 17, fontFamily: fontFamily.heading },
   formCard: { padding: spacing.lg, marginBottom: spacing.md },
   verifyRow: { marginTop: -spacing.sm, marginBottom: spacing.md },

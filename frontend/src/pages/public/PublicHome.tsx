@@ -12,6 +12,7 @@ import { publicHeader, publicPage, publicSection } from '../../features/shell/pu
 import { isPublicFeatureOn } from '../../features/shell/public/public-features'
 import { useSettings } from '../../context/SettingsContext'
 import { MediaImage } from '../../components/media-image'
+import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
 import { cssBackgroundImage, resolveRemoteMediaUrl } from '../../constants/media-fallback'
 import { getUploadUrl } from '../../utils/uploadUrl'
 
@@ -28,7 +29,7 @@ interface FeaturedReview {
   serviceRating: number
   stylistRating: number | null
   comment: string | null
-  user?: { firstName: string | null; lastName: string | null }
+  user?: { firstName: string | null; lastName: string | null; avatar?: string | null }
   service?: { name: string }
 }
 
@@ -274,11 +275,24 @@ export default function PublicHome() {
                   <div className="mt-3 text-slate-600 leading-relaxed whitespace-pre-wrap">
                     {featuredReview.comment ?? ''}
                   </div>
-                  <div className="mt-4 text-sm text-slate-500">
-                    {featuredReview.user
-                      ? `${featuredReview.user.firstName ?? ''} ${featuredReview.user.lastName ?? ''}`.trim()
-                      : ''}
-                  </div>
+                  {featuredReview.user ? (
+                    <div className="mt-4 flex items-center gap-3 text-sm text-slate-500">
+                      {featuredReview.user.avatar ? (
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage
+                            src={getImageUrl(featuredReview.user.avatar)}
+                            alt=""
+                          />
+                          <AvatarFallback>
+                            {`${featuredReview.user.firstName?.[0] ?? ''}${featuredReview.user.lastName?.[0] ?? ''}`}
+                          </AvatarFallback>
+                        </Avatar>
+                      ) : null}
+                      <span>
+                        {`${featuredReview.user.firstName ?? ''} ${featuredReview.user.lastName ?? ''}`.trim()}
+                      </span>
+                    </div>
+                  ) : null}
                 </CardContent>
               </Card>
             </div>

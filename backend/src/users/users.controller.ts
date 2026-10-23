@@ -1,5 +1,6 @@
 import {
   Body,
+  BadRequestException,
   Controller,
   Delete,
   Get,
@@ -8,7 +9,11 @@ import {
   Patch,
   Post,
   Query,
+  Res,
+  StreamableFile,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -20,18 +25,28 @@ import { AnalyticsDateRangeQueryDto } from '../analytics/dto/analytics-date-rang
 import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
 import {
   HTTP_RATE_LIMIT_ADMIN_USER,
+  HTTP_RATE_LIMIT_PUBLIC_IP,
   HTTP_RATE_LIMIT_WINDOW_SECONDS,
 } from '../common/rate-limiting/http-rate-limit.constants';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
+import { UploadsService } from '../uploads/uploads.service';
+import { UpdateAvatarVisibilityDto } from './dto/update-avatar-visibility.dto';
+const MAX_AVATAR_SIZE = 10 * 1024 * 1024;
 
 @Controller('api/users')
 @UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly uploadsService: UploadsService,
+  ) {}
 
   @Get('system-admins')
   @UseGuards(RolesGuard)
@@ -99,6 +114,69 @@ export class UsersController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.usersService.updateProfile(user.sub, dto);
+  }
+
+  @Patch('profile/avatar-visibility')
+  updateAvatarVisibility(
+    @Body() dto: UpdateAvatarVisibilityDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.usersService.setAvatarVisibility(user.sub, dto.isAvatarPublic);
+  }
+
+  @Post('profile/avatar')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_AVATAR_SIZE },
+      fileFilter: (_req, file, cb) => {
+        if (!file?.originalname) {
+          cb(new BadRequestException('Nijedna datoteka nije poslata.'), false);
+          return;
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async uploadOwnAvatar(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    if (!file) throw new BadRequestException('Nijedna datoteka nije poslata.');
+    const uploaded = await this.uploadsService.saveAvatar(file, user.sub);
+    const avatarPath = uploaded.pathThumb ?? uploaded.pathSmall ?? uploaded.pathMedium;
+    if (!avatarPath) {
+      await this.uploadsService.deleteUnreferencedUpload(uploaded.id);
+      throw new BadRequestException('Avatar se nije mogao pripremiti.');
+    }
+    try {
+      return await this.usersService.setOwnAvatar(user.sub, avatarPath);
+    } catch (error) {
+      await this.uploadsService.deleteUnreferencedUpload(uploaded.id).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  @Get(':id/avatar')
+  @Public()
+  @HttpRateLimit({
+    bucket: 'users:public-avatar',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
+  async getPublicAvatar(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const file = await this.uploadsService.readPublicUserAvatar(id);
+    response.setHeader('Cache-Control', 'no-store, max-age=0');
+    response.setHeader('Pragma', 'no-cache');
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+    response.setHeader('X-Frame-Options', 'DENY');
+    response.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+    response.setHeader('Content-Type', file.mimeType);
+    response.setHeader('Content-Disposition', 'inline; filename="public-avatar.webp"');
+    return new StreamableFile(file.buffer);
   }
 
   @Get('username-availability')

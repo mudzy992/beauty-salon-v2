@@ -21,8 +21,6 @@ type BeforeAfterPair = {
   id: string
   before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }
   after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }
-  service?: { id: string; name: string }
-  completedAt?: string | null
 }
 
 const PAGE_SIZE = 18

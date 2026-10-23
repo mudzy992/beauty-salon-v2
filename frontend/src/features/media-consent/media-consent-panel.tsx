@@ -18,6 +18,8 @@ interface ConsentItem {
   previewUrl: string
   consentedAt: string | null
   revokedAt: string | null
+  isPublished: boolean
+  publishedCategories: Array<{ id: string; name: string }>
 }
 
 interface ConsentPayload {
@@ -109,7 +111,7 @@ export function MediaConsentPanel() {
       })
       await load()
       setMessage(
-        'Saglasnost je zabilježena. Fotografija je sada javno dostupna u galeriji.',
+        'Saglasnost je zabilježena. Status javne objave prikazan je uz aktivnu saglasnost.',
       )
     } catch (error: any) {
       setMessage(
@@ -286,9 +288,18 @@ export function MediaConsentPanel() {
                         : ''}
                     </p>
                     <p className="mt-1 flex items-center gap-1 text-xs text-emerald-800">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Aktivna samo za
-                      javni web i aplikaciju salona
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Saglasnost je
+                      aktivna samo za javni web i aplikaciju salona.
                     </p>
+                    {item.isPublished ? (
+                      <p className="mt-1 text-xs font-medium text-emerald-900">
+                        Objavljeno u galeriji: {item.publishedCategories.map((category) => category.name).join(', ')}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-slate-600">
+                        Fotografija još nije u javnom prikazu. Pojedinačna fotografija se objavljuje tek nakon izbora u ručnoj kategoriji; automatski par tek kada su obje strane odobrene i auto-kategorija aktivna.
+                      </p>
+                    )}
                   </div>
                   <Button
                     type="button"
