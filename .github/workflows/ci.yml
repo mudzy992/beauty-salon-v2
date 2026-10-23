@@ -158,6 +158,9 @@ jobs:
       - name: Test socket recovery policy
         working-directory: mobile
         run: npm run test:socket-recovery
+      - name: Test multipart upload request handling
+        working-directory: mobile
+        run: npm run test:api-multipart
       - name: TypeScript check
         working-directory: mobile
         run: npm run typecheck

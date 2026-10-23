@@ -68,13 +68,31 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
       quality: 0.8,
     });
     if (result.canceled || !result.assets?.[0]?.uri) return;
+    const asset = result.assets[0];
+    const assetName = asset.fileName?.trim() || asset.uri.split(/[?#]/, 1)[0];
+    const extension = assetName.split('.').pop()?.toLowerCase() ?? '';
+    const mimeTypeByExtension: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      webp: 'image/webp',
+      gif: 'image/gif',
+      heic: 'image/heic',
+      heif: 'image/heif',
+    };
+    const mimeType =
+      asset.mimeType?.trim().toLowerCase() ||
+      mimeTypeByExtension[extension] ||
+      'image/jpeg';
+    const fileName = asset.fileName?.trim() || `avatar.${extension || 'jpg'}`;
     setAvatarLoading(true);
     try {
       const formData = new FormData();
-      formData.append(
-        'file',
-        { uri: result.assets[0].uri, name: 'avatar.jpg', type: 'image/jpeg' } as unknown as Blob,
-      );
+      formData.append('file', {
+        uri: asset.uri,
+        name: fileName,
+        type: mimeType,
+      } as unknown as Blob);
       await api.post('/api/users/profile/avatar', formData);
       await refreshProfile();
     } catch (err: unknown) {
