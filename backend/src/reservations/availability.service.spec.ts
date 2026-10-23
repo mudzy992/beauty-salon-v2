@@ -198,15 +198,22 @@ describe('AvailabilityService', () => {
     ).rejects.toThrow('Salon nije konfigurisan');
   });
 
-  it('getAvailableDates baca NotFoundException kada servis ne postoji', async () => {
+  it('getAvailableDates baca NotFoundException kada servis nije aktivan u katalogu', async () => {
     mockPrisma.salonSettings.findFirst.mockResolvedValue({ id: 'salon-1' });
     mockPrisma.service.findMany.mockResolvedValue([]);
     await expect(
       service.getAvailableDates('svc-1', new Date('2026-03-15')),
     ).rejects.toThrow(NotFoundException);
-    await expect(
-      service.getAvailableDates('svc-1', new Date('2026-03-15')),
-    ).rejects.toThrow('Servis nije pronađen');
+    expect(mockPrisma.service.findMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ['svc-1'] },
+        isActive: true,
+        subcategory: {
+          is: { isActive: true, category: { is: { isActive: true } } },
+        },
+      },
+      select: { id: true },
+    });
   });
 
   it('getAvailableDates vraća prazan niz kada nema stilista za servis', async () => {
@@ -222,6 +229,13 @@ describe('AvailabilityService', () => {
     expect(Array.isArray(result)).toBe(true);
     expect(result.length).toBeGreaterThan(0);
     expect(result.every((d) => d.available === false)).toBe(true);
+    expect(mockPrisma.stylistService.findMany).toHaveBeenCalledWith({
+      where: {
+        serviceId: { in: ['svc-1'] },
+        stylistProfile: { is: { isActive: true } },
+      },
+      select: { stylistProfileId: true, serviceId: true },
+    });
   });
 
   it('getAvailableSlots baca NotFoundException kada nema salona', async () => {
@@ -266,6 +280,16 @@ describe('AvailabilityService', () => {
     mockPrisma.stylistService.findMany.mockResolvedValue([]);
     const result = await service.getAvailableSlots('svc-1', '2026-03-15');
     expect(result).toEqual([]);
+    expect(mockPrisma.service.findMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ['svc-1'] },
+        isActive: true,
+        subcategory: {
+          is: { isActive: true, category: { is: { isActive: true } } },
+        },
+      },
+      select: { id: true, durationMinutes: true },
+    });
   });
 
   it('CONFIRMED reservation blocks slot (availableStylistCount=0)', async () => {

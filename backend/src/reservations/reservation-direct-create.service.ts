@@ -23,6 +23,7 @@ import { SOCKET_EVENTS } from '../events/socket-events';
 import { timeToMinutes } from './utils/time-slot.utils';
 import { assertAdminSlotWithinWorkingHours } from './utils/assert-admin-working-hours';
 import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
+import { buildBookableServiceWhere } from './utils/service-eligibility';
 
 @Injectable()
 export class ReservationDirectCreateService {
@@ -93,14 +94,14 @@ export class ReservationDirectCreateService {
     if (serviceIds.length === 0) {
       throw new BadRequestException('SERVICE_REQUIRED');
     }
-    const services = await this.prisma.service.findMany({
-      where: { id: { in: serviceIds } },
+    const initialServices = await this.prisma.service.findMany({
+      where: buildBookableServiceWhere(serviceIds),
       select: { id: true, name: true, gender: true, price: true },
     });
-    if (services.length !== serviceIds.length) {
+    if (initialServices.length !== serviceIds.length) {
       throw new NotFoundException('Servis nije pronađen.');
     }
-    if (services.some((service) => service.gender !== client.gender)) {
+    if (initialServices.some((service) => service.gender !== client.gender)) {
       throw new BadRequestException('SERVICE_GENDER_MISMATCH');
     }
     const eligibleStylists =
@@ -153,33 +154,55 @@ export class ReservationDirectCreateService {
     const primaryServiceId = serviceIds[0]!;
     const { publicReferenceCode, clientViewToken } =
       await this.shared.allocateReservationPublicCodes(reservationDate);
-    const created = await this.prisma.reservation.create({
-      data: {
-        clientId: dto.clientId,
-        serviceId: primaryServiceId,
-        reservationDate,
-        startTime: dto.startTime,
-        endTime: dto.endTime,
-        status: RESERVATION_STATUS.CONFIRMED,
-        clientNotes: dto.clientNotes,
-        bookingOrigin,
-        acceptanceMode: RESERVATION_ACCEPTANCE_MODE.DIRECT_ASSIGN,
-        attendancePolicy: RESERVATION_ATTENDANCE_POLICY.STAFF_WAIVED,
-        createdByUserId: actorUserId,
-        confirmedStylistId: stylistProfileId,
-        attendanceWaivedAt: new Date(),
-        attendanceWaivedByUserId: actorUserId,
-        attendanceConfirmedBy: ATTENDANCE_CONFIRMED_BY.STAFF,
-        publicReferenceCode,
-        clientViewToken,
-      },
-    });
-    await this.prisma.reservationServiceItem.createMany({
-      data: services.map((service, index) => ({
-        reservationId: created.id,
-        serviceId: service.id,
-        sortOrder: index,
-      })),
+    const created = await this.prisma.$transaction(async (tx) => {
+      const currentServices = await tx.service.findMany({
+        where: buildBookableServiceWhere(serviceIds),
+        select: { id: true, name: true, gender: true, price: true },
+      });
+      if (currentServices.length !== serviceIds.length) {
+        throw new NotFoundException('Servis nije pronađen.');
+      }
+      if (currentServices.some((service) => service.gender !== client.gender)) {
+        throw new BadRequestException('SERVICE_GENDER_MISMATCH');
+      }
+
+      const currentEligibleStylists =
+        await this.shared.getEligibleStylistsForServices(serviceIds, tx);
+      if (!currentEligibleStylists.includes(stylistProfileId)) {
+        throw new BadRequestException(
+          'Odabrani stilist ne može izvršiti sve odabrane usluge.',
+        );
+      }
+
+      const currentReservation = await tx.reservation.create({
+        data: {
+          clientId: dto.clientId,
+          serviceId: primaryServiceId,
+          reservationDate,
+          startTime: dto.startTime,
+          endTime: dto.endTime,
+          status: RESERVATION_STATUS.CONFIRMED,
+          clientNotes: dto.clientNotes,
+          bookingOrigin,
+          acceptanceMode: RESERVATION_ACCEPTANCE_MODE.DIRECT_ASSIGN,
+          attendancePolicy: RESERVATION_ATTENDANCE_POLICY.STAFF_WAIVED,
+          createdByUserId: actorUserId,
+          confirmedStylistId: stylistProfileId,
+          attendanceWaivedAt: new Date(),
+          attendanceWaivedByUserId: actorUserId,
+          attendanceConfirmedBy: ATTENDANCE_CONFIRMED_BY.STAFF,
+          publicReferenceCode,
+          clientViewToken,
+        },
+      });
+      await tx.reservationServiceItem.createMany({
+        data: currentServices.map((service, index) => ({
+          reservationId: currentReservation.id,
+          serviceId: service.id,
+          sortOrder: index,
+        })),
+      });
+      return currentReservation;
     });
     const full = await this.queries.findOne(created.id, {
       sub: actorUserId,

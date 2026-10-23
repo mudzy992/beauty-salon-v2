@@ -9,6 +9,7 @@ import {
 import { getStylistProfilesForSlots } from './utils/availability-helpers';
 import { SLOT_HOLD_INBOX_STATUSES, SLOT_OCCUPYING_STATUSES } from './constants';
 import { computeSlotCapacity } from './utils/slot-hold.utils';
+import { buildBookableServiceWhere } from './utils/service-eligibility';
 import type { AvailableSlotDto } from './availability.types';
 
 @Injectable()
@@ -29,7 +30,7 @@ export class AvailabilitySlotsService {
     if (normalized.length === 0)
       throw new NotFoundException('Servis nije pronađen.');
     const services = await this.prisma.service.findMany({
-      where: { id: { in: normalized } },
+      where: buildBookableServiceWhere(normalized),
       select: { id: true, durationMinutes: true },
     });
     if (services.length !== normalized.length)

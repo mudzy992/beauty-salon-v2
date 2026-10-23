@@ -146,7 +146,7 @@ const fixtureIds: FixtureIds = {
   incomeManualEntries: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02 and BIZ-04', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, BIZ-01 and BIZ-04', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -930,6 +930,80 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       .get(`/api/media/consents/${consentId}/file`)
       .expect(404);
     expect(readConsentDerivativeMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('excludes inactive services, catalog parents and stylist profiles from availability', async () => {
+    const testPrisma = prisma!;
+    const subcategoryId = fixtureIds.serviceSubcategory;
+    const categoryId = fixtureIds.serviceCategory;
+    const stylistProfileId = fixtureIds.stylistProfile;
+    if (!subcategoryId || !categoryId || !stylistProfileId) {
+      throw new Error('Synthetic availability fixture is incomplete.');
+    }
+
+    const requestSlots = () =>
+      request(getHttpServer(app!))
+        .get('/api/reservations/availability/slots')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .query({ serviceId, date: availabilityDate });
+
+    try {
+      await testPrisma.service.update({
+        where: { id: serviceId },
+        data: { isActive: false },
+      });
+      await requestSlots().expect(404);
+      await testPrisma.service.update({
+        where: { id: serviceId },
+        data: { isActive: true },
+      });
+
+      await testPrisma.serviceSubcategory.update({
+        where: { id: subcategoryId },
+        data: { isActive: false },
+      });
+      await requestSlots().expect(404);
+      await testPrisma.serviceSubcategory.update({
+        where: { id: subcategoryId },
+        data: { isActive: true },
+      });
+
+      await testPrisma.serviceCategory.update({
+        where: { id: categoryId },
+        data: { isActive: false },
+      });
+      await requestSlots().expect(404);
+      await testPrisma.serviceCategory.update({
+        where: { id: categoryId },
+        data: { isActive: true },
+      });
+
+      await testPrisma.stylistProfile.update({
+        where: { id: stylistProfileId },
+        data: { isActive: false },
+      });
+      const slots = await requestSlots().expect(200);
+      expect(slots.body).toEqual([]);
+    } finally {
+      await Promise.all([
+        testPrisma.service.update({
+          where: { id: serviceId },
+          data: { isActive: true },
+        }),
+        testPrisma.serviceSubcategory.update({
+          where: { id: subcategoryId },
+          data: { isActive: true },
+        }),
+        testPrisma.serviceCategory.update({
+          where: { id: categoryId },
+          data: { isActive: true },
+        }),
+        testPrisma.stylistProfile.update({
+          where: { id: stylistProfileId },
+          data: { isActive: true },
+        }),
+      ]);
+    }
   });
 
   it('validates availability date ranges and returns database-backed dates and slots', async () => {

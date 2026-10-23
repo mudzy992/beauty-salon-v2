@@ -8,6 +8,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ReservationDateService } from './reservation-date.service';
 import { assertReservationTransition } from './assert-reservation-transition';
 import type { ReservationStatus } from './constants';
+import {
+  getStylistIdsForServices,
+  type StylistServiceReader,
+} from './utils/service-eligibility';
 
 @Injectable()
 export class ReservationSharedService {
@@ -132,25 +136,9 @@ export class ReservationSharedService {
 
   async getEligibleStylistsForServices(
     serviceIds: string[],
+    db: StylistServiceReader = this.prisma,
   ): Promise<string[]> {
-    const uniqueIds = [
-      ...new Set(serviceIds.map((x) => x.trim()).filter(Boolean)),
-    ];
-    if (uniqueIds.length === 0) return [];
-    const rows = await this.prisma.stylistService.findMany({
-      where: { serviceId: { in: uniqueIds } },
-      select: { stylistProfileId: true, serviceId: true },
-    });
-    const counts = new Map<string, number>();
-    for (const r of rows) {
-      counts.set(
-        r.stylistProfileId,
-        (counts.get(r.stylistProfileId) ?? 0) + 1,
-      );
-    }
-    return [...counts.entries()]
-      .filter(([, c]) => c === uniqueIds.length)
-      .map(([stylistProfileId]) => stylistProfileId);
+    return getStylistIdsForServices(db, serviceIds);
   }
 
   isReservationBlocked(res: {

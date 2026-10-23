@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { buildBookableServiceWhere } from './utils/service-eligibility';
 
 const DAYS = [
   'Sunday',
@@ -19,14 +20,17 @@ export class AvailabilityDebugService {
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) return { error: 'Salon nije konfigurisan' };
 
-    const service = await this.prisma.service.findUnique({
-      where: { id: serviceId },
+    const service = await this.prisma.service.findFirst({
+      where: buildBookableServiceWhere([serviceId]),
       select: { id: true, name: true },
     });
     if (!service) return { error: 'Servis nije pronađen', serviceId };
 
     const stylistServiceRows = await this.prisma.stylistService.findMany({
-      where: { serviceId },
+      where: {
+        serviceId,
+        stylistProfile: { is: { isActive: true } },
+      },
       include: {
         stylistProfile: {
           select: {

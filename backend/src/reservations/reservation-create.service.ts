@@ -16,6 +16,7 @@ import { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
 import { RESERVATION_STATUS } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
+import { buildBookableServiceWhere } from './utils/service-eligibility';
 
 @Injectable()
 export class ReservationCreateService {
@@ -47,8 +48,8 @@ export class ReservationCreateService {
     ];
     if (serviceIds.length === 0)
       throw new BadRequestException('SERVICE_REQUIRED');
-    const services = await this.prisma.service.findMany({
-      where: { id: { in: serviceIds } },
+    const initialServices = await this.prisma.service.findMany({
+      where: buildBookableServiceWhere(serviceIds),
       select: {
         id: true,
         name: true,
@@ -59,9 +60,9 @@ export class ReservationCreateService {
         loyaltyMaxDiscountPercent: true,
       },
     });
-    if (services.length !== serviceIds.length)
+    if (initialServices.length !== serviceIds.length)
       throw new NotFoundException('Servis nije pronađen.');
-    if (services.some((s) => s.gender !== client.gender))
+    if (initialServices.some((s) => s.gender !== client.gender))
       throw new BadRequestException('SERVICE_GENDER_MISMATCH');
     const primaryServiceId = serviceIds[0]!;
     await this.shared.checkClientPenalty(clientId);
@@ -85,42 +86,78 @@ export class ReservationCreateService {
     });
     const { publicReferenceCode, clientViewToken } =
       await this.shared.allocateReservationPublicCodes(reservationDate);
-    const reservation = await this.prisma.reservation.create({
-      data: {
-        clientId,
-        serviceId: primaryServiceId,
-        reservationDate,
-        startTime: dto.startTime,
-        endTime: dto.endTime,
-        status: RESERVATION_STATUS.PENDING,
-        clientNotes: dto.clientNotes,
-        payDebtsIntent: !!dto.payDebtsIntent,
-        publicReferenceCode,
-        clientViewToken,
-      },
-      include: {
-        service: true,
-        client: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
-      },
-    });
-    await this.prisma.reservationServiceItem.createMany({
-      data: services.map((s, idx) => ({
-        reservationId: reservation.id,
-        serviceId: s.id,
-        sortOrder: idx,
-      })),
-    });
-    const stylistIds =
-      await this.shared.getEligibleStylistsForServices(serviceIds);
-    await this.prisma.reservationStylistResponse.createMany({
-      data: stylistIds.map((stylistProfileId) => ({
-        reservationId: reservation.id,
-        stylistProfileId,
-        status: 'PENDING',
-      })),
-    });
+    const { reservation, services, stylistIds } =
+      await this.prisma.$transaction(async (tx) => {
+        const currentServices = await tx.service.findMany({
+          where: buildBookableServiceWhere(serviceIds),
+          select: {
+            id: true,
+            name: true,
+            gender: true,
+            durationMinutes: true,
+            price: true,
+            loyaltyEnabled: true,
+            loyaltyMaxDiscountPercent: true,
+          },
+        });
+        if (currentServices.length !== serviceIds.length) {
+          throw new NotFoundException('Servis nije pronađen.');
+        }
+        if (currentServices.some((s) => s.gender !== client.gender)) {
+          throw new BadRequestException('SERVICE_GENDER_MISMATCH');
+        }
+
+        const currentStylistIds =
+          await this.shared.getEligibleStylistsForServices(serviceIds, tx);
+        if (currentStylistIds.length === 0) {
+          throw new BadRequestException('Odabrani termin nije dostupan.');
+        }
+
+        const createdReservation = await tx.reservation.create({
+          data: {
+            clientId,
+            serviceId: primaryServiceId,
+            reservationDate,
+            startTime: dto.startTime,
+            endTime: dto.endTime,
+            status: RESERVATION_STATUS.PENDING,
+            clientNotes: dto.clientNotes,
+            payDebtsIntent: !!dto.payDebtsIntent,
+            publicReferenceCode,
+            clientViewToken,
+          },
+          include: {
+            service: true,
+            client: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+        });
+        await tx.reservationServiceItem.createMany({
+          data: currentServices.map((s, idx) => ({
+            reservationId: createdReservation.id,
+            serviceId: s.id,
+            sortOrder: idx,
+          })),
+        });
+        await tx.reservationStylistResponse.createMany({
+          data: currentStylistIds.map((stylistProfileId) => ({
+            reservationId: createdReservation.id,
+            stylistProfileId,
+            status: 'PENDING',
+          })),
+        });
+        return {
+          reservation: createdReservation,
+          services: currentServices,
+          stylistIds: currentStylistIds,
+        };
+      });
     const stylistUsers = await this.prisma.stylistProfile.findMany({
       where: { id: { in: stylistIds } },
       select: { userId: true },

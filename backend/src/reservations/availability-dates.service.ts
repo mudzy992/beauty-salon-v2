@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { toLocalDateOnlyString } from '../common/utils/date-only';
 import { getStylistIdsForServices } from './utils/availability-helpers';
+import { buildBookableServiceWhere } from './utils/service-eligibility';
 import { AvailabilitySlotsService } from './availability-slots.service';
 import type { AvailableDateDto } from './availability.types';
 
@@ -42,7 +43,7 @@ export class AvailabilityDatesService {
     if (normalized.length === 0)
       throw new NotFoundException('Servis nije pronađen.');
     const services = await this.prisma.service.findMany({
-      where: { id: { in: normalized } },
+      where: buildBookableServiceWhere(normalized),
       select: { id: true },
     });
     if (services.length !== normalized.length)
