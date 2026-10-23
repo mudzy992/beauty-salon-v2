@@ -101,6 +101,7 @@ type FixtureIds = {
   reviews: string[];
   dailyLogEntries: string[];
   consentedDailyLogEntries: string[];
+  galleryCategories: string[];
   dailyLogImages: string[];
   mediaConsents: string[];
   consentedUploadIds: string[];
@@ -119,6 +120,7 @@ const fixtureIds: FixtureIds = {
   reviews: [],
   dailyLogEntries: [],
   consentedDailyLogEntries: [],
+  galleryCategories: [],
   dailyLogImages: [],
   mediaConsents: [],
   consentedUploadIds: [],
@@ -394,6 +396,14 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
     });
     fixtureIds.service = service.id;
     serviceId = service.id;
+
+    const autoPublishGalleryCategory = await prisma.galleryCategory.create({
+      data: {
+        name: `Security before-after gallery ${suffix}`,
+        autoPublishConsentedPairs: true,
+      },
+    });
+    fixtureIds.galleryCategories.push(autoPublishGalleryCategory.id);
 
     const salon = await prisma.salonSettings.create({
       data: { name: `API-02 availability ${suffix}` },
@@ -689,6 +699,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
           where: { id: { in: fixtureIds.dailyLogEntries } },
         });
       }
+      if (fixtureIds.galleryCategories.length) {
+        await prisma.galleryCategory.deleteMany({
+          where: { id: { in: fixtureIds.galleryCategories } },
+        });
+      }
       if (fixtureIds.uploads.length) {
         await prisma.upload.deleteMany({
           where: { id: { in: fixtureIds.uploads } },
@@ -751,8 +766,10 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 an
     expect(firstPage.body.items).toHaveLength(1);
     expect(firstPage.body.items[0]).toMatchObject({
       id: fixtureIds.consentedDailyLogEntries[0],
-      service: { id: serviceId, name: serviceName },
     });
+    expect(firstPage.body.items[0]).not.toHaveProperty('service');
+    expect(firstPage.body.items[0]).not.toHaveProperty('completedAt');
+    expect(firstPage.body.items[0]).not.toHaveProperty('clientId');
     expect(firstPage.body.items[0].before.pathOriginal).toBe(
       `/api/media/consents/${fixtureIds.mediaConsents[0]}/file`,
     );
