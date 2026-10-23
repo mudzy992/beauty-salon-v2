@@ -3,6 +3,7 @@ import { StyleSheet, View, type ImageStyle, type StyleProp, type ViewStyle } fro
 import { Image, type ImageProps } from 'expo-image'
 
 import { MEDIA_FALLBACK } from '../constants/media-fallback'
+import { useAuthStore } from '../store/authStore'
 
 type MediaImageProps = Omit<ImageProps, 'source'> & {
   uri?: string | null
@@ -10,8 +11,20 @@ type MediaImageProps = Omit<ImageProps, 'source'> & {
 
 export const MediaImage = ({ uri, contentFit = 'cover', onError, ...props }: MediaImageProps) => {
   const [failed, setFailed] = useState(false)
+  const token = useAuthStore((state) => state.token)
   const remote = uri?.trim() ?? ''
-  const source = !remote || failed ? MEDIA_FALLBACK : { uri: remote }
+  const isProtected =
+    remote.includes('/api/uploads/content?') ||
+    remote.includes('/api/media/consents/')
+  const source =
+    !remote || failed
+      ? MEDIA_FALLBACK
+      : {
+          uri: remote,
+          ...(remote.includes('/api/uploads/content?') && token
+            ? { headers: { Authorization: `Bearer ${token}` } }
+            : {}),
+        }
   useEffect(() => {
     setFailed(false)
   }, [remote])
@@ -19,6 +32,7 @@ export const MediaImage = ({ uri, contentFit = 'cover', onError, ...props }: Med
     <Image
       {...props}
       source={source}
+      cachePolicy={isProtected ? 'none' : 'memory-disk'}
       contentFit={contentFit}
       onError={(event) => {
         if (!remote || failed) return

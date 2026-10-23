@@ -8,13 +8,16 @@ jest.mock('../prisma/prisma.service', () => ({
 describe('UploadsRepository', () => {
   const createCount = () => jest.fn().mockResolvedValue(0);
   let prisma: Record<string, { count: jest.Mock }>;
+  let consentFindUnique: jest.Mock;
   let repository: UploadsRepository;
 
   beforeEach(() => {
+    consentFindUnique = jest.fn().mockResolvedValue(null);
     prisma = {
       dailyLogImage: { count: createCount() },
       expenseAttachment: { count: createCount() },
       galleryImage: { count: createCount() },
+      dailyLogImageConsent: { count: createCount() },
       expense: { count: createCount() },
       user: { count: createCount() },
       salonSettings: { count: createCount() },
@@ -24,6 +27,9 @@ describe('UploadsRepository', () => {
       appRelease: { count: createCount() },
       upload: { count: createCount() },
     };
+    Object.assign(prisma.dailyLogImageConsent, {
+      findUnique: consentFindUnique,
+    });
     repository = new UploadsRepository(prisma as unknown as PrismaService);
   });
 
@@ -79,6 +85,90 @@ describe('UploadsRepository', () => {
         'services/2026/10/service-original.png',
       ]),
     ).resolves.toBe(true);
+  });
+
+  it('only authorizes consent derivatives for active, current, linked service consent', async () => {
+    await expect(
+      repository.canReadPrivateUpload('consented-upload', 'client-1', [
+        'private/consented/client-photo.webp',
+      ]),
+    ).resolves.toBe(false);
+
+    expect(consentFindUnique).toHaveBeenCalledWith({
+      where: { publishedUploadId: 'consented-upload' },
+      select: {
+        clientId: true,
+        purpose: true,
+        policyVersion: true,
+        revokedAt: true,
+        dailyLogImage: {
+          select: {
+            isBefore: true,
+            isAfter: true,
+            dailyLogEntry: {
+              select: {
+                clientId: true,
+                kind: true,
+                status: true,
+                deletedAt: true,
+                stylistProfile: { select: { userId: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('allows the linked client and service stylist to read an active eligible derivative', async () => {
+    consentFindUnique.mockResolvedValue({
+      clientId: 'client-1',
+      purpose: 'PUBLIC_GALLERY',
+      policyVersion: 'client-media-publication-v1',
+      revokedAt: null,
+      dailyLogImage: {
+        isBefore: true,
+        isAfter: false,
+        dailyLogEntry: {
+          clientId: 'client-1',
+          kind: 'SERVICE',
+          status: 'COMPLETED',
+          deletedAt: null,
+          stylistProfile: { userId: 'stylist-1' },
+        },
+      },
+    });
+
+    await expect(
+      repository.canReadPrivateUpload('consented-upload', 'client-1', []),
+    ).resolves.toBe(true);
+    await expect(
+      repository.canReadPrivateUpload('consented-upload', 'stylist-1', []),
+    ).resolves.toBe(true);
+  });
+
+  it('denies a stylist when the consent client does not match the service client', async () => {
+    consentFindUnique.mockResolvedValue({
+      clientId: 'another-client',
+      purpose: 'PUBLIC_GALLERY',
+      policyVersion: 'client-media-publication-v1',
+      revokedAt: null,
+      dailyLogImage: {
+        isBefore: true,
+        isAfter: false,
+        dailyLogEntry: {
+          clientId: 'client-1',
+          kind: 'SERVICE',
+          status: 'COMPLETED',
+          deletedAt: null,
+          stylistProfile: { userId: 'stylist-1' },
+        },
+      },
+    });
+
+    await expect(
+      repository.canReadPrivateUpload('consented-upload', 'stylist-1', []),
+    ).resolves.toBe(false);
   });
 
   it('checks known path columns using relative and public /uploads forms', async () => {

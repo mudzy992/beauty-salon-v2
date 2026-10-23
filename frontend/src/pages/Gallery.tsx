@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Loader2, Pencil, Plus, Trash2, Upload } from 'lucide-react'
+import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 
 import api from '../api/client'
 import { MediaImage } from '../components/media-image'
@@ -20,8 +20,8 @@ interface GalleryImage {
   title: string | null
   description: string | null
   sortOrder: number
-  uploadId: string
-  upload?: { pathOriginal: string; pathThumb: string; pathMedium: string }
+  uploadId?: string
+  upload?: { pathOriginal: string; pathThumb: string | null; pathMedium: string | null }
 }
 
 interface GalleryCategory {
@@ -52,9 +52,6 @@ export default function Gallery() {
   const [imgOpen, setImgOpen] = useState(false)
   const [editImgId, setEditImgId] = useState<string | null>(null)
   const [imgForm, setImgForm] = useState({ title: '', description: '', sortOrder: 0 })
-
-  const [uploading, setUploading] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const loadCategories = useCallback(() => {
     setLoading(true)
@@ -124,33 +121,6 @@ export default function Gallery() {
       loadCategories()
     } catch {
       error('Greška')
-    }
-  }
-
-  const handleUploadImage = async (file: File) => {
-    if (!selectedCatId) return
-    setUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('entity', 'gallery')
-      const { data: upload } = await api.post('/api/uploads', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
-      await api.post('/api/gallery/images', {
-        categoryId: selectedCatId,
-        uploadId: upload.id,
-        title: file.name.replace(/\.[^.]+$/, ''),
-        sortOrder: catImages.length,
-      })
-      success('Slika uploadovana')
-      await loadImages(selectedCatId)
-      loadCategories()
-    } catch {
-      error('Greška pri uploadu')
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -257,20 +227,9 @@ export default function Gallery() {
                   {imagesLoading ? <span className="text-xs text-slate-500">Učitavam…</span> : null}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) void handleUploadImage(file)
-                    }}
-                  />
-                  <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-                    {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                    Upload sliku
-                  </Button>
+                  <p className="text-xs text-slate-500 sm:max-w-md">
+                    Fotografije klijentica se prikazuju samo nakon njihovog izričitog pristanka kroz profil. Nije dozvoljen ručni upload ili objava fotografije klijentice iz ove administracije.
+                  </p>
                 </div>
               </div>
 

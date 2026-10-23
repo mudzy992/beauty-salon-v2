@@ -17,26 +17,19 @@ const mockPrisma = {
 function makePairEntry(id: string) {
   return {
     id,
+    clientId: 'client-1',
     completedAt: new Date(),
     service: { id: 's1', name: 'Šišanje' },
     images: [
       {
         isBefore: true,
         isAfter: false,
-        upload: {
-          pathOriginal: `/${id}-before.jpg`,
-          pathMedium: null,
-          pathThumb: null,
-        },
+        consent: { id: `${id}-before-consent`, clientId: 'client-1' },
       },
       {
         isBefore: false,
         isAfter: true,
-        upload: {
-          pathOriginal: `/${id}-after.jpg`,
-          pathMedium: null,
-          pathThumb: null,
-        },
+        consent: { id: `${id}-after-consent`, clientId: 'client-1' },
       },
     ],
   };
@@ -56,59 +49,39 @@ describe('DailyLogPublicService', () => {
     service = module.get(DailyLogPublicService);
   });
 
-  it('returns only entries that have both before and after uploads', async () => {
+  it('returns only consented before/after routes and never raw upload paths', async () => {
     mockPrisma.dailyLogEntry.count.mockResolvedValue(1);
-    mockPrisma.dailyLogEntry.findMany.mockResolvedValue([
-      {
-        id: 'e1',
-        completedAt: new Date(),
-        service: { id: 's1', name: 'Šišanje' },
-        images: [
-          {
-            isBefore: true,
-            isAfter: false,
-            upload: {
-              pathOriginal: '/b.jpg',
-              pathMedium: null,
-              pathThumb: null,
-            },
-          },
-          {
-            isBefore: false,
-            isAfter: true,
-            upload: {
-              pathOriginal: '/a.jpg',
-              pathMedium: null,
-              pathThumb: null,
-            },
-          },
-        ],
-      },
-    ]);
+    mockPrisma.dailyLogEntry.findMany.mockResolvedValue([makePairEntry('e1')]);
+
     const actual = await service.findBeforeAfterPairs({ limit: 10, offset: 0 });
     expect(actual.items).toHaveLength(1);
-    expect(actual.items[0]?.before.pathOriginal).toBe('/b.jpg');
+    expect(actual.items[0]?.before.pathOriginal).toBe(
+      '/api/media/consents/e1-before-consent/file',
+    );
+    expect(actual.items[0]?.after.pathOriginal).toBe(
+      '/api/media/consents/e1-after-consent/file',
+    );
+    expect(actual.items[0]?.before.pathMedium).toBeNull();
+    expect(actual.items[0]?.after.pathThumb).toBeNull();
     expect(actual.hasMore).toBe(false);
     expect(actual.nextOffset).toBe(1);
   });
 
-  it('skips entries missing upload on before/after', async () => {
+  it('skips entries unless each side has a matching active-consent projection', async () => {
     mockPrisma.dailyLogEntry.count.mockResolvedValue(1);
     mockPrisma.dailyLogEntry.findMany.mockResolvedValue([
       {
-        id: 'e2',
-        completedAt: new Date(),
-        service: { id: 's1', name: 'Šišanje' },
+        ...makePairEntry('e2'),
         images: [
-          { isBefore: true, isAfter: false, upload: null },
+          {
+            isBefore: true,
+            isAfter: false,
+            consent: null,
+          },
           {
             isBefore: false,
             isAfter: true,
-            upload: {
-              pathOriginal: '/a.jpg',
-              pathMedium: null,
-              pathThumb: null,
-            },
+            consent: { id: 'other-client-consent', clientId: 'client-2' },
           },
         ],
       },
@@ -119,7 +92,7 @@ describe('DailyLogPublicService', () => {
     expect(actual.hasMore).toBe(false);
   });
 
-  it('queries with deletedAt null and both image flags', async () => {
+  it('filters for linked clients, completed undeleted services and current consent', async () => {
     mockPrisma.dailyLogEntry.count.mockResolvedValue(0);
     mockPrisma.dailyLogEntry.findMany.mockResolvedValue([]);
     await service.findBeforeAfterPairs({ limit: 5 });
@@ -129,6 +102,14 @@ describe('DailyLogPublicService', () => {
           status: 'COMPLETED',
           deletedAt: null,
           kind: 'SERVICE',
+          clientId: { not: null },
+          images: {
+            some: expect.objectContaining({
+              isBefore: true,
+              upload: { storageClass: 'PRIVATE' },
+              consent: { is: expect.objectContaining({ revokedAt: null }) },
+            }),
+          },
         }),
         take: 5,
         skip: 0,
@@ -139,9 +120,7 @@ describe('DailyLogPublicService', () => {
   it('caps the requested page size at 50 items', async () => {
     mockPrisma.dailyLogEntry.count.mockResolvedValue(0);
     mockPrisma.dailyLogEntry.findMany.mockResolvedValue([]);
-
     await service.findBeforeAfterPairs({ limit: 100 });
-
     expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 50 }),
     );
@@ -151,7 +130,6 @@ describe('DailyLogPublicService', () => {
     await expect(
       service.findBeforeAfterPairs({ offset: 1001 }),
     ).rejects.toThrow(BadRequestException);
-
     expect(mockPrisma.dailyLogEntry.count).not.toHaveBeenCalled();
     expect(mockPrisma.dailyLogEntry.findMany).not.toHaveBeenCalled();
   });
@@ -161,12 +139,10 @@ describe('DailyLogPublicService', () => {
     mockPrisma.dailyLogEntry.findMany.mockResolvedValue(
       Array.from({ length: 50 }, (_, index) => makePairEntry(`e${index}`)),
     );
-
     const actual = await service.findBeforeAfterPairs({
       limit: 50,
       offset: 1000,
     });
-
     expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ skip: 1000, take: 50 }),
     );
@@ -180,13 +156,11 @@ describe('DailyLogPublicService', () => {
     mockPrisma.dailyLogEntry.findMany
       .mockResolvedValueOnce([makePairEntry('from-start')])
       .mockResolvedValueOnce([makePairEntry('wrapped')]);
-
     const actual = await service.findBeforeAfterPairs({
       limit: 2,
       offset: 5001,
       random: true,
     });
-
     expect(actual.items.map((item) => item.id)).toEqual([
       'from-start',
       'wrapped',
@@ -218,12 +192,10 @@ describe('DailyLogPublicService', () => {
     mockPrisma.dailyLogEntry.findMany.mockResolvedValueOnce(
       Array.from({ length: 50 }, (_, index) => makePairEntry(`e${index}`)),
     );
-
     const actual = await service.findBeforeAfterPairs({
       limit: 100,
       random: true,
     });
-
     expect(actual.items).toHaveLength(50);
     expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenCalledTimes(1);
     expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenCalledWith(

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from '../media-consent/media-consent.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '@prisma/client';
 
@@ -12,6 +13,104 @@ export class UploadsRepository {
 
   findFirstByPathOriginal(pathOriginal: string) {
     return this.prisma.upload.findFirst({ where: { pathOriginal } });
+  }
+
+  findById(id: string) {
+    return this.prisma.upload.findUnique({ where: { id } });
+  }
+
+  findByStoredPath(filePath: string) {
+    return this.prisma.upload.findFirst({
+      where: {
+        OR: [
+          { pathOriginal: filePath },
+          { pathThumb: filePath },
+          { pathSmall: filePath },
+          { pathMedium: filePath },
+        ],
+      },
+    });
+  }
+
+  async canReadPrivateUpload(
+    uploadId: string,
+    userId: string,
+    pathVariants: string[],
+  ): Promise<boolean> {
+    const [avatarCount, stylistImageCount, clientImageCount, consentCopy] =
+      await Promise.all([
+        this.prisma.user.count({
+          where: { id: userId, avatar: { in: pathVariants } },
+        }),
+        this.prisma.dailyLogImage.count({
+          where: {
+            uploadId,
+            dailyLogEntry: {
+              deletedAt: null,
+              stylistProfile: { userId },
+            },
+          },
+        }),
+        this.prisma.dailyLogImage.count({
+          where: {
+            uploadId,
+            dailyLogEntry: {
+              clientId: userId,
+              status: 'COMPLETED',
+              deletedAt: null,
+            },
+          },
+        }),
+        this.prisma.dailyLogImageConsent.findUnique({
+          where: { publishedUploadId: uploadId },
+          select: {
+            clientId: true,
+            purpose: true,
+            policyVersion: true,
+            revokedAt: true,
+            dailyLogImage: {
+              select: {
+                isBefore: true,
+                isAfter: true,
+                dailyLogEntry: {
+                  select: {
+                    clientId: true,
+                    kind: true,
+                    status: true,
+                    deletedAt: true,
+                    stylistProfile: { select: { userId: true } },
+                  },
+                },
+              },
+            },
+          },
+        }),
+      ]);
+
+    const consentEntry = consentCopy?.dailyLogImage?.dailyLogEntry;
+    const hasValidConsentRelationship = Boolean(
+      consentCopy &&
+      consentCopy.clientId &&
+      consentEntry &&
+      consentCopy.clientId === consentEntry.clientId &&
+      consentCopy.purpose === 'PUBLIC_GALLERY' &&
+      consentCopy.policyVersion === CLIENT_MEDIA_PUBLICATION_POLICY_VERSION &&
+      consentCopy.revokedAt === null &&
+      (consentCopy.dailyLogImage?.isBefore ||
+        consentCopy.dailyLogImage?.isAfter) &&
+      consentEntry.kind === 'SERVICE' &&
+      consentEntry.status === 'COMPLETED' &&
+      consentEntry.deletedAt === null &&
+      (consentCopy.clientId === userId ||
+        consentEntry.stylistProfile.userId === userId),
+    );
+
+    return (
+      avatarCount > 0 ||
+      stylistImageCount > 0 ||
+      clientImageCount > 0 ||
+      hasValidConsentRelationship
+    );
   }
 
   async hasReferences(uploadId: string, filePaths: string[]): Promise<boolean> {
@@ -45,6 +144,9 @@ export class UploadsRepository {
       this.prisma.dailyLogImage.count({ where: { uploadId } }),
       this.prisma.expenseAttachment.count({ where: { uploadId } }),
       this.prisma.galleryImage.count({ where: { uploadId } }),
+      this.prisma.dailyLogImageConsent.count({
+        where: { publishedUploadId: uploadId },
+      }),
       this.prisma.expense.count({ where: { invoiceUploadId: uploadId } }),
       this.prisma.user.count({
         where: {

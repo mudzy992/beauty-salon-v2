@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { join } from 'path';
+import { extname, join } from 'path';
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './events/redis-io.adapter';
 import { resolveSocketIoRuntimeConfig } from './events/socket-io-runtime-config';
@@ -33,9 +33,33 @@ async function bootstrap() {
   // matches what the clients already expect.
   app.useGlobalInterceptors(new DecimalToNumberInterceptor());
 
-  // Serve uploaded files at /uploads so frontend can use BASE_URL/uploads/... path
+  // Only explicitly approved, sanitized media is public under /uploads.
+  // Legacy and unclassified files remain outside this static root.
   const uploadRoot = process.env.UPLOAD_ROOT || join(process.cwd(), 'uploads');
-  app.useStaticAssets(uploadRoot, { prefix: '/uploads/' });
+  const publicUploadRoot = join(uploadRoot, 'public');
+  app.useStaticAssets(publicUploadRoot, {
+    prefix: '/uploads/',
+    dotfiles: 'deny',
+    index: false,
+    setHeaders: (response, filePath) => {
+      response.setHeader('X-Content-Type-Options', 'nosniff');
+      const extension = extname(filePath).toLowerCase();
+      if (extension === '.apk') {
+        response.setHeader(
+          'Content-Type',
+          'application/vnd.android.package-archive',
+        );
+        response.setHeader('Content-Disposition', 'attachment');
+        response.setHeader('Cache-Control', 'no-store');
+      } else if (
+        ['.html', '.htm', '.js', '.mjs', '.svg', '.xml'].includes(extension)
+      ) {
+        response.setHeader('Content-Type', 'application/octet-stream');
+        response.setHeader('Content-Disposition', 'attachment');
+        response.setHeader('Cache-Control', 'no-store');
+      }
+    },
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({

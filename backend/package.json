@@ -29,6 +29,7 @@
     "db:migrate:status": "prisma migrate status",
     "db:validate": "prisma validate",
     "db:format": "prisma format",
+    "media:storage:migrate": "node dist/src/uploads/media-storage-migration-runner.js",
     "test:blog-sanitizer": "node --import tsx --test src/blog/utils/sanitize-blog-content.node-test.ts"
   },
   "dependencies": {

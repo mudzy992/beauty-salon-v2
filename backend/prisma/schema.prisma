@@ -39,6 +39,21 @@ enum AppReleaseStatus {
   RETIRED
 }
 
+enum UploadStorageClass {
+  PRIVATE
+  PUBLIC
+  CONSENTED_PUBLIC
+}
+
+enum DailyLogMediaConsentPurpose {
+  PUBLIC_GALLERY
+}
+
+enum DailyLogMediaConsentAction {
+  GRANTED
+  REVOKED
+}
+
 // ============ AUTH & USERS ============
 
 model User {
@@ -90,6 +105,8 @@ model User {
   reservationsCreated          Reservation[]                @relation("ReservationsCreatedBy")
   appReleasesCreated           AppRelease[]                 @relation("AppReleasesCreatedBy")
   reservationsAttendanceWaived Reservation[]                @relation("AttendanceWaivedByUser")
+  mediaConsentsAsClient        DailyLogImageConsent[]       @relation("MediaConsentClient")
+  mediaConsentEventsByActor    DailyLogImageConsentEvent[]  @relation("MediaConsentActor")
 
   @@map("users")
 }
@@ -479,12 +496,52 @@ model DailyLogImage {
   sortOrder       Int      @default(0) @map("sort_order")
   createdAt       DateTime @default(now()) @map("created_at")
 
-  dailyLogEntry DailyLogEntry @relation(fields: [dailyLogEntryId], references: [id], onDelete: Cascade)
-  upload        Upload        @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  dailyLogEntry DailyLogEntry              @relation(fields: [dailyLogEntryId], references: [id], onDelete: Cascade)
+  upload        Upload                     @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  consent       DailyLogImageConsent?
 
   @@index([dailyLogEntryId, isBefore])
   @@index([dailyLogEntryId, isAfter])
   @@map("daily_log_images")
+}
+
+model DailyLogImageConsent {
+  id               String                     @id @default(uuid())
+  dailyLogImageId  String?                    @unique @map("daily_log_image_id")
+  clientId         String?                    @map("client_id")
+  purpose          DailyLogMediaConsentPurpose @default(PUBLIC_GALLERY)
+  policyVersion    String                     @map("policy_version")
+  consentedAt      DateTime                   @map("consented_at")
+  revokedAt        DateTime?                  @map("revoked_at")
+  publishedUploadId String?                   @unique @map("published_upload_id")
+  createdAt        DateTime                   @default(now()) @map("created_at")
+  updatedAt        DateTime                   @updatedAt @map("updated_at")
+
+  dailyLogImage   DailyLogImage? @relation(fields: [dailyLogImageId], references: [id], onDelete: SetNull)
+  client        User?         @relation("MediaConsentClient", fields: [clientId], references: [id], onDelete: SetNull)
+  publishedUpload Upload?     @relation("ConsentPublishedUpload", fields: [publishedUploadId], references: [id], onDelete: SetNull)
+  events        DailyLogImageConsentEvent[]
+
+  @@index([clientId, revokedAt])
+  @@index([policyVersion, revokedAt])
+  @@map("daily_log_image_consents")
+}
+
+model DailyLogImageConsentEvent {
+  id            String                     @id @default(uuid())
+  consentId     String                     @map("consent_id")
+  action        DailyLogMediaConsentAction
+  actorId       String?                    @map("actor_id")
+  purpose       DailyLogMediaConsentPurpose @default(PUBLIC_GALLERY)
+  policyVersion String                     @map("policy_version")
+  source        String                     @default("CLIENT_APP")
+  createdAt     DateTime                   @default(now()) @map("created_at")
+
+  consent DailyLogImageConsent @relation(fields: [consentId], references: [id], onDelete: Cascade)
+  actor   User?                @relation("MediaConsentActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([consentId, createdAt])
+  @@map("daily_log_image_consent_events")
 }
 
 // ============ EXPENSES (KUF) ============
@@ -853,21 +910,23 @@ model Review {
 // ============ UPLOADS ============
 
 model Upload {
-  id           String   @id @default(uuid())
-  originalName String   @map("original_name")
-  mimeType     String   @map("mime_type")
-  sizeBytes    Int      @map("size_bytes")
-  pathOriginal String   @map("path_original")
-  pathThumb    String?  @map("path_thumb")
-  pathSmall    String?  @map("path_small")
-  pathMedium   String?  @map("path_medium")
-  uploadedById String?  @map("uploaded_by_id")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id           String             @id @default(uuid())
+  originalName String             @map("original_name")
+  mimeType     String             @map("mime_type")
+  sizeBytes    Int                @map("size_bytes")
+  pathOriginal String             @map("path_original")
+  pathThumb    String?            @map("path_thumb")
+  pathSmall    String?            @map("path_small")
+  pathMedium   String?            @map("path_medium")
+  storageClass UploadStorageClass @default(PRIVATE) @map("storage_class")
+  uploadedById String?            @map("uploaded_by_id")
+  createdAt    DateTime           @default(now()) @map("created_at")
 
-  uploadedBy         User?               @relation("UploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedBy         User?                  @relation("UploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
   dailyLogImages     DailyLogImage[]
   expenseAttachments ExpenseAttachment[]
   galleryImages      GalleryImage[]
+  consentCopyFor     DailyLogImageConsent?  @relation("ConsentPublishedUpload")
 
   @@map("uploads")
 }

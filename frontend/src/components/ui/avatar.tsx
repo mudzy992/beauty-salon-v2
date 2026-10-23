@@ -3,6 +3,7 @@ import * as AvatarPrimitive from '@radix-ui/react-avatar'
 
 import { MEDIA_FALLBACK_SRC } from '../../constants/media-fallback'
 import { cn } from '../../lib/cn'
+import { useMediaImageSource } from '../../utils/use-media-image-source'
 
 export const Avatar = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Root>,
@@ -22,20 +23,23 @@ Avatar.displayName = AvatarPrimitive.Root.displayName
 export const AvatarImage = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Image>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, src, onError, ...props }, ref) => (
-  <AvatarPrimitive.Image
-    ref={ref}
-    className={cn('aspect-square h-full w-full object-cover', className)}
-    {...props}
-    src={typeof src === 'string' && src.trim() ? src : MEDIA_FALLBACK_SRC}
-    onError={(event) => {
-      const img = event.currentTarget
-      if (img.src.includes(MEDIA_FALLBACK_SRC)) return
-      img.src = MEDIA_FALLBACK_SRC
-      onError?.(event)
-    }}
-  />
-))
+>(({ className, src, onError, ...props }, ref) => {
+  const remote = useMediaImageSource(typeof src === 'string' ? src : '')
+  return (
+    <AvatarPrimitive.Image
+      ref={ref}
+      className={cn('aspect-square h-full w-full object-cover', className)}
+      {...props}
+      src={remote || MEDIA_FALLBACK_SRC}
+      onError={(event) => {
+        const img = event.currentTarget
+        if (img.src.includes(MEDIA_FALLBACK_SRC)) return
+        img.src = MEDIA_FALLBACK_SRC
+        onError?.(event)
+      }}
+    />
+  )
+})
 AvatarImage.displayName = AvatarPrimitive.Image.displayName
 
 export const AvatarFallback = React.forwardRef<

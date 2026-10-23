@@ -1,11 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import {
+  DailyLogMediaConsentPurpose,
+  Prisma,
+  UploadStorageClass,
+} from '@prisma/client';
 import {
   DEFAULT_BEFORE_AFTER_LIMIT,
   MAX_BEFORE_AFTER_LIMIT,
   MAX_BEFORE_AFTER_OFFSET,
 } from './before-after-query.constants';
 import { PrismaService } from '../prisma/prisma.service';
+import { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from '../media-consent/media-consent.service';
 
 export type BeforeAfterPair = {
   id: string;
@@ -65,10 +70,7 @@ export class DailyLogPublicService {
       this.prisma.dailyLogEntry.count({ where }),
       this.prisma.dailyLogEntry.findMany({
         where,
-        include: {
-          images: { include: { upload: true }, orderBy: { sortOrder: 'asc' } },
-          service: { select: { id: true, name: true } },
-        },
+        include: this.publicInclude(),
         orderBy: { completedAt: 'desc' },
         skip: offset,
         take: limit,
@@ -87,17 +89,76 @@ export class DailyLogPublicService {
     };
   }
 
+  private activeConsentWhere(): Prisma.DailyLogImageConsentWhereInput {
+    return {
+      clientId: { not: null },
+      purpose: DailyLogMediaConsentPurpose.PUBLIC_GALLERY,
+      policyVersion: CLIENT_MEDIA_PUBLICATION_POLICY_VERSION,
+      revokedAt: null,
+      publishedUpload: {
+        is: { storageClass: UploadStorageClass.CONSENTED_PUBLIC },
+      },
+    };
+  }
+
   private buildEligibleWhere(
     serviceId?: string,
   ): Prisma.DailyLogEntryWhereInput {
+    const activeConsent = this.activeConsentWhere();
     return {
       status: 'COMPLETED',
       deletedAt: null,
       kind: 'SERVICE',
-      images: { some: { isBefore: true } },
-      AND: [{ images: { some: { isAfter: true } } }],
+      clientId: { not: null },
+      images: {
+        some: {
+          isBefore: true,
+          upload: { storageClass: UploadStorageClass.PRIVATE },
+          consent: { is: activeConsent },
+        },
+      },
+      AND: [
+        {
+          images: {
+            some: {
+              isAfter: true,
+              upload: { storageClass: UploadStorageClass.PRIVATE },
+              consent: { is: activeConsent },
+            },
+          },
+        },
+      ],
       ...(serviceId ? { serviceId } : {}),
     };
+  }
+
+  private publicInclude() {
+    const activeConsent = this.activeConsentWhere();
+    return {
+      images: {
+        where: {
+          OR: [
+            {
+              isBefore: true,
+              upload: { storageClass: UploadStorageClass.PRIVATE },
+              consent: { is: activeConsent },
+            },
+            {
+              isAfter: true,
+              upload: { storageClass: UploadStorageClass.PRIVATE },
+              consent: { is: activeConsent },
+            },
+          ],
+        },
+        include: {
+          consent: {
+            select: { id: true, clientId: true },
+          },
+        },
+        orderBy: { sortOrder: 'asc' as const },
+      },
+      service: { select: { id: true, name: true } },
+    } satisfies Prisma.DailyLogEntryInclude;
   }
 
   private async findRandomPairs(
@@ -110,13 +171,7 @@ export class DailyLogPublicService {
   }> {
     const randomStart = Math.random();
     const randomOrder = [{ randomKey: 'asc' as const }, { id: 'asc' as const }];
-    const include = {
-      images: {
-        include: { upload: true },
-        orderBy: { sortOrder: 'asc' as const },
-      },
-      service: { select: { id: true, name: true } },
-    };
+    const include = this.publicInclude();
     const firstWindow = await this.prisma.dailyLogEntry.findMany({
       where: { ...where, randomKey: { gte: randomStart } },
       include,
@@ -145,37 +200,42 @@ export class DailyLogPublicService {
   private mapPairs(
     entries: Array<{
       id: string;
+      clientId: string | null;
       completedAt: Date | null;
       service: { id: string; name: string };
       images: Array<{
         isBefore: boolean;
         isAfter: boolean;
-        upload: {
-          pathOriginal: string;
-          pathMedium: string | null;
-          pathThumb: string | null;
-        } | null;
+        consent: { id: string; clientId: string | null } | null;
       }>;
     }>,
   ): BeforeAfterPair[] {
     const pairs: BeforeAfterPair[] = [];
     for (const entry of entries) {
-      const beforeImg = entry.images.find((i) => i.isBefore);
-      const afterImg = entry.images.find((i) => i.isAfter);
-      if (!beforeImg?.upload || !afterImg?.upload) continue;
+      const valid = (image: (typeof entry.images)[number]) =>
+        image.consent?.clientId !== null &&
+        image.consent?.clientId === entry.clientId;
+      const beforeImg = entry.images.find(
+        (image) => image.isBefore && valid(image),
+      );
+      const afterImg = entry.images.find(
+        (image) => image.isAfter && valid(image),
+      );
+      if (!entry.clientId || !beforeImg?.consent || !afterImg?.consent)
+        continue;
       pairs.push({
         id: entry.id,
         service: entry.service,
         completedAt: entry.completedAt ?? null,
         before: {
-          pathOriginal: beforeImg.upload.pathOriginal,
-          pathMedium: beforeImg.upload.pathMedium,
-          pathThumb: beforeImg.upload.pathThumb,
+          pathOriginal: `/api/media/consents/${beforeImg.consent.id}/file`,
+          pathMedium: null,
+          pathThumb: null,
         },
         after: {
-          pathOriginal: afterImg.upload.pathOriginal,
-          pathMedium: afterImg.upload.pathMedium,
-          pathThumb: afterImg.upload.pathThumb,
+          pathOriginal: `/api/media/consents/${afterImg.consent.id}/file`,
+          pathMedium: null,
+          pathThumb: null,
         },
       });
     }

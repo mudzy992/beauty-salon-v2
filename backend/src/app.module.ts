@@ -25,6 +25,7 @@ import { LoyaltyModule } from './loyalty/loyalty.module';
 import { AppReleasesModule } from './app-releases/app-releases.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { HttpRateLimitModule } from './common/rate-limiting/http-rate-limit.module';
+import { MediaConsentModule } from './media-consent/media-consent.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { HttpRateLimitModule } from './common/rate-limiting/http-rate-limit.modu
     AnalyticsModule,
     LoyaltyModule,
     AppReleasesModule,
+    MediaConsentModule,
   ],
   controllers: [AppController],
   providers: [

@@ -8,12 +8,13 @@ import { useSettings } from '../../context/SettingsContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 import { MediaImage } from '../../components/media-image'
+import { BeforeAfterSlider } from '../../components/BeforeAfterSlider'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { Button } from '../../components/ui/button'
 
 interface GalleryImage {
   id: string
-  uploadId: string
+  uploadId?: string
   sortOrder: number
   upload?: { pathOriginal: string; pathThumb?: string | null; pathMedium?: string | null }
 }
@@ -22,7 +23,14 @@ interface GalleryCategory {
   id: string
   name: string
   sortOrder: number
+  _count?: { images: number }
   images?: GalleryImage[]
+}
+
+interface ConsentedBeforeAfterPair {
+  id: string
+  before: { pathOriginal: string; pathMedium: string | null; pathThumb: string | null }
+  after: { pathOriginal: string; pathMedium: string | null; pathThumb: string | null }
 }
 
 const MotionDiv = motion.div
@@ -41,23 +49,36 @@ export default function PublicGallery() {
   const { t } = useTranslation()
   const { getSetting } = useSettings()
   const [categories, setCategories] = useState<GalleryCategory[]>([])
+  const [consentedPairs, setConsentedPairs] = useState<ConsentedBeforeAfterPair[]>([])
   const [loading, setLoading] = useState(true)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
   useEffect(() => {
-    api
+    const loadCategories = api
       .get<GalleryCategory[]>('/api/gallery/categories')
       .then(async (r) => {
-        const list = Array.isArray(r.data) ? r.data : []
-        const withImages = await Promise.all(
-          list.map((c) =>
-            api.get<GalleryCategory>(`/api/gallery/categories/${c.id}`).then((res) => res.data),
+        const list = Array.isArray(r.data)
+          ? r.data.filter((category) => (category._count?.images ?? 0) > 0)
+          : []
+        return Promise.all(
+          list.map((category) =>
+            api
+              .get<GalleryCategory>(`/api/gallery/categories/${category.id}`)
+              .then((response) => response.data),
           ),
         )
-        setCategories(withImages)
       })
+      .then(setCategories)
       .catch(() => setCategories([]))
-      .finally(() => setLoading(false))
+
+    const loadConsentedPairs = api
+      .get<{ items: ConsentedBeforeAfterPair[] }>('/api/daily-log/before-after', {
+        params: { limit: 50, offset: 0 },
+      })
+      .then(({ data }) => setConsentedPairs(Array.isArray(data?.items) ? data.items : []))
+      .catch(() => setConsentedPairs([]))
+
+    void Promise.all([loadCategories, loadConsentedPairs]).finally(() => setLoading(false))
   }, [])
 
   const sortedCategories = useMemo(
@@ -93,66 +114,105 @@ export default function PublicGallery() {
       <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loading ? (
           <div className="py-20 text-center text-slate-600">Učitavanje…</div>
-        ) : sortedCategories.length === 0 ? (
-          <div className="text-center text-slate-500 text-lg">{t('common.noData')}</div>
         ) : (
-          <MotionDiv variants={stagger} initial="hidden" animate="visible">
-            {sortedCategories.map((cat) => (
-              <div key={cat.id} className="mb-16">
-                <h2 className="text-xl font-semibold tracking-tight text-slate-950 pb-3 mb-8 border-b border-slate-200/80">
-                  {cat.name}
-                </h2>
+          <div>
+            {consentedPairs.length > 0 ? (
+              <section className="mb-16">
+                <div className="mb-7 max-w-3xl">
+                  <h2 className="text-xl font-semibold tracking-tight text-slate-950 pb-3 border-b border-slate-200/80">
+                    Rezultati prije i poslije
+                  </h2>
+                  <p className="mt-3 text-sm text-slate-600">
+                    Fotografije klijentica prikazuju se samo uz njihovu važeću, izričitu saglasnost.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+                  {consentedPairs.map((pair) => {
+                    const beforeSrc = getUploadUrl(pair.before.pathOriginal)
+                    const afterSrc = getUploadUrl(pair.after.pathOriginal)
+                    return (
+                      <article key={pair.id} className="min-w-0">
+                        <BeforeAfterSlider
+                          beforeSrc={beforeSrc}
+                          afterSrc={afterSrc}
+                          alt="Rezultat prije i poslije"
+                          ariaLabel="Poređenje rezultata prije i poslije"
+                        />
+                        <div className="mt-2 flex justify-between text-xs font-medium text-slate-500">
+                          <span>Prije</span>
+                          <span>Poslije</span>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              </section>
+            ) : null}
 
-                {cat.images?.length ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {cat.images
-                      .slice()
-                      .sort((a, b) => a.sortOrder - b.sortOrder)
-                      .map((img) => {
-                        const thumbUrl = img.upload
-                          ? getUploadUrl(
-                              img.upload.pathMedium ||
-                                img.upload.pathThumb ||
-                                img.upload.pathOriginal,
+            {sortedCategories.length === 0 ? (
+              consentedPairs.length === 0 ? (
+                <div className="text-center text-slate-500 text-lg">{t('common.noData')}</div>
+              ) : null
+            ) : (
+              <MotionDiv variants={stagger} initial="hidden" animate="visible">
+                {sortedCategories.map((cat) => (
+                  <div key={cat.id} className="mb-16">
+                    <h2 className="text-xl font-semibold tracking-tight text-slate-950 pb-3 mb-8 border-b border-slate-200/80">
+                      {cat.name}
+                    </h2>
+
+                    {cat.images?.length ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {cat.images
+                          .slice()
+                          .sort((a, b) => a.sortOrder - b.sortOrder)
+                          .map((img) => {
+                            const thumbUrl = img.upload
+                              ? getUploadUrl(
+                                  img.upload.pathMedium ||
+                                    img.upload.pathThumb ||
+                                    img.upload.pathOriginal,
+                                )
+                              : ''
+                            const originalUrl = img.upload
+                              ? getUploadUrl(img.upload.pathOriginal)
+                              : ''
+                            return (
+                              <MotionDiv
+                                key={img.id}
+                                variants={fadeScale}
+                                className="group relative aspect-square cursor-pointer overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100 shadow-sm"
+                                onClick={() => {
+                                  if (originalUrl) setLightboxSrc(originalUrl)
+                                }}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    if (originalUrl) setLightboxSrc(originalUrl)
+                                  }
+                                }}
+                                aria-label="Otvori sliku"
+                              >
+                                <MediaImage
+                                  src={thumbUrl}
+                                  alt=""
+                                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                              </MotionDiv>
                             )
-                          : ''
-                        const originalUrl = img.upload
-                          ? getUploadUrl(img.upload.pathOriginal)
-                          : ''
-                        return (
-                          <MotionDiv
-                            key={img.id}
-                            variants={fadeScale}
-                            className="group relative overflow-hidden rounded-2xl bg-slate-100 aspect-square border border-slate-200/80 shadow-sm cursor-pointer"
-                            onClick={() => {
-                              if (originalUrl) setLightboxSrc(originalUrl)
-                            }}
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault()
-                                if (originalUrl) setLightboxSrc(originalUrl)
-                              }
-                            }}
-                            aria-label="Otvori sliku"
-                          >
-                            <MediaImage
-                                src={thumbUrl}
-                                alt=""
-                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                              />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                          </MotionDiv>
-                        )
-                      })}
+                          })}
+                      </div>
+                    ) : (
+                      <div className="text-slate-500 italic">{t('common.noData')}</div>
+                    )}
                   </div>
-                ) : (
-                  <div className="text-slate-500 italic">{t('common.noData')}</div>
-                )}
-              </div>
-            ))}
-          </MotionDiv>
+                ))}
+              </MotionDiv>
+            )}
+          </div>
         )}
       </div>
 

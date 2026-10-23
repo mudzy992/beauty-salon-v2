@@ -10,6 +10,7 @@ import { Label } from '../components/ui/label'
 import { useAuth } from '../context/AuthContext'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { getUploadUrl } from '../utils/uploadUrl'
+import { MediaConsentPanel } from '../features/media-consent/media-consent-panel'
 
 interface ProfileData {
   id: string
@@ -465,6 +466,8 @@ export default function Profile() {
               </form>
             </CardContent>
           </Card>
+
+          {(profile?.roles ?? []).includes('CLIENT') ? <MediaConsentPanel /> : null}
         </div>
       )}
     </div>

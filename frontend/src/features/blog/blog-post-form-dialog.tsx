@@ -45,8 +45,8 @@ export function BlogPostFormDialog({
     try {
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('entity', 'blog')
-      const { data } = await api.post('/api/uploads', fd, {
+      fd.append('assetKind', 'blog')
+      const { data } = await api.post('/api/uploads/public', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       onChange({ [field]: data.pathMedium || data.pathOriginal || '' })

@@ -206,8 +206,8 @@ export default function Services() {
     try {
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('entity', 'services')
-      const { data } = await api.post('/api/uploads', fd, {
+      fd.append('assetKind', 'service')
+      const { data } = await api.post('/api/uploads/public', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       const path = data.pathMedium || data.pathOriginal || ''

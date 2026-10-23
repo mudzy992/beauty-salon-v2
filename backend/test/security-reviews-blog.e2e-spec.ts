@@ -24,6 +24,9 @@ import { BlogController } from '../src/blog/blog.controller';
 import { BlogService } from '../src/blog/blog.service';
 import { DailyLogAdminService } from '../src/daily-log/daily-log-admin.service';
 import { DailyLogController } from '../src/daily-log/daily-log.controller';
+import { MediaConsentController } from '../src/media-consent/media-consent.controller';
+import { MediaConsentService } from '../src/media-consent/media-consent.service';
+import { UploadsService } from '../src/uploads/uploads.service';
 import { DailyLogDispositionService } from '../src/daily-log/daily-log-disposition.service';
 import { DailyLogPublicService } from '../src/daily-log/daily-log-public.service';
 import { DailyLogRestoreService } from '../src/daily-log/daily-log-restore.service';
@@ -97,6 +100,10 @@ type FixtureIds = {
   comments: string[];
   reviews: string[];
   dailyLogEntries: string[];
+  consentedDailyLogEntries: string[];
+  dailyLogImages: string[];
+  mediaConsents: string[];
+  consentedUploadIds: string[];
   uploads: string[];
   stylistProfile?: string;
   serviceCategory?: string;
@@ -111,10 +118,14 @@ const fixtureIds: FixtureIds = {
   comments: [],
   reviews: [],
   dailyLogEntries: [],
+  consentedDailyLogEntries: [],
+  dailyLogImages: [],
+  mediaConsents: [],
+  consentedUploadIds: [],
   uploads: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07 and API-02', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -139,6 +150,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
   let approvedCommentId: string;
   let pendingCommentId: string;
   let availabilityDate: string;
+  let firstBeforeImageId: string;
+  let unconsentedDailyLogEntryId: string;
+  let readConsentDerivativeMock: jest.Mock;
 
   beforeAll(async () => {
     const databaseUrl = getDisposableDatabaseUrl();
@@ -151,6 +165,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
       get: (key: string, defaultValue?: string) =>
         configValues[key] ?? defaultValue,
     };
+    readConsentDerivativeMock = jest
+      .fn()
+      .mockResolvedValue({ buffer: Buffer.from('synthetic-webp') });
 
     const moduleRef = await Test.createTestingModule({
       imports: [
@@ -163,6 +180,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
         BlogController,
         UsersController,
         DailyLogController,
+        MediaConsentController,
         ReservationsController,
         ServicesController,
         StylistsController,
@@ -181,6 +199,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
         BlogService,
         BlogCommentsService,
         DailyLogPublicService,
+        MediaConsentService,
+        {
+          provide: UploadsService,
+          useValue: { readConsentDerivative: readConsentDerivativeMock },
+        },
         { provide: DailyLogService, useValue: {} },
         { provide: DailyLogAdminService, useValue: {} },
         { provide: DailyLogDispositionService, useValue: {} },
@@ -413,7 +436,8 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
         originalName: `api02-before-${suffix}.jpg`,
         mimeType: 'image/jpeg',
         sizeBytes: 1,
-        pathOriginal: `/uploads/api02-before-${suffix}.jpg`,
+        pathOriginal: `private/e2e/api02-before-${suffix}.jpg`,
+        storageClass: 'PRIVATE',
       },
     });
     const afterUpload = await prisma.upload.create({
@@ -421,7 +445,8 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
         originalName: `api02-after-${suffix}.jpg`,
         mimeType: 'image/jpeg',
         sizeBytes: 1,
-        pathOriginal: `/uploads/api02-after-${suffix}.jpg`,
+        pathOriginal: `private/e2e/api02-after-${suffix}.jpg`,
+        storageClass: 'PRIVATE',
       },
     });
     fixtureIds.uploads.push(beforeUpload.id, afterUpload.id);
@@ -430,6 +455,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
       const entry = await prisma.dailyLogEntry.create({
         data: {
           stylistProfileId: stylistProfile.id,
+          clientId: client.id,
           serviceId: service.id,
           kind: 'SERVICE',
           date: new Date(),
@@ -440,23 +466,96 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
         },
       });
       fixtureIds.dailyLogEntries.push(entry.id);
-      await prisma.dailyLogImage.createMany({
-        data: [
-          {
+      fixtureIds.consentedDailyLogEntries.push(entry.id);
+
+      for (const imageInfo of [
+        {
+          upload: beforeUpload,
+          isBefore: true,
+          isAfter: false,
+          side: 'before',
+        },
+        { upload: afterUpload, isBefore: false, isAfter: true, side: 'after' },
+      ]) {
+        const image = await prisma.dailyLogImage.create({
+          data: {
             dailyLogEntryId: entry.id,
-            uploadId: beforeUpload.id,
-            isBefore: true,
-            sortOrder: 0,
+            uploadId: imageInfo.upload.id,
+            isBefore: imageInfo.isBefore,
+            isAfter: imageInfo.isAfter,
+            sortOrder: imageInfo.isBefore ? 0 : 1,
           },
-          {
-            dailyLogEntryId: entry.id,
-            uploadId: afterUpload.id,
-            isAfter: true,
-            sortOrder: 1,
+        });
+        fixtureIds.dailyLogImages.push(image.id);
+        if (index === 0 && imageInfo.isBefore) firstBeforeImageId = image.id;
+
+        const derivative = await prisma.upload.create({
+          data: {
+            originalName: `api02-consented-${suffix}-${index}-${imageInfo.side}.webp`,
+            mimeType: 'image/webp',
+            sizeBytes: 1,
+            pathOriginal: `private/consented/e2e/api02-${suffix}-${index}-${imageInfo.side}.webp`,
+            storageClass: 'CONSENTED_PUBLIC',
           },
-        ],
-      });
+        });
+        fixtureIds.uploads.push(derivative.id);
+        fixtureIds.consentedUploadIds.push(derivative.id);
+
+        const consent = await prisma.dailyLogImageConsent.create({
+          data: {
+            dailyLogImageId: image.id,
+            clientId: client.id,
+            purpose: 'PUBLIC_GALLERY',
+            policyVersion: 'client-media-publication-v1',
+            consentedAt: new Date(),
+            publishedUploadId: derivative.id,
+          },
+        });
+        fixtureIds.mediaConsents.push(consent.id);
+        await prisma.dailyLogImageConsentEvent.create({
+          data: {
+            consentId: consent.id,
+            action: 'GRANTED',
+            actorId: client.id,
+            purpose: 'PUBLIC_GALLERY',
+            policyVersion: 'client-media-publication-v1',
+            source: 'CLIENT_APP',
+          },
+        });
+      }
     }
+
+    const unconsentedEntry = await prisma.dailyLogEntry.create({
+      data: {
+        stylistProfileId: stylistProfile.id,
+        clientId: client.id,
+        serviceId: service.id,
+        kind: 'SERVICE',
+        date: new Date(),
+        actualPrice: 25,
+        publicReferenceCode: `api02-gallery-unconsented-${suffix}`,
+        status: 'COMPLETED',
+        completedAt: new Date(Date.now() - 120_000),
+      },
+    });
+    fixtureIds.dailyLogEntries.push(unconsentedEntry.id);
+    unconsentedDailyLogEntryId = unconsentedEntry.id;
+    await prisma.dailyLogImage.createMany({
+      data: [
+        {
+          dailyLogEntryId: unconsentedEntry.id,
+          uploadId: beforeUpload.id,
+          isBefore: true,
+          sortOrder: 0,
+        },
+        {
+          dailyLogEntryId: unconsentedEntry.id,
+          uploadId: afterUpload.id,
+          isAfter: true,
+          sortOrder: 1,
+        },
+      ],
+    });
 
     const reviewPageCreatedAt = new Date('2026-01-02T12:00:00.000Z');
     const secondReviewPageCreatedAt = new Date('2026-01-01T12:00:00.000Z');
@@ -577,6 +676,14 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
           where: { id: { in: fixtureIds.reviews } },
         });
       }
+      if (fixtureIds.mediaConsents.length) {
+        await prisma.dailyLogImageConsentEvent.deleteMany({
+          where: { consentId: { in: fixtureIds.mediaConsents } },
+        });
+        await prisma.dailyLogImageConsent.deleteMany({
+          where: { id: { in: fixtureIds.mediaConsents } },
+        });
+      }
       if (fixtureIds.dailyLogEntries.length) {
         await prisma.dailyLogEntry.deleteMany({
           where: { id: { in: fixtureIds.dailyLogEntries } },
@@ -643,14 +750,14 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
 
     expect(firstPage.body.items).toHaveLength(1);
     expect(firstPage.body.items[0]).toMatchObject({
-      id: fixtureIds.dailyLogEntries[0],
+      id: fixtureIds.consentedDailyLogEntries[0],
       service: { id: serviceId, name: serviceName },
     });
-    expect(firstPage.body.items[0].before.pathOriginal).toContain(
-      '/uploads/api02-before-',
+    expect(firstPage.body.items[0].before.pathOriginal).toBe(
+      `/api/media/consents/${fixtureIds.mediaConsents[0]}/file`,
     );
-    expect(firstPage.body.items[0].after.pathOriginal).toContain(
-      '/uploads/api02-after-',
+    expect(firstPage.body.items[0].after.pathOriginal).toBe(
+      `/api/media/consents/${fixtureIds.mediaConsents[1]}/file`,
     );
     expect(firstPage.body.hasMore).toBe(true);
     expect(firstPage.body.nextOffset).toBe(1);
@@ -661,7 +768,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
       .expect(200);
 
     expect(secondPage.body.items).toHaveLength(1);
-    expect(secondPage.body.items[0].id).toBe(fixtureIds.dailyLogEntries[1]);
+    expect(secondPage.body.items[0].id).toBe(
+      fixtureIds.consentedDailyLogEntries[1],
+    );
     expect(secondPage.body.hasMore).toBe(false);
     expect(secondPage.body.nextOffset).toBe(2);
 
@@ -672,8 +781,44 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-07 and API-02', () =>
     expect(randomPage.body.items).toHaveLength(2);
     expect(
       randomPage.body.items.map((item: { id: string }) => item.id),
-    ).toEqual(expect.arrayContaining(fixtureIds.dailyLogEntries));
+    ).toEqual(expect.arrayContaining(fixtureIds.consentedDailyLogEntries));
+    expect(
+      randomPage.body.items.map((item: { id: string }) => item.id),
+    ).not.toContain(unconsentedDailyLogEntryId);
     expect(randomPage.body).toMatchObject({ hasMore: false, nextOffset: 0 });
+  });
+
+  it('revokes client photo publication from the public feed and direct file route', async () => {
+    const consentId = fixtureIds.mediaConsents[0];
+    const derivativeUploadId = fixtureIds.consentedUploadIds[0];
+    if (!consentId || !derivativeUploadId || !firstBeforeImageId) {
+      throw new Error('Synthetic consent fixture is incomplete.');
+    }
+
+    const activeFile = await request(getHttpServer(app!))
+      .get(`/api/media/consents/${consentId}/file`)
+      .expect(200);
+    expect(activeFile.headers['cache-control']).toContain('no-store');
+    expect(readConsentDerivativeMock).toHaveBeenCalledWith(derivativeUploadId);
+
+    const revoke = await request(getHttpServer(app!))
+      .delete(`/api/media/consents/${firstBeforeImageId}`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+    expect(revoke.body.revoked).toBe(true);
+
+    const publicPage = await request(getHttpServer(app!))
+      .get('/api/daily-log/before-after')
+      .query({ serviceId, limit: 50 })
+      .expect(200);
+    expect(
+      publicPage.body.items.map((item: { id: string }) => item.id),
+    ).toEqual([fixtureIds.consentedDailyLogEntries[1]]);
+
+    await request(getHttpServer(app!))
+      .get(`/api/media/consents/${consentId}/file`)
+      .expect(404);
+    expect(readConsentDerivativeMock).toHaveBeenCalledTimes(1);
   });
 
   it('validates availability date ranges and returns database-backed dates and slots', async () => {
