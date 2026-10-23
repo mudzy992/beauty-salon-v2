@@ -160,19 +160,23 @@ Review-list baseline is separately contained under SEC-01: public `GET /api/revi
 
 ### BIZ-01 — Deaktivirani servis i dalje prolazi API booking validaciju
 
-[`ReservationCreateService.create`](../../backend/src/reservations/reservation-create.service.ts#L50) učitava servise po `id` bez `isActive: true`; [`AvailabilitySlotsService.getAvailableSlots`](../../backend/src/reservations/availability-slots.service.ts#L28-L40) radi isto. Public `GET /api/services` može izložiti inactive ID (API-01); ako stylist-service relacija ostane, inactive service i dalje može dobiti slot/booking.
+Početna provjera je pokazala da [`ReservationCreateService.create`](../../backend/src/reservations/reservation-create.service.ts) i [`AvailabilitySlotsService.getAvailableSlots`](../../backend/src/reservations/availability-slots.service.ts) učitavaju servis samo po ID-u, bez aktivnog stanja service/category/subcategory; zajednički stylist-service lookup nije filtrirao neaktivne profile. Public `GET /api/services` može izložiti inactive ID (zasebni API-01 nalaz).
 
-**Uticaj:** deaktivacija u admin katalogu nije server-side booking stop. Runtime create nad poznatim inactive ID-em nije pokrenut.
+**Početni uticaj:** deaktivacija u admin katalogu nije bila server-side booking stop ako je stylist-service veza ostala.
 
-**Popravka:** aktivnost provjeravati u centralnoj booking/availability domain service i recheck-ati u finalnoj DB transakciji; inactive endpoint detail vrati 404/410 za public; test inactive ID ne može stvoriti reservation.
+**Source status — implementirano i CI-verified (2026-10-23, commit `c1d8a3e`):** zajednički [`service-eligibility.ts`](../../backend/src/reservations/utils/service-eligibility.ts) uslov zahtijeva `Service.isActive=true`, aktivan `ServiceSubcategory` i aktivan `ServiceCategory`. Zajednički stylist lookup zahtijeva postojeću vezu za svaku odabranu uslugu i `StylistProfile.isActive=true`. Standardna i direktna rezervacija ponavljaju provjeru unutar finalne Prisma transaction; reservation i lokalni service-item/stylist-response redovi pišu se u istoj transakciji. Availability dates/slots i admin debug koriste iste uslove. Unit regresije pokrivaju inactive service/parent, stale status na finalnom write-u i nestalu stylist-service vezu na direct-create boundaryju. Disposable-PostgreSQL HTTP regression potvrđuje da inactive service/subcategory/category vraćaju 404, a inactive stylist profil ne daje slotove. CI run `40023111215` prošao je sva četiri joba, uključujući Prisma generate/schema/migrations na disposable PostgreSQL, backend build, DB-backed HTTP suite i backend unit tests.
 
-### BIZ-02 — Reservation create nije jedna DB transakcija i nema durable outbox
+**Granice:** nema production/shared DB, browser/CORS ili deployment testa; DB-backed HTTP slučaj pokriva availability, a booking final-boundary regresije su unit testovi s mockom. Javni catalog/detail filtering je API-01 i ovdje nije implementiran. Transactional writes su samo boundary potreban za BIZ-01; širi loyalty/idempotency/outbox/slot-concurrency rad ostaje BIZ-02.
 
-[`reservation-create.service.ts#L88-L163`](../../backend/src/reservations/reservation-create.service.ts#L88) prvo kreira reservation, pa zasebno service items, stylist response, notif send, loyalty redeem, read-back i Socket events. U ovom toku nema jedne `$transaction`/outbox boundary.
+### BIZ-02 — Reservation lifecycle nema punu atomicity, idempotency ni durable outbox
 
-**Uticaj:** greška nakon prvog write-a može vratiti HTTP error uz orphan/partial reservation ili bez notifikacije/loyalty/eventa. Race na availability check i create nije zaštićen DB exclusion/lock mehanizmom u pregledanom toku. PostgreSQL concurrent requests nisu reprodukovani.
+[`ReservationCreateService.create`](../../backend/src/reservations/reservation-create.service.ts) sada koristi transakciju za finalnu BIZ-01 eligibility provjeru i lokalne writeove: reservation + service items + stylist responses. Direct create analogno veže finalnu eligibility provjeru, reservation i service items u transakciju. I dalje se availability/conflict reads i public-code allocation rade prije transakcije; loyalty redeem/debit, notifications, read-back i Socket events ostaju poslije commita, bez durable outbox-a. Nema idempotency key/unique retry modela ni DB-level slot/capacity lock-a.
 
-**Popravka:** transakcija za reservation + items + stylist response + loyalty debit/idempotency; persistirati outbox event unutar iste transakcije, worker šalje email/push/socket i retry-uje; DB-level slot overlap/capacity enforcement (ili tested serializable/advisory lock) nakon business rule provjere; stale request/idempotency key.
+**Status:** BIZ-01 je time dobio potreban final-write boundary, ali BIZ-02 ostaje otvoren. Ograničena transakcija ne obuhvata points debit/marker ili outbox i ne štiti konkurentne slot claims.
+
+**Uticaj:** greška nakon committa (npr. loyalty redeem ili notification) može vratiti HTTP error uz već committed reservation; missing durable event/replay guarantee ostaje. Race između prethodne availability provjere i create nije zaštićen DB exclusion/lock mehanizmom. PostgreSQL concurrency soak nije pokrenut.
+
+**Popravka:** transakcija za reservation + items + stylist response + loyalty debit/idempotency; persistirati outbox event u istoj transakciji, worker šalje email/push/socket i retry-uje; DB-level slot overlap/capacity enforcement (ili tested serializable/advisory lock) nakon business-rule provjere; stale request/idempotency key.
 
 ### BIZ-03 — Daily-log completion može ostati kompletiran bez KIF/loyalty sync-a i blokirati retry
 

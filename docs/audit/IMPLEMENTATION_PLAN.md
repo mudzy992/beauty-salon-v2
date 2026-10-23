@@ -102,6 +102,10 @@ Tekst/policy scope je implementiran u izvoru i testiran samo kroz synthetic/mock
 
 ### 1A. Reservation create/availability — `BIZ-01`, `BIZ-02`, `BIZ-07`
 
+**BIZ-01 source implementation complete (2026-10-23, commit `c1d8a3e`):** the shared eligibility query requires an active service, subcategory and category; stylist-service resolution requires an active stylist profile and a relation for each selected service. Standard/direct creates recheck inside the final write transaction; availability dates, slots and admin debug share the same filters. Unit regressions cover inactive catalog eligibility and final-boundary rechecks; the disposable-PostgreSQL HTTP suite verifies inactive service/subcategory/category rejection and no slots for inactive stylist profiles. Push CI `40023111215` passed all four jobs, including Prisma generation/schema/migrations on disposable PostgreSQL, backend build, DB-backed HTTP tests, unit tests, repository checks, frontend build and mobile typecheck. No production/shared DB or deployment was tested.
+
+**BIZ-02 remains open:** to honor BIZ-01's final eligibility boundary, reservation + service items + stylist responses (standard create) and reservation + service items (direct create) now share a transaction. This does not include loyalty points/debit, idempotency, slot/capacity concurrency enforcement, or a durable outbox; notifications/socket remain post-commit. The broader 1A atomicity/idempotency/outbox acceptance below is therefore not complete.
+
 - Centralize service eligibility; enforce `Service.isActive`, active category/subcategory and allowed stylist-service relation in create/availability **and** final write transaction.
 - Make reservation + service items + stylist responses + points debit/marker atomic in PostgreSQL transaction. Do not send SMTP/push/Socket.IO inside retryable transaction.
 - Add idempotency key for client create; unique DB constraint; retries return same booking result.
