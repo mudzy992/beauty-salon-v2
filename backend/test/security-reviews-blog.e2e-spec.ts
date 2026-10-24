@@ -199,6 +199,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
   let unconsentedDailyLogEntryId: string;
   let readConsentDerivativeMock: jest.SpyInstance;
   let uploadRoot: string | undefined;
+  let lastBookingServerError: string | undefined;
 
   const submitClientBooking = async (params: {
     reservationDate: string;
@@ -218,6 +219,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         ? {}
         : { desiredLoyaltyPercent: params.desiredLoyaltyPercent }),
     };
+    lastBookingServerError = undefined;
     const response = await request(getHttpServer(app!))
       .post('/api/reservations')
       .set('Authorization', `Bearer ${params.token ?? clientToken}`)
@@ -226,7 +228,12 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
     if (typeof response.body?.id === 'string') {
       fixtureIds.reservationIds.push(response.body.id);
     }
-    return { response, key, body };
+    return {
+      response,
+      key,
+      body,
+      serverError: lastBookingServerError,
+    };
   };
 
   const expectClientBookingCreated = (
@@ -252,8 +259,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
               .join('; ')
               .slice(0, 240)
           : '';
+    const serverError = result.serverError ?? '';
     throw new Error(
-      `${label}: expected HTTP 201, received ${result.response.status}; error=${error}; message=${message}`,
+      `${label}: expected HTTP 201, received ${result.response.status}; error=${error}; message=${message}; server=${serverError}`,
     );
   };
 
@@ -429,7 +437,44 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         inline: true,
       });
 
-    const nestApp = moduleRef.createNestApplication({ logger: false });
+    const testLogger = {
+      log: () => undefined,
+      warn: () => undefined,
+      debug: () => undefined,
+      verbose: () => undefined,
+      fatal: () => undefined,
+      error: (message: unknown, ...optionalParams: unknown[]) => {
+        const errorValue =
+          message instanceof Error
+            ? message
+            : optionalParams.find(
+                (value): value is Error => value instanceof Error,
+              );
+        const trace = optionalParams.find(
+          (value): value is string => typeof value === 'string',
+        );
+        const traceHead = trace?.split(/\r?\n/).find((line) => line.trim());
+        const codeValue =
+          errorValue && 'code' in errorValue ? errorValue.code : undefined;
+        const errorCode = typeof codeValue === 'string' ? codeValue : '';
+        const details = errorValue
+          ? `${errorValue.name}${errorCode ? ` ${errorCode}` : ''}: ${errorValue.message}`
+          : (traceHead ?? String(message));
+        lastBookingServerError = details
+          .replace(/postgres(?:ql)?:\/\/[^\s"'`]+/gi, '[DATABASE_URL_REDACTED]')
+          .replace(/\bBearer\s+["']?[^\s"'`]+["']?/gi, 'Bearer [REDACTED]')
+          .replace(
+            /\b[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\b/g,
+            '[JWT_REDACTED]',
+          )
+          .replace(
+            /(["']?(?:password|pass|token|secret)["']?)(\s*[:=]\s*)["']?[^\s,"']+["']?/gi,
+            '$1$2[REDACTED]',
+          )
+          .slice(0, 300);
+      },
+    };
+    const nestApp = moduleRef.createNestApplication({ logger: testLogger });
     nestApp.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
