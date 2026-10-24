@@ -461,6 +461,8 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
           ? `${errorValue.name}${errorCode ? ` ${errorCode}` : ''}: ${errorValue.message}`
           : (traceHead ?? String(message));
         lastBookingServerError = details
+          .replace(/\s+/g, ' ')
+          .trim()
           .replace(/postgres(?:ql)?:\/\/[^\s"'`]+/gi, '[DATABASE_URL_REDACTED]')
           .replace(/\bBearer\s+["']?[^\s"'`]+["']?/gi, 'Bearer [REDACTED]')
           .replace(
