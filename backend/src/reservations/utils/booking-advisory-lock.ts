@@ -19,8 +19,11 @@ const acquireLock = async (
   db: BookingLockClient,
   key: string,
 ): Promise<void> => {
-  await db.$queryRaw(
-    Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`,
+  // Prisma cannot deserialize PostgreSQL's `void` result. The function is
+  // volatile, so testing its result for NULL still executes the transaction
+  // lock while returning a supported boolean scalar to `$queryRaw`.
+  await db.$queryRaw<Array<{ acquired: boolean }>>(
+    Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0)) IS NULL AS acquired`,
   );
 };
 
