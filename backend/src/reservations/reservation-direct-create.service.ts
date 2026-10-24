@@ -4,11 +4,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { EventsGateway } from '../events/events.gateway';
 import { ReservationDateService } from './reservation-date.service';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
+import { ReservationOutboxService } from './reservation-outbox.service';
 import { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
 import { StylistDirectCreateReservationDto } from './dto/stylist-direct-create-reservation.dto';
 import {
@@ -17,22 +18,22 @@ import {
   RESERVATION_ATTENDANCE_POLICY,
   RESERVATION_BOOKING_ORIGIN,
   RESERVATION_STATUS,
-  SLOT_OCCUPYING_STATUSES,
 } from './constants';
-import { SOCKET_EVENTS } from '../events/socket-events';
 import { timeToMinutes } from './utils/time-slot.utils';
 import { assertAdminSlotWithinWorkingHours } from './utils/assert-admin-working-hours';
 import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
 import { buildBookableServiceWhere } from './utils/service-eligibility';
+import { acquireReservationDayLock } from './utils/booking-advisory-lock';
+import { assertStylistSlotCapacity } from './utils/assert-stylist-slot-capacity';
 
 @Injectable()
 export class ReservationDirectCreateService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly events: EventsGateway,
     private readonly dates: ReservationDateService,
     private readonly shared: ReservationSharedService,
     private readonly queries: ReservationQueriesService,
+    private readonly outbox: ReservationOutboxService,
   ) {}
 
   async createByAdmin(dto: AdminCreateReservationDto, userId: string) {
@@ -67,7 +68,13 @@ export class ReservationDirectCreateService {
   private async createDirectReservation(params: {
     dto: Pick<
       StylistDirectCreateReservationDto,
-      'clientId' | 'clientNotes' | 'endTime' | 'reservationDate' | 'serviceId' | 'serviceIds' | 'startTime'
+      | 'clientId'
+      | 'clientNotes'
+      | 'endTime'
+      | 'reservationDate'
+      | 'serviceId'
+      | 'serviceIds'
+      | 'startTime'
     >;
     actorUserId: string;
     actorRoles: string[];
@@ -78,10 +85,6 @@ export class ReservationDirectCreateService {
   }) {
     const { dto, actorUserId, actorRoles, stylistProfileId, bookingOrigin } =
       params;
-    const client = await this.shared.getClientForReservation(dto.clientId, {
-      ignoreMustChangePassword: true,
-      relaxContactRequirements: true,
-    });
     const serviceIdsRaw =
       dto.serviceIds && dto.serviceIds.length > 0
         ? dto.serviceIds
@@ -89,92 +92,80 @@ export class ReservationDirectCreateService {
           ? [dto.serviceId]
           : [];
     const serviceIds = [
-      ...new Set(serviceIdsRaw.map((x) => x.trim()).filter(Boolean)),
+      ...new Set(serviceIdsRaw.map((value) => value.trim()).filter(Boolean)),
     ];
-    if (serviceIds.length === 0) {
+    const primaryServiceId = serviceIds[0];
+    if (!primaryServiceId) {
       throw new BadRequestException('SERVICE_REQUIRED');
     }
-    const initialServices = await this.prisma.service.findMany({
-      where: buildBookableServiceWhere(serviceIds),
-      select: { id: true, name: true, gender: true, price: true },
-    });
-    if (initialServices.length !== serviceIds.length) {
-      throw new NotFoundException('Servis nije pronađen.');
-    }
-    if (initialServices.some((service) => service.gender !== client.gender)) {
-      throw new BadRequestException('SERVICE_GENDER_MISMATCH');
-    }
-    const eligibleStylists =
-      await this.shared.getEligibleStylistsForServices(serviceIds);
-    if (!eligibleStylists.includes(stylistProfileId)) {
-      throw new BadRequestException(
-        'Odabrani stilist ne može izvršiti sve odabrane usluge.',
-      );
-    }
+
     const reservationDate = this.dates.parseDateOnly(dto.reservationDate);
     if (timeToMinutes(dto.endTime) <= timeToMinutes(dto.startTime)) {
       throw new BadRequestException(
         'Vrijeme završetka mora biti nakon početka.',
       );
     }
-    await assertAdminSlotWithinWorkingHours({
-      prisma: this.prisma,
-      reservationDate,
-      startTime: dto.startTime,
-      endTime: dto.endTime,
-      confirmedStylistId: stylistProfileId,
-    });
-    await assertClientDayBookingAllowed({
-      prisma: this.prisma,
-      clientId: dto.clientId,
-      reservationDate,
-      startTime: dto.startTime,
-      endTime: dto.endTime,
-      serviceIds,
-    });
-    const dayStart = new Date(reservationDate);
-    dayStart.setUTCHours(0, 0, 0, 0);
-    const dayEnd = new Date(reservationDate);
-    dayEnd.setUTCHours(23, 59, 59, 999);
-    const conflict = await this.prisma.reservation.findFirst({
-      where: {
-        confirmedStylistId: stylistProfileId,
-        reservationDate: { gte: dayStart, lte: dayEnd },
-        status: { in: [...SLOT_OCCUPYING_STATUSES] as any },
-        startTime: { lt: dto.endTime },
-        endTime: { gt: dto.startTime },
-      },
-      select: { id: true, startTime: true, endTime: true },
-    });
-    if (conflict) {
-      throw new BadRequestException(
-        `Preklapanje sa drugim terminom (${conflict.startTime}–${conflict.endTime}).`,
-      );
-    }
-    const primaryServiceId = serviceIds[0]!;
-    const { publicReferenceCode, clientViewToken } =
-      await this.shared.allocateReservationPublicCodes(reservationDate);
+    const reservationDateString =
+      this.dates.toLocalDateOnlyString(reservationDate);
+
     const created = await this.prisma.$transaction(async (tx) => {
-      const currentServices = await tx.service.findMany({
+      await acquireReservationDayLock(tx, reservationDate);
+
+      const client = await this.shared.getClientForReservation(
+        dto.clientId,
+        {
+          ignoreMustChangePassword: true,
+          relaxContactRequirements: true,
+        },
+        tx,
+      );
+      const services = await tx.service.findMany({
         where: buildBookableServiceWhere(serviceIds),
         select: { id: true, name: true, gender: true, price: true },
       });
-      if (currentServices.length !== serviceIds.length) {
+      if (services.length !== serviceIds.length) {
         throw new NotFoundException('Servis nije pronađen.');
       }
-      if (currentServices.some((service) => service.gender !== client.gender)) {
+      if (services.some((service) => service.gender !== client.gender)) {
         throw new BadRequestException('SERVICE_GENDER_MISMATCH');
       }
 
-      const currentEligibleStylists =
+      const eligibleStylists =
         await this.shared.getEligibleStylistsForServices(serviceIds, tx);
-      if (!currentEligibleStylists.includes(stylistProfileId)) {
+      if (!eligibleStylists.includes(stylistProfileId)) {
         throw new BadRequestException(
           'Odabrani stilist ne može izvršiti sve odabrane usluge.',
         );
       }
 
-      const currentReservation = await tx.reservation.create({
+      await assertAdminSlotWithinWorkingHours({
+        prisma: tx,
+        reservationDate,
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        confirmedStylistId: stylistProfileId,
+      });
+      await assertClientDayBookingAllowed({
+        prisma: tx,
+        clientId: dto.clientId,
+        reservationDate,
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        serviceIds,
+      });
+
+      await assertStylistSlotCapacity({
+        db: tx,
+        serviceIds,
+        date: reservationDateString,
+        startTime: dto.startTime,
+        endTime: dto.endTime,
+        stylistProfileId,
+      });
+
+      const { publicReferenceCode, clientViewToken } =
+        await this.shared.allocateReservationPublicCodes(reservationDate, tx);
+      const reservation = await tx.reservation.create({
         data: {
           clientId: dto.clientId,
           serviceId: primaryServiceId,
@@ -196,26 +187,47 @@ export class ReservationDirectCreateService {
         },
       });
       await tx.reservationServiceItem.createMany({
-        data: currentServices.map((service, index) => ({
-          reservationId: currentReservation.id,
+        data: services.map((service, index) => ({
+          reservationId: reservation.id,
           serviceId: service.id,
           sortOrder: index,
         })),
       });
-      return currentReservation;
+
+      const outboxEvent = await tx.outboxEvent.create({
+        data: {
+          eventType: 'reservation.created',
+          aggregateId: reservation.id,
+          dedupeKey: `reservation:${reservation.id}:created`,
+          payload: {
+            reservationId: reservation.id,
+            actor: {
+              sub: actorUserId,
+              username: '',
+              email: '',
+              roles: actorRoles,
+            },
+            notifyUserIds: [],
+            notificationTitle: '',
+            notificationBody: '',
+            serviceId: primaryServiceId,
+            serviceIds,
+            reservationDate: reservationDateString,
+            emitToAdmins: true,
+            emitToStylists: false,
+          } satisfies Prisma.InputJsonObject,
+        },
+      });
+
+      return { reservationId: reservation.id, outboxEventId: outboxEvent.id };
     });
-    const full = await this.queries.findOne(created.id, {
+
+    await this.outbox.dispatchAfterCommit(created.outboxEventId);
+    return this.queries.findOne(created.reservationId, {
       sub: actorUserId,
       roles: actorRoles,
       username: '',
       email: '',
     });
-    this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CREATED, full);
-    this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
-      serviceId: primaryServiceId,
-      serviceIds,
-      date: dto.reservationDate,
-    });
-    return full;
   }
 }

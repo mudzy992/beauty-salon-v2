@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { AvailabilityDatesService } from './availability-dates.service';
 import { AvailabilitySlotsService } from './availability-slots.service';
 import { AvailabilityDebugService } from './availability-debug.service';
@@ -25,8 +26,9 @@ export class AvailabilityService {
   getAvailableSlots(
     serviceIdsInput: string[] | string,
     dateStr: string,
+    db?: Prisma.TransactionClient,
   ): Promise<AvailableSlotDto[]> {
-    return this.slotsService.getAvailableSlots(serviceIdsInput, dateStr);
+    return this.slotsService.getAvailableSlots(serviceIdsInput, dateStr, db);
   }
 
   debugAvailability(serviceId: string) {

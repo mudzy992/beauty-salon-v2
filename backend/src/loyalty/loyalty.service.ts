@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 
@@ -497,13 +498,16 @@ export class LoyaltyService {
   /**
    * Redeem bodova za konkretnu rezervaciju, uz provjeru maksimalnog popusta po tieru, servisu i globalno.
    */
-  async redeemForReservation(args: {
-    clientId: string;
-    reservationId: string;
-    serviceId?: string;
-    serviceIds?: string[];
-    desiredPercent: number;
-  }) {
+  async redeemForReservation(
+    args: {
+      clientId: string;
+      reservationId: string;
+      serviceId?: string;
+      serviceIds?: string[];
+      desiredPercent: number;
+    },
+    db: Prisma.TransactionClient,
+  ) {
     const { clientId, reservationId, desiredPercent } = args;
     const idsRaw =
       args.serviceIds && args.serviceIds.length > 0
@@ -514,11 +518,15 @@ export class LoyaltyService {
     const serviceIds = [...new Set(idsRaw.map((x) => x.trim()).filter(Boolean))];
     if (desiredPercent <= 0) return null;
     if (serviceIds.length === 0) {
-      throw new BadRequestException('Servis nije pronađen.');
+      throw new NotFoundException('Servis nije pronađen.');
     }
 
-    // Ako je za rezervaciju već evidentirano korištenje bodova, ne dozvoljavamo ponovni redeem.
-    const existingReservation = await this.prisma.reservation.findUnique({
+    // Serialize tier/balance reads for the loyalty account inside the booking transaction.
+    await db.$queryRaw(
+      Prisma.sql`SELECT id FROM "loyalty_accounts" WHERE "user_id" = ${clientId} FOR UPDATE`,
+    );
+
+    const existingReservation = await db.reservation.findUnique({
       where: { id: reservationId },
       select: { loyaltyPointsUsed: true },
     });
@@ -548,14 +556,14 @@ export class LoyaltyService {
       );
     }
 
-    const account = await this.prisma.loyaltyAccount.findUnique({
+    const account = await db.loyaltyAccount.findUnique({
       where: { userId: clientId },
     });
     if (!account || !account.isActive) {
       throw new BadRequestException('Nemate aktivan loyalty račun.');
     }
 
-    const services = await this.prisma.service.findMany({
+    const services = await db.service.findMany({
       where: { id: { in: serviceIds } },
       select: {
         id: true,
@@ -573,7 +581,10 @@ export class LoyaltyService {
       );
     }
     const prices = services.map((s) => Number(s.price));
-    const sumPrice = prices.reduce((acc, x) => acc + (Number.isFinite(x) ? x : 0), 0);
+    const sumPrice = prices.reduce(
+      (acc, x) => acc + (Number.isFinite(x) ? x : 0),
+      0,
+    );
     if (!Number.isFinite(sumPrice) || sumPrice <= 0) {
       throw new BadRequestException(
         'Cijena usluge nije validna za loyalty popust.',
@@ -642,15 +653,35 @@ export class LoyaltyService {
       );
     }
 
-    // Upis u loyalty račun i transakciju
-    const updatedAccount = await this.redeemPoints(
-      account.id,
-      neededPoints,
-      `Reservation ${reservationId} (${desiredPercent}%)`,
-    );
+    const debit = await db.loyaltyAccount.updateMany({
+      where: {
+        id: account.id,
+        isActive: true,
+        points: { gte: neededPoints },
+      },
+      data: { points: { decrement: neededPoints } },
+    });
+    if (debit.count !== 1) {
+      throw new BadRequestException('Nemate dovoljno bodova za odabrani popust.');
+    }
 
-    // Informativni upis popusta na rezervaciju (za prikaz u adminu)
-    await this.prisma.reservation.update({
+    await db.loyaltyTransaction.create({
+      data: {
+        accountId: account.id,
+        points: neededPoints,
+        type: 'REDEEM',
+        source: `Reservation ${reservationId} (${desiredPercent}%)`,
+      },
+    });
+
+    const pointsAfterRedeem = account.points - neededPoints;
+    const tierAfterRedeem = await this.getTierForPoints(pointsAfterRedeem);
+    const updatedAccount = await db.loyaltyAccount.update({
+      where: { id: account.id },
+      data: { tier: tierAfterRedeem?.name ?? null },
+    });
+
+    await db.reservation.update({
       where: { id: reservationId },
       data: {
         loyaltyDiscountPercent: Math.round(desiredPercent),

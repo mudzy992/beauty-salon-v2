@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { toLocalDateOnlyString } from '../common/utils/date-only';
 import { getDayStartEnd } from '../common/utils/date-range';
@@ -12,6 +13,17 @@ import { computeSlotCapacity } from './utils/slot-hold.utils';
 import { buildBookableServiceWhere } from './utils/service-eligibility';
 import type { AvailableSlotDto } from './availability.types';
 
+type AvailabilityReader = Pick<
+  Prisma.TransactionClient,
+  | 'salonSettings'
+  | 'service'
+  | 'holiday'
+  | 'salonWorkingHours'
+  | 'stylistService'
+  | 'stylistProfile'
+  | 'reservation'
+>;
+
 @Injectable()
 export class AvailabilitySlotsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -19,17 +31,18 @@ export class AvailabilitySlotsService {
   async getAvailableSlots(
     serviceIdsInput: string[] | string,
     dateStr: string,
+    db: AvailabilityReader = this.prisma,
   ): Promise<AvailableSlotDto[]> {
     const serviceIds = Array.isArray(serviceIdsInput)
       ? serviceIdsInput
       : [serviceIdsInput];
-    const salon = await this.prisma.salonSettings.findFirst();
+    const salon = await db.salonSettings.findFirst();
     if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
 
     const normalized = [...new Set(serviceIds.map((x) => x.trim()).filter(Boolean))];
     if (normalized.length === 0)
       throw new NotFoundException('Servis nije pronađen.');
-    const services = await this.prisma.service.findMany({
+    const services = await db.service.findMany({
       where: buildBookableServiceWhere(normalized),
       select: { id: true, durationMinutes: true },
     });
@@ -44,7 +57,7 @@ export class AvailabilitySlotsService {
     const date = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
     const dayOfWeek = date.getDay();
 
-    const holidays = await this.prisma.holiday.findMany({
+    const holidays = await db.holiday.findMany({
       where: {
         salonSettingsId: salon.id,
         date: {
@@ -55,7 +68,7 @@ export class AvailabilitySlotsService {
     });
     if (holidays.length > 0) return [];
 
-    const salonHours = await this.prisma.salonWorkingHours.findUnique({
+    const salonHours = await db.salonWorkingHours.findUnique({
       where: {
         salonSettingsId_dayOfWeek: {
           salonSettingsId: salon.id,
@@ -66,7 +79,7 @@ export class AvailabilitySlotsService {
     if (!salonHours || !salonHours.isWorkingDay) return [];
 
     const stylists = await getStylistProfilesForSlots(
-      this.prisma,
+      db,
       normalized,
       dayOfWeek,
       dateStr,
@@ -90,7 +103,7 @@ export class AvailabilitySlotsService {
         : slots;
 
     const { start: dateStart, end: dateEnd } = getDayStartEnd(date);
-    const reservations = await this.prisma.reservation.findMany({
+    const reservations = await db.reservation.findMany({
       where: {
         reservationDate: { gte: dateStart, lte: dateEnd },
         status: {

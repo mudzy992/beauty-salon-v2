@@ -81,8 +81,12 @@ export class ReservationsService {
     return this.queriesSvc.findOne(id, user);
   }
 
-  create(dto: CreateReservationDto, clientId: string) {
-    return this.createSvc.create(dto, clientId);
+  create(
+    dto: CreateReservationDto,
+    clientId: string,
+    idempotencyKey?: string,
+  ) {
+    return this.createSvc.create(dto, clientId, { idempotencyKey });
   }
 
   createByAdmin(dto: AdminCreateReservationDto, userId: string) {

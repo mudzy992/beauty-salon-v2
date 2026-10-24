@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,10 @@ import { formatDate, formatTime, getDateRange } from '../../utils/date';
 import { useAvailabilitySocketRefresh } from '../../hooks/useAvailabilitySocketRefresh';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Service, AvailableDate, TimeSlot } from '../../types';
+import {
+  createIdempotencyKey,
+  type PendingIdempotentRequest,
+} from '../../utils/idempotency-key';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -76,6 +80,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
   const [payDebtsIntent, setPayDebtsIntent] = useState(false);
   const [openDebtsTotal, setOpenDebtsTotal] = useState(0);
+  const bookingAttemptRef = useRef<PendingIdempotentRequest>(null);
   const servicesById = useMemo(
     () => new Map(services.map((service) => [service.id, service])),
     [services],
@@ -294,16 +299,25 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       return;
     }
     setSubmitting(true);
+    const payload = {
+      serviceIds: selectedServiceIds,
+      reservationDate: selectedDate,
+      startTime: selectedSlot.startTime,
+      endTime: selectedSlot.endTime,
+      clientNotes: notes.trim() || undefined,
+      ...(desiredLoyaltyPercent > 0 ? { desiredLoyaltyPercent } : {}),
+      ...(payDebtsIntent ? { payDebtsIntent: true } : {}),
+    };
+    const fingerprint = JSON.stringify(payload);
+    const pending = bookingAttemptRef.current;
+    const idempotencyKey =
+      pending?.fingerprint === fingerprint ? pending.key : createIdempotencyKey();
+    bookingAttemptRef.current = { fingerprint, key: idempotencyKey };
     try {
-      await api.post('/api/reservations', {
-        serviceIds: selectedServiceIds,
-        reservationDate: selectedDate,
-        startTime: selectedSlot.startTime,
-        endTime: selectedSlot.endTime,
-        clientNotes: notes.trim() || undefined,
-        ...(desiredLoyaltyPercent > 0 ? { desiredLoyaltyPercent } : {}),
-        ...(payDebtsIntent ? { payDebtsIntent: true } : {}),
+      await api.post('/api/reservations', payload, {
+        headers: { 'Idempotency-Key': idempotencyKey },
       });
+      bookingAttemptRef.current = null;
       Alert.alert(t('reservation.success'), t('reservation.successMessage'), [
         {
           text: t('common.ok'),

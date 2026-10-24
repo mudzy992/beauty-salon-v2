@@ -1,4 +1,7 @@
-import { computeSlotCapacity, type SlotHoldReservation } from './slot-hold.utils';
+import {
+  computeSlotCapacity,
+  type SlotHoldReservation,
+} from './slot-hold.utils';
 
 describe('computeSlotCapacity', () => {
   const stylists = ['sp-a', 'sp-b'];
@@ -87,5 +90,63 @@ describe('computeSlotCapacity', () => {
       now,
     });
     expect(actual).toEqual({ availableStylistCount: 1, hasInboxHold: false });
+  });
+
+  it('locked hold on already-confirmed stylist consumes remaining capacity', () => {
+    const locked: SlotHoldReservation = {
+      startTime: '15:30',
+      endTime: '16:00',
+      status: 'STYLIST_REVIEW',
+      confirmedStylistId: null,
+      stylistResponses: [
+        {
+          stylistProfileId: 'sp-a',
+          status: 'LOCKED',
+          lockExpiresAt: new Date('2026-08-13T12:10:00.000Z'),
+        },
+      ],
+    };
+    const confirmed: SlotHoldReservation = {
+      startTime: '15:30',
+      endTime: '16:00',
+      status: 'CONFIRMED',
+      confirmedStylistId: 'sp-a',
+    };
+
+    const actual = computeSlotCapacity({
+      slotStart: '15:30',
+      slotEnd: '16:00',
+      stylistIdsInWindow: stylists,
+      reservations: [locked, confirmed],
+      now,
+    });
+
+    expect(actual).toEqual({ availableStylistCount: 0, hasInboxHold: true });
+  });
+
+  it('a second overlapping lock on the same stylist is treated as an unassigned hold', () => {
+    const lockedHold = (): SlotHoldReservation => ({
+      startTime: '15:30',
+      endTime: '16:00',
+      status: 'STYLIST_REVIEW',
+      confirmedStylistId: null,
+      stylistResponses: [
+        {
+          stylistProfileId: 'sp-a',
+          status: 'LOCKED',
+          lockExpiresAt: new Date('2026-08-13T12:10:00.000Z'),
+        },
+      ],
+    });
+
+    const actual = computeSlotCapacity({
+      slotStart: '15:30',
+      slotEnd: '16:00',
+      stylistIdsInWindow: stylists,
+      reservations: [lockedHold(), lockedHold()],
+      now,
+    });
+
+    expect(actual).toEqual({ availableStylistCount: 0, hasInboxHold: true });
   });
 });

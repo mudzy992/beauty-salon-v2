@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common'
-import type { PrismaService } from '../../prisma/prisma.service'
+import type { Prisma } from '@prisma/client'
 import {
   CLIENT_LIVE_STATUSES,
   CLIENT_SERVICE_DAY_STATUSES,
@@ -7,7 +7,7 @@ import {
 import { intervalsOverlap, timeToMinutes } from './time-slot.utils'
 
 type AssertClientDayBookingInput = {
-  prisma: PrismaService
+  prisma: Pick<Prisma.TransactionClient, 'reservation'>
   clientId: string
   reservationDate: Date | string
   startTime: string

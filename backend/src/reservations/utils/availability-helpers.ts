@@ -1,12 +1,12 @@
 import { toLocalDateOnlyString } from '../../common/utils/date-only';
-import type { PrismaService } from '../../prisma/prisma.service';
+import type { Prisma } from '@prisma/client';
 import { getStylistIdsForServices } from './service-eligibility';
 import { timeToMinutes } from './time-slot.utils';
 
 export { getStylistIdsForServices } from './service-eligibility';
 
 export async function getStylistProfilesForSlots(
-  prisma: PrismaService,
+  prisma: Pick<Prisma.TransactionClient, 'stylistService' | 'stylistProfile'>,
   serviceIds: string[],
   dayOfWeek: number,
   dateStr: string,

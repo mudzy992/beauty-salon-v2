@@ -16,6 +16,10 @@ import { useSettings } from '../../context/SettingsContext'
 import { useSocketEvent } from '../../context/SocketContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
 import { useAppToast } from '../../lib/toast/useAppToast'
+import {
+  createIdempotencyKey,
+  type PendingIdempotentRequest,
+} from '../../lib/idempotency-key'
 
 interface ServiceOption {
   id: string
@@ -471,6 +475,7 @@ export default function PublicReserve() {
   const [payDebtsIntent, setPayDebtsIntent] = useState(false)
   const [openDebtsTotal, setOpenDebtsTotal] = useState(0)
   const dateSectionRef = useRef<HTMLDivElement | null>(null)
+  const bookingAttemptRef = useRef<PendingIdempotentRequest>(null)
 
   const servicesForGender = useMemo(() => {
     if (!user?.gender) return []
@@ -622,16 +627,25 @@ export default function PublicReserve() {
       return
     }
     setSubmitting(true)
+    const payload = {
+      serviceIds: selectedServiceIds,
+      reservationDate: selectedDate,
+      startTime: selectedSlot.start,
+      endTime: selectedSlot.end,
+      ...(notes.trim() && { clientNotes: notes.trim() }),
+      ...(desiredLoyaltyPercent > 0 && { desiredLoyaltyPercent }),
+      ...(payDebtsIntent && { payDebtsIntent: true }),
+    }
+    const fingerprint = JSON.stringify(payload)
+    const pending = bookingAttemptRef.current
+    const idempotencyKey =
+      pending?.fingerprint === fingerprint ? pending.key : createIdempotencyKey()
+    bookingAttemptRef.current = { fingerprint, key: idempotencyKey }
     try {
-      await api.post('/api/reservations', {
-        serviceIds: selectedServiceIds,
-        reservationDate: selectedDate,
-        startTime: selectedSlot.start,
-        endTime: selectedSlot.end,
-        ...(notes.trim() && { clientNotes: notes.trim() }),
-        ...(desiredLoyaltyPercent > 0 && { desiredLoyaltyPercent }),
-        ...(payDebtsIntent && { payDebtsIntent: true }),
+      await api.post('/api/reservations', payload, {
+        headers: { 'Idempotency-Key': idempotencyKey },
       })
+      bookingAttemptRef.current = null
       await refreshProfile().catch(() => {})
       const svcLabel =
         selectedServices.length === 1

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReservationDateService } from './reservation-date.service';
 import { assertReservationTransition } from './assert-reservation-transition';
@@ -51,12 +52,13 @@ export class ReservationSharedService {
 
   async allocateReservationPublicCodes(
     reservationDate: Date,
+    db: Pick<Prisma.TransactionClient, 'reservation'> = this.prisma,
   ): Promise<{ publicReferenceCode: string; clientViewToken: string }> {
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const publicReferenceCode =
         this.buildPublicReferenceCodeForDate(reservationDate);
       const clientViewToken = this.generateClientViewToken();
-      const clash = await this.prisma.reservation.findFirst({
+      const clash = await db.reservation.findFirst({
         where: { OR: [{ publicReferenceCode }, { clientViewToken }] },
         select: { id: true },
       });
@@ -73,8 +75,9 @@ export class ReservationSharedService {
       ignoreMustChangePassword?: boolean;
       relaxContactRequirements?: boolean;
     },
+    db: Pick<Prisma.TransactionClient, 'user'> = this.prisma,
   ) {
-    const client = await this.prisma.user.findUnique({
+    const client = await db.user.findUnique({
       where: { id: clientId },
       select: {
         id: true,
@@ -98,8 +101,11 @@ export class ReservationSharedService {
     return client;
   }
 
-  async checkClientPenalty(clientId: string) {
-    const rec = await this.prisma.clientCancellationCount.findUnique({
+  async checkClientPenalty(
+    clientId: string,
+    db: Pick<Prisma.TransactionClient, 'clientCancellationCount'> = this.prisma,
+  ) {
+    const rec = await db.clientCancellationCount.findUnique({
       where: { userId: clientId },
     });
     if (rec?.penaltyUntil && new Date() < rec.penaltyUntil) {

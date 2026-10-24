@@ -26,6 +26,7 @@ import { ReservationCronService } from './reservation-cron.service';
 import { ReservationAttendanceCronService } from './reservation-attendance-cron.service';
 import { ReservationReorderCronService } from './reservation-reorder-cron.service';
 import { ReservationDirectCreateService } from './reservation-direct-create.service';
+import { ReservationOutboxService } from './reservation-outbox.service';
 import { ReservationDirectDailyLogCronService } from './reservation-direct-daily-log-cron.service';
 import { ReservationInboxCronService } from './reservation-inbox-cron.service';
 import { AvailabilityService } from './availability.service';
@@ -51,6 +52,7 @@ jest.mock('expo-server-sdk', () => {
   return { __esModule: true, default: MockExpo };
 });
 
+let activeReservationTransaction = false;
 const mockPrisma: any = {};
 Object.assign(mockPrisma, {
   user: {
@@ -91,10 +93,20 @@ Object.assign(mockPrisma, {
   salonWorkingHours: { findUnique: jest.fn() },
   stylistWorkingHours: { findMany: jest.fn() },
   clientCancellationCount: { findUnique: jest.fn(), upsert: jest.fn() },
+  outboxEvent: {
+    create: jest.fn().mockResolvedValue({ id: 'outbox-1' }),
+    findUnique: jest.fn(),
+    updateMany: jest.fn(),
+  },
+  $queryRaw: jest.fn().mockResolvedValue([]),
   $transaction: jest.fn(async (cb: unknown): Promise<unknown> => {
-    if (typeof cb === 'function')
-      return (cb as (tx: any) => unknown)(mockPrisma);
-    return undefined;
+    if (typeof cb !== 'function') return undefined;
+    activeReservationTransaction = true;
+    try {
+      return await (cb as (tx: any) => unknown)(mockPrisma);
+    } finally {
+      activeReservationTransaction = false;
+    }
   }),
 });
 
@@ -119,6 +131,13 @@ const mockLoyalty = {
 const mockSettings = {
   getString: jest.fn().mockResolvedValue('Europe/Sarajevo'),
 };
+const mockOutbox = {
+  dispatchAfterCommit: jest.fn(async () => {
+    if (activeReservationTransaction) {
+      throw new Error('Outbox dispatch ran inside the booking transaction');
+    }
+  }),
+};
 
 describe('ReservationsService', () => {
   let service: ReservationsService;
@@ -132,6 +151,7 @@ describe('ReservationsService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    activeReservationTransaction = false;
     mockPrisma.reservation.findMany.mockResolvedValue([]);
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -170,6 +190,7 @@ describe('ReservationsService', () => {
         { provide: NotificationsService, useValue: mockNotifications },
         { provide: EventsGateway, useValue: mockEvents },
         { provide: LoyaltyService, useValue: mockLoyalty },
+        { provide: ReservationOutboxService, useValue: mockOutbox },
         { provide: SettingsService, useValue: mockSettings },
         ReservationDateService,
       ],
@@ -292,16 +313,7 @@ describe('ReservationsService', () => {
       expect(mockPrisma.reservation.create).not.toHaveBeenCalled();
     });
 
-    it('ponovo provjerava aktivnost servisa na granici upisa', async () => {
-      const serviceRow = {
-        id: 'svc-1',
-        gender: 'FEMALE',
-        name: 'Test',
-        durationMinutes: 60,
-        price: 50,
-        loyaltyEnabled: false,
-        loyaltyMaxDiscountPercent: 0,
-      };
+    it('odbacuje servis koji više nije bookable unutar transakcije', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'client-1',
         email: 'client@test.com',
@@ -310,14 +322,7 @@ describe('ReservationsService', () => {
         mustChangePassword: false,
         gender: 'FEMALE',
       });
-      mockPrisma.service.findMany
-        .mockResolvedValueOnce([serviceRow])
-        .mockResolvedValueOnce([]);
-      mockPrisma.clientCancellationCount.findUnique.mockResolvedValue(null);
-      mockAvailability.getAvailableSlots.mockResolvedValue([
-        { startTime: '09:00', endTime: '10:00', availableStylistCount: 1 },
-      ]);
-      mockPrisma.reservation.findFirst.mockResolvedValue(null);
+      mockPrisma.service.findMany.mockResolvedValue([]);
 
       await expect(
         service.create(
@@ -338,13 +343,8 @@ describe('ReservationsService', () => {
           is: { isActive: true, category: { is: { isActive: true } } },
         },
       };
-      expect(mockPrisma.service.findMany).toHaveBeenCalledTimes(2);
-      expect(mockPrisma.service.findMany).toHaveBeenNthCalledWith(
-        1,
-        expect.objectContaining({ where: expectedServiceEligibility }),
-      );
-      expect(mockPrisma.service.findMany).toHaveBeenNthCalledWith(
-        2,
+      expect(mockPrisma.service.findMany).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.service.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expectedServiceEligibility }),
       );
       expect(mockPrisma.reservation.create).not.toHaveBeenCalled();
@@ -435,13 +435,17 @@ describe('ReservationsService', () => {
       ).toHaveBeenCalledWith({
         data: expect.any(Array),
       });
-      expect(mockNotifications.sendToMany).toHaveBeenCalledWith(
-        ['stylist-1', 'stylist-2'],
-        'Nova rezervacija',
-        expect.any(String),
-        'reservation_new',
-        expect.any(Object),
+      expect(mockPrisma.outboxEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            eventType: 'reservation.created',
+            aggregateId: 'res-1',
+            dedupeKey: 'reservation:res-1:created',
+          }),
+        }),
       );
+      expect(mockOutbox.dispatchAfterCommit).toHaveBeenCalledWith('outbox-1');
+      expect(mockNotifications.sendToMany).not.toHaveBeenCalled();
     });
   });
 
@@ -538,11 +542,7 @@ describe('ReservationsService', () => {
         mustChangePassword: false,
       });
       mockPrisma.service.findMany.mockResolvedValue([serviceRow]);
-      mockPrisma.stylistService.findMany
-        .mockResolvedValueOnce([
-          { stylistProfileId: 'sty-1', serviceId: 'svc-1' },
-        ])
-        .mockResolvedValueOnce([]);
+      mockPrisma.stylistService.findMany.mockResolvedValueOnce([]);
       mockPrisma.salonSettings.findFirst.mockResolvedValue({ id: 'salon-1' });
       mockPrisma.holiday.findFirst.mockResolvedValue(null);
       mockPrisma.salonWorkingHours.findUnique.mockResolvedValue({
@@ -576,8 +576,8 @@ describe('ReservationsService', () => {
         ),
       ).rejects.toThrow(BadRequestException);
 
-      expect(mockPrisma.service.findMany).toHaveBeenCalledTimes(2);
-      expect(mockPrisma.stylistService.findMany).toHaveBeenCalledTimes(2);
+      expect(mockPrisma.service.findMany).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.stylistService.findMany).toHaveBeenCalledTimes(1);
       expect(mockPrisma.reservation.create).not.toHaveBeenCalled();
       expect(
         mockPrisma.reservationServiceItem.createMany,

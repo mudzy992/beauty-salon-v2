@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -10,9 +11,13 @@ import { ReservationDateService } from './reservation-date.service';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationNotifyService } from './reservation-notify.service';
 import { ReservationQueriesService } from './reservation-queries.service';
-import { RESERVATION_STATUS } from './constants';
+import {
+  RESERVATION_STATUS,
+  SLOT_OCCUPYING_STATUSES,
+} from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
+import { acquireReservationDayLock } from './utils/booking-advisory-lock';
 
 @Injectable()
 export class ReservationRescheduleClientService {
@@ -26,77 +31,113 @@ export class ReservationRescheduleClientService {
   ) {}
 
   async acceptReschedule(reservationId: string, userId: string) {
-    const r = await this.prisma.reservation.findUnique({
+    const snapshot = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
       include: { items: { select: { serviceId: true } } },
     });
-    if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
-    if (r.clientId !== userId)
+    if (!snapshot) throw new NotFoundException('Rezervacija nije pronađena.');
+    if (snapshot.clientId !== userId)
       throw new ForbiddenException('Nemate pristup ovoj rezervaciji.');
-    if (r.rescheduleStatus !== 'PENDING')
+    if (snapshot.rescheduleStatus !== 'PENDING')
       throw new BadRequestException(
         'Nema aktivnog zahtjeva za potvrdu termina.',
       );
     if (
-      !r.rescheduleProposedStartTime ||
-      !r.rescheduleProposedEndTime
+      !snapshot.rescheduleProposedStartTime ||
+      !snapshot.rescheduleProposedEndTime
     ) {
       throw new BadRequestException(
         'Nedostaju predloženi podaci za novi termin.',
       );
     }
-    const dayStart = this.dates.parseDateOnly(r.reservationDate);
-    const dayEnd = new Date(dayStart);
-    dayEnd.setHours(23, 59, 59, 999);
-    const conflicts = await this.prisma.reservation.findFirst({
-      where: {
-        id: { not: r.id },
-        confirmedStylistId: r.confirmedStylistId,
-        reservationDate: { gte: dayStart, lte: dayEnd },
-        status: {
-          in: [
-            RESERVATION_STATUS.CONFIRMED,
-            RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
-            RESERVATION_STATUS.IN_PROGRESS,
-          ] as any,
-        },
-        OR: [
-          {
-            AND: [
-              { startTime: { lt: r.rescheduleProposedEndTime } },
-              { endTime: { gt: r.rescheduleProposedStartTime } },
-            ],
+
+    await this.prisma.$transaction(async (tx) => {
+      await acquireReservationDayLock(tx, snapshot.reservationDate);
+      const current = await tx.reservation.findUnique({
+        where: { id: reservationId },
+        include: { items: { select: { serviceId: true } } },
+      });
+      if (!current) throw new NotFoundException('Rezervacija nije pronađena.');
+      if (current.clientId !== userId)
+        throw new ForbiddenException('Nemate pristup ovoj rezervaciji.');
+      if (
+        current.reservationDate.getTime() !== snapshot.reservationDate.getTime()
+      ) {
+        throw new ConflictException(
+          'Rezervacija je istovremeno pomjerena. Osvježite termin i pokušajte ponovo.',
+        );
+      }
+      if (current.rescheduleStatus !== 'PENDING')
+        throw new BadRequestException(
+          'Nema aktivnog zahtjeva za potvrdu termina.',
+        );
+      const nextStart = current.rescheduleProposedStartTime;
+      const nextEnd = current.rescheduleProposedEndTime;
+      if (!nextStart || !nextEnd) {
+        throw new BadRequestException(
+          'Nedostaju predloženi podaci za novi termin.',
+        );
+      }
+
+      if (current.confirmedStylistId) {
+        const dayStart = this.dates.parseDateOnly(current.reservationDate);
+        const dayEnd = new Date(dayStart);
+        dayEnd.setUTCHours(23, 59, 59, 999);
+        const conflict = await tx.reservation.findFirst({
+          where: {
+            id: { not: current.id },
+            confirmedStylistId: current.confirmedStylistId,
+            reservationDate: { gte: dayStart, lte: dayEnd },
+            status: { in: [...SLOT_OCCUPYING_STATUSES] as any },
+            startTime: { lt: nextEnd },
+            endTime: { gt: nextStart },
           },
-        ],
-      },
-      select: { id: true },
+          select: { id: true },
+        });
+        if (conflict) {
+          throw new BadRequestException(
+            'Novi termin više nije dostupan zbog preklapanja. Pokušajte ponovo.',
+          );
+        }
+      }
+
+      const serviceIds =
+        current.items.length > 0
+          ? current.items.map((item) => item.serviceId)
+          : [current.serviceId];
+      await assertClientDayBookingAllowed({
+        prisma: tx,
+        clientId: current.clientId,
+        reservationDate: current.reservationDate,
+        startTime: nextStart,
+        endTime: nextEnd,
+        serviceIds,
+        excludeReservationId: current.id,
+      });
+
+      const updated = await tx.reservation.updateMany({
+        where: {
+          id: current.id,
+          clientId: userId,
+          rescheduleStatus: 'PENDING',
+          rescheduleProposedStartTime: nextStart,
+          rescheduleProposedEndTime: nextEnd,
+        },
+        data: {
+          startTime: nextStart,
+          endTime: nextEnd,
+          rescheduleStatus: 'ACCEPTED',
+          rescheduleProposedStartTime: null,
+          rescheduleProposedEndTime: null,
+        },
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException(
+          'Zahtjev za promjenu termina je već obrađen. Osvježite rezervaciju.',
+        );
+      }
     });
-    if (conflicts) {
-      throw new BadRequestException(
-        'Novi termin više nije dostupan zbog preklapanja. Pokušajte ponovo.',
-      );
-    }
-    const serviceIds =
-      r.items.length > 0 ? r.items.map((item) => item.serviceId) : [r.serviceId];
-    await assertClientDayBookingAllowed({
-      prisma: this.prisma,
-      clientId: r.clientId,
-      reservationDate: r.reservationDate,
-      startTime: r.rescheduleProposedStartTime,
-      endTime: r.rescheduleProposedEndTime,
-      serviceIds,
-      excludeReservationId: r.id,
-    });
-    await this.prisma.reservation.update({
-      where: { id: reservationId },
-      data: {
-        startTime: r.rescheduleProposedStartTime,
-        endTime: r.rescheduleProposedEndTime,
-        rescheduleStatus: 'ACCEPTED',
-        rescheduleProposedStartTime: null,
-        rescheduleProposedEndTime: null,
-      },
-    });
+
     await this.notify.notifyStylistAboutClientDecision(
       reservationId,
       'accepted',

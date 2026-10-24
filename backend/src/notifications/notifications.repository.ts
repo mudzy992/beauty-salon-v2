@@ -10,6 +10,23 @@ export class NotificationsRepository {
     return this.prisma.notification.create(params)
   }
 
+  createNotificationForEvent(params: {
+    eventId: string;
+    userId: string;
+    data: Prisma.NotificationUncheckedCreateInput;
+  }) {
+    return this.prisma.notification.upsert({
+      where: {
+        sourceEventId_userId: {
+          sourceEventId: params.eventId,
+          userId: params.userId,
+        },
+      },
+      create: { ...params.data, sourceEventId: params.eventId },
+      update: {},
+    })
+  }
+
   findNotificationsForUser(params: Prisma.NotificationFindManyArgs) {
     return this.prisma.notification.findMany(params)
   }

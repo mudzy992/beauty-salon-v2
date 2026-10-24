@@ -1,10 +1,16 @@
 import { BadRequestException } from '@nestjs/common'
-import type { PrismaService } from '../../prisma/prisma.service'
+import type { Prisma } from '@prisma/client'
 import { toLocalDateOnlyString } from '../../common/utils/date-only'
 import { timeToMinutes } from './time-slot.utils'
 
 type AssertAdminWorkingHoursInput = {
-  prisma: PrismaService
+  prisma: Pick<
+    Prisma.TransactionClient,
+    | 'salonSettings'
+    | 'holiday'
+    | 'salonWorkingHours'
+    | 'stylistWorkingHours'
+  >
   reservationDate: Date
   startTime: string
   endTime: string

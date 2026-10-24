@@ -49,6 +49,19 @@ import { AvailabilityService } from '../src/reservations/availability.service';
 import { AvailabilitySlotsService } from '../src/reservations/availability-slots.service';
 import { ReservationsController } from '../src/reservations/reservations.controller';
 import { ReservationsService } from '../src/reservations/reservations.service';
+import { ReservationCreateService } from '../src/reservations/reservation-create.service';
+import { ReservationDirectCreateService } from '../src/reservations/reservation-direct-create.service';
+import { ReservationClientActionsService } from '../src/reservations/reservation-client-actions.service';
+import { ReservationDateService } from '../src/reservations/reservation-date.service';
+import { ReservationNotifyService } from '../src/reservations/reservation-notify.service';
+import { ReservationOutboxService } from '../src/reservations/reservation-outbox.service';
+import { ReservationQueriesService } from '../src/reservations/reservation-queries.service';
+import { ReservationRescheduleClientService } from '../src/reservations/reservation-reschedule-client.service';
+import { ReservationSharedService } from '../src/reservations/reservation-shared.service';
+import type { CreateReservationDto } from '../src/reservations/dto/create-reservation.dto';
+import type { AdminCreateReservationDto } from '../src/reservations/dto/admin-create-reservation.dto';
+import type { CancelReservationDto } from '../src/reservations/dto/cancel-reservation.dto';
+import { LoyaltyService } from '../src/loyalty/loyalty.service';
 import { NotificationsService } from '../src/notifications/notifications.service';
 import { AnalyticsController } from '../src/analytics/analytics.controller';
 import { AnalyticsService } from '../src/analytics/analytics.service';
@@ -106,6 +119,12 @@ const getDisposableDatabaseUrl = (): string => {
 const getHttpServer = (app: INestApplication): Server =>
   app.getHttpServer() as Server;
 
+const addWeeks = (date: string, weeks: number): string => {
+  const [year, month, day] = date.split('-').map(Number);
+  const value = new Date(Date.UTC(year!, month! - 1, day! + weeks * 7));
+  return value.toISOString().slice(0, 10);
+};
+
 type FixtureIds = {
   users: string[];
   posts: string[];
@@ -124,6 +143,8 @@ type FixtureIds = {
   incomeBookCreatedByTest?: string;
   ownerUserId?: string;
   stylistProfile?: string;
+  additionalStylistProfiles: string[];
+  reservationIds: string[];
   serviceCategory?: string;
   serviceSubcategory?: string;
   service?: string;
@@ -144,9 +165,11 @@ const fixtureIds: FixtureIds = {
   uploads: [],
   clientDebts: [],
   incomeManualEntries: [],
+  additionalStylistProfiles: [],
+  reservationIds: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, BIZ-01 and BIZ-04', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, BIZ-01, BIZ-02 and BIZ-04', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -155,6 +178,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
   let ownerToken: string;
   let stylistToken: string;
   let systemAdminToken: string;
+  let concurrentClientTokens: Array<{ userId: string; token: string }>;
   let clientEmail: string;
   let pickerQueryPrefix: string;
   let pickerClientIds: string[];
@@ -175,6 +199,35 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
   let unconsentedDailyLogEntryId: string;
   let readConsentDerivativeMock: jest.SpyInstance;
   let uploadRoot: string | undefined;
+
+  const submitClientBooking = async (params: {
+    reservationDate: string;
+    token?: string;
+    startTime?: string;
+    endTime?: string;
+    idempotencyKey?: string;
+    desiredLoyaltyPercent?: number;
+  }) => {
+    const key = params.idempotencyKey ?? randomUUID();
+    const body = {
+      serviceIds: [serviceId],
+      reservationDate: params.reservationDate,
+      startTime: params.startTime ?? '09:00',
+      endTime: params.endTime ?? '09:45',
+      ...(params.desiredLoyaltyPercent === undefined
+        ? {}
+        : { desiredLoyaltyPercent: params.desiredLoyaltyPercent }),
+    };
+    const response = await request(getHttpServer(app!))
+      .post('/api/reservations')
+      .set('Authorization', `Bearer ${params.token ?? clientToken}`)
+      .set('Idempotency-Key', key)
+      .send(body);
+    if (typeof response.body?.id === 'string') {
+      fixtureIds.reservationIds.push(response.body.id);
+    }
+    return { response, key, body };
+  };
 
   beforeAll(async () => {
     const databaseUrl = getDisposableDatabaseUrl();
@@ -233,24 +286,107 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         { provide: DailyLogAdminService, useValue: {} },
         { provide: DailyLogDispositionService, useValue: {} },
         { provide: DailyLogRestoreService, useValue: {} },
-        { provide: ReservationsService, useValue: {} },
+        {
+          provide: ReservationsService,
+          useFactory: (
+            createSvc: ReservationCreateService,
+            directCreateSvc: ReservationDirectCreateService,
+            clientActionsSvc: ReservationClientActionsService,
+            rescheduleClientSvc: ReservationRescheduleClientService,
+          ) => ({
+            create: (
+              dto: CreateReservationDto,
+              clientId: string,
+              idempotencyKey?: string,
+            ) => createSvc.create(dto, clientId, { idempotencyKey }),
+            createByAdmin: (dto: AdminCreateReservationDto, userId: string) =>
+              dto.bookingMode === 'STAFF_ADMIN_DIRECT'
+                ? directCreateSvc.createByAdmin(dto, userId)
+                : createSvc.createByAdmin(dto),
+            cancelByClient: (
+              id: string,
+              clientId: string,
+              dto: CancelReservationDto,
+            ) => clientActionsSvc.cancelByClient(id, clientId, dto),
+            acceptReschedule: (id: string, userId: string) =>
+              rescheduleClientSvc.acceptReschedule(id, userId),
+          }),
+          inject: [
+            ReservationCreateService,
+            ReservationDirectCreateService,
+            ReservationClientActionsService,
+            ReservationRescheduleClientService,
+          ],
+        },
         AvailabilityService,
         AvailabilityDatesService,
         AvailabilitySlotsService,
         AvailabilityDebugService,
+        ReservationDateService,
+        ReservationSharedService,
+        ReservationQueriesService,
+        ReservationCreateService,
+        ReservationDirectCreateService,
+        ReservationClientActionsService,
+        ReservationRescheduleClientService,
+        ReservationOutboxService,
+        LoyaltyService,
         AuthService,
         JwtStrategy,
         RolesGuard,
-        { provide: ConfigService, useValue: configService },
-        { provide: NotificationsService, useValue: {} },
+        {
+          provide: ConfigService,
+          useValue: configService,
+        },
+        {
+          provide: NotificationsService,
+          useValue: {
+            sendToMany: jest.fn().mockResolvedValue(undefined),
+            send: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: ReservationNotifyService,
+          useValue: {
+            notifyStylistAboutClientDecision: jest
+              .fn()
+              .mockResolvedValue(undefined),
+          },
+        },
         {
           provide: SettingsService,
           useValue: {
             getBoolean: () => Promise.resolve(false),
-            getString: () => Promise.resolve(''),
+            getString: () => Promise.resolve('Europe/Sarajevo'),
+            getValue: async (key: string) => {
+              const values: Record<string, string> = {
+                loyalty_enabled: 'true',
+                loyalty_redeem_enabled: 'true',
+                loyalty_tiers: JSON.stringify([
+                  {
+                    id: 'test',
+                    name: 'Test',
+                    minPoints: 0,
+                    maxDiscountPercent: 100,
+                  },
+                ]),
+                loyalty_max_discount_percent: '100',
+                loyalty_redeem_rate: '0.1',
+                loyalty_min_points_to_redeem: '0',
+              };
+              return values[key] ?? null;
+            },
           },
         },
-        { provide: EventsGateway, useValue: {} },
+        {
+          provide: EventsGateway,
+          useValue: {
+            emitToAdmins: jest.fn(),
+            emitToStylists: jest.fn(),
+            emitToAll: jest.fn(),
+            emitToUser: jest.fn(),
+          },
+        },
         { provide: APP_GUARD, useClass: JwtAuthGuard },
       ],
     }).compile();
@@ -314,6 +450,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         googleId: `synthetic-google-${suffix}`,
         facebookId: `synthetic-facebook-${suffix}`,
         phone: '+38761000000',
+        gender: 'FEMALE',
+        genderOnboardingCompleted: true,
+        isEmailVerified: true,
         firstName: 'Test',
         lastName: 'Client',
       },
@@ -376,6 +515,33 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       { expiresIn: '5m' },
     );
 
+    concurrentClientTokens = [];
+    for (let index = 0; index < 20; index += 1) {
+      const clientForConcurrency = await prisma.user.create({
+        data: {
+          username: `biz02-client-${suffix}-${index}`,
+          email: `biz02-client-${suffix}-${index}@example.test`,
+          phone: `+3876200${String(index).padStart(4, '0')}`,
+          gender: 'FEMALE',
+          genderOnboardingCompleted: true,
+          isEmailVerified: true,
+          firstName: 'BIZ02',
+          lastName: `Client ${index}`,
+        },
+      });
+      fixtureIds.users.push(clientForConcurrency.id);
+      await prisma.userRole.create({
+        data: { userId: clientForConcurrency.id, roleId: clientRole.id },
+      });
+      concurrentClientTokens.push({
+        userId: clientForConcurrency.id,
+        token: jwtService.sign(
+          { sub: clientForConcurrency.id },
+          { expiresIn: '5m' },
+        ),
+      });
+    }
+
     for (const suffixPart of ['a', 'b']) {
       const pickerClient = await prisma.user.create({
         data: {
@@ -427,6 +593,8 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         name: serviceName,
         durationMinutes: 45,
         price: 25,
+        loyaltyEnabled: true,
+        loyaltyMaxDiscountPercent: 20,
       },
     });
     fixtureIds.service = service.id;
@@ -754,6 +922,30 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
           where: { id: { in: fixtureIds.dailyLogEntries } },
         });
       }
+      const bookingFixtureReservations =
+        fixtureIds.users.length && fixtureIds.service
+          ? await prisma.reservation.findMany({
+              where: {
+                serviceId: fixtureIds.service,
+                clientId: { in: fixtureIds.users },
+              },
+              select: { id: true },
+            })
+          : [];
+      const reservationIdsToDelete = [
+        ...new Set([
+          ...fixtureIds.reservationIds,
+          ...bookingFixtureReservations.map(({ id }) => id),
+        ]),
+      ];
+      if (reservationIdsToDelete.length) {
+        await prisma.outboxEvent.deleteMany({
+          where: { aggregateId: { in: reservationIdsToDelete } },
+        });
+        await prisma.reservation.deleteMany({
+          where: { id: { in: reservationIdsToDelete } },
+        });
+      }
       if (fixtureIds.incomeBookId) {
         const [autoTotals, manualTotals] = await Promise.all([
           prisma.incomeBookEntry.aggregate({
@@ -795,6 +987,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       if (fixtureIds.users.length) {
         await prisma.upload.deleteMany({
           where: { uploadedById: { in: fixtureIds.users } },
+        });
+      }
+      if (fixtureIds.additionalStylistProfiles.length) {
+        await prisma.stylistProfile.deleteMany({
+          where: { id: { in: fixtureIds.additionalStylistProfiles } },
         });
       }
       if (fixtureIds.stylistProfile) {
@@ -2178,4 +2375,478 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       .set('Authorization', `Bearer ${clientToken}`)
       .expect(200);
   });
+
+  it('replays a client booking idempotently and persists one reservation graph and outbox event', async () => {
+    const db = prisma!;
+    const date = addWeeks(availabilityDate, 1);
+    const idempotencyKey = randomUUID();
+    const first = await submitClientBooking({
+      reservationDate: date,
+      idempotencyKey,
+    });
+    expect(first.response.status).toBe(201);
+    expect(first.response.body.id).toBeTruthy();
+
+    const replay = await submitClientBooking({
+      reservationDate: date,
+      idempotencyKey,
+    });
+    expect(replay.response.status).toBe(201);
+    expect(replay.response.body.id).toBe(first.response.body.id);
+
+    const changedPayload = await submitClientBooking({
+      reservationDate: date,
+      startTime: '09:55',
+      endTime: '10:40',
+      idempotencyKey,
+    });
+    expect(changedPayload.response.status).toBe(409);
+
+    const concurrentDate = addWeeks(availabilityDate, 8);
+    const concurrentKey = randomUUID();
+    const [concurrentReplayA, concurrentReplayB] = await Promise.all([
+      submitClientBooking({
+        reservationDate: concurrentDate,
+        idempotencyKey: concurrentKey,
+      }),
+      submitClientBooking({
+        reservationDate: concurrentDate,
+        idempotencyKey: concurrentKey,
+      }),
+    ]);
+    expect(concurrentReplayA.response.status).toBe(201);
+    expect(concurrentReplayB.response.status).toBe(201);
+    expect(concurrentReplayB.response.body.id).toBe(
+      concurrentReplayA.response.body.id,
+    );
+    expect(
+      await db.reservation.count({
+        where: { clientId: clientUserId, idempotencyKey: concurrentKey },
+      }),
+    ).toBe(1);
+    expect(
+      await db.outboxEvent.count({
+        where: {
+          aggregateId: concurrentReplayA.response.body.id as string,
+          eventType: 'reservation.created',
+        },
+      }),
+    ).toBe(1);
+
+    const reservationId = first.response.body.id as string;
+    const persisted = await db.reservation.findUnique({
+      where: { id: reservationId },
+      select: {
+        idempotencyKey: true,
+        idempotencyRequestHash: true,
+        items: { select: { id: true, serviceId: true } },
+        stylistResponses: { select: { id: true } },
+      },
+    });
+    expect(persisted?.idempotencyKey).toBe(idempotencyKey);
+    expect(persisted?.idempotencyRequestHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(persisted?.items).toHaveLength(1);
+    expect(persisted?.items[0]?.serviceId).toBe(serviceId);
+    expect(persisted?.stylistResponses).toHaveLength(1);
+    expect(
+      await db.reservation.count({
+        where: { clientId: clientUserId, idempotencyKey },
+      }),
+    ).toBe(1);
+
+    const outboxEvents = await db.outboxEvent.findMany({
+      where: { aggregateId: reservationId },
+      select: { eventType: true, status: true },
+    });
+    expect(outboxEvents).toEqual([
+      { eventType: 'reservation.created', status: 'DELIVERED' },
+    ]);
+  }, 30_000);
+
+  it('serializes concurrent client creates so one stylist has only one booking for a one-capacity slot', async () => {
+    const db = prisma!;
+    const date = addWeeks(availabilityDate, 2);
+    const results = await Promise.all(
+      concurrentClientTokens.map(({ token }) =>
+        submitClientBooking({
+          reservationDate: date,
+          token,
+          idempotencyKey: randomUUID(),
+        }),
+      ),
+    );
+    const statuses = results.map(({ response }) => response.status);
+    expect(statuses.filter((status) => status === 201)).toHaveLength(1);
+    expect(statuses.filter((status) => status === 400)).toHaveLength(
+      concurrentClientTokens.length - 1,
+    );
+
+    const activeReservations = await db.reservation.findMany({
+      where: {
+        serviceId,
+        reservationDate: new Date(`${date}T00:00:00.000Z`),
+        startTime: '09:00',
+        status: {
+          in: [
+            'PENDING',
+            'STYLIST_REVIEW',
+            'CONFIRMED',
+            'ATTENDANCE_CONFIRMED',
+            'IN_PROGRESS',
+          ],
+        },
+        clientId: { in: concurrentClientTokens.map(({ userId }) => userId) },
+      },
+      select: { clientId: true, confirmedStylistId: true, status: true },
+    });
+    expect(activeReservations).toHaveLength(1);
+    expect(activeReservations[0]?.status).toBe('PENDING');
+    expect(activeReservations[0]?.confirmedStylistId).toBeNull();
+  }, 30_000);
+
+  it('allows simultaneous direct bookings with distinct stylists and rejects the same stylist overlap', async () => {
+    const db = prisma!;
+    const date = addWeeks(availabilityDate, 3);
+    const suffix = randomUUID().replaceAll('-', '');
+    const secondStylistUser = await db.user.create({
+      data: {
+        username: `biz02-second-stylist-${suffix}`,
+        email: `biz02-second-stylist-${suffix}@example.test`,
+        firstName: 'BIZ02',
+        lastName: 'Second Stylist',
+      },
+    });
+    fixtureIds.users.push(secondStylistUser.id);
+    const stylistRole = await db.role.findUnique({
+      where: { name: 'STYLIST' },
+      select: { id: true },
+    });
+    expect(stylistRole).not.toBeNull();
+    await db.userRole.create({
+      data: { userId: secondStylistUser.id, roleId: stylistRole!.id },
+    });
+    const secondStylistProfile = await db.stylistProfile.create({
+      data: { userId: secondStylistUser.id, status: 'ACTIVE' },
+    });
+    fixtureIds.additionalStylistProfiles.push(secondStylistProfile.id);
+    const dayOfWeek = new Date(`${date}T12:00:00`).getDay();
+    await db.stylistWorkingHours.create({
+      data: {
+        stylistProfileId: secondStylistProfile.id,
+        dayOfWeek,
+        startTime: '09:00',
+        endTime: '17:00',
+        isWorkingDay: true,
+      },
+    });
+    await db.stylistService.create({
+      data: { stylistProfileId: secondStylistProfile.id, serviceId },
+    });
+
+    const createDirect = (clientId: string, stylistProfileId: string) =>
+      request(getHttpServer(app!))
+        .post('/api/reservations/admin')
+        .set('Authorization', `Bearer ${systemAdminToken}`)
+        .send({
+          clientId,
+          bookingMode: 'STAFF_ADMIN_DIRECT',
+          stylistProfileId,
+          serviceIds: [serviceId],
+          reservationDate: date,
+          startTime: '09:00',
+          endTime: '09:45',
+        });
+
+    const first = await createDirect(
+      concurrentClientTokens[0]!.userId,
+      fixtureIds.stylistProfile!,
+    );
+    expect(first.status).toBe(201);
+    if (typeof first.body?.id === 'string') {
+      fixtureIds.reservationIds.push(first.body.id);
+    }
+
+    const second = await createDirect(
+      concurrentClientTokens[1]!.userId,
+      secondStylistProfile.id,
+    );
+    expect(second.status).toBe(201);
+    if (typeof second.body?.id === 'string') {
+      fixtureIds.reservationIds.push(second.body.id);
+    }
+
+    const overlapping = await createDirect(
+      concurrentClientTokens[2]!.userId,
+      fixtureIds.stylistProfile!,
+    );
+    expect(overlapping.status).toBe(400);
+
+    const confirmed = await db.reservation.findMany({
+      where: {
+        serviceId,
+        reservationDate: new Date(`${date}T00:00:00.000Z`),
+        startTime: '09:00',
+        status: 'CONFIRMED',
+        clientId: {
+          in: concurrentClientTokens.slice(0, 3).map(({ userId }) => userId),
+        },
+      },
+      select: { confirmedStylistId: true },
+    });
+    expect(confirmed).toHaveLength(2);
+    expect(
+      new Set(confirmed.map(({ confirmedStylistId }) => confirmedStylistId))
+        .size,
+    ).toBe(2);
+  }, 30_000);
+
+  it('rejects a direct assignment when inbox holds already consume all stylist capacity', async () => {
+    const db = prisma!;
+    const date = addWeeks(availabilityDate, 7);
+    const firstHold = await submitClientBooking({
+      reservationDate: date,
+      token: concurrentClientTokens[4]!.token,
+    });
+    const secondHold = await submitClientBooking({
+      reservationDate: date,
+      token: concurrentClientTokens[5]!.token,
+    });
+    expect(firstHold.response.status).toBe(201);
+    expect(secondHold.response.status).toBe(201);
+
+    const direct = await request(getHttpServer(app!))
+      .post('/api/reservations/admin')
+      .set('Authorization', `Bearer ${systemAdminToken}`)
+      .send({
+        clientId: concurrentClientTokens[6]!.userId,
+        bookingMode: 'STAFF_ADMIN_DIRECT',
+        stylistProfileId: fixtureIds.stylistProfile,
+        serviceIds: [serviceId],
+        reservationDate: date,
+        startTime: '09:00',
+        endTime: '09:45',
+      });
+    expect(direct.status).toBe(400);
+
+    const activeReservations = await db.reservation.findMany({
+      where: {
+        serviceId,
+        reservationDate: new Date(`${date}T00:00:00.000Z`),
+        startTime: '09:00',
+        status: { in: ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED'] },
+        clientId: {
+          in: concurrentClientTokens.slice(4, 7).map(({ userId }) => userId),
+        },
+      },
+      select: { status: true },
+    });
+    expect(activeReservations).toHaveLength(2);
+    expect(activeReservations.every(({ status }) => status === 'PENDING')).toBe(
+      true,
+    );
+  }, 30_000);
+
+  it('releases slot capacity after client cancellation and accepts a conflict-checked reschedule', async () => {
+    const db = prisma!;
+    const httpServer = getHttpServer(app!);
+    const cancelDate = addWeeks(availabilityDate, 4);
+    const slotsBefore = await request(httpServer)
+      .get('/api/reservations/availability/slots')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .query({ serviceId, date: cancelDate })
+      .expect(200);
+    expect(
+      slotsBefore.body.find(
+        (slot: { startTime: string }) => slot.startTime === '09:00',
+      ),
+    ).toMatchObject({ availableStylistCount: 1, holdState: 'none' });
+
+    const created = await submitClientBooking({ reservationDate: cancelDate });
+    expect(created.response.status).toBe(201);
+    const reservationId = created.response.body.id as string;
+    const heldSlots = await request(httpServer)
+      .get('/api/reservations/availability/slots')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .query({ serviceId, date: cancelDate })
+      .expect(200);
+    expect(
+      heldSlots.body.find(
+        (slot: { startTime: string }) => slot.startTime === '09:00',
+      ),
+    ).toMatchObject({ availableStylistCount: 0, holdState: 'pending_hold' });
+
+    const cancelled = await request(httpServer)
+      .post(`/api/reservations/${reservationId}/cancel`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({ cancelReason: 'BIZ-02 synthetic cancellation' })
+      .expect(201);
+    expect(cancelled.body.status).toBe('CANCELLED_BY_CLIENT');
+    const releasedSlots = await request(httpServer)
+      .get('/api/reservations/availability/slots')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .query({ serviceId, date: cancelDate })
+      .expect(200);
+    expect(
+      releasedSlots.body.find(
+        (slot: { startTime: string }) => slot.startTime === '09:00',
+      ),
+    ).toMatchObject({ availableStylistCount: 1, holdState: 'none' });
+
+    const rescheduleDate = addWeeks(availabilityDate, 5);
+    const rescheduleBooking = await submitClientBooking({
+      reservationDate: rescheduleDate,
+    });
+    expect(rescheduleBooking.response.status).toBe(201);
+    const rescheduledId = rescheduleBooking.response.body.id as string;
+    await db.reservation.update({
+      where: { id: rescheduledId },
+      data: {
+        status: 'CONFIRMED',
+        confirmedStylistId: fixtureIds.stylistProfile!,
+        rescheduleStatus: 'PENDING',
+        rescheduleProposedStartTime: '10:50',
+        rescheduleProposedEndTime: '11:35',
+      },
+    });
+
+    const accepted = await request(httpServer)
+      .post(`/api/reservations/${rescheduledId}/reschedule/accept`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(201);
+    expect(accepted.body).toMatchObject({
+      id: rescheduledId,
+      startTime: '10:50',
+      endTime: '11:35',
+      rescheduleStatus: 'ACCEPTED',
+      rescheduleProposedStartTime: null,
+      rescheduleProposedEndTime: null,
+    });
+
+    const overlappingDirect = await request(httpServer)
+      .post('/api/reservations/admin')
+      .set('Authorization', `Bearer ${systemAdminToken}`)
+      .send({
+        clientId: concurrentClientTokens[3]!.userId,
+        bookingMode: 'STAFF_ADMIN_DIRECT',
+        stylistProfileId: fixtureIds.stylistProfile,
+        serviceIds: [serviceId],
+        reservationDate: rescheduleDate,
+        startTime: '10:50',
+        endTime: '11:35',
+      });
+    expect(overlappingDirect.status).toBe(400);
+  }, 30_000);
+
+  it('rolls back reservation, loyalty debit and marker when the transactional outbox insert fails', async () => {
+    const db = prisma!;
+    const loyaltyAccount = await db.loyaltyAccount.upsert({
+      where: { userId: clientUserId },
+      update: { points: 500, tier: 'Test', isActive: true },
+      create: {
+        userId: clientUserId,
+        points: 500,
+        tier: 'Test',
+        isActive: true,
+      },
+    });
+    const date = addWeeks(availabilityDate, 6);
+    const idempotencyKey = randomUUID();
+    const suffix = randomUUID().replaceAll('-', '');
+    const functionName = `e2e_fail_biz02_outbox_${suffix}`;
+    const triggerName = `e2e_fail_biz02_outbox_${suffix}`;
+    const outboxCountBeforeFailure = await db.outboxEvent.count();
+
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${functionName}"() RETURNS trigger
+        LANGUAGE plpgsql AS $function$
+        BEGIN
+          IF NEW."event_type" = 'reservation.created' THEN
+            RAISE EXCEPTION 'synthetic BIZ-02 outbox failure';
+          END IF;
+          RETURN NEW;
+        END;
+        $function$
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE INSERT ON "outbox_events"
+        FOR EACH ROW EXECUTE FUNCTION "${functionName}"()
+      `);
+
+      const failed = await submitClientBooking({
+        reservationDate: date,
+        idempotencyKey,
+        desiredLoyaltyPercent: 10,
+      });
+      expect(failed.response.status).toBe(500);
+    } finally {
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "outbox_events"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+    }
+
+    expect(
+      await db.reservation.count({
+        where: { clientId: clientUserId, idempotencyKey },
+      }),
+    ).toBe(0);
+    expect(await db.outboxEvent.count()).toBe(outboxCountBeforeFailure);
+    expect(
+      await db.loyaltyAccount.findUnique({
+        where: { id: loyaltyAccount.id },
+        select: { points: true },
+      }),
+    ).toEqual({ points: 500 });
+    expect(
+      await db.loyaltyTransaction.count({
+        where: { accountId: loyaltyAccount.id, type: 'REDEEM' },
+      }),
+    ).toBe(0);
+
+    const succeeded = await submitClientBooking({
+      reservationDate: date,
+      idempotencyKey,
+      desiredLoyaltyPercent: 10,
+    });
+    expect(succeeded.response.status).toBe(201);
+    const reservationId = succeeded.response.body.id as string;
+    const persisted = await db.reservation.findUnique({
+      where: { id: reservationId },
+      select: {
+        loyaltyDiscountPercent: true,
+        loyaltyDiscountAmount: true,
+        loyaltyPointsUsed: true,
+      },
+    });
+    expect(persisted).toEqual({
+      loyaltyDiscountPercent: 10,
+      loyaltyDiscountAmount: 2.5,
+      loyaltyPointsUsed: 25,
+    });
+    expect(
+      await db.loyaltyAccount.findUnique({
+        where: { id: loyaltyAccount.id },
+        select: { points: true },
+      }),
+    ).toEqual({ points: 475 });
+    expect(
+      await db.loyaltyTransaction.count({
+        where: {
+          accountId: loyaltyAccount.id,
+          type: 'REDEEM',
+          source: `Reservation ${reservationId} (10%)`,
+        },
+      }),
+    ).toBe(1);
+    expect(
+      await db.outboxEvent.count({
+        where: {
+          aggregateId: reservationId,
+          eventType: 'reservation.created',
+        },
+      }),
+    ).toBe(1);
+  }, 30_000);
 });

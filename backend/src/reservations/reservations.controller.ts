@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -41,9 +42,10 @@ export class ReservationsController {
   @Post()
   create(
     @Body() dto: CreateReservationDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.reservations.create(dto, user.sub);
+    return this.reservations.create(dto, user.sub, idempotencyKey);
   }
 
   @Post('admin')
