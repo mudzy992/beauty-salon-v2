@@ -229,6 +229,34 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
     return { response, key, body };
   };
 
+  const expectClientBookingCreated = (
+    result: Awaited<ReturnType<typeof submitClientBooking>>,
+    label: string,
+  ): void => {
+    if (result.response.status === 201) return;
+
+    const responseBody = result.response.body as {
+      error?: unknown;
+      message?: unknown;
+    };
+    const error =
+      typeof responseBody?.error === 'string'
+        ? responseBody.error.slice(0, 100)
+        : '';
+    const message =
+      typeof responseBody?.message === 'string'
+        ? responseBody.message.slice(0, 240)
+        : Array.isArray(responseBody?.message)
+          ? responseBody.message
+              .filter((part): part is string => typeof part === 'string')
+              .join('; ')
+              .slice(0, 240)
+          : '';
+    throw new Error(
+      `${label}: expected HTTP 201, received ${result.response.status}; error=${error}; message=${message}`,
+    );
+  };
+
   beforeAll(async () => {
     const databaseUrl = getDisposableDatabaseUrl();
     uploadRoot = await mkdtemp(join(tmpdir(), 'beauty-salon-avatar-e2e-'));
@@ -2384,14 +2412,14 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       reservationDate: date,
       idempotencyKey,
     });
-    expect(first.response.status).toBe(201);
+    expectClientBookingCreated(first, 'First idempotent create');
     expect(first.response.body.id).toBeTruthy();
 
     const replay = await submitClientBooking({
       reservationDate: date,
       idempotencyKey,
     });
-    expect(replay.response.status).toBe(201);
+    expectClientBookingCreated(replay, 'Sequential idempotent replay');
     expect(replay.response.body.id).toBe(first.response.body.id);
 
     const changedPayload = await submitClientBooking({
@@ -2414,8 +2442,14 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         idempotencyKey: concurrentKey,
       }),
     ]);
-    expect(concurrentReplayA.response.status).toBe(201);
-    expect(concurrentReplayB.response.status).toBe(201);
+    expectClientBookingCreated(
+      concurrentReplayA,
+      'Concurrent idempotent replay A',
+    );
+    expectClientBookingCreated(
+      concurrentReplayB,
+      'Concurrent idempotent replay B',
+    );
     expect(concurrentReplayB.response.body.id).toBe(
       concurrentReplayA.response.body.id,
     );
