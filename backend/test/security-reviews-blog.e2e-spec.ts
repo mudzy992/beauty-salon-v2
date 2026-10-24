@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import type { Server } from 'node:http';
-import { ValidationPipe } from '@nestjs/common';
+import { ConflictException, ValidationPipe } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -64,6 +64,7 @@ import type { CreateReservationDto } from '../src/reservations/dto/create-reserv
 import type { AdminCreateReservationDto } from '../src/reservations/dto/admin-create-reservation.dto';
 import type { CancelReservationDto } from '../src/reservations/dto/cancel-reservation.dto';
 import { LoyaltyService } from '../src/loyalty/loyalty.service';
+import { LoyaltyController } from '../src/loyalty/loyalty.controller';
 import { NotificationsService } from '../src/notifications/notifications.service';
 import { AnalyticsController } from '../src/analytics/analytics.controller';
 import { AnalyticsService } from '../src/analytics/analytics.service';
@@ -171,7 +172,7 @@ const fixtureIds: FixtureIds = {
   reservationIds: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, BIZ-01–BIZ-04', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, BIZ-01–BIZ-05', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -292,6 +293,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         UsersController,
         UploadsController,
         DailyLogController,
+        LoyaltyController,
         IncomeController,
         ClientDebtsController,
         MediaConsentController,
@@ -3281,5 +3283,600 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       loyalty: await db.loyaltyTransaction.count(),
       outbox: await db.outboxEvent.count(),
     }).toEqual(reportCountsBefore);
+  }, 30_000);
+
+  it('keeps loyalty redemptions, adjustments and reversals idempotent and reports marker mismatches read-only', async () => {
+    const db = prisma!;
+    const loyalty = app!.get(LoyaltyService);
+    const suffix = randomUUID().replaceAll('-', '');
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    const client = await db.user.create({
+      data: {
+        username: `biz05-client-${suffix}`,
+        email: `biz05-client-${suffix}@example.test`,
+        firstName: 'BIZ05',
+        lastName: 'Loyalty',
+        isEmailVerified: true,
+      },
+    });
+    fixtureIds.users.push(client.id);
+    const clientRole = await db.role.upsert({
+      where: { name: 'CLIENT' },
+      update: {},
+      create: { name: 'CLIENT' },
+    });
+    await db.userRole.create({
+      data: { userId: client.id, roleId: clientRole.id },
+    });
+
+    const account = await db.loyaltyAccount.create({
+      data: { userId: client.id, points: 500, isActive: true },
+      select: { id: true },
+    });
+    await db.loyaltyTransaction.create({
+      data: {
+        accountId: account.id,
+        points: 500,
+        type: 'ADJUST',
+        source: 'BIZ-05 synthetic opening balance',
+        idempotencyKey: `biz05.opening:${suffix}`,
+      },
+    });
+
+    const reservation = await db.reservation.create({
+      data: {
+        clientId: client.id,
+        serviceId,
+        reservationDate: date,
+        startTime: '09:00',
+        endTime: '09:45',
+        status: 'PENDING',
+        publicReferenceCode: `biz05-reservation-${suffix}`,
+        clientViewToken: `biz05-view-${suffix}`,
+      },
+      select: { id: true },
+    });
+    fixtureIds.reservationIds.push(reservation.id);
+    const reservationArgs = {
+      clientId: client.id,
+      reservationId: reservation.id,
+      serviceId,
+      desiredPercent: 10,
+    };
+    await db.$transaction((tx) =>
+      loyalty.redeemForReservation(reservationArgs, tx),
+    );
+    await db.$transaction((tx) =>
+      loyalty.redeemForReservation(reservationArgs, tx),
+    );
+    const reservationAfterReplay = await db.reservation.findUniqueOrThrow({
+      where: { id: reservation.id },
+      select: { loyaltyPointsUsed: true, loyaltyDiscountAmount: true },
+    });
+    expect(reservationAfterReplay.loyaltyPointsUsed).toBe(25);
+    expect(Number(reservationAfterReplay.loyaltyDiscountAmount)).toBe(2.5);
+    expect(
+      await db.loyaltyTransaction.count({
+        where: {
+          accountId: account.id,
+          idempotencyKey: `loyalty.reservation.redeem:${reservation.id}:v1`,
+        },
+      }),
+    ).toBe(1);
+    const balanceAfterReservationReplay = (
+      await db.loyaltyAccount.findUniqueOrThrow({ where: { id: account.id } })
+    ).points;
+    await expect(
+      db.$transaction((tx) =>
+        loyalty.redeemForReservation(
+          { ...reservationArgs, desiredPercent: 20 },
+          tx,
+        ),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(
+      (await db.loyaltyAccount.findUniqueOrThrow({ where: { id: account.id } }))
+        .points,
+    ).toBe(balanceAfterReservationReplay);
+
+    const dailyLogEntry = await db.dailyLogEntry.create({
+      data: {
+        stylistProfileId: fixtureIds.stylistProfile!,
+        clientId: client.id,
+        serviceId,
+        kind: 'SERVICE',
+        date,
+        actualPrice: 22.5,
+        tipAmount: 0,
+        publicReferenceCode: `biz05-daily-log-${suffix}`,
+        status: 'PENDING',
+        isManual: true,
+      },
+      select: { id: true },
+    });
+    fixtureIds.dailyLogEntries.push(dailyLogEntry.id);
+    const dailyLogRedeemArgs = {
+      clientId: client.id,
+      dailyLogEntryId: dailyLogEntry.id,
+      serviceId,
+      desiredPercent: 10,
+      actualPrice: 22.5,
+    };
+    await Promise.all([
+      loyalty.redeemForDailyLog(dailyLogRedeemArgs),
+      loyalty.redeemForDailyLog(dailyLogRedeemArgs),
+    ]);
+    const dailyLogAfterReplay = await db.dailyLogEntry.findUniqueOrThrow({
+      where: { id: dailyLogEntry.id },
+      select: { loyaltyPointsUsed: true, loyaltyDiscountAmount: true },
+    });
+    expect(dailyLogAfterReplay.loyaltyPointsUsed).toBe(25);
+    expect(Number(dailyLogAfterReplay.loyaltyDiscountAmount)).toBe(2.5);
+    expect(
+      await db.loyaltyTransaction.count({
+        where: {
+          accountId: account.id,
+          idempotencyKey: `loyalty.daily-log.redeem:${dailyLogEntry.id}:v1`,
+        },
+      }),
+    ).toBe(1);
+    expect(
+      (await db.loyaltyAccount.findUniqueOrThrow({ where: { id: account.id } }))
+        .points,
+    ).toBe(450);
+
+    const manualRedemptionBodies = [randomUUID(), randomUUID()].map(
+      (idempotencyKey) => ({
+        points: 300,
+        reason: 'BIZ-05 concurrent redemption',
+        idempotencyKey,
+      }),
+    );
+    const manualRedemptionResponses = await Promise.all(
+      manualRedemptionBodies.map((body) =>
+        request(getHttpServer(app!))
+          .post(`/api/loyalty/accounts/${account.id}/redeem`)
+          .set('Authorization', `Bearer ${ownerToken}`)
+          .send(body),
+      ),
+    );
+    expect(
+      manualRedemptionResponses.map((response) => response.status).sort(),
+    ).toEqual([201, 400]);
+    const successfulManualIndex = manualRedemptionResponses.findIndex(
+      (response) => response.status === 201,
+    );
+    expect(successfulManualIndex).toBeGreaterThanOrEqual(0);
+    const successfulManualBody = manualRedemptionBodies[successfulManualIndex]!;
+    const manualReplay = await request(getHttpServer(app!))
+      .post(`/api/loyalty/accounts/${account.id}/redeem`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send(successfulManualBody)
+      .expect(201);
+    expect(manualReplay.body.points).toBe(150);
+    expect(
+      await db.loyaltyTransaction.count({
+        where: {
+          accountId: account.id,
+          idempotencyKey: `loyalty.manual.redeem:${successfulManualBody.idempotencyKey}`,
+        },
+      }),
+    ).toBe(1);
+    await request(getHttpServer(app!))
+      .post(`/api/loyalty/accounts/${account.id}/redeem`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ ...successfulManualBody, points: 299 })
+      .expect(409);
+
+    const adjustmentBody = {
+      pointsDelta: 20,
+      note: 'BIZ-05 idempotent adjustment',
+      idempotencyKey: randomUUID(),
+    };
+    const adjusted = await request(getHttpServer(app!))
+      .post(`/api/loyalty/accounts/${account.id}/adjust`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send(adjustmentBody)
+      .expect(201);
+    const adjustmentReplay = await request(getHttpServer(app!))
+      .post(`/api/loyalty/accounts/${account.id}/adjust`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send(adjustmentBody)
+      .expect(201);
+    expect(adjusted.body.points).toBe(170);
+    expect(adjustmentReplay.body.points).toBe(170);
+    expect(
+      await db.loyaltyTransaction.count({
+        where: {
+          accountId: account.id,
+          idempotencyKey: `loyalty.manual.adjust:${adjustmentBody.idempotencyKey}`,
+        },
+      }),
+    ).toBe(1);
+    await request(getHttpServer(app!))
+      .post(`/api/loyalty/accounts/${account.id}/adjust`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ ...adjustmentBody, pointsDelta: 21 })
+      .expect(409);
+
+    const rollbackRequestKey = randomUUID();
+    const rollbackLedgerKey = `loyalty.manual.redeem:${rollbackRequestKey}`;
+    const triggerName = `biz05_loyalty_rollback_${suffix}`;
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${triggerName}"() RETURNS trigger
+        LANGUAGE plpgsql AS $function$
+        BEGIN
+          IF NEW."idempotency_key" = '${rollbackLedgerKey}' THEN
+            RAISE EXCEPTION 'synthetic BIZ-05 loyalty ledger failure';
+          END IF;
+          RETURN NEW;
+        END;
+        $function$
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE INSERT ON "loyalty_transactions"
+        FOR EACH ROW EXECUTE FUNCTION "${triggerName}"()
+      `);
+      await request(getHttpServer(app!))
+        .post(`/api/loyalty/accounts/${account.id}/redeem`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({
+          points: 10,
+          reason: 'BIZ-05 rollback injection',
+          idempotencyKey: rollbackRequestKey,
+        })
+        .expect(500);
+    } finally {
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "loyalty_transactions"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${triggerName}"()`);
+    }
+    expect(
+      (await db.loyaltyAccount.findUniqueOrThrow({ where: { id: account.id } }))
+        .points,
+    ).toBe(170);
+    expect(
+      await db.loyaltyTransaction.count({
+        where: { idempotencyKey: rollbackLedgerKey },
+      }),
+    ).toBe(0);
+    const rollbackRetry = await request(getHttpServer(app!))
+      .post(`/api/loyalty/accounts/${account.id}/redeem`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({
+        points: 10,
+        reason: 'BIZ-05 rollback injection',
+        idempotencyKey: rollbackRequestKey,
+      })
+      .expect(201);
+    expect(rollbackRetry.body.points).toBe(160);
+
+    const reversalEntry = await db.dailyLogEntry.create({
+      data: {
+        stylistProfileId: fixtureIds.stylistProfile!,
+        clientId: client.id,
+        serviceId,
+        kind: 'SERVICE',
+        date,
+        actualPrice: 25,
+        tipAmount: 0,
+        publicReferenceCode: `biz05-reversal-${suffix}`,
+        status: 'COMPLETED',
+        isManual: true,
+        loyaltyDiscountPercent: 10,
+        loyaltyDiscountAmount: 0.5,
+        loyaltyPointsUsed: 5,
+      },
+      select: { id: true },
+    });
+    fixtureIds.dailyLogEntries.push(reversalEntry.id);
+    await db.$transaction(async (tx) => {
+      await tx.loyaltyAccount.update({
+        where: { id: account.id },
+        data: { points: { increment: 5 } },
+      });
+      await tx.loyaltyTransaction.create({
+        data: {
+          accountId: account.id,
+          points: 10,
+          type: 'EARN',
+          source: `daily_log:${reversalEntry.id}`,
+          idempotencyKey: `daily-log.earn:${reversalEntry.id}:v1`,
+        },
+      });
+      await tx.loyaltyTransaction.create({
+        data: {
+          accountId: account.id,
+          points: 5,
+          type: 'REDEEM',
+          source: `DailyLog ${reversalEntry.id} (10%)`,
+          idempotencyKey: `loyalty.daily-log.redeem:${reversalEntry.id}:v1`,
+        },
+      });
+    });
+    await loyalty.reverseFromDailyLog(reversalEntry.id);
+    await loyalty.reverseFromDailyLog(reversalEntry.id);
+    expect(
+      (await db.loyaltyAccount.findUniqueOrThrow({ where: { id: account.id } }))
+        .points,
+    ).toBe(160);
+    expect(
+      await db.loyaltyTransaction.count({
+        where: {
+          accountId: account.id,
+          type: 'ADJUST',
+          source: `daily_log_reversal:${reversalEntry.id}`,
+        },
+      }),
+    ).toBe(2);
+    expect(
+      await db.loyaltyTransaction.count({
+        where: {
+          idempotencyKey: {
+            startsWith: 'loyalty.daily-log.reversal:',
+          },
+          source: `daily_log_reversal:${reversalEntry.id}`,
+        },
+      }),
+    ).toBe(2);
+
+    const markerOnlyReservation = await db.reservation.create({
+      data: {
+        clientId: client.id,
+        serviceId,
+        reservationDate: date,
+        startTime: '10:00',
+        endTime: '10:45',
+        status: 'PENDING',
+        loyaltyDiscountPercent: 10,
+        loyaltyDiscountAmount: 0.7,
+        loyaltyPointsUsed: 7,
+        publicReferenceCode: `biz05-marker-only-reservation-${suffix}`,
+        clientViewToken: `biz05-marker-only-view-${suffix}`,
+      },
+      select: { id: true },
+    });
+    fixtureIds.reservationIds.push(markerOnlyReservation.id);
+    const transactionOnlyReservation = await db.reservation.create({
+      data: {
+        clientId: client.id,
+        serviceId,
+        reservationDate: date,
+        startTime: '11:00',
+        endTime: '11:45',
+        status: 'PENDING',
+        publicReferenceCode: `biz05-transaction-only-reservation-${suffix}`,
+        clientViewToken: `biz05-transaction-only-view-${suffix}`,
+      },
+      select: { id: true },
+    });
+    fixtureIds.reservationIds.push(transactionOnlyReservation.id);
+    await db.$transaction(async (tx) => {
+      await tx.loyaltyAccount.update({
+        where: { id: account.id },
+        data: { points: { decrement: 3 } },
+      });
+      await tx.loyaltyTransaction.create({
+        data: {
+          accountId: account.id,
+          points: 3,
+          type: 'REDEEM',
+          source: `Reservation ${transactionOnlyReservation.id} (10%)`,
+          idempotencyKey: `loyalty.reservation.redeem:${transactionOnlyReservation.id}:v1`,
+        },
+      });
+    });
+
+    const dailyLogMarkerOnly = await db.dailyLogEntry.create({
+      data: {
+        stylistProfileId: fixtureIds.stylistProfile!,
+        clientId: client.id,
+        serviceId,
+        kind: 'SERVICE',
+        date,
+        actualPrice: 25,
+        tipAmount: 0,
+        publicReferenceCode: `biz05-marker-only-log-${suffix}`,
+        status: 'PENDING',
+        isManual: true,
+        loyaltyDiscountPercent: 10,
+        loyaltyDiscountAmount: 0.9,
+        loyaltyPointsUsed: 9,
+      },
+      select: { id: true },
+    });
+    fixtureIds.dailyLogEntries.push(dailyLogMarkerOnly.id);
+    const dailyLogTransactionOnly = await db.dailyLogEntry.create({
+      data: {
+        stylistProfileId: fixtureIds.stylistProfile!,
+        clientId: client.id,
+        serviceId,
+        kind: 'SERVICE',
+        date,
+        actualPrice: 25,
+        tipAmount: 0,
+        publicReferenceCode: `biz05-transaction-only-log-${suffix}`,
+        status: 'PENDING',
+        isManual: true,
+      },
+      select: { id: true },
+    });
+    fixtureIds.dailyLogEntries.push(dailyLogTransactionOnly.id);
+    await db.$transaction(async (tx) => {
+      await tx.loyaltyAccount.update({
+        where: { id: account.id },
+        data: { points: { decrement: 2 } },
+      });
+      await tx.loyaltyTransaction.create({
+        data: {
+          accountId: account.id,
+          points: 2,
+          type: 'REDEEM',
+          source: `DailyLog ${dailyLogTransactionOnly.id} (10%)`,
+          idempotencyKey: `loyalty.daily-log.redeem:${dailyLogTransactionOnly.id}:v1`,
+        },
+      });
+    });
+
+    const reconciliationCountsBefore = {
+      accountPoints: (
+        await db.loyaltyAccount.findUniqueOrThrow({ where: { id: account.id } })
+      ).points,
+      transactions: await db.loyaltyTransaction.count({
+        where: { accountId: account.id },
+      }),
+    };
+    const negativeBalanceUser = await db.user.create({
+      data: {
+        username: `biz05-negative-${suffix}`,
+        email: `biz05-negative-${suffix}@example.test`,
+        firstName: 'BIZ05',
+        lastName: 'Negative Balance',
+        isEmailVerified: true,
+      },
+      select: { id: true },
+    });
+    fixtureIds.users.push(negativeBalanceUser.id);
+    const negativeBalanceAccount = await db.loyaltyAccount.create({
+      data: { userId: negativeBalanceUser.id, points: -1, isActive: true },
+      select: { id: true },
+    });
+    const negativeBalanceBefore = await db.loyaltyAccount.findUniqueOrThrow({
+      where: { id: negativeBalanceAccount.id },
+      select: { points: true },
+    });
+    await request(getHttpServer(app!))
+      .get('/api/loyalty/reconciliation')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+    const report = await request(getHttpServer(app!))
+      .get('/api/loyalty/reconciliation')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(report.body).toMatchObject({ isReadOnly: true });
+    expect(
+      report.body.negativeBalances.some(
+        (row: { accountId: string; points: number }) =>
+          row.accountId === negativeBalanceAccount.id && row.points === -1,
+      ),
+    ).toBe(true);
+    expect(
+      report.body.reservationMarkersWithoutTransaction.some(
+        (row: { resourceId: string }) =>
+          row.resourceId === markerOnlyReservation.id,
+      ),
+    ).toBe(true);
+    expect(
+      report.body.reservationTransactionsWithoutMarker.some(
+        (row: { resourceId: string }) =>
+          row.resourceId === transactionOnlyReservation.id,
+      ),
+    ).toBe(true);
+    expect(
+      report.body.dailyLogMarkersWithoutTransaction.some(
+        (row: { resourceId: string }) =>
+          row.resourceId === dailyLogMarkerOnly.id,
+      ),
+    ).toBe(true);
+    expect(
+      report.body.dailyLogTransactionsWithoutMarker.some(
+        (row: { resourceId: string }) =>
+          row.resourceId === dailyLogTransactionOnly.id,
+      ),
+    ).toBe(true);
+    const reportAgain = await request(getHttpServer(app!))
+      .get('/api/loyalty/reconciliation')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(reportAgain.body.isReadOnly).toBe(true);
+    expect({
+      accountPoints: (
+        await db.loyaltyAccount.findUniqueOrThrow({ where: { id: account.id } })
+      ).points,
+      transactions: await db.loyaltyTransaction.count({
+        where: { accountId: account.id },
+      }),
+    }).toEqual(reconciliationCountsBefore);
+    expect(
+      (
+        await db.loyaltyAccount.findUniqueOrThrow({
+          where: { id: negativeBalanceAccount.id },
+          select: { points: true },
+        })
+      ).points,
+    ).toBe(negativeBalanceBefore.points);
+
+    const earnReplayEntry = await db.dailyLogEntry.create({
+      data: {
+        stylistProfileId: fixtureIds.stylistProfile!,
+        clientId: client.id,
+        serviceId,
+        kind: 'SERVICE',
+        date,
+        actualPrice: 30,
+        tipAmount: 0,
+        publicReferenceCode: `biz05-earn-replay-${suffix}`,
+        status: 'COMPLETED',
+        completedAt: date,
+        completionVersion: 1,
+        isManual: true,
+      },
+      select: { id: true },
+    });
+    fixtureIds.dailyLogEntries.push(earnReplayEntry.id);
+    const earnArgs = {
+      id: earnReplayEntry.id,
+      clientId: client.id,
+      actualPrice: 30,
+      tipAmount: 0,
+      serviceId,
+      idempotencyKey: `daily-log.earn:${earnReplayEntry.id}:v1`,
+    };
+    await db.$transaction((tx) => loyalty.earnFromDailyLog(earnArgs, tx));
+    await db.$transaction((tx) => loyalty.earnFromDailyLog(earnArgs, tx));
+    expect(
+      await db.loyaltyTransaction.count({
+        where: { idempotencyKey: earnArgs.idempotencyKey },
+      }),
+    ).toBe(1);
+    const balanceAfterEarnReplay = (
+      await db.loyaltyAccount.findUniqueOrThrow({ where: { id: account.id } })
+    ).points;
+    expect(balanceAfterEarnReplay).toBe(
+      reconciliationCountsBefore.accountPoints + 30,
+    );
+
+    await loyalty.reverseFromDailyLog(earnReplayEntry.id);
+    await loyalty.reverseFromDailyLog(earnReplayEntry.id);
+    expect(
+      (await db.loyaltyAccount.findUniqueOrThrow({ where: { id: account.id } }))
+        .points,
+    ).toBe(reconciliationCountsBefore.accountPoints);
+    const recommpletionKey = `daily-log.earn:${earnReplayEntry.id}:v2`;
+    await db.$transaction((tx) =>
+      loyalty.earnFromDailyLog(
+        { ...earnArgs, idempotencyKey: recommpletionKey },
+        tx,
+      ),
+    );
+    await db.$transaction((tx) =>
+      loyalty.earnFromDailyLog(
+        { ...earnArgs, idempotencyKey: recommpletionKey },
+        tx,
+      ),
+    );
+    expect(
+      await db.loyaltyTransaction.count({
+        where: { idempotencyKey: recommpletionKey },
+      }),
+    ).toBe(1);
+    expect(
+      (await db.loyaltyAccount.findUniqueOrThrow({ where: { id: account.id } }))
+        .points,
+    ).toBe(balanceAfterEarnReplay);
   }, 30_000);
 });

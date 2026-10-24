@@ -636,7 +636,9 @@ export class DailyLogService {
       await this.loyalty.redeemForDailyLog({
         clientId: updated.clientId,
         dailyLogEntryId: updated.id,
-        serviceId: updated.serviceId,
+        serviceIds: updated.items?.map((item) => item.serviceId) ?? [
+          updated.serviceId,
+        ],
         desiredPercent: dto.desiredLoyaltyPercent,
         actualPrice: Number(updated.actualPrice),
       });

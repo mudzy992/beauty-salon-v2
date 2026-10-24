@@ -36,8 +36,10 @@ export default function Loyalty() {
 
   const [redeemPoints, setRedeemPoints] = useState<number>(0)
   const [redeemReason, setRedeemReason] = useState('')
+  const [redeemIdempotencyKey, setRedeemIdempotencyKey] = useState('')
   const [adjustDelta, setAdjustDelta] = useState<number>(0)
   const [adjustNote, setAdjustNote] = useState('')
+  const [adjustIdempotencyKey, setAdjustIdempotencyKey] = useState('')
 
   const loadAccounts = useCallback(() => {
     setLoadingAccounts(true)
@@ -70,12 +72,14 @@ export default function Loyalty() {
     setRedeemTarget(account)
     setRedeemPoints(0)
     setRedeemReason('')
+    setRedeemIdempotencyKey(globalThis.crypto.randomUUID())
   }
 
   const openAdjust = (account: LoyaltyAccountRow) => {
     setAdjustTarget(account)
     setAdjustDelta(0)
     setAdjustNote('')
+    setAdjustIdempotencyKey(globalThis.crypto.randomUUID())
   }
 
   const redeemTitle = useMemo(() => {
@@ -89,10 +93,14 @@ export default function Loyalty() {
   }, [adjustTarget])
 
   const handleRedeemConfirm = () => {
-    if (!redeemTarget || redeemPoints <= 0) return
+    if (!redeemTarget || redeemPoints <= 0 || !redeemIdempotencyKey) return
     setUpdating(`redeem-${redeemTarget.id}`)
     api
-      .post(`/api/loyalty/accounts/${redeemTarget.id}/redeem`, { points: redeemPoints, reason: redeemReason })
+      .post(`/api/loyalty/accounts/${redeemTarget.id}/redeem`, {
+        points: redeemPoints,
+        reason: redeemReason,
+        idempotencyKey: redeemIdempotencyKey,
+      })
       .then((res) => {
         setAccounts((prev) => prev.map((a) => (a.id === redeemTarget.id ? { ...a, points: res.data.points } : a)))
         success('Bodovi iskorišteni')
@@ -103,10 +111,14 @@ export default function Loyalty() {
   }
 
   const handleAdjustConfirm = () => {
-    if (!adjustTarget || adjustDelta === 0) return
+    if (!adjustTarget || adjustDelta === 0 || !adjustIdempotencyKey) return
     setUpdating(`adjust-${adjustTarget.id}`)
     api
-      .post(`/api/loyalty/accounts/${adjustTarget.id}/adjust`, { pointsDelta: adjustDelta, note: adjustNote })
+      .post(`/api/loyalty/accounts/${adjustTarget.id}/adjust`, {
+        pointsDelta: adjustDelta,
+        note: adjustNote,
+        idempotencyKey: adjustIdempotencyKey,
+      })
       .then((res) => {
         setAccounts((prev) => prev.map((a) => (a.id === adjustTarget.id ? { ...a, points: res.data.points } : a)))
         success('Bodovi ažurirani')
@@ -203,12 +215,21 @@ export default function Loyalty() {
                 min={1}
                 max={redeemTarget?.points ?? undefined}
                 value={Number.isFinite(redeemPoints) ? String(redeemPoints) : '0'}
-                onChange={(e) => setRedeemPoints(Number(e.target.value || 0))}
+                onChange={(e) => {
+                  setRedeemPoints(Number(e.target.value || 0))
+                  setRedeemIdempotencyKey(globalThis.crypto.randomUUID())
+                }}
               />
             </div>
             <div className="space-y-2">
               <Label>Napomena (opcionalno)</Label>
-              <Textarea value={redeemReason} onChange={(e) => setRedeemReason(e.target.value)} />
+              <Textarea
+                value={redeemReason}
+                onChange={(e) => {
+                  setRedeemReason(e.target.value)
+                  setRedeemIdempotencyKey(globalThis.crypto.randomUUID())
+                }}
+              />
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -234,12 +255,21 @@ export default function Loyalty() {
               <Input
                 type="number"
                 value={Number.isFinite(adjustDelta) ? String(adjustDelta) : '0'}
-                onChange={(e) => setAdjustDelta(Number(e.target.value || 0))}
+                onChange={(e) => {
+                  setAdjustDelta(Number(e.target.value || 0))
+                  setAdjustIdempotencyKey(globalThis.crypto.randomUUID())
+                }}
               />
             </div>
             <div className="space-y-2">
               <Label>Napomena (preporučeno)</Label>
-              <Textarea value={adjustNote} onChange={(e) => setAdjustNote(e.target.value)} />
+              <Textarea
+                value={adjustNote}
+                onChange={(e) => {
+                  setAdjustNote(e.target.value)
+                  setAdjustIdempotencyKey(globalThis.crypto.randomUUID())
+                }}
+              />
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">

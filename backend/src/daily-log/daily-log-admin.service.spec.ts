@@ -110,9 +110,20 @@ describe('DailyLogAdminService', () => {
       kind: 'SERVICE',
       date: new Date(),
     });
-    mockPrisma.dailyLogEntry.update.mockResolvedValue({ id: 'e1', deletedAt: new Date() });
+    mockPrisma.dailyLogEntry.findUnique.mockResolvedValue({
+      id: 'e1',
+      status: 'COMPLETED',
+    });
+    mockPrisma.dailyLogEntry.update.mockResolvedValue({
+      id: 'e1',
+      deletedAt: new Date(),
+    });
     await service.softDelete('e1', { reason: 'Greška' }, admin as any);
-    expect(mockReversal.reverseCompletedEffects).toHaveBeenCalledWith('e1');
+    expect(mockReversal.reverseCompletedEffects).toHaveBeenCalledWith(
+      'e1',
+      undefined,
+      mockPrisma,
+    );
     expect(mockPrisma.dailyLogEntry.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -147,18 +158,67 @@ describe('DailyLogAdminService', () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
-  it('revertToPending calls reverseCompletedEffects', async () => {
+  it('revertToPending reverses effects and changes status on one transaction client', async () => {
     mockDailyLog.findOne.mockResolvedValue({
       id: 'e1',
       status: 'COMPLETED',
       date: new Date(),
+    });
+    mockPrisma.dailyLogEntry.findUnique.mockResolvedValue({
+      id: 'e1',
+      status: 'COMPLETED',
     });
     mockPrisma.dailyLogEntry.update.mockResolvedValue({
       id: 'e1',
       status: 'PENDING',
     });
     await service.revertToPending('e1', admin as any);
-    expect(mockReversal.reverseCompletedEffects).toHaveBeenCalledWith('e1');
+    expect(mockPrisma.$transaction).toHaveBeenCalled();
+    expect(mockReversal.reverseCompletedEffects).toHaveBeenCalledWith(
+      'e1',
+      undefined,
+      mockPrisma,
+    );
+    expect(mockPrisma.dailyLogEntry.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'e1' },
+        data: { status: 'PENDING', completedAt: null },
+      }),
+    );
+  });
+
+  it('applies a pending daily-log redemption with the entry update in one transaction', async () => {
+    const entry = {
+      id: 'e1',
+      status: 'PENDING',
+      clientId: 'client-1',
+      serviceId: 'service-1',
+      actualPrice: 22.6,
+      items: [{ serviceId: 'service-1' }, { serviceId: 'service-2' }],
+    };
+    mockDailyLog.findOne
+      .mockResolvedValueOnce(entry)
+      .mockResolvedValueOnce(entry);
+    mockPrisma.dailyLogEntry.update.mockResolvedValue(entry);
+    mockLoyalty.redeemForDailyLog.mockResolvedValue({ points: 75 });
+
+    await service.update(
+      'e1',
+      { desiredLoyaltyPercent: 10 } as any,
+      admin as any,
+    );
+
+    expect(mockPrisma.$transaction).toHaveBeenCalled();
+    expect(mockLoyalty.redeemForDailyLog).toHaveBeenCalledWith(
+      {
+        clientId: 'client-1',
+        dailyLogEntryId: 'e1',
+        serviceIds: ['service-1', 'service-2'],
+        desiredPercent: 10,
+        actualPrice: 22.6,
+      },
+      mockPrisma,
+    );
   });
 
   it('stylist cannot add image to COMPLETED entry', async () => {

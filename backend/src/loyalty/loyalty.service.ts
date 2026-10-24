@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -13,6 +14,26 @@ type LoyaltyTier = {
   minPoints: number;
   maxDiscountPercent?: number;
 };
+
+type LoyaltyMutationType = 'EARN' | 'REDEEM' | 'ADJUST';
+type LoyaltyMutation = {
+  accountId: string;
+  balanceDelta: number;
+  ledgerPoints: number | 'applied-delta';
+  type: LoyaltyMutationType;
+  source: string;
+  idempotencyKey: string;
+  clampNegativeBalance?: boolean;
+  allowZeroLedgerEntry?: boolean;
+};
+
+type LoyaltyMarker = {
+  id: string;
+  clientId: string | null;
+  loyaltyPointsUsed: number;
+};
+
+const MAX_LOYALTY_POINTS = 2_147_483_647;
 
 @Injectable()
 export class LoyaltyService {
@@ -30,6 +51,193 @@ export class LoyaltyService {
   private parseBoolean(value: string | null, fallback: boolean): boolean {
     if (!value) return fallback;
     return value.toLowerCase() === 'true';
+  }
+
+  private toDecimal(value: unknown, fallback = '0'): Prisma.Decimal {
+    const raw = value == null || value === '' ? fallback : String(value);
+    try {
+      const decimal = new Prisma.Decimal(raw);
+      return decimal.isFinite() ? decimal : new Prisma.Decimal(fallback);
+    } catch {
+      return new Prisma.Decimal(fallback);
+    }
+  }
+
+  /**
+   * Loyalty price policy: round the requested percent discount to two decimals
+   * using half-up, then floor requestedAmount / KM-per-point to whole points.
+   * Finally, cap the stored discount at min(requestedAmount, rounded point value).
+   * This guarantees the cash discount never exceeds the value of points debited.
+   */
+  private roundMoney(value: Prisma.Decimal): Prisma.Decimal {
+    return value.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+  }
+
+  private toSafePointCount(value: Prisma.Decimal, description: string): number {
+    const points = value.toNumber();
+    if (
+      !Number.isSafeInteger(points) ||
+      points < 0 ||
+      points > MAX_LOYALTY_POINTS
+    ) {
+      throw new BadRequestException(`${description} nije validan broj bodova.`);
+    }
+    return points;
+  }
+
+  private pointsForDiscount(
+    discountAmount: Prisma.Decimal,
+    redeemRate: Prisma.Decimal,
+  ): number {
+    return this.toSafePointCount(
+      discountAmount.div(redeemRate).floor(),
+      'Redeem',
+    );
+  }
+
+  private capDiscountToRedeemedPoints(
+    requestedAmount: Prisma.Decimal,
+    points: number,
+    redeemRate: Prisma.Decimal,
+  ): Prisma.Decimal {
+    const pointValue = this.roundMoney(redeemRate.mul(points));
+    return pointValue.lt(requestedAmount) ? pointValue : requestedAmount;
+  }
+
+  private async lockLoyaltyAccount(
+    tx: Prisma.TransactionClient,
+    accountId: string,
+  ): Promise<void> {
+    await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM "loyalty_accounts" WHERE id = ${accountId} FOR UPDATE`,
+    );
+  }
+
+  private async lockLoyaltyAccountForUser(
+    tx: Prisma.TransactionClient,
+    userId: string,
+  ): Promise<void> {
+    await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM "loyalty_accounts" WHERE "user_id" = ${userId} FOR UPDATE`,
+    );
+  }
+
+  private async findIdempotentMutation(
+    tx: Prisma.TransactionClient,
+    mutation: LoyaltyMutation,
+  ) {
+    const existing = await tx.loyaltyTransaction.findUnique({
+      where: { idempotencyKey: mutation.idempotencyKey },
+    });
+    if (!existing) return null;
+
+    const pointsMatch =
+      mutation.ledgerPoints === 'applied-delta' ||
+      existing.points === mutation.ledgerPoints;
+    if (
+      existing.accountId !== mutation.accountId ||
+      existing.type !== mutation.type ||
+      existing.source !== mutation.source ||
+      !pointsMatch
+    ) {
+      throw new ConflictException(
+        'Idempotency key je već korišten za drugačiju loyalty transakciju.',
+      );
+    }
+
+    const account = await tx.loyaltyAccount.findUnique({
+      where: { id: mutation.accountId },
+    });
+    if (!account) throw new NotFoundException('Loyalty račun nije pronađen.');
+    return account;
+  }
+
+  private async applyPointMutation(
+    tx: Prisma.TransactionClient,
+    mutation: LoyaltyMutation,
+  ) {
+    if (!mutation.idempotencyKey.trim()) {
+      throw new BadRequestException('Loyalty idempotency key je obavezan.');
+    }
+    if (!Number.isSafeInteger(mutation.balanceDelta)) {
+      throw new BadRequestException('Promjena bodova mora biti cijeli broj.');
+    }
+    if (
+      mutation.ledgerPoints !== 'applied-delta' &&
+      !Number.isSafeInteger(mutation.ledgerPoints)
+    ) {
+      throw new BadRequestException('Ledger bodovi moraju biti cijeli broj.');
+    }
+
+    await this.lockLoyaltyAccount(tx, mutation.accountId);
+    const replay = await this.findIdempotentMutation(tx, mutation);
+    if (replay) return replay;
+
+    const account = await tx.loyaltyAccount.findUnique({
+      where: { id: mutation.accountId },
+    });
+    if (!account) throw new NotFoundException('Loyalty račun nije pronađen.');
+    if (mutation.type === 'REDEEM' && !account.isActive) {
+      throw new BadRequestException('Loyalty račun nije aktivan.');
+    }
+    if (mutation.balanceDelta === 0 && !mutation.allowZeroLedgerEntry) {
+      throw new BadRequestException(
+        'Promjena bodova mora biti različita od nule.',
+      );
+    }
+
+    const proposed = account.points + mutation.balanceDelta;
+    const nextPoints = mutation.clampNegativeBalance
+      ? Math.max(0, proposed)
+      : proposed;
+    if (nextPoints < 0) {
+      throw new BadRequestException('Nedovoljno bodova.');
+    }
+    if (!Number.isSafeInteger(nextPoints) || nextPoints > MAX_LOYALTY_POINTS) {
+      throw new BadRequestException('Saldo prelazi dozvoljeni broj bodova.');
+    }
+
+    const appliedDelta = nextPoints - account.points;
+    const ledgerPoints =
+      mutation.ledgerPoints === 'applied-delta'
+        ? appliedDelta
+        : mutation.ledgerPoints;
+    if (ledgerPoints === 0 && !mutation.allowZeroLedgerEntry) {
+      throw new BadRequestException(
+        'Promjena bodova mora biti različita od nule.',
+      );
+    }
+
+    if (nextPoints !== account.points) {
+      const updated = await tx.loyaltyAccount.updateMany({
+        where: { id: account.id, points: account.points },
+        data: { points: { set: nextPoints } },
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException(
+          'Loyalty saldo je promijenjen tokom obrade; pokušajte ponovo.',
+        );
+      }
+    }
+
+    await tx.loyaltyTransaction.create({
+      data: {
+        accountId: account.id,
+        points: ledgerPoints,
+        type: mutation.type,
+        source: mutation.source,
+        idempotencyKey: mutation.idempotencyKey,
+      },
+    });
+    if (appliedDelta !== 0) await this.recalculateTier(account.id, tx);
+
+    const updatedAccount = await tx.loyaltyAccount.findUnique({
+      where: { id: account.id },
+    });
+    if (!updatedAccount) {
+      throw new NotFoundException('Loyalty račun nije pronađen.');
+    }
+    return updatedAccount;
   }
 
   private parseJsonArray<T>(value: string | null, fallback: T[]): T[] {
@@ -221,9 +429,22 @@ export class LoyaltyService {
 
     const existing = await tx.loyaltyTransaction.findUnique({
       where: { idempotencyKey },
-      select: { accountId: true },
     });
     if (existing) {
+      const existingAccount = await tx.loyaltyAccount.findUnique({
+        where: { id: existing.accountId },
+        select: { id: true, userId: true },
+      });
+      if (
+        existing.type !== 'EARN' ||
+        existing.source !== `daily_log:${entry.id}` ||
+        !existingAccount ||
+        existingAccount.userId !== entry.clientId
+      ) {
+        throw new ConflictException(
+          'Loyalty earn idempotency key ne odgovara ovom dnevnom zapisu.',
+        );
+      }
       return tx.loyaltyAccount.findUnique({
         where: { id: existing.accountId },
         include: {
@@ -240,20 +461,22 @@ export class LoyaltyService {
       });
     }
 
+    const actualPrice = this.toDecimal(entry.actualPrice);
+    if (!entry.clientId || !actualPrice.gt(0)) return null;
     const enabled = await this.isProgramEnabled();
-    if (!enabled || !entry.clientId || entry.actualPrice <= 0) return null;
+    if (!enabled) return null;
 
-    const pointsPerCurrency = this.parseNumber(
+    const pointsPerCurrency = this.toDecimal(
       await this.settings.getValue('loyalty_points_per_currency'),
-      1,
+      '1',
     );
     const earnOnTip = this.parseBoolean(
       await this.settings.getValue('loyalty_earn_on_tip'),
       false,
     );
-    const minAmount = this.parseNumber(
+    const minAmount = this.toDecimal(
       await this.settings.getValue('loyalty_min_amount_for_earn'),
-      0,
+      '0',
     );
     const excludedRaw = await this.settings.getValue(
       'loyalty_excluded_services',
@@ -262,11 +485,13 @@ export class LoyaltyService {
 
     if (excluded.includes(entry.serviceId)) return null;
 
-    const baseAmount = entry.actualPrice + (earnOnTip ? entry.tipAmount : 0);
-    if (baseAmount < minAmount) return null;
+    const tipAmount = this.toDecimal(entry.tipAmount);
+    const baseAmount = actualPrice.plus(earnOnTip ? tipAmount : 0);
+    if (baseAmount.lt(minAmount)) return null;
 
-    const rawPoints = Math.floor(baseAmount * pointsPerCurrency);
-    if (rawPoints <= 0) return null;
+    const rawPointsDecimal = baseAmount.mul(pointsPerCurrency).floor();
+    if (!rawPointsDecimal.gt(0)) return null;
+    const rawPoints = this.toSafePointCount(rawPointsDecimal, 'Earn bodova');
 
     const account = await tx.loyaltyAccount.upsert({
       where: { userId: entry.clientId },
@@ -274,48 +499,14 @@ export class LoyaltyService {
       update: {},
       select: { id: true },
     });
-    await tx.$queryRaw(
-      Prisma.sql`SELECT id FROM "loyalty_accounts" WHERE id = ${account.id} FOR UPDATE`,
-    );
-
-    // Recheck after acquiring the account lock. This also makes standalone
-    // retries safe when they race with a different completion caller.
-    const raced = await tx.loyaltyTransaction.findUnique({
-      where: { idempotencyKey },
-      select: { accountId: true },
+    await this.applyPointMutation(tx, {
+      accountId: account.id,
+      balanceDelta: rawPoints,
+      ledgerPoints: rawPoints,
+      type: 'EARN',
+      source: `daily_log:${entry.id}`,
+      idempotencyKey,
     });
-    if (raced) {
-      return tx.loyaltyAccount.findUnique({
-        where: { id: raced.accountId },
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-        },
-      });
-    }
-
-    await tx.loyaltyAccount.update({
-      where: { id: account.id },
-      data: {
-        points: { increment: rawPoints },
-        transactions: {
-          create: {
-            points: rawPoints,
-            type: 'EARN',
-            source: `daily_log:${entry.id}`,
-            idempotencyKey,
-          },
-        },
-      },
-    });
-    await this.recalculateTier(account.id, tx);
     return tx.loyaltyAccount.findUnique({
       where: { id: account.id },
       include: {
@@ -376,10 +567,11 @@ export class LoyaltyService {
       await this.settings.getValue('loyalty_redeem_enabled'),
       false,
     );
-    const redeemRate = this.parseNumber(
+    const redeemRateDecimal = this.toDecimal(
       await this.settings.getValue('loyalty_redeem_rate'),
-      0.1,
+      '0.1',
     );
+    const redeemRate = redeemRateDecimal.toNumber();
     const minPoints = this.parseNumber(
       await this.settings.getValue('loyalty_min_points_to_redeem'),
       0,
@@ -404,7 +596,10 @@ export class LoyaltyService {
           loyaltyMaxDiscountPercent: true,
         },
       });
-      if (services.length !== normalizedServiceIds.length || services.some((s) => !s.loyaltyEnabled)) {
+      if (
+        services.length !== normalizedServiceIds.length ||
+        services.some((s) => !s.loyaltyEnabled)
+      ) {
         return {
           enabled,
           hasAccount: true,
@@ -419,19 +614,41 @@ export class LoyaltyService {
         };
       }
 
-      const sumPrice = services
-        .map((s) => Number(s.price))
-        .reduce((acc, x) => acc + (Number.isFinite(x) ? x : 0), 0);
+      const sumPriceDecimal = services.reduce(
+        (total, item) => total.plus(this.toDecimal(item.price)),
+        new Prisma.Decimal(0),
+      );
+      const sumPrice = sumPriceDecimal.toNumber();
       const tierMax = tier?.maxDiscountPercent ?? 0;
-      const serviceMax = Math.min(...services.map((s) => s.loyaltyMaxDiscountPercent ?? 0));
-      const maxPercentForService = Math.min(tierMax, serviceMax, globalMaxPercent);
+      const serviceMax = Math.min(
+        ...services.map((s) => s.loyaltyMaxDiscountPercent ?? 0),
+      );
+      const maxPercentForService = Math.min(
+        tierMax,
+        serviceMax,
+        globalMaxPercent,
+      );
 
       let maxDiscountAmount = 0;
       let maxUsablePoints = 0;
-      if (Number.isFinite(sumPrice) && sumPrice > 0 && maxPercentForService > 0 && redeemRate > 0) {
-        maxDiscountAmount = (sumPrice * maxPercentForService) / 100;
-        const maxByPercent = Math.floor(maxDiscountAmount / redeemRate);
+      if (
+        sumPriceDecimal.gt(0) &&
+        maxPercentForService > 0 &&
+        redeemRateDecimal.gt(0)
+      ) {
+        const requestedMaxDiscount = this.roundMoney(
+          sumPriceDecimal.mul(maxPercentForService).div(100),
+        );
+        const maxByPercent = this.pointsForDiscount(
+          requestedMaxDiscount,
+          redeemRateDecimal,
+        );
         maxUsablePoints = Math.max(0, Math.min(maxByPercent, account.points));
+        maxDiscountAmount = this.capDiscountToRedeemedPoints(
+          requestedMaxDiscount,
+          maxUsablePoints,
+          redeemRateDecimal,
+        ).toNumber();
       }
 
       return {
@@ -478,19 +695,30 @@ export class LoyaltyService {
         };
       }
 
-      const servicePrice = Number(service.price);
+      const servicePriceDecimal = this.toDecimal(service.price);
+      const servicePrice = servicePriceDecimal.toNumber();
       let maxPercentForService = 0;
       let maxDiscountAmount = 0;
       let maxUsablePoints = 0;
 
-      if (Number.isFinite(servicePrice) && servicePrice > 0) {
+      if (servicePriceDecimal.gt(0)) {
         const tierMax = tier?.maxDiscountPercent ?? 0;
         const serviceMax = service.loyaltyMaxDiscountPercent ?? 0;
         maxPercentForService = Math.min(tierMax, serviceMax, globalMaxPercent);
-        if (maxPercentForService > 0 && redeemRate > 0) {
-          maxDiscountAmount = (servicePrice * maxPercentForService) / 100;
-          const maxByPercent = Math.floor(maxDiscountAmount / redeemRate);
+        if (maxPercentForService > 0 && redeemRateDecimal.gt(0)) {
+          const requestedMaxDiscount = this.roundMoney(
+            servicePriceDecimal.mul(maxPercentForService).div(100),
+          );
+          const maxByPercent = this.pointsForDiscount(
+            requestedMaxDiscount,
+            redeemRateDecimal,
+          );
           maxUsablePoints = Math.max(0, Math.min(maxByPercent, account.points));
+          maxDiscountAmount = this.capDiscountToRedeemedPoints(
+            requestedMaxDiscount,
+            maxUsablePoints,
+            redeemRateDecimal,
+          ).toNumber();
         }
       }
 
@@ -528,51 +756,62 @@ export class LoyaltyService {
     };
   }
 
-  async redeemPoints(accountId: string, points: number, reason?: string) {
-    if (points <= 0 || !Number.isFinite(points)) {
-      throw new BadRequestException('Broj bodova mora biti pozitivan.');
-    }
-    const enabled = this.parseBoolean(
-      await this.settings.getValue('loyalty_redeem_enabled'),
-      false,
-    );
-    if (!enabled)
-      throw new BadRequestException('Redeem je trenutno onemogućen.');
-
-    const minPoints = this.parseNumber(
-      await this.settings.getValue('loyalty_min_points_to_redeem'),
-      0,
-    );
-    if (points < minPoints) {
+  async redeemPoints(
+    accountId: string,
+    points: number,
+    reason: string | undefined,
+    requestIdempotencyKey: string,
+  ) {
+    if (
+      !Number.isSafeInteger(points) ||
+      points <= 0 ||
+      points > MAX_LOYALTY_POINTS
+    ) {
       throw new BadRequestException(
-        'Broj bodova je ispod minimalnog za korištenje.',
+        'Broj bodova mora biti pozitivan cijeli broj.',
       );
     }
+    const source = reason?.trim() || 'Manual redeem';
+    const idempotencyKey = `loyalty.manual.redeem:${requestIdempotencyKey}`;
 
-    const account = await this.prisma.loyaltyAccount.findUnique({
-      where: { id: accountId },
-    });
-    if (!account) throw new NotFoundException('Loyalty račun nije pronađen.');
-    if (!account.isActive)
-      throw new BadRequestException('Loyalty račun nije aktivan.');
-    if (account.points < points)
-      throw new BadRequestException('Nedovoljno bodova.');
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockLoyaltyAccount(tx, accountId);
+      const replay = await this.findIdempotentMutation(tx, {
+        accountId,
+        balanceDelta: -points,
+        ledgerPoints: points,
+        type: 'REDEEM',
+        source,
+        idempotencyKey,
+      });
+      if (replay) return replay;
 
-    const updated = await this.prisma.loyaltyAccount.update({
-      where: { id: accountId },
-      data: {
-        points: { decrement: points },
-        transactions: {
-          create: {
-            points,
-            type: 'REDEEM',
-            source: reason ?? 'Manual redeem',
-          },
-        },
-      },
+      const enabled = this.parseBoolean(
+        await this.settings.getValue('loyalty_redeem_enabled'),
+        false,
+      );
+      if (!enabled) {
+        throw new BadRequestException('Redeem je trenutno onemogućen.');
+      }
+      const minPoints = this.parseNumber(
+        await this.settings.getValue('loyalty_min_points_to_redeem'),
+        0,
+      );
+      if (points < minPoints) {
+        throw new BadRequestException(
+          'Broj bodova je ispod minimalnog za korištenje.',
+        );
+      }
+
+      return this.applyPointMutation(tx, {
+        accountId,
+        balanceDelta: -points,
+        ledgerPoints: points,
+        type: 'REDEEM',
+        source,
+        idempotencyKey,
+      });
     });
-    await this.recalculateTier(updated.id);
-    return updated;
   }
 
   /**
@@ -595,29 +834,73 @@ export class LoyaltyService {
         : args.serviceId
           ? [args.serviceId]
           : [];
-    const serviceIds = [...new Set(idsRaw.map((x) => x.trim()).filter(Boolean))];
+    const serviceIds = [
+      ...new Set(idsRaw.map((x) => x.trim()).filter(Boolean)),
+    ];
+    if (!Number.isInteger(desiredPercent) || !Number.isFinite(desiredPercent)) {
+      throw new BadRequestException('Procenat popusta mora biti cijeli broj.');
+    }
     if (desiredPercent <= 0) return null;
     if (serviceIds.length === 0) {
       throw new NotFoundException('Servis nije pronađen.');
     }
 
-    // Serialize tier/balance reads for the loyalty account inside the booking transaction.
+    const source = `Reservation ${reservationId} (${desiredPercent}%)`;
+    const idempotencyKey = `loyalty.reservation.redeem:${reservationId}:v1`;
     await db.$queryRaw(
-      Prisma.sql`SELECT id FROM "loyalty_accounts" WHERE "user_id" = ${clientId} FOR UPDATE`,
+      Prisma.sql`SELECT id FROM "reservations" WHERE id = ${reservationId} FOR UPDATE`,
     );
+    await this.lockLoyaltyAccountForUser(db, clientId);
 
     const existingReservation = await db.reservation.findUnique({
       where: { id: reservationId },
-      select: { loyaltyPointsUsed: true },
+      select: { clientId: true, loyaltyPointsUsed: true },
     });
     if (!existingReservation) {
       throw new BadRequestException(
         'Rezervacija nije pronađena za loyalty popust.',
       );
     }
+    if (existingReservation.clientId !== clientId) {
+      throw new ConflictException(
+        'Klijent rezervacije ne odgovara loyalty računu.',
+      );
+    }
+    const account = await db.loyaltyAccount.findUnique({
+      where: { userId: clientId },
+    });
+    if (!account) {
+      throw new BadRequestException('Nemate aktivan loyalty račun.');
+    }
+
+    const existingTransaction = await db.loyaltyTransaction.findUnique({
+      where: { idempotencyKey },
+    });
+    if (existingTransaction) {
+      if (
+        existingTransaction.accountId !== account.id ||
+        existingTransaction.type !== 'REDEEM' ||
+        existingTransaction.source !== source ||
+        existingTransaction.points !== existingReservation.loyaltyPointsUsed
+      ) {
+        throw new ConflictException(
+          'Loyalty rezervacije i evidencija bodova nisu usklađeni.',
+        );
+      }
+      return account;
+    }
     if (existingReservation.loyaltyPointsUsed > 0) {
-      throw new BadRequestException(
-        'Za ovu rezervaciju su već iskorišteni loyalty bodovi.',
+      const legacyTransactions = await db.loyaltyTransaction.findMany({
+        where: { accountId: account.id, type: 'REDEEM', source },
+      });
+      if (
+        legacyTransactions.length === 1 &&
+        legacyTransactions[0]!.points === existingReservation.loyaltyPointsUsed
+      ) {
+        return account;
+      }
+      throw new ConflictException(
+        'Za rezervaciju postoje bodovi bez jedinstvene loyalty evidencije.',
       );
     }
 
@@ -636,10 +919,7 @@ export class LoyaltyService {
       );
     }
 
-    const account = await db.loyaltyAccount.findUnique({
-      where: { userId: clientId },
-    });
-    if (!account || !account.isActive) {
+    if (!account.isActive) {
       throw new BadRequestException('Nemate aktivan loyalty račun.');
     }
 
@@ -660,12 +940,11 @@ export class LoyaltyService {
         'Za jedan ili više odabranih servisa nije dozvoljen loyalty popust.',
       );
     }
-    const prices = services.map((s) => Number(s.price));
-    const sumPrice = prices.reduce(
-      (acc, x) => acc + (Number.isFinite(x) ? x : 0),
-      0,
+    const sumPrice = services.reduce(
+      (total, item) => total.plus(this.toDecimal(item.price)),
+      new Prisma.Decimal(0),
     );
-    if (!Number.isFinite(sumPrice) || sumPrice <= 0) {
+    if (!sumPrice.gt(0)) {
       throw new BadRequestException(
         'Cijena usluge nije validna za loyalty popust.',
       );
@@ -698,18 +977,28 @@ export class LoyaltyService {
       );
     }
 
-    const redeemRate = this.parseNumber(
+    const redeemRate = this.toDecimal(
       await this.settings.getValue('loyalty_redeem_rate'),
-      0.1,
+      '0.1',
     ); // KM po bodu
-    if (redeemRate <= 0) {
+    if (!redeemRate.gt(0)) {
       throw new BadRequestException(
         'Loyalty redeem stopa nije ispravno podešena.',
       );
     }
 
-    const desiredDiscountAmount = (sumPrice * desiredPercent) / 100;
-    const neededPoints = Math.floor(desiredDiscountAmount / redeemRate);
+    const requestedDiscountAmount = this.roundMoney(
+      sumPrice.mul(desiredPercent).div(100),
+    );
+    const neededPoints = this.pointsForDiscount(
+      requestedDiscountAmount,
+      redeemRate,
+    );
+    const desiredDiscountAmount = this.capDiscountToRedeemedPoints(
+      requestedDiscountAmount,
+      neededPoints,
+      redeemRate,
+    );
 
     const minPoints = this.parseNumber(
       await this.settings.getValue('loyalty_min_points_to_redeem'),
@@ -733,42 +1022,28 @@ export class LoyaltyService {
       );
     }
 
-    const debit = await db.loyaltyAccount.updateMany({
-      where: {
-        id: account.id,
-        isActive: true,
-        points: { gte: neededPoints },
-      },
-      data: { points: { decrement: neededPoints } },
-    });
-    if (debit.count !== 1) {
-      throw new BadRequestException('Nemate dovoljno bodova za odabrani popust.');
-    }
-
-    await db.loyaltyTransaction.create({
-      data: {
-        accountId: account.id,
-        points: neededPoints,
-        type: 'REDEEM',
-        source: `Reservation ${reservationId} (${desiredPercent}%)`,
-      },
+    const updatedAccount = await this.applyPointMutation(db, {
+      accountId: account.id,
+      balanceDelta: -neededPoints,
+      ledgerPoints: neededPoints,
+      type: 'REDEEM',
+      source,
+      idempotencyKey,
     });
 
-    const pointsAfterRedeem = account.points - neededPoints;
-    const tierAfterRedeem = await this.getTierForPoints(pointsAfterRedeem);
-    const updatedAccount = await db.loyaltyAccount.update({
-      where: { id: account.id },
-      data: { tier: tierAfterRedeem?.name ?? null },
-    });
-
-    await db.reservation.update({
-      where: { id: reservationId },
+    const marker = await db.reservation.updateMany({
+      where: { id: reservationId, loyaltyPointsUsed: 0 },
       data: {
         loyaltyDiscountPercent: Math.round(desiredPercent),
         loyaltyDiscountAmount: desiredDiscountAmount,
         loyaltyPointsUsed: neededPoints,
       },
     });
+    if (marker.count !== 1) {
+      throw new ConflictException(
+        'Rezervacija je već dobila loyalty popust ili je izmijenjena tokom obrade.',
+      );
+    }
 
     return updatedAccount;
   }
@@ -777,40 +1052,126 @@ export class LoyaltyService {
    * Redeem bodova za ručni zapis u dnevnoj knjizi, uz pravila identična rezervaciji.
    * Popust se računa na osnovu cijene servisa, a zapis u dnevniku mora imati actualPrice >= (price - popust).
    */
-  async redeemForDailyLog(args: {
-    clientId: string;
-    dailyLogEntryId: string;
-    serviceId?: string;
-    serviceIds?: string[];
-    desiredPercent: number;
-    actualPrice: number;
-    coveredByDebtAmount?: number;
-  }) {
+  async redeemForDailyLog(
+    args: {
+      clientId: string;
+      dailyLogEntryId: string;
+      serviceId?: string;
+      serviceIds?: string[];
+      desiredPercent: number;
+      actualPrice: number;
+      coveredByDebtAmount?: number;
+    },
+    tx?: Prisma.TransactionClient,
+  ) {
+    if (tx) return this.redeemForDailyLogInTransaction(args, tx);
+    return this.prisma.$transaction((transaction) =>
+      this.redeemForDailyLogInTransaction(args, transaction),
+    );
+  }
+
+  private async redeemForDailyLogInTransaction(
+    args: {
+      clientId: string;
+      dailyLogEntryId: string;
+      serviceId?: string;
+      serviceIds?: string[];
+      desiredPercent: number;
+      actualPrice: number;
+      coveredByDebtAmount?: number;
+    },
+    tx: Prisma.TransactionClient,
+  ) {
     const { clientId, dailyLogEntryId, desiredPercent, actualPrice } = args;
+    if (!Number.isInteger(desiredPercent) || !Number.isFinite(desiredPercent)) {
+      throw new BadRequestException('Procenat popusta mora biti cijeli broj.');
+    }
+    if (desiredPercent <= 0) return null;
+
     const idsRaw =
       args.serviceIds && args.serviceIds.length > 0
         ? args.serviceIds
         : args.serviceId
           ? [args.serviceId]
           : [];
-    const serviceIds = [...new Set(idsRaw.map((x) => x.trim()).filter(Boolean))];
-    if (desiredPercent <= 0) return null;
+    const serviceIds = [
+      ...new Set(idsRaw.map((x) => x.trim()).filter(Boolean)),
+    ];
     if (serviceIds.length === 0) {
       throw new NotFoundException('Servis nije pronađen.');
     }
 
-    const existingEntry = await this.prisma.dailyLogEntry.findUnique({
+    await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM "daily_log_entries" WHERE id = ${dailyLogEntryId} FOR UPDATE`,
+    );
+    const existingEntry = await tx.dailyLogEntry.findUnique({
       where: { id: dailyLogEntryId },
-      select: { loyaltyPointsUsed: true, deletedAt: true },
+      select: {
+        id: true,
+        clientId: true,
+        status: true,
+        deletedAt: true,
+        loyaltyDiscountPercent: true,
+        loyaltyDiscountAmount: true,
+        loyaltyPointsUsed: true,
+        items: { select: { serviceId: true, unitPrice: true } },
+      },
     });
     if (!existingEntry || existingEntry.deletedAt) {
       throw new BadRequestException(
         'Zapis u dnevnoj knjizi nije pronađen za loyalty popust.',
       );
     }
+    if (existingEntry.clientId !== clientId) {
+      throw new ConflictException(
+        'Klijent dnevnog zapisa ne odgovara loyalty računu.',
+      );
+    }
+
+    const source = `DailyLog ${dailyLogEntryId} (${desiredPercent}%)`;
+    const idempotencyKey = `loyalty.daily-log.redeem:${dailyLogEntryId}:v1`;
+    await this.lockLoyaltyAccountForUser(tx, clientId);
+    const account = await tx.loyaltyAccount.findUnique({
+      where: { userId: clientId },
+    });
+    const existingTransaction = await tx.loyaltyTransaction.findUnique({
+      where: { idempotencyKey },
+    });
+    if (existingTransaction) {
+      if (
+        !account ||
+        existingTransaction.accountId !== account.id ||
+        existingTransaction.type !== 'REDEEM' ||
+        existingTransaction.source !== source ||
+        existingTransaction.points !== existingEntry.loyaltyPointsUsed ||
+        existingEntry.loyaltyPointsUsed <= 0
+      ) {
+        throw new ConflictException(
+          'Loyalty popust i evidencija bodova za dnevni zapis nisu usklađeni.',
+        );
+      }
+      return account;
+    }
     if (existingEntry.loyaltyPointsUsed > 0) {
+      const legacyTransactions = account
+        ? await tx.loyaltyTransaction.findMany({
+            where: { accountId: account.id, type: 'REDEEM', source },
+          })
+        : [];
+      if (
+        account &&
+        legacyTransactions.length === 1 &&
+        legacyTransactions[0]!.points === existingEntry.loyaltyPointsUsed
+      ) {
+        return account;
+      }
+      throw new ConflictException(
+        'Dnevni zapis ima loyalty marker bez jedinstvene evidencije bodova.',
+      );
+    }
+    if (existingEntry.status !== 'PENDING') {
       throw new BadRequestException(
-        'Za ovaj zapis su već iskorišteni loyalty bodovi.',
+        'Loyalty popust se može primijeniti samo na zapis na čekanju.',
       );
     }
 
@@ -818,7 +1179,6 @@ export class LoyaltyService {
     if (!programEnabled) {
       throw new BadRequestException('Loyalty program trenutno nije aktivan.');
     }
-
     const redeemEnabled = this.parseBoolean(
       await this.settings.getValue('loyalty_redeem_enabled'),
       false,
@@ -828,15 +1188,11 @@ export class LoyaltyService {
         'Korištenje bodova trenutno nije omogućeno.',
       );
     }
-
-    const account = await this.prisma.loyaltyAccount.findUnique({
-      where: { userId: clientId },
-    });
     if (!account || !account.isActive) {
       throw new BadRequestException('Nemate aktivan loyalty račun.');
     }
 
-    const services = await this.prisma.service.findMany({
+    const services = await tx.service.findMany({
       where: { id: { in: serviceIds } },
       select: {
         id: true,
@@ -853,11 +1209,20 @@ export class LoyaltyService {
         'Za jedan ili više odabranih servisa nije dozvoljen loyalty popust.',
       );
     }
-
-    const sumPrice = services
-      .map((s) => Number(s.price))
-      .reduce((acc, x) => acc + (Number.isFinite(x) ? x : 0), 0);
-    if (!Number.isFinite(sumPrice) || sumPrice <= 0) {
+    const dailyLogUnitPrices = new Map(
+      existingEntry.items.map((item) => [
+        item.serviceId,
+        this.toDecimal(item.unitPrice),
+      ]),
+    );
+    const sumPrice = services.reduce(
+      (total, item) =>
+        total.plus(
+          dailyLogUnitPrices.get(item.id) ?? this.toDecimal(item.price),
+        ),
+      new Prisma.Decimal(0),
+    );
+    if (!sumPrice.gt(0)) {
       throw new BadRequestException(
         'Cijena usluge nije validna za loyalty popust.',
       );
@@ -888,27 +1253,41 @@ export class LoyaltyService {
       );
     }
 
-    const redeemRate = this.parseNumber(
+    const redeemRate = this.toDecimal(
       await this.settings.getValue('loyalty_redeem_rate'),
-      0.1,
+      '0.1',
     ); // KM po bodu
-    if (redeemRate <= 0) {
+    if (!redeemRate.gt(0)) {
       throw new BadRequestException(
         'Loyalty redeem stopa nije ispravno podešena.',
       );
     }
-
-    const desiredDiscountAmount = (sumPrice * desiredPercent) / 100;
-    const minCharge = Math.max(0, sumPrice - desiredDiscountAmount);
-    const coveredByDebtAmount = Math.max(0, Number(args.coveredByDebtAmount ?? 0));
-    const effectivePaid = Number(actualPrice) + coveredByDebtAmount;
-    if (!Number.isFinite(effectivePaid) || effectivePaid < minCharge) {
+    const requestedDiscountAmount = this.roundMoney(
+      sumPrice.mul(desiredPercent).div(100),
+    );
+    const neededPoints = this.pointsForDiscount(
+      requestedDiscountAmount,
+      redeemRate,
+    );
+    const discountAmount = this.capDiscountToRedeemedPoints(
+      requestedDiscountAmount,
+      neededPoints,
+      redeemRate,
+    );
+    const minCharge = sumPrice.minus(discountAmount).gt(0)
+      ? sumPrice.minus(discountAmount)
+      : new Prisma.Decimal(0);
+    const actualPaid = this.toDecimal(actualPrice);
+    const coveredByDebt = this.toDecimal(args.coveredByDebtAmount ?? 0);
+    const effectivePaid = actualPaid.plus(
+      coveredByDebt.lt(0) ? new Prisma.Decimal(0) : coveredByDebt,
+    );
+    if (effectivePaid.lt(minCharge)) {
       throw new BadRequestException(
         `Naplaćeni iznos ne može biti manji od preporučene cijene za naplatu (${minCharge.toFixed(2)} KM).`,
       );
     }
 
-    const neededPoints = Math.floor(desiredDiscountAmount / redeemRate);
     const minPoints = this.parseNumber(
       await this.settings.getValue('loyalty_min_points_to_redeem'),
       0,
@@ -929,106 +1308,337 @@ export class LoyaltyService {
       );
     }
 
-    const updatedAccount = await this.redeemPoints(
-      account.id,
-      neededPoints,
-      `DailyLog ${dailyLogEntryId} (${desiredPercent}%)`,
-    );
-
-    await this.prisma.dailyLogEntry.update({
-      where: { id: dailyLogEntryId },
+    const updatedAccount = await this.applyPointMutation(tx, {
+      accountId: account.id,
+      balanceDelta: -neededPoints,
+      ledgerPoints: neededPoints,
+      type: 'REDEEM',
+      source,
+      idempotencyKey,
+    });
+    const marker = await tx.dailyLogEntry.updateMany({
+      where: {
+        id: dailyLogEntryId,
+        status: 'PENDING',
+        deletedAt: null,
+        loyaltyPointsUsed: 0,
+      },
       data: {
         loyaltyDiscountPercent: Math.round(desiredPercent),
-        loyaltyDiscountAmount: desiredDiscountAmount,
+        loyaltyDiscountAmount: discountAmount,
         loyaltyPointsUsed: neededPoints,
       },
     });
-
+    if (marker.count !== 1) {
+      throw new ConflictException(
+        'Dnevni zapis je izmijenjen tokom primjene loyalty popusta.',
+      );
+    }
     return updatedAccount;
   }
 
-  async adjustPoints(accountId: string, pointsDelta: number, note?: string) {
-    if (!Number.isFinite(pointsDelta) || pointsDelta === 0) {
+  async adjustPoints(
+    accountId: string,
+    pointsDelta: number,
+    note: string | undefined,
+    requestIdempotencyKey: string,
+  ) {
+    if (
+      !Number.isSafeInteger(pointsDelta) ||
+      pointsDelta === 0 ||
+      Math.abs(pointsDelta) > MAX_LOYALTY_POINTS
+    ) {
       throw new BadRequestException(
-        'Promjena bodova mora biti različita od nule.',
+        'Promjena bodova mora biti različit od nule i cijeli broj.',
       );
     }
-    const account = await this.prisma.loyaltyAccount.findUnique({
-      where: { id: accountId },
-    });
-    if (!account) throw new NotFoundException('Loyalty račun nije pronađen.');
+    const source = note?.trim() || 'Admin adjust';
+    const idempotencyKey = `loyalty.manual.adjust:${requestIdempotencyKey}`;
 
-    const newPoints = account.points + pointsDelta;
-    if (newPoints < 0) {
-      throw new BadRequestException('Rezultat bi bio negativan broj bodova.');
-    }
-
-    const updated = await this.prisma.loyaltyAccount.update({
-      where: { id: accountId },
-      data: {
-        points: { set: newPoints },
-        transactions: {
-          create: {
-            points: pointsDelta,
-            type: 'ADJUST',
-            source: note ?? 'Admin adjust',
-          },
-        },
-      },
-    });
-    await this.recalculateTier(updated.id);
-    return updated;
+    return this.prisma.$transaction((tx) =>
+      this.applyPointMutation(tx, {
+        accountId,
+        balanceDelta: pointsDelta,
+        ledgerPoints: pointsDelta,
+        type: 'ADJUST',
+        source,
+        idempotencyKey,
+      }),
+    );
   }
 
   /**
-   * Reverses loyalty side-effects of a daily log entry.
-   * EARN points are removed; REDEEM points are restored. Balance is clamped at 0.
+   * Reverses daily-log EARN/REDEEM rows exactly once per original transaction.
+   * Earn reversal is clamped at zero; each applied delta is written to the ledger.
    */
-  async reverseFromDailyLog(dailyLogEntryId: string): Promise<void> {
-    const source = `daily_log:${dailyLogEntryId}`;
-    const txs = await this.prisma.loyaltyTransaction.findMany({
-      where: { source },
-      include: { account: true },
-    });
-    if (txs.length === 0) return;
-    const byAccount = new Map<
-      string,
-      { accountId: string; delta: number }
-    >();
-    for (const tx of txs) {
-      const current = byAccount.get(tx.accountId) ?? {
-        accountId: tx.accountId,
-        delta: 0,
-      };
-      if (tx.type === 'EARN') {
-        current.delta -= Math.abs(tx.points);
-      } else if (tx.type === 'REDEEM') {
-        current.delta += Math.abs(tx.points);
-      }
-      byAccount.set(tx.accountId, current);
-    }
-    for (const item of byAccount.values()) {
-      const account = await this.prisma.loyaltyAccount.findUnique({
-        where: { id: item.accountId },
-      });
-      if (!account) continue;
-      const nextPoints = Math.max(0, account.points + item.delta);
-      const appliedDelta = nextPoints - account.points;
-      if (appliedDelta === 0 && item.delta === 0) continue;
-      await this.prisma.loyaltyAccount.update({
-        where: { id: account.id },
-        data: {
-          points: { set: nextPoints },
-          transactions: {
-            create: {
-              points: appliedDelta,
-              type: 'ADJUST',
-              source: `daily_log_reversal:${dailyLogEntryId}`,
-            },
+  async reverseFromDailyLog(
+    dailyLogEntryId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
+    if (tx) return this.reverseFromDailyLogInTransaction(dailyLogEntryId, tx);
+    return this.prisma.$transaction((transaction) =>
+      this.reverseFromDailyLogInTransaction(dailyLogEntryId, transaction),
+    );
+  }
+
+  private async reverseFromDailyLogInTransaction(
+    dailyLogEntryId: string,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM "daily_log_entries" WHERE id = ${dailyLogEntryId} FOR UPDATE`,
+    );
+    const transactions = await tx.loyaltyTransaction.findMany({
+      where: {
+        OR: [
+          { type: 'EARN', source: `daily_log:${dailyLogEntryId}` },
+          {
+            type: 'REDEEM',
+            source: { startsWith: `DailyLog ${dailyLogEntryId} (` },
           },
-        },
+        ],
+      },
+      select: { id: true, accountId: true, points: true, type: true },
+      orderBy: [{ accountId: 'asc' }, { id: 'asc' }],
+    });
+
+    for (const original of transactions) {
+      if (original.type !== 'EARN' && original.type !== 'REDEEM') continue;
+      const points = Math.abs(original.points);
+      const balanceDelta = original.type === 'EARN' ? -points : points;
+      await this.applyPointMutation(tx, {
+        accountId: original.accountId,
+        balanceDelta,
+        ledgerPoints: 'applied-delta',
+        type: 'ADJUST',
+        source: `daily_log_reversal:${dailyLogEntryId}`,
+        idempotencyKey: `loyalty.daily-log.reversal:${original.id}:v1`,
+        clampNegativeBalance: original.type === 'EARN',
+        allowZeroLedgerEntry: true,
       });
-      await this.recalculateTier(account.id);
     }
+  }
+
+  /** Read-only balance and marker reconciliation; this method never repairs data. */
+  async getReconciliationReport() {
+    const [
+      accounts,
+      ledgerGroups,
+      reservations,
+      dailyLogEntries,
+      redemptionTransactions,
+    ] = await this.prisma.$transaction(
+      (tx) =>
+        Promise.all([
+          tx.loyaltyAccount.findMany({
+            select: { id: true, userId: true, points: true },
+          }),
+          tx.loyaltyTransaction.groupBy({
+            by: ['accountId', 'type'],
+            _sum: { points: true },
+          }),
+          tx.reservation.findMany({
+            where: { loyaltyPointsUsed: { gt: 0 } },
+            select: { id: true, clientId: true, loyaltyPointsUsed: true },
+          }),
+          tx.dailyLogEntry.findMany({
+            where: { loyaltyPointsUsed: { gt: 0 } },
+            select: { id: true, clientId: true, loyaltyPointsUsed: true },
+          }),
+          tx.loyaltyTransaction.findMany({
+            where: {
+              type: 'REDEEM',
+              OR: [
+                {
+                  idempotencyKey: {
+                    startsWith: 'loyalty.reservation.redeem:',
+                  },
+                },
+                {
+                  idempotencyKey: { startsWith: 'loyalty.daily-log.redeem:' },
+                },
+                { source: { startsWith: 'Reservation ' } },
+                { source: { startsWith: 'DailyLog ' } },
+              ],
+            },
+            select: {
+              id: true,
+              accountId: true,
+              points: true,
+              type: true,
+              source: true,
+              idempotencyKey: true,
+            },
+          }),
+        ]),
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
+
+    const expectedBalances = new Map<string, number>();
+    const unknownTypes = new Map<string, Set<string>>();
+    for (const row of ledgerGroups) {
+      const amount = row._sum.points ?? 0;
+      const previous = expectedBalances.get(row.accountId) ?? 0;
+      if (row.type === 'EARN') {
+        expectedBalances.set(row.accountId, previous + amount);
+      } else if (row.type === 'REDEEM') {
+        expectedBalances.set(row.accountId, previous - Math.abs(amount));
+      } else if (row.type === 'ADJUST') {
+        expectedBalances.set(row.accountId, previous + amount);
+      } else {
+        const types = unknownTypes.get(row.accountId) ?? new Set<string>();
+        types.add(row.type);
+        unknownTypes.set(row.accountId, types);
+      }
+    }
+
+    const negativeBalances = accounts
+      .filter((account) => account.points < 0)
+      .map((account) => ({ accountId: account.id, points: account.points }));
+    const ledgerBalanceMismatches = accounts.flatMap((account) => {
+      if (unknownTypes.has(account.id)) return [];
+      const ledgerPoints = expectedBalances.get(account.id) ?? 0;
+      return account.points === ledgerPoints
+        ? []
+        : [
+            {
+              accountId: account.id,
+              points: account.points,
+              ledgerPoints,
+              difference: account.points - ledgerPoints,
+            },
+          ];
+    });
+
+    const accountIdByUserId = new Map(
+      accounts.map((account) => [account.userId, account.id]),
+    );
+    const reservationById = new Map(reservations.map((row) => [row.id, row]));
+    const dailyLogById = new Map(dailyLogEntries.map((row) => [row.id, row]));
+    const transactionResource = (
+      transaction: (typeof redemptionTransactions)[number],
+    ) => {
+      const reservationId =
+        transaction.idempotencyKey?.match(
+          /^loyalty\.reservation\.redeem:(.+):v1$/,
+        )?.[1] ?? transaction.source?.match(/^Reservation ([^ ]+) \(/)?.[1];
+      if (reservationId) {
+        return { type: 'RESERVATION' as const, id: reservationId };
+      }
+      const dailyLogId =
+        transaction.idempotencyKey?.match(
+          /^loyalty\.daily-log\.redeem:(.+):v1$/,
+        )?.[1] ?? transaction.source?.match(/^DailyLog ([^ ]+) \(/)?.[1];
+      if (dailyLogId) return { type: 'DAILY_LOG' as const, id: dailyLogId };
+      return null;
+    };
+    const resourceTransactions = redemptionTransactions.flatMap(
+      (transaction) => {
+        const resource = transactionResource(transaction);
+        return resource ? [{ transaction, resource }] : [];
+      },
+    );
+
+    const reservationMarkersWithoutTransaction: Array<Record<string, unknown>> =
+      [];
+    const dailyLogMarkersWithoutTransaction: Array<Record<string, unknown>> =
+      [];
+    const matchedTransactionIds = new Set<string>();
+
+    const reconcileMarkers = (
+      rows: LoyaltyMarker[],
+      resourceType: 'RESERVATION' | 'DAILY_LOG',
+      issues: Array<Record<string, unknown>>,
+    ) => {
+      for (const marker of rows) {
+        const accountId = marker.clientId
+          ? accountIdByUserId.get(marker.clientId)
+          : undefined;
+        const candidates = resourceTransactions.filter(
+          ({ transaction, resource }) =>
+            resource.type === resourceType && resource.id === marker.id,
+        );
+        const matching = candidates.filter(
+          ({ transaction }) =>
+            transaction.accountId === accountId &&
+            transaction.points === marker.loyaltyPointsUsed,
+        );
+        if (matching.length === 1) {
+          matchedTransactionIds.add(matching[0]!.transaction.id);
+        } else {
+          issues.push({
+            resourceId: marker.id,
+            accountId: accountId ?? null,
+            markerPoints: marker.loyaltyPointsUsed,
+            candidateTransactionCount: candidates.length,
+            reason:
+              candidates.length === 0
+                ? 'MISSING_REDEEM_TRANSACTION'
+                : 'REDEEM_TRANSACTION_MISMATCH_OR_DUPLICATE',
+          });
+        }
+      }
+    };
+
+    reconcileMarkers(
+      reservations,
+      'RESERVATION',
+      reservationMarkersWithoutTransaction,
+    );
+    reconcileMarkers(
+      dailyLogEntries,
+      'DAILY_LOG',
+      dailyLogMarkersWithoutTransaction,
+    );
+
+    const reservationTransactionsWithoutMarker: Array<Record<string, unknown>> =
+      [];
+    const dailyLogTransactionsWithoutMarker: Array<Record<string, unknown>> =
+      [];
+    for (const { transaction, resource } of resourceTransactions) {
+      if (matchedTransactionIds.has(transaction.id)) continue;
+      const marker =
+        resource.type === 'RESERVATION'
+          ? reservationById.get(resource.id)
+          : dailyLogById.get(resource.id);
+      const issue = {
+        transactionId: transaction.id,
+        resourceId: resource.id,
+        accountId: transaction.accountId,
+        transactionPoints: transaction.points,
+        markerPoints: marker?.loyaltyPointsUsed ?? 0,
+      };
+      if (resource.type === 'RESERVATION') {
+        reservationTransactionsWithoutMarker.push(issue);
+      } else {
+        dailyLogTransactionsWithoutMarker.push(issue);
+      }
+    }
+
+    return {
+      isReadOnly: true,
+      generatedAt: new Date().toISOString(),
+      summary: {
+        accountsChecked: accounts.length,
+        negativeBalanceCount: negativeBalances.length,
+        ledgerBalanceMismatchCount: ledgerBalanceMismatches.length,
+        reservationMarkerIssueCount:
+          reservationMarkersWithoutTransaction.length,
+        reservationTransactionIssueCount:
+          reservationTransactionsWithoutMarker.length,
+        dailyLogMarkerIssueCount: dailyLogMarkersWithoutTransaction.length,
+        dailyLogTransactionIssueCount: dailyLogTransactionsWithoutMarker.length,
+        accountsWithUnknownLedgerTypes: unknownTypes.size,
+      },
+      negativeBalances,
+      ledgerBalanceMismatches,
+      accountsWithUnknownLedgerTypes: [...unknownTypes].map(
+        ([accountId, types]) => ({ accountId, types: [...types] }),
+      ),
+      reservationMarkersWithoutTransaction,
+      reservationTransactionsWithoutMarker,
+      dailyLogMarkersWithoutTransaction,
+      dailyLogTransactionsWithoutMarker,
+    };
   }
 }

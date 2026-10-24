@@ -37,21 +37,36 @@ export class DailyLogReversalService {
   async reverseCompletedEffects(
     entryId: string,
     opts?: { revertReservation?: boolean },
+    transaction?: Prisma.TransactionClient,
   ): Promise<void> {
-    const entry = await this.prisma.dailyLogEntry.findUnique({
+    const db = transaction ?? this.prisma;
+    const entry = await db.dailyLogEntry.findUnique({
       where: { id: entryId },
     });
     if (!entry || entry.status !== 'COMPLETED') return;
     await this.assertOpenBooksForEntry(entry);
-    await this.prisma.$transaction(async (tx) => {
+
+    const reverse = async (tx: Prisma.TransactionClient) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT id FROM "daily_log_entries" WHERE id = ${entryId} FOR UPDATE`,
+      );
+      const currentEntry = await tx.dailyLogEntry.findUnique({
+        where: { id: entryId },
+        select: { id: true, status: true, reservationId: true },
+      });
+      if (!currentEntry || currentEntry.status !== 'COMPLETED') return;
+
       await this.removeIncomeBookEntries(tx, entryId);
       await this.reverseLinkedDebtPayments(tx, entryId);
       await this.removeCreatedDebts(tx, entryId);
-      if (opts?.revertReservation !== false && entry.reservationId) {
-        await this.revertReservationIfCompleted(tx, entry.reservationId);
+      if (opts?.revertReservation !== false && currentEntry.reservationId) {
+        await this.revertReservationIfCompleted(tx, currentEntry.reservationId);
       }
-    });
-    await this.loyalty.reverseFromDailyLog(entryId).catch(() => {});
+      await this.loyalty.reverseFromDailyLog(entryId, tx);
+    };
+
+    if (transaction) return reverse(transaction);
+    await this.prisma.$transaction(reverse);
   }
 
   async syncIncomeBookEntry(entry: {

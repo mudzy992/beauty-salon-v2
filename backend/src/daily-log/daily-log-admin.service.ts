@@ -81,11 +81,20 @@ export class DailyLogAdminService {
     if (entry.status !== 'COMPLETED') {
       throw new BadRequestException('Zapis nije kompletiran.');
     }
-    await this.reversal.reverseCompletedEffects(id);
-    return this.prisma.dailyLogEntry.update({
-      where: { id },
-      data: { status: 'PENDING', completedAt: null },
-      include: this.dailyLog.entryInclude(),
+    return this.prisma.$transaction(async (tx) => {
+      await this.reversal.reverseCompletedEffects(id, undefined, tx);
+      const current = await tx.dailyLogEntry.findUnique({
+        where: { id },
+        select: { id: true, status: true },
+      });
+      if (!current || current.status !== 'COMPLETED') {
+        throw new BadRequestException('Zapis nije kompletiran.');
+      }
+      return tx.dailyLogEntry.update({
+        where: { id },
+        data: { status: 'PENDING', completedAt: null },
+        include: this.dailyLog.entryInclude(),
+      });
     });
   }
 
@@ -106,8 +115,27 @@ export class DailyLogAdminService {
       );
     }
     if (entry.status === 'COMPLETED') {
-      await this.reversal.reverseCompletedEffects(id);
-    } else if (entry.kind === 'DEBT_PAYMENT' && entry.debtId) {
+      return this.prisma.$transaction(async (tx) => {
+        await this.reversal.reverseCompletedEffects(id, undefined, tx);
+        const current = await tx.dailyLogEntry.findUnique({
+          where: { id },
+          select: { id: true, status: true },
+        });
+        if (!current || current.status !== 'COMPLETED') {
+          throw new BadRequestException('Zapis nije kompletiran.');
+        }
+        return tx.dailyLogEntry.update({
+          where: { id },
+          data: {
+            deletedAt: new Date(),
+            deletedById: user.sub,
+            deleteReason: reason,
+          },
+          include: this.dailyLog.entryInclude(),
+        });
+      });
+    }
+    if (entry.kind === 'DEBT_PAYMENT' && entry.debtId) {
       await this.reopenDebtOnDelete(entry.id, entry.debtId);
     } else {
       await this.reversal.assertOpenBooksForEntry(entry);
@@ -179,6 +207,7 @@ export class DailyLogAdminService {
     current: { clientId: string | null; status: string },
   ) {
     const data: Record<string, unknown> = {};
+    let resolvedItems: ReturnType<typeof resolveServiceItems> | undefined;
     if (dto.actualPrice != null) data.actualPrice = dto.actualPrice;
     if (dto.tipAmount != null) data.tipAmount = dto.tipAmount;
     if (dto.notes !== undefined) data.notes = dto.notes;
@@ -203,32 +232,55 @@ export class DailyLogAdminService {
       const catalogPrices = new Map(
         catalog.map((s) => [s.id, Number(s.price)]),
       );
-      const resolved = resolveServiceItems({
+      resolvedItems = resolveServiceItems({
         items: dto.items,
         serviceIds: dto.serviceIds,
         catalogPrices,
       });
-      const serviceIds = resolved.map((r) => r.serviceId);
+      const serviceIds = resolvedItems.map((r) => r.serviceId);
       const clientId =
         dto.clientId !== undefined ? dto.clientId : current.clientId;
       await this.validators.assertClientServiceGenderMatch(clientId, serviceIds);
       data.serviceId = serviceIds[0];
-      await this.prisma.dailyLogEntryServiceItem.deleteMany({
-        where: { dailyLogEntryId: id },
-      });
-      await this.prisma.dailyLogEntryServiceItem.createMany({
-        data: resolved.map((it, idx) => ({
-          dailyLogEntryId: id,
-          serviceId: it.serviceId,
-          unitPrice: it.unitPrice,
-          sortOrder: idx,
-        })),
-      });
     }
-    const updated = await this.prisma.dailyLogEntry.update({
-      where: { id },
-      data,
-      include: this.dailyLog.entryInclude(),
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (resolvedItems) {
+        await tx.dailyLogEntryServiceItem.deleteMany({
+          where: { dailyLogEntryId: id },
+        });
+        await tx.dailyLogEntryServiceItem.createMany({
+          data: resolvedItems.map((it, idx) => ({
+            dailyLogEntryId: id,
+            serviceId: it.serviceId,
+            unitPrice: it.unitPrice,
+            sortOrder: idx,
+          })),
+        });
+      }
+      const entry = await tx.dailyLogEntry.update({
+        where: { id },
+        data,
+        include: this.dailyLog.entryInclude(),
+      });
+      if (
+        entry.clientId &&
+        dto.desiredLoyaltyPercent != null &&
+        dto.desiredLoyaltyPercent > 0 &&
+        entry.status === 'PENDING'
+      ) {
+        await this.loyalty.redeemForDailyLog(
+          {
+            clientId: entry.clientId,
+            dailyLogEntryId: entry.id,
+            serviceIds: resolvedItems?.map((item) => item.serviceId) ??
+              entry.items?.map((item) => item.serviceId) ?? [entry.serviceId],
+            desiredPercent: dto.desiredLoyaltyPercent,
+            actualPrice: Number(entry.actualPrice),
+          },
+          tx,
+        );
+      }
+      return entry;
     });
     if (
       updated.clientId &&
@@ -236,13 +288,6 @@ export class DailyLogAdminService {
       dto.desiredLoyaltyPercent > 0 &&
       updated.status === 'PENDING'
     ) {
-      await this.loyalty.redeemForDailyLog({
-        clientId: updated.clientId,
-        dailyLogEntryId: updated.id,
-        serviceId: updated.serviceId,
-        desiredPercent: dto.desiredLoyaltyPercent,
-        actualPrice: Number(updated.actualPrice),
-      });
       return this.dailyLog.findOne(updated.id, user);
     }
     return updated;
