@@ -5,13 +5,19 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 
 const mockPrisma = {
+  $transaction: jest.fn(),
   loyaltyAccount: {
     findUnique: jest.fn(),
     update: jest.fn(),
     updateMany: jest.fn(),
     create: jest.fn(),
+    upsert: jest.fn(),
   },
-  loyaltyTransaction: { create: jest.fn() },
+  loyaltyTransaction: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    create: jest.fn(),
+  },
   reservation: {
     findUnique: jest.fn(),
     update: jest.fn(),
@@ -35,6 +41,11 @@ describe('LoyaltyService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockPrisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof mockPrisma) => unknown) => callback(mockPrisma),
+    );
+    mockPrisma.$queryRaw.mockResolvedValue([]);
+    mockPrisma.loyaltyTransaction.findUnique.mockResolvedValue(null);
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LoyaltyService,
@@ -66,11 +77,11 @@ describe('LoyaltyService', () => {
         .mockResolvedValueOnce('0') // loyalty_min_amount_for_earn
         .mockResolvedValueOnce('[]'); // loyalty_excluded_services
 
-      mockPrisma.loyaltyAccount.findUnique.mockResolvedValue(null);
-      mockPrisma.loyaltyAccount.create.mockResolvedValue({
+      mockPrisma.loyaltyAccount.upsert.mockResolvedValue({ id: 'acc1' });
+      mockPrisma.loyaltyAccount.findUnique.mockResolvedValue({
         id: 'acc1',
         userId: 'u1',
-        points: 0,
+        points: 50,
       });
       mockPrisma.loyaltyAccount.update.mockResolvedValue({
         id: 'acc1',
@@ -88,6 +99,39 @@ describe('LoyaltyService', () => {
 
       expect(result).not.toBeNull();
       expect(mockPrisma.loyaltyAccount.update).toHaveBeenCalled();
+      expect(mockPrisma.loyaltyAccount.upsert).toHaveBeenCalledWith({
+        where: { userId: 'u1' },
+        create: { userId: 'u1', isActive: true },
+        update: {},
+        select: { id: true },
+      });
+    });
+
+    it('ne ponavlja earn kada isti completion idempotency key već postoji', async () => {
+      mockPrisma.loyaltyTransaction.findUnique.mockResolvedValue({
+        accountId: 'acc1',
+      });
+      mockPrisma.loyaltyAccount.findUnique.mockResolvedValue({
+        id: 'acc1',
+        points: 50,
+      });
+
+      const result = await service.earnFromDailyLog({
+        id: 'e1',
+        clientId: 'u1',
+        actualPrice: 50,
+        tipAmount: 0,
+        serviceId: 'svc1',
+        idempotencyKey: 'daily-log.earn:e1:v1',
+      });
+
+      expect(result).toMatchObject({ id: 'acc1', points: 50 });
+      expect(mockPrisma.loyaltyTransaction.findUnique).toHaveBeenCalledWith({
+        where: { idempotencyKey: 'daily-log.earn:e1:v1' },
+        select: { accountId: true },
+      });
+      expect(mockPrisma.loyaltyAccount.update).not.toHaveBeenCalled();
+      expect(mockSettings.getValue).not.toHaveBeenCalled();
     });
   });
 

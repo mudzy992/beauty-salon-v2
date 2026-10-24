@@ -37,14 +37,19 @@ describe('IncomeBooksService', () => {
   });
 
   describe('getOrCreateForMonth', () => {
-    it('kreira knjigu kada ne postoji', async () => {
+    it('atomically vrati ili kreira knjigu na proslijeđenom clientu', async () => {
       const { year, month } = currentPeriod();
-      prisma.incomeBook.findUnique.mockResolvedValue(null);
-      prisma.incomeBook.create.mockResolvedValue({ id: 'b1', year, month });
+      prisma.incomeBook.upsert.mockResolvedValue({ id: 'b1', year, month });
+      const tx = { incomeBook: prisma.incomeBook } as any;
 
-      const actual = await service.getOrCreateForMonth(year, month);
+      const actual = await service.getOrCreateForMonth(year, month, tx);
 
-      expect(prisma.incomeBook.create).toHaveBeenCalled();
+      expect(prisma.incomeBook.upsert).toHaveBeenCalledWith({
+        where: { year_month: { year, month } },
+        create: { year, month },
+        update: {},
+        include: { entries: true },
+      });
       expect(actual.id).toBe('b1');
     });
 

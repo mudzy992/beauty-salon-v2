@@ -25,22 +25,31 @@ export class IncomeBookRepository {
     return (tx ?? this.prisma).incomeBook.findUnique({ where: { id } })
   }
 
-  findByPeriod(year: number, month: number) {
-    return this.prisma.incomeBook.findUnique({
+  findByPeriod(year: number, month: number, tx?: PrismaTx) {
+    return (tx ?? this.prisma).incomeBook.findUnique({
       where: { year_month: { year, month } },
     })
   }
 
-  findByPeriodWithEntries(year: number, month: number) {
-    return this.prisma.incomeBook.findUnique({
+  findByPeriodWithEntries(year: number, month: number, tx?: PrismaTx) {
+    return (tx ?? this.prisma).incomeBook.findUnique({
       where: { year_month: { year, month } },
       include: { entries: true },
     })
   }
 
-  createForPeriod(year: number, month: number) {
-    return this.prisma.incomeBook.create({
+  createForPeriod(year: number, month: number, tx?: PrismaTx) {
+    return (tx ?? this.prisma).incomeBook.create({
       data: { year, month },
+      include: { entries: true },
+    })
+  }
+
+  upsertForPeriod(year: number, month: number, tx?: PrismaTx) {
+    return (tx ?? this.prisma).incomeBook.upsert({
+      where: { year_month: { year, month } },
+      create: { year, month },
+      update: {},
       include: { entries: true },
     })
   }
@@ -125,9 +134,9 @@ export class IncomeBookRepository {
     })
   }
 
-  findAutoEntryByDailyLog(bookId: string, dailyLogEntryId: string) {
-    return this.prisma.incomeBookEntry.findUnique({
-      where: { bookId_dailyLogEntryId: { bookId, dailyLogEntryId } },
+  findAutoEntryByDailyLog(dailyLogEntryId: string, tx?: PrismaTx) {
+    return (tx ?? this.prisma).incomeBookEntry.findUnique({
+      where: { dailyLogEntryId },
     })
   }
 

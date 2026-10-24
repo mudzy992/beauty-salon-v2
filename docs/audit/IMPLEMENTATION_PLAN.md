@@ -2,7 +2,7 @@
 
 **Datum izrade:** 2026-10-21 (UTC)<br>
 **Ulaz:** [FINDINGS.md](FINDINGS.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [TEST_WORKFLOW.md](TEST_WORKFLOW.md)<br>
-**Stanje:** fazni plan; Phase 0A `SEC-01`, Phase 0C `SEC-02` i SEC-07, SEC-08 te SEC-06 djelimične source mitigations postoje na ovoj grani, nisu potvrđene u produkciji. `SEC-04/PRIV-01` ima owner-approved policy/copy i implementiran storage/consent/migration source sa sintetičkim unit coverage; nema production/shared DB ili filesystem migracije, generated-client build/E2E ili deployment potvrde. Retention, restore-tested backup/rollback i owner cutover signoff ostaju otvoreni. `SEC-03` debt-visibility policy and remaining booking/finance/security fixes remain planned; `BIZ-04` repayment race mitigation is implemented and verified by synthetic CI run `40018582462` on this branch, with no production migration. Repo dokumentacija, read-only checks i no-deploy CI su pripremljeni.<br>
+**Stanje:** fazni plan; Phase 0A `SEC-01`, Phase 0C `SEC-02` i SEC-07, SEC-08 te SEC-06 djelimične source mitigations postoje na ovoj grani, nisu potvrđene u produkciji. `SEC-04/PRIV-01` ima owner-approved policy/copy i implementiran storage/consent/migration source sa sintetičkim unit coverage; nema production/shared DB ili filesystem migracije, generated-client build/E2E ili deployment potvrde. Retention, restore-tested backup/rollback i owner cutover signoff ostaju otvoreni. `SEC-03` debt-visibility policy and remaining booking/finance/security fixes remain planned; `BIZ-04` repayment race mitigation is implemented and verified by synthetic CI run `40018582462` on this branch, with no production migration. `BIZ-03` source implementation is present in the active working tree, but generated-Prisma/schema/build and disposable-PostgreSQL acceptance remain unverified; no migration or repair has run against production/shared data. Repo dokumentacija, read-only checks i no-deploy CI su pripremljeni.<br>
 
 ## 1. Principi i redoslijed
 
@@ -116,12 +116,16 @@ Tekst/policy scope je implementiran u izvoru i testiran samo kroz synthetic/mock
 
 ### 1B. Daily-log, KIF and reservations — `BIZ-03`
 
-- Define authoritative state transition and transaction contract for `DailyLogEntry` + linked Reservation + `IncomeBookEntry`/KIF sync + loyalty ledger state.
-- Refactor `IncomeSyncService` to accept tx-bound Prisma client or implement dedicated domain transaction; avoid nested client transactions.
-- Completion is idempotent: second call returns completed result and runs/reconciles missing durable side effects rather than throws after partial state.
-- Persist outbox jobs transactionally for email/receipt/realtime; retry idempotently.
-- Create reconciliation report for legacy completed logs missing KIF/loyalty and duplicate/partial rows before automatic repair.
-- **Acceptance:** injected failures at each write boundary rollback local records or leave explicit retryable outbox status; repeated completion produces exactly one ledger entry/earn; response and DB align.
+**Source implementation (2026-10-24; acceptance remains unconfirmed):**
+- `DailyLogService.complete()` authorizes then row-locks/re-reads the log; completion generation, valid linked reservation transition, tx-bound KIF, tx-bound idempotent loyalty earn and deduplicated outbox upsert now share one Prisma transaction. `IncomeSyncService.addEntryFromDailyLog(id, tx)` reuses the passed transaction client and does not open a nested/root-client transaction.
+- Completed retries return the completed DB row and reconcile KIF/loyalty/outbox. A terminal/mismatched reservation on an already-completed retry is left as an integrity finding rather than blocking local ledger reconciliation; initial completion still rejects invalid reservation state/ownership.
+- `IncomeBookEntry.dailyLogEntryId` is globally unique and the Prisma relation is one-to-one. The BIZ-03 migration aborts on existing duplicate auto-KIF or legacy daily-log EARN rows, then assigns generation 1 to known existing completed/EARN records without rewriting KIF values/period or loyalty balances.
+- Email/receipt/realtime work is stored in a transactional outbox and dispatched best-effort after commit; a scheduled retry worker handles pending/expired leases. Notification persistence dedupes by source event. External delivery remains at-least-once, not exactly-once.
+- Read-only `GET /api/income-books/{bookId}/completion-integrity` plus [SQL preflight/reconciliation notes](BIZ-03-RECONCILIATION.md) report legacy missing/duplicate/wrong-period/orphaned KIF, completion/reservation mismatches and loyalty candidates/duplicates/unkeyed ledger rows. Loyalty missing is not treated as proof of historical eligibility (`needsReview`, not unhealthy by itself). Existing manual KIF resync refuses to claim success if a missing-in-period candidate already has a KIF row in another book. No repair or migration has been run against a live/shared database.
+
+**Local verification (2026-10-24):** 6 targeted backend Jest suites / 47 tests pass with a temporary Prisma runtime stub and `ts-jest` diagnostics disabled; this is not generated-client typecheck or DB acceptance. Syntax transpilation of 17 targeted backend files and `git diff --check` pass. Frontend production build, mobile typecheck and socket-recovery tests passed earlier in this work session. Prisma schema validation/generation/backend build and the disposable-PostgreSQL migration/failure-injection E2E suite remain unverified: a usable Prisma engine and disposable local PostgreSQL are unavailable in the sandbox; CI was not run.
+
+**Acceptance gate still open:** run generated Prisma Client/schema validation/backend build, apply the migration only to disposable PostgreSQL after reviewing the preflight, and execute injected loyalty/KIF failure, retry exact-one KIF/earn, API-vs-DB state and read-only report assertions. Until those synthetic DB checks pass, BIZ-03 is source-implemented but **not confirmed**; do not advance/close the finding or deploy it.
 
 ### 1C. Debt repayment/write-off — `BIZ-04`
 
@@ -133,11 +137,11 @@ Tekst/policy scope je implementiran u izvoru i testiran samo kroz synthetic/mock
 
 ### 1D. Loyalty — `BIZ-05`
 
-- Use conditional `updateMany`/row lock `points >= delta`; transaction stores balance mutation + transaction row + reservation/daily-log marker.
-- Add explicit `idempotencyKey` for earn/redeem/reversal/adjust operations. Existing `source` text is display/reference, not uniqueness guarantee.
+- Reservation redeem uses conditional `updateMany`/account row lock (`points >= delta`); balance mutation, ledger row and reservation marker share the booking transaction client. This is source-implemented in the earlier BIZ-02 work; generated-client/DB proof is tracked there.
+- BIZ-03 adds generation-scoped daily-log earn idempotency; do not treat that as coverage for all loyalty ledger operations. Add explicit idempotency for redeem/reversal/adjust where applicable; `source` remains display/reference, not uniqueness.
 - Use integer point math and decimal price math consistently; document rounding order and cap calculation; prevent concurrent tier recalc lost updates.
 - Add reconciliation for negative balances, markers without transaction, transaction without marker.
-- **Acceptance:** two concurrent redemptions never drive negative balance; same reservation cannot redeem twice; replayed daily-log completion does not earn twice; reversal/recompletion idempotent.
+- **Acceptance:** two concurrent redemptions never drive negative balance; same reservation cannot redeem twice; BIZ-03 disposable-DB replay confirms one daily-log earn; reversal/recompletion and adjustments are idempotent.
 
 ### 1E. Finance book closure — `BIZ-08`
 

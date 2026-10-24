@@ -6,6 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDailyLogEntryDto } from './dto/create-daily-log-entry.dto';
 import { UpdateDailyLogEntryDto } from './dto/update-daily-log-entry.dto';
@@ -25,7 +26,7 @@ import {
   sumUnitPrices,
 } from './daily-log.pricing';
 import { allocateDailyLogReferenceCode } from './daily-log.reference';
-import { DailyLogReceiptService } from './daily-log-receipt.service';
+import { DailyLogCompletionOutboxService } from './daily-log-completion-outbox.service';
 import { claimOpenClientDebt } from '../finance/utils/claim-open-client-debt';
 
 @Injectable()
@@ -37,7 +38,7 @@ export class DailyLogService {
     private readonly incomeSync: IncomeSyncService,
     private readonly loyalty: LoyaltyService,
     private readonly notifications: NotificationsService,
-    private readonly receipt: DailyLogReceiptService,
+    private readonly completionOutbox: DailyLogCompletionOutboxService,
   ) {}
 
   private async notifyClientDebt(params: {
@@ -646,66 +647,155 @@ export class DailyLogService {
   }
 
   async complete(id: string, user: CurrentUserPayload) {
-    const entry = await this.findOne(id, user);
-    if (entry.status === 'COMPLETED')
-      throw new BadRequestException('Zapis je već završen.');
-    const updated = await this.prisma.dailyLogEntry.update({
-      where: { id },
-      data: { status: 'COMPLETED', completedAt: new Date() },
-      include: this.entryInclude(),
-    });
+    // Authorize before taking database locks, then re-read and re-authorize the
+    // row inside the transaction to avoid acting on a stale reassignment.
+    await this.findOne(id, user);
 
-    // Ako je zapis vezan za rezervaciju, završavamo i rezervaciju u istom trenutku.
-    // Stilist realno "završava posao" tek nakon naplate + before/after.
-    if (updated.reservationId) {
-      const res = await this.prisma.reservation.findUnique({
-        where: { id: updated.reservationId },
-        select: { id: true, confirmedStylistId: true, status: true },
-      });
-      if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
-      if (res.confirmedStylistId !== updated.stylistProfileId) {
-        throw new ForbiddenException(
-          'Samo potvrđeni stilist može završiti ovu rezervaciju.',
-        );
-      }
-      if (res.status !== 'IN_PROGRESS' &&
-        res.status !== 'ATTENDANCE_CONFIRMED' &&
-        res.status !== RESERVATION_STATUS.AWAITING_DAILY_LOG) {
-        throw new BadRequestException(
-          'Rezervaciju nije moguće završiti u trenutnom statusu.',
-        );
-      }
-      assertReservationTransition(res.status, RESERVATION_STATUS.COMPLETED);
-      await this.prisma.reservation.update({
-        where: { id: res.id },
-        data: { status: RESERVATION_STATUS.COMPLETED, completedAt: new Date() },
-      });
-      // Minimalna loyalty implementacija: osiguraj account
-      await this.loyalty.ensureAccountForUser(updated.clientId ?? '').catch(() => {});
-    }
-
-    // KIF knjiženje je dio završetka zapisa; greška ne smije ostati nevidljiva.
-    await this.incomeSync.addEntryFromDailyLog(id).catch((err: unknown) => {
-      this.logger.error(
-        `KIF knjiženje nije uspjelo za dnevni zapis ${id}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT id FROM "daily_log_entries" WHERE id = ${id} FOR UPDATE`,
       );
-      throw err;
+      const entry = await tx.dailyLogEntry.findUnique({
+        where: { id },
+        include: this.entryInclude(),
+      });
+      if (!entry || entry.deletedAt) {
+        throw new NotFoundException('Zapis nije pronađen.');
+      }
+      if (
+        !this.isAdminOrOwner(user) &&
+        entry.stylistProfile.user.id !== user.sub
+      ) {
+        throw new ForbiddenException('Nemate pristup ovom stilistu.');
+      }
+      if (entry.status !== 'PENDING' && entry.status !== 'COMPLETED') {
+        throw new BadRequestException(
+          'Zapis nije u statusu koji se može završiti.',
+        );
+      }
+
+      const now = new Date();
+      const isNewCompletion = entry.status === 'PENDING';
+      const completionVersion = Math.max(
+        1,
+        Number(entry.completionVersion ?? 0) + (isNewCompletion ? 1 : 0),
+      );
+      const completedAt = entry.completedAt ?? now;
+      if (
+        isNewCompletion ||
+        entry.completedAt === null ||
+        entry.completionVersion !== completionVersion
+      ) {
+        await tx.dailyLogEntry.update({
+          where: { id },
+          data: {
+            status: 'COMPLETED',
+            completedAt,
+            completionVersion,
+          },
+        });
+      }
+
+      if (entry.reservationId) {
+        await tx.$queryRaw(
+          Prisma.sql`SELECT id FROM "reservations" WHERE id = ${entry.reservationId} FOR UPDATE`,
+        );
+        const reservation = await tx.reservation.findUnique({
+          where: { id: entry.reservationId },
+          select: {
+            id: true,
+            clientId: true,
+            confirmedStylistId: true,
+            status: true,
+            completedAt: true,
+          },
+        });
+        if (!reservation) {
+          if (isNewCompletion) {
+            throw new NotFoundException('Rezervacija nije pronađena.');
+          }
+        } else if (
+          reservation.confirmedStylistId !== entry.stylistProfileId
+        ) {
+          if (isNewCompletion) {
+            throw new ForbiddenException(
+              'Samo potvrđeni stilist može završiti ovu rezervaciju.',
+            );
+          }
+        } else if (reservation.status !== RESERVATION_STATUS.COMPLETED) {
+          const canCompleteReservation =
+            reservation.status === RESERVATION_STATUS.IN_PROGRESS ||
+            reservation.status === RESERVATION_STATUS.ATTENDANCE_CONFIRMED ||
+            reservation.status === RESERVATION_STATUS.AWAITING_DAILY_LOG;
+          if (!canCompleteReservation) {
+            if (isNewCompletion) {
+              throw new BadRequestException(
+                'Rezervaciju nije moguće završiti u trenutnom statusu.',
+              );
+            }
+          } else {
+            assertReservationTransition(
+              reservation.status,
+              RESERVATION_STATUS.COMPLETED,
+            );
+            await tx.reservation.update({
+              where: { id: reservation.id },
+              data: {
+                status: RESERVATION_STATUS.COMPLETED,
+                completedAt: reservation.completedAt ?? now,
+              },
+            });
+          }
+        } else if (!reservation.completedAt) {
+          await tx.reservation.update({
+            where: { id: reservation.id },
+            data: { completedAt: now },
+          });
+        }
+      }
+
+      await this.incomeSync.addEntryFromDailyLog(id, tx);
+      if (entry.kind === 'SERVICE') {
+        await this.loyalty.earnFromDailyLog(
+          {
+            id: entry.id,
+            clientId: entry.clientId,
+            actualPrice: Number(entry.actualPrice),
+            tipAmount: Number(entry.tipAmount),
+            serviceId: entry.serviceId,
+            idempotencyKey: `daily-log.earn:${entry.id}:v${completionVersion}`,
+          },
+          tx,
+        );
+      }
+
+      const outboxEvent = await tx.outboxEvent.upsert({
+        where: {
+          dedupeKey: `daily-log.completed:${entry.id}:v${completionVersion}`,
+        },
+        create: {
+          eventType: 'daily_log.completed',
+          aggregateId: entry.id,
+          dedupeKey: `daily-log.completed:${entry.id}:v${completionVersion}`,
+          payload: {
+            dailyLogEntryId: entry.id,
+            completionVersion,
+          },
+        },
+        update: {},
+      });
+      const completed = await tx.dailyLogEntry.findUnique({
+        where: { id },
+        include: this.entryInclude(),
+      });
+      if (!completed) throw new NotFoundException('Zapis nije pronađen.');
+      return { entry: completed, outboxEventId: outboxEvent.id };
     });
-    if (updated.clientId) {
-      await this.loyalty
-        .earnFromDailyLog({
-          id: updated.id,
-          clientId: updated.clientId,
-          actualPrice: Number(updated.actualPrice),
-          tipAmount: Number(updated.tipAmount),
-          serviceId: updated.serviceId,
-        })
-        .catch(() => {});
-    }
-    this.receipt.notifyAfterComplete(updated.id);
-    return updated;
+
+    // The outbox service is best-effort after commit; pending delivery remains
+    // durable and is retried by its scheduled worker or the next HTTP replay.
+    void this.completionOutbox.dispatchAfterCommit(result.outboxEventId);
+    return result.entry;
   }
 
   async addImage(

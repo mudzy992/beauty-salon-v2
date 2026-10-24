@@ -81,7 +81,7 @@ describe('IncomeSyncService', () => {
 
     it('odbija knjiženje u zaključanu knjigu', async () => {
       prisma.dailyLogEntry.findUnique.mockResolvedValue(completedEntry);
-      prisma.incomeBook.findUnique.mockResolvedValue({
+      prisma.incomeBook.upsert.mockResolvedValue({
         id: 'b1',
         year: 2026,
         month: 3,
@@ -96,7 +96,7 @@ describe('IncomeSyncService', () => {
 
     it('knjiži iznos bez napojnice', async () => {
       prisma.dailyLogEntry.findUnique.mockResolvedValue(completedEntry);
-      prisma.incomeBook.findUnique.mockResolvedValue({
+      prisma.incomeBook.upsert.mockResolvedValue({
         id: 'b1',
         year: 2026,
         month: 3,
@@ -111,9 +111,29 @@ describe('IncomeSyncService', () => {
       expect(Number(data.tipAmount)).toBe(30);
     });
 
+    it('koristi proslijeđeni transaction client bez pokretanja root transakcije', async () => {
+      prisma.dailyLogEntry.findUnique.mockResolvedValue(completedEntry);
+      prisma.incomeBook.upsert.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: null,
+      });
+      prisma.incomeBookEntry.findUnique.mockResolvedValue(null);
+
+      await service.addEntryFromDailyLog('dl1', prisma as any);
+
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(prisma.$queryRaw).toHaveBeenCalled();
+      expect(prisma.incomeBookEntry.create).toHaveBeenCalled();
+      expect(prisma.incomeBook.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'b1' } }),
+      );
+    });
+
     it('idempotentan je kada stavka već postoji', async () => {
       prisma.dailyLogEntry.findUnique.mockResolvedValue(completedEntry);
-      prisma.incomeBook.findUnique.mockResolvedValue({
+      prisma.incomeBook.upsert.mockResolvedValue({
         id: 'b1',
         year: 2026,
         month: 3,
@@ -179,6 +199,118 @@ describe('IncomeSyncService', () => {
     });
   });
 
+  describe('checkCompletionIntegrity', () => {
+    it('izvještava read-only o KIF, loyalty i reservation odstupanjima', async () => {
+      const book = {
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: null,
+      };
+      prisma.incomeBook.findUnique.mockResolvedValue(book);
+      prisma.dailyLogEntry.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'dl-missing',
+            date: new Date('2026-03-10'),
+            completedAt: null,
+            completionVersion: 1,
+            clientId: 'client-1',
+            actualPrice: dec(50),
+            reservationId: 'r1',
+            stylistProfileId: 'stylist-1',
+            reservation: {
+              id: 'r1',
+              status: 'IN_PROGRESS',
+              completedAt: null,
+              confirmedStylistId: 'stylist-1',
+            },
+          },
+          {
+            id: 'dl-ok',
+            date: new Date('2026-03-11'),
+            completedAt: new Date('2026-03-11T12:00:00Z'),
+            completionVersion: 1,
+            clientId: 'client-2',
+            actualPrice: dec(80),
+            reservationId: null,
+            stylistProfileId: 'stylist-2',
+            reservation: null,
+          },
+        ])
+        .mockResolvedValueOnce([]);
+      prisma.loyaltyTransaction.findMany.mockResolvedValue([]);
+      prisma.incomeBookEntry.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'kif-1',
+            dailyLogEntryId: 'dl-ok',
+            bookId: 'b1',
+            book: { year: 2026, month: 3 },
+          },
+        ])
+        .mockResolvedValueOnce([]);
+
+      const actual = await service.checkCompletionIntegrity('b1');
+
+      expect(actual.isReadOnly).toBe(true);
+      expect(actual.isHealthy).toBe(false);
+      expect(actual.counts).toMatchObject({
+        scanned: 2,
+        missingKif: 1,
+        missingCompletionTimestamp: 1,
+        reservationMismatch: 1,
+        loyaltyNoEarnFound: 2,
+      });
+      expect(actual.caveats[0]).toContain('ne dokaz');
+      expect(prisma.incomeBookEntry.create).not.toHaveBeenCalled();
+      expect(prisma.incomeBook.upsert).not.toHaveBeenCalled();
+      expect(prisma.loyaltyTransaction.create).not.toHaveBeenCalled();
+    });
+
+    it('marks uncertain historical loyalty absence for review, not as a confirmed unhealthy state', async () => {
+      prisma.incomeBook.findUnique.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: null,
+      });
+      prisma.dailyLogEntry.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'dl-candidate',
+            date: new Date('2026-03-12'),
+            completedAt: new Date('2026-03-12T12:00:00Z'),
+            completionVersion: 1,
+            clientId: 'client-3',
+            actualPrice: dec(60),
+            reservationId: null,
+            stylistProfileId: 'stylist-3',
+            reservation: null,
+          },
+        ])
+        .mockResolvedValueOnce([]);
+      prisma.incomeBookEntry.findMany
+        .mockResolvedValueOnce([
+          {
+            id: 'kif-candidate',
+            dailyLogEntryId: 'dl-candidate',
+            bookId: 'b1',
+            book: { year: 2026, month: 3 },
+          },
+        ])
+        .mockResolvedValueOnce([]);
+      prisma.loyaltyTransaction.findMany.mockResolvedValue([]);
+
+      const actual = await service.checkCompletionIntegrity('b1');
+
+      expect(actual.isHealthy).toBe(true);
+      expect(actual.needsReview).toBe(true);
+      expect(actual.counts.loyaltyNoEarnFound).toBe(1);
+      expect(actual.counts.missingKif).toBe(0);
+    });
+  });
+
   describe('resyncBook', () => {
     it('odbija sinhronizaciju zaključane knjige', async () => {
       prisma.incomeBook.findUnique.mockResolvedValue({
@@ -193,6 +325,26 @@ describe('IncomeSyncService', () => {
       await expect(service.resyncBook('b1')).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('ne prijavljuje uspješan resync kad KIF red već postoji u drugoj knjizi', async () => {
+      prisma.incomeBook.findUnique.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: null,
+      });
+      prisma.dailyLogEntry.findMany.mockResolvedValue([{ id: 'dl1' }]);
+      prisma.incomeBookEntry.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { dailyLogEntryId: 'dl1', bookId: 'b0' },
+        ]);
+
+      await expect(service.resyncBook('b1')).rejects.toThrow(
+        'već imaju KIF stavku u drugoj knjizi',
+      );
+      expect(prisma.incomeBookEntry.create).not.toHaveBeenCalled();
     });
   });
 });

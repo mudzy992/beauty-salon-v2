@@ -3,7 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
-import { IncomeBookRepository } from './repositories/income-book.repository'
+import {
+  IncomeBookRepository,
+  type PrismaTx,
+} from './repositories/income-book.repository'
 import {
   assertValidPeriod,
   getCurrentPeriod,
@@ -48,16 +51,15 @@ export class IncomeBooksService {
     return { opened: currentBook.id, closed: previousBook?.id ?? null }
   }
 
-  /** Vraća knjigu za mjesec; kreira je ako ne postoji (za agregaciju). */
-  async getOrCreateForMonth(year: number, month: number) {
+  /** Vraća/kreira mjesečnu knjigu na istom transaction clientu kad je proslijeđen. */
+  async getOrCreateForMonth(year: number, month: number, tx?: PrismaTx) {
     assertValidPeriod(year, month)
     if (isFutureMonth(year, month)) {
       throw new BadRequestException(
         'Ne možete kreirati knjigu za budući mjesec.',
       )
     }
-    const book = await this.repository.findByPeriodWithEntries(year, month)
-    return book ?? this.repository.createForPeriod(year, month)
+    return this.repository.upsertForPeriod(year, month, tx)
   }
 
   findAll() {

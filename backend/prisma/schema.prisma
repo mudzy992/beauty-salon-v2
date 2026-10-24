@@ -463,6 +463,7 @@ model DailyLogEntry {
   notes                 String?   @db.Text
   status                String    @default("PENDING") // PENDING | COMPLETED
   completedAt           DateTime? @map("completed_at")
+  completionVersion     Int       @default(0) @map("completion_version")
   pendingReminderSentAt DateTime? @map("pending_reminder_sent_at")
   sourceEntryId         String?   @map("source_entry_id")
   randomKey             Float     @default(dbgenerated("random()")) @map("random_key")
@@ -479,7 +480,7 @@ model DailyLogEntry {
   client              User?                      @relation("DailyLogClient", fields: [clientId], references: [id], onDelete: SetNull)
   debt                ClientDebt?                @relation("DebtPaymentEntries", fields: [debtId], references: [id], onDelete: SetNull)
   images              DailyLogImage[]
-  incomeEntries       IncomeBookEntry[]
+  incomeEntry         IncomeBookEntry?
   clientDebts         ClientDebt[]
   deletedBy           User?                      @relation("DailyLogDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
   sourceEntry         DailyLogEntry?             @relation("DailyLogDebtPayments", fields: [sourceEntryId], references: [id], onDelete: SetNull)
@@ -728,7 +729,7 @@ model IncomeBook {
 model IncomeBookEntry {
   id              String   @id @default(uuid())
   bookId          String   @map("book_id")
-  dailyLogEntryId String   @map("daily_log_entry_id")
+  dailyLogEntryId String   @unique(map: "income_book_entries_daily_log_entry_id_key") @map("daily_log_entry_id")
   amount          Decimal  @db.Decimal(10, 2)
   tipAmount       Decimal  @default(0) @map("tip_amount") @db.Decimal(10, 2)
   date            DateTime @db.Date
@@ -737,7 +738,6 @@ model IncomeBookEntry {
   book          IncomeBook    @relation(fields: [bookId], references: [id], onDelete: Cascade)
   dailyLogEntry DailyLogEntry @relation(fields: [dailyLogEntryId], references: [id], onDelete: Cascade)
 
-  @@unique([bookId, dailyLogEntryId])
   @@map("income_book_entries")
 }
 
@@ -1037,12 +1037,13 @@ model LoyaltyAccount {
 }
 
 model LoyaltyTransaction {
-  id        String   @id @default(uuid())
-  accountId String   @map("account_id")
-  points    Int
-  type      String // EARN | REDEEM
-  source    String?
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid())
+  accountId       String   @map("account_id")
+  points          Int
+  type            String // EARN | REDEEM
+  source          String?
+  idempotencyKey  String?  @unique(map: "loyalty_transactions_idempotency_key_key") @map("idempotency_key")
+  createdAt       DateTime @default(now()) @map("created_at")
 
   account LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 

@@ -9,10 +9,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { IncomeSyncService } from '../finance/income-sync.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { DailyLogReceiptService } from './daily-log-receipt.service';
+import { DailyLogCompletionOutboxService } from './daily-log-completion-outbox.service';
 
 const mockPrisma = {
   $transaction: jest.fn(),
+  $queryRaw: jest.fn().mockResolvedValue([]),
+  outboxEvent: { upsert: jest.fn() },
   clientDebt: { findMany: jest.fn(), updateMany: jest.fn() },
   dailyLogEntry: {
     create: jest.fn(),
@@ -24,7 +26,7 @@ const mockPrisma = {
   incomeBookManualEntry: { create: jest.fn() },
   service: { findUnique: jest.fn() },
   stylistProfile: { findUnique: jest.fn() },
-  reservation: { findUnique: jest.fn() },
+  reservation: { findUnique: jest.fn(), update: jest.fn() },
 };
 
 const mockIncomeSync = {
@@ -33,8 +35,12 @@ const mockIncomeSync = {
   recalculateTotals: jest.fn(),
 };
 
-const mockReceipt = {
-  notifyAfterComplete: jest.fn(),
+const mockLoyalty = {
+  earnFromDailyLog: jest.fn(),
+};
+
+const mockCompletionOutbox = {
+  dispatchAfterCommit: jest.fn(),
 };
 
 describe('DailyLogService', () => {
@@ -54,6 +60,9 @@ describe('DailyLogService', () => {
         callback(mockPrisma),
     );
     mockPrisma.dailyLogEntry.findFirst.mockResolvedValue(null);
+    mockPrisma.outboxEvent.upsert.mockResolvedValue({ id: 'outbox-1' });
+    mockCompletionOutbox.dispatchAfterCommit.mockResolvedValue(undefined);
+    mockLoyalty.earnFromDailyLog.mockResolvedValue(null);
     mockPrisma.dailyLogEntry.create.mockResolvedValue({ id: 'payment-1' });
     mockPrisma.clientDebt.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.incomeBookManualEntry.create.mockResolvedValue({ id: 'kif-1' });
@@ -65,9 +74,12 @@ describe('DailyLogService', () => {
         DailyLogService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: IncomeSyncService, useValue: mockIncomeSync },
-        { provide: LoyaltyService, useValue: { earnFromDailyLog: jest.fn() } },
+        { provide: LoyaltyService, useValue: mockLoyalty },
         { provide: NotificationsService, useValue: { send: jest.fn() } },
-        { provide: DailyLogReceiptService, useValue: mockReceipt },
+        {
+          provide: DailyLogCompletionOutboxService,
+          useValue: mockCompletionOutbox,
+        },
       ],
     }).compile();
     service = module.get<DailyLogService>(DailyLogService);
@@ -90,29 +102,192 @@ describe('DailyLogService', () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
-  it('complete poziva incomeBooks.addEntryFromDailyLog', async () => {
-    mockIncomeSync.addEntryFromDailyLog.mockResolvedValue(undefined);
+  it('completes state, KIF, loyalty and outbox work on one transaction client', async () => {
     const entry = {
       id: 'e1',
       stylistProfileId: 'sp-1',
       status: 'PENDING',
-      stylistProfile: { userId: 'user-1' },
+      kind: 'SERVICE',
+      clientId: 'client-1',
+      serviceId: 'service-1',
+      actualPrice: 100,
+      tipAmount: 10,
+      completionVersion: 0,
+      completedAt: null,
+      deletedAt: null,
+      reservationId: null,
+      stylistProfile: { userId: 'user-1', user: { id: 'user-1' } },
       service: {},
       client: null,
       reservation: null,
       images: [],
     };
-    mockPrisma.dailyLogEntry.findUnique.mockResolvedValue(entry);
+    const completed = {
+      ...entry,
+      status: 'COMPLETED',
+      completionVersion: 1,
+      completedAt: new Date('2026-10-24T10:00:00.000Z'),
+    };
+    mockPrisma.dailyLogEntry.findUnique
+      .mockResolvedValueOnce(entry)
+      .mockResolvedValueOnce(entry)
+      .mockResolvedValueOnce(completed);
     mockPrisma.stylistProfile.findUnique.mockResolvedValue({
       userId: 'user-1',
     });
-    mockPrisma.dailyLogEntry.update.mockResolvedValue({
-      ...entry,
+
+    const result = await service.complete('e1', user as any);
+
+    expect(result.status).toBe('COMPLETED');
+    expect(mockIncomeSync.addEntryFromDailyLog).toHaveBeenCalledWith(
+      'e1',
+      mockPrisma,
+    );
+    expect(mockLoyalty.earnFromDailyLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'e1',
+        idempotencyKey: 'daily-log.earn:e1:v1',
+      }),
+      mockPrisma,
+    );
+    expect(mockPrisma.outboxEvent.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { dedupeKey: 'daily-log.completed:e1:v1' },
+        create: expect.objectContaining({
+          eventType: 'daily_log.completed',
+          aggregateId: 'e1',
+          payload: { dailyLogEntryId: 'e1', completionVersion: 1 },
+        }),
+      }),
+    );
+    expect(mockCompletionOutbox.dispatchAfterCommit).toHaveBeenCalledWith(
+      'outbox-1',
+    );
+  });
+
+  it('retry na već završenom zapisu vraća stanje i ne pravi novu generaciju', async () => {
+    const completed = {
+      id: 'e1',
+      stylistProfileId: 'sp-1',
       status: 'COMPLETED',
+      kind: 'SERVICE',
+      clientId: 'client-1',
+      serviceId: 'service-1',
+      actualPrice: 100,
+      tipAmount: 10,
+      completionVersion: 3,
+      completedAt: new Date('2026-10-24T10:00:00.000Z'),
+      deletedAt: null,
+      reservationId: null,
+      stylistProfile: { userId: 'user-1', user: { id: 'user-1' } },
+      service: {},
+      client: null,
+      reservation: null,
+      images: [],
+    };
+    mockPrisma.dailyLogEntry.findUnique.mockResolvedValue(completed);
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      userId: 'user-1',
     });
-    await service.complete('e1', user as any);
-    expect(mockIncomeSync.addEntryFromDailyLog).toHaveBeenCalledWith('e1');
-    expect(mockReceipt.notifyAfterComplete).toHaveBeenCalledWith('e1');
+
+    const result = await service.complete('e1', user as any);
+
+    expect(result).toMatchObject({ status: 'COMPLETED', completionVersion: 3 });
+    expect(mockPrisma.dailyLogEntry.update).not.toHaveBeenCalled();
+    expect(mockLoyalty.earnFromDailyLog).toHaveBeenCalledWith(
+      expect.objectContaining({ idempotencyKey: 'daily-log.earn:e1:v3' }),
+      mockPrisma,
+    );
+    expect(mockPrisma.outboxEvent.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { dedupeKey: 'daily-log.completed:e1:v3' },
+      }),
+    );
+  });
+
+  it('completed retry reconciles KIF/loyalty/outbox despite a terminal reservation mismatch', async () => {
+    const completed = {
+      id: 'e1',
+      stylistProfileId: 'sp-1',
+      status: 'COMPLETED',
+      kind: 'SERVICE',
+      clientId: 'client-1',
+      serviceId: 'service-1',
+      actualPrice: 100,
+      tipAmount: 10,
+      completionVersion: 1,
+      completedAt: new Date('2026-10-24T10:00:00.000Z'),
+      deletedAt: null,
+      reservationId: 'r1',
+      stylistProfile: { userId: 'user-1', user: { id: 'user-1' } },
+      service: {},
+      client: null,
+      reservation: null,
+      images: [],
+    };
+    mockPrisma.dailyLogEntry.findUnique.mockResolvedValue(completed);
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      userId: 'user-1',
+    });
+    mockPrisma.reservation.findUnique.mockResolvedValue({
+      id: 'r1',
+      clientId: 'client-1',
+      confirmedStylistId: 'other-stylist',
+      status: 'CANCELLED_BY_CLIENT',
+      completedAt: null,
+    });
+
+    const result = await service.complete('e1', user as any);
+
+    expect(result).toMatchObject({ status: 'COMPLETED', completionVersion: 1 });
+    expect(mockPrisma.reservation.update).not.toHaveBeenCalled();
+    expect(mockIncomeSync.addEntryFromDailyLog).toHaveBeenCalledWith(
+      'e1',
+      mockPrisma,
+    );
+    expect(mockLoyalty.earnFromDailyLog).toHaveBeenCalledWith(
+      expect.objectContaining({ idempotencyKey: 'daily-log.earn:e1:v1' }),
+      mockPrisma,
+    );
+    expect(mockPrisma.outboxEvent.upsert).toHaveBeenCalled();
+  });
+
+  it('ne dispatchuje receipt/outbox ako KIF write unutar transakcije zakaže', async () => {
+    const pending = {
+      id: 'e1',
+      stylistProfileId: 'sp-1',
+      status: 'PENDING',
+      kind: 'SERVICE',
+      clientId: 'client-1',
+      serviceId: 'service-1',
+      actualPrice: 100,
+      tipAmount: 10,
+      completionVersion: 0,
+      completedAt: null,
+      deletedAt: null,
+      reservationId: null,
+      stylistProfile: { userId: 'user-1', user: { id: 'user-1' } },
+      service: {},
+      client: null,
+      reservation: null,
+      images: [],
+    };
+    mockPrisma.dailyLogEntry.findUnique
+      .mockResolvedValueOnce(pending)
+      .mockResolvedValueOnce(pending);
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      userId: 'user-1',
+    });
+    mockIncomeSync.addEntryFromDailyLog.mockRejectedValueOnce(
+      new Error('KIF write failed'),
+    );
+
+    await expect(service.complete('e1', user as any)).rejects.toThrow(
+      'KIF write failed',
+    );
+
+    expect(mockPrisma.outboxEvent.upsert).not.toHaveBeenCalled();
+    expect(mockCompletionOutbox.dispatchAfterCommit).not.toHaveBeenCalled();
   });
 
   it('findOne baca NotFoundException kada zapis ne postoji', async () => {

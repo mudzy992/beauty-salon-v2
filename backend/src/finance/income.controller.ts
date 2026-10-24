@@ -53,6 +53,11 @@ export class IncomeController {
     return this.incomeSync.checkIntegrity(id);
   }
 
+  @Get(':id/completion-integrity')
+  checkCompletionIntegrity(@Param('id') id: string) {
+    return this.incomeSync.checkCompletionIntegrity(id);
+  }
+
   @Post(':id/resync')
   resync(@Param('id') id: string) {
     return this.incomeSync.resyncBook(id);

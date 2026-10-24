@@ -4,6 +4,7 @@ const model = () => ({
   findMany: jest.fn(),
   create: jest.fn(),
   createMany: jest.fn(),
+  upsert: jest.fn(),
   update: jest.fn(),
   updateMany: jest.fn(),
   delete: jest.fn(),
@@ -18,6 +19,7 @@ export type FinancePrismaMock = ReturnType<typeof createFinancePrismaMock>
 export const createFinancePrismaMock = () => {
   const mock = {
     $transaction: jest.fn(),
+    $queryRaw: jest.fn().mockResolvedValue([]),
     service: model(),
     incomeBook: model(),
     incomeBookEntry: model(),
@@ -31,6 +33,8 @@ export const createFinancePrismaMock = () => {
     expenseTemplateField: model(),
     clientDebt: model(),
     dailyLogEntry: model(),
+    loyaltyTransaction: model(),
+    outboxEvent: model(),
     stylistProfile: model(),
   }
   mock.$transaction.mockImplementation(

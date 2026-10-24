@@ -30,6 +30,7 @@ import {
   subWeeks,
 } from 'date-fns';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
+import { useDailyLogSocketRefresh } from '../../hooks/useDailyLogSocketRefresh';
 import {
   getCollectedTotal,
   getServicesLabel,
@@ -82,6 +83,7 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
   }, [fetchEntries]);
 
   useReservationSocketRefresh(fetchEntries);
+  useDailyLogSocketRefresh(fetchEntries);
 
   useLayoutEffect(() => {
     navigation.setOptions({

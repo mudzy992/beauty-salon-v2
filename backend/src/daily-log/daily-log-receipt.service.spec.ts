@@ -33,6 +33,9 @@ describe('DailyLogReceiptService', () => {
     mockPrisma.dailyLogEntry.findUnique.mockResolvedValue({
       id: 'e1',
       kind: 'SERVICE',
+      status: 'COMPLETED',
+      completionVersion: 1,
+      deletedAt: null,
       clientId: null,
       client: null,
     });
@@ -44,6 +47,9 @@ describe('DailyLogReceiptService', () => {
     mockPrisma.dailyLogEntry.findUnique.mockResolvedValue({
       id: 'e1',
       kind: 'SERVICE',
+      status: 'COMPLETED',
+      completionVersion: 1,
+      deletedAt: null,
       clientId: 'c1',
       reservationId: 'r1',
       publicReferenceCode: 'DK-20260812-ABC123',
@@ -60,12 +66,13 @@ describe('DailyLogReceiptService', () => {
       stylistProfile: { user: { firstName: 'Mira', lastName: 'K.' } },
       items: [{ service: { name: 'Šišanje' }, unitPrice: 60 }],
     });
-    await service.sendPaymentReceiptIfApplicable('e1');
+    await service.sendPaymentReceiptIfApplicable('e1', 'outbox-1', 1);
     expect(mockNotifications.send).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'c1',
         type: 'payment_receipt',
         channel: 'PUSH',
+        sourceEventId: 'outbox-1',
         data: expect.objectContaining({
           reservationId: 'r1',
           dailyLogEntryId: 'e1',
@@ -81,6 +88,9 @@ describe('DailyLogReceiptService', () => {
     mockPrisma.dailyLogEntry.findUnique.mockResolvedValue({
       id: 'e1',
       kind: 'SERVICE',
+      status: 'COMPLETED',
+      completionVersion: 1,
+      deletedAt: null,
       clientId: 'c1',
       reservationId: null,
       publicReferenceCode: 'DK-20260812-ABC123',

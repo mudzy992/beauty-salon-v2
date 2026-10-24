@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import api from '../../api/client'
 import { fetchAllPublicServices, fetchAllPublicStylists } from '../../api/catalog'
 import { useReservationSocketRefresh } from '../reservations/use-reservation-socket-refresh'
+import { useSocketEvent } from '../../context/SocketContext'
 import type { ClientOption, DailyLogEntry, ServiceOption, StylistOption } from './types'
 import { getCurrentMonthRange } from './date-range'
 import { resetDailyLogFilters } from './entry-filters'
@@ -37,6 +38,7 @@ export const useDailyLogData = () => {
   }, [loadData])
 
   useReservationSocketRefresh(loadData)
+  useSocketEvent('daily-log:updated', loadData)
 
   useEffect(() => {
     fetchAllPublicStylists<StylistOption>()

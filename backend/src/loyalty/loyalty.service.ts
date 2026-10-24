@@ -68,8 +68,12 @@ export class LoyaltyService {
     return eligible.length > 0 ? eligible[eligible.length - 1] : null;
   }
 
-  private async recalculateTier(accountId: string) {
-    const account = await this.prisma.loyaltyAccount.findUnique({
+  private async recalculateTier(
+    accountId: string,
+    tx?: Prisma.TransactionClient,
+  ) {
+    const db = tx ?? this.prisma;
+    const account = await db.loyaltyAccount.findUnique({
       where: { id: accountId },
       select: { id: true, points: true },
     });
@@ -78,7 +82,7 @@ export class LoyaltyService {
     const eligible = tiers.filter((t) => account.points >= t.minPoints);
     const currentTier =
       eligible.length > 0 ? eligible[eligible.length - 1] : null;
-    await this.prisma.loyaltyAccount.update({
+    await db.loyaltyAccount.update({
       where: { id: account.id },
       data: { tier: currentTier ? currentTier.name : null },
     });
@@ -178,20 +182,66 @@ export class LoyaltyService {
   }
 
   /**
-   * Earn points based on completed daily log entry.
-   * Returns null if program disabled or no client/amount.
+   * Earn points for one daily-log completion generation. The optional tx lets
+   * completion keep the balance, ledger row and completion state atomic.
    */
-  async earnFromDailyLog(entry: {
-    id: string;
-    clientId: string | null;
-    actualPrice: number;
-    tipAmount: number;
-    serviceId: string;
-  }) {
+  async earnFromDailyLog(
+    entry: {
+      id: string;
+      clientId: string | null;
+      actualPrice: number;
+      tipAmount: number;
+      serviceId: string;
+      idempotencyKey?: string;
+    },
+    tx?: Prisma.TransactionClient,
+  ) {
+    if (tx) return this.earnFromDailyLogInTransaction(entry, tx);
+    return this.prisma.$transaction((transaction) =>
+      this.earnFromDailyLogInTransaction(entry, transaction),
+    );
+  }
+
+  private async earnFromDailyLogInTransaction(
+    entry: {
+      id: string;
+      clientId: string | null;
+      actualPrice: number;
+      tipAmount: number;
+      serviceId: string;
+      idempotencyKey?: string;
+    },
+    tx: Prisma.TransactionClient,
+  ) {
+    const idempotencyKey =
+      entry.idempotencyKey ?? `daily-log.earn:${entry.id}:v1`;
+    await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM "daily_log_entries" WHERE id = ${entry.id} FOR UPDATE`,
+    );
+
+    const existing = await tx.loyaltyTransaction.findUnique({
+      where: { idempotencyKey },
+      select: { accountId: true },
+    });
+    if (existing) {
+      return tx.loyaltyAccount.findUnique({
+        where: { id: existing.accountId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      });
+    }
+
     const enabled = await this.isProgramEnabled();
-    if (!enabled) return null;
-    if (!entry.clientId) return null;
-    if (entry.actualPrice <= 0) return null;
+    if (!enabled || !entry.clientId || entry.actualPrice <= 0) return null;
 
     const pointsPerCurrency = this.parseNumber(
       await this.settings.getValue('loyalty_points_per_currency'),
@@ -218,12 +268,40 @@ export class LoyaltyService {
     const rawPoints = Math.floor(baseAmount * pointsPerCurrency);
     if (rawPoints <= 0) return null;
 
-    const account = await this.ensureAccountForUser(entry.clientId, {
-      requireEnabled: false,
+    const account = await tx.loyaltyAccount.upsert({
+      where: { userId: entry.clientId },
+      create: { userId: entry.clientId, isActive: true },
+      update: {},
+      select: { id: true },
     });
-    if (!account) return null;
+    await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM "loyalty_accounts" WHERE id = ${account.id} FOR UPDATE`,
+    );
 
-    const updated = await this.prisma.loyaltyAccount.update({
+    // Recheck after acquiring the account lock. This also makes standalone
+    // retries safe when they race with a different completion caller.
+    const raced = await tx.loyaltyTransaction.findUnique({
+      where: { idempotencyKey },
+      select: { accountId: true },
+    });
+    if (raced) {
+      return tx.loyaltyAccount.findUnique({
+        where: { id: raced.accountId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      });
+    }
+
+    await tx.loyaltyAccount.update({
       where: { id: account.id },
       data: {
         points: { increment: rawPoints },
@@ -232,9 +310,14 @@ export class LoyaltyService {
             points: rawPoints,
             type: 'EARN',
             source: `daily_log:${entry.id}`,
+            idempotencyKey,
           },
         },
       },
+    });
+    await this.recalculateTier(account.id, tx);
+    return tx.loyaltyAccount.findUnique({
+      where: { id: account.id },
       include: {
         user: {
           select: {
@@ -247,9 +330,6 @@ export class LoyaltyService {
         },
       },
     });
-
-    await this.recalculateTier(updated.id);
-    return updated;
   }
 
   async getSettings() {

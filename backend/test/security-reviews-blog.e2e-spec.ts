@@ -27,6 +27,7 @@ import { BlogCommentsService } from '../src/blog/blog-comments.service';
 import { BlogController } from '../src/blog/blog.controller';
 import { BlogService } from '../src/blog/blog.service';
 import { DailyLogAdminService } from '../src/daily-log/daily-log-admin.service';
+import { DailyLogCompletionOutboxService } from '../src/daily-log/daily-log-completion-outbox.service';
 import { DailyLogController } from '../src/daily-log/daily-log.controller';
 import { MediaConsentController } from '../src/media-consent/media-consent.controller';
 import { MediaConsentService } from '../src/media-consent/media-consent.service';
@@ -41,6 +42,7 @@ import { ClientDebtsController } from '../src/finance/client-debts.controller';
 import { ClientDebtsService } from '../src/finance/client-debts.service';
 import { IncomeBookRepository } from '../src/finance/repositories/income-book.repository';
 import { IncomeBooksService } from '../src/finance/income-books.service';
+import { IncomeController } from '../src/finance/income.controller';
 import { IncomeManualEntriesService } from '../src/finance/income-manual-entries.service';
 import { IncomeSyncService } from '../src/finance/income-sync.service';
 import { AvailabilityDebugService } from '../src/reservations/availability-debug.service';
@@ -169,7 +171,7 @@ const fixtureIds: FixtureIds = {
   reservationIds: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, BIZ-01, BIZ-02 and BIZ-04', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, BIZ-01–BIZ-04', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -290,6 +292,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         UsersController,
         UploadsController,
         DailyLogController,
+        IncomeController,
         ClientDebtsController,
         MediaConsentController,
         ReservationsController,
@@ -318,7 +321,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         MediaConsentService,
         UploadsRepository,
         UploadsService,
-        { provide: DailyLogService, useValue: {} },
+        DailyLogService,
+        {
+          provide: DailyLogCompletionOutboxService,
+          useValue: { dispatchAfterCommit: jest.fn().mockResolvedValue(undefined) },
+        },
         { provide: DailyLogAdminService, useValue: {} },
         { provide: DailyLogDispositionService, useValue: {} },
         { provide: DailyLogRestoreService, useValue: {} },
@@ -3019,5 +3026,260 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         `[BIZ-02 safe diagnostic] committed booking loyalty/outbox; expected ${JSON.stringify(expectedCommittedSummary)}; received ${JSON.stringify(committedSummary)}`,
       );
     }
+  }, 30_000);
+
+  it('rolls back daily-log completion writes together, retries idempotently, and exposes a read-only reconciliation report', async () => {
+    const db = prisma!;
+    const suffix = randomUUID().replaceAll('-', '');
+    const date = new Date();
+    date.setHours(12, 0, 0, 0);
+    const reservation = await db.reservation.create({
+      data: {
+        clientId: clientUserId,
+        serviceId,
+        reservationDate: date,
+        startTime: '10:00',
+        endTime: '10:45',
+        status: 'IN_PROGRESS',
+        confirmedStylistId: fixtureIds.stylistProfile!,
+        publicReferenceCode: `biz03-reservation-${suffix}`,
+        clientViewToken: `biz03-view-${suffix}`,
+      },
+    });
+    fixtureIds.reservationIds.push(reservation.id);
+
+    const dailyLogEntry = await db.dailyLogEntry.create({
+      data: {
+        stylistProfileId: fixtureIds.stylistProfile!,
+        reservationId: reservation.id,
+        serviceId,
+        clientId: clientUserId,
+        kind: 'SERVICE',
+        date,
+        actualPrice: 100,
+        tipAmount: 5,
+        publicReferenceCode: `biz03-daily-log-${suffix}`,
+        status: 'PENDING',
+        isManual: true,
+      },
+    });
+    fixtureIds.dailyLogEntries.push(dailyLogEntry.id);
+
+    const loyaltyAccount = await db.loyaltyAccount.upsert({
+      where: { userId: clientUserId },
+      update: { points: 0, tier: null, isActive: true },
+      create: { userId: clientUserId, points: 0, isActive: true },
+      select: { id: true },
+    });
+    const idempotencyKey = `daily-log.earn:${dailyLogEntry.id}:v1`;
+    const outboxDedupeKey = `daily-log.completed:${dailyLogEntry.id}:v1`;
+    const complete = () =>
+      request(getHttpServer(app!))
+        .post(`/api/daily-log/${dailyLogEntry.id}/complete`)
+        .set('Authorization', `Bearer ${stylistToken}`);
+    const assertRolledBack = async () => {
+      const rollbackLog = await db.dailyLogEntry.findUnique({
+        where: { id: dailyLogEntry.id },
+        select: { status: true, completedAt: true, completionVersion: true },
+      });
+      const rollbackReservation = await db.reservation.findUnique({
+        where: { id: reservation.id },
+        select: { status: true, completedAt: true },
+      });
+      expect(rollbackLog).toMatchObject({
+        status: 'PENDING',
+        completedAt: null,
+        completionVersion: 0,
+      });
+      expect(rollbackReservation).toMatchObject({
+        status: 'IN_PROGRESS',
+        completedAt: null,
+      });
+      expect(
+        await db.incomeBookEntry.count({
+          where: { dailyLogEntryId: dailyLogEntry.id },
+        }),
+      ).toBe(0);
+      expect(
+        await db.loyaltyTransaction.count({ where: { idempotencyKey } }),
+      ).toBe(0);
+      expect(
+        await db.outboxEvent.count({ where: { dedupeKey: outboxDedupeKey } }),
+      ).toBe(0);
+      expect(
+        (await db.loyaltyAccount.findUnique({
+          where: { id: loyaltyAccount.id },
+          select: { points: true },
+        }))?.points,
+      ).toBe(0);
+    };
+
+    const failureCases = [
+      {
+        name: 'daily_log',
+        table: 'daily_log_entries',
+        operation: 'UPDATE',
+        column: 'id',
+        marker: dailyLogEntry.id,
+      },
+      {
+        name: 'reservation',
+        table: 'reservations',
+        operation: 'UPDATE',
+        column: 'id',
+        marker: reservation.id,
+      },
+      {
+        name: 'kif',
+        table: 'income_book_entries',
+        operation: 'INSERT',
+        column: 'daily_log_entry_id',
+        marker: dailyLogEntry.id,
+      },
+      {
+        name: 'income_book_totals',
+        table: 'income_books',
+        operation: 'UPDATE',
+        column: 'month',
+        marker: String(date.getMonth() + 1),
+        changedColumn: 'total_revenue',
+      },
+      {
+        name: 'loyalty',
+        table: 'loyalty_transactions',
+        operation: 'INSERT',
+        column: 'idempotency_key',
+        marker: idempotencyKey,
+      },
+      {
+        name: 'outbox',
+        table: 'outbox_events',
+        operation: 'INSERT',
+        column: 'dedupe_key',
+        marker: outboxDedupeKey,
+      },
+    ] as const;
+
+    for (const failureCase of failureCases) {
+      const functionName = `e2e_fail_biz03_${failureCase.name}_${suffix}`;
+      const triggerName = functionName;
+      const marker = failureCase.marker.replaceAll("'", "''");
+      const changedColumn =
+        'changedColumn' in failureCase ? failureCase.changedColumn : undefined;
+      const changedColumnClause = changedColumn
+        ? ` AND NEW."${changedColumn}" IS DISTINCT FROM OLD."${changedColumn}"`
+        : '';
+      try {
+        await db.$executeRawUnsafe(`
+          CREATE FUNCTION "${functionName}"() RETURNS trigger
+          LANGUAGE plpgsql AS $function$
+          BEGIN
+            IF NEW."${failureCase.column}"::text = '${marker}'${changedColumnClause} THEN
+              RAISE EXCEPTION 'synthetic BIZ-03 ${failureCase.name} write failure';
+            END IF;
+            RETURN NEW;
+          END;
+          $function$
+        `);
+        await db.$executeRawUnsafe(`
+          CREATE TRIGGER "${triggerName}"
+          BEFORE ${failureCase.operation} ON "${failureCase.table}"
+          FOR EACH ROW EXECUTE FUNCTION "${functionName}"()
+        `);
+
+        const failed = await complete();
+        expect(failed.status).toBe(500);
+      } finally {
+        await db.$executeRawUnsafe(
+          `DROP TRIGGER IF EXISTS "${triggerName}" ON "${failureCase.table}"`,
+        );
+        await db.$executeRawUnsafe(
+          `DROP FUNCTION IF EXISTS "${functionName}"()`,
+        );
+      }
+      await assertRolledBack();
+    }
+    const completed = await complete().expect(201);
+    expect(completed.body).toMatchObject({
+      id: dailyLogEntry.id,
+      status: 'COMPLETED',
+      completionVersion: 1,
+      reservationId: reservation.id,
+    });
+
+    const replay = await complete().expect(201);
+    expect(replay.body).toMatchObject({
+      id: dailyLogEntry.id,
+      status: 'COMPLETED',
+      completionVersion: 1,
+    });
+    const kifRows = await db.incomeBookEntry.findMany({
+      where: { dailyLogEntryId: dailyLogEntry.id },
+      select: { id: true, bookId: true, amount: true, tipAmount: true },
+    });
+    expect(kifRows).toHaveLength(1);
+    expect(Number(kifRows[0]!.amount)).toBe(95);
+    expect(Number(kifRows[0]!.tipAmount)).toBe(5);
+    expect(
+      await db.loyaltyTransaction.count({
+        where: {
+          accountId: loyaltyAccount.id,
+          type: 'EARN',
+          source: `daily_log:${dailyLogEntry.id}`,
+          idempotencyKey,
+        },
+      }),
+    ).toBe(1);
+    expect(
+      (await db.loyaltyAccount.findUnique({
+        where: { id: loyaltyAccount.id },
+        select: { points: true },
+      }))?.points,
+    ).toBe(100);
+    expect(
+      await db.outboxEvent.count({
+        where: { dedupeKey: `daily-log.completed:${dailyLogEntry.id}:v1` },
+      }),
+    ).toBe(1);
+    expect(
+      await db.reservation.findUnique({
+        where: { id: reservation.id },
+        select: { status: true, completedAt: true },
+      }),
+    ).toMatchObject({ status: 'COMPLETED' });
+
+    const reportCountsBefore = {
+      kif: await db.incomeBookEntry.count(),
+      loyalty: await db.loyaltyTransaction.count(),
+      outbox: await db.outboxEvent.count(),
+    };
+    const report = await request(getHttpServer(app!))
+      .get(`/api/income-books/${kifRows[0]!.bookId}/completion-integrity`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(report.body).toMatchObject({
+      bookId: kifRows[0]!.bookId,
+      isReadOnly: true,
+    });
+    expect(
+      (report.body.missingKif as Array<{ id: string }>).some(
+        (item) => item.id === dailyLogEntry.id,
+      ),
+    ).toBe(false);
+    expect(
+      (report.body.reservationMismatch as Array<{ id: string }>).some(
+        (item) => item.id === dailyLogEntry.id,
+      ),
+    ).toBe(false);
+    expect(
+      (report.body.loyaltyNoEarnFound as Array<{ id: string }>).some(
+        (item) => item.id === dailyLogEntry.id,
+      ),
+    ).toBe(false);
+    expect({
+      kif: await db.incomeBookEntry.count(),
+      loyalty: await db.loyaltyTransaction.count(),
+      outbox: await db.outboxEvent.count(),
+    }).toEqual(reportCountsBefore);
   }, 30_000);
 });

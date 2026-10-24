@@ -23,6 +23,7 @@ import api, { getUploadUrl } from '../../services/api';
 import { spacing } from '../../theme';
 import { formatDate } from '../../utils/date';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
+import { useDailyLogSocketRefresh } from '../../hooks/useDailyLogSocketRefresh';
 import type { DailyLogEntry } from '../../types';
 import { getCollectedTotal, getSettledDebtsSum } from './daily-log-display';
 import { DailyLogDispositionPanel } from './DailyLogDispositionPanel';
@@ -67,6 +68,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   }, [fetchEntry]);
 
   useReservationSocketRefresh(fetchEntry);
+  useDailyLogSocketRefresh(fetchEntry);
 
   const handleComplete = useCallback(() => {
     Alert.alert(
