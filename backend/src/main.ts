@@ -4,6 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { extname, join } from 'path';
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './events/redis-io.adapter';
+import { resolveRedisTlsOptions } from './common/redis/redis-tls-options';
 import { resolveSocketIoRuntimeConfig } from './events/socket-io-runtime-config';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { DecimalToNumberInterceptor } from './common/interceptors/decimal-to-number.interceptor';
@@ -14,10 +15,16 @@ async function bootstrap() {
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
   const socketIoRuntime = resolveSocketIoRuntimeConfig(process.env);
   if (socketIoRuntime.multiInstance && socketIoRuntime.redisUrl) {
+    const redisTlsOptions = resolveRedisTlsOptions({
+      tls: process.env.REDIS_TLS,
+      caCertPath: process.env.REDIS_CA_CERT_PATH,
+      redisUrl: socketIoRuntime.redisUrl,
+    });
     const redisIoAdapter = new RedisIoAdapter(
       app,
       socketIoRuntime.redisUrl,
       socketIoRuntime.channelPrefix,
+      redisTlsOptions,
     );
     await redisIoAdapter.connectToRedis();
     app.useWebSocketAdapter(redisIoAdapter);

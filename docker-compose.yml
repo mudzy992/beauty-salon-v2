@@ -23,11 +23,14 @@ services:
       SOCKET_IO_MULTI_INSTANCE: ${SOCKET_IO_MULTI_INSTANCE:-true}
       SOCKET_IO_REDIS_URL: ${SOCKET_IO_REDIS_URL:-}
       SOCKET_IO_REDIS_CHANNEL_PREFIX: "${SOCKET_IO_REDIS_CHANNEL_PREFIX:-beauty-salon-v2:production}"
+      REDIS_TLS: ${REDIS_TLS:-true}
+      REDIS_CA_CERT_PATH: ${REDIS_CA_CERT_PATH:-/run/secrets/redis-ca.crt}
       HTTP_RATE_LIMIT_REDIS_URL: ${HTTP_RATE_LIMIT_REDIS_URL:-}
       HTTP_RATE_LIMIT_PREFIX: "${HTTP_RATE_LIMIT_PREFIX:-beauty-salon-v2:http-rate-limit:production}"
 
     volumes:
       - /mnt/shared-app-files/beauty-salon-v2:/usr/app/uploads
+      - /data/coolify/ssl/redis-core/redis-ca.crt:/run/secrets/redis-ca.crt:ro
 
     restart: unless-stopped
 

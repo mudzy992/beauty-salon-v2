@@ -3,6 +3,7 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient, type RedisClientType } from 'redis';
 import type { Server, ServerOptions } from 'socket.io';
+import type { RedisTlsOptions } from '../common/redis/redis-tls-options';
 
 const REDIS_CONNECT_TIMEOUT_MS = 15_000;
 
@@ -23,6 +24,7 @@ export class RedisIoAdapter extends IoAdapter {
     app: INestApplicationContext,
     private readonly redisUrl: string,
     private readonly channelPrefix: string,
+    private readonly tlsOptions: RedisTlsOptions = {},
   ) {
     super(app);
   }
@@ -31,7 +33,10 @@ export class RedisIoAdapter extends IoAdapter {
     try {
       const publisher = createClient({
         url: this.redisUrl,
-        socket: { connectTimeout: 5_000 },
+        socket: {
+          connectTimeout: 5_000,
+          ...this.tlsOptions,
+        },
       });
       const subscriber = publisher.duplicate();
       this.publisher = publisher;

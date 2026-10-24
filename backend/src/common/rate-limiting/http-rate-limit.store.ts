@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, type RedisClientType } from 'redis';
+import { resolveRedisTlsOptions } from '../redis/redis-tls-options';
 
 const WINDOW_COUNTER_SCRIPT = `
 local count = redis.call('INCR', KEYS[1])
@@ -27,6 +28,8 @@ export interface HttpRateLimitCounter {
 export class HttpRateLimitStore implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(HttpRateLimitStore.name);
   private readonly redisUrl?: string;
+  private readonly redisTls?: string;
+  private readonly redisCaCertPath?: string;
   private readonly keyPrefix: string;
   private client?: RedisClientType;
   private warnedUnavailable = false;
@@ -40,6 +43,8 @@ export class HttpRateLimitStore implements OnModuleInit, OnModuleDestroy {
       configuredPrefix || `beauty-salon-v2:http-rate-limit:${environment}`,
     );
     this.redisUrl = config.get<string>('HTTP_RATE_LIMIT_REDIS_URL')?.trim();
+    this.redisTls = config.get<string>('REDIS_TLS');
+    this.redisCaCertPath = config.get<string>('REDIS_CA_CERT_PATH');
   }
 
   onModuleInit(): void {
@@ -54,6 +59,11 @@ export class HttpRateLimitStore implements OnModuleInit, OnModuleDestroy {
         socket: {
           connectTimeout: 5_000,
           reconnectStrategy: (retries) => Math.min(retries * 1_000, 5_000),
+          ...resolveRedisTlsOptions({
+            tls: this.redisTls,
+            caCertPath: this.redisCaCertPath,
+            redisUrl: this.redisUrl,
+          }),
         },
       });
       this.client = client;

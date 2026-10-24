@@ -71,6 +71,23 @@ describe('HttpRateLimitStore', () => {
     expect(client.close).toHaveBeenCalledTimes(1);
   });
 
+  it('applies the shared Redis TLS flag to the HTTP rate-limit client', async () => {
+    const store = new HttpRateLimitStore(
+      makeConfig({
+        NODE_ENV: 'test',
+        REDIS_TLS: 'true',
+        HTTP_RATE_LIMIT_REDIS_URL:
+          'redis://http-rate-limit-user:test-only@redis.example:6379',
+      }),
+    );
+    store.onModuleInit();
+
+    expect(jest.mocked(createClient).mock.calls[0]?.[0]?.socket).toMatchObject({
+      tls: true,
+    });
+    await store.onModuleDestroy();
+  });
+
   it('fails open and warns once when Redis is not configured', async () => {
     const store = new HttpRateLimitStore(makeConfig({ NODE_ENV: 'test' }));
     const warning = jest

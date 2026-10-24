@@ -123,6 +123,26 @@ describe('RedisIoAdapter', () => {
     expect(publisher.close).toHaveBeenCalledTimes(1);
   });
 
+  it('passes TLS and the custom CA to both Socket.IO Redis clients', async () => {
+    const ca = Buffer.from('synthetic test CA certificate');
+    const adapter = new RedisIoAdapter(
+      { getHttpServer: jest.fn() } as unknown as INestApplicationContext,
+      'redis://redis.example:6379',
+      'beauty-salon-v2:test',
+      { tls: true, ca },
+    );
+
+    await adapter.connectToRedis();
+
+    expect(createClient).toHaveBeenCalledWith({
+      url: 'redis://redis.example:6379',
+      socket: { connectTimeout: 5_000, tls: true, ca },
+    });
+    expect(publisher.duplicate).toHaveBeenCalledTimes(1);
+
+    await adapter.dispose();
+  });
+
   it('destroys Redis clients and does not expose connection details on startup failure', async () => {
     publisher.connect = jest.fn(() => {
       publisher.isOpen = true;
