@@ -2925,23 +2925,38 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
     }
 
-    expect(
-      await db.reservation.count({
+    const rollbackSummary = {
+      reservationCount: await db.reservation.count({
         where: { clientId: clientUserId, idempotencyKey },
       }),
-    ).toBe(0);
-    expect(await db.outboxEvent.count()).toBe(outboxCountBeforeFailure);
-    expect(
-      await db.loyaltyAccount.findUnique({
-        where: { id: loyaltyAccount.id },
-        select: { points: true },
-      }),
-    ).toEqual({ points: 500 });
-    expect(
-      await db.loyaltyTransaction.count({
+      outboxCount: await db.outboxEvent.count(),
+      loyaltyPoints:
+        (
+          await db.loyaltyAccount.findUnique({
+            where: { id: loyaltyAccount.id },
+            select: { points: true },
+          })
+        )?.points ?? null,
+      redemptionCount: await db.loyaltyTransaction.count({
         where: { accountId: loyaltyAccount.id, type: 'REDEEM' },
       }),
-    ).toBe(0);
+    };
+    const expectedRollbackSummary = {
+      reservationCount: 0,
+      outboxCount: outboxCountBeforeFailure,
+      loyaltyPoints: 500,
+      redemptionCount: 0,
+    };
+    if (
+      Object.entries(expectedRollbackSummary).some(
+        ([key, expected]) =>
+          rollbackSummary[key as keyof typeof rollbackSummary] !== expected,
+      )
+    ) {
+      throw new Error(
+        `[BIZ-02 safe diagnostic] failed-create rollback; expected ${JSON.stringify(expectedRollbackSummary)}; received ${JSON.stringify(rollbackSummary)}`,
+      );
+    }
 
     const succeeded = await submitClientBooking({
       reservationDate: date,
@@ -2958,33 +2973,51 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         loyaltyPointsUsed: true,
       },
     });
-    expect(persisted).toEqual({
-      loyaltyDiscountPercent: 10,
-      loyaltyDiscountAmount: 2.5,
-      loyaltyPointsUsed: 25,
-    });
-    expect(
-      await db.loyaltyAccount.findUnique({
-        where: { id: loyaltyAccount.id },
-        select: { points: true },
-      }),
-    ).toEqual({ points: 475 });
-    expect(
-      await db.loyaltyTransaction.count({
+    const committedSummary = {
+      loyaltyDiscountPercent: persisted?.loyaltyDiscountPercent ?? null,
+      loyaltyDiscountAmount:
+        persisted?.loyaltyDiscountAmount == null
+          ? null
+          : Number(persisted.loyaltyDiscountAmount),
+      loyaltyPointsUsed: persisted?.loyaltyPointsUsed ?? null,
+      loyaltyPoints:
+        (
+          await db.loyaltyAccount.findUnique({
+            where: { id: loyaltyAccount.id },
+            select: { points: true },
+          })
+        )?.points ?? null,
+      redemptionCount: await db.loyaltyTransaction.count({
         where: {
           accountId: loyaltyAccount.id,
           type: 'REDEEM',
           source: `Reservation ${reservationId} (10%)`,
         },
       }),
-    ).toBe(1);
-    expect(
-      await db.outboxEvent.count({
+      createdOutboxCount: await db.outboxEvent.count({
         where: {
           aggregateId: reservationId,
           eventType: 'reservation.created',
         },
       }),
-    ).toBe(1);
+    };
+    const expectedCommittedSummary = {
+      loyaltyDiscountPercent: 10,
+      loyaltyDiscountAmount: 2.5,
+      loyaltyPointsUsed: 25,
+      loyaltyPoints: 475,
+      redemptionCount: 1,
+      createdOutboxCount: 1,
+    };
+    if (
+      Object.entries(expectedCommittedSummary).some(
+        ([key, expected]) =>
+          committedSummary[key as keyof typeof committedSummary] !== expected,
+      )
+    ) {
+      throw new Error(
+        `[BIZ-02 safe diagnostic] committed booking loyalty/outbox; expected ${JSON.stringify(expectedCommittedSummary)}; received ${JSON.stringify(committedSummary)}`,
+      );
+    }
   }, 30_000);
 });
