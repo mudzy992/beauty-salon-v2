@@ -30,6 +30,7 @@ services:
 
     volumes:
       - /mnt/shared-app-files/beauty-salon-v2:/usr/app/uploads
+      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
       - /data/coolify/ssl/redis-core/redis-ca.crt:/run/secrets/redis-ca.crt:ro
 
     restart: unless-stopped

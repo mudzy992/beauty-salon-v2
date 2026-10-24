@@ -1,6 +1,6 @@
 # Arhitektura i ponašanje — Beauty Salon v2
 
-**Pregled koda:** 2026-10-23 (Europe/Sarajevo)<br>
+**Pregled koda:** 2026-10-24 (Europe/Sarajevo)<br>
 **Status:** statički pregled implementacije; ovo nije runtime/system design potvrda produkcijske konfiguracije.<br>
 **Glavni handoff:** [HANDOFF.md](HANDOFF.md)<br>
 **Nalazi:** [FINDINGS.md](FINDINGS.md)<br>
@@ -15,7 +15,7 @@ Repozitorij je multi-app proizvod sa tri odvojeno instalirana npm paketa:
 | Web | React 18, TypeScript, Vite, React Router 6 | Javna salon stranica, klijentski booking/account tokovi, admin i stylist portali |
 | Mobile | Expo SDK 57, React Native 0.86, Expo Router, TypeScript | Klijentski i stylist mobilni tokovi, push, APK update |
 | Persistence | PostgreSQL + dijeljeni upload direktorij | Relacioni podaci, lokalno/host-mount fajl skladište |
-| Opcionalni infra | Redis nije implementiran niti vezan u Compose | Mogući kasniji rate-limit/queue/socket adapter/distributed lock sloj |
+| Opcionalni infra | Redis je external service; backend Compose koristi ga za Socket.IO adapter i opcionalni HTTP rate limit | Queue i distributed-lock workload nisu implementirani |
 
 Nema root `package.json`; `backend/`, `frontend/` i `mobile/` imaju zasebne `package-lock.json` fajlove. Aktivna DB šema je PostgreSQL. Prisma `PrismaService` eksplicitno odbija svaki `DATABASE_PROVIDER` osim `postgres`, iako dependency set još sadrži MariaDB adapter/dependency ostatke. U aktivnom `backend/prisma/migrations/` postoje PostgreSQL baseline migracija i naredna blog SEO migracija.
 
@@ -29,7 +29,7 @@ Nema root `package.json`; `backend/`, `frontend/` i `mobile/` imaju zasebne `pac
 2. App-wide `APP_GUARD` je `JwtAuthGuard`. Endpointi moraju eksplicitno koristiti `@Public()` da zaobiđu JWT. Prisustvo `@Roles()`/`RolesGuard` dodaje role policy na izabrane rute; ne zamjenjuje service-level ownership provjere.
 3. `JwtStrategy` poziva auth validaciju koja provjerava da je korisnik aktivan i čita trenutne role iz baze. Web JWT se čuva u `localStorage`; mobile access token u `expo-secure-store`.
 4. DTO-jevi sa `class-validator` dobijaju whitelist validaciju. Query/body parametri definisani samo kao inline TS tipovi ili `string` nemaju nužno istu runtime validaciju.
-5. Prisma ide preko PostgreSQL adaptera. Database URL dolazi iz konfiguracije; repo ne uključuje produkcijsku DB uslugu u Compose.
+5. Prisma runtime koristi `PrismaPg({ connectionString: DATABASE_URL })`; seed i media-storage migration runner koriste isti adapter. Zaključani `pg-connection-string` parser prepoznaje `sslmode=verify-full`, učitava `sslrootcert` fajl i ne isključuje CA ni hostname verifikaciju. Compose taj host CA montira read-only na `/etc/ssl/certs/coolify-ca.crt`; postojeći `DATABASE_URL` env passthrough već prenosi query parametre bez izmjene application koda. Parser je provjeren lokalno sa synthetic CA fajlom, ne sa stvarnom DB konekcijom. Repo ne uključuje produkcijsku DB uslugu u Compose.
 
 Ključni entrypoint-i: [AppModule](../../backend/src/app.module.ts), [main.ts](../../backend/src/main.ts), [PrismaService](../../backend/src/prisma/prisma.service.ts), [Prisma config](../../backend/prisma.config.ts).
 
