@@ -2730,17 +2730,41 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
   it('releases slot capacity after client cancellation and accepts a conflict-checked reschedule', async () => {
     const db = prisma!;
     const httpServer = getHttpServer(app!);
+    const assertSlotSummary = (
+      response: {
+        body: Array<{
+          startTime?: string;
+          availableStylistCount?: number;
+          holdState?: string;
+        }>;
+      },
+      stage: string,
+      expected: { availableStylistCount: number; holdState: string },
+    ) => {
+      const slot = response.body.find((item) => item.startTime === '09:00');
+      const actual = {
+        availableStylistCount: slot?.availableStylistCount ?? null,
+        holdState: slot?.holdState ?? null,
+      };
+      if (
+        actual.availableStylistCount !== expected.availableStylistCount ||
+        actual.holdState !== expected.holdState
+      ) {
+        throw new Error(
+          `[BIZ-02 safe diagnostic] ${stage}; expected ${JSON.stringify(expected)}; received ${JSON.stringify(actual)}`,
+        );
+      }
+    };
     const cancelDate = addWeeks(availabilityDate, 4);
     const slotsBefore = await request(httpServer)
       .get('/api/reservations/availability/slots')
       .set('Authorization', `Bearer ${clientToken}`)
       .query({ serviceId, date: cancelDate })
       .expect(200);
-    expect(
-      slotsBefore.body.find(
-        (slot: { startTime: string }) => slot.startTime === '09:00',
-      ),
-    ).toMatchObject({ availableStylistCount: 1, holdState: 'none' });
+    assertSlotSummary(slotsBefore, 'before create', {
+      availableStylistCount: 1,
+      holdState: 'none',
+    });
 
     const created = await submitClientBooking({ reservationDate: cancelDate });
     expect(created.response.status).toBe(201);
@@ -2750,11 +2774,10 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       .set('Authorization', `Bearer ${clientToken}`)
       .query({ serviceId, date: cancelDate })
       .expect(200);
-    expect(
-      heldSlots.body.find(
-        (slot: { startTime: string }) => slot.startTime === '09:00',
-      ),
-    ).toMatchObject({ availableStylistCount: 0, holdState: 'pending_hold' });
+    assertSlotSummary(heldSlots, 'pending reservation', {
+      availableStylistCount: 0,
+      holdState: 'pending_hold',
+    });
 
     const cancelled = await request(httpServer)
       .post(`/api/reservations/${reservationId}/cancel`)
@@ -2767,11 +2790,10 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       .set('Authorization', `Bearer ${clientToken}`)
       .query({ serviceId, date: cancelDate })
       .expect(200);
-    expect(
-      releasedSlots.body.find(
-        (slot: { startTime: string }) => slot.startTime === '09:00',
-      ),
-    ).toMatchObject({ availableStylistCount: 1, holdState: 'none' });
+    assertSlotSummary(releasedSlots, 'after cancellation', {
+      availableStylistCount: 1,
+      holdState: 'none',
+    });
 
     const rescheduleDate = addWeeks(availabilityDate, 5);
     const rescheduleBooking = await submitClientBooking({
@@ -2794,14 +2816,34 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       .post(`/api/reservations/${rescheduledId}/reschedule/accept`)
       .set('Authorization', `Bearer ${clientToken}`)
       .expect(201);
-    expect(accepted.body).toMatchObject({
-      id: rescheduledId,
+    const acceptedSummary = {
+      reservationIdMatches: accepted.body?.id === rescheduledId,
+      startTime: accepted.body?.startTime ?? null,
+      endTime: accepted.body?.endTime ?? null,
+      rescheduleStatus: accepted.body?.rescheduleStatus ?? null,
+      rescheduleProposedStartTime:
+        accepted.body?.rescheduleProposedStartTime ?? null,
+      rescheduleProposedEndTime:
+        accepted.body?.rescheduleProposedEndTime ?? null,
+    };
+    const expectedAcceptedSummary = {
+      reservationIdMatches: true,
       startTime: '10:50',
       endTime: '11:35',
       rescheduleStatus: 'ACCEPTED',
       rescheduleProposedStartTime: null,
       rescheduleProposedEndTime: null,
-    });
+    };
+    if (
+      Object.entries(expectedAcceptedSummary).some(
+        ([key, expected]) =>
+          acceptedSummary[key as keyof typeof acceptedSummary] !== expected,
+      )
+    ) {
+      throw new Error(
+        `[BIZ-02 safe diagnostic] accepted reschedule; expected ${JSON.stringify(expectedAcceptedSummary)}; received ${JSON.stringify(acceptedSummary)}`,
+      );
+    }
 
     const overlappingDirect = await request(httpServer)
       .post('/api/reservations/admin')
