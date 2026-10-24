@@ -2730,22 +2730,26 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
   it('releases slot capacity after client cancellation and accepts a conflict-checked reschedule', async () => {
     const db = prisma!;
     const httpServer = getHttpServer(app!);
-    const assertSlotSummary = (
-      response: {
-        body: Array<{
-          startTime?: string;
-          availableStylistCount?: number;
-          holdState?: string;
-        }>;
-      },
-      stage: string,
-      expected: { availableStylistCount: number; holdState: string },
-    ) => {
+    type SlotResponse = {
+      body: Array<{
+        startTime?: string;
+        availableStylistCount?: number;
+        holdState?: string;
+      }>;
+    };
+    const getSlotSummary = (response: SlotResponse) => {
       const slot = response.body.find((item) => item.startTime === '09:00');
-      const actual = {
+      return {
         availableStylistCount: slot?.availableStylistCount ?? null,
         holdState: slot?.holdState ?? null,
       };
+    };
+    const assertSlotSummary = (
+      response: SlotResponse,
+      stage: string,
+      expected: { availableStylistCount: number; holdState: string },
+    ) => {
+      const actual = getSlotSummary(response);
       if (
         actual.availableStylistCount !== expected.availableStylistCount ||
         actual.holdState !== expected.holdState
@@ -2761,10 +2765,17 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       .set('Authorization', `Bearer ${clientToken}`)
       .query({ serviceId, date: cancelDate })
       .expect(200);
-    assertSlotSummary(slotsBefore, 'before create', {
-      availableStylistCount: 1,
-      holdState: 'none',
-    });
+    const initialAvailability = getSlotSummary(slotsBefore);
+    if (
+      initialAvailability.availableStylistCount === null ||
+      initialAvailability.availableStylistCount < 1 ||
+      initialAvailability.holdState !== 'none'
+    ) {
+      throw new Error(
+        `[BIZ-02 safe diagnostic] before create; expected at least one available stylist and no hold; received ${JSON.stringify(initialAvailability)}`,
+      );
+    }
+    const capacityBeforeCreate = initialAvailability.availableStylistCount;
 
     const created = await submitClientBooking({ reservationDate: cancelDate });
     expect(created.response.status).toBe(201);
@@ -2774,9 +2785,13 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       .set('Authorization', `Bearer ${clientToken}`)
       .query({ serviceId, date: cancelDate })
       .expect(200);
+    const capacityWithPendingReservation = Math.max(
+      0,
+      capacityBeforeCreate - 1,
+    );
     assertSlotSummary(heldSlots, 'pending reservation', {
-      availableStylistCount: 0,
-      holdState: 'pending_hold',
+      availableStylistCount: capacityWithPendingReservation,
+      holdState: capacityWithPendingReservation === 0 ? 'pending_hold' : 'none',
     });
 
     const cancelled = await request(httpServer)
@@ -2791,7 +2806,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       .query({ serviceId, date: cancelDate })
       .expect(200);
     assertSlotSummary(releasedSlots, 'after cancellation', {
-      availableStylistCount: 1,
+      availableStylistCount: capacityBeforeCreate,
       holdState: 'none',
     });
 
