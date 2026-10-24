@@ -1,6 +1,7 @@
 import { Logger, type INestApplicationContext } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
+import { describeRedisConnectionFailure } from '../common/redis/redis-connection-diagnostic';
 import { createClient, type RedisClientType } from 'redis';
 import type { Server, ServerOptions } from 'socket.io';
 import type { RedisTlsOptions } from '../common/redis/redis-tls-options';
@@ -64,7 +65,10 @@ export class RedisIoAdapter extends IoAdapter {
       this.adapterConstructor = createAdapter(publisher, subscriber, {
         key: this.channelPrefix,
       });
-    } catch {
+    } catch (error) {
+      this.logger.error(
+        `Socket.IO Redis adapter initial connection failed; ${describeRedisConnectionFailure(error)}.`,
+      );
       this.destroyRedisClients();
       throw new Error('Socket.IO Redis adapter initial connection failed.');
     }
@@ -95,8 +99,10 @@ export class RedisIoAdapter extends IoAdapter {
   }
 
   private listenForClientState(client: RedisClient, name: RedisClientName) {
-    client.on('error', () => {
-      this.logger.error('Socket.IO Redis adapter client error.');
+    client.on('error', (error: Error) => {
+      this.logger.error(
+        `Socket.IO Redis adapter client error; client=${name}; ${describeRedisConnectionFailure(error)}.`,
+      );
     });
     client.on('ready', () => this.setClientReady(name, true));
     client.on('reconnecting', () => this.setClientReady(name, false));

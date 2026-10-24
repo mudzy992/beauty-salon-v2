@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import type { INestApplicationContext } from '@nestjs/common';
+import { Logger, type INestApplicationContext } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { createClient } from 'redis';
@@ -149,12 +149,26 @@ describe('RedisIoAdapter', () => {
       return Promise.reject(new Error('redis://secret-host:secret-port'));
     });
 
+    const errorLogger = jest
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => {});
     const adapter = makeAdapter();
-    await expect(adapter.connectToRedis()).rejects.toThrow(
-      'Socket.IO Redis adapter initial connection failed.',
-    );
-    expect(publisher.destroy).toHaveBeenCalledTimes(1);
-    expect(subscriber.destroy).toHaveBeenCalledTimes(1);
-    expect(createAdapter).not.toHaveBeenCalled();
+
+    try {
+      await expect(adapter.connectToRedis()).rejects.toThrow(
+        'Socket.IO Redis adapter initial connection failed.',
+      );
+      expect(publisher.destroy).toHaveBeenCalledTimes(1);
+      expect(subscriber.destroy).toHaveBeenCalledTimes(1);
+      expect(createAdapter).not.toHaveBeenCalled();
+      expect(errorLogger.mock.calls.flat().join(' ')).toContain(
+        'category=other type=Error',
+      );
+      expect(errorLogger.mock.calls.flat().join(' ')).not.toContain(
+        'secret-host',
+      );
+    } finally {
+      errorLogger.mockRestore();
+    }
   });
 });
