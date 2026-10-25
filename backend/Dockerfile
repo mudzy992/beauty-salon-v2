@@ -29,9 +29,13 @@ RUN addgroup -S -g 10001 app \
 USER 10001:10001
 CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
 
-# Keep the API runtime image limited to production dependencies.
-FROM builder AS production-dependencies
-RUN npm prune --omit=dev
+# Install only runtime dependencies in a clean tree. Prisma Client declares
+# its CLI and TypeScript as optional peers, so remove those build-only tools too.
+FROM node:22-alpine AS production-dependencies
+WORKDIR /usr/app
+COPY package*.json ./
+RUN npm ci --omit=dev \
+    && rm -rf node_modules/prisma node_modules/typescript
 
 FROM node:22-alpine AS runtime
 

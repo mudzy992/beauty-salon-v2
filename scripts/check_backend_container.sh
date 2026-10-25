@@ -117,6 +117,7 @@ docker run --rm --entrypoint node "$runtime_image" -e '
     assert.equal(typeof PrismaClient, "function");
     assert.ok(fs.existsSync("/usr/app/node_modules/.prisma/client/index.js"));
     assert.ok(!fs.existsSync("/usr/app/node_modules/prisma"), "runtime image must not include Prisma CLI/dev dependencies");
+    assert.ok(!fs.existsSync("/usr/app/node_modules/typescript"), "runtime image must not include the TypeScript compiler");
     assert.equal(process.getuid(), 10001);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown runtime image smoke failure.";
