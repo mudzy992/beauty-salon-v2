@@ -3303,10 +3303,12 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
     });
     fixtureIds.additionalStylistProfiles.push(secondStylistProfile.id);
     const dayOfWeek = new Date(`${date}T00:00:00.000Z`).getUTCDay();
+    // Restrict this extra capacity to the current race date, not later tests.
     await db.stylistWorkingHours.create({
       data: {
         stylistProfileId: secondStylistProfile.id,
-        dayOfWeek,
+        dayOfWeek: (dayOfWeek + 1) % 7,
+        dateOverride: new Date(`${date}T00:00:00.000Z`),
         startTime: '09:00',
         endTime: '17:00',
         isWorkingDay: true,
