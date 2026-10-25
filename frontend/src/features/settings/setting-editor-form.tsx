@@ -8,6 +8,7 @@ import { Textarea } from '../../components/ui/textarea'
 import { MediaImage } from '../../components/media-image'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import { getUploadUrl } from '../../utils/uploadUrl'
+import { isSupportedHexColor } from '../../utils/brand-colors.mjs'
 import type { AppSetting, SettingDef } from './types'
 
 export function SettingEditorForm({
@@ -31,6 +32,15 @@ export function SettingEditorForm({
     setFile(null)
   }, [setting])
   const save = async () => {
+    if (
+      ['theme_primary', 'theme_accent'].includes(def.key) &&
+      value.trim() &&
+      !isSupportedHexColor(value)
+    ) {
+      error('Unesite HEX boju, npr. #D4A843')
+      return
+    }
+
     setSaving(true)
     try {
       await onSave(def.key, value, def.desc)
@@ -60,7 +70,7 @@ export function SettingEditorForm({
   }
   return (
     <Card className="border-2 border-brand-gold/40 p-4">
-      <p className="text-sm font-semibold text-brand-gold">{def.desc}</p>
+      <p className="text-sm font-semibold text-brand-gold-text">{def.desc}</p>
       <p className="mb-3 font-mono text-xs text-slate-400">{def.key}</p>
       <div className="mb-3 space-y-2">
         {def.type === 'textarea' ? (

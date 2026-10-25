@@ -97,7 +97,7 @@ export const WorkbookListPage = () => {
         <div className="space-y-6">
           {sections.map((section) => (
             <div key={section.title}>
-              <div className="mb-2 text-sm font-semibold text-brand-gold">{section.title}</div>
+              <div className="mb-2 text-sm font-semibold text-brand-gold-text">{section.title}</div>
               <div className="grid grid-cols-1 gap-3">
                 {section.data.map((item) => {
                   const beforeCount = item.images?.filter((i) => i.isBefore).length ?? 0
@@ -124,7 +124,7 @@ export const WorkbookListPage = () => {
                                 {clientName}
                               </div>
                             ) : null}
-                            <div className="mt-2 text-sm font-semibold text-brand-gold">
+                            <div className="mt-2 text-sm font-semibold text-brand-gold-text">
                               {formatKm(getCollectedTotal(item))}
                               {getSettledDebtsSum(item) > 0
                                 ? ` · dug ${formatKm(getSettledDebtsSum(item))}`

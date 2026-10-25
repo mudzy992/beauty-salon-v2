@@ -64,8 +64,8 @@ export default function StylistLayout() {
                     to={x.path}
                     className={
                       isActive
-                        ? 'shrink-0 rounded-md px-3 py-2 text-sm font-semibold text-brand-gold bg-brand-champagne/20'
-                        : 'shrink-0 rounded-md px-3 py-2 text-sm text-slate-700 hover:text-brand-gold hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900/40'
+                        ? 'shrink-0 rounded-md px-3 py-2 text-sm font-semibold text-brand-gold-text bg-brand-champagne/20'
+                        : 'shrink-0 rounded-md px-3 py-2 text-sm text-slate-700 hover:text-brand-gold-text hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900/40'
                     }
                   >
                     {x.label.startsWith('nav.') ? t(x.label) : x.label}
@@ -83,8 +83,8 @@ export default function StylistLayout() {
                     to={x.path}
                     className={
                       isActive
-                        ? 'rounded-md px-3 py-2 text-sm font-semibold text-brand-gold bg-brand-champagne/20'
-                        : 'rounded-md px-3 py-2 text-sm text-slate-700 hover:text-brand-gold hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900/40'
+                        ? 'rounded-md px-3 py-2 text-sm font-semibold text-brand-gold-text bg-brand-champagne/20'
+                        : 'rounded-md px-3 py-2 text-sm text-slate-700 hover:text-brand-gold-text hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900/40'
                     }
                   >
                     {x.label.startsWith('nav.') ? t(x.label) : x.label}

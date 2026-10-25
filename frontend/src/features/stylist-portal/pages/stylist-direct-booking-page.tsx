@@ -181,7 +181,7 @@ export const StylistDirectBookingPage = () => {
                     type="button"
                     className={
                       selected
-                        ? 'rounded-lg border border-brand-gold bg-brand-champagne/20 px-3 py-2 text-left text-sm'
+                        ? 'rounded-lg border border-brand-gold-ring bg-brand-champagne/20 px-3 py-2 text-left text-sm'
                         : 'rounded-lg border border-slate-200 px-3 py-2 text-left text-sm dark:border-slate-800'
                     }
                     onClick={() => handleSelectClient(client)}
@@ -217,7 +217,7 @@ export const StylistDirectBookingPage = () => {
                   type="button"
                   className={
                     serviceIds.includes(service.id)
-                      ? 'rounded-lg border border-brand-gold bg-brand-champagne/20 px-3 py-2 text-left text-sm'
+                      ? 'rounded-lg border border-brand-gold-ring bg-brand-champagne/20 px-3 py-2 text-left text-sm'
                       : 'rounded-lg border border-slate-200 px-3 py-2 text-left text-sm dark:border-slate-800'
                   }
                   onClick={() => toggleServiceId(service.id)}

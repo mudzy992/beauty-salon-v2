@@ -594,7 +594,7 @@ export const ReservationScheduler = (props: Props) => {
                         ? 'h-2 w-2 rounded-full bg-amber-500'
                         : x.status.startsWith('CANCELLED')
                           ? 'h-2 w-2 rounded-full bg-rose-500'
-                          : 'h-2 w-2 rounded-full bg-brand-gold'
+                          : 'h-2 w-2 rounded-full bg-brand-gold-ring'
                   }
                 />
                 {x.label}
@@ -951,7 +951,7 @@ export const ReservationScheduler = (props: Props) => {
                           type="button"
                           className={
                             active
-                              ? 'rounded-lg border border-brand-gold bg-brand-champagne/20 px-3 py-2 text-left text-sm'
+                              ? 'rounded-lg border border-brand-gold-ring bg-brand-champagne/20 px-3 py-2 text-left text-sm'
                               : 'rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/40'
                           }
                           onClick={() => setCreateDraft((p) => ({ ...p, stylistProfileId: stylist.id }))}

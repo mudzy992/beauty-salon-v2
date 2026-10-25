@@ -30,8 +30,8 @@ jobs:
         run: python scripts/check_doc_links.py
       - name: Report locale parity (baseline is not strict yet)
         run: python scripts/check_i18n.py
-      - name: Report selected theme contrast (baseline is not strict yet)
-        run: python scripts/check_ui_contrast.py
+      - name: Enforce selected theme contrast token pairs
+        run: python scripts/check_ui_contrast.py --strict
 
   backend:
     name: Backend build and tests
@@ -139,6 +139,9 @@ jobs:
       - name: Test socket recovery policy
         working-directory: frontend
         run: npm run test:socket-recovery
+      - name: Test dynamic brand contrast colors
+        working-directory: frontend
+        run: npm run test:brand-colors
       - name: Build (includes TypeScript project check)
         working-directory: frontend
         run: npm run build

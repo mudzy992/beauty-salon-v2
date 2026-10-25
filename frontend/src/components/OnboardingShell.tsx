@@ -95,13 +95,13 @@ export default function OnboardingShell({
         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
           {MainDeco ? (
             <MainDeco
-            className="absolute right-[-28px] bottom-[12%] text-brand-gold opacity-10"
+            className="absolute right-[-28px] bottom-[12%] text-brand-gold-text opacity-10"
             style={{ width: decoSize, height: decoSize }}
             />
           ) : null}
           {AccentDeco ? (
             <AccentDeco
-            className="absolute right-[32px] top-[18%] text-brand-gold opacity-15"
+            className="absolute right-[32px] top-[18%] text-brand-gold-text opacity-15"
             style={{
               width: decoSize * deco.accentScale,
               height: decoSize * deco.accentScale,
@@ -119,7 +119,7 @@ export default function OnboardingShell({
                 {Array.from({ length: totalSteps }, (_, i) => (
                   <div
                     key={i}
-                    className={i < step ? 'h-2.5 w-2.5 rounded-full bg-brand-gold' : 'h-2.5 w-2.5 rounded-full bg-slate-200 opacity-70'}
+                    className={i < step ? 'h-2.5 w-2.5 rounded-full bg-brand-gold-ring' : 'h-2.5 w-2.5 rounded-full bg-slate-200 opacity-70'}
                   />
                 ))}
               </div>
@@ -131,7 +131,7 @@ export default function OnboardingShell({
             <div className="flex items-start gap-3">
               {HeaderIcon ? (
                 <div className="shrink-0 h-11 w-11 rounded-2xl bg-brand-champagne/40 flex items-center justify-center">
-                  <HeaderIcon className="h-5 w-5 text-brand-gold" />
+                  <HeaderIcon className="h-5 w-5 text-brand-gold-text" />
                 </div>
               ) : null}
               <div>
@@ -146,7 +146,7 @@ export default function OnboardingShell({
 
             {tip ? (
               <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <FiInfo className="h-5 w-5 text-brand-gold mt-0.5" />
+                <FiInfo className="h-5 w-5 text-brand-gold-text mt-0.5" />
                 <div className="text-sm leading-relaxed text-slate-700">{tip}</div>
               </div>
             ) : null}

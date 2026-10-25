@@ -25,12 +25,12 @@ export const AdminNav = ({
     const active = isAdminNavItemActive(pathname, item)
     if (compact) {
       return active
-        ? 'rounded-lg px-3 py-2 text-[15px] font-semibold text-brand-gold bg-brand-champagne/20'
-        : 'rounded-lg px-3 py-2 text-[15px] text-slate-800 hover:text-brand-gold hover:bg-slate-50'
+        ? 'rounded-lg px-3 py-2 text-[15px] font-semibold text-brand-gold-text bg-brand-champagne/20'
+        : 'rounded-lg px-3 py-2 text-[15px] text-slate-800 hover:text-brand-gold-text hover:bg-slate-50'
     }
     return active
-      ? 'block rounded-md px-3 py-2 text-sm font-semibold text-brand-gold bg-brand-champagne/20'
-      : 'block rounded-md px-3 py-2 text-sm text-slate-700 hover:text-brand-gold hover:bg-slate-50'
+      ? 'block rounded-md px-3 py-2 text-sm font-semibold text-brand-gold-text bg-brand-champagne/20'
+      : 'block rounded-md px-3 py-2 text-sm text-slate-700 hover:text-brand-gold-text hover:bg-slate-50'
   }
 
   return (

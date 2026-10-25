@@ -29,7 +29,7 @@ export function SettingsShell({
             end={l.end}
             className={({ isActive }) =>
               isActive
-                ? 'rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-brand-gold shadow-sm dark:bg-slate-950'
+                ? 'rounded-md bg-white px-3 py-1.5 text-sm font-semibold text-brand-gold-text shadow-sm dark:bg-slate-950'
                 : 'rounded-md px-3 py-1.5 text-sm text-slate-700 hover:bg-white/70 dark:text-slate-200'
             }
           >

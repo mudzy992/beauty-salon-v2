@@ -49,7 +49,7 @@ export const DashboardRecentReservations = ({ reservations }: Props) => (
                       {r.client ? (
                         <Link
                           to={`/admin/client-analytics?userId=${r.client.id}`}
-                          className="text-brand-gold hover:underline"
+                          className="text-brand-gold-text hover:underline"
                         >
                           {clientName}
                         </Link>

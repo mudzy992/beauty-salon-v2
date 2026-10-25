@@ -23,11 +23,15 @@ export default {
       colors: {
         brand: {
           gold: 'var(--brand-accent, #D4A843)',
+          'gold-text': 'var(--brand-accent-text, #8A641E)',
+          'gold-ring': 'var(--brand-accent-ring, #8A641E)',
           black: '#1A1A1A',
           white: '#FFFFFF',
           gray: '#2D2D2D',
           champagne: '#F5E6CC',
-          rose: 'var(--brand-primary, #C98BA0)',
+          rose: 'var(--brand-primary, #632238)',
+          'rose-text': 'var(--brand-primary-text, #632238)',
+          'rose-ring': 'var(--brand-primary-ring, #632238)',
         },
       },
       boxShadow: {

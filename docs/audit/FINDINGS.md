@@ -356,11 +356,13 @@ Critical examples: backend `proxy-addr` GHSA-jqcg-44mw-7w3h; mobile `shell-quote
 
 **Popravka:** inspect dependency paths (`npm explain`), upgrade direct dependencies/lockfiles u malim PR-ovima; test builds/native Expo compatibility; do not blanket `npm audit fix --force`; run post-upgrade audit + regression. Package-level `/tmp/beauty-salon-*-audit.json` samo je privremeni snapshot.
 
-### A11Y-01 — Provjerene brand/text kontrast vrijednosti ispod WCAG AA normal-text cilja
+### A11Y-01 — Brand/text source kontrast baseline ispod WCAG AA normal-text cilja (djelimično sanirano; finding otvoren)
 
-Read-only `scripts/check_ui_contrast.py` izračunao je 23 odabrana source-token para; 9 je ispod konfigurisanog praga. Primjeri: web light primary/background **2.37:1**, muted-foreground/muted **4.40:1**, destructive-foreground/destructive **3.59:1**; mobile light gray400/white **1.88:1**, gold/white **2.21:1**, rose/white **2.73:1**, gray400/gray50 **1.80:1**; mobile dark gray600/black **3.78:1**. Normalni text cilj je 4.5:1; ring UI indicator cilj 3:1. To nisu kompletne rendered-pair provjere; dark mode, hover, opacity, image overlay, actual text size and accessibility tree nisu provjereni u browseru.
+Početni report `scripts/check_ui_contrast.py` našao je 9/23 selected source-token parova ispod praga (primjeri i omjeri sačuvani u HANDOFF koraku 39). Source mitigation sada mijenja web light/dark semantičke tokene, mobile light/dark text/button/status tokene, koristi odvojene accessible `gold-text` i focus/UI `gold-ring` tokene za runtime brand overrides, te izvodi light/dark text i ring HEX varijante iz `theme_primary`/`theme_accent`. Mobile badge/status foreground-background parovi dobili su eksplicitne kontrastne boje; status ostaje tekstualno označen. Prošireni read-only report sada provjerava 44 odabrana source-token para; lokalno svih 44 prolazi `--strict`. Frontend Node test pokriva kratke/invalidne HEX vrijednosti, ekstremne/saturirane boje i light/dark/ring derivacije. CI je konfigurisan da provjeru pokreće kao strict gate, a push-triggered run je pending dok se izmjene ne pushaju.
 
-**Popravka:** token pair test nad computed CSS + native themes; izabrati tamniju text shade za primary/secondary/disabled labels; status boja + tekst/ikona; manual keyboard/screen-reader pass + axe/Playwright.
+Ovo nije rendered-page audit ni potpuna component-pair provjera: ne potvrđuje computed browser boje/opacity/gradients, sve hover/disabled kombinacije, text sizing, custom CSS backgrounde, accessibility tree, axe/Playwright, keyboard, touch target, VoiceOver/TalkBack, niti manual booking/profile journey. Generic mobile badge i dalje koristi tekstualnu status oznaku; zahtjev za poseban status icon i accessibility/reader signoff nije potvrđen. `A11Y-01` zato ostaje otvoren do rendered/browser/device/manual acceptance.
+
+**Preostalo:** browser computed-style + axe/Playwright pregled reprezentativnih public booking, profile/settings i finance tokova; provjera dark/light/hover/disabled i dinamičkih boja na stvarnim komponentama; status icon/label odluka; keyboard i screen-reader/manual signoff.
 
 ### I18N-01 — EN web resource nedostaje 182 od 290 BS leaf ključeva; mobile ima samo BS
 

@@ -304,7 +304,7 @@ export default function Gallery() {
                   key={c.id}
                   className={[
                     'cursor-pointer p-4 transition-shadow hover:shadow-md',
-                    selectedCatId === c.id ? 'border-brand-gold/60 bg-brand-champagne/10' : '',
+                    selectedCatId === c.id ? 'border-brand-gold-ring bg-brand-champagne/10' : '',
                   ].join(' ')}
                   onClick={() => void loadImages(c.id)}
                 >

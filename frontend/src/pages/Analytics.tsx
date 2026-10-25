@@ -159,7 +159,7 @@ export default function Analytics() {
             id="analytics-period"
             value={period}
             onChange={(e) => setPeriod(e.target.value as PeriodPreset)}
-            className="mt-1 flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950 md:max-w-[220px]"
+            className="mt-1 flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950 md:max-w-[220px]"
           >
             <option value="12">Zadnjih 12 mjeseci</option>
             <option value="thisMonth">Ovaj mjesec</option>
@@ -327,7 +327,7 @@ export default function Analytics() {
                       <td className="py-2 pr-3">
                         <RouterLink
                           to={`/admin/stylist-analytics?stylistId=${s.stylistProfileId}`}
-                          className="font-medium text-brand-gold hover:underline"
+                          className="font-medium text-brand-gold-text hover:underline"
                         >
                           {s.stylistName}
                         </RouterLink>

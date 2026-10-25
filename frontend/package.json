@@ -7,6 +7,7 @@
     "dev": "vite --config vite.config.ts",
     "build": "tsc -b && vite build --config vite.config.ts",
     "test:socket-recovery": "node --test src/context/socket-recovery.test.mjs",
+    "test:brand-colors": "node --test src/utils/brand-colors.test.mjs",
     "gen:favicons": "node ./scripts/generate-favicons.mjs",
     "preview": "vite preview --port 10000 --config vite.config.ts",
     "lint": "eslint . --ext ts,tsx"

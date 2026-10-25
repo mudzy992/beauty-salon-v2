@@ -412,7 +412,7 @@ export default function Profile() {
                       onChange={(event) =>
                         setGender(event.target.value as 'MALE' | 'FEMALE' | '')
                       }
-                      className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50"
+                      className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-gold-ring focus:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50"
                     >
                       <option value="">Odaberite spol</option>
                       <option value="FEMALE">Žensko</option>

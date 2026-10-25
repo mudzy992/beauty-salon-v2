@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Calculate selected source-token WCAG text contrast ratios (not a rendered-page audit)."""
+"""Calculate selected source-token WCAG contrast ratios (not a rendered-page audit)."""
 from __future__ import annotations
 
 import argparse
@@ -72,12 +72,56 @@ def parse_mobile_palette(source: str) -> dict[str, tuple[float, float, float]]:
     return result
 
 
+def parse_mobile_theme(
+    source: str,
+    name: str,
+    palette: dict[str, tuple[float, float, float]],
+) -> dict[str, tuple[float, float, float]]:
+    match = re.search(
+        rf"export const {re.escape(name)}\s*(?::\s*typeof\s+lightTheme)?\s*=\s*\{{(.*?)\n\}};",
+        source,
+        re.DOTALL,
+    )
+    if not match:
+        return {}
+
+    body = match.group(1)
+    result = palette.copy() if "...palette" in body else {}
+    entries = re.findall(
+        r"\b(\w+)\s*:\s*(?:palette\.(\w+)|'(#(?:[0-9a-fA-F]{6}))')",
+        body,
+    )
+    for key, palette_name, literal in entries:
+        if palette_name and palette_name in palette:
+            result[key] = palette[palette_name]
+        elif literal:
+            rgb = rgb_from_hex(literal)
+            if rgb is not None:
+                result[key] = rgb
+    return result
+
+
+def append_pair(
+    checks: list[tuple[str, tuple[float, float, float], tuple[float, float, float], float]],
+    label: str,
+    tokens: dict[str, tuple[float, float, float]],
+    foreground: str,
+    background: str,
+    threshold: float,
+) -> bool:
+    if foreground not in tokens or background not in tokens:
+        print(f"FAIL: missing contrast token {label}: {foreground}/{background}", file=sys.stderr)
+        return False
+    checks.append((label, tokens[foreground], tokens[background], threshold))
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="exit non-zero when a checked text token is below 4.5:1",
+        help="exit non-zero when a checked text/UI token is below its configured threshold",
     )
     args = parser.parse_args()
 
@@ -106,32 +150,69 @@ def main() -> int:
             ("ring / background (UI indicator)", "ring", "background", UI_THRESHOLD),
         )
         for label, foreground, background, threshold in pairs:
-            if foreground not in tokens or background not in tokens:
-                print(f"FAIL: missing CSS contrast token {mode}: {foreground}/{background}", file=sys.stderr)
+            if not append_pair(
+                checks,
+                f"{mode}: {label}",
+                tokens,
+                foreground,
+                background,
+                threshold,
+            ):
                 return 2
-            checks.append((f"{mode}: {label}", tokens[foreground], tokens[background], threshold))
 
     palette = parse_mobile_palette(mobile_source)
-    required = {"white", "gray50", "gray400", "gray600", "gold", "rose"}
-    if not required.issubset(palette):
-        missing = sorted(required - set(palette))
-        print(f"FAIL: mobile palette parse missing {missing}", file=sys.stderr)
+    light_theme = parse_mobile_theme(mobile_source, "lightTheme", palette)
+    dark_theme = parse_mobile_theme(mobile_source, "darkTheme", palette)
+    if not palette or not light_theme or not dark_theme:
+        print("FAIL: unable to parse mobile palette/lightTheme/darkTheme", file=sys.stderr)
         return 2
 
-    mobile_pairs = (
-        ("mobile light: gray400 muted text / white", "gray400", "white", TEXT_THRESHOLD),
-        ("mobile light: gold primary / white", "gold", "white", TEXT_THRESHOLD),
-        ("mobile light: rose secondary / white", "rose", "white", TEXT_THRESHOLD),
-        ("mobile light: gray400 placeholder / gray50 input", "gray400", "gray50", TEXT_THRESHOLD),
-        ("mobile dark: gray400 secondary text / black", "gray400", "black", TEXT_THRESHOLD),
-        ("mobile dark: gray600 muted text / black", "gray600", "black", TEXT_THRESHOLD),
-        ("mobile dark: gold primary / black", "gold", "black", TEXT_THRESHOLD),
+    mobile_theme_pairs = (
+        ("mobile light: muted text / background", light_theme, "textMuted", "background", TEXT_THRESHOLD),
+        ("mobile light: secondary text / background", light_theme, "textSecondary", "background", TEXT_THRESHOLD),
+        ("mobile light: placeholder / input background", light_theme, "inputPlaceholder", "inputBg", TEXT_THRESHOLD),
+        ("mobile light: primary text / background", light_theme, "primary", "background", TEXT_THRESHOLD),
+        ("mobile light: primary button foreground / background", light_theme, "primaryText", "primary", TEXT_THRESHOLD),
+        ("mobile light: secondary button foreground / background", light_theme, "secondaryText", "secondary", TEXT_THRESHOLD),
+        ("mobile light: success badge text / background", light_theme, "success", "successLight", TEXT_THRESHOLD),
+        ("mobile light: warning badge text / background", light_theme, "warning", "warningLight", TEXT_THRESHOLD),
+        ("mobile light: error badge text / background", light_theme, "error", "errorLight", TEXT_THRESHOLD),
+        ("mobile light: info badge text / background", light_theme, "info", "infoLight", TEXT_THRESHOLD),
+        ("mobile light: inactive tab / tab bar", light_theme, "tabInactive", "tabBar", TEXT_THRESHOLD),
+        ("mobile dark: muted text / background", dark_theme, "textMuted", "background", TEXT_THRESHOLD),
+        ("mobile dark: secondary text / background", dark_theme, "textSecondary", "background", TEXT_THRESHOLD),
+        ("mobile dark: placeholder / input background", dark_theme, "inputPlaceholder", "inputBg", TEXT_THRESHOLD),
+        ("mobile dark: primary text / background", dark_theme, "primary", "background", TEXT_THRESHOLD),
+        ("mobile dark: primary button foreground / background", dark_theme, "primaryText", "primary", TEXT_THRESHOLD),
+        ("mobile dark: secondary button foreground / background", dark_theme, "secondaryText", "secondary", TEXT_THRESHOLD),
+        ("mobile dark: success badge text / background", dark_theme, "success", "successLight", TEXT_THRESHOLD),
+        ("mobile dark: warning badge text / background", dark_theme, "warning", "warningLight", TEXT_THRESHOLD),
+        ("mobile dark: error badge text / background", dark_theme, "error", "errorLight", TEXT_THRESHOLD),
+        ("mobile dark: info badge text / background", dark_theme, "info", "infoLight", TEXT_THRESHOLD),
+        ("mobile dark: inactive tab / tab bar", dark_theme, "tabInactive", "tabBar", TEXT_THRESHOLD),
     )
-    for label, foreground, background, threshold in mobile_pairs:
-        if foreground not in palette or background not in palette:
-            print(f"FAIL: missing mobile palette contrast token: {foreground}/{background}", file=sys.stderr)
+    for label, tokens, foreground, background, threshold in mobile_theme_pairs:
+        if not append_pair(checks, label, tokens, foreground, background, threshold):
             return 2
-        checks.append((label, palette[foreground], palette[background], threshold))
+
+    status_pairs = (
+        ("PENDING", "statusPending", "statusPendingBg"),
+        ("STYLIST_REVIEW", "statusReview", "statusReviewBg"),
+        ("CONFIRMED", "statusConfirmed", "statusConfirmedBg"),
+        ("IN_PROGRESS", "statusInProgress", "statusInProgressBg"),
+        ("COMPLETED", "statusCompleted", "statusCompletedBg"),
+        ("CANCELLED", "statusCancelled", "statusCancelledBg"),
+    )
+    for status, foreground, background in status_pairs:
+        if not append_pair(
+            checks,
+            f"mobile light: {status} text label / badge background",
+            palette,
+            foreground,
+            background,
+            TEXT_THRESHOLD,
+        ):
+            return 2
 
     failed = 0
     print("Selected source-token contrast ratios (WCAG calculation; not rendered UI):")
@@ -145,10 +226,13 @@ def main() -> int:
     if failed:
         print(
             f"REPORT-ONLY: {failed} of {len(checks)} selected pairs are below their threshold. "
-            "Review actual rendered colors, text size, opacity and dynamic themes separately."
+            "Review actual rendered colors, text size, opacity, icon/state usage and dynamic themes separately."
         )
         return 1 if args.strict else 0
-    print("PASS: all selected token pairs meet their configured thresholds.")
+    print(
+        f"PASS: all {len(checks)} selected token pairs meet their configured thresholds. "
+        "This is source-only evidence, not a rendered-UI audit."
+    )
     return 0
 
 

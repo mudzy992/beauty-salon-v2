@@ -187,7 +187,7 @@ export default function PublicHome() {
                   variants={fadeUp}
                   className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-all text-center border border-slate-200"
                 >
-                  <Icon className="h-10 w-10 text-brand-gold mx-auto mb-4" />
+                  <Icon className="h-10 w-10 text-brand-gold-text mx-auto mb-4" />
                   <div className="text-lg font-semibold text-slate-900 mb-2">
                     {item.title}
                   </div>
@@ -206,7 +206,7 @@ export default function PublicHome() {
               <MediaImage src={resolveRemoteMediaUrl(aboutImage)} alt="" className="h-full w-full object-cover" />
             </div>
             <div>
-              <div className="text-brand-gold font-semibold uppercase tracking-widest text-sm">
+              <div className="text-brand-gold-text font-semibold uppercase tracking-widest text-sm">
                 O nama
               </div>
               <div className="text-3xl md:text-4xl font-semibold text-slate-900 mt-2">

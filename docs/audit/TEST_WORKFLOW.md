@@ -61,10 +61,10 @@ Nakon promjena: `git status --short` i `git diff --check`; pregledati da `npm ci
 python3 scripts/check_repo_hygiene.py
 python3 scripts/check_doc_links.py
 python3 scripts/check_i18n.py                 # report-only dok legacy gaps postoje
-python3 scripts/check_ui_contrast.py          # report-only dok paleta ne bude popravljena
+python3 scripts/check_ui_contrast.py --strict # checked source-token pairs are a CI gate
 ```
 
-`--strict` opcije su gate za novo stanje nakon baseline cleanup-a; ne prikrivati postojeće gaps. Repo hygiene check je gate od početka.
+`check_ui_contrast.py --strict` je CI gate za imenovane source-token parove; frontend `npm run test:brand-colors` pokriva dinamičke HEX override-e. Locale `--strict` ostaje blokiran dok se prevodi i jezički scope ne odluče. Kontrastne provjere nisu rendered-UI/axe/manual dokaz. Repo hygiene check je gate od početka.
 
 ## 5. Backend local test sequence
 
@@ -212,7 +212,7 @@ npm audit --json > /tmp/<app>-audit-all.json
 ## 9. Accessibility, locale and privacy review
 
 1. `check_i18n.py` records BS/EN key differences; run `--strict` only after all intentional key/translation scope decisions are complete.
-2. `check_ui_contrast.py` recalculates named token pairs from source, prints WCAG ratio and threshold; static token result is not a substitute for browser-computed color with opacity/gradient/dynamic brand.
+2. `check_ui_contrast.py --strict` recalculates 44 named web/mobile source-token pairs, including light/dark semantic badges and status labels. `frontend/src/utils/brand-colors.test.mjs` tests custom HEX normalization, light/dark text derivatives and focus-ring variants. These are source/helper tests only: they do not inspect computed browser styles, opacity/gradient composition, every component pairing, axe output or device rendering.
 3. Run axe/browser across public home, public booking, admin settings and finance, plus color contrast with computed styles.
 4. Manual check keyboard-only, focus order/visible focus, error summary, labels, `aria-live`, zoom/reflow, disabled states, high contrast and reduced motion.
 5. Mobile TalkBack/VoiceOver, device font scaling, display contrast and touch target review.

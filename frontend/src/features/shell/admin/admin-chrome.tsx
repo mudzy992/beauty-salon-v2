@@ -74,7 +74,7 @@ export const AdminUserMenu = ({
       <button
         type="button"
         aria-label="Admin meni"
-        className="inline-flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold lg:hidden"
+        className="inline-flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring lg:hidden"
         onClick={onOpenMobileNav}
       >
         <Avatar className="h-9 w-9 ring-1 ring-slate-200">
@@ -87,7 +87,7 @@ export const AdminUserMenu = ({
           <button
             type="button"
             aria-label="Admin meni"
-            className="hidden items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold lg:inline-flex"
+            className="hidden items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring lg:inline-flex"
           >
             <Avatar className="h-9 w-9 ring-1 ring-slate-200">
               {avatarSrc ? (

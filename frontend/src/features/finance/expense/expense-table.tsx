@@ -123,7 +123,7 @@ export function ExpenseTable({
                           <li>
                             <button
                               type="button"
-                              className="text-brand-gold hover:underline"
+                              className="text-brand-gold-text hover:underline"
                               onClick={() => setPreview(expense)}
                             >
                               + još {detailLabels.length - PREVIEW_LIMIT} stavki — pogledaj

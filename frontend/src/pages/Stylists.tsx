@@ -442,7 +442,7 @@ export default function Stylists() {
                             type="checkbox"
                             checked={stylistServiceIds.includes(svc.id)}
                             onChange={() => toggleService(svc.id)}
-                            className="mt-0.5 h-4 w-4 accent-brand-gold"
+                            className="mt-0.5 h-4 w-4 accent-brand-gold-ring"
                           />
                           <span className="text-sm">
                             <span className="font-medium text-slate-900 dark:text-slate-50">{svc.name}</span>

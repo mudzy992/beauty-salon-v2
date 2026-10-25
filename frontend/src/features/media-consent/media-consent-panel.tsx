@@ -162,7 +162,7 @@ export function MediaConsentPanel() {
       <CardContent className="space-y-5 p-6">
         <div className="flex items-start gap-3">
           <ShieldCheck
-            className="mt-0.5 h-5 w-5 shrink-0 text-brand-gold"
+            className="mt-0.5 h-5 w-5 shrink-0 text-brand-gold-text"
             aria-hidden="true"
           />
           <div>
