@@ -1,5 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
-import { assertStylistSlotCapacity } from './assert-stylist-slot-capacity';
+import {
+  assertReservationSlotCapacity,
+  assertStylistSlotCapacity,
+} from './assert-stylist-slot-capacity';
 import type { SlotHoldReservation, SlotHoldResponse } from './slot-hold.utils';
 
 const date = '2026-08-13';
@@ -25,7 +28,7 @@ const makePendingHold = (response?: SlotHoldResponse): SlotHoldReservation => ({
   stylistResponses: response ? [response] : [],
 });
 
-describe('assertStylistSlotCapacity', () => {
+describe('assert reservation slot capacity', () => {
   const db = {
     stylistService: {
       findMany: jest.fn().mockResolvedValue([
@@ -40,6 +43,9 @@ describe('assertStylistSlotCapacity', () => {
       findMany: jest.fn().mockResolvedValue([]),
     },
   };
+  const capacityDb = db as unknown as Parameters<
+    typeof assertReservationSlotCapacity
+  >[0]['db'];
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -53,7 +59,7 @@ describe('assertStylistSlotCapacity', () => {
 
   const assertCapacity = (stylistProfileId = 'sp-a') =>
     assertStylistSlotCapacity({
-      db: db as never,
+      db: capacityDb,
       serviceIds: ['service-1'],
       date,
       startTime: '09:00',
@@ -92,10 +98,32 @@ describe('assertStylistSlotCapacity', () => {
     await expect(assertCapacity('sp-b')).resolves.toBeUndefined();
   });
 
+  it('ignores the reservation being moved while checking free capacity', async () => {
+    db.reservation.findMany.mockResolvedValue([makePendingHold()]);
+
+    await expect(
+      assertReservationSlotCapacity({
+        db: capacityDb,
+        serviceIds: ['service-1'],
+        date,
+        startTime: '09:00',
+        endTime: '09:45',
+        excludeReservationId: 'current-reservation',
+      }),
+    ).resolves.toBeUndefined();
+    expect(db.reservation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: { not: 'current-reservation' },
+        }),
+      }),
+    );
+  });
+
   it('rejects invalid calendar dates before querying capacity', async () => {
     await expect(
       assertStylistSlotCapacity({
-        db: db as never,
+        db: capacityDb,
         serviceIds: ['service-1'],
         date: '2026-02-30',
         startTime: '09:00',

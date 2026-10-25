@@ -62,10 +62,14 @@ import { ReservationNotifyService } from '../src/reservations/reservation-notify
 import { ReservationOutboxService } from '../src/reservations/reservation-outbox.service';
 import { ReservationQueriesService } from '../src/reservations/reservation-queries.service';
 import { ReservationRescheduleClientService } from '../src/reservations/reservation-reschedule-client.service';
+import { ReservationStylistAcceptService } from '../src/reservations/reservation-stylist-accept.service';
+import { ReservationStylistLockService } from '../src/reservations/reservation-stylist-lock.service';
+import { ReservationUpdateService } from '../src/reservations/reservation-update.service';
 import { ReservationSharedService } from '../src/reservations/reservation-shared.service';
 import type { CreateReservationDto } from '../src/reservations/dto/create-reservation.dto';
 import type { AdminCreateReservationDto } from '../src/reservations/dto/admin-create-reservation.dto';
 import type { CancelReservationDto } from '../src/reservations/dto/cancel-reservation.dto';
+import type { UpdateReservationDto } from '../src/reservations/dto/update-reservation.dto';
 import { LoyaltyService } from '../src/loyalty/loyalty.service';
 import { LoyaltyController } from '../src/loyalty/loyalty.controller';
 import { NotificationsService } from '../src/notifications/notifications.service';
@@ -179,7 +183,7 @@ const fixtureIds: FixtureIds = {
   reservationIds: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, BIZ-01–BIZ-05, BIZ-08', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, BIZ-01–BIZ-05, BIZ-07–BIZ-08', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -335,7 +339,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         DailyLogService,
         {
           provide: DailyLogCompletionOutboxService,
-          useValue: { dispatchAfterCommit: jest.fn().mockResolvedValue(undefined) },
+          useValue: {
+            dispatchAfterCommit: jest.fn().mockResolvedValue(undefined),
+          },
         },
         { provide: DailyLogAdminService, useValue: {} },
         { provide: DailyLogDispositionService, useValue: {} },
@@ -347,6 +353,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
             directCreateSvc: ReservationDirectCreateService,
             clientActionsSvc: ReservationClientActionsService,
             rescheduleClientSvc: ReservationRescheduleClientService,
+            updateSvc: ReservationUpdateService,
+            stylistAcceptSvc: ReservationStylistAcceptService,
+            stylistLockSvc: ReservationStylistLockService,
           ) => ({
             create: (
               dto: CreateReservationDto,
@@ -357,6 +366,8 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
               dto.bookingMode === 'STAFF_ADMIN_DIRECT'
                 ? directCreateSvc.createByAdmin(dto, userId)
                 : createSvc.createByAdmin(dto),
+            updateByAdmin: (id: string, dto: UpdateReservationDto) =>
+              updateSvc.updateByAdmin(id, dto),
             cancelByClient: (
               id: string,
               clientId: string,
@@ -364,12 +375,30 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
             ) => clientActionsSvc.cancelByClient(id, clientId, dto),
             acceptReschedule: (id: string, userId: string) =>
               rescheduleClientSvc.acceptReschedule(id, userId),
+            stylistAccept: (
+              id: string,
+              stylistProfileId: string,
+              userId: string,
+            ) => stylistAcceptSvc.stylistAccept(id, stylistProfileId, userId),
+            stylistLock: (
+              id: string,
+              stylistProfileId: string,
+              userId: string,
+            ) => stylistLockSvc.stylistLock(id, stylistProfileId, userId),
+            stylistUnlock: (
+              id: string,
+              stylistProfileId: string,
+              userId: string,
+            ) => stylistLockSvc.stylistUnlock(id, stylistProfileId, userId),
           }),
           inject: [
             ReservationCreateService,
             ReservationDirectCreateService,
             ReservationClientActionsService,
             ReservationRescheduleClientService,
+            ReservationUpdateService,
+            ReservationStylistAcceptService,
+            ReservationStylistLockService,
           ],
         },
         AvailabilityService,
@@ -383,6 +412,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         ReservationDirectCreateService,
         ReservationClientActionsService,
         ReservationRescheduleClientService,
+        ReservationStylistAcceptService,
+        ReservationStylistLockService,
+        ReservationUpdateService,
         ReservationOutboxService,
         LoyaltyService,
         AuthService,
@@ -405,6 +437,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
             notifyStylistAboutClientDecision: jest
               .fn()
               .mockResolvedValue(undefined),
+            notifyClientTimeChanged: jest.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -3243,6 +3276,291 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
     expect(overlappingDirect.status).toBe(400);
   }, 30_000);
 
+  it('serializes two stylist accepts so concurrent confirmations cannot double-book one stylist', async () => {
+    const db = prisma!;
+    const httpServer = getHttpServer(app!);
+    const date = addWeeks(availabilityDate, 8);
+    const suffix = randomUUID().replaceAll('-', '');
+    const secondStylistUser = await db.user.create({
+      data: {
+        username: `biz07-second-stylist-${suffix}`,
+        email: `biz07-second-stylist-${suffix}@example.test`,
+        firstName: 'BIZ07',
+        lastName: 'Second Stylist',
+      },
+    });
+    fixtureIds.users.push(secondStylistUser.id);
+    const stylistRole = await db.role.findUnique({
+      where: { name: 'STYLIST' },
+      select: { id: true },
+    });
+    expect(stylistRole).not.toBeNull();
+    await db.userRole.create({
+      data: { userId: secondStylistUser.id, roleId: stylistRole!.id },
+    });
+    const secondStylistProfile = await db.stylistProfile.create({
+      data: { userId: secondStylistUser.id, status: 'ACTIVE' },
+    });
+    fixtureIds.additionalStylistProfiles.push(secondStylistProfile.id);
+    const dayOfWeek = new Date(`${date}T00:00:00.000Z`).getUTCDay();
+    await db.stylistWorkingHours.create({
+      data: {
+        stylistProfileId: secondStylistProfile.id,
+        dayOfWeek,
+        startTime: '09:00',
+        endTime: '17:00',
+        isWorkingDay: true,
+      },
+    });
+    await db.stylistService.create({
+      data: { stylistProfileId: secondStylistProfile.id, serviceId },
+    });
+
+    const firstBooking = await submitClientBooking({
+      reservationDate: date,
+      token: concurrentClientTokens[0]!.token,
+    });
+    const secondBooking = await submitClientBooking({
+      reservationDate: date,
+      token: concurrentClientTokens[1]!.token,
+    });
+    expect(firstBooking.response.status).toBe(201);
+    expect(secondBooking.response.status).toBe(201);
+    const firstId = firstBooking.response.body.id as string;
+    const secondId = secondBooking.response.body.id as string;
+
+    for (const reservationId of [firstId, secondId]) {
+      await request(httpServer)
+        .post(
+          `/api/reservations/${reservationId}/stylist/${fixtureIds.stylistProfile}/lock`,
+        )
+        .set('Authorization', `Bearer ${stylistToken}`)
+        .expect(201);
+      await request(httpServer)
+        .post(
+          `/api/reservations/${reservationId}/stylist/${fixtureIds.stylistProfile}/unlock`,
+        )
+        .set('Authorization', `Bearer ${stylistToken}`)
+        .expect(201);
+    }
+
+    const functionName = `e2e_biz07_accept_sleep_${suffix}`;
+    const triggerName = `e2e_biz07_accept_sleep_${suffix}`;
+    let firstAcceptPromise: Promise<{ status: number }> | undefined;
+    let secondAcceptPromise: Promise<{ status: number }> | undefined;
+    const waitForQuery = async (condition: 'sleep' | 'advisory-lock') => {
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline) {
+        const rows =
+          condition === 'sleep'
+            ? await db.$queryRaw<Array<{ pid: number }>>(
+                Prisma.sql`SELECT pid FROM pg_stat_activity
+                  WHERE datname = current_database()
+                    AND pid <> pg_backend_pid()
+                    AND wait_event = 'PgSleep'
+                    AND query ILIKE '%reservations%'`,
+              )
+            : await db.$queryRaw<Array<{ pid: number }>>(
+                Prisma.sql`SELECT pid FROM pg_stat_activity
+                  WHERE datname = current_database()
+                    AND pid <> pg_backend_pid()
+                    AND wait_event_type = 'Lock'
+                    AND query ILIKE '%pg_advisory_xact_lock%'`,
+              );
+        if (rows.length > 0) return true;
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      return false;
+    };
+
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${functionName}"() RETURNS trigger
+        LANGUAGE plpgsql AS $function$
+        BEGIN
+          IF OLD."id" = '${firstId}' AND NEW."status" = 'CONFIRMED' THEN
+            PERFORM pg_sleep(1.5);
+          END IF;
+          RETURN NEW;
+        END;
+        $function$
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE UPDATE OF "status" ON "reservations"
+        FOR EACH ROW EXECUTE FUNCTION "${functionName}"()
+      `);
+
+      firstAcceptPromise = request(httpServer)
+        .post(
+          `/api/reservations/${firstId}/stylist/${fixtureIds.stylistProfile}/accept`,
+        )
+        .set('Authorization', `Bearer ${stylistToken}`)
+        .then((response) => response);
+      void firstAcceptPromise.catch(() => undefined);
+      expect(await waitForQuery('sleep')).toBe(true);
+
+      secondAcceptPromise = request(httpServer)
+        .post(
+          `/api/reservations/${secondId}/stylist/${fixtureIds.stylistProfile}/accept`,
+        )
+        .set('Authorization', `Bearer ${stylistToken}`)
+        .then((response) => response);
+      void secondAcceptPromise.catch(() => undefined);
+      expect(await waitForQuery('advisory-lock')).toBe(true);
+
+      const [firstAccept, secondAccept] = await Promise.all([
+        firstAcceptPromise,
+        secondAcceptPromise,
+      ]);
+      expect([firstAccept.status, secondAccept.status].sort()).toEqual([
+        201, 400,
+      ]);
+      const finalReservations = await db.reservation.findMany({
+        where: { id: { in: [firstId, secondId] } },
+        select: { id: true, status: true, confirmedStylistId: true },
+      });
+      expect(
+        finalReservations.filter(
+          (row) =>
+            row.status === 'CONFIRMED' &&
+            row.confirmedStylistId === fixtureIds.stylistProfile,
+        ),
+      ).toHaveLength(1);
+      expect(
+        finalReservations.filter((row) => row.status === 'PENDING'),
+      ).toHaveLength(1);
+    } finally {
+      const pendingAccepts: Promise<{ status: number }>[] = [];
+      if (firstAcceptPromise) pendingAccepts.push(firstAcceptPromise);
+      if (secondAcceptPromise) pendingAccepts.push(secondAcceptPromise);
+      await Promise.allSettled(pendingAccepts);
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "reservations"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+    }
+  }, 30_000);
+
+  it('serializes an administrator schedule move against a concurrent client booking', async () => {
+    const db = prisma!;
+    const httpServer = getHttpServer(app!);
+    const date = addWeeks(availabilityDate, 9);
+    const direct = await request(httpServer)
+      .post('/api/reservations/admin')
+      .set('Authorization', `Bearer ${systemAdminToken}`)
+      .send({
+        clientId: concurrentClientTokens[12]!.userId,
+        bookingMode: 'STAFF_ADMIN_DIRECT',
+        stylistProfileId: fixtureIds.stylistProfile,
+        serviceIds: [serviceId],
+        reservationDate: date,
+        startTime: '11:00',
+        endTime: '11:45',
+      })
+      .expect(201);
+    const reservationId = direct.body.id as string;
+    fixtureIds.reservationIds.push(reservationId);
+    const suffix = randomUUID().replaceAll('-', '');
+    const functionName = `e2e_biz07_update_sleep_${suffix}`;
+    const triggerName = `e2e_biz07_update_sleep_${suffix}`;
+    let updatePromise: Promise<{ status: number }> | undefined;
+    let bookingPromise: ReturnType<typeof submitClientBooking> | undefined;
+
+    const waitForQuery = async (condition: 'sleep' | 'advisory-lock') => {
+      const deadline = Date.now() + 5000;
+      while (Date.now() < deadline) {
+        const rows =
+          condition === 'sleep'
+            ? await db.$queryRaw<Array<{ pid: number }>>(
+                Prisma.sql`SELECT pid FROM pg_stat_activity
+                  WHERE datname = current_database()
+                    AND pid <> pg_backend_pid()
+                    AND wait_event = 'PgSleep'
+                    AND query ILIKE '%reservations%'`,
+              )
+            : await db.$queryRaw<Array<{ pid: number }>>(
+                Prisma.sql`SELECT pid FROM pg_stat_activity
+                  WHERE datname = current_database()
+                    AND pid <> pg_backend_pid()
+                    AND wait_event_type = 'Lock'
+                    AND query ILIKE '%pg_advisory_xact_lock%'`,
+              );
+        if (rows.length > 0) return true;
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+      return false;
+    };
+
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${functionName}"() RETURNS trigger
+        LANGUAGE plpgsql AS $function$
+        BEGIN
+          IF OLD."id" = '${reservationId}' AND NEW."start_time" = '09:00' THEN
+            PERFORM pg_sleep(1.5);
+          END IF;
+          RETURN NEW;
+        END;
+        $function$
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE UPDATE OF "start_time" ON "reservations"
+        FOR EACH ROW EXECUTE FUNCTION "${functionName}"()
+      `);
+
+      updatePromise = request(httpServer)
+        .patch(`/api/reservations/${reservationId}`)
+        .set('Authorization', `Bearer ${systemAdminToken}`)
+        .send({ reservationDate: date, startTime: '09:00', endTime: '09:45' })
+        .then((response) => response);
+      void updatePromise.catch(() => undefined);
+      expect(await waitForQuery('sleep')).toBe(true);
+
+      bookingPromise = submitClientBooking({
+        reservationDate: date,
+        token: concurrentClientTokens[13]!.token,
+        startTime: '09:00',
+        endTime: '09:45',
+      });
+      void bookingPromise.catch(() => undefined);
+      expect(await waitForQuery('advisory-lock')).toBe(true);
+
+      const [updated, booking] = await Promise.all([
+        updatePromise,
+        bookingPromise,
+      ]);
+      expect(updated.status).toBe(200);
+      expect(booking.response.status).toBe(400);
+      const scheduledAtTarget = await db.reservation.findMany({
+        where: {
+          serviceId,
+          reservationDate: new Date(`${date}T00:00:00.000Z`),
+          startTime: '09:00',
+          status: { in: ['PENDING', 'STYLIST_REVIEW', 'CONFIRMED'] },
+        },
+        select: { id: true, status: true, confirmedStylistId: true },
+      });
+      expect(scheduledAtTarget).toEqual([
+        expect.objectContaining({
+          id: reservationId,
+          status: 'CONFIRMED',
+          confirmedStylistId: fixtureIds.stylistProfile,
+        }),
+      ]);
+    } finally {
+      const pendingOperations: Promise<unknown>[] = [];
+      if (updatePromise) pendingOperations.push(updatePromise);
+      if (bookingPromise) pendingOperations.push(bookingPromise);
+      await Promise.allSettled(pendingOperations);
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "reservations"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+    }
+  }, 30_000);
+
   it('rolls back reservation, loyalty debit and marker when the transactional outbox insert fails', async () => {
     const db = prisma!;
     const loyaltyAccount = await db.loyaltyAccount.upsert({
@@ -3468,10 +3786,12 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         await db.outboxEvent.count({ where: { dedupeKey: outboxDedupeKey } }),
       ).toBe(0);
       expect(
-        (await db.loyaltyAccount.findUnique({
-          where: { id: loyaltyAccount.id },
-          select: { points: true },
-        }))?.points,
+        (
+          await db.loyaltyAccount.findUnique({
+            where: { id: loyaltyAccount.id },
+            select: { points: true },
+          })
+        )?.points,
       ).toBe(0);
     };
 
@@ -3592,10 +3912,12 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       }),
     ).toBe(1);
     expect(
-      (await db.loyaltyAccount.findUnique({
-        where: { id: loyaltyAccount.id },
-        select: { points: true },
-      }))?.points,
+      (
+        await db.loyaltyAccount.findUnique({
+          where: { id: loyaltyAccount.id },
+          select: { points: true },
+        })
+      )?.points,
     ).toBe(100);
     expect(
       await db.outboxEvent.count({

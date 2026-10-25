@@ -2,11 +2,17 @@ import { Prisma } from '@prisma/client';
 
 export type BookingLockClient = Pick<Prisma.TransactionClient, '$queryRaw'>;
 
-const toDateKey = (value: Date | string): string => {
+export const reservationDayKey = (value: Date | string): string => {
   if (typeof value === 'string') {
-    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
     if (!match) throw new Error('Neispravan datum za reservation lock.');
-    return `${match[1]}-${match[2]}-${match[3]}`;
+    const parsed = new Date(
+      Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])),
+    );
+    if (parsed.toISOString().slice(0, 10) !== value) {
+      throw new Error('Neispravan datum za reservation lock.');
+    }
+    return value;
   }
   return [
     value.getUTCFullYear(),
@@ -37,7 +43,18 @@ export const acquireReservationDayLock = async (
   db: BookingLockClient,
   date: Date | string,
 ): Promise<void> => {
-  await acquireLock(db, `reservation-day:${toDateKey(date)}`);
+  await acquireLock(db, `reservation-day:${reservationDayKey(date)}`);
+};
+
+/** Acquire multiple calendar-day locks in a stable order to avoid deadlocks. */
+export const acquireReservationDayLocks = async (
+  db: BookingLockClient,
+  dates: Array<Date | string>,
+): Promise<void> => {
+  const dayKeys = [...new Set(dates.map(reservationDayKey))].sort();
+  for (const dayKey of dayKeys) {
+    await acquireLock(db, `reservation-day:${dayKey}`);
+  }
 };
 
 /** Serialize replays using the same client-scoped idempotency key. */

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -13,6 +14,8 @@ import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { RESERVATION_STATUS } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
+import { isActiveLock } from './utils/slot-hold.utils';
+import { acquireReservationDayLock } from './utils/booking-advisory-lock';
 
 @Injectable()
 export class ReservationStylistRejectService {
@@ -34,57 +37,109 @@ export class ReservationStylistRejectService {
       where: { id: stylistProfileId },
       select: { userId: true },
     });
-    if (!stylist || stylist.userId !== userId)
+    if (!stylist || stylist.userId !== userId) {
       throw new ForbiddenException(
         'Možete raditi samo na vlastitom profilu stilista.',
       );
-    const res = await this.prisma.reservation.findUnique({
+    }
+    const snapshot = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
-      include: { stylistResponses: true },
+      select: { reservationDate: true },
     });
-    if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
-    const response = res.stylistResponses.find(
-      (r) => r.stylistProfileId === stylistProfileId,
-    );
-    if (!response)
-      throw new NotFoundException(
-        'Odgovor za ovog stilista nije pronađen.',
+    if (!snapshot) throw new NotFoundException('Rezervacija nije pronađena.');
+
+    const rejection = await this.prisma.$transaction(async (tx) => {
+      await acquireReservationDayLock(tx, snapshot.reservationDate);
+      const res = await tx.reservation.findUnique({
+        where: { id: reservationId },
+        include: { stylistResponses: true },
+      });
+      if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
+      if (
+        res.reservationDate.getTime() !== snapshot.reservationDate.getTime()
+      ) {
+        throw new ConflictException(
+          'Termin je istovremeno pomjeren. Osvježite rezervaciju i pokušajte ponovo.',
+        );
+      }
+      if (
+        res.status !== RESERVATION_STATUS.PENDING &&
+        res.status !== RESERVATION_STATUS.STYLIST_REVIEW
+      ) {
+        throw new BadRequestException(
+          'Rezervacija više nije u fazi odgovora stilista.',
+        );
+      }
+      const response = res.stylistResponses.find(
+        (row) => row.stylistProfileId === stylistProfileId,
       );
-    if (response.status !== 'LOCKED' && response.status !== 'PENDING')
-      throw new BadRequestException('Već ste odgovorili.');
-    await this.prisma.reservationStylistResponse.update({
-      where: {
-        reservationId_stylistProfileId: {
+      if (!response) {
+        throw new NotFoundException('Odgovor za ovog stilista nije pronađen.');
+      }
+      if (response.status !== 'LOCKED' && response.status !== 'PENDING') {
+        throw new BadRequestException('Već ste odgovorili.');
+      }
+
+      const responseUpdate = await tx.reservationStylistResponse.updateMany({
+        where: {
           reservationId,
           stylistProfileId,
+          status: response.status,
+          lockExpiresAt: response.lockExpiresAt,
         },
-      },
-      data: {
-        status: 'REJECTED',
-        rejectionReason: dto?.rejectionReason,
-        respondedAt: new Date(),
-      },
-    });
-    const stillPendingOrLocked = res.stylistResponses.filter(
-      (r) =>
-        r.stylistProfileId !== stylistProfileId &&
-        (r.status === 'PENDING' ||
-          (r.status === 'LOCKED' &&
-            r.lockExpiresAt &&
-            new Date() < r.lockExpiresAt)),
-    );
-    if (stillPendingOrLocked.length === 0) {
-      await this.prisma.reservation.update({
-        where: { id: reservationId },
         data: {
-          status: this.shared.transitionTo(
-            res.status,
-            RESERVATION_STATUS.CANCELLED_BY_STYLISTS,
-          ),
-          cancelledAt: new Date(),
-          cancelReason: 'Svi stilisti su odbili rezervaciju.',
+          status: 'REJECTED',
+          rejectionReason: dto?.rejectionReason,
+          respondedAt: new Date(),
         },
       });
+      if (responseUpdate.count !== 1) {
+        throw new ConflictException(
+          'Odgovor stilista je istovremeno promijenjen. Osvježite i pokušajte ponovo.',
+        );
+      }
+
+      const now = new Date();
+      const otherResponses = res.stylistResponses.filter(
+        (row) => row.stylistProfileId !== stylistProfileId,
+      );
+      const stillPendingOrLocked = otherResponses.some(
+        (row) => row.status === 'PENDING' || isActiveLock(row, now),
+      );
+      let cancelled = false;
+      if (!stillPendingOrLocked) {
+        const reservationUpdate = await tx.reservation.updateMany({
+          where: {
+            id: reservationId,
+            status: res.status,
+            reservationDate: res.reservationDate,
+            confirmedStylistId: null,
+          },
+          data: {
+            status: this.shared.transitionTo(
+              res.status,
+              RESERVATION_STATUS.CANCELLED_BY_STYLISTS,
+            ),
+            cancelledAt: now,
+            cancelReason: 'Svi stilisti su odbili rezervaciju.',
+          },
+        });
+        if (reservationUpdate.count !== 1) {
+          throw new ConflictException(
+            'Rezervacija je istovremeno promijenjena. Osvježite i pokušajte ponovo.',
+          );
+        }
+        cancelled = true;
+      }
+      return {
+        cancelled,
+        clientId: res.clientId,
+        serviceId: res.serviceId,
+        date: res.reservationDate,
+      };
+    });
+
+    if (rejection.cancelled && rejection.clientId) {
       const resWithClient = await this.prisma.reservation.findUnique({
         where: { id: reservationId },
         select: {
@@ -129,8 +184,8 @@ export class ReservationStylistRejectService {
       result,
     );
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
-      serviceId: res.serviceId,
-      date: res.reservationDate,
+      serviceId: rejection.serviceId,
+      date: rejection.date,
     });
     return result;
   }

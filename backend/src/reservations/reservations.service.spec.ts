@@ -651,6 +651,9 @@ describe('ReservationsService', () => {
       mockPrisma.salonSettings.findFirst.mockResolvedValue({
         reservationLockMinutes: 15,
       });
+      mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+        userId: 'user-1',
+      });
       mockPrisma.reservation.findUnique.mockResolvedValue(null);
       await expect(
         service.stylistLock('res-1', 'stylist-1', 'user-1'),
@@ -842,16 +845,50 @@ describe('ReservationsService', () => {
 
   describe('acceptReschedule', () => {
     it('baca grešku ako postoji konflikt sa drugim terminom', async () => {
-      mockPrisma.reservation.findUnique.mockResolvedValue({
+      const reservationDate = new Date('2026-03-25T00:00:00.000Z');
+      const dayOfWeek = reservationDate.getUTCDay();
+      const current = {
         id: 'res-1',
         clientId: 'client-1',
+        serviceId: 'svc-1',
+        items: [],
         confirmedStylistId: 'sp-1',
-        reservationDate: new Date('2026-03-25'),
+        reservationDate,
+        startTime: '11:00',
+        endTime: '11:30',
         rescheduleStatus: 'PENDING',
         rescheduleProposedStartTime: '11:30',
         rescheduleProposedEndTime: '12:00',
-      });
-      mockPrisma.reservation.findFirst.mockResolvedValue({ id: 'conflict-1' });
+      };
+      mockPrisma.reservation.findUnique
+        .mockResolvedValueOnce(current)
+        .mockResolvedValueOnce(current);
+      mockPrisma.stylistService.findMany.mockResolvedValue([
+        { stylistProfileId: 'sp-1', serviceId: 'svc-1' },
+      ]);
+      mockPrisma.stylistProfile.findMany.mockResolvedValue([
+        {
+          id: 'sp-1',
+          workingHours: [
+            {
+              dateOverride: null,
+              dayOfWeek,
+              startTime: '09:00',
+              endTime: '17:00',
+            },
+          ],
+        },
+      ]);
+      mockPrisma.reservation.findMany.mockResolvedValue([
+        {
+          id: 'conflict-1',
+          startTime: '11:45',
+          endTime: '12:30',
+          status: 'CONFIRMED',
+          confirmedStylistId: 'sp-1',
+          stylistResponses: [],
+        },
+      ]);
 
       await expect(
         service.acceptReschedule('res-1', 'client-1'),

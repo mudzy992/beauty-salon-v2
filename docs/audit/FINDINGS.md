@@ -270,13 +270,17 @@ HAVING COUNT(*) > 1;
 
 **Popravka:** `YYYY-MM-DD` date-only helper koji ne koristi `toISOString`; salon TZ (`Europe/Sarajevo`) kao business clock; persist date-only kao calendar date; sve Cron-e eksplicitno time-zone aware; tests oko 00:00, mjeseca, CET↔CEST DST boundary i process `TZ=UTC`/`Europe/Sarajevo`.
 
-### BIZ-07 — Per-client same-day/capacity check je read-before-write bez DB exclusion
+### BIZ-07 — Stylist inbox lifecycle i admin schedule-edit nisu zajednički serijalizovani
 
-Availability i `assertClientDayBookingAllowed` prvo čitaju zauzeća, a create kasnije insertuje. Više requesta može proći check prije prvog commit-a. DB ima unique relation constraints za items/responses, ali reviewed Reservation schema nema Postgres exclusion constraint za stylist/date/time overlap. User-day rule je check u servisu, ne unique lock. E2E race nije urađen.
+**Scope reconciliation:** raniji opis ovog ID-a kao create/availability read-before-write racea više nije otvoreni BIZ-07 scope. Standardni client create, direct create i client reschedule acceptance koriste salon-day transaction advisory lock i imaju disposable-PostgreSQL acceptance u [BIZ-02](IMPLEMENTATION_PLAN.md#1a-reservation-createavailability--biz-01-biz-02-biz-07). BIZ-07 prati preostali stylist lock/accept/reject i admin schedule-edit lifecycle.
 
-**Uticaj:** potencijalni double-booking/duplicate day booking pod simultaneous requests. Ovo je race kandidat, ne dokaz da su duplikati već nastali.
+Prije ovog BIZ-07 rada, stylist lock/accept/reject i admin termin update nisu svi koristili isti salon-day lock, fresh transactional read, kapacitet recheck i conditional state update. Zato je postojala race mogućnost da se lock/accept/reject ili termin edit osloni na zastarjelo stanje ili istovremeno provjeren kapacitet. Ovo je race kandidat, ne dokaz da je došlo do duplog termina ili neispravnog statusa.
 
-**Popravka:** confirmed slot occupancy model; use exclusion constraint na `tstzrange`/date+minutes gdje je model moguće mapirati, ili transactional advisory lock per stylist/date; retry 409; concurrent integration tests.
+**Uticaj:** potencijalni double-assignment/overlap za istog stilistu, ili zastarjeli lifecycle odgovor kada se slot/rezervacija paralelno promijeni.
+
+**Mitigacija u source-u (CI acceptance pending):** stylist lock, unlock, accept i reject sada rade pod transaction-scoped salon-day advisory lockom, fresh-readom i conditional `updateMany` state checks; accept/lock i admin schedule update provjeravaju isti capacity model koji uračunava confirmed appointments i inbox hold/lockove. Admin edit uzima stari i ciljni datum u sortiranom/dedupliciranom redoslijedu, ponovo validira salon/stylist hours, client-day i capacity, pa conditional update-a termin. Inbox TTL cleanup koristi compare-and-set uslove i ne otkazuje rezervaciju ako se pojavio aktivan lock. Client reschedule acceptance koristi shared capacity assertion uz isključenje rezervacije koja se pomjera. Dodana su dva disposable-PostgreSQL concurrency E2E testa (stylist accept-vs-accept i admin move-vs-client-create); lokalni DB-backed E2E nije izvršen.
+
+**Verifikacija do sada:** šest ciljanih Jest suite/20 testova prolazi, uz temporary Prisma runtime stub i isključenu `ts-jest` dijagnostiku; odvojeni `reservations.service.spec.ts` prolazi 28/28 pod istim ograničenjem. CI full build/generated-client i disposable PostgreSQL acceptance još su pending. Ne tvrditi source/CI-verified dok CI ne prođe; bez production/shared DB ili deployment provjere.
 
 ### BIZ-08 — Expense/Income book close i cancellation count imaju race kandidata
 

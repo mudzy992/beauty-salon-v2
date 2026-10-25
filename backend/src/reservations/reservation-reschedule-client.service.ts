@@ -7,24 +7,23 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
-import { ReservationDateService } from './reservation-date.service';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationNotifyService } from './reservation-notify.service';
 import { ReservationQueriesService } from './reservation-queries.service';
-import {
-  RESERVATION_STATUS,
-  SLOT_OCCUPYING_STATUSES,
-} from './constants';
+import { RESERVATION_STATUS } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
-import { acquireReservationDayLock } from './utils/booking-advisory-lock';
+import { assertReservationSlotCapacity } from './utils/assert-stylist-slot-capacity';
+import {
+  acquireReservationDayLock,
+  reservationDayKey,
+} from './utils/booking-advisory-lock';
 
 @Injectable()
 export class ReservationRescheduleClientService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventsGateway,
-    private readonly dates: ReservationDateService,
     private readonly shared: ReservationSharedService,
     private readonly notify: ReservationNotifyService,
     private readonly queries: ReservationQueriesService,
@@ -79,32 +78,19 @@ export class ReservationRescheduleClientService {
         );
       }
 
-      if (current.confirmedStylistId) {
-        const dayStart = this.dates.parseDateOnly(current.reservationDate);
-        const dayEnd = new Date(dayStart);
-        dayEnd.setUTCHours(23, 59, 59, 999);
-        const conflict = await tx.reservation.findFirst({
-          where: {
-            id: { not: current.id },
-            confirmedStylistId: current.confirmedStylistId,
-            reservationDate: { gte: dayStart, lte: dayEnd },
-            status: { in: [...SLOT_OCCUPYING_STATUSES] as any },
-            startTime: { lt: nextEnd },
-            endTime: { gt: nextStart },
-          },
-          select: { id: true },
-        });
-        if (conflict) {
-          throw new BadRequestException(
-            'Novi termin više nije dostupan zbog preklapanja. Pokušajte ponovo.',
-          );
-        }
-      }
-
       const serviceIds =
         current.items.length > 0
           ? current.items.map((item) => item.serviceId)
           : [current.serviceId];
+      await assertReservationSlotCapacity({
+        db: tx,
+        serviceIds,
+        date: reservationDayKey(current.reservationDate),
+        startTime: nextStart,
+        endTime: nextEnd,
+        stylistProfileId: current.confirmedStylistId ?? undefined,
+        excludeReservationId: current.id,
+      });
       await assertClientDayBookingAllowed({
         prisma: tx,
         clientId: current.clientId,
@@ -161,9 +147,8 @@ export class ReservationRescheduleClientService {
       throw new BadRequestException(
         'Nema aktivnog zahtjeva za potvrdu termina.',
       );
-    const pendingKind = await this.notify.getPendingRescheduleKind(
-      reservationId,
-    );
+    const pendingKind =
+      await this.notify.getPendingRescheduleKind(reservationId);
     const isReorder = pendingKind === 'reservation_reorder';
     const cancelStatus = !isReorder
       ? this.shared.transitionTo(
@@ -195,15 +180,9 @@ export class ReservationRescheduleClientService {
       email: '',
     });
     if (isReorder) {
-      this.events.emitToAdmins(
-        SOCKET_EVENTS.RESERVATION_UPDATED,
-        updated,
-      );
+      this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_UPDATED, updated);
     } else {
-      this.events.emitToAdmins(
-        SOCKET_EVENTS.RESERVATION_CANCELLED,
-        updated,
-      );
+      this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CANCELLED, updated);
       this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
         serviceId: r.serviceId,
         date: r.reservationDate,
