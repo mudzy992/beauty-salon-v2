@@ -3,15 +3,20 @@ import type { Server as HttpServer } from 'node:http';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule, JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 import { Test } from '@nestjs/testing';
 import { io, type Socket } from 'socket.io-client';
+import { AuthService } from '../src/auth/auth.service';
 import { EventsGateway } from '../src/events/events.gateway';
 import { SOCKET_EVENTS } from '../src/events/socket-events';
+import { NotificationsService } from '../src/notifications/notifications.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { UsersRepository } from '../src/users/users.repository';
 import { UsersService } from '../src/users/users.service';
 
 const TEST_JWT_SECRET = 'db-backed-socket-tests-only-secret';
+const OLD_PASSWORD = 'Socket old password 123!';
+const NEW_PASSWORD = 'Socket new password 456!';
 const LOCAL_TEST_DATABASE_HOSTS = new Set([
   'localhost',
   '127.0.0.1',
@@ -51,14 +56,16 @@ const getDisposableDatabaseUrl = (): string => {
   return url;
 };
 
-describe('DB-backed Socket.IO role revocation', () => {
+describe('DB-backed Socket.IO authorization revocation', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let gateway: EventsGateway;
   let users: UsersService;
+  let auth: AuthService;
   let jwtService: JwtService;
   let url: string;
   let userId: string | undefined;
+  let passwordUserId: string | undefined;
   const clients: Socket[] = [];
 
   const connectWithToken = async (token: string): Promise<Socket> => {
@@ -71,16 +78,17 @@ describe('DB-backed Socket.IO role revocation', () => {
     clients.push(socket);
 
     await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(
-        () => reject(new Error('Timed out waiting for Socket.IO connection')),
-        EVENT_TIMEOUT_MS,
-      );
+      const timeout = setTimeout(() => {
+        socket.disconnect();
+        reject(new Error('Timed out waiting for Socket.IO connection'));
+      }, EVENT_TIMEOUT_MS);
       socket.once('connect', () => {
         clearTimeout(timeout);
         resolve();
       });
       socket.once('connect_error', (error) => {
         clearTimeout(timeout);
+        socket.disconnect();
         reject(error);
       });
     });
@@ -158,6 +166,11 @@ describe('DB-backed Socket.IO role revocation', () => {
         PrismaService,
         UsersRepository,
         UsersService,
+        AuthService,
+        {
+          provide: NotificationsService,
+          useValue: { sendVerificationCodeEmail: jest.fn() },
+        },
         { provide: ConfigService, useValue: configService },
       ],
     }).compile();
@@ -167,6 +180,7 @@ describe('DB-backed Socket.IO role revocation', () => {
     prisma = app.get(PrismaService);
     gateway = app.get(EventsGateway);
     users = app.get(UsersService);
+    auth = app.get(AuthService);
     jwtService = app.get(JwtService);
 
     const server = app.getHttpServer() as HttpServer;
@@ -193,14 +207,36 @@ describe('DB-backed Socket.IO role revocation', () => {
     await prisma.userRole.create({
       data: { userId: user.id, roleId: role.id },
     });
+
+    const clientRole = await prisma.role.upsert({
+      where: { name: 'CLIENT' },
+      update: {},
+      create: { name: 'CLIENT' },
+    });
+    const passwordUsername = `socket-password-e2e-${suffix}`;
+    const passwordUser = await prisma.user.create({
+      data: {
+        username: passwordUsername,
+        firstName: 'Socket',
+        lastName: 'Password E2E',
+        passwordHash: await bcrypt.hash(OLD_PASSWORD, 10),
+      },
+    });
+    passwordUserId = passwordUser.id;
+    await prisma.userRole.create({
+      data: { userId: passwordUser.id, roleId: clientRole.id },
+    });
   });
 
   afterAll(async () => {
     for (const client of clients) client.disconnect();
     try {
-      if (prisma && userId) {
-        await prisma.userRole.deleteMany({ where: { userId } });
-        await prisma.user.deleteMany({ where: { id: userId } });
+      if (prisma) {
+        for (const id of [userId, passwordUserId]) {
+          if (!id) continue;
+          await prisma.userRole.deleteMany({ where: { userId: id } });
+          await prisma.user.deleteMany({ where: { id } });
+        }
       }
     } finally {
       await app?.close();
@@ -234,5 +270,42 @@ describe('DB-backed Socket.IO role revocation', () => {
       key: 'private_setting',
     });
     await expect(privateEventAbsence).resolves.toBe(true);
+  });
+
+  it('disconnects password-change sessions and accepts only the replacement token', async () => {
+    if (!passwordUserId) {
+      throw new Error('Password-change socket fixture was not created');
+    }
+
+    const legacyToken = jwtService.sign(
+      { sub: passwordUserId, roles: ['CLIENT'] },
+      { expiresIn: '1h' },
+    );
+    const currentSession = await connectWithToken(legacyToken);
+    await waitForRoomMembers(`user:${passwordUserId}`, [currentSession.id]);
+
+    const disconnect = waitForDisconnect(currentSession);
+    const result = await auth.changePassword(passwordUserId, {
+      currentPassword: OLD_PASSWORD,
+      newPassword: NEW_PASSWORD,
+    });
+    await expect(disconnect).resolves.toBe('io server disconnect');
+
+    await expect(
+      auth.validateUser(passwordUserId, undefined),
+    ).resolves.toBeNull();
+    await expect(connectWithToken(legacyToken)).rejects.toMatchObject({
+      message: 'Unauthorized',
+    });
+
+    const replacementClaims = jwtService.verify<{ pwdv?: unknown }>(
+      result.access_token,
+    );
+    await expect(
+      auth.validateUser(passwordUserId, replacementClaims.pwdv),
+    ).resolves.toMatchObject({ sub: passwordUserId, roles: ['CLIENT'] });
+
+    const replacementSession = await connectWithToken(result.access_token);
+    await waitForRoomMembers(`user:${passwordUserId}`, [replacementSession.id]);
   });
 });

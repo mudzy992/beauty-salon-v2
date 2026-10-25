@@ -89,6 +89,7 @@ interface AuthState {
   user: AuthUser | null
   isReady: boolean
   setToken: (token: string | null) => void
+  replaceToken: (token: string) => void
   setUser: (user: AuthUser | null) => void
   setReady: (ready: boolean) => void
   logout: () => void
@@ -101,6 +102,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isReady: false,
   setToken: (token) => set({ token }),
+  replaceToken: (token) => {
+    localStorage.setItem(TOKEN_KEY, token)
+    api.defaults.headers.common.Authorization = `Bearer ${token}`
+    set({ token })
+  },
   setUser: (user) => set({ user }),
   setReady: (ready) => set({ isReady: ready }),
   logout: () => {

@@ -11,6 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { SOCKET_EVENTS } from './socket-events';
+import { matchesPasswordVersion } from '../auth/password-version';
 
 type GatewaySocketData = {
   userId?: string;
@@ -156,10 +157,11 @@ export class EventsGateway
     client.data.roles = [];
     if (!token) return;
 
-    const payload = this.jwtService.verify<{ sub?: string; exp?: number }>(
-      token,
-      { secret: this.configService.get<string>('JWT_SECRET') },
-    );
+    const payload = this.jwtService.verify<{
+      sub?: string;
+      exp?: number;
+      pwdv?: unknown;
+    }>(token, { secret: this.configService.get<string>('JWT_SECRET') });
     if (typeof payload.sub !== 'string' || payload.sub.length === 0) {
       throw new Error('Invalid JWT subject');
     }
@@ -173,11 +175,17 @@ export class EventsGateway
       where: { id: payload.sub },
       select: {
         isActive: true,
+        passwordChangedAt: true,
         userRoles: { select: { role: { select: { name: true } } } },
         stylistProfile: { select: { isActive: true, status: true } },
       },
     });
-    if (!user?.isActive) throw new Error('Inactive or unknown user');
+    if (
+      !user?.isActive ||
+      !matchesPasswordVersion(user.passwordChangedAt, payload.pwdv)
+    ) {
+      throw new Error('Inactive or unknown user');
+    }
 
     const roles = user.userRoles.map((userRole) => userRole.role.name);
     const effectiveRoles = roles.filter(

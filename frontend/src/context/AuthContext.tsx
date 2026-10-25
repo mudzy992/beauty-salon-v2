@@ -21,6 +21,7 @@ interface AuthContextValue {
   login: (username: string, password: string) => Promise<User>;
   logout: () => void;
   refreshProfile: () => Promise<User>;
+  replaceToken: (token: string) => void;
   isReady: boolean;
 }
 
@@ -32,11 +33,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isReady = useAuthStore((s) => s.isReady)
   const logout = useAuthStore((s) => s.logout)
   const refreshProfileStore = useAuthStore((s) => s.refreshProfile)
+  const replaceTokenStore = useAuthStore((s) => s.replaceToken)
   const loginStore = useAuthStore((s) => s.login)
 
   const refreshProfile = useCallback(async (): Promise<User> => {
     return (await refreshProfileStore()) as User
   }, [refreshProfileStore])
+
+  const replaceToken = useCallback(
+    (nextToken: string) => replaceTokenStore(nextToken),
+    [replaceTokenStore],
+  )
 
   const loginFn = useCallback(
     async (username: string, password: string): Promise<User> => {
@@ -51,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login: loginFn,
     logout,
     refreshProfile,
+    replaceToken,
     isReady,
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

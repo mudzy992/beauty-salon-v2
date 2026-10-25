@@ -11,7 +11,7 @@ import { useAppToast } from '../lib/toast/useAppToast'
 
 export default function ForceChangePassword() {
   const toast = useAppToast()
-  const { refreshProfile } = useAuth()
+  const { refreshProfile, replaceToken } = useAuth()
   const navigate = useNavigate()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -30,7 +30,11 @@ export default function ForceChangePassword() {
     }
     setLoading(true)
     try {
-      await api.post('/auth/change-password', { currentPassword, newPassword })
+      const response = await api.post<{ access_token: string }>(
+        '/auth/change-password',
+        { currentPassword, newPassword },
+      )
+      replaceToken(response.data.access_token)
       const updated = await refreshProfile()
       toast.success('Lozinka je uspješno promijenjena.')
       navigate(getPostAuthRedirectPath(updated), { replace: true })
