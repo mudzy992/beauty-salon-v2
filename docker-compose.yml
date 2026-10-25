@@ -7,9 +7,25 @@ services:
         VITE_API_FILES_URL: ${VITE_API_FILES_URL}
     restart: unless-stopped
 
+  # Run manually before starting a release that contains new migrations.
+  migrate:
+    profiles:
+      - migrations
+    build:
+      context: ./backend
+      target: migrator
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    volumes:
+      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
+    restart: "no"
+    networks:
+      - db_net
+
   backend:
     build:
       context: ./backend
+      target: runtime
 
     environment:
       DATABASE_PROVIDER: ${DATABASE_PROVIDER:-postgres}
@@ -33,7 +49,21 @@ services:
       - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
       - /data/coolify/ssl/redis-core/redis-ca.crt:/run/secrets/redis-ca.crt:ro
 
+    user: "10001:10001"
     restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:' + (process.env.PORT || '10001') +
+          '/health/ready').then(response => process.exit(response.ok ? 0 : 1))
+          .catch(() => process.exit(1))
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
     networks:
       - db_net

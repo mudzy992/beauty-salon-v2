@@ -1,9 +1,11 @@
-FROM node:22-alpine AS builder
+FROM node:22-alpine AS dependencies
 
 WORKDIR /usr/app
 
 COPY package*.json ./
 RUN npm ci
+
+FROM dependencies AS builder
 
 COPY . .
 
@@ -14,24 +16,45 @@ ENV DATABASE_URL=postgresql://prisma:generate-only@localhost:5432/beautysalon?sc
 RUN npx prisma generate
 RUN npm run build
 
+# Dedicated one-shot schema migration image. The database URL is supplied only
+# when the migration container runs, never as a build argument or image ENV.
+FROM dependencies AS migrator
+
+COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
+
+RUN addgroup -S -g 10001 app \
+    && adduser -S -u 10001 -G app app
+
+USER 10001:10001
+CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
+
+# Keep the API runtime image limited to production dependencies.
+FROM builder AS production-dependencies
+RUN npm prune --omit=dev
 
 FROM node:22-alpine AS runtime
 
 WORKDIR /usr/app
 
 ENV NODE_ENV=production
-
-COPY --from=builder /usr/app/node_modules ./node_modules
-COPY --from=builder /usr/app/dist ./dist
-COPY --from=builder /usr/app/package*.json ./
-COPY --from=builder /usr/app/prisma ./prisma/
-COPY --from=builder /usr/app/prisma.config.ts ./
-
-# DATABASE_URL and other credentials are injected only at container runtime.
 ENV PORT=10001
 ENV UPLOAD_ROOT=/usr/app/uploads
 ENV JWT_EXPIRES_IN=7d
 
-EXPOSE 10001
+RUN addgroup -S -g 10001 app \
+    && adduser -S -u 10001 -G app app \
+    && mkdir -p /usr/app/uploads/public /usr/app/uploads/private \
+    && chown -R 10001:10001 /usr/app/uploads
 
-CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/src/main.js"]
+COPY --from=production-dependencies --chown=10001:10001 /usr/app/node_modules ./node_modules
+# Prisma Client is generated in the builder and is not a production npm dependency.
+COPY --from=builder --chown=10001:10001 /usr/app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=10001:10001 /usr/app/dist ./dist
+COPY --from=builder --chown=10001:10001 /usr/app/prisma/migrations ./prisma/migrations
+COPY --from=builder --chown=10001:10001 /usr/app/package.json ./package.json
+
+EXPOSE 10001
+USER 10001:10001
+
+CMD ["node", "dist/src/main.js"]

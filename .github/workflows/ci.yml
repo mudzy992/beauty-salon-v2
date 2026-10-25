@@ -96,6 +96,9 @@ jobs:
             echo "::error title=Backend build diagnostic::$build_tail"
             exit "$build_status"
           fi
+      - name: Build and inspect backend runtime and migration images
+        working-directory: .
+        run: bash scripts/check_backend_container.sh
       - name: Run blog sanitizer regression tests
         working-directory: backend
         run: npm run test:blog-sanitizer

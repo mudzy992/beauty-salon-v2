@@ -19,6 +19,8 @@ import { PassportModule } from '@nestjs/passport';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import sharp from 'sharp';
+import { AppController } from '../src/app.controller';
+import { AppService } from '../src/app.service';
 import { AuthService } from '../src/auth/auth.service';
 import { JwtStrategy } from '../src/auth/strategies/jwt.strategy';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
@@ -184,7 +186,7 @@ const fixtureIds: FixtureIds = {
   reservationIds: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, BIZ-01–BIZ-05, BIZ-07–BIZ-08', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, OPS-03, BIZ-01–BIZ-05, BIZ-07–BIZ-08', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -299,6 +301,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         JwtModule.register({ secret: TEST_JWT_SECRET }),
       ],
       controllers: [
+        AppController,
         ReviewsController,
         AnalyticsController,
         BlogController,
@@ -314,6 +317,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         StylistsController,
       ],
       providers: [
+        AppService,
         PrismaService,
         ExpenseBooksService,
         ExpensesService,
@@ -1183,6 +1187,13 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         }
       }
     }
+  });
+
+  it('reports readiness only after a real database query succeeds', async () => {
+    await request(getHttpServer(app!))
+      .get('/health/ready')
+      .expect(200)
+      .expect({ ok: true, service: 'beauty-salon-v2-backend' });
   });
 
   it('validates and paginates the public non-random before/after gallery', async () => {
