@@ -3357,15 +3357,13 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
                 Prisma.sql`SELECT pid FROM pg_stat_activity
                   WHERE datname = current_database()
                     AND pid <> pg_backend_pid()
-                    AND wait_event = 'PgSleep'
-                    AND query ILIKE '%reservations%'`,
+                    AND wait_event = 'PgSleep'`,
               )
             : await db.$queryRaw<Array<{ pid: number }>>(
                 Prisma.sql`SELECT pid FROM pg_stat_activity
                   WHERE datname = current_database()
                     AND pid <> pg_backend_pid()
-                    AND wait_event_type = 'Lock'
-                    AND query ILIKE '%pg_advisory_xact_lock%'`,
+                    AND wait_event_type = 'Lock'`,
               );
         if (rows.length > 0) return true;
         await new Promise((resolve) => setTimeout(resolve, 25));
@@ -3476,15 +3474,13 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
                 Prisma.sql`SELECT pid FROM pg_stat_activity
                   WHERE datname = current_database()
                     AND pid <> pg_backend_pid()
-                    AND wait_event = 'PgSleep'
-                    AND query ILIKE '%reservations%'`,
+                    AND wait_event = 'PgSleep'`,
               )
             : await db.$queryRaw<Array<{ pid: number }>>(
                 Prisma.sql`SELECT pid FROM pg_stat_activity
                   WHERE datname = current_database()
                     AND pid <> pg_backend_pid()
-                    AND wait_event_type = 'Lock'
-                    AND query ILIKE '%pg_advisory_xact_lock%'`,
+                    AND wait_event_type = 'Lock'`,
               );
         if (rows.length > 0) return true;
         await new Promise((resolve) => setTimeout(resolve, 25));
