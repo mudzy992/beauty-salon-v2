@@ -201,6 +201,8 @@ Tekst/policy scope je implementiran u izvoru i testiran samo kroz synthetic/mock
 
 **OPS-01 source and synthetic CI verification (2026-10-25; run `40227330516` passed all four jobs):** the owner reports one current/intended backend replica (not independently verified). All four active cron entrypoints use `waitForCompletion: true`; the timeout workflow uses conditional `updateMany` before its cancellation counter and notification. CI includes metadata checks and the unit race-loser regression; it does not execute scheduled callbacks in a running multi-instance deployment or verify replica count. No distributed lock or schema migration was added. If topology scales beyond one, re-open OPS-01 for cross-process locking, stronger idempotency and two-instance disposable-PostgreSQL tests.
 
+**Frontend Docker build-context correction (CI pending):** the reported `TS2307` imports from `shared/business-date.mjs` were caused by the frontend-only Docker context excluding the repository-root `shared/` directory. Both Compose variants now select repository-root context and `frontend/Dockerfile`; the image build explicitly copies `frontend/` and `shared/`. CI adds a real frontend image build and Compose-context assertions; a direct `npm run build` from the full checkout is insufficient to verify Docker context. No image push/deployment was performed.
+
 ## 6. Faza 4 — Time zone and bounded background work
 
 **Cilj:** calendar date and wall time use salon timezone consistently; messaging load does not hold HTTP request open.

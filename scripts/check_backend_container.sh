@@ -28,15 +28,32 @@ docker compose --profile migrations config --format json > "$compose_json"
 phase="Assert the manual migration profile, networks and readiness configuration"
 node - "$compose_json" <<'NODE'
 const fs = require('node:fs');
+const path = require('node:path');
 const config = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+const frontend = config.services?.frontend;
 const backend = config.services?.backend;
 const migrate = config.services?.migrate;
 const check = (condition, message) => {
   if (!condition) throw new Error(message);
 };
 try {
+  check(Boolean(frontend), 'Compose frontend service must exist.');
   check(Boolean(backend), 'Compose backend service must exist.');
   check(Boolean(migrate), 'Compose migration service must exist.');
+  const repoRoot = process.cwd();
+  const frontendContext = path.resolve(frontend.build?.context ?? '');
+  const frontendDockerfile = path.resolve(
+    frontendContext,
+    frontend.build?.dockerfile ?? 'Dockerfile',
+  );
+  check(
+    frontendContext === repoRoot,
+    'Frontend Docker build context must be the repository root so shared/ is available.',
+  );
+  check(
+    frontendDockerfile === path.join(repoRoot, 'frontend', 'Dockerfile'),
+    'Frontend Compose service must use frontend/Dockerfile.',
+  );
   check(backend.build?.target === 'runtime', 'API build target must be runtime.');
   check(migrate.build?.target === 'migrator', 'Migration build target must be migrator.');
   check(migrate.profiles?.includes('migrations'), 'Migration service must use the manual migrations profile.');

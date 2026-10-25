@@ -1,8 +1,11 @@
-# Root-level fallback for any future root Docker build context.
+# Repository-root build context (including the frontend image, which imports shared/).
 .git
 **/node_modules
 **/dist
 **/coverage
+**/.vite
+**/test-results
+**/*.tsbuildinfo
 **/.expo
 **/uploads
 **/.env

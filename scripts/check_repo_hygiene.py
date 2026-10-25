@@ -72,13 +72,13 @@ def main() -> int:
             errors.append(f"environment template is ignored and cannot be versioned: {path}")
 
     required_dockerignore = {
+        ".dockerignore": ("**/node_modules", "**/.env", "**/dist", "**/*.tsbuildinfo"),
         "backend/.dockerignore": (
             "node_modules",
             ".env",
             "dist",
             "prisma/migrations_mysql_backup",
         ),
-        "frontend/.dockerignore": ("node_modules", ".env", "dist"),
     }
     for path, tokens in required_dockerignore.items():
         file_path = ROOT / path

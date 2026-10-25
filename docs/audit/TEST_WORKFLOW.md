@@ -161,7 +161,7 @@ npm run lint
 ```
 
 - `test:socket-recovery` uses Node's built-in runner and needs no additional dependency; it verifies the reconnect controller, not React rendering or browser/Socket.IO server behavior.
-- `build` executes `tsc -b` and `vite build`; preserve and review Vite bundle-size warning.
+- `build` executes `tsc -b` and `vite build`; preserve and review Vite bundle-size warning. The frontend Docker image must be built with the repository root as context: frontend modules import `shared/business-date.mjs` outside `frontend/`. CI now builds the Docker image from that root context so a package-only build cannot mask a context error.
 - `lint` is not an established gate until ESLint dependency/config are present and legacy errors resolved. The command must not mutate source.
 - No frontend framework/component test runner was detected in baseline; the socket recovery regression is the current dependency-free unit suite.
 
