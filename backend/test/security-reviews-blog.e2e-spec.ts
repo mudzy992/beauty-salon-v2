@@ -3013,12 +3013,10 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
     });
     fixtureIds.additionalStylistProfiles.push(secondStylistProfile.id);
     const dayOfWeek = new Date(`${date}T12:00:00`).getDay();
-    // Keep the extra stylist capacity local to this direct-booking fixture.
     await db.stylistWorkingHours.create({
       data: {
         stylistProfileId: secondStylistProfile.id,
-        dayOfWeek: (dayOfWeek + 1) % 7,
-        dateOverride: new Date(`${date}T00:00:00.000Z`),
+        dayOfWeek,
         startTime: '09:00',
         endTime: '17:00',
         isWorkingDay: true,
@@ -3453,15 +3451,30 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
     const db = prisma!;
     const httpServer = getHttpServer(app!);
     const date = addWeeks(availabilityDate, 9);
+    const dayOfWeek = new Date(`${date}T00:00:00.000Z`).getUTCDay();
+    // Preserve other E2E fixture capacity, but move it outside this 09:00 race slot.
+    await db.stylistWorkingHours.createMany({
+      data: fixtureIds.additionalStylistProfiles.map((stylistProfileId) => ({
+        stylistProfileId,
+        dayOfWeek,
+        dateOverride: new Date(`${date}T00:00:00.000Z`),
+        startTime: '10:00',
+        endTime: '17:00',
+        isWorkingDay: true,
+      })),
+    });
     const eligibleStylists = await getStylistProfilesForSlots(
       db,
       [serviceId],
-      new Date(`${date}T00:00:00.000Z`).getUTCDay(),
+      dayOfWeek,
       date,
     );
-    if (eligibleStylists.length !== 1) {
+    const targetSlotStylists = eligibleStylists.filter(
+      ({ window }) => 9 * 60 < window.end && 9 * 60 + 45 > window.start,
+    );
+    if (targetSlotStylists.length !== 1) {
       throw new Error(
-        `BIZ07_ADMIN_RACE_EXPECTED_ONE_STYLIST_FOUND_${eligibleStylists.length}`,
+        `BIZ07_ADMIN_RACE_EXPECTED_ONE_STYLIST_FOR_TARGET_SLOT_FOUND_${targetSlotStylists.length}`,
       );
     }
     const direct = await request(httpServer)
