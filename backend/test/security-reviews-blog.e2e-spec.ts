@@ -2333,24 +2333,40 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
 
     const countBefore = await db.clientCancellationCount.findUnique({
       where: { userId: clientUserId },
-      select: { cancellationCount: true },
+      select: { cancellationCount: true, penaltyUntil: true },
     });
     const cancellationIncrements = 12;
-    await Promise.all(
-      Array.from({ length: cancellationIncrements }, () =>
-        shared.incrementCancellationCount(clientUserId, {
-          maxCancellationsBeforePenalty: Number.MAX_SAFE_INTEGER,
-          penaltyDurationDays: 1,
-        }),
-      ),
-    );
-    const countAfter = await db.clientCancellationCount.findUnique({
-      where: { userId: clientUserId },
-      select: { cancellationCount: true },
-    });
-    expect(countAfter?.cancellationCount).toBe(
-      (countBefore?.cancellationCount ?? 0) + cancellationIncrements,
-    );
+    try {
+      await Promise.all(
+        Array.from({ length: cancellationIncrements }, () =>
+          shared.incrementCancellationCount(clientUserId, {
+            maxCancellationsBeforePenalty: Number.MAX_SAFE_INTEGER,
+            penaltyDurationDays: 1,
+          }),
+        ),
+      );
+      const countAfter = await db.clientCancellationCount.findUnique({
+        where: { userId: clientUserId },
+        select: { cancellationCount: true },
+      });
+      expect(countAfter?.cancellationCount).toBe(
+        (countBefore?.cancellationCount ?? 0) + cancellationIncrements,
+      );
+    } finally {
+      if (countBefore) {
+        await db.clientCancellationCount.update({
+          where: { userId: clientUserId },
+          data: {
+            cancellationCount: countBefore.cancellationCount,
+            penaltyUntil: countBefore.penaltyUntil,
+          },
+        });
+      } else {
+        await db.clientCancellationCount.deleteMany({
+          where: { userId: clientUserId },
+        });
+      }
+    }
 
     const incomeLockResults = await Promise.allSettled([
       incomeBooks.lockBook(incomeBook.id, ownerId),

@@ -92,7 +92,11 @@ Object.assign(mockPrisma, {
   holiday: { findFirst: jest.fn() },
   salonWorkingHours: { findUnique: jest.fn() },
   stylistWorkingHours: { findMany: jest.fn() },
-  clientCancellationCount: { findUnique: jest.fn(), upsert: jest.fn() },
+  clientCancellationCount: {
+    findUnique: jest.fn(),
+    upsert: jest.fn(),
+    update: jest.fn(),
+  },
   outboxEvent: {
     create: jest.fn().mockResolvedValue({ id: 'outbox-1' }),
     findUnique: jest.fn(),
