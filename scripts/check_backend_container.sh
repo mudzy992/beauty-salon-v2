@@ -28,38 +28,49 @@ docker compose config --format json > "$compose_json"
 phase="Assert the manual migration profile, networks and readiness configuration"
 node - "$compose_json" <<'NODE'
 const fs = require('node:fs');
-const assert = require('node:assert/strict');
 const config = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const backend = config.services?.backend;
 const migrate = config.services?.migrate;
-assert.ok(backend, 'Compose backend service must exist');
-assert.ok(migrate, 'Compose migration service must exist');
-assert.equal(backend.build?.target, 'runtime');
-assert.equal(migrate.build?.target, 'migrator');
-assert.ok(migrate.profiles?.includes('migrations'));
-assert.ok(
-  !Object.hasOwn(backend.depends_on ?? {}, 'migrate'),
-  'migration job must remain an explicit manual profile, not auto-run on API startup',
-);
-assert.equal(migrate.restart, 'no');
-assert.ok(
-  backend.healthcheck?.test?.join(' ').includes('/health/ready'),
-  'backend healthcheck must call the readiness endpoint',
-);
-assert.ok(
-  backend.volumes?.some((mount) => mount.target === '/usr/app/uploads'),
-  'backend upload storage must remain mounted',
-);
-const hasNetwork = (networks, name) =>
-  Array.isArray(networks)
-    ? networks.includes(name)
-    : Object.hasOwn(networks ?? {}, name);
-assert.ok(hasNetwork(migrate.networks, 'db_net'));
-assert.ok(!hasNetwork(migrate.networks, 'redis_net'));
-const migrationEnvKeys = Array.isArray(migrate.environment)
-  ? migrate.environment.map((entry) => entry.split('=')[0])
-  : Object.keys(migrate.environment ?? {});
-assert.deepEqual(migrationEnvKeys.sort(), ['DATABASE_URL']);
+const check = (condition, message) => {
+  if (!condition) throw new Error(message);
+};
+try {
+  check(Boolean(backend), 'Compose backend service must exist.');
+  check(Boolean(migrate), 'Compose migration service must exist.');
+  check(backend.build?.target === 'runtime', 'API build target must be runtime.');
+  check(migrate.build?.target === 'migrator', 'Migration build target must be migrator.');
+  check(migrate.profiles?.includes('migrations'), 'Migration service must use the manual migrations profile.');
+  check(
+    !Object.hasOwn(backend.depends_on ?? {}, 'migrate'),
+    'API service must not automatically depend on the migration job.',
+  );
+  check(migrate.restart === 'no', 'Migration job restart policy must be no.');
+  check(
+    backend.healthcheck?.test?.join(' ').includes('/health/ready'),
+    'Backend healthcheck must call /health/ready.',
+  );
+  check(
+    backend.volumes?.some((mount) => mount.target === '/usr/app/uploads'),
+    'Backend upload storage must remain mounted at /usr/app/uploads.',
+  );
+  const hasNetwork = (networks, name) =>
+    Array.isArray(networks)
+      ? networks.includes(name)
+      : Object.hasOwn(networks ?? {}, name);
+  check(hasNetwork(migrate.networks, 'db_net'), 'Migration job must use db_net.');
+  check(!hasNetwork(migrate.networks, 'redis_net'), 'Migration job must not use redis_net.');
+  const migrationEnvKeys = Array.isArray(migrate.environment)
+    ? migrate.environment.map((entry) => entry.split('=')[0])
+    : Object.keys(migrate.environment ?? {});
+  check(
+    JSON.stringify(migrationEnvKeys.sort()) === JSON.stringify(['DATABASE_URL']),
+    'Migration job environment must contain only DATABASE_URL.',
+  );
+} catch (error) {
+  const message = error instanceof Error ? error.message : 'Unknown Compose validation failure.';
+  console.error(`::error title=Compose container validation failed::${message}`);
+  process.exit(1);
+}
 NODE
 
 runtime_image="beauty-salon-backend:ci-runtime"
