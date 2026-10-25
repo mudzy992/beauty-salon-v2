@@ -727,7 +727,7 @@ describe('ReservationsService', () => {
       });
       mockPrisma.clientCancellationCount.findUnique.mockResolvedValue(null);
       mockPrisma.clientCancellationCount.upsert.mockResolvedValue({});
-      mockPrisma.reservation.update.mockResolvedValue({});
+      mockPrisma.reservation.updateMany.mockResolvedValueOnce({ count: 1 });
       mockPrisma.reservation.findUnique.mockResolvedValue({
         id: 'res-timeout',
         confirmedStylist: { userId: 'stylist-user' },
@@ -736,7 +736,18 @@ describe('ReservationsService', () => {
 
       await service.processPendingRescheduleTimeouts();
 
-      expect(mockPrisma.reservation.update).toHaveBeenCalled();
+      expect(mockPrisma.reservation.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: 'res-timeout',
+            status: 'ATTENDANCE_CONFIRMED',
+            rescheduleStatus: 'PENDING',
+            rescheduleProposedStartTime: '12:30',
+            rescheduleProposedEndTime: '13:00',
+          },
+        }),
+      );
+      expect(mockPrisma.reservation.update).not.toHaveBeenCalled();
       expect(mockPrisma.clientCancellationCount.upsert).toHaveBeenCalled();
       expect(mockNotifications.send).toHaveBeenCalled();
     });
@@ -762,7 +773,7 @@ describe('ReservationsService', () => {
           reservationId: 'res-timeout-reorder',
         },
       });
-      mockPrisma.reservation.update.mockResolvedValue({});
+      mockPrisma.reservation.updateMany.mockResolvedValueOnce({ count: 1 });
       mockPrisma.reservation.findUnique.mockResolvedValue({
         id: 'res-timeout-reorder',
         confirmedStylist: { userId: 'stylist-user' },
@@ -772,13 +783,51 @@ describe('ReservationsService', () => {
       await service.processPendingRescheduleTimeouts();
 
       expect(mockPrisma.clientCancellationCount.upsert).not.toHaveBeenCalled();
-      expect(mockPrisma.reservation.update).toHaveBeenCalledWith(
+      expect(mockPrisma.reservation.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          where: expect.objectContaining({
+            id: 'res-timeout-reorder',
+            status: 'ATTENDANCE_CONFIRMED',
+            rescheduleStatus: 'PENDING',
+            rescheduleProposedStartTime: '12:30',
+            rescheduleProposedEndTime: '13:00',
+          }),
           data: expect.objectContaining({
             rescheduleStatus: 'DECLINED',
           }),
         }),
       );
+      expect(mockPrisma.reservation.update).not.toHaveBeenCalled();
+    });
+
+    it('preskače side-effecte kada je reschedule paralelno već promijenjen', async () => {
+      const oldSent = new Date(Date.now() - 60 * 60 * 1000);
+      mockPrisma.reservation.findMany.mockResolvedValue([
+        {
+          id: 'res-timeout-race',
+          clientId: 'client-1',
+          serviceId: 'svc-1',
+          reservationDate: new Date('2026-03-25'),
+          startTime: '12:00',
+          status: 'CONFIRMED',
+          rescheduleProposedStartTime: '12:30',
+          rescheduleProposedEndTime: '13:00',
+        },
+      ]);
+      mockPrisma.notification.findFirst.mockResolvedValue({
+        sentAt: oldSent,
+        data: {
+          kind: 'reservation_reschedule',
+          reservationId: 'res-timeout-race',
+        },
+      });
+      mockPrisma.reservation.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await service.processPendingRescheduleTimeouts();
+
+      expect(mockPrisma.reservation.updateMany).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.clientCancellationCount.upsert).not.toHaveBeenCalled();
+      expect(mockNotifications.send).not.toHaveBeenCalled();
     });
   });
 

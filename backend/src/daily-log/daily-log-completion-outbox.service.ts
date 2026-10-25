@@ -163,7 +163,10 @@ export class DailyLogCompletionOutboxService {
     }
   }
 
-  @Cron('*/1 * * * *', { timeZone: DEFAULT_SALON_TIMEZONE })
+  @Cron('*/1 * * * *', {
+    timeZone: DEFAULT_SALON_TIMEZONE,
+    waitForCompletion: true,
+  })
   async retryPending(): Promise<void> {
     const now = new Date();
     try {

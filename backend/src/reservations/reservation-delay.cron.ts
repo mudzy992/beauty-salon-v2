@@ -26,7 +26,10 @@ export class ReservationDelayCron {
    * Svake minute provjerava IN_PROGRESS rezervacije i,
    * kad probiju prag (pauseBetweenServices/2), obavijesti buduće klijente tog dana (jednom).
    */
-  @Cron('*/1 * * * *', { timeZone: DEFAULT_SALON_TIMEZONE })
+  @Cron('*/1 * * * *', {
+    timeZone: DEFAULT_SALON_TIMEZONE,
+    waitForCompletion: true,
+  })
   async tick() {
     // 1) Timeout za pending potvrde nakon rekalkulacije/reorder zahtjeva
     await this.reservations.processPendingRescheduleTimeouts();

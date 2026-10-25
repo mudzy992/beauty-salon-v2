@@ -73,8 +73,14 @@ export class ReservationCronService {
             RESERVATION_STATUS.CANCELLED_BY_CLIENT,
           )
         : null;
-      await this.prisma.reservation.update({
-        where: { id: r.id },
+      const transitioned = await this.prisma.reservation.updateMany({
+        where: {
+          id: r.id,
+          status: r.status,
+          rescheduleStatus: 'PENDING',
+          rescheduleProposedStartTime: r.rescheduleProposedStartTime,
+          rescheduleProposedEndTime: r.rescheduleProposedEndTime,
+        },
         data: isReorder
           ? {
               rescheduleStatus: 'DECLINED',
@@ -91,6 +97,7 @@ export class ReservationCronService {
               rescheduleProposedEndTime: null,
             },
       });
+      if (transitioned.count !== 1) continue;
       if (!isReorder) {
         const salon = await this.prisma.salonSettings.findFirst();
         if (salon) {

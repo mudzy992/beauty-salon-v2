@@ -18,13 +18,19 @@ export class IncomeCronService {
    * Dnevna KIF provjera u 00:05 po vremenu salona: nadoknađuje propušteni
    * rollover nakon prekida rada; DB stanje čini ponavljanje sigurnim.
    */
-  @Cron('5 0 * * *', { timeZone: DEFAULT_SALON_TIMEZONE })
+  @Cron('5 0 * * *', {
+    timeZone: DEFAULT_SALON_TIMEZONE,
+    waitForCompletion: true,
+  })
   async handleIncomeBookCatchUp() {
     await this.rollIncomeBooks();
   }
 
   /** KUF raspored ostaje mjesečni; samo je timezone eksplicitno salon-local. */
-  @Cron('5 0 1 * *', { timeZone: DEFAULT_SALON_TIMEZONE })
+  @Cron('5 0 1 * *', {
+    timeZone: DEFAULT_SALON_TIMEZONE,
+    waitForCompletion: true,
+  })
   async handleExpenseBookRollover() {
     await this.openExpenseBook();
   }
