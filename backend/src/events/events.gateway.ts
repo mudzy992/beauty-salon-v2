@@ -10,6 +10,7 @@ import { Server, Socket, type DefaultEventsMap } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { SOCKET_EVENTS } from './socket-events';
 
 type GatewaySocketData = {
   userId?: string;
@@ -30,6 +31,77 @@ type GatewayServer = Server<
 >;
 
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
+const PUBLIC_ROOM_EVENTS: ReadonlySet<string> = new Set([
+  SOCKET_EVENTS.AVAILABILITY_CHANGED,
+  SOCKET_EVENTS.SETTINGS_UPDATED,
+  SOCKET_EVENTS.SALON_UPDATED,
+]);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isDateOnly(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return (
+    Number.isFinite(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value
+  );
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.every((item: unknown) => typeof item === 'string' && item.length > 0)
+  );
+}
+
+function projectPublicRoomPayload(
+  event: string,
+  data: unknown,
+): Record<string, unknown> | null {
+  if (!PUBLIC_ROOM_EVENTS.has(event) || !isRecord(data)) return null;
+
+  if (event === SOCKET_EVENTS.AVAILABILITY_CHANGED) {
+    const date = data.date;
+    const serviceId = data.serviceId;
+    const serviceIds = data.serviceIds;
+    if (!isDateOnly(date)) return null;
+    if (
+      serviceId !== undefined &&
+      (typeof serviceId !== 'string' || serviceId.length === 0)
+    ) {
+      return null;
+    }
+    if (serviceIds !== undefined && !isStringArray(serviceIds)) return null;
+
+    const safeServiceId = typeof serviceId === 'string' ? serviceId : undefined;
+    const safeServiceIds = isStringArray(serviceIds) ? serviceIds : undefined;
+    if (!safeServiceId && (!safeServiceIds || safeServiceIds.length === 0)) {
+      return null;
+    }
+    return {
+      ...(safeServiceId ? { serviceId: safeServiceId } : {}),
+      ...(safeServiceIds ? { serviceIds: [...safeServiceIds] } : {}),
+      date,
+    };
+  }
+
+  if (event === SOCKET_EVENTS.SETTINGS_UPDATED) {
+    return typeof data.key === 'string' && data.key.length > 0
+      ? { key: data.key }
+      : null;
+  }
+
+  if (event === SOCKET_EVENTS.SALON_UPDATED) {
+    return { key: 'salon' };
+  }
+
+  return null;
+}
 
 @WebSocketGateway({
   cors: { origin: '*', credentials: true },
@@ -203,10 +275,28 @@ export class EventsGateway
   }
 
   emitToAll(event: string, data: unknown) {
-    this.server.emit(event, data);
+    const publicPayload = projectPublicRoomPayload(event, data);
+    if (!publicPayload) {
+      this.logger.warn(
+        `Blocked invalid or non-allowlisted Socket.IO broadcast: ${event}`,
+      );
+      return;
+    }
+    this.server.emit(event, publicPayload);
   }
 
   emitToRoom(room: string, event: string, data: unknown) {
+    if (room === 'public') {
+      const publicPayload = projectPublicRoomPayload(event, data);
+      if (!publicPayload) {
+        this.logger.warn(
+          `Blocked invalid or non-allowlisted Socket.IO public-room event: ${event}`,
+        );
+        return;
+      }
+      this.server.to(room).emit(event, publicPayload);
+      return;
+    }
     this.server.to(room).emit(event, data);
   }
 }

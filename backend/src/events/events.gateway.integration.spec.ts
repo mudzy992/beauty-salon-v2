@@ -244,7 +244,10 @@ describe('EventsGateway live Socket.IO integration', () => {
     const salonInvalidations = connectedClients.map((socket) =>
       waitForEvent(socket, SOCKET_EVENTS.SALON_UPDATED),
     );
-    gateway.emitToAll(SOCKET_EVENTS.SALON_UPDATED, { key: 'salon' });
+    gateway.emitToAll(SOCKET_EVENTS.SALON_UPDATED, {
+      key: 'salon',
+      holidayDetails: 'synthetic-private-value',
+    });
     await expect(Promise.all(salonInvalidations)).resolves.toEqual(
       connectedClients.map(() => ({ key: 'salon' })),
     );
@@ -255,10 +258,73 @@ describe('EventsGateway live Socket.IO integration', () => {
     gateway.emitToAll(SOCKET_EVENTS.SETTINGS_UPDATED, {
       key: 'app_title',
       value: 'Salon',
+      privateValue: 'synthetic-private-value',
     });
     await expect(Promise.all(publicSettingEvents)).resolves.toEqual(
-      connectedClients.map(() => ({ key: 'app_title', value: 'Salon' })),
+      connectedClients.map(() => ({ key: 'app_title' })),
     );
+
+    const availabilityEvents = connectedClients.map((socket) =>
+      waitForEvent(socket, SOCKET_EVENTS.AVAILABILITY_CHANGED),
+    );
+    const availabilityUpdate = {
+      serviceIds: ['public-service-1'],
+      date: '2026-10-25',
+    };
+    gateway.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
+      ...availabilityUpdate,
+      reservationId: 'reservation-private-1',
+      clientEmail: 'private@example.test',
+    });
+    await expect(Promise.all(availabilityEvents)).resolves.toEqual(
+      connectedClients.map(() => availabilityUpdate),
+    );
+
+    const directPublicAvailability = waitForEvent(
+      anonymous,
+      SOCKET_EVENTS.AVAILABILITY_CHANGED,
+    );
+    const authenticatedAvailabilityAbsence = connectedClients
+      .slice(1)
+      .map((socket) =>
+        hasNotReceivedEvent(socket, SOCKET_EVENTS.AVAILABILITY_CHANGED),
+      );
+    gateway.emitToRoom('public', SOCKET_EVENTS.AVAILABILITY_CHANGED, {
+      serviceId: 'public-service-2',
+      date: '2026-10-26',
+      reservationId: 'reservation-private-2',
+      clientEmail: 'private@example.test',
+    });
+    await expect(directPublicAvailability).resolves.toEqual({
+      serviceId: 'public-service-2',
+      date: '2026-10-26',
+    });
+    await expect(
+      Promise.all(authenticatedAvailabilityAbsence),
+    ).resolves.toEqual(connectedClients.slice(1).map(() => true));
+
+    const privateBroadcast = {
+      reservationId: 'reservation-private-1',
+      clientEmail: 'private@example.test',
+    };
+    const privateBroadcastAbsence = connectedClients.map((socket) =>
+      hasNotReceivedEvent(socket, SOCKET_EVENTS.RESERVATION_CREATED),
+    );
+    gateway.emitToAll(SOCKET_EVENTS.RESERVATION_CREATED, privateBroadcast);
+    await expect(Promise.all(privateBroadcastAbsence)).resolves.toEqual(
+      connectedClients.map(() => true),
+    );
+
+    const privateRoomAbsence = hasNotReceivedEvent(
+      anonymous,
+      SOCKET_EVENTS.RESERVATION_CREATED,
+    );
+    gateway.emitToRoom(
+      'public',
+      SOCKET_EVENTS.RESERVATION_CREATED,
+      privateBroadcast,
+    );
+    await expect(privateRoomAbsence).resolves.toBe(true);
 
     const privateSettingEvents = [admin, owner].map((socket) =>
       waitForEvent(socket, SOCKET_EVENTS.SETTINGS_UPDATED),
