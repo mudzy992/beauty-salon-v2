@@ -24,7 +24,7 @@ trap on_error ERR
 
 compose_json="$work_dir/compose.json"
 phase="Render Compose config with synthetic placeholders"
-docker compose config --format json > "$compose_json"
+docker compose --profile migrations config --format json > "$compose_json"
 phase="Assert the manual migration profile, networks and readiness configuration"
 node - "$compose_json" <<'NODE'
 const fs = require('node:fs');
