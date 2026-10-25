@@ -27,7 +27,7 @@ Ovo je source/config runbook za razdvajanje Prisma migracija od API procesa. Nij
 
 ## CI dokaz
 
-`bash scripts/check_backend_container.sh` parsira Compose konfiguraciju sa synthetic placeholderima, builda oba lokalna Docker targeta, provjerava non-root korisnika, da final image env nema DB/JWT/Redis/app-encryption secrets, te provjerava Prisma Client i migrator CLI prisustvo. Probe containeri samo izvršavaju lokalni Node metadata/module check; ne pokreću API, migrator, mrežnu vezu ili DB. Ovo nije deployment, production-image pull, shared-data test, host volume test niti Coolify readiness proof.
+`bash scripts/check_backend_container.sh` parsira Compose konfiguraciju sa synthetic placeholderima, builda oba Docker targeta, provjerava non-root korisnike i da final `Config.Env` nema `DATABASE_URL`, `JWT_SECRET`, `SOCKET_IO_REDIS_URL` ili `APP_SETTINGS_ENCRYPTION_KEY`. Node-only image checks potvrđuju API `@prisma/client`, production dependency separation i migrator CLI/migration-directory prisustvo. CI run `40224124967` prošao je sva četiri joba, uključujući ova dva image checka. Probe containeri ne pokreću API, `prisma migrate deploy`, mrežnu vezu ili DB; odvojeni CI Prisma migration/E2E koraci koriste isključivo disposable PostgreSQL. Ovo nije deployment, production-image pull, shared-data test, host-volume test niti Coolify readiness proof.
 
 ## Release gates koji ostaju van ovog rada
 
