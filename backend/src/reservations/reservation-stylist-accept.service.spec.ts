@@ -205,6 +205,30 @@ describe('ReservationStylistAcceptService', () => {
     expect(result).toBeDefined();
   });
 
+  it('accepts a pending reservation after its prior stylist lock was released', async () => {
+    mockFindUniqueForAccept(
+      reservation({
+        status: 'PENDING',
+        stylistResponses: [
+          response({ status: 'PENDING', lockExpiresAt: null }),
+        ],
+      }),
+    );
+
+    await service.stylistAccept('res-1', 'sp-1', 'user-1');
+
+    expect(mockShared.transitionTo).toHaveBeenCalledWith(
+      'PENDING',
+      'CONFIRMED',
+    );
+    expect(mockPrisma.reservation.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: 'PENDING' }),
+        data: expect.objectContaining({ status: 'CONFIRMED' }),
+      }),
+    );
+  });
+
   it('rejects an acceptance that conflicts with another confirmed booking', async () => {
     mockFindUniqueForAccept(reservation());
     mockPrisma.reservation.findMany.mockResolvedValue([
