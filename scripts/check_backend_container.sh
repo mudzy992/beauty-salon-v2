@@ -112,20 +112,32 @@ phase="Smoke-check production dependencies and Prisma Client in the API image"
 docker run --rm --entrypoint node "$runtime_image" -e '
   const assert = require("node:assert/strict");
   const fs = require("node:fs");
-  const { PrismaClient } = require("@prisma/client");
-  assert.equal(typeof PrismaClient, "function");
-  assert.ok(fs.existsSync("/usr/app/node_modules/.prisma/client/index.js"));
-  assert.ok(!fs.existsSync("/usr/app/node_modules/prisma"), "runtime image must not include Prisma CLI/dev dependencies");
-  assert.equal(process.getuid(), 10001);
+  try {
+    const { PrismaClient } = require("@prisma/client");
+    assert.equal(typeof PrismaClient, "function");
+    assert.ok(fs.existsSync("/usr/app/node_modules/.prisma/client/index.js"));
+    assert.ok(!fs.existsSync("/usr/app/node_modules/prisma"), "runtime image must not include Prisma CLI/dev dependencies");
+    assert.equal(process.getuid(), 10001);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown runtime image smoke failure.";
+    console.error(`::error title=API runtime image smoke check failed::${message.replace(/\s+/g, " ")}`);
+    process.exit(1);
+  }
 '
 
 phase="Smoke-check Prisma CLI and migration directories in the migrator image"
 docker run --rm --entrypoint node "$migrator_image" -e '
   const assert = require("node:assert/strict");
   const fs = require("node:fs");
-  assert.ok(fs.existsSync("/usr/app/node_modules/.bin/prisma"));
-  assert.ok(fs.existsSync("/usr/app/prisma/migrations"));
-  assert.equal(process.getuid(), 10001);
+  try {
+    assert.ok(fs.existsSync("/usr/app/node_modules/.bin/prisma"));
+    assert.ok(fs.existsSync("/usr/app/prisma/migrations"));
+    assert.equal(process.getuid(), 10001);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown migrator image smoke failure.";
+    console.error(`::error title=Migration image smoke check failed::${message.replace(/\s+/g, " ")}`);
+    process.exit(1);
+  }
 '
 
 printf 'Backend container checks passed (synthetic image/config only; no DB or deployment used).\n'
