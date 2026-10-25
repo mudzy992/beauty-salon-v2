@@ -62,6 +62,7 @@ import { ReservationNotifyService } from '../src/reservations/reservation-notify
 import { ReservationOutboxService } from '../src/reservations/reservation-outbox.service';
 import { ReservationQueriesService } from '../src/reservations/reservation-queries.service';
 import { ReservationRescheduleClientService } from '../src/reservations/reservation-reschedule-client.service';
+import { getStylistProfilesForSlots } from '../src/reservations/utils/availability-helpers';
 import { ReservationStylistAcceptService } from '../src/reservations/reservation-stylist-accept.service';
 import { ReservationStylistLockService } from '../src/reservations/reservation-stylist-lock.service';
 import { ReservationUpdateService } from '../src/reservations/reservation-update.service';
@@ -3452,6 +3453,17 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
     const db = prisma!;
     const httpServer = getHttpServer(app!);
     const date = addWeeks(availabilityDate, 9);
+    const eligibleStylists = await getStylistProfilesForSlots(
+      db,
+      [serviceId],
+      new Date(`${date}T00:00:00.000Z`).getUTCDay(),
+      date,
+    );
+    if (eligibleStylists.length !== 1) {
+      throw new Error(
+        `BIZ07_ADMIN_RACE_EXPECTED_ONE_STYLIST_FOUND_${eligibleStylists.length}`,
+      );
+    }
     const direct = await request(httpServer)
       .post('/api/reservations/admin')
       .set('Authorization', `Bearer ${systemAdminToken}`)
@@ -3540,7 +3552,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         bookingPromise,
       ]);
       expect(updated.status).toBe(200);
-      expect(booking.response.status).toBe(400);
+      if (booking.response.status !== 400) {
+        throw new Error(
+          `BIZ07_ADMIN_RACE_EXPECTED_HTTP_400_GOT_${booking.response.status}`,
+        );
+      }
       const scheduledAtTarget = await db.reservation.findMany({
         where: {
           serviceId,
