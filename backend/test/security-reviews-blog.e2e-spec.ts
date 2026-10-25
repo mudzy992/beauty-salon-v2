@@ -3396,7 +3396,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         .set('Authorization', `Bearer ${stylistToken}`)
         .then((response) => response);
       void firstAcceptPromise.catch(() => undefined);
-      expect(await waitForQuery('sleep')).toBe(true);
+      if (!(await waitForQuery('sleep'))) {
+        throw new Error('BIZ07_RACE_TRIGGER_SLEEP_NOT_OBSERVED');
+      }
 
       secondAcceptPromise = request(httpServer)
         .post(
@@ -3405,7 +3407,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         .set('Authorization', `Bearer ${stylistToken}`)
         .then((response) => response);
       void secondAcceptPromise.catch(() => undefined);
-      expect(await waitForQuery('advisory-lock')).toBe(true);
+      if (!(await waitForQuery('advisory-lock'))) {
+        throw new Error('BIZ07_RACE_ADVISORY_WAIT_NOT_OBSERVED');
+      }
 
       const [firstAccept, secondAccept] = await Promise.all([
         firstAcceptPromise,
@@ -3512,7 +3516,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         .send({ reservationDate: date, startTime: '09:00', endTime: '09:45' })
         .then((response) => response);
       void updatePromise.catch(() => undefined);
-      expect(await waitForQuery('sleep')).toBe(true);
+      if (!(await waitForQuery('sleep'))) {
+        throw new Error('BIZ07_RACE_TRIGGER_SLEEP_NOT_OBSERVED');
+      }
 
       bookingPromise = submitClientBooking({
         reservationDate: date,
@@ -3521,7 +3527,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         endTime: '09:45',
       });
       void bookingPromise.catch(() => undefined);
-      expect(await waitForQuery('advisory-lock')).toBe(true);
+      if (!(await waitForQuery('advisory-lock'))) {
+        throw new Error('BIZ07_RACE_ADVISORY_WAIT_NOT_OBSERVED');
+      }
 
       const [updated, booking] = await Promise.all([
         updatePromise,
