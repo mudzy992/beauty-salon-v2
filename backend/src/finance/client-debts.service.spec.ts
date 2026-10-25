@@ -124,6 +124,12 @@ describe('ClientDebtsService', () => {
         month: 3,
         closedAt: new Date(),
       });
+      prisma.incomeBook.findUnique.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: new Date(),
+      });
 
       await expect(
         service.repayDebt('d1', { date: '2026-03-10' }, owner),
@@ -136,6 +142,12 @@ describe('ClientDebtsService', () => {
         .mockResolvedValueOnce(openDebt)
         .mockResolvedValueOnce({ ...openDebt, status: 'SETTLED' });
       prisma.incomeBook.upsert.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: null,
+      });
+      prisma.incomeBook.findUnique.mockResolvedValue({
         id: 'b1',
         year: 2026,
         month: 3,
@@ -176,6 +188,12 @@ describe('ClientDebtsService', () => {
     it('vraća konflikt kada drugi zahtjev već preuzme dug', async () => {
       prisma.clientDebt.findUnique.mockResolvedValue(openDebt);
       prisma.incomeBook.upsert.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: null,
+      });
+      prisma.incomeBook.findUnique.mockResolvedValue({
         id: 'b1',
         year: 2026,
         month: 3,

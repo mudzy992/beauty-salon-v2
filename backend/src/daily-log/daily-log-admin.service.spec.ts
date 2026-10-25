@@ -53,6 +53,8 @@ describe('DailyLogAdminService', () => {
   };
   const mockIncomeSync = {
     assertBookOpenForDate: jest.fn(),
+    assertBookOpenById: jest.fn(),
+    assertBooksOpenForDateAndIds: jest.fn(),
   };
   const mockLoyalty = {
     redeemForDailyLog: jest.fn(),
@@ -132,6 +134,43 @@ describe('DailyLogAdminService', () => {
         }),
       }),
     );
+  });
+
+  it('reopens a debt only after locking the KIF book in the same transaction', async () => {
+    const date = new Date('2026-10-15T00:00:00.000Z');
+    mockDailyLog.findOne.mockResolvedValue({
+      id: 'payment-1',
+      status: 'PENDING',
+      kind: 'DEBT_PAYMENT',
+      debtId: 'debt-1',
+      date,
+    });
+    mockPrisma.dailyLogEntry.findUniqueOrThrow.mockResolvedValue({ date });
+    mockPrisma.incomeBookManualEntry.findMany.mockResolvedValue([
+      { bookId: 'book-1' },
+    ]);
+
+    await service.softDelete(
+      'payment-1',
+      { reason: 'pogrešna naplata' },
+      admin as any,
+    );
+
+    expect(mockIncomeSync.assertBookOpenForDate).toHaveBeenCalledTimes(1);
+    expect(mockIncomeSync.assertBooksOpenForDateAndIds).toHaveBeenCalledWith(
+      date,
+      ['book-1'],
+      mockPrisma,
+    );
+    expect(
+      mockIncomeSync.assertBooksOpenForDateAndIds.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      mockPrisma.incomeBookManualEntry.deleteMany.mock.invocationCallOrder[0],
+    );
+    expect(mockPrisma.clientDebt.update).toHaveBeenCalledWith({
+      where: { id: 'debt-1' },
+      data: { status: 'OPEN', settledAt: null, settledById: null },
+    });
   });
 
   it('softDelete requires reason for stylist', async () => {

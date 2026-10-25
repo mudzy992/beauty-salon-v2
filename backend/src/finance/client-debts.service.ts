@@ -225,10 +225,10 @@ export class ClientDebtsService {
       throw new BadRequestException('Iznos duga nije validan.');
     }
 
-    const book = await this.incomeSync.assertBookOpenForDate(date);
     const note = dto.note?.trim() || undefined;
 
     return this.prisma.$transaction(async (tx) => {
+      const book = await this.incomeSync.assertBookOpenForDate(date, tx);
       const claimed = await claimOpenClientDebt(tx, {
         debtId,
         settledById: currentUser.sub,

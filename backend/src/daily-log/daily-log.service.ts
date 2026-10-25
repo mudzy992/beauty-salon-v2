@@ -465,9 +465,8 @@ export class DailyLogService {
       throw new BadRequestException('Jedno ili više dugovanja nije validno ili je već zatvoreno.');
     }
 
-    const book = await this.incomeSync.assertBookOpenForDate(date);
-
     await this.prisma.$transaction(async (tx) => {
+      const book = await this.incomeSync.assertBookOpenForDate(date, tx);
       for (const d of debts) {
         const amount = Number(d.amount);
         if (!Number.isFinite(amount) || amount <= 0) continue;

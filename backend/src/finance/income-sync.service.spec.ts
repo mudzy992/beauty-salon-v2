@@ -43,6 +43,101 @@ describe('IncomeSyncService', () => {
     prisma.incomeBookEntry.create.mockResolvedValue({ id: 'ie1' });
   });
 
+  describe('assertBooksOpenForDateAndIds', () => {
+    it('locks target and related books in sorted id order within the transaction', async () => {
+      prisma.incomeBook.findUnique
+        .mockResolvedValueOnce({
+          id: 'book-b',
+          year: 2026,
+          month: 1,
+          closedAt: null,
+        })
+        .mockResolvedValueOnce({
+          id: 'book-a',
+          year: 2025,
+          month: 12,
+          closedAt: null,
+        })
+        .mockResolvedValueOnce({
+          id: 'book-b',
+          year: 2026,
+          month: 1,
+          closedAt: null,
+        });
+
+      const target = await service.assertBooksOpenForDateAndIds(
+        new Date('2026-01-15T00:00:00.000Z'),
+        ['book-a'],
+        prisma as never,
+      );
+
+      expect(target.id).toBe('book-b');
+      expect(prisma.incomeBook.findUnique.mock.calls).toEqual([
+        [
+          {
+            where: { year_month: { year: 2026, month: 1 } },
+            select: { id: true },
+          },
+        ],
+        [{ where: { id: 'book-a' } }],
+        [{ where: { id: 'book-b' } }],
+      ]);
+    });
+  });
+
+  describe('assertBooksOpenForDatesAndIds', () => {
+    it('resolves periods first and locks all affected books in sorted id order', async () => {
+      prisma.incomeBook.findUnique
+        .mockResolvedValueOnce({ id: 'book-z' })
+        .mockResolvedValueOnce({ id: 'book-b' })
+        .mockResolvedValueOnce({
+          id: 'book-a',
+          year: 2025,
+          month: 11,
+          closedAt: null,
+        })
+        .mockResolvedValueOnce({
+          id: 'book-b',
+          year: 2026,
+          month: 1,
+          closedAt: null,
+        })
+        .mockResolvedValueOnce({
+          id: 'book-z',
+          year: 2025,
+          month: 12,
+          closedAt: null,
+        });
+
+      await service.assertBooksOpenForDatesAndIds(
+        [
+          new Date('2026-01-15T00:00:00.000Z'),
+          new Date('2025-12-15T00:00:00.000Z'),
+        ],
+        ['book-a'],
+        prisma as never,
+      );
+
+      expect(prisma.incomeBook.findUnique.mock.calls).toEqual([
+        [
+          {
+            where: { year_month: { year: 2025, month: 12 } },
+            select: { id: true },
+          },
+        ],
+        [
+          {
+            where: { year_month: { year: 2026, month: 1 } },
+            select: { id: true },
+          },
+        ],
+        [{ where: { id: 'book-a' } }],
+        [{ where: { id: 'book-b' } }],
+        [{ where: { id: 'book-z' } }],
+      ]);
+    });
+  });
+
   describe('addEntryFromDailyLog', () => {
     it('baca kada zapis dnevnika ne postoji', async () => {
       prisma.dailyLogEntry.findUnique.mockResolvedValue(null);
@@ -87,6 +182,12 @@ describe('IncomeSyncService', () => {
         month: 3,
         closedAt: new Date(),
       });
+      prisma.incomeBook.findUnique.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: new Date(),
+      });
 
       await expect(service.addEntryFromDailyLog('dl1')).rejects.toThrow(
         'Mjesec je zaključan u KIF-u.',
@@ -97,6 +198,12 @@ describe('IncomeSyncService', () => {
     it('knjiži iznos bez napojnice', async () => {
       prisma.dailyLogEntry.findUnique.mockResolvedValue(completedEntry);
       prisma.incomeBook.upsert.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: null,
+      });
+      prisma.incomeBook.findUnique.mockResolvedValue({
         id: 'b1',
         year: 2026,
         month: 3,
@@ -119,6 +226,12 @@ describe('IncomeSyncService', () => {
         month: 3,
         closedAt: null,
       });
+      prisma.incomeBook.findUnique.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: null,
+      });
       prisma.incomeBookEntry.findUnique.mockResolvedValue(null);
 
       await service.addEntryFromDailyLog('dl1', prisma as any);
@@ -134,6 +247,12 @@ describe('IncomeSyncService', () => {
     it('idempotentan je kada stavka već postoji', async () => {
       prisma.dailyLogEntry.findUnique.mockResolvedValue(completedEntry);
       prisma.incomeBook.upsert.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: null,
+      });
+      prisma.incomeBook.findUnique.mockResolvedValue({
         id: 'b1',
         year: 2026,
         month: 3,

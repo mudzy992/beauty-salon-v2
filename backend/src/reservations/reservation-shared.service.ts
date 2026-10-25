@@ -122,21 +122,23 @@ export class ReservationSharedService {
       penaltyDurationDays: number;
     },
   ) {
-    const existing = await this.prisma.clientCancellationCount.findUnique({
-      where: { userId: clientId },
-    });
-    const count = (existing?.cancellationCount ?? 0) + 1;
-    let penaltyUntil: Date | null = null;
-    if (count >= salon.maxCancellationsBeforePenalty) {
-      penaltyUntil = new Date();
-      penaltyUntil.setDate(
-        penaltyUntil.getDate() + salon.penaltyDurationDays,
-      );
-    }
-    await this.prisma.clientCancellationCount.upsert({
-      where: { userId: clientId },
-      create: { userId: clientId, cancellationCount: count, penaltyUntil },
-      update: { cancellationCount: count, penaltyUntil },
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.clientCancellationCount.upsert({
+        where: { userId: clientId },
+        create: { userId: clientId, cancellationCount: 1 },
+        update: { cancellationCount: { increment: 1 } },
+      });
+      let penaltyUntil: Date | null = null;
+      if (updated.cancellationCount >= salon.maxCancellationsBeforePenalty) {
+        penaltyUntil = new Date();
+        penaltyUntil.setDate(
+          penaltyUntil.getDate() + salon.penaltyDurationDays,
+        );
+      }
+      await tx.clientCancellationCount.update({
+        where: { userId: clientId },
+        data: { penaltyUntil },
+      });
     });
   }
 

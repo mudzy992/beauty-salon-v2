@@ -55,22 +55,24 @@ export class IncomeManualEntriesService {
     dto: CreateIncomeBookManualEntryDto,
     userId: string,
   ) {
-    const book = await this.books.getEditableBookOrThrow(
-      bookId,
-      'dodavanje ručnog prihoda',
-    )
     const date = parseAndNormalizeDate(dto.date)
-    ensureDateMatchesPeriod(date, book.year, book.month)
-    const servicePrice = await this.getServicePrice(dto.serviceId)
-    const amounts = splitPaidAmount(dto.paidAmount, servicePrice)
-    const debtIntent = this.resolveDebtIntent({
-      debtHandling: dto.debtHandling,
-      debtAmount: amounts.debtAmount,
-      clientId: dto.clientId,
-      stylistProfileId: dto.stylistProfileId,
-    })
 
     return this.prisma.$transaction(async (tx) => {
+      const book = await this.books.getEditableBookOrThrow(
+        bookId,
+        'dodavanje ručnog prihoda',
+        tx,
+      )
+      ensureDateMatchesPeriod(date, book.year, book.month)
+      const servicePrice = await this.getServicePrice(dto.serviceId, tx)
+      const amounts = splitPaidAmount(dto.paidAmount, servicePrice)
+      const debtIntent = this.resolveDebtIntent({
+        debtHandling: dto.debtHandling,
+        debtAmount: amounts.debtAmount,
+        clientId: dto.clientId,
+        stylistProfileId: dto.stylistProfileId,
+      })
+
       const entry = await tx.incomeBookManualEntry.create({
         data: {
           bookId,
@@ -118,39 +120,40 @@ export class IncomeManualEntriesService {
     dto: UpdateIncomeBookManualEntryDto,
     userId: string,
   ) {
-    const book = await this.books.getEditableBookOrThrow(
-      bookId,
-      'izmjena ručnog prihoda',
-    )
-    const existing = await this.repository.findManualEntry(entryId)
-    if (!existing || existing.bookId !== bookId) {
-      throw new NotFoundException('Ručni prihod nije pronađen.')
-    }
-    const date =
-      dto.date != null ? parseAndNormalizeDate(dto.date) : existing.date
-    ensureDateMatchesPeriod(date, book.year, book.month)
-
-    const serviceId = dto.serviceId ?? existing.serviceId
-    const servicePrice = await this.getServicePrice(serviceId)
-    const paidAmount =
-      dto.paidAmount != null
-        ? dto.paidAmount
-        : Number(existing.amount) + Number(existing.tipAmount)
-    const amounts = splitPaidAmount(paidAmount, servicePrice)
-    const clientId =
-      dto.clientId !== undefined ? dto.clientId : existing.clientId
-    const stylistProfileId =
-      dto.stylistProfileId !== undefined
-        ? dto.stylistProfileId
-        : existing.stylistProfileId
-    const debtIntent = this.resolveDebtIntent({
-      debtHandling: dto.debtHandling,
-      debtAmount: amounts.debtAmount,
-      clientId,
-      stylistProfileId,
-    })
-
     return this.prisma.$transaction(async (tx) => {
+      const book = await this.books.getEditableBookOrThrow(
+        bookId,
+        'izmjena ručnog prihoda',
+        tx,
+      )
+      const existing = await this.repository.findManualEntry(entryId, tx)
+      if (!existing || existing.bookId !== bookId) {
+        throw new NotFoundException('Ručni prihod nije pronađen.')
+      }
+      const date =
+        dto.date != null ? parseAndNormalizeDate(dto.date) : existing.date
+      ensureDateMatchesPeriod(date, book.year, book.month)
+
+      const serviceId = dto.serviceId ?? existing.serviceId
+      const servicePrice = await this.getServicePrice(serviceId, tx)
+      const paidAmount =
+        dto.paidAmount != null
+          ? dto.paidAmount
+          : Number(existing.amount) + Number(existing.tipAmount)
+      const amounts = splitPaidAmount(paidAmount, servicePrice)
+      const clientId =
+        dto.clientId !== undefined ? dto.clientId : existing.clientId
+      const stylistProfileId =
+        dto.stylistProfileId !== undefined
+          ? dto.stylistProfileId
+          : existing.stylistProfileId
+      const debtIntent = this.resolveDebtIntent({
+        debtHandling: dto.debtHandling,
+        debtAmount: amounts.debtAmount,
+        clientId,
+        stylistProfileId,
+      })
+
       await assertNoSettledDebt(tx, entryId, 'izmjena stavke')
       const entry = await tx.incomeBookManualEntry.update({
         where: { id: entryId },
@@ -194,12 +197,16 @@ export class IncomeManualEntriesService {
   }
 
   async remove(bookId: string, entryId: string, userId: string) {
-    await this.books.getEditableBookOrThrow(bookId, 'brisanje ručnog prihoda')
-    const existing = await this.repository.findManualEntry(entryId)
-    if (!existing || existing.bookId !== bookId) {
-      throw new NotFoundException('Ručni prihod nije pronađen.')
-    }
     return this.prisma.$transaction(async (tx) => {
+      await this.books.getEditableBookOrThrow(
+        bookId,
+        'brisanje ručnog prihoda',
+        tx,
+      )
+      const existing = await this.repository.findManualEntry(entryId, tx)
+      if (!existing || existing.bookId !== bookId) {
+        throw new NotFoundException('Ručni prihod nije pronađen.')
+      }
       await assertNoSettledDebt(tx, entryId, 'brisanje stavke')
       await syncDebtForManualEntry(tx, {
         manualEntryId: entryId,
@@ -259,8 +266,11 @@ export class IncomeManualEntriesService {
     return entry
   }
 
-  private async getServicePrice(serviceId: string): Promise<number> {
-    const service = await this.prisma.service.findUnique({
+  private async getServicePrice(
+    serviceId: string,
+    db: Pick<Prisma.TransactionClient, 'service'> = this.prisma,
+  ): Promise<number> {
+    const service = await db.service.findUnique({
       where: { id: serviceId },
       select: { price: true },
     })

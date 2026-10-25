@@ -297,23 +297,26 @@ export class DailyLogAdminService {
     entryId: string,
     debtId: string,
   ): Promise<void> {
-    await this.incomeSync.assertBookOpenForDate(
-      (
-        await this.prisma.dailyLogEntry.findUniqueOrThrow({
-          where: { id: entryId },
-          select: { date: true },
-        })
-      ).date,
-    );
+    const entry = await this.prisma.dailyLogEntry.findUniqueOrThrow({
+      where: { id: entryId },
+      select: { date: true },
+    });
+    await this.incomeSync.assertBookOpenForDate(entry.date);
     await this.prisma.$transaction(async (tx) => {
       const manuals = await tx.incomeBookManualEntry.findMany({
         where: { dailyLogEntryId: entryId },
         select: { bookId: true },
       });
+      const bookIds = [...new Set(manuals.map((m) => m.bookId))].sort();
+      await this.incomeSync.assertBooksOpenForDateAndIds(
+        entry.date,
+        bookIds,
+        tx,
+      );
       await tx.incomeBookManualEntry.deleteMany({
         where: { dailyLogEntryId: entryId },
       });
-      for (const bookId of [...new Set(manuals.map((m) => m.bookId))]) {
+      for (const bookId of bookIds) {
         await this.reversal.recalcInTx(tx, bookId);
       }
       await tx.clientDebt.update({

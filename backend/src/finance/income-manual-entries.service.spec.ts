@@ -65,6 +65,9 @@ describe('IncomeManualEntriesService', () => {
       await service.create('b1', { ...baseDto, paidAmount: 130 }, 'u1');
 
       const data = prisma.incomeBookManualEntry.create.mock.calls[0][0].data;
+      expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+        prisma.incomeBookManualEntry.create.mock.invocationCallOrder[0],
+      );
       expect(data.amount).toBe(100);
       expect(data.tipAmount).toBe(30);
     });

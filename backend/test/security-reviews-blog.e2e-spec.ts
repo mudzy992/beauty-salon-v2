@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import type { Server } from 'node:http';
 import { ConflictException, ValidationPipe } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
@@ -40,6 +41,8 @@ import { DailyLogRestoreService } from '../src/daily-log/daily-log-restore.servi
 import { DailyLogService } from '../src/daily-log/daily-log.service';
 import { ClientDebtsController } from '../src/finance/client-debts.controller';
 import { ClientDebtsService } from '../src/finance/client-debts.service';
+import { ExpenseBooksService } from '../src/finance/expense-books.service';
+import { ExpensesService } from '../src/finance/expenses.service';
 import { IncomeBookRepository } from '../src/finance/repositories/income-book.repository';
 import { IncomeBooksService } from '../src/finance/income-books.service';
 import { IncomeController } from '../src/finance/income.controller';
@@ -144,6 +147,10 @@ type FixtureIds = {
   incomeManualEntries: string[];
   incomeBookId?: string;
   incomeBookCreatedByTest?: string;
+  financeRaceIncomeBookId?: string;
+  financeRaceExpenseBookId?: string;
+  financeRaceExpenseTemplateId?: string;
+  financeRaceExpenseCategoryId?: string;
   ownerUserId?: string;
   stylistProfile?: string;
   additionalStylistProfiles: string[];
@@ -172,7 +179,7 @@ const fixtureIds: FixtureIds = {
   reservationIds: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, BIZ-01–BIZ-05', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, BIZ-01–BIZ-05, BIZ-08', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -303,6 +310,8 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       ],
       providers: [
         PrismaService,
+        ExpenseBooksService,
+        ExpensesService,
         UsersRepository,
         UsersService,
         ClientDebtsService,
@@ -1028,6 +1037,26 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         });
         await prisma.reservation.deleteMany({
           where: { id: { in: reservationIdsToDelete } },
+        });
+      }
+      if (fixtureIds.financeRaceExpenseBookId) {
+        await prisma.expenseBook.deleteMany({
+          where: { id: fixtureIds.financeRaceExpenseBookId },
+        });
+      }
+      if (fixtureIds.financeRaceExpenseCategoryId) {
+        await prisma.expenseCategory.deleteMany({
+          where: { id: fixtureIds.financeRaceExpenseCategoryId },
+        });
+      }
+      if (fixtureIds.financeRaceExpenseTemplateId) {
+        await prisma.expenseCategoryTemplate.deleteMany({
+          where: { id: fixtureIds.financeRaceExpenseTemplateId },
+        });
+      }
+      if (fixtureIds.financeRaceIncomeBookId) {
+        await prisma.incomeBook.deleteMany({
+          where: { id: fixtureIds.financeRaceIncomeBookId },
         });
       }
       if (fixtureIds.incomeBookId) {
@@ -2136,32 +2165,10 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         .send({ date: repaymentDate, ...(note ? { note } : {}) });
 
     const debt = await createDebt();
-    const incomeSync = app!.get(IncomeSyncService);
-    const assertBookOpenForDate =
-      incomeSync.assertBookOpenForDate.bind(incomeSync);
-    let bookChecks = 0;
-    let releaseBookCheck!: () => void;
-    const bookCheckBarrier = new Promise<void>((resolve) => {
-      releaseBookCheck = resolve;
-    });
-    const safetyRelease = setTimeout(releaseBookCheck, 5000);
-    const bookCheckSpy = jest
-      .spyOn(incomeSync, 'assertBookOpenForDate')
-      .mockImplementation(async (date) => {
-        const openBook = await assertBookOpenForDate(date);
-        bookChecks += 1;
-        if (bookChecks === 2) releaseBookCheck();
-        await bookCheckBarrier;
-        return openBook;
-      });
-    let concurrentResponses: Awaited<ReturnType<typeof repay>>[];
-    try {
-      concurrentResponses = await Promise.all([repay(debt.id), repay(debt.id)]);
-    } finally {
-      clearTimeout(safetyRelease);
-      bookCheckSpy.mockRestore();
-    }
-    expect(bookChecks).toBe(2);
+    const concurrentResponses = await Promise.all([
+      repay(debt.id),
+      repay(debt.id),
+    ]);
     expect(
       concurrentResponses.map((response) => response.status).sort(),
     ).toEqual([201, 409]);
@@ -2274,6 +2281,342 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         where: { debtId: failingDebt.id, kind: 'DEBT_PAYMENT' },
       }),
     ).toBe(0);
+  });
+
+  it('serializes BIZ-08 finance close/write races, keeps lock audits one-per-transition, and atomically increments cancellation counts', async () => {
+    const db = prisma!;
+    const ownerId = fixtureIds.ownerUserId!;
+    const shared = app!.get(ReservationSharedService);
+    const incomeBooks = app!.get(IncomeBooksService);
+    const expenseBooks = app!.get(ExpenseBooksService);
+    const expenses = app!.get(ExpensesService);
+    const manualEntries = app!.get(IncomeManualEntriesService);
+    const waitForBookLockWait = async (tableName: string) => {
+      const waitDeadline = Date.now() + 5000;
+      let closeIsBlocked = false;
+      while (Date.now() < waitDeadline && !closeIsBlocked) {
+        const waitingQueries = await db.$queryRaw<Array<{ pid: number }>>(
+          Prisma.sql`SELECT pid FROM pg_stat_activity
+            WHERE datname = current_database()
+              AND pid <> pg_backend_pid()
+              AND wait_event_type = 'Lock'
+              AND query ILIKE ${`%${tableName}%`}`,
+        );
+        closeIsBlocked = waitingQueries.length > 0;
+        if (!closeIsBlocked) {
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+      }
+      return closeIsBlocked;
+    };
+    const suffix = randomUUID().replaceAll('-', '');
+    const year =
+      2000 + Math.floor(Math.random() * (new Date().getFullYear() - 2000));
+    const month = 1 + Math.floor(Math.random() * 12);
+
+    const incomeBook = await db.incomeBook.create({ data: { year, month } });
+    fixtureIds.financeRaceIncomeBookId = incomeBook.id;
+    const expenseBook = await db.expenseBook.create({ data: { year, month } });
+    fixtureIds.financeRaceExpenseBookId = expenseBook.id;
+    const template = await db.expenseCategoryTemplate.create({
+      data: { name: `BIZ-08 race template ${suffix}` },
+    });
+    fixtureIds.financeRaceExpenseTemplateId = template.id;
+    const category = await db.expenseCategory.create({
+      data: {
+        name: `BIZ-08 race category ${suffix}`,
+        templateId: template.id,
+        isFixed: false,
+      },
+    });
+    fixtureIds.financeRaceExpenseCategoryId = category.id;
+
+    const countBefore = await db.clientCancellationCount.findUnique({
+      where: { userId: clientUserId },
+      select: { cancellationCount: true },
+    });
+    const cancellationIncrements = 12;
+    await Promise.all(
+      Array.from({ length: cancellationIncrements }, () =>
+        shared.incrementCancellationCount(clientUserId, {
+          maxCancellationsBeforePenalty: Number.MAX_SAFE_INTEGER,
+          penaltyDurationDays: 1,
+        }),
+      ),
+    );
+    const countAfter = await db.clientCancellationCount.findUnique({
+      where: { userId: clientUserId },
+      select: { cancellationCount: true },
+    });
+    expect(countAfter?.cancellationCount).toBe(
+      (countBefore?.cancellationCount ?? 0) + cancellationIncrements,
+    );
+
+    const incomeLockResults = await Promise.allSettled([
+      incomeBooks.lockBook(incomeBook.id, ownerId),
+      incomeBooks.lockBook(incomeBook.id, ownerId),
+    ]);
+    expect(
+      incomeLockResults.filter((result) => result.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      incomeLockResults.filter((result) => result.status === 'rejected'),
+    ).toHaveLength(1);
+    expect(
+      await db.incomeBookLockEvent.count({
+        where: { bookId: incomeBook.id, action: 'LOCK' },
+      }),
+    ).toBe(1);
+
+    const incomeUnlockResults = await Promise.allSettled([
+      incomeBooks.unlockBook(incomeBook.id, 'BIZ-08 race test', ownerId),
+      incomeBooks.unlockBook(incomeBook.id, 'BIZ-08 race test', ownerId),
+    ]);
+    expect(
+      incomeUnlockResults.filter((result) => result.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      incomeUnlockResults.filter((result) => result.status === 'rejected'),
+    ).toHaveLength(1);
+    expect(
+      await db.incomeBookLockEvent.count({
+        where: { bookId: incomeBook.id, action: 'UNLOCK' },
+      }),
+    ).toBe(1);
+
+    const expenseLockResults = await Promise.allSettled([
+      expenseBooks.lockBook(expenseBook.id, ownerId),
+      expenseBooks.lockBook(expenseBook.id, ownerId),
+    ]);
+    expect(
+      expenseLockResults.filter((result) => result.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      expenseLockResults.filter((result) => result.status === 'rejected'),
+    ).toHaveLength(1);
+    expect(
+      await db.expenseBookLockEvent.count({
+        where: { bookId: expenseBook.id, action: 'LOCK' },
+      }),
+    ).toBe(1);
+
+    const expenseUnlockResults = await Promise.allSettled([
+      expenseBooks.unlockBook(expenseBook.id, 'BIZ-08 race test', ownerId),
+      expenseBooks.unlockBook(expenseBook.id, 'BIZ-08 race test', ownerId),
+    ]);
+    expect(
+      expenseUnlockResults.filter((result) => result.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      expenseUnlockResults.filter((result) => result.status === 'rejected'),
+    ).toHaveLength(1);
+    expect(
+      await db.expenseBookLockEvent.count({
+        where: { bookId: expenseBook.id, action: 'UNLOCK' },
+      }),
+    ).toBe(1);
+
+    const manualDate = `${year}-${String(month).padStart(2, '0')}-15`;
+    const incomeFunctionName = `e2e_biz08_income_sleep_${suffix}`;
+    const incomeTriggerName = `e2e_biz08_income_sleep_${suffix}`;
+    const incomeEntryNotes = `biz08-income-race-${suffix}`;
+    let incomeWritePromise:
+      ReturnType<IncomeManualEntriesService['create']> | undefined;
+    let incomeClosePromise:
+      ReturnType<IncomeBooksService['lockBook']> | undefined;
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${incomeFunctionName}"() RETURNS trigger
+        LANGUAGE plpgsql AS $function$
+        BEGIN
+          IF NEW."notes" = '${incomeEntryNotes}' THEN
+            PERFORM pg_sleep(1.5);
+          END IF;
+          RETURN NEW;
+        END;
+        $function$
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${incomeTriggerName}"
+        BEFORE INSERT ON "income_book_manual_entries"
+        FOR EACH ROW EXECUTE FUNCTION "${incomeFunctionName}"()
+      `);
+
+      incomeWritePromise = manualEntries.create(
+        incomeBook.id,
+        {
+          date: manualDate,
+          serviceId,
+          paidAmount: 25,
+          notes: incomeEntryNotes,
+        },
+        ownerId,
+      );
+      void incomeWritePromise.catch(() => undefined);
+
+      const waitDeadline = Date.now() + 5000;
+      let insertIsPaused = false;
+      while (Date.now() < waitDeadline && !insertIsPaused) {
+        const pausedQueries = await db.$queryRaw<Array<{ pid: number }>>(
+          Prisma.sql`SELECT pid FROM pg_stat_activity
+            WHERE datname = current_database()
+              AND pid <> pg_backend_pid()
+              AND wait_event = 'PgSleep'
+              AND query ILIKE '%income_book_manual_entries%'`,
+        );
+        insertIsPaused = pausedQueries.length > 0;
+        if (!insertIsPaused) {
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+      }
+      expect(insertIsPaused).toBe(true);
+
+      incomeClosePromise = incomeBooks.lockBook(incomeBook.id, ownerId);
+      void incomeClosePromise.catch(() => undefined);
+      expect(await waitForBookLockWait('income_books')).toBe(true);
+      const duringWrite = await db.incomeBook.findUnique({
+        where: { id: incomeBook.id },
+        select: { closedAt: true },
+      });
+      expect(duringWrite?.closedAt).toBeNull();
+
+      await incomeWritePromise;
+      await incomeClosePromise;
+      expect(
+        await db.incomeBookManualEntry.count({
+          where: { bookId: incomeBook.id, notes: incomeEntryNotes },
+        }),
+      ).toBe(1);
+      expect(
+        await db.incomeBookLockEvent.count({
+          where: { bookId: incomeBook.id, action: 'LOCK' },
+        }),
+      ).toBe(2);
+    } finally {
+      const pendingFinanceOperations: Promise<unknown>[] = [];
+      if (incomeWritePromise) pendingFinanceOperations.push(incomeWritePromise);
+      if (incomeClosePromise) pendingFinanceOperations.push(incomeClosePromise);
+      await Promise.allSettled(pendingFinanceOperations);
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${incomeTriggerName}" ON "income_book_manual_entries"`,
+      );
+      await db.$executeRawUnsafe(
+        `DROP FUNCTION IF EXISTS "${incomeFunctionName}"()`,
+      );
+    }
+
+    const functionName = `e2e_biz08_sleep_${suffix}`;
+    const triggerName = `e2e_biz08_sleep_${suffix}`;
+    const expenseTitle = `biz08-race-${suffix}`;
+    let writePromise: ReturnType<ExpensesService['create']> | undefined;
+    let closePromise: ReturnType<ExpenseBooksService['lockBook']> | undefined;
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${functionName}"() RETURNS trigger
+        LANGUAGE plpgsql AS $function$
+        BEGIN
+          IF NEW."title" = '${expenseTitle}' THEN
+            PERFORM pg_sleep(1.5);
+          END IF;
+          RETURN NEW;
+        END;
+        $function$
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE INSERT ON "expenses"
+        FOR EACH ROW EXECUTE FUNCTION "${functionName}"()
+      `);
+
+      writePromise = expenses.create(
+        {
+          bookId: expenseBook.id,
+          categoryId: category.id,
+          title: expenseTitle,
+          totalAmount: 10,
+        },
+        { sub: ownerId, roles: ['OWNER'] } as never,
+      );
+      void writePromise.catch(() => undefined);
+
+      const waitDeadline = Date.now() + 5000;
+      let insertIsPaused = false;
+      while (Date.now() < waitDeadline && !insertIsPaused) {
+        const pausedQueries = await db.$queryRaw<Array<{ pid: number }>>(
+          Prisma.sql`SELECT pid FROM pg_stat_activity
+            WHERE datname = current_database()
+              AND pid <> pg_backend_pid()
+              AND wait_event = 'PgSleep'
+              AND query ILIKE '%expenses%'`,
+        );
+        insertIsPaused = pausedQueries.length > 0;
+        if (!insertIsPaused) {
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+      }
+      expect(insertIsPaused).toBe(true);
+
+      closePromise = expenseBooks.lockBook(expenseBook.id, ownerId);
+      void closePromise.catch(() => undefined);
+      expect(await waitForBookLockWait('expense_books')).toBe(true);
+      const duringWrite = await db.expenseBook.findUnique({
+        where: { id: expenseBook.id },
+        select: { isClosed: true },
+      });
+      expect(duringWrite?.isClosed).toBe(false);
+
+      await writePromise;
+      await closePromise;
+      expect(
+        await db.expense.count({
+          where: { bookId: expenseBook.id, title: expenseTitle },
+        }),
+      ).toBe(1);
+      expect(
+        await db.expenseBookLockEvent.count({
+          where: { bookId: expenseBook.id, action: 'LOCK' },
+        }),
+      ).toBe(2);
+
+      await expect(
+        manualEntries.create(
+          incomeBook.id,
+          { date: manualDate, serviceId, paidAmount: 25 },
+          ownerId,
+        ),
+      ).rejects.toThrow();
+      expect(
+        await db.incomeBookManualEntry.count({
+          where: { bookId: incomeBook.id },
+        }),
+      ).toBe(1);
+
+      await expect(
+        expenses.create(
+          {
+            bookId: expenseBook.id,
+            categoryId: category.id,
+            title: `closed-book-${suffix}`,
+            totalAmount: 10,
+          },
+          { sub: ownerId, roles: ['OWNER'] } as never,
+        ),
+      ).rejects.toThrow();
+      expect(
+        await db.expense.count({
+          where: { bookId: expenseBook.id, title: `closed-book-${suffix}` },
+        }),
+      ).toBe(0);
+    } finally {
+      const pendingFinanceOperations: Promise<unknown>[] = [];
+      if (writePromise) pendingFinanceOperations.push(writePromise);
+      if (closePromise) pendingFinanceOperations.push(closePromise);
+      await Promise.allSettled(pendingFinanceOperations);
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "expenses"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+    }
   });
 
   it('uploads an owner avatar, persists public opt-in, and serves only the correct variants', async () => {

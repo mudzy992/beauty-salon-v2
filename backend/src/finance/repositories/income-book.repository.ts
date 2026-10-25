@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common'
-import type { Prisma } from '@prisma/client'
+import { Injectable, NotFoundException } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 
 export type PrismaTx = Prisma.TransactionClient
@@ -23,6 +23,13 @@ export class IncomeBookRepository {
 
   findById(id: string, tx?: PrismaTx) {
     return (tx ?? this.prisma).incomeBook.findUnique({ where: { id } })
+  }
+
+  async findByIdForUpdate(id: string, tx: PrismaTx) {
+    await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM "income_books" WHERE id = ${id} FOR UPDATE`,
+    )
+    return this.findById(id, tx)
   }
 
   findByPeriod(year: number, month: number, tx?: PrismaTx) {
@@ -102,7 +109,7 @@ export class IncomeBookRepository {
     })
   }
 
-  setLockState(
+  async setLockState(
     id: string,
     params: {
       closedAt: Date | null
@@ -111,20 +118,35 @@ export class IncomeBookRepository {
       /** Izostavljen kod automatskog zaključavanja iz CRON-a. */
       createdById?: string
     },
-    tx?: PrismaTx,
+    options: { ignoreIfAlreadyTarget?: boolean } = {},
   ) {
-    return (tx ?? this.prisma).incomeBook.update({
-      where: { id },
-      data: {
-        closedAt: params.closedAt,
-        lockEvents: {
-          create: {
-            action: params.action,
-            reason: params.reason,
-            createdById: params.createdById,
-          },
+    return this.prisma.$transaction(async (tx) => {
+      const changed = await tx.incomeBook.updateMany({
+        where: {
+          id,
+          closedAt: params.closedAt === null ? { not: null } : null,
         },
-      },
+        data: { closedAt: params.closedAt },
+      })
+
+      if (changed.count !== 1) {
+        const current = await tx.incomeBook.findUnique({ where: { id } })
+        if (!current) {
+          throw new NotFoundException('Knjiga prihoda nije pronađena.')
+        }
+        if (options.ignoreIfAlreadyTarget) return current
+        return null
+      }
+
+      await tx.incomeBookLockEvent.create({
+        data: {
+          bookId: id,
+          action: params.action,
+          reason: params.reason,
+          createdById: params.createdById,
+        },
+      })
+      return tx.incomeBook.findUnique({ where: { id } })
     })
   }
 

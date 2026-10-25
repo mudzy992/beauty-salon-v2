@@ -11,7 +11,10 @@ import {
   type PrismaTx,
 } from './repositories/income-book.repository'
 import { getServiceAmount } from '../daily-log/daily-log.amounts'
-import { getPeriodOfDate } from '../common/utils/book-period'
+import {
+  assertValidPeriod,
+  getPeriodOfDate,
+} from '../common/utils/book-period'
 
 @Injectable()
 export class IncomeSyncService {
@@ -29,6 +32,82 @@ export class IncomeSyncService {
       throw new BadRequestException('Mjesec je zaključan u KIF-u.')
     }
     return book
+  }
+
+  assertBookOpenById(bookId: string, tx?: PrismaTx) {
+    return this.books.getEditableBookOrThrow(
+      bookId,
+      'izmjena stavki u KIF-u',
+      tx,
+    )
+  }
+
+  /** Resolves the target before acquiring existing-book locks in stable ID order. */
+  async assertBooksOpenForDateAndIds(
+    date: Date,
+    relatedBookIds: string[],
+    tx: PrismaTx,
+  ) {
+    const { year, month } = getPeriodOfDate(date)
+    const targetBookId = await this.getOrCreateBookIdForPeriod(year, month, tx)
+    const lockedBooks = await this.lockBooksInOrder(
+      [targetBookId, ...relatedBookIds],
+      tx,
+    )
+    const targetBook = lockedBooks.get(targetBookId)
+    if (!targetBook) {
+      throw new NotFoundException('Knjiga prihoda nije pronađena.')
+    }
+    return targetBook
+  }
+
+  /** Resolves all affected periods, then checks and locks every book in stable ID order. */
+  async assertBooksOpenForDatesAndIds(
+    dates: Date[],
+    relatedBookIds: string[],
+    tx?: PrismaTx,
+  ) {
+    const periods = new Map<string, { year: number; month: number }>()
+    for (const date of dates) {
+      const period = getPeriodOfDate(date)
+      periods.set(`${period.year}-${period.month}`, period)
+    }
+
+    const targetBookIds: string[] = []
+    const orderedPeriods = [...periods.values()].sort(
+      (a, b) => a.year - b.year || a.month - b.month,
+    )
+    for (const { year, month } of orderedPeriods) {
+      targetBookIds.push(await this.getOrCreateBookIdForPeriod(year, month, tx))
+    }
+
+    await this.lockBooksInOrder([...targetBookIds, ...relatedBookIds], tx)
+  }
+
+  private async getOrCreateBookIdForPeriod(
+    year: number,
+    month: number,
+    tx?: PrismaTx,
+  ) {
+    assertValidPeriod(year, month)
+    const db = tx ?? this.prisma
+    const existing = await db.incomeBook.findUnique({
+      where: { year_month: { year, month } },
+      select: { id: true },
+    })
+    if (existing) return existing.id
+    return (await this.books.getOrCreateForMonth(year, month, tx)).id
+  }
+
+  private async lockBooksInOrder(bookIds: string[], tx?: PrismaTx) {
+    const lockedBooks = new Map<
+      string,
+      Awaited<ReturnType<IncomeBooksService['getEditableBookOrThrow']>>
+    >()
+    for (const bookId of [...new Set(bookIds)].sort()) {
+      lockedBooks.set(bookId, await this.assertBookOpenById(bookId, tx))
+    }
+    return lockedBooks
   }
 
   recalculateTotals(bookId: string, tx?: PrismaTx) {

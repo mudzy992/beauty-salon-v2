@@ -31,11 +31,15 @@ export class IncomeBooksService {
       previous.month,
     )
     if (previousBook && !previousBook.closedAt) {
-      await this.repository.setLockState(previousBook.id, {
-        closedAt: new Date(),
-        action: 'LOCK',
-        reason: 'Automatsko zaključavanje na kraju mjeseca.',
-      })
+      await this.repository.setLockState(
+        previousBook.id,
+        {
+          closedAt: new Date(),
+          action: 'LOCK',
+          reason: 'Automatsko zaključavanje na kraju mjeseca.',
+        },
+        { ignoreIfAlreadyTarget: true },
+      )
     }
 
     let currentBook = await this.repository.findByPeriod(
@@ -59,7 +63,13 @@ export class IncomeBooksService {
         'Ne možete kreirati knjigu za budući mjesec.',
       )
     }
-    return this.repository.upsertForPeriod(year, month, tx)
+    const book = await this.repository.upsertForPeriod(year, month, tx)
+    if (!tx) return book
+    const lockedBook = await this.repository.findByIdForUpdate(book.id, tx)
+    if (!lockedBook) {
+      throw new NotFoundException('Knjiga prihoda nije pronađena.')
+    }
+    return lockedBook
   }
 
   findAll() {
@@ -80,8 +90,11 @@ export class IncomeBooksService {
   }
 
   /** Knjiga mora biti otvorena i ne u budućnosti da bi se stavke mijenjale. */
-  async getEditableBookOrThrow(id: string, action: string) {
-    const book = await this.getBookOrThrow(id)
+  async getEditableBookOrThrow(id: string, action: string, tx?: PrismaTx) {
+    const book = tx
+      ? await this.repository.findByIdForUpdate(id, tx)
+      : await this.getBookOrThrow(id)
+    if (!book) throw new NotFoundException('Knjiga prihoda nije pronađena.')
     if (book.closedAt) {
       throw new BadRequestException(
         `Knjiga je zaključana – ${action} nije moguće.`,
@@ -112,23 +125,27 @@ export class IncomeBooksService {
         'Otključavanje je dozvoljeno samo za knjige iz prošlosti.',
       )
     }
-    return this.repository.setLockState(id, {
+    const unlocked = await this.repository.setLockState(id, {
       closedAt: null,
       action: 'UNLOCK',
       reason: trimmedReason,
       createdById: userId,
     })
+    if (!unlocked) {
+      throw new BadRequestException('Knjiga je već otključana.')
+    }
+    return unlocked
   }
 
   async lockBook(id: string, userId: string) {
-    const book = await this.getBookOrThrow(id)
-    if (book.closedAt) {
-      throw new BadRequestException('Knjiga je već zaključana.')
-    }
-    return this.repository.setLockState(id, {
+    const locked = await this.repository.setLockState(id, {
       closedAt: new Date(),
       action: 'LOCK',
       createdById: userId,
     })
+    if (!locked) {
+      throw new BadRequestException('Knjiga je već zaključana.')
+    }
+    return locked
   }
 }
