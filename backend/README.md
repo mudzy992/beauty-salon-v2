@@ -35,7 +35,7 @@ npm run db:migrate:deploy
 npm run db:seed              # only against an explicitly chosen local/test DB
 ```
 
-`npm run test:e2e` currently points to `test/jest-e2e.json`, which is not present; see the test workflow before treating it as available. Prisma engine download was unavailable in the audit sandbox due to a TLS failure, so local/CI generation, backend build and runtime integration require separate verification.
+`npm run test:e2e` uses `test/jest-e2e.json` and discovers the `test/**/*.e2e-spec.ts` contracts. The DB-backed suites require `E2E_DATABASE_URL` for a disposable local PostgreSQL database whose name contains `test`, `e2e`, or `ci`; they refuse non-local hosts and other database names. CI provisions its own disposable PostgreSQL service. Never point these tests at production/shared data. Prisma engine download remains unavailable in this local sandbox because of a TLS failure; CI performs Prisma generation, backend build, and DB-backed E2E validation against disposable PostgreSQL.
 
 ## Database notes
 

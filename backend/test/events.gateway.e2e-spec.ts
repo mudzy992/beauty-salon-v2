@@ -1,0 +1,238 @@
+import { randomUUID } from 'node:crypto';
+import type { Server as HttpServer } from 'node:http';
+import type { INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtModule, JwtService } from '@nestjs/jwt';
+import { Test } from '@nestjs/testing';
+import { io, type Socket } from 'socket.io-client';
+import { EventsGateway } from '../src/events/events.gateway';
+import { SOCKET_EVENTS } from '../src/events/socket-events';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { UsersRepository } from '../src/users/users.repository';
+import { UsersService } from '../src/users/users.service';
+
+const TEST_JWT_SECRET = 'db-backed-socket-tests-only-secret';
+const LOCAL_TEST_DATABASE_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '::1',
+  '[::1]',
+]);
+const TEST_DATABASE_NAME_PATTERN = /(?:^|[_-])(test|e2e|ci)(?:$|[_-])/i;
+const EVENT_TIMEOUT_MS = 3_000;
+const EVENT_ABSENCE_WINDOW_MS = 500;
+
+const getDisposableDatabaseUrl = (): string => {
+  const url = process.env.E2E_DATABASE_URL;
+  if (!url) {
+    throw new Error(
+      'E2E_DATABASE_URL is required; use a disposable local PostgreSQL database named with test, e2e, or ci.',
+    );
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error('E2E_DATABASE_URL is not a valid PostgreSQL URL.');
+  }
+
+  const databaseName = decodeURIComponent(parsed.pathname.replace(/^\/+/, ''));
+  if (
+    !['postgres:', 'postgresql:'].includes(parsed.protocol) ||
+    !LOCAL_TEST_DATABASE_HOSTS.has(parsed.hostname) ||
+    !TEST_DATABASE_NAME_PATTERN.test(databaseName)
+  ) {
+    throw new Error(
+      'Refusing E2E_DATABASE_URL: tests require a local PostgreSQL database whose name contains a test, e2e, or ci segment.',
+    );
+  }
+
+  return url;
+};
+
+describe('DB-backed Socket.IO role revocation', () => {
+  let app: INestApplication | undefined;
+  let prisma: PrismaService | undefined;
+  let gateway: EventsGateway;
+  let users: UsersService;
+  let jwtService: JwtService;
+  let url: string;
+  let userId: string | undefined;
+  const clients: Socket[] = [];
+
+  const connectWithToken = async (token: string): Promise<Socket> => {
+    const socket = io(url, {
+      auth: { token },
+      transports: ['websocket'],
+      reconnection: false,
+      timeout: EVENT_TIMEOUT_MS,
+    });
+    clients.push(socket);
+
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(
+        () => reject(new Error('Timed out waiting for Socket.IO connection')),
+        EVENT_TIMEOUT_MS,
+      );
+      socket.once('connect', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+      socket.once('connect_error', (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
+    });
+
+    return socket;
+  };
+
+  const waitForDisconnect = (socket: Socket): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const timeout = setTimeout(
+        () => reject(new Error('Timed out waiting for socket disconnect')),
+        EVENT_TIMEOUT_MS,
+      );
+      socket.once('disconnect', (reason) => {
+        clearTimeout(timeout);
+        resolve(reason);
+      });
+    });
+
+  const hasNotReceivedEvent = (
+    socket: Socket,
+    event: string,
+  ): Promise<boolean> =>
+    new Promise((resolve) => {
+      const onEvent = () => {
+        clearTimeout(timeout);
+        resolve(false);
+      };
+      const timeout = setTimeout(() => {
+        socket.off(event, onEvent);
+        resolve(true);
+      }, EVENT_ABSENCE_WINDOW_MS);
+      socket.once(event, onEvent);
+    });
+
+  const roomMemberIds = async (room: string): Promise<string[]> =>
+    (await gateway.server.in(room).fetchSockets())
+      .map((socket) => socket.id)
+      .sort();
+
+  const waitForRoomMembers = async (
+    room: string,
+    expectedIds: string[],
+  ): Promise<void> => {
+    const expected = [...expectedIds].sort();
+    const deadline = Date.now() + EVENT_TIMEOUT_MS;
+
+    while (Date.now() < deadline) {
+      if (
+        JSON.stringify(await roomMemberIds(room)) === JSON.stringify(expected)
+      ) {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+
+    throw new Error(`Unexpected members in Socket.IO room ${room}`);
+  };
+
+  beforeAll(async () => {
+    const databaseUrl = getDisposableDatabaseUrl();
+    const configValues: Record<string, string> = {
+      DATABASE_URL: databaseUrl,
+      DATABASE_PROVIDER: 'postgres',
+      JWT_SECRET: TEST_JWT_SECRET,
+    };
+    const configService = {
+      get: (key: string, defaultValue?: string) =>
+        configValues[key] ?? defaultValue,
+    };
+    const moduleRef = await Test.createTestingModule({
+      imports: [JwtModule.register({ secret: TEST_JWT_SECRET })],
+      providers: [
+        EventsGateway,
+        PrismaService,
+        UsersRepository,
+        UsersService,
+        { provide: ConfigService, useValue: configService },
+      ],
+    }).compile();
+
+    app = moduleRef.createNestApplication();
+    await app.listen(0, '127.0.0.1');
+    prisma = app.get(PrismaService);
+    gateway = app.get(EventsGateway);
+    users = app.get(UsersService);
+    jwtService = app.get(JwtService);
+
+    const server = app.getHttpServer() as HttpServer;
+    const address = server.address();
+    if (!address || typeof address === 'string') {
+      throw new Error('Expected a TCP address for the Socket.IO test server');
+    }
+    url = `http://127.0.0.1:${address.port}`;
+
+    const role = await prisma.role.upsert({
+      where: { name: 'SYSTEM_ADMIN' },
+      update: {},
+      create: { name: 'SYSTEM_ADMIN' },
+    });
+    const suffix = randomUUID().replaceAll('-', '');
+    const user = await prisma.user.create({
+      data: {
+        username: `socket-e2e-${suffix}`,
+        firstName: 'Socket',
+        lastName: 'E2E',
+      },
+    });
+    userId = user.id;
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: role.id },
+    });
+  });
+
+  afterAll(async () => {
+    for (const client of clients) client.disconnect();
+    try {
+      if (prisma && userId) {
+        await prisma.userRole.deleteMany({ where: { userId } });
+        await prisma.user.deleteMany({ where: { id: userId } });
+      }
+    } finally {
+      await app?.close();
+    }
+  });
+
+  it('disconnects the removed admin session and rechecks the current DB role on reconnect', async () => {
+    if (!userId) throw new Error('Socket test user fixture was not created');
+    const token = jwtService.sign(
+      { sub: userId, roles: ['CLIENT'] },
+      { expiresIn: '1h' },
+    );
+    const firstSession = await connectWithToken(token);
+    await waitForRoomMembers(`user:${userId}`, [firstSession.id]);
+    await waitForRoomMembers('admin', [firstSession.id]);
+
+    const disconnect = waitForDisconnect(firstSession);
+    await users.removeRole(userId, 'SYSTEM_ADMIN', ['OWNER']);
+    await expect(disconnect).resolves.toBe('io server disconnect');
+    await waitForRoomMembers('admin', []);
+
+    const reconnectedSession = await connectWithToken(token);
+    await waitForRoomMembers(`user:${userId}`, [reconnectedSession.id]);
+    await waitForRoomMembers('admin', []);
+
+    const privateEventAbsence = hasNotReceivedEvent(
+      reconnectedSession,
+      SOCKET_EVENTS.SETTINGS_UPDATED,
+    );
+    gateway.emitToAdmins(SOCKET_EVENTS.SETTINGS_UPDATED, {
+      key: 'private_setting',
+    });
+    await expect(privateEventAbsence).resolves.toBe(true);
+  });
+});
