@@ -1,3 +1,5 @@
+import { toDateOnlyString } from '../../common/utils/date-only';
+
 export const PUSH_BODY_MAX = 220;
 
 export type ReservationPushContext = {
@@ -25,7 +27,7 @@ export const formatPushDate = (value: string | Date): string => {
   const raw =
     typeof value === 'string'
       ? value.slice(0, 10)
-      : value.toISOString().slice(0, 10);
+      : toDateOnlyString(value);
   const [y, m, d] = raw.split('-');
   if (!y || !m || !d) return raw;
   return `${d}.${m}.${y}.`;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import api from '../../services/api';
+import { getSalonDateOnly } from '../../utils/date';
 import { fetchAllPublicServices } from '../../services/catalog';
 import {
   clientLabel,
@@ -14,7 +15,7 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
   const [clientSearch, setClientSearch] = useState('');
   const [selectedClient, setSelectedClient] = useState<DirectBookingClient | null>(null);
   const [serviceIds, setServiceIds] = useState<string[]>([]);
-  const [reservationDate, setReservationDate] = useState(new Date().toISOString().slice(0, 10));
+  const [reservationDate, setReservationDate] = useState(() => getSalonDateOnly());
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [clientNotes, setClientNotes] = useState('');

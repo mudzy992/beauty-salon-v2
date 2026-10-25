@@ -5,6 +5,11 @@ import { AvailabilityDatesService } from './availability-dates.service';
 import { AvailabilitySlotsService } from './availability-slots.service';
 import { AvailabilityDebugService } from './availability-debug.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReservationDateService } from './reservation-date.service';
+import {
+  toDateOnlyStringInTimeZone,
+  toTimeOnlyStringInTimeZone,
+} from '../common/utils/date-only';
 
 jest.mock('../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -34,6 +39,15 @@ describe('AvailabilityService', () => {
         AvailabilitySlotsService,
         AvailabilityDebugService,
         { provide: PrismaService, useValue: mockPrisma },
+        {
+          provide: ReservationDateService,
+          useValue: {
+            toSalonDateOnlyString: (value: Date) =>
+              toDateOnlyStringInTimeZone(value),
+            toSalonTimeString: (value: Date) =>
+              toTimeOnlyStringInTimeZone(value),
+          },
+        },
       ],
     }).compile();
     service = module.get<AvailabilityService>(AvailabilityService);
@@ -44,7 +58,7 @@ describe('AvailabilityService', () => {
 
   it('odbija neispravan fromDate prije poziva baze', async () => {
     await expect(
-      service.getAvailableDates('svc-1', new Date('not-a-date')),
+      service.getAvailableDates('svc-1', 'not-a-date'),
     ).rejects.toThrow(BadRequestException);
     expect(mockPrisma.salonSettings.findFirst).not.toHaveBeenCalled();
   });
@@ -53,8 +67,8 @@ describe('AvailabilityService', () => {
     await expect(
       service.getAvailableDates(
         'svc-1',
-        new Date('2026-01-01T12:00:00.000Z'),
-        new Date('not-a-date'),
+        '2026-01-01',
+        'not-a-date',
       ),
     ).rejects.toThrow(BadRequestException);
     expect(mockPrisma.salonSettings.findFirst).not.toHaveBeenCalled();
@@ -64,8 +78,8 @@ describe('AvailabilityService', () => {
     await expect(
       service.getAvailableDates(
         'svc-1',
-        new Date('2026-01-02T12:00:00.000Z'),
-        new Date('2026-01-01T12:00:00.000Z'),
+        '2026-01-02',
+        '2026-01-01',
       ),
     ).rejects.toThrow(BadRequestException);
     expect(mockPrisma.salonSettings.findFirst).not.toHaveBeenCalled();
@@ -75,8 +89,8 @@ describe('AvailabilityService', () => {
     await expect(
       service.getAvailableDates(
         'svc-1',
-        new Date('2026-01-01T12:00:00.000Z'),
-        new Date('2026-04-01T12:00:00.000Z'),
+        '2026-01-01',
+        '2026-04-01',
       ),
     ).rejects.toThrow(BadRequestException);
     expect(mockPrisma.salonSettings.findFirst).not.toHaveBeenCalled();
@@ -91,8 +105,8 @@ describe('AvailabilityService', () => {
 
     const result = await service.getAvailableDates(
       'svc-1',
-      new Date('2026-03-15'),
-      new Date('2026-03-15'),
+      '2026-03-15',
+      '2026-03-15',
     );
 
     expect(result).toHaveLength(1);
@@ -103,8 +117,8 @@ describe('AvailabilityService', () => {
     await expect(
       service.getAvailableDates(
         'svc-1',
-        new Date('0001-01-01T12:00:00.000Z'),
-        new Date('1901-01-01T12:00:00.000Z'),
+        '0001-01-01',
+        '1901-01-01',
       ),
     ).rejects.toThrow(BadRequestException);
     expect(mockPrisma.salonSettings.findFirst).not.toHaveBeenCalled();
@@ -119,8 +133,8 @@ describe('AvailabilityService', () => {
 
     const result = await service.getAvailableDates(
       'svc-1',
-      new Date('2026-01-01T12:00:00.000Z'),
-      new Date('2026-03-31T12:00:00.000Z'),
+      '2026-01-01',
+      '2026-03-31',
     );
 
     expect(result.length).toBeGreaterThan(0);
@@ -174,8 +188,8 @@ describe('AvailabilityService', () => {
     try {
       const result = await service.getAvailableDates(
         'svc-1',
-        new Date('2026-01-01T12:00:00.000Z'),
-        new Date('2026-01-12T12:00:00.000Z'),
+        '2026-01-01',
+        '2026-01-12',
       );
 
       expect(result).toHaveLength(12);
@@ -191,10 +205,10 @@ describe('AvailabilityService', () => {
   it('getAvailableDates baca NotFoundException kada nema salona', async () => {
     mockPrisma.salonSettings.findFirst.mockResolvedValue(null);
     await expect(
-      service.getAvailableDates('svc-1', new Date('2026-03-15')),
+      service.getAvailableDates('svc-1', '2026-03-15'),
     ).rejects.toThrow(NotFoundException);
     await expect(
-      service.getAvailableDates('svc-1', new Date('2026-03-15')),
+      service.getAvailableDates('svc-1', '2026-03-15'),
     ).rejects.toThrow('Salon nije konfigurisan');
   });
 
@@ -202,7 +216,7 @@ describe('AvailabilityService', () => {
     mockPrisma.salonSettings.findFirst.mockResolvedValue({ id: 'salon-1' });
     mockPrisma.service.findMany.mockResolvedValue([]);
     await expect(
-      service.getAvailableDates('svc-1', new Date('2026-03-15')),
+      service.getAvailableDates('svc-1', '2026-03-15'),
     ).rejects.toThrow(NotFoundException);
     expect(mockPrisma.service.findMany).toHaveBeenCalledWith({
       where: {
@@ -224,7 +238,7 @@ describe('AvailabilityService', () => {
     mockPrisma.stylistService.findMany.mockResolvedValue([]);
     const result = await service.getAvailableDates(
       'svc-1',
-      new Date('2026-03-15'),
+      '2026-03-15',
     );
     expect(Array.isArray(result)).toBe(true);
     expect(result.length).toBeGreaterThan(0);
@@ -412,8 +426,8 @@ describe('AvailabilityService', () => {
       .mockResolvedValue([]);
     const result = await service.getAvailableDates(
       'svc-1',
-      new Date('2026-03-16T12:00:00.000Z'),
-      new Date('2026-03-16T12:00:00.000Z'),
+      '2026-03-16',
+      '2026-03-16',
     );
     expect(slotsSpy).toHaveBeenCalled();
     expect(result).toEqual([{ date: expect.any(String), available: false }]);

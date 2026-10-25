@@ -37,6 +37,7 @@ import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import type { HomeScreenProps } from '../../navigation/types';
 import type { Service, BlogPost, ServiceCategory, Reservation, ReservationStatus } from '../../types';
+import { formatDateOnlyLocale, formatInstantDateLocale, isUpcoming } from '../../utils/date';
 
 interface BeforeAfterPair {
   id: string;
@@ -93,7 +94,7 @@ function getSettingValue(settings: PublicSetting[] | null | undefined, key: stri
 
 function formatBlogDate(value?: string | null): string {
   if (!value) return '';
-  return new Date(value).toLocaleDateString('bs-BA', {
+  return formatInstantDateLocale(value, 'bs-BA', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -101,16 +102,20 @@ function formatBlogDate(value?: string | null): string {
 }
 
 function formatReservationDate(dateStr: string, timeStr: string): string {
-    if (!dateStr) return '';
-    const cleanDateStr = dateStr.includes('T') ? dateStr.slice(0, 10) : dateStr;
-    const date = new Date(`${cleanDateStr}T${timeStr}`);
-    if (isNaN(date.getTime())) return `${cleanDateStr} u ${timeStr}`;
-    const datePart = date.toLocaleDateString('bs-BA', { weekday: 'long', day: 'numeric', month: 'long' });
-    const timePart = date.toLocaleTimeString('bs-BA', { hour: '2-digit', minute: '2-digit' });
+  if (!dateStr) return '';
+  const cleanDateStr = dateStr.includes('T') ? dateStr.slice(0, 10) : dateStr;
+  try {
+    const datePart = formatDateOnlyLocale(cleanDateStr, 'bs-BA', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
     const formattedDate = datePart.charAt(0).toUpperCase() + datePart.slice(1);
-    return `${formattedDate} u ${timePart}`;
+    return `${formattedDate} u ${timeStr.slice(0, 5)}`;
+  } catch {
+    return `${cleanDateStr} u ${timeStr.slice(0, 5)}`;
   }
-
+}
 
 function getStatusLabel(status: ReservationStatus): string {
   const map: Partial<Record<ReservationStatus, string>> = {
@@ -279,18 +284,11 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
       .then(({ data }) => {
         if (cancelled) return;
 
-        const today = new Date().toISOString().slice(0, 10);
         const arr = Array.isArray(data) ? data : (data as any)?.data ?? [];
-
         const next = arr.find(
-          (r: any) => {
-            // Uzimamo samo prvih 10 znakova datuma (YYYY-MM-DD) za ispravnu usporedbu
-            const cleanDateStr = r.reservationDate?.includes('T')
-              ? r.reservationDate.slice(0, 10)
-              : r.reservationDate;
-
-            return ACTIVE_STATUSES.includes(r.status) && cleanDateStr >= today;
-          }
+          (r: any) =>
+            ACTIVE_STATUSES.includes(r.status) &&
+            isUpcoming(r.reservationDate, r.endTime),
         ) ?? null;
 
         setUpcomingReservation(next);

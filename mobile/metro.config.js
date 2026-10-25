@@ -14,6 +14,7 @@ const useExpoGoShims =
 // 2. Definiranje putanja do paketa
 const reanimatedPkg = path.resolve(projectRoot, 'node_modules/react-native-reanimated');
 const workletsPkg = path.resolve(projectRoot, 'node_modules/react-native-worklets');
+const sharedSource = path.resolve(projectRoot, '../shared');
 
 // Spremanje originalnog resolvera za lančano pozivanje
 const originalResolveRequest = config.resolver.resolveRequest;
@@ -59,7 +60,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 };
 
 // 3. Konfiguracija za izbjegavanje SHA-1 greške (dodavanje u watchFolders)
-config.watchFolders = [projectRoot, reanimatedPkg, workletsPkg];
+config.watchFolders = [projectRoot, sharedSource, reanimatedPkg, workletsPkg];
 
 // 4. Integracija s NativeWind (v5)
 module.exports = withNativewind(config);

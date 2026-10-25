@@ -114,8 +114,8 @@ export class ReservationsController {
       .filter(Boolean);
     return this.availability.getAvailableDates(
       ids.length > 0 ? ids : (serviceId ?? ''),
-      new Date(fromDate),
-      toDate ? new Date(toDate) : undefined,
+      fromDate,
+      toDate,
     );
   }
 

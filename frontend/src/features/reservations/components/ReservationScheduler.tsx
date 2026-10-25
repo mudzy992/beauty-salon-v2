@@ -34,6 +34,13 @@ import {
   getReservationStatusColor,
   getReservationStatusLabel,
 } from '../status'
+import {
+  addDateOnlyDays,
+  addDateOnlyMonths,
+  getDateOnlyFromLocalCalendarDate,
+  getSalonDateOnly,
+  parseDateOnly,
+} from '../../../../../shared/business-date.mjs'
 
 type SchedulerEvent = {
   id: string
@@ -104,8 +111,14 @@ type Props = {
 
 const DragAndDropCalendar = withDragAndDrop(BigCalendar as any) as any
 
-const toYmd = (d: Date): string => format(d, 'yyyy-MM-dd')
+const toYmd = (date: Date): string =>
+  getDateOnlyFromLocalCalendarDate(date)
 const toHm = (d: Date): string => format(d, 'HH:mm')
+
+const toLocalCalendarDate = (dateOnly: string): Date => {
+  const { year, month, day } = parseDateOnly(dateOnly)
+  return new Date(year, month - 1, day, 12, 0, 0, 0)
+}
 
 const combineLocal = (dateStr: string, timeStr: string): Date => {
   const [yyyy, mm, dd] = dateStr.split('-').map((x) => Number(x))
@@ -451,21 +464,17 @@ export const ReservationScheduler = (props: Props) => {
     return { style: { ...base, borderLeftColor: '#64748B', backgroundColor: '#F1F5F9', color: '#0F172A' } }
   }
 
-  const handlePrev = () => {
-    const d = new Date(props.date)
-    if (view === Views.MONTH) d.setMonth(d.getMonth() - 1)
-    else if (view === Views.DAY) d.setDate(d.getDate() - 1)
-    else d.setDate(d.getDate() - 7)
-    props.onDateChange(d)
+  const shiftDate = (direction: -1 | 1) => {
+    const current = toYmd(props.date)
+    const dateOnly =
+      view === Views.MONTH
+        ? addDateOnlyMonths(current, direction)
+        : addDateOnlyDays(current, direction * (view === Views.DAY ? 1 : 7))
+    props.onDateChange(toLocalCalendarDate(dateOnly))
   }
 
-  const handleNext = () => {
-    const d = new Date(props.date)
-    if (view === Views.MONTH) d.setMonth(d.getMonth() + 1)
-    else if (view === Views.DAY) d.setDate(d.getDate() + 1)
-    else d.setDate(d.getDate() + 7)
-    props.onDateChange(d)
-  }
+  const handlePrev = () => shiftDate(-1)
+  const handleNext = () => shiftDate(1)
 
   return (
     <div className="bg-white dark:bg-slate-950">
@@ -485,7 +494,12 @@ export const ReservationScheduler = (props: Props) => {
               Novi termin
             </Button>
 
-            <Button type="button" variant="outline" size="sm" onClick={() => props.onDateChange(new Date())}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => props.onDateChange(toLocalCalendarDate(getSalonDateOnly()))}
+            >
               {messages.today}
             </Button>
             <Button type="button" variant="outline" size="icon" className="h-9 w-9" aria-label="Prethodni" onClick={handlePrev}>

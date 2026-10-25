@@ -8,6 +8,9 @@ import { RESERVATION_STATUS } from './constants';
 import { timeToMinutes } from './utils/time-slot.utils';
 import { ReservationsService } from './reservations.service';
 import { ReservationAppointmentReminderService } from './reservation-appointment-reminder.service';
+import { ReservationDateService } from './reservation-date.service';
+import { DEFAULT_SALON_TIMEZONE } from '../common/utils/zoned-time';
+import { getDateOnlyDayBounds } from '../common/utils/date-only';
 
 @Injectable()
 export class ReservationDelayCron {
@@ -16,13 +19,14 @@ export class ReservationDelayCron {
     private readonly notifications: NotificationsService,
     private readonly reservations: ReservationsService,
     private readonly appointmentReminders: ReservationAppointmentReminderService,
+    private readonly dates: ReservationDateService,
   ) {}
 
   /**
    * Svake minute provjerava IN_PROGRESS rezervacije i,
    * kad probiju prag (pauseBetweenServices/2), obavijesti buduće klijente tog dana (jednom).
    */
-  @Cron('*/1 * * * *')
+  @Cron('*/1 * * * *', { timeZone: DEFAULT_SALON_TIMEZONE })
   async tick() {
     // 1) Timeout za pending potvrde nakon rekalkulacije/reorder zahtjeva
     await this.reservations.processPendingRescheduleTimeouts();
@@ -43,14 +47,15 @@ export class ReservationDelayCron {
     if (threshold <= 0) return;
 
     const now = new Date();
-    const today = new Date(now);
-    today.setHours(0, 0, 0, 0);
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const { gte: todayStart, lt: tomorrowStart } = getDateOnlyDayBounds(
+      this.dates.toSalonDateOnlyString(now),
+    );
+    const nowMinutes = timeToMinutes(this.dates.toSalonTimeString(now));
 
     const running = await this.prisma.reservation.findMany({
       where: {
         status: RESERVATION_STATUS.IN_PROGRESS,
-        reservationDate: { gte: today, lte: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1) },
+        reservationDate: { gte: todayStart, lt: tomorrowStart },
         delayNotifiedAt: null,
         confirmedStylistId: { not: null },
       },
@@ -84,7 +89,7 @@ export class ReservationDelayCron {
       const future = await this.prisma.reservation.findMany({
         where: {
           confirmedStylistId: r.confirmedStylistId!,
-          reservationDate: { gte: today, lte: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1) },
+          reservationDate: { gte: todayStart, lt: tomorrowStart },
           startTime: { gt: r.startTime },
           status: { in: [RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.ATTENDANCE_CONFIRMED] as any },
         },

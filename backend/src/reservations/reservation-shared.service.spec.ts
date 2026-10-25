@@ -31,7 +31,15 @@ describe('ReservationSharedService', () => {
       providers: [
         ReservationSharedService,
         { provide: PrismaService, useValue: prisma },
-        { provide: ReservationDateService, useValue: {} },
+        {
+          provide: ReservationDateService,
+          useValue: {
+            addSalonCalendarDays: jest.fn(
+              (date: Date, days: number) =>
+                new Date(date.getTime() + days * 24 * 60 * 60 * 1000),
+            ),
+          },
+        },
       ],
     }).compile();
     service = module.get(ReservationSharedService);

@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, Pencil, Trash2 } from 'lucide-react'
 import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
 import { EmptyState } from '../components/data-state'
-import { formatIsoDateBs, formatMoney } from '../finance.utils'
+import { formatDateOnlyBs, formatMoney } from '../finance.utils'
 import {
   resolveIncomeServiceNames,
   type IncomeSortField,
@@ -106,7 +106,7 @@ export function IncomeEntriesTable({
               className="border-b border-slate-100 last:border-0 dark:border-slate-900"
             >
               <td className="py-2 pr-3 whitespace-nowrap">
-                {formatIsoDateBs(row.date)}
+                {formatDateOnlyBs(row.date)}
               </td>
               <td className="py-2 pr-3 align-top" title={row.serviceName}>
                 {serviceNames.length === 0 ? (

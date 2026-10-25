@@ -9,6 +9,11 @@ import {
   MAX_ANALYTICS_RANGE_MONTHS,
   resolveAnalyticsDateRange,
 } from '../common/analytics-date-range';
+import {
+  parseDateOnlyString,
+  toDateOnlyString,
+  toDateOnlyStringInTimeZone,
+} from '../common/utils/date-only';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface MonthlyFinance {
@@ -77,8 +82,7 @@ const makeUtcDate = (year: number, month: number, day: number): Date => {
   return date;
 };
 
-const formatUtcDateOnly = (date: Date): string =>
-  date.toISOString().slice(0, 10);
+const formatUtcDateOnly = (date: Date): string => toDateOnlyString(date);
 
 const iterateAnalyticsMonths = (
   fromDate: string,
@@ -152,11 +156,7 @@ function resolveDateRange(params: AnalyticsDashboardParams): {
       );
     }
 
-    const today = makeUtcDate(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate(),
-    );
+    const today = parseDateOnlyString(toDateOnlyStringInTimeZone(now));
     const fromMonth = makeUtcDate(
       today.getUTCFullYear(),
       today.getUTCMonth(),
@@ -324,7 +324,7 @@ export class AnalyticsService {
 
   private async getStylistPerformance(dateBounds: {
     gte: Date;
-    lte: Date;
+    lt: Date;
   }): Promise<StylistPerformance[]> {
     const [entries, manualEntries] = await Promise.all([
       this.prisma.dailyLogEntry.findMany({
@@ -405,7 +405,7 @@ export class AnalyticsService {
 
   private async getTopServices(dateBounds: {
     gte: Date;
-    lte: Date;
+    lt: Date;
   }): Promise<TopServiceRow[]> {
     const [fromReservations, fromDailyLog, fromManualIncome] =
       await Promise.all([

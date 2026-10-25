@@ -5,6 +5,10 @@ import api from '../../api/client'
 import { MediaImage } from '../../components/media-image'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
+import {
+  formatDateOnlyLocale,
+  formatInstantDateLocale,
+} from '../../../../shared/business-date.mjs'
 
 interface ConsentItem {
   imageId: string
@@ -213,7 +217,7 @@ export function MediaConsentPanel() {
                       </p>
                       <p className="text-sm text-slate-600">
                         {item.serviceName} ·{' '}
-                        {new Date(item.serviceDate).toLocaleDateString('bs-BA')}
+                        {formatDateOnlyLocale(item.serviceDate.slice(0, 10), 'bs-BA')}
                       </p>
                     </div>
                     <label className="flex cursor-pointer items-start gap-2 text-sm leading-5 text-slate-700">
@@ -282,9 +286,9 @@ export function MediaConsentPanel() {
                       {labelFor(item)} · {item.serviceName}
                     </p>
                     <p className="text-sm text-slate-600">
-                      {new Date(item.serviceDate).toLocaleDateString('bs-BA')}
+                      {formatDateOnlyLocale(item.serviceDate.slice(0, 10), 'bs-BA')}
                       {item.consentedAt
-                        ? ` · saglasnost: ${new Date(item.consentedAt).toLocaleDateString('bs-BA')}`
+                        ? ` · saglasnost: ${formatInstantDateLocale(item.consentedAt, 'bs-BA')}`
                         : ''}
                     </p>
                     <p className="mt-1 flex items-center gap-1 text-xs text-emerald-800">

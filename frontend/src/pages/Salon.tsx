@@ -6,6 +6,10 @@ import api from '../api/client'
 import { getErrorMessage } from '../api/error'
 import { useSocketEvent } from '../context/SocketContext'
 import { useAppToast } from '../lib/toast/useAppToast'
+import {
+  formatDateOnlyLocale,
+  getSalonDateOnly,
+} from '../../../shared/business-date.mjs'
 
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
@@ -265,10 +269,11 @@ export default function Salon() {
   }
 
   const holidaysSummary = useMemo(() => {
+    const today = getSalonDateOnly()
     const future = holidays
       .slice()
       .sort((a, b) => a.date.localeCompare(b.date))
-      .filter((h) => new Date(h.date).getTime() >= new Date().setHours(0, 0, 0, 0))
+      .filter((holiday) => holiday.date.slice(0, 10) >= today)
     return future.slice(0, 3)
   }, [holidays])
 
@@ -333,7 +338,7 @@ export default function Salon() {
         <div className="flex flex-wrap items-center gap-2">
           {holidaysSummary.map((h) => (
             <Badge key={h.id} variant="secondary">
-              {new Date(h.date).toLocaleDateString('bs-BA')}: {h.name}
+              {formatDateOnlyLocale(h.date.slice(0, 10), 'bs-BA')}: {h.name}
             </Badge>
           ))}
         </div>
@@ -508,7 +513,7 @@ export default function Salon() {
                         .sort((a, b) => a.date.localeCompare(b.date))
                         .map((h) => (
                           <tr key={h.id} className="border-b border-slate-100 dark:border-slate-800/80">
-                            <td className="p-3">{new Date(h.date).toLocaleDateString('bs-BA')}</td>
+                            <td className="p-3">{formatDateOnlyLocale(h.date.slice(0, 10), 'bs-BA')}</td>
                             <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{h.name}</td>
                             <td className="p-3">
                               <Badge variant={h.sendPush ? 'success' : 'secondary'}>{h.sendPush ? 'Da' : 'Ne'}</Badge>

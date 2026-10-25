@@ -24,7 +24,7 @@ import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
 import { fetchAllPublicServices } from '../../services/catalog';
 import { spacing, borderRadius } from '../../theme';
-import { formatDate, formatTime, getDateRange } from '../../utils/date';
+import { formatDate, formatTime, getDateRange, getSalonDateOnly, getSalonTime } from '../../utils/date';
 import { useAvailabilitySocketRefresh } from '../../hooks/useAvailabilitySocketRefresh';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Service, AvailableDate, TimeSlot } from '../../types';
@@ -505,7 +505,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             <Calendar
               onDayPress={handleSelectDate}
               markedDates={markedDates}
-              minDate={new Date().toISOString().split('T')[0]}
+              minDate={getSalonDateOnly()}
               theme={{
                 backgroundColor: colors.background,
                 calendarBackground: colors.card,
@@ -568,9 +568,9 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
               {slots.map((slot, idx) => {
                 const isSelected = selectedSlot?.startTime === slot.startTime;
                 const now = new Date();
-                const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                const isPastSlot = selectedDate === todayLocal && slot.startTime.slice(0, 5) < nowHHMM;
+                const todaySalon = getSalonDateOnly(now);
+                const nowHHMM = getSalonTime(now);
+                const isPastSlot = selectedDate === todaySalon && slot.startTime.slice(0, 5) < nowHHMM;
                 const isHeld = slot.holdState === 'pending_hold' && slot.availableStylistCount === 0;
                 const isDisabled = isPastSlot || isHeld;
                 return (

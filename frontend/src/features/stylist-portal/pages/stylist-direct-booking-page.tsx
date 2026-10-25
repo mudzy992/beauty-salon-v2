@@ -10,6 +10,7 @@ import { Input } from '../../../components/ui/input'
 import { Label } from '../../../components/ui/label'
 import { Textarea } from '../../../components/ui/textarea'
 import { useAppToast } from '../../../lib/toast/useAppToast'
+import { getSalonDateOnly } from '../../../../../shared/business-date.mjs'
 
 type ClientOption = {
   id: string
@@ -35,7 +36,7 @@ export const StylistDirectBookingPage = () => {
   const [clientSearch, setClientSearch] = useState('')
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null)
   const [serviceIds, setServiceIds] = useState<string[]>([])
-  const [reservationDate, setReservationDate] = useState(new Date().toISOString().slice(0, 10))
+  const [reservationDate, setReservationDate] = useState(getSalonDateOnly())
   const [startTime, setStartTime] = useState('09:00')
   const [endTime, setEndTime] = useState('10:00')
   const [clientNotes, setClientNotes] = useState('')

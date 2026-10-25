@@ -4,6 +4,10 @@ import {
   CLIENT_LIVE_STATUSES,
   CLIENT_SERVICE_DAY_STATUSES,
 } from '../constants'
+import {
+  getDateOnlyDayBounds,
+  toDateOnlyString,
+} from '../../common/utils/date-only'
 import { intervalsOverlap, timeToMinutes } from './time-slot.utils'
 
 type AssertClientDayBookingInput = {
@@ -24,19 +28,10 @@ type OtherRow = {
   items: { serviceId: string; service: { name: string } | null }[]
 }
 
-const toUtcDayStart = (value: Date | string): Date => {
-  if (typeof value === 'string') {
-    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
-    if (match) {
-      return new Date(
-        Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])),
-      )
-    }
-    value = new Date(value)
-  }
-  return new Date(
-    Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()),
-  )
+const getReservationDayBounds = (value: Date | string) => {
+  const dateOnly =
+    typeof value === 'string' ? value : toDateOnlyString(value)
+  return getDateOnlyDayBounds(dateOnly)
 }
 
 const collectServices = (
@@ -54,14 +49,17 @@ const collectServices = (
 export const assertClientDayBookingAllowed = async (
   input: AssertClientDayBookingInput,
 ): Promise<void> => {
-  const dayStart = toUtcDayStart(input.reservationDate)
-  const dayEnd = new Date(dayStart)
-  dayEnd.setUTCHours(23, 59, 59, 999)
+  let dayBounds: ReturnType<typeof getDateOnlyDayBounds>
+  try {
+    dayBounds = getReservationDayBounds(input.reservationDate)
+  } catch {
+    throw new BadRequestException('Datum rezervacije nije validan.')
+  }
   const requested = new Set(input.serviceIds.filter(Boolean))
   const others = (await input.prisma.reservation.findMany({
     where: {
       clientId: input.clientId,
-      reservationDate: { gte: dayStart, lte: dayEnd },
+      reservationDate: { gte: dayBounds.gte, lt: dayBounds.lt },
       status: { in: [...CLIENT_SERVICE_DAY_STATUSES] },
       ...(input.excludeReservationId
         ? { id: { not: input.excludeReservationId } }

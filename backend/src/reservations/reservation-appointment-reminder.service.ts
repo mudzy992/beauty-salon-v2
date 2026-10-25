@@ -47,7 +47,7 @@ export class ReservationAppointmentReminderService {
       const copy = buildAppointmentReminderCopy({
         ref: loaded?.ref ?? row.id.slice(0, 8),
         serviceNames: loaded?.serviceNames?.length ? loaded.serviceNames : ['uslugu'],
-        date: this.dates.toLocalDateOnlyString(row.reservationDate),
+        date: this.dates.toDateOnlyString(row.reservationDate),
         startTime: row.startTime,
         endTime: loaded?.endTime ?? row.startTime,
         attendanceRequired: loaded?.attendanceRequired ?? true,

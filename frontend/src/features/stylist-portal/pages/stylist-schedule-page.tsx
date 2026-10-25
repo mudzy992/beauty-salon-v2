@@ -11,14 +11,17 @@ import {
 } from '../hooks/useStylistReservations'
 import type { Reservation, ReservationStatus } from '../types'
 import { getReservationStatusLabel } from '../../reservations/status'
+import { formatDateOnlyLocale, getSalonDateOnly } from '../../../../../shared/business-date.mjs'
 
 type Section = { title: string; data: Reservation[] }
 
-const formatDate = (iso: string) => {
-  const d = new Date(iso.slice(0, 10))
-  if (Number.isNaN(d.getTime())) return iso.slice(0, 10)
-  return d.toLocaleDateString('bs-BA', { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' })
-}
+const formatDate = (iso: string) =>
+  formatDateOnlyLocale(iso.slice(0, 10), 'bs-BA', {
+    weekday: 'long',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
 
 const formatTime = (t: string) => t?.slice(0, 5) ?? t
 
@@ -32,7 +35,7 @@ const getStatusVariant = (status: ReservationStatus) => {
 }
 
 const buildSections = (items: Reservation[]): Section[] => {
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = getSalonDateOnly()
   const today: Reservation[] = []
   const futureByDate: Record<string, Reservation[]> = {}
 

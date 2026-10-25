@@ -67,13 +67,46 @@ describe('ReservationDateService', () => {
     })
   })
 
-  describe('toLocalDateOnlyString', () => {
-    it('formats UTC date in salon TZ', async () => {
+  describe('addSalonCalendarDays', () => {
+    it('preserves salon wall time across the spring-forward day', async () => {
       const svc = await createService('Europe/Sarajevo')
-      const result = svc.toLocalDateOnlyString(
-        new Date('2026-07-15T22:30:00.000Z'),
+      const source = svc.combineDateAndTime(
+        svc.parseDateOnly('2026-03-28'),
+        '23:30',
       )
-      expect(result).toBe('2026-07-16')
+      const nextDay = svc.addSalonCalendarDays(source, 1)
+
+      expect(svc.toSalonDateOnlyString(nextDay)).toBe('2026-03-29')
+      expect(svc.toSalonTimeString(nextDay)).toBe('23:30')
+      expect(nextDay.getTime() - source.getTime()).toBe(23 * 60 * 60 * 1000)
+    })
+
+    it('preserves salon wall time across the fall-back day', async () => {
+      const svc = await createService('Europe/Sarajevo')
+      const source = svc.combineDateAndTime(
+        svc.parseDateOnly('2026-10-24'),
+        '23:30',
+      )
+      const nextDay = svc.addSalonCalendarDays(source, 1)
+
+      expect(svc.toSalonDateOnlyString(nextDay)).toBe('2026-10-25')
+      expect(svc.toSalonTimeString(nextDay)).toBe('23:30')
+      expect(nextDay.getTime() - source.getTime()).toBe(25 * 60 * 60 * 1000)
+    })
+  })
+
+  describe('date-only formatting', () => {
+    it('formats an instant in salon TZ and a database date in UTC', async () => {
+      const svc = await createService('Europe/Sarajevo')
+      expect(
+        svc.toSalonDateOnlyString(new Date('2026-07-15T22:30:00.000Z')),
+      ).toBe('2026-07-16')
+      expect(svc.toDateOnlyString(new Date('2026-07-15T00:00:00.000Z'))).toBe(
+        '2026-07-15',
+      )
+      expect(svc.toSalonTimeString(new Date('2026-03-29T01:30:00.000Z'))).toBe(
+        '03:30',
+      )
     })
   })
 

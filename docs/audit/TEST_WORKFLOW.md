@@ -141,6 +141,8 @@ npm run test:e2e -- --runInBand
 | Finance book | Close-vs-expense write, close-vs-manual income, double lock/unlock, cancellation count parallel increment. |
 | Time | `TZ=UTC` and `TZ=Europe/Sarajevo`; 00:00–02:30 local, month boundary, CET/CEST transitions, business date filters. |
 
+**BIZ-06 local evidence (2026-10-25):** the shared Node date suite passes 6/6 under each process TZ; 16 focused backend Jest suites/124 tests pass under both TZs using a temporary Prisma runtime stub with `ts-jest` diagnostics disabled. Frontend production build and mobile typecheck pass. The local generated Prisma Client/schema/migration/backend build could not be validated because engine download is TLS-blocked; synthetic CI is pending and the `hire_date` migration remains unapplied. These local checks do not access production/shared PostgreSQL, Redis, browser/CORS or deployment.
+
 Use transaction barriers/two Prisma clients for race tests. A pair of sequential Jest mocks does not prove a PostgreSQL race is closed.
 
 ## 6. Frontend workflow

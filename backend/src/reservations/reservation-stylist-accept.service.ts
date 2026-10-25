@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toDateOnlyString } from '../common/utils/date-only';
 import { NotificationsService } from '../notifications/notifications.service';
 import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
 import { buildConfirmedCopy } from '../notifications/utils/reservation-push-copy';
@@ -212,7 +213,7 @@ export class ReservationStylistAcceptService {
     }
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
       serviceId: accepted.serviceId,
-      date: accepted.reservationDate,
+      date: toDateOnlyString(accepted.reservationDate),
     });
     return accepted;
   }

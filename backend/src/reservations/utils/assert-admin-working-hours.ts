@@ -1,6 +1,9 @@
 import { BadRequestException } from '@nestjs/common'
 import type { Prisma } from '@prisma/client'
-import { toLocalDateOnlyString } from '../../common/utils/date-only'
+import {
+  getDateOnlyDayBounds,
+  toDateOnlyString,
+} from '../../common/utils/date-only'
 import { timeToMinutes } from './time-slot.utils'
 
 type AssertAdminWorkingHoursInput = {
@@ -26,34 +29,16 @@ export async function assertAdminSlotWithinWorkingHours(
   const salon = await prisma.salonSettings.findFirst()
   if (!salon) throw new BadRequestException('Salon nije konfigurisan.')
 
-  const dateStr = [
-    reservationDate.getUTCFullYear(),
-    String(reservationDate.getUTCMonth() + 1).padStart(2, '0'),
-    String(reservationDate.getUTCDate()).padStart(2, '0'),
-  ].join('-')
+  const dateStr = toDateOnlyString(reservationDate)
   const dayOfWeek = reservationDate.getUTCDay()
   const startMin = timeToMinutes(startTime)
   const endMin = timeToMinutes(endTime)
 
+  const { gte, lt } = getDateOnlyDayBounds(dateStr)
   const holiday = await prisma.holiday.findFirst({
     where: {
       salonSettingsId: salon.id,
-      date: {
-        gte: new Date(Date.UTC(
-          reservationDate.getUTCFullYear(),
-          reservationDate.getUTCMonth(),
-          reservationDate.getUTCDate(),
-        )),
-        lte: new Date(Date.UTC(
-          reservationDate.getUTCFullYear(),
-          reservationDate.getUTCMonth(),
-          reservationDate.getUTCDate(),
-          23,
-          59,
-          59,
-          999,
-        )),
-      },
+      date: { gte, lt },
     },
     select: { id: true, name: true },
   })
@@ -92,7 +77,7 @@ export async function assertAdminSlotWithinWorkingHours(
   })
   const override = stylistHours.find(
     (wh) =>
-      wh.dateOverride && toLocalDateOnlyString(wh.dateOverride) === dateStr,
+      wh.dateOverride && toDateOnlyString(wh.dateOverride) === dateStr,
   )
   const regular = stylistHours.find(
     (wh) => !wh.dateOverride && wh.dayOfWeek === dayOfWeek,

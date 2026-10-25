@@ -11,6 +11,7 @@ import {
 } from '@prisma/client';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
+import { toDateOnlyString } from '../common/utils/date-only';
 import { UploadsService } from '../uploads/uploads.service';
 import { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from './media-consent.constants';
 export { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from './media-consent.constants';
@@ -135,7 +136,7 @@ export class MediaConsentService {
         imageId: image.id,
         entryId: image.dailyLogEntry.id,
         serviceName: image.dailyLogEntry.service.name,
-        serviceDate: image.dailyLogEntry.date.toISOString(),
+        serviceDate: toDateOnlyString(image.dailyLogEntry.date),
         completedAt: image.dailyLogEntry.completedAt?.toISOString() ?? null,
         isBefore: image.isBefore,
         isAfter: image.isAfter,

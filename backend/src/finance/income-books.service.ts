@@ -10,7 +10,6 @@ import {
 import {
   assertValidPeriod,
   getCurrentPeriod,
-  getPreviousPeriod,
   isFutureMonth,
   isPastMonth,
 } from '../common/utils/book-period'
@@ -21,38 +20,44 @@ const MAX_REASON_LENGTH = 2000
 export class IncomeBooksService {
   constructor(private readonly repository: IncomeBookRepository) {}
 
-  /** CRON: 1. u mjesecu – otvori novu knjigu prihoda, zatvori prethodnu. */
+  /**
+   * CRON mjesečnog usklađivanja: osigurava otvorenu knjigu za tekući mjesec i
+   * zatvara ranije otvorene periode. Poziv je idempotentan i siguran za
+   * catch-up nakon propuštenog izvršavanja; ručno otključane knjige se čuvaju.
+   */
   async openNewMonthAndClosePrevious() {
     const current = getCurrentPeriod()
-    const previous = getPreviousPeriod(current)
-
-    const previousBook = await this.repository.findByPeriod(
-      previous.year,
-      previous.month,
-    )
-    if (previousBook && !previousBook.closedAt) {
-      await this.repository.setLockState(
-        previousBook.id,
-        {
-          closedAt: new Date(),
-          action: 'LOCK',
-          reason: 'Automatsko zaključavanje na kraju mjeseca.',
-        },
-        { ignoreIfAlreadyTarget: true },
-      )
-    }
-
-    let currentBook = await this.repository.findByPeriod(
+    const openBooks = await this.repository.findOpenBooksBeforePeriod(
       current.year,
       current.month,
     )
-    if (!currentBook) {
-      currentBook = await this.repository.createForPeriod(
-        current.year,
-        current.month,
+    const closed: string[] = []
+
+    for (const book of openBooks) {
+      // Zadnji UNLOCK je eksplicitna ručna odluka i ne smije biti poništena
+      // ponovnim dnevnim catch-up pozivom.
+      if (book.lockEvents[0]?.action === 'UNLOCK') continue
+
+      const locked = await this.repository.setLockState(
+        book.id,
+        {
+          closedAt: new Date(),
+          action: 'LOCK',
+          reason: 'Automatsko zaključavanje prethodnog finansijskog perioda.',
+        },
+        { ignoreIfAlreadyTarget: true },
       )
+      if (locked?.closedAt) closed.push(book.id)
     }
-    return { opened: currentBook.id, closed: previousBook?.id ?? null }
+
+    // Unique period key is the durable idempotency marker if multiple app
+    // instances perform the catch-up at the same time.
+    const currentBook = await this.repository.upsertForPeriod(
+      current.year,
+      current.month,
+    )
+
+    return { opened: currentBook.id, closed }
   }
 
   /** Vraća/kreira mjesečnu knjigu na istom transaction clientu kad je proslijeđen. */

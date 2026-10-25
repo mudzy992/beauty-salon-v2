@@ -6,6 +6,7 @@ import { Card } from '../../../../src/components/ui/Card';
 import { Button } from '../../../../src/components/ui/Button';
 import { Input } from '../../../../src/components/ui/Input';
 import { spacing } from '../../../../src/theme';
+import { getSalonDateOnly } from '../../../../src/utils/date';
 
 type DebtRow = {
   id: string;
@@ -66,7 +67,7 @@ export default function StylistDebtsScreen() {
   };
 
   const repay = async (debtId: string) => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getSalonDateOnly();
     setRepayingId(debtId);
     try {
       await api.post(`/api/client-debts/${debtId}/repay`, { date: today });

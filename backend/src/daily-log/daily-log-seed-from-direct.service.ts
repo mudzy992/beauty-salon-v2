@@ -40,7 +40,6 @@ export class DailyLogSeedFromDirectService {
       : [res.serviceId];
     const primaryServiceId = resServiceIds[0]!;
     const date = new Date(res.reservationDate);
-    date.setHours(0, 0, 0, 0);
 
     const publicReferenceCode = await allocateDailyLogReferenceCode(
       this.prisma,

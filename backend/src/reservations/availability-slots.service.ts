@@ -1,8 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { toLocalDateOnlyString } from '../common/utils/date-only';
-import { getDayStartEnd } from '../common/utils/date-range';
+import {
+  getDateOnlyDayBounds,
+  parseDateOnlyString,
+} from '../common/utils/date-only';
+import { ReservationDateService } from './reservation-date.service';
 import {
   generateSlots,
   timeToMinutes,
@@ -26,7 +29,10 @@ type AvailabilityReader = Pick<
 
 @Injectable()
 export class AvailabilitySlotsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly dates: ReservationDateService,
+  ) {}
 
   async getAvailableSlots(
     serviceIdsInput: string[] | string,
@@ -53,17 +59,20 @@ export class AvailabilitySlotsService {
       0,
     );
 
-    const parts = dateStr.split('-').map(Number);
-    const date = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
-    const dayOfWeek = date.getDay();
+    let date: Date;
+    try {
+      date = parseDateOnlyString(dateStr);
+    } catch {
+      throw new BadRequestException('Datum nije validan.');
+    }
+    const dayOfWeek = date.getUTCDay();
+    const { gte: dateStart, lt: nextDateStart } =
+      getDateOnlyDayBounds(dateStr);
 
     const holidays = await db.holiday.findMany({
       where: {
         salonSettingsId: salon.id,
-        date: {
-          gte: new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0),
-          lte: new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999),
-        },
+        date: { gte: dateStart, lt: nextDateStart },
       },
     });
     if (holidays.length > 0) return [];
@@ -93,19 +102,17 @@ export class AvailabilitySlotsService {
       salon.pauseBetweenServices,
     );
 
-    const todayStr = toLocalDateOnlyString(new Date());
-    const nowMinutes = timeToMinutes(
-      `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`,
-    );
+    const now = new Date();
+    const todayStr = this.dates.toSalonDateOnlyString(now);
+    const nowMinutes = timeToMinutes(this.dates.toSalonTimeString(now));
     const filteredSlots =
       dateStr === todayStr
         ? slots.filter((s) => timeToMinutes(s.startTime) >= nowMinutes)
         : slots;
 
-    const { start: dateStart, end: dateEnd } = getDayStartEnd(date);
     const reservations = await db.reservation.findMany({
       where: {
-        reservationDate: { gte: dateStart, lte: dateEnd },
+        reservationDate: { gte: dateStart, lt: nextDateStart },
         status: {
           in: [...SLOT_OCCUPYING_STATUSES, ...SLOT_HOLD_INBOX_STATUSES],
         },

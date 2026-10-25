@@ -1,4 +1,5 @@
 import type { Reservation } from '../reservations/types'
+import { formatDateOnlyLocale } from '../../../../shared/business-date.mjs'
 
 export const getClientReservationServicesLabel = (r: Reservation): string => {
   const names =
@@ -20,11 +21,13 @@ export const getClientReservationStylistLabel = (r: Reservation): string | null 
 }
 
 export const formatReservationDate = (value: string): string => {
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return value
-  return d.toLocaleDateString('bs-BA', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
+  try {
+    return formatDateOnlyLocale(value.slice(0, 10), 'bs-BA', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+  } catch {
+    return value
+  }
 }

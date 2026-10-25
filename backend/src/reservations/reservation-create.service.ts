@@ -78,7 +78,7 @@ export class ReservationCreateService {
     const primaryServiceId = serviceIds[0];
     const reservationDate = this.dates.parseDateOnly(dto.reservationDate);
     const reservationDateString =
-      this.dates.toLocalDateOnlyString(reservationDate);
+      this.dates.toDateOnlyString(reservationDate);
     const idempotencyRequestHash = idempotencyKey
       ? this.buildIdempotencyRequestHash(dto, serviceIds, reservationDateString)
       : null;

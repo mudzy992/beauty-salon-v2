@@ -38,6 +38,23 @@ export class IncomeBookRepository {
     })
   }
 
+  findOpenBooksBeforePeriod(year: number, month: number) {
+    return this.prisma.incomeBook.findMany({
+      where: {
+        closedAt: null,
+        OR: [{ year: { lt: year } }, { year, month: { lt: month } }],
+      },
+      include: {
+        lockEvents: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { action: true },
+        },
+      },
+      orderBy: [{ year: 'asc' }, { month: 'asc' }],
+    })
+  }
+
   findByPeriodWithEntries(year: number, month: number, tx?: PrismaTx) {
     return (tx ?? this.prisma).incomeBook.findUnique({
       where: { year_month: { year, month } },

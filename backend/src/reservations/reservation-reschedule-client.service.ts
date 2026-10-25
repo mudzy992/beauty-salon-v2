@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toDateOnlyString } from '../common/utils/date-only';
 import { EventsGateway } from '../events/events.gateway';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationNotifyService } from './reservation-notify.service';
@@ -185,7 +186,7 @@ export class ReservationRescheduleClientService {
       this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CANCELLED, updated);
       this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
         serviceId: r.serviceId,
-        date: r.reservationDate,
+        date: toDateOnlyString(r.reservationDate),
       });
     }
     await this.notify.notifyStylistAboutClientDecision(

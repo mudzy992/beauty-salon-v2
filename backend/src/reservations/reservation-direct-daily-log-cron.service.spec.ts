@@ -11,6 +11,7 @@ const mockPrisma: any = {
 };
 const mockDates = {
   getDailyLogReminderHours: jest.fn().mockResolvedValue(12),
+  toSalonDateOnlyString: jest.fn().mockReturnValue('2026-01-15'),
   combineDateAndTime: jest.fn(),
 };
 const mockSeed = { seedPendingFromDirectReservation: jest.fn() };
@@ -31,6 +32,20 @@ describe('ReservationDirectDailyLogCronService', () => {
       ],
     }).compile();
     service = module.get(ReservationDirectDailyLogCronService);
+  });
+
+  it('filtrira sedmodnevni seed lookback po salonskim kalendarskim datumima', async () => {
+    mockPrisma.reservation.findMany.mockResolvedValue([]);
+
+    await service.processDirectBookingDailyLogSeeds();
+
+    expect(mockPrisma.reservation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          reservationDate: { gte: new Date('2026-01-08T00:00:00.000Z') },
+        }),
+      }),
+    );
   });
 
   it('šalje reminder jednom i ne mijenja status rezervacije', async () => {

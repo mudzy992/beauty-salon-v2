@@ -38,12 +38,9 @@ export class ReservationSharedService {
   }
 
   private buildPublicReferenceCodeForDate(reservationDate: Date): string {
-    const d = this.dates.parseDateOnly(reservationDate);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const date = this.dates.toDateOnlyString(reservationDate).replaceAll('-', '');
     const suffix = randomBytes(3).toString('hex').toUpperCase();
-    return `RZ-${y}${m}${day}-${suffix}`;
+    return `RZ-${date}-${suffix}`;
   }
 
   private generateClientViewToken(): string {
@@ -110,7 +107,7 @@ export class ReservationSharedService {
     });
     if (rec?.penaltyUntil && new Date() < rec.penaltyUntil) {
       throw new BadRequestException(
-        `Zbog čestih otkazivanja rezervacija je onemogućena do ${this.dates.toLocalDateOnlyString(rec.penaltyUntil)}.`,
+        `Zbog čestih otkazivanja rezervacija je onemogućena do ${this.dates.toSalonDateOnlyString(rec.penaltyUntil)}.`,
       );
     }
   }
@@ -130,9 +127,9 @@ export class ReservationSharedService {
       });
       let penaltyUntil: Date | null = null;
       if (updated.cancellationCount >= salon.maxCancellationsBeforePenalty) {
-        penaltyUntil = new Date();
-        penaltyUntil.setDate(
-          penaltyUntil.getDate() + salon.penaltyDurationDays,
+        penaltyUntil = this.dates.addSalonCalendarDays(
+          new Date(),
+          salon.penaltyDurationDays,
         );
       }
       await tx.clientCancellationCount.update({

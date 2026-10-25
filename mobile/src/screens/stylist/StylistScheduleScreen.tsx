@@ -23,7 +23,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import api, { getUploadUrl } from '../../services/api';
 import { spacing } from '../../theme';
 import { useTranslation } from 'react-i18next';
-import { formatDate, formatTime } from '../../utils/date';
+import { formatDate, formatTime, getDateRange, getDateOnlyWeekday, getSalonDateOnly, salonWallTimeToInstant } from '../../utils/date';
 import {
   getReservationServicesLabel,
   getReservationTotalDurationMinutes,
@@ -69,16 +69,13 @@ export function StylistScheduleScreen({ navigation }: Props) {
       return;
     }
     try {
-      const from = new Date();
-      // Fokus: od danas nadalje (nema potrebe prikazivati prošle rezervacije na rasporedu)
-      from.setHours(0, 0, 0, 0);
-      const to = new Date();
-      to.setDate(to.getDate() + 30);
+      // Fokus: od današnjeg salonskog datuma nadalje.
+      const { fromDate, toDate } = getDateRange(30);
       const { data } = await api.get<Reservation[]>('/api/reservations', {
         params: {
           asStylist: true,
-          fromDate: from.toISOString().slice(0, 10),
-          toDate: to.toISOString().slice(0, 10),
+          fromDate,
+          toDate,
         },
       });
       const filtered = (Array.isArray(data) ? data : [])
@@ -116,7 +113,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
 
   const sections: Section[] = useMemo(() => {
     if (reservations.length === 0) return [];
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getSalonDateOnly();
     const todayActive: Reservation[] = [];
     const todayCompletedLike: Reservation[] = [];
     const futureByDate: Record<string, Reservation[]> = {};
@@ -165,10 +162,8 @@ export function StylistScheduleScreen({ navigation }: Props) {
     Object.values(futureByDate).forEach((arr) => arr.sort(sortFn));
 
     const dayAbbrev = (dateStr: string) => {
-      const [y, m, d] = dateStr.split('-').map(Number);
-      const dt = new Date(y, (m ?? 1) - 1, d ?? 1);
       const map = ['Ned', 'Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub'];
-      return map[dt.getDay()] ?? '';
+      return map[getDateOnlyWeekday(dateStr)] ?? '';
     };
 
     const result: Section[] = [];
@@ -205,12 +200,11 @@ export function StylistScheduleScreen({ navigation }: Props) {
 
   const activeTimeText = useMemo(() => {
     if (!activeReservation) return null;
-    const dateStr = activeReservation.reservationDate.slice(0, 10);
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const [eh, em] = activeReservation.endTime.slice(0, 5).split(':').map(Number);
-    const end = new Date(y, (m ?? 1) - 1, d ?? 1, eh ?? 0, em ?? 0, 0, 0);
-    const now = new Date();
-    const diffMs = end.getTime() - now.getTime();
+    const end = salonWallTimeToInstant(
+      activeReservation.reservationDate.slice(0, 10),
+      activeReservation.endTime,
+    );
+    const diffMs = end.getTime() - Date.now();
     const sign = diffMs >= 0 ? '' : '+';
     const abs = Math.abs(diffMs);
     const totalSec = Math.floor(abs / 1000);

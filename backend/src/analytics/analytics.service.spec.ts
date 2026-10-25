@@ -120,7 +120,7 @@ describe('AnalyticsService', () => {
     });
     const dateBounds = {
       gte: new Date('2026-03-01T00:00:00.000Z'),
-      lte: new Date('2026-03-31T23:59:59.999Z'),
+      lt: new Date('2026-04-01T00:00:00.000Z'),
     };
     expect(mockPrisma.reservation.groupBy).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -20,6 +20,42 @@ describe('zonedWallTimeToUtc', () => {
     const result = zonedWallTimeToUtc(2026, 0, 15, 21, 30, 'America/New_York')
     expect(result.toISOString()).toBe('2026-01-16T02:30:00.000Z')
   })
+
+  it('keeps late-night wall time on the requested calendar day', () => {
+    const result = zonedWallTimeToUtc(2026, 2, 28, 23, 30, 'Europe/Sarajevo')
+    expect(result.toISOString()).toBe('2026-03-28T22:30:00.000Z')
+    expect(getZonedDateParts(result, 'Europe/Sarajevo')).toEqual({
+      year: 2026,
+      month: 3,
+      day: 28,
+      hour: 23,
+      minute: 30,
+    })
+  })
+
+  it('moves a spring-forward gap forward preserving minutes', () => {
+    const result = zonedWallTimeToUtc(2026, 2, 29, 2, 30, 'Europe/Sarajevo')
+    expect(result.toISOString()).toBe('2026-03-29T01:30:00.000Z')
+    expect(getZonedDateParts(result, 'Europe/Sarajevo')).toEqual({
+      year: 2026,
+      month: 3,
+      day: 29,
+      hour: 3,
+      minute: 30,
+    })
+  })
+
+  it('selects the later instant for a fall-back overlap', () => {
+    const result = zonedWallTimeToUtc(2026, 9, 25, 2, 30, 'Europe/Sarajevo')
+    expect(result.toISOString()).toBe('2026-10-25T01:30:00.000Z')
+    expect(getZonedDateParts(result, 'Europe/Sarajevo')).toEqual({
+      year: 2026,
+      month: 10,
+      day: 25,
+      hour: 2,
+      minute: 30,
+    })
+  })
 })
 
 describe('getZonedDateParts', () => {

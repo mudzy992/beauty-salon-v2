@@ -1,4 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
+import {
+  getDateOnlyDayBounds,
+  getDateOnlyWeekday,
+} from '../../common/utils/date-only';
 import type { Prisma } from '@prisma/client';
 import {
   SLOT_HOLD_INBOX_STATUSES,
@@ -40,20 +44,13 @@ type AssertReservationSlotCapacityInput = {
 export const assertReservationSlotCapacity = async (
   input: AssertReservationSlotCapacityInput,
 ): Promise<void> => {
-  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input.date);
-  if (!dateMatch) {
+  let dayBounds: ReturnType<typeof getDateOnlyDayBounds>;
+  try {
+    dayBounds = getDateOnlyDayBounds(input.date);
+  } catch {
     throw new BadRequestException('Neispravan datum za provjeru kapaciteta.');
   }
-
-  const year = Number(dateMatch[1]);
-  const month = Number(dateMatch[2]);
-  const day = Number(dateMatch[3]);
-  const dayStart = new Date(Date.UTC(year, month - 1, day));
-  if (dayStart.toISOString().slice(0, 10) !== input.date) {
-    throw new BadRequestException('Neispravan datum za provjeru kapaciteta.');
-  }
-  const dayEnd = new Date(dayStart);
-  dayEnd.setUTCHours(23, 59, 59, 999);
+  const dayOfWeek = getDateOnlyWeekday(input.date);
 
   const start = timeToMinutes(input.startTime);
   const end = timeToMinutes(input.endTime);
@@ -61,7 +58,7 @@ export const assertReservationSlotCapacity = async (
     getStylistProfilesForSlots(
       input.db,
       input.serviceIds,
-      dayStart.getUTCDay(),
+      dayOfWeek,
       input.date,
     ),
     input.db.reservation.findMany({
@@ -69,7 +66,7 @@ export const assertReservationSlotCapacity = async (
         ...(input.excludeReservationId
           ? { id: { not: input.excludeReservationId } }
           : {}),
-        reservationDate: { gte: dayStart, lte: dayEnd },
+        reservationDate: { gte: dayBounds.gte, lt: dayBounds.lt },
         status: {
           in: [...SLOT_OCCUPYING_STATUSES, ...SLOT_HOLD_INBOX_STATUSES],
         },

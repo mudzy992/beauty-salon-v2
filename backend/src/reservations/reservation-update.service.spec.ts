@@ -67,13 +67,13 @@ const mockEvents = {
   emitToUser: jest.fn(),
   emitToAll: jest.fn(),
 };
+const formatMockDateOnly = (value: Date): string =>
+  `${String(value.getUTCFullYear()).padStart(4, '0')}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}`;
 const mockDates = {
   parseDateOnly: jest.fn((value: Date | string) =>
     typeof value === 'string' ? new Date(`${value}T00:00:00.000Z`) : value,
   ),
-  toLocalDateOnlyString: jest.fn((value: Date) =>
-    value.toISOString().slice(0, 10),
-  ),
+  toDateOnlyString: jest.fn(formatMockDateOnly),
 };
 const mockQueries = { findOne: jest.fn().mockResolvedValue({ id: 'res-1' }) };
 const mockNotify = { notifyClientTimeChanged: jest.fn() };

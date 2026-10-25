@@ -16,6 +16,11 @@ import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
+import {
+  addDateOnlyMonths,
+  getDateTimePartsInTimeZone,
+  parseDateOnly,
+} from '../../../shared/business-date.mjs'
 
 interface MonthlyFinance {
   year: number
@@ -72,13 +77,15 @@ type PeriodPreset = '12' | 'thisMonth' | 'lastMonth' | 'custom'
 
 const getPresetParams = (preset: PeriodPreset, customFrom?: string, customTo?: string): Record<string, string> => {
   const now = new Date()
+  const current = getDateTimePartsInTimeZone(now)
   if (preset === '12') return { monthsBack: '12' }
   if (preset === 'thisMonth') {
-    return { year: String(now.getFullYear()), month: String(now.getMonth() + 1) }
+    return { year: String(current.year), month: String(current.month) }
   }
   if (preset === 'lastMonth') {
-    const last = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    return { year: String(last.getFullYear()), month: String(last.getMonth() + 1) }
+    const firstOfCurrentMonth = `${String(current.year).padStart(4, '0')}-${String(current.month).padStart(2, '0')}-01`
+    const previous = parseDateOnly(addDateOnlyMonths(firstOfCurrentMonth, -1))
+    return { year: String(previous.year), month: String(previous.month) }
   }
   if (preset === 'custom' && customFrom && customTo) return { fromDate: customFrom, toDate: customTo }
   return { monthsBack: '12' }

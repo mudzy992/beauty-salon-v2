@@ -1,24 +1,21 @@
 import { Prisma } from '@prisma/client';
+import {
+  parseDateOnlyString,
+  toDateOnlyString,
+} from '../../common/utils/date-only';
 
 export type BookingLockClient = Pick<Prisma.TransactionClient, '$queryRaw'>;
 
 export const reservationDayKey = (value: Date | string): string => {
-  if (typeof value === 'string') {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-    if (!match) throw new Error('Neispravan datum za reservation lock.');
-    const parsed = new Date(
-      Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])),
-    );
-    if (parsed.toISOString().slice(0, 10) !== value) {
-      throw new Error('Neispravan datum za reservation lock.');
+  try {
+    if (typeof value === 'string') {
+      parseDateOnlyString(value);
+      return value;
     }
-    return value;
+    return toDateOnlyString(value);
+  } catch {
+    throw new Error('Neispravan datum za reservation lock.');
   }
-  return [
-    value.getUTCFullYear(),
-    String(value.getUTCMonth() + 1).padStart(2, '0'),
-    String(value.getUTCDate()).padStart(2, '0'),
-  ].join('-');
 };
 
 const acquireLock = async (

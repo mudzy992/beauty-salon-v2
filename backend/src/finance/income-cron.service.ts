@@ -3,6 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { IncomeBooksService } from './income-books.service';
 import { ExpenseBooksService } from './expense-books.service';
 import { getCurrentPeriod } from '../common/utils/book-period';
+import { DEFAULT_SALON_TIMEZONE } from '../common/utils/zoned-time';
 
 @Injectable()
 export class IncomeCronService {
@@ -13,10 +14,18 @@ export class IncomeCronService {
     private readonly expenseBooks: ExpenseBooksService,
   ) {}
 
-  /** Svakog 1. u mjesecu u 00:05 otvori nove knjige i zatvori prethodnu knjigu prihoda. */
-  @Cron('5 0 1 * *')
-  async handleMonthlyBookRollover() {
+  /**
+   * Dnevna KIF provjera u 00:05 po vremenu salona: nadoknađuje propušteni
+   * rollover nakon prekida rada; DB stanje čini ponavljanje sigurnim.
+   */
+  @Cron('5 0 * * *', { timeZone: DEFAULT_SALON_TIMEZONE })
+  async handleIncomeBookCatchUp() {
     await this.rollIncomeBooks();
+  }
+
+  /** KUF raspored ostaje mjesečni; samo je timezone eksplicitno salon-local. */
+  @Cron('5 0 1 * *', { timeZone: DEFAULT_SALON_TIMEZONE })
+  async handleExpenseBookRollover() {
     await this.openExpenseBook();
   }
 
@@ -24,7 +33,7 @@ export class IncomeCronService {
     try {
       const result = await this.incomeBooks.openNewMonthAndClosePrevious();
       this.logger.log(
-        `KIF rollover: otvorena ${result.opened}, zatvorena ${result.closed ?? '-'}.`,
+        `KIF rollover: osigurana ${result.opened}; zatvorene knjige ${result.closed.join(', ') || '-'}.`,
       );
     } catch (err) {
       this.logger.error(

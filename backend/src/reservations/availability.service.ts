@@ -17,8 +17,8 @@ export class AvailabilityService {
 
   getAvailableDates(
     serviceIdsInput: string[] | string,
-    fromDate: Date,
-    toDate?: Date,
+    fromDate: string,
+    toDate?: string,
   ): Promise<AvailableDateDto[]> {
     return this.datesService.getAvailableDates(serviceIdsInput, fromDate, toDate);
   }

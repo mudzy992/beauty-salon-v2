@@ -8,6 +8,12 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  getDateOnlyDayBounds,
+  getDateOnlyRangeBounds,
+  parseDateOnlyString,
+  toDateOnlyString,
+} from '../common/utils/date-only';
 import { CreateDailyLogEntryDto } from './dto/create-daily-log-entry.dto';
 import { UpdateDailyLogEntryDto } from './dto/update-daily-log-entry.dto';
 import type { CreateFromReservationDto } from './dto/create-from-reservation.dto';
@@ -28,6 +34,14 @@ import {
 import { allocateDailyLogReferenceCode } from './daily-log.reference';
 import { DailyLogCompletionOutboxService } from './daily-log-completion-outbox.service';
 import { claimOpenClientDebt } from '../finance/utils/claim-open-client-debt';
+
+const parseDateOnlyInput = (value: string): Date => {
+  try {
+    return parseDateOnlyString(value);
+  } catch {
+    throw new BadRequestException('Datum nije validan.');
+  }
+};
 
 @Injectable()
 export class DailyLogService {
@@ -126,8 +140,7 @@ export class DailyLogService {
         throw new BadRequestException('SERVICE_GENDER_MISMATCH');
       }
     }
-    const date = new Date(dto.date);
-    date.setHours(0, 0, 0, 0);
+    const date = parseDateOnlyInput(dto.date);
     const primaryServiceId = serviceIds[0]!;
     const totalPaid =
       dto.paidAmount != null ? Number(dto.paidAmount) : Number(dto.actualPrice);
@@ -306,8 +319,7 @@ export class DailyLogService {
       throw new BadRequestException(
         'Za ovu rezervaciju već postoji zapis u dnevnoj knjizi.',
       );
-    const date = new Date(res.reservationDate);
-    date.setHours(0, 0, 0, 0);
+    const date = parseDateOnlyInput(toDateOnlyString(res.reservationDate));
     const resServiceIds = res.items?.length
       ? res.items.map((i) => i.serviceId)
       : [res.serviceId];
@@ -442,8 +454,7 @@ export class DailyLogService {
   }) {
     const debtIds = [...new Set(params.debtIds.map((x) => x.trim()).filter(Boolean))];
     if (debtIds.length === 0) return;
-    const date = new Date(params.date);
-    date.setHours(0, 0, 0, 0);
+    const date = parseDateOnlyInput(toDateOnlyString(params.date));
 
     const debts = await this.prisma.clientDebt.findMany({
       where: {
@@ -557,7 +568,7 @@ export class DailyLogService {
     user: CurrentUserPayload,
   ) {
     const where: {
-      date?: { gte?: Date; lte?: Date };
+      date?: { gte?: Date; lt?: Date };
       stylistProfileId?: string;
       deletedAt?: Date | null;
       OR?: Array<Record<string, unknown>>;
@@ -569,10 +580,25 @@ export class DailyLogService {
         { sourceEntryId: null },
       ],
     };
-    if (query.fromDate)
-      where.date = { ...where.date, gte: new Date(query.fromDate) };
-    if (query.toDate)
-      where.date = { ...where.date, lte: new Date(query.toDate) };
+    if (query.fromDate && query.toDate) {
+      try {
+        where.date = {
+          ...where.date,
+          ...getDateOnlyRangeBounds(query.fromDate, query.toDate),
+        };
+      } catch {
+        throw new BadRequestException('Datumski opseg nije validan.');
+      }
+    } else if (query.fromDate) {
+      where.date = { ...where.date, gte: parseDateOnlyInput(query.fromDate) };
+    } else if (query.toDate) {
+      try {
+        const { lt } = getDateOnlyDayBounds(query.toDate);
+        where.date = { ...where.date, lt };
+      } catch {
+        throw new BadRequestException('Datum nije validan.');
+      }
+    }
     if (query.stylistProfileId) {
       await this.ensureStylistOrAdmin(query.stylistProfileId, user);
       where.stylistProfileId = query.stylistProfileId;

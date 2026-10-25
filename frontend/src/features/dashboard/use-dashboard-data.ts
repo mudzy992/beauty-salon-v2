@@ -2,13 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import api from '../../api/client'
 import { useSocketEvent } from '../../context/SocketContext'
 import type { DashboardStats, RecentReservation } from './types'
+import { getCalendarMonthRange, getDateTimePartsInTimeZone } from '../../../../shared/business-date.mjs'
 
 const currentMonthBounds = () => {
   const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
-  const firstDay = `${year}-${String(month).padStart(2, '0')}-01`
-  const lastDay = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`
+  const { year, month } = getDateTimePartsInTimeZone(now)
+  const { fromDate: firstDay, toDate: lastDay } = getCalendarMonthRange(now)
   return { year, month, firstDay, lastDay }
 }
 

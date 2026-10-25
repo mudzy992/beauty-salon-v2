@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toDateOnlyString } from '../common/utils/date-only';
 import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { DailyLogAdminService } from './daily-log-admin.service';
@@ -157,7 +158,7 @@ export class DailyLogDispositionService {
           reservationId: reservation.id,
           date:
             dto.targetDate ??
-            this.dates.toLocalDateOnlyString(reservation.reservationDate),
+            this.dates.toDateOnlyString(reservation.reservationDate),
           startTime: dto.targetStartTime!,
           endTime: dto.targetEndTime!,
           publicReferenceCode: reservation.publicReferenceCode,
@@ -178,7 +179,7 @@ export class DailyLogDispositionService {
       );
       this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
         serviceId: reservation.serviceId,
-        date: updated.reservationDate ?? reservation.reservationDate,
+        date: toDateOnlyString(updated.reservationDate ?? reservation.reservationDate),
       });
     }
     return { ok: true, reservation: updated };

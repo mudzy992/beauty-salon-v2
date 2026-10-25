@@ -179,39 +179,79 @@ describe('IncomeBooksService', () => {
   });
 
   describe('openNewMonthAndClosePrevious', () => {
-    it('zatvara prethodnu knjigu uz automatski LOCK zapis i otvara tekuću', async () => {
-      prisma.incomeBook.findUnique
-        .mockResolvedValueOnce({ id: 'prev', closedAt: null })
-        .mockResolvedValueOnce({ id: 'prev', closedAt: new Date() })
-        .mockResolvedValueOnce(null);
-      prisma.incomeBook.create.mockResolvedValue({ id: 'curr' });
+    it('nadoknađuje sve ranije otvorene periode i idempotentno osigurava tekući', async () => {
+      const { year, month } = currentPeriod();
+      prisma.incomeBook.findMany.mockResolvedValue([
+        { id: 'old', lockEvents: [] },
+        { id: 'previous', lockEvents: [] },
+      ]);
+      prisma.incomeBook.findUnique.mockResolvedValue({
+        id: 'closed',
+        closedAt: new Date(),
+      });
+      prisma.incomeBook.upsert.mockResolvedValue({ id: 'current', year, month });
 
       const actual = await service.openNewMonthAndClosePrevious();
 
-      expect(actual).toEqual({ opened: 'curr', closed: 'prev' });
-      expect(prisma.incomeBook.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'prev', closedAt: null } }),
-      );
+      expect(actual).toEqual({ opened: 'current', closed: ['old', 'previous'] });
+      expect(prisma.incomeBook.findMany).toHaveBeenCalledWith({
+        where: {
+          closedAt: null,
+          OR: [{ year: { lt: year } }, { year, month: { lt: month } }],
+        },
+        include: {
+          lockEvents: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: { action: true },
+          },
+        },
+        orderBy: [{ year: 'asc' }, { month: 'asc' }],
+      });
+      expect(prisma.incomeBook.updateMany).toHaveBeenCalledTimes(2);
+      expect(prisma.incomeBookLockEvent.create).toHaveBeenCalledTimes(2);
       expect(prisma.incomeBookLockEvent.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          bookId: 'prev',
+          bookId: 'previous',
           action: 'LOCK',
-          reason: 'Automatsko zaključavanje na kraju mjeseca.',
+          reason: 'Automatsko zaključavanje prethodnog finansijskog perioda.',
           createdById: undefined,
         }),
       });
+      expect(prisma.incomeBook.upsert).toHaveBeenCalledWith({
+        where: { year_month: { year, month } },
+        create: { year, month },
+        update: {},
+        include: { entries: true },
+      });
     });
 
-    it('idempotentan je kada je prethodna već zatvorena i tekuća postoji', async () => {
-      prisma.incomeBook.findUnique
-        .mockResolvedValueOnce({ id: 'prev', closedAt: new Date() })
-        .mockResolvedValueOnce({ id: 'curr' });
+    it('ne poništava ručno otključavanje i opet osigurava tekuću knjigu', async () => {
+      const { year, month } = currentPeriod();
+      prisma.incomeBook.findMany.mockResolvedValue([
+        { id: 'manually-unlocked', lockEvents: [{ action: 'UNLOCK' }] },
+      ]);
+      prisma.incomeBook.upsert.mockResolvedValue({ id: 'current', year, month });
 
       const actual = await service.openNewMonthAndClosePrevious();
 
-      expect(prisma.incomeBook.update).not.toHaveBeenCalled();
-      expect(prisma.incomeBook.create).not.toHaveBeenCalled();
-      expect(actual).toEqual({ opened: 'curr', closed: 'prev' });
+      expect(actual).toEqual({ opened: 'current', closed: [] });
+      expect(prisma.incomeBook.updateMany).not.toHaveBeenCalled();
+      expect(prisma.incomeBookLockEvent.create).not.toHaveBeenCalled();
+      expect(prisma.incomeBook.upsert).toHaveBeenCalledTimes(1);
+    });
+
+    it('ponovni poziv sa zatvorenim historijskim periodima je bez dodatnog locka', async () => {
+      const { year, month } = currentPeriod();
+      prisma.incomeBook.findMany.mockResolvedValue([]);
+      prisma.incomeBook.upsert.mockResolvedValue({ id: 'current', year, month });
+
+      const actual = await service.openNewMonthAndClosePrevious();
+
+      expect(actual).toEqual({ opened: 'current', closed: [] });
+      expect(prisma.incomeBook.updateMany).not.toHaveBeenCalled();
+      expect(prisma.incomeBookLockEvent.create).not.toHaveBeenCalled();
+      expect(prisma.incomeBook.upsert).toHaveBeenCalledTimes(1);
     });
   });
 });

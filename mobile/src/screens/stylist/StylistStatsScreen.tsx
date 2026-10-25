@@ -10,6 +10,7 @@ import { spacing } from '../../theme';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import type { DailyLogEntry, Reservation } from '../../types';
 import { getServiceAmount, getSettledDebtsSum, getTipAmount } from './daily-log-display';
+import { getCalendarMonthRange, getSalonMonthLabel } from '../../utils/date';
 
 export function StylistStatsScreen() {
   const { colors } = useTheme();
@@ -27,21 +28,20 @@ export function StylistStatsScreen() {
     }
     try {
       const now = new Date();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const { fromDate, toDate } = getCalendarMonthRange(now);
       const [resRes, logRes] = await Promise.all([
         api.get<Reservation[]>('/api/reservations', {
           params: {
             asStylist: true,
-            fromDate: startOfMonth.toISOString().slice(0, 10),
-            toDate: endOfMonth.toISOString().slice(0, 10),
+            fromDate: fromDate,
+            toDate: toDate,
           },
         }),
         api.get<DailyLogEntry[]>('/api/daily-log', {
           params: {
             stylistProfileId: profileId,
-            fromDate: startOfMonth.toISOString().slice(0, 10),
-            toDate: endOfMonth.toISOString().slice(0, 10),
+            fromDate: fromDate,
+            toDate: toDate,
           },
         }),
       ]);
@@ -106,7 +106,7 @@ export function StylistStatsScreen() {
     );
   }
 
-  const monthLabel = new Date().toLocaleDateString('bs-BA', { month: 'long', year: 'numeric' });
+  const monthLabel = getSalonMonthLabel();
 
   return (
     <ScrollView

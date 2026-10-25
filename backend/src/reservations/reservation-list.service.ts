@@ -1,5 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  getDateOnlyDayBounds,
+  getDateOnlyRangeBounds,
+  parseDateOnlyString,
+} from '../common/utils/date-only';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationDateService } from './reservation-date.service';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
@@ -57,7 +62,7 @@ export class ReservationListService {
     user: CurrentUserPayload,
   ) {
     const where: {
-      reservationDate?: { gte?: Date; lte?: Date };
+      reservationDate?: { gte?: Date; lt?: Date };
       status?: string;
       clientId?: string;
       client?: { OR: Array<Record<string, unknown>> };
@@ -66,17 +71,26 @@ export class ReservationListService {
         stylistResponses?: { some: { stylistProfileId: string } };
       }>;
     } = {};
-    if (query.fromDate) {
-      where.reservationDate = {
-        ...where.reservationDate,
-        gte: new Date(query.fromDate),
-      };
-    }
-    if (query.toDate) {
-      where.reservationDate = {
-        ...where.reservationDate,
-        lte: new Date(query.toDate),
-      };
+    if (query.fromDate || query.toDate) {
+      try {
+        if (query.fromDate && query.toDate) {
+          where.reservationDate = getDateOnlyRangeBounds(
+            query.fromDate,
+            query.toDate,
+          );
+        } else if (query.fromDate) {
+          where.reservationDate = {
+            gte: parseDateOnlyString(query.fromDate),
+          };
+        } else if (query.toDate) {
+          const { lt } = getDateOnlyDayBounds(query.toDate);
+          where.reservationDate = { lt };
+        }
+      } catch {
+        throw new BadRequestException(
+          'fromDate i toDate moraju biti važeći datumi u formatu YYYY-MM-DD.',
+        );
+      }
     }
     if (query.status) where.status = query.status;
     const clientSearch = query.clientSearch?.trim();

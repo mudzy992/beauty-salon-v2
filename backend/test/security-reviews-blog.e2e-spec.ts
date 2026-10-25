@@ -133,7 +133,7 @@ const getHttpServer = (app: INestApplication): Server =>
 const addWeeks = (date: string, weeks: number): string => {
   const [year, month, day] = date.split('-').map(Number);
   const value = new Date(Date.UTC(year!, month! - 1, day! + weeks * 7));
-  return value.toISOString().slice(0, 10);
+  return `${String(value.getUTCFullYear()).padStart(4, '0')}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}`;
 };
 
 type FixtureIds = {

@@ -1,4 +1,8 @@
 import type { Reservation, ReservationStatus } from '../types'
+import {
+  formatDateOnlyLocale,
+  salonWallTimeToInstant,
+} from '../../../../../shared/business-date.mjs'
 
 type ReservationWithItems = Reservation & {
   items?: Array<{ service?: { price?: number | string | null } | null }>
@@ -7,14 +11,16 @@ type ReservationWithItems = Reservation & {
 export const formatReservationTime = (time: string) => time?.slice(0, 5) ?? time
 
 export const formatReservationDate = (iso: string) => {
-  const date = new Date(iso.slice(0, 10))
-  if (Number.isNaN(date.getTime())) return iso.slice(0, 10)
-  return date.toLocaleDateString('bs-BA', {
-    weekday: 'long',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
+  try {
+    return formatDateOnlyLocale(iso.slice(0, 10), 'bs-BA', {
+      weekday: 'long',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+  } catch {
+    return iso.slice(0, 10)
+  }
 }
 
 export const getReservationStatusVariant = (status: ReservationStatus) => {
@@ -37,11 +43,8 @@ export const parseReservationMoney = (value: string) => {
   return Number.isFinite(amount) ? amount : Number.NaN
 }
 
-export const getPlannedReservationDateTime = (reservationDate: string, time: string) => {
-  const [year, month, day] = reservationDate.slice(0, 10).split('-').map(Number)
-  const [hours, minutes] = time.slice(0, 5).split(':').map(Number)
-  return new Date(year ?? 0, (month ?? 1) - 1, day ?? 1, hours ?? 0, minutes ?? 0, 0, 0)
-}
+export const getPlannedReservationDateTime = (reservationDate: string, time: string) =>
+  salonWallTimeToInstant(reservationDate.slice(0, 10), time)
 
 export const canStaffConfirmAttendanceUi = (
   reservation: Pick<Reservation, 'status' | 'attendancePolicy' | 'reservationDate' | 'startTime'>,

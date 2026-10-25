@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { format } from 'date-fns'
 import { CalendarIcon, Info } from 'lucide-react'
 import {
   Dialog,
@@ -12,6 +11,10 @@ import { Button } from '../../components/ui/button'
 import { Label } from '../../components/ui/label'
 import { Input } from '../../components/ui/input'
 import type { DailyLogEntry } from './types'
+import {
+  formatDateOnlyLocale,
+  getSalonDateOnly,
+} from '../../../../shared/business-date.mjs'
 
 type Props = {
   entry: DailyLogEntry | null
@@ -20,15 +23,16 @@ type Props = {
   loading?: boolean
 }
 
-const isFutureDate = (dateStr: string): boolean => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return new Date(dateStr) > today
-}
+const isFutureDate = (dateStr: string): boolean =>
+  dateStr.slice(0, 10) > getSalonDateOnly()
 
 const formatDate = (dateStr: string) => {
   try {
-    return format(new Date(dateStr), 'dd.MM.yyyy')
+    return formatDateOnlyLocale(dateStr.slice(0, 10), 'bs-BA', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
   } catch {
     return dateStr
   }

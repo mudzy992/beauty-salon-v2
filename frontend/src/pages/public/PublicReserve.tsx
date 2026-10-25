@@ -17,6 +17,15 @@ import { useSocketEvent } from '../../context/SocketContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import {
+  addDateOnlyDays,
+  formatDateOnlyLocale,
+  getDateTimePartsInTimeZone,
+  getDateOnlyWeekday,
+  getDaysInMonth,
+  getSalonDateOnly,
+  getSalonTime,
+} from '../../../../shared/business-date.mjs'
+import {
   createIdempotencyKey,
   type PendingIdempotentRequest,
 } from '../../lib/idempotency-key'
@@ -317,30 +326,29 @@ const ReservationCalendar = ({
   disabled: boolean
 }) => {
   const [currentMonth, setCurrentMonth] = useState(() => {
-    const now = new Date()
-    return { year: now.getFullYear(), month: now.getMonth() }
+    const { year, month } = getDateTimePartsInTimeZone(new Date())
+    return { year, month: month - 1 }
   })
 
-  const today = useMemo(() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  }, [])
+  const today = useMemo(() => getSalonDateOnly(), [])
 
   const daysInMonth = useMemo(
-    () => new Date(currentMonth.year, currentMonth.month + 1, 0).getDate(),
+    () => getDaysInMonth(currentMonth.year, currentMonth.month + 1),
     [currentMonth],
   )
 
   const firstDayOfWeek = useMemo(() => {
-    const day = new Date(currentMonth.year, currentMonth.month, 1).getDay()
+    const month = String(currentMonth.month + 1).padStart(2, '0')
+    const day = getDateOnlyWeekday(`${currentMonth.year}-${month}-01`)
     return day === 0 ? 6 : day - 1
   }, [currentMonth])
 
   const canGoPrev = useMemo(() => {
-    const now = new Date()
+    const { year, month } = getDateTimePartsInTimeZone(new Date())
+    const salonMonth = month - 1
     return (
-      currentMonth.year > now.getFullYear() ||
-      (currentMonth.year === now.getFullYear() && currentMonth.month > now.getMonth())
+      currentMonth.year > year ||
+      (currentMonth.year === year && currentMonth.month > salonMonth)
     )
   }, [currentMonth])
 
@@ -523,15 +531,14 @@ export default function PublicReserve() {
 
   const loadAvailability = useCallback((serviceIds: string[]) => {
     setLoadingDates(true)
-    const from = new Date()
-    const to = new Date()
-    to.setDate(to.getDate() + 60)
+    const fromDate = getSalonDateOnly()
+    const toDate = addDateOnlyDays(fromDate, 60)
     api
       .get<DateAvailability[]>('/api/reservations/availability/dates', {
         params: {
           serviceIds: serviceIds.join(','),
-          fromDate: from.toISOString().slice(0, 10),
-          toDate: to.toISOString().slice(0, 10),
+          fromDate,
+          toDate,
         },
       })
       .then((r) => {
@@ -653,7 +660,7 @@ export default function PublicReserve() {
           : `${selectedServices[0]!.name} + ${selectedServices.length - 1}`
       toast.success(
         t('public.reserve.success'),
-        `${svcLabel} - ${new Date(selectedDate).toLocaleDateString('bs-BA')} u ${selectedSlot.start}`,
+        `${svcLabel} - ${formatDateOnlyLocale(selectedDate, 'bs-BA')} u ${selectedSlot.start}`,
       )
       setSelectedServices([])
       setSelectedDate('')
@@ -767,7 +774,7 @@ export default function PublicReserve() {
                       {t('public.reserve.selectTime')}{' '}
                       <span className="font-normal text-slate-500 text-sm ml-2">
                         (
-                        {new Date(selectedDate).toLocaleDateString('bs-BA', {
+                        {formatDateOnlyLocale(selectedDate, 'bs-BA', {
                           weekday: 'long',
                           day: 'numeric',
                           month: 'long',
@@ -789,9 +796,9 @@ export default function PublicReserve() {
                             selectedSlot?.start === slot.startTime &&
                             selectedSlot?.end === slot.endTime
                           const now = new Date()
-                          const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-                          const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-                          const isPastSlot = selectedDate === todayLocal && slot.startTime < nowHHMM
+                          const nowHHMM = getSalonTime(now)
+                          const todaySalon = getSalonDateOnly(now)
+                          const isPastSlot = selectedDate === todaySalon && slot.startTime < nowHHMM
                           const isHeld = slot.holdState === 'pending_hold' && slot.availableStylistCount === 0
                           const isDisabled = isPastSlot || isHeld
                           return (
@@ -950,7 +957,7 @@ export default function PublicReserve() {
                       <div>
                         <div className="text-xs text-slate-500">Datum</div>
                         <div className="font-semibold">
-                          {new Date(selectedDate).toLocaleDateString('bs-BA', {
+                          {formatDateOnlyLocale(selectedDate, 'bs-BA', {
                             weekday: 'long',
                             day: 'numeric',
                             month: 'long',

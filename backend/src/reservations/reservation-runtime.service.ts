@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { ReservationDateService } from './reservation-date.service';
+import { getDateOnlyDayBounds } from '../common/utils/date-only';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { RESERVATION_STATUS } from './constants';
@@ -72,14 +73,14 @@ export class ReservationRuntimeService {
         'Termin još nije počeo. Start je dozvoljen tek od planiranog vremena početka.',
       );
     }
-    const dayStart = this.dates.parseDateOnly(r.reservationDate);
-    const dayEnd = new Date(dayStart);
-    dayEnd.setHours(23, 59, 59, 999);
+    const { gte, lt } = getDateOnlyDayBounds(
+      this.dates.toDateOnlyString(r.reservationDate),
+    );
     const earlierPending = await this.prisma.reservation.findFirst({
       where: {
         id: { not: r.id },
         confirmedStylistId: stylistProfileId,
-        reservationDate: { gte: dayStart, lte: dayEnd },
+        reservationDate: { gte, lt },
         startTime: { lt: r.startTime },
         status: {
           in: [

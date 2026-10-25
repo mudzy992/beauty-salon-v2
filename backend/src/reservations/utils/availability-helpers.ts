@@ -1,4 +1,4 @@
-import { toLocalDateOnlyString } from '../../common/utils/date-only';
+import { toDateOnlyString } from '../../common/utils/date-only';
 import type { Prisma } from '@prisma/client';
 import { getStylistIdsForServices } from './service-eligibility';
 import { timeToMinutes } from './time-slot.utils';
@@ -23,7 +23,7 @@ export async function getStylistProfilesForSlots(
   const result: Array<{ id: string; window: { start: number; end: number } }> = [];
   for (const s of allStylists) {
     const override = s.workingHours.find(
-      (wh) => wh.dateOverride && toLocalDateOnlyString(wh.dateOverride) === dateStr,
+      (wh) => wh.dateOverride && toDateOnlyString(wh.dateOverride) === dateStr,
     );
     const regular = s.workingHours.find(
       (wh) => !wh.dateOverride && wh.dayOfWeek === dayOfWeek,

@@ -49,7 +49,7 @@ export class ReservationQueriesService {
       : null;
     return {
       publicReferenceCode: r.publicReferenceCode,
-      reservationDate: this.dates.toLocalDateOnlyString(r.reservationDate),
+      reservationDate: this.dates.toDateOnlyString(r.reservationDate),
       startTime: r.startTime,
       endTime: r.endTime,
       status: r.status,

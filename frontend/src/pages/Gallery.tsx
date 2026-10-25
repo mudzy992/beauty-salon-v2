@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 
 import api from '../api/client'
+import { formatDateOnlyLocale } from '../../../shared/business-date.mjs'
 import { MediaImage } from '../components/media-image'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { useAppToast } from '../lib/toast/useAppToast'
@@ -536,7 +537,7 @@ export default function Gallery() {
                       />
                       <span className="min-w-0 text-xs text-slate-700">
                         <span className="block font-semibold">{image.isBefore ? 'Prije' : 'Poslije'} · {image.serviceName}</span>
-                        <span className="block text-slate-500">{new Date(image.serviceDate).toLocaleDateString('bs-BA')}</span>
+                        <span className="block text-slate-500">{formatDateOnlyLocale(image.serviceDate.slice(0, 10), 'bs-BA')}</span>
                       </span>
                     </label>
                   ))}

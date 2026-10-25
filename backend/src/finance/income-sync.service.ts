@@ -13,6 +13,7 @@ import {
 import { getServiceAmount } from '../daily-log/daily-log.amounts'
 import {
   assertValidPeriod,
+  getBookPeriodDateBounds,
   getPeriodOfDate,
 } from '../common/utils/book-period'
 
@@ -176,8 +177,10 @@ export class IncomeSyncService {
    */
   async checkIntegrity(bookId: string) {
     const book = await this.books.getBookOrThrow(bookId)
-    const periodStart = new Date(book.year, book.month - 1, 1)
-    const periodEnd = new Date(book.year, book.month, 1)
+    const { gte: periodStart, lt: periodEnd } = getBookPeriodDateBounds(
+      book.year,
+      book.month,
+    )
 
     const missing = await this.prisma.dailyLogEntry.findMany({
       where: {
@@ -228,8 +231,10 @@ export class IncomeSyncService {
   /** Read-only cross-ledger report for completed service logs in one KIF period. */
   async checkCompletionIntegrity(bookId: string) {
     const book = await this.books.getBookOrThrow(bookId)
-    const periodStart = new Date(book.year, book.month - 1, 1)
-    const periodEnd = new Date(book.year, book.month, 1)
+    const { gte: periodStart, lt: periodEnd } = getBookPeriodDateBounds(
+      book.year,
+      book.month,
+    )
     const entries = await this.prisma.dailyLogEntry.findMany({
       where: {
         status: 'COMPLETED',

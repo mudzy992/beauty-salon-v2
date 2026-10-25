@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { parseDateOnlyString } from '../common/utils/date-only';
 
 @Injectable()
 export class DailyLogValidators {
@@ -49,11 +50,10 @@ export class DailyLogValidators {
   }
 
   parseDate(value: string): Date {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
+    try {
+      return parseDateOnlyString(value);
+    } catch {
       throw new BadRequestException('Datum nije validan.');
     }
-    date.setHours(0, 0, 0, 0);
-    return date;
   }
 }

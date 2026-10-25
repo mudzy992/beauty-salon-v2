@@ -106,7 +106,7 @@ export class ReservationDirectCreateService {
       );
     }
     const reservationDateString =
-      this.dates.toLocalDateOnlyString(reservationDate);
+      this.dates.toDateOnlyString(reservationDate);
 
     const created = await this.prisma.$transaction(async (tx) => {
       await acquireReservationDayLock(tx, reservationDate);

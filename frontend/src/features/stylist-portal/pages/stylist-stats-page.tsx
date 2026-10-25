@@ -7,13 +7,9 @@ import { fetchDailyLogEntries } from '../../stylist-workbook/api/stylist-workboo
 import { fetchStylistReservations } from '../api/stylist-portal.api'
 import type { DailyLogEntry } from '../../stylist-workbook/types'
 import type { Reservation } from '../types'
+import { getCalendarMonthRange } from '../../../../../shared/business-date.mjs'
 
-const getMonthRange = () => {
-  const now = new Date()
-  const start = new Date(now.getFullYear(), now.getMonth(), 1)
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-  return { fromDate: start.toISOString().slice(0, 10), toDate: end.toISOString().slice(0, 10) }
-}
+const getMonthRange = () => getCalendarMonthRange()
 
 const money = (n: number) => `${n.toFixed(2)} KM`
 

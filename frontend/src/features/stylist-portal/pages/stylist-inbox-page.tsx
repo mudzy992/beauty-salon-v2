@@ -9,6 +9,7 @@ import { fetchClientDebts } from '../api/stylist-portal.api'
 import { RejectReservationDialog } from '../components/reject-reservation-dialog'
 import { useStylistInboxReservations } from '../hooks/useStylistReservations'
 import type { Reservation } from '../types'
+import { formatDateOnlyLocale, getSalonDateOnly } from '../../../../../shared/business-date.mjs'
 
 const getStatusBadge = (r: Reservation) => {
   if (r.status === 'STYLIST_REVIEW') return { label: 'Na pregledu', variant: 'brand' as const }
@@ -19,9 +20,15 @@ const getMyResponse = (r: Reservation, profileId: string) =>
   r.stylistResponses?.find((x) => x.stylistProfileId === profileId)
 
 const formatDate = (iso: string) => {
-  const d = new Date(iso.slice(0, 10))
-  if (Number.isNaN(d.getTime())) return iso.slice(0, 10)
-  return d.toLocaleDateString('bs-BA', { year: 'numeric', month: '2-digit', day: '2-digit' })
+  try {
+    return formatDateOnlyLocale(iso.slice(0, 10), 'bs-BA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+  } catch {
+    return iso.slice(0, 10)
+  }
 }
 
 const formatTime = (t: string) => t?.slice(0, 5) ?? t
@@ -198,7 +205,7 @@ export const StylistInboxPage = () => {
                     {r.client.firstName} {r.client.lastName}
                   </p>
                   {count > 0 ? <Badge variant="warning">CXL: {count}</Badge> : null}
-                  {isPenalized ? <Badge variant="danger">PENAL do {until!.toISOString().slice(0, 10)}</Badge> : null}
+                  {isPenalized ? <Badge variant="danger">PENAL do {getSalonDateOnly(until!)}</Badge> : null}
                 </div>
               ) : null}
 

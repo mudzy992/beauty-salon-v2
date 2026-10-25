@@ -121,7 +121,7 @@ describe('ReservationInboxCronService', () => {
     });
     expect(mockEvents.emitToAll).toHaveBeenCalledWith(
       SOCKET_EVENTS.AVAILABILITY_CHANGED,
-      { serviceId: 'svc-1', date: reservationDate },
+      { serviceId: 'svc-1', date: '2026-03-20' }
     );
   });
 

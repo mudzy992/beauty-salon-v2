@@ -22,7 +22,7 @@ describe('ReservationAppointmentReminderService', () => {
   const dates = {
     refreshTimezone: jest.fn(),
     combineDateAndTime: jest.fn(),
-    toLocalDateOnlyString: jest.fn(),
+    toDateOnlyString: jest.fn(),
   }
   const notifications = { send: jest.fn() }
 
@@ -37,7 +37,7 @@ describe('ReservationAppointmentReminderService', () => {
     jest.clearAllMocks()
     dates.refreshTimezone.mockResolvedValue(undefined)
     settings.getNumber.mockResolvedValue(24)
-    dates.toLocalDateOnlyString.mockReturnValue('2026-08-15')
+    dates.toDateOnlyString.mockReturnValue('2026-08-15')
   })
 
   it('sends once when start is within reminder window', async () => {

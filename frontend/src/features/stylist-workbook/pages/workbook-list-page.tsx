@@ -9,17 +9,19 @@ import { WorkbookNewEntryDrawer } from './workbook-new-entry-page'
 import { useStylistProfileMe } from '../hooks/useStylistProfileMe'
 import { useWorkbookEntries } from '../hooks/useWorkbookEntries'
 import { getCollectedTotal, getServicesLabel, getSettledDebtsSum } from '../workbook-display'
+import {
+  addDateOnlyDays,
+  addDateOnlyMonths,
+  getSalonDateOnly,
+} from '../../../../../shared/business-date.mjs'
 
 const formatKm = (v: number) => `${Number(v || 0).toFixed(2)} KM`
 
 const getWindow = () => {
-  const from = new Date()
-  from.setMonth(from.getMonth() - 1)
-  const to = new Date()
-  to.setDate(to.getDate() + 7)
+  const today = getSalonDateOnly()
   return {
-    fromDate: from.toISOString().slice(0, 10),
-    toDate: to.toISOString().slice(0, 10),
+    fromDate: addDateOnlyMonths(today, -1),
+    toDate: addDateOnlyDays(today, 7),
   }
 }
 

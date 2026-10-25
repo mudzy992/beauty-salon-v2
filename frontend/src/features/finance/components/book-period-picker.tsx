@@ -1,6 +1,7 @@
 import { Button } from '../../../components/ui/button'
 import { Label } from '../../../components/ui/label'
 import { MONTHS, isFuturePeriod } from '../finance.utils'
+import { getDateTimePartsInTimeZone } from '../../../../../shared/business-date.mjs'
 
 const YEAR_SPAN = 5
 
@@ -26,7 +27,7 @@ export function BookPeriodPicker({
   openLabel,
   isPending = false,
 }: BookPeriodPickerProps) {
-  const currentYear = new Date().getFullYear()
+  const currentYear = getDateTimePartsInTimeZone(new Date()).year
   const years = Array.from({ length: YEAR_SPAN }, (_, i) => currentYear - i)
   const isFuture = isFuturePeriod(year, month)
 

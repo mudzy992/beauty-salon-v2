@@ -5,6 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  getDateOnlyDayBounds,
+  toDateOnlyString,
+} from '../common/utils/date-only';
 import { EventsGateway } from '../events/events.gateway';
 import { ReservationDateService } from './reservation-date.service';
 import { ReservationQueriesService } from './reservation-queries.service';
@@ -61,7 +65,9 @@ export class ReservationUpdateService {
 
     const requestedDate = dto.reservationDate
       ? this.dates.parseDateOnly(dto.reservationDate)
-      : this.dates.parseDateOnly(snapshot.reservationDate);
+      : this.dates.parseDateOnly(
+          this.dates.toDateOnlyString(snapshot.reservationDate),
+        );
 
     const updatedContext = await this.prisma.$transaction(async (tx) => {
       await acquireReservationDayLocks(tx, [
@@ -99,7 +105,9 @@ export class ReservationUpdateService {
 
       const nextDate = dto.reservationDate
         ? this.dates.parseDateOnly(dto.reservationDate)
-        : this.dates.parseDateOnly(current.reservationDate);
+        : this.dates.parseDateOnly(
+            this.dates.toDateOnlyString(current.reservationDate),
+          );
       const nextStartTime = (dto.startTime ?? current.startTime).trim();
       const nextEndTime = (dto.endTime ?? current.endTime).trim();
       if (!nextStartTime || !nextEndTime) {
@@ -133,9 +141,9 @@ export class ReservationUpdateService {
         excludeReservationId: current.id,
       });
 
-      const normalizedNextDate = this.dates.toLocalDateOnlyString(nextDate);
+      const normalizedNextDate = this.dates.toDateOnlyString(nextDate);
       const scheduleChanged =
-        this.dates.toLocalDateOnlyString(current.reservationDate) !==
+        this.dates.toDateOnlyString(current.reservationDate) !==
           normalizedNextDate ||
         current.startTime.trim().slice(0, 5) !== nextStartTime.slice(0, 5) ||
         current.endTime.trim().slice(0, 5) !== nextEndTime.slice(0, 5);
@@ -166,15 +174,14 @@ export class ReservationUpdateService {
           excludeReservationId: current.id,
         });
       } else if (current.confirmedStylistId) {
-        const dayStart = new Date(nextDate);
-        dayStart.setUTCHours(0, 0, 0, 0);
-        const dayEnd = new Date(nextDate);
-        dayEnd.setUTCHours(23, 59, 59, 999);
+        const { gte, lt } = getDateOnlyDayBounds(
+          this.dates.toDateOnlyString(nextDate),
+        );
         const conflict = await tx.reservation.findFirst({
           where: {
             id: { not: current.id },
             confirmedStylistId: current.confirmedStylistId,
-            reservationDate: { gte: dayStart, lte: dayEnd },
+            reservationDate: { gte, lt },
             status: { in: [...SLOT_OCCUPYING_STATUSES] as any },
             startTime: { lt: nextEndTime },
             endTime: { gt: nextStartTime },
@@ -252,7 +259,7 @@ export class ReservationUpdateService {
     );
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
       serviceId: updatedContext.serviceId,
-      date: this.dates.parseDateOnly(updatedContext.nextDateStr),
+      date: updatedContext.nextDateStr,
     });
     if (updatedContext.scheduleChanged) {
       await this.notify.notifyClientTimeChanged({

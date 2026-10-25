@@ -8,6 +8,7 @@ import { Label } from '../../../components/ui/label'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import api from '../../../api/client'
 import { useQuery } from '@tanstack/react-query'
+import { getSalonDateOnly } from '../../../../../shared/business-date.mjs'
 
 type DebtRow = {
   id: string
@@ -28,7 +29,7 @@ export const StylistDebtsPage = () => {
   const [q, setQ] = useState('')
   const [repayOpen, setRepayOpen] = useState(false)
   const [repayDebtId, setRepayDebtId] = useState<string | null>(null)
-  const [repayDate, setRepayDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [repayDate, setRepayDate] = useState(() => getSalonDateOnly())
   const [repayNote, setRepayNote] = useState('')
   const [repaying, setRepaying] = useState(false)
 
@@ -59,7 +60,7 @@ export const StylistDebtsPage = () => {
 
   const openRepay = (debtId: string) => {
     setRepayDebtId(debtId)
-    setRepayDate(new Date().toISOString().slice(0, 10))
+    setRepayDate(getSalonDateOnly())
     setRepayNote('')
     setRepayOpen(true)
   }

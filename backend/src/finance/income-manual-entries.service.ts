@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common'
 import { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
+import { toDateOnlyString } from '../common/utils/date-only'
 import { IncomeBooksService } from './income-books.service'
 import {
   IncomeBookRepository,
@@ -33,7 +34,7 @@ const toSnapshot = (entry: {
   notes: string | null
 }): Prisma.InputJsonObject => ({
   id: entry.id,
-  date: entry.date.toISOString(),
+  date: toDateOnlyString(entry.date),
   serviceId: entry.serviceId,
   stylistProfileId: entry.stylistProfileId,
   clientId: entry.clientId,

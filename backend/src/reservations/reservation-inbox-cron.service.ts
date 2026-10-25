@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toDateOnlyString } from '../common/utils/date-only';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
@@ -75,7 +76,7 @@ export class ReservationInboxCronService {
       }
       this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
         serviceId: row.reservation.serviceId,
-        date: row.reservation.reservationDate,
+        date: toDateOnlyString(row.reservation.reservationDate),
       });
     }
     return { releasedCount };
@@ -155,7 +156,7 @@ export class ReservationInboxCronService {
       });
       this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
         serviceId: r.serviceId,
-        date: r.reservationDate,
+        date: toDateOnlyString(r.reservationDate),
       });
     }
     return { cancelledCount };

@@ -19,6 +19,15 @@ import { UpdateStylistProfileDto } from './dto/update-stylist-profile.dto';
 import { StylistWorkingHoursDto } from './dto/stylist-working-hours.dto';
 import { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { EventsGateway } from '../events/events.gateway';
+import { parseDateOnlyString } from '../common/utils/date-only';
+
+const parseDateOnlyInput = (value: string): Date => {
+  try {
+    return parseDateOnlyString(value);
+  } catch {
+    throw new BadRequestException('Datum mora biti validan YYYY-MM-DD.');
+  }
+};
 
 @Injectable()
 export class StylistsService {
@@ -168,7 +177,7 @@ export class StylistsService {
         specialization: dto.specialization,
         status: 'ACTIVE',
         isActive: dto.isActive ?? true,
-        hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
+        hireDate: dto.hireDate ? parseDateOnlyInput(dto.hireDate) : null,
       },
       include: {
         user: { select: { id: true, firstName: true, lastName: true } },
@@ -249,7 +258,7 @@ export class StylistsService {
               : {}),
           }),
         ...(dto.hireDate !== undefined && {
-          hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
+          hireDate: dto.hireDate ? parseDateOnlyInput(dto.hireDate) : null,
         }),
       },
     });
@@ -286,20 +295,21 @@ export class StylistsService {
     stylistProfileId: string,
     hours: StylistWorkingHoursDto[],
   ) {
+    const data = hours.map((h) => ({
+      stylistProfileId,
+      dayOfWeek: h.dayOfWeek,
+      dateOverride: h.dateOverride ? parseDateOnlyInput(h.dateOverride) : null,
+      startTime: h.startTime,
+      endTime: h.endTime,
+      isWorkingDay: h.isWorkingDay ?? true,
+    }));
     await this.findOne(stylistProfileId);
     await this.prisma.stylistWorkingHours.deleteMany({
       where: { stylistProfileId },
     });
-    if (hours.length) {
+    if (data.length) {
       await this.prisma.stylistWorkingHours.createMany({
-        data: hours.map((h) => ({
-          stylistProfileId,
-          dayOfWeek: h.dayOfWeek,
-          dateOverride: h.dateOverride ? new Date(h.dateOverride) : null,
-          startTime: h.startTime,
-          endTime: h.endTime,
-          isWorkingDay: h.isWorkingDay ?? true,
-        })),
+        data,
       });
     }
     return this.prisma.stylistWorkingHours.findMany({

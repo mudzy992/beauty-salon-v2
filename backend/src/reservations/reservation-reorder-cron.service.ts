@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ReservationDateService } from './reservation-date.service';
+import {
+  addDateOnlyDays,
+  getDateOnlyWeekday,
+  parseDateOnlyString,
+} from '../common/utils/date-only';
 import { ReservationSharedService } from './reservation-shared.service';
 import { RESERVATION_STATUS } from './constants';
 import { minutesToTime, timeToMinutes } from './utils/time-slot.utils';
@@ -19,11 +24,10 @@ export class ReservationReorderCronService {
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) return { proposedCount: 0 };
     const now = new Date();
-    const today = this.dates.parseDateOnly(now);
-    const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-    const dayAfterTomorrow = new Date(
-      tomorrow.getTime() + 24 * 60 * 60 * 1000,
-    );
+    const todayStr = this.dates.toSalonDateOnlyString(now);
+    const today = parseDateOnlyString(todayStr);
+    const tomorrow = parseDateOnlyString(addDateOnlyDays(todayStr, 1));
+    const dayAfterTomorrow = parseDateOnlyString(addDateOnlyDays(todayStr, 2));
     const attendanceConfirmed =
       await this.prisma.reservation.findMany({
         where: {
@@ -47,11 +51,10 @@ export class ReservationReorderCronService {
           { startTime: 'asc' },
         ],
       });
-    const nowDateStr = this.dates.toLocalDateOnlyString(now);
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const nowMinutes = timeToMinutes(this.dates.toSalonTimeString(now));
     const byKey = new Map<string, typeof attendanceConfirmed>();
     for (const r of attendanceConfirmed) {
-      const key = `${r.confirmedStylistId}|${this.dates.toLocalDateOnlyString(r.reservationDate)}`;
+      const key = `${r.confirmedStylistId}|${this.dates.toDateOnlyString(r.reservationDate)}`;
       const list = byKey.get(key);
       if (list) list.push(r);
       else byKey.set(key, [r]);
@@ -69,7 +72,7 @@ export class ReservationReorderCronService {
         list,
         hours,
         salon.pauseBetweenServices ?? 0,
-        dateStr === nowDateStr ? nowMinutes : 0,
+        dateStr === todayStr ? nowMinutes : 0,
       );
     }
     return { proposedCount };
@@ -156,17 +159,7 @@ export class ReservationReorderCronService {
     salonSettingsId: string,
     dateStr: string,
   ) {
-    const dateParts = dateStr.split('-').map((x) => Number(x));
-    const date = new Date(
-      dateParts[0],
-      dateParts[1] - 1,
-      dateParts[2],
-      12,
-      0,
-      0,
-      0,
-    );
-    const dayOfWeek = date.getDay();
+    const dayOfWeek = getDateOnlyWeekday(dateStr);
     const hours = await this.prisma.salonWorkingHours.findUnique({
       where: {
         salonSettingsId_dayOfWeek: { salonSettingsId, dayOfWeek },

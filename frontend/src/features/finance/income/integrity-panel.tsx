@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
-import { formatIsoDateBs, formatMoney, getPersonName } from '../finance.utils'
+import { formatDateOnlyBs, formatMoney, getPersonName } from '../finance.utils'
 import type { IncomeBookIntegrity } from '../finance.types'
 
 type IntegrityPanelProps = {
@@ -69,7 +69,7 @@ export function IntegrityPanel({
           {report.missing.slice(0, 5).map((entry) => (
             <li key={entry.id} className="flex justify-between gap-3">
               <span className="truncate">
-                {formatIsoDateBs(entry.date)} · {entry.service?.name ?? '—'} ·{' '}
+                {formatDateOnlyBs(entry.date)} · {entry.service?.name ?? '—'} ·{' '}
                 {getPersonName(entry.stylistProfile?.user)}
               </span>
               <span className="shrink-0 tabular-nums">

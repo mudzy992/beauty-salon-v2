@@ -26,6 +26,7 @@ import { Input } from '../../components/ui/Input';
 import api, { getImageUrl } from '../../services/api';
 import { spacing } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
+import { formatDate } from '../../utils/date';
 import type { ProfileScreenProps } from '../../navigation/types';
 import { useApkUpdateCheck } from '../../features/app-update/use-apk-update-check';
 import { ApkForceUpdateModal } from '../../features/app-update/apk-force-update-modal';
@@ -359,7 +360,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
                     />
                     <Text style={{ color: colors.text, fontWeight: '700', marginTop: spacing.sm }}>{label}</Text>
                     <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }}>
-                      {item.serviceName} · {new Date(item.serviceDate).toLocaleDateString('bs-BA')}
+                      {item.serviceName} · {formatDate(item.serviceDate)}
                     </Text>
                     <TouchableOpacity
                       onPress={() => setMediaConsentAccepted((current) => ({ ...current, [item.imageId]: !checked }))}
@@ -396,7 +397,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
                       {item.isBefore ? 'Prije' : 'Poslije'} · {item.serviceName}
                     </Text>
                     <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                      {new Date(item.serviceDate).toLocaleDateString('bs-BA')}
+                      {formatDate(item.serviceDate)}
                     </Text>
                     <Text style={{ color: item.isPublished ? colors.success : colors.textSecondary, fontSize: 11, marginTop: 2 }}>
                       {item.isPublished

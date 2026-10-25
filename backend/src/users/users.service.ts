@@ -13,6 +13,7 @@ import { RemoveStylistRoleDto } from './dto/remove-stylist-role.dto';
 import { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import {
   analyticsDateBounds,
+  analyticsInstantBounds,
   resolveAnalyticsDateRange,
 } from '../common/analytics-date-range';
 import { UsersRepository } from './users.repository';
@@ -878,6 +879,7 @@ export class UsersService {
     this.requireAdminOrOwner(roles);
     const analyticsRange = resolveAnalyticsDateRange(fromDate, toDate);
     const dateBounds = analyticsDateBounds(analyticsRange);
+    const instantBounds = analyticsInstantBounds(analyticsRange);
     const user = await this.repo.user.findUnique({
       where: { id: userId },
       select: {
@@ -896,7 +898,7 @@ export class UsersService {
 
     const dateFilter = { reservationDate: dateBounds };
     const dailyLogDateFilter = { date: dateBounds };
-    const reviewDateFilter = { createdAt: dateBounds };
+    const reviewDateFilter = { createdAt: instantBounds };
 
     const [
       reservations,

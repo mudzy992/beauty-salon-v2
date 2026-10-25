@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toDateOnlyString } from '../common/utils/date-only';
 import { EventsGateway } from '../events/events.gateway';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
@@ -179,7 +180,7 @@ export class ReservationStylistLockService {
       );
       this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
         serviceId: locked.serviceId,
-        date: locked.reservationDate,
+        date: toDateOnlyString(locked.reservationDate),
       });
     }
     return locked;
@@ -289,7 +290,7 @@ export class ReservationStylistLockService {
     );
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
       serviceId: unlocked.serviceId,
-      date: unlocked.reservationDate,
+      date: toDateOnlyString(unlocked.reservationDate),
     });
     return unlocked;
   }

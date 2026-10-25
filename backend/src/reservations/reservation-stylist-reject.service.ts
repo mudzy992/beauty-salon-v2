@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toDateOnlyString } from '../common/utils/date-only';
 import { NotificationsService } from '../notifications/notifications.service';
 import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
 import { buildCancelledCopy } from '../notifications/utils/reservation-push-copy';
@@ -135,7 +136,7 @@ export class ReservationStylistRejectService {
         cancelled,
         clientId: res.clientId,
         serviceId: res.serviceId,
-        date: res.reservationDate,
+        date: toDateOnlyString(res.reservationDate),
       };
     });
 

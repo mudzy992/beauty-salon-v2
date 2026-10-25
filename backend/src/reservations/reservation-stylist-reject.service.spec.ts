@@ -167,7 +167,7 @@ describe('ReservationStylistRejectService', () => {
     expect(mockNotifications.send).not.toHaveBeenCalled();
     expect(mockEvents.emitToAll).toHaveBeenCalledWith(
       SOCKET_EVENTS.AVAILABILITY_CHANGED,
-      expect.objectContaining({ serviceId: 'svc-1', date: reservationDate }),
+      expect.objectContaining({ serviceId: 'svc-1', date: '2026-03-20' }),
     );
   });
 

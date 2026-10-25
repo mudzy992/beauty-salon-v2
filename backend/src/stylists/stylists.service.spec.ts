@@ -25,6 +25,11 @@ const mockPrisma = {
     findMany: jest.fn(),
     count: jest.fn(),
   },
+  stylistWorkingHours: {
+    deleteMany: jest.fn(),
+    createMany: jest.fn(),
+    findMany: jest.fn(),
+  },
   stylistProfile: {
     findUnique: jest.fn(),
     findMany: jest.fn(),
@@ -192,7 +197,7 @@ describe('StylistsService socket revocation', () => {
     );
     const dateBounds = {
       gte: new Date('2026-03-01T00:00:00.000Z'),
-      lte: new Date('2026-03-31T23:59:59.999Z'),
+      lt: new Date('2026-04-01T00:00:00.000Z'),
     };
 
     expect(result).toMatchObject({
@@ -268,6 +273,47 @@ describe('StylistsService socket revocation', () => {
     expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
       'stylist-user-1',
     );
+  });
+
+  it('stores hireDate as a strict UTC date-only value', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({ id: 'stylist-user-1' });
+    mockPrisma.stylistProfile.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'profile-1', userId: 'stylist-user-1' });
+    mockPrisma.stylistProfile.create.mockResolvedValue({
+      id: 'profile-1',
+      userId: 'stylist-user-1',
+    });
+    mockPrisma.role.findUnique.mockResolvedValue(null);
+
+    await service.create(
+      { userId: 'stylist-user-1', hireDate: '2026-04-01' },
+      ['OWNER'],
+    );
+
+    expect(mockPrisma.stylistProfile.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          hireDate: new Date('2026-04-01T00:00:00.000Z'),
+        }),
+      }),
+    );
+  });
+
+  it('rejects an invalid date override before deleting existing working hours', async () => {
+    await expect(
+      service.setWorkingHours('profile-1', [
+        {
+          dayOfWeek: 0,
+          dateOverride: '2026-02-30',
+          startTime: '09:00',
+          endTime: '17:00',
+        },
+      ]),
+    ).rejects.toThrow('Datum mora biti validan YYYY-MM-DD.');
+
+    expect(mockPrisma.stylistWorkingHours.deleteMany).not.toHaveBeenCalled();
+    expect(mockPrisma.stylistProfile.findUnique).not.toHaveBeenCalled();
   });
 
   it('disconnects existing sessions when creating a stylist profile and role', async () => {

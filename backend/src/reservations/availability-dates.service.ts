@@ -5,7 +5,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { toLocalDateOnlyString } from '../common/utils/date-only';
+import {
+  addDateOnlyDays,
+  getDateOnlyRangeBounds,
+  getDateOnlyWeekday,
+  parseDateOnlyString,
+  toDateOnlyString,
+} from '../common/utils/date-only';
 import { getStylistIdsForServices } from './utils/availability-helpers';
 import { buildBookableServiceWhere } from './utils/service-eligibility';
 import { AvailabilitySlotsService } from './availability-slots.service';
@@ -26,9 +32,13 @@ export class AvailabilityDatesService {
 
   async getAvailableDates(
     serviceIdsInput: string[] | string,
-    fromDate: Date,
-    toDate?: Date,
+    fromDateInput: string,
+    toDateInput?: string,
   ): Promise<AvailableDateDto[]> {
+    const fromDate = this.normalizeDateOnlyInput(fromDateInput, 'fromDate');
+    const toDate = toDateInput
+      ? this.normalizeDateOnlyInput(toDateInput, 'toDate')
+      : addDateOnlyDays(fromDate, 30);
     this.validateDateRange(fromDate, toDate);
 
     const serviceIds = Array.isArray(serviceIdsInput)
@@ -50,12 +60,7 @@ export class AvailabilityDatesService {
       throw new NotFoundException('Servis nije pronađen.');
 
     const stylistIds = await getStylistIdsForServices(this.prisma, normalized);
-
-    const end = toDate
-      ? new Date(toDate)
-      : new Date(fromDate.getTime() + 30 * DAY_MS);
-    end.setHours(12, 0, 0, 0);
-
+    const { gte, lt } = getDateOnlyRangeBounds(fromDate, toDate);
     const salonHoursList = await this.prisma.salonWorkingHours.findMany({
       where: { salonSettingsId: salon.id },
     });
@@ -66,12 +71,10 @@ export class AvailabilityDatesService {
     const holidays = await this.prisma.holiday.findMany({
       where: {
         salonSettingsId: salon.id,
-        date: { gte: fromDate, lte: end },
+        date: { gte, lt },
       },
     });
-    const holidayDates = new Set(
-      holidays.map((h) => toLocalDateOnlyString(h.date)),
-    );
+    const holidayDates = new Set(holidays.map((h) => toDateOnlyString(h.date)));
 
     let stylistWH: Array<{ dayOfWeek: number; dateOverride: Date | null }> = [];
     if (stylistIds.length > 0) {
@@ -90,7 +93,7 @@ export class AvailabilityDatesService {
     const stylistOverrideDates = new Set(
       stylistWH
         .filter((w) => w.dateOverride)
-        .map((w) => toLocalDateOnlyString(w.dateOverride!)),
+        .map((w) => toDateOnlyString(w.dateOverride!)),
     );
 
     this.logger.debug(
@@ -104,16 +107,14 @@ export class AvailabilityDatesService {
     );
 
     const results: AvailableDateDto[] = [];
-    const cursor = new Date(fromDate);
-    cursor.setHours(12, 0, 0, 0);
-
-    while (cursor <= end) {
-      const dayOfWeek = cursor.getDay();
-      const dateStr = toLocalDateOnlyString(cursor);
+    const endDate = parseDateOnlyString(toDate);
+    let dateStr = fromDate;
+    while (parseDateOnlyString(dateStr) <= endDate) {
+      const dayOfWeek = getDateOnlyWeekday(dateStr);
 
       if (stylistIds.length === 0) {
         results.push({ date: dateStr, available: false });
-        cursor.setDate(cursor.getDate() + 1);
+        dateStr = addDateOnlyDays(dateStr, 1);
         continue;
       }
 
@@ -127,7 +128,7 @@ export class AvailabilityDatesService {
         date: dateStr,
         available: !isHoliday && salonOpen && hasWorkingStylist,
       });
-      cursor.setDate(cursor.getDate() + 1);
+      dateStr = addDateOnlyDays(dateStr, 1);
     }
 
     const availableRows = results
@@ -165,22 +166,20 @@ export class AvailabilityDatesService {
     return resolvedResults;
   }
 
-  private validateDateRange(fromDate: Date, toDate?: Date): void {
-    if (!(fromDate instanceof Date) || !Number.isFinite(fromDate.getTime())) {
-      throw new BadRequestException('fromDate nije validan datum.');
+  private normalizeDateOnlyInput(value: string, fieldName: string): string {
+    try {
+      parseDateOnlyString(value);
+      return value;
+    } catch {
+      throw new BadRequestException(
+        `${fieldName} mora biti važeći datum u formatu YYYY-MM-DD.`,
+      );
     }
-    if (
-      toDate !== undefined &&
-      (!(toDate instanceof Date) || !Number.isFinite(toDate.getTime()))
-    ) {
-      throw new BadRequestException('toDate nije validan datum.');
-    }
+  }
 
-    const end = toDate ?? new Date(fromDate.getTime() + 30 * DAY_MS);
-    const fromDay = new Date(fromDate);
-    fromDay.setUTCHours(0, 0, 0, 0);
-    const endDay = new Date(end);
-    endDay.setUTCHours(0, 0, 0, 0);
+  private validateDateRange(fromDate: string, toDate: string): void {
+    const fromDay = parseDateOnlyString(fromDate);
+    const endDay = parseDateOnlyString(toDate);
     if (endDay.getTime() < fromDay.getTime()) {
       throw new BadRequestException(
         'toDate mora biti isti ili kasniji od fromDate.',

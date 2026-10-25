@@ -10,6 +10,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { IncomeSyncService } from './income-sync.service';
 import { IncomeManualEntriesService } from './income-manual-entries.service';
 import { parseAndNormalizeDate } from '../common/utils/book-period';
+import {
+  parseDateOnlyString,
+  toDateOnlyStringInTimeZone,
+} from '../common/utils/date-only';
 import { allocateDailyLogReferenceCode } from '../daily-log/daily-log.reference';
 import type { RepayClientDebtDto } from './dto/repay-client-debt.dto';
 import type { SettleClientDebtDto } from './dto/settle-client-debt.dto';
@@ -210,8 +214,9 @@ export class ClientDebtsService {
       throw new BadRequestException('Dug je već zatvoren.');
     }
 
-    const date = dto.date ? parseAndNormalizeDate(dto.date) : new Date();
-    date.setHours(0, 0, 0, 0);
+    const date = dto.date
+      ? parseAndNormalizeDate(dto.date)
+      : parseDateOnlyString(toDateOnlyStringInTimeZone(new Date()));
 
     const initialServiceId =
       debt.serviceId ??

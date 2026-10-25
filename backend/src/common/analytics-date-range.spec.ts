@@ -1,5 +1,6 @@
 import {
   analyticsDateBounds,
+  analyticsInstantBounds,
   resolveAnalyticsDateRange,
 } from './analytics-date-range';
 
@@ -14,12 +15,12 @@ describe('analytics date-range validation', () => {
     ).toEqual({ fromDate: '2025-10-22', toDate: '2026-10-22' });
   });
 
-  it('uses the UTC calendar date for defaults regardless of process timezone', () => {
+  it('uses the salon business date for defaults across UTC midnight', () => {
     expect(
       resolveAnalyticsDateRange(
         undefined,
         undefined,
-        new Date('2026-10-21T23:30:00-04:00'),
+        new Date('2026-10-21T23:30:00.000Z'),
       ),
     ).toEqual({ fromDate: '2025-10-22', toDate: '2026-10-22' });
   });
@@ -58,13 +59,37 @@ describe('analytics date-range validation', () => {
     });
   });
 
-  it('uses inclusive UTC calendar-day bounds for database filters', () => {
+  it('uses exclusive UTC date-only bounds for database date filters', () => {
     expect(
       analyticsDateBounds({ fromDate: '2026-03-01', toDate: '2026-03-31' }),
     ).toEqual({
       gte: new Date('2026-03-01T00:00:00.000Z'),
-      lte: new Date('2026-03-31T23:59:59.999Z'),
+      lt: new Date('2026-04-01T00:00:00.000Z'),
     });
+  });
+
+  it('uses salon-local instant bounds across DST for timestamp filters', () => {
+    const original = process.env.TZ;
+    try {
+      process.env.TZ = 'UTC';
+      const utc = analyticsInstantBounds({
+        fromDate: '2026-03-29',
+        toDate: '2026-03-29',
+      });
+      process.env.TZ = 'Europe/Sarajevo';
+      const sarajevo = analyticsInstantBounds({
+        fromDate: '2026-03-29',
+        toDate: '2026-03-29',
+      });
+      expect(utc).toEqual(sarajevo);
+      expect(sarajevo).toEqual({
+        gte: new Date('2026-03-28T23:00:00.000Z'),
+        lt: new Date('2026-03-29T22:00:00.000Z'),
+      });
+    } finally {
+      if (original === undefined) delete process.env.TZ;
+      else process.env.TZ = original;
+    }
   });
 
   it.each([

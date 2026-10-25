@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { DailyLogReceiptService } from './daily-log-receipt.service';
+import { DEFAULT_SALON_TIMEZONE } from '../common/utils/zoned-time';
+import { toDateOnlyString } from '../common/utils/date-only';
 
 type DailyLogCompletedPayload = {
   dailyLogEntryId: string;
@@ -125,7 +127,7 @@ export class DailyLogCompletionOutboxService {
         );
         this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
           serviceId: entry.reservation.serviceId,
-          date: entry.reservation.reservationDate.toISOString().slice(0, 10),
+          date: toDateOnlyString(entry.reservation.reservationDate),
         });
       }
 
@@ -161,7 +163,7 @@ export class DailyLogCompletionOutboxService {
     }
   }
 
-  @Cron('*/1 * * * *')
+  @Cron('*/1 * * * *', { timeZone: DEFAULT_SALON_TIMEZONE })
   async retryPending(): Promise<void> {
     const now = new Date();
     try {

@@ -1,3 +1,5 @@
+import { salonWallTimeToInstant } from '../../../../shared/business-date.mjs'
+
 export const RESERVATION_STATUS_OPTIONS = [
   { value: '', label: 'Svi statusi' },
   { value: 'PENDING', label: 'Na čekanju' },
@@ -47,9 +49,16 @@ export const canAdminConfirmAttendance = (r: {
   startTime: string
 }): boolean => {
   if (r.status !== 'CONFIRMED' || r.attendancePolicy === 'STAFF_WAIVED') return false
-  const [year, month, day] = r.reservationDate.slice(0, 10).split('-').map(Number)
-  const [hours, minutes] = r.startTime.slice(0, 5).split(':').map(Number)
-  const start = new Date(year ?? 0, (month ?? 1) - 1, day ?? 1, hours ?? 0, minutes ?? 0, 0, 0)
-  return Date.now() < start.getTime()
+  try {
+    return (
+      Date.now() <
+      salonWallTimeToInstant(
+        r.reservationDate.slice(0, 10),
+        r.startTime,
+      ).getTime()
+    )
+  } catch {
+    return false
+  }
 }
 

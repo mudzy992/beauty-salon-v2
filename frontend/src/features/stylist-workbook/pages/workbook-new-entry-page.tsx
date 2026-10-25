@@ -18,6 +18,7 @@ import {
   fetchLoyaltyInfoForClient,
 } from '../api/stylist-workbook.api'
 import type { ClientOption, LoyaltyInfo, ServiceOption } from '../types'
+import { getSalonDateOnly } from '../../../../../shared/business-date.mjs'
 
 const formatKm = (v: number) => `${Number(v || 0).toFixed(2)} KM`
 
@@ -40,7 +41,7 @@ export const WorkbookNewEntryForm = ({
   const [services, setServices] = useState<ServiceOption[]>([])
   const [clients, setClients] = useState<ClientOption[]>([])
 
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(() => getSalonDateOnly())
   const [serviceIds, setServiceIds] = useState<string[]>([])
   const [clientId, setClientId] = useState('')
   const [paidAmount, setPaidAmount] = useState('')

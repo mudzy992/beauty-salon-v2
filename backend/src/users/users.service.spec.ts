@@ -335,7 +335,11 @@ describe('UsersService', () => {
     );
     const dateBounds = {
       gte: new Date('2026-03-01T00:00:00.000Z'),
-      lte: new Date('2026-03-31T23:59:59.999Z'),
+      lt: new Date('2026-04-01T00:00:00.000Z'),
+    };
+    const reviewInstantBounds = {
+      gte: new Date('2026-02-28T23:00:00.000Z'),
+      lt: new Date('2026-03-31T22:00:00.000Z'),
     };
     expect(mockRepo.reservation.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -344,7 +348,7 @@ describe('UsersService', () => {
     );
     expect(mockRepo.review.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: 'u1', createdAt: dateBounds },
+        where: { userId: 'u1', createdAt: reviewInstantBounds },
       }),
     );
     expect(mockRepo.dailyLogEntry.findMany).toHaveBeenCalledWith(

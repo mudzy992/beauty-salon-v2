@@ -209,7 +209,7 @@ model StylistProfile {
   specialization String?              @db.Text
   status         StylistProfileStatus @default(PENDING)
   isActive       Boolean              @default(true) @map("is_active")
-  hireDate       DateTime?            @map("hire_date")
+  hireDate       DateTime?            @map("hire_date") @db.Date
   createdAt      DateTime             @default(now()) @map("created_at")
   updatedAt      DateTime             @updatedAt @map("updated_at")
 
