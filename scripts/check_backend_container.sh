@@ -14,8 +14,18 @@ export APP_SETTINGS_ENCRYPTION_KEY="ci_only_not_a_secret"
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
 
+phase="Initialize synthetic Compose config"
+on_error() {
+  local status=$?
+  printf '::error title=Backend container verification failed::Failed during %s (exit %s).\n' "$phase" "$status"
+  exit "$status"
+}
+trap on_error ERR
+
 compose_json="$work_dir/compose.json"
+phase="Render Compose config with synthetic placeholders"
 docker compose config --format json > "$compose_json"
+phase="Assert the manual migration profile, networks and readiness configuration"
 node - "$compose_json" <<'NODE'
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
@@ -54,11 +64,15 @@ NODE
 
 runtime_image="beauty-salon-backend:ci-runtime"
 migrator_image="beauty-salon-backend:ci-migrator"
+phase="Build the non-root API runtime image"
 docker build --target runtime --tag "$runtime_image" ./backend
+phase="Build the non-root one-shot migration image"
 docker build --target migrator --tag "$migrator_image" ./backend
 
+phase="Inspect API and migration image configuration"
 docker image inspect --format '{{json .Config}}' "$runtime_image" > "$work_dir/runtime-config.json"
 docker image inspect --format '{{json .Config}}' "$migrator_image" > "$work_dir/migrator-config.json"
+phase="Assert image users, commands and environment separation"
 node - "$work_dir/runtime-config.json" "$work_dir/migrator-config.json" <<'NODE'
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
@@ -83,6 +97,7 @@ assert.ok(migrator.Cmd.join(' ').includes('migrate'));
 assert.ok(migrator.Cmd.join(' ').includes('deploy'));
 NODE
 
+phase="Smoke-check production dependencies and Prisma Client in the API image"
 docker run --rm --entrypoint node "$runtime_image" -e '
   const assert = require("node:assert/strict");
   const fs = require("node:fs");
@@ -93,6 +108,7 @@ docker run --rm --entrypoint node "$runtime_image" -e '
   assert.equal(process.getuid(), 10001);
 '
 
+phase="Smoke-check Prisma CLI and migration directories in the migrator image"
 docker run --rm --entrypoint node "$migrator_image" -e '
   const assert = require("node:assert/strict");
   const fs = require("node:fs");
