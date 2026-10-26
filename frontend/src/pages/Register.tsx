@@ -11,6 +11,7 @@ import { Label } from '../components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { useSettings } from '../context/SettingsContext'
+import { getRegistrationErrorKey } from '../features/auth/registration-error.mjs'
 
 const MotionDiv = motion.div
 
@@ -38,6 +39,7 @@ export default function Register() {
     } else {
       setAvatarFile(null)
       setAvatarPreview(null)
+      if (file) toast.error(t('auth.invalidAvatarType'))
     }
   };
 
@@ -59,10 +61,13 @@ export default function Register() {
       toast.success(t('public.registerSuccess'))
       navigate('/login', { replace: true })
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'response' in err && typeof (err as { response: { data?: { message?: string } } }).response?.data?.message === 'string'
-        ? (err as { response: { data: { message: string } } }).response.data.message
-        : t('auth.loginError');
-      toast.error(msg)
+      const response =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { message?: unknown } } }).response
+          : undefined
+      const responseMessage =
+        typeof response?.data?.message === 'string' ? response.data.message : null
+      toast.error(t(getRegistrationErrorKey(responseMessage)))
     } finally {
       setLoading(false)
     }
@@ -73,18 +78,18 @@ export default function Register() {
       <div className="hidden lg:block relative overflow-hidden">
         <MediaImage
           src={getSetting('public_register_image', '')}
-          alt="Salon Details"
+          alt={t('auth.registerBannerAlt')}
           className="h-full w-full object-cover scale-[1.05] hover:scale-100 transition-transform duration-[10000ms] ease-out"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 to-transparent" />
         <div className="absolute bottom-12 left-12 right-12 text-white">
           <div className="text-4xl font-light mb-4">
-            {getSetting('public_register_title', 'Postanite dio naše priče')}
+            {getSetting('public_register_title', t('auth.registerBannerTitle'))}
           </div>
           <div className="text-lg text-slate-200 max-w-md">
             {getSetting(
               'public_register_subtitle',
-              'Kreirajte račun kako biste jednostavno zakazivali termine i pratili svoju historiju frizerskih posjeta.',
+              t('auth.registerBannerSubtitle'),
             )}
           </div>
         </div>
@@ -98,21 +103,21 @@ export default function Register() {
           className="w-full max-w-xl"
         >
           <Link to="/" className="inline-flex mb-6">
-            <Button variant="ghost">Nazad na početnu</Button>
+            <Button variant="ghost">{t('auth.backHome')}</Button>
           </Link>
 
           <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8">
             <div className="text-2xl font-semibold text-slate-900">
-              Registracija
+              {t('auth.registerTitle')}
             </div>
             <div className="text-slate-500 mt-2 mb-8">
-              Pridružite nam se brzo i besplatno
+              {t('auth.registerPrompt')}
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">Ime</Label>
+                  <Label htmlFor="firstName">{t('auth.firstName')}</Label>
                   <Input
                     id="firstName"
                     value={firstName}
@@ -120,7 +125,7 @@ export default function Register() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Prezime</Label>
+                  <Label htmlFor="lastName">{t('auth.lastName')}</Label>
                   <Input
                     id="lastName"
                     value={lastName}
@@ -130,7 +135,7 @@ export default function Register() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('users.email')}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -151,7 +156,7 @@ export default function Register() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Telefon</Label>
+                  <Label htmlFor="phone">{t('users.phone')}</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -173,13 +178,13 @@ export default function Register() {
               </div>
 
               <div className="space-y-2">
-                <Label>Avatar (opciono)</Label>
+                <Label>{t('auth.avatarOptional')}</Label>
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
                     className="rounded-full"
                     onClick={() => avatarInputRef.current?.click()}
-                    aria-label="Odaberi avatar"
+                    aria-label={t('auth.chooseAvatar')}
                   >
                     <Avatar className="h-20 w-20">
                       <AvatarImage src={avatarPreview ?? undefined} />
@@ -203,7 +208,7 @@ export default function Register() {
                       variant="outline"
                       onClick={() => avatarInputRef.current?.click()}
                     >
-                      {avatarFile ? 'Promijeni sliku' : 'Dodaj sliku'}
+                      {avatarFile ? t('auth.changeImage') : t('auth.addImage')}
                     </Button>
                     {avatarFile ? (
                       <div className="text-sm text-slate-500">{avatarFile.name}</div>
@@ -213,17 +218,17 @@ export default function Register() {
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Učitavanje…' : 'Registruj se'}
+                {loading ? t('common.loading') : t('auth.createAccount')}
               </Button>
             </form>
 
             <div className="mt-6 text-center text-slate-600">
-              Već imate račun?{' '}
+              {t('auth.alreadyHaveAccount')}{' '}
               <Link
                 to="/login"
                 className="font-semibold text-slate-900 underline underline-offset-4 hover:text-slate-600"
               >
-                Prijavite se
+                {t('auth.login')}
               </Link>
             </div>
           </div>

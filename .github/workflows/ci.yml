@@ -142,6 +142,9 @@ jobs:
       - name: Test dynamic brand contrast colors
         working-directory: frontend
         run: npm run test:brand-colors
+      - name: Test localized registration errors
+        working-directory: frontend
+        run: npm run test:registration-errors
       - name: Build (includes TypeScript project check)
         working-directory: frontend
         run: npm run build

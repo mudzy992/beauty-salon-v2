@@ -64,7 +64,7 @@ python3 scripts/check_i18n.py --strict        # web BS/EN leaf-key parity gate
 python3 scripts/check_ui_contrast.py --strict # checked source-token pairs are a CI gate
 ```
 
-`check_i18n.py --strict` je CI gate samo za web BS/EN resurse (290 leaf ključeva po jeziku); mobile language scope ostaje otvoren i mobile resursi nisu dio ovog checka. Runtime language-switch/fallback i hardcoded stringovi se provjeravaju odvojeno. `check_ui_contrast.py --strict` je CI gate za imenovane source-token parove; frontend `npm run test:brand-colors` pokriva dinamičke HEX override-e. Kontrastne provjere nisu rendered-UI/axe/manual dokaz. Repo hygiene check je gate od početka.
+`check_i18n.py --strict` je CI gate samo za web BS/EN resurse (315 leaf ključeva po jeziku); mobile language scope ostaje otvoren i mobile resursi nisu dio ovog checka. Runtime language-switch/fallback i ostatak hardcoded stringova se provjeravaju odvojeno. `check_ui_contrast.py --strict` je CI gate za imenovane source-token parove; frontend `npm run test:brand-colors` pokriva dinamičke HEX override-e. Kontrastne provjere nisu rendered-UI/axe/manual dokaz. Repo hygiene check je gate od početka.
 
 ## 5. Backend local test sequence
 
@@ -158,6 +158,8 @@ Use transaction barriers/two Prisma clients for race tests. A pair of sequential
 ```bash
 cd frontend
 npm run test:socket-recovery
+npm run test:brand-colors
+npm run test:registration-errors
 npm run build
 npm run lint
 ```
@@ -165,7 +167,7 @@ npm run lint
 - `test:socket-recovery` uses Node's built-in runner and needs no additional dependency; it verifies the reconnect controller, not React rendering or browser/Socket.IO server behavior.
 - `build` executes `tsc -b` and `vite build`; preserve and review Vite bundle-size warning. The frontend Docker image must be built with the repository root as context: frontend modules import `shared/business-date.mjs` outside `frontend/`. CI run `40229785202` passed the Docker image build from that root context and the primary Compose context assertion.
 - `lint` is not an established gate until ESLint dependency/config are present and legacy errors resolved. The command must not mutate source.
-- No frontend framework/component test runner was detected in baseline; the socket recovery regression is the current dependency-free unit suite.
+- `test:socket-recovery`, `test:brand-colors` and `test:registration-errors` use Node's built-in test runner; React component/browser coverage is still not configured.
 
 ### Add as implementation progresses
 

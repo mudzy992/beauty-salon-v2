@@ -67,7 +67,7 @@ export default function Login() {
     }
 
     setLoading(false)
-    toast.success('Uspješna prijava!')
+    toast.success(t('auth.loginSuccess'))
     const nextPath = getPostAuthRedirectPath(loggedInUser)
     if (getClientMandatoryOnboardingPath(loggedInUser) !== null) {
       navigate(nextPath, { replace: true })
@@ -88,7 +88,7 @@ export default function Login() {
       <div className="hidden lg:block relative overflow-hidden">
         <MediaImage
           src={getSetting('public_login_image', '')}
-          alt="Beauty Salon"
+          alt={t('auth.loginBannerAlt')}
           className="h-full w-full object-cover scale-[1.05] hover:scale-100 transition-transform duration-[10000ms] ease-out"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
@@ -99,7 +99,7 @@ export default function Login() {
           <div className="text-lg text-slate-200 max-w-md">
             {getSetting(
               'public_login_subtitle',
-              'Vaša kosa zaslužuje samo najbolje. Prijavite se kako biste brzo i jednostavno rezervisali svoj termin kod naših vrhunskih stilista.',
+              t('auth.loginBannerSubtitle'),
             )}
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function Login() {
           className="w-full max-w-md"
         >
           <Link to="/" className="inline-flex mb-8">
-            <Button variant="ghost">Nazad na početnu</Button>
+            <Button variant="ghost">{t('auth.backHome')}</Button>
           </Link>
 
           <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8">
@@ -121,12 +121,12 @@ export default function Login() {
               {t('auth.login')}
             </div>
             <div className="text-slate-500 mt-2 mb-8">
-              Unesite svoje podatke za prijavu
+              {t('auth.loginPrompt')}
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="usernameOrEmail">Korisničko ime ili Email</Label>
+                <Label htmlFor="usernameOrEmail">{t('auth.usernameOrEmail')}</Label>
                 <Input
                   id="usernameOrEmail"
                   value={username}
@@ -147,12 +147,12 @@ export default function Login() {
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Učitavanje…' : 'Prijavi se'}
+                {loading ? t('common.loading') : t('auth.login')}
               </Button>
             </form>
 
             <div className="mt-6 text-center text-slate-600">
-              Nemate račun?{' '}
+              {t('auth.noAccount')}{' '}
               <Link
                 to="/register"
                 className="font-semibold text-slate-900 underline underline-offset-4 hover:text-slate-600"
