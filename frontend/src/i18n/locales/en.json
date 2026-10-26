@@ -94,7 +94,10 @@
     "total": "Total",
     "name": "Name",
     "description": "Description",
-    "back": "Back"
+    "back": "Back",
+    "previous": "Previous",
+    "next": "Next",
+    "saving": "Saving…"
   },
   "appReleases": {
     "title": "Mobile releases (Android)",
@@ -137,6 +140,7 @@
   "users": {
     "newUser": "New user",
     "editUser": "Edit user",
+    "editUserTitle": "Edit user: {{username}}",
     "username": "Username",
     "email": "Email",
     "fullName": "Full name",
@@ -144,12 +148,157 @@
     "roles": "Roles",
     "assignRole": "Assign role",
     "removeRole": "Remove role",
-    "deactivate": "Deactivate"
+    "deactivate": "Deactivate",
+    "subtitle": "Manage users, roles, and account status.",
+    "createButton": "New user",
+    "tabs": {
+      "admins": "Administrators ({{count}})",
+      "stylists": "Stylists ({{count}})",
+      "clients": "Clients ({{count}})"
+    },
+    "clientTotal": "Total clients: {{count}}",
+    "searchClients": "Search clients…",
+    "table": {
+      "avatar": "Avatar",
+      "fullName": "Full name"
+    },
+    "status": {
+      "emailVerified": "Email verified",
+      "emailUnverified": "Email not verified",
+      "profileIncomplete": "Profile incomplete"
+    },
+    "roleNames": {
+      "SYSTEM_ADMIN": "System administrator",
+      "OWNER": "Owner",
+      "CLIENT": "Client",
+      "STYLIST": "Stylist"
+    },
+    "stylistRoleBadge": "(stylist profile)",
+    "openStylists": "Open stylist profiles",
+    "aria": {
+      "removeRole": "Remove {{role}} role",
+      "addRole": "Add role",
+      "analytics": "Client analytics",
+      "edit": "Edit user",
+      "deactivate": "Deactivate user"
+    },
+    "confirmDeactivate": "Deactivate user “{{username}}”?",
+    "confirmRemoveRole": "Remove the {{role}} role?",
+    "gender": {
+      "label": "Gender",
+      "choose": "Choose a gender",
+      "female": "Female",
+      "male": "Male"
+    },
+    "validation": {
+      "nameRequired": "First and last name are required.",
+      "usernameRequired": "A username is required.",
+      "genderRequiredForClients": "Gender is required for clients.",
+      "allRequired": "Complete all required fields.",
+      "genderRequired": "Gender is required.",
+      "transferTargetRequired": "Choose a target stylist for every transfer option."
+    },
+    "usernameAvailability": {
+      "checking": "Checking availability…",
+      "current": "Current username",
+      "available": "This username is available.",
+      "unavailable": "This username is unavailable.",
+      "suggestions": "Suggestions"
+    },
+    "form": {
+      "role": "Role",
+      "roleNote": "All new users are clients. You can add more roles later from the user list.",
+      "active": "Active",
+      "inactiveHint": "Inactive users cannot sign in."
+    },
+    "debts": {
+      "title": "Outstanding debts",
+      "loading": "Loading…",
+      "none": "No open debts.",
+      "enteredBy": "Recorded by: {{username}}",
+      "writeOff": "Write off debt",
+      "confirmTitle": "Write off debt",
+      "confirmDescription": "Writing off closes the debt without recording income in the Income Book. Use the daily log to collect payment.",
+      "reason": "Reason for write-off",
+      "confirmButton": "Write off debt"
+    },
+    "credentials": {
+      "title": "User sign-in details (shown once)",
+      "username": "Username",
+      "initialPassword": "Initial password",
+      "instructions": "Save these details and share them with the user. The user must change the password after the first sign-in.",
+      "acknowledge": "Got it"
+    },
+    "stylistRemoval": {
+      "title": "Remove stylist role",
+      "stylist": "Stylist: {{username}}",
+      "categories": {
+        "dailyLogs": "Daily log entries",
+        "confirmedReservations": "Confirmed reservations",
+        "reservationResponses": "Reservation responses and locks",
+        "reviews": "Reviews"
+      },
+      "transfer": "Transfer",
+      "delete": "Delete",
+      "target": "Target stylist",
+      "chooseTarget": "Choose a stylist",
+      "pendingOption": "(pending — profile incomplete)",
+      "pendingWarning": "Data cannot be transferred to a stylist whose profile is incomplete. Complete the profile on the Stylists page first.",
+      "deleteWarning": "This permanently deletes the data in this category.",
+      "summary": "Summary",
+      "deleteSummary": "DELETION",
+      "transferSummary": "TRANSFER",
+      "noteTitle": "Note",
+      "note": "Removing the role also deletes the stylist profile and its settings (services and working hours).",
+      "removing": "Removing…",
+      "confirm": "Remove stylist role"
+    },
+    "toast": {
+      "debtWrittenOff": "Debt written off.",
+      "updated": "User updated.",
+      "created": "User created.",
+      "deactivated": "User deactivated.",
+      "stylistPendingTitle": "Stylist role assigned.",
+      "stylistPendingDescription": "Complete the profile on the Stylists page.",
+      "roleAssigned": "The {{role}} role was assigned.",
+      "stylistRoleRemoved": "Stylist role removed.",
+      "roleRemoved": "The {{role}} role was removed."
+    },
+    "errors": {
+      "writeOffFailed": "Could not write off the debt.",
+      "updateFailed": "Could not update the user.",
+      "createFailed": "Could not create the user.",
+      "deactivateFailed": "Could not deactivate the user.",
+      "assignRoleFailed": "Could not assign the role.",
+      "prepareStylistRemovalFailed": "Could not prepare the stylist profile for removal.",
+      "removeRoleFailed": "Could not remove the role.",
+      "stylistRemovalFailed": "Could not remove the stylist role.",
+      "notFound": "User not found.",
+      "usernameTaken": "This username is already in use.",
+      "emailTaken": "This email address is already in use.",
+      "genderRequired": "Gender is required for clients.",
+      "usernameInvalid": "The username is invalid.",
+      "roleRequired": "Choose a role.",
+      "roleNotFound": "The selected role was not found.",
+      "roleNotAssigned": "This user does not have that role.",
+      "noStylistProfile": "This user does not have a stylist profile.",
+      "targetRequired": "Choose a target stylist for every transfer option.",
+      "targetSame": "Choose a different target stylist.",
+      "targetNotFound": "Target stylist not found.",
+      "clientRoleCannotRemove": "The client role cannot be removed.",
+      "stylistUseRemovalFlow": "Use the stylist removal dialog to transfer or delete linked data.",
+      "debtNotFound": "Debt not found.",
+      "debtClosed": "This debt is already closed.",
+      "writeOffReasonRequired": "Enter a reason for writing off the debt.",
+      "writeOffPermission": "Only an owner or administrator can write off debt.",
+      "permissionDenied": "You do not have permission to perform this action."
+    }
   },
   "salon": {
     "settings": "Basic settings",
     "workingHours": "Working hours",
     "holidays": "Holidays",
+    "holidaysDescription": "Dates when the salon is closed, with optional push notifications.",
     "salonName": "Salon name",
     "address": "Address",
     "pauseBetween": "Break between services (min)",
@@ -157,14 +306,134 @@
     "maxCancellations": "Maximum cancellations before penalty",
     "penaltyDuration": "Penalty duration (days)",
     "newHoliday": "New holiday",
-    "sendNotification": "Send notification"
+    "sendNotification": "Send notification",
+    "subtitle": "Manage salon settings, working hours, and holidays.",
+    "notConfigured": "The salon has not been set up yet. Create its basic information.",
+    "phone": "Phone",
+    "email": "Email",
+    "description": "Description",
+    "createButton": "Create salon",
+    "reservationLock": "Reservation lock (min)",
+    "noHolidays": "No holidays.",
+    "confirmDeleteHoliday": "Delete this holiday?",
+    "validation": {
+      "nameRequired": "Enter the salon name.",
+      "holidayRequired": "Enter the holiday date and name."
+    },
+    "tabs": {
+      "general": "Basic settings",
+      "workingHours": "Working hours",
+      "holidays": "Holidays"
+    },
+    "workingHoursTable": {
+      "day": "Day",
+      "workday": "Working day",
+      "opens": "Opens",
+      "closes": "Closes"
+    },
+    "holidayTable": {
+      "date": "Date",
+      "name": "Name",
+      "push": "Push",
+      "sent": "Sent",
+      "actions": "Actions"
+    },
+    "holidayForm": {
+      "newTitle": "New holiday",
+      "editTitle": "Edit holiday",
+      "date": "Date",
+      "name": "Name",
+      "message": "Message (optional)",
+      "sendPush": "Send push notification",
+      "sendPushHint": "When enabled, you can send a notification to clients."
+    },
+    "toast": {
+      "created": "Salon created.",
+      "settingsSaved": "Salon settings saved.",
+      "workingHoursSaved": "Working hours saved.",
+      "holidaySaved": "Holiday saved.",
+      "holidayDeleted": "Holiday deleted.",
+      "notificationSent": "Notification sent."
+    },
+    "errors": {
+      "loadFailed": "Could not load salon settings.",
+      "createFailed": "Could not create the salon.",
+      "saveSettingsFailed": "Could not save salon settings.",
+      "saveWorkingHoursFailed": "Could not save working hours.",
+      "saveHolidayFailed": "Could not save the holiday.",
+      "deleteHolidayFailed": "Could not delete the holiday.",
+      "sendNotificationFailed": "Could not send the notification.",
+      "loadHolidaysFailed": "Could not load holidays."
+    }
   },
   "services": {
     "newCategory": "New category",
     "newSubcategory": "New subcategory",
     "newService": "New service",
     "duration": "Duration (min)",
-    "sortOrder": "Sort order"
+    "sortOrder": "Sort order",
+    "editCategory": "Edit category",
+    "editSubcategory": "Edit subcategory",
+    "editService": "Edit service",
+    "addService": "Add service",
+    "serviceName": "Service name",
+    "shortDescription": "Short description",
+    "heroImage": "Main image",
+    "changeImage": "Change image",
+    "uploadImage": "Upload image",
+    "price": "Price (KM)",
+    "gender": "Service gender",
+    "loyalty": "Loyalty",
+    "loyaltyDiscount": "Loyalty discount up to {{percent}}%",
+    "withoutLoyalty": "No loyalty",
+    "maxDiscount": "Max discount (%)",
+    "durationValue": "{{count}} min",
+    "noServices": "No services defined.",
+    "noSubcategories": "No subcategories.",
+    "confirmDeleteCategory": "Delete this category and all its subcategories and services?",
+    "confirmDeleteSubcategory": "Delete this subcategory and all its services?",
+    "confirmDeleteService": "Delete this service?",
+    "status": {
+      "categoryActive": "Active",
+      "categoryInactive": "Inactive",
+      "serviceActive": "Active",
+      "serviceInactive": "Inactive"
+    },
+    "table": {
+      "service": "Service",
+      "description": "Description",
+      "duration": "Duration",
+      "price": "Price",
+      "gender": "Gender",
+      "loyalty": "Loyalty",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "aria": {
+      "addSubcategory": "Add subcategory",
+      "editCategory": "Edit category",
+      "deleteCategory": "Delete category",
+      "editSubcategory": "Edit subcategory",
+      "deleteSubcategory": "Delete subcategory",
+      "workGallery": "View completed work",
+      "editService": "Edit service",
+      "deleteService": "Delete service"
+    },
+    "toast": {
+      "saved": "Changes saved.",
+      "imageUploaded": "Image uploaded.",
+      "categoryDeleted": "Category deleted.",
+      "subcategoryDeleted": "Subcategory deleted.",
+      "serviceDeleted": "Service deleted."
+    },
+    "errors": {
+      "loadFailed": "Could not load the service catalogue.",
+      "saveFailed": "Could not save the changes.",
+      "uploadFailed": "Could not upload the service image.",
+      "deleteCategoryFailed": "Could not delete the category.",
+      "deleteSubcategoryFailed": "Could not delete the subcategory.",
+      "deleteServiceFailed": "Could not delete the service."
+    }
   },
   "stylists": {
     "newStylist": "New stylist",
@@ -173,7 +442,55 @@
     "bio": "Bio",
     "hireDate": "Hire date",
     "competencies": "Skills",
-    "workingHours": "Working hours"
+    "workingHours": "Working hours",
+    "status": {
+      "pending": "Profile incomplete",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "table": {
+      "user": "User",
+      "email": "Email",
+      "specialization": "Specialisation",
+      "hireDate": "Hire date",
+      "status": "Status",
+      "actions": "Actions",
+      "total": "Total: {{count}}"
+    },
+    "aria": {
+      "analytics": "Stylist analytics",
+      "edit": "Edit stylist profile",
+      "removeCompetency": "Remove competency"
+    },
+    "profileTitle": "Stylist profile",
+    "tabs": {
+      "profile": "Profile",
+      "hours": "Working hours",
+      "competencies": "Competencies"
+    },
+    "specializationAuto": "Specialisation (automatically based on selected services)",
+    "specializationHint": "Specialisation is generated automatically from the Competencies tab.",
+    "selectedCompetencies": "Selected competencies",
+    "noSelectedCompetencies": "No competencies selected.",
+    "availableCompetencies": "Available competencies",
+    "allCompetenciesSelected": "All competencies are already selected.",
+    "noServicesAvailable": "No services available.",
+    "workingDay": "Working day",
+    "day": "Day",
+    "start": "Start",
+    "end": "End",
+    "removeCompetencyHint": "click X to remove",
+    "addViaUsers": "Add a stylist from Users by assigning the STYLIST role.",
+    "saveSuccess": "Changes saved.",
+    "errors": {
+      "saveFailed": "Could not save the stylist profile.",
+      "notFound": "Stylist not found.",
+      "alreadyExists": "This user already has a stylist profile.",
+      "invalidHireDate": "The hire date is invalid.",
+      "serviceRangeLimit": "The requested range of stylist services exceeds the allowed limit.",
+      "catalogRangeLimit": "The requested stylist catalogue range exceeds the allowed limit.",
+      "permissionDenied": "You do not have permission to edit this profile."
+    }
   },
   "reservations": {
     "detail": "Reservation details",

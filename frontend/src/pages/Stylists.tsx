@@ -8,6 +8,10 @@ import {
   fetchAllPublicServices,
   fetchAllPublicStylistServices,
 } from '../api/catalog'
+import { getErrorMessage } from '../api/error'
+import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
+import { getIntlLocale, formatWeekday } from '../i18n/locale-utils.mjs'
+import { formatDateOnlyLocale } from '../../../shared/business-date.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
 
 import { Badge } from '../components/ui/badge'
@@ -51,10 +55,9 @@ interface PaginatedResponse<T> {
   pageSize: number
 }
 
-const DAYS = ['Nedjelja', 'Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota']
-
 export default function Stylists() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
   const { success, error, warning } = useAppToast()
 
   const [stylists, setStylists] = useState<StylistProfile[]>([])
@@ -157,7 +160,7 @@ export default function Stylists() {
 
   const handleSaveAll = async () => {
     if (!editId) {
-      warning('Stilist se dodaje kroz korisnike (dodjela role STYLIST).')
+      warning(t('stylists.addViaUsers'))
       return
     }
     setSaving(true)
@@ -179,11 +182,11 @@ export default function Stylists() {
           api.post(`/api/stylists/${editId}/services`, { serviceIds: stylistServiceIds }),
         ])
       }
-      success('Sačuvano')
+      success(t('stylists.saveSuccess'))
       loadData()
       setOpen(false)
-    } catch {
-      error('Greška')
+    } catch (err) {
+      error(t(resolveAdminApiErrorKey(getErrorMessage(err, ''), 'stylists.errors.saveFailed')))
     } finally {
       setSaving(false)
     }
@@ -221,12 +224,12 @@ export default function Stylists() {
             <table className="app-table w-full border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                  <th className="p-3 font-medium">Korisnik</th>
-                  <th className="p-3 font-medium">Email</th>
-                  <th className="p-3 font-medium">Specijalizacija</th>
-                  <th className="p-3 font-medium">Datum zaposlenja</th>
-                  <th className="p-3 font-medium">Status</th>
-                  <th className="p-3 text-right font-medium">Akcije</th>
+                  <th className="p-3 font-medium">{t('stylists.table.user')}</th>
+                  <th className="p-3 font-medium">{t('stylists.table.email')}</th>
+                  <th className="p-3 font-medium">{t('stylists.table.specialization')}</th>
+                  <th className="p-3 font-medium">{t('stylists.table.hireDate')}</th>
+                  <th className="p-3 font-medium">{t('stylists.table.status')}</th>
+                  <th className="p-3 text-right font-medium">{t('stylists.table.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -252,25 +255,25 @@ export default function Stylists() {
                           <span>{s.specialization ?? '-'}</span>
                           {String(s.status ?? '').toUpperCase() === 'PENDING' ? (
                             <Badge variant="warning" className="text-[10px]">
-                              Pending
+                              {t('stylists.status.pending')}
                             </Badge>
                           ) : null}
                         </div>
                       </td>
-                      <td className="p-3">{s.hireDate?.slice(0, 10) ?? '-'}</td>
+                      <td className="p-3">{s.hireDate ? formatDateOnlyLocale(s.hireDate.slice(0, 10), locale) : '—'}</td>
                       <td className="p-3">
                         <Badge variant={s.isActive ? 'success' : 'danger'} className="text-[10px]">
-                          {s.isActive ? 'Aktivan' : 'Neaktivan'}
+                          {s.isActive ? t('stylists.status.active') : t('stylists.status.inactive')}
                         </Badge>
                       </td>
                       <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1">
-                          <Button asChild type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Analitika">
+                          <Button asChild type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('stylists.aria.analytics')}>
                             <RouterLink to={`/admin/stylist-analytics?stylistId=${s.id}`}>
                               <Eye className="h-4 w-4 text-teal-600" />
                             </RouterLink>
                           </Button>
-                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Uredi" onClick={() => void openEditForm(s)}>
+                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('stylists.aria.edit')} onClick={() => void openEditForm(s)}>
                             <Pencil className="h-4 w-4 text-blue-600" />
                           </Button>
                         </div>
@@ -285,16 +288,16 @@ export default function Stylists() {
       </Card>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">Ukupno: {total}</p>
+        <p className="text-sm text-slate-500">{t('stylists.table.total', { count: total })}</p>
         <div className="flex items-center gap-2">
           <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((prev) => Math.max(0, prev - 1))}>
-            Prethodna
+            {t('common.previous')}
           </Button>
           <p className="text-sm text-slate-600 dark:text-slate-300">
             {page + 1} / {Math.max(1, Math.ceil(total / pageSize))}
           </p>
           <Button type="button" size="sm" variant="outline" disabled={page >= Math.ceil(total / pageSize) - 1} onClick={() => setPage((prev) => prev + 1)}>
-            Sljedeća
+            {t('common.next')}
           </Button>
         </div>
       </div>
@@ -303,10 +306,10 @@ export default function Stylists() {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>
-              Stilist profil{' '}
+              {t('stylists.profileTitle')}{' '}
               {selectedStylist && String(selectedStylist.status ?? '').toUpperCase() === 'PENDING' ? (
                 <Badge variant="warning" className="ml-2 align-middle text-[10px]">
-                  Pending
+                  {t('stylists.status.pending')}
                 </Badge>
               ) : null}
             </DialogTitle>
@@ -314,22 +317,22 @@ export default function Stylists() {
 
           <Tabs defaultValue="profile">
             <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-2">
-              <TabsTrigger value="profile">Profil</TabsTrigger>
-              <TabsTrigger value="hours">Radno vrijeme</TabsTrigger>
-              <TabsTrigger value="skills">Kompetencije</TabsTrigger>
+              <TabsTrigger value="profile">{t('stylists.tabs.profile')}</TabsTrigger>
+              <TabsTrigger value="hours">{t('stylists.tabs.hours')}</TabsTrigger>
+              <TabsTrigger value="skills">{t('stylists.tabs.competencies')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile" className="mt-4">
               <div className="space-y-4">
                 <div>
-                  <Label>Specijalizacija (auto iz odabranih servisa)</Label>
+                  <Label>{t('stylists.specializationAuto')}</Label>
                   <Input className="mt-1" value={form.specialization} readOnly />
                   <p className="mt-1 text-xs text-slate-500">
-                    Specijalizacija se automatski generiše iz tab-a “Kompetencije”.
+                    {t('stylists.specializationHint')}
                   </p>
                   {selectedServices.length > 0 ? (
                     <div className="mt-3">
-                      <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">Odabrane kompetencije</p>
+                      <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">{t('stylists.selectedCompetencies')}</p>
                       <div className="flex flex-wrap gap-2">
                         {selectedServices.map((svc) => (
                           <Badge key={svc.id} variant="brand" className="text-[10px]">
@@ -342,17 +345,17 @@ export default function Stylists() {
                 </div>
 
                 <div>
-                  <Label>Bio</Label>
+                  <Label>{t('stylists.bio')}</Label>
                   <Textarea className="mt-1" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} rows={3} />
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <Label>Datum zaposlenja</Label>
+                    <Label>{t('stylists.hireDate')}</Label>
                     <Input className="mt-1" type="date" value={form.hireDate} onChange={(e) => setForm({ ...form, hireDate: e.target.value })} />
                   </div>
                   <div className="flex items-center justify-between gap-3 md:pt-7">
-                    <Label className="mb-0">Aktivan</Label>
+                    <Label className="mb-0">{t('common.active')}</Label>
                     <Switch checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} />
                   </div>
                 </div>
@@ -364,16 +367,16 @@ export default function Stylists() {
                 <table className="app-table w-full border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                      <th className="p-3 font-medium">Dan</th>
-                      <th className="p-3 font-medium">Radni dan</th>
-                      <th className="p-3 font-medium">Početak</th>
-                      <th className="p-3 font-medium">Kraj</th>
+                      <th className="p-3 font-medium">{t('stylists.day')}</th>
+                      <th className="p-3 font-medium">{t('stylists.workingDay')}</th>
+                      <th className="p-3 font-medium">{t('stylists.start')}</th>
+                      <th className="p-3 font-medium">{t('stylists.end')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {workingHours.map((wh) => (
                       <tr key={wh.dayOfWeek} className={!wh.isWorkingDay ? 'opacity-60' : undefined}>
-                        <td className="p-3 font-medium">{DAYS[wh.dayOfWeek]}</td>
+                        <td className="p-3 font-medium">{formatWeekday(wh.dayOfWeek, i18n.language)}</td>
                         <td className="p-3">
                           <Switch checked={wh.isWorkingDay} onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)} />
                         </td>
@@ -405,9 +408,9 @@ export default function Stylists() {
             <TabsContent value="skills" className="mt-4">
               <div className="space-y-4">
                 <div>
-                  <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">Odabrano (kliknite X za uklanjanje)</p>
+                  <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">{t('stylists.selectedCompetencies')} ({t('stylists.removeCompetencyHint')})</p>
                   {selectedServices.length === 0 ? (
-                    <p className="text-sm text-slate-500">Nema odabranih kompetencija.</p>
+                    <p className="text-sm text-slate-500">{t('stylists.noSelectedCompetencies')}</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {selectedServices.map((svc) => (
@@ -417,7 +420,7 @@ export default function Stylists() {
                             type="button"
                             onClick={() => toggleService(svc.id)}
                             className="inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-slate-200 dark:hover:bg-slate-800"
-                            aria-label="Ukloni kompetenciju"
+                            aria-label={t('stylists.aria.removeCompetency')}
                           >
                             <X className="h-3 w-3" aria-hidden="true" />
                           </button>
@@ -428,9 +431,9 @@ export default function Stylists() {
                 </div>
 
                 <div>
-                  <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">Dostupne (neodabrane)</p>
+                  <p className="mb-1 text-xs text-slate-600 dark:text-slate-300">{t('stylists.availableCompetencies')}</p>
                   {unselectedServices.length === 0 ? (
-                    <p className="text-sm text-slate-500">Sve kompetencije su već odabrane.</p>
+                    <p className="text-sm text-slate-500">{t('stylists.allCompetenciesSelected')}</p>
                   ) : (
                     <div className="max-h-[320px] space-y-2 overflow-y-auto">
                       {unselectedServices.map((svc) => (
@@ -456,7 +459,7 @@ export default function Stylists() {
                       ))}
                     </div>
                   )}
-                  {allServices.length === 0 ? <p className="text-sm text-slate-500">Nema dostupnih servisa.</p> : null}
+                  {allServices.length === 0 ? <p className="text-sm text-slate-500">{t('stylists.noServicesAvailable')}</p> : null}
                 </div>
               </div>
             </TabsContent>
@@ -468,7 +471,7 @@ export default function Stylists() {
             </Button>
             <Button type="button" onClick={() => void handleSaveAll()} disabled={saving}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {t('common.save')}
+              {saving ? t('common.saving') : t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

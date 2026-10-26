@@ -16,6 +16,8 @@ import {
 import api from '../api/client'
 import { fetchAllPublicStylists } from '../api/catalog'
 import { getErrorMessage } from '../api/error'
+import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
+import { formatLocalizedAmount } from '../i18n/locale-utils.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { getUploadUrl } from '../utils/uploadUrl'
 
@@ -131,8 +133,14 @@ const initials = (firstName?: string | null, lastName?: string | null, username?
 }
 
 export default function Users() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { success, error, warning } = useAppToast()
+  const showApiError = (err: unknown, fallbackKey: string) => {
+    const message = getErrorMessage(err, '')
+    error(t(resolveAdminApiErrorKey(message, fallbackKey)))
+  }
+  const getRoleLabel = (roleName: string) =>
+    t(`users.roleNames.${roleName}`, { defaultValue: roleName })
   const navigate = useNavigate()
 
   const [admins, setAdmins] = useState<UserRow[]>([])
@@ -278,12 +286,12 @@ export default function Users() {
     setWriteOffPending(true)
     try {
       await api.patch(`/api/client-debts/${debtToWriteOff}/write-off`, { note: reason })
-      success('Dug je otpisan')
+      success(t('users.toast.debtWrittenOff'))
       const { data } = await api.get('/api/client-debts', { params: { clientId: editUser.id } })
       setClientDebts(Array.isArray(data) ? data : [])
       setDebtToWriteOff(null)
     } catch (err) {
-      error(getErrorMessage(err))
+      showApiError(err, 'users.errors.writeOffFailed')
     } finally {
       setWriteOffPending(false)
     }
@@ -331,15 +339,15 @@ export default function Users() {
     const trimmedLast = formData.lastName.trim()
     const trimmedUsername = formData.username.trim()
     if (!trimmedFirst || !trimmedLast) {
-      warning('Ime i prezime su obavezni.')
+      warning(t('users.validation.nameRequired'))
       return
     }
     if (!trimmedUsername) {
-      warning('Korisničko ime je obavezno.')
+      warning(t('users.validation.usernameRequired'))
       return
     }
     if (isClient && !formData.gender) {
-      warning('Spol je obavezan za klijente.')
+      warning(t('users.validation.genderRequiredForClients'))
       return
     }
     setSaving(true)
@@ -355,11 +363,11 @@ export default function Users() {
         gender: formData.gender || null,
         isActive: formData.isActive,
       })
-      success('Korisnik ažuriran')
+      success(t('users.toast.updated'))
       loadData()
       setEditOpen(false)
     } catch (err) {
-      error(getErrorMessage(err, 'Greška pri ažuriranju'))
+      showApiError(err, 'users.errors.updateFailed')
     } finally {
       setSaving(false)
     }
@@ -405,11 +413,11 @@ export default function Users() {
 
   const handleCreate = async () => {
     if (!createData.firstName || !createData.lastName || !createData.role) {
-      warning('Popunite sva obavezna polja')
+      warning(t('users.validation.allRequired'))
       return
     }
     if (!createData.gender) {
-      warning('Spol je obavezan.')
+      warning(t('users.validation.genderRequired'))
       return
     }
     setSaving(true)
@@ -419,7 +427,7 @@ export default function Users() {
         role: 'CLIENT',
         gender: createData.gender || undefined,
       })
-      success('Korisnik kreiran')
+      success(t('users.toast.created'))
       setCreatedCredentials({
         username: response.data?.username || createData.username,
         initialPassword: response.data?.initialPassword || 'Init2026!',
@@ -431,7 +439,7 @@ export default function Users() {
       setIsUsernameManuallyEdited(false)
       setUsernameStatus({ loading: false, available: null, suggestions: [] })
     } catch (err) {
-      error(getErrorMessage(err, 'Greška pri kreiranju'))
+      showApiError(err, 'users.errors.createFailed')
     } finally {
       setSaving(false)
     }
@@ -464,13 +472,13 @@ export default function Users() {
   }, [createData.firstName, createData.lastName, createData.username, isUsernameManuallyEdited])
 
   const handleDeactivate = async (id: string, username: string) => {
-    if (!window.confirm(`Deaktivirati korisnika "${username}"?`)) return
+    if (!window.confirm(t('users.confirmDeactivate', { username }))) return
     try {
       await api.patch(`/api/users/${id}`, { isActive: false })
-      success('Korisnik deaktiviran')
+      success(t('users.toast.deactivated'))
       loadData()
     } catch (err) {
-      error(getErrorMessage(err))
+      showApiError(err, 'users.errors.deactivateFailed')
     }
   }
 
@@ -478,13 +486,13 @@ export default function Users() {
     try {
       await api.post(`/api/users/${userId}/roles`, { role: roleName })
       if (roleName === 'STYLIST') {
-        success('Stilist kreiran (pending)', 'Završite profil u Stylists.')
+        success(t('users.toast.stylistPendingTitle'), t('users.toast.stylistPendingDescription'))
       } else {
-        success(`Uloga ${roleName} dodijeljena`)
+        success(t('users.toast.roleAssigned', { role: getRoleLabel(roleName) }))
       }
       loadData()
     } catch (err) {
-      error(getErrorMessage(err, 'Greška pri dodjeli uloge'))
+      showApiError(err, 'users.errors.assignRoleFailed')
     }
   }
 
@@ -503,10 +511,10 @@ export default function Users() {
     if (!removalPreview) return []
     const c = removalPreview.counts
     const rows = [
-      { key: 'dailyLogs', label: 'Daily logovi', count: c.dailyLogEntriesCount },
-      { key: 'confirmedReservations', label: 'Potvrđene rezervacije', count: c.confirmedReservationsCount },
-      { key: 'reservationResponses', label: 'Odgovori/lockovi rezervacija', count: c.reservationResponsesCount },
-      { key: 'reviews', label: 'Reviews', count: c.reviewsCount },
+      { key: 'dailyLogs', label: t('users.stylistRemoval.categories.dailyLogs'), count: c.dailyLogEntriesCount },
+      { key: 'confirmedReservations', label: t('users.stylistRemoval.categories.confirmedReservations'), count: c.confirmedReservationsCount },
+      { key: 'reservationResponses', label: t('users.stylistRemoval.categories.reservationResponses'), count: c.reservationResponsesCount },
+      { key: 'reviews', label: t('users.stylistRemoval.categories.reviews'), count: c.reviewsCount },
     ] as const
     return rows
       .filter((r) => (r.count ?? 0) > 0)
@@ -515,7 +523,7 @@ export default function Users() {
         const target = (removalTargets as any)[r.key] as string | undefined
         return { key: r.key, label: r.label, count: r.count, mode, target }
       })
-  }, [removalPreview, removalModes, removalTargets])
+  }, [removalPreview, removalModes, removalTargets, t])
 
   const isRemovalReady = useMemo(() => {
     if (!removalPreview) return false
@@ -556,7 +564,7 @@ export default function Users() {
           reservationResponses: { mode: 'DELETE' },
           reviews: { mode: 'DELETE' },
         })
-        success('STYLIST rola uklonjena')
+        success(t('users.toast.stylistRoleRemoved'))
         setRemoveStylistOpen(false)
         loadData()
         setRemovalSubmitting(false)
@@ -566,7 +574,7 @@ export default function Users() {
       const items = await fetchAllPublicStylists<StylistOption>()
       setAllStylists(items)
     } catch (err) {
-      error(getErrorMessage(err, 'Greška pri pripremi uklanjanja stiliste'))
+      showApiError(err, 'users.errors.prepareStylistRemovalFailed')
       setRemovalSubmitting(false)
       setRemoveStylistOpen(false)
     }
@@ -577,13 +585,13 @@ export default function Users() {
       await openRemoveStylist(userId)
       return
     }
-    if (!window.confirm(`Ukloniti ulogu ${roleName}?`)) return
+    if (!window.confirm(t('users.confirmRemoveRole', { role: getRoleLabel(roleName) }))) return
     try {
       await api.delete(`/api/users/${userId}/roles/${roleName}`)
-      success(`Uloga ${roleName} uklonjena`)
+      success(t('users.toast.roleRemoved', { role: getRoleLabel(roleName) }))
       loadData()
     } catch (err) {
-      error(getErrorMessage(err, 'Greška pri uklanjanju uloge'))
+      showApiError(err, 'users.errors.removeRoleFailed')
     }
   }
 
@@ -620,18 +628,18 @@ export default function Users() {
       missingTarget('reservationResponses') ||
       missingTarget('reviews')
     ) {
-      warning('Odaberite target stilistu za sve TRANSFER opcije.')
+      warning(t('users.validation.transferTargetRequired'))
       return
     }
 
     setRemovalSubmitting(true)
     try {
       await api.post(`/api/users/${removeStylistUser.id}/remove-stylist-role`, payload)
-      success('STYLIST rola uklonjena')
+      success(t('users.toast.stylistRoleRemoved'))
       setRemoveStylistOpen(false)
       loadData()
     } catch (err) {
-      error(getErrorMessage(err, 'Greška pri uklanjanju stiliste'))
+      showApiError(err, 'users.errors.stylistRemovalFailed')
     } finally {
       setRemovalSubmitting(false)
     }
@@ -658,23 +666,23 @@ export default function Users() {
               className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200"
             >
               <Badge variant={getRoleBadgeVariant(roleName)} className="rounded-full px-2 py-0.5 text-[10px]">
-                {roleName}
+                {getRoleLabel(roleName)}
               </Badge>
-              {isStylist ? <span className="text-slate-500">(Stylists)</span> : null}
+              {isStylist ? <span className="text-slate-500">{t('users.stylistRoleBadge')}</span> : null}
               {isPending ? (
                 <button
                   type="button"
                   className="text-[10px] font-medium text-amber-700 underline underline-offset-2 dark:text-amber-300"
                   onClick={() => navigate('/admin/stylists')}
                 >
-                  profil nije završen
+                  {t('users.status.profileIncomplete')}
                 </button>
               ) : null}
               {canRemoveRole(roleName) ? (
                 <button
                   type="button"
                   className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
-                  aria-label={`Ukloni ulogu ${roleName}`}
+                  aria-label={t('users.aria.removeRole', { role: getRoleLabel(roleName) })}
                   onClick={() => void handleRemoveRole(u.id, roleName)}
                 >
                   <X className="h-3 w-3" aria-hidden="true" />
@@ -687,18 +695,18 @@ export default function Users() {
         {addable.length > 0 ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button type="button" size="icon" variant="outline" className="h-8 w-8" aria-label="Dodaj ulogu">
+              <Button type="button" size="icon" variant="outline" className="h-8 w-8" aria-label={t('users.aria.addRole')}>
                 <Plus className="h-4 w-4" aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               {addable.map((r) => (
                 <DropdownMenuItem key={r} onClick={() => void handleAssignRole(u.id, r)}>
-                  {r}
+                  {getRoleLabel(r)}
                 </DropdownMenuItem>
               ))}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/admin/stylists')}>Otvori Stylists</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/admin/stylists')}>{t('users.openStylists')}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : null}
@@ -720,7 +728,7 @@ export default function Users() {
           <span className="truncate">{u.email ?? '-'}</span>
           {u.email ? (
             <Badge variant={u.isEmailVerified ? 'success' : 'warning'} className="text-[10px]">
-              {u.isEmailVerified ? 'Verifikovan' : 'Nije verifikovan'}
+              {u.isEmailVerified ? t('users.status.emailVerified') : t('users.status.emailUnverified')}
             </Badge>
           ) : null}
         </div>
@@ -730,7 +738,7 @@ export default function Users() {
       <td className="p-3">{renderRoles(u)}</td>
       <td className="p-3">
         <Badge variant={u.isActive ? 'success' : 'danger'} className="text-[10px]">
-          {u.isActive ? 'Aktivan' : 'Neaktivan'}
+          {u.isActive ? t('common.active') : t('common.inactive')}
         </Badge>
       </td>
       <td className="p-3 text-right">
@@ -740,7 +748,7 @@ export default function Users() {
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            aria-label="Analitika"
+            aria-label={t('users.aria.analytics')}
             onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)}
           >
             <Eye className="h-4 w-4 text-teal-600" aria-hidden="true" />
@@ -750,7 +758,7 @@ export default function Users() {
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            aria-label="Uredi"
+            aria-label={t('users.aria.edit')}
             onClick={() => openEdit(u)}
           >
             <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
@@ -761,7 +769,7 @@ export default function Users() {
               size="icon"
               variant="ghost"
               className="h-8 w-8"
-              aria-label="Deaktiviraj"
+              aria-label={t('users.aria.deactivate')}
               onClick={() => void handleDeactivate(u.id, u.username)}
             >
               <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
@@ -786,49 +794,50 @@ export default function Users() {
           </div>
         </div>
         <Badge variant={u.isActive ? 'success' : 'danger'} className="text-[10px]">
-          {u.isActive ? 'Aktivan' : 'Neaktivan'}
+          {u.isActive ? t('common.active') : t('common.inactive')}
         </Badge>
       </div>
 
       <div className="mt-3 space-y-2 text-sm">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-slate-500">Email</span>
+          <span className="text-slate-500">{t('users.email')}</span>
           <span className="truncate text-slate-900 dark:text-slate-50">{u.email ?? '-'}</span>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <span className="text-slate-500">Telefon</span>
+          <span className="text-slate-500">{t('users.phone')}</span>
           <span className="truncate text-slate-900 dark:text-slate-50">{u.phone ?? '-'}</span>
         </div>
         <div className="space-y-2">
-          <p className="text-slate-500">Uloge</p>
+          <p className="text-slate-500">{t('users.roles')}</p>
           {renderRoles(u)}
         </div>
       </div>
 
       <div className="mt-4 flex justify-end gap-2">
         <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)}>
-          Analitika
+          {t('users.aria.analytics')}
         </Button>
         <Button type="button" size="sm" onClick={() => openEdit(u)}>
-          Uredi
+          {t('common.edit')}
         </Button>
       </div>
     </Card>
   )
 
-  const headerTitle = activeTab === 'admins' ? 'ADMINISTRATORI' : activeTab === 'stylists' ? 'STILISTI' : 'KLIJENTI'
+  const tabCount = activeTab === 'admins' ? admins.length : activeTab === 'stylists' ? stylists.length : total
+  const headerTitle = t(`users.tabs.${activeTab}`, { count: tabCount })
 
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.users')}</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Upravljanje korisnicima, ulogama i statusom.</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('users.subtitle')}</p>
         </div>
 
         <Button type="button" onClick={() => setCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          Novi korisnik
+          {t('users.createButton')}
         </Button>
       </div>
 
@@ -837,9 +846,9 @@ export default function Users() {
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <TabsList className="h-auto flex-wrap justify-start gap-1 p-2">
-                <TabsTrigger value="admins">Administratori ({admins.length})</TabsTrigger>
-                <TabsTrigger value="stylists">Stilisti ({stylists.length})</TabsTrigger>
-                <TabsTrigger value="clients">Klijenti ({total})</TabsTrigger>
+                <TabsTrigger value="admins">{t('users.tabs.admins', { count: admins.length })}</TabsTrigger>
+                <TabsTrigger value="stylists">{t('users.tabs.stylists', { count: stylists.length })}</TabsTrigger>
+                <TabsTrigger value="clients">{t('users.tabs.clients', { count: total })}</TabsTrigger>
               </TabsList>
 
               {activeTab === 'clients' ? (
@@ -847,7 +856,7 @@ export default function Users() {
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
                   <Input
                     className="pl-9"
-                    placeholder="Pretraži klijente..."
+                    placeholder={t('users.searchClients')}
                     value={clientsSearch}
                     onChange={(e) => setClientsSearch(e.target.value)}
                   />
@@ -871,11 +880,11 @@ export default function Users() {
       </Card>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">Klijenti ukupno: {total}</p>
+        <p className="text-sm text-slate-500">{t('users.clientTotal', { count: total })}</p>
 
         <div className="flex items-center gap-2">
           <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-            Prethodna
+            {t('common.previous')}
           </Button>
 
           {visiblePageNumbers.pages[0] > 0 ? (
@@ -921,7 +930,7 @@ export default function Users() {
             disabled={page >= totalPages - 1}
             onClick={() => setPage((p) => p + 1)}
           >
-            Sljedeća
+            {t('common.next')}
           </Button>
         </div>
       </div>
@@ -930,7 +939,7 @@ export default function Users() {
       <Dialog open={removeStylistOpen} onOpenChange={setRemoveStylistOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Ukloni STYLIST rolu</DialogTitle>
+            <DialogTitle>{t('users.stylistRemoval.title')}</DialogTitle>
           </DialogHeader>
 
           {!removalPreview ? (
@@ -940,14 +949,14 @@ export default function Users() {
           ) : (
             <div className="space-y-4">
               <p className="text-sm text-slate-600 dark:text-slate-300">
-                Stilist: <span className="font-semibold text-slate-900 dark:text-slate-50">{removeStylistUser?.username}</span>
+                {t('users.stylistRemoval.stylist', { username: removeStylistUser?.username ?? '' })}
               </p>
 
               {([
-                { key: 'dailyLogs', label: 'Daily logovi', count: removalPreview.counts.dailyLogEntriesCount },
-                { key: 'confirmedReservations', label: 'Potvrđene rezervacije', count: removalPreview.counts.confirmedReservationsCount },
-                { key: 'reservationResponses', label: 'Odgovori/lockovi rezervacija', count: removalPreview.counts.reservationResponsesCount },
-                { key: 'reviews', label: 'Reviews', count: removalPreview.counts.reviewsCount },
+                { key: 'dailyLogs', label: t('users.stylistRemoval.categories.dailyLogs'), count: removalPreview.counts.dailyLogEntriesCount },
+                { key: 'confirmedReservations', label: t('users.stylistRemoval.categories.confirmedReservations'), count: removalPreview.counts.confirmedReservationsCount },
+                { key: 'reservationResponses', label: t('users.stylistRemoval.categories.reservationResponses'), count: removalPreview.counts.reservationResponsesCount },
+                { key: 'reviews', label: t('users.stylistRemoval.categories.reviews'), count: removalPreview.counts.reviewsCount },
               ] as const).map((row) => {
                 if (row.count <= 0) return null
                 const opts = getTargetOptions()
@@ -968,7 +977,7 @@ export default function Users() {
                           checked={mode === 'TRANSFER'}
                           onChange={() => setRemovalModes((prev) => ({ ...prev, [row.key]: 'TRANSFER' }))}
                         />
-                        <span>Prebaci</span>
+                        <span>{t('users.stylistRemoval.transfer')}</span>
                       </label>
                       <label className="inline-flex cursor-pointer items-center gap-2">
                         <input
@@ -978,34 +987,34 @@ export default function Users() {
                           checked={mode === 'DELETE'}
                           onChange={() => setRemovalModes((prev) => ({ ...prev, [row.key]: 'DELETE' }))}
                         />
-                        <span>Obriši</span>
+                        <span>{t('users.stylistRemoval.delete')}</span>
                       </label>
                     </div>
 
                     {mode === 'TRANSFER' ? (
                       <div className="mt-3 space-y-2">
-                        <Label>Target stilist</Label>
+                        <Label>{t('users.stylistRemoval.target')}</Label>
                         <select
                           className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
                           value={(removalTargets as any)[row.key] ?? ''}
                           onChange={(e) => setRemovalTargets((prev) => ({ ...prev, [row.key]: e.target.value }))}
                         >
-                          <option value="">Odaberite stilistu</option>
+                          <option value="">{t('users.stylistRemoval.chooseTarget')}</option>
                           {opts.map((o) => (
                             <option key={o.id} value={o.id} disabled={o.isPending}>
                               {o.label}
-                              {o.isPending ? ' (PENDING - profil nije završen)' : ''}
+                              {o.isPending ? ` ${t('users.stylistRemoval.pendingOption')}` : ''}
                             </option>
                           ))}
                         </select>
                         {opts.some((o) => o.isPending) ? (
                           <p className="text-xs text-amber-700 dark:text-amber-300">
-                            Nije moguće prebacivanje na stilistu sa PENDING statusom. Prvo završite profil na stranici Stylists.
+                            {t('users.stylistRemoval.pendingWarning')}
                           </p>
                         ) : null}
                       </div>
                     ) : (
-                      <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">Ova akcija će trajno obrisati podatke iz ove kategorije.</p>
+                      <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">{t('users.stylistRemoval.deleteWarning')}</p>
                     )}
                   </div>
                 )
@@ -1013,7 +1022,7 @@ export default function Users() {
 
               {removalSummary.length > 0 ? (
                 <div className="rounded-md border border-slate-200 p-4 dark:border-slate-800">
-                  <p className="mb-2 font-medium text-slate-900 dark:text-slate-50">Sažetak</p>
+                  <p className="mb-2 font-medium text-slate-900 dark:text-slate-50">{t('users.stylistRemoval.summary')}</p>
                   <div className="space-y-1 text-sm">
                     {removalSummary.map((r) => (
                       <div key={r.label} className="flex items-center justify-between gap-3">
@@ -1021,7 +1030,7 @@ export default function Users() {
                           {r.label} ({r.count})
                         </span>
                         <span className={r.mode === 'DELETE' ? 'font-medium text-rose-700 dark:text-rose-300' : 'font-medium text-blue-700 dark:text-blue-300'}>
-                          {r.mode === 'DELETE' ? 'BRISANJE' : 'PREBACIVANJE'}
+                          {r.mode === 'DELETE' ? t('users.stylistRemoval.deleteSummary') : t('users.stylistRemoval.transferSummary')}
                         </span>
                       </div>
                     ))}
@@ -1031,9 +1040,9 @@ export default function Users() {
 
               <Alert>
                 <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-                <AlertTitle>Napomena</AlertTitle>
+                <AlertTitle>{t('users.stylistRemoval.noteTitle')}</AlertTitle>
                 <AlertDescription>
-                  Nakon izvršenja, profil stiliste i njegove postavke (servisi, radno vrijeme) se brišu.
+                  {t('users.stylistRemoval.note')}
                 </AlertDescription>
               </Alert>
             </div>
@@ -1041,7 +1050,7 @@ export default function Users() {
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="ghost" onClick={() => setRemoveStylistOpen(false)}>
-              Otkaži
+              {t('common.cancel')}
             </Button>
             <Button
               type="button"
@@ -1050,7 +1059,7 @@ export default function Users() {
               onClick={() => void handleConfirmRemoveStylist()}
               disabled={!removalPreview || !isRemovalReady || removalSubmitting}
             >
-              {removalSubmitting ? 'Uklanjanje...' : 'Ukloni STYLIST'}
+              {removalSubmitting ? t('users.stylistRemoval.removing') : t('users.stylistRemoval.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1060,12 +1069,12 @@ export default function Users() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Uredi korisnika: {editUser?.username}</DialogTitle>
+            <DialogTitle>{t('users.editUserTitle', { username: editUser?.username ?? '' })}</DialogTitle>
           </DialogHeader>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Korisničko ime</Label>
+              <Label>{t('users.username')}</Label>
               <Input
                 value={formData.username}
                 onChange={(e) => {
@@ -1073,21 +1082,21 @@ export default function Users() {
                   setFormData((p) => ({ ...p, username: e.target.value }))
                 }}
               />
-              {editUsernameStatus.loading ? <p className="text-xs text-slate-500">Provjera dostupnosti...</p> : null}
+              {editUsernameStatus.loading ? <p className="text-xs text-slate-500">{t('users.usernameAvailability.checking')}</p> : null}
               {!editUsernameStatus.loading && editUsernameStatus.available === true && formData.username.trim() === initialUsername.trim() ? (
-                <p className="text-xs text-blue-600">Trenutno korisničko ime</p>
+                <p className="text-xs text-blue-600">{t('users.usernameAvailability.current')}</p>
               ) : null}
               {!editUsernameStatus.loading && editUsernameStatus.available === true && formData.username.trim() !== initialUsername.trim() ? (
-                <p className="text-xs text-emerald-600">Korisničko ime je dostupno.</p>
+                <p className="text-xs text-emerald-600">{t('users.usernameAvailability.available')}</p>
               ) : null}
               {!editUsernameStatus.loading && editUsernameStatus.available === false ? (
-                <p className="text-xs text-rose-600">Korisničko ime nije dostupno.</p>
+                <p className="text-xs text-rose-600">{t('users.usernameAvailability.unavailable')}</p>
               ) : null}
 
               {editUsernameStatus.suggestions.length > 0 && editUsernameStatus.available === false ? (
                 <Alert className="mt-2">
                   <UserRound className="h-4 w-4" aria-hidden="true" />
-                  <AlertTitle>Prijedlozi</AlertTitle>
+                  <AlertTitle>{t('users.usernameAvailability.suggestions')}</AlertTitle>
                   <AlertDescription>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {editUsernameStatus.suggestions.map((item) => (
@@ -1112,13 +1121,13 @@ export default function Users() {
 
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label className="mb-0">Email</Label>
+                <Label className="mb-0">{t('users.email')}</Label>
                 {formData.email.trim().length > 0 ? (
                   <Badge
                     variant={formData.email.trim() === initialEmail.trim() && !!editUser?.isEmailVerified ? 'success' : 'warning'}
                     className="text-[10px]"
                   >
-                    {formData.email.trim() === initialEmail.trim() && !!editUser?.isEmailVerified ? 'Verifikovan' : 'Nije verifikovan'}
+                    {formData.email.trim() === initialEmail.trim() && !!editUser?.isEmailVerified ? t('users.status.emailVerified') : t('users.status.emailUnverified')}
                   </Badge>
                 ) : null}
               </div>
@@ -1126,22 +1135,22 @@ export default function Users() {
             </div>
 
             <div className="space-y-2">
-              <Label>Ime</Label>
+              <Label>{t('auth.firstName')}</Label>
               <Input value={formData.firstName} onChange={(e) => setFormData((p) => ({ ...p, firstName: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label>Prezime</Label>
+              <Label>{t('auth.lastName')}</Label>
               <Input value={formData.lastName} onChange={(e) => setFormData((p) => ({ ...p, lastName: e.target.value }))} />
             </div>
 
             <div className="space-y-2">
-              <Label>Telefon</Label>
+              <Label>{t('users.phone')}</Label>
               <Input value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
             </div>
 
             <div className="space-y-2">
               <Label>
-                Spol
+                {t('users.gender.label')}
                 {editUser && getUserRoles(editUser).includes('CLIENT') ? <span className="ml-1 text-rose-600">*</span> : null}
               </Label>
               <select
@@ -1149,16 +1158,16 @@ export default function Users() {
                 value={formData.gender}
                 onChange={(e) => setFormData((p) => ({ ...p, gender: e.target.value as any }))}
               >
-                <option value="">Odaberite spol</option>
-                <option value="FEMALE">Žensko</option>
-                <option value="MALE">Muško</option>
+                <option value="">{t('users.gender.choose')}</option>
+                <option value="FEMALE">{t('users.gender.female')}</option>
+                <option value="MALE">{t('users.gender.male')}</option>
               </select>
             </div>
 
             <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800 md:col-span-2">
               <div className="space-y-0.5">
-                <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Aktivan</p>
-                <p className="text-xs text-slate-500">Neaktivni korisnici se ne mogu prijaviti.</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('users.form.active')}</p>
+                <p className="text-xs text-slate-500">{t('users.form.inactiveHint')}</p>
               </div>
               <Switch checked={formData.isActive} onCheckedChange={(checked) => setFormData((p) => ({ ...p, isActive: checked }))} />
             </div>
@@ -1166,13 +1175,13 @@ export default function Users() {
             {editUser && getUserRoles(editUser).includes('CLIENT') ? (
               <div className="space-y-2 md:col-span-2">
                 <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">Dugovanja</Label>
-                  {clientDebtsLoading ? <span className="text-xs text-slate-500">Učitavanje...</span> : null}
+                  <Label className="mb-0">{t('users.debts.title')}</Label>
+                  {clientDebtsLoading ? <span className="text-xs text-slate-500">{t('users.debts.loading')}</span> : null}
                 </div>
 
                 {clientDebts.length === 0 ? (
                   <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200">
-                    Nema otvorenih dugovanja.
+                    {t('users.debts.none')}
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1183,12 +1192,12 @@ export default function Users() {
                       >
                         <div className="min-w-0">
                           <div className="font-medium text-slate-900 dark:text-slate-50">
-                            {Number(d.amount).toFixed(2)} KM
+                            {formatLocalizedAmount(d.amount, i18n.language)}
                             {d.service?.name ? <span className="ml-2 text-xs text-slate-500">• {d.service.name}</span> : null}
                           </div>
                           {d.note ? <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{d.note}</div> : null}
                           {d.createdBy?.username ? (
-                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">Zaveo: {d.createdBy.username}</div>
+                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t('users.debts.enteredBy', { username: d.createdBy.username })}</div>
                           ) : null}
                         </div>
                         <Button
@@ -1197,7 +1206,7 @@ export default function Users() {
                           size="sm"
                           onClick={() => setDebtToWriteOff(d.id)}
                         >
-                          Otpiši dug
+                          {t('users.debts.writeOff')}
                         </Button>
                       </div>
                     ))}
@@ -1212,7 +1221,7 @@ export default function Users() {
               {t('common.cancel')}
             </Button>
             <Button type="button" onClick={() => void handleSave()} disabled={saving}>
-              {saving ? 'Spremanje...' : t('common.save')}
+              {saving ? t('common.saving') : t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1222,21 +1231,21 @@ export default function Users() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Novi korisnik</DialogTitle>
+            <DialogTitle>{t('users.newUser')}</DialogTitle>
           </DialogHeader>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Ime</Label>
+              <Label>{t('auth.firstName')}</Label>
               <Input value={createData.firstName} onChange={(e) => setCreateData((p) => ({ ...p, firstName: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label>Prezime</Label>
+              <Label>{t('auth.lastName')}</Label>
               <Input value={createData.lastName} onChange={(e) => setCreateData((p) => ({ ...p, lastName: e.target.value }))} />
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label>Korisničko ime</Label>
+              <Label>{t('users.username')}</Label>
               <Input
                 value={createData.username}
                 onChange={(e) => {
@@ -1245,16 +1254,16 @@ export default function Users() {
                   setCreateData((p) => ({ ...p, username: value }))
                 }}
               />
-              {usernameStatus.loading ? <p className="text-xs text-slate-500">Provjera dostupnosti...</p> : null}
-              {!usernameStatus.loading && usernameStatus.available === true ? <p className="text-xs text-emerald-600">Korisničko ime je dostupno.</p> : null}
-              {!usernameStatus.loading && usernameStatus.available === false ? <p className="text-xs text-rose-600">Korisničko ime nije dostupno.</p> : null}
+              {usernameStatus.loading ? <p className="text-xs text-slate-500">{t('users.usernameAvailability.checking')}</p> : null}
+              {!usernameStatus.loading && usernameStatus.available === true ? <p className="text-xs text-emerald-600">{t('users.usernameAvailability.available')}</p> : null}
+              {!usernameStatus.loading && usernameStatus.available === false ? <p className="text-xs text-rose-600">{t('users.usernameAvailability.unavailable')}</p> : null}
             </div>
 
             {usernameStatus.suggestions.length > 0 && usernameStatus.available === false ? (
               <div className="md:col-span-2">
                 <Alert>
                   <UserRound className="h-4 w-4" aria-hidden="true" />
-                  <AlertTitle>Prijedlozi</AlertTitle>
+                  <AlertTitle>{t('users.usernameAvailability.suggestions')}</AlertTitle>
                   <AlertDescription>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {usernameStatus.suggestions.map((item) => (
@@ -1278,23 +1287,23 @@ export default function Users() {
             ) : null}
 
             <div className="space-y-2 md:col-span-2">
-              <Label>Uloga</Label>
-              <Input value="CLIENT" readOnly />
+              <Label>{t('users.form.role')}</Label>
+              <Input value={getRoleLabel('CLIENT')} readOnly />
               <p className="text-xs text-slate-500">
-                Svi korisnici su klijenti. Dodatne role dodajte naknadno kroz listu korisnika.
+                {t('users.form.roleNote')}
               </p>
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label>Spol</Label>
+              <Label>{t('users.gender.label')}</Label>
               <select
                 className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50 dark:focus-visible:ring-offset-slate-950"
                 value={createData.gender}
                 onChange={(e) => setCreateData((p) => ({ ...p, gender: e.target.value as any }))}
               >
-                <option value="">Odaberite spol</option>
-                <option value="FEMALE">Žensko</option>
-                <option value="MALE">Muško</option>
+                <option value="">{t('users.gender.choose')}</option>
+                <option value="FEMALE">{t('users.gender.female')}</option>
+                <option value="MALE">{t('users.gender.male')}</option>
               </select>
             </div>
 
@@ -1305,7 +1314,7 @@ export default function Users() {
               {t('common.cancel')}
             </Button>
             <Button type="button" onClick={() => void handleCreate()} disabled={saving}>
-              {saving ? 'Spremanje...' : t('common.save')}
+              {saving ? t('common.saving') : t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1315,24 +1324,24 @@ export default function Users() {
       <Dialog open={credentialsOpen} onOpenChange={setCredentialsOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Kredencijali korisnika (prikaz jednom)</DialogTitle>
+            <DialogTitle>{t('users.credentials.title')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
-              <p className="text-xs text-slate-500">Korisničko ime</p>
+              <p className="text-xs text-slate-500">{t('users.credentials.username')}</p>
               <p className="font-semibold text-slate-900 dark:text-slate-50">{createdCredentials?.username}</p>
             </div>
             <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
-              <p className="text-xs text-slate-500">Inicijalna lozinka</p>
+              <p className="text-xs text-slate-500">{t('users.credentials.initialPassword')}</p>
               <p className="font-semibold text-slate-900 dark:text-slate-50">{createdCredentials?.initialPassword}</p>
             </div>
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              Sačuvajte ove podatke i proslijedite korisniku. Nakon prve prijave korisnik mora promijeniti lozinku.
+              {t('users.credentials.instructions')}
             </p>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" onClick={() => setCredentialsOpen(false)}>
-              U redu
+              {t('users.credentials.acknowledge')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1343,12 +1352,12 @@ export default function Users() {
         onOpenChange={(next) => {
           if (!next) setDebtToWriteOff(null)
         }}
-        title="Otpis duga"
-        description="Otpis zatvara dug bez knjiženja prihoda u KIF. Za naplatu koristi dnevnu knjigu."
-        confirmLabel="Otpiši dug"
+        title={t('users.debts.confirmTitle')}
+        description={t('users.debts.confirmDescription')}
+        confirmLabel={t('users.debts.confirmButton')}
         isDestructive
         isPending={writeOffPending}
-        reasonLabel="Razlog otpisa"
+        reasonLabel={t('users.debts.reason')}
         onConfirm={(reason) => void handleWriteOffClientDebt(reason)}
       />
     </div>
@@ -1366,6 +1375,7 @@ function UsersList({
   renderRow: (u: UserRow) => React.ReactNode
   renderCard: (u: UserRow) => React.ReactNode
 }) {
+  const { t } = useTranslation()
   if (loading) {
     return (
       <div className="flex justify-center p-10 text-slate-500">
@@ -1375,7 +1385,7 @@ function UsersList({
   }
 
   if (items.length === 0) {
-    return <p className="p-6 text-sm text-slate-500">{'Nema podataka.'}</p>
+    return <p className="p-6 text-sm text-slate-500">{t('common.noData')}</p>
   }
 
   return (
@@ -1386,14 +1396,14 @@ function UsersList({
         <table className="app-table w-full border-collapse">
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-              <th className="p-3 font-medium w-[56px]">Avatar</th>
-              <th className="p-3 font-medium">Korisničko ime</th>
-              <th className="p-3 font-medium">Email</th>
-              <th className="p-3 font-medium">Ime i prezime</th>
-              <th className="p-3 font-medium">Telefon</th>
-              <th className="p-3 font-medium">Uloge</th>
-              <th className="p-3 font-medium">Status</th>
-              <th className="p-3 font-medium text-right">Akcije</th>
+              <th className="p-3 font-medium w-[56px]">{t('users.table.avatar')}</th>
+              <th className="p-3 font-medium">{t('users.username')}</th>
+              <th className="p-3 font-medium">{t('users.email')}</th>
+              <th className="p-3 font-medium">{t('users.table.fullName')}</th>
+              <th className="p-3 font-medium">{t('users.phone')}</th>
+              <th className="p-3 font-medium">{t('users.roles')}</th>
+              <th className="p-3 font-medium">{t('common.status')}</th>
+              <th className="p-3 font-medium text-right">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>{items.map((u) => renderRow(u) as any)}</tbody>

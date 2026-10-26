@@ -163,6 +163,7 @@ npm run test:registration-errors
 npm run test:locale-formatting
 npm run test:reservation-errors
 npm run test:client-reservation-errors
+npm run test:admin-api-errors
 npm run build
 npm run lint
 ```
@@ -170,7 +171,7 @@ npm run lint
 - `test:socket-recovery` uses Node's built-in runner and needs no additional dependency; it verifies the reconnect controller, not React rendering or browser/Socket.IO server behavior.
 - `build` executes `tsc -b` and `vite build`; preserve and review Vite bundle-size warning. The frontend Docker image must be built with the repository root as context: frontend modules import `shared/business-date.mjs` outside `frontend/`. CI run `40229785202` passed the Docker image build from that root context and the primary Compose context assertion.
 - `lint` is not an established gate until ESLint dependency/config are present and legacy errors resolved. The command must not mutate source.
-- `test:socket-recovery`, `test:brand-colors`, `test:registration-errors`, `test:locale-formatting`, `test:reservation-errors`, and `test:client-reservation-errors` use Node's built-in test runner. Locale-formatting tests cover BS/EN date-only and KM amount output; the reservation-error mappers cover known booking and client-action errors plus generic handling. React component/browser coverage is still not configured.
+- `test:socket-recovery`, `test:brand-colors`, `test:registration-errors`, `test:locale-formatting`, `test:reservation-errors`, `test:client-reservation-errors`, and `test:admin-api-errors` use Node's built-in test runner. Locale-formatting tests cover BS/EN date-only, weekday, date-time, number and KM amount output; the error mappers cover known auth, booking, client-action and admin user/stylist errors plus localized fallback handling. React component/browser coverage is still not configured.
 
 ### Add as implementation progresses
 

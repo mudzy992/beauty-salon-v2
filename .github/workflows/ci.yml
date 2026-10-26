@@ -154,6 +154,9 @@ jobs:
       - name: Test localized client reservation action errors
         working-directory: frontend
         run: npm run test:client-reservation-errors
+      - name: Test localized admin API errors
+        working-directory: frontend
+        run: npm run test:admin-api-errors
       - name: Build (includes TypeScript project check)
         working-directory: frontend
         run: npm run build

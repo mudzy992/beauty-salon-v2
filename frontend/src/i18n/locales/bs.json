@@ -91,7 +91,10 @@
     "total": "Ukupno",
     "name": "Naziv",
     "description": "Opis",
-    "back": "Nazad"
+    "back": "Nazad",
+    "previous": "Prethodna",
+    "next": "Sljedeća",
+    "saving": "Spremanje…"
   },
   "appReleases": {
     "title": "Mobilni release (Android)",
@@ -132,21 +135,167 @@
     "pending": "Na čekanju"
   },
   "users": {
-    "newUser": "Novi Korisnik",
-    "editUser": "Uredi Korisnika",
+    "newUser": "Novi korisnik",
+    "editUser": "Uredi korisnika",
+    "editUserTitle": "Uredi korisnika: {{username}}",
     "username": "Korisničko ime",
     "email": "Email",
-    "fullName": "Ime i Prezime",
+    "fullName": "Ime i prezime",
     "phone": "Telefon",
     "roles": "Uloge",
     "assignRole": "Dodijeli ulogu",
     "removeRole": "Ukloni ulogu",
-    "deactivate": "Deaktiviraj"
+    "deactivate": "Deaktiviraj",
+    "subtitle": "Upravljanje korisnicima, ulogama i statusom.",
+    "createButton": "Novi korisnik",
+    "tabs": {
+      "admins": "Administratori ({{count}})",
+      "stylists": "Stilisti ({{count}})",
+      "clients": "Klijenti ({{count}})"
+    },
+    "clientTotal": "Klijenti ukupno: {{count}}",
+    "searchClients": "Pretraži klijente…",
+    "table": {
+      "avatar": "Avatar",
+      "fullName": "Ime i prezime"
+    },
+    "status": {
+      "emailVerified": "E-mail verifikovan",
+      "emailUnverified": "E-mail nije verifikovan",
+      "profileIncomplete": "Profil nije završen"
+    },
+    "roleNames": {
+      "SYSTEM_ADMIN": "Sistemski administrator",
+      "OWNER": "Vlasnik",
+      "CLIENT": "Klijent",
+      "STYLIST": "Stilist"
+    },
+    "stylistRoleBadge": "(profil stiliste)",
+    "openStylists": "Otvori profile stilista",
+    "aria": {
+      "removeRole": "Ukloni ulogu {{role}}",
+      "addRole": "Dodaj ulogu",
+      "analytics": "Analitika klijenta",
+      "edit": "Uredi korisnika",
+      "deactivate": "Deaktiviraj korisnika"
+    },
+    "confirmDeactivate": "Deaktivirati korisnika „{{username}}“?",
+    "confirmRemoveRole": "Ukloniti ulogu {{role}}?",
+    "gender": {
+      "label": "Spol",
+      "choose": "Odaberite spol",
+      "female": "Žensko",
+      "male": "Muško"
+    },
+    "validation": {
+      "nameRequired": "Ime i prezime su obavezni.",
+      "usernameRequired": "Korisničko ime je obavezno.",
+      "genderRequiredForClients": "Spol je obavezan za klijente.",
+      "allRequired": "Popunite sva obavezna polja.",
+      "genderRequired": "Spol je obavezan.",
+      "transferTargetRequired": "Odaberite ciljnog stilistu za sve opcije prijenosa."
+    },
+    "usernameAvailability": {
+      "checking": "Provjera dostupnosti…",
+      "current": "Trenutno korisničko ime",
+      "available": "Korisničko ime je dostupno.",
+      "unavailable": "Korisničko ime nije dostupno.",
+      "suggestions": "Prijedlozi"
+    },
+    "form": {
+      "role": "Uloga",
+      "roleNote": "Svi novi korisnici su klijenti. Dodatne uloge možete dodati naknadno s liste korisnika.",
+      "active": "Aktivan",
+      "inactiveHint": "Neaktivni korisnici se ne mogu prijaviti."
+    },
+    "debts": {
+      "title": "Dugovanja",
+      "loading": "Učitavanje…",
+      "none": "Nema otvorenih dugovanja.",
+      "enteredBy": "Evidentirao/la: {{username}}",
+      "writeOff": "Otpiši dug",
+      "confirmTitle": "Otpis duga",
+      "confirmDescription": "Otpis zatvara dug bez knjiženja prihoda u KIF. Za naplatu koristite dnevnu knjigu.",
+      "reason": "Razlog otpisa",
+      "confirmButton": "Otpiši dug"
+    },
+    "credentials": {
+      "title": "Pristupni podaci korisnika (prikazani jednom)",
+      "username": "Korisničko ime",
+      "initialPassword": "Inicijalna lozinka",
+      "instructions": "Sačuvajte ove podatke i proslijedite ih korisniku. Nakon prve prijave korisnik mora promijeniti lozinku.",
+      "acknowledge": "U redu"
+    },
+    "stylistRemoval": {
+      "title": "Ukloni ulogu stiliste",
+      "stylist": "Stilist: {{username}}",
+      "categories": {
+        "dailyLogs": "Dnevni zapisi",
+        "confirmedReservations": "Potvrđene rezervacije",
+        "reservationResponses": "Odgovori i zaključavanja rezervacija",
+        "reviews": "Recenzije"
+      },
+      "transfer": "Prebaci",
+      "delete": "Obriši",
+      "target": "Ciljni stilista",
+      "chooseTarget": "Odaberite stilistu",
+      "pendingOption": "(na čekanju — profil nije završen)",
+      "pendingWarning": "Podatke nije moguće prebaciti stilisti čiji profil nije završen. Prvo dovršite profil na stranici Stilisti.",
+      "deleteWarning": "Ova akcija trajno briše podatke iz ove kategorije.",
+      "summary": "Sažetak",
+      "deleteSummary": "BRISANJE",
+      "transferSummary": "PRENOS",
+      "noteTitle": "Napomena",
+      "note": "Nakon uklanjanja uloge brišu se profil stiliste i njegove postavke (usluge i radno vrijeme).",
+      "removing": "Uklanjanje…",
+      "confirm": "Ukloni ulogu stiliste"
+    },
+    "toast": {
+      "debtWrittenOff": "Dug je otpisan.",
+      "updated": "Korisnik je ažuriran.",
+      "created": "Korisnik je kreiran.",
+      "deactivated": "Korisnik je deaktiviran.",
+      "stylistPendingTitle": "Uloga stiliste je dodijeljena.",
+      "stylistPendingDescription": "Dovršite profil na stranici Stilisti.",
+      "roleAssigned": "Uloga {{role}} je dodijeljena.",
+      "stylistRoleRemoved": "Uloga stiliste je uklonjena.",
+      "roleRemoved": "Uloga {{role}} je uklonjena."
+    },
+    "errors": {
+      "writeOffFailed": "Nije moguće otpisati dug.",
+      "updateFailed": "Nije moguće ažurirati korisnika.",
+      "createFailed": "Nije moguće kreirati korisnika.",
+      "deactivateFailed": "Nije moguće deaktivirati korisnika.",
+      "assignRoleFailed": "Nije moguće dodijeliti ulogu.",
+      "prepareStylistRemovalFailed": "Nije moguće pripremiti uklanjanje profila stiliste.",
+      "removeRoleFailed": "Nije moguće ukloniti ulogu.",
+      "stylistRemovalFailed": "Nije moguće ukloniti ulogu stiliste.",
+      "notFound": "Korisnik nije pronađen.",
+      "usernameTaken": "Korisničko ime je već u upotrebi.",
+      "emailTaken": "E-mail adresa je već u upotrebi.",
+      "genderRequired": "Spol je obavezan za klijente.",
+      "usernameInvalid": "Korisničko ime nije ispravno.",
+      "roleRequired": "Odaberite ulogu.",
+      "roleNotFound": "Odabrana uloga nije pronađena.",
+      "roleNotAssigned": "Korisnik nema dodijeljenu ovu ulogu.",
+      "noStylistProfile": "Korisnik nema profil stiliste.",
+      "targetRequired": "Odaberite ciljnog stilistu za sve opcije prijenosa.",
+      "targetSame": "Ciljni stilista mora biti druga osoba.",
+      "targetNotFound": "Ciljni stilista nije pronađen.",
+      "clientRoleCannotRemove": "Ulogu klijenta nije moguće ukloniti.",
+      "stylistUseRemovalFlow": "Uklonite ulogu stiliste kroz dijalog za prijenos ili brisanje povezanih podataka.",
+      "debtNotFound": "Dug nije pronađen.",
+      "debtClosed": "Dug je već zatvoren.",
+      "writeOffReasonRequired": "Unesite razlog otpisa duga.",
+      "writeOffPermission": "Otpis duga može izvršiti samo vlasnik ili administrator.",
+      "permissionDenied": "Nemate dozvolu za ovu akciju."
+    }
   },
   "salon": {
     "settings": "Osnovne Postavke",
     "workingHours": "Radno Vrijeme",
     "holidays": "Praznici",
+    "holidaysDescription": "Datumi kada salon ne radi (opciono slanje push obavijesti).",
     "salonName": "Naziv salona",
     "address": "Adresa",
     "pauseBetween": "Pauza između servisa (min)",
@@ -154,14 +303,134 @@
     "maxCancellations": "Max otkazivanja prije penala",
     "penaltyDuration": "Trajanje penala (dana)",
     "newHoliday": "Novi Praznik",
-    "sendNotification": "Pošalji notifikaciju"
+    "sendNotification": "Pošalji notifikaciju",
+    "subtitle": "Podešavanja salona, radno vrijeme i praznici.",
+    "notConfigured": "Salon još nije podešen. Kreirajte osnovne informacije.",
+    "phone": "Telefon",
+    "email": "Email",
+    "description": "Opis",
+    "createButton": "Kreiraj salon",
+    "reservationLock": "Zaključavanje rezervacije (min)",
+    "noHolidays": "Nema praznika.",
+    "confirmDeleteHoliday": "Obrisati ovaj praznik?",
+    "validation": {
+      "nameRequired": "Unesite naziv salona.",
+      "holidayRequired": "Unesite datum i naziv praznika."
+    },
+    "tabs": {
+      "general": "Osnovne postavke",
+      "workingHours": "Radno vrijeme",
+      "holidays": "Praznici"
+    },
+    "workingHoursTable": {
+      "day": "Dan",
+      "workday": "Radni dan",
+      "opens": "Otvara",
+      "closes": "Zatvara"
+    },
+    "holidayTable": {
+      "date": "Datum",
+      "name": "Naziv",
+      "push": "Push",
+      "sent": "Poslano",
+      "actions": "Akcije"
+    },
+    "holidayForm": {
+      "newTitle": "Novi praznik",
+      "editTitle": "Uredi praznik",
+      "date": "Datum",
+      "name": "Naziv",
+      "message": "Poruka (opciono)",
+      "sendPush": "Pošalji push obavijest",
+      "sendPushHint": "Ako je uključeno, obavijest možete poslati klijentima."
+    },
+    "toast": {
+      "created": "Salon je kreiran.",
+      "settingsSaved": "Postavke salona su sačuvane.",
+      "workingHoursSaved": "Radno vrijeme je sačuvano.",
+      "holidaySaved": "Praznik je sačuvan.",
+      "holidayDeleted": "Praznik je obrisan.",
+      "notificationSent": "Obavijest je poslana."
+    },
+    "errors": {
+      "loadFailed": "Nije moguće učitati postavke salona.",
+      "createFailed": "Nije moguće kreirati salon.",
+      "saveSettingsFailed": "Nije moguće sačuvati postavke salona.",
+      "saveWorkingHoursFailed": "Nije moguće sačuvati radno vrijeme.",
+      "saveHolidayFailed": "Nije moguće sačuvati praznik.",
+      "deleteHolidayFailed": "Nije moguće obrisati praznik.",
+      "sendNotificationFailed": "Nije moguće poslati obavijest.",
+      "loadHolidaysFailed": "Nije moguće učitati praznike."
+    }
   },
   "services": {
     "newCategory": "Nova Kategorija",
     "newSubcategory": "Nova Potkategorija",
     "newService": "Novi Servis",
     "duration": "Trajanje (min)",
-    "sortOrder": "Redoslijed"
+    "sortOrder": "Redoslijed",
+    "editCategory": "Uredi kategoriju",
+    "editSubcategory": "Uredi potkategoriju",
+    "editService": "Uredi uslugu",
+    "addService": "Dodaj uslugu",
+    "serviceName": "Naziv usluge",
+    "shortDescription": "Kratki opis",
+    "heroImage": "Glavna slika",
+    "changeImage": "Promijeni sliku",
+    "uploadImage": "Učitaj sliku",
+    "price": "Cijena (KM)",
+    "gender": "Spol usluge",
+    "loyalty": "Loyalty",
+    "loyaltyDiscount": "Loyalty popust do {{percent}}%",
+    "withoutLoyalty": "Bez loyalty",
+    "maxDiscount": "Maks. popust (%)",
+    "durationValue": "{{count}} min",
+    "noServices": "Nema definisanih usluga.",
+    "noSubcategories": "Nema potkategorija.",
+    "confirmDeleteCategory": "Obrisati kategoriju i sve potkategorije/usluge?",
+    "confirmDeleteSubcategory": "Obrisati potkategoriju i sve usluge?",
+    "confirmDeleteService": "Obrisati uslugu?",
+    "status": {
+      "categoryActive": "Aktivna",
+      "categoryInactive": "Neaktivna",
+      "serviceActive": "Aktivan",
+      "serviceInactive": "Neaktivan"
+    },
+    "table": {
+      "service": "Usluga",
+      "description": "Opis",
+      "duration": "Trajanje",
+      "price": "Cijena",
+      "gender": "Spol",
+      "loyalty": "Loyalty",
+      "status": "Status",
+      "actions": "Akcije"
+    },
+    "aria": {
+      "addSubcategory": "Dodaj potkategoriju",
+      "editCategory": "Uredi kategoriju",
+      "deleteCategory": "Obriši kategoriju",
+      "editSubcategory": "Uredi potkategoriju",
+      "deleteSubcategory": "Obriši potkategoriju",
+      "workGallery": "Pregled završenih radova",
+      "editService": "Uredi uslugu",
+      "deleteService": "Obriši uslugu"
+    },
+    "toast": {
+      "saved": "Promjene su sačuvane.",
+      "imageUploaded": "Slika je učitana.",
+      "categoryDeleted": "Kategorija je obrisana.",
+      "subcategoryDeleted": "Potkategorija je obrisana.",
+      "serviceDeleted": "Usluga je obrisana."
+    },
+    "errors": {
+      "loadFailed": "Nije moguće učitati katalog usluga.",
+      "saveFailed": "Nije moguće sačuvati promjene.",
+      "uploadFailed": "Nije moguće učitati sliku usluge.",
+      "deleteCategoryFailed": "Nije moguće obrisati kategoriju.",
+      "deleteSubcategoryFailed": "Nije moguće obrisati potkategoriju.",
+      "deleteServiceFailed": "Nije moguće obrisati uslugu."
+    }
   },
   "stylists": {
     "newStylist": "Novi Stilista",
@@ -170,7 +439,55 @@
     "bio": "Bio",
     "hireDate": "Datum zaposlenja",
     "competencies": "Kompetencije",
-    "workingHours": "Radno Vrijeme"
+    "workingHours": "Radno Vrijeme",
+    "status": {
+      "pending": "Profil nije dovršen",
+      "active": "Aktivan",
+      "inactive": "Neaktivan"
+    },
+    "table": {
+      "user": "Korisnik",
+      "email": "E-mail",
+      "specialization": "Specijalizacija",
+      "hireDate": "Datum zaposlenja",
+      "status": "Status",
+      "actions": "Akcije",
+      "total": "Ukupno: {{count}}"
+    },
+    "aria": {
+      "analytics": "Analitika stiliste",
+      "edit": "Uredi profil stiliste",
+      "removeCompetency": "Ukloni kompetenciju"
+    },
+    "profileTitle": "Profil stiliste",
+    "tabs": {
+      "profile": "Profil",
+      "hours": "Radno vrijeme",
+      "competencies": "Kompetencije"
+    },
+    "specializationAuto": "Specijalizacija (automatski iz odabranih usluga)",
+    "specializationHint": "Specijalizacija se automatski generiše na kartici Kompetencije.",
+    "selectedCompetencies": "Odabrane kompetencije",
+    "noSelectedCompetencies": "Nema odabranih kompetencija.",
+    "availableCompetencies": "Dostupne kompetencije",
+    "allCompetenciesSelected": "Sve kompetencije su već odabrane.",
+    "noServicesAvailable": "Nema dostupnih usluga.",
+    "workingDay": "Radni dan",
+    "day": "Dan",
+    "start": "Početak",
+    "end": "Kraj",
+    "removeCompetencyHint": "kliknite X za uklanjanje",
+    "addViaUsers": "Stilista se dodaje kroz Korisnike dodjelom uloge STYLIST.",
+    "saveSuccess": "Promjene su sačuvane.",
+    "errors": {
+      "saveFailed": "Nije moguće sačuvati profil stiliste.",
+      "notFound": "Stilist nije pronađen.",
+      "alreadyExists": "Korisnik već ima profil stiliste.",
+      "invalidHireDate": "Datum zaposlenja nije ispravan.",
+      "serviceRangeLimit": "Raspon servisa stiliste prelazi dozvoljeni limit.",
+      "catalogRangeLimit": "Raspon kataloga stilista prelazi dozvoljeni limit.",
+      "permissionDenied": "Nemate dozvolu za izmjenu ovog profila."
+    }
   },
   "reservations": {
     "detail": "Detalji Rezervacije",

@@ -4,6 +4,8 @@ import { Loader2, Plus, Send, Trash2 } from 'lucide-react'
 
 import api from '../api/client'
 import { getErrorMessage } from '../api/error'
+import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
+import { formatLocalizedDateTime, formatWeekday, getIntlLocale } from '../i18n/locale-utils.mjs'
 import { useSocketEvent } from '../context/SocketContext'
 import { useAppToast } from '../lib/toast/useAppToast'
 import {
@@ -55,11 +57,16 @@ interface Holiday {
   pushSentAt: string | null
 }
 
-const DAYS = ['Nedjelja', 'Ponedjeljak', 'Utorak', 'Srijeda', 'Četvrtak', 'Petak', 'Subota']
-
 export default function Salon() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
   const { success, error, warning } = useAppToast()
+  const showApiError = useCallback(
+    (err: unknown, fallbackKey: string) => {
+      error(t(resolveAdminApiErrorKey(getErrorMessage(err, ''), fallbackKey)))
+    },
+    [error, t],
+  )
 
   const [salon, setSalon] = useState<SalonSettings | null>(null)
   const [loading, setLoading] = useState(true)
@@ -147,11 +154,11 @@ export default function Salon() {
     } catch (err) {
       setNoSalonExists(true)
       setSalon(null)
-      error(getErrorMessage(err))
+      showApiError(err, 'salon.errors.loadFailed')
     } finally {
       setLoading(false)
     }
-  }, [error])
+  }, [showApiError])
 
   useEffect(() => {
     loadSalon()
@@ -173,7 +180,9 @@ export default function Salon() {
     try {
       const { data } = await api.get<SalonSettings>(`/api/salon/${salon.id}`)
       setHolidays(data.holidays ?? [])
-    } catch {}
+    } catch (err) {
+      showApiError(err, 'salon.errors.loadHolidaysFailed')
+    }
   }
 
   const openHolidayForm = (h?: Holiday) => {
@@ -189,16 +198,16 @@ export default function Salon() {
 
   const handleCreateSalon = async () => {
     if (!formData.name) {
-      warning('Unesite naziv salona')
+      warning(t('salon.validation.nameRequired'))
       return
     }
     setSaving(true)
     try {
       await api.post('/api/salon', formData)
-      success('Salon kreiran!')
+      success(t('salon.toast.created'))
       loadSalon()
     } catch (err) {
-      error(getErrorMessage(err))
+      showApiError(err, 'salon.errors.createFailed')
     } finally {
       setSaving(false)
     }
@@ -209,10 +218,10 @@ export default function Salon() {
     setSaving(true)
     try {
       await api.patch(`/api/salon/${salon.id}`, formData)
-      success('Postavke salona sačuvane')
+      success(t('salon.toast.settingsSaved'))
       loadSalon()
     } catch (err) {
-      error(getErrorMessage(err))
+      showApiError(err, 'salon.errors.saveSettingsFailed')
     } finally {
       setSaving(false)
     }
@@ -223,48 +232,52 @@ export default function Salon() {
     setSaving(true)
     try {
       await api.post(`/api/salon/${salon.id}/working-hours`, { workingHours })
-      success('Radno vrijeme sačuvano')
+      success(t('salon.toast.workingHoursSaved'))
     } catch (err) {
-      error(getErrorMessage(err))
+      showApiError(err, 'salon.errors.saveWorkingHoursFailed')
     } finally {
       setSaving(false)
     }
   }
 
   const handleSaveHoliday = async () => {
-    if (!salon || !holForm.date || !holForm.name) return
+    if (!salon) return
+    if (!holForm.date || !holForm.name) {
+      warning(t('salon.validation.holidayRequired'))
+      return
+    }
     setSaving(true)
     try {
       if (editHoliday) await api.patch(`/api/salon/holidays/${editHoliday.id}`, holForm)
       else await api.post(`/api/salon/${salon.id}/holidays`, holForm)
-      success('Praznik sačuvan')
+      success(t('salon.toast.holidaySaved'))
       reloadHolidays()
       setHolidayOpen(false)
     } catch (err) {
-      error(getErrorMessage(err))
+      showApiError(err, 'salon.errors.saveHolidayFailed')
     } finally {
       setSaving(false)
     }
   }
 
   const handleDeleteHoliday = async (id: string) => {
-    if (!window.confirm('Obrisati praznik?')) return
+    if (!window.confirm(t('salon.confirmDeleteHoliday'))) return
     try {
       await api.delete(`/api/salon/holidays/${id}`)
-      success('Praznik obrisan')
+      success(t('salon.toast.holidayDeleted'))
       reloadHolidays()
     } catch (err) {
-      error(getErrorMessage(err))
+      showApiError(err, 'salon.errors.deleteHolidayFailed')
     }
   }
 
   const handleSendNotification = async (holidayId: string) => {
     try {
       await api.post(`/api/salon/holidays/${holidayId}/send-notification`)
-      success('Notifikacija poslana')
+      success(t('salon.toast.notificationSent'))
       reloadHolidays()
     } catch (err) {
-      error(getErrorMessage(err))
+      showApiError(err, 'salon.errors.sendNotificationFailed')
     }
   }
 
@@ -290,36 +303,36 @@ export default function Salon() {
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.salon')}</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Salon još nije podešen. Kreirajte osnovne informacije.</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('salon.notConfigured')}</p>
         </div>
 
         <Card>
           <div className="p-6 space-y-4">
             <div className="space-y-2">
-              <Label>Naziv</Label>
+              <Label>{t('salon.salonName')}</Label>
               <Input value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} />
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Telefon</Label>
+                <Label>{t('salon.phone')}</Label>
                 <Input value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
+                <Label>{t('salon.email')}</Label>
                 <Input type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Adresa</Label>
+              <Label>{t('salon.address')}</Label>
               <Input value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label>Opis</Label>
+              <Label>{t('salon.description')}</Label>
               <Textarea rows={3} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} />
             </div>
             <div className="flex justify-end">
               <Button type="button" onClick={() => void handleCreateSalon()} disabled={saving}>
-                Kreiraj salon
+                {saving ? t('common.saving') : t('salon.createButton')}
               </Button>
             </div>
           </div>
@@ -333,12 +346,12 @@ export default function Salon() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.salon')}</h1>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Podešavanja salona, radno vrijeme i praznici.</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('salon.subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {holidaysSummary.map((h) => (
             <Badge key={h.id} variant="secondary">
-              {formatDateOnlyLocale(h.date.slice(0, 10), 'bs-BA')}: {h.name}
+              {formatDateOnlyLocale(h.date.slice(0, 10), locale)}: {h.name}
             </Badge>
           ))}
         </div>
@@ -348,38 +361,38 @@ export default function Salon() {
         <div className="p-6">
           <Tabs defaultValue="general">
             <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-2">
-              <TabsTrigger value="general">Opšte</TabsTrigger>
-              <TabsTrigger value="hours">Radno vrijeme</TabsTrigger>
-              <TabsTrigger value="holidays">Praznici</TabsTrigger>
+              <TabsTrigger value="general">{t('salon.tabs.general')}</TabsTrigger>
+              <TabsTrigger value="hours">{t('salon.tabs.workingHours')}</TabsTrigger>
+              <TabsTrigger value="holidays">{t('salon.tabs.holidays')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="mt-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Naziv</Label>
+                  <Label>{t('salon.salonName')}</Label>
                   <Input value={formData.name} onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Adresa</Label>
+                  <Label>{t('salon.address')}</Label>
                   <Input value={formData.address} onChange={(e) => setFormData((p) => ({ ...p, address: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Telefon</Label>
+                  <Label>{t('salon.phone')}</Label>
                   <Input value={formData.phone} onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Email</Label>
+                  <Label>{t('salon.email')}</Label>
                   <Input type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
                 </div>
                 <div className="space-y-2 md:col-span-2">
-                  <Label>Opis</Label>
+                  <Label>{t('salon.description')}</Label>
                   <Textarea rows={4} value={formData.description} onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))} />
                 </div>
               </div>
 
               <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <Label>Pauza između servisa (min)</Label>
+                  <Label>{t('salon.pauseBetween')}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -388,7 +401,7 @@ export default function Salon() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Rok otkazivanja (h)</Label>
+                  <Label>{t('salon.cancellationDeadline')}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -397,7 +410,7 @@ export default function Salon() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Lock rezervacije (min)</Label>
+                  <Label>{t('salon.reservationLock')}</Label>
                   <Input
                     type="number"
                     min={1}
@@ -406,7 +419,7 @@ export default function Salon() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Max otkazivanja prije penala</Label>
+                  <Label>{t('salon.maxCancellations')}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -415,7 +428,7 @@ export default function Salon() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Trajanje penala (dana)</Label>
+                  <Label>{t('salon.penaltyDuration')}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -427,7 +440,7 @@ export default function Salon() {
 
               <div className="mt-6 flex justify-end">
                 <Button type="button" onClick={() => void handleSaveSettings()} disabled={saving}>
-                  Sačuvaj
+                  {saving ? t('common.saving') : t('common.save')}
                 </Button>
               </div>
             </TabsContent>
@@ -437,16 +450,16 @@ export default function Salon() {
                 <table className="app-table w-full border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                      <th className="p-3 font-medium">Dan</th>
-                      <th className="p-3 font-medium">Radni dan</th>
-                      <th className="p-3 font-medium">Otvara</th>
-                      <th className="p-3 font-medium">Zatvara</th>
+                      <th className="p-3 font-medium">{t('salon.workingHoursTable.day')}</th>
+                      <th className="p-3 font-medium">{t('salon.workingHoursTable.workday')}</th>
+                      <th className="p-3 font-medium">{t('salon.workingHoursTable.opens')}</th>
+                      <th className="p-3 font-medium">{t('salon.workingHoursTable.closes')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {workingHours.map((wh) => (
                       <tr key={wh.dayOfWeek} className={!wh.isWorkingDay ? 'opacity-60' : undefined}>
-                        <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{DAYS[wh.dayOfWeek]}</td>
+                        <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{formatWeekday(wh.dayOfWeek, i18n.language)}</td>
                         <td className="p-3">
                           <Switch checked={wh.isWorkingDay} onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)} />
                         </td>
@@ -476,7 +489,7 @@ export default function Salon() {
 
               <div className="mt-4 flex justify-end">
                 <Button type="button" onClick={() => void handleSaveWorkingHours()} disabled={saving}>
-                  Sačuvaj radno vrijeme
+                  {saving ? t('common.saving') : t('common.save')}
                 </Button>
               </div>
             </TabsContent>
@@ -484,27 +497,27 @@ export default function Salon() {
             <TabsContent value="holidays" className="mt-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Praznici</p>
-                  <p className="text-xs text-slate-500">Datumi kada salon ne radi (opciono slanje push obavijesti).</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('salon.holidays')}</p>
+                  <p className="text-xs text-slate-500">{t('salon.holidaysDescription')}</p>
                 </div>
                 <Button type="button" onClick={() => openHolidayForm()}>
                   <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Novi praznik
+                  {t('salon.newHoliday')}
                 </Button>
               </div>
 
               {holidays.length === 0 ? (
-                <p className="text-sm text-slate-500">Nema praznika.</p>
+                <p className="text-sm text-slate-500">{t('salon.noHolidays')}</p>
               ) : (
                 <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
                   <table className="app-table w-full border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                        <th className="p-3 font-medium">Datum</th>
-                        <th className="p-3 font-medium">Naziv</th>
-                        <th className="p-3 font-medium">Push</th>
-                        <th className="p-3 font-medium">Poslano</th>
-                        <th className="p-3 text-right font-medium">Akcije</th>
+                        <th className="p-3 font-medium">{t('salon.holidayTable.date')}</th>
+                        <th className="p-3 font-medium">{t('salon.holidayTable.name')}</th>
+                        <th className="p-3 font-medium">{t('salon.holidayTable.push')}</th>
+                        <th className="p-3 font-medium">{t('salon.holidayTable.sent')}</th>
+                        <th className="p-3 text-right font-medium">{t('salon.holidayTable.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -513,23 +526,23 @@ export default function Salon() {
                         .sort((a, b) => a.date.localeCompare(b.date))
                         .map((h) => (
                           <tr key={h.id} className="border-b border-slate-100 dark:border-slate-800/80">
-                            <td className="p-3">{formatDateOnlyLocale(h.date.slice(0, 10), 'bs-BA')}</td>
+                            <td className="p-3">{formatDateOnlyLocale(h.date.slice(0, 10), locale)}</td>
                             <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{h.name}</td>
                             <td className="p-3">
-                              <Badge variant={h.sendPush ? 'success' : 'secondary'}>{h.sendPush ? 'Da' : 'Ne'}</Badge>
+                              <Badge variant={h.sendPush ? 'success' : 'secondary'}>{h.sendPush ? t('common.yes') : t('common.no')}</Badge>
                             </td>
-                            <td className="p-3">{h.pushSentAt ? new Date(h.pushSentAt).toLocaleString('bs-BA') : '-'}</td>
+                            <td className="p-3">{h.pushSentAt ? formatLocalizedDateTime(h.pushSentAt, i18n.language) : '—'}</td>
                             <td className="p-3 text-right">
                               <div className="flex justify-end gap-1">
                                 {h.sendPush ? (
-                                  <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Pošalji notifikaciju" onClick={() => void handleSendNotification(h.id)}>
+                                  <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('salon.sendNotification')} onClick={() => void handleSendNotification(h.id)}>
                                     <Send className="h-4 w-4 text-teal-600" aria-hidden="true" />
                                   </Button>
                                 ) : null}
                                 <Button type="button" size="sm" variant="ghost" onClick={() => openHolidayForm(h)}>
-                                  Uredi
+                                  {t('common.edit')}
                                 </Button>
-                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Obriši" onClick={() => void handleDeleteHoliday(h.id)}>
+                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('common.delete')} onClick={() => void handleDeleteHoliday(h.id)}>
                                   <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
                                 </Button>
                               </div>
@@ -548,28 +561,28 @@ export default function Salon() {
       <Dialog open={holidayOpen} onOpenChange={setHolidayOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editHoliday ? 'Uredi praznik' : 'Novi praznik'}</DialogTitle>
+            <DialogTitle>{t(editHoliday ? 'salon.holidayForm.editTitle' : 'salon.holidayForm.newTitle')}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>Datum</Label>
+                <Label>{t('salon.holidayForm.date')}</Label>
                 <Input type="date" value={holForm.date} onChange={(e) => setHolForm((p) => ({ ...p, date: e.target.value }))} />
               </div>
               <div className="space-y-2">
-                <Label>Naziv</Label>
+                <Label>{t('salon.holidayForm.name')}</Label>
                 <Input value={holForm.name} onChange={(e) => setHolForm((p) => ({ ...p, name: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Poruka (opciono)</Label>
+              <Label>{t('salon.holidayForm.message')}</Label>
               <Textarea rows={3} value={holForm.message} onChange={(e) => setHolForm((p) => ({ ...p, message: e.target.value }))} />
             </div>
             <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
               <div className="space-y-0.5">
-                <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Pošalji push</p>
-                <p className="text-xs text-slate-500">Ako je uključeno, možete poslati obavijest klijentima.</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('salon.holidayForm.sendPush')}</p>
+                <p className="text-xs text-slate-500">{t('salon.holidayForm.sendPushHint')}</p>
               </div>
               <Switch checked={holForm.sendPush} onCheckedChange={(checked) => setHolForm((p) => ({ ...p, sendPush: checked }))} />
             </div>
@@ -580,7 +593,7 @@ export default function Salon() {
               {t('common.cancel')}
             </Button>
             <Button type="button" onClick={() => void handleSaveHoliday()} disabled={saving}>
-              {t('common.save')}
+              {saving ? t('common.saving') : t('common.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
