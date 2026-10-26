@@ -720,6 +720,34 @@
           "hint": "The client did not attend. They are notified and a penalty applies."
         }
       }
+    },
+    "reschedule": {
+      "recalculationFailed": "Could not recalculate the schedule.",
+      "previewLoadFailed": "The schedule preview could not be loaded right now.",
+      "sentTitle": "Sent",
+      "breakOnlyApplied": "Break time was selected without moving appointments.",
+      "clientsNotified": "Notifications were sent to clients.",
+      "notifyFailed": "Could not send notifications.",
+      "title": "Schedule recalculation",
+      "summary": "Delay: {{delay}} min · Total shift: {{shift}} min",
+      "actualOverrun": "Actual delay",
+      "manualMinutes": "Manual entry",
+      "useBreakOnly": "No shift",
+      "manualShift": "Manual shift (min)",
+      "includeFutureBreaks": "Include upcoming breaks",
+      "breaksDescription": "Time is taken evenly from breaks, up to the global break duration for each appointment.",
+      "refreshPreview": "Refresh preview",
+      "noChanges": "No changes",
+      "breakOnlyDescription": "The no-shift option was selected (use break time).",
+      "noMovableAppointments": "There is no delay or no upcoming appointments to move.",
+      "applyWithoutMove": "Apply without moving appointments",
+      "sending": "Sending…",
+      "shift": "Shift: {{minutes}} min",
+      "reducedBreaks": "Removed from break: {{minutes}} min",
+      "notifyClients": "Notify clients",
+      "confirmTitle": "Notify clients?",
+      "confirmDescription": "Clients will receive a push notification and must confirm the new appointment. Until then, reservations remain pending.",
+      "notify": "Notify"
     }
   },
   "dailyLog": {

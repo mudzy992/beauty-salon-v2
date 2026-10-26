@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
@@ -16,12 +17,15 @@ import {
 } from '../../../components/ui/dialog'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import { cn } from '../../../lib/cn'
+import { formatLocalizedNumber, getIntlLocale } from '../../../i18n/locale-utils.mjs'
 import { commitReschedule, proposeReschedule } from '../api/stylist-workbook.api'
 import type { RescheduleMode, RescheduleProposal } from '../types'
 
 const clampNonNegInt = (v: number) => Math.max(0, Math.floor(v))
 
 export const WorkbookReschedulePreviewPage = () => {
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
   const navigate = useNavigate()
   const { reservationId } = useParams()
   const [searchParams] = useSearchParams()
@@ -53,11 +57,13 @@ export const WorkbookReschedulePreviewPage = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [proposal, setProposal] = useState<RescheduleProposal | null>(null)
+  const [proposalLoadError, setProposalLoadError] = useState(false)
 
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   const fetchProposal = async () => {
     setLoading(true)
+    setProposalLoadError(false)
     try {
       const data = await proposeReschedule({
         reservationId: id,
@@ -70,8 +76,9 @@ export const WorkbookReschedulePreviewPage = () => {
       })
       setProposal(data)
     } catch (err) {
-      toastApiError(err, 'Greška pri rekalkulaciji')
+      toastApiError(err, t('stylistWorkbook.reschedule.recalculationFailed'))
       setProposal(null)
+      setProposalLoadError(true)
     } finally {
       setLoading(false)
     }
@@ -101,14 +108,14 @@ export const WorkbookReschedulePreviewPage = () => {
             : undefined,
       })
       success(
-        'Poslano',
+        t('stylistWorkbook.reschedule.sentTitle'),
         mode === 'use_break_only'
-          ? 'Odabrano je korištenje pauze bez pomjeranja termina.'
-          : 'Obavijesti su poslane klijentima.',
+          ? t('stylistWorkbook.reschedule.breakOnlyApplied')
+          : t('stylistWorkbook.reschedule.clientsNotified'),
       )
       navigate(-1)
     } catch (err) {
-      toastApiError(err, 'Greška pri slanju obavijesti')
+      toastApiError(err, t('stylistWorkbook.reschedule.notifyFailed'))
     } finally {
       setSubmitting(false)
     }
@@ -122,17 +129,46 @@ export const WorkbookReschedulePreviewPage = () => {
     )
   }
 
+  if (proposalLoadError) {
+    return (
+      <Card className="p-5" role="alert">
+        <p className="text-slate-700 dark:text-slate-200">
+          {t('stylistWorkbook.reschedule.previewLoadFailed')}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => void fetchProposal()}>
+            {t('common.retry')}
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
+            {t('common.back')}
+          </Button>
+        </div>
+      </Card>
+    )
+  }
+
   return (
     <div className="max-w-3xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Rekalkulacija termina</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+            {t('stylistWorkbook.reschedule.title')}
+          </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Kašnjenje: {proposal?.overrunMinutes ?? proposal?.delayMinutes ?? 0} min · Ukupno pomjeranje: {totalShift} min
+            {t('stylistWorkbook.reschedule.summary', {
+              delay: formatLocalizedNumber(
+                proposal?.overrunMinutes ?? proposal?.delayMinutes ?? 0,
+                locale,
+                { maximumFractionDigits: 0 },
+              ),
+              shift: formatLocalizedNumber(totalShift, locale, {
+                maximumFractionDigits: 0,
+              }),
+            })}
           </p>
         </div>
         <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={submitting}>
-          Nazad
+          {t('common.back')}
         </Button>
       </div>
 
@@ -147,7 +183,7 @@ export const WorkbookReschedulePreviewPage = () => {
               onClick={() => setMode('actual_overrun')}
               disabled={submitting}
             >
-              Stvarni overrun
+              {t('stylistWorkbook.reschedule.actualOverrun')}
             </Button>
             <Button
               type="button"
@@ -156,7 +192,7 @@ export const WorkbookReschedulePreviewPage = () => {
               onClick={() => setMode('manual_minutes')}
               disabled={submitting}
             >
-              Ručni unos
+              {t('stylistWorkbook.reschedule.manualMinutes')}
             </Button>
             <Button
               type="button"
@@ -165,13 +201,13 @@ export const WorkbookReschedulePreviewPage = () => {
               onClick={() => setMode('use_break_only')}
               disabled={submitting}
             >
-              Bez pomjeranja
+              {t('stylistWorkbook.reschedule.useBreakOnly')}
             </Button>
           </div>
 
           {mode === 'manual_minutes' ? (
             <div>
-              <Label>Ručni pomak (min)</Label>
+              <Label>{t('stylistWorkbook.reschedule.manualShift')}</Label>
               <Input
                 className="mt-2 max-w-[220px]"
                 inputMode="numeric"
@@ -184,15 +220,18 @@ export const WorkbookReschedulePreviewPage = () => {
 
           <div className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
             <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Uključi buduće pauze</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                {t('stylistWorkbook.reschedule.includeFutureBreaks')}
+              </p>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Ravnomjerno “skida” vrijeme iz pauza (maks. globalne pauze po terminu).
+                {t('stylistWorkbook.reschedule.breaksDescription')}
               </p>
             </div>
             <button
               type="button"
               role="switch"
               aria-checked={includeBreaks}
+              aria-label={t('stylistWorkbook.reschedule.includeFutureBreaks')}
               className={cn(
                 'h-6 w-11 rounded-full border transition-colors flex items-center px-0.5',
                 includeBreaks
@@ -219,7 +258,7 @@ export const WorkbookReschedulePreviewPage = () => {
               onClick={() => void fetchProposal()}
               disabled={submitting}
             >
-              Osvježi preview
+              {t('stylistWorkbook.reschedule.refreshPreview')}
             </Button>
           </div>
         </div>
@@ -227,11 +266,13 @@ export const WorkbookReschedulePreviewPage = () => {
 
       {!hasChanges ? (
         <Card className="mt-4 p-5">
-          <p className="text-base font-semibold text-slate-900 dark:text-slate-50">Nema promjena</p>
+          <p className="text-base font-semibold text-slate-900 dark:text-slate-50">
+            {t('stylistWorkbook.reschedule.noChanges')}
+          </p>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
             {mode === 'use_break_only'
-              ? 'Odabran je način bez pomjeranja termina (korištenje pauze).'
-              : 'Nema kašnjenja ili nema budućih termina za pomjeranje.'}
+              ? t('stylistWorkbook.reschedule.breakOnlyDescription')
+              : t('stylistWorkbook.reschedule.noMovableAppointments')}
           </p>
           {mode === 'use_break_only' ? (
             <Button
@@ -243,10 +284,10 @@ export const WorkbookReschedulePreviewPage = () => {
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                  Šaljem…
+                  {t('stylistWorkbook.reschedule.sending')}
                 </>
               ) : (
-                'Primijeni bez pomjeranja'
+                t('stylistWorkbook.reschedule.applyWithoutMove')
               )}
             </Button>
           ) : null}
@@ -256,15 +297,19 @@ export const WorkbookReschedulePreviewPage = () => {
           {items.map((it) => (
             <Card key={it.id} className="p-5">
               <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                {it.serviceName || 'Usluga'} {it.clientName ? `· ${it.clientName}` : ''}
+                {it.serviceName || t('stylistWorkbook.serviceFallback')} {it.clientName ? `· ${it.clientName}` : ''}
               </p>
               <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
                 {it.oldStartTime}–{it.oldEndTime} → {it.newStartTime}–{it.newEndTime}
               </p>
               <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                Pomak: {it.shiftMinutes} min
+                {t('stylistWorkbook.reschedule.shift', {
+                  minutes: formatLocalizedNumber(it.shiftMinutes, locale, { maximumFractionDigits: 0 }),
+                })}
                 {typeof it.reducedBreakMinutes === 'number'
-                  ? ` · Skinuto iz pauze: ${it.reducedBreakMinutes} min`
+                  ? ` · ${t('stylistWorkbook.reschedule.reducedBreaks', {
+                      minutes: formatLocalizedNumber(it.reducedBreakMinutes, locale, { maximumFractionDigits: 0 }),
+                    })}`
                   : ''}
               </p>
             </Card>
@@ -279,10 +324,10 @@ export const WorkbookReschedulePreviewPage = () => {
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                Šaljem…
+                {t('stylistWorkbook.reschedule.sending')}
               </>
             ) : (
-              'Obavijesti klijente'
+              t('stylistWorkbook.reschedule.notifyClients')
             )}
           </Button>
         </div>
@@ -291,23 +336,23 @@ export const WorkbookReschedulePreviewPage = () => {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Obavijestiti klijente?</DialogTitle>
+            <DialogTitle>{t('stylistWorkbook.reschedule.confirmTitle')}</DialogTitle>
             <DialogDescription>
-              Klijenti će dobiti push i moraju potvrditi novi termin. Do tada rezervacije ostaju “na čekanju”.
+              {t('stylistWorkbook.reschedule.confirmDescription')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="ghost" onClick={() => setConfirmOpen(false)} disabled={submitting}>
-              Odustani
+              {t('common.cancel')}
             </Button>
             <Button type="button" onClick={() => void handleCommit()} disabled={submitting}>
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                  Šaljem…
+                  {t('stylistWorkbook.reschedule.sending')}
                 </>
               ) : (
-                'Obavijesti'
+                t('stylistWorkbook.reschedule.notify')
               )}
             </Button>
           </DialogFooter>

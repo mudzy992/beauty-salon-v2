@@ -22,6 +22,7 @@
     "test:admin-blog-i18n": "node --test src/features/blog/admin-blog-i18n.test.mjs",
     "test:stylist-workbook-list-i18n": "node --test src/features/stylist-workbook/workbook-list-i18n.test.mjs",
     "test:stylist-workbook-detail-i18n": "node --test src/features/stylist-workbook/workbook-detail-i18n.test.mjs",
+    "test:stylist-workbook-reschedule-i18n": "node --test src/features/stylist-workbook/workbook-reschedule-i18n.test.mjs",
     "test:i18n-language": "node --test src/i18n/language.test.mjs",
     "gen:favicons": "node ./scripts/generate-favicons.mjs",
     "preview": "vite preview --port 10000 --config vite.config.ts",

@@ -717,6 +717,34 @@
           "hint": "Klijent se nije pojavio. Dobija obavijest i kaznu."
         }
       }
+    },
+    "reschedule": {
+      "recalculationFailed": "Greška pri rekalkulaciji termina.",
+      "previewLoadFailed": "Preview rekalkulacije trenutno nije moguće učitati.",
+      "sentTitle": "Poslano",
+      "breakOnlyApplied": "Odabrano je korištenje pauze bez pomjeranja termina.",
+      "clientsNotified": "Obavijesti su poslane klijentima.",
+      "notifyFailed": "Greška pri slanju obavijesti.",
+      "title": "Rekalkulacija termina",
+      "summary": "Kašnjenje: {{delay}} min · Ukupno pomjeranje: {{shift}} min",
+      "actualOverrun": "Stvarno kašnjenje",
+      "manualMinutes": "Ručni unos",
+      "useBreakOnly": "Bez pomjeranja",
+      "manualShift": "Ručni pomak (min)",
+      "includeFutureBreaks": "Uključi buduće pauze",
+      "breaksDescription": "Ravnomjerno se oduzima vrijeme od pauza (najviše do trajanja globalne pauze po terminu).",
+      "refreshPreview": "Osvježi preview",
+      "noChanges": "Nema promjena",
+      "breakOnlyDescription": "Odabran je način bez pomjeranja termina (korištenje pauze).",
+      "noMovableAppointments": "Nema kašnjenja ili nema budućih termina za pomjeranje.",
+      "applyWithoutMove": "Primijeni bez pomjeranja",
+      "sending": "Šaljem…",
+      "shift": "Pomak: {{minutes}} min",
+      "reducedBreaks": "Skinuto iz pauze: {{minutes}} min",
+      "notifyClients": "Obavijesti klijente",
+      "confirmTitle": "Obavijestiti klijente?",
+      "confirmDescription": "Klijenti će dobiti push obavijest i moraju potvrditi novi termin. Do tada rezervacije ostaju na čekanju.",
+      "notify": "Obavijesti"
     }
   },
   "dailyLog": {
