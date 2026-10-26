@@ -53,6 +53,7 @@ export default function PublicHome() {
   const [beforeAfterLoading, setBeforeAfterLoading] = useState(true)
   const [beforeAfterLoadError, setBeforeAfterLoadError] = useState(false)
   const [featuredReview, setFeaturedReview] = useState<FeaturedReview | null>(null)
+  const [featuredReviewLoadError, setFeaturedReviewLoadError] = useState(false)
 
   const loadBeforeAfter = useCallback(async () => {
     setBeforeAfterLoading(true)
@@ -75,52 +76,48 @@ export default function PublicHome() {
     void loadBeforeAfter()
   }, [loadBeforeAfter])
 
-  useEffect(() => {
-    api
-      .get<FeaturedReview | null>('/api/reviews/featured/random')
-      .then((r) => setFeaturedReview(r.data ?? null))
-      .catch(() => setFeaturedReview(null))
+  const loadFeaturedReview = useCallback(async () => {
+    setFeaturedReviewLoadError(false)
+    try {
+      const { data } = await api.get<FeaturedReview | null>('/api/reviews/featured/random')
+      setFeaturedReview(data ?? null)
+    } catch {
+      setFeaturedReview(null)
+      setFeaturedReviewLoadError(true)
+    }
   }, [])
 
+  useEffect(() => {
+    void loadFeaturedReview()
+  }, [loadFeaturedReview])
+
   const heroImage = getSetting('public_hero_image', '')
-  const heroTitle = getSetting('public_hero_title', 'Otkrijte Svoju\nSavršenu Ljepotu')
+  const heroTitle = getSetting('public_hero_title', t('public.home.heroTitleFallback'))
   const heroSubtitle = getSetting(
     'public_hero_subtitle',
-    'Vaš ekskluzivni muško-ženski frizerski salon. Prepustite se rukama profesionalaca za moderni rez i njegu kakvu zaslužujete.',
+    t('public.home.heroSubtitleFallback'),
   )
 
   const reviewsOn = isPublicFeatureOn(getSetting, 'public_feature_reviews')
   const aboutImage = getSetting('public_about_image', '')
-  const aboutTitle = getSetting('public_about_title', 'Vaša Kosa Je Naša Strast')
-  const aboutText = getSetting(
-    'public_about_text',
-    'Beauty Salon Nejra je frizerski salon posvećen vrhunskoj njezi kose za muškarce i žene. Od prvog trenutka kada zakoračite u naš salon, naš cilj je da dobijete savršenu frizuru i osjećate se njegovano.',
-  )
+  const aboutTitle = getSetting('public_about_title', t('public.home.aboutTitleFallback'))
+  const aboutText = getSetting('public_about_text', t('public.home.aboutTextFallback'))
 
   const highlights = [
     {
       icon: Star,
-      title: getSetting('public_highlight_1_title', 'Najbolji Frizeri'),
-      text: getSetting(
-        'public_highlight_1_text',
-        'Naš tim stalno prati svjetske trendove u šišanju i kolorizaciji.',
-      ),
+      title: getSetting('public_highlight_1_title', t('public.home.highlight1Title')),
+      text: getSetting('public_highlight_1_text', t('public.home.highlight1Text')),
     },
     {
       icon: Clock,
-      title: getSetting('public_highlight_2_title', 'Ušteda Vremena'),
-      text: getSetting(
-        'public_highlight_2_text',
-        'Brza i jednostavna online rezervacija vašeg termina.',
-      ),
+      title: getSetting('public_highlight_2_title', t('public.home.highlight2Title')),
+      text: getSetting('public_highlight_2_text', t('public.home.highlight2Text')),
     },
     {
       icon: CheckCircle2,
-      title: getSetting('public_highlight_3_title', 'Vrhunski Proizvodi'),
-      text: getSetting(
-        'public_highlight_3_text',
-        'Koristimo isključivo profesionalne preparate za njegu vaše kose.',
-      ),
+      title: getSetting('public_highlight_3_title', t('public.home.highlight3Title')),
+      text: getSetting('public_highlight_3_text', t('public.home.highlight3Text')),
     },
   ]
 
@@ -140,7 +137,7 @@ export default function PublicHome() {
           <MotionDiv initial="hidden" animate="visible" variants={staggerContainer}>
             <MotionDiv variants={fadeUp}>
               <div className="uppercase tracking-widest text-brand-champagne font-semibold text-sm mb-4">
-                Elegancija & Stil
+                {t('public.home.heroKicker')}
               </div>
             </MotionDiv>
             <MotionDiv variants={fadeUp}>
@@ -165,12 +162,12 @@ export default function PublicHome() {
               <div className="flex items-center justify-center gap-4 flex-wrap">
                 <Link to="/rezervacija">
                   <Button variant="onDark" size="lg" className="px-8">
-                    {getSetting('public_hero_cta_text_web', 'Rezervišite termin')}
+                    {getSetting('public_hero_cta_text_web', t('public.home.heroReserve'))}
                   </Button>
                 </Link>
                 <Link to="/usluge">
                   <Button variant="onDarkOutline" size="lg" className="px-8">
-                    Sve Usluge
+                    {t('public.home.allServices')}
                   </Button>
                 </Link>
               </div>
@@ -216,7 +213,7 @@ export default function PublicHome() {
             </div>
             <div>
               <div className="text-brand-gold-text font-semibold uppercase tracking-widest text-sm">
-                O nama
+                {t('public.home.aboutKicker')}
               </div>
               <div className="text-3xl md:text-4xl font-semibold text-slate-900 mt-2">
                 {aboutTitle}
@@ -226,10 +223,10 @@ export default function PublicHome() {
               </div>
               <div className="mt-8 flex gap-3 flex-wrap">
                 <Link to="/usluge">
-                  <Button variant="outline">Pogledaj usluge</Button>
+                  <Button variant="outline">{t('public.home.viewServices')}</Button>
                 </Link>
                 <Link to="/kontakt">
-                  <Button>Kontakt</Button>
+                  <Button>{t('public.nav.contact')}</Button>
                 </Link>
               </div>
             </div>
@@ -281,13 +278,28 @@ export default function PublicHome() {
             />
           )}
 
+          {reviewsOn && featuredReviewLoadError ? (
+            <div className="mt-8 text-center" role="alert">
+              <p className="text-slate-600">{t('public.home.featuredReviewLoadFailed')}</p>
+              <Button
+                variant="outline"
+                className="mt-3"
+                onClick={() => void loadFeaturedReview()}
+              >
+                {t('public.home.retry')}
+              </Button>
+            </div>
+          ) : null}
+
           {reviewsOn && featuredReview ? (
             <div className="mt-12 md:mt-16 max-w-2xl mx-auto">
               <Card className="border-slate-200/80 shadow-soft rounded-2xl">
                 <CardContent className="p-6 sm:p-8">
-                  <div className="text-xs font-medium text-slate-500">Nasumična recenzija</div>
+                  <div className="text-xs font-medium text-slate-500">
+                    {t('public.home.featuredReviewLabel')}
+                  </div>
                   <div className="mt-2 text-lg font-semibold tracking-tight text-slate-950">
-                    {featuredReview.service?.name ?? 'Usluga'}
+                    {featuredReview.service?.name ?? t('public.home.serviceFallback')}
                   </div>
                   <div className="mt-3 text-slate-600 leading-relaxed whitespace-pre-wrap">
                     {featuredReview.comment ?? ''}
@@ -327,13 +339,10 @@ export default function PublicHome() {
         <div className="relative z-[1] mx-auto max-w-6xl px-4 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="text-center md:text-left">
             <div className="text-2xl font-semibold tracking-tight text-slate-950">
-              {getSetting('public_cta_title', 'Spremni za novu frizuru?')}
+              {getSetting('public_cta_title', t('public.home.ctaTitleFallback'))}
             </div>
             <div className="text-slate-600 mt-2 max-w-xl">
-              {getSetting(
-                'public_cta_subtitle',
-                'Rezervišite termin online u par klikova.',
-              )}
+              {getSetting('public_cta_subtitle', t('public.home.ctaSubtitleFallback'))}
             </div>
           </div>
           <Link to="/rezervacija" className="shrink-0">

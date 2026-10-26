@@ -11,7 +11,7 @@ const locales = ['bs', 'en'].map((language) =>
 const hasLocaleKey = (resource, key) =>
   key.split('.').reduce((value, part) => value?.[part], resource) !== undefined
 
-test('before-and-after public and service-work UI keys exist in both locales', () => {
+test('public home, before-and-after, and service-work UI keys exist in both locales', () => {
   const uiSources = [
     new URL('../../components/BeforeAfterSlider.tsx', import.meta.url),
     new URL('../../features/shell/public/before-after-spotlight.tsx', import.meta.url),
@@ -27,6 +27,8 @@ test('before-and-after public and service-work UI keys exist in both locales', (
     for (const [, key] of source.matchAll(/\bt\('([^']+)'/g)) keys.add(key)
   }
 
+  assert.ok(keys.has('public.home.heroTitleFallback'))
+  assert.ok(keys.has('public.home.featuredReviewLoadFailed'))
   assert.ok(keys.has('public.beforeAfter.sliderLabel'))
   assert.ok(keys.has('public.home.beforeAfterLoadFailed'))
   assert.ok(keys.has('public.satisfiedClients.loadFailed'))

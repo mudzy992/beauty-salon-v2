@@ -163,7 +163,7 @@ jobs:
       - name: Test localized public catalog UI
         working-directory: frontend
         run: npm run test:public-catalog-i18n
-      - name: Test localized before-and-after UI
+      - name: Test localized public home and before-and-after UI
         working-directory: frontend
         run: npm run test:before-after-i18n
       - name: Test runtime web language selection and fallback
