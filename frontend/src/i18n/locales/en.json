@@ -810,6 +810,17 @@
       "dialogDescription": "The repayment is recorded as a separate workbook entry (zero tip) and as manual income in the income book.",
       "noteOptional": "Note (optional)",
       "confirmRepayment": "Confirm repayment"
+    },
+    "stats": {
+      "noProfile": "No profile",
+      "profileNotFound": "Stylist profile was not found.",
+      "title": "Statistics",
+      "monthRange": "Current month ({{from}} – {{to}})",
+      "completedReservations": "Completed reservations",
+      "confirmedUpcoming": "Upcoming (confirmed)",
+      "workbookRevenue": "Workbook revenue",
+      "workbookTips": "Workbook tips",
+      "loadFailed": "Could not load all statistics."
     }
   },
   "dailyLog": {

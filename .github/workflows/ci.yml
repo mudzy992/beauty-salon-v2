@@ -193,6 +193,9 @@ jobs:
       - name: Test localized stylist debt UI
         working-directory: frontend
         run: npm run test:stylist-debts-i18n
+      - name: Test localized stylist statistics UI
+        working-directory: frontend
+        run: npm run test:stylist-stats-i18n
       - name: Test runtime web language selection and fallback
         working-directory: frontend
         run: npm run test:i18n-language

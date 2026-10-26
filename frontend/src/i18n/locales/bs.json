@@ -807,6 +807,17 @@
       "dialogDescription": "Otplata duga se evidentira kao posebna stavka u dnevnoj knjizi (napojnica 0) i kao ručni prihod u knjizi prihoda.",
       "noteOptional": "Napomena (opciono)",
       "confirmRepayment": "Potvrdi naplatu"
+    },
+    "stats": {
+      "noProfile": "Nema profila",
+      "profileNotFound": "Profil stilista nije pronađen.",
+      "title": "Statistika",
+      "monthRange": "Tekući mjesec ({{from}} – {{to}})",
+      "completedReservations": "Završene rezervacije",
+      "confirmedUpcoming": "Nadolazeće (potvrđene)",
+      "workbookRevenue": "Prihod (Dnevnik)",
+      "workbookTips": "Napojnice (Dnevnik)",
+      "loadFailed": "Nije moguće učitati sve podatke statistike."
     }
   },
   "dailyLog": {
