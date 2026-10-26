@@ -118,7 +118,9 @@
     "back": "Nazad",
     "previous": "Prethodna",
     "next": "Sljedeća",
-    "saving": "Spremanje…"
+    "saving": "Spremanje…",
+    "pageNotFound": "Stranica nije pronađena.",
+    "backHome": "Nazad na početnu"
   },
   "profile": {
     "title": "Moj profil",
@@ -734,6 +736,31 @@
     "draft": "Nacrt"
   },
   "public": {
+    "servicesPage": {
+      "titleFallback": "Naše frizerske usluge",
+      "subtitleFallback": "Bilo da tražite moderno šišanje, spektakularnu boju ili dubinsku njegu kose, naš tim je tu da ispuni vaše želje.",
+      "loading": "Učitavanje usluga…",
+      "loadFailed": "Usluge trenutno nije moguće učitati.",
+      "retry": "Pokušaj ponovo"
+    },
+    "serviceDetail": {
+      "loading": "Učitavanje usluge…",
+      "loadFailed": "Uslugu trenutno nije moguće učitati.",
+      "retry": "Pokušaj ponovo",
+      "notFound": "Usluga nije pronađena",
+      "notFoundHint": "Provjerite link ili se vratite na listu usluga.",
+      "backToServices": "Nazad na usluge",
+      "descriptionFallback": "Detalji usluge i primjeri prije/poslije u Beauty Salon Nejra.",
+      "imageAlt": "{{service}} — vizual usluge",
+      "kicker": "Usluga",
+      "book": "Rezerviši",
+      "allServices": "Sve usluge",
+      "loadingGallery": "Učitavanje galerije…",
+      "galleryLoadFailed": "Galeriju radova trenutno nije moguće učitati.",
+      "noGalleryItems": "Trenutno nema objavljenih urađenih radova za ovu uslugu.",
+      "galleryTitle": "Galerija urađenih radova",
+      "gallerySubtitle": "Jedna transformacija u fokusu; ostale birajte sa strane. Povucite klizač lijevo-desno za usporedbu prije i poslije."
+    },
     "nav": {
       "home": "Početna",
       "services": "Usluge",

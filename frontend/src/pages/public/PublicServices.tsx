@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
@@ -53,37 +53,47 @@ export default function PublicServices() {
   const { getSetting } = useSettings()
   const [categories, setCategories] = useState<ServiceCategory[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+
+  const loadCategories = useCallback(async () => {
+    setLoading(true)
+    setLoadError(false)
+    try {
+      const [categoryList, subcategoryList, serviceList] = await Promise.all([
+        fetchAllPublicServiceCategories<ServiceCategory>({ activeOnly: true }),
+        fetchAllPublicServiceSubcategories<ServiceSubcategory>({ activeOnly: true }),
+        fetchAllPublicServices<CatalogService>({ activeOnly: true }),
+      ])
+      const servicesBySubcategory = new Map<string, ServiceOption[]>();
+      serviceList.forEach((service) => {
+        const services = servicesBySubcategory.get(service.subcategoryId) ?? [];
+        services.push(service);
+        servicesBySubcategory.set(service.subcategoryId, services);
+      });
+      const subcategoriesByCategory = new Map<string, ServiceSubcategory[]>();
+      subcategoryList.forEach((subcategory) => {
+        subcategory.services = servicesBySubcategory.get(subcategory.id) ?? [];
+        const subcategories = subcategoriesByCategory.get(subcategory.categoryId) ?? [];
+        subcategories.push(subcategory);
+        subcategoriesByCategory.set(subcategory.categoryId, subcategories);
+      });
+      setCategories(
+        categoryList.map((category) => ({
+          ...category,
+          subcategories: subcategoriesByCategory.get(category.id) ?? [],
+        })),
+      )
+    } catch {
+      setCategories([])
+      setLoadError(true)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    Promise.all([
-      fetchAllPublicServiceCategories<ServiceCategory>({ activeOnly: true }),
-      fetchAllPublicServiceSubcategories<ServiceSubcategory>({ activeOnly: true }),
-      fetchAllPublicServices<CatalogService>({ activeOnly: true }),
-    ])
-      .then(([categoryList, subcategoryList, serviceList]) => {
-        const servicesBySubcategory = new Map<string, ServiceOption[]>();
-        serviceList.forEach((service) => {
-          const services = servicesBySubcategory.get(service.subcategoryId) ?? [];
-          services.push(service);
-          servicesBySubcategory.set(service.subcategoryId, services);
-        });
-        const subcategoriesByCategory = new Map<string, ServiceSubcategory[]>();
-        subcategoryList.forEach((subcategory) => {
-          subcategory.services = servicesBySubcategory.get(subcategory.id) ?? [];
-          const subcategories = subcategoriesByCategory.get(subcategory.categoryId) ?? [];
-          subcategories.push(subcategory);
-          subcategoriesByCategory.set(subcategory.categoryId, subcategories);
-        });
-        setCategories(
-          categoryList.map((category) => ({
-            ...category,
-            subcategories: subcategoriesByCategory.get(category.id) ?? [],
-          })),
-        );
-      })
-      .catch(() => setCategories([]))
-      .finally(() => setLoading(false));
-  }, []);
+    void loadCategories()
+  }, [loadCategories])
 
   const servicesHeroBg = getSetting('public_services_bg', '')
 
@@ -97,12 +107,12 @@ export default function PublicServices() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/85 to-white" />
         <div className={`${publicPageHero.innerNarrow} text-center relative z-[1]`}>
           <h1 className={publicHeader.title}>
-            {getSetting('public_services_title', 'Naše Frizerske Usluge')}
+            {getSetting('public_services_title', t('public.servicesPage.titleFallback'))}
           </h1>
           <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
             {getSetting(
               'public_services_subtitle',
-              'Bilo da tražite moderno šišanje, spektakularnu boju ili dubinsku njegu kose, naš tim je tu da ispuni vaše želje.',
+              t('public.servicesPage.subtitleFallback'),
             )}
           </p>
         </div>
@@ -110,7 +120,18 @@ export default function PublicServices() {
 
       <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loading ? (
-          <div className="py-20 text-center text-slate-600">Učitavanje…</div>
+          <div className="py-20 text-center text-slate-600">{t('public.servicesPage.loading')}</div>
+        ) : loadError ? (
+          <div className="py-14 text-center" role="alert">
+            <p className="text-slate-600">{t('public.servicesPage.loadFailed')}</p>
+            <button
+              type="button"
+              className="mt-4 font-medium text-slate-900 underline underline-offset-4"
+              onClick={() => void loadCategories()}
+            >
+              {t('public.servicesPage.retry')}
+            </button>
+          </div>
         ) : categories.length === 0 ? (
           <div className="text-center text-slate-500 text-lg">{t('common.noData')}</div>
         ) : (

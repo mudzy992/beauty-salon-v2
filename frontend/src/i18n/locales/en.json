@@ -121,7 +121,9 @@
     "back": "Back",
     "previous": "Previous",
     "next": "Next",
-    "saving": "Saving…"
+    "saving": "Saving…",
+    "pageNotFound": "Page not found.",
+    "backHome": "Back to home"
   },
   "profile": {
     "title": "My profile",
@@ -737,6 +739,31 @@
     "draft": "Draft"
   },
   "public": {
+    "servicesPage": {
+      "titleFallback": "Our Hair Services",
+      "subtitleFallback": "Whether you’re looking for a modern haircut, a spectacular color, or deep hair care, our team is here to make it happen.",
+      "loading": "Loading services…",
+      "loadFailed": "Services couldn’t be loaded right now.",
+      "retry": "Try again"
+    },
+    "serviceDetail": {
+      "loading": "Loading service…",
+      "loadFailed": "This service couldn’t be loaded right now.",
+      "retry": "Try again",
+      "notFound": "Service not found",
+      "notFoundHint": "Check the link or return to the services list.",
+      "backToServices": "Back to services",
+      "descriptionFallback": "Service details and before-and-after examples at Beauty Salon Nejra.",
+      "imageAlt": "{{service}} — service image",
+      "kicker": "Service",
+      "book": "Book an appointment",
+      "allServices": "All services",
+      "loadingGallery": "Loading gallery…",
+      "galleryLoadFailed": "The work gallery couldn’t be loaded right now.",
+      "noGalleryItems": "There are no published examples of this service yet.",
+      "galleryTitle": "Work gallery",
+      "gallerySubtitle": "One transformation takes the spotlight; choose the others from the side. Drag the slider left or right to compare before and after."
+    },
     "nav": {
       "home": "Home",
       "services": "Services",
