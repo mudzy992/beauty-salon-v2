@@ -995,6 +995,7 @@
     },
     "blogPost": {
       "loadFailed": "This article could not be loaded right now.",
+      "seoFallback": "Read the article on the Beauty Salon Nejra blog.",
       "notFound": "Article not found.",
       "backToBlog": "Back to blog",
       "commentSubmitted": "Your comment was submitted for review.",

@@ -154,7 +154,7 @@ export default function PublicBlogPost() {
     )
   }
 
-  const seo = buildPublicBlogPostSeo(post)
+  const seo = buildPublicBlogPostSeo(post, t('public.blogPost.seoFallback'))
   const shareUrl =
     typeof window !== 'undefined' ? window.location.origin + seo.canonicalPath : `${site.baseUrl}${seo.canonicalPath}`
 

@@ -992,6 +992,7 @@
     },
     "blogPost": {
       "loadFailed": "Ovaj članak trenutno nije moguće učitati.",
+      "seoFallback": "Pročitajte članak na blogu Beauty Salon Nejra.",
       "notFound": "Članak nije pronađen.",
       "backToBlog": "Nazad na blog",
       "commentSubmitted": "Komentar je poslan na odobrenje.",

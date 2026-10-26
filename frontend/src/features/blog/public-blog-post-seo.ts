@@ -16,14 +16,17 @@ export type PublicBlogPostSeoInput = {
   updatedAt?: string | null
 }
 
-export function buildPublicBlogPostSeo(post: PublicBlogPostSeoInput) {
+export function buildPublicBlogPostSeo(
+  post: PublicBlogPostSeoInput,
+  fallbackDescription = 'Pročitajte članak na blogu Beauty Salon Nejra.',
+) {
   const canonicalPath = `/blog/${post.slug}`
   const title = post.seoTitle?.trim() || post.title
   const description =
     post.seoDescription?.trim() ||
     post.excerpt?.trim() ||
     toExcerpt(post.content || '', 160) ||
-    'Pročitajte članak na blogu Beauty Salon Nejra.'
+    fallbackDescription
   const imagePath = post.ogImage || post.heroImage
   const ogImage = imagePath ? getUploadUrl(imagePath) : site.defaultOgImagePath
   const absImage = ogImage
