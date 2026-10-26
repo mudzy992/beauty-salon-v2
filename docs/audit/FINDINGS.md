@@ -364,11 +364,11 @@ Ovo nije rendered-page audit ni potpuna component-pair provjera: ne potvrđuje c
 
 **Preostalo:** browser computed-style + axe/Playwright pregled reprezentativnih public booking, profile/settings i finance tokova; provjera dark/light/hover/disabled i dinamičkih boja na stvarnim komponentama; status icon/label odluka; keyboard i screen-reader/manual signoff.
 
-### I18N-01 — EN web resource nedostaje 182 od 290 BS leaf ključeva; mobile ima samo BS
+### I18N-01 — Web EN leaf-key parity restored; runtime and mobile scope remain open
 
-`frontend/src/i18n/locales/bs.json`: 290 leaf keys; `en.json`: 108; missing EN: 182, extra EN: 0. Mobile resursi su samo `mobile/src/i18n/bs.ts`. i18next fallback/config može prikazati BS/key string pri odabiru EN; browser runtime language-switch test nije urađen.
+`frontend/src/i18n/locales/bs.json` and `en.json` each contain 290 leaf keys; missing EN: 0, extra EN: 0. The 182 missing web EN strings have been translated and reviewed for consistent reservation/stylist terminology. `scripts/check_i18n.py --strict` now enforces web BS/EN key parity in CI. Mobile still has only `mobile/src/i18n/bs.ts`; its language scope remains an owner decision, and no mobile translations are included in this web-only change. The current frontend config uses `fallbackLng: 'bs'`; runtime language-switch/fallback behavior has not been browser-tested.
 
-**Popravka:** ključ parity check u CI (report-only dok baseline sređen); prevesti i provjeriti terminologiju; izvlačiti hardcoded UI stringove; product potvrdi da mobile ostaje BS-only ili dodati EN.
+**Remaining:** audit/translate hardcoded user-visible strings in errors/toasts/forms; exercise long strings and Bosnian diacritics, pluralization, locale-aware dates/currency, and runtime language switching/fallback in a browser. I18N-01 remains open until these checks and the mobile language-scope decision are resolved.
 
 ### TEST-01 — Web/mobile nemaju detektovane test suite-ove; backend E2E config nedostaje
 

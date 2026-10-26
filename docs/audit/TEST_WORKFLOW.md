@@ -60,11 +60,11 @@ Nakon promjena: `git status --short` i `git diff --check`; pregledati da `npm ci
 ```bash
 python3 scripts/check_repo_hygiene.py
 python3 scripts/check_doc_links.py
-python3 scripts/check_i18n.py                 # report-only dok legacy gaps postoje
+python3 scripts/check_i18n.py --strict        # web BS/EN leaf-key parity gate
 python3 scripts/check_ui_contrast.py --strict # checked source-token pairs are a CI gate
 ```
 
-`check_ui_contrast.py --strict` je CI gate za imenovane source-token parove; frontend `npm run test:brand-colors` pokriva dinamičke HEX override-e. Locale `--strict` ostaje blokiran dok se prevodi i jezički scope ne odluče. Kontrastne provjere nisu rendered-UI/axe/manual dokaz. Repo hygiene check je gate od početka.
+`check_i18n.py --strict` je CI gate samo za web BS/EN resurse (290 leaf ključeva po jeziku); mobile language scope ostaje otvoren i mobile resursi nisu dio ovog checka. Runtime language-switch/fallback i hardcoded stringovi se provjeravaju odvojeno. `check_ui_contrast.py --strict` je CI gate za imenovane source-token parove; frontend `npm run test:brand-colors` pokriva dinamičke HEX override-e. Kontrastne provjere nisu rendered-UI/axe/manual dokaz. Repo hygiene check je gate od početka.
 
 ## 5. Backend local test sequence
 
@@ -211,7 +211,7 @@ npm audit --json > /tmp/<app>-audit-all.json
 
 ## 9. Accessibility, locale and privacy review
 
-1. `check_i18n.py` records BS/EN key differences; run `--strict` only after all intentional key/translation scope decisions are complete.
+1. `check_i18n.py --strict` enforces leaf-key parity for the web BS/EN resources. Mobile locale scope is not included and remains an owner decision; runtime language switching/fallback and hardcoded strings require separate checks.
 2. `check_ui_contrast.py --strict` recalculates 44 named web/mobile source-token pairs, including light/dark semantic badges and status labels. `frontend/src/utils/brand-colors.test.mjs` tests custom HEX normalization, light/dark text derivatives and focus-ring variants. These are source/helper tests only: they do not inspect computed browser styles, opacity/gradient composition, every component pairing, axe output or device rendering.
 3. Run axe/browser across public home, public booking, admin settings and finance, plus color contrast with computed styles.
 4. Manual check keyboard-only, focus order/visible focus, error summary, labels, `aria-live`, zoom/reflow, disabled states, high contrast and reduced motion.
@@ -224,7 +224,7 @@ npm audit --json > /tmp/<app>-audit-all.json
 - The configured backend job provisions disposable PostgreSQL 16, generates Prisma Client, validates the schema, applies tracked migrations, builds the backend, runs the sanitizer and DB-backed HTTP/Socket.IO E2E suites, then runs backend unit tests. Other jobs run repository hygiene/static reports, web/mobile socket-recovery checks, frontend build, and mobile typecheck. CI run `40233753136` passed all four jobs with the DB-backed role-revocation test included; run `40236113107` passed all four jobs with the password-change E2E included. These are synthetic/disposable checks only. Backend CI also runs `scripts/check_backend_container.sh` with synthetic Compose values, builds and inspects local `runtime`/`migrator` images, and performs Node-only container metadata checks; it does not connect those images to DB or deploy. Flaky/external SMTP/FCM/Expo tests are mocked.
 - PostgreSQL integration tests must use the per-job disposable service and synthetic fixtures; never add shared Redis credentials or production secrets to CI.
 - npm audit findings are reported in a separate/manual scheduled workflow until existing critical advisories have a reviewed action plan; do not hide current critical counts with a broad allowlist.
-- Once lint/test baseline is repaired, promote lint, full E2E, locale parity and contrast to hard gates.
+- Locale parity and selected contrast checks are strict CI gates. Promote lint and additional frontend/mobile component/E2E checks after their baselines and disposable-test setup are repaired.
 - Workflow must not deploy, merge, open a PR, push to `master` or act on production.
 
 ## 11. Final local release checklist

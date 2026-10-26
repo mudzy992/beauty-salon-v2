@@ -63,8 +63,11 @@ def main() -> int:
             print(f"  - {key}")
 
     if missing_en or extra_en:
-        print("STATUS: report-only baseline; translation parity is not complete.")
-        return 1 if args.strict else 0
+        if args.strict:
+            print("FAIL: strict BS/EN leaf-key parity check found differences.")
+            return 1
+        print("STATUS: report-only; translation parity is not complete.")
+        return 0
 
     print("PASS: BS and EN leaf key sets match.")
     return 0

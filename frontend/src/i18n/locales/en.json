@@ -33,6 +33,44 @@
     "sectionSystem": "System",
     "sectionSettings": "Settings"
   },
+  "auth": {
+    "login": "Log in",
+    "logout": "Log out",
+    "username": "Username",
+    "password": "Password",
+    "loginError": "Incorrect username or password."
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "create": "Create",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "reset": "Reset",
+    "confirm": "Confirm",
+    "loading": "Loading…",
+    "noData": "No data.",
+    "success": "Success.",
+    "error": "Error.",
+    "yes": "Yes",
+    "no": "No",
+    "active": "Active",
+    "inactive": "Inactive",
+    "status": "Status",
+    "actions": "Actions",
+    "details": "Details",
+    "date": "Date",
+    "time": "Time",
+    "price": "Price",
+    "total": "Total",
+    "name": "Name",
+    "description": "Description",
+    "back": "Back"
+  },
   "appReleases": {
     "title": "Mobile releases (Android)",
     "subtitle": "Publish APK for in-app sideload updates.",
@@ -54,6 +92,96 @@
     "publish": "Publish",
     "publishOk": "Release published.",
     "empty": "No releases yet."
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "stats": "Business overview this month",
+    "users": "Users",
+    "reservations": "Reservations",
+    "income": "Income",
+    "expenses": "Expenses",
+    "recentReservations": "Recent reservations",
+    "pendingReviews": "Pending reviews",
+    "services": "Active services",
+    "blogPosts": "Blog posts",
+    "net": "Net",
+    "tips": "Tips",
+    "completed": "Completed",
+    "pending": "Pending"
+  },
+  "users": {
+    "newUser": "New user",
+    "editUser": "Edit user",
+    "username": "Username",
+    "email": "Email",
+    "fullName": "Full name",
+    "phone": "Phone",
+    "roles": "Roles",
+    "assignRole": "Assign role",
+    "removeRole": "Remove role",
+    "deactivate": "Deactivate"
+  },
+  "salon": {
+    "settings": "Basic settings",
+    "workingHours": "Working hours",
+    "holidays": "Holidays",
+    "salonName": "Salon name",
+    "address": "Address",
+    "pauseBetween": "Break between services (min)",
+    "cancellationDeadline": "Cancellation deadline (hours)",
+    "maxCancellations": "Maximum cancellations before penalty",
+    "penaltyDuration": "Penalty duration (days)",
+    "newHoliday": "New holiday",
+    "sendNotification": "Send notification"
+  },
+  "services": {
+    "newCategory": "New category",
+    "newSubcategory": "New subcategory",
+    "newService": "New service",
+    "duration": "Duration (min)",
+    "sortOrder": "Sort order"
+  },
+  "stylists": {
+    "newStylist": "New stylist",
+    "editStylist": "Edit stylist",
+    "specialization": "Specialisation",
+    "bio": "Bio",
+    "hireDate": "Hire date",
+    "competencies": "Skills",
+    "workingHours": "Working hours"
+  },
+  "reservations": {
+    "detail": "Reservation details",
+    "cancelReservation": "Cancel reservation",
+    "cancelReason": "Cancellation reason",
+    "client": "Client",
+    "service": "Service",
+    "stylist": "Stylist",
+    "confirmedStylist": "Confirmed stylist",
+    "clientNotes": "Client notes",
+    "stylistResponses": "Stylist responses",
+    "statuses": {
+      "PENDING": "Pending",
+      "STYLIST_REVIEW": "Stylist review",
+      "CONFIRMED": "Confirmed",
+      "ATTENDANCE_CONFIRMED": "Attendance confirmed",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "CANCELLED_BY_CLIENT": "Cancelled by client",
+      "CANCELLED_BY_STYLISTS": "Cancelled by stylists",
+      "NO_SHOW": "No-show"
+    }
+  },
+  "dailyLog": {
+    "newEntry": "New entry",
+    "editEntry": "Edit entry",
+    "actualPrice": "Price",
+    "tip": "Tip",
+    "manual": "Manual",
+    "fromReservation": "From reservation",
+    "complete": "Complete",
+    "totalRevenue": "Total revenue",
+    "totalTips": "Total tips"
   },
   "finance": {
     "incomeBook": "Income Book",
@@ -128,6 +256,103 @@
       "noEntries": "No entries",
       "noExpenses": "No expenses"
     }
+  },
+  "reviews": {
+    "approve": "Approve",
+    "delete": "Delete",
+    "serviceRating": "Service rating",
+    "stylistRating": "Stylist rating",
+    "comment": "Comment",
+    "approved": "Approved",
+    "pending": "Pending",
+    "rejected": "Rejected"
+  },
+  "gallery": {
+    "newCategory": "New category",
+    "uploadImage": "Upload image",
+    "imageCount": "Number of images",
+    "editImage": "Edit image"
+  },
+  "notifications": {
+    "markAsRead": "Mark as read",
+    "unreadOnly": "Unread only",
+    "preferences": "Preferences",
+    "push": "Push notifications",
+    "email": "Email"
+  },
+  "blog": {
+    "newPost": "New post",
+    "editPost": "Edit post",
+    "title": "Title",
+    "content": "Content",
+    "published": "Published",
+    "draft": "Draft"
+  },
+  "public": {
+    "nav": {
+      "home": "Home",
+      "services": "Services",
+      "blog": "Blog",
+      "gallery": "Gallery",
+      "contact": "Contact",
+      "register": "Sign up",
+      "reserve": "Book an appointment",
+      "myReservations": "My reservations"
+    },
+    "myReservations": {
+      "title": "My reservations",
+      "subtitle": "View upcoming and past reservations, confirm your attendance, or respond to rescheduling requests.",
+      "upcoming": "Upcoming",
+      "past": "Past",
+      "noUpcoming": "You have no upcoming reservations.",
+      "noPast": "You have no past reservations.",
+      "cancelTitle": "Cancel reservation",
+      "cancelConfirm": "Are you sure you want to cancel this reservation?",
+      "cancelReservation": "Cancel reservation",
+      "cancelReason": "Reason (optional)",
+      "cancelReasonPlaceholder": "e.g. a change of plans…"
+    },
+    "hero": {
+      "title": "Welcome to Beauty Salon Nejra",
+      "subtitle": "Your salon for a polished look and a relaxing experience."
+    },
+    "about": {
+      "title": "About us",
+      "text": "Beauty Salon Nejra offers a wide range of hair and body care services. Our team of experienced stylists is dedicated to your satisfaction."
+    },
+    "contact": {
+      "title": "Contact",
+      "address": "Address",
+      "phone": "Phone",
+      "email": "Email"
+    },
+    "footer": {
+      "rights": "All rights reserved."
+    },
+    "reserve": {
+      "title": "Reservation",
+      "selectService": "Select a service",
+      "selectDate": "Select a date",
+      "selectTime": "Select a time",
+      "notes": "Note (optional)",
+      "submit": "Submit reservation",
+      "success": "Your reservation has been submitted successfully!",
+      "loginRequired": "You need to log in to make a reservation.",
+      "searchServices": "Search services by name…",
+      "noSlots": "No time slots are available for the selected date.",
+      "tryAnotherDate": "Please try another date.",
+      "reviewTitle": "Review your reservation",
+      "service": "Service",
+      "duration": "Duration",
+      "date": "Date",
+      "timeSlot": "Time slot",
+      "changeService": "Change",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "past": "Past",
+      "selected": "Selected",
+      "stylistsAvailable": "stylists available"
+    },
+    "registerSuccess": "Registration successful. You can now log in."
   }
 }
-
