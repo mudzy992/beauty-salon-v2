@@ -620,6 +620,28 @@
       "NO_SHOW": "Nije došao"
     }
   },
+  "stylistWorkbook": {
+    "profileLoadFailed": "Profil stiliste trenutno nije moguće učitati.",
+    "noProfile": "Profil nije dostupan",
+    "profileNotFound": "Profil stiliste nije pronađen.",
+    "title": "Dnevna knjiga",
+    "period": "Period: {{from}} → {{to}}",
+    "refresh": "Osvježi",
+    "refreshing": "Osvježavam…",
+    "newEntry": "Novi unos",
+    "entriesLoadFailed": "Zapise trenutno nije moguće učitati.",
+    "noEntries": "Nema zapisa",
+    "noEntriesDescription": "Zapisi iz rezervacija ili ručno dodani pojavit će se ovdje. Završite zapis i dodajte fotografije prije i poslije.",
+    "debt": "dug",
+    "tip": "napoj.",
+    "completed": "Završeno",
+    "pending": "Na čekanju",
+    "today": "Danas",
+    "thisWeek": "Ova sedmica",
+    "lastWeek": "Prošla sedmica",
+    "other": "Ostalo",
+    "serviceFallback": "Usluga"
+  },
   "dailyLog": {
     "newEntry": "Novi Unos",
     "editEntry": "Uredi Unos",

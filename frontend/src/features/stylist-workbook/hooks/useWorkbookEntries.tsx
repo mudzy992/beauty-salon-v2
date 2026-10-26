@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 import {
   addDateOnlyDays,
@@ -16,6 +17,7 @@ export const useWorkbookEntries = (params: {
   fromDate: string
   toDate: string
 }) => {
+  const { t } = useTranslation()
   const query = useQuery({
     queryKey: ['dailyLog', 'list', params.stylistProfileId, params.fromDate, params.toDate],
     queryFn: async () => {
@@ -73,12 +75,12 @@ export const useWorkbookEntries = (params: {
     )
 
     const result: WorkbookSection[] = []
-    if (buckets.today.length) result.push({ title: 'Danas', data: buckets.today })
-    if (buckets.thisWeek.length) result.push({ title: 'Ova sedmica', data: buckets.thisWeek })
-    if (buckets.lastWeek.length) result.push({ title: 'Prošla sedmica', data: buckets.lastWeek })
-    if (buckets.other.length) result.push({ title: 'Ostalo', data: buckets.other })
+    if (buckets.today.length) result.push({ title: t('stylistWorkbook.today'), data: buckets.today })
+    if (buckets.thisWeek.length) result.push({ title: t('stylistWorkbook.thisWeek'), data: buckets.thisWeek })
+    if (buckets.lastWeek.length) result.push({ title: t('stylistWorkbook.lastWeek'), data: buckets.lastWeek })
+    if (buckets.other.length) result.push({ title: t('stylistWorkbook.other'), data: buckets.other })
     return result
-  }, [query.data])
+  }, [query.data, t])
 
   return {
     entries: query.data ?? [],

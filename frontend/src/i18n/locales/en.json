@@ -623,6 +623,28 @@
       "NO_SHOW": "No-show"
     }
   },
+  "stylistWorkbook": {
+    "profileLoadFailed": "The stylist profile could not be loaded right now.",
+    "noProfile": "No profile available",
+    "profileNotFound": "The stylist profile was not found.",
+    "title": "Work log",
+    "period": "Date range: {{from}} → {{to}}",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing…",
+    "newEntry": "New entry",
+    "entriesLoadFailed": "Entries could not be loaded right now.",
+    "noEntries": "No entries",
+    "noEntriesDescription": "Entries from reservations or added manually will appear here. Complete an entry and add before-and-after photos.",
+    "debt": "debt",
+    "tip": "tip",
+    "completed": "Completed",
+    "pending": "Pending",
+    "today": "Today",
+    "thisWeek": "This week",
+    "lastWeek": "Last week",
+    "other": "Other",
+    "serviceFallback": "Service"
+  },
   "dailyLog": {
     "newEntry": "New entry",
     "editEntry": "Edit entry",
