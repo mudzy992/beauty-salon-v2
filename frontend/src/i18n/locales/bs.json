@@ -786,6 +786,29 @@
       "drawerDescription": "Brzi unos u dnevnu knjigu (stilist)."
     }
   },
+  "stylistPortal": {
+    "debts": {
+      "title": "Dužnici",
+      "description": "Lista dugovanja evidentiranih kod vas.",
+      "total": "Ukupno",
+      "search": "Pretraga",
+      "searchPlaceholder": "Klijent, servis, kod rezervacije…",
+      "noOpenDebts": "Nema otvorenih dugovanja.",
+      "noSearchResults": "Nema dugovanja koja odgovaraju pretrazi.",
+      "reservationReference": "Rezervacija: {{reference}}",
+      "dailyLogReference": "Dnevnik rada: {{date}}",
+      "manualEntryReference": "Ručni unos: {{date}}",
+      "repayDebt": "Naplati dug",
+      "repaidTitle": "Naplata evidentirana",
+      "repaidDescription": "Dug je zatvoren i evidentiran u dnevnoj knjizi.",
+      "repayFailed": "Greška pri naplati duga.",
+      "loadFailed": "Nije moguće učitati dugovanja.",
+      "dialogTitle": "Naplata duga",
+      "dialogDescription": "Otplata duga se evidentira kao posebna stavka u dnevnoj knjizi (napojnica 0) i kao ručni prihod u knjizi prihoda.",
+      "noteOptional": "Napomena (opciono)",
+      "confirmRepayment": "Potvrdi naplatu"
+    }
+  },
   "dailyLog": {
     "newEntry": "Novi Unos",
     "editEntry": "Uredi Unos",

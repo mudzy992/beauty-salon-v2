@@ -789,6 +789,29 @@
       "drawerDescription": "Quick entry in the stylist workbook."
     }
   },
+  "stylistPortal": {
+    "debts": {
+      "title": "Client debts",
+      "description": "List of debts recorded by you.",
+      "total": "Total",
+      "search": "Search",
+      "searchPlaceholder": "Client, service, reservation code…",
+      "noOpenDebts": "There are no open debts.",
+      "noSearchResults": "No debts match your search.",
+      "reservationReference": "Reservation: {{reference}}",
+      "dailyLogReference": "Workbook entry: {{date}}",
+      "manualEntryReference": "Manual entry: {{date}}",
+      "repayDebt": "Repay debt",
+      "repaidTitle": "Repayment recorded",
+      "repaidDescription": "The debt was closed and recorded in the workbook.",
+      "repayFailed": "Could not record the repayment.",
+      "loadFailed": "Could not load debts.",
+      "dialogTitle": "Repay debt",
+      "dialogDescription": "The repayment is recorded as a separate workbook entry (zero tip) and as manual income in the income book.",
+      "noteOptional": "Note (optional)",
+      "confirmRepayment": "Confirm repayment"
+    }
+  },
   "dailyLog": {
     "newEntry": "New entry",
     "editEntry": "Edit entry",
