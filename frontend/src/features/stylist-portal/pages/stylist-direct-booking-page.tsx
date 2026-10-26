@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
 import api from '../../../api/client'
@@ -11,6 +12,7 @@ import { Label } from '../../../components/ui/label'
 import { Textarea } from '../../../components/ui/textarea'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import { getSalonDateOnly } from '../../../../../shared/business-date.mjs'
+import { formatLocalizedAmount, getIntlLocale } from '../../../i18n/locale-utils.mjs'
 
 type ClientOption = {
   id: string
@@ -29,6 +31,8 @@ type ServiceOption = {
 }
 
 export const StylistDirectBookingPage = () => {
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
   const navigate = useNavigate()
   const toast = useAppToast()
   const [services, setServices] = useState<ServiceOption[]>([])
@@ -113,7 +117,7 @@ export const StylistDirectBookingPage = () => {
 
   const handleSubmit = async () => {
     if (!selectedClient?.gender) {
-      toast.error('Odaberite klijenta sa definisanim spolom')
+      toast.error(t('stylistPortal.directBooking.clientGenderRequired'))
       return
     }
     setSaving(true)
@@ -126,10 +130,10 @@ export const StylistDirectBookingPage = () => {
         endTime,
         clientNotes: clientNotes.trim() || undefined,
       })
-      toast.success('Direktna rezervacija je kreirana')
+      toast.success(t('stylistPortal.directBooking.created'))
       navigate('/stylist/schedule')
     } catch (error) {
-      toast.error(getErrorMessage(error, 'Kreiranje termina nije uspjelo'))
+      toast.error(getErrorMessage(error, t('stylistPortal.directBooking.createFailed')))
     } finally {
       setSaving(false)
     }
@@ -139,19 +143,19 @@ export const StylistDirectBookingPage = () => {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Direktna rezervacija</h1>
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{t('stylistPortal.directBooking.title')}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Termin se odmah dodjeljuje vama i ne traži attendance potvrdu klijenta.
+            {t('stylistPortal.directBooking.description')}
           </p>
         </div>
         <Button asChild type="button" variant="outline">
-          <Link to="/stylist/schedule">Nazad</Link>
+          <Link to="/stylist/schedule">{t('common.back')}</Link>
         </Button>
       </div>
 
       <Card className="space-y-4 p-4">
         <div className="space-y-2">
-          <Label>Klijent</Label>
+          <Label>{t('stylistPortal.directBooking.client')}</Label>
           <Input
             value={clientSearch}
             onChange={(e) => {
@@ -167,7 +171,7 @@ export const StylistDirectBookingPage = () => {
                 }
               }
             }}
-            placeholder="Pretraži klijenta..."
+            placeholder={t('stylistPortal.directBooking.searchClient')}
           />
           {clients.length > 0 ? (
             <div className="grid gap-2">
@@ -189,10 +193,10 @@ export const StylistDirectBookingPage = () => {
                     <div className="font-medium text-slate-900 dark:text-slate-50">{label}</div>
                     <div className="text-xs text-slate-500">
                       {client.gender === 'MALE'
-                        ? 'Muški'
+                        ? t('stylistPortal.directBooking.male')
                         : client.gender === 'FEMALE'
-                          ? 'Ženski'
-                          : 'Spol nije definisan'}
+                          ? t('stylistPortal.directBooking.female')
+                          : t('stylistPortal.directBooking.genderNotDefined')}
                     </div>
                   </button>
                 )
@@ -202,13 +206,13 @@ export const StylistDirectBookingPage = () => {
         </div>
 
         <div className="space-y-2">
-          <Label>Servisi</Label>
+          <Label>{t('stylistPortal.directBooking.services')}</Label>
           {!selectedClient ? (
-            <p className="text-sm text-slate-500">Prvo odaberite klijenta — lista se filtrira po spolu.</p>
+            <p className="text-sm text-slate-500">{t('stylistPortal.directBooking.chooseClientForServices')}</p>
           ) : !selectedClient.gender ? (
-            <p className="text-sm text-amber-600">Klijent nema definisan spol.</p>
+            <p className="text-sm text-amber-600">{t('stylistPortal.directBooking.genderMissing')}</p>
           ) : filteredServices.length === 0 ? (
-            <p className="text-sm text-slate-500">Nema aktivnih servisa za odabrani spol.</p>
+            <p className="text-sm text-slate-500">{t('stylistPortal.directBooking.noServices')}</p>
           ) : (
             <div className="grid gap-2">
               {filteredServices.map((service) => (
@@ -223,7 +227,7 @@ export const StylistDirectBookingPage = () => {
                   onClick={() => toggleServiceId(service.id)}
                 >
                   <div className="font-medium text-slate-900 dark:text-slate-50">{service.name}</div>
-                  <div className="text-xs text-slate-500">{Number(service.price ?? 0).toFixed(2)} KM</div>
+                  <div className="text-xs text-slate-500">{formatLocalizedAmount(Number(service.price ?? 0), locale)}</div>
                 </button>
               ))}
             </div>
@@ -232,27 +236,27 @@ export const StylistDirectBookingPage = () => {
 
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="space-y-2">
-            <Label>Datum</Label>
+            <Label>{t('stylistPortal.directBooking.date')}</Label>
             <Input type="date" value={reservationDate} onChange={(e) => setReservationDate(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Početak</Label>
+            <Label>{t('stylistPortal.directBooking.startTime')}</Label>
             <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Kraj</Label>
+            <Label>{t('stylistPortal.directBooking.endTime')}</Label>
             <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label>Napomena</Label>
+          <Label>{t('stylistPortal.directBooking.note')}</Label>
           <Textarea rows={4} value={clientNotes} onChange={(e) => setClientNotes(e.target.value)} />
         </div>
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => navigate('/stylist/schedule')}>
-            Odustani
+            {t('common.cancel')}
           </Button>
           <Button
             type="button"
@@ -266,7 +270,7 @@ export const StylistDirectBookingPage = () => {
             }
             onClick={() => void handleSubmit()}
           >
-            {saving ? 'Kreiranje...' : 'Kreiraj termin'}
+            {saving ? t('stylistPortal.directBooking.creating') : t('stylistPortal.directBooking.create')}
           </Button>
         </div>
       </Card>

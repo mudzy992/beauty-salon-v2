@@ -202,6 +202,9 @@ jobs:
       - name: Test localized stylist schedule UI
         working-directory: frontend
         run: npm run test:stylist-schedule-i18n
+      - name: Test localized stylist direct-booking UI
+        working-directory: frontend
+        run: npm run test:stylist-direct-booking-i18n
       - name: Test runtime web language selection and fallback
         working-directory: frontend
         run: npm run test:i18n-language

@@ -864,6 +864,28 @@
       "today": "Today",
       "loadFailed": "Could not load the schedule.",
       "payment": "Payment"
+    },
+    "directBooking": {
+      "title": "Direct booking",
+      "description": "The appointment is assigned to you immediately and does not require client attendance confirmation.",
+      "clientGenderRequired": "Select a client with a gender set.",
+      "created": "Direct booking was created.",
+      "createFailed": "Could not create the appointment.",
+      "client": "Client",
+      "searchClient": "Search clients…",
+      "male": "Male",
+      "female": "Female",
+      "genderNotDefined": "Gender not set",
+      "services": "Services",
+      "chooseClientForServices": "Select a client first; the list is filtered by gender.",
+      "genderMissing": "The client does not have a gender set.",
+      "noServices": "There are no active services for the selected gender.",
+      "date": "Date",
+      "startTime": "Start",
+      "endTime": "End",
+      "note": "Note",
+      "creating": "Creating…",
+      "create": "Create appointment"
     }
   },
   "dailyLog": {

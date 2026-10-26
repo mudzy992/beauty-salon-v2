@@ -861,6 +861,28 @@
       "today": "Danas",
       "loadFailed": "Nije moguće učitati raspored.",
       "payment": "Naplata"
+    },
+    "directBooking": {
+      "title": "Direktna rezervacija",
+      "description": "Termin se odmah dodjeljuje vama i ne traži potvrdu dolaska klijenta.",
+      "clientGenderRequired": "Odaberite klijenta sa definisanim spolom.",
+      "created": "Direktna rezervacija je kreirana.",
+      "createFailed": "Kreiranje termina nije uspjelo.",
+      "client": "Klijent",
+      "searchClient": "Pretraži klijenta…",
+      "male": "Muški",
+      "female": "Ženski",
+      "genderNotDefined": "Spol nije definisan",
+      "services": "Servisi",
+      "chooseClientForServices": "Prvo odaberite klijenta — lista se filtrira po spolu.",
+      "genderMissing": "Klijent nema definisan spol.",
+      "noServices": "Nema aktivnih servisa za odabrani spol.",
+      "date": "Datum",
+      "startTime": "Početak",
+      "endTime": "Kraj",
+      "note": "Napomena",
+      "creating": "Kreiranje…",
+      "create": "Kreiraj termin"
     }
   },
   "dailyLog": {

@@ -28,6 +28,7 @@
     "test:stylist-stats-i18n": "node --test src/features/stylist-portal/stylist-stats-i18n.test.mjs",
     "test:stylist-inbox-i18n": "node --test src/features/stylist-portal/stylist-inbox-i18n.test.mjs",
     "test:stylist-schedule-i18n": "node --test src/features/stylist-portal/stylist-schedule-i18n.test.mjs",
+    "test:stylist-direct-booking-i18n": "node --test src/features/stylist-portal/stylist-direct-booking-i18n.test.mjs",
     "test:i18n-language": "node --test src/i18n/language.test.mjs",
     "gen:favicons": "node ./scripts/generate-favicons.mjs",
     "preview": "vite preview --port 10000 --config vite.config.ts",
