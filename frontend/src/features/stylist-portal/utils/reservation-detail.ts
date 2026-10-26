@@ -10,9 +10,9 @@ type ReservationWithItems = Reservation & {
 
 export const formatReservationTime = (time: string) => time?.slice(0, 5) ?? time
 
-export const formatReservationDate = (iso: string) => {
+export const formatReservationDate = (iso: string, locale = 'bs-BA') => {
   try {
-    return formatDateOnlyLocale(iso.slice(0, 10), 'bs-BA', {
+    return formatDateOnlyLocale(iso.slice(0, 10), locale, {
       weekday: 'long',
       year: 'numeric',
       month: '2-digit',
@@ -62,3 +62,9 @@ export const computeReservationMinimumCharge = (reservation: Reservation) => {
     : Number(reservation.service?.price ?? 0)
   return Math.max(0, base - Number(reservation.loyaltyDiscountAmount ?? 0))
 }
+
+export const getReservationStatusTranslationKey = (status: ReservationStatus, cancelReason?: string | null) =>
+  status === 'CANCELLED_BY_CLIENT' &&
+  (cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
+    ? 'reservations.statuses.CANCELLED_UNCONFIRMED_ATTENDANCE'
+    : `reservations.statuses.${status}`

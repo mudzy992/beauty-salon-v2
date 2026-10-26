@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { fetchStylistReservations } from '../api/stylist-portal.api'
 import type { Reservation } from '../types'
@@ -19,7 +20,11 @@ export const useReservationDetailStatus = ({
   profileId,
   warning,
 }: UseReservationDetailStatusParams) => {
-  const [startBlockedReason, setStartBlockedReason] = useState<string | null>(null)
+  const { t } = useTranslation()
+  const [startBlockedReason, setStartBlockedReason] = useState<{
+    key: string
+    values?: Record<string, string>
+  } | null>(null)
   const [timeTick, setTimeTick] = useState(0)
   const overrunPopupShownForRef = useRef<string | null>(null)
   const isConfirmedStylist = useMemo(() => {
@@ -78,10 +83,10 @@ export const useReservationDetailStatus = ({
     if (overrunPopupShownForRef.current === popupKey) return
     overrunPopupShownForRef.current = popupKey
     warning(
-      'Termin je probijen',
-      'Možete otvoriti rekalkulaciju i poslati obavijesti klijentima.',
+      t('stylistPortal.reservationDetail.overrunWarningTitle'),
+      t('stylistPortal.reservationDetail.overrunWarningDescription'),
     )
-  }, [reservation, profileId, overrunMinutes, warning])
+  }, [reservation, profileId, overrunMinutes, warning, t])
 
   useEffect(() => {
     let cancelled = false
@@ -96,9 +101,10 @@ export const useReservationDetailStatus = ({
       )
       if (Date.now() < plannedStart.getTime()) {
         if (!cancelled) {
-          setStartBlockedReason(
-            `Termin još nije počeo. Start je dozvoljen od ${formatReservationTime(reservation.startTime)}.`,
-          )
+          setStartBlockedReason({
+            key: 'stylistPortal.reservationDetail.startNotYetAllowed',
+            values: { time: formatReservationTime(reservation.startTime) },
+          })
         }
         return
       }
@@ -116,7 +122,13 @@ export const useReservationDetailStatus = ({
         if (!cancelled) {
           setStartBlockedReason(
             earlierPending
-              ? `Postoji raniji termin (${formatReservationTime(earlierPending.startTime)}–${formatReservationTime(earlierPending.endTime)}) koji prvo treba obraditi.`
+              ? {
+                  key: 'stylistPortal.reservationDetail.earlierAppointmentPending',
+                  values: {
+                    start: formatReservationTime(earlierPending.startTime),
+                    end: formatReservationTime(earlierPending.endTime),
+                  },
+                }
               : null,
           )
         }
@@ -140,6 +152,8 @@ export const useReservationDetailStatus = ({
     isConfirmedStylist,
     isStartOverdue,
     overrunMinutes,
-    startBlockedReason,
+    startBlockedReason: startBlockedReason
+      ? t(startBlockedReason.key, startBlockedReason.values)
+      : null,
   }
 }

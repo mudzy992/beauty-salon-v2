@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
 import { Button } from '../../../components/ui/button'
@@ -21,6 +22,7 @@ import {
 } from '../hooks/useStylistReservationDetail'
 
 export const StylistReservationDetailPage = () => {
+  const { t } = useTranslation()
   const { toastApiError, success, warning } = useAppToast()
   const navigate = useNavigate()
   const { reservationId } = useParams()
@@ -69,7 +71,7 @@ export const StylistReservationDetailPage = () => {
   if (profileLoading || (isLoading && !reservation)) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-sm text-slate-500">Učitavanje…</div>
+        <div className="text-sm text-slate-500">{t('stylistPortal.reservationDetail.loading')}</div>
       </div>
     )
   }
@@ -77,10 +79,10 @@ export const StylistReservationDetailPage = () => {
   if (!reservation) {
     return (
       <Card className="p-6">
-        <p className="text-slate-900 dark:text-slate-50 font-semibold">Rezervacija nije pronađena</p>
+        <p className="text-slate-900 dark:text-slate-50 font-semibold">{t('stylistPortal.reservationDetail.notFound')}</p>
         <div className="mt-3">
           <Button type="button" variant="outline" onClick={() => navigate(-1)}>
-            Nazad
+            {t('common.back')}
           </Button>
         </div>
       </Card>
