@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ExternalLink, X } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -52,39 +52,51 @@ export default function PublicGallery() {
   const [categories, setCategories] = useState<GalleryCategory[]>([])
   const [consentedPairs, setConsentedPairs] = useState<ConsentedBeforeAfterPair[]>([])
   const [loading, setLoading] = useState(true)
+  const [categoryLoadError, setCategoryLoadError] = useState(false)
+  const [pairsLoadError, setPairsLoadError] = useState(false)
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
-  useEffect(() => {
-    const loadCategories = api
-      .get<GalleryCategory[]>('/api/gallery/categories')
-      .then(async (r) => {
-        const list = Array.isArray(r.data)
-          ? r.data.filter(
-              (category) =>
-                (category._count?.images ?? 0) > 0 ||
-                category.autoPublishConsentedPairs,
-            )
-          : []
-        return Promise.all(
-          list.map((category) =>
-            api
-              .get<GalleryCategory>(`/api/gallery/categories/${category.id}`)
-              .then((response) => response.data),
-          ),
-        )
-      })
-      .then(setCategories)
-      .catch(() => setCategories([]))
-
-    const loadConsentedPairs = api
-      .get<{ items: ConsentedBeforeAfterPair[] }>('/api/daily-log/before-after', {
-        params: { limit: 50, offset: 0 },
-      })
-      .then(({ data }) => setConsentedPairs(Array.isArray(data?.items) ? data.items : []))
-      .catch(() => setConsentedPairs([]))
-
-    void Promise.all([loadCategories, loadConsentedPairs]).finally(() => setLoading(false))
+  const loadCategories = useCallback(async () => {
+    setCategoryLoadError(false)
+    try {
+      const { data } = await api.get<GalleryCategory[]>('/api/gallery/categories')
+      const list = Array.isArray(data)
+        ? data.filter(
+            (category) =>
+              (category._count?.images ?? 0) > 0 || category.autoPublishConsentedPairs,
+          )
+        : []
+      const details = await Promise.all(
+        list.map((category) =>
+          api
+            .get<GalleryCategory>(`/api/gallery/categories/${category.id}`)
+            .then((response) => response.data),
+        ),
+      )
+      setCategories(details)
+    } catch {
+      setCategories([])
+      setCategoryLoadError(true)
+    }
   }, [])
+
+  const loadConsentedPairs = useCallback(async () => {
+    setPairsLoadError(false)
+    try {
+      const { data } = await api.get<{ items: ConsentedBeforeAfterPair[] }>(
+        '/api/daily-log/before-after',
+        { params: { limit: 50, offset: 0 } },
+      )
+      setConsentedPairs(Array.isArray(data?.items) ? data.items : [])
+    } catch {
+      setConsentedPairs([])
+      setPairsLoadError(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    void Promise.all([loadCategories(), loadConsentedPairs()]).finally(() => setLoading(false))
+  }, [loadCategories, loadConsentedPairs])
 
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.sortOrder - b.sortOrder),
@@ -105,12 +117,12 @@ export default function PublicGallery() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/85 to-white" />
         <div className={`${publicPageHero.innerNarrow} text-center relative z-[1]`}>
           <h1 className={publicHeader.title}>
-            {getSetting('public_gallery_title', 'Galerija Naših Radova')}
+            {getSetting('public_gallery_title', t('public.gallery.titleFallback'))}
           </h1>
           <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
             {getSetting(
               'public_gallery_subtitle',
-              'Zavirite u naš svijet ljepote i uvjerite se u stručnost naših frizera i stilista.',
+              t('public.gallery.subtitleFallback'),
             )}
           </p>
         </div>
@@ -118,18 +130,48 @@ export default function PublicGallery() {
 
       <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loading ? (
-          <div className="py-20 text-center text-slate-600">Učitavanje…</div>
+          <div className="py-20 text-center text-slate-600">{t('public.gallery.loading')}</div>
         ) : (
           <div>
+            {categoryLoadError ? (
+              <div
+                className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center"
+                role="alert"
+              >
+                <p className="text-sm text-amber-900">
+                  {t('public.gallery.categoryLoadFailed')}
+                </p>
+                <Button variant="outline" className="mt-3" onClick={() => void loadCategories()}>
+                  {t('public.gallery.retry')}
+                </Button>
+              </div>
+            ) : null}
+            {pairsLoadError ? (
+              <div
+                className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center"
+                role="alert"
+              >
+                <p className="text-sm text-amber-900">
+                  {t('public.gallery.beforeAfterLoadFailed')}
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => void loadConsentedPairs()}
+                >
+                  {t('public.gallery.retry')}
+                </Button>
+              </div>
+            ) : null}
             {consentedPairs.length > 0 &&
             !sortedCategories.some((category) => category.autoPublishConsentedPairs) ? (
               <section className="mb-16">
                 <div className="mb-7 max-w-3xl">
                   <h2 className="text-xl font-semibold tracking-tight text-slate-950 pb-3 border-b border-slate-200/80">
-                    Rezultati prije i poslije
+                    {t('public.gallery.beforeAfterTitle')}
                   </h2>
                   <p className="mt-3 text-sm text-slate-600">
-                    Fotografije klijentica prikazuju se samo uz njihovu važeću, izričitu saglasnost.
+                    {t('public.gallery.consentDescription')}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -141,12 +183,12 @@ export default function PublicGallery() {
                         <BeforeAfterSlider
                           beforeSrc={beforeSrc}
                           afterSrc={afterSrc}
-                          alt="Rezultat prije i poslije"
-                          ariaLabel="Poređenje rezultata prije i poslije"
+                          alt={t('public.beforeAfter.comparisonLabels')}
+                          ariaLabel={t('public.beforeAfter.sliderLabel')}
                         />
                         <div className="mt-2 flex justify-between text-xs font-medium text-slate-500">
-                          <span>Prije</span>
-                          <span>Poslije</span>
+                          <span>{t('public.beforeAfter.before')}</span>
+                          <span>{t('public.beforeAfter.after')}</span>
                         </div>
                       </article>
                     )
@@ -156,7 +198,7 @@ export default function PublicGallery() {
             ) : null}
 
             {sortedCategories.length === 0 ? (
-              consentedPairs.length === 0 ? (
+              consentedPairs.length === 0 && !categoryLoadError && !pairsLoadError ? (
                 <div className="text-center text-slate-500 text-lg">{t('common.noData')}</div>
               ) : null
             ) : (
@@ -170,7 +212,7 @@ export default function PublicGallery() {
                     {cat.autoPublishConsentedPairs ? (
                       <div className="mb-8">
                         <p className="mb-4 text-sm text-slate-600">
-                          Automatski prikazujemo samo parove za koje obje fotografije imaju važeću saglasnost.
+                          {t('public.gallery.automaticConsentDescription')}
                         </p>
                         {consentedPairs.length ? (
                           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -179,19 +221,19 @@ export default function PublicGallery() {
                                 <BeforeAfterSlider
                                   beforeSrc={getUploadUrl(pair.before.pathOriginal)}
                                   afterSrc={getUploadUrl(pair.after.pathOriginal)}
-                                  alt="Rezultat prije i poslije"
-                                  ariaLabel="Poređenje rezultata prije i poslije"
+                                  alt={t('public.beforeAfter.comparisonLabels')}
+                                  ariaLabel={t('public.beforeAfter.sliderLabel')}
                                 />
                                 <div className="mt-2 flex justify-between text-xs font-medium text-slate-500">
-                                  <span>Prije</span>
-                                  <span>Poslije</span>
+                                  <span>{t('public.beforeAfter.before')}</span>
+                                  <span>{t('public.beforeAfter.after')}</span>
                                 </div>
                               </article>
                             ))}
                           </div>
-                        ) : (
+                        ) : pairsLoadError ? null : (
                           <p className="text-sm italic text-slate-500">
-                            Trenutno nema parova s aktivnom saglasnošću za obje fotografije.
+                            {t('public.gallery.noConsentedPairs')}
                           </p>
                         )}
                       </div>
@@ -229,7 +271,7 @@ export default function PublicGallery() {
                                     if (originalUrl) setLightboxSrc(originalUrl)
                                   }
                                 }}
-                                aria-label="Otvori sliku"
+                                aria-label={t('public.gallery.openImage')}
                               >
                                 <MediaImage
                                   src={thumbUrl}
@@ -264,7 +306,7 @@ export default function PublicGallery() {
               type="button"
               className="absolute -top-12 right-0 inline-flex items-center justify-center rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
               onClick={handleClose}
-              aria-label="Zatvori"
+              aria-label={t('public.gallery.closeImage')}
             >
               <X className="h-4 w-4" />
             </button>
@@ -281,12 +323,12 @@ export default function PublicGallery() {
                 className="text-white text-sm hover:underline inline-flex items-center gap-2"
               >
                 <ExternalLink className="h-4 w-4" />
-                Otvori original u novom prozoru
+                {t('public.gallery.openOriginal')}
               </a>
             </div>
             <div className="mt-4 flex justify-center">
               <Button variant="onDarkOutline" onClick={handleClose}>
-                Zatvori
+                {t('public.gallery.close')}
               </Button>
             </div>
           </div>

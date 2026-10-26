@@ -738,6 +738,20 @@
     "published": "Published",
     "draft": "Draft"
   },
+  "admin": {
+    "serviceWorkGallery": {
+      "loadingService": "Loading service…",
+      "title": "Completed work",
+      "serviceFallback": "Service",
+      "minutesAbbreviation": "min",
+      "back": "Back",
+      "serviceLoadFailed": "This service couldn’t be loaded right now.",
+      "retry": "Try again",
+      "loadingPairs": "Loading completed work…",
+      "pairsLoadFailed": "Completed work couldn’t be loaded right now.",
+      "empty": "There are no available transformations for this service."
+    }
+  },
   "public": {
     "servicesPage": {
       "titleFallback": "Our Hair Services",
@@ -763,6 +777,53 @@
       "noGalleryItems": "There are no published examples of this service yet.",
       "galleryTitle": "Work gallery",
       "gallerySubtitle": "One transformation takes the spotlight; choose the others from the side. Drag the slider left or right to compare before and after."
+    },
+    "beforeAfter": {
+      "comparisonLabels": "Before and after",
+      "selectTransformationAria": "Show this transformation in the preview",
+      "loading": "Loading transformations…",
+      "empty": "There are no transformations to display.",
+      "selectedTransformation": "Transformation {{current}} of {{total}}",
+      "selectTransformation": "Select a transformation",
+      "sliderLabel": "Before and after photo comparison",
+      "positionValue": "{{position}}% revealed",
+      "before": "Before",
+      "after": "After"
+    },
+    "home": {
+      "beforeAfterKicker": "Before and after",
+      "beforeAfterTitle": "Completed work",
+      "beforeAfterDescription": "One transformation takes the spotlight; the others sit alongside it. Select one to compare, or watch the list move slowly.",
+      "beforeAfterSeeAll": "See all",
+      "beforeAfterLoadFailed": "Transformations couldn’t be loaded right now.",
+      "retry": "Try again"
+    },
+    "satisfiedClients": {
+      "kicker": "Transformations",
+      "title": "Satisfied clients",
+      "description": "Drag the slider left or right to compare the before and after photos. The list loads more as you scroll.",
+      "loading": "Loading…",
+      "empty": "There are no transformations to display.",
+      "loadFailed": "Transformations couldn’t be loaded right now.",
+      "retry": "Try again",
+      "loadingMore": "Loading…",
+      "backHome": "Back to home"
+    },
+    "gallery": {
+      "titleFallback": "Our Work Gallery",
+      "subtitleFallback": "Take a look into our world of beauty and discover the expertise of our hairdressers and stylists.",
+      "loading": "Loading gallery…",
+      "categoryLoadFailed": "Gallery categories couldn’t be loaded right now.",
+      "retry": "Try again",
+      "beforeAfterLoadFailed": "Before and after photos couldn’t be loaded right now.",
+      "beforeAfterTitle": "Before and after results",
+      "consentDescription": "Client photos are shown only with current, explicit consent.",
+      "automaticConsentDescription": "We automatically display only pairs where both photos have current consent.",
+      "noConsentedPairs": "There are currently no pairs with active consent for both photos.",
+      "openImage": "Open image",
+      "closeImage": "Close image",
+      "openOriginal": "Open original in a new window",
+      "close": "Close"
     },
     "nav": {
       "home": "Home",

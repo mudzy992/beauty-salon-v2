@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, Calendar, CheckCircle2, Clock, Star } from 'lucide-react'
@@ -51,20 +51,29 @@ export default function PublicHome() {
   const { getSetting } = useSettings()
   const [beforeAfterPairs, setBeforeAfterPairs] = useState<BeforeAfterPair[]>([])
   const [beforeAfterLoading, setBeforeAfterLoading] = useState(true)
+  const [beforeAfterLoadError, setBeforeAfterLoadError] = useState(false)
   const [featuredReview, setFeaturedReview] = useState<FeaturedReview | null>(null)
 
-  useEffect(() => {
-    api
-      .get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
-        params: { limit: 6, random: 1 },
-      })
-      .then((r) => {
-        const list = Array.isArray(r.data?.items) ? r.data.items : []
-        setBeforeAfterPairs(list)
-      })
-      .catch(() => setBeforeAfterPairs([]))
-      .finally(() => setBeforeAfterLoading(false))
+  const loadBeforeAfter = useCallback(async () => {
+    setBeforeAfterLoading(true)
+    setBeforeAfterLoadError(false)
+    try {
+      const { data } = await api.get<{ items: BeforeAfterPair[] }>(
+        '/api/daily-log/before-after',
+        { params: { limit: 6, random: 1 } },
+      )
+      setBeforeAfterPairs(Array.isArray(data?.items) ? data.items : [])
+    } catch {
+      setBeforeAfterPairs([])
+      setBeforeAfterLoadError(true)
+    } finally {
+      setBeforeAfterLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    void loadBeforeAfter()
+  }, [loadBeforeAfter])
 
   useEffect(() => {
     api
@@ -228,16 +237,15 @@ export default function PublicHome() {
         </div>
       </section>
 
-      {!beforeAfterLoading && beforeAfterPairs.length === 0 ? null : (
+      {!beforeAfterLoading && beforeAfterPairs.length === 0 && !beforeAfterLoadError ? null : (
       <section className={`${publicSection.subtle} ${publicSection.base}`}>
         <div className={`${publicPage.container}`}>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8 mb-10 md:mb-12">
             <div className="max-w-2xl">
-              <div className={publicHeader.kicker}>Prije / poslije</div>
-              <h2 className={`${publicHeader.title} mt-2`}>Urađeni radovi</h2>
+              <div className={publicHeader.kicker}>{t('public.home.beforeAfterKicker')}</div>
+              <h2 className={`${publicHeader.title} mt-2`}>{t('public.home.beforeAfterTitle')}</h2>
               <p className={`${publicHeader.subtitle} mt-3`}>
-                Jedna transformacija u fokusu. Ostale su u pregledu sa strane — kliknite za
-                usporedbu ili pričekajte da se lista lagano pomiče.
+                {t('public.home.beforeAfterDescription')}
               </p>
             </div>
             {reviewsOn ? (
@@ -245,24 +253,33 @@ export default function PublicHome() {
               to="/zadovoljni-klijenti"
               className="inline-flex items-center gap-2 text-sm font-medium text-slate-900 hover:text-slate-600 transition-colors shrink-0"
             >
-              Pogledaj sve
+              {t('public.home.beforeAfterSeeAll')}
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
             ) : null}
           </div>
 
-          <BeforeAfterSpotlight
-            pairs={beforeAfterPairs}
-            loading={beforeAfterLoading}
-            resolveBefore={(p) =>
-              getImageUrl(
-                p.before.pathMedium ?? p.before.pathThumb ?? p.before.pathOriginal,
-              )
-            }
-            resolveAfter={(p) =>
-              getImageUrl(p.after.pathMedium ?? p.after.pathThumb ?? p.after.pathOriginal)
-            }
-          />
+          {beforeAfterLoadError ? (
+            <div className="py-8 text-center" role="alert">
+              <p className="text-slate-600">{t('public.home.beforeAfterLoadFailed')}</p>
+              <Button variant="outline" className="mt-3" onClick={() => void loadBeforeAfter()}>
+                {t('public.home.retry')}
+              </Button>
+            </div>
+          ) : (
+            <BeforeAfterSpotlight
+              pairs={beforeAfterPairs}
+              loading={beforeAfterLoading}
+              resolveBefore={(p) =>
+                getImageUrl(
+                  p.before.pathMedium ?? p.before.pathThumb ?? p.before.pathOriginal,
+                )
+              }
+              resolveAfter={(p) =>
+                getImageUrl(p.after.pathMedium ?? p.after.pathThumb ?? p.after.pathOriginal)
+              }
+            />
+          )}
 
           {reviewsOn && featuredReview ? (
             <div className="mt-12 md:mt-16 max-w-2xl mx-auto">

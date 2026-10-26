@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 import { MediaImage } from '../../../components/media-image'
 import { BeforeAfterSlider } from '../../../components/BeforeAfterSlider'
@@ -29,6 +30,7 @@ const MarqueeThumbColumn = ({
   onSelect: (index: number) => void
   direction: 'up' | 'down'
 }) => {
+  const { t } = useTranslation()
   const trackRef = useRef<HTMLDivElement>(null)
   const phaseRef = useRef(Math.random())
   const [travelPx, setTravelPx] = useState(0)
@@ -103,7 +105,7 @@ const MarqueeThumbColumn = ({
             key={`${row.pair.id}-${k}`}
             type="button"
             onClick={() => onSelect(row.index)}
-            aria-label="Prikaži ovu transformaciju u pregledu"
+            aria-label={t('public.beforeAfter.selectTransformationAria')}
             className="w-full overflow-hidden rounded-xl bg-white text-left shadow-sm ring-1 ring-slate-900/[0.06] transition hover:shadow-md hover:ring-slate-900/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/15"
           >
             <div className="grid grid-cols-2 gap-px bg-slate-200">
@@ -121,7 +123,7 @@ const MarqueeThumbColumn = ({
               />
             </div>
             <div className="px-2 py-1.5 text-center text-[10px] font-medium text-slate-500">
-              Prije · Poslije
+              {t('public.beforeAfter.comparisonLabels')}
             </div>
           </button>
         ))}
@@ -144,9 +146,10 @@ export const BeforeAfterSpotlight = ({
   loading = false,
   resolveBefore,
   resolveAfter,
-  emptyLabel = 'Nema transformacija za prikaz.',
-  loadingLabel = 'Učitavanje…',
+  emptyLabel,
+  loadingLabel,
 }: BeforeAfterSpotlightProps) => {
+  const { t } = useTranslation()
   const [selectedPairIndex, setSelectedPairIndex] = useState(0)
 
   useEffect(() => {
@@ -172,11 +175,19 @@ export const BeforeAfterSpotlight = ({
   )
 
   if (loading) {
-    return <div className="py-12 text-center text-slate-600">{loadingLabel}</div>
+    return (
+      <div className="py-12 text-center text-slate-600">
+        {loadingLabel ?? t('public.beforeAfter.loading')}
+      </div>
+    )
   }
 
   if (!selectedPair) {
-    return <div className="py-12 text-center text-slate-500">{emptyLabel}</div>
+    return (
+      <div className="py-12 text-center text-slate-500">
+        {emptyLabel ?? t('public.beforeAfter.empty')}
+      </div>
+    )
   }
 
   return (
@@ -204,9 +215,12 @@ export const BeforeAfterSpotlight = ({
                 <BeforeAfterSlider
                   beforeSrc={resolveBefore(selectedPair)}
                   afterSrc={resolveAfter(selectedPair)}
-                  alt="Prije / Poslije"
+                  alt={t('public.beforeAfter.comparisonLabels')}
                   aspectRatio={1}
-                  ariaLabel={`Prije i poslije, transformacija ${selectedPairIndex + 1} od ${pairs.length}`}
+                  ariaLabel={t('public.beforeAfter.selectedTransformation', {
+                    current: selectedPairIndex + 1,
+                    total: pairs.length,
+                  })}
                 />
               </MotionDiv>
             </AnimatePresence>
@@ -225,7 +239,9 @@ export const BeforeAfterSpotlight = ({
       <div className="lg:hidden mt-6 -mx-4 px-4">
         {sideEntries.length > 0 ? (
           <>
-            <p className="text-xs font-medium text-slate-500 mb-3 px-1">Odaberi transformaciju</p>
+            <p className="text-xs font-medium text-slate-500 mb-3 px-1">
+              {t('public.beforeAfter.selectTransformation')}
+            </p>
             <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory [scrollbar-width:thin]">
               {sideEntries.map(({ pair, index }) => (
                 <button
@@ -233,7 +249,7 @@ export const BeforeAfterSpotlight = ({
                   type="button"
                   onClick={() => setSelectedPairIndex(index)}
                   className="snap-center shrink-0 w-[42vw] max-w-[200px] overflow-hidden rounded-xl border border-slate-200/90 bg-white text-left shadow-sm"
-                  aria-label="Prikaži ovu transformaciju u pregledu"
+                  aria-label={t('public.beforeAfter.selectTransformationAria')}
                 >
                   <div className="grid grid-cols-2 gap-px bg-slate-200">
                     <MediaImage

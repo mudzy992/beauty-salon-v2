@@ -735,6 +735,20 @@
     "published": "Objavljeno",
     "draft": "Nacrt"
   },
+  "admin": {
+    "serviceWorkGallery": {
+      "loadingService": "Učitavanje usluge…",
+      "title": "Urađeni radovi",
+      "serviceFallback": "Servis",
+      "minutesAbbreviation": "min",
+      "back": "Nazad",
+      "serviceLoadFailed": "Uslugu trenutno nije moguće učitati.",
+      "retry": "Pokušaj ponovo",
+      "loadingPairs": "Učitavanje urađenih radova…",
+      "pairsLoadFailed": "Urađene radove trenutno nije moguće učitati.",
+      "empty": "Nema dostupnih transformacija za ovaj servis."
+    }
+  },
   "public": {
     "servicesPage": {
       "titleFallback": "Naše frizerske usluge",
@@ -760,6 +774,53 @@
       "noGalleryItems": "Trenutno nema objavljenih urađenih radova za ovu uslugu.",
       "galleryTitle": "Galerija urađenih radova",
       "gallerySubtitle": "Jedna transformacija u fokusu; ostale birajte sa strane. Povucite klizač lijevo-desno za usporedbu prije i poslije."
+    },
+    "beforeAfter": {
+      "comparisonLabels": "Prije i poslije",
+      "selectTransformationAria": "Prikaži ovu transformaciju u pregledu",
+      "loading": "Učitavanje transformacija…",
+      "empty": "Nema transformacija za prikaz.",
+      "selectedTransformation": "Transformacija {{current}} od {{total}}",
+      "selectTransformation": "Odaberite transformaciju",
+      "sliderLabel": "Poređenje fotografija prije i poslije",
+      "positionValue": "Otkriveno {{position}}%",
+      "before": "Prije",
+      "after": "Poslije"
+    },
+    "home": {
+      "beforeAfterKicker": "Prije i poslije",
+      "beforeAfterTitle": "Urađeni radovi",
+      "beforeAfterDescription": "Jedna transformacija je u fokusu. Ostale su sa strane — kliknite za poređenje ili sačekajte da se lista polako pomjera.",
+      "beforeAfterSeeAll": "Pogledajte sve",
+      "beforeAfterLoadFailed": "Transformacije trenutno nije moguće učitati.",
+      "retry": "Pokušaj ponovo"
+    },
+    "satisfiedClients": {
+      "kicker": "Transformacije",
+      "title": "Zadovoljni klijenti",
+      "description": "Povucite klizač lijevo ili desno da uporedite fotografije prije i poslije. Lista se automatski dopunjava dok skrolate.",
+      "loading": "Učitavanje…",
+      "empty": "Nema prikazanih transformacija.",
+      "loadFailed": "Transformacije trenutno nije moguće učitati.",
+      "retry": "Pokušaj ponovo",
+      "loadingMore": "Učitavanje…",
+      "backHome": "Nazad na početnu"
+    },
+    "gallery": {
+      "titleFallback": "Galerija naših radova",
+      "subtitleFallback": "Zavirite u naš svijet ljepote i uvjerite se u stručnost naših frizera i stilista.",
+      "loading": "Učitavanje galerije…",
+      "categoryLoadFailed": "Kategorije galerije trenutno nije moguće učitati.",
+      "retry": "Pokušaj ponovo",
+      "beforeAfterLoadFailed": "Fotografije prije i poslije trenutno nije moguće učitati.",
+      "beforeAfterTitle": "Rezultati prije i poslije",
+      "consentDescription": "Fotografije klijentica prikazuju se samo uz njihovu važeću, izričitu saglasnost.",
+      "automaticConsentDescription": "Automatski prikazujemo samo parove za koje obje fotografije imaju važeću saglasnost.",
+      "noConsentedPairs": "Trenutno nema parova s aktivnom saglasnošću za obje fotografije.",
+      "openImage": "Otvori sliku",
+      "closeImage": "Zatvori sliku",
+      "openOriginal": "Otvori original u novom prozoru",
+      "close": "Zatvori"
     },
     "nav": {
       "home": "Početna",

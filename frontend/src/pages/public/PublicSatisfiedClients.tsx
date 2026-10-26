@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
 import { getUploadUrl } from '../../utils/uploadUrl'
@@ -18,7 +19,9 @@ interface BeforeAfterPair {
 }
 
 export default function PublicSatisfiedClients() {
+  const { t } = useTranslation()
   const [items, setItems] = useState<BeforeAfterPair[]>([])
+  const [loadError, setLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [offset, setOffset] = useState(0)
@@ -26,6 +29,7 @@ export default function PublicSatisfiedClients() {
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   const loadPage = useCallback(async (nextOffset: number, append: boolean) => {
+    setLoadError(false)
     if (nextOffset === 0) setLoading(true)
     else setLoadingMore(true)
     try {
@@ -41,6 +45,7 @@ export default function PublicSatisfiedClients() {
       setHasMore(data?.hasMore ?? false)
       setOffset(data?.nextOffset ?? nextOffset + list.length)
     } catch {
+      setLoadError(true)
       setHasMore(false)
     } finally {
       setLoading(false)
@@ -70,18 +75,34 @@ export default function PublicSatisfiedClients() {
     <div className="py-12 sm:py-16 bg-white min-h-[60vh]">
       <div className={publicPage.container}>
         <div className="max-w-2xl mb-10 md:mb-12">
-          <div className={publicHeader.kicker}>Transformacije</div>
-          <h1 className={`${publicHeader.title} mt-2`}>Zadovoljni klijenti</h1>
+          <div className={publicHeader.kicker}>{t('public.satisfiedClients.kicker')}</div>
+          <h1 className={`${publicHeader.title} mt-2`}>{t('public.satisfiedClients.title')}</h1>
           <p className={`${publicHeader.subtitle} mt-3`}>
-            Povucite slider lijevo ili desno da vidite prije i poslije. Lista se automatski
-            dopunjava dok skrolate.
+            {t('public.satisfiedClients.description')}
           </p>
         </div>
 
         {loading && items.length === 0 ? (
-          <div className="py-16 text-center text-slate-600">Učitavanje…</div>
+          <div className="py-16 text-center text-slate-600">
+            {t('public.satisfiedClients.loading')}
+          </div>
         ) : items.length === 0 ? (
-          <div className="text-center text-slate-500 py-12">Nema prikazanih transformacija.</div>
+          <div className="py-12 text-center">
+            {loadError ? (
+              <div role="alert" className="text-slate-600">
+                <p>{t('public.satisfiedClients.loadFailed')}</p>
+                <Button
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => void loadPage(0, false)}
+                >
+                  {t('public.satisfiedClients.retry')}
+                </Button>
+              </div>
+            ) : (
+              <p className="text-slate-500">{t('public.satisfiedClients.empty')}</p>
+            )}
+          </div>
         ) : (
           <>
             <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 overflow-x-auto md:overflow-visible pb-2 md:pb-0 snap-x snap-mandatory md:snap-none -mx-4 px-4 md:mx-0 md:px-0 [scrollbar-width:thin]">
@@ -105,7 +126,7 @@ export default function PublicSatisfiedClients() {
                           pair.after.pathThumb ??
                           pair.after.pathOriginal,
                       )}
-                      alt="Prije / Poslije"
+                      alt={t('public.beforeAfter.comparisonLabels')}
                       aspectRatio={1}
                     />
                   </div>
@@ -113,15 +134,29 @@ export default function PublicSatisfiedClients() {
               ))}
             </div>
             <div ref={sentinelRef} className="h-4 mt-8" />
+            {loadError ? (
+              <div className="py-4 text-center" role="alert">
+                <p className="text-slate-600">{t('public.satisfiedClients.loadFailed')}</p>
+                <Button
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => void loadPage(offset, true)}
+                >
+                  {t('public.satisfiedClients.retry')}
+                </Button>
+              </div>
+            ) : null}
             {loadingMore ? (
-              <div className="py-8 text-center text-slate-600">Učitavanje…</div>
+              <div className="py-8 text-center text-slate-600">
+                {t('public.satisfiedClients.loadingMore')}
+              </div>
             ) : null}
           </>
         )}
 
         <div className="text-center mt-10">
           <Link to="/">
-            <Button variant="outline">Nazad na početnu</Button>
+            <Button variant="outline">{t('public.satisfiedClients.backHome')}</Button>
           </Link>
         </div>
       </div>
