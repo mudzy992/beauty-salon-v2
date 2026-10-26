@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
 import {
@@ -25,6 +26,7 @@ export const CancelReservationDialog = ({
   pending,
   onConfirm,
 }: CancelReservationDialogProps) => {
+  const { t } = useTranslation()
   const [reason, setReason] = useState('')
 
   useEffect(() => {
@@ -35,13 +37,13 @@ export const CancelReservationDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Otkazivanje</DialogTitle>
+          <DialogTitle>{t('stylistPortal.reservationDialogs.cancel.title')}</DialogTitle>
           <DialogDescription>
-            Unesite obrazloženje otkazivanja. Klijent će biti obaviješten.
+            {t('stylistPortal.reservationDialogs.cancel.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <Label htmlFor="cancelReason">Razlog</Label>
+          <Label htmlFor="cancelReason">{t('stylistPortal.reservationDialogs.cancel.reason')}</Label>
           <Textarea
             id="cancelReason"
             value={reason}
@@ -50,10 +52,10 @@ export const CancelReservationDialog = ({
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Odustani
+            {t('common.cancel')}
           </Button>
           <Button type="button" onClick={() => void onConfirm(reason)} disabled={pending}>
-            Potvrdi
+            {t('common.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

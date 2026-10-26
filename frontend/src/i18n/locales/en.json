@@ -792,6 +792,21 @@
     }
   },
   "stylistPortal": {
+    "reservationDialogs": {
+      "cancel": {
+        "title": "Cancel reservation",
+        "description": "Enter a reason for cancelling. The client will be notified.",
+        "reason": "Reason"
+      },
+      "noShow": {
+        "title": "Client did not attend",
+        "description": "Mark the reservation as a no-show and apply a penalty if appropriate.",
+        "reason": "Reason",
+        "penalty": "Penalty: {{state}}",
+        "applyPenaltyDescription": "Apply a no-show penalty.",
+        "confirm": "Mark as no-show"
+      }
+    },
     "reservationDetail": {
       "loading": "Loading…",
       "notFound": "Reservation not found.",

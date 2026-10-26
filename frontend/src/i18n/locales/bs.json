@@ -789,6 +789,21 @@
     }
   },
   "stylistPortal": {
+    "reservationDialogs": {
+      "cancel": {
+        "title": "Otkazivanje",
+        "description": "Unesite obrazloženje otkazivanja. Klijent će biti obaviješten.",
+        "reason": "Razlog"
+      },
+      "noShow": {
+        "title": "Klijent se nije pojavio",
+        "description": "Označite no-show i po potrebi primijenite penal.",
+        "reason": "Obrazloženje",
+        "penalty": "Penal: {{state}}",
+        "applyPenaltyDescription": "Primijeni penal za no-show.",
+        "confirm": "Označi no-show"
+      }
+    },
     "reservationDetail": {
       "loading": "Učitavanje…",
       "notFound": "Rezervacija nije pronađena",
