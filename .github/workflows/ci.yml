@@ -187,6 +187,9 @@ jobs:
       - name: Test localized stylist workbook reschedule UI
         working-directory: frontend
         run: npm run test:stylist-workbook-reschedule-i18n
+      - name: Test localized stylist workbook new-entry UI
+        working-directory: frontend
+        run: npm run test:stylist-workbook-new-entry-i18n
       - name: Test runtime web language selection and fallback
         working-directory: frontend
         run: npm run test:i18n-language
