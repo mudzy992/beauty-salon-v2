@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
@@ -14,11 +15,11 @@ import {
 import { disposeDailyLogEntry } from '../api/stylist-workbook.api'
 import type { DailyLogEntry } from '../types'
 import {
-  DISPOSITION_ACTION_HINTS,
+  DISPOSITION_ACTION_HINT_KEYS,
   DISPOSITION_ACTION_KEYS,
-  DISPOSITION_ACTION_LABELS,
-  DISPOSITION_PANEL_HINT,
-  DISPOSITION_PANEL_TITLE,
+  DISPOSITION_ACTION_LABEL_KEYS,
+  DISPOSITION_PANEL_HINT_KEY,
+  DISPOSITION_PANEL_TITLE_KEY,
   type DispositionAction,
 } from './disposition-copy'
 
@@ -28,6 +29,7 @@ type Props = {
 }
 
 export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [action, setAction] = useState<DispositionAction | null>(null)
   const [reason, setReason] = useState('')
@@ -60,16 +62,16 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
     if (!action) return
     const trimmed = reason.trim()
     if (!trimmed) {
-      setError('Razlog je obavezan.')
+      setError(t('stylistWorkbook.disposition.reasonRequired'))
       return
     }
     if (action === 'reorder') {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate.trim())) {
-        setError('Unesite datum (YYYY-MM-DD).')
+        setError(t('stylistWorkbook.disposition.invalidDate'))
         return
       }
       if (!/^\d{2}:\d{2}$/.test(targetStartTime.trim()) || !/^\d{2}:\d{2}$/.test(targetEndTime.trim())) {
-        setError('Unesite vrijeme u formatu HH:mm.')
+        setError(t('stylistWorkbook.disposition.invalidTime'))
         return
       }
     }
@@ -91,8 +93,12 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
       const msg =
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : 'Greška.'
-      setError(Array.isArray(msg) ? msg[0] : String(msg ?? 'Greška'))
+          : t('stylistWorkbook.disposition.genericError')
+      setError(
+        Array.isArray(msg)
+          ? msg[0]
+          : String(msg ?? t('stylistWorkbook.disposition.genericError')),
+      )
     } finally {
       setSubmitting(false)
     }
@@ -101,13 +107,17 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
   return (
     <div className="mt-6 space-y-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
       <div>
-        <p className="font-semibold text-slate-900 dark:text-slate-50">{DISPOSITION_PANEL_TITLE}</p>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{DISPOSITION_PANEL_HINT}</p>
+        <p className="font-semibold text-slate-900 dark:text-slate-50">
+          {t(DISPOSITION_PANEL_TITLE_KEY)}
+        </p>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          {t(DISPOSITION_PANEL_HINT_KEY)}
+        </p>
       </div>
       <div className="flex flex-wrap gap-2">
         {DISPOSITION_ACTION_KEYS.map((key) => (
           <Button key={key} type="button" variant="outline" size="sm" onClick={() => openAction(key)}>
-            {DISPOSITION_ACTION_LABELS[key]}
+            {t(DISPOSITION_ACTION_LABEL_KEYS[key])}
           </Button>
         ))}
       </div>
@@ -115,16 +125,23 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{action ? DISPOSITION_ACTION_LABELS[action] : 'Akcija'}</DialogTitle>
+            <DialogTitle>
+              {action
+                ? t(DISPOSITION_ACTION_LABEL_KEYS[action])
+                : t('stylistWorkbook.disposition.actionFallback')}
+            </DialogTitle>
             <DialogDescription>
-              {action ? DISPOSITION_ACTION_HINTS[action] : 'Akcija je nepovratna.'} Unesite razlog.
+              {action
+                ? t(DISPOSITION_ACTION_HINT_KEYS[action])
+                : t('stylistWorkbook.disposition.actionFallbackHint')}{' '}
+              {t('stylistWorkbook.disposition.enterReason')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             {action === 'reorder' ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
-                  <Label htmlFor="targetDate">Novi datum</Label>
+                  <Label htmlFor="targetDate">{t('stylistWorkbook.disposition.newDate')}</Label>
                   <Input
                     id="targetDate"
                     type="date"
@@ -133,7 +150,7 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="targetStart">Novi početak</Label>
+                  <Label htmlFor="targetStart">{t('stylistWorkbook.disposition.newStart')}</Label>
                   <Input
                     id="targetStart"
                     value={targetStartTime}
@@ -142,7 +159,7 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="targetEnd">Novi kraj</Label>
+                  <Label htmlFor="targetEnd">{t('stylistWorkbook.disposition.newEnd')}</Label>
                   <Input
                     id="targetEnd"
                     value={targetEndTime}
@@ -153,22 +170,24 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
               </div>
             ) : null}
             <div>
-              <Label htmlFor="dispositionReason">Razlog</Label>
+              <Label htmlFor="dispositionReason">{t('stylistWorkbook.disposition.reason')}</Label>
               <Input
                 id="dispositionReason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Obrazloženje"
+                placeholder={t('stylistWorkbook.disposition.reasonPlaceholder')}
               />
             </div>
             {error ? <p className="text-sm text-rose-600">{error}</p> : null}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>
-              Odustani
+              {t('common.cancel')}
             </Button>
             <Button type="button" onClick={() => void handleSubmit()} disabled={submitting}>
-              {submitting ? 'Spremam…' : 'Potvrdi'}
+              {submitting
+                ? t('stylistWorkbook.disposition.submitting')
+                : t('common.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>

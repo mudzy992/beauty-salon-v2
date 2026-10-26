@@ -643,7 +643,84 @@
     "thisWeek": "This week",
     "lastWeek": "Last week",
     "other": "Other",
-    "serviceFallback": "Service"
+    "serviceFallback": "Service",
+    "detail": {
+      "loadFailed": "The entry could not be loaded right now.",
+      "notFound": "Entry not found.",
+      "imageAddedTitle": "Added",
+      "imageAddedMessage": "The image was added.",
+      "imageUploadFailed": "Image upload failed.",
+      "completedTitle": "Completed",
+      "completedMessage": "The entry is complete and the revenue was recorded.",
+      "latenessTitle": "Appointment delay",
+      "noRescheduleNeeded": "This appointment ran {{minutes}} minutes late. There are no other confirmed appointments to move today, so a schedule recalculation is not needed.",
+      "actionFailed": "Could not complete the entry.",
+      "manualEntry": "· Manual",
+      "reservationEntry": "· Reservation",
+      "services": "Services",
+      "debtPayments": "Debt payments",
+      "debtFallback": "Debt",
+      "client": "Client:",
+      "totalCollected": "Total collected:",
+      "servicesAmount": "Services {{amount}}",
+      "debtsAmount": "Debts {{amount}}",
+      "tipAmount": "Tip {{amount}}",
+      "notes": "Notes",
+      "finishing": "Finishing…",
+      "finishWithReservation": "Complete entry (also completes reservation)",
+      "finishEntry": "Complete entry (record in ledger)",
+      "beforeAfter": "Before and after",
+      "beforeAfterHint": "Add before-and-after photos (square crop, as in the mobile app).",
+      "before": "Before",
+      "after": "After",
+      "uploading": "Uploading…",
+      "addBefore": "Add before",
+      "addAfter": "Add after",
+      "uploadInProgress": "Uploading image…",
+      "confirmTitle": "Complete entry",
+      "confirmReservation": "Mark this entry as complete? This will also complete the reservation and record the revenue.",
+      "confirmEntry": "Mark this entry as complete? The revenue will be recorded.",
+      "finish": "Complete",
+      "latenessDescription": "This appointment ran {{minutes}} minutes late. Would you like to recalculate upcoming appointments and preview the updated schedule?",
+      "notNow": "Not now",
+      "withoutBreaks": "Without breaks",
+      "includeBreaks": "Include breaks"
+    },
+    "disposition": {
+      "title": "Appointment did not take place / another time is needed",
+      "hint": "Payment is shown above: complete the entry. These are exceptions—cancellation, no-show, or rescheduling.",
+      "actionFallback": "Action",
+      "actionFallbackHint": "This action cannot be undone.",
+      "enterReason": "Enter a reason.",
+      "reasonRequired": "A reason is required.",
+      "invalidDate": "Enter a date in YYYY-MM-DD format.",
+      "invalidTime": "Enter a time in HH:mm format.",
+      "genericError": "Something went wrong.",
+      "newDate": "New date",
+      "newStart": "New start time",
+      "newEnd": "New end time",
+      "reason": "Reason",
+      "reasonPlaceholder": "Explanation",
+      "submitting": "Saving…",
+      "actions": {
+        "reorder": {
+          "label": "Reschedule appointment",
+          "hint": "The new date and time take effect immediately. The client is notified and does not need to confirm."
+        },
+        "cancelAsStylist": {
+          "label": "Cancel on behalf of the salon",
+          "hint": "The appointment is cancelled on behalf of the salon. The client is notified. No penalty applies."
+        },
+        "cancelAsClient": {
+          "label": "Cancel on behalf of the client",
+          "hint": "The appointment is cancelled on behalf of the client. The client is notified and a penalty applies."
+        },
+        "noShow": {
+          "label": "Mark as no-show",
+          "hint": "The client did not attend. They are notified and a penalty applies."
+        }
+      }
+    }
   },
   "dailyLog": {
     "newEntry": "New entry",

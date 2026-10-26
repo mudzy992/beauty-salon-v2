@@ -640,7 +640,84 @@
     "thisWeek": "Ova sedmica",
     "lastWeek": "Prošla sedmica",
     "other": "Ostalo",
-    "serviceFallback": "Usluga"
+    "serviceFallback": "Usluga",
+    "detail": {
+      "loadFailed": "Zapis trenutno nije moguće učitati.",
+      "notFound": "Zapis nije pronađen.",
+      "imageAddedTitle": "Dodano",
+      "imageAddedMessage": "Slika je dodana.",
+      "imageUploadFailed": "Greška pri uploadu slike.",
+      "completedTitle": "Završeno",
+      "completedMessage": "Zapis je završen i prihod je upisan u knjigu.",
+      "latenessTitle": "Kašnjenje termina",
+      "noRescheduleNeeded": "Ovaj termin je kasnio {{minutes}} min. Nema drugih potvrđenih termina danas za pomjeranje — rekalkulacija rasporeda nije potrebna.",
+      "actionFailed": "Greška pri završavanju zapisa.",
+      "manualEntry": "· Ručno",
+      "reservationEntry": "· Rezervacija",
+      "services": "Servisi",
+      "debtPayments": "Naplata dugovanja",
+      "debtFallback": "Dug",
+      "client": "Klijent:",
+      "totalCollected": "Ukupno naplaćeno:",
+      "servicesAmount": "Servisi {{amount}}",
+      "debtsAmount": "Dugovi {{amount}}",
+      "tipAmount": "Napojnica {{amount}}",
+      "notes": "Bilješke",
+      "finishing": "Završavam…",
+      "finishWithReservation": "Završi zapis (završava i rezervaciju)",
+      "finishEntry": "Završi zapis (upis u knjigu)",
+      "beforeAfter": "Prije i poslije",
+      "beforeAfterHint": "Dodajte fotografije prije i poslije (kvadratni izrez, kao u mobilnoj aplikaciji).",
+      "before": "Prije",
+      "after": "Poslije",
+      "uploading": "Učitavanje…",
+      "addBefore": "Dodaj prije",
+      "addAfter": "Dodaj poslije",
+      "uploadInProgress": "Učitavanje slike…",
+      "confirmTitle": "Završi zapis",
+      "confirmReservation": "Označiti zapis kao završen? Ovo će završiti i rezervaciju te upisati prihod u knjigu.",
+      "confirmEntry": "Označiti zapis kao završen? Prihod će biti upisan u knjigu.",
+      "finish": "Završi",
+      "latenessDescription": "Ovaj termin je kasnio {{minutes}} min. Želite li rekalkulaciju budućih termina i pregled novog rasporeda?",
+      "notNow": "Ne sada",
+      "withoutBreaks": "Bez pauza",
+      "includeBreaks": "Uključi pauze"
+    },
+    "disposition": {
+      "title": "Termin se nije desio / potreban je drugi termin",
+      "hint": "Naplata je prikazana iznad: završite zapis. Ove akcije su izuzeci — otkazivanje, nedolazak ili pomjeranje.",
+      "actionFallback": "Akcija",
+      "actionFallbackHint": "Akcija je nepovratna.",
+      "enterReason": "Unesite razlog.",
+      "reasonRequired": "Razlog je obavezan.",
+      "invalidDate": "Unesite datum u formatu GGGG-MM-DD.",
+      "invalidTime": "Unesite vrijeme u formatu HH:mm.",
+      "genericError": "Greška.",
+      "newDate": "Novi datum",
+      "newStart": "Novi početak",
+      "newEnd": "Novi kraj",
+      "reason": "Razlog",
+      "reasonPlaceholder": "Obrazloženje",
+      "submitting": "Spremam…",
+      "actions": {
+        "reorder": {
+          "label": "Pomjeri termin",
+          "hint": "Novi datum i vrijeme se odmah primjenjuju. Klijent dobija obavijest i ne mora potvrđivati."
+        },
+        "cancelAsStylist": {
+          "label": "Otkaži u ime salona",
+          "hint": "Termin se otkazuje u ime salona. Klijent dobija obavijest. Nema kazne."
+        },
+        "cancelAsClient": {
+          "label": "Otkaži u ime klijenta",
+          "hint": "Termin se otkazuje u ime klijenta. Klijent dobija obavijest i kaznu."
+        },
+        "noShow": {
+          "label": "Označi kao nedolazak",
+          "hint": "Klijent se nije pojavio. Dobija obavijest i kaznu."
+        }
+      }
+    }
   },
   "dailyLog": {
     "newEntry": "Novi Unos",
