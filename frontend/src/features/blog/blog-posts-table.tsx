@@ -1,4 +1,5 @@
 import { MessageSquareText, Pencil, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -13,17 +14,19 @@ type Props = {
 }
 
 export function BlogPostsTable({ posts, emptyLabel, onComments, onEdit, onDelete }: Props) {
+  const { t, i18n } = useTranslation()
+
   return (
     <div className="app-table-wrap">
       <table className="app-table w-full border-collapse">
         <thead>
           <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-            <th className="p-3 font-medium">Naslov</th>
-            <th className="p-3 font-medium">Slug</th>
-            <th className="p-3 font-medium">Status</th>
-            <th className="p-3 font-medium">Datum objavljivanja</th>
-            <th className="p-3 font-medium">Kreirano</th>
-            <th className="p-3 text-right font-medium">Akcije</th>
+            <th className="p-3 font-medium">{t('blog.title')}</th>
+            <th className="p-3 font-medium">{t('blog.admin.slug')}</th>
+            <th className="p-3 font-medium">{t('blog.admin.status')}</th>
+            <th className="p-3 font-medium">{t('blog.admin.publishDate')}</th>
+            <th className="p-3 font-medium">{t('blog.admin.created')}</th>
+            <th className="p-3 text-right font-medium">{t('blog.admin.actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -38,15 +41,19 @@ export function BlogPostsTable({ posts, emptyLabel, onComments, onEdit, onDelete
                 <td className="p-3 text-slate-500">{p.slug}</td>
                 <td className="p-3">
                   <Badge variant={p.isPublished ? 'success' : 'secondary'}>
-                    {p.isPublished ? 'Objavljeno' : 'Nacrt'}
+                    {p.isPublished ? t('blog.published') : t('blog.draft')}
                   </Badge>
                 </td>
-                <td className="p-3">{p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('bs-BA') : '-'}</td>
-                <td className="p-3">{new Date(p.createdAt).toLocaleDateString('bs-BA')}</td>
+                <td className="p-3">
+                  {p.publishedAt ? new Intl.DateTimeFormat(i18n.language).format(new Date(p.publishedAt)) : '-'}
+                </td>
+                <td className="p-3">
+                  {new Intl.DateTimeFormat(i18n.language).format(new Date(p.createdAt))}
+                </td>
                 <td className="p-3 text-right">
                   <div className="flex justify-end gap-1">
                     <div className="relative">
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Komentari" onClick={() => onComments(p.id, p.title)}>
+                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('blog.admin.comments')} onClick={() => onComments(p.id, p.title)}>
                         <MessageSquareText className="h-4 w-4 text-teal-600" aria-hidden="true" />
                       </Button>
                       {Number(p.commentsTotalCount ?? 0) > 0 ? (
@@ -60,10 +67,10 @@ export function BlogPostsTable({ posts, emptyLabel, onComments, onEdit, onDelete
                         </span>
                       ) : null}
                     </div>
-                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Uredi" onClick={() => onEdit(p.id)}>
+                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('common.edit')} onClick={() => onEdit(p.id)}>
                       <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
                     </Button>
-                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Obriši" onClick={() => onDelete(p.id)}>
+                    <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('common.delete')} onClick={() => onDelete(p.id)}>
                       <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
                     </Button>
                   </div>

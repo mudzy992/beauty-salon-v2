@@ -19,6 +19,7 @@
     "test:public-contact-i18n": "node --test src/features/public-catalog/public-contact-i18n.test.mjs",
     "test:public-blog-list-i18n": "node --test src/features/public-catalog/public-blog-list-i18n.test.mjs",
     "test:public-blog-post-i18n": "node --test src/features/blog/public-blog-post-i18n.test.mjs",
+    "test:admin-blog-i18n": "node --test src/features/blog/admin-blog-i18n.test.mjs",
     "test:i18n-language": "node --test src/i18n/language.test.mjs",
     "gen:favicons": "node ./scripts/generate-favicons.mjs",
     "preview": "vite preview --port 10000 --config vite.config.ts",
