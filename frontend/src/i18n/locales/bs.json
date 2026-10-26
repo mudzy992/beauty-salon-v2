@@ -98,6 +98,7 @@
     "filter": "Filtriraj",
     "reset": "Resetuj",
     "confirm": "Potvrdi",
+    "retry": "Pokušaj ponovo",
     "loading": "Učitavanje...",
     "noData": "Nema podataka.",
     "success": "Uspješno.",
@@ -939,6 +940,31 @@
     "about": {
       "title": "O nama",
       "text": "Beauty Salon Nejra nudi širok spektar usluga za njegu kose i tijela. Naš tim iskusnih stilista posvećen je vašem zadovoljstvu."
+    },
+    "blogPost": {
+      "loadFailed": "Ovaj članak trenutno nije moguće učitati.",
+      "notFound": "Članak nije pronađen.",
+      "backToBlog": "Nazad na blog",
+      "commentSubmitted": "Komentar je poslan na odobrenje.",
+      "commentSubmitFailed": "Greška pri slanju komentara.",
+      "linkCopied": "Link kopiran.",
+      "linkCopyFailed": "Nije moguće kopirati link."
+    },
+    "blogShare": {
+      "share": "Podijeli",
+      "copied": "Kopirano",
+      "copyLink": "Kopiraj link"
+    },
+    "blogComments": {
+      "title": "Komentari",
+      "placeholder": "Napišite komentar...",
+      "submitting": "Slanje…",
+      "submit": "Pošalji komentar",
+      "login": "Prijavite se da biste komentarisali",
+      "loadFailed": "Komentare trenutno nije moguće učitati.",
+      "empty": "Nema odobrenih komentara.",
+      "loadingMore": "Učitavanje…",
+      "loadMore": "Učitaj još komentara"
     },
     "blogList": {
       "subtitleFallback": "Novosti i savjeti",

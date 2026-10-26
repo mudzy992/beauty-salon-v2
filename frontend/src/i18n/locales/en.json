@@ -101,6 +101,7 @@
     "filter": "Filter",
     "reset": "Reset",
     "confirm": "Confirm",
+    "retry": "Try again",
     "loading": "Loading…",
     "noData": "No data.",
     "success": "Success.",
@@ -942,6 +943,31 @@
     "about": {
       "title": "About us",
       "text": "Beauty Salon Nejra offers a wide range of hair and body care services. Our team of experienced stylists is dedicated to your satisfaction."
+    },
+    "blogPost": {
+      "loadFailed": "This article could not be loaded right now.",
+      "notFound": "Article not found.",
+      "backToBlog": "Back to blog",
+      "commentSubmitted": "Your comment was submitted for review.",
+      "commentSubmitFailed": "Could not submit your comment.",
+      "linkCopied": "Link copied.",
+      "linkCopyFailed": "Could not copy the link."
+    },
+    "blogShare": {
+      "share": "Share",
+      "copied": "Copied",
+      "copyLink": "Copy link"
+    },
+    "blogComments": {
+      "title": "Comments",
+      "placeholder": "Write a comment...",
+      "submitting": "Sending…",
+      "submit": "Post comment",
+      "login": "Sign in to leave a comment",
+      "loadFailed": "Comments could not be loaded right now.",
+      "empty": "There are no approved comments yet.",
+      "loadingMore": "Loading…",
+      "loadMore": "Load more comments"
     },
     "blogList": {
       "subtitleFallback": "News and advice",

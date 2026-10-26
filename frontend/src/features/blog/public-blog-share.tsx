@@ -1,4 +1,5 @@
 import { Copy, ExternalLink, Share2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../components/ui/button'
 
@@ -11,6 +12,7 @@ type Props = {
 }
 
 export function PublicBlogShare({ title, shareUrl, copied, onShare, onCopy }: Props) {
+  const { t } = useTranslation()
   const encodedUrl = encodeURIComponent(shareUrl)
   const encodedTitle = encodeURIComponent(title)
   const links = [
@@ -23,11 +25,11 @@ export function PublicBlogShare({ title, shareUrl, copied, onShare, onCopy }: Pr
     <div className="mb-6 flex flex-wrap items-center gap-2">
       <Button type="button" variant="outline" size="sm" onClick={onShare}>
         <Share2 className="mr-2 h-4 w-4" aria-hidden />
-        Dijeli
+        {t('public.blogShare.share')}
       </Button>
       <Button type="button" variant="ghost" size="sm" onClick={onCopy}>
         <Copy className="mr-2 h-4 w-4" aria-hidden />
-        {copied ? 'Kopirano' : 'Kopiraj link'}
+        {copied ? t('public.blogShare.copied') : t('public.blogShare.copyLink')}
       </Button>
       {links.map((link) => (
         <a key={link.label} href={link.href} target="_blank" rel="noreferrer">
