@@ -617,7 +617,9 @@
       "COMPLETED": "Završena",
       "CANCELLED_BY_CLIENT": "Otkazao klijent",
       "CANCELLED_BY_STYLISTS": "Otkazali stilisti",
-      "NO_SHOW": "Nije došao"
+      "NO_SHOW": "Nije došao",
+      "AWAITING_DAILY_LOG": "Na čekanju (dnevnik)",
+      "CANCELLED_UNCONFIRMED_ATTENDANCE": "Otkazano (nepotvrđen dolazak)"
     }
   },
   "stylistWorkbook": {
@@ -846,6 +848,19 @@
       "accept": "Prihvati",
       "unlock": "Oslobodi",
       "reject": "Odbij"
+    },
+    "schedule": {
+      "noProfile": "Nema profila",
+      "profileNotFound": "Profil stilista nije pronađen.",
+      "title": "Raspored",
+      "range": "Prikazuju se termini koje ste preuzeli ({{from}} – {{to}}).",
+      "refresh": "Osvježi",
+      "directBooking": "Direktna rezervacija",
+      "emptyTitle": "Nema termina",
+      "emptyDescription": "Preuzeti termini će se pojaviti ovdje.",
+      "today": "Danas",
+      "loadFailed": "Nije moguće učitati raspored.",
+      "payment": "Naplata"
     }
   },
   "dailyLog": {

@@ -620,7 +620,9 @@
       "COMPLETED": "Completed",
       "CANCELLED_BY_CLIENT": "Cancelled by client",
       "CANCELLED_BY_STYLISTS": "Cancelled by stylists",
-      "NO_SHOW": "No-show"
+      "NO_SHOW": "No-show",
+      "AWAITING_DAILY_LOG": "Pending (workbook)",
+      "CANCELLED_UNCONFIRMED_ATTENDANCE": "Cancelled (attendance not confirmed)"
     }
   },
   "stylistWorkbook": {
@@ -849,6 +851,19 @@
       "accept": "Accept",
       "unlock": "Release",
       "reject": "Reject"
+    },
+    "schedule": {
+      "noProfile": "No profile",
+      "profileNotFound": "Stylist profile was not found.",
+      "title": "Schedule",
+      "range": "Showing appointments assigned to you ({{from}} – {{to}}).",
+      "refresh": "Refresh",
+      "directBooking": "Direct booking",
+      "emptyTitle": "No appointments",
+      "emptyDescription": "Appointments assigned to you will appear here.",
+      "today": "Today",
+      "loadFailed": "Could not load the schedule.",
+      "payment": "Payment"
     }
   },
   "dailyLog": {
