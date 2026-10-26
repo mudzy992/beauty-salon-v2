@@ -64,7 +64,7 @@ python3 scripts/check_i18n.py --strict        # web BS/EN leaf-key parity gate
 python3 scripts/check_ui_contrast.py --strict # checked source-token pairs are a CI gate
 ```
 
-`check_i18n.py --strict` je CI gate samo za web BS/EN resurse (315 leaf ključeva po jeziku); mobile language scope ostaje otvoren i mobile resursi nisu dio ovog checka. Runtime language-switch/fallback i ostatak hardcoded stringova se provjeravaju odvojeno. `check_ui_contrast.py --strict` je CI gate za imenovane source-token parove; frontend `npm run test:brand-colors` pokriva dinamičke HEX override-e. Kontrastne provjere nisu rendered-UI/axe/manual dokaz. Repo hygiene check je gate od početka.
+`check_i18n.py --strict` je CI gate samo za web BS/EN resurse (747 leaf ključeva po jeziku); mobile language scope ostaje otvoren i mobile resursi nisu dio ovog checka. Runtime language-switch/fallback i šira pokrivenost UI stringova provjeravaju se odvojeno. `check_ui_contrast.py --strict` je CI gate za imenovane source-token parove; frontend `npm run test:brand-colors` pokriva dinamičke HEX override-e. Kontrastne provjere nisu rendered-UI/axe/manual dokaz. Repo hygiene check je gate od početka.
 
 ## 5. Backend local test sequence
 
@@ -164,6 +164,7 @@ npm run test:locale-formatting
 npm run test:reservation-errors
 npm run test:client-reservation-errors
 npm run test:admin-api-errors
+npm run test:profile-api-errors
 npm run test:i18n-language
 npm run build
 npm run lint
@@ -172,7 +173,7 @@ npm run lint
 - `test:socket-recovery` uses Node's built-in runner and needs no additional dependency; it verifies the reconnect controller, not React rendering or browser/Socket.IO server behavior.
 - `build` executes `tsc -b` and `vite build`; preserve and review Vite bundle-size warning. The frontend Docker image must be built with the repository root as context: frontend modules import `shared/business-date.mjs` outside `frontend/`. CI run `40229785202` passed the Docker image build from that root context and the primary Compose context assertion.
 - `lint` is not an established gate until ESLint dependency/config are present and legacy errors resolved. The command must not mutate source.
-- `test:socket-recovery`, `test:brand-colors`, `test:registration-errors`, `test:locale-formatting`, `test:reservation-errors`, `test:client-reservation-errors`, `test:admin-api-errors`, and `test:i18n-language` use Node's built-in test runner. Locale-formatting tests cover BS/EN date-only, weekday, date-time, number and KM amount output; the error mappers cover known auth, booking, client-action and admin user/stylist errors plus localized fallback handling. `test:i18n-language` covers BS/EN normalization, safe preference persistence, runtime i18next switching and fallback to Bosnian resources. These tests do not exercise the React switcher in a browser; rendered/mobile viewport and keyboard acceptance remain open.
+- `test:socket-recovery`, `test:brand-colors`, `test:registration-errors`, `test:locale-formatting`, `test:reservation-errors`, `test:client-reservation-errors`, `test:admin-api-errors`, `test:profile-api-errors`, and `test:i18n-language` use Node's built-in test runner. Locale-formatting tests cover BS/EN date-only, weekday, date-time, number and KM amount output; the error mappers cover known auth, booking, client-action, admin user/stylist, and profile errors plus localized fallbacks. `test:i18n-language` covers BS/EN normalization, safe preference persistence, runtime i18next switching and fallback to Bosnian resources. These tests do not exercise the React switcher or localized pages in a browser; rendered/mobile viewport and keyboard acceptance remain open.
 
 ### Add as implementation progresses
 
@@ -228,7 +229,7 @@ npm audit --json > /tmp/<app>-audit-all.json
 ## 10. CI acceptance and artifact safety
 
 - CI workflow uses read-only checkout, Node 22, package-local npm ci, branch/manual trigger, no deployment/SSH/GitHub write token, and no production secrets.
-- The configured backend job provisions disposable PostgreSQL 16, generates Prisma Client, validates the schema, applies tracked migrations, builds the backend, runs the sanitizer and DB-backed HTTP/Socket.IO E2E suites, then runs backend unit tests. Other jobs run repository hygiene/static reports (including strict web locale parity), web/mobile socket-recovery checks, frontend brand-color, registration-error, locale-formatting, public-reservation-error and client-reservation-error Node tests plus build, and mobile typecheck. CI run `40233753136` passed all four jobs with the DB-backed role-revocation test included; run `40236113107` passed all four jobs with the password-change E2E included. These are synthetic/disposable checks only. Backend CI also runs `scripts/check_backend_container.sh` with synthetic Compose values, builds and inspects local `runtime`/`migrator` images, and performs Node-only container metadata checks; it does not connect those images to DB or deploy. Flaky/external SMTP/FCM/Expo tests are mocked.
+- The configured backend job provisions disposable PostgreSQL 16, generates Prisma Client, validates the schema, applies tracked migrations, builds the backend, runs the sanitizer and DB-backed HTTP/Socket.IO E2E suites, then runs backend unit tests. Other jobs run repository hygiene/static reports (including strict web locale parity), web/mobile socket-recovery checks, frontend brand-color, registration-error, locale-formatting, public-reservation-error, client-reservation-error, admin-api-error, profile-api-error, and i18n-language Node tests plus the frontend build, and mobile typecheck. CI run `40233753136` passed all four jobs with the DB-backed role-revocation test included; run `40236113107` passed all four jobs with the password-change E2E included. These are synthetic/disposable checks only. Backend CI also runs `scripts/check_backend_container.sh` with synthetic Compose values, builds and inspects local `runtime`/`migrator` images, and performs Node-only container metadata checks; it does not connect those images to DB or deploy. Flaky/external SMTP/FCM/Expo tests are mocked.
 - PostgreSQL integration tests must use the per-job disposable service and synthetic fixtures; never add shared Redis credentials or production secrets to CI.
 - npm audit findings are reported in a separate/manual scheduled workflow until existing critical advisories have a reviewed action plan; do not hide current critical counts with a broad allowlist.
 - Locale parity and selected contrast checks are strict CI gates. Promote lint and additional frontend/mobile component/E2E checks after their baselines and disposable-test setup are repaired.

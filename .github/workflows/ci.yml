@@ -157,6 +157,9 @@ jobs:
       - name: Test localized admin API errors
         working-directory: frontend
         run: npm run test:admin-api-errors
+      - name: Test localized profile API errors
+        working-directory: frontend
+        run: npm run test:profile-api-errors
       - name: Test runtime web language selection and fallback
         working-directory: frontend
         run: npm run test:i18n-language

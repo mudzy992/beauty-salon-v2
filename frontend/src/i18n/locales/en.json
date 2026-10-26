@@ -123,6 +123,88 @@
     "next": "Next",
     "saving": "Saving…"
   },
+  "profile": {
+    "title": "My profile",
+    "retry": "Try again",
+    "createdAt": "Created: {{date}}",
+    "saveChanges": "Save changes",
+    "avatar": {
+      "alt": "Profile picture for {{username}}",
+      "uploading": "Uploading…",
+      "change": "Change avatar",
+      "add": "Add avatar",
+      "public": "My avatar is public",
+      "privacyDescription": "New avatars are private by default. This setting applies only to the avatar and does not grant consent for the gallery, advertisements, or social media."
+    },
+    "username": {
+      "checking": "Checking username…",
+      "current": "This is your current username.",
+      "available": "Username is available.",
+      "unavailable": "Username is unavailable."
+    },
+    "email": {
+      "verified": "Verified",
+      "unverified": "Not verified",
+      "verificationHint": "If you changed your email, enter the code from the message or request a new one.",
+      "sendCode": "Send code",
+      "sendingCode": "Sending…",
+      "codePlaceholder": "Email verification code",
+      "confirmCode": "Confirm",
+      "verifying": "Verifying…"
+    },
+    "toast": {
+      "avatarUploaded": "Avatar uploaded and profile updated.",
+      "avatarMadePublic": "Your avatar is now public.",
+      "avatarMadePrivate": "Your avatar is now private.",
+      "updated": "Profile updated.",
+      "updatedVerificationSent": "Profile updated. A verification code was sent to your new email address.",
+      "updatedVerificationPending": "Profile updated. Request a verification code for your new email address.",
+      "verificationCodeSent": "A verification code was sent to your email.",
+      "emailVerified": "Email verified."
+    },
+    "errors": {
+      "loadFailed": "Unable to load your profile.",
+      "imageRequired": "Select an image file for your avatar.",
+      "avatarUploadFailed": "Unable to upload the avatar.",
+      "avatarVisibilityFailed": "Unable to save the avatar privacy setting.",
+      "updateFailed": "Unable to update your profile.",
+      "sendCodeFailed": "Unable to send the verification code.",
+      "verifyFailed": "Email verification failed.",
+      "emailRequired": "Enter an email address in your profile first.",
+      "emailAlreadyVerified": "This email address is already verified.",
+      "invalidVerificationCode": "The code is invalid or has expired. Request a new one.",
+      "avatarRequiredForPublic": "Upload an avatar before making it public."
+    }
+  },
+  "mediaConsent": {
+    "title": "Photo consent",
+    "intro": "Consent is voluntary and requested separately for each photo. Declining does not affect your service.",
+    "pendingHeading": "Photos awaiting your decision",
+    "activeHeading": "Active consents",
+    "photoBefore": "Before-treatment photo",
+    "photoAfter": "After-treatment photo",
+    "previewUnavailable": "Preview unavailable",
+    "explicitConsent": "I have read the statement and explicitly agree to publish this photo within the stated scope.",
+    "grant": "Give consent",
+    "revoke": "Revoke consent",
+    "saving": "Saving…",
+    "confirmRevoke": "Revoke consent? The photo will be removed from public display immediately.",
+    "consentedAt": "Consent: {{date}}",
+    "activeDescription": "Consent applies only to the salon's public website and app.",
+    "publishedCategories": "Published in gallery: {{categories}}",
+    "notPublished": "This photo is not publicly displayed yet. An individual photo is published only after it is selected in a manual category; an automatic pair is published only when both sides are approved and the automatic category is active.",
+    "nonePending": "There are currently no photos requiring a decision.",
+    "privacyNote": "Photos without your consent remain private. Revoking consent stops future access through the system; copies already downloaded or captured outside it cannot be revoked.",
+    "toast": {
+      "granted": "Consent was recorded. Public display status is shown with the active consent.",
+      "revoked": "Consent was revoked, and future public access through the system is blocked."
+    },
+    "errors": {
+      "loadFailed": "Unable to load consent details right now. Please try again.",
+      "grantFailed": "Unable to save consent.",
+      "revokeFailed": "Unable to revoke consent."
+    }
+  },
   "appReleases": {
     "title": "Mobile releases (Android)",
     "subtitle": "Publish APK for in-app sideload updates.",

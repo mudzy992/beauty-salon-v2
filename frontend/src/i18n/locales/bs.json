@@ -120,6 +120,88 @@
     "next": "Sljedeća",
     "saving": "Spremanje…"
   },
+  "profile": {
+    "title": "Moj profil",
+    "retry": "Pokušaj ponovo",
+    "createdAt": "Kreiran: {{date}}",
+    "saveChanges": "Sačuvaj izmjene",
+    "avatar": {
+      "alt": "Profilna slika korisnika {{username}}",
+      "uploading": "Učitavanje…",
+      "change": "Promijeni avatar",
+      "add": "Dodaj avatar",
+      "public": "Moj avatar je javan",
+      "privacyDescription": "Novi avatari su privatni po zadanom. Ova postavka važi samo za avatar i ne daje saglasnost za galeriju, oglase ili društvene mreže."
+    },
+    "username": {
+      "checking": "Provjera korisničkog imena…",
+      "current": "Ovo je vaše trenutno korisničko ime.",
+      "available": "Korisničko ime je dostupno.",
+      "unavailable": "Korisničko ime nije dostupno."
+    },
+    "email": {
+      "verified": "Verifikovan",
+      "unverified": "Neverifikovan",
+      "verificationHint": "Ako ste promijenili email, unesite kod iz poruke ili zatražite novi.",
+      "sendCode": "Pošalji kod",
+      "sendingCode": "Slanje…",
+      "codePlaceholder": "Kod iz emaila",
+      "confirmCode": "Potvrdi",
+      "verifying": "Provjera…"
+    },
+    "toast": {
+      "avatarUploaded": "Avatar je učitan, a profil ažuriran.",
+      "avatarMadePublic": "Avatar je sada javan.",
+      "avatarMadePrivate": "Avatar je sada privatan.",
+      "updated": "Profil je ažuriran.",
+      "updatedVerificationSent": "Profil je ažuriran. Poslali smo verifikacijski kod na novi email.",
+      "updatedVerificationPending": "Profil je ažuriran. Za novi email zatražite verifikacijski kod.",
+      "verificationCodeSent": "Verifikacijski kod je poslan na email.",
+      "emailVerified": "Email je verifikovan."
+    },
+    "errors": {
+      "loadFailed": "Nije moguće učitati profil.",
+      "imageRequired": "Odaberite slikovnu datoteku avatara.",
+      "avatarUploadFailed": "Nije moguće učitati avatar.",
+      "avatarVisibilityFailed": "Postavka privatnosti avatara nije sačuvana.",
+      "updateFailed": "Nije moguće ažurirati profil.",
+      "sendCodeFailed": "Nije moguće poslati verifikacijski kod.",
+      "verifyFailed": "Verifikacija emaila nije uspjela.",
+      "emailRequired": "Prvo unesite email adresu u profilu.",
+      "emailAlreadyVerified": "Email adresa je već potvrđena.",
+      "invalidVerificationCode": "Kod nije ispravan ili je istekao. Zatražite novi.",
+      "avatarRequiredForPublic": "Prvo postavite avatar pa ga zatim učinite javnim."
+    }
+  },
+  "mediaConsent": {
+    "title": "Saglasnosti za fotografije",
+    "intro": "Saglasnost je dobrovoljna i odvojena za svaku fotografiju. Odbijanje ne utiče na uslugu.",
+    "pendingHeading": "Fotografije koje čekaju vašu odluku",
+    "activeHeading": "Aktivne saglasnosti",
+    "photoBefore": "Fotografija prije tretmana",
+    "photoAfter": "Fotografija poslije tretmana",
+    "previewUnavailable": "Pregled nije dostupan",
+    "explicitConsent": "Pročitao/la sam tekst i izričito pristajem na objavu ove fotografije u navedenom obimu.",
+    "grant": "Dajem saglasnost",
+    "revoke": "Povuci saglasnost",
+    "saving": "Spremanje…",
+    "confirmRevoke": "Povući saglasnost? Fotografija će odmah biti uklonjena iz javnog prikaza.",
+    "consentedAt": "Saglasnost: {{date}}",
+    "activeDescription": "Saglasnost je aktivna samo za javni web i aplikaciju salona.",
+    "publishedCategories": "Objavljeno u galeriji: {{categories}}",
+    "notPublished": "Fotografija još nije u javnom prikazu. Pojedinačna fotografija se objavljuje tek nakon izbora u ručnoj kategoriji; automatski par tek kada su obje strane odobrene i auto-kategorija aktivna.",
+    "nonePending": "Trenutno nema fotografija za koje je potrebna odluka.",
+    "privacyNote": "Fotografije bez vaše saglasnosti ostaju privatne. Povlačenje zaustavlja budući pristup kroz sistem; kopije koje su već preuzete ili snimljene izvan njega ne mogu se opozvati.",
+    "toast": {
+      "granted": "Saglasnost je zabilježena. Status javne objave prikazan je uz aktivnu saglasnost.",
+      "revoked": "Saglasnost je povučena, a budući javni pristup kroz sistem je blokiran."
+    },
+    "errors": {
+      "loadFailed": "Saglasnosti trenutno nije moguće učitati. Pokušajte ponovo.",
+      "grantFailed": "Saglasnost nije mogla biti sačuvana.",
+      "revokeFailed": "Saglasnost nije mogla biti povučena."
+    }
+  },
   "appReleases": {
     "title": "Mobilni release (Android)",
     "subtitle": "Objavi APK za in-app update (sideload).",

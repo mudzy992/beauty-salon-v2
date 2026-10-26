@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CheckCircle2, ImageOff, Loader2, ShieldCheck } from 'lucide-react'
 
 import api from '../../api/client'
+import { getIntlLocale } from '../../i18n/locale-utils.mjs'
 import { MediaImage } from '../../components/media-image'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
@@ -34,6 +36,8 @@ interface ConsentPayload {
 }
 
 export function MediaConsentPanel() {
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.resolvedLanguage ?? i18n.language)
   const [payload, setPayload] = useState<ConsentPayload | null>(null)
   const [previews, setPreviews] = useState<Record<string, string>>({})
   const [accepted, setAccepted] = useState<Record<string, boolean>>({})
@@ -50,11 +54,11 @@ export function MediaConsentPanel() {
       setMessage('')
     } catch {
       setPayload(null)
-      setMessage('Saglasnosti trenutno nije moguće učitati. Pokušajte ponovo.')
+      setMessage(i18n.t('mediaConsent.errors.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [i18n])
 
   useEffect(() => {
     void load()
@@ -114,14 +118,9 @@ export function MediaConsentPanel() {
         policyVersion: payload.policyVersion,
       })
       await load()
-      setMessage(
-        'Saglasnost je zabilježena. Status javne objave prikazan je uz aktivnu saglasnost.',
-      )
-    } catch (error: any) {
-      setMessage(
-        error?.response?.data?.message ||
-          'Saglasnost nije mogla biti sačuvana.',
-      )
+      setMessage(t('mediaConsent.toast.granted'))
+    } catch {
+      setMessage(t('mediaConsent.errors.grantFailed'))
     } finally {
       setSavingId(null)
     }
@@ -129,9 +128,7 @@ export function MediaConsentPanel() {
 
   const revoke = async (item: ConsentItem) => {
     if (
-      !window.confirm(
-        'Povući saglasnost? Fotografija će odmah biti uklonjena iz javnog prikaza.',
-      )
+      !window.confirm(t('mediaConsent.confirmRevoke'))
     )
       return
     setSavingId(item.imageId)
@@ -139,23 +136,16 @@ export function MediaConsentPanel() {
     try {
       await api.delete(`/api/media/consents/${item.imageId}`)
       await load()
-      setMessage(
-        'Saglasnost je povučena, a budući javni pristup kroz sistem je blokiran.',
-      )
-    } catch (error: any) {
-      setMessage(
-        error?.response?.data?.message ||
-          'Saglasnost nije mogla biti povučena.',
-      )
+      setMessage(t('mediaConsent.toast.revoked'))
+    } catch {
+      setMessage(t('mediaConsent.errors.revokeFailed'))
     } finally {
       setSavingId(null)
     }
   }
 
   const labelFor = (item: ConsentItem) =>
-    item.isBefore
-      ? 'Fotografija prije tretmana'
-      : 'Fotografija poslije tretmana'
+    t(item.isBefore ? 'mediaConsent.photoBefore' : 'mediaConsent.photoAfter')
 
   return (
     <Card>
@@ -167,18 +157,17 @@ export function MediaConsentPanel() {
           />
           <div>
             <h2 className="text-lg font-semibold text-slate-950">
-              Saglasnosti za fotografije
+              {t('mediaConsent.title')}
             </h2>
             <p className="mt-1 text-sm text-slate-600">
-              Saglasnost je dobrovoljna i odvojena za svaku fotografiju.
-              Odbijanje ne utiče na uslugu.
+              {t('mediaConsent.intro')}
             </p>
           </div>
         </div>
 
         {loading ? (
           <div className="flex items-center gap-2 text-sm text-slate-500">
-            <Loader2 className="h-4 w-4 animate-spin" /> Učitavanje…
+            <Loader2 className="h-4 w-4 animate-spin" /> {t('common.loading')}
           </div>
         ) : null}
 
@@ -188,7 +177,7 @@ export function MediaConsentPanel() {
               {payload.consentText}
             </div>
             <p className="text-sm font-semibold text-slate-800">
-              Fotografije koje čekaju vašu odluku
+              {t('mediaConsent.pendingHeading')}
             </p>
             <div className="grid gap-4 md:grid-cols-2">
               {payload.pending.map((item) => (
@@ -206,7 +195,7 @@ export function MediaConsentPanel() {
                     <div className="flex aspect-[4/3] items-center justify-center bg-slate-100 text-slate-400">
                       <ImageOff
                         className="h-6 w-6"
-                        aria-label="Pregled nije dostupan"
+                        aria-label={t('mediaConsent.previewUnavailable')}
                       />
                     </div>
                   )}
@@ -217,7 +206,7 @@ export function MediaConsentPanel() {
                       </p>
                       <p className="text-sm text-slate-600">
                         {item.serviceName} ·{' '}
-                        {formatDateOnlyLocale(item.serviceDate.slice(0, 10), 'bs-BA')}
+                        {formatDateOnlyLocale(item.serviceDate.slice(0, 10), locale)}
                       </p>
                     </div>
                     <label className="flex cursor-pointer items-start gap-2 text-sm leading-5 text-slate-700">
@@ -233,8 +222,7 @@ export function MediaConsentPanel() {
                         className="mt-1 h-4 w-4 accent-amber-700"
                       />
                       <span>
-                        Pročitao/la sam tekst i izričito pristajem na objavu ove
-                        fotografije u navedenom obimu.
+                        {t('mediaConsent.explicitConsent')}
                       </span>
                     </label>
                     <Button
@@ -246,8 +234,8 @@ export function MediaConsentPanel() {
                       onClick={() => void grant(item)}
                     >
                       {savingId === item.imageId
-                        ? 'Spremanje…'
-                        : 'Dajem saglasnost'}
+                        ? t('mediaConsent.saving')
+                        : t('mediaConsent.grant')}
                     </Button>
                   </div>
                 </div>
@@ -259,7 +247,7 @@ export function MediaConsentPanel() {
         {!loading && payload?.active.length ? (
           <div className="space-y-3">
             <p className="text-sm font-semibold text-slate-800">
-              Aktivne saglasnosti
+              {t('mediaConsent.activeHeading')}
             </p>
             <div className="grid gap-3">
               {payload.active.map((item) => (
@@ -277,7 +265,7 @@ export function MediaConsentPanel() {
                     <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-slate-100 text-slate-400">
                       <ImageOff
                         className="h-5 w-5"
-                        aria-label="Pregled nije dostupan"
+                        aria-label={t('mediaConsent.previewUnavailable')}
                       />
                     </div>
                   )}
@@ -286,22 +274,24 @@ export function MediaConsentPanel() {
                       {labelFor(item)} · {item.serviceName}
                     </p>
                     <p className="text-sm text-slate-600">
-                      {formatDateOnlyLocale(item.serviceDate.slice(0, 10), 'bs-BA')}
+                      {formatDateOnlyLocale(item.serviceDate.slice(0, 10), locale)}
                       {item.consentedAt
-                        ? ` · saglasnost: ${formatInstantDateLocale(item.consentedAt, 'bs-BA')}`
+                        ? ` · ${t('mediaConsent.consentedAt', { date: formatInstantDateLocale(item.consentedAt, locale) })}`
                         : ''}
                     </p>
                     <p className="mt-1 flex items-center gap-1 text-xs text-emerald-800">
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Saglasnost je
-                      aktivna samo za javni web i aplikaciju salona.
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {t('mediaConsent.activeDescription')}
                     </p>
                     {item.isPublished ? (
                       <p className="mt-1 text-xs font-medium text-emerald-900">
-                        Objavljeno u galeriji: {item.publishedCategories.map((category) => category.name).join(', ')}
+                        {t('mediaConsent.publishedCategories', {
+                          categories: item.publishedCategories.map((category) => category.name).join(', '),
+                        })}
                       </p>
                     ) : (
                       <p className="mt-1 text-xs text-slate-600">
-                        Fotografija još nije u javnom prikazu. Pojedinačna fotografija se objavljuje tek nakon izbora u ručnoj kategoriji; automatski par tek kada su obje strane odobrene i auto-kategorija aktivna.
+                        {t('mediaConsent.notPublished')}
                       </p>
                     )}
                   </div>
@@ -313,8 +303,8 @@ export function MediaConsentPanel() {
                     onClick={() => void revoke(item)}
                   >
                     {savingId === item.imageId
-                      ? 'Spremanje…'
-                      : 'Povuci saglasnost'}
+                      ? t('mediaConsent.saving')
+                      : t('mediaConsent.revoke')}
                   </Button>
                 </div>
               ))}
@@ -327,7 +317,7 @@ export function MediaConsentPanel() {
         payload.pending.length === 0 &&
         payload.active.length === 0 ? (
           <p className="text-sm text-slate-600">
-            Trenutno nema fotografija za koje je potrebna odluka.
+            {t('mediaConsent.nonePending')}
           </p>
         ) : null}
 
@@ -337,9 +327,7 @@ export function MediaConsentPanel() {
           </p>
         ) : null}
         <p className="text-xs leading-5 text-slate-500">
-          Fotografije bez vaše saglasnosti ostaju privatne. Povlačenje
-          zaustavlja budući pristup kroz sistem; kopije koje su već preuzete ili
-          snimljene izvan njega ne mogu se opozvati.
+          {t('mediaConsent.privacyNote')}
         </p>
       </CardContent>
     </Card>
