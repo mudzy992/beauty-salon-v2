@@ -13,17 +13,17 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { normalizeRoles } from '../utils/clientOnboarding'
 import { getUploadUrl } from '../utils/uploadUrl'
-
-type NavItem = { path: string; label: string }
-
+import { LanguageSwitcher } from '../components/i18n/language-switcher'
 import { useStylistPortalSocketRefresh } from '../features/stylist-portal/hooks/use-stylist-portal-socket-refresh'
 
+type NavItem = { path: string; labelKey: string }
+
 const navItems: NavItem[] = [
-  { path: '/stylist/inbox', label: 'Inbox' },
-  { path: '/stylist/workbook', label: 'nav.dailyLog' },
-  { path: '/stylist/schedule', label: 'Raspored' },
-  { path: '/stylist/debts', label: 'Dužnici' },
-  { path: '/stylist/stats', label: 'Statistika' },
+  { path: '/stylist/inbox', labelKey: 'shell.stylist.inbox' },
+  { path: '/stylist/workbook', labelKey: 'nav.dailyLog' },
+  { path: '/stylist/schedule', labelKey: 'shell.stylist.schedule' },
+  { path: '/stylist/debts', labelKey: 'shell.stylist.debts' },
+  { path: '/stylist/stats', labelKey: 'shell.stylist.stats' },
 ]
 
 export default function StylistLayout() {
@@ -52,7 +52,7 @@ export default function StylistLayout() {
         <div className="mx-auto max-w-[1600px] px-4 py-3 flex items-center justify-between gap-3">
           <div className="min-w-0 flex items-center gap-4">
             <Link to="/stylist/inbox" className="font-semibold text-slate-900 dark:text-slate-50">
-              Stylist
+              {t('shell.stylist.title')}
             </Link>
             <nav className="sm:hidden -mx-1 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
               {navItems.map((x) => {
@@ -68,7 +68,7 @@ export default function StylistLayout() {
                         : 'shrink-0 rounded-md px-3 py-2 text-sm text-slate-700 hover:text-brand-gold-text hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900/40'
                     }
                   >
-                    {x.label.startsWith('nav.') ? t(x.label) : x.label}
+                    {t(x.labelKey)}
                   </Link>
                 )
               })}
@@ -87,7 +87,7 @@ export default function StylistLayout() {
                         : 'rounded-md px-3 py-2 text-sm text-slate-700 hover:text-brand-gold-text hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900/40'
                     }
                   >
-                    {x.label.startsWith('nav.') ? t(x.label) : x.label}
+                    {t(x.labelKey)}
                   </Link>
                 )
               })}
@@ -95,17 +95,29 @@ export default function StylistLayout() {
           </div>
 
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon" aria-label="Korisnički meni">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('shell.userMenu')}
+                >
                   <Avatar className="h-9 w-9 ring-1 ring-slate-200 dark:ring-slate-800">
                     {avatarSrc ? (
                       <AvatarImage
                         src={avatarSrc}
-                        alt={user?.username ? `Profil: ${user.username}` : 'Profil'}
+                        alt={
+                          user?.username
+                            ? t('shell.profileForUser', { username: user.username })
+                            : t('shell.profile')
+                        }
                       />
                     ) : null}
-                    <AvatarFallback className="text-xs font-semibold">{avatarInitials || 'S'}</AvatarFallback>
+                    <AvatarFallback className="text-xs font-semibold">
+                      {avatarInitials || 'S'}
+                    </AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
@@ -115,7 +127,7 @@ export default function StylistLayout() {
                     navigate('/profil')
                   }}
                 >
-                  Profil
+                  {t('shell.profile')}
                 </DropdownMenuItem>
                 {canSwitchToClient ? (
                   <DropdownMenuItem
@@ -123,7 +135,7 @@ export default function StylistLayout() {
                       navigate('/')
                     }}
                   >
-                    Prebaci na klijenta
+                    {t('shell.switchToClient')}
                   </DropdownMenuItem>
                 ) : null}
                 <DropdownMenuSeparator />
@@ -133,7 +145,7 @@ export default function StylistLayout() {
                     navigate('/', { replace: true })
                   }}
                 >
-                  Odjavi se
+                  {t('auth.logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

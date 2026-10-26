@@ -33,6 +33,30 @@
     "sectionSystem": "System",
     "sectionSettings": "Settings"
   },
+  "shell": {
+    "languageNames": { "bs": "Bosnian", "en": "English" },
+    "switchLanguageTo": "Switch language to {{language}}",
+    "adminMenu": "Admin menu",
+    "userMenu": "User menu",
+    "profile": "Profile",
+    "profileForUser": "Profile: {{username}}",
+    "adminName": "Administrator",
+    "viewSite": "View site",
+    "signIn": "Sign in",
+    "stylistWorkbook": "Stylist workbook",
+    "switchToClient": "Switch to client",
+    "mobileMenu": "Menu",
+    "maintenanceTitle": "Temporarily unavailable",
+    "maintenanceMessage": "We’re making improvements. The public site is temporarily unavailable. Please try again later.",
+    "maintenanceAdminHint": "For administration, open {{path}} (sign in as an administrator).",
+    "stylist": {
+      "title": "Stylist",
+      "inbox": "Incoming reservations",
+      "schedule": "Schedule",
+      "debts": "Debts",
+      "stats": "Statistics"
+    }
+  },
   "auth": {
     "login": "Log in",
     "logout": "Log out",
@@ -276,7 +300,7 @@
       "notFound": "User not found.",
       "usernameTaken": "This username is already in use.",
       "emailTaken": "This email address is already in use.",
-      "genderRequired": "Gender is required for clients.",
+      "genderRequired": "Gender is required.",
       "usernameInvalid": "The username is invalid.",
       "roleRequired": "Choose a role.",
       "roleNotFound": "The selected role was not found.",

@@ -164,6 +164,7 @@ npm run test:locale-formatting
 npm run test:reservation-errors
 npm run test:client-reservation-errors
 npm run test:admin-api-errors
+npm run test:i18n-language
 npm run build
 npm run lint
 ```
@@ -171,7 +172,7 @@ npm run lint
 - `test:socket-recovery` uses Node's built-in runner and needs no additional dependency; it verifies the reconnect controller, not React rendering or browser/Socket.IO server behavior.
 - `build` executes `tsc -b` and `vite build`; preserve and review Vite bundle-size warning. The frontend Docker image must be built with the repository root as context: frontend modules import `shared/business-date.mjs` outside `frontend/`. CI run `40229785202` passed the Docker image build from that root context and the primary Compose context assertion.
 - `lint` is not an established gate until ESLint dependency/config are present and legacy errors resolved. The command must not mutate source.
-- `test:socket-recovery`, `test:brand-colors`, `test:registration-errors`, `test:locale-formatting`, `test:reservation-errors`, `test:client-reservation-errors`, and `test:admin-api-errors` use Node's built-in test runner. Locale-formatting tests cover BS/EN date-only, weekday, date-time, number and KM amount output; the error mappers cover known auth, booking, client-action and admin user/stylist errors plus localized fallback handling. React component/browser coverage is still not configured.
+- `test:socket-recovery`, `test:brand-colors`, `test:registration-errors`, `test:locale-formatting`, `test:reservation-errors`, `test:client-reservation-errors`, `test:admin-api-errors`, and `test:i18n-language` use Node's built-in test runner. Locale-formatting tests cover BS/EN date-only, weekday, date-time, number and KM amount output; the error mappers cover known auth, booking, client-action and admin user/stylist errors plus localized fallback handling. `test:i18n-language` covers BS/EN normalization, safe preference persistence, runtime i18next switching and fallback to Bosnian resources. These tests do not exercise the React switcher in a browser; rendered/mobile viewport and keyboard acceptance remain open.
 
 ### Add as implementation progresses
 
@@ -217,7 +218,7 @@ npm audit --json > /tmp/<app>-audit-all.json
 
 ## 9. Accessibility, locale and privacy review
 
-1. `check_i18n.py --strict` enforces leaf-key parity for the web BS/EN resources. Mobile locale scope is not included and remains an owner decision; runtime language switching/fallback and hardcoded strings require separate checks.
+1. `check_i18n.py --strict` enforces leaf-key parity for the web BS/EN resources. Web `LanguageSwitcher` stores the normalized selection in `localStorage` (`APP_LOCALE`), and `test:i18n-language` covers normalization, storage failures, runtime i18next switching and Bosnian fallback. Manual browser checks for initial preference after reload, public/admin/stylist shell rendering, responsive placement, keyboard use, long text and diacritics remain required. Mobile locale scope is not included and remains an owner decision.
 2. `check_ui_contrast.py --strict` recalculates 44 named web/mobile source-token pairs, including light/dark semantic badges and status labels. `frontend/src/utils/brand-colors.test.mjs` tests custom HEX normalization, light/dark text derivatives and focus-ring variants. These are source/helper tests only: they do not inspect computed browser styles, opacity/gradient composition, every component pairing, axe output or device rendering.
 3. Run axe/browser across public home, public booking, admin settings and finance, plus color contrast with computed styles.
 4. Manual check keyboard-only, focus order/visible focus, error summary, labels, `aria-live`, zoom/reflow, disabled states, high contrast and reduced motion.

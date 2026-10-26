@@ -30,6 +30,30 @@
     "sectionSystem": "Sistem",
     "sectionSettings": "Postavke"
   },
+  "shell": {
+    "languageNames": { "bs": "Bosanski", "en": "Engleski" },
+    "switchLanguageTo": "Prebaci jezik na {{language}}",
+    "adminMenu": "Admin meni",
+    "userMenu": "Korisnički meni",
+    "profile": "Profil",
+    "profileForUser": "Profil: {{username}}",
+    "adminName": "Administrator",
+    "viewSite": "Pogledaj stranicu",
+    "signIn": "Prijavi se",
+    "stylistWorkbook": "Radna knjiga stiliste",
+    "switchToClient": "Prebaci na klijenta",
+    "mobileMenu": "Meni",
+    "maintenanceTitle": "Privremeno nedostupno",
+    "maintenanceMessage": "Radimo na poboljšanjima. Javna stranica je privremeno nedostupna. Pokušajte kasnije.",
+    "maintenanceAdminHint": "Za administraciju otvorite {{path}} (prijava kao administrator).",
+    "stylist": {
+      "title": "Stilist",
+      "inbox": "Dolazne rezervacije",
+      "schedule": "Raspored",
+      "debts": "Dugovanja",
+      "stats": "Statistika"
+    }
+  },
   "auth": {
     "login": "Prijava",
     "logout": "Odjava",
@@ -273,7 +297,7 @@
       "notFound": "Korisnik nije pronađen.",
       "usernameTaken": "Korisničko ime je već u upotrebi.",
       "emailTaken": "E-mail adresa je već u upotrebi.",
-      "genderRequired": "Spol je obavezan za klijente.",
+      "genderRequired": "Spol je obavezan.",
       "usernameInvalid": "Korisničko ime nije ispravno.",
       "roleRequired": "Odaberite ulogu.",
       "roleNotFound": "Odabrana uloga nije pronađena.",

@@ -5,6 +5,14 @@ import { resolveAdminApiErrorKey } from './admin-api-error.mjs'
 
 test('maps known user, debt, and stylist errors to locale keys', () => {
   assert.equal(
+    resolveAdminApiErrorKey('Spol je obavezan.', 'users.errors.createFailed'),
+    'users.errors.genderRequired',
+  )
+  assert.equal(
+    resolveAdminApiErrorKey('Spol je obavezan za klijente.', 'users.errors.updateFailed'),
+    'users.validation.genderRequiredForClients',
+  )
+  assert.equal(
     resolveAdminApiErrorKey('Korisničko ime je već u upotrebi.', 'users.errors.createFailed'),
     'users.errors.usernameTaken',
   )

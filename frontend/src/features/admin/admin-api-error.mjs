@@ -3,7 +3,7 @@ const SIMPLE_ERRORS = new Map([
   ['Korisničko ime je već u upotrebi.', 'users.errors.usernameTaken'],
   ['Email je već u upotrebi.', 'users.errors.emailTaken'],
   ['Spol je obavezan.', 'users.errors.genderRequired'],
-  ['Spol je obavezan za klijente.', 'users.errors.genderRequired'],
+  ['Spol je obavezan za klijente.', 'users.validation.genderRequiredForClients'],
   ['Korisničko ime nije validno.', 'users.errors.usernameInvalid'],
   ['Rola je obavezna.', 'users.errors.roleRequired'],
   ['Korisnik nema tu rol u.', 'users.errors.roleNotAssigned'],
