@@ -947,7 +947,26 @@
       "title": "Contact",
       "address": "Address",
       "phone": "Phone",
-      "email": "Email"
+      "email": "Email",
+      "titleFallback": "Get in touch",
+      "subtitleFallback": "We’re here to answer your questions. Send us a message or visit us at the salon.",
+      "seoTitle": "Contact",
+      "formTitle": "Send us a message",
+      "name": "Full name",
+      "message": "Message",
+      "sending": "Sending…",
+      "send": "Send",
+      "messageSent": "Message sent",
+      "replySoon": "We’ll get back to you soon.",
+      "info": "Information",
+      "hours": "Opening hours",
+      "hoursLoading": "Loading opening hours…",
+      "hoursLoadFailed": "Opening hours couldn’t be loaded right now.",
+      "retry": "Try again",
+      "closed": "Closed",
+      "social": "Social media",
+      "mapTitle": "Google Maps",
+      "mapLocation": "Salon location"
     },
     "footer": {
       "rights": "All rights reserved."

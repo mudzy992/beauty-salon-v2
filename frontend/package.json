@@ -16,6 +16,7 @@
     "test:profile-api-errors": "node --test src/features/profile/profile-api-error.test.mjs",
     "test:public-catalog-i18n": "node --test src/features/public-catalog/public-catalog-i18n.test.mjs",
     "test:before-after-i18n": "node --test src/features/public-catalog/before-after-i18n.test.mjs",
+    "test:public-contact-i18n": "node --test src/features/public-catalog/public-contact-i18n.test.mjs",
     "test:i18n-language": "node --test src/i18n/language.test.mjs",
     "gen:favicons": "node ./scripts/generate-favicons.mjs",
     "preview": "vite preview --port 10000 --config vite.config.ts",
