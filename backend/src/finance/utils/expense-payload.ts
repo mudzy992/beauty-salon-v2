@@ -1,9 +1,11 @@
 import { BadRequestException } from '@nestjs/common';
 import type { CreateExpenseDto } from '../dto/create-expense.dto';
+import { MAX_EXPENSE_USER_NOTES_LENGTH } from '../expense-constants';
 import { assertFieldValuesMatchTemplate } from './expense-field-values';
 import {
   assertVariableLineItemsMatchTemplate,
   expectedTotalFromLines,
+  parseExpenseNotesPayload,
   resolveModularLineItems,
 } from './expense-line-items';
 
@@ -20,6 +22,20 @@ type ExpenseCategoryPayload = {
   };
 };
 
+export function assertExpenseNotesLength(
+  notes: string | null | undefined,
+  isFixedCategory: boolean,
+) {
+  const userNotes = isFixedCategory
+    ? (notes ?? '')
+    : parseExpenseNotesPayload(notes).userNotes;
+  if (userNotes.length > MAX_EXPENSE_USER_NOTES_LENGTH) {
+    throw new BadRequestException(
+      `Napomena može sadržavati najviše ${MAX_EXPENSE_USER_NOTES_LENGTH} znakova.`,
+    );
+  }
+}
+
 export function assertExpensePayload(
   category: ExpenseCategoryPayload,
   fieldValues: CreateExpenseDto['fieldValues'] | undefined,
@@ -27,6 +43,7 @@ export function assertExpensePayload(
   totalAmount: number,
   options?: { skipFieldValues?: boolean },
 ) {
+  assertExpenseNotesLength(notes, category.isFixed);
   if (category.isFixed) {
     if (options?.skipFieldValues) return;
     assertFieldValuesMatchTemplate(
