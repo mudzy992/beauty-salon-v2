@@ -6,6 +6,7 @@ import api from '../../api/client'
 import { Button } from '../../components/ui/button'
 import { useAuth } from '../../context/AuthContext'
 import { CancelReservationDialog } from '../../features/client-reservations/cancel-reservation-dialog'
+import { resolveClientReservationError } from '../../features/client-reservations/client-reservation-error.mjs'
 import { MyReservationCard } from '../../features/client-reservations/my-reservation-card'
 import {
   apiErrorMessage,
@@ -34,6 +35,17 @@ export default function MyReservations() {
     }
   }, [isReady, token, navigate])
 
+  const localizeActionError = useCallback(
+    (err: unknown) => {
+      const backendMessage = apiErrorMessage(err, '')
+      const localizedError = resolveClientReservationError(backendMessage)
+      return localizedError
+        ? t(`public.myReservations.${localizedError.key}`, localizedError.values)
+        : t('common.error')
+    },
+    [t],
+  )
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -42,12 +54,12 @@ export default function MyReservations() {
       })
       setItems(Array.isArray(data) ? data : [])
     } catch (err) {
-      toast.error(apiErrorMessage(err, t('common.error')))
+      toast.error(localizeActionError(err))
       setItems([])
     } finally {
       setLoading(false)
     }
-  }, [t, toast])
+  }, [localizeActionError, toast])
 
   useEffect(() => {
     if (!token) return
@@ -69,7 +81,7 @@ export default function MyReservations() {
       toast.success(successMsg)
       await load()
     } catch (err) {
-      toast.error(apiErrorMessage(err, t('common.error')))
+      toast.error(localizeActionError(err))
     } finally {
       setBusyId(null)
     }
@@ -83,12 +95,12 @@ export default function MyReservations() {
       await api.post(`/api/reservations/${id}/cancel`, {
         ...(cancelReason.trim() ? { cancelReason: cancelReason.trim() } : {}),
       })
-      toast.success('Rezervacija je otkazana.')
+      toast.success(t('public.myReservations.toastCancelled'))
       setCancelTarget(null)
       setCancelReason('')
       await load()
     } catch (err) {
-      toast.error(apiErrorMessage(err, t('common.error')))
+      toast.error(localizeActionError(err))
     } finally {
       setBusyId(null)
     }
@@ -112,21 +124,21 @@ export default function MyReservations() {
               void runAction(
                 row,
                 () => api.post(`/api/reservations/${row.id}/confirm-attendance`),
-                'Dolazak je potvrđen.',
+                t('public.myReservations.toastAttendanceConfirmed'),
               )
             }
             onAcceptReschedule={(row) =>
               void runAction(
                 row,
                 () => api.post(`/api/reservations/${row.id}/reschedule/accept`),
-                'Novi termin je prihvaćen.',
+                t('public.myReservations.toastRescheduleAccepted'),
               )
             }
             onDeclineReschedule={(row) =>
               void runAction(
                 row,
                 () => api.post(`/api/reservations/${row.id}/reschedule/decline`),
-                'Prijedlog termina je odbijen.',
+                t('public.myReservations.toastRescheduleDeclined'),
               )
             }
             onCancel={(row) => {
@@ -158,7 +170,7 @@ export default function MyReservations() {
         </div>
 
         {loading ? (
-          <p className="text-center text-slate-600">Učitavanje…</p>
+          <p className="text-center text-slate-600">{t('common.loading')}</p>
         ) : (
           <>
             <section className="space-y-4">

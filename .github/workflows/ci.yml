@@ -145,6 +145,15 @@ jobs:
       - name: Test localized registration errors
         working-directory: frontend
         run: npm run test:registration-errors
+      - name: Test locale-aware date and amount formatting
+        working-directory: frontend
+        run: npm run test:locale-formatting
+      - name: Test localized public reservation errors
+        working-directory: frontend
+        run: npm run test:reservation-errors
+      - name: Test localized client reservation action errors
+        working-directory: frontend
+        run: npm run test:client-reservation-errors
       - name: Build (includes TypeScript project check)
         working-directory: frontend
         run: npm run build
