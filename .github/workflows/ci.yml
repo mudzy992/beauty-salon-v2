@@ -169,6 +169,9 @@ jobs:
       - name: Test localized public contact UI
         working-directory: frontend
         run: npm run test:public-contact-i18n
+      - name: Test localized public blog list UI
+        working-directory: frontend
+        run: npm run test:public-blog-list-i18n
       - name: Test runtime web language selection and fallback
         working-directory: frontend
         run: npm run test:i18n-language

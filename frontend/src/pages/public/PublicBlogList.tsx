@@ -45,15 +45,17 @@ const fadeUp = {
 }
 
 export default function PublicBlogList() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { getSetting } = useSettings()
   const [posts, setPosts] = useState<BlogPost[]>([])
+  const [loadError, setLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [nextOffset, setNextOffset] = useState(0)
 
   const loadPage = useCallback(async (offset: number, append: boolean) => {
+    setLoadError(false)
     if (append) setLoadingMore(true)
     else setLoading(true)
     try {
@@ -71,6 +73,7 @@ export default function PublicBlogList() {
       }
     } catch {
       if (!append) setPosts([])
+      setLoadError(true)
       setHasMore(false)
     } finally {
       setLoading(false)
@@ -94,19 +97,36 @@ export default function PublicBlogList() {
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/85 to-white" />
         <div className={`${publicPageHero.innerNarrow} text-center relative z-[1]`}>
           <div className={publicHeader.kicker}>
-            {getSetting('public_blog_subtitle', 'Novosti & savjeti')}
+            {getSetting('public_blog_subtitle', t('public.blogList.subtitleFallback'))}
           </div>
           <h1 className={`${publicHeader.title} mt-2`}>
-            {getSetting('public_blog_title', 'Naš frizerski blog')}
+            {getSetting('public_blog_title', t('public.blogList.titleFallback'))}
           </h1>
         </div>
       </div>
 
       <div className={`${publicPage.containerNarrow} ${publicPage.contentAfterHero}`}>
         {loading ? (
-          <div className="py-20 text-center text-slate-600">Učitavanje…</div>
+          <div className="py-20 text-center text-slate-600">
+            {t('public.blogList.loading')}
+          </div>
         ) : posts.length === 0 ? (
-          <div className="text-center text-slate-500 text-lg">{t('common.noData')}</div>
+          <div className="py-12 text-center">
+            {loadError ? (
+              <div role="alert" className="text-slate-600">
+                <p>{t('public.blogList.loadFailed')}</p>
+                <button
+                  type="button"
+                  className="mt-3 rounded-lg border border-slate-300 px-5 py-3 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                  onClick={() => void loadPage(0, false)}
+                >
+                  {t('public.blogList.retry')}
+                </button>
+              </div>
+            ) : (
+              <div className="text-lg text-slate-500">{t('common.noData')}</div>
+            )}
+          </div>
         ) : (
           <>
             <MotionDiv variants={stagger} initial="hidden" animate="visible">
@@ -130,7 +150,7 @@ export default function PublicBlogList() {
                           <Calendar className="h-4 w-4" />
                           <div>
                             {p.publishedAt
-                              ? new Date(p.publishedAt).toLocaleDateString('bs-BA')
+                              ? new Intl.DateTimeFormat(i18n.language).format(new Date(p.publishedAt))
                               : ''}
                           </div>
                         </div>
@@ -141,7 +161,7 @@ export default function PublicBlogList() {
                           <p className="text-sm text-slate-600 mb-4 line-clamp-3">{p.excerpt}</p>
                         ) : null}
                         <div className="inline-flex items-center gap-2 text-slate-900 font-medium text-sm">
-                          Pročitaj više <ArrowRight className="h-4 w-4" aria-hidden />
+                          {t('public.blogList.readMore')} <ArrowRight className="h-4 w-4" aria-hidden />
                         </div>
                       </div>
                     </Link>
@@ -149,6 +169,18 @@ export default function PublicBlogList() {
                 ))}
               </div>
             </MotionDiv>
+            {loadError ? (
+              <div className="mt-8 text-center" role="alert">
+                <p className="text-slate-600">{t('public.blogList.loadFailed')}</p>
+                <button
+                  type="button"
+                  className="mt-3 rounded-lg border border-slate-300 px-5 py-3 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                  onClick={() => void loadPage(nextOffset, true)}
+                >
+                  {t('public.blogList.retry')}
+                </button>
+              </div>
+            ) : null}
             {hasMore ? (
               <div className="mt-10 text-center">
                 <button
@@ -157,7 +189,7 @@ export default function PublicBlogList() {
                   disabled={loadingMore}
                   onClick={() => void loadPage(nextOffset, true)}
                 >
-                  {loadingMore ? 'Učitavanje…' : 'Učitaj još'}
+                  {loadingMore ? t('public.blogList.loadingMore') : t('public.blogList.loadMore')}
                 </button>
               </div>
             ) : null}

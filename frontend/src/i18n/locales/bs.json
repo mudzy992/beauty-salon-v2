@@ -940,6 +940,16 @@
       "title": "O nama",
       "text": "Beauty Salon Nejra nudi širok spektar usluga za njegu kose i tijela. Naš tim iskusnih stilista posvećen je vašem zadovoljstvu."
     },
+    "blogList": {
+      "subtitleFallback": "Novosti i savjeti",
+      "titleFallback": "Naš frizerski blog",
+      "loading": "Učitavanje članaka…",
+      "loadFailed": "Blog članke trenutno nije moguće učitati.",
+      "retry": "Pokušaj ponovo",
+      "loadingMore": "Učitavanje…",
+      "loadMore": "Učitaj još",
+      "readMore": "Pročitaj više"
+    },
     "contact": {
       "title": "Kontakt",
       "address": "Adresa",

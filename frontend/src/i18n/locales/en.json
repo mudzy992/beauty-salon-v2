@@ -943,6 +943,16 @@
       "title": "About us",
       "text": "Beauty Salon Nejra offers a wide range of hair and body care services. Our team of experienced stylists is dedicated to your satisfaction."
     },
+    "blogList": {
+      "subtitleFallback": "News and advice",
+      "titleFallback": "Our hair salon blog",
+      "loading": "Loading articles…",
+      "loadFailed": "Blog posts couldn’t be loaded right now.",
+      "retry": "Try again",
+      "loadingMore": "Loading…",
+      "loadMore": "Load more",
+      "readMore": "Read more"
+    },
     "contact": {
       "title": "Contact",
       "address": "Address",
