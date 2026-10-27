@@ -344,6 +344,30 @@
       "testEmailFailed": "Could not send the test email.",
       "connectionSuccess": "SMTP connection succeeded.",
       "connectionFailed": "SMTP connection failed."
+    },
+    "templates": {
+      "selectorLabel": "Template type",
+      "premiumDesignActive": "Premium Salon Design active",
+      "types": {
+        "verification": "Email verification",
+        "reservation_new": "New reservation",
+        "reservation_confirmed": "Confirmed reservation",
+        "reservation_cancelled": "Cancelled reservation",
+        "reservation_reminder": "Reservation reminder",
+        "reservation_reschedule": "Rescheduled reservation",
+        "holiday": "Holiday / closed day",
+        "general": "General notification"
+      },
+      "subject": "Subject",
+      "title": "Title",
+      "intro": "Introduction",
+      "ctaLabel": "CTA button label",
+      "body": "Message body",
+      "ctaUrl": "CTA button URL",
+      "plainTextFallback": "Plain-text fallback",
+      "saveExisting": "Save existing template",
+      "templateSaved": "Template saved.",
+      "templateSaveFailed": "Could not save the template."
     }
   },
   "users": {

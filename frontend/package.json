@@ -39,6 +39,7 @@
     "test:debtors-i18n": "node --test src/features/debtors/debtors-i18n.test.mjs",
     "test:stylist-analytics-i18n": "node --test src/features/stylist-analytics/stylist-analytics-i18n.test.mjs",
     "test:email-settings-smtp-i18n": "node --test src/features/email-settings/email-settings-smtp-i18n.test.mjs",
+    "test:email-settings-templates-i18n": "node --test src/features/email-settings/email-settings-template-i18n.test.mjs",
     "test:i18n-language": "node --test src/i18n/language.test.mjs",
     "gen:favicons": "node ./scripts/generate-favicons.mjs",
     "preview": "vite preview --port 10000 --config vite.config.ts",

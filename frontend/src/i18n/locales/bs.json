@@ -341,6 +341,30 @@
       "testEmailFailed": "Slanje test emaila nije uspjelo.",
       "connectionSuccess": "SMTP konekcija je uspješna.",
       "connectionFailed": "SMTP konekcija nije uspjela."
+    },
+    "templates": {
+      "selectorLabel": "Tip template-a",
+      "premiumDesignActive": "Premium Salon Design aktiviran",
+      "types": {
+        "verification": "Verifikacija emaila",
+        "reservation_new": "Nova rezervacija",
+        "reservation_confirmed": "Potvrđena rezervacija",
+        "reservation_cancelled": "Otkazana rezervacija",
+        "reservation_reminder": "Podsjetnik rezervacije",
+        "reservation_reschedule": "Pomjerena rezervacija",
+        "holiday": "Praznik / neradni dan",
+        "general": "Generalna notifikacija"
+      },
+      "subject": "Predmet",
+      "title": "Naslov",
+      "intro": "Uvod",
+      "ctaLabel": "Tekst CTA dugmeta",
+      "body": "Tijelo poruke",
+      "ctaUrl": "URL CTA dugmeta",
+      "plainTextFallback": "Rezervni tekst (plain text)",
+      "saveExisting": "Sačuvaj postojeći template",
+      "templateSaved": "Template je sačuvan.",
+      "templateSaveFailed": "Greška pri čuvanju template-a."
     }
   },
   "users": {

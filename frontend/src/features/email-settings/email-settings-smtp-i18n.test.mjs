@@ -35,7 +35,7 @@ test('SMTP translations preserve existing settings/test endpoints and provider v
   assert.match(source, /api\.post\('\/api\/notifications\/test-smtp-connection'/)
   assert.match(source, /upsertSetting\(KEYS\.host, host\.trim\(\)/)
   assert.match(source, /onChange=\{\(event\) => handleProviderChange\(event\.target\.value as ProviderType\)\}/)
-  assert.match(source, /EXISTING_TEMPLATE_TYPES\.map\(\(item\) => \([\s\S]*?\{item\.label\}/)
+  assert.match(source, /EXISTING_TEMPLATE_TYPES\.map\(\(item\) => \([\s\S]*?t\(`emailSettings\.templates\.types\.\$\{item\.id\}`\)/)
   assert.match(source, /toastError\(msg \|\| t\('emailSettings\.smtp\.connectionFailed'\)\)/)
   assert.doesNotMatch(
     source,

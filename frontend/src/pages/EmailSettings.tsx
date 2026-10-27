@@ -505,9 +505,9 @@ export default function EmailSettings() {
         JSON.stringify(existingTemplate),
         `Email template config for ${existingTemplateType}`,
       );
-      success('Template sačuvan.')
+      success(t('emailSettings.templates.templateSaved'))
     } catch {
-      toastError('Greška pri čuvanju template-a.')
+      toastError(t('emailSettings.templates.templateSaveFailed'))
     } finally {
       setSavingTemplate(false);
     }
@@ -885,7 +885,7 @@ export default function EmailSettings() {
             <div className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  <Label>Tip template-a</Label>
+                  <Label>{t('emailSettings.templates.selectorLabel')}</Label>
                   <select
                     className={`${selectClass} mt-1`}
                     value={existingTemplateType}
@@ -893,19 +893,19 @@ export default function EmailSettings() {
                   >
                     {EXISTING_TEMPLATE_TYPES.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.label}
+                        {t(`emailSettings.templates.types.${item.id}`)}
                       </option>
                     ))}
                   </select>
                 </div>
                 <Badge variant="brand" className="w-fit px-3 py-2">
-                  Premium Salon Design Aktiviran
+                  {t('emailSettings.templates.premiumDesignActive')}
                 </Badge>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>Subject</Label>
+                  <Label>{t('emailSettings.templates.subject')}</Label>
                   <Input
                     className="mt-1"
                     value={existingTemplate.subject}
@@ -913,7 +913,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div>
-                  <Label>Naslov</Label>
+                  <Label>{t('emailSettings.templates.title')}</Label>
                   <Input
                     className="mt-1"
                     value={existingTemplate.title}
@@ -921,7 +921,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div>
-                  <Label>Intro</Label>
+                  <Label>{t('emailSettings.templates.intro')}</Label>
                   <Input
                     className="mt-1"
                     value={existingTemplate.intro}
@@ -929,7 +929,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div>
-                  <Label>CTA Label</Label>
+                  <Label>{t('emailSettings.templates.ctaLabel')}</Label>
                   <Input
                     className="mt-1"
                     value={existingTemplate.ctaLabel}
@@ -937,7 +937,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label>Body</Label>
+                  <Label>{t('emailSettings.templates.body')}</Label>
                   <Textarea
                     className="mt-1 min-h-[120px]"
                     value={existingTemplate.body}
@@ -945,7 +945,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label>CTA URL</Label>
+                  <Label>{t('emailSettings.templates.ctaUrl')}</Label>
                   <Input
                     className="mt-1"
                     value={existingTemplate.ctaUrl}
@@ -953,7 +953,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label>Plain Text fallback</Label>
+                  <Label>{t('emailSettings.templates.plainTextFallback')}</Label>
                   <Textarea
                     className="mt-1 min-h-[120px]"
                     value={existingTemplate.plainText}
@@ -964,7 +964,7 @@ export default function EmailSettings() {
 
               <Button type="button" onClick={() => void handleSaveExistingTemplate()} disabled={savingTemplate}>
                 {savingTemplate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Sačuvaj postojeći template
+                {t('emailSettings.templates.saveExisting')}
               </Button>
             </div>
           </Card>
