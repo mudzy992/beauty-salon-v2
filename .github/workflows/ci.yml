@@ -305,6 +305,12 @@ jobs:
       - name: Test Expo CLI Zod override compatibility
         working-directory: mobile
         run: npm run test:expo-cli-zod-compat
+      - name: Test Expo Router query-string override compatibility
+        working-directory: mobile
+        run: npm run test:expo-router-query-compat
+      - name: Bundle Expo SDK57 iOS JavaScript
+        working-directory: mobile
+        run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"
       - name: Test multipart upload request handling
         working-directory: mobile
         run: npm run test:api-multipart

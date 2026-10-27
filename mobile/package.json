@@ -11,9 +11,10 @@
     "test:socket-recovery": "node --test src/realtime/socket-recovery.test.mjs",
     "test:api-multipart": "node --test src/services/api-multipart.test.cjs",
     "test:expo-cli-zod-compat": "node --test scripts/expo-cli-zod-compat.test.cjs",
+    "test:expo-router-query-compat": "node --test scripts/expo-router-query-compat.test.cjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "postinstall": "node ./scripts/patch-calendars-assets.js"
+    "postinstall": "node ./scripts/patch-calendars-assets.js && node ./scripts/patch-expo-router-query-string.js"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -79,6 +80,9 @@
     "lightningcss": "1.30.1",
     "@expo/cli": {
       "zod": "^4.6.6"
+    },
+    "expo-router": {
+      "query-string": "^9.5.1"
     }
   }
 }
