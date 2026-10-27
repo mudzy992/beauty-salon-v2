@@ -51,7 +51,7 @@
     "class-validator": "^0.15.1",
     "expo-server-sdk": "^6.1.0",
     "mariadb": "^3.5.2",
-    "multer": "^2.1.1",
+    "multer": "2.5.0",
     "nodemailer": "^8.0.4",
     "passport": "^0.7.0",
     "passport-facebook": "^3.0.0",
@@ -64,6 +64,9 @@
     "sanitize-html": "2.18.1",
     "sharp": "^0.34.5",
     "socket.io": "^4.8.3"
+  },
+  "overrides": {
+    "multer": "2.5.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
