@@ -12,6 +12,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { SOCKET_EVENTS } from './socket-events';
 import { matchesPasswordVersion } from '../auth/password-version';
+import { resolveCorsRuntimeConfig } from '../config/cors-runtime-config';
 
 type GatewaySocketData = {
   userId?: string;
@@ -105,7 +106,18 @@ function projectPublicRoomPayload(
 }
 
 @WebSocketGateway({
-  cors: { origin: '*', credentials: true },
+  cors: {
+    origin: (origin, callback) => {
+      try {
+        const allowedOrigins =
+          resolveCorsRuntimeConfig(process.env).allowedOrigins;
+        callback(null, !origin || allowedOrigins.includes(origin));
+      } catch {
+        callback(new Error('CORS origin policy is not configured.'), false);
+      }
+    },
+    credentials: true,
+  },
   namespace: '/',
 })
 export class EventsGateway

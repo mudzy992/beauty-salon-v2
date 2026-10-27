@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { extname, join } from 'path';
 import { AppModule } from './app.module';
+import { resolveCorsRuntimeConfig } from './config/cors-runtime-config';
 import { RedisIoAdapter } from './events/redis-io.adapter';
 import { resolveRedisTlsOptions } from './common/redis/redis-tls-options';
 import { resolveSocketIoRuntimeConfig } from './events/socket-io-runtime-config';
@@ -75,8 +76,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+  const corsRuntime = resolveCorsRuntimeConfig(process.env);
   app.enableCors({
-    origin: true, // configure for production
+    origin: corsRuntime.allowedOrigins,
     credentials: true,
   });
   await app.listen(process.env.PORT ?? 3000);
