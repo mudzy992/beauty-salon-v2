@@ -247,7 +247,16 @@
     "net": "Neto",
     "tips": "Napojnice",
     "completed": "Završeno",
-    "pending": "Na čekanju"
+    "pending": "Na čekanju",
+    "financeThisMonth": "Finansije · ovaj mjesec",
+    "incomeSummary": "Ukupan prihod = prihod od servisa + napojnice. Neto = ukupan prihod − rashodi.",
+    "totalIncome": "Ukupan prihod",
+    "serviceIncome": "Prihod od servisa",
+    "operations": "Operacije",
+    "reservationsThisMonth": "Rezervacije (ovaj mjesec)",
+    "reservationCounts": "{{completed}} završenih · {{pending}} na čekanju",
+    "userCounts": "{{stylists}} stilista · {{services}} servisa",
+    "noReservations": "Nema rezervacija."
   },
   "users": {
     "newUser": "Novi korisnik",

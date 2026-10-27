@@ -250,7 +250,16 @@
     "net": "Net",
     "tips": "Tips",
     "completed": "Completed",
-    "pending": "Pending"
+    "pending": "Pending",
+    "financeThisMonth": "Finances · this month",
+    "incomeSummary": "Total income = service income + tips. Net = total income − expenses.",
+    "totalIncome": "Total income",
+    "serviceIncome": "Service income",
+    "operations": "Operations",
+    "reservationsThisMonth": "Reservations (this month)",
+    "reservationCounts": "{{completed}} completed · {{pending}} pending",
+    "userCounts": "{{stylists}} stylists · {{services}} services",
+    "noReservations": "No reservations."
   },
   "users": {
     "newUser": "New user",
