@@ -178,11 +178,13 @@
       "description": "Public website content, modules and comments. Email and loyalty settings are on their respective pages.",
       "groups": {
         "maintenance": "Maintenance mode",
-        "home": "Homepage sections"
+        "home": "Homepage sections",
+        "contact": "Contact and social media"
       },
       "groupDescriptions": {
         "maintenance": "Visitors to the public website and mobile home see the maintenance message. Admin and sign-in remain available.",
-        "home": "Hero section (the website CTA is separate from mobile), about content, highlights and the bottom CTA block."
+        "home": "Hero section (the website CTA is separate from mobile), about content, highlights and the bottom CTA block.",
+        "contact": "Business hours are configured under Salon settings, not here."
       },
       "fields": {
         "maintenanceMode": "Maintenance mode",
@@ -202,7 +204,21 @@
         "highlight2Title": "Highlight block 2 title",
         "highlight2Text": "Highlight block 2 text",
         "highlight3Title": "Highlight block 3 title",
-        "highlight3Text": "Highlight block 3 text"
+        "highlight3Text": "Highlight block 3 text",
+        "contactBackground": "Contact page background",
+        "contactTitle": "Title",
+        "contactSubtitle": "Subtitle",
+        "address": "Address",
+        "phone": "Phone",
+        "email": "Email",
+        "mapEmbedUrl": "Google Maps embed URL",
+        "latitude": "Latitude",
+        "longitude": "Longitude",
+        "facebook": "Facebook",
+        "instagram": "Instagram",
+        "tiktok": "TikTok",
+        "siteBaseUrl": "Website base URL (sharing + SEO canonical)",
+        "footerText": "Footer text"
       },
       "placeholders": {
         "webHeroCtaText": "Book an appointment"

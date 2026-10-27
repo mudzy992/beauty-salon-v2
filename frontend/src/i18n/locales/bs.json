@@ -175,11 +175,13 @@
       "description": "Sadržaj javnog weba, moduli i komentari. Email i loyalty su na svojim stranicama.",
       "groups": {
         "maintenance": "Režim održavanja",
-        "home": "Sekcije na početnoj"
+        "home": "Sekcije na početnoj",
+        "contact": "Kontakt i društvene mreže"
       },
       "groupDescriptions": {
         "maintenance": "Posjetioci javnog sajta i mobilne početne vide poruku o održavanju. Administracija i prijava ostaju dostupne.",
-        "home": "Hero sekcija (web CTA je odvojen od mobilnog), o nama, istaknuti sadržaj i donji CTA blok."
+        "home": "Hero sekcija (web CTA je odvojen od mobilnog), o nama, istaknuti sadržaj i donji CTA blok.",
+        "contact": "Radno vrijeme se podešava u odjeljku Salon, ne ovdje."
       },
       "fields": {
         "maintenanceMode": "Režim održavanja",
@@ -199,7 +201,21 @@
         "highlight2Title": "Istaknuti blok 2 — naslov",
         "highlight2Text": "Istaknuti blok 2 — tekst",
         "highlight3Title": "Istaknuti blok 3 — naslov",
-        "highlight3Text": "Istaknuti blok 3 — tekst"
+        "highlight3Text": "Istaknuti blok 3 — tekst",
+        "contactBackground": "Pozadina stranice kontakt",
+        "contactTitle": "Naslov",
+        "contactSubtitle": "Podnaslov",
+        "address": "Adresa",
+        "phone": "Telefon",
+        "email": "Email",
+        "mapEmbedUrl": "Google Maps embed URL",
+        "latitude": "Geografska širina",
+        "longitude": "Geografska dužina",
+        "facebook": "Facebook",
+        "instagram": "Instagram",
+        "tiktok": "TikTok",
+        "siteBaseUrl": "Osnovni URL sajta (dijeljenje + SEO canonical)",
+        "footerText": "Tekst u footeru"
       },
       "placeholders": {
         "webHeroCtaText": "Rezervišite termin"

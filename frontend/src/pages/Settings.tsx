@@ -12,6 +12,10 @@ const SITE_GROUP_COPY_KEYS = {
     label: 'adminSettings.site.groups.home',
     description: 'adminSettings.site.groupDescriptions.home',
   },
+  public_contact_: {
+    label: 'adminSettings.site.groups.contact',
+    description: 'adminSettings.site.groupDescriptions.contact',
+  },
 } as const
 
 const SITE_FIELD_COPY_KEYS = {
@@ -33,6 +37,20 @@ const SITE_FIELD_COPY_KEYS = {
   public_highlight_2_text: 'adminSettings.site.fields.highlight2Text',
   public_highlight_3_title: 'adminSettings.site.fields.highlight3Title',
   public_highlight_3_text: 'adminSettings.site.fields.highlight3Text',
+  public_contact_bg: 'adminSettings.site.fields.contactBackground',
+  public_contact_title: 'adminSettings.site.fields.contactTitle',
+  public_contact_subtitle: 'adminSettings.site.fields.contactSubtitle',
+  public_contact_address: 'adminSettings.site.fields.address',
+  public_contact_phone: 'adminSettings.site.fields.phone',
+  public_contact_email: 'adminSettings.site.fields.email',
+  public_contact_map_embed: 'adminSettings.site.fields.mapEmbedUrl',
+  public_contact_lat: 'adminSettings.site.fields.latitude',
+  public_contact_lng: 'adminSettings.site.fields.longitude',
+  public_social_facebook: 'adminSettings.site.fields.facebook',
+  public_social_instagram: 'adminSettings.site.fields.instagram',
+  public_social_tiktok: 'adminSettings.site.fields.tiktok',
+  public_site_base_url: 'adminSettings.site.fields.siteBaseUrl',
+  public_footer_text: 'adminSettings.site.fields.footerText',
 } as const
 
 const SITE_PLACEHOLDER_COPY_KEYS = {
