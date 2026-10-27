@@ -86,6 +86,20 @@
     "registerBannerTitle": "Postanite dio naše priče",
     "registerBannerSubtitle": "Kreirajte račun kako biste jednostavno zakazivali termine i pratili svoju historiju frizerskih posjeta."
   },
+  "onboarding": {
+    "title": "Promjena inicijalne lozinke",
+    "subtitle": "Za nastavak rada potrebno je da promijenite inicijalnu lozinku.",
+    "passwordTip": "Odaberite jaku lozinku i nemojte je dijeliti s drugima.",
+    "currentPassword": "Trenutna lozinka",
+    "newPassword": "Nova lozinka",
+    "confirmPassword": "Potvrda nove lozinke",
+    "passwordTooShort": "Nova lozinka mora imati najmanje 6 znakova.",
+    "passwordMismatch": "Potvrda lozinke nije ispravna.",
+    "passwordChanged": "Lozinka je uspješno promijenjena.",
+    "passwordChangeFailed": "Promjena lozinke nije uspjela.",
+    "savePassword": "Sačuvaj novu lozinku",
+    "nextStep": "Nakon ovog koraka slijedi podešavanje profila."
+  },
   "common": {
     "save": "Sačuvaj",
     "cancel": "Odustani",

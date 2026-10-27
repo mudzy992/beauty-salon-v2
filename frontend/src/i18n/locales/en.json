@@ -89,6 +89,20 @@
     "registerBannerTitle": "Become part of our story",
     "registerBannerSubtitle": "Create an account to book appointments easily and keep track of your salon visit history."
   },
+  "onboarding": {
+    "title": "Change your initial password",
+    "subtitle": "You must change your initial password before continuing.",
+    "passwordTip": "Choose a strong password and do not share it with anyone.",
+    "currentPassword": "Current password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm new password",
+    "passwordTooShort": "The new password must be at least 6 characters long.",
+    "passwordMismatch": "The password confirmation does not match.",
+    "passwordChanged": "Password changed successfully.",
+    "passwordChangeFailed": "Could not change the password.",
+    "savePassword": "Save new password",
+    "nextStep": "Profile setup is the next step."
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",
