@@ -37,6 +37,7 @@
     "test:app-releases-i18n": "node --test src/features/app-releases/app-releases-i18n.test.mjs",
     "test:dashboard-i18n": "node --test src/features/dashboard/dashboard-i18n.test.mjs",
     "test:debtors-i18n": "node --test src/features/debtors/debtors-i18n.test.mjs",
+    "test:stylist-analytics-i18n": "node --test src/features/stylist-analytics/stylist-analytics-i18n.test.mjs",
     "test:i18n-language": "node --test src/i18n/language.test.mjs",
     "gen:favicons": "node ./scripts/generate-favicons.mjs",
     "preview": "vite preview --port 10000 --config vite.config.ts",

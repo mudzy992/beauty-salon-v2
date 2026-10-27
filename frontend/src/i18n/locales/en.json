@@ -271,6 +271,25 @@
     "dailyLogReference": "Work log: {{date}}",
     "manualEntryReference": "Manual entry: {{date}}"
   },
+  "stylistAnalytics": {
+    "backToStylists": "Back to stylists",
+    "selectStylist": "Select a stylist (for example, from the Stylists list) to view analytics.",
+    "loadFailed": "Unable to load stylist analytics.",
+    "fromDate": "From date",
+    "toDate": "To date",
+    "applyingPeriod": "Loading…",
+    "applyPeriod": "Apply period",
+    "period": "Period: {{from}} – {{to}}",
+    "completedInPeriod": "Completed (in period)",
+    "revenue": "Revenue",
+    "tips": "Tips",
+    "topServices": "Top services",
+    "service": "Service",
+    "count": "Count",
+    "recentEntries": "Recent entries",
+    "client": "Client",
+    "amount": "Amount"
+  },
   "users": {
     "newUser": "New user",
     "editUser": "Edit user",

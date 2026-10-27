@@ -268,6 +268,25 @@
     "dailyLogReference": "Dnevni zapis: {{date}}",
     "manualEntryReference": "Ručni unos: {{date}}"
   },
+  "stylistAnalytics": {
+    "backToStylists": "Nazad na stiliste",
+    "selectStylist": "Odaberite stilistu (npr. s liste Stilisti) da vidite analitiku.",
+    "loadFailed": "Nije moguće učitati analitiku stiliste.",
+    "fromDate": "Od datuma",
+    "toDate": "Do datuma",
+    "applyingPeriod": "Učitavam…",
+    "applyPeriod": "Primijeni period",
+    "period": "Period: {{from}} – {{to}}",
+    "completedInPeriod": "Završeno (u periodu)",
+    "revenue": "Prihod",
+    "tips": "Napojnice",
+    "topServices": "Top usluge",
+    "service": "Usluga",
+    "count": "Broj",
+    "recentEntries": "Posljednji unosi",
+    "client": "Klijent",
+    "amount": "Iznos"
+  },
   "users": {
     "newUser": "Novi korisnik",
     "editUser": "Uredi korisnika",
