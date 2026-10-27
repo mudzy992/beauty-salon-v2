@@ -302,6 +302,9 @@ jobs:
       - name: Test socket recovery policy
         working-directory: mobile
         run: npm run test:socket-recovery
+      - name: Test Expo CLI Zod override compatibility
+        working-directory: mobile
+        run: npm run test:expo-cli-zod-compat
       - name: Test multipart upload request handling
         working-directory: mobile
         run: npm run test:api-multipart
