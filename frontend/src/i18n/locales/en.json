@@ -173,6 +173,20 @@
         "reservationDescription": "Reservation — description"
       }
     },
+    "site": {
+      "title": "Settings — Site",
+      "description": "Public website content, modules and comments. Email and loyalty settings are on their respective pages.",
+      "groups": {
+        "maintenance": "Maintenance mode"
+      },
+      "groupDescriptions": {
+        "maintenance": "Visitors to the public website and mobile home see the maintenance message. Admin and sign-in remain available."
+      },
+      "fields": {
+        "maintenanceMode": "Maintenance mode",
+        "maintenanceMessage": "Visitor-facing message"
+      }
+    },
     "operations": {
       "title": "Settings — Operations",
       "description": "Salon time zone, reservation deadlines, reminders and push notifications.",

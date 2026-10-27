@@ -170,6 +170,20 @@
         "reservationDescription": "Rezervacija — opis"
       }
     },
+    "site": {
+      "title": "Postavke — Sajt",
+      "description": "Sadržaj javnog weba, moduli i komentari. Email i loyalty su na svojim stranicama.",
+      "groups": {
+        "maintenance": "Režim održavanja"
+      },
+      "groupDescriptions": {
+        "maintenance": "Posjetioci javnog sajta i mobilne početne vide poruku o održavanju. Administracija i prijava ostaju dostupne."
+      },
+      "fields": {
+        "maintenanceMode": "Režim održavanja",
+        "maintenanceMessage": "Poruka za posjetioce"
+      }
+    },
     "operations": {
       "title": "Postavke — Operacije",
       "description": "Vremenska zona salona, rezervacijski rokovi, podsjetnici i push obavijesti.",
