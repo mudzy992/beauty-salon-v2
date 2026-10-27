@@ -238,6 +238,9 @@ jobs:
       - name: Test localized existing email templates
         working-directory: frontend
         run: npm run test:email-settings-templates-i18n
+      - name: Test localized email campaigns
+        working-directory: frontend
+        run: npm run test:email-settings-campaigns-i18n
       - name: Test runtime web language selection and fallback
         working-directory: frontend
         run: npm run test:i18n-language

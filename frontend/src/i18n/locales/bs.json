@@ -293,7 +293,7 @@
     "tabs": {
       "smtp": "SMTP i infrastruktura",
       "templates": "Postojeći template-i",
-      "campaigns": "Kampanje (Drag & Drop + HTML)"
+      "campaigns": "Kampanje (vizuelni editor + HTML)"
     },
     "providers": {
       "google": "Google (Gmail Workspace)",
@@ -365,6 +365,51 @@
       "saveExisting": "Sačuvaj postojeći template",
       "templateSaved": "Template je sačuvan.",
       "templateSaveFailed": "Greška pri čuvanju template-a."
+    },
+    "campaigns": {
+      "newTemplate": "Novi predložak kampanje",
+      "builderMode": "Vizuelni editor (drag and drop)",
+      "htmlMode": "HTML editor",
+      "templateName": "Naziv predloška",
+      "subjectOverride": "Predmet kampanje (zamjena)",
+      "subjectPlaceholder": "npr. Ekskluzivna premium ponuda za vas",
+      "internalName": "Interni naziv kampanje",
+      "internalNamePlaceholder": "npr. Proljetna kampanja 2026",
+      "addTitle": "Naslov",
+      "addText": "Tekst",
+      "addButton": "Dugme",
+      "addSpacer": "Razmak",
+      "blockTypes": {
+        "title": "Naslov",
+        "text": "Tekst",
+        "button": "Dugme",
+        "spacer": "Razmak"
+      },
+      "moveUp": "Pomjeri blok gore",
+      "moveDown": "Pomjeri blok dolje",
+      "deleteBlock": "Obriši blok",
+      "buttonUrl": "URL dugmeta",
+      "htmlLabel": "HTML",
+      "htmlPreviewSource": "Izvor HTML pregleda",
+      "audienceHeading": "Publika kampanje",
+      "onlyActiveUsers": "Samo aktivni korisnici",
+      "onlyVerifiedUsers": "Samo korisnici s verifikovanim emailom",
+      "createInAppNotification": "Kreiraj in-app obavijest",
+      "calculateAudience": "Izračunaj publiku",
+      "sendCampaign": "Pošalji kampanju",
+      "totalRecipients": "Ukupno primalaca: {{total}}",
+      "sampleFirstTen": "Uzorak (prvih 10): {{names}}",
+      "dynamicVariables": "Varijable kampanje:",
+      "saveTemplates": "Sačuvaj predloške kampanja",
+      "noTemplates": "Još nema predložaka kampanja. Kliknite na „{{action}}“.",
+      "audienceLoadFailed": "Učitavanje publike nije uspjelo.",
+      "selectCampaignWarning": "Odaberite predložak kampanje.",
+      "emptyAudienceWarning": "Publika je prazna. Prvo izračunajte publiku.",
+      "saved": "Predlošci kampanja su sačuvani.",
+      "saveFailed": "Greška pri čuvanju predložaka kampanja.",
+      "sent": "Kampanja je poslana.",
+      "sendDetails": "Isporučeno: {{delivered}}, preskočeno: {{skipped}}.",
+      "sendFailed": "Slanje kampanje nije uspjelo."
     }
   },
   "users": {

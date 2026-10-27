@@ -296,7 +296,7 @@
     "tabs": {
       "smtp": "SMTP and infrastructure",
       "templates": "Existing templates",
-      "campaigns": "Campaigns (drag-and-drop + HTML)"
+      "campaigns": "Campaigns (visual builder + HTML)"
     },
     "providers": {
       "google": "Google (Gmail Workspace)",
@@ -368,6 +368,51 @@
       "saveExisting": "Save existing template",
       "templateSaved": "Template saved.",
       "templateSaveFailed": "Could not save the template."
+    },
+    "campaigns": {
+      "newTemplate": "New campaign template",
+      "builderMode": "Visual editor (drag and drop)",
+      "htmlMode": "HTML editor",
+      "templateName": "Template name",
+      "subjectOverride": "Campaign subject override",
+      "subjectPlaceholder": "e.g. An exclusive premium offer for you",
+      "internalName": "Internal campaign name",
+      "internalNamePlaceholder": "e.g. Spring campaign 2026",
+      "addTitle": "Title",
+      "addText": "Text",
+      "addButton": "Button",
+      "addSpacer": "Spacer",
+      "blockTypes": {
+        "title": "Title",
+        "text": "Text",
+        "button": "Button",
+        "spacer": "Spacer"
+      },
+      "moveUp": "Move block up",
+      "moveDown": "Move block down",
+      "deleteBlock": "Delete block",
+      "buttonUrl": "Button URL",
+      "htmlLabel": "HTML",
+      "htmlPreviewSource": "HTML preview source",
+      "audienceHeading": "Campaign audience",
+      "onlyActiveUsers": "Active users only",
+      "onlyVerifiedUsers": "Email-verified users only",
+      "createInAppNotification": "Create in-app notification",
+      "calculateAudience": "Calculate audience",
+      "sendCampaign": "Send campaign",
+      "totalRecipients": "Total recipients: {{total}}",
+      "sampleFirstTen": "Sample (first 10): {{names}}",
+      "dynamicVariables": "Campaign variables:",
+      "saveTemplates": "Save campaign templates",
+      "noTemplates": "No campaign templates yet. Click “{{action}}”.",
+      "audienceLoadFailed": "Could not load the audience.",
+      "selectCampaignWarning": "Select a campaign template.",
+      "emptyAudienceWarning": "The audience is empty. Calculate it first.",
+      "saved": "Campaign templates saved.",
+      "saveFailed": "Could not save campaign templates.",
+      "sent": "Campaign sent.",
+      "sendDetails": "Delivered: {{delivered}}, skipped: {{skipped}}.",
+      "sendFailed": "Campaign could not be sent."
     }
   },
   "users": {
