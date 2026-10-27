@@ -1743,6 +1743,84 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         expect.objectContaining({ id: fixtureIds.stylistProfile }),
       ]),
     );
+    const publicStylist = stylistPage.body.items.find(
+      (item: { id: string }) => item.id === fixtureIds.stylistProfile,
+    );
+    expect(publicStylist.user).not.toHaveProperty('email');
+    expect(publicStylist.user).not.toHaveProperty('phone');
+    const publicStylistDetail = await request(getHttpServer(app!))
+      .get(`/api/stylists/${fixtureIds.stylistProfile}`)
+      .expect(200);
+    expect(publicStylistDetail.body.user).not.toHaveProperty('email');
+    expect(publicStylistDetail.body.user).not.toHaveProperty('phone');
+
+    await request(getHttpServer(app!))
+      .get('/api/stylists/admin')
+      .expect(401);
+    await request(getHttpServer(app!))
+      .get('/api/stylists/admin')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+    const adminStylistPage = await request(getHttpServer(app!))
+      .get('/api/stylists/admin')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(adminStylistPage.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: fixtureIds.stylistProfile }),
+      ]),
+    );
+    expect(adminStylistPage.body.items.find(
+      (item: { id: string }) => item.id === fixtureIds.stylistProfile,
+    ).user).toHaveProperty('email');
+
+    await request(getHttpServer(app!))
+      .get(`/api/stylists/admin/${fixtureIds.stylistProfile}/services`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+    await request(getHttpServer(app!))
+      .get(`/api/stylists/admin/${fixtureIds.stylistProfile}/services`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+
+    const originalStylistActive = await prisma.stylistProfile.findUnique({
+      where: { id: fixtureIds.stylistProfile },
+      select: { isActive: true },
+    });
+    await prisma.stylistProfile.update({
+      where: { id: fixtureIds.stylistProfile },
+      data: { isActive: false },
+    });
+    try {
+      const inactivePublicList = await request(getHttpServer(app!))
+        .get('/api/stylists?activeOnly=false')
+        .expect(200);
+      expect(inactivePublicList.body.items).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: fixtureIds.stylistProfile }),
+        ]),
+      );
+      await request(getHttpServer(app!))
+        .get(`/api/stylists/${fixtureIds.stylistProfile}`)
+        .expect(404);
+      await request(getHttpServer(app!))
+        .get(`/api/stylists/${fixtureIds.stylistProfile}/services`)
+        .expect(404);
+      const inactiveAdminPage = await request(getHttpServer(app!))
+        .get('/api/stylists/admin')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(200);
+      expect(inactiveAdminPage.body.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: fixtureIds.stylistProfile }),
+        ]),
+      );
+    } finally {
+      await prisma.stylistProfile.update({
+        where: { id: fixtureIds.stylistProfile },
+        data: { isActive: originalStylistActive?.isActive ?? true },
+      });
+    }
 
     const stylistServicesPage = await request(getHttpServer(app!))
       .get(

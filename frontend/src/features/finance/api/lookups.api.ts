@@ -1,7 +1,7 @@
 import api from "../../../api/client";
 import {
-  fetchAllPublicStylistServices,
-  fetchAllPublicStylists,
+  fetchAllAdminStylistServices,
+  fetchAllAdminStylists,
 } from "../../../api/catalog";
 import type {
   ClientDebtRow,
@@ -11,12 +11,12 @@ import type {
 } from "../finance.types";
 
 export const fetchStylists = (): Promise<StylistOption[]> =>
-  fetchAllPublicStylists<StylistOption>();
+  fetchAllAdminStylists<StylistOption>();
 
 export const fetchServicesForStylist = async (
   stylistProfileId: string,
 ): Promise<ServiceOption[]> => {
-  const rows = await fetchAllPublicStylistServices<{ service?: ServiceOption }>(
+  const rows = await fetchAllAdminStylistServices<{ service?: ServiceOption }>(
     stylistProfileId,
   );
   return rows.flatMap((row) => (row.service ? [row.service] : []));

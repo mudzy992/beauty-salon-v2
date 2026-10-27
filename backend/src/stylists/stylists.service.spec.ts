@@ -32,6 +32,7 @@ const mockPrisma = {
   },
   stylistProfile: {
     findUnique: jest.fn(),
+    findFirst: jest.fn(),
     findMany: jest.fn(),
     count: jest.fn(),
     create: jest.fn(),
@@ -81,9 +82,18 @@ describe('StylistsService socket revocation', () => {
     });
     expect(mockPrisma.stylistProfile.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { isActive: true },
+        where: { isActive: true, status: 'ACTIVE' },
         include: expect.objectContaining({
           stylistServices: {
+            where: {
+              service: {
+                isActive: true,
+                subcategory: {
+                  isActive: true,
+                  category: { isActive: true },
+                },
+              },
+            },
             take: 50,
             include: { service: true },
             orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
@@ -95,8 +105,56 @@ describe('StylistsService socket revocation', () => {
       }),
     );
     expect(mockPrisma.stylistProfile.count).toHaveBeenCalledWith({
-      where: { isActive: true },
+      where: { isActive: true, status: 'ACTIVE' },
     });
+  });
+
+  it('removes stylist contact details from public list results', async () => {
+    mockPrisma.stylistProfile.findMany.mockResolvedValue([
+      {
+        id: 'profile-1',
+        userId: 'private-user-id',
+        hireDate: new Date('2020-01-01T00:00:00.000Z'),
+        createdAt: new Date('2020-01-01T00:00:00.000Z'),
+        isActive: true,
+        status: 'ACTIVE',
+        bio: 'Public bio',
+        specialization: 'Hair',
+        user: {
+          id: 'user-1',
+          username: 'stylist',
+          firstName: 'Test',
+          lastName: 'Stylist',
+          avatar: null,
+          isAvatarPublic: false,
+        },
+        workingHours: [],
+        stylistServices: [],
+      },
+    ]);
+    mockPrisma.stylistProfile.count.mockResolvedValue(1);
+
+    const result = await service.findAllPublic({ page: 0, pageSize: 20 });
+
+    expect(result.items[0].user).not.toHaveProperty('email');
+    expect(result.items[0].user).not.toHaveProperty('phone');
+    expect(result.items[0]).not.toHaveProperty('userId');
+    expect(result.items[0]).not.toHaveProperty('hireDate');
+    expect(result.items[0]).not.toHaveProperty('createdAt');
+    expect(result.items[0]).not.toHaveProperty('stylistServices');
+    expect(result.items[0]).toMatchObject({
+      firstName: 'Test',
+      lastName: 'Stylist',
+    });
+    expect(mockPrisma.stylistProfile.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          user: {
+            select: expect.not.objectContaining({ email: true, phone: true }),
+          },
+        }) as unknown,
+      }),
+    );
   });
 
   it('rejects a stylist offset beyond the public catalog cap before querying Prisma', async () => {
@@ -105,6 +163,58 @@ describe('StylistsService socket revocation', () => {
     ).rejects.toThrow('Raspon kataloga stilista prelazi dozvoljeni limit.');
     expect(mockPrisma.stylistProfile.findMany).not.toHaveBeenCalled();
     expect(mockPrisma.stylistProfile.count).not.toHaveBeenCalled();
+  });
+
+  it('selects no contact details and only active profiles for public detail', async () => {
+    mockPrisma.stylistProfile.findFirst.mockResolvedValue({
+      id: 'profile-1',
+      isActive: true,
+      status: 'ACTIVE',
+      user: {
+        id: 'user-1',
+        username: 'stylist',
+        firstName: 'Test',
+        lastName: 'Stylist',
+        avatar: null,
+        isAvatarPublic: false,
+      },
+      workingHours: [],
+      stylistServices: [{ service: { id: 'active-service', isActive: true } }],
+    });
+
+    const result = await service.findPublicOne('profile-1');
+
+    expect(result.user).not.toHaveProperty('email');
+    expect(result.user).not.toHaveProperty('phone');
+    expect(mockPrisma.stylistProfile.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'profile-1', isActive: true, status: 'ACTIVE' },
+        include: expect.objectContaining({
+          user: {
+            select: expect.not.objectContaining({ email: true, phone: true }),
+          },
+          stylistServices: expect.objectContaining({
+            where: {
+              service: {
+                isActive: true,
+                subcategory: {
+                  isActive: true,
+                  category: { isActive: true },
+                },
+              },
+            },
+          }),
+        }) as unknown,
+      }),
+    );
+  });
+
+  it('returns not found for inactive public stylist detail', async () => {
+    mockPrisma.stylistProfile.findFirst.mockResolvedValue(null);
+
+    await expect(service.findPublicOne('profile-1')).rejects.toThrow(
+      'Stilist nije pronađen.',
+    );
   });
 
   it('caps nested service associations on public stylist detail', async () => {
@@ -131,7 +241,7 @@ describe('StylistsService socket revocation', () => {
 
   it('returns a bounded, ordered page for a stylist service catalog', async () => {
     const items = [{ serviceId: 'service-1' }];
-    mockPrisma.stylistProfile.findUnique.mockResolvedValue({ id: 'profile-1' });
+    mockPrisma.stylistProfile.findFirst.mockResolvedValue({ id: 'profile-1' });
     mockPrisma.stylistService.findMany.mockResolvedValue(items);
     mockPrisma.stylistService.count.mockResolvedValue(3);
 
@@ -158,11 +268,38 @@ describe('StylistsService socket revocation', () => {
     });
   });
 
+  it('filters public stylist service lookups to active profiles and services', async () => {
+    mockPrisma.stylistProfile.findFirst.mockResolvedValue({ id: 'profile-1' });
+    mockPrisma.stylistService.findMany.mockResolvedValue([]);
+    mockPrisma.stylistService.count.mockResolvedValue(0);
+
+    await service.getServices('profile-1', { page: 0, pageSize: 20 }, true);
+
+    expect(mockPrisma.stylistProfile.findFirst).toHaveBeenCalledWith({
+      where: { id: 'profile-1', isActive: true, status: 'ACTIVE' },
+      select: { id: true },
+    });
+    expect(mockPrisma.stylistService.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          stylistProfileId: 'profile-1',
+          service: {
+            isActive: true,
+            subcategory: {
+              isActive: true,
+              category: { isActive: true },
+            },
+          },
+        },
+      }),
+    );
+  });
+
   it('rejects out-of-range stylist service pages before database access', async () => {
     await expect(
       service.getServices('profile-1', { page: 21, pageSize: 50 }),
     ).rejects.toThrow('Raspon servisa stiliste prelazi dozvoljeni limit.');
-    expect(mockPrisma.stylistProfile.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.stylistProfile.findFirst).not.toHaveBeenCalled();
     expect(mockPrisma.stylistService.findMany).not.toHaveBeenCalled();
     expect(mockPrisma.stylistService.count).not.toHaveBeenCalled();
   });

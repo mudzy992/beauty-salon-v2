@@ -5,8 +5,8 @@ import { Eye, Loader2, Pencil, X } from 'lucide-react'
 
 import api from '../api/client'
 import {
+  fetchAllAdminStylistServices,
   fetchAllPublicServices,
-  fetchAllPublicStylistServices,
 } from '../api/catalog'
 import { getErrorMessage } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
@@ -86,7 +86,7 @@ export default function Stylists() {
   const loadData = useCallback(() => {
     setLoading(true)
     api
-      .get<StylistProfile[] | PaginatedResponse<StylistProfile>>('/api/stylists', {
+      .get<StylistProfile[] | PaginatedResponse<StylistProfile>>('/api/stylists/admin', {
         params: { page, pageSize },
       })
       .then((r) => {
@@ -128,7 +128,7 @@ export default function Stylists() {
     try {
       const [whRes, serviceRows] = await Promise.all([
         api.get<WorkingHours[]>(`/api/stylists/${s.id}/working-hours`),
-        fetchAllPublicStylistServices<{ serviceId?: string; id?: string }>(s.id),
+        fetchAllAdminStylistServices<{ serviceId?: string; id?: string }>(s.id),
       ])
       const existing = Array.isArray(whRes.data) ? whRes.data : []
       const full: WorkingHours[] = Array.from({ length: 7 }, (_, i) => {

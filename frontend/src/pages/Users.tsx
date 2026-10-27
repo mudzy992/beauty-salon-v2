@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 
 import api from '../api/client'
-import { fetchAllPublicStylists } from '../api/catalog'
+import { fetchAllAdminStylists } from '../api/catalog'
 import { getErrorMessage } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
 import { formatLocalizedAmount } from '../i18n/locale-utils.mjs'
@@ -577,7 +577,7 @@ export default function Users() {
         return
       }
 
-      const items = await fetchAllPublicStylists<StylistOption>()
+      const items = await fetchAllAdminStylists<StylistOption>()
       setAllStylists(items)
     } catch (err) {
       showApiError(err, 'users.errors.prepareStylistRemovalFailed')

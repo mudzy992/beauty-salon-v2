@@ -66,3 +66,11 @@ export const fetchAllPublicStylistServices = <T>(stylistProfileId: string) =>
 export const fetchAllPublicStylists = <T>(
   params: { activeOnly?: string | boolean } = {},
 ) => fetchAllPages<T>("/api/stylists", params);
+
+export const fetchAllAdminStylists = <T>() =>
+  fetchAllPages<T>("/api/stylists/admin");
+
+export const fetchAllAdminStylistServices = <T>(stylistProfileId: string) =>
+  fetchAllPages<T>(
+    `/api/stylists/admin/${encodeURIComponent(stylistProfileId)}/services`,
+  );

@@ -4,5 +4,5 @@ import { PagePaginationQueryDto } from '../../common/dto/page-pagination-query.d
 export class PublicStylistListQueryDto extends PagePaginationQueryDto {
   @IsOptional()
   @IsIn(['true', 'false'])
-  activeOnly = 'false';
+  activeOnly = 'true';
 }

@@ -42,7 +42,37 @@ export class StylistsController {
     identity: 'ip',
   })
   findAll(@Query() query: PublicStylistListQueryDto) {
-    return this.stylistsService.findAll(query.activeOnly === 'true', {
+    return this.stylistsService.findAllPublic({
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+  }
+
+  @Get('admin')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findAllAdmin(@Query() query: PagePaginationQueryDto) {
+    return this.stylistsService.findAll(false, {
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+  }
+
+  @Get('admin/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findOneAdmin(@Param('id') id: string) {
+    return this.stylistsService.findOne(id);
+  }
+
+  @Get('admin/:id/services')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getAdminServices(
+    @Param('id') id: string,
+    @Query() query: PagePaginationQueryDto,
+  ) {
+    return this.stylistsService.getServices(id, {
       page: query.page,
       pageSize: query.pageSize,
     });
@@ -68,8 +98,8 @@ export class StylistsController {
     windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
     identity: 'ip',
   })
-  findOne(@Param('id') id: string, @CurrentUser() user?: CurrentUserPayload) {
-    return this.stylistsService.findOne(id, user);
+  findOne(@Param('id') id: string) {
+    return this.stylistsService.findPublicOne(id);
   }
 
   @Post()
@@ -149,10 +179,14 @@ export class StylistsController {
     @Param('id') id: string,
     @Query() query: PagePaginationQueryDto,
   ) {
-    return this.stylistsService.getServices(id, {
-      page: query.page,
-      pageSize: query.pageSize,
-    });
+    return this.stylistsService.getServices(
+      id,
+      {
+        page: query.page,
+        pageSize: query.pageSize,
+      },
+      true,
+    );
   }
 
   @Post(':id/services')

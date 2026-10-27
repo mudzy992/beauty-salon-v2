@@ -42,8 +42,20 @@ export class StylistsService {
       page: 0,
       pageSize: DEFAULT_API_PAGE_LIMIT,
     },
+    publicView = false,
   ) {
-    const where = activeOnly ? { isActive: true } : {};
+    const where = activeOnly
+      ? { isActive: true, status: 'ACTIVE' as const }
+      : {};
+    const userSelect = {
+      id: true,
+      username: true,
+      ...(publicView ? {} : { email: true }),
+      firstName: true,
+      lastName: true,
+      avatar: true,
+      isAvatarPublic: true,
+    };
     const page = pagination.page;
     const pageSize = pagination.pageSize;
     const offset = page * pageSize;
@@ -64,21 +76,22 @@ export class StylistsService {
       this.prisma.stylistProfile.findMany({
         where,
         include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              avatar: true,
-              isAvatarPublic: true,
-            },
-          },
+          user: { select: userSelect },
           workingHours: {
             orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
           },
           stylistServices: {
+            ...(activeOnly && {
+              where: {
+                service: {
+                  isActive: true,
+                  subcategory: {
+                    isActive: true,
+                    category: { isActive: true },
+                  },
+                },
+              },
+            }),
             take: MAX_API_PAGE_LIMIT,
             include: { service: true },
             orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
@@ -103,6 +116,60 @@ export class StylistsService {
       hasMore,
       nextPage: hasMore ? page + 1 : null,
     };
+  }
+
+  async findAllPublic(
+    pagination: { page: number; pageSize: number } = {
+      page: 0,
+      pageSize: DEFAULT_API_PAGE_LIMIT,
+    },
+  ) {
+    const result = await this.findAll(true, pagination, true);
+    return {
+      ...result,
+      items: result.items.map((item) =>
+        this.toPublicStylist(this.withPublicAvatar(item)),
+      ),
+    };
+  }
+
+  async findPublicOne(id: string) {
+    const stylist = await this.prisma.stylistProfile.findFirst({
+      where: { id, isActive: true, status: 'ACTIVE' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            isAvatarPublic: true,
+          },
+        },
+        workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
+        stylistServices: {
+          where: {
+            service: {
+              isActive: true,
+              subcategory: {
+                isActive: true,
+                category: { isActive: true },
+              },
+            },
+          },
+          take: MAX_API_PAGE_LIMIT,
+          orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
+          include: {
+            service: {
+              include: { subcategory: { include: { category: true } } },
+            },
+          },
+        },
+      },
+    });
+    if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
+    return this.toPublicStylist(this.withPublicAvatar(stylist));
   }
 
   async findOne(id: string, currentUser?: CurrentUserPayload) {
@@ -348,6 +415,7 @@ export class StylistsService {
       page: 0,
       pageSize: DEFAULT_API_PAGE_LIMIT,
     },
+    activeOnly = false,
   ) {
     const page = pagination.page;
     const pageSize = pagination.pageSize;
@@ -366,13 +434,27 @@ export class StylistsService {
       );
     }
 
-    const profile = await this.prisma.stylistProfile.findUnique({
-      where: { id: stylistProfileId },
+    const profile = await this.prisma.stylistProfile.findFirst({
+      where: {
+        id: stylistProfileId,
+        ...(activeOnly && { isActive: true, status: 'ACTIVE' }),
+      },
       select: { id: true },
     });
     if (!profile) throw new NotFoundException('Stilist nije pronađen.');
 
-    const where = { stylistProfileId };
+    const where = {
+      stylistProfileId,
+      ...(activeOnly && {
+        service: {
+          isActive: true,
+          subcategory: {
+            isActive: true,
+            category: { isActive: true },
+          },
+        },
+      }),
+    };
     const [items, total] = await Promise.all([
       this.prisma.stylistService.findMany({
         where,
@@ -543,6 +625,36 @@ export class StylistsService {
         actualPrice: e.actualPrice,
         tipAmount: e.tipAmount,
       })),
+    };
+  }
+
+  private toPublicStylist<
+    T extends {
+      id: string;
+      bio: string | null;
+      specialization: string | null;
+      status: string;
+      isActive: boolean;
+      user: {
+        username: string;
+        firstName: string | null;
+        lastName: string | null;
+        avatar: string | null;
+      };
+    },
+  >(stylist: T) {
+    return {
+      id: stylist.id,
+      bio: stylist.bio,
+      specialization: stylist.specialization,
+      status: stylist.status,
+      isActive: stylist.isActive,
+      user: {
+        username: stylist.user.username,
+        firstName: stylist.user.firstName,
+        lastName: stylist.user.lastName,
+        avatar: stylist.user.avatar,
+      },
     };
   }
 
