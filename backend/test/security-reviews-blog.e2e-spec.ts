@@ -1729,6 +1729,106 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
     });
     expect(servicePage.body.items).toHaveLength(1);
     expect(servicePage.body.items[0].id).toBe(serviceId);
+    expect(servicePage.body.items[0]).not.toHaveProperty('loyaltyEnabled');
+    expect(servicePage.body.items[0]).not.toHaveProperty(
+      'loyaltyMaxDiscountPercent',
+    );
+
+    await request(getHttpServer(app!))
+      .get('/api/services/admin/categories')
+      .expect(401);
+    await request(getHttpServer(app!))
+      .get('/api/services/admin/categories')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+    const adminCategoryPage = await request(getHttpServer(app!))
+      .get('/api/services/admin/categories?page=0&pageSize=50')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(adminCategoryPage.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: fixtureIds.serviceCategory }),
+      ]),
+    );
+    const adminSubcategoryPage = await request(getHttpServer(app!))
+      .get(
+        `/api/services/admin/subcategories?categoryId=${fixtureIds.serviceCategory}`,
+      )
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(adminSubcategoryPage.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: fixtureIds.serviceSubcategory }),
+      ]),
+    );
+    const adminServicePage = await request(getHttpServer(app!))
+      .get(
+        `/api/services/admin/services?subcategoryId=${fixtureIds.serviceSubcategory}`,
+      )
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(adminServicePage.body.items).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: serviceId })]),
+    );
+    const adminServiceDetail = await request(getHttpServer(app!))
+      .get(`/api/services/admin/services/${serviceId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(adminServiceDetail.body).toHaveProperty('loyaltyEnabled');
+
+    const categoryState = await prisma.serviceCategory.findUnique({
+      where: { id: fixtureIds.serviceCategory },
+      select: { isActive: true },
+    });
+    await prisma.serviceCategory.update({
+      where: { id: fixtureIds.serviceCategory },
+      data: { isActive: false },
+    });
+    try {
+      const hiddenCategoryPage = await request(getHttpServer(app!))
+        .get('/api/services/categories?activeOnly=false&page=0&pageSize=50')
+        .expect(200);
+      expect(hiddenCategoryPage.body.items).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: fixtureIds.serviceCategory }),
+        ]),
+      );
+      const hiddenSubcategoryPage = await request(getHttpServer(app!))
+        .get(
+          `/api/services/subcategories?categoryId=${fixtureIds.serviceCategory}&activeOnly=false`,
+        )
+        .expect(200);
+      expect(hiddenSubcategoryPage.body.items).toHaveLength(0);
+      const hiddenServicePage = await request(getHttpServer(app!))
+        .get(
+          `/api/services?subcategoryId=${fixtureIds.serviceSubcategory}&activeOnly=false`,
+        )
+        .expect(200);
+      expect(hiddenServicePage.body.items).toHaveLength(0);
+      await request(getHttpServer(app!))
+        .get(`/api/services/categories/${fixtureIds.serviceCategory}`)
+        .expect(404);
+      await request(getHttpServer(app!))
+        .get(`/api/services/subcategories/${fixtureIds.serviceSubcategory}`)
+        .expect(404);
+      await request(getHttpServer(app!))
+        .get(`/api/services/${serviceId}`)
+        .expect(404);
+      const inactiveAdminServicePage = await request(getHttpServer(app!))
+        .get(
+          `/api/services/admin/services?subcategoryId=${fixtureIds.serviceSubcategory}`,
+        )
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(200);
+      expect(inactiveAdminServicePage.body.items).toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: serviceId })]),
+      );
+    } finally {
+      await prisma.serviceCategory.update({
+        where: { id: fixtureIds.serviceCategory },
+        data: { isActive: categoryState?.isActive ?? true },
+      });
+    }
 
     const stylistPage = await request(getHttpServer(app!))
       .get('/api/stylists?activeOnly=true')

@@ -16,5 +16,5 @@ export class PublicServiceListQueryDto extends PagePaginationQueryDto {
 
   @IsOptional()
   @IsIn(['true', 'false'])
-  activeOnly = 'false';
+  activeOnly = 'true';
 }

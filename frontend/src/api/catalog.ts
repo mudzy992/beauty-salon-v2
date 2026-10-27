@@ -70,6 +70,17 @@ export const fetchAllPublicStylists = <T>(
 export const fetchAllAdminStylists = <T>() =>
   fetchAllPages<T>("/api/stylists/admin");
 
+export const fetchAllAdminServiceCategories = <T>() =>
+  fetchAllPages<T>("/api/services/admin/categories");
+
+export const fetchAllAdminServiceSubcategories = <T>(
+  params: { categoryId?: string } = {},
+) => fetchAllPages<T>("/api/services/admin/subcategories", params);
+
+export const fetchAllAdminServices = <T>(
+  params: { subcategoryId?: string } = {},
+) => fetchAllPages<T>("/api/services/admin/services", params);
+
 export const fetchAllAdminStylistServices = <T>(stylistProfileId: string) =>
   fetchAllPages<T>(
     `/api/stylists/admin/${encodeURIComponent(stylistProfileId)}/services`,

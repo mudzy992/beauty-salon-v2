@@ -5,8 +5,8 @@ import { Eye, Loader2, Pencil, X } from 'lucide-react'
 
 import api from '../api/client'
 import {
+  fetchAllAdminServices,
   fetchAllAdminStylistServices,
-  fetchAllPublicServices,
 } from '../api/catalog'
 import { getErrorMessage } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
@@ -106,7 +106,7 @@ export default function Stylists() {
   }, [page, pageSize])
 
   const loadAllServices = useCallback(() => {
-    fetchAllPublicServices<ServiceOption>()
+    fetchAllAdminServices<ServiceOption>()
       .then(setAllServices)
       .catch(() => setAllServices([]))
   }, [])

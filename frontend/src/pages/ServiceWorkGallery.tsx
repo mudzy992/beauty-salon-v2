@@ -52,7 +52,7 @@ export default function ServiceWorkGallery() {
     setLoadingService(true)
     setServiceLoadError(false)
     try {
-      const { data } = await api.get<Service>(`/api/services/${id}`)
+      const { data } = await api.get<Service>(`/api/services/admin/services/${id}`)
       setService(data)
     } catch {
       setService(null)

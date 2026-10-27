@@ -13,15 +13,18 @@ describe('ServicesService public catalog pagination', () => {
     serviceCategory: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       count: jest.fn(),
     },
     serviceSubcategory: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       count: jest.fn(),
     },
     service: {
       findMany: jest.fn(),
+      findFirst: jest.fn(),
       count: jest.fn(),
     },
   };
@@ -52,6 +55,7 @@ describe('ServicesService public catalog pagination', () => {
         where: { isActive: true },
         include: {
           subcategories: {
+            where: { isActive: true },
             take: 50,
             orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
           },
@@ -86,10 +90,15 @@ describe('ServicesService public catalog pagination', () => {
     });
     expect(mockPrisma.serviceSubcategory.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { isActive: true, categoryId: 'category-1' },
+        where: {
+          isActive: true,
+          category: { isActive: true },
+          categoryId: 'category-1',
+        },
         include: {
           category: true,
           services: {
+            where: { isActive: true },
             take: 50,
             orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
           },
@@ -104,7 +113,11 @@ describe('ServicesService public catalog pagination', () => {
       }),
     );
     expect(mockPrisma.serviceSubcategory.count).toHaveBeenCalledWith({
-      where: { isActive: true, categoryId: 'category-1' },
+      where: {
+        isActive: true,
+        category: { isActive: true },
+        categoryId: 'category-1',
+      },
     });
   });
 
@@ -183,7 +196,11 @@ describe('ServicesService public catalog pagination', () => {
     });
     expect(mockPrisma.service.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { isActive: true, subcategoryId: 'subcategory-1' },
+        where: {
+          isActive: true,
+          subcategory: { isActive: true, category: { isActive: true } },
+          subcategoryId: 'subcategory-1',
+        },
         orderBy: [
           { subcategory: { sortOrder: 'asc' } },
           { sortOrder: 'asc' },
@@ -194,8 +211,83 @@ describe('ServicesService public catalog pagination', () => {
       }),
     );
     expect(mockPrisma.service.count).toHaveBeenCalledWith({
-      where: { isActive: true, subcategoryId: 'subcategory-1' },
+      where: {
+        isActive: true,
+        subcategory: { isActive: true, category: { isActive: true } },
+        subcategoryId: 'subcategory-1',
+      },
     });
+  });
+
+  it('projects public service lists and excludes internal loyalty settings', async () => {
+    mockPrisma.service.findMany.mockResolvedValue([
+      {
+        id: 'service-1',
+        subcategoryId: 'subcategory-1',
+        name: 'Cut',
+        shortDescription: 'Short desc',
+        heroImage: null,
+        durationMinutes: 45,
+        price: '25.00',
+        gender: 'FEMALE',
+        sortOrder: 1,
+        isActive: true,
+        loyaltyEnabled: true,
+        loyaltyMaxDiscountPercent: 15,
+        subcategory: {
+          id: 'subcategory-1',
+          categoryId: 'category-1',
+          name: 'Hair',
+          category: { id: 'category-1', name: 'Care' },
+        },
+      },
+    ]);
+    mockPrisma.service.count.mockResolvedValue(1);
+
+    const result = await service.findPublicServices();
+
+    expect(result.items[0]).toEqual({
+      id: 'service-1',
+      subcategoryId: 'subcategory-1',
+      name: 'Cut',
+      shortDescription: 'Short desc',
+      heroImage: null,
+      durationMinutes: 45,
+      price: '25.00',
+      gender: 'FEMALE',
+      sortOrder: 1,
+      subcategory: {
+        id: 'subcategory-1',
+        categoryId: 'category-1',
+        name: 'Hair',
+        category: { id: 'category-1', name: 'Care' },
+      },
+    });
+    expect(mockPrisma.service.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isActive: true,
+          subcategory: { isActive: true, category: { isActive: true } },
+        },
+      }),
+    );
+  });
+
+  it('hides a service when the service or either parent is inactive', async () => {
+    mockPrisma.service.findFirst.mockResolvedValue(null);
+
+    await expect(service.findPublicOneService('service-1')).rejects.toThrow(
+      'Servis nije pronađen.',
+    );
+    expect(mockPrisma.service.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'service-1',
+          isActive: true,
+          subcategory: { isActive: true, category: { isActive: true } },
+        },
+      }),
+    );
   });
 
   it('rejects an offset beyond the public catalog cap before querying Prisma', async () => {

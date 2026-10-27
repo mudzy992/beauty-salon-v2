@@ -8,9 +8,9 @@ import { getErrorMessage } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
 import { formatLocalizedNumber } from '../i18n/locale-utils.mjs'
 import {
-  fetchAllPublicServiceCategories,
-  fetchAllPublicServices,
-  fetchAllPublicServiceSubcategories,
+  fetchAllAdminServiceCategories,
+  fetchAllAdminServices,
+  fetchAllAdminServiceSubcategories,
 } from '../api/catalog'
 import { MediaImage } from '../components/media-image'
 import { getUploadUrl } from '../utils/uploadUrl'
@@ -104,9 +104,9 @@ export default function Services() {
   const loadData = useCallback(() => {
     setLoading(true)
     Promise.all([
-      fetchAllPublicServiceCategories<Category>(),
-      fetchAllPublicServiceSubcategories<Subcategory>(),
-      fetchAllPublicServices<Service>(),
+      fetchAllAdminServiceCategories<Category>(),
+      fetchAllAdminServiceSubcategories<Subcategory>(),
+      fetchAllAdminServices<Service>(),
     ])
       .then(([categoryList, subcategoryList, serviceList]) => {
         const subcategoriesById = new Map(

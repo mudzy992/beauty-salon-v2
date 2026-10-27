@@ -23,6 +23,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { PublicServiceListQueryDto } from './dto/public-service-list-query.dto';
 import { PublicServiceCategoryListQueryDto } from './dto/public-service-category-list-query.dto';
 import { PublicServiceSubcategoryListQueryDto } from './dto/public-service-subcategory-list-query.dto';
+import { PagePaginationQueryDto } from '../common/dto/page-pagination-query.dto';
 import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
 import {
   HTTP_RATE_LIMIT_PUBLIC_IP,
@@ -32,6 +33,59 @@ import {
 @Controller('api/services')
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
+
+  @Get('admin/categories')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findAllAdminCategories(@Query() query: PagePaginationQueryDto) {
+    return this.servicesService.findAllCategories(false, {
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+  }
+
+  @Get('admin/categories/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findOneAdminCategory(@Param('id') id: string) {
+    return this.servicesService.findOneCategory(id);
+  }
+
+  @Get('admin/subcategories')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findAllAdminSubcategories(
+    @Query() query: PublicServiceSubcategoryListQueryDto,
+  ) {
+    return this.servicesService.findAllSubcategories(query.categoryId, false, {
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+  }
+
+  @Get('admin/subcategories/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findOneAdminSubcategory(@Param('id') id: string) {
+    return this.servicesService.findOneSubcategory(id);
+  }
+
+  @Get('admin/services')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findAllAdminServices(@Query() query: PublicServiceListQueryDto) {
+    return this.servicesService.findAllServices(query.subcategoryId, false, {
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+  }
+
+  @Get('admin/services/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findOneAdminService(@Param('id') id: string) {
+    return this.servicesService.findOneService(id);
+  }
 
   @Get('home-stats')
   @Public()
@@ -66,7 +120,7 @@ export class ServicesController {
     identity: 'ip',
   })
   findAllCategories(@Query() query: PublicServiceCategoryListQueryDto) {
-    return this.servicesService.findAllCategories(query.activeOnly === 'true', {
+    return this.servicesService.findPublicCategories({
       page: query.page,
       pageSize: query.pageSize,
     });
@@ -81,7 +135,7 @@ export class ServicesController {
     identity: 'ip',
   })
   findOneCategory(@Param('id') id: string) {
-    return this.servicesService.findOneCategory(id);
+    return this.servicesService.findPublicOneCategory(id);
   }
 
   @Post('categories')
@@ -114,11 +168,10 @@ export class ServicesController {
     identity: 'ip',
   })
   findAllSubcategories(@Query() query: PublicServiceSubcategoryListQueryDto) {
-    return this.servicesService.findAllSubcategories(
-      query.categoryId,
-      query.activeOnly === 'true',
-      { page: query.page, pageSize: query.pageSize },
-    );
+    return this.servicesService.findPublicSubcategories(query.categoryId, {
+      page: query.page,
+      pageSize: query.pageSize,
+    });
   }
 
   @Get('subcategories/:id')
@@ -130,7 +183,7 @@ export class ServicesController {
     identity: 'ip',
   })
   findOneSubcategory(@Param('id') id: string) {
-    return this.servicesService.findOneSubcategory(id);
+    return this.servicesService.findPublicOneSubcategory(id);
   }
 
   @Post('subcategories')
@@ -166,11 +219,10 @@ export class ServicesController {
     identity: 'ip',
   })
   findAllServices(@Query() query: PublicServiceListQueryDto) {
-    return this.servicesService.findAllServices(
-      query.subcategoryId,
-      query.activeOnly === 'true',
-      { page: query.page, pageSize: query.pageSize },
-    );
+    return this.servicesService.findPublicServices(query.subcategoryId, {
+      page: query.page,
+      pageSize: query.pageSize,
+    });
   }
 
   @Get(':id')
@@ -182,7 +234,7 @@ export class ServicesController {
     identity: 'ip',
   })
   findOneService(@Param('id') id: string) {
-    return this.servicesService.findOneService(id);
+    return this.servicesService.findPublicOneService(id);
   }
 
   @Post()
