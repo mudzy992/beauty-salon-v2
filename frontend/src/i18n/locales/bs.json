@@ -98,7 +98,16 @@
     "passwordChanged": "Lozinka je uspješno promijenjena.",
     "passwordChangeFailed": "Promjena lozinke nije uspjela.",
     "savePassword": "Sačuvaj novu lozinku",
-    "nextStep": "Nakon ovog koraka slijedi podešavanje profila."
+    "nextStep": "Nakon ovog koraka slijedi podešavanje profila.",
+    "genderTitle": "Vaš spol",
+    "genderSubtitle": "Odaberite spol. Ovaj korak je obavezan i možete ga kasnije promijeniti u profilu.",
+    "genderTip": "Podatak koristimo za personalizaciju i filtriranje usluga.",
+    "genderLabel": "Spol",
+    "male": "Muški",
+    "female": "Ženski",
+    "genderRequired": "Odaberite spol.",
+    "profileSaveFailed": "Spremanje nije uspjelo.",
+    "continue": "Nastavi"
   },
   "common": {
     "save": "Sačuvaj",

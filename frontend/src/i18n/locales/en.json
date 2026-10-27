@@ -101,7 +101,16 @@
     "passwordChanged": "Password changed successfully.",
     "passwordChangeFailed": "Could not change the password.",
     "savePassword": "Save new password",
-    "nextStep": "Profile setup is the next step."
+    "nextStep": "Profile setup is the next step.",
+    "genderTitle": "Your gender",
+    "genderSubtitle": "Choose your gender. This step is required and you can change it later in your profile.",
+    "genderTip": "We use this information to personalize your experience and filter services.",
+    "genderLabel": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "genderRequired": "Choose your gender.",
+    "profileSaveFailed": "Could not save your profile.",
+    "continue": "Continue"
   },
   "common": {
     "save": "Save",
