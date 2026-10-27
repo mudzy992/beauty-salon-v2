@@ -26,44 +26,91 @@ export class HttpRateLimitInterceptor implements NestInterceptor {
   ) {}
 
   async intercept(context: ExecutionContext, next: CallHandler) {
-    const policy = this.reflector.getAllAndOverride<HttpRateLimitPolicy>(
-      HTTP_RATE_LIMIT_METADATA,
-      [context.getHandler(), context.getClass()],
-    );
-    if (!policy || context.getType() !== 'http') return next.handle();
+    const configuredPolicies = this.reflector.getAllAndOverride<
+      HttpRateLimitPolicy | readonly HttpRateLimitPolicy[]
+    >(HTTP_RATE_LIMIT_METADATA, [context.getHandler(), context.getClass()]);
+    if (!configuredPolicies || context.getType() !== 'http') {
+      return next.handle();
+    }
 
+    const policies: readonly HttpRateLimitPolicy[] = Array.isArray(
+      configuredPolicies,
+    )
+      ? (configuredPolicies as readonly HttpRateLimitPolicy[])
+      : [configuredPolicies as HttpRateLimitPolicy];
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const response = context.switchToHttp().getResponse<Response>();
-    const identity = this.getIdentity(policy, request);
-    if (!identity) return next.handle();
+    let tightest: {
+      policy: HttpRateLimitPolicy;
+      ttlSeconds: number;
+      remaining: number;
+    } | null = null;
 
-    const counter = await this.store.incrementWindow(
-      policy.bucket,
-      identity,
-      policy.windowSeconds,
-    );
-    if (!counter) return next.handle();
+    for (const policy of policies) {
+      const identity = this.getIdentity(policy, request);
+      if (!identity) continue;
 
-    const remaining = Math.max(0, policy.limit - counter.count);
+      const counter = await this.store.incrementWindow(
+        policy.bucket,
+        identity,
+        policy.windowSeconds,
+      );
+      if (!counter) continue;
+
+      const remaining = Math.max(0, policy.limit - counter.count);
+      if (
+        !tightest ||
+        remaining / policy.limit < tightest.remaining / tightest.policy.limit
+      ) {
+        tightest = {
+          policy,
+          ttlSeconds: counter.ttlSeconds,
+          remaining,
+        };
+      }
+
+      if (counter.count <= policy.limit) continue;
+
+      this.setRateLimitHeaders(
+        response,
+        policy,
+        remaining,
+        counter.ttlSeconds,
+      );
+      const retryAfter = Math.max(1, counter.ttlSeconds);
+      response.setHeader('Retry-After', String(retryAfter));
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          error: 'Too Many Requests',
+          message: 'Previše zahtjeva. Pokušajte ponovo nakon isteka limita.',
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    if (tightest) {
+      this.setRateLimitHeaders(
+        response,
+        tightest.policy,
+        tightest.remaining,
+        tightest.ttlSeconds,
+      );
+    }
+    return next.handle();
+  }
+
+  private setRateLimitHeaders(
+    response: Response,
+    policy: HttpRateLimitPolicy,
+    remaining: number,
+    ttlSeconds: number,
+  ): void {
     response.setHeader('RateLimit-Limit', String(policy.limit));
     response.setHeader('RateLimit-Remaining', String(remaining));
-    response.setHeader('RateLimit-Reset', String(counter.ttlSeconds));
+    response.setHeader('RateLimit-Reset', String(ttlSeconds));
     response.setHeader(
       'RateLimit-Policy',
       `${policy.limit};w=${policy.windowSeconds}`,
-    );
-
-    if (counter.count <= policy.limit) return next.handle();
-
-    const retryAfter = Math.max(1, counter.ttlSeconds);
-    response.setHeader('Retry-After', String(retryAfter));
-    throw new HttpException(
-      {
-        statusCode: HttpStatus.TOO_MANY_REQUESTS,
-        error: 'Too Many Requests',
-        message: 'Previše zahtjeva. Pokušajte ponovo nakon isteka limita.',
-      },
-      HttpStatus.TOO_MANY_REQUESTS,
     );
   }
 
@@ -74,6 +121,14 @@ export class HttpRateLimitInterceptor implements NestInterceptor {
     if (policy.identity === 'user') {
       const userId = request.user?.sub ?? request.user?.id;
       return userId ? `user:${userId}` : null;
+    }
+    if (policy.identity === 'account') {
+      if (!policy.accountField) return null;
+      const body = request.body as Record<string, unknown> | undefined;
+      const value = body?.[policy.accountField];
+      if (typeof value !== 'string') return null;
+      const normalized = value.trim().normalize('NFKC').toLowerCase();
+      return normalized ? `account:${normalized.slice(0, 254)}` : null;
     }
     return request.ip ? `ip:${request.ip}` : null;
   }

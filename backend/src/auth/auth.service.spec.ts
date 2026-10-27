@@ -207,7 +207,7 @@ describe('AuthService', () => {
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       await expect(service.login(loginDto)).rejects.toThrow(
-        'Nalog je deaktiviran.',
+        'Pogrešno korisničko ime ili lozinka.',
       );
     });
 
@@ -233,6 +233,32 @@ describe('AuthService', () => {
         expect.objectContaining({ sub: dbUser.id, pwdv: 0 }),
         expect.any(Object),
       );
+    });
+  });
+
+  describe('sendVerificationEmail', () => {
+    it('stores a six-digit code with a 15-minute expiry', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        email: 'john@example.com',
+        isEmailVerified: false,
+      });
+      mockPrisma.user.update.mockResolvedValue({});
+      const before = Date.now();
+
+      const result = await service.sendVerificationEmail('u1');
+
+      const updateData = mockPrisma.user.update.mock.calls[0][0].data;
+      expect(updateData.emailVerificationToken).toMatch(/^\d{6}$/);
+      const remainingMs = updateData.emailVerificationExpiresAt.getTime() - Date.now();
+      expect(remainingMs).toBeGreaterThan(14 * 60 * 1000);
+      expect(remainingMs).toBeLessThanOrEqual(15 * 60 * 1000);
+      expect(mockNotifications.sendVerificationCodeEmail).toHaveBeenCalledWith({
+        to: 'john@example.com',
+        code: updateData.emailVerificationToken,
+      });
+      expect(result.message).toContain('15 minuta');
+      expect(updateData.emailVerificationExpiresAt.getTime()).toBeGreaterThan(before);
     });
   });
 

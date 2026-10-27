@@ -475,14 +475,14 @@ export class NotificationsService {
     const template = await this.getEmailTemplateConfig('verification');
     const plainText =
       template.plainText ||
-      `Poštovani ${greetingName}, vaš verifikacijski kod je ${params.code}. Kod važi 24 sata.`;
+      `Poštovani ${greetingName}, vaš verifikacijski kod je ${params.code}. Kod važi 15 minuta.`;
     const appUrl = await this.resolveAppBaseUrl();
     const html = this.buildDefaultEmailTemplate({
       title: template.title || 'Verifikacija email adrese',
       intro: template.intro || `Poštovani ${greetingName},`,
       body:
         template.body ||
-        `Vaš verifikacijski kod je ${params.code}. Kod važi 24 sata.`,
+        `Vaš verifikacijski kod je ${params.code}. Kod važi 15 minuta.`,
       ctaLabel: template.ctaLabel || 'Otvori aplikaciju',
       ctaUrl: appUrl,
       codeBlock: params.code,

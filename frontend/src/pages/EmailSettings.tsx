@@ -122,10 +122,10 @@ const getExistingTemplateDefaults = (type: ExistingTemplateType): ExistingTempla
       subject: 'Verifikacija email adrese',
       title: 'Verifikacija email adrese',
       intro: 'Poštovani {{firstName}},',
-      body: 'Vaš verifikacijski kod je prikazan ispod. Kod važi 24 sata.',
+      body: 'Vaš verifikacijski kod je prikazan ispod. Kod važi 15 minuta.',
       ctaLabel: 'Otvori aplikaciju',
       ctaUrl: '{{appUrl}}',
-      plainText: 'Vaš verifikacijski kod je validan 24 sata.',
+      plainText: 'Vaš verifikacijski kod je validan 15 minuta.',
     };
   }
   if (type === 'reservation_new') {

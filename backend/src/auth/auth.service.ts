@@ -19,7 +19,7 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 
 const SALT_ROUNDS = 10;
-const EMAIL_VERIFICATION_EXPIRY_HOURS = 24;
+const EMAIL_VERIFICATION_EXPIRY_MINUTES = 15;
 const VERIFICATION_CODE_LENGTH = 6;
 const CLIENT_ROLE_NAME = 'CLIENT';
 
@@ -116,7 +116,7 @@ export class AuthService {
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Nalog je deaktiviran.');
+      throw new UnauthorizedException('Pogrešno korisničko ime ili lozinka.');
     }
 
     await this.prisma.user.update({
@@ -254,8 +254,9 @@ export class AuthService {
       .randomInt(0, 10 ** VERIFICATION_CODE_LENGTH)
       .toString()
       .padStart(VERIFICATION_CODE_LENGTH, '0');
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + EMAIL_VERIFICATION_EXPIRY_HOURS);
+    const expiresAt = new Date(
+      Date.now() + EMAIL_VERIFICATION_EXPIRY_MINUTES * 60 * 1000,
+    );
     await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -269,7 +270,7 @@ export class AuthService {
     });
     return {
       message:
-        'Verifikacijski kod je poslan na vašu email adresu. Kod vrijedi 24 sata.',
+        'Verifikacijski kod je poslan na vašu email adresu. Kod vrijedi 15 minuta.',
     };
   }
 

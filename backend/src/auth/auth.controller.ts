@@ -19,6 +19,21 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { UploadsService } from '../uploads/uploads.service';
+import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
+import {
+  AUTH_LOGIN_ACCOUNT_LIMIT,
+  AUTH_LOGIN_ACCOUNT_WINDOW_SECONDS,
+  AUTH_LOGIN_IP_LIMIT,
+  AUTH_RATE_LIMIT_WINDOW_SECONDS,
+  AUTH_REGISTER_IP_LIMIT,
+  AUTH_REGISTER_IP_WINDOW_SECONDS,
+  AUTH_SEND_VERIFICATION_IP_LIMIT,
+  AUTH_SEND_VERIFICATION_IP_WINDOW_SECONDS,
+  AUTH_SEND_VERIFICATION_USER_LIMIT,
+  AUTH_SEND_VERIFICATION_USER_WINDOW_SECONDS,
+  AUTH_VERIFY_EMAIL_IP_LIMIT,
+  AUTH_VERIFY_EMAIL_WINDOW_SECONDS,
+} from '../common/rate-limiting/http-rate-limit.constants';
 
 const AVATAR_MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const AVATAR_MIMES = new Set([
@@ -37,6 +52,12 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @HttpRateLimit({
+    bucket: 'auth:register:ip',
+    limit: AUTH_REGISTER_IP_LIMIT,
+    windowSeconds: AUTH_REGISTER_IP_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   @UseInterceptors(
     FileInterceptor('avatar', {
       limits: { fileSize: AVATAR_MAX_SIZE },
@@ -68,6 +89,21 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @HttpRateLimit([
+    {
+      bucket: 'auth:login:ip',
+      limit: AUTH_LOGIN_IP_LIMIT,
+      windowSeconds: AUTH_RATE_LIMIT_WINDOW_SECONDS,
+      identity: 'ip',
+    },
+    {
+      bucket: 'auth:login:account',
+      limit: AUTH_LOGIN_ACCOUNT_LIMIT,
+      windowSeconds: AUTH_LOGIN_ACCOUNT_WINDOW_SECONDS,
+      identity: 'account',
+      accountField: 'login',
+    },
+  ])
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
@@ -84,12 +120,32 @@ export class AuthController {
 
   @Post('send-verification-email')
   @UseGuards(JwtAuthGuard)
+  @HttpRateLimit([
+    {
+      bucket: 'auth:send-verification:user',
+      limit: AUTH_SEND_VERIFICATION_USER_LIMIT,
+      windowSeconds: AUTH_SEND_VERIFICATION_USER_WINDOW_SECONDS,
+      identity: 'user',
+    },
+    {
+      bucket: 'auth:send-verification:ip',
+      limit: AUTH_SEND_VERIFICATION_IP_LIMIT,
+      windowSeconds: AUTH_SEND_VERIFICATION_IP_WINDOW_SECONDS,
+      identity: 'ip',
+    },
+  ])
   async sendVerificationEmail(@CurrentUser() user: CurrentUserPayload) {
     return this.authService.sendVerificationEmail(user.sub);
   }
 
   @Public()
   @Post('verify-email')
+  @HttpRateLimit({
+    bucket: 'auth:verify-email:ip',
+    limit: AUTH_VERIFY_EMAIL_IP_LIMIT,
+    windowSeconds: AUTH_VERIFY_EMAIL_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto.token);
   }

@@ -22,11 +22,29 @@ class TestController {
   handler(this: void) {}
 }
 
+class MultiPolicyController {
+  @HttpRateLimit([
+    { bucket: 'auth:login:ip', limit: 30, windowSeconds: 60, identity: 'ip' },
+    {
+      bucket: 'auth:login:account',
+      limit: 10,
+      windowSeconds: 900,
+      identity: 'account',
+      accountField: 'login',
+    },
+  ])
+  handler(this: void) {}
+}
+
 describe('HttpRateLimitInterceptor', () => {
   const mockStore = {
     incrementWindow: jest.fn(),
   };
-  const request = { ip: '203.0.113.10', user: { sub: 'user-1' } };
+  const request: {
+    ip: string;
+    user: { sub: string };
+    body?: Record<string, unknown>;
+  } = { ip: '203.0.113.10', user: { sub: 'user-1' } };
   const response = { setHeader: jest.fn<void, [string, string]>() };
   const next: CallHandler<string> = { handle: () => of('ok') };
   let interceptor: HttpRateLimitInterceptor;
@@ -34,6 +52,7 @@ describe('HttpRateLimitInterceptor', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    delete request.body;
     interceptor = new HttpRateLimitInterceptor(
       new Reflector(),
       mockStore as unknown as HttpRateLimitStore,
@@ -66,6 +85,39 @@ describe('HttpRateLimitInterceptor', () => {
       'RateLimit-Policy',
       '2;w=60',
     );
+    await expect(firstValueFrom(result)).resolves.toBe('ok');
+  });
+
+  it('checks both IP and normalized account identities for public auth routes', async () => {
+    mockStore.incrementWindow
+      .mockResolvedValueOnce({ count: 1, ttlSeconds: 60 })
+      .mockResolvedValueOnce({ count: 9, ttlSeconds: 500 });
+    request.body = {
+      login: '  Test@Example.com  ',
+    };
+    context = {
+      ...context,
+      getHandler: () => MultiPolicyController.prototype.handler,
+      getClass: () => MultiPolicyController,
+    } as unknown as ExecutionContext;
+
+    const result = await interceptor.intercept(context, next);
+
+    expect(mockStore.incrementWindow).toHaveBeenNthCalledWith(
+      1,
+      'auth:login:ip',
+      'ip:203.0.113.10',
+      60,
+    );
+    expect(mockStore.incrementWindow).toHaveBeenNthCalledWith(
+      2,
+      'auth:login:account',
+      'account:test@example.com',
+      900,
+    );
+    expect(response.setHeader).toHaveBeenCalledWith('RateLimit-Limit', '10');
+    expect(response.setHeader).toHaveBeenCalledWith('RateLimit-Remaining', '1');
+    expect(response.setHeader).toHaveBeenCalledWith('RateLimit-Reset', '500');
     await expect(firstValueFrom(result)).resolves.toBe('ok');
   });
 
