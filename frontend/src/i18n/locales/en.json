@@ -228,7 +228,13 @@
     "createFail": "Failed to create release.",
     "publish": "Publish",
     "publishOk": "Release published.",
-    "empty": "No releases yet."
+    "empty": "No releases yet.",
+    "minSupportedValue": "Minimum supported versionCode: {{versionCode}} · {{size}} MB",
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "retired": "Retired"
+    }
   },
   "dashboard": {
     "welcome": "Welcome",

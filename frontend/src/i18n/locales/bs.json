@@ -225,7 +225,13 @@
     "createFail": "Kreiranje release-a nije uspjelo.",
     "publish": "Objavi",
     "publishOk": "Release objavljen.",
-    "empty": "Nema release-ova."
+    "empty": "Nema release-ova.",
+    "minSupportedValue": "Min. podržani versionCode: {{versionCode}} · {{size}} MB",
+    "status": {
+      "draft": "Nacrt",
+      "published": "Objavljen",
+      "retired": "Povučen"
+    }
   },
   "dashboard": {
     "welcome": "Dobro došli",

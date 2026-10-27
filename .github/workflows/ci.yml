@@ -220,6 +220,9 @@ jobs:
       - name: Test localized stylist reservation reorder dialog
         working-directory: frontend
         run: npm run test:stylist-reservation-reorder-dialog-i18n
+      - name: Test localized app releases page
+        working-directory: frontend
+        run: npm run test:app-releases-i18n
       - name: Test runtime web language selection and fallback
         working-directory: frontend
         run: npm run test:i18n-language
