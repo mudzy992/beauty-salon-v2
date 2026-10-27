@@ -272,6 +272,9 @@ jobs:
       - name: Test localized admin public modules
         working-directory: frontend
         run: npm run test:admin-settings-site-modules-i18n
+      - name: Test localized admin blog comment settings
+        working-directory: frontend
+        run: npm run test:admin-settings-site-comments-i18n
       - name: Test one-time admin-created credentials
         working-directory: frontend
         run: npm run test:temporary-user-credentials

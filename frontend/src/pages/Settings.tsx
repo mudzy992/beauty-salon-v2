@@ -24,6 +24,10 @@ const SITE_GROUP_COPY_KEYS = {
     label: 'adminSettings.site.groups.publicModules',
     description: 'adminSettings.site.groupDescriptions.publicModules',
   },
+  comments_: {
+    label: 'adminSettings.site.groups.blogComments',
+    description: 'adminSettings.site.groupDescriptions.blogComments',
+  },
 } as const
 
 const SITE_FIELD_COPY_KEYS = {
@@ -80,6 +84,9 @@ const SITE_FIELD_COPY_KEYS = {
   public_feature_blog: 'adminSettings.site.fields.showBlog',
   public_feature_gallery: 'adminSettings.site.fields.showGallery',
   public_feature_reviews: 'adminSettings.site.fields.showReviews',
+  comments_auto_approve: 'adminSettings.site.fields.autoApproveComments',
+  comments_badwords: 'adminSettings.site.fields.prohibitedWords',
+  comments_blocked_user_ids: 'adminSettings.site.fields.blockedUserIds',
 } as const
 
 const SITE_PLACEHOLDER_COPY_KEYS = {
