@@ -835,6 +835,18 @@
         "manualMinutes": "Ručni unos minuta",
         "manualShift": "Rekalkuliši po ručnom unosu",
         "useShorterBreak": "Ne pomjeraj termine (iskoristi kraću pauzu)"
+      },
+      "reorder": {
+        "title": "Pomjeranje termina",
+        "description": "Pošaljite prijedlog novog termina klijentu. Trajanje se zadržava ({{minutes}} min) kada mijenjate početak.",
+        "startTime": "Novi početak",
+        "startTimeAriaLabel": "Novi početak termina",
+        "endTime": "Novi kraj",
+        "endTimeAriaLabel": "Novi kraj termina",
+        "preview": "Pregled: {{start}} – {{end}} ({{minutes}} min)",
+        "invalidTime": "Odaberite valjano vrijeme",
+        "cancel": "Odustani",
+        "submit": "Pošalji klijentu"
       }
     },
     "reservationDetail": {

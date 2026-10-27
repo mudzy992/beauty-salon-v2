@@ -33,6 +33,7 @@
     "test:stylist-reservation-reason-dialogs-i18n": "node --test src/features/stylist-portal/stylist-reservation-reason-dialogs-i18n.test.mjs",
     "test:stylist-reservation-complete-dialog-i18n": "node --test src/features/stylist-portal/stylist-reservation-complete-dialog-i18n.test.mjs",
     "test:stylist-reservation-overrun-dialog-i18n": "node --test src/features/stylist-portal/stylist-reservation-overrun-dialog-i18n.test.mjs",
+    "test:stylist-reservation-reorder-dialog-i18n": "node --test src/features/stylist-portal/stylist-reservation-reorder-dialog-i18n.test.mjs",
     "test:i18n-language": "node --test src/i18n/language.test.mjs",
     "gen:favicons": "node ./scripts/generate-favicons.mjs",
     "preview": "vite preview --port 10000 --config vite.config.ts",

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
 import {
@@ -35,6 +36,7 @@ export const ReorderReservationDialog = ({
   currentEndTime,
   onConfirm,
 }: ReorderReservationDialogProps) => {
+  const { t } = useTranslation()
   const durationMinutes = useMemo(
     () => durationMinutesFromRange(currentStartTime, currentEndTime),
     [currentStartTime, currentEndTime],
@@ -67,8 +69,12 @@ export const ReorderReservationDialog = ({
     endOk &&
     (parseHmToMinutes(endTime) as number) > (parseHmToMinutes(startTime) as number)
   const previewLabel = rangeOk
-    ? `${normalizeHm(startTime)} – ${normalizeHm(endTime)} (${durationMinutesFromRange(startTime, endTime)} min)`
-    : 'Odaberite valjano vrijeme'
+    ? t('stylistPortal.reservationDialogs.reorder.preview', {
+        start: normalizeHm(startTime),
+        end: normalizeHm(endTime),
+        minutes: durationMinutesFromRange(startTime, endTime),
+      })
+    : t('stylistPortal.reservationDialogs.reorder.invalidTime')
 
   const handleConfirm = async () => {
     if (!rangeOk) return
@@ -82,43 +88,42 @@ export const ReorderReservationDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Reorder termina</DialogTitle>
+          <DialogTitle>{t('stylistPortal.reservationDialogs.reorder.title')}</DialogTitle>
           <DialogDescription>
-            Pošaljite prijedlog novog termina klijentu. Trajanje se zadržava ({durationMinutes} min) kad
-            mijenjate početak.
+            {t('stylistPortal.reservationDialogs.reorder.description', { minutes: durationMinutes })}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="reorderStart">Novi početak</Label>
+            <Label htmlFor="reorderStart">{t('stylistPortal.reservationDialogs.reorder.startTime')}</Label>
             <Input
               id="reorderStart"
               type="time"
               value={normalizeHm(startTime) || startTime}
               onChange={(e) => handleStartChange(e.target.value)}
-              aria-label="Novi početak termina"
+              aria-label={t('stylistPortal.reservationDialogs.reorder.startTimeAriaLabel')}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="reorderEnd">Novi kraj</Label>
+            <Label htmlFor="reorderEnd">{t('stylistPortal.reservationDialogs.reorder.endTime')}</Label>
             <Input
               id="reorderEnd"
               type="time"
               value={normalizeHm(endTime) || endTime}
               onChange={(e) => handleEndChange(e.target.value)}
-              aria-label="Novi kraj termina"
+              aria-label={t('stylistPortal.reservationDialogs.reorder.endTimeAriaLabel')}
             />
           </div>
         </div>
         <p className="text-sm text-slate-600 dark:text-slate-300" aria-live="polite">
-          Pregled: {previewLabel}
+          {previewLabel}
         </p>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Odustani
+            {t('stylistPortal.reservationDialogs.reorder.cancel')}
           </Button>
           <Button type="button" onClick={() => void handleConfirm()} disabled={pending || !rangeOk}>
-            Pošalji klijentu
+            {t('stylistPortal.reservationDialogs.reorder.submit')}
           </Button>
         </DialogFooter>
       </DialogContent>

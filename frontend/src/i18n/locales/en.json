@@ -838,6 +838,18 @@
         "manualMinutes": "Enter minutes manually",
         "manualShift": "Recalculate using the manual shift",
         "useShorterBreak": "Do not move appointments (use a shorter break)"
+      },
+      "reorder": {
+        "title": "Reschedule appointment",
+        "description": "Send the client a proposed new appointment time. The duration stays the same ({{minutes}} min) when you change the start time.",
+        "startTime": "New start time",
+        "startTimeAriaLabel": "New appointment start time",
+        "endTime": "New end time",
+        "endTimeAriaLabel": "New appointment end time",
+        "preview": "Preview: {{start}} – {{end}} ({{minutes}} min)",
+        "invalidTime": "Choose a valid time",
+        "cancel": "Cancel",
+        "submit": "Send to client"
       }
     },
     "reservationDetail": {
