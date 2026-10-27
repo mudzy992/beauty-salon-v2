@@ -10,6 +10,7 @@ export VITE_API_FILES_URL="http://127.0.0.1:10001"
 export DATABASE_URL="postgresql://ci_only:ci_only@127.0.0.1:5432/beauty_salon_ci?schema=public"
 export JWT_SECRET="ci_only_not_a_secret"
 export APP_SETTINGS_ENCRYPTION_KEY="ci_only_not_a_secret"
+export CORS_ALLOWED_ORIGINS="https://ci.example.invalid"
 
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
@@ -55,6 +56,10 @@ try {
     'Frontend Compose service must use frontend/Dockerfile.',
   );
   check(backend.build?.target === 'runtime', 'API build target must be runtime.');
+  check(
+    backend.environment?.CORS_ALLOWED_ORIGINS === 'https://ci.example.invalid',
+    'API Compose service must pass the explicit CORS allowlist.',
+  );
   check(migrate.build?.target === 'migrator', 'Migration build target must be migrator.');
   check(migrate.profiles?.includes('migrations'), 'Migration service must use the manual migrations profile.');
   check(
