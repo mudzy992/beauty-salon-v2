@@ -14,6 +14,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'node:crypto';
 
 jest.mock('bcrypt');
 jest.mock('expo-server-sdk', () => {
@@ -237,7 +238,34 @@ describe('AuthService', () => {
   });
 
   describe('verifyEmail', () => {
-    it('rejects legacy verification codes that still claim a 24-hour lifetime', async () => {
+    it('accepts a valid hashed code and consumes it once', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: 'u1',
+        emailVerificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      });
+      mockPrisma.user.update.mockResolvedValue({});
+
+      await expect(service.verifyEmail('123456')).resolves.toMatchObject({
+        message: 'Email adresa je uspješno potvrđena.',
+      });
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: {
+          isEmailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationExpiresAt: null,
+        },
+      });
+    });
+
+    it('rejects malformed codes before database access', async () => {
+      await expect(service.verifyEmail('not-six-digits')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockPrisma.user.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects verification records with more than 15 minutes remaining', async () => {
       mockPrisma.user.findFirst.mockResolvedValue({
         id: 'u1',
         emailVerificationExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
@@ -246,6 +274,16 @@ describe('AuthService', () => {
       await expect(service.verifyEmail('123456')).rejects.toThrow(
         BadRequestException,
       );
+      const expectedDigest = crypto
+        .createHmac('sha256', 'test-secret')
+        .update('email-verification:v1:123456')
+        .digest('hex');
+      expect(mockPrisma.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          emailVerificationToken: expectedDigest,
+          emailVerificationExpiresAt: { gt: expect.any(Date) },
+        },
+      });
       expect(mockPrisma.user.update).not.toHaveBeenCalled();
     });
   });
@@ -263,13 +301,16 @@ describe('AuthService', () => {
       const result = await service.sendVerificationEmail('u1');
 
       const updateData = mockPrisma.user.update.mock.calls[0][0].data;
-      expect(updateData.emailVerificationToken).toMatch(/^\d{6}$/);
+      expect(updateData.emailVerificationToken).toMatch(/^[a-f0-9]{64}$/);
+      const sentCode = mockNotifications.sendVerificationCodeEmail.mock.calls[0][0].code;
+      expect(sentCode).toMatch(/^\d{6}$/);
+      expect(updateData.emailVerificationToken).not.toBe(sentCode);
       const remainingMs = updateData.emailVerificationExpiresAt.getTime() - Date.now();
       expect(remainingMs).toBeGreaterThan(14 * 60 * 1000);
       expect(remainingMs).toBeLessThanOrEqual(15 * 60 * 1000);
       expect(mockNotifications.sendVerificationCodeEmail).toHaveBeenCalledWith({
         to: 'john@example.com',
-        code: updateData.emailVerificationToken,
+        code: sentCode,
       });
       expect(result.message).toContain('15 minuta');
       expect(updateData.emailVerificationExpiresAt.getTime()).toBeGreaterThan(before);

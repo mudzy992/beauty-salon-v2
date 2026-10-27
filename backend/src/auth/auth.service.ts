@@ -260,7 +260,7 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: userId },
       data: {
-        emailVerificationToken: code,
+        emailVerificationToken: this.hashVerificationCode(code),
         emailVerificationExpiresAt: expiresAt,
       },
     });
@@ -275,10 +275,15 @@ export class AuthService {
   }
 
   async verifyEmail(token: string): Promise<{ message: string }> {
+    if (!/^\d{6}$/.test(token)) {
+      throw new BadRequestException(
+        'Kod nije ispravan ili je istekao. Zatražite novi kod.',
+      );
+    }
     const now = new Date();
     const user = await this.prisma.user.findFirst({
       where: {
-        emailVerificationToken: token,
+        emailVerificationToken: this.hashVerificationCode(token),
         emailVerificationExpiresAt: { gt: now },
       },
     });
@@ -302,6 +307,13 @@ export class AuthService {
       },
     });
     return { message: 'Email adresa je uspješno potvrđena.' };
+  }
+
+  private hashVerificationCode(code: string): string {
+    return crypto
+      .createHmac('sha256', this.config.getOrThrow<string>('JWT_SECRET'))
+      .update(`email-verification:v1:${code}`)
+      .digest('hex');
   }
 
   private async createAccessToken(
