@@ -45,7 +45,8 @@
     "preview": "vite preview --port 10000 --config vite.config.ts",
     "lint": "eslint . --ext ts,tsx",
     "test:email-settings-campaigns-i18n": "node --test src/features/email-settings/email-settings-campaigns-i18n.test.mjs",
-    "test:admin-analytics-i18n": "node --test src/features/analytics/admin-analytics-i18n.test.mjs"
+    "test:admin-analytics-i18n": "node --test src/features/analytics/admin-analytics-i18n.test.mjs",
+    "test:admin-loyalty-i18n": "node --test src/features/loyalty/admin-loyalty-i18n.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
