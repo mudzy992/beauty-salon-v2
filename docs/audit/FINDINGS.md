@@ -156,7 +156,11 @@ Review-list baseline is separately contained under SEC-01: public `GET /api/revi
 
 **Uticaj:** bivši/inactive stylist kontakt podaci i neaktivna ponuda mogu ostati javni; online clients ne mogu razlikovati internal catalog od public catalog.
 
-**Popravka:** publc DTO sa poljima eksplicitno odobrenim za display; public `isActive=true` kao nepromjenjiv default i detail provjera; admin route za neaktivne; email/phone po eksplicitnoj business policy.
+**Popravka:** public DTO sa poljima eksplicitno odobrenim za display; public `isActive=true` kao nepromjenjiv default i detail provjera; admin route za neaktivne; email/phone po eksplicitnoj business policy.
+
+**Source progress — stylist endpoints (2026-10-27):** Public `GET /api/stylists` and `GET /api/stylists/:id` now return only active profiles with `status=ACTIVE`, and explicit display fields. Public user projections omit email, phone and account IDs; profile responses omit user linkage, hire date, timestamps, working-hours and raw stylist-service associations. Public detail returns 404 for an inactive/pending profile. Public stylist-service lookups require an active profile and active service, subcategory and category. `activeOnly=false` cannot widen public results. Full inactive stylist listing/detail/service associations moved to `/api/stylists/admin...`, guarded for `SYSTEM_ADMIN`/`OWNER`; the admin stylist, finance and user-role-removal UIs use these protected routes. Unit tests and disposable PostgreSQL HTTP tests cover filtering, no-contact projection and admin authorization. CI run `40520766158` passed all four jobs, including generated-Prisma backend build/unit/DB-backed HTTP tests, frontend build, mobile and repository checks. The first run `40519913519` had green backend build and DB-backed HTTP tests but failed a unit-test matcher; corrected in `09d4ac1`, then the rerun passed.
+
+**Remaining:** public service category/subcategory/service list and detail routes still accept inactive records; their separate admin listing routes and explicit service DTOs are not implemented. The public stylist-service association now filters active hierarchy but returns service records in the existing shape. No actual browser/native behavior, production policy, or deployed API was checked. API-01 remains partial/open.
 
 ### BIZ-01 — Deaktivirani servis i dalje prolazi API booking validaciju
 
