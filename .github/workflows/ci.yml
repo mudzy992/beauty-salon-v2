@@ -226,6 +226,9 @@ jobs:
       - name: Test localized admin dashboard
         working-directory: frontend
         run: npm run test:dashboard-i18n
+      - name: Test localized admin debtors page
+        working-directory: frontend
+        run: npm run test:debtors-i18n
       - name: Test runtime web language selection and fallback
         working-directory: frontend
         run: npm run test:i18n-language

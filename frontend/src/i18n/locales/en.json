@@ -261,6 +261,16 @@
     "userCounts": "{{stylists}} stylists · {{services}} services",
     "noReservations": "No reservations."
   },
+  "debtors": {
+    "title": "Debtors",
+    "description": "All open debts in the system.",
+    "searchPlaceholder": "Client, stylist, service, or code…",
+    "noOpenDebts": "No open debts.",
+    "stylist": "Stylist",
+    "reservationReference": "Reservation: {{reference}}",
+    "dailyLogReference": "Work log: {{date}}",
+    "manualEntryReference": "Manual entry: {{date}}"
+  },
   "users": {
     "newUser": "New user",
     "editUser": "Edit user",

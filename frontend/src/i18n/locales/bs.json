@@ -258,6 +258,16 @@
     "userCounts": "{{stylists}} stilista · {{services}} servisa",
     "noReservations": "Nema rezervacija."
   },
+  "debtors": {
+    "title": "Dužnici",
+    "description": "Sva otvorena dugovanja u sistemu.",
+    "searchPlaceholder": "Klijent, stilist, servis ili kod…",
+    "noOpenDebts": "Nema otvorenih dugovanja.",
+    "stylist": "Stilist",
+    "reservationReference": "Rezervacija: {{reference}}",
+    "dailyLogReference": "Dnevni zapis: {{date}}",
+    "manualEntryReference": "Ručni unos: {{date}}"
+  },
   "users": {
     "newUser": "Novi korisnik",
     "editUser": "Uredi korisnika",

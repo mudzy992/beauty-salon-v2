@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react'
-import api from '../api/client'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
+
+import api from '../api/client'
 import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
+import { formatLocalizedAmount, getIntlLocale } from '../i18n/locale-utils.mjs'
+import { formatDateOnlyLocale } from '../../../shared/business-date.mjs'
 
 type DebtRow = {
   id: string
@@ -18,14 +22,22 @@ type DebtRow = {
   manualEntry?: { id: string; date: string } | null
 }
 
-const formatMoney = (v: number | string) => `${Number(v || 0).toFixed(2)} KM`
-
 type Props = {
   /** When rendered inside Finance tabs, hide page title. */
   embedded?: boolean
 }
 
 export default function Debtors({ embedded = false }: Props) {
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
+  const formatDate = (value: string) => {
+    const dateOnly = String(value).slice(0, 10)
+    try {
+      return formatDateOnlyLocale(dateOnly, locale, { dateStyle: 'medium' })
+    } catch {
+      return dateOnly
+    }
+  }
   const [q, setQ] = useState('')
   const query = useQuery({
     queryKey: ['debts', 'all', 'OPEN'],
@@ -61,30 +73,40 @@ export default function Debtors({ embedded = false }: Props) {
       <div className="flex items-start justify-between gap-3">
         <div>
           {embedded ? (
-            <p className="text-sm text-slate-600 dark:text-slate-300">Sva otvorena dugovanja u sistemu.</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300">{t('debtors.description')}</p>
           ) : (
             <>
-              <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Dužnici</h1>
-              <p className="text-sm text-slate-600 dark:text-slate-300">Sva otvorena dugovanja u sistemu.</p>
+              <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+                {t('debtors.title')}
+              </h1>
+              <p className="text-sm text-slate-600 dark:text-slate-300">{t('debtors.description')}</p>
             </>
           )}
         </div>
         <div className="text-right">
-          <div className="text-xs text-slate-500">Ukupno</div>
-          <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">{formatMoney(total)}</div>
+          <div className="text-xs text-slate-500">{t('common.total')}</div>
+          <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">
+            {formatLocalizedAmount(total, i18n.language)}
+          </div>
         </div>
       </div>
 
       <Card className="p-4">
-        <Label htmlFor="q">Pretraga</Label>
-        <Input id="q" className="mt-2 max-w-md" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Klijent, stilist, servis, kod…" />
+        <Label htmlFor="q">{t('common.search')}</Label>
+        <Input
+          id="q"
+          className="mt-2 max-w-md"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t('debtors.searchPlaceholder')}
+        />
       </Card>
 
       <Card className="p-4">
         {query.isLoading ? (
-          <div className="text-sm text-slate-500">Učitavanje…</div>
+          <div className="text-sm text-slate-500">{t('common.loading')}</div>
         ) : filtered.length === 0 ? (
-          <div className="text-sm text-slate-500">Nema otvorenih dugovanja.</div>
+          <div className="text-sm text-slate-500">{t('debtors.noOpenDebts')}</div>
         ) : (
           <div className="grid gap-2">
             {filtered.map((d) => {
@@ -92,26 +114,34 @@ export default function Debtors({ embedded = false }: Props) {
               const stylistName = d.stylistProfile?.user
                 ? `${d.stylistProfile.user.firstName ?? ''} ${d.stylistProfile.user.lastName ?? ''}`.trim() || d.stylistProfile.user.username
                 : '—'
-              const ref =
-                d.reservation?.publicReferenceCode
-                  ? `Rezervacija: ${d.reservation.publicReferenceCode}`
-                  : d.dailyLogEntry?.id
-                    ? `Daily log: ${d.dailyLogEntry.date.slice(0, 10)}`
-                    : d.manualEntry?.id
-                      ? `Manual entry: ${d.manualEntry.date.slice(0, 10)}`
-                      : '—'
+              const reference = d.reservation?.publicReferenceCode
+                ? t('debtors.reservationReference', { reference: d.reservation.publicReferenceCode })
+                : d.dailyLogEntry?.id
+                  ? t('debtors.dailyLogReference', { date: formatDate(d.dailyLogEntry.date) })
+                  : d.manualEntry?.id
+                    ? t('debtors.manualEntryReference', { date: formatDate(d.manualEntry.date) })
+                    : '—'
               return (
-                <div key={d.id} className="rounded-md border border-slate-200 dark:border-slate-800 p-3 flex items-start justify-between gap-3">
+                <div
+                  key={d.id}
+                  className="flex items-start justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800"
+                >
                   <div className="min-w-0">
-                    <div className="font-semibold text-slate-900 dark:text-slate-50 truncate">{clientName}</div>
-                    <div className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
-                      <span className="font-semibold">Stilist:</span> {stylistName}
+                    <div className="truncate font-semibold text-slate-900 dark:text-slate-50">
+                      {clientName}
+                    </div>
+                    <div className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
+                      <span className="font-semibold">{t('debtors.stylist')}:</span> {stylistName}
                       {d.service?.name ? ` · ${d.service.name}` : ''}
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">{ref} · {d.createdAt.slice(0, 10)}</div>
+                    <div className="mt-0.5 text-xs text-slate-500">
+                      {reference} · {formatDate(d.createdAt)}
+                    </div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="font-semibold tabular-nums text-slate-900 dark:text-slate-50">{formatMoney(d.amount)}</div>
+                    <div className="font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+                      {formatLocalizedAmount(Number(d.amount), i18n.language)}
+                    </div>
                   </div>
                 </div>
               )
@@ -122,4 +152,3 @@ export default function Debtors({ embedded = false }: Props) {
     </div>
   )
 }
-
