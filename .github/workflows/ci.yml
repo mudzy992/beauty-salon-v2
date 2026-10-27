@@ -229,6 +229,9 @@ jobs:
       - name: Test localized admin debtors page
         working-directory: frontend
         run: npm run test:debtors-i18n
+      - name: Test localized admin analytics page
+        working-directory: frontend
+        run: npm run test:admin-analytics-i18n
       - name: Test localized stylist analytics page
         working-directory: frontend
         run: npm run test:stylist-analytics-i18n
