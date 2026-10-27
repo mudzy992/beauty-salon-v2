@@ -58,6 +58,7 @@
     "test:admin-settings-site-home-i18n": "node --test src/features/settings/admin-settings-site-home-i18n.test.mjs",
     "test:admin-settings-site-contact-i18n": "node --test src/features/settings/admin-settings-site-contact-i18n.test.mjs",
     "test:admin-settings-site-pages-i18n": "node --test src/features/settings/admin-settings-site-pages-i18n.test.mjs",
+    "test:admin-settings-site-modules-i18n": "node --test src/features/settings/admin-settings-site-modules-i18n.test.mjs",
     "test:temporary-user-credentials": "node --test src/features/users/temporary-user-credentials.test.mjs"
   },
   "dependencies": {

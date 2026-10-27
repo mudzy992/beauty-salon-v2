@@ -177,13 +177,15 @@
         "maintenance": "Režim održavanja",
         "home": "Sekcije na početnoj",
         "contact": "Kontakt i društvene mreže",
-        "pages": "Stranice i prijava"
+        "pages": "Stranice i prijava",
+        "publicModules": "Javni moduli"
       },
       "groupDescriptions": {
         "maintenance": "Posjetioci javnog sajta i mobilne početne vide poruku o održavanju. Administracija i prijava ostaju dostupne.",
         "home": "Hero sekcija (web CTA je odvojen od mobilnog), o nama, istaknuti sadržaj i donji CTA blok.",
         "contact": "Radno vrijeme se podešava u odjeljku Salon, ne ovdje.",
-        "pages": "Naslovni sadržaj usluga, galerije, bloga i rezervacije te vizuali za prijavu i registraciju."
+        "pages": "Naslovni sadržaj usluga, galerije, bloga i rezervacije te vizuali za prijavu i registraciju.",
+        "publicModules": "Sakrijte blog, galeriju ili recenzije na webu i u mobilnoj aplikaciji."
       },
       "fields": {
         "maintenanceMode": "Režim održavanja",
@@ -235,7 +237,10 @@
         "signInSubtitle": "Prijava — podnaslov",
         "registrationImage": "Registracija — slika",
         "registrationTitle": "Registracija — naslov",
-        "registrationSubtitle": "Registracija — podnaslov"
+        "registrationSubtitle": "Registracija — podnaslov",
+        "showBlog": "Prikaži blog",
+        "showGallery": "Prikaži galeriju",
+        "showReviews": "Prikaži recenzije"
       },
       "placeholders": {
         "webHeroCtaText": "Rezervišite termin"

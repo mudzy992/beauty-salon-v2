@@ -180,13 +180,15 @@
         "maintenance": "Maintenance mode",
         "home": "Homepage sections",
         "contact": "Contact and social media",
-        "pages": "Pages and sign-in"
+        "pages": "Pages and sign-in",
+        "publicModules": "Public modules"
       },
       "groupDescriptions": {
         "maintenance": "Visitors to the public website and mobile home see the maintenance message. Admin and sign-in remain available.",
         "home": "Hero section (the website CTA is separate from mobile), about content, highlights and the bottom CTA block.",
         "contact": "Business hours are configured under Salon settings, not here.",
-        "pages": "Hero content for services, gallery, blog and reservations, plus sign-in and registration visuals."
+        "pages": "Hero content for services, gallery, blog and reservations, plus sign-in and registration visuals.",
+        "publicModules": "Hide the blog, gallery or reviews on the website and mobile app."
       },
       "fields": {
         "maintenanceMode": "Maintenance mode",
@@ -238,7 +240,10 @@
         "signInSubtitle": "Sign-in — subtitle",
         "registrationImage": "Registration — image",
         "registrationTitle": "Registration — title",
-        "registrationSubtitle": "Registration — subtitle"
+        "registrationSubtitle": "Registration — subtitle",
+        "showBlog": "Show blog",
+        "showGallery": "Show gallery",
+        "showReviews": "Show reviews"
       },
       "placeholders": {
         "webHeroCtaText": "Book an appointment"

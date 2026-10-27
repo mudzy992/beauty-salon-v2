@@ -20,6 +20,10 @@ const SITE_GROUP_COPY_KEYS = {
     label: 'adminSettings.site.groups.pages',
     description: 'adminSettings.site.groupDescriptions.pages',
   },
+  public_feature_: {
+    label: 'adminSettings.site.groups.publicModules',
+    description: 'adminSettings.site.groupDescriptions.publicModules',
+  },
 } as const
 
 const SITE_FIELD_COPY_KEYS = {
@@ -73,6 +77,9 @@ const SITE_FIELD_COPY_KEYS = {
   public_register_image: 'adminSettings.site.fields.registrationImage',
   public_register_title: 'adminSettings.site.fields.registrationTitle',
   public_register_subtitle: 'adminSettings.site.fields.registrationSubtitle',
+  public_feature_blog: 'adminSettings.site.fields.showBlog',
+  public_feature_gallery: 'adminSettings.site.fields.showGallery',
+  public_feature_reviews: 'adminSettings.site.fields.showReviews',
 } as const
 
 const SITE_PLACEHOLDER_COPY_KEYS = {
