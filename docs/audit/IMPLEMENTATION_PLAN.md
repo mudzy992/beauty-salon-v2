@@ -247,7 +247,7 @@ Tekst/policy scope je implementiran u izvoru i testiran samo kroz synthetic/mock
 - Add frontend unit/component + Playwright browser smoke; mobile Jest/Expo component tests and device/simulator smoke. (`TEST-01`)
 - Add security contract tests for each P0/P1 response; DB-backed two-client concurrency suite; a11y and i18n checks; upload/HTML fuzz corpus.
 - CI should be branch-scoped/manual as appropriate, least permissions, read-only, no secret/deploy environment, no `pull_request` to `master`, no auto merge/deploy; upload test/build artifacts only if useful and safe.
-- **SCM-01 progress (2026-10-27):** Lockfile-only patch updates resolve frontend/mobile Axios to 1.21.0 and backend `proxy-addr` to 2.0.8; production audit counts fall from 39 to 36 with the backend critical cleared and one mobile critical (`shell-quote`) remaining. Frontend build, mobile typecheck/multipart test and clean installs pass. No blanket force upgrade; Expo/React Native/Router major-SDK compatibility remains a separately reviewed slice. (`SCM-01`)
+- **SCM-01 progress (2026-10-27):** Lockfile-only patch updates resolve frontend/mobile Axios to 1.21.0, backend `proxy-addr` to 2.0.8 and mobile `shell-quote` to 1.12.0; the current audit count is 35 with no critical advisories. Frontend build, mobile typecheck/multipart test and clean installs pass. No blanket force upgrade; remaining Expo/React Native/Router compatibility review is separate. (`SCM-01`)
 - **Acceptance:** clean branch CI passes from lockfiles; code generation/migration reproducible from empty DB; tests cover security/finance/booking; CI has no deploy/SSH credentials.
 
 ## 9. Faza 7 — odobreni Socket.IO Redis adapter i uslovne dodatne namjene
