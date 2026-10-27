@@ -4,6 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { extname, join } from 'path';
 import { AppModule } from './app.module';
 import { resolveCorsRuntimeConfig } from './config/cors-runtime-config';
+import { apiSecurityHeaders } from './common/middleware/api-security-headers';
 import { RedisIoAdapter } from './events/redis-io.adapter';
 import { resolveRedisTlsOptions } from './common/redis/redis-tls-options';
 import { resolveSocketIoRuntimeConfig } from './events/socket-io-runtime-config';
@@ -14,6 +15,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   // Trust the single reverse-proxy hop provided by the approved Coolify topology.
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  app.use(apiSecurityHeaders);
   const socketIoRuntime = resolveSocketIoRuntimeConfig(process.env);
   if (socketIoRuntime.multiInstance && socketIoRuntime.redisUrl) {
     const redisTlsOptions = resolveRedisTlsOptions({
