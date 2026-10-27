@@ -294,6 +294,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
     const configService = {
       get: (key: string, defaultValue?: string) =>
         configValues[key] ?? defaultValue,
+      getOrThrow: (key: string) => {
+        const value = configValues[key];
+        if (value === undefined) throw new Error(`Missing test config: ${key}`);
+        return value;
+      },
     };
     const moduleRef = await Test.createTestingModule({
       imports: [

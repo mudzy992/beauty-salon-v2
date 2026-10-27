@@ -158,6 +158,11 @@ describe('DB-backed Socket.IO authorization revocation', () => {
     const configService = {
       get: (key: string, defaultValue?: string) =>
         configValues[key] ?? defaultValue,
+      getOrThrow: (key: string) => {
+        const value = configValues[key];
+        if (value === undefined) throw new Error(`Missing test config: ${key}`);
+        return value;
+      },
     };
     const moduleRef = await Test.createTestingModule({
       imports: [JwtModule.register({ secret: TEST_JWT_SECRET })],
