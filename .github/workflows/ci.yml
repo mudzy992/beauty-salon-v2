@@ -247,6 +247,9 @@ jobs:
       - name: Test localized gender onboarding
         working-directory: frontend
         run: npm run test:onboarding-gender-i18n
+      - name: Test localized email-verification onboarding
+        working-directory: frontend
+        run: npm run test:onboarding-email-i18n
       - name: Test localized stylist analytics page
         working-directory: frontend
         run: npm run test:stylist-analytics-i18n
