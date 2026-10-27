@@ -55,6 +55,7 @@
     "test:admin-settings-seo-i18n": "node --test src/features/settings/admin-settings-seo-i18n.test.mjs",
     "test:admin-settings-operations-appearance-i18n": "node --test src/features/settings/admin-settings-operations-appearance-i18n.test.mjs",
     "test:admin-settings-site-maintenance-i18n": "node --test src/features/settings/admin-settings-site-maintenance-i18n.test.mjs",
+    "test:admin-settings-site-home-i18n": "node --test src/features/settings/admin-settings-site-home-i18n.test.mjs",
     "test:temporary-user-credentials": "node --test src/features/users/temporary-user-credentials.test.mjs"
   },
   "dependencies": {

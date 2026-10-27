@@ -177,14 +177,35 @@
       "title": "Settings — Site",
       "description": "Public website content, modules and comments. Email and loyalty settings are on their respective pages.",
       "groups": {
-        "maintenance": "Maintenance mode"
+        "maintenance": "Maintenance mode",
+        "home": "Homepage sections"
       },
       "groupDescriptions": {
-        "maintenance": "Visitors to the public website and mobile home see the maintenance message. Admin and sign-in remain available."
+        "maintenance": "Visitors to the public website and mobile home see the maintenance message. Admin and sign-in remain available.",
+        "home": "Hero section (the website CTA is separate from mobile), about content, highlights and the bottom CTA block."
       },
       "fields": {
         "maintenanceMode": "Maintenance mode",
-        "maintenanceMessage": "Visitor-facing message"
+        "maintenanceMessage": "Visitor-facing message",
+        "heroTitle": "Website hero title",
+        "heroSubtitle": "Hero subtitle",
+        "heroImage": "Hero image",
+        "webHeroCtaText": "Website hero button text",
+        "mobileHeroCtaText": "Mobile home hero button text",
+        "bottomCtaTitle": "Bottom CTA block title",
+        "bottomCtaSubtitle": "Bottom CTA block subtitle",
+        "aboutTitle": "About section title",
+        "aboutText": "About section text",
+        "aboutImage": "About section image",
+        "highlight1Title": "Highlight block 1 title",
+        "highlight1Text": "Highlight block 1 text",
+        "highlight2Title": "Highlight block 2 title",
+        "highlight2Text": "Highlight block 2 text",
+        "highlight3Title": "Highlight block 3 title",
+        "highlight3Text": "Highlight block 3 text"
+      },
+      "placeholders": {
+        "webHeroCtaText": "Book an appointment"
       }
     },
     "operations": {

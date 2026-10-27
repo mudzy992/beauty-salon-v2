@@ -174,14 +174,35 @@
       "title": "Postavke — Sajt",
       "description": "Sadržaj javnog weba, moduli i komentari. Email i loyalty su na svojim stranicama.",
       "groups": {
-        "maintenance": "Režim održavanja"
+        "maintenance": "Režim održavanja",
+        "home": "Sekcije na početnoj"
       },
       "groupDescriptions": {
-        "maintenance": "Posjetioci javnog sajta i mobilne početne vide poruku o održavanju. Administracija i prijava ostaju dostupne."
+        "maintenance": "Posjetioci javnog sajta i mobilne početne vide poruku o održavanju. Administracija i prijava ostaju dostupne.",
+        "home": "Hero sekcija (web CTA je odvojen od mobilnog), o nama, istaknuti sadržaj i donji CTA blok."
       },
       "fields": {
         "maintenanceMode": "Režim održavanja",
-        "maintenanceMessage": "Poruka za posjetioce"
+        "maintenanceMessage": "Poruka za posjetioce",
+        "heroTitle": "Hero naslov (web)",
+        "heroSubtitle": "Hero podnaslov",
+        "heroImage": "Hero slika",
+        "webHeroCtaText": "Tekst CTA dugmeta na webu",
+        "mobileHeroCtaText": "Tekst CTA dugmeta na mobilnoj početnoj",
+        "bottomCtaTitle": "Naslov donjeg CTA bloka",
+        "bottomCtaSubtitle": "Podnaslov donjeg CTA bloka",
+        "aboutTitle": "O nama — naslov",
+        "aboutText": "O nama — tekst",
+        "aboutImage": "O nama — slika",
+        "highlight1Title": "Istaknuti blok 1 — naslov",
+        "highlight1Text": "Istaknuti blok 1 — tekst",
+        "highlight2Title": "Istaknuti blok 2 — naslov",
+        "highlight2Text": "Istaknuti blok 2 — tekst",
+        "highlight3Title": "Istaknuti blok 3 — naslov",
+        "highlight3Text": "Istaknuti blok 3 — tekst"
+      },
+      "placeholders": {
+        "webHeroCtaText": "Rezervišite termin"
       }
     },
     "operations": {

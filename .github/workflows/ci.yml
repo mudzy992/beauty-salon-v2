@@ -260,6 +260,9 @@ jobs:
       - name: Test localized admin site maintenance settings
         working-directory: frontend
         run: npm run test:admin-settings-site-maintenance-i18n
+      - name: Test localized admin homepage settings
+        working-directory: frontend
+        run: npm run test:admin-settings-site-home-i18n
       - name: Test one-time admin-created credentials
         working-directory: frontend
         run: npm run test:temporary-user-credentials
