@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { formatLocalizedDateTime } from '../i18n/locale-utils.mjs'
 import { Bell, Check, Loader2 } from 'lucide-react'
 import api from '../api/client'
 import { useSocketEvent } from '../context/SocketContext'
@@ -36,7 +37,7 @@ const channelBadgeVariant = (channel: string): 'secondary' | 'brand' | 'outline'
 }
 
 export default function Notifications() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { error, success } = useAppToast()
 
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -81,7 +82,7 @@ export default function Notifications() {
       await api.patch(`/api/notifications/${id}/read`)
       loadNotifications()
     } catch {
-      error('Greška')
+      error(t('notifications.markReadFailed'))
     }
   }
 
@@ -89,10 +90,10 @@ export default function Notifications() {
     setSaving(true)
     try {
       await api.post('/api/notifications/preferences', { type, pushEnabled, emailEnabled })
-      success('Preference sačuvane')
+      success(t('notifications.preferencesSaved'))
       loadPreferences()
     } catch {
-      error('Greška')
+      error(t('notifications.preferencesSaveFailed'))
     } finally {
       setSaving(false)
     }
@@ -108,13 +109,57 @@ export default function Notifications() {
     'GENERAL',
   ]
 
+  const getNotificationTypeLabel = (type: string) => {
+    switch (type) {
+      case 'RESERVATION_NEW':
+      case 'reservation_new':
+        return t('notifications.types.reservationNew')
+      case 'RESERVATION_CONFIRMED':
+      case 'reservation_confirmed':
+        return t('notifications.types.reservationConfirmed')
+      case 'RESERVATION_CANCELLED':
+      case 'reservation_cancelled':
+        return t('notifications.types.reservationCancelled')
+      case 'RESERVATION_REMINDER':
+      case 'reservation_reminder':
+        return t('notifications.types.reservationReminder')
+      case 'RESERVATION_RESCHEDULE':
+      case 'reservation_reschedule':
+        return t('notifications.types.reservationReschedule')
+      case 'CLIENT_DEBT':
+      case 'client_debt':
+        return t('notifications.types.clientDebt')
+      case 'PAYMENT_RECEIPT':
+      case 'payment_receipt':
+        return t('notifications.types.paymentReceipt')
+      case 'HOLIDAY':
+      case 'holiday':
+        return t('notifications.types.holiday')
+      case 'REVIEW_NEW':
+      case 'review_new':
+        return t('notifications.types.reviewNew')
+      case 'GENERAL':
+      case 'general':
+        return t('notifications.types.general')
+      default:
+        return type.replace(/_/g, ' ')
+    }
+  }
+
+  const getChannelLabel = (channel: string) => {
+    if (channel === 'PUSH') return t('notifications.channelPush')
+    if (channel === 'EMAIL') return t('notifications.channelEmail')
+    if (channel === 'BOTH') return t('notifications.channelBoth')
+    return channel
+  }
+
   const getExistingPref = (type: string) => preferences.find((p) => p.type === type)
 
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.notifications')}</h1>
-        <Button asChild variant="outline" size="icon" aria-label="Email postavke" title="Email postavke">
+        <Button asChild variant="outline" size="icon" aria-label={t('nav.emailSettings')} title={t('nav.emailSettings')}>
           <RouterLink to="/admin/email-settings">
             <Bell className="h-4 w-4" />
           </RouterLink>
@@ -123,14 +168,14 @@ export default function Notifications() {
 
       <Tabs defaultValue="list">
         <TabsList>
-          <TabsTrigger value="list">Notifikacije</TabsTrigger>
-          <TabsTrigger value="prefs">Preference</TabsTrigger>
+          <TabsTrigger value="list">{t('notifications.list')}</TabsTrigger>
+          <TabsTrigger value="prefs">{t('notifications.preferences')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="mt-4">
           <div className="mb-4 flex max-w-xs items-center justify-between gap-3">
             <span className="text-sm text-slate-700 dark:text-slate-200" id="unread-only-label">
-              Samo nepročitane
+              {t('notifications.unreadOnly')}
             </span>
             <Switch
               checked={showUnreadOnly}
@@ -141,7 +186,7 @@ export default function Notifications() {
 
           {loading ? (
             <div className="flex justify-center py-8 text-slate-500">
-              <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+              <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />
             </div>
           ) : notifications.length === 0 ? (
             <p className="text-sm text-slate-500">{t('common.noData')}</p>
@@ -161,14 +206,14 @@ export default function Notifications() {
                       <div className="mb-1 flex flex-wrap items-center gap-2">
                         <p className="text-sm font-bold text-slate-900 dark:text-slate-50">{n.title}</p>
                         <Badge variant={channelBadgeVariant(n.channel)} className="text-[10px]">
-                          {n.channel}
+                          {getChannelLabel(n.channel)}
                         </Badge>
                         <Badge variant="outline" className="text-[10px]">
-                          {n.type}
+                          {getNotificationTypeLabel(n.type)}
                         </Badge>
                       </div>
                       <p className="text-sm text-slate-700 dark:text-slate-200">{n.body}</p>
-                      <p className="mt-1 text-xs text-slate-500">{new Date(n.sentAt).toLocaleString('bs-BA')}</p>
+                      <p className="mt-1 text-xs text-slate-500">{formatLocalizedDateTime(n.sentAt, i18n.language)}</p>
                     </div>
                     {!n.isRead ? (
                       <Button
@@ -176,7 +221,7 @@ export default function Notifications() {
                         size="icon"
                         variant="ghost"
                         className="shrink-0 text-emerald-600 hover:text-emerald-700"
-                        aria-label="Označi kao pročitano"
+                        aria-label={t('notifications.markAsRead')}
                         onClick={() => void markAsRead(n.id)}
                       >
                         <Check className="h-4 w-4" />
@@ -191,11 +236,11 @@ export default function Notifications() {
 
         <TabsContent value="prefs" className="mt-4">
           <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
-            Konfiguriši kako želiš primati notifikacije za svaki tip.
+            {t('notifications.preferencesDescription')}
           </p>
           {prefLoading ? (
             <div className="flex justify-center py-8 text-slate-500">
-              <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+              <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />
             </div>
           ) : (
             <Card className="overflow-hidden">
@@ -203,9 +248,9 @@ export default function Notifications() {
                 <table className="app-table w-full border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 text-left dark:border-slate-800">
-                      <th className="p-3 font-medium">Tip notifikacije</th>
-                      <th className="p-3 font-medium">Push</th>
-                      <th className="p-3 font-medium">Email</th>
+                      <th className="p-3 font-medium">{t('notifications.notificationType')}</th>
+                      <th className="p-3 font-medium">{t('notifications.push')}</th>
+                      <th className="p-3 font-medium">{t('notifications.email')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -216,14 +261,14 @@ export default function Notifications() {
                       return (
                         <tr key={type} className="border-b border-slate-100 dark:border-slate-800/80">
                           <td className="p-3 font-medium text-slate-800 dark:text-slate-100">
-                            {type.replace(/_/g, ' ')}
+                            {getNotificationTypeLabel(type)}
                           </td>
                           <td className="p-3">
                             <Switch
                               checked={pushEnabled}
                               onCheckedChange={(checked) => void savePreference(type, checked, emailEnabled)}
                               disabled={saving}
-                              aria-label={`Push za ${type}`}
+                              aria-label={t('notifications.pushPreferenceLabel', { type: getNotificationTypeLabel(type) })}
                             />
                           </td>
                           <td className="p-3">
@@ -231,7 +276,7 @@ export default function Notifications() {
                               checked={emailEnabled}
                               onCheckedChange={(checked) => void savePreference(type, pushEnabled, checked)}
                               disabled={saving}
-                              aria-label={`Email za ${type}`}
+                              aria-label={t('notifications.emailPreferenceLabel', { type: getNotificationTypeLabel(type) })}
                             />
                           </td>
                         </tr>

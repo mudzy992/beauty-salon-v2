@@ -1370,7 +1370,30 @@
     "unreadOnly": "Samo nepročitane",
     "preferences": "Preference",
     "push": "Push",
-    "email": "Email"
+    "email": "Email",
+    "list": "Obavijesti",
+    "preferencesDescription": "Odaberite kako želite primati obavijesti za svaku vrstu.",
+    "notificationType": "Tip obavijesti",
+    "channelPush": "Push",
+    "channelEmail": "Email",
+    "channelBoth": "Push i email",
+    "preferencesSaved": "Postavke obavijesti su sačuvane.",
+    "preferencesSaveFailed": "Postavke obavijesti nije bilo moguće sačuvati.",
+    "markReadFailed": "Obavijest nije bilo moguće označiti kao pročitanu.",
+    "pushPreferenceLabel": "Push obavijesti za {{type}}",
+    "emailPreferenceLabel": "Email obavijesti za {{type}}",
+    "types": {
+      "reservationNew": "Nova rezervacija",
+      "reservationConfirmed": "Rezervacija potvrđena",
+      "reservationCancelled": "Rezervacija otkazana",
+      "reservationReminder": "Podsjetnik za rezervaciju",
+      "reservationReschedule": "Promjena termina rezervacije",
+      "holiday": "Praznik",
+      "clientDebt": "Dug klijenta",
+      "paymentReceipt": "Potvrda o uplati",
+      "reviewNew": "Nova recenzija",
+      "general": "Opća obavijest"
+    }
   },
   "blog": {
     "newPost": "Novi Članak",

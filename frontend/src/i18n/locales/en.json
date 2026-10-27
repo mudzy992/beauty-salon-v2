@@ -1373,7 +1373,30 @@
     "unreadOnly": "Unread only",
     "preferences": "Preferences",
     "push": "Push notifications",
-    "email": "Email"
+    "email": "Email",
+    "list": "Notifications",
+    "preferencesDescription": "Choose how you want to receive each type of notification.",
+    "notificationType": "Notification type",
+    "channelPush": "Push",
+    "channelEmail": "Email",
+    "channelBoth": "Push and email",
+    "preferencesSaved": "Notification preferences saved.",
+    "preferencesSaveFailed": "Could not save notification preferences.",
+    "markReadFailed": "Could not mark the notification as read.",
+    "pushPreferenceLabel": "Push notifications for {{type}}",
+    "emailPreferenceLabel": "Email notifications for {{type}}",
+    "types": {
+      "reservationNew": "New reservation",
+      "reservationConfirmed": "Reservation confirmed",
+      "reservationCancelled": "Reservation cancelled",
+      "reservationReminder": "Reservation reminder",
+      "reservationReschedule": "Reservation rescheduled",
+      "holiday": "Holiday",
+      "clientDebt": "Client debt",
+      "paymentReceipt": "Payment receipt",
+      "reviewNew": "New review",
+      "general": "General notification"
+    }
   },
   "blog": {
     "newPost": "New post",

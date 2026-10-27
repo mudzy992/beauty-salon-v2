@@ -47,7 +47,8 @@
     "test:email-settings-campaigns-i18n": "node --test src/features/email-settings/email-settings-campaigns-i18n.test.mjs",
     "test:admin-analytics-i18n": "node --test src/features/analytics/admin-analytics-i18n.test.mjs",
     "test:admin-loyalty-i18n": "node --test src/features/loyalty/admin-loyalty-i18n.test.mjs",
-    "test:admin-reviews-i18n": "node --test src/features/reviews/admin-reviews-i18n.test.mjs"
+    "test:admin-reviews-i18n": "node --test src/features/reviews/admin-reviews-i18n.test.mjs",
+    "test:admin-notifications-i18n": "node --test src/features/notifications/notifications-i18n.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
