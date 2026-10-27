@@ -1350,7 +1350,17 @@
     "comment": "Comment",
     "approved": "Approved",
     "pending": "Pending",
-    "rejected": "Rejected"
+    "rejected": "Rejected",
+    "allReviews": "All reviews",
+    "client": "Client",
+    "service": "Service",
+    "stylist": "Stylist",
+    "detailsTitle": "Review details",
+    "notRated": "Not rated",
+    "approvedSuccess": "Review approved.",
+    "deletedSuccess": "Review deleted.",
+    "actionFailed": "Could not complete the action.",
+    "deleteConfirm": "Delete this review?"
   },
   "gallery": {
     "newCategory": "New category",

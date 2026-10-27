@@ -1347,7 +1347,17 @@
     "comment": "Komentar",
     "approved": "Odobreno",
     "pending": "Na čekanju",
-    "rejected": "Odbijeno"
+    "rejected": "Odbijeno",
+    "allReviews": "Sve recenzije",
+    "client": "Klijent",
+    "service": "Servis",
+    "stylist": "Stilista",
+    "detailsTitle": "Detalji recenzije",
+    "notRated": "Nije ocijenjen",
+    "approvedSuccess": "Recenzija odobrena.",
+    "deletedSuccess": "Recenzija obrisana.",
+    "actionFailed": "Radnju nije bilo moguće izvršiti.",
+    "deleteConfirm": "Obrisati recenziju?"
   },
   "gallery": {
     "newCategory": "Nova Kategorija",
