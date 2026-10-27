@@ -88,6 +88,31 @@ test('reservation detail drawer copy has matching Bosnian and English translatio
   }
 })
 
+test('reservation creation drawer copy has matching Bosnian and English translations', () => {
+  const createKeys = [...scheduler.matchAll(/\bt\('([^']+)'/g)]
+    .map(([, key]) => key)
+    .filter((key) => key.startsWith('reservations.calendar.create.'))
+  const expectedKeys = [
+    'selectClientFirst', 'title', 'subtitle', 'bookingMode', 'standardTitle',
+    'standardDescription', 'directTitle', 'directDescription', 'stylist', 'client',
+    'clientSearchPlaceholder', 'loadingClients', 'selectedClient', 'service',
+    'serviceGenderHint', 'selectClientPlaceholder', 'serviceSearchPlaceholder',
+    'removeService', 'clientNote', 'submit',
+  ].map((key) => `reservations.calendar.create.${key}`)
+
+  for (const key of expectedKeys) {
+    assert.ok(createKeys.includes(key), `Reservation creation drawer does not use ${key}`)
+    for (const resource of locales) {
+      assert.ok(hasLocaleKey(resource, key), `Missing locale key: ${key}`)
+    }
+  }
+
+  assert.match(scheduler, /bookingMode: 'STANDARD'/)
+  assert.match(scheduler, /bookingMode: 'STAFF_ADMIN_DIRECT'/)
+  assert.match(scheduler, /serviceIds: createDraft\.serviceIds\.map/)
+  assert.match(scheduler, /!createDraft\.clientId\.trim\(\)/)
+})
+
 test('calendar localization preserves reservation endpoints, requests and navigation', () => {
   assert.match(source, /api\.post\('\/api\/reservations\/admin', payload\)/)
   assert.match(source, /api\.patch\(`\/api\/reservations\/\$\{payload\.reservationId\}`/)

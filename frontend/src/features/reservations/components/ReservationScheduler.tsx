@@ -342,7 +342,7 @@ export const ReservationScheduler = (props: Props) => {
   const toggleServiceId = useCallback(
     (id: string) => {
       if (!createDraft.clientId) {
-        toast.warning('Prvo odaberite klijenta')
+        toast.warning(t('reservations.calendar.create.selectClientFirst'))
         return
       }
       setCreateDraft((prev) => {
@@ -352,7 +352,7 @@ export const ReservationScheduler = (props: Props) => {
       })
       setShowServiceDropdown(true)
     },
-    [createDraft.clientId, toast],
+    [createDraft.clientId, t, toast],
   )
 
   const selectedServices = useMemo(
@@ -919,13 +919,13 @@ export const ReservationScheduler = (props: Props) => {
               <div className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Nova rezervacija</p>
-                  <p className="text-xs text-slate-500">Kreiranje termina u ime klijenta (admin).</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('reservations.calendar.create.title')}</p>
+                  <p className="text-xs text-slate-500">{t('reservations.calendar.create.subtitle')}</p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>Način kreiranja</Label>
+                <Label>{t('reservations.calendar.create.bookingMode')}</Label>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <button
                     type="button"
@@ -938,9 +938,9 @@ export const ReservationScheduler = (props: Props) => {
                       setCreateDraft((p) => ({ ...p, bookingMode: 'STANDARD', stylistProfileId: '' }))
                     }
                   >
-                    <div className="font-semibold">Standard rezervacija</div>
+                    <div className="font-semibold">{t('reservations.calendar.create.standardTitle')}</div>
                     <div className="mt-1 text-xs opacity-80">
-                      Ide u inbox stilista i prolazi puni standardni tok.
+                      {t('reservations.calendar.create.standardDescription')}
                     </div>
                   </button>
                   <button
@@ -952,9 +952,9 @@ export const ReservationScheduler = (props: Props) => {
                     }
                     onClick={() => setCreateDraft((p) => ({ ...p, bookingMode: 'STAFF_ADMIN_DIRECT' }))}
                   >
-                    <div className="font-semibold">Direktna rezervacija</div>
+                    <div className="font-semibold">{t('reservations.calendar.create.directTitle')}</div>
                     <div className="mt-1 text-xs opacity-80">
-                      Odmah dodijeljena stilisti, bez potvrde dolaska klijenta.
+                      {t('reservations.calendar.create.directDescription')}
                     </div>
                   </button>
                 </div>
@@ -962,7 +962,7 @@ export const ReservationScheduler = (props: Props) => {
 
               {createDraft.bookingMode === 'STAFF_ADMIN_DIRECT' ? (
                 <div className="space-y-2">
-                  <Label>Stilist</Label>
+                  <Label>{t('reservations.calendar.create.stylist')}</Label>
                   <div className="grid grid-cols-1 gap-2">
                     {props.stylists.map((stylist) => {
                       const label = stylistName(stylist)
@@ -988,16 +988,16 @@ export const ReservationScheduler = (props: Props) => {
               ) : null}
 
               <div className="space-y-2">
-                <Label>Klijent</Label>
+                <Label>{t('reservations.calendar.create.client')}</Label>
                 <Input
-                  placeholder="Pretraži klijente (ime, prezime, username)..."
+                  placeholder={t('reservations.calendar.create.clientSearchPlaceholder')}
                   value={createDraft.clientSearch}
                   onChange={(e) => setCreateDraft((p) => ({ ...p, clientSearch: e.target.value, clientId: '' }))}
                 />
-                {clientsLoading ? <p className="text-xs text-slate-500">Učitavanje...</p> : null}
+                {clientsLoading ? <p className="text-xs text-slate-500">{t('reservations.calendar.create.loadingClients')}</p> : null}
                 {createDraft.clientId ? (
                   <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                    Odabrano: <span className="font-semibold">{createDraft.clientId}</span>
+                    {t('reservations.calendar.create.selectedClient')}: <span className="font-semibold">{createDraft.clientId}</span>
                   </p>
                 ) : null}
                 {clients.length > 0 ? (
@@ -1042,16 +1042,20 @@ export const ReservationScheduler = (props: Props) => {
               </div>
 
               <div className="space-y-2">
-                <Label>Servis</Label>
+                <Label>{t('reservations.calendar.create.service')}</Label>
                 {!createDraft.clientId ? (
-                  <p className="text-xs text-slate-500">Prvo odaberite klijenta da bi se prikazali servisi po spolu.</p>
+                  <p className="text-xs text-slate-500">{t('reservations.calendar.create.serviceGenderHint')}</p>
                 ) : null}
                 <div ref={serviceDropdownRef} className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <Input
                     className="pl-9"
                     disabled={!createDraft.clientId}
-                    placeholder={!createDraft.clientId ? 'Odaberite klijenta...' : 'Pretraži servis...'}
+                    placeholder={
+                      !createDraft.clientId
+                        ? t('reservations.calendar.create.selectClientPlaceholder')
+                        : t('reservations.calendar.create.serviceSearchPlaceholder')
+                    }
                     value={createDraft.serviceSearch}
                     onChange={(e) => {
                       const v = e.target.value
@@ -1094,7 +1098,7 @@ export const ReservationScheduler = (props: Props) => {
                           <div className="text-xs text-slate-500">{Number(s.price ?? 0).toFixed(2)} KM</div>
                         </div>
                         <Button type="button" variant="outline" size="sm" onClick={() => toggleServiceId(s.id)}>
-                          Ukloni
+                          {t('reservations.calendar.create.removeService')}
                         </Button>
                       </div>
                     ))}
@@ -1104,7 +1108,7 @@ export const ReservationScheduler = (props: Props) => {
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div className="space-y-2">
-                  <Label>Datum</Label>
+                  <Label>{t('reservations.calendar.details.date')}</Label>
                   <Input
                     type="date"
                     value={createDraft.reservationDate}
@@ -1112,7 +1116,7 @@ export const ReservationScheduler = (props: Props) => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Početak</Label>
+                  <Label>{t('reservations.calendar.details.startTime')}</Label>
                   <Input
                     type="time"
                     value={createDraft.startTime}
@@ -1120,7 +1124,7 @@ export const ReservationScheduler = (props: Props) => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Kraj</Label>
+                  <Label>{t('reservations.calendar.details.endTime')}</Label>
                   <Input
                     type="time"
                     value={createDraft.endTime}
@@ -1130,7 +1134,7 @@ export const ReservationScheduler = (props: Props) => {
               </div>
 
               <div className="space-y-2">
-                <Label>Napomena (opciono)</Label>
+                <Label>{t('reservations.calendar.create.clientNote')}</Label>
                 <Textarea
                   value={createDraft.clientNotes}
                   onChange={(e) => setCreateDraft((p) => ({ ...p, clientNotes: e.target.value }))}
@@ -1140,7 +1144,7 @@ export const ReservationScheduler = (props: Props) => {
 
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="ghost" onClick={() => setDrawerOpen(false)}>
-                  Zatvori
+                  {t('reservations.calendar.details.close')}
                 </Button>
                 <Button
                   type="button"
@@ -1161,7 +1165,7 @@ export const ReservationScheduler = (props: Props) => {
                       })
                       setDrawerOpen(false)
                     } catch (err) {
-                      toast.error(getErrorMessage(err, 'Greška pri kreiranju rezervacije'))
+                      toast.error(getErrorMessage(err, t('reservations.calendar.createError')))
                     }
                   }}
                   disabled={
@@ -1174,7 +1178,7 @@ export const ReservationScheduler = (props: Props) => {
                     !createDraft.endTime
                   }
                 >
-                  Kreiraj
+                  {t('reservations.calendar.create.submit')}
                 </Button>
               </div>
               </div>

@@ -1137,6 +1137,28 @@
         "cancelError": "Greška pri otkazivanju",
         "cancelling": "Otkazivanje...",
         "cancelAction": "Otkaži"
+      },
+      "create": {
+        "selectClientFirst": "Prvo odaberite klijenta.",
+        "title": "Nova rezervacija",
+        "subtitle": "Kreiranje termina u ime klijenta (admin).",
+        "bookingMode": "Način kreiranja",
+        "standardTitle": "Standardna rezervacija",
+        "standardDescription": "Pojavljuje se u inboxu stiliste i prolazi puni standardni tok.",
+        "directTitle": "Direktna rezervacija",
+        "directDescription": "Odmah se dodjeljuje stilisti, bez potvrde dolaska klijenta.",
+        "stylist": "Stilist",
+        "client": "Klijent",
+        "clientSearchPlaceholder": "Pretraži klijente po imenu, prezimenu ili korisničkom imenu...",
+        "loadingClients": "Učitavanje...",
+        "selectedClient": "Odabrano",
+        "service": "Usluga",
+        "serviceGenderHint": "Prvo odaberite klijenta da bi se usluge filtrirale prema spolu.",
+        "selectClientPlaceholder": "Prvo odaberite klijenta...",
+        "serviceSearchPlaceholder": "Pretraži usluge...",
+        "removeService": "Ukloni",
+        "clientNote": "Napomena klijenta (opcionalno)",
+        "submit": "Kreiraj rezervaciju"
       }
     },
     "statuses": {

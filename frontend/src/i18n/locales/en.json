@@ -1140,6 +1140,28 @@
         "cancelError": "Error cancelling reservation",
         "cancelling": "Cancelling...",
         "cancelAction": "Cancel reservation"
+      },
+      "create": {
+        "selectClientFirst": "Select a client first.",
+        "title": "New reservation",
+        "subtitle": "Create an appointment on behalf of a client (admin).",
+        "bookingMode": "Booking type",
+        "standardTitle": "Standard reservation",
+        "standardDescription": "It appears in the stylist's inbox and follows the full standard flow.",
+        "directTitle": "Direct reservation",
+        "directDescription": "Assigned to the stylist immediately, without client attendance confirmation.",
+        "stylist": "Stylist",
+        "client": "Client",
+        "clientSearchPlaceholder": "Search clients by first name, last name, or username...",
+        "loadingClients": "Loading...",
+        "selectedClient": "Selected",
+        "service": "Service",
+        "serviceGenderHint": "Select a client first to filter services by gender.",
+        "selectClientPlaceholder": "Select a client first...",
+        "serviceSearchPlaceholder": "Search services...",
+        "removeService": "Remove",
+        "clientNote": "Client note (optional)",
+        "submit": "Create reservation"
       }
     },
     "statuses": {
