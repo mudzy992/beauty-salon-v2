@@ -1,4 +1,5 @@
 import type { Reservation } from '../reservations/types'
+import { salonWallTimeToInstant } from '../../../../shared/business-date.mjs'
 
 const TERMINAL = [
   'COMPLETED',
@@ -8,11 +9,16 @@ const TERMINAL = [
 ] as const
 
 export const isReservationUpcoming = (r: Reservation): boolean => {
-  const end = new Date(r.reservationDate)
-  if (Number.isNaN(end.getTime())) return true
-  const [hh, mm] = (r.endTime ?? '23:59').split(':').map(Number)
-  end.setHours(hh || 0, mm || 0, 0, 0)
-  return end.getTime() >= Date.now()
+  const dateOnly = String(r.reservationDate ?? '').slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) return true
+  try {
+    return (
+      salonWallTimeToInstant(dateOnly, r.endTime ?? '23:59').getTime() >=
+      Date.now()
+    )
+  } catch {
+    return true
+  }
 }
 
 export const partitionClientReservations = (
@@ -27,11 +33,9 @@ export const partitionClientReservations = (
       past.push(r)
     }
   }
-  past.sort((a, b) => {
-    const da = new Date(a.reservationDate).getTime()
-    const db = new Date(b.reservationDate).getTime()
-    return db - da
-  })
+  past.sort((a, b) =>
+    b.reservationDate.slice(0, 10).localeCompare(a.reservationDate.slice(0, 10)),
+  )
   return { upcoming, past }
 }
 

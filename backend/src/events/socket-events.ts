@@ -4,6 +4,7 @@ export const SOCKET_EVENTS = {
   RESERVATION_CANCELLED: 'reservation:cancelled',
   RESERVATION_CONFIRMED: 'reservation:confirmed',
   RESERVATION_STYLIST_RESPONSE: 'reservation:stylist_response',
+  DAILY_LOG_UPDATED: 'daily-log:updated',
 
   NOTIFICATION_NEW: 'notification:new',
 

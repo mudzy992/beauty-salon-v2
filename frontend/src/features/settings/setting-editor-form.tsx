@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Check, Loader2, X } from 'lucide-react'
 import api from '../../api/client'
 import { Button } from '../../components/ui/button'
@@ -8,6 +9,7 @@ import { Textarea } from '../../components/ui/textarea'
 import { MediaImage } from '../../components/media-image'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import { getUploadUrl } from '../../utils/uploadUrl'
+import { isSupportedHexColor } from '../../utils/brand-colors.mjs'
 import type { AppSetting, SettingDef } from './types'
 
 export function SettingEditorForm({
@@ -21,6 +23,8 @@ export function SettingEditorForm({
   onSave: (key: string, value: string, desc: string) => Promise<void>
   onCancel: () => void
 }) {
+  const { t } = useTranslation()
+  const displayLabel = def.label ?? def.desc
   const { success, error } = useAppToast()
   const [value, setValue] = useState(setting?.value ?? '')
   const [saving, setSaving] = useState(false)
@@ -31,6 +35,15 @@ export function SettingEditorForm({
     setFile(null)
   }, [setting])
   const save = async () => {
+    if (
+      ['theme_primary', 'theme_accent'].includes(def.key) &&
+      value.trim() &&
+      !isSupportedHexColor(value)
+    ) {
+      error(t('adminSettings.editor.invalidHex'))
+      return
+    }
+
     setSaving(true)
     try {
       await onSave(def.key, value, def.desc)
@@ -44,23 +57,23 @@ export function SettingEditorForm({
     try {
       const formData = new FormData()
       formData.append('file', file)
-      formData.append('entity', 'branding')
-      const { data } = await api.post<{ pathOriginal: string }>('/api/uploads', formData, {
+      formData.append('assetKind', 'brand')
+      const { data } = await api.post<{ pathOriginal: string }>('/api/uploads/public', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       if (!data?.pathOriginal) throw new Error('fail')
       setValue(data.pathOriginal)
       setFile(null)
-      success('Uploadovan')
+      success(t('adminSettings.editor.uploadSuccess'))
     } catch {
-      error('Greška pri uploadu')
+      error(t('adminSettings.editor.uploadFailed'))
     } finally {
       setUploading(false)
     }
   }
   return (
     <Card className="border-2 border-brand-gold/40 p-4">
-      <p className="text-sm font-semibold text-brand-gold">{def.desc}</p>
+      <p className="text-sm font-semibold text-brand-gold-text">{displayLabel}</p>
       <p className="mb-3 font-mono text-xs text-slate-400">{def.key}</p>
       <div className="mb-3 space-y-2">
         {def.type === 'textarea' ? (
@@ -70,7 +83,7 @@ export function SettingEditorForm({
             className="h-10 w-full max-w-md rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            aria-label={def.desc}
+            aria-label={displayLabel}
           >
             {(def.options ?? []).map((o) => (
               <option key={o.value} value={o.value}>
@@ -95,7 +108,7 @@ export function SettingEditorForm({
               <div className="flex flex-wrap items-center gap-2">
                 <Input type="file" accept="image/*" className="max-w-xs" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
                 <Button type="button" size="sm" variant="outline" onClick={() => void upload()} disabled={!file || uploading}>
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Upload'}
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" aria-label={t('adminSettings.editor.uploading')} /> : t('adminSettings.editor.upload')}
                 </Button>
                 {value ? <MediaImage src={getUploadUrl(value)} alt="" className="max-h-24 w-auto rounded-md" /> : null}
               </div>
@@ -108,11 +121,11 @@ export function SettingEditorForm({
       <div className="flex justify-end gap-2">
         <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
           <X className="mr-2 h-4 w-4" />
-          Odustani
+          {t('common.cancel')}
         </Button>
         <Button type="button" size="sm" onClick={() => void save()} disabled={saving}>
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-          Sačuvaj
+          {t('common.save')}
         </Button>
       </div>
     </Card>

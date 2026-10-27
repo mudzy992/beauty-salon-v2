@@ -1,5 +1,7 @@
 import { ChangeEvent, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { isAxiosError } from 'axios'
 import { Loader2 } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
@@ -16,6 +18,8 @@ import {
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import { MediaImage } from '../../../components/media-image'
 import { getUploadUrl } from '../../../utils/uploadUrl'
+import { formatDateOnlyLocale } from '../../../../../shared/business-date.mjs'
+import { formatLocalizedAmount, getIntlLocale } from '../../../i18n/locale-utils.mjs'
 import {
   attachDailyLogImage,
   completeDailyLogEntry,
@@ -26,15 +30,17 @@ import { useWorkbookEntry } from '../hooks/useWorkbookEntry'
 import { DailyLogDispositionPanel } from '../components/daily-log-disposition-panel'
 import { getCollectedTotal, getSettledDebtsSum } from '../workbook-display'
 
-const formatKm = (v: number) => `${Number(v || 0).toFixed(2)} KM`
+const formatKm = (v: number, language: string) => formatLocalizedAmount(Number(v || 0), language)
 
 export const WorkbookDetailPage = () => {
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
   const navigate = useNavigate()
   const { entryId } = useParams()
   const { toastApiError, success, warning } = useAppToast()
 
   const id = String(entryId ?? '')
-  const { entry, isLoading, isFetching, refetch } = useWorkbookEntry(id)
+  const { entry, isLoading, isFetching, refetch, error: entryError } = useWorkbookEntry(id)
 
   const [acting, setActing] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -62,10 +68,13 @@ export const WorkbookDetailPage = () => {
         entryId: entry.id,
         body: { uploadId: upload.id, isBefore, isAfter: !isBefore },
       })
-      success('Dodano', 'Slika je dodana.')
+      success(
+        t('stylistWorkbook.detail.imageAddedTitle'),
+        t('stylistWorkbook.detail.imageAddedMessage'),
+      )
       await refetch()
     } catch (err) {
-      toastApiError(err, 'Greška pri uploadu')
+      toastApiError(err, t('stylistWorkbook.detail.imageUploadFailed'))
     } finally {
       setUploading(false)
     }
@@ -81,7 +90,10 @@ export const WorkbookDetailPage = () => {
       await refetch()
 
       if (!reservationId) {
-        success('Završeno', 'Zapis je završen i prihod je upisan u knjigu.')
+        success(
+          t('stylistWorkbook.detail.completedTitle'),
+          t('stylistWorkbook.detail.completedMessage'),
+        )
         return
       }
 
@@ -105,15 +117,15 @@ export const WorkbookDetailPage = () => {
 
         if (delay > 0 && itemCount === 0) {
           warning(
-            'Kašnjenje termina',
-            `Ovaj termin je kasnio ${overrunLabel} min. Nema drugih potvrđenih termina danas za pomjeranje — rekalkulacija rasporeda nije potrebna.`,
+            t('stylistWorkbook.detail.latenessTitle'),
+            t('stylistWorkbook.detail.noRescheduleNeeded', { minutes: overrunLabel }),
           )
         }
       } catch {
         // optional step: ignore errors (matches mobile)
       }
     } catch (err) {
-      toastApiError(err, 'Greška')
+      toastApiError(err, t('stylistWorkbook.detail.actionFailed'))
     } finally {
       setActing(false)
     }
@@ -127,12 +139,25 @@ export const WorkbookDetailPage = () => {
     )
   }
 
+  const entryNotFound = isAxiosError(entryError) && entryError.response?.status === 404
+
   if (!entry) {
     return (
-      <Card className="p-6">
-        <p className="text-slate-900 dark:text-slate-50 font-semibold">Zapis nije pronađen.</p>
-        <Button type="button" variant="outline" className="mt-4" onClick={() => navigate('/stylist/workbook')}>
-          Nazad
+      <Card className="p-6" role={entryError && !entryNotFound ? 'alert' : undefined}>
+        <p className="text-slate-900 dark:text-slate-50 font-semibold">
+          {entryError && !entryNotFound
+            ? t('stylistWorkbook.detail.loadFailed')
+            : t('stylistWorkbook.detail.notFound')}
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          className="mt-4"
+          onClick={() =>
+            entryError && !entryNotFound ? void refetch() : navigate('/stylist/workbook')
+          }
+        >
+          {entryError && !entryNotFound ? t('common.retry') : t('common.back')}
         </Button>
       </Card>
     )
@@ -146,16 +171,23 @@ export const WorkbookDetailPage = () => {
             {entry.publicReferenceCode ?? entry.id.slice(0, 8).toUpperCase()}
           </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            {entry.date?.slice(0, 10)} {entry.isManual ? '· Ručno' : '· Rezervacija'}
+            {entry.date?.slice(0, 10)
+              ? formatDateOnlyLocale(entry.date.slice(0, 10), locale)
+              : '—'}{' '}
+            {entry.isManual
+              ? t('stylistWorkbook.detail.manualEntry')
+              : t('stylistWorkbook.detail.reservationEntry')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button type="button" variant="outline" onClick={() => void refetch()} disabled={isFetching}>
-            {isFetching ? 'Osvježavam…' : 'Osvježi'}
+            {isFetching
+              ? t('stylistWorkbook.refreshing')
+              : t('stylistWorkbook.refresh')}
           </Button>
           <Link to="/stylist/workbook">
             <Button type="button" variant="outline">
-              Nazad
+              {t('common.back')}
             </Button>
           </Link>
         </div>
@@ -165,7 +197,9 @@ export const WorkbookDetailPage = () => {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-3 w-full">
             <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Servisi</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                {t('stylistWorkbook.detail.services')}
+              </p>
               <ul className="mt-1 space-y-1">
                 {(entry.items && entry.items.length > 0
                   ? entry.items
@@ -177,8 +211,8 @@ export const WorkbookDetailPage = () => {
                     key={it.serviceId}
                     className="flex justify-between text-sm text-slate-700 dark:text-slate-200"
                   >
-                    <span>{it.service?.name ?? 'Usluga'}</span>
-                    <span>{formatKm(Number(it.unitPrice ?? 0))}</span>
+                    <span>{it.service?.name ?? t('stylistWorkbook.serviceFallback')}</span>
+                    <span>{formatKm(Number(it.unitPrice ?? 0), i18n.language)}</span>
                   </li>
                 ))}
               </ul>
@@ -186,7 +220,7 @@ export const WorkbookDetailPage = () => {
             {(entry.debtPaymentEntries?.length ?? 0) > 0 ? (
               <div>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                  Naplata dugovanja
+                  {t('stylistWorkbook.detail.debtPayments')}
                 </p>
                 <ul className="mt-1 space-y-1">
                   {entry.debtPaymentEntries!.map((dp) => (
@@ -195,17 +229,21 @@ export const WorkbookDetailPage = () => {
                       className="flex justify-between text-sm text-slate-700 dark:text-slate-200"
                     >
                       <span>
-                        {dp.debt?.service?.name ?? dp.service?.name ?? 'Dug'}
-                        {dp.debt?.createdAt ? ` · ${String(dp.debt.createdAt).slice(0, 10)}` : ''}
+                        {dp.debt?.service?.name ??
+                          dp.service?.name ??
+                          t('stylistWorkbook.detail.debtFallback')}
+                        {dp.debt?.createdAt
+                          ? ` · ${formatDateOnlyLocale(String(dp.debt.createdAt).slice(0, 10), locale)}`
+                          : ''}
                       </span>
-                      <span>{formatKm(Number(dp.actualPrice))}</span>
+                      <span>{formatKm(Number(dp.actualPrice), i18n.language)}</span>
                     </li>
                   ))}
                 </ul>
               </div>
             ) : null}
             <div className="text-sm text-slate-600 dark:text-slate-300">
-              Klijent:{' '}
+              {t('stylistWorkbook.detail.client')}
               <span className="font-medium text-slate-900 dark:text-slate-50">
                 {entry.client
                   ? [entry.client.firstName, entry.client.lastName].filter(Boolean).join(' ') ||
@@ -215,30 +253,39 @@ export const WorkbookDetailPage = () => {
               </span>
             </div>
             <div className="text-sm text-slate-600 dark:text-slate-300">
-              Ukupno naplaćeno:{' '}
+              {t('stylistWorkbook.detail.totalCollected')}
               <span className="font-semibold text-slate-900 dark:text-slate-50">
-                {formatKm(getCollectedTotal(entry))}
+                {formatKm(getCollectedTotal(entry), i18n.language)}
               </span>
               <span className="block text-xs mt-1">
-                Servisi {formatKm(Number(entry.actualPrice))}
+                {t('stylistWorkbook.detail.servicesAmount', {
+                  amount: formatKm(Number(entry.actualPrice), i18n.language),
+                })}
                 {getSettledDebtsSum(entry) > 0
-                  ? ` · Dugovi ${formatKm(getSettledDebtsSum(entry))}`
+                  ? ` · ${t('stylistWorkbook.detail.debtsAmount', {
+                      amount: formatKm(getSettledDebtsSum(entry), i18n.language),
+                    })}`
                   : ''}
                 {Number(entry.tipAmount) > 0
-                  ? ` · Napojnica ${formatKm(Number(entry.tipAmount))}`
+                  ? ` · ${t('stylistWorkbook.detail.tipAmount', {
+                      amount: formatKm(Number(entry.tipAmount), i18n.language),
+                    })}`
                   : ''}
               </span>
             </div>
             {entry.notes ? (
               <div className="text-sm text-slate-600 dark:text-slate-300">
-                Bilješke: <span className="text-slate-900 dark:text-slate-50">{entry.notes}</span>
+                {t('stylistWorkbook.detail.notes')}:{' '}
+                <span className="text-slate-900 dark:text-slate-50">{entry.notes}</span>
               </div>
             ) : null}
           </div>
 
           <div className="flex items-center gap-2">
             <Badge variant={entry.status === 'COMPLETED' ? 'success' : 'warning'}>
-              {entry.status === 'COMPLETED' ? 'Završeno' : 'Na čekanju'}
+              {entry.status === 'COMPLETED'
+                ? t('stylistWorkbook.completed')
+                : t('stylistWorkbook.pending')}
             </Badge>
             {canComplete ? (
               <Button
@@ -250,12 +297,12 @@ export const WorkbookDetailPage = () => {
                 {acting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                    Završavam…
+                    {t('stylistWorkbook.detail.finishing')}
                   </>
                 ) : entry.reservationId ? (
-                  'Završi zapis (završava i rezervaciju)'
+                  t('stylistWorkbook.detail.finishWithReservation')
                 ) : (
-                  'Završi zapis (upis u knjigu)'
+                  t('stylistWorkbook.detail.finishEntry')
                 )}
               </Button>
             ) : null}
@@ -267,16 +314,18 @@ export const WorkbookDetailPage = () => {
         <Card className="mt-4 p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-base font-semibold text-slate-900 dark:text-slate-50">Before / After</p>
+              <p className="text-base font-semibold text-slate-900 dark:text-slate-50">
+                {t('stylistWorkbook.detail.beforeAfter')}
+              </p>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Dodajte slike prije/poslije (kvadratni crop kao na mobilnoj).
+                {t('stylistWorkbook.detail.beforeAfterHint')}
               </p>
             </div>
           </div>
 
           {beforeImages.length > 0 ? (
             <div className="mt-4">
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Prije</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.detail.before')}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {beforeImages.map((img) => {
                   const uri = getUploadUrl(img.upload?.pathMedium ?? img.upload?.pathThumb ?? img.upload?.pathOriginal)
@@ -284,7 +333,7 @@ export const WorkbookDetailPage = () => {
                     <MediaImage
                       key={img.id}
                       src={uri}
-                      alt="Prije"
+                      alt={t('stylistWorkbook.detail.before')}
                       className="h-20 w-20 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-800"
                       loading="lazy"
                     />
@@ -296,7 +345,7 @@ export const WorkbookDetailPage = () => {
 
           {afterImages.length > 0 ? (
             <div className="mt-4">
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Poslije</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.detail.after')}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {afterImages.map((img) => {
                   const uri = getUploadUrl(img.upload?.pathMedium ?? img.upload?.pathThumb ?? img.upload?.pathOriginal)
@@ -304,7 +353,7 @@ export const WorkbookDetailPage = () => {
                     <MediaImage
                       key={img.id}
                       src={uri}
-                      alt="Poslije"
+                      alt={t('stylistWorkbook.detail.after')}
                       className="h-20 w-20 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-800"
                       loading="lazy"
                     />
@@ -325,7 +374,9 @@ export const WorkbookDetailPage = () => {
                   disabled={uploading}
                 />
                 <Button type="button" variant="outline" size="sm" disabled={uploading}>
-                  {uploading ? 'Upload…' : 'Dodaj prije'}
+                  {uploading
+                    ? t('stylistWorkbook.detail.uploading')
+                    : t('stylistWorkbook.detail.addBefore')}
                 </Button>
               </label>
               <label className="inline-flex">
@@ -337,13 +388,15 @@ export const WorkbookDetailPage = () => {
                   disabled={uploading}
                 />
                 <Button type="button" variant="outline" size="sm" disabled={uploading}>
-                  {uploading ? 'Upload…' : 'Dodaj poslije'}
+                  {uploading
+                    ? t('stylistWorkbook.detail.uploading')
+                    : t('stylistWorkbook.detail.addAfter')}
                 </Button>
               </label>
               {uploading ? (
                 <div className="text-xs text-slate-500 flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  Upload u toku…
+                  {t('stylistWorkbook.detail.uploadInProgress')}
                 </div>
               ) : null}
             </div>
@@ -362,25 +415,25 @@ export const WorkbookDetailPage = () => {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Završi zapis</DialogTitle>
+            <DialogTitle>{t('stylistWorkbook.detail.confirmTitle')}</DialogTitle>
             <DialogDescription>
               {entry.reservationId
-                ? 'Označiti zapis kao završen? Ovo će završiti i rezervaciju, te upisati prihod u knjigu.'
-                : 'Označiti zapis kao završen? Prihod će biti upisan u knjigu.'}
+                ? t('stylistWorkbook.detail.confirmReservation')
+                : t('stylistWorkbook.detail.confirmEntry')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="ghost" onClick={() => setConfirmOpen(false)} disabled={acting}>
-              Odustani
+              {t('common.cancel')}
             </Button>
             <Button type="button" onClick={() => void handleComplete()} disabled={acting}>
               {acting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                  Završavam…
+                  {t('stylistWorkbook.detail.finishing')}
                 </>
               ) : (
-                'Završi'
+                t('stylistWorkbook.detail.finish')
               )}
             </Button>
           </DialogFooter>
@@ -399,9 +452,11 @@ export const WorkbookDetailPage = () => {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Kašnjenje termina</DialogTitle>
+            <DialogTitle>{t('stylistWorkbook.detail.latenessTitle')}</DialogTitle>
             <DialogDescription>
-              Ovaj termin je kasnio {rescheduleOverrunLabel} min. Želite li rekalkulaciju budućih termina i preview novog rasporeda?
+              {t('stylistWorkbook.detail.latenessDescription', {
+                minutes: rescheduleOverrunLabel,
+              })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -412,7 +467,7 @@ export const WorkbookDetailPage = () => {
                 setReschedulePromptOpen(false)
               }}
             >
-              Ne sada
+              {t('stylistWorkbook.detail.notNow')}
             </Button>
             <Button
               type="button"
@@ -424,7 +479,7 @@ export const WorkbookDetailPage = () => {
                 )
               }}
             >
-              Bez pauza
+              {t('stylistWorkbook.detail.withoutBreaks')}
             </Button>
             <Button
               type="button"
@@ -435,7 +490,7 @@ export const WorkbookDetailPage = () => {
                 )
               }}
             >
-              Uključi pauze
+              {t('stylistWorkbook.detail.includeBreaks')}
             </Button>
           </DialogFooter>
         </DialogContent>

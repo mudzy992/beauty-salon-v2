@@ -3,6 +3,7 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  StreamableFile,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Observable } from 'rxjs';
@@ -30,6 +31,10 @@ function convertDecimals<T>(value: T): T {
   if (value instanceof Prisma.Decimal) {
     return value.toNumber() as unknown as T;
   }
+  // Preserve binary responses; flattening StreamableFile loses Nest's adapter hook.
+  if (value instanceof StreamableFile || Buffer.isBuffer(value)) {
+    return value;
+  }
   if (value instanceof Date) {
     return value;
   }
@@ -48,7 +53,10 @@ function convertDecimals<T>(value: T): T {
 
 @Injectable()
 export class DecimalToNumberInterceptor implements NestInterceptor {
-  intercept(_context: ExecutionContext, next: CallHandler): Observable<unknown> {
+  intercept(
+    _context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<unknown> {
     return next.handle().pipe(map((data) => convertDecimals(data)));
   }
 }

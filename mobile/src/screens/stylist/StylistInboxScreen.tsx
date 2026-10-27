@@ -21,7 +21,7 @@ import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
 import { spacing } from '../../theme';
-import { formatDate, formatTime } from '../../utils/date';
+import { formatDate, formatTime, getSalonDateOnly } from '../../utils/date';
 import { getReservationServicesLabel } from '../../utils/reservationServices';
 import type { ClientDebt, Reservation, StylistResponse } from '../../types';
 
@@ -302,7 +302,7 @@ export function StylistInboxScreen() {
                       ) : null}
                       {isPenalized ? (
                         <Badge
-                          label={`PENAL do ${until!.toISOString().slice(0, 10)}`}
+                          label={`PENAL do ${getSalonDateOnly(until!)}`}
                           variant="error"
                           status={'NO_SHOW' as any}
                         />

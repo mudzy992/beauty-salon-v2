@@ -9,6 +9,7 @@ export interface User {
   /** false dok korisnik ne potvrdi spol u onboarding / profilu (admin može imati gender u bazi prije toga) */
   genderOnboardingCompleted?: boolean;
   avatar?: string;
+  isAvatarPublic?: boolean;
   isActive: boolean;
   isEmailVerified: boolean;
   mustChangePassword?: boolean;
@@ -234,12 +235,12 @@ export interface BlogPost {
   title: string;
   slug: string;
   excerpt?: string | null;
-  content: string;
-  heroImage?: string;
+  content?: string;
+  heroImage?: string | null;
   isPublished: boolean;
-  publishedAt?: string;
-  createdAt: string;
-  author?: User;
+  publishedAt?: string | null;
+  createdAt?: string;
+  author?: { firstName: string; lastName: string };
 }
 
 export interface Review {

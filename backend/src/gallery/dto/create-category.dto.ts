@@ -1,4 +1,10 @@
-import { IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class CreateGalleryCategoryDto {
   @IsString()
@@ -13,4 +19,28 @@ export class CreateGalleryCategoryDto {
   @IsOptional()
   @IsNumber()
   sortOrder?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  autoPublishConsentedPairs?: boolean;
+}
+
+export class UpdateGalleryCategoryDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  description?: string;
+
+  @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  autoPublishConsentedPairs?: boolean;
 }

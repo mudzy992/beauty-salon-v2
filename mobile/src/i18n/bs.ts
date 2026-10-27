@@ -136,6 +136,7 @@ export const bs = {
     reviewSuccess: 'Recenzija poslana!',
     reviewSuccessMessage: 'Hvala na vašoj recenziji. Biće objavljena nakon pregleda.',
     noReviews: 'Nema recenzija',
+    loadMore: 'Učitaj još recenzija',
     selectService: 'Odaberite uslugu',
     selectReservation: 'Odaberite rezervaciju (opciono)',
   },

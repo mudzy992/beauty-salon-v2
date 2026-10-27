@@ -15,6 +15,10 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import api, { getImageUrl } from '../../services/api';
+import {
+  fetchAllPublicServiceCategories,
+  fetchAllPublicServices,
+} from '../../services/catalog';
 import { MediaImage } from '../../components/MediaImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { spacing, borderRadius } from '../../theme';
@@ -38,13 +42,13 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
   const fetchData = useCallback(async () => {
     try {
       const [categoriesRes, servicesRes, reservationsRes, popularRes] = await Promise.all([
-        api.get<ServiceCategory[]>('/api/services/categories', { params: { activeOnly: true } }),
-        api.get<Service[]>('/api/services', { params: { activeOnly: true } }),
+        fetchAllPublicServiceCategories<ServiceCategory>({ activeOnly: true }),
+        fetchAllPublicServices<Service>({ activeOnly: true }),
         api.get<Reservation[]>('/api/reservations', { params: { asClient: true } }).catch(() => null),
         api.get<PopularService | null>('/api/services/popular').catch(() => null),
       ]);
-      setCategories(categoriesRes.data);
-      setServices(servicesRes.data);
+      setCategories(categoriesRes);
+      setServices(servicesRes);
       setReservations(reservationsRes?.data ?? []);
       setPopularService(popularRes?.data ?? null);
     } catch { /* silent */ }

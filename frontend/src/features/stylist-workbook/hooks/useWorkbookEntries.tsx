@@ -1,14 +1,12 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  endOfWeek,
-  isSameDay,
-  isWithinInterval,
-  parseISO,
-  startOfWeek,
-  subWeeks,
-} from 'date-fns'
+import { useTranslation } from 'react-i18next'
 
+import {
+  addDateOnlyDays,
+  getDateOnlyWeekday,
+  getSalonDateOnly,
+} from '../../../../../shared/business-date.mjs'
 import { fetchDailyLogEntries } from '../api/stylist-workbook.api'
 import type { DailyLogEntry } from '../types'
 
@@ -19,6 +17,7 @@ export const useWorkbookEntries = (params: {
   fromDate: string
   toDate: string
 }) => {
+  const { t } = useTranslation()
   const query = useQuery({
     queryKey: ['dailyLog', 'list', params.stylistProfileId, params.fromDate, params.toDate],
     queryFn: async () => {
@@ -34,12 +33,12 @@ export const useWorkbookEntries = (params: {
 
   const sections = useMemo<WorkbookSection[]>(() => {
     const entries = query.data ?? []
-    const today = new Date()
-    const thisWeekStart = startOfWeek(today, { weekStartsOn: 1 })
-    const thisWeekEnd = endOfWeek(today, { weekStartsOn: 1 })
-    const lastWeekDate = subWeeks(today, 1)
-    const lastWeekStart = startOfWeek(lastWeekDate, { weekStartsOn: 1 })
-    const lastWeekEnd = endOfWeek(lastWeekDate, { weekStartsOn: 1 })
+    const today = getSalonDateOnly()
+    const weekday = getDateOnlyWeekday(today)
+    const thisWeekStart = addDateOnlyDays(today, weekday === 0 ? -6 : 1 - weekday)
+    const thisWeekEnd = addDateOnlyDays(thisWeekStart, 6)
+    const lastWeekStart = addDateOnlyDays(thisWeekStart, -7)
+    const lastWeekEnd = addDateOnlyDays(thisWeekStart, -1)
 
     const buckets: Record<'today' | 'thisWeek' | 'lastWeek' | 'other', DailyLogEntry[]> = {
       today: [],
@@ -48,33 +47,40 @@ export const useWorkbookEntries = (params: {
       other: [],
     }
 
-    for (const e of entries) {
-      const d = parseISO(e.date)
-      if (isSameDay(d, today)) buckets.today.push(e)
-      else if (isWithinInterval(d, { start: thisWeekStart, end: thisWeekEnd })) buckets.thisWeek.push(e)
-      else if (isWithinInterval(d, { start: lastWeekStart, end: lastWeekEnd })) buckets.lastWeek.push(e)
-      else buckets.other.push(e)
+    for (const entry of entries) {
+      const dateOnly = String(entry.date ?? '').slice(0, 10)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
+        buckets.other.push(entry)
+      } else if (dateOnly === today) {
+        buckets.today.push(entry)
+      } else if (dateOnly >= thisWeekStart && dateOnly <= thisWeekEnd) {
+        buckets.thisWeek.push(entry)
+      } else if (dateOnly >= lastWeekStart && dateOnly <= lastWeekEnd) {
+        buckets.lastWeek.push(entry)
+      } else {
+        buckets.other.push(entry)
+      }
     }
 
     const sortInGroup = (a: DailyLogEntry, b: DailyLogEntry) => {
       const aPending = a.status !== 'COMPLETED'
       const bPending = b.status !== 'COMPLETED'
       if (aPending !== bPending) return aPending ? -1 : 1
-      const ad = a.date
-      const bd = b.date
-      if (ad === bd) return 0
-      return ad > bd ? -1 : 1
+      if (a.date === b.date) return 0
+      return a.date > b.date ? -1 : 1
     }
 
-    ;(Object.keys(buckets) as Array<keyof typeof buckets>).forEach((k) => buckets[k].sort(sortInGroup))
+    ;(Object.keys(buckets) as Array<keyof typeof buckets>).forEach((key) =>
+      buckets[key].sort(sortInGroup),
+    )
 
     const result: WorkbookSection[] = []
-    if (buckets.today.length) result.push({ title: 'Danas', data: buckets.today })
-    if (buckets.thisWeek.length) result.push({ title: 'Ova sedmica', data: buckets.thisWeek })
-    if (buckets.lastWeek.length) result.push({ title: 'Prošla sedmica', data: buckets.lastWeek })
-    if (buckets.other.length) result.push({ title: 'Ostalo', data: buckets.other })
+    if (buckets.today.length) result.push({ title: t('stylistWorkbook.today'), data: buckets.today })
+    if (buckets.thisWeek.length) result.push({ title: t('stylistWorkbook.thisWeek'), data: buckets.thisWeek })
+    if (buckets.lastWeek.length) result.push({ title: t('stylistWorkbook.lastWeek'), data: buckets.lastWeek })
+    if (buckets.other.length) result.push({ title: t('stylistWorkbook.other'), data: buckets.other })
     return result
-  }, [query.data])
+  }, [query.data, t])
 
   return {
     entries: query.data ?? [],
@@ -85,4 +91,3 @@ export const useWorkbookEntries = (params: {
     refetch: query.refetch,
   }
 }
-

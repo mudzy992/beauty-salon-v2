@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { toLocalDateOnlyString } from '../common/utils/date-only';
-import { getDayStartEnd } from '../common/utils/date-range';
+import {
+  getDateOnlyDayBounds,
+  parseDateOnlyString,
+} from '../common/utils/date-only';
+import { ReservationDateService } from './reservation-date.service';
 import {
   generateSlots,
   timeToMinutes,
@@ -9,27 +13,43 @@ import {
 import { getStylistProfilesForSlots } from './utils/availability-helpers';
 import { SLOT_HOLD_INBOX_STATUSES, SLOT_OCCUPYING_STATUSES } from './constants';
 import { computeSlotCapacity } from './utils/slot-hold.utils';
+import { buildBookableServiceWhere } from './utils/service-eligibility';
 import type { AvailableSlotDto } from './availability.types';
+
+type AvailabilityReader = Pick<
+  Prisma.TransactionClient,
+  | 'salonSettings'
+  | 'service'
+  | 'holiday'
+  | 'salonWorkingHours'
+  | 'stylistService'
+  | 'stylistProfile'
+  | 'reservation'
+>;
 
 @Injectable()
 export class AvailabilitySlotsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly dates: ReservationDateService,
+  ) {}
 
   async getAvailableSlots(
     serviceIdsInput: string[] | string,
     dateStr: string,
+    db: AvailabilityReader = this.prisma,
   ): Promise<AvailableSlotDto[]> {
     const serviceIds = Array.isArray(serviceIdsInput)
       ? serviceIdsInput
       : [serviceIdsInput];
-    const salon = await this.prisma.salonSettings.findFirst();
+    const salon = await db.salonSettings.findFirst();
     if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
 
     const normalized = [...new Set(serviceIds.map((x) => x.trim()).filter(Boolean))];
     if (normalized.length === 0)
       throw new NotFoundException('Servis nije pronađen.');
-    const services = await this.prisma.service.findMany({
-      where: { id: { in: normalized } },
+    const services = await db.service.findMany({
+      where: buildBookableServiceWhere(normalized),
       select: { id: true, durationMinutes: true },
     });
     if (services.length !== normalized.length)
@@ -39,22 +59,25 @@ export class AvailabilitySlotsService {
       0,
     );
 
-    const parts = dateStr.split('-').map(Number);
-    const date = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0, 0);
-    const dayOfWeek = date.getDay();
+    let date: Date;
+    try {
+      date = parseDateOnlyString(dateStr);
+    } catch {
+      throw new BadRequestException('Datum nije validan.');
+    }
+    const dayOfWeek = date.getUTCDay();
+    const { gte: dateStart, lt: nextDateStart } =
+      getDateOnlyDayBounds(dateStr);
 
-    const holidays = await this.prisma.holiday.findMany({
+    const holidays = await db.holiday.findMany({
       where: {
         salonSettingsId: salon.id,
-        date: {
-          gte: new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0),
-          lte: new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999),
-        },
+        date: { gte: dateStart, lt: nextDateStart },
       },
     });
     if (holidays.length > 0) return [];
 
-    const salonHours = await this.prisma.salonWorkingHours.findUnique({
+    const salonHours = await db.salonWorkingHours.findUnique({
       where: {
         salonSettingsId_dayOfWeek: {
           salonSettingsId: salon.id,
@@ -65,7 +88,7 @@ export class AvailabilitySlotsService {
     if (!salonHours || !salonHours.isWorkingDay) return [];
 
     const stylists = await getStylistProfilesForSlots(
-      this.prisma,
+      db,
       normalized,
       dayOfWeek,
       dateStr,
@@ -79,19 +102,17 @@ export class AvailabilitySlotsService {
       salon.pauseBetweenServices,
     );
 
-    const todayStr = toLocalDateOnlyString(new Date());
-    const nowMinutes = timeToMinutes(
-      `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`,
-    );
+    const now = new Date();
+    const todayStr = this.dates.toSalonDateOnlyString(now);
+    const nowMinutes = timeToMinutes(this.dates.toSalonTimeString(now));
     const filteredSlots =
       dateStr === todayStr
         ? slots.filter((s) => timeToMinutes(s.startTime) >= nowMinutes)
         : slots;
 
-    const { start: dateStart, end: dateEnd } = getDayStartEnd(date);
-    const reservations = await this.prisma.reservation.findMany({
+    const reservations = await db.reservation.findMany({
       where: {
-        reservationDate: { gte: dateStart, lte: dateEnd },
+        reservationDate: { gte: dateStart, lt: nextDateStart },
         status: {
           in: [...SLOT_OCCUPYING_STATUSES, ...SLOT_HOLD_INBOX_STATUSES],
         },

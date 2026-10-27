@@ -96,7 +96,7 @@ Nepotrebno ponavlja intent. Zamjena: tanka zlatna linija `height:1, opacity:0.2`
 
 ## Fajlovi koji se mijenjaju
 
-- [`mobile/src/screens/auth/LoginScreen.tsx`](mobile/src/screens/auth/LoginScreen.tsx) — jedini fajl, sve izmjene unutar njega
+- [`mobile/src/screens/auth/LoginScreen.tsx`](../../mobile/src/screens/auth/LoginScreen.tsx) — jedini fajl, sve izmjene unutar njega
 
 ## Napomena o `expo-blur`
 

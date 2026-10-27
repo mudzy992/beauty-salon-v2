@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
 import { useSocketEvent } from '../../context/SocketContext'
@@ -6,6 +7,7 @@ import { useAppToast } from '../../lib/toast/useAppToast'
 import type { AppSetting, RegistryItem } from './types'
 
 export function useAdminSettings() {
+  const { t } = useTranslation()
   const { success, error } = useAppToast()
   const { refreshSettings } = useSettings()
   const [settingsList, setSettingsList] = useState<AppSetting[]>([])
@@ -41,11 +43,11 @@ export function useAdminSettings() {
   const handleSave = async (key: string, value: string, desc: string) => {
     try {
       await api.put(`/api/settings/${key}`, { value, description: desc })
-      success('Postavka sačuvana')
+      success(t('adminSettings.editor.saveSuccess'))
       loadData()
       void refreshSettings()
     } catch {
-      error('Greška pri čuvanju')
+      error(t('adminSettings.editor.saveFailed'))
       throw new Error('Save failed')
     }
   }

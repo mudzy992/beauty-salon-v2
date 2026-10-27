@@ -20,12 +20,18 @@ import { DailyLogDispositionService } from './daily-log-disposition.service';
 import { DeleteDailyLogEntryDto } from './dto/delete-daily-log-entry.dto';
 import { DailyLogDispositionDto } from './dto/daily-log-disposition.dto';
 import { RestoreDailyLogEntryDto } from './dto/restore-daily-log-entry.dto';
+import { BeforeAfterQueryDto } from './dto/before-after-query.dto';
 import { DailyLogRestoreService } from './daily-log-restore.service';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
+import {
+  HTTP_RATE_LIMIT_PUBLIC_IP,
+  HTTP_RATE_LIMIT_WINDOW_SECONDS,
+} from '../common/rate-limiting/http-rate-limit.constants';
 
 @Controller('api/daily-log')
 export class DailyLogController {
@@ -81,17 +87,18 @@ export class DailyLogController {
 
   @Get('before-after')
   @Public()
-  getBeforeAfterPairs(
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
-    @Query('serviceId') serviceId?: string,
-    @Query('random') random?: string,
-  ) {
+  @HttpRateLimit({
+    bucket: 'gallery:before-after',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
+  getBeforeAfterPairs(@Query() query: BeforeAfterQueryDto) {
     return this.dailyLogPublic.findBeforeAfterPairs({
-      limit: limit != null ? parseInt(limit, 10) : undefined,
-      offset: offset != null ? parseInt(offset, 10) : undefined,
-      serviceId,
-      random: random === '1' || random === 'true',
+      limit: query.limit,
+      offset: query.offset,
+      serviceId: query.serviceId,
+      random: query.random === '1' || query.random === 'true',
     });
   }
 

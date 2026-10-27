@@ -6,19 +6,84 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'node:crypto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { RemoveStylistRoleDto } from './dto/remove-stylist-role.dto';
 import { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import {
+  analyticsDateBounds,
+  analyticsInstantBounds,
+  resolveAnalyticsDateRange,
+} from '../common/analytics-date-range';
 import { UsersRepository } from './users.repository';
+import { EventsGateway } from '../events/events.gateway';
+
+const AVATAR_SOURCE_MIMES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
+
+const CLIENT_PICKER_SELECT = {
+  id: true,
+  username: true,
+  firstName: true,
+  lastName: true,
+  gender: true,
+} as const;
+
+const ADMIN_CLIENT_SELECT = {
+  id: true,
+  username: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  gender: true,
+  avatar: true,
+  isActive: true,
+  isEmailVerified: true,
+  createdAt: true,
+  userRoles: { select: { role: { select: { name: true } } } },
+} as const;
+
+// Exclude authentication secrets from user-detail responses.
+const USER_DETAIL_SELECT = {
+  id: true,
+  username: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  gender: true,
+  genderOnboardingCompleted: true,
+  avatar: true,
+  isAvatarPublic: true,
+  isActive: true,
+  isEmailVerified: true,
+  mustChangePassword: true,
+  createdAt: true,
+  updatedAt: true,
+  userRoles: { include: { role: true } },
+  stylistProfile: {
+    include: {
+      stylistServices: { include: { service: true } },
+      workingHours: true,
+    },
+  },
+} as const;
 
 @Injectable()
 export class UsersService {
-  private static readonly DEFAULT_INITIAL_PASSWORD = 'Init2026!';
   private static readonly CLIENT_ROLE = 'CLIENT';
 
-  constructor(private readonly repo: UsersRepository) {}
+  constructor(
+    private readonly repo: UsersRepository,
+    private readonly events: EventsGateway,
+  ) {}
 
   /** Lista korisnika za odabir klijenta u dnevnoj knjizi (stilist ili admin). */
   async findForDailyLog(roles: string[]) {
@@ -108,7 +173,7 @@ export class UsersService {
     });
   }
 
-  async findStrictClients(
+  async findClientPicker(
     roles: string[],
     pagination?: { page?: number; pageSize?: number },
     q?: string,
@@ -116,8 +181,45 @@ export class UsersService {
     if (!this.isAdminOrOwner(roles) && !roles.includes('STYLIST')) {
       throw new ForbiddenException('Nemate dozvolu.');
     }
+    const where = this.strictClientWhere(q);
+    const { requestedPage, pageSize } =
+      this.normalizeClientPagination(pagination);
+    const total = await this.repo.user.count({ where });
+    const page = this.pageWithinResults(requestedPage, pageSize, total);
+    const items = await this.repo.user.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: CLIENT_PICKER_SELECT,
+      skip: page * pageSize,
+      take: pageSize,
+    });
+    return { items, page, pageSize };
+  }
+
+  async findClientsForAdmin(
+    roles: string[],
+    pagination?: { page?: number; pageSize?: number },
+    q?: string,
+  ) {
+    this.requireAdminOrOwner(roles);
+    const where = this.strictClientWhere(q, true);
+    const { requestedPage, pageSize } =
+      this.normalizeClientPagination(pagination);
+    const total = await this.repo.user.count({ where });
+    const page = this.pageWithinResults(requestedPage, pageSize, total);
+    const items = await this.repo.user.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: ADMIN_CLIENT_SELECT,
+      skip: page * pageSize,
+      take: pageSize,
+    });
+    return { items, total, page, pageSize };
+  }
+
+  private strictClientWhere(q?: string, includeEmail = false) {
     const trimmed = (q ?? '').trim();
-    const where = {
+    return {
       userRoles: {
         some: { role: { name: 'CLIENT' } },
         none: { role: { name: { in: ['SYSTEM_ADMIN', 'STYLIST', 'OWNER'] } } },
@@ -126,41 +228,41 @@ export class UsersService {
         ? {
             OR: [
               { username: { contains: trimmed } },
-              { email: { contains: trimmed } },
+              ...(includeEmail ? [{ email: { contains: trimmed } }] : []),
               { firstName: { contains: trimmed } },
               { lastName: { contains: trimmed } },
             ],
           }
         : {}),
     };
-    const hasPagination =
-      pagination?.page != null && pagination?.pageSize != null;
-    if (!hasPagination) {
-      return this.repo.user.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          userRoles: { include: { role: true } },
-          stylistProfile: true,
-        },
-      });
-    }
-    const page = Math.max(0, pagination?.page ?? 0);
-    const pageSize = Math.min(100, Math.max(1, pagination?.pageSize ?? 10));
-    const [items, total] = await Promise.all([
-      this.repo.user.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          userRoles: { include: { role: true } },
-          stylistProfile: true,
-        },
-        skip: page * pageSize,
-        take: pageSize,
-      }),
-      this.repo.user.count({ where }),
-    ]);
-    return { items, total, page, pageSize };
+  }
+
+  private normalizeClientPagination(pagination?: {
+    page?: number;
+    pageSize?: number;
+  }) {
+    const requestedPage =
+      typeof pagination?.page === 'number' &&
+      Number.isSafeInteger(pagination.page) &&
+      pagination.page >= 0
+        ? Math.min(pagination.page, 100_000)
+        : 0;
+    const pageSize =
+      typeof pagination?.pageSize === 'number' &&
+      Number.isSafeInteger(pagination.pageSize) &&
+      pagination.pageSize > 0
+        ? Math.min(pagination.pageSize, 100)
+        : 20;
+    return { requestedPage, pageSize };
+  }
+
+  private pageWithinResults(
+    requestedPage: number,
+    pageSize: number,
+    total: number,
+  ) {
+    const lastPage = Math.max(0, Math.ceil(total / pageSize) - 1);
+    return Math.min(requestedPage, lastPage);
   }
 
   async findOne(id: string, currentUser: CurrentUserPayload) {
@@ -169,15 +271,7 @@ export class UsersService {
     }
     const user = await this.repo.user.findUnique({
       where: { id },
-      include: {
-        userRoles: { include: { role: true } },
-        stylistProfile: {
-          include: {
-            stylistServices: { include: { service: true } },
-            workingHours: true,
-          },
-        },
-      },
+      select: USER_DETAIL_SELECT,
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
     return user;
@@ -196,6 +290,7 @@ export class UsersService {
         gender: true,
         genderOnboardingCompleted: true,
         avatar: true,
+        isAvatarPublic: true,
         isActive: true,
         isEmailVerified: true,
         mustChangePassword: true,
@@ -244,7 +339,7 @@ export class UsersService {
       throw new BadRequestException('Spol je obavezan.');
     }
     const initialPassword =
-      dto.password?.trim() || UsersService.DEFAULT_INITIAL_PASSWORD;
+      dto.password?.trim() || randomBytes(24).toString('base64url');
     const passwordHash = await bcrypt.hash(initialPassword, 10);
     const roleIds = Array.from(
       new Set([
@@ -264,7 +359,7 @@ export class UsersService {
         phone: dto.phone ?? null,
         gender: dto.gender ?? null,
         genderOnboardingCompleted: false,
-        avatar: dto.avatar ?? null,
+        avatar: null,
         mustChangePassword: true,
         isEmailVerified: false,
         userRoles: {
@@ -275,8 +370,9 @@ export class UsersService {
     });
     const fullUser = await this.repo.user.findUnique({
       where: { id: user.id },
-      include: { userRoles: { include: { role: true } }, stylistProfile: true },
+      select: USER_DETAIL_SELECT,
     });
+    if (!fullUser) throw new NotFoundException('Korisnik nije pronađen.');
     return {
       ...fullUser,
       initialPasswordShownOnce: true,
@@ -338,8 +434,24 @@ export class UsersService {
     if (currentUser.sub !== id && !this.isAdminOrOwner(currentUser.roles)) {
       throw new ForbiddenException('Nemate dozvolu za izmjenu ovog korisnika.');
     }
+    if (
+      currentUser.sub !== id &&
+      (dto.avatar !== undefined || dto.isAvatarPublic !== undefined)
+    ) {
+      throw new ForbiddenException(
+        'Samo korisnik može postaviti avatar ili mijenjati njegovu javnost.',
+      );
+    }
     const user = await this.repo.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (dto.avatar !== undefined && dto.avatar !== null) {
+      await this.assertOwnedAvatar(id, dto.avatar);
+    }
+    const nextAvatar = dto.avatar !== undefined ? dto.avatar : user.avatar;
+    if (dto.isAvatarPublic === true && !nextAvatar) {
+      throw new BadRequestException('Prvo postavite avatar pa ga zatim učinite javnim.');
+    }
+    if (dto.isAvatarPublic === true) await this.assertOwnedAvatar(id, nextAvatar!);
     const userWithRoles = await this.repo.user.findUnique({
       where: { id },
       include: { userRoles: { include: { role: true } } },
@@ -369,7 +481,7 @@ export class UsersService {
     const nextEmail = dto.email?.trim() ?? null;
     const shouldResetEmailVerification =
       dto.email !== undefined && nextEmail !== user.email;
-    return this.repo.user.update({
+    const updated = await this.repo.user.update({
       where: { id },
       data: {
         ...(dto.firstName != null && { firstName: dto.firstName }),
@@ -392,12 +504,26 @@ export class UsersService {
           gender: dto.gender,
           genderOnboardingCompleted: true,
         }),
-        ...(dto.avatar !== undefined && { avatar: dto.avatar }),
+        ...(dto.avatar !== undefined && {
+          avatar: dto.avatar,
+          ...(dto.avatar === null && { isAvatarPublic: false }),
+        }),
+        ...(dto.isAvatarPublic !== undefined && {
+          isAvatarPublic: dto.isAvatarPublic,
+        }),
         ...(this.isAdminOrOwner(currentUser.roles) &&
           dto.isActive !== undefined && { isActive: dto.isActive }),
       },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
     });
+    if (
+      this.isAdminOrOwner(currentUser.roles) &&
+      dto.isActive !== undefined &&
+      dto.isActive !== user.isActive
+    ) {
+      this.events.disconnectUserSockets(id);
+    }
+    return updated;
   }
 
   async updateProfile(userId: string, dto: UpdateUserDto) {
@@ -406,6 +532,14 @@ export class UsersService {
       include: { userRoles: { include: { role: true } } },
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (dto.avatar !== undefined && dto.avatar !== null) {
+      await this.assertOwnedAvatar(userId, dto.avatar);
+    }
+    const nextAvatar = dto.avatar !== undefined ? dto.avatar : user.avatar;
+    if (dto.isAvatarPublic === true && !nextAvatar) {
+      throw new BadRequestException('Prvo postavite avatar pa ga zatim učinite javnim.');
+    }
+    if (dto.isAvatarPublic === true) await this.assertOwnedAvatar(userId, nextAvatar!);
     const isClient = user.userRoles.some(
       (userRole) => userRole.role.name === UsersService.CLIENT_ROLE,
     );
@@ -440,9 +574,60 @@ export class UsersService {
           gender: dto.gender,
           genderOnboardingCompleted: true,
         }),
+        ...(dto.avatar !== undefined && {
+          avatar: dto.avatar,
+          ...(dto.avatar === null && { isAvatarPublic: false }),
+        }),
+        ...(dto.isAvatarPublic !== undefined && {
+          isAvatarPublic: dto.isAvatarPublic,
+        }),
       },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
     });
+  }
+
+  async setOwnAvatar(userId: string, avatarPath: string) {
+    await this.assertOwnedAvatar(userId, avatarPath);
+    return this.repo.user.update({
+      where: { id: userId },
+      data: { avatar: avatarPath },
+      select: { id: true, avatar: true, isAvatarPublic: true },
+    });
+  }
+
+  async setAvatarVisibility(userId: string, isAvatarPublic: boolean) {
+    const user = await this.repo.user.findUnique({
+      where: { id: userId },
+      select: { avatar: true },
+    });
+    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (isAvatarPublic && !user.avatar) {
+      throw new BadRequestException('Prvo postavite avatar pa ga zatim učinite javnim.');
+    }
+    if (isAvatarPublic && user.avatar) {
+      await this.assertOwnedAvatar(userId, user.avatar);
+    }
+    return this.repo.user.update({
+      where: { id: userId },
+      data: { isAvatarPublic },
+      select: { id: true, avatar: true, isAvatarPublic: true },
+    });
+  }
+
+  private async assertOwnedAvatar(userId: string, avatarPath: string) {
+    if (!avatarPath.startsWith('private/avatars/')) {
+      throw new BadRequestException('Avatar mora biti uploadan u vaš profil.');
+    }
+    const upload = await this.repo.findOwnedAvatarUpload(userId, avatarPath);
+    if (
+      !upload ||
+      ![upload.pathThumb, upload.pathSmall, upload.pathMedium].includes(avatarPath) ||
+      !AVATAR_SOURCE_MIMES.has(upload.mimeType.toLowerCase())
+    ) {
+      throw new BadRequestException(
+        'Avatar mora biti validna slika koju ste uploadali na svoj profil.',
+      );
+    }
   }
 
   async assignRole(userId: string, dto: AssignRoleDto, roles: string[]) {
@@ -466,6 +651,7 @@ export class UsersService {
     );
     if (existing) return user;
     await this.repo.userRole.create({ data: { userId, roleId: role.id } });
+    this.events.disconnectUserSockets(userId);
     if (requestedRoleName === 'STYLIST') {
       const existingProfile = await this.repo.stylistProfile.findUnique({
         where: { userId },
@@ -505,6 +691,7 @@ export class UsersService {
     const userRole = user.userRoles.find((ur) => ur.role.name === roleName);
     if (!userRole) throw new NotFoundException('Korisnik nema tu rol u.');
     await this.repo.userRole.delete({ where: { id: userRole.id } });
+    this.events.disconnectUserSockets(userId);
     return this.repo.user.findUnique({
       where: { id: userId },
       include: { userRoles: { include: { role: true } }, stylistProfile: true },
@@ -597,7 +784,7 @@ export class UsersService {
     );
     const reviewsTarget = await validateTransferTarget(dto.reviews);
 
-    return this.repo.transaction(async (tx) => {
+    const removed = await this.repo.transaction(async (tx) => {
       if (dto.dailyLogs.mode === 'DELETE') {
         await tx.dailyLogEntry.deleteMany({ where: { stylistProfileId } });
       } else if (dailyLogsTarget) {
@@ -680,6 +867,8 @@ export class UsersService {
         },
       });
     });
+    this.events.disconnectUserSockets(userId);
+    return removed;
   }
 
   async getClientAnalytics(
@@ -689,6 +878,9 @@ export class UsersService {
     toDate?: string,
   ) {
     this.requireAdminOrOwner(roles);
+    const analyticsRange = resolveAnalyticsDateRange(fromDate, toDate);
+    const dateBounds = analyticsDateBounds(analyticsRange);
+    const instantBounds = analyticsInstantBounds(analyticsRange);
     const user = await this.repo.user.findUnique({
       where: { id: userId },
       select: {
@@ -705,28 +897,9 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
 
-    const dateFilter =
-      fromDate && toDate
-        ? {
-            reservationDate: {
-              gte: new Date(fromDate),
-              lte: new Date(toDate),
-            } as const,
-          }
-        : {};
-    const dailyLogDateFilter =
-      fromDate && toDate
-        ? { date: { gte: new Date(fromDate), lte: new Date(toDate) } as const }
-        : {};
-    const reviewDateFilter =
-      fromDate && toDate
-        ? {
-            createdAt: {
-              gte: new Date(fromDate),
-              lte: new Date(toDate),
-            } as const,
-          }
-        : {};
+    const dateFilter = { reservationDate: dateBounds };
+    const dailyLogDateFilter = { date: dateBounds };
+    const reviewDateFilter = { createdAt: instantBounds };
 
     const [
       reservations,
@@ -874,8 +1047,8 @@ export class UsersService {
 
     return {
       user,
-      fromDate: fromDate ?? null,
-      toDate: toDate ?? null,
+      fromDate: analyticsRange.fromDate,
+      toDate: analyticsRange.toDate,
       stats: {
         totalReservations,
         completedReservations,

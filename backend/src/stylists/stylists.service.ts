@@ -1,76 +1,175 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import {
+  DEFAULT_API_PAGE_LIMIT,
+  MAX_API_PAGE_LIMIT,
+  MAX_API_PAGE_OFFSET,
+} from '../common/pagination.constants';
+import {
+  analyticsDateBounds,
+  resolveAnalyticsDateRange,
+} from '../common/analytics-date-range';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStylistProfileDto } from './dto/create-stylist-profile.dto';
 import { UpdateStylistProfileDto } from './dto/update-stylist-profile.dto';
 import { StylistWorkingHoursDto } from './dto/stylist-working-hours.dto';
 import { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+import { EventsGateway } from '../events/events.gateway';
+import { parseDateOnlyString } from '../common/utils/date-only';
+
+const parseDateOnlyInput = (value: string): Date => {
+  try {
+    return parseDateOnlyString(value);
+  } catch {
+    throw new BadRequestException('Datum mora biti validan YYYY-MM-DD.');
+  }
+};
 
 @Injectable()
 export class StylistsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: EventsGateway,
+  ) {}
 
   async findAll(
     activeOnly = false,
-    pagination?: { page?: number; pageSize?: number },
+    pagination: { page: number; pageSize: number } = {
+      page: 0,
+      pageSize: DEFAULT_API_PAGE_LIMIT,
+    },
+    publicView = false,
   ) {
-    const where = activeOnly ? { isActive: true } : {};
-    const hasPagination =
-      pagination?.page != null && pagination?.pageSize != null;
-    if (!hasPagination) {
-      return this.prisma.stylistProfile.findMany({
-        where,
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              avatar: true,
-            },
-          },
-          workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
-          stylistServices: { include: { service: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+    const where = activeOnly
+      ? { isActive: true, status: 'ACTIVE' as const }
+      : {};
+    const userSelect = {
+      id: true,
+      username: true,
+      ...(publicView ? {} : { email: true }),
+      firstName: true,
+      lastName: true,
+      avatar: true,
+      isAvatarPublic: true,
+    };
+    const page = pagination.page;
+    const pageSize = pagination.pageSize;
+    const offset = page * pageSize;
+    if (
+      !Number.isSafeInteger(page) ||
+      page < 0 ||
+      !Number.isSafeInteger(pageSize) ||
+      pageSize < 1 ||
+      pageSize > MAX_API_PAGE_LIMIT ||
+      !Number.isSafeInteger(offset) ||
+      offset > MAX_API_PAGE_OFFSET
+    ) {
+      throw new BadRequestException(
+        'Raspon kataloga stilista prelazi dozvoljeni limit.',
+      );
     }
-    const page = Math.max(0, pagination?.page ?? 0);
-    const pageSize = Math.min(100, Math.max(1, pagination?.pageSize ?? 10));
     const [items, total] = await Promise.all([
       this.prisma.stylistProfile.findMany({
         where,
         include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              avatar: true,
-            },
+          user: { select: userSelect },
+          workingHours: {
+            orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }],
           },
-          workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
-          stylistServices: { include: { service: true } },
+          stylistServices: {
+            ...(activeOnly && {
+              where: {
+                service: {
+                  isActive: true,
+                  subcategory: {
+                    isActive: true,
+                    category: { isActive: true },
+                  },
+                },
+              },
+            }),
+            take: MAX_API_PAGE_LIMIT,
+            include: { service: true },
+            orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
+          },
         },
-        orderBy: { createdAt: 'desc' },
-        skip: page * pageSize,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: offset,
         take: pageSize,
       }),
       this.prisma.stylistProfile.count({ where }),
     ]);
+    const nextOffset = offset + items.length;
+    const hasMore =
+      items.length > 0 &&
+      total > nextOffset &&
+      nextOffset <= MAX_API_PAGE_OFFSET;
     return {
-      items,
+      items: items.map((item) => this.withPublicAvatar(item)),
       total,
       page,
       pageSize,
+      hasMore,
+      nextPage: hasMore ? page + 1 : null,
     };
+  }
+
+  async findAllPublic(
+    pagination: { page: number; pageSize: number } = {
+      page: 0,
+      pageSize: DEFAULT_API_PAGE_LIMIT,
+    },
+  ) {
+    const result = await this.findAll(true, pagination, true);
+    return {
+      ...result,
+      items: result.items.map((item) =>
+        this.toPublicStylist(this.withPublicAvatar(item)),
+      ),
+    };
+  }
+
+  async findPublicOne(id: string) {
+    const stylist = await this.prisma.stylistProfile.findFirst({
+      where: { id, isActive: true, status: 'ACTIVE' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            isAvatarPublic: true,
+          },
+        },
+        workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
+        stylistServices: {
+          where: {
+            service: {
+              isActive: true,
+              subcategory: {
+                isActive: true,
+                category: { isActive: true },
+              },
+            },
+          },
+          take: MAX_API_PAGE_LIMIT,
+          orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
+          include: {
+            service: {
+              include: { subcategory: { include: { category: true } } },
+            },
+          },
+        },
+      },
+    });
+    if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
+    return this.toPublicStylist(this.withPublicAvatar(stylist));
   }
 
   async findOne(id: string, currentUser?: CurrentUserPayload) {
@@ -86,10 +185,13 @@ export class StylistsService {
             lastName: true,
             phone: true,
             avatar: true,
+            isAvatarPublic: true,
           },
         },
         workingHours: { orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] },
         stylistServices: {
+          take: MAX_API_PAGE_LIMIT,
+          orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
           include: {
             service: {
               include: { subcategory: { include: { category: true } } },
@@ -99,7 +201,7 @@ export class StylistsService {
       },
     });
     if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
-    return stylist;
+    return this.withPublicAvatar(stylist);
   }
 
   async findByUserId(userId: string) {
@@ -142,12 +244,13 @@ export class StylistsService {
         specialization: dto.specialization,
         status: 'ACTIVE',
         isActive: dto.isActive ?? true,
-        hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
+        hireDate: dto.hireDate ? parseDateOnlyInput(dto.hireDate) : null,
       },
       include: {
         user: { select: { id: true, firstName: true, lastName: true } },
       },
     });
+    this.events.disconnectUserSockets(dto.userId);
 
     // Automatski dodjeli STYLIST rolu korisniku (ne može se ručno u User managementu)
     const stylistRole = await this.prisma.role.findUnique({
@@ -189,6 +292,22 @@ export class StylistsService {
       throw new ForbiddenException('Nemate dozvolu za izmjenu ovog profila.');
     }
     const shouldAllowAdminFields = this.isAdminOrOwner(currentUser.roles);
+    const nextIsActive =
+      shouldAllowAdminFields && dto.isActive !== undefined
+        ? dto.isActive
+        : shouldAllowAdminFields &&
+            dto.status === 'ACTIVE' &&
+            dto.isActive === undefined
+          ? true
+          : stylist.isActive;
+    const nextStatus =
+      shouldAllowAdminFields && dto.status !== undefined
+        ? dto.status
+        : stylist.status;
+    const socketAccessChanged =
+      (stylist.isActive && stylist.status === 'ACTIVE') !==
+      (nextIsActive && nextStatus === 'ACTIVE');
+
     await this.prisma.stylistProfile.update({
       where: { id },
       data: {
@@ -206,10 +325,13 @@ export class StylistsService {
               : {}),
           }),
         ...(dto.hireDate !== undefined && {
-          hireDate: dto.hireDate ? new Date(dto.hireDate) : null,
+          hireDate: dto.hireDate ? parseDateOnlyInput(dto.hireDate) : null,
         }),
       },
     });
+    if (socketAccessChanged) {
+      this.events.disconnectUserSockets(stylist.userId);
+    }
     if (dto.serviceIds) await this.setServices(id, dto.serviceIds);
     if (dto.workingHours) await this.setWorkingHours(id, dto.workingHours);
     return this.findOne(id);
@@ -223,6 +345,7 @@ export class StylistsService {
     if (!stylist) throw new NotFoundException('Stilist nije pronađen.');
     const userId = stylist.userId;
     await this.prisma.stylistProfile.delete({ where: { id } });
+    this.events.disconnectUserSockets(userId);
     // Ukloni STYLIST rolu korisniku kad više nema profil stilista
     const stylistRole = await this.prisma.role.findUnique({
       where: { name: 'STYLIST' },
@@ -239,20 +362,21 @@ export class StylistsService {
     stylistProfileId: string,
     hours: StylistWorkingHoursDto[],
   ) {
+    const data = hours.map((h) => ({
+      stylistProfileId,
+      dayOfWeek: h.dayOfWeek,
+      dateOverride: h.dateOverride ? parseDateOnlyInput(h.dateOverride) : null,
+      startTime: h.startTime,
+      endTime: h.endTime,
+      isWorkingDay: h.isWorkingDay ?? true,
+    }));
     await this.findOne(stylistProfileId);
     await this.prisma.stylistWorkingHours.deleteMany({
       where: { stylistProfileId },
     });
-    if (hours.length) {
+    if (data.length) {
       await this.prisma.stylistWorkingHours.createMany({
-        data: hours.map((h) => ({
-          stylistProfileId,
-          dayOfWeek: h.dayOfWeek,
-          dateOverride: h.dateOverride ? new Date(h.dateOverride) : null,
-          startTime: h.startTime,
-          endTime: h.endTime,
-          isWorkingDay: h.isWorkingDay ?? true,
-        })),
+        data,
       });
     }
     return this.prisma.stylistWorkingHours.findMany({
@@ -285,14 +409,79 @@ export class StylistsService {
     });
   }
 
-  async getServices(stylistProfileId: string) {
-    await this.findOne(stylistProfileId);
-    return this.prisma.stylistService.findMany({
-      where: { stylistProfileId },
-      include: {
-        service: { include: { subcategory: { include: { category: true } } } },
+  async getServices(
+    stylistProfileId: string,
+    pagination: { page: number; pageSize: number } = {
+      page: 0,
+      pageSize: DEFAULT_API_PAGE_LIMIT,
+    },
+    activeOnly = false,
+  ) {
+    const page = pagination.page;
+    const pageSize = pagination.pageSize;
+    const offset = page * pageSize;
+    if (
+      !Number.isSafeInteger(page) ||
+      page < 0 ||
+      !Number.isSafeInteger(pageSize) ||
+      pageSize < 1 ||
+      pageSize > MAX_API_PAGE_LIMIT ||
+      !Number.isSafeInteger(offset) ||
+      offset > MAX_API_PAGE_OFFSET
+    ) {
+      throw new BadRequestException(
+        'Raspon servisa stiliste prelazi dozvoljeni limit.',
+      );
+    }
+
+    const profile = await this.prisma.stylistProfile.findFirst({
+      where: {
+        id: stylistProfileId,
+        ...(activeOnly && { isActive: true, status: 'ACTIVE' }),
       },
+      select: { id: true },
     });
+    if (!profile) throw new NotFoundException('Stilist nije pronađen.');
+
+    const where = {
+      stylistProfileId,
+      ...(activeOnly && {
+        service: {
+          isActive: true,
+          subcategory: {
+            isActive: true,
+            category: { isActive: true },
+          },
+        },
+      }),
+    };
+    const [items, total] = await Promise.all([
+      this.prisma.stylistService.findMany({
+        where,
+        include: {
+          service: {
+            include: { subcategory: { include: { category: true } } },
+          },
+        },
+        orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
+        skip: offset,
+        take: pageSize,
+      }),
+      this.prisma.stylistService.count({ where }),
+    ]);
+    const nextOffset = offset + items.length;
+    const hasMore =
+      items.length > 0 &&
+      total > nextOffset &&
+      nextOffset <= MAX_API_PAGE_OFFSET;
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      hasMore,
+      nextPage: hasMore ? page + 1 : null,
+    };
   }
 
   async getStylistAnalytics(
@@ -302,6 +491,8 @@ export class StylistsService {
     toDate?: string,
   ) {
     this.requireAdminOrOwner(roles);
+    const analyticsRange = resolveAnalyticsDateRange(fromDate, toDate);
+    const dateFilter = analyticsDateBounds(analyticsRange);
     const profile = await this.prisma.stylistProfile.findUnique({
       where: { id: stylistProfileId },
       include: {
@@ -318,13 +509,8 @@ export class StylistsService {
     });
     if (!profile) throw new NotFoundException('Stilist nije pronađen.');
 
-    let dateFilter: { gte?: Date; lte?: Date } = {};
-    if (fromDate && toDate) {
-      dateFilter = { gte: new Date(fromDate), lte: new Date(toDate) };
-    }
-
-    const [fromReservations, fromDailyLog, fromManualIncome] = await Promise.all(
-      [
+    const [fromReservations, fromDailyLog, fromManualIncome] =
+      await Promise.all([
         this.prisma.reservation.findMany({
           where: {
             confirmedStylistId: stylistProfileId,
@@ -363,8 +549,7 @@ export class StylistsService {
           orderBy: { date: 'desc' },
           take: 100,
         }),
-      ],
-    );
+      ]);
 
     const completedCount =
       fromReservations.length + fromDailyLog.length + fromManualIncome.length;
@@ -426,8 +611,8 @@ export class StylistsService {
 
     return {
       stylist: { id: profile.id, name: stylistName, user: profile.user },
-      fromDate: fromDate ?? null,
-      toDate: toDate ?? null,
+      fromDate: analyticsRange.fromDate,
+      toDate: analyticsRange.toDate,
       completedCount,
       revenue: Math.round(revenue * 100) / 100,
       tips: Math.round(tips * 100) / 100,
@@ -442,6 +627,56 @@ export class StylistsService {
         actualPrice: e.actualPrice,
         tipAmount: e.tipAmount,
       })),
+    };
+  }
+
+  private toPublicStylist<
+    T extends {
+      id: string;
+      bio: string | null;
+      specialization: string | null;
+      status: string;
+      isActive: boolean;
+      user: {
+        username: string;
+        firstName: string | null;
+        lastName: string | null;
+        avatar: string | null;
+      };
+    },
+  >(stylist: T) {
+    return {
+      id: stylist.id,
+      bio: stylist.bio,
+      specialization: stylist.specialization,
+      status: stylist.status,
+      isActive: stylist.isActive,
+      user: {
+        username: stylist.user.username,
+        firstName: stylist.user.firstName,
+        lastName: stylist.user.lastName,
+        avatar: stylist.user.avatar,
+      },
+    };
+  }
+
+  private withPublicAvatar<
+    T extends {
+      user: {
+        id: string;
+        avatar: string | null;
+        isAvatarPublic: boolean;
+      };
+    },
+  >(stylist: T) {
+    if (!stylist.user) return stylist;
+    const { isAvatarPublic, ...user } = stylist.user;
+    return {
+      ...stylist,
+      user: {
+        ...user,
+        avatar: isAvatarPublic ? `/api/users/${user.id}/avatar` : null,
+      },
     };
   }
 

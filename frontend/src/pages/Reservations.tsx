@@ -361,7 +361,7 @@ export default function Reservations() {
                           {r.client ? (
                             <RouterLink
                               to={`/admin/client-analytics?userId=${r.client.id}`}
-                              className="font-medium text-brand-gold hover:underline"
+                              className="font-medium text-brand-gold-text hover:underline"
                             >
                               {getClientName(r.client)}
                             </RouterLink>
@@ -375,7 +375,7 @@ export default function Reservations() {
                           {r.confirmedStylist ? (
                             <RouterLink
                               to={`/admin/stylist-analytics?stylistId=${r.confirmedStylist.id}`}
-                              className="text-brand-gold hover:underline"
+                              className="text-brand-gold-text hover:underline"
                             >
                               {getStylistName(r.confirmedStylist)}
                             </RouterLink>

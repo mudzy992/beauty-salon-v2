@@ -34,7 +34,4 @@ export class CreateUserDto {
   @IsOptional()
   role?: string; // SYSTEM_ADMIN | OWNER | STYLIST | CLIENT (default: CLIENT)
 
-  @IsString()
-  @IsOptional()
-  avatar?: string;
 }

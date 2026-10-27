@@ -1,6 +1,8 @@
 services:
   frontend:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.bsv2-frontend.rule=Host(`nejra-v2.ba101.top`)"

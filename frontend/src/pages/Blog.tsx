@@ -4,6 +4,7 @@ import { Loader2, Plus } from 'lucide-react'
 
 import api from '../api/client'
 import { getErrorMessage } from '../api/error'
+import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -18,6 +19,7 @@ export default function Blog() {
   const { success, error, warning } = useAppToast()
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [open, setOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -27,13 +29,23 @@ export default function Blog() {
   const [commentsPostTitle, setCommentsPostTitle] = useState('')
   const [comments, setComments] = useState<BlogComment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
+  const [commentsLoadError, setCommentsLoadError] = useState(false)
+
+  const reportApiError = (err: unknown, fallbackKey: string) => {
+    const message = getErrorMessage(err, '')
+    error(t(resolveAdminApiErrorKey(message, fallbackKey)))
+  }
 
   const loadData = useCallback(() => {
     setLoading(true)
+    setLoadError(false)
     api
-      .get<BlogPost[]>('/api/blog')
+      .get<BlogPost[]>('/api/blog/admin')
       .then((r) => setPosts(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setPosts([]))
+      .catch(() => {
+        setPosts([])
+        setLoadError(true)
+      })
       .finally(() => setLoading(false))
   }, [])
 
@@ -52,7 +64,7 @@ export default function Blog() {
         setForm(formFromPost(data))
         setOpen(true)
       } catch (err) {
-        error(getErrorMessage(err))
+        reportApiError(err, 'blog.admin.editFailed')
       }
       return
     }
@@ -63,7 +75,7 @@ export default function Blog() {
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.content.trim()) {
-      warning('Naslov i sadržaj su obavezni')
+      warning(t('blog.admin.requiredFields'))
       return
     }
     setSaving(true)
@@ -71,24 +83,24 @@ export default function Blog() {
       const payload = toBlogPostPayload(form)
       if (editId) await api.patch(`/api/blog/${editId}`, payload)
       else await api.post('/api/blog', payload)
-      success('Sačuvano')
+      success(t('blog.admin.saved'))
       loadData()
       setOpen(false)
     } catch (err) {
-      error(getErrorMessage(err))
+      reportApiError(err, 'blog.admin.saveFailed')
     } finally {
       setSaving(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Jeste li sigurni da želite obrisati članak?')) return
+    if (!window.confirm(t('blog.admin.deleteConfirm'))) return
     try {
       await api.delete(`/api/blog/${id}`)
-      success('Obrisano')
+      success(t('blog.admin.deleted'))
       loadData()
     } catch (err) {
-      error(getErrorMessage(err))
+      reportApiError(err, 'blog.admin.deleteFailed')
     }
   }
 
@@ -96,12 +108,14 @@ export default function Blog() {
     setCommentsPostId(postId)
     setCommentsPostTitle(postTitle)
     setCommentsLoading(true)
+    setCommentsLoadError(false)
     setCommentsOpen(true)
     try {
-      const { data } = await api.get<BlogComment[]>(`/api/blog/${postId}/comments`)
+      const { data } = await api.get<BlogComment[]>(`/api/blog/${postId}/comments/admin`)
       setComments(Array.isArray(data) ? data : [])
     } catch {
       setComments([])
+      setCommentsLoadError(true)
     } finally {
       setCommentsLoading(false)
     }
@@ -110,21 +124,21 @@ export default function Blog() {
   const handleApproveComment = async (commentId: string) => {
     try {
       await api.patch(`/api/blog/comments/${commentId}/approve`)
-      success('Komentar odobren')
+      success(t('blog.admin.commentApprovedToast'))
       if (commentsPostId) void openComments(commentsPostId, commentsPostTitle)
     } catch (err) {
-      error(getErrorMessage(err))
+      reportApiError(err, 'blog.admin.approveFailed')
     }
   }
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!window.confirm('Obrisati komentar?')) return
+    if (!window.confirm(t('blog.admin.deleteCommentConfirm'))) return
     try {
       await api.delete(`/api/blog/comments/${commentId}`)
-      success('Komentar obrisan')
+      success(t('blog.admin.commentDeleted'))
       if (commentsPostId) void openComments(commentsPostId, commentsPostTitle)
     } catch (err) {
-      error(getErrorMessage(err))
+      reportApiError(err, 'blog.admin.deleteCommentFailed')
     }
   }
 
@@ -134,13 +148,20 @@ export default function Blog() {
         <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.blog')}</h1>
         <Button type="button" onClick={() => void openForm()}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          Novi članak
+          {t('blog.newPost')}
         </Button>
       </div>
       <Card className="overflow-hidden">
         {loading ? (
           <div className="flex justify-center p-10 text-slate-500">
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+          </div>
+        ) : loadError ? (
+          <div role="alert" className="p-8 text-center text-slate-600">
+            <p>{t('blog.admin.loadFailed')}</p>
+            <Button type="button" variant="outline" className="mt-3" onClick={loadData}>
+              {t('common.retry')}
+            </Button>
           </div>
         ) : (
           <BlogPostsTable posts={posts} emptyLabel={t('common.noData')} onComments={openComments} onEdit={openForm} onDelete={handleDelete} />
@@ -162,7 +183,11 @@ export default function Blog() {
         title={commentsPostTitle}
         comments={comments}
         loading={commentsLoading}
+        loadError={commentsLoadError}
         onOpenChange={setCommentsOpen}
+        onRetry={() => {
+          if (commentsPostId) void openComments(commentsPostId, commentsPostTitle)
+        }}
         onApprove={(id) => void handleApproveComment(id)}
         onDelete={(id) => void handleDeleteComment(id)}
       />

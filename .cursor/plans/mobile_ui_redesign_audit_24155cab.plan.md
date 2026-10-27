@@ -33,21 +33,21 @@ isProject: false
 
 | Oblast              | Stanje                                                                                                                                                                                                                                                                                  |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Lokacija aplikacije | `[mobile/](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile)` — samostalan Expo projekat                                                                                                                                                                                        |
-| Navigacija          | **React Navigation v7** (`@react-navigation/native-stack`, `bottom-tabs`), ulaz u `[App.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\App.tsx)`, root u `[src/navigation/index.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\navigation\index.tsx)` |
-| Stil                | **Theme tokeni** (`[src/theme/colors.ts](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\theme\colors.ts)`, spacing, typography, fonts) + `**StyleSheet`**; **nema** `nativewind`, `tailwind`, `className`                                                                 |
-| Animacije           | `react-native-reanimated` već korišten npr. na `[HomeScreen.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\screens\client\HomeScreen.tsx)` (`FadeIn`*); `GestureHandlerRootView` u `App.tsx`                                                                         |
+| Lokacija aplikacije | `[mobile/](../../mobile)` — samostalan Expo projekat                                                                                                                                                                                        |
+| Navigacija          | **React Navigation v7** (`@react-navigation/native-stack`, `bottom-tabs`), ulaz u `[App.tsx](../../mobile/App.tsx)`, root u ``src/navigation/index.tsx`` |
+| Stil                | **Theme tokeni** (`[src/theme/colors.ts](../../mobile/src/theme/colors.ts)`, spacing, typography, fonts) + `**StyleSheet`**; **nema** `nativewind`, `tailwind`, `className`                                                                 |
+| Animacije           | `react-native-reanimated` već korišten npr. na `[HomeScreen.tsx](../../mobile/src/screens/client/HomeScreen.tsx)` (`FadeIn`*); `GestureHandlerRootView` u `App.tsx`                                                                         |
 | Metro               | **Nema** prilagođenog `metro.config.js` (default Expo) — potreban za NativeWind prema skill-u                                                                                                                                                                                           |
-| Babel               | `[babel.config.js](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\babel.config.js)`: `babel-preset-expo` + `module-resolver` (`@` → `./src`); nema eksplicitnog `react-native-reanimated/plugin` (Expo preset obično pokriva; provjeriti nakon upgrade-a)                     |
+| Babel               | `[babel.config.js](../../mobile/babel.config.js)`: `babel-preset-expo` + `module-resolver` (`@` → `./src`); nema eksplicitnog `react-native-reanimated/plugin` (Expo preset obično pokriva; provjeriti nakon upgrade-a)                     |
 
 
 ---
 
 ## 2. Zavisnosti (upgrading-expo skill)
 
-- **Expo SDK**: u `[package.json](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\package.json)` je `expo@^55.0.6` sa `react-native@0.83.2` i `react@19.2.0` — u skladu je sa trenutnim **SDK 55** stabilnim linijama opisanim u upgrading-expo vodiču. Prije implementacije: pokrenuti `npx expo install expo@latest` + `npx expo install --fix` i `npx expo-doctor` da se potvrdi da nema novijih patch verzija unutar SDK 55.
+- **Expo SDK**: u `[package.json](../../mobile/package.json)` je `expo@^55.0.6` sa `react-native@0.83.2` i `react@19.2.0` — u skladu je sa trenutnim **SDK 55** stabilnim linijama opisanim u upgrading-expo vodiču. Prije implementacije: pokrenuti `npx expo install expo@latest` + `npx expo install --fix` i `npx expo-doctor` da se potvrdi da nema novijih patch verzija unutar SDK 55.
 - **react-native-reanimated**: `4.2.1` + `**react-native-worklets@0.7.2`** — ispunjava preporuku iz skill-a za Reanimated na novijim SDK-ima.
-- **NativeWind**: **nije instaliran**; nema verzije za usporedbu. Skill [expo-tailwind-setup](file:///C:/Users/m.ceric/.agents/skills/expo-tailwind-setup/SKILL.md) cilja **Tailwind CSS v4 + NativeWind v5 (preview) + react-native-css**, ne „NativeWind v4“ kao zaseban stack — to treba eksplicitno usvojiti u implementacionoj fazi.
+- **NativeWind**: **nije instaliran**; nema verzije za usporedbu. Skill `expo-tailwind-setup` (izvorni skill je bio lokalna, ne-versionirana datoteka) cilja **Tailwind CSS v4 + NativeWind v5 (preview) + react-native-css**, ne „NativeWind v4“ kao zaseban stack — to treba eksplicitno usvojiti u implementacionoj fazi.
 
 **Napomena o building-native-ui skill-u**: generički tekst kaže da Tailwind nije podržan i preporučuje inline stilove; to je u kontradikciji sa vašim ciljem NativeWind/Tailwind setup-a. U praksi: **usvojiti expo-tailwind-setup za novi UI sloj**, a postojeće ekrane migrirati postepeno (ili hibrid: tokeni + `className` na novim djelovima).
 
@@ -61,7 +61,7 @@ Kada odobrite modifikacije koda, redoslijed usklađen sa skill-om:
 2. `**metro.config.js`**: `getDefaultConfig` + `withNativewind` sa `inlineVariables: false`, `globalClassNamePolyfill: false`.
 3. `**postcss.config.mjs`**: samo `@tailwindcss/postcss`.
 4. `**global.css`**: `@import` theme/preflight/utilities + platform `@media` za font varijable.
-5. **Ulaz aplikacije**: import `global.css` u `[App.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\App.tsx)` (ili jedan bootstrap fajl).
+5. **Ulaz aplikacije**: import `global.css` u `[App.tsx](../../mobile/App.tsx)` (ili jedan bootstrap fajl).
 6. **Wrapper komponente** (`src/tw/`): `View`, `Text`, `ScrollView`, `Pressable`, `Image` preko `useCssElement` — **bez mijenjanja** poziva API-ja u ekranima na početku; postepeno zamijeniti `View`/`Text` importe gdje se uvodi Tailwind.
 7. **Babel**: skill kaže da **nije** potreban NativeWind babel preset za v5; zadržati `babel-preset-expo`.
 
@@ -71,7 +71,7 @@ Kada odobrite modifikacije koda, redoslijed usklađen sa skill-om:
 
 ## 4. Dizajn strategija (vizuelni pravac)
 
-- **Clean UI**: više „vazduha“ (veći ritam sekcija), konzistentan **8pt grid** (već imate `[spacing](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\theme\spacing.ts)`), jasna hijerarhija: Playfair za naslove, Inter za body (već u projektu).
+- **Clean UI**: više „vazduha“ (veći ritam sekcija), konzistentan **8pt grid** (već imate `[spacing](../../mobile/src/theme/spacing.ts)`), jasna hijerarhija: Playfair za naslove, Inter za body (već u projektu).
 - **Kvalitet**: zamijeniti legacy RN `shadow`* / `elevation` na karticama modernijim `**boxShadow`** stilom gdje je podržano (preporuka iz building-native-ui); `borderCurve: 'continuous'` na iOS za zaobljene kontejnere.
 - **Reanimated**: ulazne/izlazne animacije liste (`FadeInDown` / `FadeInUp`), **layout animacije** (`LinearTransition`) za promjene liste termina/notifikacija, blagi **press** feedback na kartice (opciono `react-native-gesture-handler` + `Animated.View`).
 - **Pristupačnost**: kontrast teksta u odnosu na `gold` na svijetloj pozadini; zadržati `selectable` na važnim tekstovima (reviews, greške) prema building-native-ui.
@@ -101,8 +101,8 @@ flowchart LR
 
 
 - **Android 3-button vs gesture bar**: koristiti `**useSafeAreaInsets()`** za donji padding scroll sadržaja gdje tab bar ne pokriva cijelu širinu ili gdje je potrebno dodatno mjesto iznad sistemskog nav bara; uskladiti `contentContainerStyle` na `ScrollView`/`FlatList` umjesto paddinga na samom scroll view-u (building-native-ui).
-- **Edge-to-edge**: u implementacionoj fazi dodati provjeru Expo SDK 55 + Android dokumentacije: `**expo-system-ui`** / navigation bar appearance i eventualno `**react-native-edge-to-edge`** ili odgovarajući config plugin ako želite puni draw-behind status/nav bar uz ispravne insete. Trenutno `[app.config.js](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\app.config.js)` nema eksplicitne edge-to-edge postavke — to je predviđeno kao zaseban korak uz vizuelne testove na uređaju.
-- **Tab bar**: modernizovati visinu, `paddingBottom` prema `insets.bottom`, aktivna stanja (npr. blaga pill pozadina) — isključivo stilovi u `[MainNavigator.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\navigation\MainNavigator.tsx)` / `[StylistNavigator.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\navigation\StylistNavigator.tsx)`.
+- **Edge-to-edge**: u implementacionoj fazi dodati provjeru Expo SDK 55 + Android dokumentacije: `**expo-system-ui`** / navigation bar appearance i eventualno `**react-native-edge-to-edge`** ili odgovarajući config plugin ako želite puni draw-behind status/nav bar uz ispravne insete. Trenutno `[app.config.js](../../mobile/app.config.js)` nema eksplicitne edge-to-edge postavke — to je predviđeno kao zaseban korak uz vizuelne testove na uređaju.
+- **Tab bar**: modernizovati visinu, `paddingBottom` prema `insets.bottom`, aktivna stanja (npr. blaga pill pozadina) — isključivo stilovi u ``MainNavigator.tsx`` / ``StylistNavigator.tsx``.
 
 ---
 
@@ -123,13 +123,13 @@ flowchart LR
 
 | Komponenta                                                                                                               | Uloga                               |
 | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
-| `[ui/Button.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\components\ui\Button.tsx)`                 | Primarni CTA, varijante             |
-| `[ui/Card.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\components\ui\Card.tsx)`                     | Kontejner liste/detalja             |
-| `[ui/Input.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\components\ui\Input.tsx)`                   | Form polja                          |
-| `[ui/Badge.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\components\ui\Badge.tsx)`                   | Statusi                             |
-| `[ui/EmptyState.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\components\ui\EmptyState.tsx)`         | Prazne liste                        |
-| `[ui/LoadingScreen.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\components\ui\LoadingScreen.tsx)`   | Splash dok se fontovi/auth učitaju  |
-| `[BeforeAfterSlider.tsx](c:\Users\m.ceric\Documents\GitHub\beauty-salon-v2\mobile\src\components\BeforeAfterSlider.tsx)` | Before/after slike (home + dnevnik) |
+| `[ui/Button.tsx](../../mobile/src/components/ui/Button.tsx)`                 | Primarni CTA, varijante             |
+| `[ui/Card.tsx](../../mobile/src/components/ui/Card.tsx)`                     | Kontejner liste/detalja             |
+| `[ui/Input.tsx](../../mobile/src/components/ui/Input.tsx)`                   | Form polja                          |
+| `[ui/Badge.tsx](../../mobile/src/components/ui/Badge.tsx)`                   | Statusi                             |
+| `[ui/EmptyState.tsx](../../mobile/src/components/ui/EmptyState.tsx)`         | Prazne liste                        |
+| `[ui/LoadingScreen.tsx](../../mobile/src/components/ui/LoadingScreen.tsx)`   | Splash dok se fontovi/auth učitaju  |
+| `[BeforeAfterSlider.tsx](../../mobile/src/components/BeforeAfterSlider.tsx)` | Before/after slike (home + dnevnik) |
 
 
 ---

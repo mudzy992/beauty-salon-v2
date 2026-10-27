@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
 import {
@@ -25,6 +26,7 @@ export const NoShowReservationDialog = ({
   pending,
   onConfirm,
 }: NoShowReservationDialogProps) => {
+  const { t } = useTranslation()
   const [reason, setReason] = useState('')
   const [applyPenalty, setApplyPenalty] = useState(true)
 
@@ -38,13 +40,13 @@ export const NoShowReservationDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Klijent se nije pojavio</DialogTitle>
+          <DialogTitle>{t('stylistPortal.reservationDialogs.noShow.title')}</DialogTitle>
           <DialogDescription>
-            Označite no-show i po potrebi primijenite penal.
+            {t('stylistPortal.reservationDialogs.noShow.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <Label htmlFor="noShowReason">Obrazloženje</Label>
+          <Label htmlFor="noShowReason">{t('stylistPortal.reservationDialogs.noShow.reason')}</Label>
           <Textarea
             id="noShowReason"
             value={reason}
@@ -57,22 +59,24 @@ export const NoShowReservationDialog = ({
             variant={applyPenalty ? 'default' : 'outline'}
             onClick={() => setApplyPenalty((value) => !value)}
           >
-            Penal: {applyPenalty ? 'DA' : 'NE'}
+            {t('stylistPortal.reservationDialogs.noShow.penalty', {
+              state: applyPenalty ? t('common.yes') : t('common.no'),
+            })}
           </Button>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Primijeni penal za no-show.
+            {t('stylistPortal.reservationDialogs.noShow.applyPenaltyDescription')}
           </p>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Odustani
+            {t('common.cancel')}
           </Button>
           <Button
             type="button"
             onClick={() => void onConfirm(reason, applyPenalty)}
             disabled={pending}
           >
-            Označi no-show
+            {t('stylistPortal.reservationDialogs.noShow.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

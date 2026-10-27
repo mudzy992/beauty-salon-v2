@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
 import { getErrorMessage } from '../../api/error'
+import { resolveAdminApiErrorKey } from '../admin/admin-api-error.mjs'
 import { MediaImage } from '../../components/media-image'
 import { Button } from '../../components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog'
@@ -45,14 +46,16 @@ export function BlogPostFormDialog({
     try {
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('entity', 'blog')
-      const { data } = await api.post('/api/uploads', fd, {
+      fd.append('assetKind', 'blog')
+      const { data } = await api.post('/api/uploads/public', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
       onChange({ [field]: data.pathMedium || data.pathOriginal || '' })
-      onUploaded('Slika je uploadovana')
+      onUploaded(t('blog.admin.imageUploaded'))
     } catch (err) {
-      onError(getErrorMessage(err))
+      onError(
+        t(resolveAdminApiErrorKey(getErrorMessage(err, ''), 'blog.admin.uploadFailed')),
+      )
     } finally {
       setUploading(null)
     }
@@ -62,55 +65,58 @@ export function BlogPostFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{editId ? 'Uredi članak' : 'Novi članak'}</DialogTitle>
+          <DialogTitle>{editId ? t('blog.editPost') : t('blog.newPost')}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="blog-title">Naslov</Label>
+            <Label htmlFor="blog-title">{t('blog.title')}</Label>
             <Input id="blog-title" value={form.title} onChange={(e) => onChange({ title: e.target.value })} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="blog-slug">Slug (URL)</Label>
+            <Label htmlFor="blog-slug">{t('blog.admin.slug')}</Label>
             <Input
               id="blog-slug"
               value={form.slug}
               onChange={(e) => onChange({ slug: e.target.value })}
-              placeholder="automatski iz naslova ako ostane prazno"
+              placeholder={t('blog.admin.slugPlaceholder')}
             />
-            <p className="text-xs text-slate-500">Javni URL: /blog/{form.slug || 'slug'}</p>
+            <p className="text-xs text-slate-500">
+              {t('blog.admin.publicUrl', { slug: form.slug || 'slug' })}
+            </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="blog-excerpt">Kratki opis</Label>
+            <Label htmlFor="blog-excerpt">{t('blog.admin.excerpt')}</Label>
             <Textarea
               id="blog-excerpt"
               rows={3}
               maxLength={2000}
               value={form.excerpt}
               onChange={(e) => onChange({ excerpt: e.target.value })}
-              placeholder="Prikazuje se u listi blogova i kao fallback za SEO opis"
+              placeholder={t('blog.admin.excerptPlaceholder')}
             />
           </div>
           <ImageUpload
-            label="Hero slika"
+            label={t('blog.admin.heroImage')}
             value={form.heroImage}
             uploading={uploading === 'hero'}
             onPick={(file) => void uploadImage(file, 'heroImage')}
           />
           <ImageUpload
-            label="OG slika (dijeljenje)"
+            label={t('blog.admin.ogImage')}
             value={form.ogImage}
             uploading={uploading === 'og'}
             onPick={(file) => void uploadImage(file, 'ogImage')}
-            hint="Ako je prazna, koristi se hero slika."
+            hint={t('blog.admin.ogImageHint')}
           />
           <div className="space-y-2">
-            <Label htmlFor="blog-content">Sadržaj (HTML/Tekst)</Label>
+            <Label htmlFor="blog-content">{t('blog.content')}</Label>
+            <p className="text-xs text-slate-500">{t('blog.admin.contentHelp')}</p>
             <Textarea id="blog-content" rows={10} value={form.content} onChange={(e) => onChange({ content: e.target.value })} />
           </div>
           <div className="flex items-center justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
             <div className="space-y-0.5">
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Objavljeno</p>
-              <p className="text-xs text-slate-500">Kada je uključeno, članak je vidljiv na javnoj stranici.</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('blog.published')}</p>
+              <p className="text-xs text-slate-500">{t('blog.admin.publishedHint')}</p>
             </div>
             <Switch checked={form.isPublished} onCheckedChange={(isPublished) => onChange({ isPublished })} />
           </div>
@@ -142,6 +148,7 @@ function ImageUpload({
   onPick: (file: File) => void
   hint?: string
 }) {
+  const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement | null>(null)
   return (
     <div className="space-y-2">
@@ -161,7 +168,11 @@ function ImageUpload({
         }}
       />
       <Button type="button" size="sm" variant="outline" onClick={() => inputRef.current?.click()} disabled={uploading}>
-        {uploading ? 'Upload...' : value ? 'Promijeni sliku' : 'Upload sliku'}
+        {uploading
+          ? t('blog.admin.imageUploading')
+          : value
+            ? t('blog.admin.changeImage')
+            : t('blog.admin.uploadImage')}
       </Button>
       {hint ? <p className="text-xs text-slate-500">{hint}</p> : null}
     </div>

@@ -25,7 +25,7 @@ isProject: false
   - refresh/reload of selected book after actions
 
 ## What exists today (reference)
-- Income flow is implemented in `[frontend/src/features/finance/tabs/income-books-tab.tsx](frontend/src/features/finance/tabs/income-books-tab.tsx)`:
+- Income flow is implemented in `[income-books-tab.tsx](../../frontend/src/features/finance/income/income-books-tab.tsx)`:
   - `GET /api/income-books/month/:year/:month` for opening past months
   - `POST /api/income-books/:id/unlock` with `{ reason }`
   - `POST /api/income-books/:id/lock`

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import axios from 'axios'
 import { Info } from 'lucide-react'
 import api from '../../api/client'
 import { MediaImage } from '../../components/media-image'
@@ -25,20 +27,21 @@ type BeforeAfterPair = {
   id: string
   before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }
   after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }
-  service?: { id: string; name: string }
-  completedAt?: string | null
 }
 
 const PAGE_SIZE = 12
 
 export default function PublicServiceDetail() {
   const { serviceId } = useParams()
+  const { t } = useTranslation()
   const { getSetting } = useSettings()
   const [service, setService] = useState<Service | null>(null)
   const [loadingService, setLoadingService] = useState(true)
+  const [serviceLoadError, setServiceLoadError] = useState(false)
   const [items, setItems] = useState<BeforeAfterPair[]>([])
   const [loadingPairs, setLoadingPairs] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [pairsLoadError, setPairsLoadError] = useState(false)
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -48,15 +51,18 @@ export default function PublicServiceDetail() {
   const loadService = useCallback(async () => {
     if (!id) {
       setService(null)
+      setServiceLoadError(false)
       setLoadingService(false)
       return
     }
     setLoadingService(true)
+    setServiceLoadError(false)
     try {
       const { data } = await api.get<Service>(`/api/services/${id}`)
       setService(data)
-    } catch {
+    } catch (error) {
       setService(null)
+      setServiceLoadError(!(axios.isAxiosError(error) && error.response?.status === 404))
     } finally {
       setLoadingService(false)
     }
@@ -67,6 +73,7 @@ export default function PublicServiceDetail() {
       if (!id) return
       if (nextOffset === 0) setLoadingPairs(true)
       else setLoadingMore(true)
+      setPairsLoadError(false)
       try {
         const { data } = await api.get<{
           items: BeforeAfterPair[]
@@ -81,6 +88,7 @@ export default function PublicServiceDetail() {
         setOffset(data?.nextOffset ?? nextOffset + list.length)
       } catch {
         setHasMore(false)
+        setPairsLoadError(true)
       } finally {
         setLoadingPairs(false)
         setLoadingMore(false)
@@ -116,7 +124,20 @@ export default function PublicServiceDetail() {
 
   if (loadingService) {
     return (
-      <div className="py-16 text-center text-slate-600">Učitavanje…</div>
+      <div className="py-16 text-center text-slate-600">{t('public.serviceDetail.loading')}</div>
+    )
+  }
+
+  if (serviceLoadError) {
+    return (
+      <div className="py-16">
+        <div className="mx-auto max-w-4xl px-4 text-center" role="alert">
+          <p className="text-slate-600 mb-4">{t('public.serviceDetail.loadFailed')}</p>
+          <Button variant="outline" onClick={() => void loadService()}>
+            {t('public.serviceDetail.retry')}
+          </Button>
+        </div>
+      </div>
     )
   }
 
@@ -125,13 +146,13 @@ export default function PublicServiceDetail() {
       <div className="py-16">
         <div className="mx-auto max-w-4xl px-4">
           <div className="text-2xl font-semibold text-slate-900 mb-2">
-            Servis nije pronađen
+            {t('public.serviceDetail.notFound')}
           </div>
           <div className="text-slate-600 mb-6">
-            Molimo provjerite link ili se vratite na listu usluga.
+            {t('public.serviceDetail.notFoundHint')}
           </div>
           <Link to="/usluge">
-            <Button variant="outline">Nazad na usluge</Button>
+            <Button variant="outline">{t('public.serviceDetail.backToServices')}</Button>
           </Link>
         </div>
       </div>
@@ -142,12 +163,12 @@ export default function PublicServiceDetail() {
   const detailHeroBg = hasServiceHeroImage
     ? getUploadUrl(service.heroImage as string)
     : getSetting('public_services_bg', '')
-  const heroImageAlt = `${service.name} — vizual usluge`
+  const heroImageAlt = t('public.serviceDetail.imageAlt', { service: service.name })
 
   const canonicalPath = `/usluge/${service.id}`
   const description =
     service.shortDescription?.trim() ||
-    'Detalji usluge i primjeri prije/poslije u Beauty Salon Nejra.'
+    t('public.serviceDetail.descriptionFallback')
   const ogImage = hasServiceHeroImage ? detailHeroBg : site.defaultOgImagePath
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -196,7 +217,7 @@ export default function PublicServiceDetail() {
         <div className={`${publicPageHero.inner} relative z-[1]`}>
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8 md:gap-10">
             <div className="min-w-0 flex-1">
-              <div className={publicHeader.kicker}>Usluga</div>
+              <div className={publicHeader.kicker}>{t('public.serviceDetail.kicker')}</div>
               <h1 className={`${publicHeader.title} mt-2`}>{service.name}</h1>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
@@ -226,12 +247,12 @@ export default function PublicServiceDetail() {
               <div className="flex flex-wrap gap-3">
                 <Link to={`/rezervacija?serviceId=${encodeURIComponent(service.id)}`}>
                   <Button className="px-6">
-                    Rezerviši
+                    {t('public.serviceDetail.book')}
                   </Button>
                 </Link>
                 <Link to="/usluge">
                   <Button variant="outline" className="px-6">
-                    Sve usluge
+                    {t('public.serviceDetail.allServices')}
                   </Button>
                 </Link>
               </div>
@@ -242,7 +263,14 @@ export default function PublicServiceDetail() {
 
       <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loadingPairs && items.length === 0 ? (
-          <div className="py-14 text-center text-slate-600">Učitavanje…</div>
+          <div className="py-14 text-center text-slate-600">{t('public.serviceDetail.loadingGallery')}</div>
+        ) : pairsLoadError && items.length === 0 ? (
+          <div className="py-14 text-center" role="alert">
+            <p className="text-slate-600">{t('public.serviceDetail.galleryLoadFailed')}</p>
+            <Button variant="outline" className="mt-4" onClick={() => void loadPage(0, false)}>
+              {t('public.serviceDetail.retry')}
+            </Button>
+          </div>
         ) : items.length === 0 ? (
           <Card className="rounded-2xl border-slate-200/80 shadow-soft">
             <CardContent className="py-14 md:py-20 flex flex-col items-center justify-center">
@@ -250,17 +278,16 @@ export default function PublicServiceDetail() {
                 <Info className="h-6 w-6 text-slate-600" />
               </div>
               <div className="text-slate-600 text-center max-w-lg px-6 leading-relaxed">
-                Trenutno nema objavljenih urađenih radova za ovaj servis.
+                {t('public.serviceDetail.noGalleryItems')}
               </div>
             </CardContent>
           </Card>
         ) : (
           <>
             <div className="mb-8 max-w-2xl">
-              <h2 className={publicHeader.title}>Galerija urađenih radova</h2>
+              <h2 className={publicHeader.title}>{t('public.serviceDetail.galleryTitle')}</h2>
               <p className={`${publicHeader.subtitle} mt-2`}>
-                Jedna transformacija u fokusu; ostale birajte sa strane. Povucite slider
-                lijevo-desno za usporedbu prije i poslije.
+                {t('public.serviceDetail.gallerySubtitle')}
               </p>
             </div>
             <BeforeAfterSpotlight
@@ -277,9 +304,17 @@ export default function PublicServiceDetail() {
                 )
               }
             />
+            {pairsLoadError ? (
+              <div className="py-5 text-center" role="alert">
+                <p className="text-slate-600">{t('public.serviceDetail.galleryLoadFailed')}</p>
+                <Button variant="outline" className="mt-3" onClick={() => void loadPage(offset, true)}>
+                  {t('public.serviceDetail.retry')}
+                </Button>
+              </div>
+            ) : null}
             <div ref={sentinelRef} className="h-4 mt-8" />
             {loadingMore ? (
-              <div className="py-8 text-center text-slate-600">Učitavanje…</div>
+              <div className="py-8 text-center text-slate-600">{t('public.serviceDetail.loadingGallery')}</div>
             ) : null}
           </>
         )}

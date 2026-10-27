@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { SalonService } from './salon.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { SOCKET_EVENTS } from '../events/socket-events';
 
 const mockPrisma = {
   salonSettings: {
@@ -58,6 +59,31 @@ describe('SalonService', () => {
     );
     await expect(service.findOne('non-existent')).rejects.toThrow(
       'Salon nije pronađen.',
+    );
+  });
+
+  it('broadcasts only a salon invalidation instead of holiday metadata', async () => {
+    const updated = {
+      id: 'salon-1',
+      name: 'Salon',
+      workingHours: [],
+      holidays: [
+        {
+          id: 'holiday-1',
+          name: 'Holiday',
+          sendPush: true,
+          pushSentAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      ],
+    };
+    mockPrisma.salonSettings.findUnique.mockResolvedValue(updated);
+    mockPrisma.salonSettings.update.mockResolvedValue(updated);
+
+    await service.update('salon-1', { name: 'Updated salon' });
+    expect(mockEvents.emitToAll).toHaveBeenCalledTimes(1);
+    expect(mockEvents.emitToAll).toHaveBeenCalledWith(
+      SOCKET_EVENTS.SALON_UPDATED,
+      { key: 'salon' },
     );
   });
 

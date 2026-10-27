@@ -5,6 +5,7 @@ import { Calendar, CheckCircle2, ChevronLeft, ChevronRight, Clock, Search } from
 import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
+import { fetchAllPublicServices } from '../../api/catalog'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
 import { Input } from '../../components/ui/input'
@@ -15,6 +16,21 @@ import { useSettings } from '../../context/SettingsContext'
 import { useSocketEvent } from '../../context/SocketContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
 import { useAppToast } from '../../lib/toast/useAppToast'
+import { formatLocalizedAmount, getIntlLocale } from '../../i18n/locale-utils.mjs'
+import { resolvePublicReservationError } from '../../features/reservations/public-reservation-error.mjs'
+import {
+  addDateOnlyDays,
+  formatDateOnlyLocale,
+  getDateTimePartsInTimeZone,
+  getDateOnlyWeekday,
+  getDaysInMonth,
+  getSalonDateOnly,
+  getSalonTime,
+} from '../../../../shared/business-date.mjs'
+import {
+  createIdempotencyKey,
+  type PendingIdempotentRequest,
+} from '../../lib/idempotency-key'
 
 interface ServiceOption {
   id: string
@@ -54,21 +70,6 @@ interface LoyaltyInfo {
 
 const MotionDiv = motion.div
 
-const MONTHS_BS = [
-  'Januar',
-  'Februar',
-  'Mart',
-  'April',
-  'Maj',
-  'Juni',
-  'Juli',
-  'August',
-  'Septembar',
-  'Oktobar',
-  'Novembar',
-  'Decembar',
-]
-
 const ServiceAutocomplete = ({
   services,
   loading,
@@ -80,6 +81,7 @@ const ServiceAutocomplete = ({
   selected: ServiceOption[]
   onSelect: (next: ServiceOption[]) => void
 }) => {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [addingMore, setAddingMore] = useState(false)
@@ -122,7 +124,7 @@ const ServiceAutocomplete = ({
     return (
       <div className="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50 p-3">
         <div>
-          <div className="font-semibold text-slate-900">Odabrani servisi</div>
+          <div className="font-semibold text-slate-900">{t('public.reserve.selectedServices')}</div>
           <div className="mt-2 space-y-2">
             {selected.map((s) => (
               <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
@@ -138,7 +140,7 @@ const ServiceAutocomplete = ({
                     onSelect(selected.filter((x) => x.id !== s.id))
                   }}
                 >
-                  Ukloni
+                  {t('public.reserve.removeService')}
                 </Button>
               </div>
             ))}
@@ -146,7 +148,7 @@ const ServiceAutocomplete = ({
           <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-600">
             <span className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1">
               <Clock className="h-3.5 w-3.5 text-slate-500" />
-              Ukupno: {totalMinutes} min
+              {t('public.reserve.totalDuration', { minutes: totalMinutes })}
             </span>
           </div>
         </div>
@@ -161,7 +163,7 @@ const ServiceAutocomplete = ({
               requestAnimationFrame(() => inputRef.current?.focus())
             }}
           >
-            Dodaj još
+            {t('public.reserve.addMoreServices')}
           </Button>
           <Button
             type="button"
@@ -174,7 +176,7 @@ const ServiceAutocomplete = ({
               setAddingMore(false)
             }}
           >
-            Očisti
+            {t('public.reserve.clearServices')}
           </Button>
         </div>
 
@@ -184,7 +186,7 @@ const ServiceAutocomplete = ({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 ref={inputRef}
-                placeholder="Pretražite usluge po imenu..."
+                placeholder={t('public.reserve.searchServices')}
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value)
@@ -195,7 +197,7 @@ const ServiceAutocomplete = ({
               />
               {loading ? (
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
-                  Učitavanje…
+                  {t('common.loading')}
                 </div>
               ) : null}
             </div>
@@ -203,7 +205,7 @@ const ServiceAutocomplete = ({
               <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
                 <div className="max-h-[280px] overflow-auto">
                   {filtered.length === 0 ? (
-                    <div className="p-3 text-sm text-slate-500">Nema rezultata.</div>
+                    <div className="p-3 text-sm text-slate-500">{t('public.reserve.noResults')}</div>
                   ) : (
                     filtered.map((s) => (
                       <button
@@ -243,7 +245,7 @@ const ServiceAutocomplete = ({
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
           ref={inputRef}
-          placeholder="Pretražite usluge po imenu..."
+          placeholder={t('public.reserve.searchServices')}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
@@ -254,7 +256,7 @@ const ServiceAutocomplete = ({
         />
         {loading ? (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
-            Učitavanje…
+            {t('common.loading')}
           </div>
         ) : null}
       </div>
@@ -262,7 +264,7 @@ const ServiceAutocomplete = ({
         <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
           <div className="max-h-[280px] overflow-auto">
             {filtered.length === 0 ? (
-              <div className="p-3 text-sm text-slate-500">Nema rezultata.</div>
+              <div className="p-3 text-sm text-slate-500">{t('public.reserve.noResults')}</div>
             ) : (
               filtered.map((s) => (
                 <button
@@ -311,31 +313,43 @@ const ReservationCalendar = ({
   loading: boolean
   disabled: boolean
 }) => {
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
   const [currentMonth, setCurrentMonth] = useState(() => {
-    const now = new Date()
-    return { year: now.getFullYear(), month: now.getMonth() }
+    const { year, month } = getDateTimePartsInTimeZone(new Date())
+    return { year, month: month - 1 }
   })
 
-  const today = useMemo(() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  }, [])
+  const today = useMemo(() => getSalonDateOnly(), [])
+  const monthLabel = new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(
+    new Date(Date.UTC(currentMonth.year, currentMonth.month, 1)),
+  )
+  const weekdays = useMemo(() => {
+    const monday = Date.UTC(2024, 0, 1)
+    return Array.from({ length: 7 }, (_, index) =>
+      new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' }).format(
+        new Date(monday + index * 24 * 60 * 60 * 1000),
+      ),
+    )
+  }, [locale])
 
   const daysInMonth = useMemo(
-    () => new Date(currentMonth.year, currentMonth.month + 1, 0).getDate(),
+    () => getDaysInMonth(currentMonth.year, currentMonth.month + 1),
     [currentMonth],
   )
 
   const firstDayOfWeek = useMemo(() => {
-    const day = new Date(currentMonth.year, currentMonth.month, 1).getDay()
+    const month = String(currentMonth.month + 1).padStart(2, '0')
+    const day = getDateOnlyWeekday(`${currentMonth.year}-${month}-01`)
     return day === 0 ? 6 : day - 1
   }, [currentMonth])
 
   const canGoPrev = useMemo(() => {
-    const now = new Date()
+    const { year, month } = getDateTimePartsInTimeZone(new Date())
+    const salonMonth = month - 1
     return (
-      currentMonth.year > now.getFullYear() ||
-      (currentMonth.year === now.getFullYear() && currentMonth.month > now.getMonth())
+      currentMonth.year > year ||
+      (currentMonth.year === year && currentMonth.month > salonMonth)
     )
   }, [currentMonth])
 
@@ -357,7 +371,11 @@ const ReservationCalendar = ({
   }, [availableDates, currentMonth, daysInMonth, today])
 
   if (loading) {
-    return <div className="h-[200px] flex items-center justify-center text-slate-600">Učitavanje…</div>
+    return (
+      <div className="h-[200px] flex items-center justify-center text-slate-600">
+        {t('common.loading')}
+      </div>
+    )
   }
 
   return (
@@ -377,7 +395,7 @@ const ReservationCalendar = ({
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <div className="font-semibold text-slate-900">
-          {MONTHS_BS[currentMonth.month]} {currentMonth.year}
+          {monthLabel} {currentMonth.year}
         </div>
         <Button
           type="button"
@@ -395,7 +413,7 @@ const ReservationCalendar = ({
       </div>
 
       <div className="grid grid-cols-7 gap-1 mb-2">
-        {['Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub', 'Ned'].map((d) => (
+        {weekdays.map((d) => (
           <div key={d} className="text-center py-1 text-xs font-semibold text-slate-500 uppercase">
             {d}
           </div>
@@ -409,7 +427,11 @@ const ReservationCalendar = ({
         {cells.map(({ day, dateStr, available, isPast, isToday }) => {
           const isSelected = dateStr === selectedDate
           const disabledCell = disabled || !available
-          const title = available ? 'Dostupan' : isPast ? 'Prošao' : 'Nedostupan'
+          const title = available
+            ? t('public.reserve.available')
+            : isPast
+              ? t('public.reserve.past')
+              : t('public.reserve.unavailable')
           return (
             <button
               key={dateStr}
@@ -432,13 +454,16 @@ const ReservationCalendar = ({
 
       <div className="mt-3 flex items-center justify-center gap-4 text-xs text-slate-600">
         <div className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-slate-900" /> Odabrano
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-900" />
+          {t('public.reserve.selected')}
         </div>
         <div className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-slate-200 border border-slate-300" /> Dostupno
+          <span className="h-2.5 w-2.5 rounded-full border border-slate-300 bg-slate-200" />
+          {t('public.reserve.available')}
         </div>
         <div className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-full bg-slate-200" /> Nedostupno
+          <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+          {t('public.reserve.unavailable')}
         </div>
       </div>
     </div>
@@ -446,7 +471,8 @@ const ReservationCalendar = ({
 }
 
 export default function PublicReserve() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
   const { getSetting } = useSettings()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -470,6 +496,7 @@ export default function PublicReserve() {
   const [payDebtsIntent, setPayDebtsIntent] = useState(false)
   const [openDebtsTotal, setOpenDebtsTotal] = useState(0)
   const dateSectionRef = useRef<HTMLDivElement | null>(null)
+  const bookingAttemptRef = useRef<PendingIdempotentRequest>(null)
 
   const servicesForGender = useMemo(() => {
     if (!user?.gender) return []
@@ -494,9 +521,8 @@ export default function PublicReserve() {
       navigate('/profil', { replace: true })
       return
     }
-    api
-      .get<ServiceOption[]>('/api/services', { params: { activeOnly: 'true' } })
-      .then((r) => setServices(Array.isArray(r.data) ? r.data : []))
+    fetchAllPublicServices<ServiceOption>({ activeOnly: 'true' })
+      .then(setServices)
       .catch(() => setServices([]))
       .finally(() => setLoadingServices(false))
   }, [isReady, token, navigate, user])
@@ -518,15 +544,14 @@ export default function PublicReserve() {
 
   const loadAvailability = useCallback((serviceIds: string[]) => {
     setLoadingDates(true)
-    const from = new Date()
-    const to = new Date()
-    to.setDate(to.getDate() + 60)
+    const fromDate = getSalonDateOnly()
+    const toDate = addDateOnlyDays(fromDate, 60)
     api
       .get<DateAvailability[]>('/api/reservations/availability/dates', {
         params: {
           serviceIds: serviceIds.join(','),
-          fromDate: from.toISOString().slice(0, 10),
-          toDate: to.toISOString().slice(0, 10),
+          fromDate,
+          toDate,
         },
       })
       .then((r) => {
@@ -617,21 +642,30 @@ export default function PublicReserve() {
       !user?.email ||
       !user?.isEmailVerified
     ) {
-      toast.warning('Prije rezervacije morate ažurirati profil i verifikovati email.')
+      toast.warning(t('public.reserve.profileRequired'))
       navigate('/profil')
       return
     }
     setSubmitting(true)
+    const payload = {
+      serviceIds: selectedServiceIds,
+      reservationDate: selectedDate,
+      startTime: selectedSlot.start,
+      endTime: selectedSlot.end,
+      ...(notes.trim() && { clientNotes: notes.trim() }),
+      ...(desiredLoyaltyPercent > 0 && { desiredLoyaltyPercent }),
+      ...(payDebtsIntent && { payDebtsIntent: true }),
+    }
+    const fingerprint = JSON.stringify(payload)
+    const pending = bookingAttemptRef.current
+    const idempotencyKey =
+      pending?.fingerprint === fingerprint ? pending.key : createIdempotencyKey()
+    bookingAttemptRef.current = { fingerprint, key: idempotencyKey }
     try {
-      await api.post('/api/reservations', {
-        serviceIds: selectedServiceIds,
-        reservationDate: selectedDate,
-        startTime: selectedSlot.start,
-        endTime: selectedSlot.end,
-        ...(notes.trim() && { clientNotes: notes.trim() }),
-        ...(desiredLoyaltyPercent > 0 && { desiredLoyaltyPercent }),
-        ...(payDebtsIntent && { payDebtsIntent: true }),
+      await api.post('/api/reservations', payload, {
+        headers: { 'Idempotency-Key': idempotencyKey },
       })
+      bookingAttemptRef.current = null
       await refreshProfile().catch(() => {})
       const svcLabel =
         selectedServices.length === 1
@@ -639,7 +673,11 @@ export default function PublicReserve() {
           : `${selectedServices[0]!.name} + ${selectedServices.length - 1}`
       toast.success(
         t('public.reserve.success'),
-        `${svcLabel} - ${new Date(selectedDate).toLocaleDateString('bs-BA')} u ${selectedSlot.start}`,
+        t('public.reserve.successDescription', {
+          service: svcLabel,
+          date: formatDateOnlyLocale(selectedDate, locale),
+          time: selectedSlot.start,
+        }),
       )
       setSelectedServices([])
       setSelectedDate('')
@@ -650,10 +688,26 @@ export default function PublicReserve() {
       setDesiredLoyaltyPercent(0)
       navigate('/moje-rezervacije')
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        t('common.error')
-      toast.error(message)
+      const backendMessage = (err as { response?: { data?: { message?: unknown } } })
+        ?.response?.data?.message
+      const localizedError = resolvePublicReservationError(backendMessage)
+      if (!localizedError) {
+        toast.error(t('common.error'))
+      } else {
+        const values = { ...localizedError.values }
+        if (localizedError.key === 'errorPenaltyUntil' && values.date) {
+          try {
+            values.date = formatDateOnlyLocale(values.date, locale, {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })
+          } catch {
+            // Keep the validated backend date string if locale formatting rejects it.
+          }
+        }
+        toast.error(t(`public.reserve.${localizedError.key}`, values))
+      }
     } finally {
       setSubmitting(false)
     }
@@ -680,12 +734,12 @@ export default function PublicReserve() {
           <CardContent className="p-6 md:p-10">
             <div className="text-center">
               <div className="text-2xl font-semibold tracking-tight text-slate-950">
-                {getSetting('public_reserve_title', 'Rezervišite Vaš Termin')}
+                {getSetting('public_reserve_title', t('public.reserve.bannerTitle'))}
               </div>
               <div className="text-slate-600 mt-2">
                 {getSetting(
                   'public_reserve_subtitle',
-                  'Osigurajte svoje vrijeme za savršenu frizuru u nekoliko jednostavnih koraka.',
+                  t('public.reserve.bannerSubtitle'),
                 )}
               </div>
             </div>
@@ -753,7 +807,7 @@ export default function PublicReserve() {
                       {t('public.reserve.selectTime')}{' '}
                       <span className="font-normal text-slate-500 text-sm ml-2">
                         (
-                        {new Date(selectedDate).toLocaleDateString('bs-BA', {
+                        {formatDateOnlyLocale(selectedDate, locale, {
                           weekday: 'long',
                           day: 'numeric',
                           month: 'long',
@@ -763,10 +817,10 @@ export default function PublicReserve() {
                     </Label>
 
                     {loadingSlots ? (
-                      <div className="py-4 text-center text-slate-600">Učitavanje…</div>
+                      <div className="py-4 text-center text-slate-600">{t('common.loading')}</div>
                     ) : slots.length === 0 ? (
                       <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 text-center text-sm text-orange-800">
-                        Nema dostupnih termina za odabrani datum. Pokušajte drugi datum.
+                        {t('public.reserve.noSlots')} {t('public.reserve.tryAnotherDate')}
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -775,9 +829,9 @@ export default function PublicReserve() {
                             selectedSlot?.start === slot.startTime &&
                             selectedSlot?.end === slot.endTime
                           const now = new Date()
-                          const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-                          const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-                          const isPastSlot = selectedDate === todayLocal && slot.startTime < nowHHMM
+                          const nowHHMM = getSalonTime(now)
+                          const todaySalon = getSalonDateOnly(now)
+                          const isPastSlot = selectedDate === todaySalon && slot.startTime < nowHHMM
                           const isHeld = slot.holdState === 'pending_hold' && slot.availableStylistCount === 0
                           const isDisabled = isPastSlot || isHeld
                           return (
@@ -822,8 +876,10 @@ export default function PublicReserve() {
                               </div>
                               <div className={isSelected ? 'text-xs opacity-80' : 'text-xs text-slate-500'}>
                                 {isHeld
-                                  ? 'Možda će uskoro biti slobodan'
-                                  : `${slot.availableStylistCount} ${slot.availableStylistCount === 1 ? 'stilist' : 'stilista'}`}
+                                  ? t('public.reserve.holdSoon')
+                                  : t('public.reserve.stylistsAvailable', {
+                                      count: slot.availableStylistCount,
+                                    })}
                               </div>
                             </button>
                           )
@@ -848,7 +904,7 @@ export default function PublicReserve() {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows={3}
-                      placeholder="Posebne želje, napomene za stilista..."
+                      placeholder={t('public.reserve.notesPlaceholder')}
                     />
                   </div>
 
@@ -861,9 +917,11 @@ export default function PublicReserve() {
                         onChange={(e) => setPayDebtsIntent(e.target.checked)}
                       />
                       <span>
-                        <span className="block font-semibold text-slate-900">Plaćam i dugovanje</span>
+                        <span className="block font-semibold text-slate-900">{t('public.reserve.payOutstanding')}</span>
                         <span className="block text-sm text-slate-600">
-                          Otvoreno: {openDebtsTotal.toFixed(2)} KM
+                          {t('public.reserve.outstandingAmount', {
+                            amount: formatLocalizedAmount(openDebtsTotal, i18n.language),
+                          })}
                         </span>
                       </span>
                     </label>
@@ -877,20 +935,24 @@ export default function PublicReserve() {
                   loyaltyInfo.service.maxDiscountPercent > 0 ? (
                     <div className="mt-4 rounded-lg border border-purple-200 bg-purple-50 p-4">
                       <div className="font-semibold text-purple-900 mb-2">
-                        Loyalty popust
+                        {t('public.reserve.loyaltyDiscount')}
                       </div>
                       <div className="text-sm text-purple-900">
-                        Status: {loyaltyInfo.tier ?? 'Nema nivoa'} · Dostupno bodova:{' '}
-                        {loyaltyInfo.points ?? 0}
+                        {t('public.reserve.tierStatus', {
+                          tier: loyaltyInfo.tier ?? t('public.reserve.noTier'),
+                        })}{' '}
+                        ·{' '}
+                        {t('public.reserve.availablePoints', { count: loyaltyInfo.points ?? 0 })}
                       </div>
                       <div className="text-sm text-purple-900">
-                        Maksimalan popust za ovu uslugu:{' '}
-                        {loyaltyInfo.service.maxDiscountPercent}%
+                        {t('public.reserve.maxDiscountForService', {
+                          percent: loyaltyInfo.service.maxDiscountPercent,
+                        })}
                       </div>
                       <div className="mt-3 flex items-end gap-3">
                         <div className="flex-1 space-y-2">
                           <Label className="text-purple-900 font-semibold">
-                            Koliki popust želite iskoristiti?
+                            {t('public.reserve.redeemQuestion')}
                           </Label>
                           <Input
                             type="number"
@@ -916,11 +978,11 @@ export default function PublicReserve() {
 
                   <div className="mt-4 rounded-xl border border-slate-200/80 bg-slate-50 p-4">
                     <div className="font-semibold text-slate-950 mb-2">
-                      Pregled rezervacije:
+                      {t('public.reserve.bookingSummary')}
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <div className="text-xs text-slate-500">Usluga</div>
+                        <div className="text-xs text-slate-500">{t('public.reserve.service')}</div>
                         <div className="font-semibold">
                           {selectedServices.length === 1
                             ? selectedServices[0]!.name
@@ -928,15 +990,17 @@ export default function PublicReserve() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">Trajanje</div>
+                        <div className="text-xs text-slate-500">{t('public.reserve.duration')}</div>
                         <div className="font-semibold">
-                          {selectedServices.reduce((acc, s) => acc + (s.durationMinutes ?? 0), 0)} minuta
+                          {t('public.reserve.durationMinutes', {
+                            minutes: selectedServices.reduce((acc, s) => acc + (s.durationMinutes ?? 0), 0),
+                          })}
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">Datum</div>
+                        <div className="text-xs text-slate-500">{t('public.reserve.date')}</div>
                         <div className="font-semibold">
-                          {new Date(selectedDate).toLocaleDateString('bs-BA', {
+                          {formatDateOnlyLocale(selectedDate, locale, {
                             weekday: 'long',
                             day: 'numeric',
                             month: 'long',
@@ -945,7 +1009,7 @@ export default function PublicReserve() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">Termin</div>
+                        <div className="text-xs text-slate-500">{t('public.reserve.timeSlot')}</div>
                         <div className="font-semibold">
                           {selectedSlot.start} - {selectedSlot.end}
                         </div>
@@ -960,7 +1024,7 @@ export default function PublicReserve() {
                   >
                     <span className="inline-flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
-                      {submitting ? 'Slanje rezervacije…' : t('public.reserve.submit')}
+                      {submitting ? t('public.reserve.submitting') : t('public.reserve.submit')}
                     </span>
                   </Button>
                 </MotionDiv>

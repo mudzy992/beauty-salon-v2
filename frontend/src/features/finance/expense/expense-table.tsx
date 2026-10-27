@@ -12,7 +12,7 @@ import {
   notesPreviewFor,
   PREVIEW_LIMIT,
 } from './expense-table.helpers'
-import { formatIsoDateBs, formatMoney } from '../finance.utils'
+import { formatInstantDateBs, formatMoney } from '../finance.utils'
 import type { ExpenseSortField } from './expenses.helpers'
 import type { Expense, SortDirection } from '../finance.types'
 
@@ -103,7 +103,7 @@ export function ExpenseTable({
                   className="border-b border-slate-100 last:border-0 dark:border-slate-900"
                 >
                   <td className="whitespace-nowrap py-2 pr-3 align-top">
-                    {formatIsoDateBs(expense.createdAt)}
+                    {formatInstantDateBs(expense.createdAt)}
                   </td>
                   <td className="py-2 pr-3 align-top">
                     <div className="font-medium text-slate-900 dark:text-slate-50">
@@ -123,7 +123,7 @@ export function ExpenseTable({
                           <li>
                             <button
                               type="button"
-                              className="text-brand-gold hover:underline"
+                              className="text-brand-gold-text hover:underline"
                               onClick={() => setPreview(expense)}
                             >
                               + još {detailLabels.length - PREVIEW_LIMIT} stavki — pogledaj

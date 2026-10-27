@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
 import type { NavigateFunction } from 'react-router-dom'
 
 import { getErrorMessage } from '../../../api/error'
@@ -33,6 +35,7 @@ export const useReservationDetailActions = ({
   success,
   toastApiError,
 }: UseReservationDetailActionsParams) => {
+  const { t, i18n } = useTranslation()
   const [cancelOpen, setCancelOpen] = useState(false)
   const [completeOpen, setCompleteOpen] = useState(false)
   const [noShowOpen, setNoShowOpen] = useState(false)
@@ -44,10 +47,10 @@ export const useReservationDetailActions = ({
     try {
       await actions.start.mutateAsync(reservation.id)
       await refetch()
-      success('Startovano', 'Rezervacija je startovana.')
+      success(t('stylistPortal.reservationDetail.startedTitle'), t('stylistPortal.reservationDetail.startedMessage'))
       navigate(-1)
     } catch (error) {
-      toastApiError(error, 'Greška pri startovanju')
+      toastApiError(error, t('stylistPortal.reservationDetail.startFailed'))
     }
   }
 
@@ -56,9 +59,9 @@ export const useReservationDetailActions = ({
     try {
       await actions.staffConfirm.mutateAsync(reservation.id)
       await refetch()
-      success('Dolazak potvrđen', 'Potvrda dolaska je zabilježena.')
+      success(t('stylistPortal.reservationDetail.attendanceConfirmedTitle'), t('stylistPortal.reservationDetail.attendanceConfirmedMessage'))
     } catch (error) {
-      toastApiError(error, 'Greška pri potvrdi dolaska')
+      toastApiError(error, t('stylistPortal.reservationDetail.attendanceConfirmFailed'))
     }
   }
 
@@ -76,10 +79,10 @@ export const useReservationDetailActions = ({
       await debtsQuery.refetch()
       setCompleteOpen(false)
       success(
-        'Upisano',
+        t('stylistPortal.reservationDetail.paymentRecordedTitle'),
         payload.debtHandling === 'CREATE_DEBT'
-          ? `Naplata je upisana, a ${payload.shortfall.toFixed(2)} KM je evidentirano kao dug.`
-          : 'Naplata je upisana u Dnevnik.',
+          ? t('stylistPortal.reservationDetail.paymentWithDebt', { amount: formatLocalizedAmount(payload.shortfall, i18n.language) })
+          : t('stylistPortal.reservationDetail.paymentRecorded'),
       )
       navigate(`/stylist/workbook/${entry.id}`)
     } catch (error) {
@@ -87,11 +90,11 @@ export const useReservationDetailActions = ({
       if (/zaključan|KIF/i.test(message)) {
         toastApiError(
           error,
-          'KIF mjesec je zaključan — završetak nije moguć. Kontaktirajte admina da otključa knjigu.',
+          t('stylistPortal.reservationDetail.workbookLocked'),
         )
         return
       }
-      toastApiError(error, 'Greška pri upisu')
+      toastApiError(error, t('stylistPortal.reservationDetail.paymentFailed'))
     }
   }
 
@@ -99,16 +102,16 @@ export const useReservationDetailActions = ({
     if (!reservation) return
     const cancelReason = rawReason.trim()
     if (!cancelReason) {
-      toastApiError(null, 'Unesite obrazloženje otkazivanja.')
+      toastApiError(null, t('stylistPortal.reservationDetail.cancellationReasonRequired'))
       return
     }
     try {
       await actions.cancel.mutateAsync({ reservationId: reservation.id, cancelReason })
       setCancelOpen(false)
-      success('Otkazano', 'Rezervacija je otkazana.')
+      success(t('stylistPortal.reservationDetail.cancelledTitle'), t('stylistPortal.reservationDetail.cancelledMessage'))
       navigate('/stylist/schedule')
     } catch (error) {
-      toastApiError(error, 'Greška pri otkazivanju')
+      toastApiError(error, t('stylistPortal.reservationDetail.cancelFailed'))
     }
   }
 
@@ -116,16 +119,16 @@ export const useReservationDetailActions = ({
     if (!reservation) return
     const reason = rawReason.trim()
     if (!reason) {
-      toastApiError(null, 'Unesite obrazloženje.')
+      toastApiError(null, t('stylistPortal.reservationDetail.reasonRequired'))
       return
     }
     try {
       await actions.noShow.mutateAsync({ reservationId: reservation.id, reason, applyPenalty })
       setNoShowOpen(false)
-      success('Označeno', 'Rezervacija je označena kao no-show.')
+      success(t('stylistPortal.reservationDetail.noShowTitle'), t('stylistPortal.reservationDetail.noShowMessage'))
       navigate('/stylist/schedule')
     } catch (error) {
-      toastApiError(error, 'Greška pri označavanju')
+      toastApiError(error, t('stylistPortal.reservationDetail.noShowFailed'))
     }
   }
 
@@ -138,10 +141,10 @@ export const useReservationDetailActions = ({
         targetEndTime: times.endTime,
       })
       setReorderOpen(false)
-      success('Poslano', 'Klijentu je poslan prijedlog pomjeranja termina.')
+      success(t('stylistPortal.reservationDetail.reorderSentTitle'), t('stylistPortal.reservationDetail.reorderSentMessage'))
       await refetch()
     } catch (error) {
-      toastApiError(error, 'Greška pri slanju prijedloga')
+      toastApiError(error, t('stylistPortal.reservationDetail.reorderFailed'))
     }
   }
 

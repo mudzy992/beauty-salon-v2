@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { isAxiosError } from 'axios'
 import { Plus } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
@@ -9,26 +11,37 @@ import { WorkbookNewEntryDrawer } from './workbook-new-entry-page'
 import { useStylistProfileMe } from '../hooks/useStylistProfileMe'
 import { useWorkbookEntries } from '../hooks/useWorkbookEntries'
 import { getCollectedTotal, getServicesLabel, getSettledDebtsSum } from '../workbook-display'
+import {
+  addDateOnlyDays,
+  addDateOnlyMonths,
+  getSalonDateOnly,
+  formatDateOnlyLocale,
+} from '../../../../../shared/business-date.mjs'
+import { formatLocalizedAmount, getIntlLocale } from '../../../i18n/locale-utils.mjs'
 
-const formatKm = (v: number) => `${Number(v || 0).toFixed(2)} KM`
+const formatKm = (v: number, language: string) => formatLocalizedAmount(Number(v || 0), language)
 
 const getWindow = () => {
-  const from = new Date()
-  from.setMonth(from.getMonth() - 1)
-  const to = new Date()
-  to.setDate(to.getDate() + 7)
+  const today = getSalonDateOnly()
   return {
-    fromDate: from.toISOString().slice(0, 10),
-    toDate: to.toISOString().slice(0, 10),
+    fromDate: addDateOnlyMonths(today, -1),
+    toDate: addDateOnlyDays(today, 7),
   }
 }
 
 export const WorkbookListPage = () => {
-  const { profileId, isLoading: profileLoading } = useStylistProfileMe()
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
+  const {
+    profileId,
+    isLoading: profileLoading,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useStylistProfileMe()
   const { fromDate, toDate } = useMemo(() => getWindow(), [])
   const [newOpen, setNewOpen] = useState(false)
 
-  const { sections, isLoading, isFetching, refetch } = useWorkbookEntries({
+  const { sections, isLoading, isFetching, refetch, error: entriesError } = useWorkbookEntries({
     stylistProfileId: profileId,
     fromDate,
     toDate,
@@ -37,16 +50,32 @@ export const WorkbookListPage = () => {
   if (profileLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-sm text-slate-500">Učitavanje…</div>
+        <div className="text-sm text-slate-500">{t('common.loading')}</div>
       </div>
+    )
+  }
+
+  const profileNotFound =
+    isAxiosError(profileError) && profileError.response?.status === 404
+
+  if (profileError && !profileNotFound) {
+    return (
+      <Card className="p-6" role="alert">
+        <p className="text-slate-600 dark:text-slate-300">{t('stylistWorkbook.profileLoadFailed')}</p>
+        <Button type="button" variant="outline" className="mt-3" onClick={() => void refetchProfile()}>
+          {t('common.retry')}
+        </Button>
+      </Card>
     )
   }
 
   if (!profileId) {
     return (
       <Card className="p-6">
-        <p className="text-slate-900 dark:text-slate-50 font-semibold">Nema profila</p>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Profil stilista nije pronađen.</p>
+        <p className="text-slate-900 dark:text-slate-50 font-semibold">{t('stylistWorkbook.noProfile')}</p>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          {t('stylistWorkbook.profileNotFound')}
+        </p>
       </Card>
     )
   }
@@ -55,19 +84,24 @@ export const WorkbookListPage = () => {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Dnevna knjiga</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
+            {t('stylistWorkbook.title')}
+          </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Period: {fromDate} → {toDate}
+            {t('stylistWorkbook.period', {
+              from: formatDateOnlyLocale(fromDate, locale),
+              to: formatDateOnlyLocale(toDate, locale),
+            })}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Button type="button" variant="outline" onClick={() => void refetch()} disabled={isFetching}>
-            {isFetching ? 'Osvježavam…' : 'Osvježi'}
+            {isFetching ? t('stylistWorkbook.refreshing') : t('stylistWorkbook.refresh')}
           </Button>
           <Button type="button" className="gap-2" onClick={() => setNewOpen(true)}>
             <Plus className="h-4 w-4" />
-            Novi unos
+            {t('stylistWorkbook.newEntry')}
           </Button>
         </div>
       </div>
@@ -76,18 +110,27 @@ export const WorkbookListPage = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="text-sm text-slate-500">Učitavanje…</div>
+          <div className="text-sm text-slate-500">{t('common.loading')}</div>
         </div>
+      ) : entriesError ? (
+        <Card className="p-6 text-center" role="alert">
+          <p className="text-slate-600 dark:text-slate-300">{t('stylistWorkbook.entriesLoadFailed')}</p>
+          <Button type="button" variant="outline" className="mt-3" onClick={() => void refetch()}>
+            {t('common.retry')}
+          </Button>
+        </Card>
       ) : sections.length === 0 ? (
         <Card className="p-6">
-          <p className="text-slate-900 dark:text-slate-50 font-semibold">Nema zapisa</p>
+          <p className="text-slate-900 dark:text-slate-50 font-semibold">
+            {t('stylistWorkbook.noEntries')}
+          </p>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Zapisi iz rezervacija ili ručno dodani pojavit će se ovdje. Završite zapis i dodajte before/after slike.
+            {t('stylistWorkbook.noEntriesDescription')}
           </p>
           <div className="mt-4">
             <Button type="button" className="gap-2" onClick={() => setNewOpen(true)}>
               <Plus className="h-4 w-4" />
-              Novi unos
+              {t('stylistWorkbook.newEntry')}
             </Button>
           </div>
         </Card>
@@ -95,7 +138,7 @@ export const WorkbookListPage = () => {
         <div className="space-y-6">
           {sections.map((section) => (
             <div key={section.title}>
-              <div className="mb-2 text-sm font-semibold text-brand-gold">{section.title}</div>
+              <div className="mb-2 text-sm font-semibold text-brand-gold-text">{section.title}</div>
               <div className="grid grid-cols-1 gap-3">
                 {section.data.map((item) => {
                   const beforeCount = item.images?.filter((i) => i.isBefore).length ?? 0
@@ -112,23 +155,27 @@ export const WorkbookListPage = () => {
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-base font-semibold text-slate-900 dark:text-slate-50 truncate">
-                              {item.publicReferenceCode ?? getServicesLabel(item)}
+                              {item.publicReferenceCode ??
+                                getServicesLabel(item, t('stylistWorkbook.serviceFallback'))}
                             </div>
                             <div className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                              {item.date?.slice(0, 10)} · {getServicesLabel(item)}
+                              {item.date?.slice(0, 10)
+                                ? formatDateOnlyLocale(item.date.slice(0, 10), locale)
+                                : '—'}{' '}
+                              · {getServicesLabel(item, t('stylistWorkbook.serviceFallback'))}
                             </div>
                             {clientName ? (
                               <div className="mt-1 text-sm text-slate-500 dark:text-slate-400 truncate">
                                 {clientName}
                               </div>
                             ) : null}
-                            <div className="mt-2 text-sm font-semibold text-brand-gold">
-                              {formatKm(getCollectedTotal(item))}
+                            <div className="mt-2 text-sm font-semibold text-brand-gold-text">
+                              {formatKm(getCollectedTotal(item), i18n.language)}
                               {getSettledDebtsSum(item) > 0
-                                ? ` · dug ${formatKm(getSettledDebtsSum(item))}`
+                                ? ` · ${t('stylistWorkbook.debt')} ${formatKm(getSettledDebtsSum(item), i18n.language)}`
                                 : ''}
                               {Number(item.tipAmount) > 0
-                                ? ` · nap. ${formatKm(Number(item.tipAmount))}`
+                                ? ` · ${t('stylistWorkbook.tip')} ${formatKm(Number(item.tipAmount), i18n.language)}`
                                 : ''}
                             </div>
                           </div>
@@ -136,7 +183,9 @@ export const WorkbookListPage = () => {
                           <div className="shrink-0 flex items-center gap-2">
                             {hasBA ? <Badge variant="brand">B/A</Badge> : null}
                             <Badge variant={item.status === 'COMPLETED' ? 'success' : 'warning'}>
-                              {item.status === 'COMPLETED' ? 'Završeno' : 'Na čekanju'}
+                              {item.status === 'COMPLETED'
+                                ? t('stylistWorkbook.completed')
+                                : t('stylistWorkbook.pending')}
                             </Badge>
                           </div>
                         </div>

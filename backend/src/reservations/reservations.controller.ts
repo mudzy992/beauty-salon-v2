@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -23,6 +24,12 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
+import {
+  HTTP_RATE_LIMIT_AVAILABILITY_DATES_USER,
+  HTTP_RATE_LIMIT_AVAILABILITY_SLOTS_USER,
+  HTTP_RATE_LIMIT_WINDOW_SECONDS,
+} from '../common/rate-limiting/http-rate-limit.constants';
 
 @Controller('api/reservations')
 @UseGuards(JwtAuthGuard)
@@ -35,9 +42,10 @@ export class ReservationsController {
   @Post()
   create(
     @Body() dto: CreateReservationDto,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.reservations.create(dto, user.sub);
+    return this.reservations.create(dto, user.sub, idempotencyKey);
   }
 
   @Post('admin')
@@ -88,6 +96,12 @@ export class ReservationsController {
   }
 
   @Get('availability/dates')
+  @HttpRateLimit({
+    bucket: 'availability:dates',
+    limit: HTTP_RATE_LIMIT_AVAILABILITY_DATES_USER,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'user',
+  })
   getAvailableDates(
     @Query('serviceId') serviceId: string | undefined,
     @Query('serviceIds') serviceIds: string | undefined,
@@ -100,12 +114,18 @@ export class ReservationsController {
       .filter(Boolean);
     return this.availability.getAvailableDates(
       ids.length > 0 ? ids : (serviceId ?? ''),
-      new Date(fromDate),
-      toDate ? new Date(toDate) : undefined,
+      fromDate,
+      toDate,
     );
   }
 
   @Get('availability/slots')
+  @HttpRateLimit({
+    bucket: 'availability:slots',
+    limit: HTTP_RATE_LIMIT_AVAILABILITY_SLOTS_USER,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'user',
+  })
   getAvailableSlots(
     @Query('serviceId') serviceId: string | undefined,
     @Query('serviceIds') serviceIds: string | undefined,

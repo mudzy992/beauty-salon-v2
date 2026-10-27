@@ -1,0 +1,19 @@
+# Vite build context: keep local credentials and generated files out of image layers.
+.git
+node_modules
+dist
+coverage
+.vite
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+**/*firebase-adminsdk*.json
+**/*service-account*.json
+**/*service_account*.json
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.keystore
+*.log

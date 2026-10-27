@@ -12,6 +12,7 @@ type ThemeColors = {
   textSecondary: string;
   textMuted: string;
   primary: string;
+  primaryText: string;
   border: string;
   inputBg: string;
   inputBorder: string;
@@ -139,11 +140,11 @@ export function DailyLogEntryPricingBlock(props: Props) {
             <Ionicons
               name={settleDebtsEnabled ? 'checkbox' : 'square-outline'}
               size={20}
-              color={settleDebtsEnabled ? '#fff' : colors.primary}
+              color={settleDebtsEnabled ? colors.primaryText : colors.primary}
             />
             <Text
               style={{
-                color: settleDebtsEnabled ? '#fff' : colors.primary,
+                color: settleDebtsEnabled ? colors.primaryText : colors.primary,
                 fontWeight: '700',
                 fontSize: 15,
               }}

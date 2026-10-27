@@ -1,13 +1,18 @@
 import { BadRequestException } from '@nestjs/common'
+import { DEFAULT_SALON_TIMEZONE, getZonedDateParts } from './zoned-time'
+import { parseDateOnlyString } from './date-only'
 
 export type BookPeriod = { year: number; month: number }
 
 const MIN_YEAR = 2000
 const MAX_YEAR = 2100
 
-export const getCurrentPeriod = (): BookPeriod => {
-  const now = new Date()
-  return { year: now.getFullYear(), month: now.getMonth() + 1 }
+export const getCurrentPeriod = (
+  now = new Date(),
+  timeZone = DEFAULT_SALON_TIMEZONE,
+): BookPeriod => {
+  const { year, month } = getZonedDateParts(now, timeZone)
+  return { year, month }
 }
 
 export const getPreviousPeriod = ({ year, month }: BookPeriod): BookPeriod =>
@@ -35,18 +40,28 @@ export const assertValidPeriod = (year: number, month: number): void => {
 }
 
 export const parseAndNormalizeDate = (value: string): Date => {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
+  try {
+    return parseDateOnlyString(value)
+  } catch {
     throw new BadRequestException('Datum nije validan.')
   }
-  date.setHours(0, 0, 0, 0)
-  return date
 }
 
+/** Period of a Prisma @db.Date value; use UTC calendar components. */
 export const getPeriodOfDate = (date: Date): BookPeriod => ({
-  year: date.getFullYear(),
-  month: date.getMonth() + 1,
+  year: date.getUTCFullYear(),
+  month: date.getUTCMonth() + 1,
 })
+
+export const getBookPeriodDateBounds = (year: number, month: number) => {
+  assertValidPeriod(year, month)
+  const gte = new Date(0)
+  gte.setUTCFullYear(year, month - 1, 1)
+  gte.setUTCHours(0, 0, 0, 0)
+  const lt = new Date(gte)
+  lt.setUTCMonth(lt.getUTCMonth() + 1)
+  return { gte, lt }
+}
 
 export const ensureDateMatchesPeriod = (
   date: Date,

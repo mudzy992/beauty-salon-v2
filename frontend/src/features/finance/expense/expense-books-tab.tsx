@@ -12,6 +12,7 @@ import { useExpenseBooks } from '../hooks/use-expense-books'
 import { financeKeys } from '../hooks/query-keys'
 import { toNumber } from '../finance.utils'
 import { useAppToast } from '../../../lib/toast/useAppToast'
+import { getDateTimePartsInTimeZone } from '../../../../../shared/business-date.mjs'
 
 export function ExpenseBooksTab() {
   const { t } = useTranslation()
@@ -19,9 +20,9 @@ export function ExpenseBooksTab() {
   const queryClient = useQueryClient()
   const booksQuery = useExpenseBooks()
 
-  const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth() + 1)
+  const salonPeriod = getDateTimePartsInTimeZone(new Date())
+  const [year, setYear] = useState(salonPeriod.year)
+  const [month, setMonth] = useState(salonPeriod.month)
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null)
   const [isOpening, setIsOpening] = useState(false)
 

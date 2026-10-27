@@ -36,6 +36,7 @@ import { ReservationDateService } from './reservation-date.service';
 import { DailyLogModule } from '../daily-log/daily-log.module';
 import { ReservationDirectDailyLogCronService } from './reservation-direct-daily-log-cron.service';
 import { ReservationAppointmentReminderService } from './reservation-appointment-reminder.service';
+import { ReservationOutboxService } from './reservation-outbox.service';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { ReservationAppointmentReminderService } from './reservation-appointment
     ReservationDelayCron,
     ReservationDateService,
     ReservationAppointmentReminderService,
+    ReservationOutboxService,
   ],
   exports: [
     ReservationsService,

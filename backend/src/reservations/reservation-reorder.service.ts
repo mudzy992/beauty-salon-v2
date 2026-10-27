@@ -9,6 +9,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
 import { buildProposalCopy } from '../notifications/utils/reservation-push-copy';
 import { ReservationDateService } from './reservation-date.service';
+import { getDateOnlyDayBounds } from '../common/utils/date-only';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { RESERVATION_STATUS } from './constants';
@@ -75,11 +76,9 @@ export class ReservationReorderService {
       );
     }
     const originalDuration =
-      timeToMinutes(reservation.endTime) -
-      timeToMinutes(reservation.startTime);
+      timeToMinutes(reservation.endTime) - timeToMinutes(reservation.startTime);
     const newDuration =
-      timeToMinutes(dto.targetEndTime) -
-      timeToMinutes(dto.targetStartTime);
+      timeToMinutes(dto.targetEndTime) - timeToMinutes(dto.targetStartTime);
     if (originalDuration !== newDuration) {
       throw new BadRequestException(
         'Pomjeranje je dozvoljeno samo na termin istog trajanja.',
@@ -90,16 +89,14 @@ export class ReservationReorderService {
         'Rezervacija već čeka potvrdu prethodne promjene.',
       );
     }
-    const dayStart = this.dates.parseDateOnly(
-      reservation.reservationDate,
+    const { gte, lt } = getDateOnlyDayBounds(
+      this.dates.toDateOnlyString(reservation.reservationDate),
     );
-    const dayEnd = new Date(dayStart);
-    dayEnd.setHours(23, 59, 59, 999);
     const conflict = await this.prisma.reservation.findFirst({
       where: {
         id: { not: reservation.id },
         confirmedStylistId: stylistProfileId,
-        reservationDate: { gte: dayStart, lte: dayEnd },
+        reservationDate: { gte, lt },
         status: {
           in: [
             RESERVATION_STATUS.CONFIRMED,
@@ -118,8 +115,7 @@ export class ReservationReorderService {
       },
       select: { id: true },
     });
-    if (conflict)
-      throw new BadRequestException('Odabrani termin je zauzet.');
+    if (conflict) throw new BadRequestException('Odabrani termin je zauzet.');
     const serviceIds =
       reservation.items.length > 0
         ? reservation.items.map((item) => item.serviceId)
@@ -151,7 +147,7 @@ export class ReservationReorderService {
     const copy = buildProposalCopy(
       {
         ...ctx,
-        date: this.dates.toLocalDateOnlyString(reservation.reservationDate),
+        date: this.dates.toDateOnlyString(reservation.reservationDate),
         startTime: dto.targetStartTime,
         endTime: dto.targetEndTime,
       },

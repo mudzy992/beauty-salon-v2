@@ -26,7 +26,7 @@ import { Input } from '../../components/ui/Input';
 import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
 import { spacing, borderRadius } from '../../theme';
-import { formatDate, formatTime, isUpcoming } from '../../utils/date';
+import { formatDate, formatTime, isUpcoming, salonWallTimeToInstant } from '../../utils/date';
 import { getReservationServices } from '../../utils/reservationServices';
 import type { ReservationsScreenProps } from '../../navigation/types';
 import type { Reservation, ReservationStatus } from '../../types';
@@ -58,12 +58,29 @@ const canConfirmAttendance = (reservation: Reservation): boolean => {
 
 const getAttendanceConfirmHours = (reservation: Reservation, fallback = 12): number => {
   if (!reservation.attendanceClientDeadlineAt) return fallback;
-  const [year, month, day] = reservation.reservationDate.slice(0, 10).split('-').map(Number);
-  const [hours, minutes] = reservation.startTime.slice(0, 5).split(':').map(Number);
-  const start = new Date(year ?? 0, (month ?? 1) - 1, day ?? 1, hours ?? 0, minutes ?? 0, 0, 0);
+  let start: Date;
+  try {
+    start = salonWallTimeToInstant(
+      reservation.reservationDate.slice(0, 10),
+      reservation.startTime,
+    );
+  } catch {
+    return fallback;
+  }
   const deadline = new Date(reservation.attendanceClientDeadlineAt);
   const diffHours = Math.round((start.getTime() - deadline.getTime()) / 3_600_000);
   return diffHours > 0 ? diffHours : fallback;
+};
+
+const getReservationStartTime = (reservation: Reservation): number => {
+  try {
+    return salonWallTimeToInstant(
+      reservation.reservationDate.slice(0, 10),
+      reservation.startTime,
+    ).getTime();
+  } catch {
+    return Number.MAX_SAFE_INTEGER;
+  }
 };
 
 export function MyReservationsScreen({ navigation, route }: ReservationsScreenProps<'MyReservations'>) {
@@ -187,19 +204,15 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
   const sections: Section[] = [];
   const activeReservation = reservations
     .filter((r) =>
-      isUpcoming(r.reservationDate) &&
+      isUpcoming(r.reservationDate, r.endTime) &&
       !['COMPLETED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_STYLISTS', 'NO_SHOW'].includes(r.status),
     )
-    .sort((a, b) => {
-      const ad = new Date(`${a.reservationDate}T${a.startTime}`).getTime();
-      const bd = new Date(`${b.reservationDate}T${b.startTime}`).getTime();
-      return ad - bd;
-    })[0];
+    .sort((a, b) => getReservationStartTime(a) - getReservationStartTime(b))[0];
 
   const listSource = activeReservation
     ? reservations.filter((r) => r.id !== activeReservation.id)
     : reservations;
-  const upcoming = listSource.filter((r) => isUpcoming(r.reservationDate) && !['COMPLETED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_STYLISTS', 'NO_SHOW'].includes(r.status));
+  const upcoming = listSource.filter((r) => isUpcoming(r.reservationDate, r.endTime) && !['COMPLETED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_STYLISTS', 'NO_SHOW'].includes(r.status));
   const past = listSource.filter((r) => !upcoming.includes(r));
 
   if (upcoming.length > 0) sections.push({ title: t('myReservations.upcoming'), data: upcoming });

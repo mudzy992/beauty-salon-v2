@@ -1,18 +1,32 @@
 services:
   frontend:
     build:
-      context: ./frontend
+      context: .
+      dockerfile: frontend/Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL}
         VITE_API_FILES_URL: ${VITE_API_FILES_URL}
     restart: unless-stopped
 
+  # Run manually before starting a release that contains new migrations.
+  migrate:
+    profiles:
+      - migrations
+    build:
+      context: ./backend
+      target: migrator
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    volumes:
+      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
+    restart: "no"
+    networks:
+      - db_net
+
   backend:
     build:
       context: ./backend
-      args:
-        DATABASE_PROVIDER: ${DATABASE_PROVIDER:-postgres}
-        DATABASE_URL: ${DATABASE_URL_BUILD}
+      target: runtime
 
     environment:
       DATABASE_PROVIDER: ${DATABASE_PROVIDER:-postgres}
@@ -23,16 +37,44 @@ services:
       UPLOAD_ROOT: ${UPLOAD_ROOT:-/usr/app/uploads}
       APP_SETTINGS_ENCRYPTION_KEY: ${APP_SETTINGS_ENCRYPTION_KEY}
       NODE_ENV: production
+      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS:?Set CORS_ALLOWED_ORIGINS to trusted HTTPS origins}"
+      SOCKET_IO_MULTI_INSTANCE: ${SOCKET_IO_MULTI_INSTANCE:-true}
+      SOCKET_IO_REDIS_URL: ${SOCKET_IO_REDIS_URL:-}
+      SOCKET_IO_REDIS_CHANNEL_PREFIX: "${SOCKET_IO_REDIS_CHANNEL_PREFIX:-beauty-salon-v2:production}"
+      REDIS_TLS: ${REDIS_TLS:-true}
+      REDIS_CA_CERT_PATH: ${REDIS_CA_CERT_PATH:-/run/secrets/redis-ca.crt}
+      HTTP_RATE_LIMIT_REDIS_URL: ${HTTP_RATE_LIMIT_REDIS_URL:-}
+      HTTP_RATE_LIMIT_PREFIX: "${HTTP_RATE_LIMIT_PREFIX:-beauty-salon-v2:http-rate-limit:production}"
 
     volumes:
       - /mnt/shared-app-files/beauty-salon-v2:/usr/app/uploads
+      - /data/coolify/ssl/coolify-ca.crt:/etc/ssl/certs/coolify-ca.crt:ro
+      - /data/coolify/ssl/redis-core/redis-ca.crt:/run/secrets/redis-ca.crt:ro
 
+    user: "10001:10001"
     restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:' + (process.env.PORT || '10001') +
+          '/health/ready').then(response => process.exit(response.ok ? 0 : 1))
+          .catch(() => process.exit(1))
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
     networks:
       - db_net
+      - redis_net
 
 networks:
   db_net:
     external: true
     name: db_net
+  redis_net:
+    external: true
+    name: redis_net

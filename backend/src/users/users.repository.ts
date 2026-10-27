@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { UploadStorageClass } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
 
 @Injectable()
@@ -7,6 +8,29 @@ export class UsersRepository {
 
   get user() {
     return this.prisma.user
+  }
+
+  findOwnedAvatarUpload(userId: string, avatarPath: string) {
+    return this.prisma.upload.findFirst({
+      where: {
+        uploadedById: userId,
+        storageClass: UploadStorageClass.PRIVATE,
+        pathOriginal: { startsWith: 'private/avatars/' },
+        OR: [
+          { pathOriginal: avatarPath },
+          { pathThumb: avatarPath },
+          { pathSmall: avatarPath },
+          { pathMedium: avatarPath },
+        ],
+      },
+      select: {
+        id: true,
+        mimeType: true,
+        pathThumb: true,
+        pathSmall: true,
+        pathMedium: true,
+      },
+    })
   }
 
   get role() {

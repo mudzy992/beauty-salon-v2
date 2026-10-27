@@ -83,8 +83,7 @@ Možete dobiti notifikacije za:
 - upozorenje o mogućem kašnjenju (u određenim situacijama)
 - novi predloženi termin
 
-Ako ste na Androidu i koristite Expo Go:
-- remote push ne radi (SDK55 ograničenje); potrebna je development build ili produkcijska aplikacija.
+Push zavisi od Android/iOS dozvole, Expo projekta i tipa build-a. Ako obavijest ne stigne, provjerite da li su push notifikacije uključene u konfigurisanom development/production build-u i da li je uređaj registrovao dozvolu; sama aplikacija ne garantuje eksternu isporuku.
 
 ## 8) Najčešći problemi i rješenja
 

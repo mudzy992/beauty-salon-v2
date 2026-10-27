@@ -6,6 +6,10 @@ import type { PrismaService } from '../prisma/prisma.service';
 import type { ReservationSharedService } from '../reservations/reservation-shared.service';
 import type { ReservationDateService } from '../reservations/reservation-date.service';
 import type { NotificationsService } from '../notifications/notifications.service';
+import {
+  getDateOnlyDayBounds,
+  toDateOnlyString,
+} from '../common/utils/date-only';
 import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
 import { buildCancelledCopy } from '../notifications/utils/reservation-push-copy';
 import {
@@ -42,16 +46,14 @@ export const assertReorderSlotFree = async (
 ): Promise<Date> => {
   const nextDate = opts.targetDate
     ? deps.dates.parseDateOnly(opts.targetDate)
-    : deps.dates.parseDateOnly(reservation.reservationDate);
+    : deps.dates.parseDateOnly(toDateOnlyString(reservation.reservationDate));
   if (!reservation.confirmedStylistId) return nextDate;
-  const dayStart = new Date(nextDate);
-  const dayEnd = new Date(nextDate);
-  dayEnd.setHours(23, 59, 59, 999);
+  const { gte, lt } = getDateOnlyDayBounds(toDateOnlyString(nextDate));
   const conflict = await deps.prisma.reservation.findFirst({
     where: {
       id: { not: reservation.id },
       confirmedStylistId: reservation.confirmedStylistId,
-      reservationDate: { gte: dayStart, lte: dayEnd },
+      reservationDate: { gte, lt },
       status: { in: [...SLOT_OCCUPYING_STATUSES] as any },
       OR: [
         {
@@ -84,7 +86,7 @@ export const applyDirectReorder = async (
 ): Promise<void> => {
   const nextDate = opts.targetDate
     ? deps.dates.parseDateOnly(opts.targetDate)
-    : deps.dates.parseDateOnly(reservation.reservationDate);
+    : deps.dates.parseDateOnly(toDateOnlyString(reservation.reservationDate));
   await deps.prisma.reservation.update({
     where: { id: reservation.id },
     data: {

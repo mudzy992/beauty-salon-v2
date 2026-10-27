@@ -6,11 +6,60 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
+import {
+  DEFAULT_PUBLIC_REVIEW_LIMIT,
+  MAX_PUBLIC_REVIEW_LIMIT,
+  MAX_PUBLIC_REVIEW_OFFSET,
+} from './reviews.constants';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
+
+const REVIEW_DISPLAY_SELECT = {
+  id: true,
+  serviceRating: true,
+  stylistRating: true,
+  comment: true,
+  isApproved: true,
+  createdAt: true,
+  user: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      avatar: true,
+      isAvatarPublic: true,
+    },
+  },
+  service: { select: { name: true } },
+  stylist: {
+    select: {
+      user: { select: { firstName: true, lastName: true } },
+    },
+  },
+} as const;
 
 @Injectable()
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private withPublicAvatar<T extends {
+    user: {
+      id: string;
+      avatar: string | null;
+      isAvatarPublic: boolean;
+      firstName: string | null;
+      lastName: string | null;
+    };
+  }>(review: T) {
+    if (!review.user) return review;
+    const { id, avatar, isAvatarPublic, ...user } = review.user;
+    return {
+      ...review,
+      user: {
+        ...user,
+        avatar: isAvatarPublic && avatar ? `/api/users/${id}/avatar` : null,
+      },
+    };
+  }
 
   async create(dto: CreateReviewDto, userId: string) {
     await this.prisma.service.findUniqueOrThrow({
@@ -73,18 +122,70 @@ export class ReviewsService {
       where: { isApproved: true },
       take: 1,
       skip,
-      include: {
-        user: { select: { firstName: true, lastName: true } },
-        service: { select: { name: true } },
-      },
+      select: REVIEW_DISPLAY_SELECT,
     });
-    return review[0] ?? null;
+    return review[0] ? this.withPublicAvatar(review[0]) : null;
   }
 
-  async findAll(query: {
+  async findAllPublic(query: {
     serviceId?: string;
     stylistProfileId?: string;
-    approvedOnly?: boolean;
+    limit?: number;
+    offset?: number;
+  }) {
+    const where: {
+      serviceId?: string;
+      stylistProfileId?: string;
+      isApproved: true;
+    } = { isApproved: true };
+    if (query.serviceId) where.serviceId = query.serviceId;
+    if (query.stylistProfileId) where.stylistProfileId = query.stylistProfileId;
+
+    const requestedLimit = query.limit ?? DEFAULT_PUBLIC_REVIEW_LIMIT;
+    if (!Number.isSafeInteger(requestedLimit) || requestedLimit < 1) {
+      throw new BadRequestException('limit mora biti pozitivan cijeli broj.');
+    }
+    const limit = Math.min(requestedLimit, MAX_PUBLIC_REVIEW_LIMIT);
+    const offset = query.offset ?? 0;
+    if (
+      !Number.isSafeInteger(offset) ||
+      offset < 0 ||
+      offset > MAX_PUBLIC_REVIEW_OFFSET
+    ) {
+      throw new BadRequestException(
+        `offset mora biti cijeli broj između 0 i ${MAX_PUBLIC_REVIEW_OFFSET}.`,
+      );
+    }
+
+    const [total, items] = await Promise.all([
+      this.prisma.review.count({ where }),
+      this.prisma.review.findMany({
+        where,
+        select: REVIEW_DISPLAY_SELECT,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: offset,
+        take: limit,
+      }),
+    ]);
+    const nextOffset = offset + items.length;
+
+    return {
+      items: items.map((item) => this.withPublicAvatar(item)),
+      total,
+      limit,
+      offset,
+      hasMore:
+        items.length > 0 &&
+        nextOffset < total &&
+        nextOffset <= MAX_PUBLIC_REVIEW_OFFSET,
+      nextOffset,
+    };
+  }
+
+  async findAllForAdmin(query: {
+    serviceId?: string;
+    stylistProfileId?: string;
+    approved?: string;
   }) {
     const where: {
       serviceId?: string;
@@ -93,32 +194,23 @@ export class ReviewsService {
     } = {};
     if (query.serviceId) where.serviceId = query.serviceId;
     if (query.stylistProfileId) where.stylistProfileId = query.stylistProfileId;
-    if (query.approvedOnly) where.isApproved = true;
-    return this.prisma.review.findMany({
+    if (query.approved === 'true') where.isApproved = true;
+    if (query.approved === 'false') where.isApproved = false;
+    const items = await this.prisma.review.findMany({
       where,
-      include: {
-        user: { select: { id: true, firstName: true, lastName: true } },
-        service: { select: { id: true, name: true } },
-        stylist: {
-          include: { user: { select: { firstName: true, lastName: true } } },
-        },
-      },
+      select: REVIEW_DISPLAY_SELECT,
       orderBy: { createdAt: 'desc' },
     });
+    return items.map((item) => this.withPublicAvatar(item));
   }
 
   async findOne(id: string) {
-    const r = await this.prisma.review.findUnique({
-      where: { id },
-      include: {
-        user: { select: { id: true, firstName: true, lastName: true } },
-        service: true,
-        stylist: { include: { user: true } },
-        reservation: { select: { id: true } },
-      },
+    const review = await this.prisma.review.findFirst({
+      where: { id, isApproved: true },
+      select: REVIEW_DISPLAY_SELECT,
     });
-    if (!r) throw new NotFoundException('Recenzija nije pronađena.');
-    return r;
+    if (!review) throw new NotFoundException('Recenzija nije pronađena.');
+    return this.withPublicAvatar(review);
   }
 
   async approve(id: string, user: CurrentUserPayload) {
@@ -127,11 +219,12 @@ export class ReviewsService {
     }
     const r = await this.prisma.review.findUnique({ where: { id } });
     if (!r) throw new NotFoundException('Recenzija nije pronađena.');
-    return this.prisma.review.update({
+    const review = await this.prisma.review.update({
       where: { id },
       data: { isApproved: true },
-      include: { user: true, service: true, stylist: true },
+      select: REVIEW_DISPLAY_SELECT,
     });
+    return this.withPublicAvatar(review);
   }
 
   async remove(id: string, user: CurrentUserPayload) {

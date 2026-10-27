@@ -9,6 +9,7 @@ import api from '../../api/client'
 import { MediaImage } from '../../components/media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { useAuth } from '../../context/AuthContext'
+import { useTranslation } from 'react-i18next'
 import { Seo } from '../../seo/Seo'
 import { site } from '../../seo/site'
 import { PublicBlogComments } from '../../features/blog/public-blog-comments'
@@ -34,17 +35,35 @@ interface BlogComment {
   id: string
   content: string
   createdAt: string
-  user: { id: string; firstName: string; lastName: string }
+  user: { firstName: string; lastName: string }
 }
+
+interface BlogCommentPage {
+  items: BlogComment[]
+  total: number
+  limit: number
+  offset: number
+  hasMore: boolean
+  nextOffset: number
+}
+
+const COMMENT_PAGE_SIZE = 20
 
 export default function PublicBlogPost() {
   const { slug } = useParams<{ slug: string }>()
   const toast = useAppToast()
   const { user } = useAuth()
+  const { t, i18n } = useTranslation()
   const [post, setPost] = useState<BlogPost | null>(null)
+  const [loadError, setLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [comments, setComments] = useState<BlogComment[]>([])
+  const [commentsTotal, setCommentsTotal] = useState(0)
   const [commentsLoading, setCommentsLoading] = useState(false)
+  const [commentsLoadError, setCommentsLoadError] = useState(false)
+  const [commentsLoadingMore, setCommentsLoadingMore] = useState(false)
+  const [commentsHasMore, setCommentsHasMore] = useState(false)
+  const [commentsNextOffset, setCommentsNextOffset] = useState(0)
   const [newComment, setNewComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
@@ -52,21 +71,49 @@ export default function PublicBlogPost() {
   const loadPost = useCallback(() => {
     if (!slug) return
     setLoading(true)
+    setLoadError(false)
     api
       .get<BlogPost>(`/api/blog/slug/${slug}`)
       .then((r) => setPost(r.data))
-      .catch(() => setPost(null))
+      .catch(() => {
+        setPost(null)
+        setLoadError(true)
+      })
       .finally(() => setLoading(false))
   }, [slug])
 
-  const loadComments = useCallback(() => {
+  const loadComments = useCallback(async (offset = 0, append = false) => {
     if (!post?.id) return
-    setCommentsLoading(true)
-    api
-      .get<BlogComment[]>(`/api/blog/${post.id}/comments`, { params: { approved: 'true' } })
-      .then((r) => setComments(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setComments([]))
-      .finally(() => setCommentsLoading(false))
+    setCommentsLoadError(false)
+    if (append) setCommentsLoadingMore(true)
+    else setCommentsLoading(true)
+    try {
+      const { data } = await api.get<BlogCommentPage | BlogComment[]>(
+        `/api/blog/${post.id}/comments`,
+        { params: { limit: COMMENT_PAGE_SIZE, offset } },
+      )
+      const items = Array.isArray(data) ? data : data.items
+      setComments((current) => (append ? [...current, ...items] : items))
+      if (Array.isArray(data)) {
+        setCommentsTotal(items.length)
+        setCommentsHasMore(false)
+        setCommentsNextOffset(offset + items.length)
+      } else {
+        setCommentsTotal(data.total)
+        setCommentsHasMore(data.hasMore)
+        setCommentsNextOffset(data.nextOffset)
+      }
+    } catch {
+      setCommentsLoadError(true)
+      if (!append) {
+        setComments([])
+        setCommentsTotal(0)
+        setCommentsHasMore(false)
+      }
+    } finally {
+      setCommentsLoading(false)
+      setCommentsLoadingMore(false)
+    }
   }, [post?.id])
 
   useEffect(() => { loadPost() }, [loadPost])
@@ -78,21 +125,36 @@ export default function PublicBlogPost() {
     try {
       await api.post(`/api/blog/${post.id}/comments`, { content: newComment.trim() })
       setNewComment('')
-      loadComments()
-      toast.success('Komentar je poslan na odobrenje.')
+      void loadComments(0, false)
+      toast.success(t('public.blogPost.commentSubmitted'))
     } catch {
-      toast.error('Greška pri slanju komentara.')
+      toast.error(t('public.blogPost.commentSubmitFailed'))
     } finally {
       setSubmitting(false)
     }
   }
 
-  if (loading) return <div className="py-20 text-center text-slate-600">Učitavanje…</div>
+  if (loading) {
+    return <div className="py-20 text-center text-slate-600">{t('common.loading')}</div>
+  }
   if (!post) {
-    return <div className="py-20 text-center text-lg text-slate-700">Članak nije pronađen.</div>
+    return (
+      <div className="py-20 text-center text-lg text-slate-700">
+        {loadError ? (
+          <div role="alert">
+            <p>{t('public.blogPost.loadFailed')}</p>
+            <Button variant="outline" className="mt-3" onClick={loadPost}>
+              {t('common.retry')}
+            </Button>
+          </div>
+        ) : (
+          t('public.blogPost.notFound')
+        )}
+      </div>
+    )
   }
 
-  const seo = buildPublicBlogPostSeo(post)
+  const seo = buildPublicBlogPostSeo(post, t('public.blogPost.seoFallback'))
   const shareUrl =
     typeof window !== 'undefined' ? window.location.origin + seo.canonicalPath : `${site.baseUrl}${seo.canonicalPath}`
 
@@ -101,9 +163,9 @@ export default function PublicBlogPost() {
       await navigator.clipboard.writeText(shareUrl)
       setShareCopied(true)
       setTimeout(() => setShareCopied(false), 1500)
-      toast.success('Link kopiran.')
+      toast.success(t('public.blogPost.linkCopied'))
     } catch {
-      toast.error('Ne mogu kopirati link.')
+      toast.error(t('public.blogPost.linkCopyFailed'))
     }
   }
 
@@ -135,7 +197,7 @@ export default function PublicBlogPost() {
           <Button variant="ghost" className="-ml-2">
             <span className="inline-flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" aria-hidden />
-              Nazad na blog
+              {t('public.blogPost.backToBlog')}
             </span>
           </Button>
         </Link>
@@ -149,7 +211,11 @@ export default function PublicBlogPost() {
           <div className="absolute bottom-0 left-0 right-0 flex flex-col items-start p-6 md:p-8">
             <div className="mb-2 flex items-center gap-2 text-sm text-white/85">
               <Calendar className="h-4 w-4" aria-hidden />
-              <div>{post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('bs-BA') : ''}</div>
+              <div>
+                {post.publishedAt
+                  ? new Intl.DateTimeFormat(i18n.language).format(new Date(post.publishedAt))
+                  : ''}
+              </div>
             </div>
             <h1 className="text-3xl font-semibold leading-tight tracking-tight text-white md:text-4xl">{post.title}</h1>
           </div>
@@ -162,6 +228,7 @@ export default function PublicBlogPost() {
             onShare={() => void handleShare()}
             onCopy={() => void copyShareUrl()}
           />
+          {/* Backend sanitizes on writes and public slug reads; keep this API boundary mandatory. */}
           <div
             className="blog-content mb-14 text-lg leading-relaxed text-slate-700"
             dangerouslySetInnerHTML={{ __html: post.content.replace(/\n/g, '<br />') }}
@@ -170,11 +237,17 @@ export default function PublicBlogPost() {
             slug={post.slug}
             user={user}
             comments={comments}
+            total={commentsTotal}
             loading={commentsLoading}
+            loadError={commentsLoadError}
+            loadingMore={commentsLoadingMore}
+            hasMore={commentsHasMore}
             newComment={newComment}
             submitting={submitting}
             onChange={setNewComment}
             onSubmit={() => void handleSubmitComment()}
+            onRetryComments={() => void loadComments()}
+            onLoadMore={() => void loadComments(commentsNextOffset, true)}
           />
         </div>
       </div>

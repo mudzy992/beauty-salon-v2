@@ -20,33 +20,122 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { PublicServiceListQueryDto } from './dto/public-service-list-query.dto';
+import { PublicServiceCategoryListQueryDto } from './dto/public-service-category-list-query.dto';
+import { PublicServiceSubcategoryListQueryDto } from './dto/public-service-subcategory-list-query.dto';
+import { PagePaginationQueryDto } from '../common/dto/page-pagination-query.dto';
+import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
+import {
+  HTTP_RATE_LIMIT_PUBLIC_IP,
+  HTTP_RATE_LIMIT_WINDOW_SECONDS,
+} from '../common/rate-limiting/http-rate-limit.constants';
 
 @Controller('api/services')
 export class ServicesController {
   constructor(private readonly servicesService: ServicesService) {}
 
+  @Get('admin/categories')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findAllAdminCategories(@Query() query: PagePaginationQueryDto) {
+    return this.servicesService.findAllCategories(false, {
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+  }
+
+  @Get('admin/categories/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findOneAdminCategory(@Param('id') id: string) {
+    return this.servicesService.findOneCategory(id);
+  }
+
+  @Get('admin/subcategories')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findAllAdminSubcategories(
+    @Query() query: PublicServiceSubcategoryListQueryDto,
+  ) {
+    return this.servicesService.findAllSubcategories(query.categoryId, false, {
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+  }
+
+  @Get('admin/subcategories/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findOneAdminSubcategory(@Param('id') id: string) {
+    return this.servicesService.findOneSubcategory(id);
+  }
+
+  @Get('admin/services')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findAllAdminServices(@Query() query: PublicServiceListQueryDto) {
+    return this.servicesService.findAllServices(query.subcategoryId, false, {
+      page: query.page,
+      pageSize: query.pageSize,
+    });
+  }
+
+  @Get('admin/services/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findOneAdminService(@Param('id') id: string) {
+    return this.servicesService.findOneService(id);
+  }
+
   @Get('home-stats')
   @Public()
+  @HttpRateLimit({
+    bucket: 'catalog:service-home-stats',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   getPublicHomeStats() {
     return this.servicesService.getPublicHomeStats();
   }
 
   @Get('popular')
   @Public()
+  @HttpRateLimit({
+    bucket: 'catalog:popular-service',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   getMostPopularService() {
     return this.servicesService.getMostPopularService();
   }
 
   @Get('categories')
   @Public()
-  findAllCategories(@Query('activeOnly') activeOnly?: string) {
-    return this.servicesService.findAllCategories(activeOnly === 'true');
+  @HttpRateLimit({
+    bucket: 'catalog:service-categories',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
+  findAllCategories(@Query() query: PublicServiceCategoryListQueryDto) {
+    return this.servicesService.findPublicCategories({
+      page: query.page,
+      pageSize: query.pageSize,
+    });
   }
 
   @Get('categories/:id')
   @Public()
+  @HttpRateLimit({
+    bucket: 'catalog:service-category-detail',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   findOneCategory(@Param('id') id: string) {
-    return this.servicesService.findOneCategory(id);
+    return this.servicesService.findPublicOneCategory(id);
   }
 
   @Post('categories')
@@ -72,20 +161,29 @@ export class ServicesController {
 
   @Get('subcategories')
   @Public()
-  findAllSubcategories(
-    @Query('categoryId') categoryId?: string,
-    @Query('activeOnly') activeOnly?: string,
-  ) {
-    return this.servicesService.findAllSubcategories(
-      categoryId,
-      activeOnly === 'true',
-    );
+  @HttpRateLimit({
+    bucket: 'catalog:service-subcategories',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
+  findAllSubcategories(@Query() query: PublicServiceSubcategoryListQueryDto) {
+    return this.servicesService.findPublicSubcategories(query.categoryId, {
+      page: query.page,
+      pageSize: query.pageSize,
+    });
   }
 
   @Get('subcategories/:id')
   @Public()
+  @HttpRateLimit({
+    bucket: 'catalog:service-subcategory-detail',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   findOneSubcategory(@Param('id') id: string) {
-    return this.servicesService.findOneSubcategory(id);
+    return this.servicesService.findPublicOneSubcategory(id);
   }
 
   @Post('subcategories')
@@ -114,26 +212,29 @@ export class ServicesController {
 
   @Get()
   @Public()
-  findAllServices(
-    @Query('subcategoryId') subcategoryId?: string,
-    @Query('activeOnly') activeOnly?: string,
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
-  ) {
-    return this.servicesService.findAllServices(
-      subcategoryId,
-      activeOnly === 'true',
-      {
-        page: page != null ? parseInt(page, 10) : undefined,
-        pageSize: pageSize != null ? parseInt(pageSize, 10) : undefined,
-      },
-    );
+  @HttpRateLimit({
+    bucket: 'catalog:services',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
+  findAllServices(@Query() query: PublicServiceListQueryDto) {
+    return this.servicesService.findPublicServices(query.subcategoryId, {
+      page: query.page,
+      pageSize: query.pageSize,
+    });
   }
 
   @Get(':id')
   @Public()
+  @HttpRateLimit({
+    bucket: 'catalog:service-detail',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   findOneService(@Param('id') id: string) {
-    return this.servicesService.findOneService(id);
+    return this.servicesService.findPublicOneService(id);
   }
 
   @Post()

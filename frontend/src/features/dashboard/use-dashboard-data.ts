@@ -2,17 +2,24 @@ import { useCallback, useEffect, useState } from 'react'
 import api from '../../api/client'
 import { useSocketEvent } from '../../context/SocketContext'
 import type { DashboardStats, RecentReservation } from './types'
+import { getCalendarMonthRange, getDateTimePartsInTimeZone } from '../../../../shared/business-date.mjs'
 
 const currentMonthBounds = () => {
   const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
-  const firstDay = `${year}-${String(month).padStart(2, '0')}-01`
-  const lastDay = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`
+  const { year, month } = getDateTimePartsInTimeZone(now)
+  const { fromDate: firstDay, toDate: lastDay } = getCalendarMonthRange(now)
   return { year, month, firstDay, lastDay }
 }
 
 const asArray = <T,>(data: unknown): T[] => (Array.isArray(data) ? data : [])
+
+const catalogCount = (data: unknown) => {
+  if (Array.isArray(data)) return data.length
+  if (data && typeof data === 'object' && 'total' in data && typeof data.total === 'number') {
+    return data.total
+  }
+  return 0
+}
 
 export const useDashboardData = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -24,8 +31,8 @@ export const useDashboardData = () => {
     const { year, month, firstDay, lastDay } = currentMonthBounds()
     Promise.all([
       api.get('/api/users').catch(() => ({ data: [] })),
-      api.get('/api/stylists').catch(() => ({ data: [] })),
-      api.get('/api/services').catch(() => ({ data: [] })),
+      api.get('/api/stylists', { params: { page: 0, pageSize: 1 } }).catch(() => ({ data: [] })),
+      api.get('/api/services', { params: { page: 0, pageSize: 1 } }).catch(() => ({ data: [] })),
       api
         .get('/api/reservations', { params: { fromDate: firstDay, toDate: lastDay } })
         .catch(() => ({ data: [] })),
@@ -36,8 +43,8 @@ export const useDashboardData = () => {
           `/api/expense-books/month/${year}/${month}`,
         )
         .catch(() => ({ data: null })),
-      api.get('/api/reviews', { params: { approved: 'false' } }).catch(() => ({ data: [] })),
-      api.get('/api/blog').catch(() => ({ data: [] })),
+      api.get('/api/reviews/admin', { params: { approved: 'false' } }).catch(() => ({ data: [] })),
+      api.get('/api/blog/admin').catch(() => ({ data: [] })),
     ])
       .then(
         ([
@@ -66,8 +73,8 @@ export const useDashboardData = () => {
 
           setStats({
             usersCount: asArray(usersRes.data).length,
-            stylistsCount: asArray(stylistsRes.data).length,
-            servicesCount: asArray(servicesRes.data).length,
+            stylistsCount: catalogCount(stylistsRes.data),
+            servicesCount: catalogCount(servicesRes.data),
             reservationsThisMonth: allReservations.length,
             pendingReservations: asArray(pendingRes.data).length,
             completedReservations: allReservations.filter((r) => r.status === 'COMPLETED')

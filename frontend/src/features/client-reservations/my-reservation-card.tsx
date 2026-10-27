@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next'
+
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
-import { getReservationStatusLabel } from '../reservations/status'
+import { getIntlLocale } from '../../i18n/locale-utils.mjs'
 import type { Reservation } from '../reservations/types'
 import {
   canClientCancel,
@@ -11,6 +13,7 @@ import {
 import {
   formatReservationDate,
   getClientReservationServicesLabel,
+  getClientReservationStatusKey,
   getClientReservationStylistLabel,
 } from './labels'
 
@@ -33,8 +36,12 @@ export const MyReservationCard = ({
   onDeclineReschedule,
   onCancel,
 }: MyReservationCardProps) => {
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
   const busy = busyId === r.id
   const stylist = getClientReservationStylistLabel(r)
+  const statusKey = getClientReservationStatusKey(r.status, r.cancelReason)
+  const servicesLabel = getClientReservationServicesLabel(r, t('public.reserve.service'))
   const showReschedule = canClientDecideReschedule(r.rescheduleStatus)
   const showConfirm = canClientConfirmAttendance(
     r.status,
@@ -51,27 +58,27 @@ export const MyReservationCard = ({
           type="button"
           className="w-full text-left space-y-4 rounded-xl transition hover:bg-slate-50/80 -m-2 p-2"
           onClick={() => onOpenDetail(r)}
-          aria-label="Otvori detalje rezervacije"
+          aria-label={t('public.myReservations.openDetails')}
         >
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <p className="font-semibold text-slate-950">
-              {getClientReservationServicesLabel(r)}
+              {servicesLabel}
             </p>
             {r.publicReferenceCode ? (
               <p className="text-xs text-slate-500 mt-0.5">{r.publicReferenceCode}</p>
             ) : null}
           </div>
           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-            {getReservationStatusLabel(r.status, r.cancelReason)}
+            {statusKey ? t(statusKey) : r.status}
           </span>
         </div>
 
         <div className="grid gap-1.5 text-sm text-slate-700">
           <p>
-            {formatReservationDate(r.reservationDate)} · {r.startTime} – {r.endTime}
+            {formatReservationDate(r.reservationDate, locale)} · {r.startTime} – {r.endTime}
           </p>
-          {stylist ? <p className="text-slate-500">Stilist: {stylist}</p> : null}
+          {stylist ? <p className="text-slate-500">{t('public.myReservations.stylistLabel', { name: stylist })}</p> : null}
           {r.clientNotes ? (
             <p className="text-slate-500 line-clamp-2">{r.clientNotes}</p>
           ) : null}
@@ -83,8 +90,10 @@ export const MyReservationCard = ({
         r.rescheduleProposedEndTime ? (
           <div className="rounded-xl border border-amber-100 bg-amber-50 p-3 space-y-3">
             <p className="text-sm font-medium text-amber-950">
-              Predloženi termin: {r.rescheduleProposedStartTime} –{' '}
-              {r.rescheduleProposedEndTime}
+              {t('public.myReservations.proposedTime', {
+                start: r.rescheduleProposedStartTime,
+                end: r.rescheduleProposedEndTime,
+              })}
             </p>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -93,7 +102,7 @@ export const MyReservationCard = ({
                 disabled={busy}
                 onClick={() => onAcceptReschedule(r)}
               >
-                Prihvati
+                {t('public.myReservations.acceptReschedule')}
               </Button>
               <Button
                 type="button"
@@ -102,14 +111,14 @@ export const MyReservationCard = ({
                 disabled={busy}
                 onClick={() => onDeclineReschedule(r)}
               >
-                Odbij
+                {t('public.myReservations.declineReschedule')}
               </Button>
             </div>
           </div>
         ) : null}
 
         {r.status === 'ATTENDANCE_CONFIRMED' ? (
-          <p className="text-sm text-emerald-700">Dolazak potvrđen.</p>
+          <p className="text-sm text-emerald-700">{t('public.myReservations.attendanceConfirmed')}</p>
         ) : null}
 
         <div className="flex flex-wrap gap-2">
@@ -120,7 +129,7 @@ export const MyReservationCard = ({
               disabled={busy}
               onClick={() => onConfirmAttendance(r)}
             >
-              Potvrdi dolazak
+              {t('public.myReservations.confirmAttendance')}
             </Button>
           ) : null}
           {showCancel ? (
@@ -132,14 +141,15 @@ export const MyReservationCard = ({
               disabled={busy}
               onClick={() => onCancel(r)}
             >
-              Otkaži
+              {t('public.myReservations.cancelReservation')}
             </Button>
           ) : null}
         </div>
         {showConfirm ? (
           <p className="text-xs text-slate-500">
-            Potvrdite najkasnije {getAttendanceConfirmHours(r)}h prije termina. Ako niko ne
-            potvrdi, rezervacija se otkazuje na početku termina.
+            {t('public.myReservations.attendanceReminder', {
+              hours: getAttendanceConfirmHours(r),
+            })}
           </p>
         ) : null}
       </CardContent>

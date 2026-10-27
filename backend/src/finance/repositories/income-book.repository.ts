@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common'
-import type { Prisma } from '@prisma/client'
+import { Injectable, NotFoundException } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 
 export type PrismaTx = Prisma.TransactionClient
@@ -25,22 +25,55 @@ export class IncomeBookRepository {
     return (tx ?? this.prisma).incomeBook.findUnique({ where: { id } })
   }
 
-  findByPeriod(year: number, month: number) {
-    return this.prisma.incomeBook.findUnique({
+  async findByIdForUpdate(id: string, tx: PrismaTx) {
+    await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM "income_books" WHERE id = ${id} FOR UPDATE`,
+    )
+    return this.findById(id, tx)
+  }
+
+  findByPeriod(year: number, month: number, tx?: PrismaTx) {
+    return (tx ?? this.prisma).incomeBook.findUnique({
       where: { year_month: { year, month } },
     })
   }
 
-  findByPeriodWithEntries(year: number, month: number) {
-    return this.prisma.incomeBook.findUnique({
+  findOpenBooksBeforePeriod(year: number, month: number) {
+    return this.prisma.incomeBook.findMany({
+      where: {
+        closedAt: null,
+        OR: [{ year: { lt: year } }, { year, month: { lt: month } }],
+      },
+      include: {
+        lockEvents: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { action: true },
+        },
+      },
+      orderBy: [{ year: 'asc' }, { month: 'asc' }],
+    })
+  }
+
+  findByPeriodWithEntries(year: number, month: number, tx?: PrismaTx) {
+    return (tx ?? this.prisma).incomeBook.findUnique({
       where: { year_month: { year, month } },
       include: { entries: true },
     })
   }
 
-  createForPeriod(year: number, month: number) {
-    return this.prisma.incomeBook.create({
+  createForPeriod(year: number, month: number, tx?: PrismaTx) {
+    return (tx ?? this.prisma).incomeBook.create({
       data: { year, month },
+      include: { entries: true },
+    })
+  }
+
+  upsertForPeriod(year: number, month: number, tx?: PrismaTx) {
+    return (tx ?? this.prisma).incomeBook.upsert({
+      where: { year_month: { year, month } },
+      create: { year, month },
+      update: {},
       include: { entries: true },
     })
   }
@@ -93,7 +126,7 @@ export class IncomeBookRepository {
     })
   }
 
-  setLockState(
+  async setLockState(
     id: string,
     params: {
       closedAt: Date | null
@@ -102,20 +135,35 @@ export class IncomeBookRepository {
       /** Izostavljen kod automatskog zaključavanja iz CRON-a. */
       createdById?: string
     },
-    tx?: PrismaTx,
+    options: { ignoreIfAlreadyTarget?: boolean } = {},
   ) {
-    return (tx ?? this.prisma).incomeBook.update({
-      where: { id },
-      data: {
-        closedAt: params.closedAt,
-        lockEvents: {
-          create: {
-            action: params.action,
-            reason: params.reason,
-            createdById: params.createdById,
-          },
+    return this.prisma.$transaction(async (tx) => {
+      const changed = await tx.incomeBook.updateMany({
+        where: {
+          id,
+          closedAt: params.closedAt === null ? { not: null } : null,
         },
-      },
+        data: { closedAt: params.closedAt },
+      })
+
+      if (changed.count !== 1) {
+        const current = await tx.incomeBook.findUnique({ where: { id } })
+        if (!current) {
+          throw new NotFoundException('Knjiga prihoda nije pronađena.')
+        }
+        if (options.ignoreIfAlreadyTarget) return current
+        return null
+      }
+
+      await tx.incomeBookLockEvent.create({
+        data: {
+          bookId: id,
+          action: params.action,
+          reason: params.reason,
+          createdById: params.createdById,
+        },
+      })
+      return tx.incomeBook.findUnique({ where: { id } })
     })
   }
 
@@ -125,9 +173,9 @@ export class IncomeBookRepository {
     })
   }
 
-  findAutoEntryByDailyLog(bookId: string, dailyLogEntryId: string) {
-    return this.prisma.incomeBookEntry.findUnique({
-      where: { bookId_dailyLogEntryId: { bookId, dailyLogEntryId } },
+  findAutoEntryByDailyLog(dailyLogEntryId: string, tx?: PrismaTx) {
+    return (tx ?? this.prisma).incomeBookEntry.findUnique({
+      where: { dailyLogEntryId },
     })
   }
 

@@ -1,116 +1,48 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Beauty Salon backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS 11 API with Prisma 7, PostgreSQL (`@prisma/adapter-pg`), Socket.IO and scheduled business workflows. This is application documentation, not the generic Nest starter README.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+- System architecture: [`docs/audit/ARCHITECTURE.md`](../docs/audit/ARCHITECTURE.md)
+- Static findings and evidence: [`docs/audit/FINDINGS.md`](../docs/audit/FINDINGS.md)
+- Safe tests: [`docs/audit/TEST_WORKFLOW.md`](../docs/audit/TEST_WORKFLOW.md)
+- Migration notes: [`POSTGRES_MIGRATION.md`](POSTGRES_MIGRATION.md)
+- Current source map: [`docs/codebase-map/BACKEND.md`](../docs/codebase-map/BACKEND.md)
 
-## Description
+## Local setup
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+Use Node.js 22 and the checked-in lockfile. Copy `backend/.env.example` to an ignored local `backend/.env`, set a unique local `JWT_SECRET`, and set `DATABASE_PROVIDER=postgres` plus a disposable/local PostgreSQL `DATABASE_URL`. Never use production values in development or CI.
 
 ```bash
-$ npm install
-```
-
-## Compile and run the project
-
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
-
-
-## PostgreSQL
-
-Backend je pripremljen za PostgreSQL. Detaljan postupak migracije nalazi se u `POSTGRES_MIGRATION.md`.
-
-Korisne Prisma komande:
-
-```bash
+npm ci --no-audit --no-fund
 npm run db:validate
 npm run db:generate
-npm run db:migrate:dev -- --name postgresql_baseline
-npm run db:migrate:status
-npm run db:migrate:deploy
-npm run db:seed
+npm run start:dev
 ```
 
-MySQL Prisma migracije su sačuvane u `prisma/migrations_mysql_backup/` i ne izvršavaju se nad PostgreSQL bazom.
+The sample `PORT=10001` aligns with the frontend Vite proxy; without `PORT`, `src/main.ts` defaults to 3000. Local uploaded files use `UPLOAD_ROOT` (default `./uploads`) and are served at `/uploads/`.
+
+## Common commands
+
+```bash
+npm run build
+npm test -- --runInBand
+npm run lint                 # read-only
+npm run lint:fix             # explicit mutating lint autofix
+npm run db:validate
+npm run db:generate
+npm run db:migrate:status
+npm run db:migrate:deploy
+npm run db:seed              # only against an explicitly chosen local/test DB
+```
+
+`npm run test:e2e` uses `test/jest-e2e.json` and discovers the `test/**/*.e2e-spec.ts` contracts. The DB-backed suites require `E2E_DATABASE_URL` for a disposable local PostgreSQL database whose name contains `test`, `e2e`, or `ci`; they refuse non-local hosts and other database names. CI provisions its own disposable PostgreSQL service. Never point these tests at production/shared data. Prisma engine download remains unavailable in this local sandbox because of a TLS failure; CI performs Prisma generation, backend build, and DB-backed E2E validation against disposable PostgreSQL.
+
+## Database notes
+
+Prisma uses the active PostgreSQL migrations under `prisma/migrations/`. Historical MySQL migration SQL is retained separately under `prisma/migrations_mysql_backup/`; it is an archive, not an active migration path. This repository cannot prove whether or when production data was moved, whether production is current with migrations, or whether backups are recoverable.
+
+The backend Docker build generates Prisma Client using a dummy, build-only URL. `DATABASE_URL`, JWT and application-settings encryption key are runtime configuration and are not baked into the image. Root Compose expects an external PostgreSQL network and does not define a database service.
+
+## Security scope
+
+Previously tracked local environment/private-key material was removed from the current Git index, but Git history was not rewritten. Credential owners should revoke/rotate affected credentials outside this repository. Keep real `.env` files, Firebase Admin service-account JSON and private signing keys out of version control and Docker build contexts. Do not rotate `APP_SETTINGS_ENCRYPTION_KEY` without a controlled re-encryption plan.

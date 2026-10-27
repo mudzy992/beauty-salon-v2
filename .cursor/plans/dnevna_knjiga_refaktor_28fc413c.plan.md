@@ -30,7 +30,7 @@ isProject: false
 
 ## Kljucni nalaz: konvencija za novac
 
-Iz [backend/src/daily-log/daily-log.service.ts](backend/src/daily-log/daily-log.service.ts) i frontend forme, model je:
+Iz [backend/src/daily-log/daily-log.service.ts](../../backend/src/daily-log/daily-log.service.ts) i frontend forme, model je:
 
 - `actualPrice` = ukupno naplaceno (napojnica je **ukljucena**)
 - `tipAmount` = dio koji je napojnica
@@ -52,7 +52,7 @@ flowchart LR
 
 ## Bug u KIF-u (isti korijen)
 
-Cijeli finance modul tretira `amount` kao prihod od servisa **bez** napojnice: [frontend/src/features/finance/tabs/income-books-tab.tsx](frontend/src/features/finance/tabs/income-books-tab.tsx) racuna `paidAmount = amount + tipAmount` (linija 226) i ukupno kao `totalRevenue + totalTips` (linije 420, 1051). Rucni KIF unosi to postuju (`amount = min(paidAmount, servicePrice)`).
+Cijeli finance modul tretira `amount` kao prihod od servisa **bez** napojnice: [income-books-tab.tsx](../../frontend/src/features/finance/income/income-books-tab.tsx) racuna `paidAmount = amount + tipAmount` (linija 226) i ukupno kao `totalRevenue + totalTips` (linije 420, 1051). Rucni KIF unosi to postuju (`amount = min(paidAmount, servicePrice)`).
 
 Ali auto stavke iz dnevne knjige upisuju `amount = actualPrice`, sto vec sadrzi napojnicu:
 
@@ -68,13 +68,13 @@ Ali auto stavke iz dnevne knjige upisuju `amount = actualPrice`, sto vec sadrzi 
     });
 ```
 
-Isto i u `syncIncomeBookEntry` ([backend/src/daily-log/daily-log-reversal.service.ts](backend/src/daily-log/daily-log-reversal.service.ts), linije 76 i 85). Posljedica: KIF prikazuje 70 + 10 = 80 KM umjesto 70, a `IncomeBook.totalRevenue` je naduvan za sumu svih napojnica.
+Isto i u `syncIncomeBookEntry` ([backend/src/daily-log/daily-log-reversal.service.ts](../../backend/src/daily-log/daily-log-reversal.service.ts), linije 76 i 85). Posljedica: KIF prikazuje 70 + 10 = 80 KM umjesto 70, a `IncomeBook.totalRevenue` je naduvan za sumu svih napojnica.
 
 ## Faza 1: Backend - ispravka KIF konvencije
 
-- [backend/src/finance/income-books.service.ts](backend/src/finance/income-books.service.ts) linija 471 - `amount: Number(entry.actualPrice) - Number(entry.tipAmount)`.
-- [backend/src/daily-log/daily-log-reversal.service.ts](backend/src/daily-log/daily-log-reversal.service.ts) linije 76 i 85 - isto u create i update granama `syncIncomeBookEntry`.
-- Izvuci helper `getServiceAmount(entry)` u [backend/src/daily-log/daily-log.validators.ts](backend/src/daily-log/daily-log.validators.ts) da se pravilo ne duplira na tri mjesta.
+- [backend/src/finance/income-books.service.ts](../../backend/src/finance/income-books.service.ts) linija 471 - `amount: Number(entry.actualPrice) - Number(entry.tipAmount)`.
+- [backend/src/daily-log/daily-log-reversal.service.ts](../../backend/src/daily-log/daily-log-reversal.service.ts) linije 76 i 85 - isto u create i update granama `syncIncomeBookEntry`.
+- Izvuci helper `getServiceAmount(entry)` u [backend/src/daily-log/daily-log.validators.ts](../../backend/src/daily-log/daily-log.validators.ts) da se pravilo ne duplira na tri mjesta.
 - Nova migracija `backend/prisma/migrations/<ts>_fix_income_book_entry_amount_excludes_tip/migration.sql` (samo data-fix, bez promjene seme):
 
 ```sql
@@ -100,16 +100,16 @@ Korekcija ide i na zatvorene knjige (potvrdeno). Migracija je one-shot; guard `t
 ## Faza 3: Frontend - kartice i inicijalni filter
 
 - `frontend/src/features/daily-log/entry-stats.tsx` (novo) - `StatMini` (premjesten iz `DailyLog.tsx`) + `DailyLogStats` sa 4 kartice: **Ukupan prihod**, **Prihod od servisa**, **Napojnice**, **Kompletirano**. Racuna se preko `sumEntryTotals` nad aktivnim (ne-obrisanim) unosima, ukljucujuci i PENDING i COMPLETED (potvrdeno).
-- `frontend/src/features/daily-log/entry-filters.tsx` (novo) - filter bar (od/do datuma, stilista, "Prikazi obrisane", Resetuj), izvucen iz [frontend/src/pages/DailyLog.tsx](frontend/src/pages/DailyLog.tsx) linije 351-398. "Resetuj" vraca na tekuci mjesec, ne na prazno.
-- [frontend/src/pages/DailyLog.tsx](frontend/src/pages/DailyLog.tsx) - `fromDate`/`toDate` se inicijalizuju iz `getCurrentMonthRange()` umjesto `''` (linije 61-62).
+- `frontend/src/features/daily-log/entry-filters.tsx` (novo) - filter bar (od/do datuma, stilista, "Prikazi obrisane", Resetuj), izvucen iz [frontend/src/pages/DailyLog.tsx](../../frontend/src/pages/DailyLog.tsx) linije 351-398. "Resetuj" vraca na tekuci mjesec, ne na prazno.
+- [frontend/src/pages/DailyLog.tsx](../../frontend/src/pages/DailyLog.tsx) - `fromDate`/`toDate` se inicijalizuju iz `getCurrentMonthRange()` umjesto `''` (linije 61-62).
 
 ## Faza 4: Frontend - tabela
 
-[frontend/src/features/daily-log/entry-table.tsx](frontend/src/features/daily-log/entry-table.tsx):
+[frontend/src/features/daily-log/entry-table.tsx](../../frontend/src/features/daily-log/entry-table.tsx):
 
 - Desktop: kolona `Cijena` koristi `getServiceAmount(e)`, `Napojnica` ostaje `tipAmount`, dodaje se kolona `Ukupno` sa `actualPrice` (bold), da red sam objasnjava 60 + 10 = 70. `colSpan={9}` postaje `10`.
 - Mobile kartica (linija 158): umjesto samo `actualPrice`, prikazati razbijeno `60.00 + 10.00 nap. = 70.00 KM`, napojnicu samo kad je veca od 0.
-- [frontend/src/features/daily-log/entry-form-fields.tsx](frontend/src/features/daily-log/entry-form-fields.tsx) linija 230 - ispod "Za naplatu" dodati zivi preview napojnice kad je `paidAmount > chargeAmount` (`Napojnica: X KM`), da admin vidi raspodjelu prije snimanja.
+- [frontend/src/features/daily-log/entry-form-fields.tsx](../../frontend/src/features/daily-log/entry-form-fields.tsx) linija 230 - ispod "Za naplatu" dodati zivi preview napojnice kad je `paidAmount > chargeAmount` (`Napojnica: X KM`), da admin vidi raspodjelu prije snimanja.
 
 ## Faza 5: Refaktor za budzet linija
 

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
@@ -53,6 +54,7 @@ describe('ClientDebtsService', () => {
     prisma.incomeBookEntry.aggregate.mockResolvedValue({ _sum: {} });
     prisma.incomeBookManualEntry.aggregate.mockResolvedValue({ _sum: {} });
     prisma.clientDebt.update.mockResolvedValue(openDebt);
+    prisma.clientDebt.updateMany.mockResolvedValue({ count: 1 });
     prisma.dailyLogEntry.create.mockResolvedValue({ id: 'dl1' });
   });
 
@@ -70,17 +72,29 @@ describe('ClientDebtsService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('zatvara dug bez knjiženja prihoda', async () => {
-      prisma.clientDebt.findUnique.mockResolvedValue(openDebt);
+    it('zatvara dug uslovnom transakcijom bez knjiženja prihoda', async () => {
+      prisma.clientDebt.findUnique
+        .mockResolvedValueOnce(openDebt)
+        .mockResolvedValueOnce({ ...openDebt, status: 'SETTLED' });
 
       await service.writeOff('d1', { note: 'nenaplativo' }, owner);
 
-      expect(prisma.clientDebt.update).toHaveBeenCalledWith(
+      expect(prisma.clientDebt.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          where: { id: 'd1', status: 'OPEN' },
           data: expect.objectContaining({ note: '[OTPIS] nenaplativo' }),
         }),
       );
       expect(prisma.incomeBookManualEntry.create).not.toHaveBeenCalled();
+    });
+
+    it('konfliktuje ako je dug zatvoren prije uslovnog otpisa', async () => {
+      prisma.clientDebt.findUnique.mockResolvedValue(openDebt);
+      prisma.clientDebt.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.writeOff('d1', { note: 'nenaplativo' }, owner),
+      ).rejects.toThrow(ConflictException);
     });
 
     it('odbija već zatvoren dug', async () => {
@@ -104,6 +118,12 @@ describe('ClientDebtsService', () => {
   describe('repayDebt', () => {
     it('odbija naplatu u zaključanu knjigu', async () => {
       prisma.clientDebt.findUnique.mockResolvedValue(openDebt);
+      prisma.incomeBook.upsert.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: new Date(),
+      });
       prisma.incomeBook.findUnique.mockResolvedValue({
         id: 'b1',
         year: 2026,
@@ -117,8 +137,16 @@ describe('ClientDebtsService', () => {
       expect(prisma.incomeBookManualEntry.create).not.toHaveBeenCalled();
     });
 
-    it('knjiži naplatu kao ručnu stavku vezanu za zapis dnevnika', async () => {
-      prisma.clientDebt.findUnique.mockResolvedValue(openDebt);
+    it('atomically claims and knjiži naplatu u KIF uz DEBT_PAYMENT zapis', async () => {
+      prisma.clientDebt.findUnique
+        .mockResolvedValueOnce(openDebt)
+        .mockResolvedValueOnce({ ...openDebt, status: 'SETTLED' });
+      prisma.incomeBook.upsert.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: null,
+      });
       prisma.incomeBook.findUnique.mockResolvedValue({
         id: 'b1',
         year: 2026,
@@ -128,10 +156,56 @@ describe('ClientDebtsService', () => {
 
       await service.repayDebt('d1', { date: '2026-03-10' }, owner);
 
+      expect(prisma.clientDebt.updateMany).toHaveBeenCalledWith({
+        where: { id: 'd1', status: 'OPEN' },
+        data: expect.objectContaining({
+          status: 'SETTLED',
+          settledById: 'u1',
+        }),
+      });
       const data = prisma.incomeBookManualEntry.create.mock.calls[0][0].data;
       expect(data.amount).toBe(40);
       expect(data.tipAmount).toBe(0);
       expect(data.dailyLogEntryId).toBe('dl1');
+    });
+
+    it('vraća raniji aktivni DEBT_PAYMENT za ponovljeni zahtjev', async () => {
+      const settledDebt = { ...openDebt, status: 'SETTLED' };
+      prisma.clientDebt.findUnique.mockResolvedValue(settledDebt);
+      prisma.dailyLogEntry.findFirst.mockResolvedValue({ id: 'dl-existing' });
+
+      await expect(
+        service.repayDebt('d1', { date: '2026-03-10' }, owner),
+      ).resolves.toEqual({
+        settled: settledDebt,
+        debtPaymentDailyLogId: 'dl-existing',
+      });
+      expect(prisma.clientDebt.updateMany).not.toHaveBeenCalled();
+      expect(prisma.dailyLogEntry.create).not.toHaveBeenCalled();
+      expect(prisma.incomeBookManualEntry.create).not.toHaveBeenCalled();
+    });
+
+    it('vraća konflikt kada drugi zahtjev već preuzme dug', async () => {
+      prisma.clientDebt.findUnique.mockResolvedValue(openDebt);
+      prisma.incomeBook.upsert.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: null,
+      });
+      prisma.incomeBook.findUnique.mockResolvedValue({
+        id: 'b1',
+        year: 2026,
+        month: 3,
+        closedAt: null,
+      });
+      prisma.clientDebt.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.repayDebt('d1', { date: '2026-03-10' }, owner),
+      ).rejects.toThrow(ConflictException);
+      expect(prisma.dailyLogEntry.create).not.toHaveBeenCalled();
+      expect(prisma.incomeBookManualEntry.create).not.toHaveBeenCalled();
     });
 
     it('odbija naplatu tuđeg duga od strane stiliste', async () => {

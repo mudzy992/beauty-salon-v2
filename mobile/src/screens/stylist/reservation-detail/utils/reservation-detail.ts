@@ -1,9 +1,8 @@
 import type { Reservation } from '../../../../types';
+import { salonWallTimeToInstant } from '../../../../utils/date';
 
 export const getPlannedReservationDateTime = (reservationDate: string, time: string): Date => {
-  const [y, m, d] = reservationDate.slice(0, 10).split('-').map(Number);
-  const [h, min] = time.slice(0, 5).split(':').map(Number);
-  return new Date(y ?? 0, (m ?? 1) - 1, d ?? 1, h ?? 0, min ?? 0, 0, 0);
+  return salonWallTimeToInstant(reservationDate.slice(0, 10), time);
 };
 
 export const canStaffConfirmAttendanceUi = (

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { Badge } from '../../../components/ui/badge'
@@ -10,15 +11,18 @@ import {
   useStylistScheduleReservations,
 } from '../hooks/useStylistReservations'
 import type { Reservation, ReservationStatus } from '../types'
-import { getReservationStatusLabel } from '../../reservations/status'
+import { formatDateOnlyLocale, getSalonDateOnly } from '../../../../../shared/business-date.mjs'
+import { getIntlLocale } from '../../../i18n/locale-utils.mjs'
 
 type Section = { title: string; data: Reservation[] }
 
-const formatDate = (iso: string) => {
-  const d = new Date(iso.slice(0, 10))
-  if (Number.isNaN(d.getTime())) return iso.slice(0, 10)
-  return d.toLocaleDateString('bs-BA', { weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit' })
-}
+const formatDate = (iso: string, locale: string) =>
+  formatDateOnlyLocale(iso.slice(0, 10), locale, {
+    weekday: 'long',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
 
 const formatTime = (t: string) => t?.slice(0, 5) ?? t
 
@@ -31,8 +35,8 @@ const getStatusVariant = (status: ReservationStatus) => {
   return 'secondary'
 }
 
-const buildSections = (items: Reservation[]): Section[] => {
-  const todayStr = new Date().toISOString().slice(0, 10)
+const buildSections = (items: Reservation[], locale: string, todayLabel: string): Section[] => {
+  const todayStr = getSalonDateOnly()
   const today: Reservation[] = []
   const futureByDate: Record<string, Reservation[]> = {}
 
@@ -69,26 +73,31 @@ const buildSections = (items: Reservation[]): Section[] => {
   Object.keys(futureByDate).forEach((k) => futureByDate[k]!.sort(sortInDay))
 
   const sections: Section[] = []
-  if (today.length) sections.push({ title: 'Danas', data: today })
+  if (today.length) sections.push({ title: todayLabel, data: today })
   Object.keys(futureByDate)
     .sort()
-    .forEach((d) => sections.push({ title: formatDate(d), data: futureByDate[d] ?? [] }))
+    .forEach((d) => sections.push({ title: formatDate(d, locale), data: futureByDate[d] ?? [] }))
   return sections
 }
 
 export const StylistSchedulePage = () => {
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
   const { profileId, isLoading: profileLoading } = useStylistProfileMe()
-  const { reservations, isLoading, isFetching, refetch } = useStylistScheduleReservations({
+  const { reservations, isLoading, isFetching, error, refetch } = useStylistScheduleReservations({
     stylistProfileId: profileId,
   })
   const scheduleWindow = getStylistScheduleWindow()
 
-  const sections = useMemo(() => buildSections(reservations), [reservations])
+  const sections = useMemo(
+    () => buildSections(reservations, locale, t('stylistPortal.schedule.today')),
+    [reservations, locale, t],
+  )
 
   if (profileLoading || (isLoading && !profileId)) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-sm text-slate-500">Učitavanje…</div>
+        <div className="text-sm text-slate-500">{t('common.loading')}</div>
       </div>
     )
   }
@@ -96,35 +105,44 @@ export const StylistSchedulePage = () => {
   if (!profileId) {
     return (
       <Card className="p-6">
-        <p className="text-slate-900 dark:text-slate-50 font-semibold">Nema profila</p>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Profil stilista nije pronađen.</p>
+        <p className="text-slate-900 dark:text-slate-50 font-semibold">{t('stylistPortal.schedule.noProfile')}</p>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.schedule.profileNotFound')}</p>
       </Card>
     )
   }
 
-  const empty = !isLoading && reservations.length === 0
+  const empty = !isLoading && !error && reservations.length === 0
 
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Raspored</h1>
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{t('stylistPortal.schedule.title')}</h1>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Prikazuju se termini koje ste preuzeli ({scheduleWindow.fromDate} – {scheduleWindow.toDate}).
+            {t('stylistPortal.schedule.range', { from: formatDate(scheduleWindow.fromDate, locale), to: formatDate(scheduleWindow.toDate, locale) })}
           </p>
         </div>
         <Button type="button" variant="outline" onClick={() => refetch()} disabled={isFetching}>
-          Osvježi
+          {t('stylistPortal.schedule.refresh')}
         </Button>
         <Link to="/stylist/schedule/new">
-          <Button type="button">Direktna rezervacija</Button>
+          <Button type="button">{t('stylistPortal.schedule.directBooking')}</Button>
         </Link>
       </div>
 
+      {error ? (
+        <Card className="flex flex-wrap items-center justify-between gap-2 p-4" role="alert">
+          <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.schedule.loadFailed')}</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>
+            {t('common.retry')}
+          </Button>
+        </Card>
+      ) : null}
+
       {empty ? (
         <Card className="p-6">
-          <p className="font-semibold text-slate-900 dark:text-slate-50">Nema termina</p>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Preuzeti termini će se pojaviti ovdje.</p>
+          <p className="font-semibold text-slate-900 dark:text-slate-50">{t('stylistPortal.schedule.emptyTitle')}</p>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.schedule.emptyDescription')}</p>
         </Card>
       ) : null}
 
@@ -143,7 +161,7 @@ export const StylistSchedulePage = () => {
                       <div className="min-w-0">
                         <Link to={detailHref} className="block">
                           <p className="font-semibold text-slate-900 dark:text-slate-50 truncate hover:underline underline-offset-4">
-                            {r.service?.name ?? 'Usluga'}
+                            {r.service?.name ?? t('stylistWorkbook.serviceFallback')}
                           </p>
                         </Link>
                         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
@@ -154,17 +172,20 @@ export const StylistSchedulePage = () => {
 
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         <Badge variant={getStatusVariant(r.status)}>
-                          {getReservationStatusLabel(r.status, r.cancelReason)}
+                          {r.status === 'CANCELLED_BY_CLIENT' &&
+                          (r.cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
+                            ? t('reservations.statuses.CANCELLED_UNCONFIRMED_ATTENDANCE')
+                            : t(`reservations.statuses.${r.status}`, { defaultValue: r.status })}
                         </Badge>
                         <Link to={detailHref}>
                           <Button type="button" variant="outline" size="sm">
-                            Detalji
+                            {t('common.details')}
                           </Button>
                         </Link>
                         {r.status === 'IN_PROGRESS' ? (
                           <Link to={completeHref}>
                             <Button type="button" size="sm">
-                              Naplata
+                              {t('stylistPortal.schedule.payment')}
                             </Button>
                           </Link>
                         ) : null}

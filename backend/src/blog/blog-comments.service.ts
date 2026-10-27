@@ -3,6 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  DEFAULT_API_PAGE_LIMIT,
+  MAX_API_PAGE_OFFSET,
+} from '../common/pagination.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBlogCommentDto } from './dto/create-blog-comment.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
@@ -46,10 +50,13 @@ export class BlogCommentsService {
     const blockedUserIds = new Set(this.parseList(blockedRaw));
 
     if (blockedUserIds.has(userId)) {
-      throw new ForbiddenException('Komentarisanje nije dozvoljeno za ovaj račun.');
+      throw new ForbiddenException(
+        'Komentarisanje nije dozvoljeno za ovaj račun.',
+      );
     }
 
-    const flaggedByBadwords = badwords.length > 0 && this.containsBadword(dto.content, badwords);
+    const flaggedByBadwords =
+      badwords.length > 0 && this.containsBadword(dto.content, badwords);
     const isApproved = autoApprove && !flaggedByBadwords;
 
     return this.prisma.blogComment.create({
@@ -65,11 +72,57 @@ export class BlogCommentsService {
     });
   }
 
-  async findAllForPost(postId: string, approvedOnly = false) {
+  async findPublicForPost(
+    postId: string,
+    pagination?: { limit?: number; offset?: number },
+  ) {
+    const limit = pagination?.limit ?? DEFAULT_API_PAGE_LIMIT;
+    const offset = pagination?.offset ?? 0;
+    const where = {
+      postId,
+      isApproved: true,
+      post: { isPublished: true },
+    };
+    const [items, total] = await Promise.all([
+      this.prisma.blogComment.findMany({
+        where,
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          user: { select: { firstName: true, lastName: true } },
+        },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        skip: offset,
+        take: limit,
+      }),
+      this.prisma.blogComment.count({ where }),
+    ]);
+    const nextOffset = offset + items.length;
+    return {
+      items,
+      total,
+      limit,
+      offset,
+      hasMore:
+        items.length > 0 &&
+        nextOffset < total &&
+        nextOffset <= MAX_API_PAGE_OFFSET,
+      nextOffset,
+    };
+  }
+
+  findAllForPost(postId: string) {
     return this.prisma.blogComment.findMany({
-      where: { postId, ...(approvedOnly ? { isApproved: true } : {}) },
-      include: {
-        user: { select: { id: true, firstName: true, lastName: true } },
+      where: { postId },
+      select: {
+        id: true,
+        content: true,
+        isApproved: true,
+        createdAt: true,
+        user: {
+          select: { username: true, firstName: true, lastName: true },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });

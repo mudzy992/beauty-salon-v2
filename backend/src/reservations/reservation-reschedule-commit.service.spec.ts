@@ -6,7 +6,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 
 const mockPrisma: any = {
-  reservation: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn() },
+  reservation: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    update: jest.fn(),
+  },
   $transaction: jest.fn(async (cb: unknown) => {
     if (typeof cb === 'function') return cb(mockPrisma);
     return undefined;
@@ -75,6 +79,7 @@ describe('ReservationRescheduleCommitService', () => {
     });
     mockPrisma.reservation.findUnique.mockResolvedValue({
       reservationDate: new Date('2026-03-20'),
+      items: [],
     });
 
     const result = await service.commitReschedule('res-main', 'user-1', {

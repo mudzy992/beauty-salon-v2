@@ -1,7 +1,9 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 import api from '../api/client'
+import { getErrorMessage } from '../api/error'
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Button } from '../components/ui/button'
 import { Card, CardContent } from '../components/ui/card'
@@ -10,6 +12,10 @@ import { Label } from '../components/ui/label'
 import { useAuth } from '../context/AuthContext'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { getUploadUrl } from '../utils/uploadUrl'
+import { MediaConsentPanel } from '../features/media-consent/media-consent-panel'
+import { resolveProfileApiErrorKey } from '../features/profile/profile-api-error.mjs'
+import { getIntlLocale } from '../i18n/locale-utils.mjs'
+import { formatInstantDateLocale } from '../../../shared/business-date.mjs'
 
 interface ProfileData {
   id: string
@@ -20,6 +26,7 @@ interface ProfileData {
   phone: string | null
   gender: 'MALE' | 'FEMALE' | null
   avatar: string | null
+  isAvatarPublic: boolean
   isActive: boolean
   isEmailVerified: boolean
   mustChangePassword: boolean
@@ -28,11 +35,17 @@ interface ProfileData {
 }
 
 export default function Profile() {
+  const { t, i18n } = useTranslation()
   const { user, refreshProfile } = useAuth()
   const toast = useAppToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const showApiError = (error: unknown, fallbackKey: string) => {
+    const message = getErrorMessage(error, '')
+    toast.error(t(resolveProfileApiErrorKey(message, fallbackKey)))
+  }
 
   const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [profileLoadErrorKey, setProfileLoadErrorKey] = useState('profile.errors.loadFailed')
   const [username, setUsername] = useState('')
   const [initialUsername, setInitialUsername] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -41,6 +54,8 @@ export default function Profile() {
   const [phone, setPhone] = useState('')
   const [gender, setGender] = useState<'MALE' | 'FEMALE' | ''>('')
   const [avatar, setAvatar] = useState<string | null>(null)
+  const [isAvatarPublic, setIsAvatarPublic] = useState(false)
+  const [avatarPrivacySaving, setAvatarPrivacySaving] = useState(false)
   const [verifyToken, setVerifyToken] = useState('')
 
   const [usernameStatus, setUsernameStatus] = useState<{
@@ -62,6 +77,7 @@ export default function Profile() {
     try {
       const { data } = await api.get<ProfileData>('/api/users/profile')
       setProfile(data)
+      setProfileLoadErrorKey('profile.errors.loadFailed')
       setUsername(data.username ?? '')
       setInitialUsername(data.username ?? '')
       setFirstName(data.firstName ?? '')
@@ -71,6 +87,12 @@ export default function Profile() {
       setPhone(data.phone ?? '')
       setGender(data.gender ?? '')
       setAvatar(data.avatar ?? null)
+      setIsAvatarPublic(Boolean(data.isAvatarPublic))
+    } catch (error) {
+      setProfile(null)
+      setProfileLoadErrorKey(
+        resolveProfileApiErrorKey(getErrorMessage(error, ''), 'profile.errors.loadFailed'),
+      )
     } finally {
       setLoading(false)
     }
@@ -115,26 +137,52 @@ export default function Profile() {
   }, [username])
 
   const handleUploadAvatar = async (file: File) => {
-    if (!file.type.startsWith('image/')) return
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('profile.errors.imageRequired'))
+      return
+    }
     setUploadingAvatar(true)
     try {
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('entity', 'avatars')
       const { data } = await api.post<{
-        pathThumb?: string
-        pathSmall?: string
-        pathOriginal: string
-      }>('/api/uploads', fd, {
+        avatar: string
+        isAvatarPublic: boolean
+      }>('/api/users/profile/avatar', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      setAvatar(data.pathThumb || data.pathSmall || data.pathOriginal)
-      toast.success('Avatar uploadovan.')
-    } catch {
-      toast.error('Upload avatara nije uspio.')
+      setAvatar(data.avatar)
+      setIsAvatarPublic(Boolean(data.isAvatarPublic))
+      await refreshProfile()
+      toast.success(t('profile.toast.avatarUploaded'))
+    } catch (error) {
+      showApiError(error, 'profile.errors.avatarUploadFailed')
     } finally {
       setUploadingAvatar(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleAvatarVisibilityChange = async (nextValue: boolean) => {
+    const previousValue = isAvatarPublic
+    setIsAvatarPublic(nextValue)
+    setAvatarPrivacySaving(true)
+    try {
+      const { data } = await api.patch<{ isAvatarPublic: boolean }>(
+        '/api/users/profile/avatar-visibility',
+        { isAvatarPublic: nextValue },
+      )
+      setIsAvatarPublic(Boolean(data.isAvatarPublic))
+      setProfile((current) =>
+        current ? { ...current, isAvatarPublic: Boolean(data.isAvatarPublic) } : current,
+      )
+      await refreshProfile()
+      toast.success(t(nextValue ? 'profile.toast.avatarMadePublic' : 'profile.toast.avatarMadePrivate'))
+    } catch (error: any) {
+      setIsAvatarPublic(previousValue)
+      showApiError(error, 'profile.errors.avatarVisibilityFailed')
+    } finally {
+      setAvatarPrivacySaving(false)
     }
   }
 
@@ -144,15 +192,15 @@ export default function Profile() {
 
     const isClient = (profile?.roles ?? []).includes('CLIENT')
     if (isClient && !gender) {
-      toast.warning('Spol je obavezan za klijente.')
+      toast.warning(t('users.validation.genderRequiredForClients'))
       return
     }
     if (!username.trim()) {
-      toast.warning('Korisničko ime je obavezno.')
+      toast.warning(t('users.validation.usernameRequired'))
       return
     }
     if (usernameStatus.available === false) {
-      toast.warning('Korisničko ime nije dostupno.')
+      toast.warning(t('profile.username.unavailable'))
       return
     }
 
@@ -166,7 +214,6 @@ export default function Profile() {
         email,
         phone,
         gender: gender || null,
-        avatar,
       })
       await refreshProfile()
       await loadProfile()
@@ -175,18 +222,18 @@ export default function Profile() {
         try {
           await api.post('/auth/send-verification-email')
           toast.success(
-            'Profil je ažuriran. Poslali smo verifikacijski kod na novi email.',
+            t('profile.toast.updatedVerificationSent'),
           )
         } catch {
           toast.warning(
-            'Profil je ažuriran. Pošaljite verifikacijski kod za novi email.',
+            t('profile.toast.updatedVerificationPending'),
           )
         }
       } else {
-        toast.success('Profil je ažuriran.')
+        toast.success(t('profile.toast.updated'))
       }
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Ažuriranje nije uspjelo.')
+      showApiError(error, 'profile.errors.updateFailed')
     } finally {
       setSaving(false)
     }
@@ -196,9 +243,9 @@ export default function Profile() {
     setSendingCode(true)
     try {
       await api.post('/auth/send-verification-email')
-      toast.success('Verifikacijski kod je poslan na email.')
+      toast.success(t('profile.toast.verificationCodeSent'))
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Slanje koda nije uspjelo.')
+      showApiError(error, 'profile.errors.sendCodeFailed')
     } finally {
       setSendingCode(false)
     }
@@ -211,9 +258,9 @@ export default function Profile() {
       await refreshProfile()
       await loadProfile()
       setVerifyToken('')
-      toast.success('Email je verifikovan.')
+      toast.success(t('profile.toast.emailVerified'))
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Verifikacija nije uspjela.')
+      showApiError(error, 'profile.errors.verifyFailed')
     } finally {
       setVerifying(false)
     }
@@ -221,18 +268,23 @@ export default function Profile() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-10 space-y-6">
-      <div className="text-2xl font-semibold tracking-tight text-slate-950">Moj profil</div>
+      <div className="text-2xl font-semibold tracking-tight text-slate-950">
+        {t('profile.title')}
+      </div>
 
       {loading ? (
-        <div className="text-slate-600">Učitavanje…</div>
-      ) : (
+        <div className="text-slate-600">{t('common.loading')}</div>
+      ) : profile ? (
         <div className="space-y-5">
           <Card>
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row gap-4 justify-between">
                 <div className="flex items-start gap-4">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src={avatar ? getUploadUrl(avatar) : undefined} />
+                    <AvatarImage
+                      src={avatar ? getUploadUrl(avatar) : undefined}
+                      alt={t('profile.avatar.alt', { username })}
+                    />
                     <AvatarFallback>
                       {(firstName?.[0] ?? username?.[0] ?? 'U').toUpperCase()}
                       {(lastName?.[0] ?? '').toUpperCase()}
@@ -245,12 +297,12 @@ export default function Profile() {
                     </div>
                     <div className="text-slate-600 text-sm">@{username}</div>
                     <div className="flex flex-wrap gap-2">
-                      {(profile?.roles ?? []).map((role) => (
+                      {profile.roles.map((role) => (
                         <span
                           key={role}
                           className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-700"
                         >
-                          {role}
+                          {t(`users.roleNames.${role}`, { defaultValue: role })}
                         </span>
                       ))}
                     </div>
@@ -275,16 +327,38 @@ export default function Profile() {
                     disabled={uploadingAvatar}
                   >
                     {uploadingAvatar
-                      ? 'Upload…'
+                      ? t('profile.avatar.uploading')
                       : avatar
-                        ? 'Promijeni avatar'
-                        : 'Dodaj avatar'}
+                        ? t('profile.avatar.change')
+                        : t('profile.avatar.add')}
                   </Button>
+                  <label className="mt-2 flex items-center gap-2 text-sm text-slate-800">
+                    <input
+                      type="checkbox"
+                      checked={isAvatarPublic}
+                      disabled={!avatar || avatarPrivacySaving}
+                      onChange={(event) =>
+                        void handleAvatarVisibilityChange(event.target.checked)
+                      }
+                      className="h-4 w-4 accent-amber-700"
+                    />
+                    <span>
+                      {avatarPrivacySaving
+                        ? t('common.saving')
+                        : t('profile.avatar.public')}
+                    </span>
+                  </label>
+                  <p className="max-w-xs text-right text-xs leading-5 text-slate-500">
+                    {t('profile.avatar.privacyDescription')}
+                  </p>
                   <div className="text-xs text-slate-500">
-                    Kreiran:{' '}
-                    {profile?.createdAt
-                      ? new Date(profile.createdAt).toLocaleDateString('bs-BA')
-                      : '-'}
+                    {t('profile.createdAt', {
+                      date: formatInstantDateLocale(
+                        profile.createdAt,
+                        getIntlLocale(i18n.resolvedLanguage ?? i18n.language),
+                        { dateStyle: 'medium' },
+                      ),
+                    })}
                   </div>
                 </div>
               </div>
@@ -296,7 +370,7 @@ export default function Profile() {
               <form onSubmit={handleSave} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="username">Korisničko ime</Label>
+                    <Label htmlFor="username">{t('users.username')}</Label>
                     <Input
                       id="username"
                       value={username}
@@ -305,7 +379,7 @@ export default function Profile() {
 
                     {usernameStatus.loading ? (
                       <div className="text-xs text-slate-500">
-                        Provjera korisničkog imena…
+                        {t('profile.username.checking')}
                       </div>
                     ) : null}
 
@@ -314,7 +388,7 @@ export default function Profile() {
                     (usernameStatus.isCurrentUsername ||
                       username.trim() === initialUsername.trim()) ? (
                       <div className="text-xs text-blue-700">
-                        Ovo je vaše trenutno korisničko ime.
+                        {t('profile.username.current')}
                       </div>
                     ) : null}
 
@@ -323,13 +397,13 @@ export default function Profile() {
                     !usernameStatus.isCurrentUsername &&
                     username.trim() !== initialUsername.trim() ? (
                       <div className="text-xs text-emerald-700">
-                        Korisničko ime je dostupno.
+                        {t('profile.username.available')}
                       </div>
                     ) : null}
 
                     {!usernameStatus.loading && usernameStatus.available === false ? (
                       <div className="text-xs text-rose-700">
-                        Korisničko ime nije dostupno.
+                        {t('profile.username.unavailable')}
                       </div>
                     ) : null}
 
@@ -352,7 +426,7 @@ export default function Profile() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Telefon</Label>
+                    <Label htmlFor="phone">{t('users.phone')}</Label>
                     <Input
                       id="phone"
                       value={phone}
@@ -363,25 +437,25 @@ export default function Profile() {
 
                 {(profile?.roles ?? []).includes('CLIENT') ? (
                   <div className="space-y-2">
-                    <Label htmlFor="gender">Spol</Label>
+                    <Label htmlFor="gender">{t('users.gender.label')}</Label>
                     <select
                       id="gender"
                       value={gender}
                       onChange={(event) =>
                         setGender(event.target.value as 'MALE' | 'FEMALE' | '')
                       }
-                      className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50"
+                      className="h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-gold-ring focus:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50"
                     >
-                      <option value="">Odaberite spol</option>
-                      <option value="FEMALE">Žensko</option>
-                      <option value="MALE">Muško</option>
+                      <option value="">{t('users.gender.choose')}</option>
+                      <option value="FEMALE">{t('users.gender.female')}</option>
+                      <option value="MALE">{t('users.gender.male')}</option>
                     </select>
                   </div>
                 ) : null}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">Ime</Label>
+                    <Label htmlFor="firstName">{t('auth.firstName')}</Label>
                     <Input
                       id="firstName"
                       value={firstName}
@@ -389,7 +463,7 @@ export default function Profile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Prezime</Label>
+                    <Label htmlFor="lastName">{t('auth.lastName')}</Label>
                     <Input
                       id="lastName"
                       value={lastName}
@@ -399,7 +473,7 @@ export default function Profile() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('users.email')}</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       id="email"
@@ -421,14 +495,16 @@ export default function Profile() {
                       ) : (
                         <AlertTriangle className="h-3 w-3" />
                       )}
-                      {profile?.isEmailVerified ? 'Verifikovan' : 'Neverifikovan'}
+                      {profile.isEmailVerified
+                        ? t('profile.email.verified')
+                        : t('profile.email.unverified')}
                     </span>
                   </div>
 
                   {!profile?.isEmailVerified ? (
                     <div className="mt-3 space-y-2">
                       <div className="text-sm text-slate-600">
-                        Ako ste promijenili email, unesite kod iz poruke ili zatražite novi.
+                        {t('profile.email.verificationHint')}
                       </div>
                       <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
                         <Button
@@ -438,12 +514,14 @@ export default function Profile() {
                           onClick={handleSendCode}
                           disabled={sendingCode}
                         >
-                          {sendingCode ? 'Slanje…' : 'Pošalji kod'}
+                          {sendingCode
+                            ? t('profile.email.sendingCode')
+                            : t('profile.email.sendCode')}
                         </Button>
                         <Input
                           value={verifyToken}
                           onChange={(e) => setVerifyToken(e.target.value)}
-                          placeholder="Kod iz emaila"
+                          placeholder={t('profile.email.codePlaceholder')}
                           className="sm:max-w-[220px]"
                         />
                         <Button
@@ -452,7 +530,9 @@ export default function Profile() {
                           onClick={handleVerify}
                           disabled={verifying}
                         >
-                          {verifying ? 'Provjera…' : 'Potvrdi'}
+                          {verifying
+                            ? t('profile.email.verifying')
+                            : t('profile.email.confirmCode')}
                         </Button>
                       </div>
                     </div>
@@ -460,12 +540,25 @@ export default function Profile() {
                 </div>
 
                 <Button type="submit" disabled={saving || usernameStatus.available === false}>
-                  {saving ? 'Spremanje…' : 'Sačuvaj izmjene'}
+                  {saving ? t('common.saving') : t('profile.saveChanges')}
                 </Button>
               </form>
             </CardContent>
           </Card>
+
+          {profile.roles.includes('CLIENT') ? <MediaConsentPanel /> : null}
         </div>
+      ) : (
+        <Card>
+          <CardContent className="flex flex-col items-start gap-3 p-6">
+            <p role="alert" className="text-sm text-slate-700">
+              {t(profileLoadErrorKey)}
+            </p>
+            <Button type="button" variant="outline" onClick={() => void loadProfile()}>
+              {t('profile.retry')}
+            </Button>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

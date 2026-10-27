@@ -48,6 +48,7 @@ describe('ExpensesService', () => {
     prisma.expense.create.mockResolvedValue({ id: 'ex1' });
     prisma.expense.findUnique.mockResolvedValue({
       id: 'ex1',
+      bookId: 'b1',
       categoryId: 'cat1',
       book: { id: 'b1', isClosed: false },
     });
@@ -153,6 +154,7 @@ describe('ExpensesService', () => {
       );
 
       expect(prisma.$transaction).toHaveBeenCalled();
+      expect(prisma.$queryRaw).toHaveBeenCalled();
       expect(prisma.expenseFieldValue.createMany).toHaveBeenCalledWith({
         data: [{ expenseId: 'ex1', fieldId: 'f1', value: '123' }],
       });
@@ -163,9 +165,11 @@ describe('ExpensesService', () => {
     it('odbija izmjenu u zatvorenoj knjizi', async () => {
       prisma.expense.findUnique.mockResolvedValue({
         id: 'ex1',
+        bookId: 'b1',
         categoryId: 'cat1',
         book: { id: 'b1', isClosed: true },
       });
+      prisma.expenseBook.findUnique.mockResolvedValue({ id: 'b1', isClosed: true });
       await expect(service.update('ex1', { title: 'x' }, user)).rejects.toThrow(
         BadRequestException,
       );

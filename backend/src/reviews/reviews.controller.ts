@@ -7,15 +7,21 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { PublicReviewsQueryDto } from './dto/public-reviews-query.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { UseGuards } from '@nestjs/common';
+import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
+import {
+  HTTP_RATE_LIMIT_PUBLIC_IP,
+  HTTP_RATE_LIMIT_WINDOW_SECONDS,
+} from '../common/rate-limiting/http-rate-limit.constants';
 
 @Controller('api/reviews')
 export class ReviewsController {
@@ -31,26 +37,44 @@ export class ReviewsController {
 
   @Get('featured/random')
   @Public()
+  @HttpRateLimit({
+    bucket: 'reviews:featured-random',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   findOneRandomApproved() {
     return this.reviews.findOneRandomApproved();
   }
 
   @Get()
   @Public()
-  findAll(
+  @HttpRateLimit({
+    bucket: 'reviews:list',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
+  findAll(@Query() query: PublicReviewsQueryDto) {
+    return this.reviews.findAllPublic(query);
+  }
+
+  @Get('admin')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findAllForAdmin(
     @Query('serviceId') serviceId: string,
     @Query('stylistProfileId') stylistProfileId: string,
     @Query('approved') approved: string,
   ) {
-    return this.reviews.findAll({
+    return this.reviews.findAllForAdmin({
       serviceId,
       stylistProfileId,
-      approvedOnly: approved === 'true',
+      approved,
     });
   }
 
   @Get(':id')
-  @Public()
   findOne(@Param('id') id: string) {
     return this.reviews.findOne(id);
   }

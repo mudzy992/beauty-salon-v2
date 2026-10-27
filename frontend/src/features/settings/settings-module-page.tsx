@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { SettingsShell } from './settings-shell'
 import { SettingGroupPanel } from './setting-group-panel'
 import { useAdminSettings } from './use-admin-settings'
@@ -13,11 +14,12 @@ export function SettingsModulePage({
   description: string
   groups: SettingGroup[]
 }) {
+  const { t } = useTranslation()
   const { settingsList, registryMap, loading, handleSave } = useAdminSettings()
   if (loading) {
     return (
       <div className="flex h-[400px] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-brand-gold" aria-hidden />
+        <Loader2 className="h-10 w-10 animate-spin text-brand-gold-text" aria-label={t('common.loading')} />
       </div>
     )
   }

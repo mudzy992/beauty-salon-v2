@@ -17,6 +17,7 @@ import 'react-big-calendar/lib/addons/dragAndDrop/styles.css'
 import './reservation-scheduler.css'
 
 import api from '../../../api/client'
+import { fetchAllPublicServices } from '../../../api/catalog'
 import { getErrorMessage } from '../../../api/error'
 import { Button } from '../../../components/ui/button'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
@@ -33,6 +34,13 @@ import {
   getReservationStatusColor,
   getReservationStatusLabel,
 } from '../status'
+import {
+  addDateOnlyDays,
+  addDateOnlyMonths,
+  getDateOnlyFromLocalCalendarDate,
+  getSalonDateOnly,
+  parseDateOnly,
+} from '../../../../../shared/business-date.mjs'
 
 type SchedulerEvent = {
   id: string
@@ -103,8 +111,14 @@ type Props = {
 
 const DragAndDropCalendar = withDragAndDrop(BigCalendar as any) as any
 
-const toYmd = (d: Date): string => format(d, 'yyyy-MM-dd')
+const toYmd = (date: Date): string =>
+  getDateOnlyFromLocalCalendarDate(date)
 const toHm = (d: Date): string => format(d, 'HH:mm')
+
+const toLocalCalendarDate = (dateOnly: string): Date => {
+  const { year, month, day } = parseDateOnly(dateOnly)
+  return new Date(year, month - 1, day, 12, 0, 0, 0)
+}
 
 const combineLocal = (dateStr: string, timeStr: string): Date => {
   const [yyyy, mm, dd] = dateStr.split('-').map((x) => Number(x))
@@ -253,11 +267,7 @@ export const ReservationScheduler = (props: Props) => {
 
   const loadServices = useCallback(async () => {
     try {
-      const { data } = await api.get<ServiceOption[] | { items: ServiceOption[] }>('/api/services', {
-        params: { page: 0, pageSize: 300, activeOnly: 'true' },
-      })
-      const items = Array.isArray(data) ? data : Array.isArray((data as any).items) ? (data as any).items : []
-      setServices(items)
+      setServices(await fetchAllPublicServices<ServiceOption>({ activeOnly: 'true' }))
     } catch {
       setServices([])
     }
@@ -454,21 +464,17 @@ export const ReservationScheduler = (props: Props) => {
     return { style: { ...base, borderLeftColor: '#64748B', backgroundColor: '#F1F5F9', color: '#0F172A' } }
   }
 
-  const handlePrev = () => {
-    const d = new Date(props.date)
-    if (view === Views.MONTH) d.setMonth(d.getMonth() - 1)
-    else if (view === Views.DAY) d.setDate(d.getDate() - 1)
-    else d.setDate(d.getDate() - 7)
-    props.onDateChange(d)
+  const shiftDate = (direction: -1 | 1) => {
+    const current = toYmd(props.date)
+    const dateOnly =
+      view === Views.MONTH
+        ? addDateOnlyMonths(current, direction)
+        : addDateOnlyDays(current, direction * (view === Views.DAY ? 1 : 7))
+    props.onDateChange(toLocalCalendarDate(dateOnly))
   }
 
-  const handleNext = () => {
-    const d = new Date(props.date)
-    if (view === Views.MONTH) d.setMonth(d.getMonth() + 1)
-    else if (view === Views.DAY) d.setDate(d.getDate() + 1)
-    else d.setDate(d.getDate() + 7)
-    props.onDateChange(d)
-  }
+  const handlePrev = () => shiftDate(-1)
+  const handleNext = () => shiftDate(1)
 
   return (
     <div className="bg-white dark:bg-slate-950">
@@ -488,7 +494,12 @@ export const ReservationScheduler = (props: Props) => {
               Novi termin
             </Button>
 
-            <Button type="button" variant="outline" size="sm" onClick={() => props.onDateChange(new Date())}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => props.onDateChange(toLocalCalendarDate(getSalonDateOnly()))}
+            >
               {messages.today}
             </Button>
             <Button type="button" variant="outline" size="icon" className="h-9 w-9" aria-label="Prethodni" onClick={handlePrev}>
@@ -583,7 +594,7 @@ export const ReservationScheduler = (props: Props) => {
                         ? 'h-2 w-2 rounded-full bg-amber-500'
                         : x.status.startsWith('CANCELLED')
                           ? 'h-2 w-2 rounded-full bg-rose-500'
-                          : 'h-2 w-2 rounded-full bg-brand-gold'
+                          : 'h-2 w-2 rounded-full bg-brand-gold-ring'
                   }
                 />
                 {x.label}
@@ -940,7 +951,7 @@ export const ReservationScheduler = (props: Props) => {
                           type="button"
                           className={
                             active
-                              ? 'rounded-lg border border-brand-gold bg-brand-champagne/20 px-3 py-2 text-left text-sm'
+                              ? 'rounded-lg border border-brand-gold-ring bg-brand-champagne/20 px-3 py-2 text-left text-sm'
                               : 'rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/40'
                           }
                           onClick={() => setCreateDraft((p) => ({ ...p, stylistProfileId: stylist.id }))}

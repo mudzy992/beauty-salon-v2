@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
 import {
@@ -26,6 +27,7 @@ export const OverrunReservationDialog = ({
   onManual,
   onBreakOnly,
 }: OverrunReservationDialogProps) => {
+  const { t } = useTranslation()
   const [manualShiftMinutes, setManualShiftMinutes] = useState('5')
   const manualMinutes = Math.max(
     0,
@@ -36,17 +38,17 @@ export const OverrunReservationDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Kašnjenje termina</DialogTitle>
+          <DialogTitle>{t('stylistPortal.reservationDialogs.overrun.title')}</DialogTitle>
           <DialogDescription>
-            Odaberite kako želite obraditi kašnjenje prije nastavka rada.
+            {t('stylistPortal.reservationDialogs.overrun.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
           <Button type="button" onClick={() => void onActual()}>
-            Rekalkuliši po stvarnom kašnjenju
+            {t('stylistPortal.reservationDialogs.overrun.actualOverrun')}
           </Button>
           <div className="space-y-2">
-            <Label htmlFor="manualShift">Ručni unos minuta</Label>
+            <Label htmlFor="manualShift">{t('stylistPortal.reservationDialogs.overrun.manualMinutes')}</Label>
             <Input
               id="manualShift"
               value={manualShiftMinutes}
@@ -58,11 +60,11 @@ export const OverrunReservationDialog = ({
               variant="outline"
               onClick={() => void onManual(manualMinutes)}
             >
-              Rekalkuliši po ručnom unosu
+              {t('stylistPortal.reservationDialogs.overrun.manualShift')}
             </Button>
           </div>
           <Button type="button" variant="ghost" onClick={() => void onBreakOnly()}>
-            Ne pomjeraj termine (iskoristi kraću pauzu)
+            {t('stylistPortal.reservationDialogs.overrun.useShorterBreak')}
           </Button>
         </div>
       </DialogContent>

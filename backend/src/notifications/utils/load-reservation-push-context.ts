@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { toDateOnlyString } from '../../common/utils/date-only';
 import { RESERVATION_ATTENDANCE_POLICY } from '../../reservations/constants';
 import {
   emptyPushContext,
@@ -36,7 +37,7 @@ export const loadReservationPushContext = async (
   return {
     ref: row.publicReferenceCode,
     serviceNames,
-    date: row.reservationDate.toISOString().slice(0, 10),
+    date: toDateOnlyString(row.reservationDate),
     startTime: row.startTime,
     endTime: row.endTime,
     attendanceRequired:

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 
 import api from '../api/client'
+import { fetchAllPublicStylists } from '../api/catalog'
 import { getErrorMessage } from '../api/error'
 import { Button } from '../components/ui/button'
 import { useAppToast } from '../lib/toast/useAppToast'
@@ -10,18 +11,22 @@ import { useAppToast } from '../lib/toast/useAppToast'
 import { ReservationScheduler } from '../features/reservations/components/ReservationScheduler'
 import type { Reservation, StylistProfile } from '../features/reservations/types'
 import { useReservationSocketRefresh } from '../features/reservations/use-reservation-socket-refresh'
+import {
+  addDateOnlyDays,
+  formatDateOnlyParts,
+  getDateOnlyFromLocalCalendarDate,
+  getDateOnlyWeekday,
+  getDaysInMonth,
+  getSalonDateOnly,
+  parseDateOnly,
+} from '../../../shared/business-date.mjs'
 
-const toYmd = (d: Date): string => {
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${yyyy}-${mm}-${dd}`
-}
+const toYmd = (date: Date): string =>
+  getDateOnlyFromLocalCalendarDate(date)
 
-const addDays = (d: Date, days: number): Date => {
-  const x = new Date(d)
-  x.setDate(x.getDate() + days)
-  return x
+const toLocalCalendarDate = (dateOnly: string): Date => {
+  const { year, month, day } = parseDateOnly(dateOnly)
+  return new Date(year, month - 1, day, 12, 0, 0, 0)
 }
 
 export default function ReservationsCalendar() {
@@ -34,30 +39,31 @@ export default function ReservationsCalendar() {
   const [selectedStylistIds, setSelectedStylistIds] = useState<string[]>([])
 
   const [view, setView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'agenda'>('timeGridWeek')
-  const [activeDate, setActiveDate] = useState<Date>(() => new Date())
+  const [activeDate, setActiveDate] = useState<Date>(() =>
+    toLocalCalendarDate(getSalonDateOnly()),
+  )
 
   const range = useMemo(() => {
+    const dateOnly = toYmd(activeDate)
+    const { year, month } = parseDateOnly(dateOnly)
     if (view === 'dayGridMonth') {
-      const start = new Date(activeDate.getFullYear(), activeDate.getMonth(), 1)
-      const end = new Date(activeDate.getFullYear(), activeDate.getMonth() + 1, 0)
-      return { fromDate: toYmd(start), toDate: toYmd(end) }
+      return {
+        fromDate: formatDateOnlyParts({ year, month, day: 1 }),
+        toDate: formatDateOnlyParts({
+          year,
+          month,
+          day: getDaysInMonth(year, month),
+        }),
+      }
     }
     if (view === 'timeGridDay') {
-      const d = new Date(activeDate.getFullYear(), activeDate.getMonth(), activeDate.getDate())
-      return { fromDate: toYmd(d), toDate: toYmd(d) }
+      return { fromDate: dateOnly, toDate: dateOnly }
     }
-    if (view === 'agenda') {
-      const day = activeDate.getDay()
-      const mondayOffset = day === 0 ? -6 : 1 - day
-      const start = addDays(new Date(activeDate.getFullYear(), activeDate.getMonth(), activeDate.getDate()), mondayOffset)
-      const end = addDays(start, 6)
-      return { fromDate: toYmd(start), toDate: toYmd(end) }
-    }
-    const day = activeDate.getDay()
-    const mondayOffset = day === 0 ? -6 : 1 - day
-    const start = addDays(new Date(activeDate.getFullYear(), activeDate.getMonth(), activeDate.getDate()), mondayOffset)
-    const end = addDays(start, 6)
-    return { fromDate: toYmd(start), toDate: toYmd(end) }
+
+    const weekday = getDateOnlyWeekday(dateOnly)
+    const mondayOffset = weekday === 0 ? -6 : 1 - weekday
+    const fromDate = addDateOnlyDays(dateOnly, mondayOffset)
+    return { fromDate, toDate: addDateOnlyDays(fromDate, 6) }
   }, [activeDate, view])
 
   const loadReservations = useCallback(async (opts?: { silent?: boolean }) => {
@@ -76,11 +82,7 @@ export default function ReservationsCalendar() {
 
   const loadStylists = useCallback(async () => {
     try {
-      const { data } = await api.get<StylistProfile[] | { items: StylistProfile[] }>('/api/stylists', {
-        params: { page: 0, pageSize: 300 },
-      })
-      const items = Array.isArray(data) ? data : Array.isArray((data as any).items) ? (data as any).items : []
-      setStylists(items)
+      setStylists(await fetchAllPublicStylists<StylistProfile>())
     } catch {
       setStylists([])
     }

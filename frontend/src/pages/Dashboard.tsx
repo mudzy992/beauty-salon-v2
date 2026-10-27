@@ -13,7 +13,7 @@ export default function Dashboard() {
   if (loading || !stats) {
     return (
       <div className="p-6 text-center">
-        <div className="text-sm text-slate-600">Učitavanje…</div>
+        <div className="text-sm text-slate-600">{t('common.loading')}</div>
       </div>
     )
   }
@@ -24,7 +24,7 @@ export default function Dashboard() {
         <h1 className="text-xl font-semibold text-slate-900">
           {t('dashboard.welcome')}, {user?.username}
         </h1>
-        <p className="mt-1 text-sm text-slate-600">Pregled tekućeg mjeseca</p>
+        <p className="mt-1 text-sm text-slate-600">{t('dashboard.stats')}</p>
       </div>
       <DashboardFinanceStats stats={stats} />
       <DashboardOpsStats stats={stats} />

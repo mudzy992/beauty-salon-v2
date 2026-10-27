@@ -1,7 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { BadRequestException } from '@nestjs/common'
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common'
 import { SettingsService } from './settings.service'
 import { EventsGateway } from '../events/events.gateway'
+import { SOCKET_EVENTS } from '../events/socket-events'
 import { SettingsEncryptionService } from './settings-encryption.service'
 import { ConfigService } from '@nestjs/config'
 import { SettingsRepository } from './settings.repository'
@@ -16,6 +20,7 @@ const mockRepo = {
 
 const mockEvents = {
   emitToAll: jest.fn(),
+  emitToAdmins: jest.fn(),
 }
 
 describe('SettingsService', () => {
@@ -75,6 +80,85 @@ describe('SettingsService', () => {
           update: expect.objectContaining({ value: 'true' }),
         }),
       )
+      expect(mockEvents.emitToAll).toHaveBeenCalledWith(
+        SOCKET_EVENTS.SETTINGS_UPDATED,
+        { key: 'system_maintenance_mode', value: 'true' },
+      )
+      expect(mockEvents.emitToAdmins).not.toHaveBeenCalled()
+    })
+
+    it('sends PRIVATE setting update only to admins without broadcasting the value', async () => {
+      mockRepo.upsertByKey.mockResolvedValueOnce({
+        key: 'system_email_host',
+        value: 'smtp.internal.example',
+      })
+
+      await service.set(
+        'system_email_host',
+        { value: 'smtp.internal.example' },
+        'u1',
+      )
+
+      expect(mockEvents.emitToAll).not.toHaveBeenCalled()
+      expect(mockEvents.emitToAdmins).toHaveBeenCalledWith(
+        SOCKET_EVENTS.SETTINGS_UPDATED,
+        { key: 'system_email_host' },
+      )
+    })
+
+    it('ne upisuje secret vrijednost kao plaintext kada encryption key nedostaje', async () => {
+      await expect(
+        service.set('system_email_password', { value: 'secret123' }, 'u1'),
+      ).rejects.toThrow(InternalServerErrorException)
+
+      expect(mockRepo.upsertByKey).not.toHaveBeenCalled()
+      expect(mockEvents.emitToAdmins).not.toHaveBeenCalled()
+      expect(mockEvents.emitToAll).not.toHaveBeenCalled()
+    })
+
+    it('ne upisuje secret vrijednost kada je encryption key neispravan', async () => {
+      const base64Key = Buffer.alloc(32, 7).toString('base64')
+      const invalidKeys = [
+        `${base64Key.slice(0, -1)}!`,
+        Buffer.alloc(31, 7).toString('base64'),
+      ]
+
+      for (const invalidKey of invalidKeys) {
+        const module: TestingModule = await Test.createTestingModule({
+          providers: [
+            SettingsService,
+            SettingsEncryptionService,
+            { provide: SettingsRepository, useValue: mockRepo },
+            { provide: EventsGateway, useValue: mockEvents },
+            { provide: ConfigService, useValue: createConfig(invalidKey) },
+          ],
+        }).compile()
+        const localService = module.get<SettingsService>(SettingsService)
+
+        await expect(
+          localService.set('system_email_password', { value: 'secret123' }, 'u1'),
+        ).rejects.toThrow(InternalServerErrorException)
+      }
+
+      expect(mockRepo.upsertByKey).not.toHaveBeenCalled()
+      expect(mockEvents.emitToAdmins).not.toHaveBeenCalled()
+      expect(mockEvents.emitToAll).not.toHaveBeenCalled()
+    })
+
+    it('dozvoljava brisanje prazne secret postavke bez encryption key-a', async () => {
+      mockRepo.upsertByKey.mockResolvedValueOnce({
+        key: 'system_email_password',
+        value: '',
+      })
+
+      await service.set('system_email_password', { value: '' }, 'u1')
+
+      expect(mockRepo.upsertByKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ value: '' }),
+          update: expect.objectContaining({ value: '' }),
+        }),
+      )
     })
 
     it('enkriptuje secret vrijednost kada je key prisutan', async () => {
@@ -96,6 +180,11 @@ describe('SettingsService', () => {
       const call = mockRepo.upsertByKey.mock.calls[0][0]
       expect(call.create.value).toMatch(/^enc:v1:/)
       expect(call.update.value).toMatch(/^enc:v1:/)
+      expect(mockEvents.emitToAll).not.toHaveBeenCalled()
+      expect(mockEvents.emitToAdmins).toHaveBeenCalledWith(
+        SOCKET_EVENTS.SETTINGS_UPDATED,
+        { key: 'system_email_password' },
+      )
     })
   })
 

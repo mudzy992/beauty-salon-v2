@@ -19,6 +19,10 @@ import {
 } from '../reservations/constants';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import type { RestoreDailyLogEntryDto } from './dto/restore-daily-log-entry.dto';
+import {
+  getDateOnlyDayBounds,
+  toDateOnlyString,
+} from '../common/utils/date-only';
 
 interface EntryReservationSnapshot {
   id: string;
@@ -117,11 +121,8 @@ export class DailyLogRestoreService {
   }
 
   private isFuture(date: Date): boolean {
-    const now = new Date();
-    const today = new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-    );
-    return date.getTime() > today.getTime();
+    const today = this.dates.toSalonDateOnlyString(new Date());
+    return toDateOnlyString(date) > today;
   }
 
   private async restoreAsReservation(
@@ -216,14 +217,11 @@ export class DailyLogRestoreService {
     startTime: string,
     endTime: string,
   ) {
-    const dayStart = new Date(date);
-    dayStart.setUTCHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setUTCHours(23, 59, 59, 999);
+    const { gte, lt } = getDateOnlyDayBounds(toDateOnlyString(date));
     const conflict = await this.prisma.reservation.findFirst({
       where: {
         confirmedStylistId: stylistProfileId,
-        reservationDate: { gte: dayStart, lte: dayEnd },
+        reservationDate: { gte, lt },
         status: { in: [...SLOT_OCCUPYING_STATUSES] as any },
         startTime: { lt: endTime },
         endTime: { gt: startTime },

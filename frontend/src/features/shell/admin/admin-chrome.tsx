@@ -12,6 +12,7 @@ import {
 } from '../../../components/ui/dropdown-menu'
 import { AppLogo } from '../../../components/brand/app-logo'
 import { UploadedBrandLogo } from '../../../components/brand/uploaded-brand-logo'
+import { LanguageSwitcher } from '../../../components/i18n/language-switcher'
 
 type BrandProps = {
   hasLogo: boolean
@@ -71,14 +72,24 @@ export const AdminUserMenu = ({
   const { t } = useTranslation()
   return (
     <div className="flex items-center gap-2">
+      <LanguageSwitcher />
       <button
         type="button"
-        aria-label="Admin meni"
-        className="inline-flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold lg:hidden"
+        aria-label={t('shell.adminMenu')}
+        className="inline-flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring lg:hidden"
         onClick={onOpenMobileNav}
       >
         <Avatar className="h-9 w-9 ring-1 ring-slate-200">
-          {avatarSrc ? <AvatarImage src={avatarSrc} alt={username ? `Profil: ${username}` : 'Profil'} /> : null}
+          {avatarSrc ? (
+            <AvatarImage
+              src={avatarSrc}
+              alt={
+                username
+                  ? t('shell.profileForUser', { username })
+                  : t('shell.profile')
+              }
+            />
+          ) : null}
           <AvatarFallback className="font-semibold">{initials}</AvatarFallback>
         </Avatar>
       </button>
@@ -86,12 +97,19 @@ export const AdminUserMenu = ({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            aria-label="Admin meni"
-            className="hidden items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold lg:inline-flex"
+            aria-label={t('shell.adminMenu')}
+            className="hidden items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring lg:inline-flex"
           >
             <Avatar className="h-9 w-9 ring-1 ring-slate-200">
               {avatarSrc ? (
-                <AvatarImage src={avatarSrc} alt={username ? `Profil: ${username}` : 'Profil'} />
+                <AvatarImage
+                  src={avatarSrc}
+                  alt={
+                    username
+                      ? t('shell.profileForUser', { username })
+                      : t('shell.profile')
+                  }
+                />
               ) : null}
               <AvatarFallback className="font-semibold">{initials}</AvatarFallback>
             </Avatar>
@@ -101,12 +119,19 @@ export const AdminUserMenu = ({
           <div className="mt-4 flex min-w-0 items-center gap-3">
             <Avatar className="h-11 w-11 shrink-0 ring-1 ring-slate-200">
               {avatarSrc ? (
-                <AvatarImage src={avatarSrc} alt={username ? `Profil: ${username}` : 'Profil'} />
+                <AvatarImage
+                  src={avatarSrc}
+                  alt={
+                    username
+                      ? t('shell.profileForUser', { username })
+                      : t('shell.profile')
+                  }
+                />
               ) : null}
               <AvatarFallback className="font-semibold">{initials}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-slate-900">{username ?? 'Admin'}</div>
+              <div className="truncate text-sm font-semibold text-slate-900">{username ?? t('shell.adminName')}</div>
               {email ? <div className="truncate text-xs text-slate-500">{email}</div> : null}
             </div>
           </div>
@@ -116,7 +141,7 @@ export const AdminUserMenu = ({
               <Link to="/" className="w-full">
                 <Button className="w-full" variant="outline" size="sm">
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  Pogledaj stranicu
+                  {t('shell.viewSite')}
                 </Button>
               </Link>
             </DropdownMenuItem>

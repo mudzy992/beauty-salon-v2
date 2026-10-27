@@ -82,14 +82,18 @@ export const AdminLayout = () => {
                       {adminAvatarSrc ? (
                         <AvatarImage
                           src={adminAvatarSrc}
-                          alt={user?.username ? `Profil: ${user.username}` : 'Profil'}
+                          alt={
+                            user?.username
+                              ? t('shell.profileForUser', { username: user.username })
+                              : t('shell.profile')
+                          }
                         />
                       ) : null}
                       <AvatarFallback className="font-semibold">{adminInitials}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
                       <div className="truncate text-sm font-semibold text-slate-900">
-                        {user?.username ?? 'Admin'}
+                        {user?.username ?? t('shell.adminName')}
                       </div>
                       {user?.email ? (
                         <div className="truncate text-xs text-slate-500">{user.email}</div>
@@ -108,7 +112,7 @@ export const AdminLayout = () => {
                     <Link to="/" onClick={() => setSidebarOpen(false)}>
                       <Button className="w-full" variant="outline" size="sm">
                         <ExternalLink className="mr-2 h-4 w-4" />
-                        Pogledaj stranicu
+                        {t('shell.viewSite')}
                       </Button>
                     </Link>
                     <Button

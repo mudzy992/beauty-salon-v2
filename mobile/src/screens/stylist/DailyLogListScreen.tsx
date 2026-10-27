@@ -18,18 +18,10 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
 import { spacing } from '../../theme';
-import { formatDate } from '../../utils/date';
+import { addDateOnlyDays, addDateOnlyMonths, formatDate, getDateOnlyWeekday, getSalonDateOnly } from '../../utils/date';
 import type { DailyLogEntry } from '../../types';
-import {
-  endOfWeek,
-  isSameDay,
-  isValid,
-  isWithinInterval,
-  parseISO,
-  startOfWeek,
-  subWeeks,
-} from 'date-fns';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
+import { useDailyLogSocketRefresh } from '../../hooks/useDailyLogSocketRefresh';
 import {
   getCollectedTotal,
   getServicesLabel,
@@ -59,15 +51,14 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
       return;
     }
     try {
-      const from = new Date();
-      from.setMonth(from.getMonth() - 1);
-      const to = new Date();
-      to.setDate(to.getDate() + 7);
+      const today = getSalonDateOnly();
+      const fromDate = addDateOnlyMonths(today, -1);
+      const toDate = addDateOnlyDays(today, 7);
       const { data } = await api.get<DailyLogEntry[]>('/api/daily-log', {
         params: {
           stylistProfileId: profileId,
-          fromDate: from.toISOString().slice(0, 10),
-          toDate: to.toISOString().slice(0, 10),
+          fromDate,
+          toDate,
         },
       });
       setEntries(data);
@@ -82,6 +73,7 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
   }, [fetchEntries]);
 
   useReservationSocketRefresh(fetchEntries);
+  useDailyLogSocketRefresh(fetchEntries);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -111,12 +103,13 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
   }, [fetchEntries]);
 
   const sections: Section[] = React.useMemo(() => {
-    const today = new Date();
-    const thisWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-    const thisWeekEnd = endOfWeek(today, { weekStartsOn: 1 });
-    const lastWeekDate = subWeeks(today, 1);
-    const lastWeekStart = startOfWeek(lastWeekDate, { weekStartsOn: 1 });
-    const lastWeekEnd = endOfWeek(lastWeekDate, { weekStartsOn: 1 });
+    const today = getSalonDateOnly();
+    const weekday = getDateOnlyWeekday(today);
+    const mondayOffset = weekday === 0 ? -6 : 1 - weekday;
+    const thisWeekStart = addDateOnlyDays(today, mondayOffset);
+    const thisWeekEnd = addDateOnlyDays(thisWeekStart, 6);
+    const lastWeekStart = addDateOnlyDays(thisWeekStart, -7);
+    const lastWeekEnd = addDateOnlyDays(thisWeekStart, -1);
 
     const buckets: Record<'today' | 'thisWeek' | 'lastWeek' | 'other', DailyLogEntry[]> = {
       today: [],
@@ -126,15 +119,14 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
     };
 
     for (const e of entries) {
-      const raw = String(e.date ?? '').slice(0, 10);
-      const d = parseISO(raw);
-      if (!isValid(d)) {
+      const dateOnly = String(e.date ?? '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOnly)) {
         buckets.other.push(e);
         continue;
       }
-      if (isSameDay(d, today)) buckets.today.push(e);
-      else if (isWithinInterval(d, { start: thisWeekStart, end: thisWeekEnd })) buckets.thisWeek.push(e);
-      else if (isWithinInterval(d, { start: lastWeekStart, end: lastWeekEnd })) buckets.lastWeek.push(e);
+      if (dateOnly === today) buckets.today.push(e);
+      else if (dateOnly >= thisWeekStart && dateOnly <= thisWeekEnd) buckets.thisWeek.push(e);
+      else if (dateOnly >= lastWeekStart && dateOnly <= lastWeekEnd) buckets.lastWeek.push(e);
       else buckets.other.push(e);
     }
 

@@ -5,13 +5,14 @@ import type {
   LoyaltyInfo,
   ServiceOption,
 } from './types'
+import { getSalonDateOnly } from '../../../../shared/business-date.mjs'
 
 export const emptyDailyLogForm = (): DailyLogFormState => ({
   stylistProfileId: '',
   serviceIds: [],
   unitPrices: {},
   clientId: '',
-  date: new Date().toISOString().slice(0, 10),
+  date: getSalonDateOnly(),
   actualPrice: 0,
   tipAmount: 0,
   notes: '',

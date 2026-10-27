@@ -7,7 +7,9 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
+import { OffsetPaginationQueryDto } from '../common/dto/offset-pagination-query.dto';
 import { BlogService } from './blog.service';
 import { BlogCommentsService } from './blog-comments.service';
 import { CreateBlogPostDto } from './dto/create-blog-post.dto';
@@ -18,7 +20,11 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { UseGuards } from '@nestjs/common';
+import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
+import {
+  HTTP_RATE_LIMIT_PUBLIC_IP,
+  HTTP_RATE_LIMIT_WINDOW_SECONDS,
+} from '../common/rate-limiting/http-rate-limit.constants';
 
 @Controller('api/blog')
 export class BlogController {
@@ -39,17 +45,38 @@ export class BlogController {
 
   @Get()
   @Public()
-  findAll(@Query('published') published: string) {
-    return this.blog.findAll(published === 'true');
+  @HttpRateLimit({
+    bucket: 'blog:list',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
+  findAll(@Query() query: OffsetPaginationQueryDto) {
+    return this.blog.findAllPublic(query);
+  }
+
+  @Get('admin')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findAllForAdmin() {
+    return this.blog.findAllForAdmin();
   }
 
   @Get('slug/:slug')
   @Public()
+  @HttpRateLimit({
+    bucket: 'blog:detail',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   findBySlug(@Param('slug') slug: string) {
     return this.blog.findBySlug(slug);
   }
 
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
   findOne(@Param('id') id: string) {
     return this.blog.findOne(id);
   }
@@ -68,13 +95,26 @@ export class BlogController {
     return this.blog.remove(id, user);
   }
 
+  @Get(':postId/comments/admin')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getCommentsForAdmin(@Param('postId') postId: string) {
+    return this.comments.findAllForPost(postId);
+  }
+
   @Get(':postId/comments')
   @Public()
+  @HttpRateLimit({
+    bucket: 'blog:comments',
+    limit: HTTP_RATE_LIMIT_PUBLIC_IP,
+    windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'ip',
+  })
   getComments(
     @Param('postId') postId: string,
-    @Query('approved') approved: string,
+    @Query() query: OffsetPaginationQueryDto,
   ) {
-    return this.comments.findAllForPost(postId, approved === 'true');
+    return this.comments.findPublicForPost(postId, query);
   }
 
   @Post(':postId/comments')

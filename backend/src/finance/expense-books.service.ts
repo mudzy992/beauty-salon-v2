@@ -77,44 +77,83 @@ export class ExpenseBooksService {
     if (trimmedReason.length > 2000) {
       throw new BadRequestException('Razlog otključavanja je predugačak.');
     }
-    const book = await this.prisma.expenseBook.findUnique({ where: { id } });
-    if (!book) throw new NotFoundException('Knjiga rashoda nije pronađena.');
-    if (!book.isClosed) {
-      throw new BadRequestException('Knjiga je već otključana.');
-    }
-    if (!isPastMonth(book.year, book.month)) {
-      throw new BadRequestException('Otključavanje je dozvoljeno samo za knjige iz prošlosti.');
-    }
-    const unlocked = await this.prisma.expenseBook.update({
-      where: { id },
-      data: {
-        isClosed: false,
-        closedAt: null,
-        lockEvents: {
-          create: { action: 'UNLOCK', reason: trimmedReason, createdById: userId },
+
+    const unlocked = await this.prisma.$transaction(async (tx) => {
+      const book = await tx.expenseBook.findUnique({
+        where: { id },
+        select: { id: true, year: true, month: true, isClosed: true },
+      });
+      if (!book) throw new NotFoundException('Knjiga rashoda nije pronađena.');
+      if (!book.isClosed) {
+        throw new BadRequestException('Knjiga je već otključana.');
+      }
+      if (!isPastMonth(book.year, book.month)) {
+        throw new BadRequestException(
+          'Otključavanje je dozvoljeno samo za knjige iz prošlosti.',
+        );
+      }
+
+      const changed = await tx.expenseBook.updateMany({
+        where: { id, isClosed: true },
+        data: { isClosed: false, closedAt: null },
+      });
+      if (changed.count !== 1) {
+        const current = await tx.expenseBook.findUnique({
+          where: { id },
+          select: { id: true },
+        });
+        if (!current) {
+          throw new NotFoundException('Knjiga rashoda nije pronađena.');
+        }
+        throw new BadRequestException('Knjiga je već otključana.');
+      }
+
+      await tx.expenseBookLockEvent.create({
+        data: {
+          bookId: id,
+          action: 'UNLOCK',
+          reason: trimmedReason,
+          createdById: userId,
         },
-      },
-      include: expenseBookDetailInclude,
+      });
+      return tx.expenseBook.findUnique({
+        where: { id },
+        include: expenseBookDetailInclude,
+      });
     });
+    if (!unlocked) {
+      throw new NotFoundException('Knjiga rashoda nije pronađena.');
+    }
     return withTotalExpenses(unlocked);
   }
 
   async lockBook(id: string, userId: string) {
-    const book = await this.prisma.expenseBook.findUnique({ where: { id } });
-    if (!book) throw new NotFoundException('Knjiga rashoda nije pronađena.');
-    if (book.isClosed) {
-      throw new BadRequestException('Knjiga je već zaključana.');
-    }
-    const locked = await this.prisma.expenseBook.update({
-      where: { id },
-      data: {
-        isClosed: true,
-        closedAt: new Date(),
-        closedBy: userId,
-        lockEvents: { create: { action: 'LOCK', createdById: userId } },
-      },
-      include: expenseBookDetailInclude,
+    const lockedAt = new Date();
+    const locked = await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.expenseBook.updateMany({
+        where: { id, isClosed: false },
+        data: { isClosed: true, closedAt: lockedAt, closedBy: userId },
+      });
+      if (changed.count !== 1) {
+        const current = await tx.expenseBook.findUnique({
+          where: { id },
+          select: { id: true },
+        });
+        if (!current) {
+          throw new NotFoundException('Knjiga rashoda nije pronađena.');
+        }
+        throw new BadRequestException('Knjiga je već zaključana.');
+      }
+
+      await tx.expenseBookLockEvent.create({
+        data: { bookId: id, action: 'LOCK', createdById: userId },
+      });
+      return tx.expenseBook.findUnique({
+        where: { id },
+        include: expenseBookDetailInclude,
+      });
     });
+    if (!locked) throw new NotFoundException('Knjiga rashoda nije pronađena.');
     return withTotalExpenses(locked);
   }
 }

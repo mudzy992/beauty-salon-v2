@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toDateOnlyString } from '../common/utils/date-only';
 import { EventsGateway } from '../events/events.gateway';
 import { ReservationDateService } from './reservation-date.service';
 import { ReservationSharedService } from './reservation-shared.service';
@@ -92,7 +93,7 @@ export class ReservationClientActionsService {
     );
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
       serviceId: r.serviceId,
-      date: r.reservationDate,
+      date: toDateOnlyString(r.reservationDate),
     });
     if (r.confirmedStylistId) {
       const stylist = await this.prisma.stylistProfile.findUnique({
@@ -150,7 +151,7 @@ export class ReservationClientActionsService {
     );
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
       serviceId: r.serviceId,
-      date: r.reservationDate,
+      date: toDateOnlyString(r.reservationDate),
     });
     if (r.clientId) {
       const ctx = await resolvePushContext(this.prisma, id, r.publicReferenceCode);

@@ -1,9 +1,11 @@
-## Mobile (Expo / React Native) — Codebase Map
+# Mobile (Expo / React Native) — codebase map
 
-### Overview
+**Verified package snapshot:** 2026-10-21 · Expo `~57.0.14` · React Native `0.86.2`. This map describes static structure; see [audit findings](../audit/FINDINGS.md), [test workflow](../audit/TEST_WORKFLOW.md) and [handoff](../audit/HANDOFF.md) for verification limits.
+
+## Overview
 
 - **App location**: `mobile/`
-- **Framework**: Expo SDK 55 + React Native with **Expo Router** (`expo-router`)
+- **Framework**: Expo SDK 57 + React Native with **Expo Router** (`expo-router`)
 - **Routing**: file-based routes in `mobile/app/**` with route groups for auth/onboarding, client tabs, and stylist tabs
 - **State**: Zustand (`mobile/src/store/**`)
 - **Data fetching**: Axios client (`mobile/src/services/api.ts`) + direct calls in screens/stores (no React Query)
@@ -144,7 +146,8 @@
   - `npm run android` → `expo start --android`
   - `npm run ios` → `expo start --ios`
   - `npm run web` → `expo start --web`
-  - `npm run lint` → `eslint .`
+  - `npm run typecheck` → `tsc --noEmit`
+  - `npm run lint` → `eslint .` (configuration/dependency is not present; see audit workflow)
 - **EAS build**: `mobile/eas.json`
   - profiles: `development` (dev client, internal), `preview` (internal), `production`
   - env configured per profile (examples):

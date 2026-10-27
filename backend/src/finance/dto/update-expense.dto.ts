@@ -9,6 +9,7 @@ import {
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { MAX_EXPENSE_NOTES_PAYLOAD_LENGTH } from '../expense-constants';
 import { ExpenseFieldValueDto } from './create-expense.dto';
 
 export class UpdateExpenseDto {
@@ -36,7 +37,7 @@ export class UpdateExpenseDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(2000)
+  @MaxLength(MAX_EXPENSE_NOTES_PAYLOAD_LENGTH)
   notes?: string;
 
   @IsOptional()

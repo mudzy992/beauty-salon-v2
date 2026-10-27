@@ -1,13 +1,12 @@
 import { randomBytes } from 'crypto';
 import { BadRequestException } from '@nestjs/common';
 import type { PrismaService } from '../prisma/prisma.service';
+import { toDateOnlyString } from '../common/utils/date-only';
 
 export const buildDailyLogReferenceCode = (date: Date): string => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const day = toDateOnlyString(date).replaceAll('-', '');
   const suffix = randomBytes(3).toString('hex').toUpperCase();
-  return `DK-${y}${m}${day}-${suffix}`;
+  return `DK-${day}-${suffix}`;
 };
 
 export const allocateDailyLogReferenceCode = async (

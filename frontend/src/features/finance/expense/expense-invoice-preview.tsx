@@ -4,7 +4,7 @@ import { ExpenseAttachmentsList } from './expense-attachments'
 import { parseExpenseNotes } from './expense-notes'
 import { computeLineTotal, labelFromLineValues } from './expense-line-roles'
 import { sumLineItems } from './expenses.helpers'
-import { formatIsoDateBs, formatMoney, toNumber } from '../finance.utils'
+import { formatInstantDateBs, formatMoney, toNumber } from '../finance.utils'
 import type { Expense, TemplateField } from '../finance.types'
 
 type Props = {
@@ -60,7 +60,7 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
       open={open}
       onOpenChange={onOpenChange}
       title={`Pregled: ${expense.title}`}
-      description={`${formatIsoDateBs(expense.createdAt)} · ${expense.category?.name ?? 'Rashod'}`}
+      description={`${formatInstantDateBs(expense.createdAt)} · ${expense.category?.name ?? 'Rashod'}`}
       className="max-w-2xl"
       footer={
         <div className="mt-4 flex justify-end">

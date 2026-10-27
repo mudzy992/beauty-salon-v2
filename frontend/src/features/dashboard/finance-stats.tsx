@@ -1,13 +1,16 @@
-import { Card, CardContent } from '../../components/ui/card'
-import type { DashboardStats } from './types'
+import { useTranslation } from 'react-i18next'
 
-const formatKm = (n: number) => `${n.toFixed(2)} KM`
+import { Card, CardContent } from '../../components/ui/card'
+import { formatLocalizedAmount } from '../../i18n/locale-utils.mjs'
+import type { DashboardStats } from './types'
 
 type Props = {
   stats: DashboardStats
 }
 
 export const DashboardFinanceStats = ({ stats }: Props) => {
+  const { t, i18n } = useTranslation()
+  const formatKm = (amount: number) => formatLocalizedAmount(amount, i18n.language)
   const services = stats.servicesRevenueThisMonth
   const tips = stats.tipsThisMonth
   const total = services + tips
@@ -17,15 +20,15 @@ export const DashboardFinanceStats = ({ stats }: Props) => {
   return (
     <section className="space-y-3">
       <div>
-        <h2 className="text-sm font-semibold text-slate-900">Finansije · ovaj mjesec</h2>
+        <h2 className="text-sm font-semibold text-slate-900">{t('dashboard.financeThisMonth')}</h2>
         <p className="text-xs text-slate-500">
-          Ukupan prihod = od servisa + napojnice. Neto = ukupan prihod − rashodi.
+          {t('dashboard.incomeSummary')}
         </p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Card className="border-emerald-200 bg-emerald-50/40 dark:border-emerald-900 dark:bg-emerald-950/20">
           <CardContent className="p-4">
-            <p className="text-xs text-emerald-800 dark:text-emerald-300">Ukupan prihod</p>
+            <p className="text-xs text-emerald-800 dark:text-emerald-300">{t('dashboard.totalIncome')}</p>
             <p className="mt-1 text-2xl font-semibold text-emerald-800 dark:text-emerald-200">
               {formatKm(total)}
             </p>
@@ -33,7 +36,7 @@ export const DashboardFinanceStats = ({ stats }: Props) => {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-slate-500">Od servisa</p>
+            <p className="text-xs text-slate-500">{t('dashboard.serviceIncome')}</p>
             <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
               {formatKm(services)}
             </p>
@@ -41,7 +44,7 @@ export const DashboardFinanceStats = ({ stats }: Props) => {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-slate-500">Napojnice</p>
+            <p className="text-xs text-slate-500">{t('dashboard.tips')}</p>
             <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
               {formatKm(tips)}
             </p>
@@ -49,7 +52,7 @@ export const DashboardFinanceStats = ({ stats }: Props) => {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-rose-700 dark:text-rose-300">Rashodi</p>
+            <p className="text-xs text-rose-700 dark:text-rose-300">{t('dashboard.expenses')}</p>
             <p className="mt-1 text-xl font-semibold text-rose-700 dark:text-rose-300">
               {formatKm(expenses)}
             </p>
@@ -57,7 +60,7 @@ export const DashboardFinanceStats = ({ stats }: Props) => {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-slate-500">Neto</p>
+            <p className="text-xs text-slate-500">{t('dashboard.net')}</p>
             <p
               className={`mt-1 text-xl font-semibold ${
                 net >= 0

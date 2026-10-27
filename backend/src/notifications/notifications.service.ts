@@ -28,6 +28,7 @@ export interface SendNotificationOptions {
   type: NotificationType;
   data?: Record<string, unknown>;
   channel?: NotificationChannel;
+  sourceEventId?: string;
 }
 
 interface MailConfig {
@@ -98,17 +99,23 @@ export class NotificationsService {
     const doEmail =
       (channel === 'EMAIL' || channel === 'BOTH') && prefs.emailEnabled;
 
-    const notification = await this.repo.createNotification({
-      data: {
-        userId: options.userId,
-        title: options.title,
-        body: options.body,
-        type: options.type,
-        data: (options.data ?? undefined) as object | undefined,
-        channel,
-        isRead: false,
-      },
-    });
+    const notificationData = {
+      userId: options.userId,
+      title: options.title,
+      body: options.body,
+      type: options.type,
+      data: (options.data ?? undefined) as object | undefined,
+      channel,
+      sourceEventId: options.sourceEventId,
+      isRead: false,
+    };
+    const notification = options.sourceEventId
+      ? await this.repo.createNotificationForEvent({
+          eventId: options.sourceEventId,
+          userId: options.userId,
+          data: notificationData,
+        })
+      : await this.repo.createNotification({ data: notificationData });
 
     this.events.emitToUser(
       options.userId,
@@ -154,9 +161,10 @@ export class NotificationsService {
     body: string,
     type: NotificationType,
     data?: Record<string, unknown>,
+    sourceEventId?: string,
   ): Promise<void> {
     for (const userId of userIds) {
-      await this.send({ userId, title, body, type, data });
+      await this.send({ userId, title, body, type, data, sourceEventId });
     }
   }
 
@@ -467,14 +475,14 @@ export class NotificationsService {
     const template = await this.getEmailTemplateConfig('verification');
     const plainText =
       template.plainText ||
-      `Poštovani ${greetingName}, vaš verifikacijski kod je ${params.code}. Kod važi 24 sata.`;
+      `Poštovani ${greetingName}, vaš verifikacijski kod je ${params.code}. Kod važi 15 minuta.`;
     const appUrl = await this.resolveAppBaseUrl();
     const html = this.buildDefaultEmailTemplate({
       title: template.title || 'Verifikacija email adrese',
       intro: template.intro || `Poštovani ${greetingName},`,
       body:
         template.body ||
-        `Vaš verifikacijski kod je ${params.code}. Kod važi 24 sata.`,
+        `Vaš verifikacijski kod je ${params.code}. Kod važi 15 minuta.`,
       ctaLabel: template.ctaLabel || 'Otvori aplikaciju',
       ctaUrl: appUrl,
       codeBlock: params.code,

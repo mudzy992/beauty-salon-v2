@@ -1,0 +1,20 @@
+# Do not send secrets, local dependencies, generated bundles or persisted data to Docker.
+.git
+node_modules
+dist
+coverage
+test-results
+uploads
+prisma/migrations_mysql_backup
+.env
+.env.*
+!.env.example
+**/*firebase-adminsdk*.json
+**/*service-account*.json
+**/*service_account*.json
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.keystore
+*.log

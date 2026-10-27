@@ -80,7 +80,7 @@ export function BottomNavMenu({
                 />
                 {typeof item.badge === 'number' && item.badge > 0 ? (
                   <View style={[styles.badge, { backgroundColor: colors.primary }]}>
-                    <Text style={[styles.badgeText, { color: '#000' }]}>{item.badge}</Text>
+                    <Text style={[styles.badgeText, { color: colors.primaryText }]}>{item.badge}</Text>
                   </View>
                 ) : null}
               </View>

@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import api from '../api/client'
 import { useAuth } from '../context/AuthContext'
@@ -10,8 +11,9 @@ import { Label } from '../components/ui/label'
 import { useAppToast } from '../lib/toast/useAppToast'
 
 export default function ForceChangePassword() {
+  const { t } = useTranslation()
   const toast = useAppToast()
-  const { refreshProfile } = useAuth()
+  const { refreshProfile, replaceToken } = useAuth()
   const navigate = useNavigate()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -21,21 +23,25 @@ export default function ForceChangePassword() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (newPassword.length < 6) {
-      toast.warning('Nova lozinka mora imati najmanje 6 znakova.')
+      toast.warning(t('onboarding.passwordTooShort'))
       return
     }
     if (newPassword !== confirmPassword) {
-      toast.warning('Potvrda lozinke nije ispravna.')
+      toast.warning(t('onboarding.passwordMismatch'))
       return
     }
     setLoading(true)
     try {
-      await api.post('/auth/change-password', { currentPassword, newPassword })
+      const response = await api.post<{ access_token: string }>(
+        '/auth/change-password',
+        { currentPassword, newPassword },
+      )
+      replaceToken(response.data.access_token)
       const updated = await refreshProfile()
-      toast.success('Lozinka je uspješno promijenjena.')
+      toast.success(t('onboarding.passwordChanged'))
       navigate(getPostAuthRedirectPath(updated), { replace: true })
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Promjena lozinke nije uspjela.')
+      toast.error(error?.response?.data?.message || t('onboarding.passwordChangeFailed'))
     } finally {
       setLoading(false)
     }
@@ -46,13 +52,13 @@ export default function ForceChangePassword() {
       step={1}
       totalSteps={3}
       heroDecoration="lock"
-      title="Promjena inicijalne lozinke"
-      subtitle="Za nastavak rada potrebno je da promijenite inicijalnu lozinku."
-      tip="Koristite jaku lozinku koju ne dijelite s drugima."
+      title={t('onboarding.title')}
+      subtitle={t('onboarding.subtitle')}
+      tip={t('onboarding.passwordTip')}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="currentPassword">Trenutna lozinka</Label>
+          <Label htmlFor="currentPassword">{t('onboarding.currentPassword')}</Label>
           <Input
             id="currentPassword"
             type="password"
@@ -62,7 +68,7 @@ export default function ForceChangePassword() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="newPassword">Nova lozinka</Label>
+          <Label htmlFor="newPassword">{t('onboarding.newPassword')}</Label>
           <Input
             id="newPassword"
             type="password"
@@ -72,7 +78,7 @@ export default function ForceChangePassword() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Potvrda nove lozinke</Label>
+          <Label htmlFor="confirmPassword">{t('onboarding.confirmPassword')}</Label>
           <Input
             id="confirmPassword"
             type="password"
@@ -82,10 +88,10 @@ export default function ForceChangePassword() {
           />
         </div>
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? 'Učitavanje…' : 'Sačuvaj novu lozinku'}
+          {loading ? t('common.loading') : t('onboarding.savePassword')}
         </Button>
         <div className="text-sm text-slate-500">
-          Nakon ove koraka slijede podešavanje profila.
+          {t('onboarding.nextStep')}
         </div>
       </form>
     </OnboardingShell>

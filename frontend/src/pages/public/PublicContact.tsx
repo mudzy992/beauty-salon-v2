@@ -1,5 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 import { Card, CardContent } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
@@ -10,7 +11,7 @@ import { useAppToast } from '../../lib/toast/useAppToast'
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
-import { formatSalonWorkingHours } from '../../utils/format-salon-hours'
+import { formatSalonWorkingHours, type SalonHoursRow } from '../../utils/format-salon-hours'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 import { Seo } from '../../seo/Seo'
 import { site } from '../../seo/site'
@@ -19,20 +20,37 @@ import { ExternalLink } from 'lucide-react'
 const MotionDiv = motion.div
 
 export default function PublicContact() {
+  const { t, i18n } = useTranslation()
   const { getSetting } = useSettings()
   const toast = useAppToast()
-  const [hoursText, setHoursText] = useState('')
+  const [workingHours, setWorkingHours] = useState<SalonHoursRow[]>()
+  const [hoursLoading, setHoursLoading] = useState(true)
+  const [hoursLoadError, setHoursLoadError] = useState(false)
   const contactBg = getSetting('public_contact_bg', '')
 
-  useEffect(() => {
-    api
-      .get<{ workingHours?: { dayOfWeek: number; isWorkingDay: boolean; openTime: string; closeTime: string }[] } | null>(
-        '/api/salon',
-      )
-      .then((r) => setHoursText(formatSalonWorkingHours(r.data?.workingHours)))
-      .catch(() => setHoursText(''))
+  const loadSalonHours = useCallback(async () => {
+    setHoursLoading(true)
+    setHoursLoadError(false)
+    try {
+      const { data } = await api.get<{ workingHours?: SalonHoursRow[] } | null>('/api/salon')
+      setWorkingHours(data?.workingHours)
+    } catch {
+      setWorkingHours(undefined)
+      setHoursLoadError(true)
+    } finally {
+      setHoursLoading(false)
+    }
   }, [])
-  
+
+  useEffect(() => {
+    void loadSalonHours()
+  }, [loadSalonHours])
+
+  const hoursText = useMemo(
+    () => formatSalonWorkingHours(workingHours, i18n.language, t('public.contact.closed')),
+    [workingHours, i18n.language, t],
+  )
+
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
@@ -43,17 +61,17 @@ export default function PublicContact() {
     setLoading(true)
     setTimeout(() => {
       setLoading(false)
-      toast.success('Poruka poslata', 'Uskoro ćemo Vam odgovoriti.')
+      toast.success(t('public.contact.messageSent'), t('public.contact.replySoon'))
       setName('')
       setEmail('')
       setMessage('')
     }, 1000)
   }
 
-  const contactTitle = getSetting('public_contact_title', 'Kontaktirajte Nas')
+  const contactTitle = getSetting('public_contact_title', t('public.contact.titleFallback'))
   const contactSubtitle = getSetting(
     'public_contact_subtitle',
-    'Tu smo za sva vaša pitanja. Javite nam se ili nas posjetite u salonu.',
+    t('public.contact.subtitleFallback'),
   )
 
   const address = getSetting('public_contact_address', 'Titova 12, 71000 Sarajevo')
@@ -82,7 +100,7 @@ export default function PublicContact() {
   return (
     <div className="bg-white min-h-screen pb-20">
       <Seo
-        title="Kontakt"
+        title={t('public.contact.seoTitle')}
         description={description}
         canonicalUrl={canonicalPath}
         jsonLd={jsonLd}
@@ -113,11 +131,11 @@ export default function PublicContact() {
             <Card className="rounded-2xl border-slate-200/80 shadow-soft">
               <CardContent className="p-8">
                 <div className="text-lg font-semibold tracking-tight text-slate-950 mb-6">
-                  Pošaljite nam poruku
+                  {t('public.contact.formTitle')}
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="fullName">Ime i Prezime</Label>
+                    <Label htmlFor="fullName">{t('public.contact.name')}</Label>
                     <Input
                       id="fullName"
                       value={name}
@@ -125,7 +143,7 @@ export default function PublicContact() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">{t('public.contact.email')}</Label>
                     <Input
                       id="email"
                       type="email"
@@ -135,7 +153,7 @@ export default function PublicContact() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="message">Poruka</Label>
+                    <Label htmlFor="message">{t('public.contact.message')}</Label>
                     <Textarea
                       id="message"
                       rows={5}
@@ -144,7 +162,7 @@ export default function PublicContact() {
                     />
                   </div>
                   <Button type="submit" disabled={loading}>
-                    {loading ? 'Slanje…' : 'Pošalji'}
+                    {loading ? t('public.contact.sending') : t('public.contact.send')}
                   </Button>
                 </form>
               </CardContent>
@@ -160,12 +178,12 @@ export default function PublicContact() {
               <Card className="rounded-2xl border-slate-200/80 shadow-soft">
                 <CardContent className="p-8">
                   <div className="text-base font-semibold tracking-tight text-slate-950 mb-4">
-                    Informacije
+                    {t('public.contact.info')}
                   </div>
                   <div className="space-y-4 text-slate-600">
                     <div>
                       <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                        Adresa
+                        {t('public.contact.address')}
                       </div>
                       <div>
                         {address}
@@ -173,7 +191,7 @@ export default function PublicContact() {
                     </div>
                     <div>
                       <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                        Telefon
+                        {t('public.contact.phone')}
                       </div>
                       <div>
                         {phone}
@@ -181,7 +199,7 @@ export default function PublicContact() {
                     </div>
                     <div>
                       <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                        Email
+                        {t('public.contact.email')}
                       </div>
                       <div>
                         {contactEmail}
@@ -189,16 +207,29 @@ export default function PublicContact() {
                     </div>
                     <div>
                       <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                        Radno vrijeme
+                        {t('public.contact.hours')}
                       </div>
                       <div className="whitespace-pre-line">
-                        {hoursText || '—'}
+                        {hoursLoadError
+                          ? t('public.contact.hoursLoadFailed')
+                          : hoursLoading
+                            ? t('public.contact.hoursLoading')
+                            : hoursText || '—'}
                       </div>
+                      {hoursLoadError ? (
+                        <Button
+                          variant="outline"
+                          className="mt-2"
+                          onClick={() => void loadSalonHours()}
+                        >
+                          {t('public.contact.retry')}
+                        </Button>
+                      ) : null}
                     </div>
                     {facebook || instagram || tiktok ? (
                       <div>
                         <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                          Društvene mreže
+                          {t('public.contact.social')}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {facebook ? (
@@ -236,13 +267,13 @@ export default function PublicContact() {
                     allowFullScreen
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
-                    title="Lokacija salona"
+                    title={t('public.contact.mapLocation')}
                   />
                 </div>
               ) : (
                 <div className="rounded-2xl overflow-hidden shadow-sm h-[300px] bg-slate-200 flex items-center justify-center flex-col text-slate-500">
-                  <div className="font-semibold">Google Mapa</div>
-                  <div className="text-sm">Lokacija salona</div>
+                  <div className="font-semibold">{t('public.contact.mapTitle')}</div>
+                  <div className="text-sm">{t('public.contact.mapLocation')}</div>
                 </div>
               )}
             </div>

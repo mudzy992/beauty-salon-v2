@@ -45,12 +45,12 @@ Pri tome zadržati postojeći rezervacijski engine, ali razdvojiti:
 
 ## Current Code Anchors
 
-- Facade i ulazne tačke rezervacija su u [backend/src/reservations/reservations.service.ts](backend/src/reservations/reservations.service.ts).
-- Admin create danas samo delegira na standardni create u [backend/src/reservations/reservation-create.service.ts](backend/src/reservations/reservation-create.service.ts).
-- Runtime start guard trenutno striktno traži `ATTENDANCE_CONFIRMED` u [backend/src/reservations/reservation-runtime.service.ts](backend/src/reservations/reservation-runtime.service.ts).
-- Attendance CRON i timeout logika su u [backend/src/reservations/reservation-attendance-cron.service.ts](backend/src/reservations/reservation-attendance-cron.service.ts).
-- Source-of-truth matrica je u [.cursor/docs/matrices/reservations/MATRIX.md](.cursor/docs/matrices/reservations/MATRIX.md).
-- Trenutna dokumentacija toka je u [.cursor/docs/reservations/RESERVATION_MODULE.md](.cursor/docs/reservations/RESERVATION_MODULE.md).
+- Facade i ulazne tačke rezervacija su u [backend/src/reservations/reservations.service.ts](../../backend/src/reservations/reservations.service.ts).
+- Admin create danas samo delegira na standardni create u [backend/src/reservations/reservation-create.service.ts](../../backend/src/reservations/reservation-create.service.ts).
+- Runtime start guard trenutno striktno traži `ATTENDANCE_CONFIRMED` u [backend/src/reservations/reservation-runtime.service.ts](../../backend/src/reservations/reservation-runtime.service.ts).
+- Attendance CRON i timeout logika su u [backend/src/reservations/reservation-attendance-cron.service.ts](../../backend/src/reservations/reservation-attendance-cron.service.ts).
+- Source-of-truth matrica je u [.cursor/docs/matrices/reservations/MATRIX.md](../docs/matrices/reservations/MATRIX.md).
+- Trenutna dokumentacija toka je u [.cursor/docs/reservations/RESERVATION_MODULE.md](../docs/reservations/RESERVATION_MODULE.md).
 
 ## Proposed Domain Model
 
@@ -99,9 +99,9 @@ flowchart TD
 
 ## Phase 1: Schema and policy foundation
 
-Update [backend/prisma/schema.prisma](backend/prisma/schema.prisma) to add the new policy and audit fields.
+Update [backend/prisma/schema.prisma](../../backend/prisma/schema.prisma) to add the new policy and audit fields.
 
-Also update reservation constants/helpers in [backend/src/reservations/constants.ts](backend/src/reservations/constants.ts) and introduce central helpers such as:
+Also update reservation constants/helpers in [backend/src/reservations/constants.ts](../../backend/src/reservations/constants.ts) and introduce central helpers such as:
 
 - `canConfirmAttendance()`
 - `canStartReservation()`
@@ -116,7 +116,7 @@ Acceptance criteria:
 
 ## Phase 2: Create path split
 
-Refactor [backend/src/reservations/reservation-create.service.ts](backend/src/reservations/reservation-create.service.ts) so that admin create no longer blindly delegates to the standard create path.
+Refactor [backend/src/reservations/reservation-create.service.ts](../../backend/src/reservations/reservation-create.service.ts) so that admin create no longer blindly delegates to the standard create path.
 
 Introduce explicit create modes:
 
@@ -126,7 +126,7 @@ Introduce explicit create modes:
 
 DTO work likely belongs in:
 
-- [backend/src/reservations/dto/admin-create-reservation.dto.ts](backend/src/reservations/dto/admin-create-reservation.dto.ts)
+- [backend/src/reservations/dto/admin-create-reservation.dto.ts](../../backend/src/reservations/dto/admin-create-reservation.dto.ts)
 - new stylist direct DTO under `backend/src/reservations/dto/`
 
 Acceptance criteria:
@@ -137,7 +137,7 @@ Acceptance criteria:
 
 ## Phase 3: Runtime and CRON policy enforcement
 
-Update runtime guards in [backend/src/reservations/reservation-runtime.service.ts](backend/src/reservations/reservation-runtime.service.ts), attendance actions in [backend/src/reservations/reservation-client-actions.service.ts](backend/src/reservations/reservation-client-actions.service.ts), and attendance timeout logic in [backend/src/reservations/reservation-attendance-cron.service.ts](backend/src/reservations/reservation-attendance-cron.service.ts).
+Update runtime guards in [backend/src/reservations/reservation-runtime.service.ts](../../backend/src/reservations/reservation-runtime.service.ts), attendance actions in [backend/src/reservations/reservation-client-actions.service.ts](../../backend/src/reservations/reservation-client-actions.service.ts), and attendance timeout logic in [backend/src/reservations/reservation-attendance-cron.service.ts](../../backend/src/reservations/reservation-attendance-cron.service.ts).
 
 Key rules:
 
@@ -160,9 +160,9 @@ Extend controllers/queries so clients can distinguish the new modes.
 
 Primary files:
 
-- [backend/src/reservations/reservations.controller.ts](backend/src/reservations/reservations.controller.ts)
-- [backend/src/reservations/reservation-queries.service.ts](backend/src/reservations/reservation-queries.service.ts)
-- [backend/src/reservations/dto/query-reservations.dto.ts](backend/src/reservations/dto/query-reservations.dto.ts)
+- [backend/src/reservations/reservations.controller.ts](../../backend/src/reservations/reservations.controller.ts)
+- [backend/src/reservations/reservation-queries.service.ts](../../backend/src/reservations/reservation-queries.service.ts)
+- [backend/src/reservations/dto/query-reservations.dto.ts](../../backend/src/reservations/dto/query-reservations.dto.ts)
 
 Acceptance criteria:
 
@@ -176,9 +176,9 @@ Update admin calendar reservation create UX to require explicit mode selection e
 
 Likely files:
 
-- [frontend/src/features/reservations/components/ReservationScheduler.tsx](frontend/src/features/reservations/components/ReservationScheduler.tsx)
-- [frontend/src/pages/Reservations.tsx](frontend/src/pages/Reservations.tsx)
-- shared reservation status helpers in [frontend/src/features/reservations/status.ts](frontend/src/features/reservations/status.ts)
+- [frontend/src/features/reservations/components/ReservationScheduler.tsx](../../frontend/src/features/reservations/components/ReservationScheduler.tsx)
+- [frontend/src/pages/Reservations.tsx](../../frontend/src/pages/Reservations.tsx)
+- shared reservation status helpers in [frontend/src/features/reservations/status.ts](../../frontend/src/features/reservations/status.ts)
 
 Planned UX:
 
@@ -199,8 +199,8 @@ Add a focused “dogovoreni termin” / “brzi termin” entry point for stylis
 
 Relevant anchors:
 
-- web stylist area under [frontend/src/features/stylist-portal/](frontend/src/features/stylist-portal/)
-- mobile stylist schedule/detail flow under [mobile/src/screens/stylist/](mobile/src/screens/stylist/)
+- web stylist area under [frontend/src/features/stylist-portal/](../../frontend/src/features/stylist-portal)
+- mobile stylist schedule/detail flow under [mobile/src/screens/stylist/](../../mobile/src/screens/stylist)
 
 Acceptance criteria:
 
@@ -215,7 +215,7 @@ Adjust notification semantics so direct staff bookings do not reuse attendance/r
 Relevant backend touchpoints:
 
 - reservation notifications in reservation services
-- event types in [backend/src/events/socket-events.ts](backend/src/events/socket-events.ts)
+- event types in [backend/src/events/socket-events.ts](../../backend/src/events/socket-events.ts)
 
 Acceptance criteria:
 
@@ -239,9 +239,9 @@ Tests to add/update:
 
 Docs to update:
 
-- [.cursor/docs/matrices/reservations/MATRIX.md](.cursor/docs/matrices/reservations/MATRIX.md)
-- [.cursor/docs/matrices/reservations/CHANGELOG.md](.cursor/docs/matrices/reservations/CHANGELOG.md)
-- [.cursor/docs/reservations/RESERVATION_MODULE.md](.cursor/docs/reservations/RESERVATION_MODULE.md)
+- [.cursor/docs/matrices/reservations/MATRIX.md](../docs/matrices/reservations/MATRIX.md)
+- [.cursor/docs/matrices/reservations/CHANGELOG.md](../docs/matrices/reservations/CHANGELOG.md)
+- [.cursor/docs/reservations/RESERVATION_MODULE.md](../docs/reservations/RESERVATION_MODULE.md)
 - future handoff notes if implementation spans sessions
 
 ## Risks and compatibility checks

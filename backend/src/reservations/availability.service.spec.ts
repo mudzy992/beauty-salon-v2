@@ -1,10 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AvailabilityService } from './availability.service';
 import { AvailabilityDatesService } from './availability-dates.service';
 import { AvailabilitySlotsService } from './availability-slots.service';
 import { AvailabilityDebugService } from './availability-debug.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ReservationDateService } from './reservation-date.service';
+import {
+  toDateOnlyStringInTimeZone,
+  toTimeOnlyStringInTimeZone,
+} from '../common/utils/date-only';
+
+jest.mock('../prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
 
 const mockPrisma = {
   salonSettings: { findFirst: jest.fn() },
@@ -30,31 +39,195 @@ describe('AvailabilityService', () => {
         AvailabilitySlotsService,
         AvailabilityDebugService,
         { provide: PrismaService, useValue: mockPrisma },
+        {
+          provide: ReservationDateService,
+          useValue: {
+            toSalonDateOnlyString: (value: Date) =>
+              toDateOnlyStringInTimeZone(value),
+            toSalonTimeString: (value: Date) =>
+              toTimeOnlyStringInTimeZone(value),
+          },
+        },
       ],
     }).compile();
     service = module.get<AvailabilityService>(AvailabilityService);
-    slotsService = module.get<AvailabilitySlotsService>(AvailabilitySlotsService);
+    slotsService = module.get<AvailabilitySlotsService>(
+      AvailabilitySlotsService,
+    );
+  });
+
+  it('odbija neispravan fromDate prije poziva baze', async () => {
+    await expect(
+      service.getAvailableDates('svc-1', 'not-a-date'),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockPrisma.salonSettings.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('odbija neispravan toDate prije poziva baze', async () => {
+    await expect(
+      service.getAvailableDates(
+        'svc-1',
+        '2026-01-01',
+        'not-a-date',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockPrisma.salonSettings.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('odbija obrnut opseg prije poziva baze', async () => {
+    await expect(
+      service.getAvailableDates(
+        'svc-1',
+        '2026-01-02',
+        '2026-01-01',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockPrisma.salonSettings.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('odbija opseg duži od 90 kalendarskih dana prije poziva baze', async () => {
+    await expect(
+      service.getAvailableDates(
+        'svc-1',
+        '2026-01-01',
+        '2026-04-01',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockPrisma.salonSettings.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('uključuje završni dan u jednodnevnom date-only opsegu', async () => {
+    mockPrisma.salonSettings.findFirst.mockResolvedValue({ id: 'salon-1' });
+    mockPrisma.service.findMany.mockResolvedValue([{ id: 'svc-1' }]);
+    mockPrisma.salonWorkingHours.findMany.mockResolvedValue([]);
+    mockPrisma.holiday.findMany.mockResolvedValue([]);
+    mockPrisma.stylistService.findMany.mockResolvedValue([]);
+
+    const result = await service.getAvailableDates(
+      'svc-1',
+      '2026-03-15',
+      '2026-03-15',
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0].available).toBe(false);
+  });
+
+  it('ne dopušta da godine ispod 100 zaobiđu range cap', async () => {
+    await expect(
+      service.getAvailableDates(
+        'svc-1',
+        '0001-01-01',
+        '1901-01-01',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockPrisma.salonSettings.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('prihvata 90-dnevni opseg i vraća bounded listu', async () => {
+    mockPrisma.salonSettings.findFirst.mockResolvedValue({ id: 'salon-1' });
+    mockPrisma.service.findMany.mockResolvedValue([{ id: 'svc-1' }]);
+    mockPrisma.salonWorkingHours.findMany.mockResolvedValue([]);
+    mockPrisma.holiday.findMany.mockResolvedValue([]);
+    mockPrisma.stylistService.findMany.mockResolvedValue([]);
+
+    const result = await service.getAvailableDates(
+      'svc-1',
+      '2026-01-01',
+      '2026-03-31',
+    );
+
+    expect(result.length).toBeGreaterThan(0);
+    expect(result.length).toBeLessThanOrEqual(90);
+  });
+
+  it('ograničava broj paralelnih provjera slotova na jedan zahtjev', async () => {
+    mockPrisma.salonSettings.findFirst.mockResolvedValue({ id: 'salon-1' });
+    mockPrisma.service.findMany.mockResolvedValue([{ id: 'svc-1' }]);
+    mockPrisma.salonWorkingHours.findMany.mockResolvedValue(
+      Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        dayOfWeek,
+        isWorkingDay: true,
+      })),
+    );
+    mockPrisma.holiday.findMany.mockResolvedValue([]);
+    mockPrisma.stylistService.findMany.mockResolvedValue([
+      { stylistProfileId: 'sp-1', serviceId: 'svc-1' },
+    ]);
+    mockPrisma.stylistWorkingHours.findMany.mockResolvedValue(
+      Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        dayOfWeek,
+        dateOverride: null,
+      })),
+    );
+
+    let activeLookups = 0;
+    let maximumConcurrentLookups = 0;
+    const slotsSpy = jest
+      .spyOn(slotsService, 'getAvailableSlots')
+      .mockImplementation(async () => {
+        activeLookups++;
+        maximumConcurrentLookups = Math.max(
+          maximumConcurrentLookups,
+          activeLookups,
+        );
+        try {
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          return [
+            {
+              startTime: '09:00',
+              endTime: '10:00',
+              availableStylistCount: 1,
+            },
+          ];
+        } finally {
+          activeLookups--;
+        }
+      });
+
+    try {
+      const result = await service.getAvailableDates(
+        'svc-1',
+        '2026-01-01',
+        '2026-01-12',
+      );
+
+      expect(result).toHaveLength(12);
+      expect(result.every((row) => row.available)).toBe(true);
+      expect(slotsSpy).toHaveBeenCalledTimes(12);
+      expect(maximumConcurrentLookups).toBeGreaterThan(1);
+      expect(maximumConcurrentLookups).toBeLessThanOrEqual(5);
+    } finally {
+      slotsSpy.mockRestore();
+    }
   });
 
   it('getAvailableDates baca NotFoundException kada nema salona', async () => {
     mockPrisma.salonSettings.findFirst.mockResolvedValue(null);
     await expect(
-      service.getAvailableDates('svc-1', new Date('2026-03-15')),
+      service.getAvailableDates('svc-1', '2026-03-15'),
     ).rejects.toThrow(NotFoundException);
     await expect(
-      service.getAvailableDates('svc-1', new Date('2026-03-15')),
+      service.getAvailableDates('svc-1', '2026-03-15'),
     ).rejects.toThrow('Salon nije konfigurisan');
   });
 
-  it('getAvailableDates baca NotFoundException kada servis ne postoji', async () => {
+  it('getAvailableDates baca NotFoundException kada servis nije aktivan u katalogu', async () => {
     mockPrisma.salonSettings.findFirst.mockResolvedValue({ id: 'salon-1' });
     mockPrisma.service.findMany.mockResolvedValue([]);
     await expect(
-      service.getAvailableDates('svc-1', new Date('2026-03-15')),
+      service.getAvailableDates('svc-1', '2026-03-15'),
     ).rejects.toThrow(NotFoundException);
-    await expect(
-      service.getAvailableDates('svc-1', new Date('2026-03-15')),
-    ).rejects.toThrow('Servis nije pronađen');
+    expect(mockPrisma.service.findMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ['svc-1'] },
+        isActive: true,
+        subcategory: {
+          is: { isActive: true, category: { is: { isActive: true } } },
+        },
+      },
+      select: { id: true },
+    });
   });
 
   it('getAvailableDates vraća prazan niz kada nema stilista za servis', async () => {
@@ -65,11 +238,18 @@ describe('AvailabilityService', () => {
     mockPrisma.stylistService.findMany.mockResolvedValue([]);
     const result = await service.getAvailableDates(
       'svc-1',
-      new Date('2026-03-15'),
+      '2026-03-15',
     );
     expect(Array.isArray(result)).toBe(true);
     expect(result.length).toBeGreaterThan(0);
     expect(result.every((d) => d.available === false)).toBe(true);
+    expect(mockPrisma.stylistService.findMany).toHaveBeenCalledWith({
+      where: {
+        serviceId: { in: ['svc-1'] },
+        stylistProfile: { is: { isActive: true } },
+      },
+      select: { stylistProfileId: true, serviceId: true },
+    });
   });
 
   it('getAvailableSlots baca NotFoundException kada nema salona', async () => {
@@ -85,7 +265,12 @@ describe('AvailabilityService', () => {
       { id: 'svc-1', durationMinutes: 60 },
     ]);
     mockPrisma.salonWorkingHours.findMany.mockResolvedValue([
-      { dayOfWeek: 0, isWorkingDay: true, openTime: '09:00', closeTime: '17:00' },
+      {
+        dayOfWeek: 0,
+        isWorkingDay: true,
+        openTime: '09:00',
+        closeTime: '17:00',
+      },
     ]);
     mockPrisma.stylistService.findMany.mockResolvedValue([]);
     mockPrisma.holiday.findMany.mockResolvedValue([{ id: 'h1' }]);
@@ -109,6 +294,16 @@ describe('AvailabilityService', () => {
     mockPrisma.stylistService.findMany.mockResolvedValue([]);
     const result = await service.getAvailableSlots('svc-1', '2026-03-15');
     expect(result).toEqual([]);
+    expect(mockPrisma.service.findMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ['svc-1'] },
+        isActive: true,
+        subcategory: {
+          is: { isActive: true, category: { is: { isActive: true } } },
+        },
+      },
+      select: { id: true, durationMinutes: true },
+    });
   });
 
   it('CONFIRMED reservation blocks slot (availableStylistCount=0)', async () => {
@@ -212,7 +407,12 @@ describe('AvailabilityService', () => {
     mockPrisma.salonSettings.findFirst.mockResolvedValue({ id: 'salon-1' });
     mockPrisma.service.findMany.mockResolvedValue([{ id: 'svc-1' }]);
     mockPrisma.salonWorkingHours.findMany.mockResolvedValue([
-      { dayOfWeek: 1, isWorkingDay: true, openTime: '09:00', closeTime: '17:00' },
+      {
+        dayOfWeek: 1,
+        isWorkingDay: true,
+        openTime: '09:00',
+        closeTime: '17:00',
+      },
     ]);
     mockPrisma.holiday.findMany.mockResolvedValue([]);
     mockPrisma.stylistService.findMany.mockResolvedValue([
@@ -226,8 +426,8 @@ describe('AvailabilityService', () => {
       .mockResolvedValue([]);
     const result = await service.getAvailableDates(
       'svc-1',
-      new Date('2026-03-16T12:00:00.000Z'),
-      new Date('2026-03-16T12:00:00.000Z'),
+      '2026-03-16',
+      '2026-03-16',
     );
     expect(slotsSpy).toHaveBeenCalled();
     expect(result).toEqual([{ date: expect.any(String), available: false }]);

@@ -4,10 +4,15 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReservationDateService } from './reservation-date.service';
 import { assertReservationTransition } from './assert-reservation-transition';
 import type { ReservationStatus } from './constants';
+import {
+  getStylistIdsForServices,
+  type StylistServiceReader,
+} from './utils/service-eligibility';
 
 @Injectable()
 export class ReservationSharedService {
@@ -33,12 +38,9 @@ export class ReservationSharedService {
   }
 
   private buildPublicReferenceCodeForDate(reservationDate: Date): string {
-    const d = this.dates.parseDateOnly(reservationDate);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const date = this.dates.toDateOnlyString(reservationDate).replaceAll('-', '');
     const suffix = randomBytes(3).toString('hex').toUpperCase();
-    return `RZ-${y}${m}${day}-${suffix}`;
+    return `RZ-${date}-${suffix}`;
   }
 
   private generateClientViewToken(): string {
@@ -47,12 +49,13 @@ export class ReservationSharedService {
 
   async allocateReservationPublicCodes(
     reservationDate: Date,
+    db: Pick<Prisma.TransactionClient, 'reservation'> = this.prisma,
   ): Promise<{ publicReferenceCode: string; clientViewToken: string }> {
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const publicReferenceCode =
         this.buildPublicReferenceCodeForDate(reservationDate);
       const clientViewToken = this.generateClientViewToken();
-      const clash = await this.prisma.reservation.findFirst({
+      const clash = await db.reservation.findFirst({
         where: { OR: [{ publicReferenceCode }, { clientViewToken }] },
         select: { id: true },
       });
@@ -69,8 +72,9 @@ export class ReservationSharedService {
       ignoreMustChangePassword?: boolean;
       relaxContactRequirements?: boolean;
     },
+    db: Pick<Prisma.TransactionClient, 'user'> = this.prisma,
   ) {
-    const client = await this.prisma.user.findUnique({
+    const client = await db.user.findUnique({
       where: { id: clientId },
       select: {
         id: true,
@@ -94,13 +98,16 @@ export class ReservationSharedService {
     return client;
   }
 
-  async checkClientPenalty(clientId: string) {
-    const rec = await this.prisma.clientCancellationCount.findUnique({
+  async checkClientPenalty(
+    clientId: string,
+    db: Pick<Prisma.TransactionClient, 'clientCancellationCount'> = this.prisma,
+  ) {
+    const rec = await db.clientCancellationCount.findUnique({
       where: { userId: clientId },
     });
     if (rec?.penaltyUntil && new Date() < rec.penaltyUntil) {
       throw new BadRequestException(
-        `Zbog čestih otkazivanja rezervacija je onemogućena do ${this.dates.toLocalDateOnlyString(rec.penaltyUntil)}.`,
+        `Zbog čestih otkazivanja rezervacija je onemogućena do ${this.dates.toSalonDateOnlyString(rec.penaltyUntil)}.`,
       );
     }
   }
@@ -112,45 +119,31 @@ export class ReservationSharedService {
       penaltyDurationDays: number;
     },
   ) {
-    const existing = await this.prisma.clientCancellationCount.findUnique({
-      where: { userId: clientId },
-    });
-    const count = (existing?.cancellationCount ?? 0) + 1;
-    let penaltyUntil: Date | null = null;
-    if (count >= salon.maxCancellationsBeforePenalty) {
-      penaltyUntil = new Date();
-      penaltyUntil.setDate(
-        penaltyUntil.getDate() + salon.penaltyDurationDays,
-      );
-    }
-    await this.prisma.clientCancellationCount.upsert({
-      where: { userId: clientId },
-      create: { userId: clientId, cancellationCount: count, penaltyUntil },
-      update: { cancellationCount: count, penaltyUntil },
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.clientCancellationCount.upsert({
+        where: { userId: clientId },
+        create: { userId: clientId, cancellationCount: 1 },
+        update: { cancellationCount: { increment: 1 } },
+      });
+      let penaltyUntil: Date | null = null;
+      if (updated.cancellationCount >= salon.maxCancellationsBeforePenalty) {
+        penaltyUntil = this.dates.addSalonCalendarDays(
+          new Date(),
+          salon.penaltyDurationDays,
+        );
+      }
+      await tx.clientCancellationCount.update({
+        where: { userId: clientId },
+        data: { penaltyUntil },
+      });
     });
   }
 
   async getEligibleStylistsForServices(
     serviceIds: string[],
+    db: StylistServiceReader = this.prisma,
   ): Promise<string[]> {
-    const uniqueIds = [
-      ...new Set(serviceIds.map((x) => x.trim()).filter(Boolean)),
-    ];
-    if (uniqueIds.length === 0) return [];
-    const rows = await this.prisma.stylistService.findMany({
-      where: { serviceId: { in: uniqueIds } },
-      select: { stylistProfileId: true, serviceId: true },
-    });
-    const counts = new Map<string, number>();
-    for (const r of rows) {
-      counts.set(
-        r.stylistProfileId,
-        (counts.get(r.stylistProfileId) ?? 0) + 1,
-      );
-    }
-    return [...counts.entries()]
-      .filter(([, c]) => c === uniqueIds.length)
-      .map(([stylistProfileId]) => stylistProfileId);
+    return getStylistIdsForServices(db, serviceIds);
   }
 
   isReservationBlocked(res: {

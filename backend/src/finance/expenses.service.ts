@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { UpdateExpenseDto } from './dto/update-expense.dto';
@@ -15,19 +16,11 @@ export class ExpensesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateExpenseDto, user: CurrentUserPayload) {
-    const book = await this.prisma.expenseBook.findUnique({
-      where: { id: dto.bookId },
-    });
-    if (!book) throw new NotFoundException('Knjiga rashoda nije pronađena.');
-    if (book.isClosed) {
-      throw new BadRequestException(
-        'Ne možete dodavati rashode u zatvorenu knjigu.',
-      );
-    }
     const category = await this.getCategoryWithTemplate(dto.categoryId);
     assertExpensePayload(category, dto.fieldValues, dto.notes, dto.totalAmount);
 
     const expense = await this.prisma.$transaction(async (tx) => {
+      await this.lockEditableBook(tx, dto.bookId, 'dodavati rashode');
       const created = await tx.expense.create({
         data: {
           bookId: dto.bookId,
@@ -89,8 +82,12 @@ export class ExpensesService {
   }
 
   async update(id: string, dto: UpdateExpenseDto, user: CurrentUserPayload) {
-    const expense = await this.assertEditable(id, 'mijenjati rashod');
-    if (dto.fieldValues !== undefined || dto.notes !== undefined || dto.totalAmount != null) {
+    const expense = await this.findOne(id);
+    if (
+      dto.fieldValues !== undefined ||
+      dto.notes !== undefined ||
+      dto.totalAmount != null
+    ) {
       const category = await this.getCategoryWithTemplate(expense.categoryId);
       assertExpensePayload(
         category,
@@ -102,6 +99,7 @@ export class ExpensesService {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      await this.lockEditableExpense(tx, id, 'mijenjati rashod');
       await tx.expense.update({
         where: { id },
         data: {
@@ -136,42 +134,77 @@ export class ExpensesService {
   }
 
   async addAttachment(id: string, dto: AddExpenseAttachmentDto) {
-    await this.assertEditable(id, 'mijenjati rashod');
-    await this.prisma.expenseAttachment.create({
-      data: {
-        expenseId: id,
-        uploadId: dto.uploadId,
-        description: dto.description,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockEditableExpense(tx, id, 'mijenjati rashod');
+      await tx.expenseAttachment.create({
+        data: {
+          expenseId: id,
+          uploadId: dto.uploadId,
+          description: dto.description,
+        },
+      });
     });
     return this.findOne(id);
   }
 
   async removeAttachment(id: string, attachmentId: string) {
-    await this.assertEditable(id, 'mijenjati rashod');
-    const existing = await this.prisma.expenseAttachment.findFirst({
-      where: { id: attachmentId, expenseId: id },
-      select: { id: true },
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockEditableExpense(tx, id, 'mijenjati rashod');
+      const existing = await tx.expenseAttachment.findFirst({
+        where: { id: attachmentId, expenseId: id },
+        select: { id: true },
+      });
+      if (!existing) throw new NotFoundException('Prilog nije pronađen.');
+      await tx.expenseAttachment.delete({ where: { id: attachmentId } });
     });
-    if (!existing) throw new NotFoundException('Prilog nije pronađen.');
-    await this.prisma.expenseAttachment.delete({ where: { id: attachmentId } });
     return this.findOne(id);
   }
 
   async remove(id: string) {
-    await this.assertEditable(id, 'brisati rashod');
-    await this.prisma.expense.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockEditableExpense(tx, id, 'brisati rashod');
+      await tx.expense.delete({ where: { id } });
+    });
     return { deleted: true };
   }
 
-  private async assertEditable(id: string, action: string) {
-    const expense = await this.findOne(id);
-    if (expense.book.isClosed) {
+  private async lockEditableExpense(
+    tx: Prisma.TransactionClient,
+    id: string,
+    action: string,
+  ) {
+    const expense = await tx.expense.findUnique({
+      where: { id },
+      select: { bookId: true },
+    });
+    if (!expense) throw new NotFoundException('Rashod nije pronađen.');
+    await this.lockEditableBook(tx, expense.bookId, action);
+    return expense;
+  }
+
+  /**
+   * Writes and book closure serialize on the same book row. If the write wins,
+   * it commits before the close; if closure wins, this check observes the lock.
+   */
+  private async lockEditableBook(
+    tx: Prisma.TransactionClient,
+    bookId: string,
+    action: string,
+  ) {
+    await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM "expense_books" WHERE id = ${bookId} FOR UPDATE`,
+    );
+    const book = await tx.expenseBook.findUnique({
+      where: { id: bookId },
+      select: { id: true, isClosed: true },
+    });
+    if (!book) throw new NotFoundException('Knjiga rashoda nije pronađena.');
+    if (book.isClosed) {
       throw new BadRequestException(
         `Knjiga je zatvorena – ne možete ${action}.`,
       );
     }
-    return expense;
+    return book;
   }
 
   private async getCategoryWithTemplate(categoryId: string) {

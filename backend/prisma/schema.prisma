@@ -39,6 +39,21 @@ enum AppReleaseStatus {
   RETIRED
 }
 
+enum UploadStorageClass {
+  PRIVATE
+  PUBLIC
+  CONSENTED_PUBLIC
+}
+
+enum DailyLogMediaConsentPurpose {
+  PUBLIC_GALLERY
+}
+
+enum DailyLogMediaConsentAction {
+  GRANTED
+  REVOKED
+}
+
 // ============ AUTH & USERS ============
 
 model User {
@@ -52,6 +67,7 @@ model User {
   gender                     Gender?
   genderOnboardingCompleted  Boolean   @default(false) @map("gender_onboarding_completed")
   avatar                     String?
+  isAvatarPublic             Boolean   @default(false) @map("is_avatar_public")
   isActive                   Boolean   @default(true) @map("is_active")
   isEmailVerified            Boolean   @default(false) @map("is_email_verified")
   emailVerificationToken     String?   @map("email_verification_token")
@@ -90,6 +106,8 @@ model User {
   reservationsCreated          Reservation[]                @relation("ReservationsCreatedBy")
   appReleasesCreated           AppRelease[]                 @relation("AppReleasesCreatedBy")
   reservationsAttendanceWaived Reservation[]                @relation("AttendanceWaivedByUser")
+  mediaConsentsAsClient        DailyLogImageConsent[]       @relation("MediaConsentClient")
+  mediaConsentEventsByActor    DailyLogImageConsentEvent[]  @relation("MediaConsentActor")
 
   @@map("users")
 }
@@ -191,7 +209,7 @@ model StylistProfile {
   specialization String?              @db.Text
   status         StylistProfileStatus @default(PENDING)
   isActive       Boolean              @default(true) @map("is_active")
-  hireDate       DateTime?            @map("hire_date")
+  hireDate       DateTime?            @map("hire_date") @db.Date
   createdAt      DateTime             @default(now()) @map("created_at")
   updatedAt      DateTime             @updatedAt @map("updated_at")
 
@@ -346,6 +364,9 @@ model Reservation {
   /// Klijent pri bookingu želi platiti i otvorena dugovanja
   payDebtsIntent Boolean @default(false) @map("pay_debts_intent")
 
+  idempotencyKey         String? @map("idempotency_key")
+  idempotencyRequestHash String? @map("idempotency_request_hash")
+
   publicReferenceCode String @unique @map("public_reference_code")
   clientViewToken     String @unique @map("client_view_token")
 
@@ -360,6 +381,7 @@ model Reservation {
   clientDebts            ClientDebt[]
   attendanceWaivedByUser User?                        @relation("AttendanceWaivedByUser", fields: [attendanceWaivedByUserId], references: [id], onDelete: SetNull)
 
+  @@unique([clientId, idempotencyKey], map: "reservations_client_id_idempotency_key_key")
   @@map("reservations")
 }
 
@@ -398,6 +420,25 @@ model ReservationStylistResponse {
   @@map("reservation_stylist_responses")
 }
 
+model OutboxEvent {
+  id            String    @id @default(uuid())
+  eventType     String    @map("event_type")
+  aggregateId   String    @map("aggregate_id")
+  dedupeKey     String    @unique @map("dedupe_key")
+  payload       Json
+  status        String    @default("PENDING")
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at")
+  lockedAt      DateTime? @map("locked_at")
+  deliveredAt   DateTime? @map("delivered_at")
+  lastError     String?   @map("last_error") @db.Text
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, nextAttemptAt])
+  @@map("outbox_events")
+}
+
 // ============ DAILY LOG ============
 
 model DailyLogEntry {
@@ -422,8 +463,10 @@ model DailyLogEntry {
   notes                 String?   @db.Text
   status                String    @default("PENDING") // PENDING | COMPLETED
   completedAt           DateTime? @map("completed_at")
+  completionVersion     Int       @default(0) @map("completion_version")
   pendingReminderSentAt DateTime? @map("pending_reminder_sent_at")
   sourceEntryId         String?   @map("source_entry_id")
+  randomKey             Float     @default(dbgenerated("random()")) @map("random_key")
   deletedAt             DateTime? @map("deleted_at")
   deletedById           String?   @map("deleted_by_id")
   deleteReason          String?   @map("delete_reason") @db.Text
@@ -437,17 +480,19 @@ model DailyLogEntry {
   client              User?                      @relation("DailyLogClient", fields: [clientId], references: [id], onDelete: SetNull)
   debt                ClientDebt?                @relation("DebtPaymentEntries", fields: [debtId], references: [id], onDelete: SetNull)
   images              DailyLogImage[]
-  incomeEntries       IncomeBookEntry[]
+  incomeEntry         IncomeBookEntry?
   clientDebts         ClientDebt[]
   deletedBy           User?                      @relation("DailyLogDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
   sourceEntry         DailyLogEntry?             @relation("DailyLogDebtPayments", fields: [sourceEntryId], references: [id], onDelete: SetNull)
   debtPaymentEntries  DailyLogEntry[]            @relation("DailyLogDebtPayments")
   incomeManualEntries IncomeBookManualEntry[]
 
+  // A partial unique SQL index also enforces one non-deleted DEBT_PAYMENT per debt.
   @@index([debtId])
   @@index([deletedAt])
   @@index([status, deletedAt])
   @@index([sourceEntryId])
+  @@index([randomKey, id], map: "daily_log_entries_random_key_id_idx")
   @@map("daily_log_entries")
 }
 
@@ -477,12 +522,52 @@ model DailyLogImage {
   sortOrder       Int      @default(0) @map("sort_order")
   createdAt       DateTime @default(now()) @map("created_at")
 
-  dailyLogEntry DailyLogEntry @relation(fields: [dailyLogEntryId], references: [id], onDelete: Cascade)
-  upload        Upload        @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  dailyLogEntry DailyLogEntry              @relation(fields: [dailyLogEntryId], references: [id], onDelete: Cascade)
+  upload        Upload                     @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+  consent       DailyLogImageConsent?
 
   @@index([dailyLogEntryId, isBefore])
   @@index([dailyLogEntryId, isAfter])
   @@map("daily_log_images")
+}
+
+model DailyLogImageConsent {
+  id               String                     @id @default(uuid())
+  dailyLogImageId  String?                    @unique @map("daily_log_image_id")
+  clientId         String?                    @map("client_id")
+  purpose          DailyLogMediaConsentPurpose @default(PUBLIC_GALLERY)
+  policyVersion    String                     @map("policy_version")
+  consentedAt      DateTime                   @map("consented_at")
+  revokedAt        DateTime?                  @map("revoked_at")
+  publishedUploadId String?                   @unique @map("published_upload_id")
+  createdAt        DateTime                   @default(now()) @map("created_at")
+  updatedAt        DateTime                   @updatedAt @map("updated_at")
+
+  dailyLogImage   DailyLogImage? @relation(fields: [dailyLogImageId], references: [id], onDelete: SetNull)
+  client        User?         @relation("MediaConsentClient", fields: [clientId], references: [id], onDelete: SetNull)
+  publishedUpload Upload?     @relation("ConsentPublishedUpload", fields: [publishedUploadId], references: [id], onDelete: SetNull)
+  events        DailyLogImageConsentEvent[]
+
+  @@index([clientId, revokedAt])
+  @@index([policyVersion, revokedAt])
+  @@map("daily_log_image_consents")
+}
+
+model DailyLogImageConsentEvent {
+  id            String                     @id @default(uuid())
+  consentId     String                     @map("consent_id")
+  action        DailyLogMediaConsentAction
+  actorId       String?                    @map("actor_id")
+  purpose       DailyLogMediaConsentPurpose @default(PUBLIC_GALLERY)
+  policyVersion String                     @map("policy_version")
+  source        String                     @default("CLIENT_APP")
+  createdAt     DateTime                   @default(now()) @map("created_at")
+
+  consent DailyLogImageConsent @relation(fields: [consentId], references: [id], onDelete: Cascade)
+  actor   User?                @relation("MediaConsentActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([consentId, createdAt])
+  @@map("daily_log_image_consent_events")
 }
 
 // ============ EXPENSES (KUF) ============
@@ -644,7 +729,7 @@ model IncomeBook {
 model IncomeBookEntry {
   id              String   @id @default(uuid())
   bookId          String   @map("book_id")
-  dailyLogEntryId String   @map("daily_log_entry_id")
+  dailyLogEntryId String   @unique(map: "income_book_entries_daily_log_entry_id_key") @map("daily_log_entry_id")
   amount          Decimal  @db.Decimal(10, 2)
   tipAmount       Decimal  @default(0) @map("tip_amount") @db.Decimal(10, 2)
   date            DateTime @db.Date
@@ -653,7 +738,6 @@ model IncomeBookEntry {
   book          IncomeBook    @relation(fields: [bookId], references: [id], onDelete: Cascade)
   dailyLogEntry DailyLogEntry @relation(fields: [dailyLogEntryId], references: [id], onDelete: Cascade)
 
-  @@unique([bookId, dailyLogEntryId])
   @@map("income_book_entries")
 }
 
@@ -797,11 +881,12 @@ model BlogComment {
 // ============ GALLERY ============
 
 model GalleryCategory {
-  id          String   @id @default(uuid())
-  name        String
-  description String?  @db.Text
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id                       String   @id @default(uuid())
+  name                     String
+  description              String?  @db.Text
+  sortOrder                Int      @default(0) @map("sort_order")
+  autoPublishConsentedPairs Boolean  @default(false) @map("auto_publish_consented_pairs")
+  createdAt                DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   images GalleryImage[]
@@ -851,21 +936,23 @@ model Review {
 // ============ UPLOADS ============
 
 model Upload {
-  id           String   @id @default(uuid())
-  originalName String   @map("original_name")
-  mimeType     String   @map("mime_type")
-  sizeBytes    Int      @map("size_bytes")
-  pathOriginal String   @map("path_original")
-  pathThumb    String?  @map("path_thumb")
-  pathSmall    String?  @map("path_small")
-  pathMedium   String?  @map("path_medium")
-  uploadedById String?  @map("uploaded_by_id")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id           String             @id @default(uuid())
+  originalName String             @map("original_name")
+  mimeType     String             @map("mime_type")
+  sizeBytes    Int                @map("size_bytes")
+  pathOriginal String             @map("path_original")
+  pathThumb    String?            @map("path_thumb")
+  pathSmall    String?            @map("path_small")
+  pathMedium   String?            @map("path_medium")
+  storageClass UploadStorageClass @default(PRIVATE) @map("storage_class")
+  uploadedById String?            @map("uploaded_by_id")
+  createdAt    DateTime           @default(now()) @map("created_at")
 
-  uploadedBy         User?               @relation("UploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedBy         User?                  @relation("UploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
   dailyLogImages     DailyLogImage[]
   expenseAttachments ExpenseAttachment[]
   galleryImages      GalleryImage[]
+  consentCopyFor     DailyLogImageConsent?  @relation("ConsentPublishedUpload")
 
   @@map("uploads")
 }
@@ -873,20 +960,22 @@ model Upload {
 // ============ NOTIFICATIONS ============
 
 model Notification {
-  id        String    @id @default(uuid())
-  userId    String    @map("user_id")
-  title     String
-  body      String    @db.Text
-  type      String
-  data      Json?
-  channel   String // PUSH | EMAIL | BOTH
-  isRead    Boolean   @default(false) @map("is_read")
-  sentAt    DateTime  @default(now()) @map("sent_at")
-  readAt    DateTime? @map("read_at")
-  createdAt DateTime  @default(now()) @map("created_at")
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  title          String
+  body           String    @db.Text
+  type           String
+  data           Json?
+  channel        String    // PUSH | EMAIL | BOTH
+  sourceEventId  String?   @map("source_event_id")
+  isRead         Boolean   @default(false) @map("is_read")
+  sentAt         DateTime  @default(now()) @map("sent_at")
+  readAt         DateTime? @map("read_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([sourceEventId, userId], map: "notifications_source_event_user_key")
   @@map("notifications")
 }
 
@@ -948,12 +1037,13 @@ model LoyaltyAccount {
 }
 
 model LoyaltyTransaction {
-  id        String   @id @default(uuid())
-  accountId String   @map("account_id")
-  points    Int
-  type      String // EARN | REDEEM
-  source    String?
-  createdAt DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid())
+  accountId       String   @map("account_id")
+  points          Int
+  type            String // EARN | REDEEM
+  source          String?
+  idempotencyKey  String?  @unique(map: "loyalty_transactions_idempotency_key_key") @map("idempotency_key")
+  createdAt       DateTime @default(now()) @map("created_at")
 
   account LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 

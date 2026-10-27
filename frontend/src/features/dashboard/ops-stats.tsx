@@ -1,4 +1,7 @@
+import { useTranslation } from 'react-i18next'
+
 import { Card, CardContent } from '../../components/ui/card'
+import { formatLocalizedNumber } from '../../i18n/locale-utils.mjs'
 import type { DashboardStats } from './types'
 
 type Props = {
@@ -31,26 +34,38 @@ const Mini = ({
   </Card>
 )
 
-export const DashboardOpsStats = ({ stats }: Props) => (
-  <section className="space-y-3">
-    <h2 className="text-sm font-semibold text-slate-900">Operacije</h2>
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <Mini
-        title="Rezervacije (ovaj mjesec)"
-        value={stats.reservationsThisMonth}
-        hint={`${stats.completedReservations} završenih · ${stats.pendingReservations} na čekanju`}
-      />
-      <Mini
-        title="Korisnici"
-        value={stats.usersCount}
-        hint={`${stats.stylistsCount} stilista · ${stats.servicesCount} servisa`}
-      />
-      <Mini
-        title="Recenzije na čekanju"
-        value={stats.pendingReviews}
-        emphasize={stats.pendingReviews > 0}
-      />
-      <Mini title="Blog članaka" value={stats.blogPostsCount} />
-    </div>
-  </section>
-)
+export const DashboardOpsStats = ({ stats }: Props) => {
+  const { t, i18n } = useTranslation()
+  const formatCount = (count: number) =>
+    formatLocalizedNumber(count, i18n.language, { maximumFractionDigits: 0 })
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-sm font-semibold text-slate-900">{t('dashboard.operations')}</h2>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Mini
+          title={t('dashboard.reservationsThisMonth')}
+          value={formatCount(stats.reservationsThisMonth)}
+          hint={t('dashboard.reservationCounts', {
+            completed: formatCount(stats.completedReservations),
+            pending: formatCount(stats.pendingReservations),
+          })}
+        />
+        <Mini
+          title={t('dashboard.users')}
+          value={formatCount(stats.usersCount)}
+          hint={t('dashboard.userCounts', {
+            stylists: formatCount(stats.stylistsCount),
+            services: formatCount(stats.servicesCount),
+          })}
+        />
+        <Mini
+          title={t('dashboard.pendingReviews')}
+          value={formatCount(stats.pendingReviews)}
+          emphasize={stats.pendingReviews > 0}
+        />
+        <Mini title={t('dashboard.blogPosts')} value={formatCount(stats.blogPostsCount)} />
+      </div>
+    </section>
+  )
+}

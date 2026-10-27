@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Loader2, Search } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
@@ -18,8 +19,11 @@ import {
   fetchLoyaltyInfoForClient,
 } from '../api/stylist-workbook.api'
 import type { ClientOption, LoyaltyInfo, ServiceOption } from '../types'
+import { getSalonDateOnly } from '../../../../../shared/business-date.mjs'
+import { formatLocalizedNumber, getIntlLocale } from '../../../i18n/locale-utils.mjs'
 
-const formatKm = (v: number) => `${Number(v || 0).toFixed(2)} KM`
+const formatKm = (v: number, locale: string) =>
+  `${formatLocalizedNumber(Number(v || 0), locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} KM`
 
 const clampInt = (v: number, min: number, max: number) => Math.max(min, Math.min(max, Math.floor(v)))
 
@@ -30,6 +34,8 @@ export const WorkbookNewEntryForm = ({
   mode: 'page' | 'drawer'
   onClose?: () => void
 }) => {
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
   const navigate = useNavigate()
   const { warning, success, toastApiError } = useAppToast()
   const { profileId, isLoading: profileLoading } = useStylistProfileMe()
@@ -40,7 +46,7 @@ export const WorkbookNewEntryForm = ({
   const [services, setServices] = useState<ServiceOption[]>([])
   const [clients, setClients] = useState<ClientOption[]>([])
 
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(() => getSalonDateOnly())
   const [serviceIds, setServiceIds] = useState<string[]>([])
   const [clientId, setClientId] = useState('')
   const [paidAmount, setPaidAmount] = useState('')
@@ -201,24 +207,24 @@ export const WorkbookNewEntryForm = ({
 
   const handleSubmit = async () => {
     if (!profileId) {
-      warning('Greška', 'Profil stilista nije pronađen.')
+      warning(t('common.error'), t('stylistWorkbook.newEntry.profileNotFound'))
       return
     }
     if (!clientId) {
-      warning('Greška', 'Odaberite klijenta.')
+      warning(t('common.error'), t('stylistWorkbook.newEntry.selectClient'))
       return
     }
     if (!selectedClient?.gender) {
-      warning('Greška', 'Klijent mora imati definisan spol.')
+      warning(t('common.error'), t('stylistWorkbook.newEntry.clientGenderRequired'))
       return
     }
     if (serviceIds.length === 0) {
-      warning('Greška', 'Odaberite servis(e).')
+      warning(t('common.error'), t('stylistWorkbook.newEntry.selectService'))
       return
     }
     const paidRaw = paidAmount.trim() ? Number(paidAmount.replace(',', '.')) : chargeAmount
     if (!Number.isFinite(paidRaw) || paidRaw < 0) {
-      warning('Greška', 'Unesite ispravan iznos naplaćenog računa.')
+      warning(t('common.error'), t('stylistWorkbook.newEntry.invalidPaidAmount'))
       return
     }
     if (paidRaw < chargeAmount) {
@@ -244,11 +250,11 @@ export const WorkbookNewEntryForm = ({
         debtHandling: 'IGNORE_DEBT',
         ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
       })
-      success('Kreirano', 'Možete dodati before/after slike i završiti zapis u detalju.')
+      success(t('stylistWorkbook.newEntry.created'), t('stylistWorkbook.newEntry.createdDescription'))
       onClose?.()
       navigate(`/stylist/workbook/${entry.id}`)
     } catch (err) {
-      toastApiError(err, 'Greška pri kreiranju zapisa')
+      toastApiError(err, t('stylistWorkbook.newEntry.createFailed'))
     } finally {
       setSaving(false)
     }
@@ -265,8 +271,8 @@ export const WorkbookNewEntryForm = ({
   if (!profileId) {
     return (
       <Card className="p-6">
-        <p className="text-slate-900 dark:text-slate-50 font-semibold">Nema profila</p>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Profil stilista nije pronađen.</p>
+        <p className="text-slate-900 dark:text-slate-50 font-semibold">{t('stylistWorkbook.newEntry.noProfile')}</p>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('stylistWorkbook.newEntry.profileNotFound')}</p>
         <Button
           type="button"
           variant="outline"
@@ -276,7 +282,7 @@ export const WorkbookNewEntryForm = ({
             navigate('/stylist/workbook')
           }}
         >
-          Nazad
+          {t('common.back')}
         </Button>
       </Card>
     )
@@ -286,21 +292,21 @@ export const WorkbookNewEntryForm = ({
     <div className={mode === 'page' ? 'max-w-2xl' : ''}>
       {mode === 'page' ? (
         <div className="mb-4">
-          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Novi unos</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.newEntry.title')}</h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-            Nakon kreiranja možete dodati before/after slike i završiti zapis u detalju.
+            {t('stylistWorkbook.newEntry.pageDescription')}
           </p>
         </div>
       ) : null}
 
       <div className="space-y-4">
         <Card className="p-4">
-          <Label>Klijent</Label>
+          <Label>{t('stylistWorkbook.newEntry.client')}</Label>
           <div ref={clientDropdownRef} className="relative mt-2">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
             <Input
               value={clientSearch}
-              placeholder="Pretraži klijenta…"
+              placeholder={t('stylistWorkbook.newEntry.searchClient')}
               className="pl-9"
               onFocus={() => setShowClientDropdown(true)}
               onChange={(e) => {
@@ -327,24 +333,24 @@ export const WorkbookNewEntryForm = ({
           </div>
           {selectedClient ? (
             <p className="mt-2 text-xs text-emerald-600">
-              Odabrano: {[selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ') || selectedClient.username}
+              {t('stylistWorkbook.newEntry.selectedClient', { client: [selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ') || selectedClient.username })}
             </p>
           ) : null}
         </Card>
 
         <Card className="p-4">
-          <Label>Servis</Label>
+          <Label>{t('stylistWorkbook.newEntry.service')}</Label>
           {!selectedClient ? (
-            <p className="mt-1 text-xs text-slate-500">Prvo odaberite klijenta da bi se prikazali servisi po spolu.</p>
+            <p className="mt-1 text-xs text-slate-500">{t('stylistWorkbook.newEntry.selectClientForServices')}</p>
           ) : !selectedClient.gender ? (
-            <p className="mt-1 text-xs text-rose-600">Odabrani klijent nema definisan spol.</p>
+            <p className="mt-1 text-xs text-rose-600">{t('stylistWorkbook.newEntry.clientGenderRequired')}</p>
           ) : null}
           <div ref={serviceDropdownRef} className="relative mt-2">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
             <Input
               value={serviceSearch}
               disabled={!selectedClient || !selectedClient.gender}
-              placeholder={!selectedClient ? 'Odaberite klijenta…' : 'Pretraži servis…'}
+              placeholder={!selectedClient ? t('stylistWorkbook.newEntry.selectClient') : t('stylistWorkbook.newEntry.searchService')}
               className="pl-9"
               onFocus={() => setShowServiceDropdown(true)}
               onChange={(e) => {
@@ -363,7 +369,7 @@ export const WorkbookNewEntryForm = ({
                   >
                     <div className="flex justify-between gap-2 text-sm">
                       <span>{svc.name}</span>
-                      <span className="text-slate-500">{Number(svc.price).toFixed(2)} KM</span>
+                      <span className="text-slate-500">{formatKm(Number(svc.price), locale)}</span>
                     </div>
                   </li>
                 ))}
@@ -379,10 +385,10 @@ export const WorkbookNewEntryForm = ({
                 >
                   <div className="min-w-0">
                     <div className="font-semibold text-slate-900 dark:text-slate-50">{s.name}</div>
-                    <div className="text-xs text-slate-500">{Number(s.price).toFixed(2)} KM</div>
+                    <div className="text-xs text-slate-500">{formatKm(Number(s.price), locale)}</div>
                   </div>
                   <Button type="button" variant="outline" size="sm" onClick={() => toggleService(s)}>
-                    Ukloni
+                    {t('common.delete')}
                   </Button>
                 </div>
               ))}
@@ -392,29 +398,29 @@ export const WorkbookNewEntryForm = ({
 
         <Card className="p-4 space-y-3">
           <div>
-            <Label>Datum</Label>
+            <Label>{t('stylistWorkbook.newEntry.date')}</Label>
             <Input type="date" className="mt-2 max-w-[220px]" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
 
           <div>
-            <Label>Naplaćeno (KM)</Label>
+            <Label>{t('stylistWorkbook.newEntry.paidAmount')}</Label>
             <Input
               className="mt-2 max-w-[220px]"
               value={paidAmount}
-              placeholder={chargeAmount > 0 ? chargeAmount.toFixed(2) : '0.00'}
+              placeholder={formatLocalizedNumber(chargeAmount, locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               onChange={(e) => setPaidAmount(e.target.value)}
             />
             <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-              Servis: {formatKm(basePrice)}
-              {loyaltyPercent > 0 ? ` · Loyalty popust: ${loyaltyPercent}% (${formatKm(loyaltyDiscountAmount)})` : ''}
+              {t('stylistWorkbook.newEntry.serviceTotal', { amount: formatKm(basePrice, locale) })}
+              {loyaltyPercent > 0 ? ` · ${t('stylistWorkbook.newEntry.loyaltyDiscount', { percent: formatLocalizedNumber(loyaltyPercent, locale, { maximumFractionDigits: 0 }), amount: formatKm(loyaltyDiscountAmount, locale) })}` : ''}
             </div>
             <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-50">
-              Za naplatu: {formatKm(chargeAmount)}
+              {t('stylistWorkbook.newEntry.amountDue', { amount: formatKm(chargeAmount, locale) })}
             </div>
           </div>
 
           <div>
-            <Label>Napomena (opciono)</Label>
+            <Label>{t('stylistWorkbook.newEntry.notesOptional')}</Label>
             <Textarea className="mt-2" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
           </div>
         </Card>
@@ -422,13 +428,13 @@ export const WorkbookNewEntryForm = ({
         <Card className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Loyalty</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.newEntry.loyalty')}</p>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
                 {loadingLoyalty
-                  ? 'Učitavanje…'
+                  ? t('common.loading')
                   : loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service
-                    ? `Bodovi: ${loyaltyInfo.points ?? 0} · Max popust: ${loyaltyInfo.service.maxDiscountPercent}%`
-                    : 'Loyalty nije dostupan za odabranog klijenta ili servis.'}
+                    ? t('stylistWorkbook.newEntry.loyaltySummary', { points: formatLocalizedNumber(loyaltyInfo.points ?? 0, locale, { maximumFractionDigits: 0 }), percent: formatLocalizedNumber(loyaltyInfo.service.maxDiscountPercent, locale, { maximumFractionDigits: 0 }) })
+                    : t('stylistWorkbook.newEntry.loyaltyUnavailable')}
               </p>
             </div>
             {loadingLoyalty ? <Loader2 className="h-5 w-5 animate-spin text-slate-400" aria-hidden="true" /> : null}
@@ -436,7 +442,7 @@ export const WorkbookNewEntryForm = ({
 
           {loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service ? (
             <div className="mt-3">
-              <Label>Popust (%)</Label>
+              <Label>{t('stylistWorkbook.newEntry.discountPercent')}</Label>
               <Input
                 type="number"
                 className="mt-2 max-w-[140px]"
@@ -450,7 +456,7 @@ export const WorkbookNewEntryForm = ({
                 }}
               />
               <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">
-                Max iznos popusta: {formatKm(Number(loyaltyInfo.service.maxDiscountAmount ?? 0))}
+                {t('stylistWorkbook.newEntry.maxDiscountAmount', { amount: formatKm(Number(loyaltyInfo.service.maxDiscountAmount ?? 0), locale) })}
               </p>
             </div>
           ) : null}
@@ -466,16 +472,16 @@ export const WorkbookNewEntryForm = ({
             }}
             disabled={saving}
           >
-            Nazad
+            {t('common.back')}
           </Button>
           <Button type="button" onClick={() => void handleSubmit()} disabled={saving}>
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                Kreiram…
+                {t('stylistWorkbook.newEntry.creating')}
               </>
             ) : (
-              'Kreiraj zapis'
+              t('stylistWorkbook.newEntry.createEntry')
             )}
           </Button>
         </div>
@@ -493,14 +499,14 @@ export const WorkbookNewEntryForm = ({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Naplaćuje se manje nego što sistem zahtijeva</DialogTitle>
+            <DialogTitle>{t('stylistWorkbook.newEntry.partialPaymentTitle')}</DialogTitle>
             <DialogDescription>
-              Razlika iznosi {partialDiff.toFixed(2)} KM. Želite li da se ta razlika evidentira kao dug klijentu?
+              {t('stylistWorkbook.newEntry.partialPaymentDescription', { amount: formatKm(partialDiff, locale) })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setPartialOpen(false)} disabled={saving}>
-              Odustani
+              {t('common.cancel')}
             </Button>
             <Button
               type="button"
@@ -525,18 +531,18 @@ export const WorkbookNewEntryForm = ({
                     debtHandling: 'IGNORE_DEBT',
                     ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
                   })
-                  success('Kreirano', 'Zapis je kreiran.')
+                  success(t('stylistWorkbook.newEntry.created'), t('stylistWorkbook.newEntry.entryCreated'))
                   onClose?.()
                   navigate(`/stylist/workbook/${entry.id}`)
                 } catch (err) {
-                  toastApiError(err, 'Greška pri kreiranju zapisa')
+                  toastApiError(err, t('stylistWorkbook.newEntry.createFailed'))
                 } finally {
                   setSaving(false)
                 }
               }}
               disabled={saving}
             >
-              Ne zavodi dug
+              {t('stylistWorkbook.newEntry.ignoreDebt')}
             </Button>
             <Button
               type="button"
@@ -560,18 +566,18 @@ export const WorkbookNewEntryForm = ({
                     debtHandling: 'CREATE_DEBT',
                     ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
                   })
-                  success('Kreirano', `Zapis je kreiran, a ${partialDiff.toFixed(2)} KM je evidentirano kao dug.`)
+                  success(t('stylistWorkbook.newEntry.created'), t('stylistWorkbook.newEntry.createdWithDebt', { amount: formatKm(partialDiff, locale) }))
                   onClose?.()
                   navigate(`/stylist/workbook/${entry.id}`)
                 } catch (err) {
-                  toastApiError(err, 'Greška pri kreiranju zapisa')
+                  toastApiError(err, t('stylistWorkbook.newEntry.createFailed'))
                 } finally {
                   setSaving(false)
                 }
               }}
               disabled={saving}
             >
-              Zavedi dug
+              {t('stylistWorkbook.newEntry.recordDebt')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -591,13 +597,15 @@ export const WorkbookNewEntryDrawer = ({
   open: boolean
   onOpenChange: (v: boolean) => void
 }) => {
+  const { t } = useTranslation()
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent side="right" className="flex flex-col">
         <div className="h-full overflow-y-auto p-5">
           <div className="mb-3">
-            <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Novi unos</p>
-            <p className="text-xs text-slate-500">Brzi unos u dnevnu knjigu (stilist).</p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.newEntry.title')}</p>
+            <p className="text-xs text-slate-500">{t('stylistWorkbook.newEntry.drawerDescription')}</p>
           </div>
           <WorkbookNewEntryForm mode="drawer" onClose={() => onOpenChange(false)} />
         </div>

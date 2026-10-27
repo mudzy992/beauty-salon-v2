@@ -12,6 +12,7 @@ export interface AuthUser {
   mustChangePassword: boolean
   roles: string[]
   avatar: string | null
+  isAvatarPublic: boolean
 }
 
 type ProfilePayload = {
@@ -24,6 +25,7 @@ type ProfilePayload = {
   isEmailVerified?: boolean
   mustChangePassword?: boolean
   avatar?: string | null
+  isAvatarPublic?: boolean
   userRoles?: { role: { name: string } }[]
   roles?: string[]
 }
@@ -78,6 +80,7 @@ const mapProfileToUser = (
     mustChangePassword: asBool(profile.mustChangePassword),
     roles,
     avatar: profile.avatar?.trim() ? profile.avatar.trim() : null,
+    isAvatarPublic: profile.isAvatarPublic === true,
   }
 }
 
@@ -86,6 +89,7 @@ interface AuthState {
   user: AuthUser | null
   isReady: boolean
   setToken: (token: string | null) => void
+  replaceToken: (token: string) => void
   setUser: (user: AuthUser | null) => void
   setReady: (ready: boolean) => void
   logout: () => void
@@ -98,6 +102,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isReady: false,
   setToken: (token) => set({ token }),
+  replaceToken: (token) => {
+    localStorage.setItem(TOKEN_KEY, token)
+    api.defaults.headers.common.Authorization = `Bearer ${token}`
+    set({ token })
+  },
   setUser: (user) => set({ user }),
   setReady: (ready) => set({ isReady: ready }),
   logout: () => {

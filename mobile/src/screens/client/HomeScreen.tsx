@@ -27,12 +27,17 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import api, { getImageUrl, getUploadUrl } from '../../services/api';
 import { fetchPublicSettings } from '../../services/publicSettings';
+import {
+  fetchAllPublicServiceCategories,
+  fetchAllPublicServices,
+} from '../../services/catalog';
 import { spacing, borderRadius } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import type { HomeScreenProps } from '../../navigation/types';
 import type { Service, BlogPost, ServiceCategory, Reservation, ReservationStatus } from '../../types';
+import { formatDateOnlyLocale, formatInstantDateLocale, isUpcoming } from '../../utils/date';
 
 interface BeforeAfterPair {
   id: string;
@@ -48,7 +53,7 @@ function resolveHeroImageUrl(value: string): string {
   return getImageUrl(v) || '';
 }
 
-function resolveBlogImageUrl(value?: string): string {
+function resolveBlogImageUrl(value?: string | null): string {
   if (!value?.trim()) return '';
   const v = value.trim();
   if (v.startsWith('http')) return v;
@@ -87,9 +92,9 @@ function getSettingValue(settings: PublicSetting[] | null | undefined, key: stri
   return item?.value?.trim() || fallback;
 }
 
-function formatBlogDate(value?: string): string {
+function formatBlogDate(value?: string | null): string {
   if (!value) return '';
-  return new Date(value).toLocaleDateString('bs-BA', {
+  return formatInstantDateLocale(value, 'bs-BA', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -97,16 +102,20 @@ function formatBlogDate(value?: string): string {
 }
 
 function formatReservationDate(dateStr: string, timeStr: string): string {
-    if (!dateStr) return '';
-    const cleanDateStr = dateStr.includes('T') ? dateStr.slice(0, 10) : dateStr;
-    const date = new Date(`${cleanDateStr}T${timeStr}`);
-    if (isNaN(date.getTime())) return `${cleanDateStr} u ${timeStr}`;
-    const datePart = date.toLocaleDateString('bs-BA', { weekday: 'long', day: 'numeric', month: 'long' });
-    const timePart = date.toLocaleTimeString('bs-BA', { hour: '2-digit', minute: '2-digit' });
+  if (!dateStr) return '';
+  const cleanDateStr = dateStr.includes('T') ? dateStr.slice(0, 10) : dateStr;
+  try {
+    const datePart = formatDateOnlyLocale(cleanDateStr, 'bs-BA', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    });
     const formattedDate = datePart.charAt(0).toUpperCase() + datePart.slice(1);
-    return `${formattedDate} u ${timePart}`;
+    return `${formattedDate} u ${timeStr.slice(0, 5)}`;
+  } catch {
+    return `${cleanDateStr} u ${timeStr.slice(0, 5)}`;
   }
-
+}
 
 function getStatusLabel(status: ReservationStatus): string {
   const map: Partial<Record<ReservationStatus, string>> = {
@@ -189,10 +198,11 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
   const fetchData = useCallback(async () => {
     try {
-      const [settingsRes, catRes, blogRes, debtsRes] = await Promise.all([
+      const [settingsRes, categories, catalogServices, blogRes, debtsRes] = await Promise.all([
         fetchPublicSettings(),
-        api.get<ServiceCategory[]>('/api/services/categories', { params: { activeOnly: true } }),
-        api.get<BlogPost[]>('/api/blog', { params: { published: true } }),
+        fetchAllPublicServiceCategories<ServiceCategory>({ activeOnly: true }),
+        fetchAllPublicServices<Service>({ activeOnly: true }),
+        api.get<BlogPost[] | { items: BlogPost[] }>('/api/blog', { params: { limit: 3, offset: 0 } }),
         user
           ? api.get<Array<{ amount: number | string }>>('/api/client-debts/me').catch(() => null)
           : Promise.resolve(null),
@@ -208,22 +218,23 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
       setSettings(normalizeSettings(settingsRes));
       const blogOn = getSettingValue(normalizeSettings(settingsRes), 'public_feature_blog', 'true').toLowerCase() !== 'false';
-      setBlogPosts(blogOn ? blogRes.data.slice(0, 3) : []);
+      const blogItems = Array.isArray(blogRes.data) ? blogRes.data : blogRes.data.items;
+      setBlogPosts(blogOn ? blogItems.slice(0, 3) : []);
 
-      const withServices: CategoryWithServices[] = [];
-      for (const cat of catRes.data) {
-        try {
-          const { data } = await api.get<ServiceCategory>(`/api/services/categories/${cat.id}`);
-          const services: Service[] = [];
-          data.subcategories?.forEach((sub) => {
-            sub.services?.forEach((s) => services.push(s));
-          });
-          if (services.length > 0) {
-            withServices.push({ category: data, services });
-          }
-        } catch { /* skip */ }
-      }
-      setCategoriesWithServices(withServices);
+      const servicesByCategory = new Map<string, Service[]>();
+      catalogServices.forEach((service) => {
+        const categoryId = service.subcategory?.categoryId;
+        if (!categoryId) return;
+        const services = servicesByCategory.get(categoryId) ?? [];
+        services.push(service);
+        servicesByCategory.set(categoryId, services);
+      });
+      setCategoriesWithServices(
+        categories.flatMap((category) => {
+          const services = servicesByCategory.get(category.id) ?? [];
+          return services.length > 0 ? [{ category, services }] : [];
+        }),
+      );
       try {
         const { data } = await api.get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
           params: { limit: 6, random: 1 },
@@ -273,18 +284,11 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
       .then(({ data }) => {
         if (cancelled) return;
 
-        const today = new Date().toISOString().slice(0, 10);
         const arr = Array.isArray(data) ? data : (data as any)?.data ?? [];
-
         const next = arr.find(
-          (r: any) => {
-            // Uzimamo samo prvih 10 znakova datuma (YYYY-MM-DD) za ispravnu usporedbu
-            const cleanDateStr = r.reservationDate?.includes('T')
-              ? r.reservationDate.slice(0, 10)
-              : r.reservationDate;
-
-            return ACTIVE_STATUSES.includes(r.status) && cleanDateStr >= today;
-          }
+          (r: any) =>
+            ACTIVE_STATUSES.includes(r.status) &&
+            isUpcoming(r.reservationDate, r.endTime),
         ) ?? null;
 
         setUpcomingReservation(next);
@@ -708,7 +712,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     {post.title}
                   </Text>
                   <Text style={[styles.blogExcerpt, { color: colors.textSecondary }]} numberOfLines={2}>
-                    {getBlogExcerpt(post.content)}
+                    {getBlogExcerpt(post.excerpt ?? post.content ?? '')}
                   </Text>
                   <Text style={[styles.blogDate, { color: colors.textSecondary }]}>
                     {formatBlogDate(post.publishedAt)}

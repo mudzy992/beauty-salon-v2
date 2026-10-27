@@ -11,20 +11,15 @@ export function getSocket(): Socket | null {
 
 export function connectSocket(token: string | null): Socket {
   const normalizedToken = token ?? null;
-  if (socket && activeToken === normalizedToken) {
-    if (!socket.connected) socket.connect();
-    return socket;
-  }
+  if (socket && activeToken === normalizedToken) return socket;
+
   disconnectSocket();
   activeToken = normalizedToken;
   socket = io(API_URL, {
     auth: normalizedToken ? { token: normalizedToken } : {},
     transports: ['websocket', 'polling'],
-    autoConnect: true,
-    reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
+    autoConnect: false,
+    reconnection: false,
   });
   return socket;
 }

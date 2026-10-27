@@ -3,11 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
-import { IncomeBookRepository } from './repositories/income-book.repository'
+import {
+  IncomeBookRepository,
+  type PrismaTx,
+} from './repositories/income-book.repository'
 import {
   assertValidPeriod,
   getCurrentPeriod,
-  getPreviousPeriod,
   isFutureMonth,
   isPastMonth,
 } from '../common/utils/book-period'
@@ -18,46 +20,61 @@ const MAX_REASON_LENGTH = 2000
 export class IncomeBooksService {
   constructor(private readonly repository: IncomeBookRepository) {}
 
-  /** CRON: 1. u mjesecu – otvori novu knjigu prihoda, zatvori prethodnu. */
+  /**
+   * CRON mjesečnog usklađivanja: osigurava otvorenu knjigu za tekući mjesec i
+   * zatvara ranije otvorene periode. Poziv je idempotentan i siguran za
+   * catch-up nakon propuštenog izvršavanja; ručno otključane knjige se čuvaju.
+   */
   async openNewMonthAndClosePrevious() {
     const current = getCurrentPeriod()
-    const previous = getPreviousPeriod(current)
-
-    const previousBook = await this.repository.findByPeriod(
-      previous.year,
-      previous.month,
-    )
-    if (previousBook && !previousBook.closedAt) {
-      await this.repository.setLockState(previousBook.id, {
-        closedAt: new Date(),
-        action: 'LOCK',
-        reason: 'Automatsko zaključavanje na kraju mjeseca.',
-      })
-    }
-
-    let currentBook = await this.repository.findByPeriod(
+    const openBooks = await this.repository.findOpenBooksBeforePeriod(
       current.year,
       current.month,
     )
-    if (!currentBook) {
-      currentBook = await this.repository.createForPeriod(
-        current.year,
-        current.month,
+    const closed: string[] = []
+
+    for (const book of openBooks) {
+      // Zadnji UNLOCK je eksplicitna ručna odluka i ne smije biti poništena
+      // ponovnim dnevnim catch-up pozivom.
+      if (book.lockEvents[0]?.action === 'UNLOCK') continue
+
+      const locked = await this.repository.setLockState(
+        book.id,
+        {
+          closedAt: new Date(),
+          action: 'LOCK',
+          reason: 'Automatsko zaključavanje prethodnog finansijskog perioda.',
+        },
+        { ignoreIfAlreadyTarget: true },
       )
+      if (locked?.closedAt) closed.push(book.id)
     }
-    return { opened: currentBook.id, closed: previousBook?.id ?? null }
+
+    // Unique period key is the durable idempotency marker if multiple app
+    // instances perform the catch-up at the same time.
+    const currentBook = await this.repository.upsertForPeriod(
+      current.year,
+      current.month,
+    )
+
+    return { opened: currentBook.id, closed }
   }
 
-  /** Vraća knjigu za mjesec; kreira je ako ne postoji (za agregaciju). */
-  async getOrCreateForMonth(year: number, month: number) {
+  /** Vraća/kreira mjesečnu knjigu na istom transaction clientu kad je proslijeđen. */
+  async getOrCreateForMonth(year: number, month: number, tx?: PrismaTx) {
     assertValidPeriod(year, month)
     if (isFutureMonth(year, month)) {
       throw new BadRequestException(
         'Ne možete kreirati knjigu za budući mjesec.',
       )
     }
-    const book = await this.repository.findByPeriodWithEntries(year, month)
-    return book ?? this.repository.createForPeriod(year, month)
+    const book = await this.repository.upsertForPeriod(year, month, tx)
+    if (!tx) return book
+    const lockedBook = await this.repository.findByIdForUpdate(book.id, tx)
+    if (!lockedBook) {
+      throw new NotFoundException('Knjiga prihoda nije pronađena.')
+    }
+    return lockedBook
   }
 
   findAll() {
@@ -78,8 +95,11 @@ export class IncomeBooksService {
   }
 
   /** Knjiga mora biti otvorena i ne u budućnosti da bi se stavke mijenjale. */
-  async getEditableBookOrThrow(id: string, action: string) {
-    const book = await this.getBookOrThrow(id)
+  async getEditableBookOrThrow(id: string, action: string, tx?: PrismaTx) {
+    const book = tx
+      ? await this.repository.findByIdForUpdate(id, tx)
+      : await this.getBookOrThrow(id)
+    if (!book) throw new NotFoundException('Knjiga prihoda nije pronađena.')
     if (book.closedAt) {
       throw new BadRequestException(
         `Knjiga je zaključana – ${action} nije moguće.`,
@@ -110,23 +130,27 @@ export class IncomeBooksService {
         'Otključavanje je dozvoljeno samo za knjige iz prošlosti.',
       )
     }
-    return this.repository.setLockState(id, {
+    const unlocked = await this.repository.setLockState(id, {
       closedAt: null,
       action: 'UNLOCK',
       reason: trimmedReason,
       createdById: userId,
     })
+    if (!unlocked) {
+      throw new BadRequestException('Knjiga je već otključana.')
+    }
+    return unlocked
   }
 
   async lockBook(id: string, userId: string) {
-    const book = await this.getBookOrThrow(id)
-    if (book.closedAt) {
-      throw new BadRequestException('Knjiga je već zaključana.')
-    }
-    return this.repository.setLockState(id, {
+    const locked = await this.repository.setLockState(id, {
       closedAt: new Date(),
       action: 'LOCK',
       createdById: userId,
     })
+    if (!locked) {
+      throw new BadRequestException('Knjiga je već zaključana.')
+    }
+    return locked
   }
 }

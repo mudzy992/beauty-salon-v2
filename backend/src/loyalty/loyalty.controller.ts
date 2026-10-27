@@ -10,6 +10,8 @@ import {
 import { LoyaltyService } from './loyalty.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { RedeemLoyaltyPointsDto } from './dto/redeem-loyalty-points.dto';
+import { AdjustLoyaltyPointsDto } from './dto/adjust-loyalty-points.dto';
 
 @Controller('api/loyalty')
 @UseGuards(RolesGuard)
@@ -20,6 +22,11 @@ export class LoyaltyController {
   @Get('settings')
   getSettings() {
     return this.loyalty.getSettings();
+  }
+
+  @Get('reconciliation')
+  getReconciliationReport() {
+    return this.loyalty.getReconciliationReport();
   }
 
   @Get('accounts')
@@ -38,18 +45,22 @@ export class LoyaltyController {
   }
 
   @Post('accounts/:id/redeem')
-  redeem(
-    @Param('id') id: string,
-    @Body() body: { points: number; reason?: string },
-  ) {
-    return this.loyalty.redeemPoints(id, Number(body.points), body.reason);
+  redeem(@Param('id') id: string, @Body() dto: RedeemLoyaltyPointsDto) {
+    return this.loyalty.redeemPoints(
+      id,
+      dto.points,
+      dto.reason,
+      dto.idempotencyKey,
+    );
   }
 
   @Post('accounts/:id/adjust')
-  adjust(
-    @Param('id') id: string,
-    @Body() body: { pointsDelta: number; note?: string },
-  ) {
-    return this.loyalty.adjustPoints(id, Number(body.pointsDelta), body.note);
+  adjust(@Param('id') id: string, @Body() dto: AdjustLoyaltyPointsDto) {
+    return this.loyalty.adjustPoints(
+      id,
+      dto.pointsDelta,
+      dto.note,
+      dto.idempotencyKey,
+    );
   }
 }

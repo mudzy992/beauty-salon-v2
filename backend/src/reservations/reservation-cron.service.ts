@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReservationDateService } from './reservation-date.service';
+import { getDateOnlyDayBounds } from '../common/utils/date-only';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationNotifyService } from './reservation-notify.service';
 import { RESERVATION_STATUS } from './constants';
@@ -72,8 +73,14 @@ export class ReservationCronService {
             RESERVATION_STATUS.CANCELLED_BY_CLIENT,
           )
         : null;
-      await this.prisma.reservation.update({
-        where: { id: r.id },
+      const transitioned = await this.prisma.reservation.updateMany({
+        where: {
+          id: r.id,
+          status: r.status,
+          rescheduleStatus: 'PENDING',
+          rescheduleProposedStartTime: r.rescheduleProposedStartTime,
+          rescheduleProposedEndTime: r.rescheduleProposedEndTime,
+        },
         data: isReorder
           ? {
               rescheduleStatus: 'DECLINED',
@@ -90,6 +97,7 @@ export class ReservationCronService {
               rescheduleProposedEndTime: null,
             },
       });
+      if (transitioned.count !== 1) continue;
       if (!isReorder) {
         const salon = await this.prisma.salonSettings.findFirst();
         if (salon) {
@@ -109,10 +117,8 @@ export class ReservationCronService {
 
   async autoStartUpcomingReservations() {
     const now = new Date();
-    const todayStr = this.dates.toLocalDateOnlyString(now);
-    const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(
-      now.getMinutes(),
-    ).padStart(2, '0')}`;
+    const todayStr = this.dates.toSalonDateOnlyString(now);
+    const nowHHMM = this.dates.toSalonTimeString(now);
     const candidates = await this.prisma.reservation.findMany({
       where: {
         status: {
@@ -152,17 +158,17 @@ export class ReservationCronService {
         (now.getTime() - plannedStart.getTime()) / 60000,
       );
       if (ageMinutes > 24 * 60) continue;
-      if (this.dates.toLocalDateOnlyString(plannedStart) !== todayStr)
+      if (this.dates.toSalonDateOnlyString(plannedStart) !== todayStr)
         continue;
-      const dayStart = this.dates.parseDateOnly(r.reservationDate);
-      const dayEnd = new Date(dayStart);
-      dayEnd.setHours(23, 59, 59, 999);
+      const { gte, lt } = getDateOnlyDayBounds(
+        this.dates.toDateOnlyString(r.reservationDate),
+      );
       const alreadyRunning =
         await this.prisma.reservation.findFirst({
           where: {
             id: { not: r.id },
             confirmedStylistId: r.confirmedStylistId,
-            reservationDate: { gte: dayStart, lte: dayEnd },
+            reservationDate: { gte, lt },
             status: RESERVATION_STATUS.IN_PROGRESS,
           },
           select: { id: true },

@@ -4,6 +4,10 @@ import { DailyLogSeedFromDirectService } from '../daily-log/daily-log-seed-from-
 import { ReservationDateService } from './reservation-date.service';
 import { ReservationNotifyService } from './reservation-notify.service';
 import {
+  addDateOnlyDays,
+  parseDateOnlyString,
+} from '../common/utils/date-only';
+import {
   RESERVATION_ACCEPTANCE_MODE,
   RESERVATION_ATTENDANCE_POLICY,
   RESERVATION_STATUS,
@@ -22,8 +26,8 @@ export class ReservationDirectDailyLogCronService {
 
   async processDirectBookingDailyLogSeeds(): Promise<{ seededCount: number }> {
     const now = new Date();
-    const lookback = new Date(now);
-    lookback.setDate(lookback.getDate() - 7);
+    const today = this.dates.toSalonDateOnlyString(now);
+    const lookback = parseDateOnlyString(addDateOnlyDays(today, -7));
 
     const candidates = await this.prisma.reservation.findMany({
       where: {

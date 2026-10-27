@@ -34,6 +34,7 @@ export interface AppSetting {
 export interface SettingDef {
   key: string
   desc: string
+  label?: string
   type: SettingType
   placeholder?: string
   min?: number

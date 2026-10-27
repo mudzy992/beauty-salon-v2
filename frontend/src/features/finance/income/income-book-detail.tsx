@@ -28,7 +28,7 @@ import {
   useIncomeBookMutations,
 } from '../hooks/use-income-books'
 import { exportRowsToCsv, printReport } from '../export.utils'
-import { formatIsoDateBs, formatMoney, formatPeriod } from '../finance.utils'
+import { formatDateOnlyBs, formatMoney, formatPeriod } from '../finance.utils'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import type {
   IncomeBookManualEntry,
@@ -142,7 +142,7 @@ export function IncomeBookDetail({
     exportRowsToCsv({
       filename: `KIF-${book.year}-${String(book.month).padStart(2, '0')}`,
       columns: [
-        { header: 'Datum', value: (r) => formatIsoDateBs(r.date) },
+        { header: 'Datum', value: (r) => formatDateOnlyBs(r.date) },
         { header: 'Servis', value: (r) => r.serviceName },
         { header: 'Stilista', value: (r) => r.stylistName },
         { header: 'Klijent', value: (r) => r.clientName },
@@ -168,7 +168,7 @@ export function IncomeBookDetail({
       subtitle: `${summary.count} stavki · ${isLocked ? 'zaključana' : 'otvorena'}`,
       headers: ['Datum', 'Servis', 'Stilista', 'Klijent', 'Prihod', 'Napojnica'],
       rows: rows.map((r) => [
-        formatIsoDateBs(r.date),
+        formatDateOnlyBs(r.date),
         r.serviceName,
         r.stylistName,
         r.clientName,

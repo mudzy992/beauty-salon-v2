@@ -1,6 +1,15 @@
+jest.mock('../prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AppReleasePlatform, AppReleaseStatus } from '@prisma/client';
 import { AppReleasesService } from './app-releases.service';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { createHash } from 'crypto';
+
+jest.mock('fs/promises');
 
 describe('AppReleasesService', () => {
   const uploadRoot = '/tmp/app-releases-test';
@@ -18,6 +27,14 @@ describe('AppReleasesService', () => {
   let service: AppReleasesService;
 
   beforeEach(() => {
+    jest.clearAllMocks();
+    (fs.mkdir as jest.Mock).mockResolvedValue(undefined);
+    (fs.chmod as jest.Mock).mockResolvedValue(undefined);
+    (fs.writeFile as jest.Mock).mockResolvedValue(undefined);
+    (fs.unlink as jest.Mock).mockResolvedValue(undefined);
+    (fs.readFile as jest.Mock).mockResolvedValue(
+      Buffer.from([0x50, 0x4b, 0x03, 0x04]),
+    );
     prisma = {
       appRelease: {
         create: jest.fn(),
@@ -43,6 +60,47 @@ describe('AppReleasesService', () => {
     await expect(service.saveApk(file)).rejects.toBeInstanceOf(
       BadRequestException,
     );
+  });
+
+  it('rejects an apk extension and MIME type with a non-zip body', async () => {
+    const file = {
+      buffer: Buffer.from('not an apk'),
+      size: 10,
+      originalname: 'release.apk',
+      mimetype: 'application/vnd.android.package-archive',
+    } as Express.Multer.File;
+    await expect(service.saveApk(file)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(fs.writeFile).not.toHaveBeenCalled();
+  });
+
+  it('keeps uploaded draft APKs private until publication and checks the ZIP signature', async () => {
+    const buffer = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x00, 0x00]);
+    const result = await service.saveApk({
+      buffer,
+      size: buffer.length,
+      originalname: 'release.apk',
+      mimetype: 'application/vnd.android.package-archive',
+    } as Express.Multer.File);
+
+    expect(result.apkPath).toMatch(
+      /^private\/app-releases\/\d{4}\/\d{2}\/app-.+\.apk$/,
+    );
+    expect(fs.mkdir).toHaveBeenCalledWith(
+      expect.stringContaining(path.join('private', 'app-releases')),
+      expect.objectContaining({ recursive: true, mode: 0o700 }),
+    );
+    expect(fs.chmod).toHaveBeenCalledWith(
+      expect.stringContaining(path.join('private', 'app-releases')),
+      0o700,
+    );
+    expect(fs.writeFile).toHaveBeenCalledWith(
+      expect.stringContaining(path.join('private', 'app-releases')),
+      buffer,
+      { flag: 'wx', mode: 0o600 },
+    );
+    expect(result.apkSha256).toHaveLength(64);
   });
 
   it('returns null-shaped 404 path when no published release', async () => {
@@ -75,11 +133,120 @@ describe('AppReleasesService', () => {
     });
   });
 
+  it('copies and verifies a private draft APK before publishing its public path', async () => {
+    const apkBuffer = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x01]);
+    const apkSha256 = createHash('sha256').update(apkBuffer).digest('hex');
+    (fs.readFile as jest.Mock).mockResolvedValue(apkBuffer);
+    prisma.appRelease.findUnique.mockResolvedValue({
+      id: 'draft-1',
+      platform: AppReleasePlatform.ANDROID,
+      status: AppReleaseStatus.DRAFT,
+      apkPath: 'private/app-releases/2026/10/draft-1.apk',
+      apkSha256,
+      apkSizeBytes: apkBuffer.length,
+      publishedAt: null,
+    });
+    prisma.appRelease.updateMany.mockResolvedValue({ count: 0 });
+    prisma.appRelease.update.mockResolvedValue({
+      id: 'draft-1',
+      status: AppReleaseStatus.PUBLISHED,
+    });
+
+    await service.publish('draft-1');
+
+    expect(fs.readFile).toHaveBeenCalledWith(
+      path.join(
+        uploadRoot,
+        'private',
+        'app-releases',
+        '2026',
+        '10',
+        'draft-1.apk',
+      ),
+    );
+    expect(fs.mkdir).toHaveBeenCalledWith(
+      expect.stringContaining(path.join('public', 'app-releases')),
+      { recursive: true, mode: 0o755 },
+    );
+    expect(fs.chmod).toHaveBeenCalledWith(
+      expect.stringContaining(path.join('public', 'app-releases')),
+      0o755,
+    );
+    expect(fs.writeFile).toHaveBeenCalledWith(
+      expect.stringContaining(path.join('public', 'app-releases')),
+      apkBuffer,
+      { flag: 'wx', mode: 0o644 },
+    );
+    expect(fs.chmod).toHaveBeenCalledWith(
+      expect.stringContaining(path.join('public', 'app-releases')),
+      0o644,
+    );
+    expect(prisma.appRelease.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'draft-1' },
+        data: expect.objectContaining({
+          status: AppReleaseStatus.PUBLISHED,
+          apkPath: expect.stringMatching(
+            /^app-releases\/\d{4}\/\d{2}\/release-.+\.apk$/,
+          ),
+        }),
+      }),
+    );
+    expect(
+      (fs.writeFile as jest.Mock).mock.invocationCallOrder[0],
+    ).toBeLessThan(prisma.$transaction.mock.invocationCallOrder[0]);
+  });
+
+  it('rejects a draft path traversal before reading or publishing a file', async () => {
+    const apkBuffer = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
+    prisma.appRelease.findUnique.mockResolvedValue({
+      id: 'draft-escape',
+      platform: AppReleasePlatform.ANDROID,
+      status: AppReleaseStatus.DRAFT,
+      apkPath: 'private/../../outside.apk',
+      apkSha256: createHash('sha256').update(apkBuffer).digest('hex'),
+      apkSizeBytes: apkBuffer.length,
+      publishedAt: null,
+    });
+
+    await expect(service.publish('draft-escape')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(fs.readFile).not.toHaveBeenCalled();
+    expect(fs.writeFile).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects a draft whose private APK checksum no longer matches its record', async () => {
+    const apkBuffer = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
+    (fs.readFile as jest.Mock).mockResolvedValue(apkBuffer);
+    prisma.appRelease.findUnique.mockResolvedValue({
+      id: 'draft-corrupt',
+      platform: AppReleasePlatform.ANDROID,
+      status: AppReleaseStatus.DRAFT,
+      apkPath: 'private/app-releases/2026/10/draft-corrupt.apk',
+      apkSha256: '0'.repeat(64),
+      apkSizeBytes: apkBuffer.length,
+      publishedAt: null,
+    });
+
+    await expect(service.publish('draft-corrupt')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(fs.writeFile).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
   it('publish retires previous published releases', async () => {
+    const apkBuffer = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
+    (fs.readFile as jest.Mock).mockResolvedValue(apkBuffer);
     prisma.appRelease.findUnique.mockResolvedValue({
       id: 'r2',
       platform: AppReleasePlatform.ANDROID,
       status: AppReleaseStatus.DRAFT,
+      apkPath: 'app-releases/2026/10/r2.apk',
+      apkSha256: createHash('sha256').update(apkBuffer).digest('hex'),
+      apkSizeBytes: apkBuffer.length,
       publishedAt: null,
     });
     prisma.appRelease.updateMany.mockResolvedValue({ count: 1 });

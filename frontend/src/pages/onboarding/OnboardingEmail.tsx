@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate } from 'react-router-dom'
 import api from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
@@ -10,6 +11,7 @@ import { OtpInput } from '../../components/ui/otp-input'
 import { useAppToast } from '../../lib/toast/useAppToast'
 
 export default function OnboardingEmail() {
+  const { t } = useTranslation()
   const { user, refreshProfile } = useAuth()
   const toast = useAppToast()
   const navigate = useNavigate()
@@ -32,7 +34,7 @@ export default function OnboardingEmail() {
     e.preventDefault()
     const trimmed = email.trim()
     if (!trimmed) {
-      toast.warning('Email je obavezan.')
+      toast.warning(t('onboarding.emailRequired'))
       return
     }
     setLoading(true)
@@ -41,9 +43,9 @@ export default function OnboardingEmail() {
       await refreshProfile()
       await api.post('/auth/send-verification-email')
       setCodeSent(true)
-      toast.success('Poslali smo kod na email.')
+      toast.success(t('onboarding.codeSent'))
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Slanje koda nije uspjelo.')
+      toast.error(error?.response?.data?.message || t('onboarding.sendCodeFailed'))
     } finally {
       setLoading(false)
     }
@@ -52,7 +54,7 @@ export default function OnboardingEmail() {
   const handleVerify = async () => {
     const trimmed = code.trim()
     if (trimmed.length !== 6) {
-      toast.warning('Unesite 6-znamenkasti kod.')
+      toast.warning(t('onboarding.codeLengthInvalid'))
       return
     }
     setLoading(true)
@@ -61,7 +63,7 @@ export default function OnboardingEmail() {
       await refreshProfile()
       navigate('/', { replace: true })
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Verifikacija nije uspjela.')
+      toast.error(error?.response?.data?.message || t('onboarding.verificationFailed'))
     } finally {
       setLoading(false)
     }
@@ -71,9 +73,9 @@ export default function OnboardingEmail() {
     setLoading(true)
     try {
       await api.post('/auth/send-verification-email')
-      toast.success('Kod je ponovo poslan.')
+      toast.success(t('onboarding.codeResent'))
     } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Slanje koda nije uspjelo.')
+      toast.error(error?.response?.data?.message || t('onboarding.sendCodeFailed'))
     } finally {
       setLoading(false)
     }
@@ -84,16 +86,16 @@ export default function OnboardingEmail() {
       step={3}
       totalSteps={3}
       heroDecoration="mail"
-      title="Email adresa"
-      subtitle="Unesite email na koji šaljemo potvrde i obavještenja, zatim unesite kod iz poruke."
-      tip="Provjerite i spam/junk folder ako kod ne stigne odmah."
+      title={t('onboarding.emailTitle')}
+      subtitle={t('onboarding.emailSubtitle')}
+      tip={t('onboarding.emailTip')}
     >
       <div className="space-y-4">
         {!codeSent ? (
           <form onSubmit={handleSaveAndSend}>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t('onboarding.emailLabel')}</Label>
                 <Input
                   id="email"
                   value={email}
@@ -103,19 +105,19 @@ export default function OnboardingEmail() {
                 />
               </div>
               <Button type="submit" disabled={loading} className="w-full">
-                {loading ? 'Slanje…' : 'Sačuvaj email i pošalji kod'}
+                {loading ? t('onboarding.sendingCode') : t('onboarding.saveAndSendCode')}
               </Button>
             </div>
           </form>
         ) : (
           <div className="space-y-4">
-            <div className="font-semibold text-slate-900">Verifikacijski kod</div>
+            <div className="font-semibold text-slate-900">{t('onboarding.verificationCode')}</div>
             <OtpInput value={code} onChange={setCode} disabled={loading} />
             <Button onClick={handleVerify} disabled={loading} className="w-full">
-              {loading ? 'Provjera…' : 'Potvrdi email'}
+              {loading ? t('onboarding.verifyingCode') : t('onboarding.verifyEmail')}
             </Button>
             <Button variant="outline" onClick={handleResend} disabled={loading} className="w-full">
-              {loading ? 'Slanje…' : 'Pošalji kod ponovo'}
+              {loading ? t('onboarding.sendingCode') : t('onboarding.resendCode')}
             </Button>
           </div>
         )}

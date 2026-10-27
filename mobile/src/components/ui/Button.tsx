@@ -46,7 +46,7 @@ export function Button({
 
   const variantStyles: Record<string, { bg: string; text: string; border?: string }> = {
     primary: { bg: colors.primary, text: colors.primaryText },
-    secondary: { bg: colors.secondary, text: colors.white },
+    secondary: { bg: colors.secondary, text: colors.secondaryText },
     outline: { bg: 'transparent', text: colors.primary, border: colors.primary },
     ghost: { bg: 'transparent', text: colors.primary },
   };

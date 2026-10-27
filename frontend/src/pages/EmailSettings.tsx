@@ -1,5 +1,7 @@
 import { DragEvent, useEffect, useMemo, useState } from 'react'
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { formatLocalizedNumber } from '../i18n/locale-utils.mjs'
 import api from '../api/client'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { Badge } from '../components/ui/badge'
@@ -68,11 +70,11 @@ interface CampaignAudienceSummary {
   }>;
 }
 
-const PROVIDERS: Array<{ id: ProviderType; label: string }> = [
-  { id: 'google', label: 'Google (Gmail Workspace)' },
-  { id: 'office365', label: 'Office 365 / Outlook' },
-  { id: 'exchange', label: 'Exchange (self-hosted)' },
-  { id: 'custom', label: 'Custom SMTP' },
+const PROVIDERS: Array<{ id: ProviderType }> = [
+  { id: 'google' },
+  { id: 'office365' },
+  { id: 'exchange' },
+  { id: 'custom' },
 ];
 
 const PRESETS: Record<ProviderType, { host: string; port: string; secure: boolean }> = {
@@ -120,10 +122,10 @@ const getExistingTemplateDefaults = (type: ExistingTemplateType): ExistingTempla
       subject: 'Verifikacija email adrese',
       title: 'Verifikacija email adrese',
       intro: 'Poštovani {{firstName}},',
-      body: 'Vaš verifikacijski kod je prikazan ispod. Kod važi 24 sata.',
+      body: 'Vaš verifikacijski kod je prikazan ispod. Kod važi 15 minuta.',
       ctaLabel: 'Otvori aplikaciju',
       ctaUrl: '{{appUrl}}',
-      plainText: 'Vaš verifikacijski kod je validan 24 sata.',
+      plainText: 'Vaš verifikacijski kod je validan 15 minuta.',
     };
   }
   if (type === 'reservation_new') {
@@ -235,6 +237,7 @@ const renderCampaignHtml = (blocks: CampaignTemplateBlock[]): string => {
 };
 
 export default function EmailSettings() {
+  const { t, i18n } = useTranslation()
   const { success, error: toastError, warning } = useAppToast()
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -435,9 +438,9 @@ export default function EmailSettings() {
       }
 
       await Promise.all(ops)
-      success('Email postavke su sačuvane.')
+      success(t('emailSettings.smtp.settingsSaved'))
     } catch {
-      toastError('Greška pri čuvanju email postavki.')
+      toastError(t('emailSettings.smtp.settingsSaveFailed'))
     } finally {
       setSaving(false);
     }
@@ -445,19 +448,19 @@ export default function EmailSettings() {
 
   const handleSendTestEmail = async () => {
     if (!testEmailTo.trim()) {
-      warning('Unesite email adresu za test.')
+      warning(t('emailSettings.smtp.testEmailRequired'))
       return
     }
     setSendingTest(true);
     try {
       await api.post('/api/notifications/test-email', { to: testEmailTo.trim() })
-      success('Test email je poslan.', 'Provjerite inbox i spam folder.')
+      success(t('emailSettings.smtp.testEmailSent'), t('emailSettings.smtp.checkInbox'))
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined
-      toastError(msg || 'Slanje test emaila nije uspjelo.')
+      toastError(msg || t('emailSettings.smtp.testEmailFailed'))
     } finally {
       setSendingTest(false);
     }
@@ -467,13 +470,13 @@ export default function EmailSettings() {
     setSendingTest(true);
     try {
       await api.post('/api/notifications/test-email', {})
-      success('Test email je poslan na vaš admin nalog.', 'Provjerite inbox i spam folder.')
+      success(t('emailSettings.smtp.testEmailSentToAdmin'), t('emailSettings.smtp.checkInbox'))
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined
-      toastError(msg || 'Slanje test emaila nije uspjelo.')
+      toastError(msg || t('emailSettings.smtp.testEmailFailed'))
     } finally {
       setSendingTest(false);
     }
@@ -483,13 +486,13 @@ export default function EmailSettings() {
     setTestingConnection(true);
     try {
       await api.post('/api/notifications/test-smtp-connection', {})
-      success('SMTP konekcija je uspješna.')
+      success(t('emailSettings.smtp.connectionSuccess'))
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined
-      toastError(msg || 'SMTP konekcija nije uspjela.')
+      toastError(msg || t('emailSettings.smtp.connectionFailed'))
     } finally {
       setTestingConnection(false);
     }
@@ -503,9 +506,9 @@ export default function EmailSettings() {
         JSON.stringify(existingTemplate),
         `Email template config for ${existingTemplateType}`,
       );
-      success('Template sačuvan.')
+      success(t('emailSettings.templates.templateSaved'))
     } catch {
-      toastError('Greška pri čuvanju template-a.')
+      toastError(t('emailSettings.templates.templateSaveFailed'))
     } finally {
       setSavingTemplate(false);
     }
@@ -564,9 +567,9 @@ export default function EmailSettings() {
         JSON.stringify(normalized),
         'Email campaign templates (builder/html)',
       );
-      success('Kampanjski template-i sačuvani.')
+      success(t('emailSettings.campaigns.saved'))
     } catch {
-      toastError('Greška pri čuvanju kampanja.')
+      toastError(t('emailSettings.campaigns.saveFailed'))
     } finally {
       setSavingCampaigns(false);
     }
@@ -597,7 +600,7 @@ export default function EmailSettings() {
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined
-      toastError(msg || 'Neuspjelo učitavanje publike.')
+      toastError(msg || t('emailSettings.campaigns.audienceLoadFailed'))
     } finally {
       setLoadingAudience(false);
     }
@@ -605,11 +608,11 @@ export default function EmailSettings() {
 
   const handleSendCampaign = async () => {
     if (!selectedCampaign) {
-      warning('Odaberite kampanjski template.')
+      warning(t('emailSettings.campaigns.selectCampaignWarning'))
       return
     }
     if ((audienceSummary?.total || 0) <= 0) {
-      warning('Publika je prazna. Prvo izračunajte publiku.')
+      warning(t('emailSettings.campaigns.emptyAudienceWarning'))
       return
     }
     setSendingCampaign(true);
@@ -623,15 +626,18 @@ export default function EmailSettings() {
         audience: getAudiencePayload(),
       });
       success(
-        'Kampanja je poslana.',
-        `Poslano: ${data?.delivered ?? 0}, preskočeno: ${data?.skipped ?? 0}.`,
+        t('emailSettings.campaigns.sent'),
+        t('emailSettings.campaigns.sendDetails', {
+          delivered: formatLocalizedNumber(data?.delivered ?? 0, i18n.language),
+          skipped: formatLocalizedNumber(data?.skipped ?? 0, i18n.language),
+        }),
       )
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined
-      toastError(msg || 'Slanje kampanje nije uspjelo.')
+      toastError(msg || t('emailSettings.campaigns.sendFailed'))
     } finally {
       setSendingCampaign(false);
     }
@@ -641,7 +647,7 @@ export default function EmailSettings() {
     return (
       <div className="flex items-center gap-2 text-slate-500">
         <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-        Učitavanje...
+        {t('common.loading')}
       </div>
     )
   }
@@ -651,23 +657,23 @@ export default function EmailSettings() {
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-semibold text-slate-900 dark:text-slate-50">Email postavke</h1>
+      <h1 className="mb-2 text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('emailSettings.title')}</h1>
       <p className="mb-6 text-slate-600 dark:text-slate-300">
-        Konfigurišite SMTP za slanje verifikacijskih i drugih notifikacijskih emailova.
+        {t('emailSettings.description')}
       </p>
 
       <Tabs defaultValue="smtp">
         <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-2">
-          <TabsTrigger value="smtp">SMTP i infrastruktura</TabsTrigger>
-          <TabsTrigger value="templates">Postojeći template-i</TabsTrigger>
-          <TabsTrigger value="campaigns">Kampanje (Drag & Drop + HTML)</TabsTrigger>
+          <TabsTrigger value="smtp">{t('emailSettings.tabs.smtp')}</TabsTrigger>
+          <TabsTrigger value="templates">{t('emailSettings.tabs.templates')}</TabsTrigger>
+          <TabsTrigger value="campaigns">{t('emailSettings.tabs.campaigns')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="smtp" className="mt-4">
           <Card className="p-6">
             <div className="space-y-4">
               <div>
-                <Label>Provider</Label>
+                <Label>{t('emailSettings.smtp.provider')}</Label>
                 <select
                   className={`${selectClass} mt-1`}
                   value={provider}
@@ -675,7 +681,7 @@ export default function EmailSettings() {
                 >
                   {PROVIDERS.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.label}
+                      {t(`emailSettings.providers.${item.id}`)}
                     </option>
                   ))}
                 </select>
@@ -683,59 +689,59 @@ export default function EmailSettings() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>SMTP Host</Label>
+                  <Label>{t('emailSettings.smtp.host')}</Label>
                   <Input className="mt-1" value={host} onChange={(event) => setHost(event.target.value)} />
                 </div>
                 <div>
-                  <Label>SMTP Port</Label>
+                  <Label>{t('emailSettings.smtp.port')}</Label>
                   <Input className="mt-1" value={port} onChange={(event) => setPort(event.target.value)} />
                 </div>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
                 <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">Secure (TLS/SSL)</Label>
+                  <Label className="mb-0">{t('emailSettings.smtp.secure')}</Label>
                   <Switch checked={secure} onCheckedChange={setSecure} />
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">Reject TLS Unauthorized</Label>
+                  <Label className="mb-0">{t('emailSettings.smtp.rejectUnauthorized')}</Label>
                   <Switch checked={rejectUnauthorized} onCheckedChange={setRejectUnauthorized} />
                 </div>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
                 <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">Require TLS</Label>
+                  <Label className="mb-0">{t('emailSettings.smtp.requireTls')}</Label>
                   <Switch checked={requireTls} onCheckedChange={setRequireTls} />
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <Label className="mb-0">Ignore TLS</Label>
+                  <Label className="mb-0">{t('emailSettings.smtp.ignoreTls')}</Label>
                   <Switch checked={ignoreTls} onCheckedChange={setIgnoreTls} />
                 </div>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <Label className="mb-0">Pool konekcije</Label>
+                <Label className="mb-0">{t('emailSettings.smtp.connectionPool')}</Label>
                 <Switch checked={pool} onCheckedChange={setPool} />
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>SMTP Username</Label>
+                  <Label>{t('emailSettings.smtp.username')}</Label>
                   <Input className="mt-1" value={username} onChange={(event) => setUsername(event.target.value)} />
                 </div>
                 <div>
-                  <Label>SMTP Password / App Password</Label>
+                  <Label>{t('emailSettings.smtp.password')}</Label>
                   <Input
                     className="mt-1"
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    placeholder={hasPasswordConfigured ? '•••••••• (sačuvano)' : ''}
+                    placeholder={hasPasswordConfigured ? t('emailSettings.smtp.passwordSavedPlaceholder') : ''}
                   />
                   <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <p className="text-xs text-slate-500">
                       {hasPasswordConfigured
-                        ? 'Password je sačuvan (enkriptovan). Unesite novi samo ako želite promjenu.'
-                        : 'Unesite password/app password.'}
+                        ? t('emailSettings.smtp.passwordSavedHint')
+                        : t('emailSettings.smtp.passwordEntryHint')}
                     </p>
                     {hasPasswordConfigured ? (
                       <Button
@@ -744,13 +750,13 @@ export default function EmailSettings() {
                         variant="ghost"
                         className="shrink-0 text-rose-600"
                         onClick={() => {
-                          if (!window.confirm('Obrisati sačuvani SMTP password?')) return
+                          if (!window.confirm(t('emailSettings.smtp.clearPasswordConfirm'))) return
                           setClearPasswordRequested(true)
                           setHasPasswordConfigured(false)
                           setPassword('')
                         }}
                       >
-                        Obriši password
+                        {t('emailSettings.smtp.clearPassword')}
                       </Button>
                     ) : null}
                   </div>
@@ -759,7 +765,7 @@ export default function EmailSettings() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>Connection timeout (ms)</Label>
+                  <Label>{t('emailSettings.smtp.connectionTimeout')}</Label>
                   <Input
                     className="mt-1"
                     value={connectionTimeoutMs}
@@ -767,7 +773,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div>
-                  <Label>Greeting timeout (ms)</Label>
+                  <Label>{t('emailSettings.smtp.greetingTimeout')}</Label>
                   <Input
                     className="mt-1"
                     value={greetingTimeoutMs}
@@ -775,7 +781,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div>
-                  <Label>Socket timeout (ms)</Label>
+                  <Label>{t('emailSettings.smtp.socketTimeout')}</Label>
                   <Input
                     className="mt-1"
                     value={socketTimeoutMs}
@@ -783,7 +789,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div>
-                  <Label>Max konekcija / Max poruka</Label>
+                  <Label>{t('emailSettings.smtp.maxConnectionsAndMessages')}</Label>
                   <div className="mt-1 flex gap-2">
                     <Input
                       value={maxConnections}
@@ -801,7 +807,7 @@ export default function EmailSettings() {
 
               {!isCustomLike ? (
                 <p className="text-sm text-slate-500">
-                  Za {provider === 'google' ? 'Google' : 'Office 365'} koristite App Password ili OAuth SMTP credentials.
+                  {t('emailSettings.smtp.providerCredentialsHint', { provider: provider === 'google' ? 'Google' : 'Office 365' })}
                 </p>
               ) : null}
 
@@ -809,15 +815,15 @@ export default function EmailSettings() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>From Email</Label>
+                  <Label>{t('emailSettings.smtp.fromEmail')}</Label>
                   <Input className="mt-1" value={fromEmail} onChange={(event) => setFromEmail(event.target.value)} />
                 </div>
                 <div>
-                  <Label>From Name</Label>
+                  <Label>{t('emailSettings.smtp.fromName')}</Label>
                   <Input className="mt-1" value={fromName} onChange={(event) => setFromName(event.target.value)} />
                 </div>
                 <div>
-                  <Label>Reply-To</Label>
+                  <Label>{t('emailSettings.smtp.replyTo')}</Label>
                   <Input
                     className="mt-1"
                     value={replyTo}
@@ -826,11 +832,11 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div>
-                  <Label>Potpis (footer)</Label>
+                  <Label>{t('emailSettings.smtp.signature')}</Label>
                   <Input className="mt-1" value={signature} onChange={(event) => setSignature(event.target.value)} />
                 </div>
                 <div className="md:col-span-2">
-                  <Label>Public App URL (linkovi u emailovima)</Label>
+                  <Label>{t('emailSettings.smtp.publicAppUrl')}</Label>
                   <Input
                     className="mt-1"
                     value={publicAppUrl}
@@ -843,18 +849,18 @@ export default function EmailSettings() {
               <div className="flex flex-wrap gap-2">
                 <Button type="button" onClick={() => void handleSave()} disabled={saving}>
                   {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Sačuvaj email postavke
+                  {t('emailSettings.smtp.saveSettings')}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => void handleTestConnection()} disabled={testingConnection}>
                   {testingConnection ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Test konekcije
+                  {t('emailSettings.smtp.testConnection')}
                 </Button>
               </div>
 
               <Separator />
 
               <div>
-                <Label>Test email</Label>
+                <Label>{t('emailSettings.smtp.testEmail')}</Label>
                 <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
                   <Input
                     value={testEmailTo}
@@ -865,11 +871,11 @@ export default function EmailSettings() {
                   <div className="flex flex-wrap gap-2">
                     <Button type="button" variant="outline" onClick={() => void handleSendTestEmail()} disabled={sendingTest}>
                       {sendingTest ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Pošalji test
+                      {t('emailSettings.smtp.sendTest')}
                     </Button>
                     <Button type="button" variant="secondary" onClick={() => void handleSendTestToMe()} disabled={sendingTest}>
                       {sendingTest ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Pošalji meni
+                      {t('emailSettings.smtp.sendToAdmin')}
                     </Button>
                   </div>
                 </div>
@@ -883,7 +889,7 @@ export default function EmailSettings() {
             <div className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  <Label>Tip template-a</Label>
+                  <Label>{t('emailSettings.templates.selectorLabel')}</Label>
                   <select
                     className={`${selectClass} mt-1`}
                     value={existingTemplateType}
@@ -891,19 +897,19 @@ export default function EmailSettings() {
                   >
                     {EXISTING_TEMPLATE_TYPES.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.label}
+                        {t(`emailSettings.templates.types.${item.id}`)}
                       </option>
                     ))}
                   </select>
                 </div>
                 <Badge variant="brand" className="w-fit px-3 py-2">
-                  Premium Salon Design Aktiviran
+                  {t('emailSettings.templates.premiumDesignActive')}
                 </Badge>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <Label>Subject</Label>
+                  <Label>{t('emailSettings.templates.subject')}</Label>
                   <Input
                     className="mt-1"
                     value={existingTemplate.subject}
@@ -911,7 +917,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div>
-                  <Label>Naslov</Label>
+                  <Label>{t('emailSettings.templates.title')}</Label>
                   <Input
                     className="mt-1"
                     value={existingTemplate.title}
@@ -919,7 +925,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div>
-                  <Label>Intro</Label>
+                  <Label>{t('emailSettings.templates.intro')}</Label>
                   <Input
                     className="mt-1"
                     value={existingTemplate.intro}
@@ -927,7 +933,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div>
-                  <Label>CTA Label</Label>
+                  <Label>{t('emailSettings.templates.ctaLabel')}</Label>
                   <Input
                     className="mt-1"
                     value={existingTemplate.ctaLabel}
@@ -935,7 +941,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label>Body</Label>
+                  <Label>{t('emailSettings.templates.body')}</Label>
                   <Textarea
                     className="mt-1 min-h-[120px]"
                     value={existingTemplate.body}
@@ -943,7 +949,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label>CTA URL</Label>
+                  <Label>{t('emailSettings.templates.ctaUrl')}</Label>
                   <Input
                     className="mt-1"
                     value={existingTemplate.ctaUrl}
@@ -951,7 +957,7 @@ export default function EmailSettings() {
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <Label>Plain Text fallback</Label>
+                  <Label>{t('emailSettings.templates.plainTextFallback')}</Label>
                   <Textarea
                     className="mt-1 min-h-[120px]"
                     value={existingTemplate.plainText}
@@ -962,7 +968,7 @@ export default function EmailSettings() {
 
               <Button type="button" onClick={() => void handleSaveExistingTemplate()} disabled={savingTemplate}>
                 {savingTemplate ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Sačuvaj postojeći template
+                {t('emailSettings.templates.saveExisting')}
               </Button>
             </div>
           </Card>
@@ -975,7 +981,7 @@ export default function EmailSettings() {
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <Button type="button" variant="outline" onClick={handleCreateCampaign}>
                     <Plus className="mr-2 h-4 w-4" />
-                    Novi kampanjski template
+                    {t('emailSettings.campaigns.newTemplate')}
                   </Button>
                   <select
                     className={`${selectClass} sm:w-[320px]`}
@@ -993,8 +999,8 @@ export default function EmailSettings() {
                     value={campaignMode}
                     onChange={(event) => setCampaignMode(event.target.value as 'builder' | 'html')}
                   >
-                    <option value="builder">Drag & Drop Builder</option>
-                    <option value="html">HTML Editor</option>
+                    <option value="builder">{t('emailSettings.campaigns.builderMode')}</option>
+                    <option value="html">{t('emailSettings.campaigns.htmlMode')}</option>
                   </select>
                 </div>
               </div>
@@ -1003,7 +1009,7 @@ export default function EmailSettings() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <Label>Naziv template-a</Label>
+                      <Label>{t('emailSettings.campaigns.templateName')}</Label>
                       <Input
                         className="mt-1"
                         value={selectedCampaign.name}
@@ -1013,21 +1019,21 @@ export default function EmailSettings() {
                       />
                     </div>
                     <div>
-                      <Label>Subject kampanje (override)</Label>
+                      <Label>{t('emailSettings.campaigns.subjectOverride')}</Label>
                       <Input
                         className="mt-1"
                         value={campaignSubject}
                         onChange={(event) => setCampaignSubject(event.target.value)}
-                        placeholder="npr. Ekskluzivna premium ponuda za vas"
+                        placeholder={t('emailSettings.campaigns.subjectPlaceholder')}
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <Label>Naziv kampanje (interno)</Label>
+                      <Label>{t('emailSettings.campaigns.internalName')}</Label>
                       <Input
                         className="mt-1"
                         value={campaignName}
                         onChange={(event) => setCampaignName(event.target.value)}
-                        placeholder="npr. Proljetna kampanja 2026"
+                        placeholder={t('emailSettings.campaigns.internalNamePlaceholder')}
                       />
                     </div>
                   </div>
@@ -1046,7 +1052,7 @@ export default function EmailSettings() {
                             })
                           }
                         >
-                          + Naslov
+                          + {t('emailSettings.campaigns.addTitle')}
                         </Button>
                         <Button
                           type="button"
@@ -1059,7 +1065,7 @@ export default function EmailSettings() {
                             })
                           }
                         >
-                          + Tekst
+                          + {t('emailSettings.campaigns.addText')}
                         </Button>
                         <Button
                           type="button"
@@ -1072,7 +1078,7 @@ export default function EmailSettings() {
                             })
                           }
                         >
-                          + Dugme
+                          + {t('emailSettings.campaigns.addButton')}
                         </Button>
                         <Button
                           type="button"
@@ -1085,7 +1091,7 @@ export default function EmailSettings() {
                             })
                           }
                         >
-                          + Razmak
+                          + {t('emailSettings.campaigns.addSpacer')}
                         </Button>
                       </div>
 
@@ -1102,7 +1108,7 @@ export default function EmailSettings() {
                             <div className="space-y-2">
                               <div className="flex items-center justify-between gap-2">
                                 <Badge variant="secondary" className="text-[10px]">
-                                  {block.type.toUpperCase()}
+                                  {t(`emailSettings.campaigns.blockTypes.${block.type}`)}
                                 </Badge>
                                 <div className="flex items-center gap-1">
                                   <Button
@@ -1110,7 +1116,7 @@ export default function EmailSettings() {
                                     size="icon"
                                     variant="ghost"
                                     className="h-8 w-8"
-                                    aria-label="Move up"
+                                    aria-label={t('emailSettings.campaigns.moveUp')}
                                     onClick={() =>
                                       updateSelectedCampaign((current) => {
                                         if (index === 0) return current
@@ -1129,7 +1135,7 @@ export default function EmailSettings() {
                                     size="icon"
                                     variant="ghost"
                                     className="h-8 w-8"
-                                    aria-label="Move down"
+                                    aria-label={t('emailSettings.campaigns.moveDown')}
                                     onClick={() =>
                                       updateSelectedCampaign((current) => {
                                         if (index === current.blocks.length - 1) return current
@@ -1148,7 +1154,7 @@ export default function EmailSettings() {
                                     size="icon"
                                     variant="ghost"
                                     className="h-8 w-8 text-rose-600"
-                                    aria-label="Delete block"
+                                    aria-label={t('emailSettings.campaigns.deleteBlock')}
                                     onClick={() =>
                                       updateSelectedCampaign((current) => {
                                         const nextBlocks = current.blocks.filter((item) => item.id !== block.id)
@@ -1174,7 +1180,7 @@ export default function EmailSettings() {
                               />
                               {block.type === 'button' ? (
                                 <Input
-                                  placeholder="Button URL"
+                                  placeholder={t('emailSettings.campaigns.buttonUrl')}
                                   value={block.secondary || ''}
                                   onChange={(event) =>
                                     updateSelectedCampaign((current) => {
@@ -1193,7 +1199,7 @@ export default function EmailSettings() {
                     </div>
                   ) : (
                     <div>
-                      <Label>HTML</Label>
+                      <Label>{t('emailSettings.campaigns.htmlLabel')}</Label>
                       <Textarea
                         className="mt-1 min-h-[320px]"
                         value={selectedCampaign.html}
@@ -1205,7 +1211,7 @@ export default function EmailSettings() {
                   )}
 
                   <div>
-                    <Label>HTML Preview Source</Label>
+                    <Label>{t('emailSettings.campaigns.htmlPreviewSource')}</Label>
                     <pre className="mt-1 max-h-[280px] overflow-auto rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-100">
                       {(campaignMode === 'builder'
                         ? renderCampaignHtml(selectedCampaign.blocks)
@@ -1217,7 +1223,9 @@ export default function EmailSettings() {
                   <Separator />
 
                   <div className="space-y-3">
-                    <p className="font-semibold text-slate-900 dark:text-slate-50">Publika kampanje</p>
+                    <p className="font-semibold text-slate-900 dark:text-slate-50">
+                      {t('emailSettings.campaigns.audienceHeading')}
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {['CLIENT', 'STYLIST', 'SYSTEM_ADMIN', 'OWNER'].map((role) => (
                         <Button
@@ -1227,21 +1235,21 @@ export default function EmailSettings() {
                           variant={campaignRoles.includes(role) ? 'default' : 'outline'}
                           onClick={() => handleToggleCampaignRole(role)}
                         >
-                          {role}
+                          {t(`users.roleNames.${role}`)}
                         </Button>
                       ))}
                     </div>
                     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
                       <div className="flex items-center justify-between gap-3">
-                        <Label className="mb-0">Samo aktivni korisnici</Label>
+                        <Label className="mb-0">{t('emailSettings.campaigns.onlyActiveUsers')}</Label>
                         <Switch checked={onlyActiveAudience} onCheckedChange={setOnlyActiveAudience} />
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <Label className="mb-0">Samo email-verifikovani</Label>
+                        <Label className="mb-0">{t('emailSettings.campaigns.onlyVerifiedUsers')}</Label>
                         <Switch checked={onlyVerifiedAudience} onCheckedChange={setOnlyVerifiedAudience} />
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <Label className="mb-0">Kreiraj in-app notifikaciju</Label>
+                        <Label className="mb-0">{t('emailSettings.campaigns.createInAppNotification')}</Label>
                         <Switch
                           checked={createInAppNotification}
                           onCheckedChange={setCreateInAppNotification}
@@ -1257,7 +1265,7 @@ export default function EmailSettings() {
                         disabled={loadingAudience}
                       >
                         {loadingAudience ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        Izračunaj publiku
+                        {t('emailSettings.campaigns.calculateAudience')}
                       </Button>
                       <Button
                         type="button"
@@ -1266,23 +1274,28 @@ export default function EmailSettings() {
                         disabled={sendingCampaign}
                       >
                         {sendingCampaign ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        Pošalji kampanju
+                        {t('emailSettings.campaigns.sendCampaign')}
                       </Button>
                     </div>
 
                     {audienceSummary ? (
                       <div className="space-y-2">
                         <Badge variant="brand" className="w-fit px-3 py-1">
-                          Ukupno primaoca: {audienceSummary.total}
+                          {t('emailSettings.campaigns.totalRecipients', {
+                            total: formatLocalizedNumber(audienceSummary.total, i18n.language),
+                          })}
                         </Badge>
                         <p className="text-sm text-slate-600 dark:text-slate-300">
-                          Sample (prvih 10): {audienceSummary.sample.map((item) => item.username).join(', ') || '-'}
+                          {t('emailSettings.campaigns.sampleFirstTen', {
+                            names: audienceSummary.sample.map((item) => item.username).join(', ') || '-',
+                          })}
                         </p>
                       </div>
                     ) : null}
 
                     <p className="text-xs text-slate-500">
-                      Dinamičke varijable u kampanji: {'{{firstName}}'} {'{{lastName}}'} {'{{username}}'} {'{{email}}'} {'{{appUrl}}'}
+                      {t('emailSettings.campaigns.dynamicVariables')}{' '}
+                      {'{{firstName}}'} {'{{lastName}}'} {'{{username}}'} {'{{email}}'} {'{{appUrl}}'}
                     </p>
 
                     <Button
@@ -1292,13 +1305,15 @@ export default function EmailSettings() {
                       disabled={savingCampaigns}
                     >
                       {savingCampaigns ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Sačuvaj kampanjske template-e
+                      {t('emailSettings.campaigns.saveTemplates')}
                     </Button>
                   </div>
                 </div>
               ) : (
                 <p className="text-sm text-slate-500">
-                  Još nema kampanjskih template-a. Kliknite na "Novi kampanjski template".
+                  {t('emailSettings.campaigns.noTemplates', {
+                    action: t('emailSettings.campaigns.newTemplate'),
+                  })}
                 </p>
               )}
             </div>

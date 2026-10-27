@@ -3,6 +3,7 @@ import * as Application from 'expo-application';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
 import * as SecureStore from 'expo-secure-store';
+import { getSalonDateOnly } from '../../../../shared/business-date.mjs';
 import { base64ToBytes, Sha256 } from './sha256';
 
 export type LatestAndroidRelease = {
@@ -59,13 +60,13 @@ export const decideUpdate = (
 };
 
 export const wasSoftPromptShownToday = async (): Promise<boolean> => {
-  const day = new Date().toISOString().slice(0, 10);
+  const day = getSalonDateOnly();
   const stored = await SecureStore.getItemAsync(SOFT_PROMPT_KEY);
   return stored === day;
 };
 
 export const markSoftPromptShownToday = async (): Promise<void> => {
-  const day = new Date().toISOString().slice(0, 10);
+  const day = getSalonDateOnly();
   await SecureStore.setItemAsync(SOFT_PROMPT_KEY, day);
 };
 

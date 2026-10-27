@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { cn } from '../../lib/cn'
 
@@ -17,6 +18,7 @@ export const OtpInput = ({
   disabled,
   className,
 }: Props) => {
+  const { t } = useTranslation()
   const inputsRef = React.useRef<Array<HTMLInputElement | null>>([])
 
   const digits = React.useMemo(() => {
@@ -64,8 +66,8 @@ export const OtpInput = ({
             if (e.key === 'ArrowLeft' && i > 0) inputsRef.current[i - 1]?.focus()
             if (e.key === 'ArrowRight' && i < length - 1) inputsRef.current[i + 1]?.focus()
           }}
-          className="h-11 w-10 rounded-md border border-slate-200 bg-white text-center text-base font-semibold text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50"
-          aria-label={`Cifra ${i + 1}`}
+          className="h-11 w-10 rounded-md border border-slate-200 bg-white text-center text-base font-semibold text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50"
+          aria-label={`${t('common.digit')} ${i + 1}`}
         />
       ))}
     </div>

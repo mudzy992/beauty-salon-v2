@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReservationDateService } from './reservation-date.service';
+import { getDateOnlyDayBounds } from '../common/utils/date-only';
 import { ReservationSharedService } from './reservation-shared.service';
 import { RESERVATION_STATUS } from './constants';
 import { minutesToTime, timeToMinutes } from './utils/time-slot.utils';
@@ -74,8 +75,7 @@ export class ReservationRescheduleService {
           ) - plannedDuration
         : Number.NEGATIVE_INFINITY;
     const diffByClock =
-      referenceTime.getHours() * 60 +
-      referenceTime.getMinutes() -
+      timeToMinutes(this.dates.toSalonTimeString(referenceTime)) -
       timeToMinutes(r.endTime);
     const diffByTimestamp = Math.floor(
       (referenceTime.getTime() - plannedEnd.getTime()) / 60000,
@@ -107,14 +107,13 @@ export class ReservationRescheduleService {
         items: [] as any[],
       };
     }
-    const dayStart = new Date(r.reservationDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(r.reservationDate);
-    dayEnd.setHours(23, 59, 59, 999);
+    const { gte, lt } = getDateOnlyDayBounds(
+      this.dates.toDateOnlyString(r.reservationDate),
+    );
     const future = await this.prisma.reservation.findMany({
       where: {
         confirmedStylistId: stylistProfileId,
-        reservationDate: { gte: dayStart, lte: dayEnd },
+        reservationDate: { gte, lt },
         startTime: { gt: r.startTime },
         status: {
           in: [

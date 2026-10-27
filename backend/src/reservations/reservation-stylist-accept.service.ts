@@ -1,23 +1,26 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toDateOnlyString } from '../common/utils/date-only';
 import { NotificationsService } from '../notifications/notifications.service';
 import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
 import { buildConfirmedCopy } from '../notifications/utils/reservation-push-copy';
 import { EventsGateway } from '../events/events.gateway';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
-import {
-  RESERVATION_STATUS,
-  SLOT_OCCUPYING_STATUSES,
-} from './constants';
+import { RESERVATION_STATUS } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
-import { intervalsOverlap, timeToMinutes } from './utils/time-slot.utils';
 import { isActiveLock } from './utils/slot-hold.utils';
+import { assertStylistSlotCapacity } from './utils/assert-stylist-slot-capacity';
+import {
+  acquireReservationDayLock,
+  reservationDayKey,
+} from './utils/booking-advisory-lock';
 
 @Injectable()
 export class ReservationStylistAcceptService {
@@ -38,73 +41,107 @@ export class ReservationStylistAcceptService {
       where: { id: stylistProfileId },
       select: { userId: true },
     });
-    if (!stylist || stylist.userId !== userId)
+    if (!stylist || stylist.userId !== userId) {
       throw new ForbiddenException(
         'Možete raditi samo na vlastitom profilu stilista.',
       );
-    const res = await this.prisma.reservation.findUnique({
+    }
+
+    const snapshot = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
-      include: { stylistResponses: true },
+      select: { reservationDate: true },
     });
-    if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
-    const response = res.stylistResponses.find(
-      (r) => r.stylistProfileId === stylistProfileId,
-    );
-    if (!response)
-      throw new NotFoundException(
-        'Odgovor za ovog stilista nije pronađen.',
-      );
-    const now = new Date();
-    const otherLock = res.stylistResponses.find(
-      (r) =>
-        r.stylistProfileId !== stylistProfileId && isActiveLock(r, now),
-    );
-    if (otherLock) {
-      throw new BadRequestException(
-        'Drugi stilist trenutno razmatra ovu rezervaciju.',
-      );
-    }
-    const ownActive = isActiveLock(response, now);
-    const canAcceptWithoutLock =
-      !ownActive &&
-      response.hasLockedOnce &&
-      (response.status === 'PENDING' || response.status === 'LOCKED');
-    if (!ownActive && !canAcceptWithoutLock) {
-      throw new BadRequestException(
-        'Prvo zaključajte rezervaciju (lock).',
-      );
-    }
-    const dayStart = new Date(res.reservationDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(res.reservationDate);
-    dayEnd.setHours(23, 59, 59, 999);
-    const sameDay = await this.prisma.reservation.findMany({
-      where: {
-        id: { not: reservationId },
-        confirmedStylistId: stylistProfileId,
-        reservationDate: { gte: dayStart, lte: dayEnd },
-        status: { in: [...SLOT_OCCUPYING_STATUSES] as any },
-      },
-      select: { id: true, startTime: true, endTime: true },
-    });
-    const acceptStart = timeToMinutes(res.startTime);
-    const acceptEnd = timeToMinutes(res.endTime);
-    const hasOverlap = sameDay.some((other) =>
-      intervalsOverlap(
-        acceptStart,
-        acceptEnd,
-        timeToMinutes(other.startTime),
-        timeToMinutes(other.endTime),
-      ),
-    );
-    if (hasOverlap) {
-      throw new BadRequestException(
-        'Imate već potvrđen termin koji se preklapa s ovim vremenom.',
-      );
-    }
-    await this.prisma.$transaction([
-      this.prisma.reservation.update({
+    if (!snapshot) throw new NotFoundException('Rezervacija nije pronađena.');
+
+    await this.prisma.$transaction(async (tx) => {
+      await acquireReservationDayLock(tx, snapshot.reservationDate);
+      const res = await tx.reservation.findUnique({
         where: { id: reservationId },
+        include: {
+          stylistResponses: true,
+          items: { select: { serviceId: true } },
+        },
+      });
+      if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
+      if (
+        res.reservationDate.getTime() !== snapshot.reservationDate.getTime()
+      ) {
+        throw new ConflictException(
+          'Termin je istovremeno pomjeren. Osvježite rezervaciju i pokušajte ponovo.',
+        );
+      }
+      if (
+        res.status !== RESERVATION_STATUS.PENDING &&
+        res.status !== RESERVATION_STATUS.STYLIST_REVIEW
+      ) {
+        throw new BadRequestException(
+          'Rezervacija više nije u fazi odgovora stilista.',
+        );
+      }
+
+      const response = res.stylistResponses.find(
+        (row) => row.stylistProfileId === stylistProfileId,
+      );
+      if (!response) {
+        throw new NotFoundException('Odgovor za ovog stilista nije pronađen.');
+      }
+      const now = new Date();
+      const otherLock = res.stylistResponses.find(
+        (row) =>
+          row.stylistProfileId !== stylistProfileId && isActiveLock(row, now),
+      );
+      if (otherLock) {
+        throw new BadRequestException(
+          'Drugi stilist trenutno razmatra ovu rezervaciju.',
+        );
+      }
+
+      const ownActive = isActiveLock(response, now);
+      const canAcceptWithoutLock =
+        !ownActive &&
+        response.hasLockedOnce &&
+        (response.status === 'PENDING' || response.status === 'LOCKED');
+      if (!ownActive && !canAcceptWithoutLock) {
+        throw new BadRequestException('Prvo zaključajte rezervaciju (lock).');
+      }
+
+      const serviceIds =
+        res.items.length > 0
+          ? res.items.map((item) => item.serviceId)
+          : [res.serviceId];
+      await assertStylistSlotCapacity({
+        db: tx,
+        serviceIds,
+        date: reservationDayKey(res.reservationDate),
+        startTime: res.startTime,
+        endTime: res.endTime,
+        stylistProfileId,
+        excludeReservationId: res.id,
+      });
+
+      const responseUpdate = await tx.reservationStylistResponse.updateMany({
+        where: {
+          reservationId,
+          stylistProfileId,
+          status: response.status,
+          hasLockedOnce: response.hasLockedOnce,
+          lockExpiresAt: response.lockExpiresAt,
+        },
+        data: { status: 'ACCEPTED', respondedAt: now },
+      });
+      if (responseUpdate.count !== 1) {
+        throw new ConflictException(
+          'Odgovor stilista je istovremeno promijenjen. Osvježite rezervaciju.',
+        );
+      }
+
+      const reservationUpdate = await tx.reservation.updateMany({
+        where: {
+          id: reservationId,
+          status: res.status,
+          reservationDate: res.reservationDate,
+          confirmedStylistId: null,
+        },
         data: {
           status: this.shared.transitionTo(
             res.status,
@@ -112,17 +149,14 @@ export class ReservationStylistAcceptService {
           ),
           confirmedStylistId: stylistProfileId,
         },
-      }),
-      this.prisma.reservationStylistResponse.update({
-        where: {
-          reservationId_stylistProfileId: {
-            reservationId,
-            stylistProfileId,
-          },
-        },
-        data: { status: 'ACCEPTED', respondedAt: new Date() },
-      }),
-      this.prisma.reservationStylistResponse.updateMany({
+      });
+      if (reservationUpdate.count !== 1) {
+        throw new ConflictException(
+          'Rezervacija je istovremeno promijenjena. Osvježite rezervaciju.',
+        );
+      }
+
+      await tx.reservationStylistResponse.updateMany({
         where: {
           reservationId,
           stylistProfileId: { not: stylistProfileId },
@@ -133,8 +167,9 @@ export class ReservationStylistAcceptService {
           lockedAt: null,
           lockExpiresAt: null,
         },
-      }),
-    ]);
+      });
+    });
+
     const resWithClient = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
       select: {
@@ -168,10 +203,7 @@ export class ReservationStylistAcceptService {
       username: '',
       email: '',
     });
-    this.events.emitToAdmins(
-      SOCKET_EVENTS.RESERVATION_CONFIRMED,
-      accepted,
-    );
+    this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CONFIRMED, accepted);
     if (resWithClient?.clientId) {
       this.events.emitToUser(
         resWithClient.clientId,
@@ -181,7 +213,7 @@ export class ReservationStylistAcceptService {
     }
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
       serviceId: accepted.serviceId,
-      date: accepted.reservationDate,
+      date: toDateOnlyString(accepted.reservationDate),
     });
     return accepted;
   }

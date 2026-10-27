@@ -57,6 +57,7 @@ describe('ReservationRuntimeCancelService — stylistMarkNoShow', () => {
       reservationDate: new Date('2026-03-20'),
       confirmedStylistId: 'sp-1',
       status: 'ATTENDANCE_CONFIRMED',
+      items: [],
     });
     mockPrisma.salonSettings.findFirst.mockResolvedValue({
       maxCancellationsBeforePenalty: 3,
@@ -95,6 +96,7 @@ describe('ReservationRuntimeCancelService — stylistMarkNoShow', () => {
       reservationDate: new Date('2026-03-20'),
       confirmedStylistId: 'sp-1',
       status: 'CONFIRMED',
+      items: [],
     });
 
     await service.stylistMarkNoShow('res-1', 'user-1', {

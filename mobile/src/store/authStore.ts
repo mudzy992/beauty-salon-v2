@@ -11,6 +11,7 @@ interface AuthState {
 
   initialize: () => Promise<void>;
   login: (login: string, password: string) => Promise<void>;
+  replaceToken: (token: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -98,6 +99,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
         set({ isLoading: false });
         throw error;
       }
+    },
+
+    replaceToken: async (token: string) => {
+      await setStoredToken(token);
+      set({ token });
     },
 
     register: async (registerData: RegisterData) => {

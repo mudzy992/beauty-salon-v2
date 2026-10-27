@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -22,11 +22,16 @@ import { Card } from '../../components/ui/Card';
 import { MediaBackdrop } from '../../components/MediaImage';
 import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
+import { fetchAllPublicServices } from '../../services/catalog';
 import { spacing, borderRadius } from '../../theme';
-import { formatDate, formatTime, getDateRange } from '../../utils/date';
+import { formatDate, formatTime, getDateRange, getSalonDateOnly, getSalonTime } from '../../utils/date';
 import { useAvailabilitySocketRefresh } from '../../hooks/useAvailabilitySocketRefresh';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Service, AvailableDate, TimeSlot } from '../../types';
+import {
+  createIdempotencyKey,
+  type PendingIdempotentRequest,
+} from '../../utils/idempotency-key';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -75,6 +80,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
   const [payDebtsIntent, setPayDebtsIntent] = useState(false);
   const [openDebtsTotal, setOpenDebtsTotal] = useState(0);
+  const bookingAttemptRef = useRef<PendingIdempotentRequest>(null);
   const servicesById = useMemo(
     () => new Map(services.map((service) => [service.id, service])),
     [services],
@@ -93,10 +99,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   useEffect(() => {
     (async () => {
       try {
-        const { data } = await api.get<Service[]>('/api/services', {
-          params: { activeOnly: true },
-        });
-        setServices(Array.isArray(data) ? data : []);
+        setServices(await fetchAllPublicServices<Service>({ activeOnly: true }));
       } catch { /* silent */ }
     })();
   }, []);
@@ -296,16 +299,25 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       return;
     }
     setSubmitting(true);
+    const payload = {
+      serviceIds: selectedServiceIds,
+      reservationDate: selectedDate,
+      startTime: selectedSlot.startTime,
+      endTime: selectedSlot.endTime,
+      clientNotes: notes.trim() || undefined,
+      ...(desiredLoyaltyPercent > 0 ? { desiredLoyaltyPercent } : {}),
+      ...(payDebtsIntent ? { payDebtsIntent: true } : {}),
+    };
+    const fingerprint = JSON.stringify(payload);
+    const pending = bookingAttemptRef.current;
+    const idempotencyKey =
+      pending?.fingerprint === fingerprint ? pending.key : createIdempotencyKey();
+    bookingAttemptRef.current = { fingerprint, key: idempotencyKey };
     try {
-      await api.post('/api/reservations', {
-        serviceIds: selectedServiceIds,
-        reservationDate: selectedDate,
-        startTime: selectedSlot.startTime,
-        endTime: selectedSlot.endTime,
-        clientNotes: notes.trim() || undefined,
-        ...(desiredLoyaltyPercent > 0 ? { desiredLoyaltyPercent } : {}),
-        ...(payDebtsIntent ? { payDebtsIntent: true } : {}),
+      await api.post('/api/reservations', payload, {
+        headers: { 'Idempotency-Key': idempotencyKey },
       });
+      bookingAttemptRef.current = null;
       Alert.alert(t('reservation.success'), t('reservation.successMessage'), [
         {
           text: t('common.ok'),
@@ -493,7 +505,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             <Calendar
               onDayPress={handleSelectDate}
               markedDates={markedDates}
-              minDate={new Date().toISOString().split('T')[0]}
+              minDate={getSalonDateOnly()}
               theme={{
                 backgroundColor: colors.background,
                 calendarBackground: colors.card,
@@ -556,9 +568,9 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
               {slots.map((slot, idx) => {
                 const isSelected = selectedSlot?.startTime === slot.startTime;
                 const now = new Date();
-                const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                const isPastSlot = selectedDate === todayLocal && slot.startTime.slice(0, 5) < nowHHMM;
+                const todaySalon = getSalonDateOnly(now);
+                const nowHHMM = getSalonTime(now);
+                const isPastSlot = selectedDate === todaySalon && slot.startTime.slice(0, 5) < nowHHMM;
                 const isHeld = slot.holdState === 'pending_hold' && slot.availableStylistCount === 0;
                 const isDisabled = isPastSlot || isHeld;
                 return (

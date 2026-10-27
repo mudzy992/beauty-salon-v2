@@ -175,6 +175,7 @@ export function ExpenseDialog({
           <Textarea
             id="expense-notes"
             rows={2}
+            maxLength={2000}
             value={f.form.notes}
             onChange={(e) => f.update({ notes: e.target.value })}
           />

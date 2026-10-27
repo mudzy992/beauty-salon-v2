@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import api from '../api/client'
 import { getErrorMessage } from '../api/error'
 import { useAppToast } from '../lib/toast/useAppToast'
+import { formatLocalizedNumber } from '../i18n/locale-utils.mjs'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -33,8 +34,14 @@ const statusVariant = (s: ReleaseStatus): 'warning' | 'success' | 'default' => {
 }
 
 export default function AppReleases() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { success, error } = useAppToast()
+  const language = i18n.resolvedLanguage ?? i18n.language
+  const statusLabels: Record<ReleaseStatus, string> = {
+    DRAFT: t('appReleases.status.draft'),
+    PUBLISHED: t('appReleases.status.published'),
+    RETIRED: t('appReleases.status.retired'),
+  }
   const [rows, setRows] = useState<AppRelease[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -170,14 +177,19 @@ export default function AppReleases() {
                     <span className="font-medium">
                       {r.version} ({r.versionCode})
                     </span>
-                    <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
+                    <Badge variant={statusVariant(r.status)}>{statusLabels[r.status]}</Badge>
                     {r.forceUpdate ? (
                       <Badge variant="danger">{t('appReleases.forceUpdate')}</Badge>
                     ) : null}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    min {r.minSupportedVersionCode} ·{' '}
-                    {(r.apkSizeBytes / (1024 * 1024)).toFixed(1)} MB
+                    {t('appReleases.minSupportedValue', {
+                      versionCode: r.minSupportedVersionCode,
+                      size: formatLocalizedNumber(r.apkSizeBytes / (1024 * 1024), language, {
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      }),
+                    })}
                   </p>
                   {r.releaseNotes ? (
                     <p className="text-sm text-muted-foreground">{r.releaseNotes}</p>

@@ -1,28 +1,12 @@
-import { PrismaService } from '../../prisma/prisma.service';
-import { toLocalDateOnlyString } from '../../common/utils/date-only';
+import { toDateOnlyString } from '../../common/utils/date-only';
+import type { Prisma } from '@prisma/client';
+import { getStylistIdsForServices } from './service-eligibility';
 import { timeToMinutes } from './time-slot.utils';
 
-export async function getStylistIdsForServices(
-  prisma: PrismaService,
-  serviceIds: string[],
-): Promise<string[]> {
-  const uniqueIds = [...new Set(serviceIds.map((x) => x.trim()).filter(Boolean))];
-  if (uniqueIds.length === 0) return [];
-  const rows = await prisma.stylistService.findMany({
-    where: { serviceId: { in: uniqueIds } },
-    select: { stylistProfileId: true, serviceId: true },
-  });
-  const counts = new Map<string, number>();
-  for (const r of rows) {
-    counts.set(r.stylistProfileId, (counts.get(r.stylistProfileId) ?? 0) + 1);
-  }
-  return [...counts.entries()]
-    .filter(([, c]) => c === uniqueIds.length)
-    .map(([stylistProfileId]) => stylistProfileId);
-}
+export { getStylistIdsForServices } from './service-eligibility';
 
 export async function getStylistProfilesForSlots(
-  prisma: PrismaService,
+  prisma: Pick<Prisma.TransactionClient, 'stylistService' | 'stylistProfile'>,
   serviceIds: string[],
   dayOfWeek: number,
   dateStr: string,
@@ -39,7 +23,7 @@ export async function getStylistProfilesForSlots(
   const result: Array<{ id: string; window: { start: number; end: number } }> = [];
   for (const s of allStylists) {
     const override = s.workingHours.find(
-      (wh) => wh.dateOverride && toLocalDateOnlyString(wh.dateOverride) === dateStr,
+      (wh) => wh.dateOverride && toDateOnlyString(wh.dateOverride) === dateStr,
     );
     const regular = s.workingHours.find(
       (wh) => !wh.dateOverride && wh.dayOfWeek === dayOfWeek,

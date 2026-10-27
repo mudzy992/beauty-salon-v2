@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  parseDateOnlyString,
+  toDateOnlyStringInTimeZone,
+} from '../common/utils/date-only';
 import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { CreateSalonSettingsDto } from './dto/create-salon-settings.dto';
@@ -7,6 +11,14 @@ import { UpdateSalonSettingsDto } from './dto/update-salon-settings.dto';
 import { WorkingHoursDto } from './dto/working-hours.dto';
 import { CreateHolidayDto } from './dto/create-holiday.dto';
 import { UpdateHolidayDto } from './dto/update-holiday.dto';
+
+const parseHolidayDate = (value: string): Date => {
+  try {
+    return parseDateOnlyString(value);
+  } catch {
+    throw new BadRequestException('Datum praznika nije validan.');
+  }
+};
 
 @Injectable()
 export class SalonService {
@@ -36,7 +48,13 @@ export class SalonService {
       include: {
         workingHours: true,
         holidays: {
-          where: { date: { gte: new Date() } },
+          where: {
+            date: {
+              gte: parseHolidayDate(
+                toDateOnlyStringInTimeZone(new Date()),
+              ),
+            },
+          },
           orderBy: { date: 'asc' },
         },
       },
@@ -122,7 +140,7 @@ export class SalonService {
       await this.setWorkingHours(id, dto.workingHours);
     }
     const updated = await this.findOne(id);
-    this.events.emitToAll(SOCKET_EVENTS.SALON_UPDATED, updated);
+    this.events.emitToAll(SOCKET_EVENTS.SALON_UPDATED, { key: 'salon' });
     return updated;
   }
 
@@ -161,7 +179,7 @@ export class SalonService {
     return this.prisma.holiday.create({
       data: {
         salonSettingsId,
-        date: new Date(dto.date),
+        date: parseHolidayDate(dto.date),
         name: dto.name,
         message: dto.message,
         sendPush: dto.sendPush ?? false,
@@ -177,7 +195,7 @@ export class SalonService {
     return this.prisma.holiday.update({
       where: { id: holidayId },
       data: {
-        ...(dto.date != null && { date: new Date(dto.date) }),
+        ...(dto.date != null && { date: parseHolidayDate(dto.date) }),
         ...(dto.name != null && { name: dto.name }),
         ...(dto.message !== undefined && { message: dto.message }),
         ...(dto.sendPush !== undefined && { sendPush: dto.sendPush }),

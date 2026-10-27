@@ -24,7 +24,7 @@ import { formatExpenseNotesSummary } from './expense-notes'
 import { useExpenseBook, useExpenseBookMutations } from '../hooks/use-expense-books'
 import { useExpenseCategories } from '../hooks/use-expense-catalog'
 import { exportRowsToCsv, printReport } from '../export.utils'
-import { formatIsoDateBs, formatMoney, formatPeriod, toNumber } from '../finance.utils'
+import { formatInstantDateBs, formatMoney, formatPeriod, toNumber } from '../finance.utils'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import type {
   Expense,
@@ -128,7 +128,7 @@ export function ExpenseBookDetail({
     exportRowsToCsv({
       filename: `KUF-${book.year}-${String(book.month).padStart(2, '0')}`,
       columns: [
-        { header: 'Datum', value: (e: Expense) => formatIsoDateBs(e.createdAt) },
+        { header: 'Datum', value: (e: Expense) => formatInstantDateBs(e.createdAt) },
         { header: 'Naziv', value: (e: Expense) => e.title },
         { header: 'Kategorija', value: (e: Expense) => e.category?.name ?? '' },
         { header: 'Iznos', value: (e: Expense) => toNumber(e.totalAmount).toFixed(2) },
@@ -148,7 +148,7 @@ export function ExpenseBookDetail({
       subtitle: `${expenses.length} stavki · ${isLocked ? 'zaključana' : 'otvorena'}`,
       headers: ['Datum', 'Naziv', 'Kategorija', 'Iznos'],
       rows: expenses.map((e) => [
-        formatIsoDateBs(e.createdAt),
+        formatInstantDateBs(e.createdAt),
         e.title,
         e.category?.name ?? '—',
         formatMoney(e.totalAmount),

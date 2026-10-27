@@ -1,4 +1,5 @@
 import { Pencil } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
@@ -15,20 +16,22 @@ export function SettingEditorDisplay({
   setting: AppSetting | undefined
   onEdit: () => void
 }) {
+  const { t } = useTranslation()
+  const displayLabel = def.label ?? def.desc
   const hasValue = setting?.value !== null && setting?.value !== undefined && setting?.value !== ''
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{def.desc}</p>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{displayLabel}</p>
             <Badge variant={hasValue ? 'success' : 'secondary'} className="text-[10px]">
-              {hasValue ? 'Postavljeno' : 'Nije postavljeno'}
+              {hasValue ? t('adminSettings.editor.configured') : t('adminSettings.editor.notConfigured')}
             </Badge>
           </div>
           <p className="mb-1 font-mono text-xs text-slate-400">{def.key}</p>
           {hasValue && def.type === 'image' && setting?.value ? (
-            <MediaImage src={getUploadUrl(setting.value)} alt={def.key} className="mt-2 max-h-20 w-auto rounded-md object-cover" />
+            <MediaImage src={getUploadUrl(setting.value)} alt={displayLabel} className="mt-2 max-h-20 w-auto rounded-md object-cover" />
           ) : null}
           {hasValue && def.type === 'color' && setting?.value ? (
             <div className="mt-2 flex items-center gap-2">
@@ -45,7 +48,7 @@ export function SettingEditorDisplay({
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={onEdit}>
           <Pencil className="mr-2 h-4 w-4" />
-          {hasValue ? 'Uredi' : 'Postavi'}
+          {hasValue ? t('common.edit') : t('adminSettings.editor.configure')}
         </Button>
       </div>
     </Card>

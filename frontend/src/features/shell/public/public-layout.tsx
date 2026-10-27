@@ -20,12 +20,10 @@ import { useSettings } from '../../../context/SettingsContext'
 import { getClientMandatoryOnboardingPath, normalizeRoles } from '../../../utils/clientOnboarding'
 import { isPublicFeatureOn } from './public-features'
 import { getUploadUrl } from '../../../utils/uploadUrl'
+import { LanguageSwitcher } from '../../../components/i18n/language-switcher'
 
 type PublicFeatureFlag = 'public_feature_blog' | 'public_feature_gallery' | 'public_feature_reviews'
 type PublicNavItem = { path: string; labelKey: string; flag?: PublicFeatureFlag }
-
-const DEFAULT_MAINTENANCE_TEXT =
-  'Radimo na poboljšanjima. Javna stranica je privremeno nedostupna. Pokušajte kasnije.'
 
 const publicNav: PublicNavItem[] = [
   { path: '/', labelKey: 'public.nav.home' },
@@ -66,7 +64,7 @@ export const PublicLayout = () => {
     String(settings['system_maintenance_mode'] ?? 'false').trim().toLowerCase() ===
     'true'
   const maintenanceMessage =
-    getSetting('public_maintenance_message', '').trim() || DEFAULT_MAINTENANCE_TEXT
+    getSetting('public_maintenance_message', '').trim() || t('shell.maintenanceMessage')
 
   const activePath = location.pathname
   const navItems = useMemo(() => {
@@ -111,6 +109,9 @@ export const PublicLayout = () => {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center px-4">
         <div className="w-full max-w-md text-center space-y-4">
+          <div className="flex justify-end">
+            <LanguageSwitcher />
+          </div>
           {hasLogo ? (
             <div className="flex justify-center">
               <UploadedBrandLogo
@@ -134,14 +135,13 @@ export const PublicLayout = () => {
             </div>
           )}
           <div className="text-lg font-medium text-slate-900">
-            Privremeno nedostupno
+            {t('shell.maintenanceTitle')}
           </div>
           <div className="text-slate-600 whitespace-pre-wrap">
             {maintenanceMessage}
           </div>
           <div className="text-sm text-slate-500">
-            Za administraciju otvorite <strong>/admin</strong> (prijava kao
-            administrator).
+            {t('shell.maintenanceAdminHint', { path: '/admin' })}
           </div>
         </div>
       </div>
@@ -189,10 +189,11 @@ export const PublicLayout = () => {
           </nav>
 
           <div className="hidden lg:flex items-center gap-2 flex-none">
+            <LanguageSwitcher />
             {!user ? (
               <Link to="/login">
                 <Button size="sm" variant="ghost">
-                  Prijavi se
+                  {t('shell.signIn')}
                 </Button>
               </Link>
             ) : (
@@ -202,13 +203,17 @@ export const PublicLayout = () => {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    aria-label="Korisnički meni"
+                    aria-label={t('shell.userMenu')}
                   >
                     <Avatar className="h-9 w-9">
                       {avatarSrc ? (
                         <AvatarImage
                           src={avatarSrc}
-                          alt={user?.username ? `Profil: ${user.username}` : 'Profil'}
+                          alt={
+                            user?.username
+                              ? t('shell.profileForUser', { username: user.username })
+                              : t('shell.profile')
+                          }
                         />
                       ) : null}
                       <AvatarFallback className="text-xs font-semibold">
@@ -230,7 +235,7 @@ export const PublicLayout = () => {
                       navigate('/profil')
                     }}
                   >
-                    Profil
+                    {t('shell.profile')}
                   </DropdownMenuItem>
                   {canSeeStylistWorkbook ? (
                     <DropdownMenuItem
@@ -238,7 +243,7 @@ export const PublicLayout = () => {
                         navigate('/stylist/inbox')
                       }}
                     >
-                      Stylist workbook
+                      {t('shell.stylistWorkbook')}
                     </DropdownMenuItem>
                   ) : null}
                   {canSeeAdmin ? (
@@ -264,10 +269,11 @@ export const PublicLayout = () => {
             )}
           </div>
 
+          <LanguageSwitcher className="lg:hidden" />
           <Drawer open={mobileOpen} onOpenChange={setMobileOpen}>
             <Button
               type="button"
-              aria-label="Meni"
+              aria-label={t('shell.mobileMenu')}
               variant="outline"
               size="icon"
               className="lg:hidden bg-white/80"
@@ -330,7 +336,7 @@ export const PublicLayout = () => {
                       {canSeeStylistWorkbook ? (
                         <Link to="/stylist/inbox" onClick={() => setMobileOpen(false)}>
                           <Button className="w-full" variant="outline" size="sm">
-                            Stylist workbook
+                            {t('shell.stylistWorkbook')}
                           </Button>
                         </Link>
                       ) : null}
@@ -345,7 +351,7 @@ export const PublicLayout = () => {
                       ) : null}
                       <Link to="/profil" onClick={() => setMobileOpen(false)}>
                         <Button className="w-full" variant="ghost" size="sm">
-                          Profil
+                          {t('shell.profile')}
                         </Button>
                       </Link>
                       <Button
@@ -364,7 +370,7 @@ export const PublicLayout = () => {
                     <>
                       <Link to="/login" onClick={() => setMobileOpen(false)}>
                         <Button className="w-full" variant="outline" size="sm">
-                          Prijavi se
+                          {t('shell.signIn')}
                         </Button>
                       </Link>
                     </>

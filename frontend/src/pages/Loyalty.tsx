@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { formatLocalizedNumber } from '../i18n/locale-utils.mjs'
 
 import api from '../api/client'
 import { getErrorMessage } from '../api/error'
@@ -25,6 +27,7 @@ interface LoyaltyAccountRow {
 }
 
 export default function Loyalty() {
+  const { t, i18n } = useTranslation()
   const { success, error } = useAppToast()
 
   const [accounts, setAccounts] = useState<LoyaltyAccountRow[]>([])
@@ -36,8 +39,10 @@ export default function Loyalty() {
 
   const [redeemPoints, setRedeemPoints] = useState<number>(0)
   const [redeemReason, setRedeemReason] = useState('')
+  const [redeemIdempotencyKey, setRedeemIdempotencyKey] = useState('')
   const [adjustDelta, setAdjustDelta] = useState<number>(0)
   const [adjustNote, setAdjustNote] = useState('')
+  const [adjustIdempotencyKey, setAdjustIdempotencyKey] = useState('')
 
   const loadAccounts = useCallback(() => {
     setLoadingAccounts(true)
@@ -58,9 +63,9 @@ export default function Loyalty() {
       .patch(`/api/loyalty/accounts/${id}`, { isActive })
       .then(() => {
         setAccounts((prev) => prev.map((a) => (a.id === id ? { ...a, isActive } : a)))
-        success(isActive ? 'Račun aktiviran' : 'Račun deaktiviran')
+        success(t(isActive ? 'loyaltyAdmin.accountActivated' : 'loyaltyAdmin.accountDeactivated'))
       })
-      .catch(() => error('Greška pri ažuriranju'))
+      .catch(() => error(t('loyaltyAdmin.updateFailed')))
       .finally(() => setUpdating(null))
   }
 
@@ -70,32 +75,44 @@ export default function Loyalty() {
     setRedeemTarget(account)
     setRedeemPoints(0)
     setRedeemReason('')
+    setRedeemIdempotencyKey(globalThis.crypto.randomUUID())
   }
 
   const openAdjust = (account: LoyaltyAccountRow) => {
     setAdjustTarget(account)
     setAdjustDelta(0)
     setAdjustNote('')
+    setAdjustIdempotencyKey(globalThis.crypto.randomUUID())
   }
 
   const redeemTitle = useMemo(() => {
     if (!redeemTarget) return null
-    return `Račun: ${userName(redeemTarget.user)} (dostupno ${redeemTarget.points} bodova)`
-  }, [redeemTarget])
+    return t('loyaltyAdmin.redeemTitle', {
+      name: userName(redeemTarget.user),
+      points: formatLocalizedNumber(redeemTarget.points, i18n.language),
+    })
+  }, [i18n.language, redeemTarget, t])
 
   const adjustTitle = useMemo(() => {
     if (!adjustTarget) return null
-    return `Račun: ${userName(adjustTarget.user)} (trenutno ${adjustTarget.points} bodova)`
-  }, [adjustTarget])
+    return t('loyaltyAdmin.adjustTitle', {
+      name: userName(adjustTarget.user),
+      points: formatLocalizedNumber(adjustTarget.points, i18n.language),
+    })
+  }, [adjustTarget, i18n.language, t])
 
   const handleRedeemConfirm = () => {
-    if (!redeemTarget || redeemPoints <= 0) return
+    if (!redeemTarget || redeemPoints <= 0 || !redeemIdempotencyKey) return
     setUpdating(`redeem-${redeemTarget.id}`)
     api
-      .post(`/api/loyalty/accounts/${redeemTarget.id}/redeem`, { points: redeemPoints, reason: redeemReason })
+      .post(`/api/loyalty/accounts/${redeemTarget.id}/redeem`, {
+        points: redeemPoints,
+        reason: redeemReason,
+        idempotencyKey: redeemIdempotencyKey,
+      })
       .then((res) => {
         setAccounts((prev) => prev.map((a) => (a.id === redeemTarget.id ? { ...a, points: res.data.points } : a)))
-        success('Bodovi iskorišteni')
+        success(t('loyaltyAdmin.pointsRedeemed'))
         setRedeemTarget(null)
       })
       .catch((err) => error(getErrorMessage(err)))
@@ -103,13 +120,17 @@ export default function Loyalty() {
   }
 
   const handleAdjustConfirm = () => {
-    if (!adjustTarget || adjustDelta === 0) return
+    if (!adjustTarget || adjustDelta === 0 || !adjustIdempotencyKey) return
     setUpdating(`adjust-${adjustTarget.id}`)
     api
-      .post(`/api/loyalty/accounts/${adjustTarget.id}/adjust`, { pointsDelta: adjustDelta, note: adjustNote })
+      .post(`/api/loyalty/accounts/${adjustTarget.id}/adjust`, {
+        pointsDelta: adjustDelta,
+        note: adjustNote,
+        idempotencyKey: adjustIdempotencyKey,
+      })
       .then((res) => {
         setAccounts((prev) => prev.map((a) => (a.id === adjustTarget.id ? { ...a, points: res.data.points } : a)))
-        success('Bodovi ažurirani')
+        success(t('loyaltyAdmin.pointsAdjusted'))
         setAdjustTarget(null)
       })
       .catch((err) => error(getErrorMessage(err)))
@@ -119,9 +140,9 @@ export default function Loyalty() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Loyalty program</h1>
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('loyaltyAdmin.title')}</h1>
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Infrastruktura programa vjernosti. Program je neaktivan dok ga ne uključite. Računi se mogu aktivirati pojedinačno.
+          {t('loyaltyAdmin.description')}
         </p>
       </div>
 
@@ -130,28 +151,28 @@ export default function Loyalty() {
       <Card>
         <div className="p-6">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Loyalty računi</h2>
-            {loadingAccounts ? <p className="text-xs text-slate-500">Učitavanje...</p> : null}
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('loyaltyAdmin.accounts')}</h2>
+            {loadingAccounts ? <p className="text-xs text-slate-500">{t('loyaltyAdmin.loading')}</p> : null}
           </div>
 
           {loadingAccounts ? (
-            <div className="py-10 text-center text-sm text-slate-500">Učitavanje...</div>
+            <div className="py-10 text-center text-sm text-slate-500">{t('loyaltyAdmin.loading')}</div>
           ) : accounts.length === 0 ? (
             <p className="text-sm text-slate-500">
-              Nema loyalty računa. Kada je program uključen i klijent ima barem jednu završenu rezervaciju, račun će se automatski kreirati.
+              {t('loyaltyAdmin.noAccounts')}
             </p>
           ) : (
             <div className="app-table-wrap">
               <table className="app-table w-full border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                    <th className="p-3 font-medium">Korisnik</th>
-                    <th className="p-3 font-medium">Email</th>
-                    <th className="p-3 text-right font-medium">Bodovi</th>
-                    <th className="p-3 font-medium">Tier</th>
-                    <th className="p-3 font-medium">Status</th>
-                    <th className="p-3 font-medium">Transakcije</th>
-                    <th className="p-3 font-medium">Akcije</th>
+                    <th className="p-3 font-medium">{t('loyaltyAdmin.user')}</th>
+                    <th className="p-3 font-medium">{t('loyaltyAdmin.email')}</th>
+                    <th className="p-3 text-right font-medium">{t('loyaltyAdmin.points')}</th>
+                    <th className="p-3 font-medium">{t('loyaltyAdmin.tier')}</th>
+                    <th className="p-3 font-medium">{t('loyaltyAdmin.status')}</th>
+                    <th className="p-3 font-medium">{t('loyaltyAdmin.transactions')}</th>
+                    <th className="p-3 font-medium">{t('loyaltyAdmin.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -159,12 +180,12 @@ export default function Loyalty() {
                     <tr key={a.id} className="border-b border-slate-100 dark:border-slate-800/80">
                       <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{userName(a.user)}</td>
                       <td className="p-3">{a.user.email}</td>
-                      <td className="p-3 text-right">{a.points}</td>
+                      <td className="p-3 text-right">{formatLocalizedNumber(a.points, i18n.language)}</td>
                       <td className="p-3">{a.tier ?? '-'}</td>
                       <td className="p-3">
-                        <Badge variant={a.isActive ? 'success' : 'secondary'}>{a.isActive ? 'Aktivan' : 'Neaktivan'}</Badge>
+                        <Badge variant={a.isActive ? 'success' : 'secondary'}>{t(a.isActive ? 'loyaltyAdmin.active' : 'loyaltyAdmin.inactive')}</Badge>
                       </td>
-                      <td className="p-3">{a._count.transactions}</td>
+                      <td className="p-3">{formatLocalizedNumber(a._count.transactions, i18n.language)}</td>
                       <td className="p-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <Switch
@@ -173,10 +194,10 @@ export default function Loyalty() {
                             onCheckedChange={(checked) => handleAccountActiveToggle(a.id, checked)}
                           />
                           <Button type="button" size="sm" variant="outline" onClick={() => openRedeem(a)}>
-                            Redeem
+                            {t('loyaltyAdmin.redeem')}
                           </Button>
                           <Button type="button" size="sm" variant="outline" onClick={() => openAdjust(a)}>
-                            Adjust
+                            {t('loyaltyAdmin.adjust')}
                           </Button>
                         </div>
                       </td>
@@ -192,31 +213,40 @@ export default function Loyalty() {
       <Dialog open={!!redeemTarget} onOpenChange={(nextOpen) => (nextOpen ? null : setRedeemTarget(null))}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Iskoristi bodove</DialogTitle>
+            <DialogTitle>{t('loyaltyAdmin.redeemDialogTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-slate-600 dark:text-slate-300">{redeemTitle}</p>
             <div className="space-y-2">
-              <Label>Broj bodova za korištenje</Label>
+              <Label>{t('loyaltyAdmin.pointsToRedeem')}</Label>
               <Input
                 type="number"
                 min={1}
                 max={redeemTarget?.points ?? undefined}
                 value={Number.isFinite(redeemPoints) ? String(redeemPoints) : '0'}
-                onChange={(e) => setRedeemPoints(Number(e.target.value || 0))}
+                onChange={(e) => {
+                  setRedeemPoints(Number(e.target.value || 0))
+                  setRedeemIdempotencyKey(globalThis.crypto.randomUUID())
+                }}
               />
             </div>
             <div className="space-y-2">
-              <Label>Napomena (opcionalno)</Label>
-              <Textarea value={redeemReason} onChange={(e) => setRedeemReason(e.target.value)} />
+              <Label>{t('loyaltyAdmin.optionalNote')}</Label>
+              <Textarea
+                value={redeemReason}
+                onChange={(e) => {
+                  setRedeemReason(e.target.value)
+                  setRedeemIdempotencyKey(globalThis.crypto.randomUUID())
+                }}
+              />
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="ghost" onClick={() => setRedeemTarget(null)}>
-              Zatvori
+              {t('loyaltyAdmin.close')}
             </Button>
             <Button type="button" onClick={handleRedeemConfirm} disabled={updating === `redeem-${redeemTarget?.id}`}>
-              Potvrdi
+              {t('loyaltyAdmin.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -225,29 +255,38 @@ export default function Loyalty() {
       <Dialog open={!!adjustTarget} onOpenChange={(nextOpen) => (nextOpen ? null : setAdjustTarget(null))}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Ručna korekcija bodova</DialogTitle>
+            <DialogTitle>{t('loyaltyAdmin.adjustDialogTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-slate-600 dark:text-slate-300">{adjustTitle}</p>
             <div className="space-y-2">
-              <Label>Promjena bodova (+ ili -)</Label>
+              <Label>{t('loyaltyAdmin.pointsChange')}</Label>
               <Input
                 type="number"
                 value={Number.isFinite(adjustDelta) ? String(adjustDelta) : '0'}
-                onChange={(e) => setAdjustDelta(Number(e.target.value || 0))}
+                onChange={(e) => {
+                  setAdjustDelta(Number(e.target.value || 0))
+                  setAdjustIdempotencyKey(globalThis.crypto.randomUUID())
+                }}
               />
             </div>
             <div className="space-y-2">
-              <Label>Napomena (preporučeno)</Label>
-              <Textarea value={adjustNote} onChange={(e) => setAdjustNote(e.target.value)} />
+              <Label>{t('loyaltyAdmin.recommendedNote')}</Label>
+              <Textarea
+                value={adjustNote}
+                onChange={(e) => {
+                  setAdjustNote(e.target.value)
+                  setAdjustIdempotencyKey(globalThis.crypto.randomUUID())
+                }}
+              />
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="ghost" onClick={() => setAdjustTarget(null)}>
-              Zatvori
+              {t('loyaltyAdmin.close')}
             </Button>
             <Button type="button" onClick={handleAdjustConfirm} disabled={updating === `adjust-${adjustTarget?.id}`}>
-              Spremi
+              {t('loyaltyAdmin.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

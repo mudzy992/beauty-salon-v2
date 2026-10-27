@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { toDateOnlyString } from '../common/utils/date-only';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
@@ -34,20 +35,37 @@ export class ReservationInboxCronService {
       select: {
         id: true,
         reservationId: true,
-        reservation: { select: { status: true, serviceId: true, reservationDate: true, clientId: true } },
+        reservation: {
+          select: {
+            status: true,
+            serviceId: true,
+            reservationDate: true,
+            clientId: true,
+          },
+        },
       },
     });
+    let releasedCount = 0;
     for (const row of locked) {
-      await this.prisma.reservationStylistResponse.update({
-        where: { id: row.id },
+      const released = await this.prisma.reservationStylistResponse.updateMany({
+        where: {
+          id: row.id,
+          status: STYLIST_RESPONSE_STATUS.LOCKED,
+          lockExpiresAt: { lte: now },
+        },
         data: {
           status: STYLIST_RESPONSE_STATUS.PENDING,
           lockExpiresAt: null,
         },
       });
+      if (released.count !== 1) continue;
+      releasedCount += 1;
       if (row.reservation.status === RESERVATION_STATUS.STYLIST_REVIEW) {
-        await this.prisma.reservation.update({
-          where: { id: row.reservationId },
+        await this.prisma.reservation.updateMany({
+          where: {
+            id: row.reservationId,
+            status: RESERVATION_STATUS.STYLIST_REVIEW,
+          },
           data: {
             status: this.shared.transitionTo(
               row.reservation.status,
@@ -58,10 +76,10 @@ export class ReservationInboxCronService {
       }
       this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
         serviceId: row.reservation.serviceId,
-        date: row.reservation.reservationDate,
+        date: toDateOnlyString(row.reservation.reservationDate),
       });
     }
-    return { releasedCount: locked.length };
+    return { releasedCount };
   }
 
   async processInboxTimeouts() {
@@ -90,17 +108,29 @@ export class ReservationInboxCronService {
     for (const r of stale) {
       const hasLock = r.stylistResponses.some((x) => isActiveLock(x, now));
       if (hasLock) continue;
-      await this.prisma.reservation.update({
-        where: { id: r.id },
+      const cancelled = await this.prisma.reservation.updateMany({
+        where: {
+          id: r.id,
+          status: r.status,
+          createdAt: { lte: cutoff },
+          stylistResponses: {
+            none: {
+              status: STYLIST_RESPONSE_STATUS.LOCKED,
+              OR: [{ lockExpiresAt: null }, { lockExpiresAt: { gt: now } }],
+            },
+          },
+        },
         data: {
           status: this.shared.transitionTo(
             r.status,
             RESERVATION_STATUS.CANCELLED_BY_STYLISTS,
           ),
           cancelledAt: now,
-          cancelReason: 'Nijedan stilist nije preuzeo rezervaciju u predviđenom roku.',
+          cancelReason:
+            'Nijedan stilist nije preuzeo rezervaciju u predviđenom roku.',
         },
       });
+      if (cancelled.count !== 1) continue;
       cancelledCount += 1;
       const ctx = await resolvePushContext(
         this.prisma,
@@ -126,7 +156,7 @@ export class ReservationInboxCronService {
       });
       this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
         serviceId: r.serviceId,
-        date: r.reservationDate,
+        date: toDateOnlyString(r.reservationDate),
       });
     }
     return { cancelledCount };

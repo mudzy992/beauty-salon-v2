@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Card } from '../../../components/ui/card'
 import { Button } from '../../../components/ui/button'
@@ -8,6 +9,8 @@ import { Label } from '../../../components/ui/label'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import api from '../../../api/client'
 import { useQuery } from '@tanstack/react-query'
+import { getSalonDateOnly } from '../../../../../shared/business-date.mjs'
+import { formatLocalizedAmount, getIntlLocale } from '../../../i18n/locale-utils.mjs'
 
 type DebtRow = {
   id: string
@@ -21,14 +24,22 @@ type DebtRow = {
   manualEntry?: { id: string; date: string } | null
 }
 
-const formatMoney = (v: number | string) => `${Number(v || 0).toFixed(2)} KM`
+const formatMoney = (v: number | string, locale: string) => formatLocalizedAmount(Number(v || 0), locale)
+const formatDateOnly = (value: string, locale: string) => {
+  const date = new Date(`${value.slice(0, 10)}T12:00:00`)
+  return Number.isFinite(date.getTime())
+    ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(date)
+    : '—'
+}
 
 export const StylistDebtsPage = () => {
+  const { t, i18n } = useTranslation()
+  const locale = getIntlLocale(i18n.language)
   const { toastApiError, success } = useAppToast()
   const [q, setQ] = useState('')
   const [repayOpen, setRepayOpen] = useState(false)
   const [repayDebtId, setRepayDebtId] = useState<string | null>(null)
-  const [repayDate, setRepayDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [repayDate, setRepayDate] = useState(() => getSalonDateOnly())
   const [repayNote, setRepayNote] = useState('')
   const [repaying, setRepaying] = useState(false)
 
@@ -59,7 +70,7 @@ export const StylistDebtsPage = () => {
 
   const openRepay = (debtId: string) => {
     setRepayDebtId(debtId)
-    setRepayDate(new Date().toISOString().slice(0, 10))
+    setRepayDate(getSalonDateOnly())
     setRepayNote('')
     setRepayOpen(true)
   }
@@ -72,11 +83,11 @@ export const StylistDebtsPage = () => {
         date: repayDate,
         note: repayNote.trim() || undefined,
       })
-      success('Naplaćeno', 'Dug je zatvoren i evidentiran u dnevnoj knjizi.')
+      success(t('stylistPortal.debts.repaidTitle'), t('stylistPortal.debts.repaidDescription'))
       setRepayOpen(false)
       await query.refetch()
     } catch (err) {
-      toastApiError(err, 'Greška pri naplati duga')
+      toastApiError(err, t('stylistPortal.debts.repayFailed'))
     } finally {
       setRepaying(false)
     }
@@ -86,36 +97,43 @@ export const StylistDebtsPage = () => {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Dužnici</h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300">Lista dugovanja koja su evidentirana kod vas.</p>
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{t('stylistPortal.debts.title')}</h1>
+          <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.debts.description')}</p>
         </div>
         <div className="text-right">
-          <div className="text-xs text-slate-500">Ukupno</div>
-          <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">{formatMoney(total)}</div>
+          <div className="text-xs text-slate-500">{t('stylistPortal.debts.total')}</div>
+          <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">{formatMoney(total, locale)}</div>
         </div>
       </div>
 
       <Card className="p-4">
-        <Label htmlFor="q">Pretraga</Label>
-        <Input id="q" className="mt-2 max-w-md" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Klijent, servis, kod rezervacije…" />
+        <Label htmlFor="q">{t('stylistPortal.debts.search')}</Label>
+        <Input id="q" className="mt-2 max-w-md" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('stylistPortal.debts.searchPlaceholder')} />
       </Card>
 
       <Card className="p-4">
         {query.isLoading ? (
-          <div className="text-sm text-slate-500">Učitavanje…</div>
+          <div className="text-sm text-slate-500">{t('common.loading')}</div>
+        ) : query.isError ? (
+          <div className="flex flex-wrap items-center justify-between gap-2" role="alert">
+            <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.debts.loadFailed')}</p>
+            <Button type="button" variant="outline" size="sm" onClick={() => void query.refetch()}>
+              {t('common.retry')}
+            </Button>
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="text-sm text-slate-500">Nema otvorenih dugovanja.</div>
+          <div className="text-sm text-slate-500">{rows.length === 0 ? t('stylistPortal.debts.noOpenDebts') : t('stylistPortal.debts.noSearchResults')}</div>
         ) : (
           <div className="grid gap-2">
             {filtered.map((d) => {
               const clientName = `${d.client.firstName ?? ''} ${d.client.lastName ?? ''}`.trim() || d.client.username
               const ref =
                 d.reservation?.publicReferenceCode
-                  ? `Rezervacija: ${d.reservation.publicReferenceCode}`
+                  ? t('stylistPortal.debts.reservationReference', { reference: d.reservation.publicReferenceCode })
                   : d.dailyLogEntry?.id
-                    ? `Daily log: ${d.dailyLogEntry.date.slice(0, 10)}`
+                    ? t('stylistPortal.debts.dailyLogReference', { date: formatDateOnly(d.dailyLogEntry.date, locale) })
                     : d.manualEntry?.id
-                      ? `Manual entry: ${d.manualEntry.date.slice(0, 10)}`
+                      ? t('stylistPortal.debts.manualEntryReference', { date: formatDateOnly(d.manualEntry.date, locale) })
                       : '—'
               return (
                 <div key={d.id} className="rounded-md border border-slate-200 dark:border-slate-800 p-3 flex items-start justify-between gap-3">
@@ -125,12 +143,12 @@ export const StylistDebtsPage = () => {
                       {d.service?.name ? `${d.service.name} · ` : ''}
                       {ref}
                     </div>
-                    <div className="text-xs text-slate-500 mt-0.5">{d.createdAt.slice(0, 10)}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{formatDateOnly(d.createdAt, locale)}</div>
                   </div>
                   <div className="shrink-0 text-right">
-                    <div className="font-semibold tabular-nums text-slate-900 dark:text-slate-50">{formatMoney(d.amount)}</div>
+                    <div className="font-semibold tabular-nums text-slate-900 dark:text-slate-50">{formatMoney(d.amount, locale)}</div>
                     <Button type="button" size="sm" className="mt-2" onClick={() => openRepay(d.id)}>
-                      Naplati dug
+                      {t('stylistPortal.debts.repayDebt')}
                     </Button>
                   </div>
                 </div>
@@ -143,27 +161,27 @@ export const StylistDebtsPage = () => {
       <Dialog open={repayOpen} onOpenChange={setRepayOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Naplata duga</DialogTitle>
+            <DialogTitle>{t('stylistPortal.debts.dialogTitle')}</DialogTitle>
             <DialogDescription>
-              Otplata duga se evidentira kao posebna stavka u dnevnoj knjizi (napojnica 0) i kao ručni prihod u knjizi prihoda.
+              {t('stylistPortal.debts.dialogDescription')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="repayDate">Datum</Label>
+              <Label htmlFor="repayDate">{t('common.date')}</Label>
               <Input id="repayDate" type="date" value={repayDate} onChange={(e) => setRepayDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="repayNote">Napomena (opciono)</Label>
+              <Label htmlFor="repayNote">{t('stylistPortal.debts.noteOptional')}</Label>
               <Input id="repayNote" value={repayNote} onChange={(e) => setRepayNote(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setRepayOpen(false)} disabled={repaying}>
-              Odustani
+              {t('common.cancel')}
             </Button>
             <Button type="button" onClick={submitRepay} disabled={repaying}>
-              Potvrdi naplatu
+              {t('stylistPortal.debts.confirmRepayment')}
             </Button>
           </DialogFooter>
         </DialogContent>

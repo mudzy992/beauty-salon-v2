@@ -9,10 +9,12 @@ import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EventsGateway } from '../events/events.gateway';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'node:crypto';
 
 jest.mock('bcrypt');
 jest.mock('expo-server-sdk', () => {
@@ -49,9 +51,13 @@ const mockConfigService = {
   get: jest.fn(
     (key: string, defaultValue?: string) => defaultValue ?? 'test-secret',
   ),
+  getOrThrow: jest.fn(() => 'test-secret'),
 };
 const mockNotifications = {
   sendVerificationCodeEmail: jest.fn(),
+};
+const mockEventsGateway = {
+  disconnectUserSockets: jest.fn(),
 };
 
 describe('AuthService', () => {
@@ -66,6 +72,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: NotificationsService, useValue: mockNotifications },
+        { provide: EventsGateway, useValue: mockEventsGateway },
       ],
     }).compile();
 
@@ -149,6 +156,10 @@ describe('AuthService', () => {
       });
       expect(mockPrisma.user.create).toHaveBeenCalled();
       expect(mockPrisma.userRole.create).toHaveBeenCalled();
+      expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ sub: 'user-1', pwdv: 0 }),
+        expect.any(Object),
+      );
     });
   });
 
@@ -166,6 +177,7 @@ describe('AuthService', () => {
       lastName: 'User',
       isActive: true,
       mustChangePassword: false,
+      passwordChangedAt: null,
       phone: null,
       isEmailVerified: false,
       userRoles: [{ role: { name: 'CLIENT' } }],
@@ -196,7 +208,7 @@ describe('AuthService', () => {
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       await expect(service.login(loginDto)).rejects.toThrow(
-        'Nalog je deaktiviran.',
+        'Pogrešno korisničko ime ili lozinka.',
       );
     });
 
@@ -218,6 +230,90 @@ describe('AuthService', () => {
         where: { id: dbUser.id },
         data: { lastLoginAt: expect.any(Date) },
       });
+      expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ sub: dbUser.id, pwdv: 0 }),
+        expect.any(Object),
+      );
+    });
+  });
+
+  describe('verifyEmail', () => {
+    it('accepts a valid hashed code and consumes it once', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: 'u1',
+        emailVerificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      });
+      mockPrisma.user.update.mockResolvedValue({});
+
+      await expect(service.verifyEmail('123456')).resolves.toMatchObject({
+        message: 'Email adresa je uspješno potvrđena.',
+      });
+      expect(mockPrisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: {
+          isEmailVerified: true,
+          emailVerificationToken: null,
+          emailVerificationExpiresAt: null,
+        },
+      });
+    });
+
+    it('rejects malformed codes before database access', async () => {
+      await expect(service.verifyEmail('not-six-digits')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockPrisma.user.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects verification records with more than 15 minutes remaining', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: 'u1',
+        emailVerificationExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      });
+
+      await expect(service.verifyEmail('123456')).rejects.toThrow(
+        BadRequestException,
+      );
+      const expectedDigest = crypto
+        .createHmac('sha256', 'test-secret')
+        .update('email-verification:v1:123456')
+        .digest('hex');
+      expect(mockPrisma.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          emailVerificationToken: expectedDigest,
+          emailVerificationExpiresAt: { gt: expect.any(Date) },
+        },
+      });
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('sendVerificationEmail', () => {
+    it('stores a six-digit code with a 15-minute expiry', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        email: 'john@example.com',
+        isEmailVerified: false,
+      });
+      mockPrisma.user.update.mockResolvedValue({});
+      const before = Date.now();
+
+      const result = await service.sendVerificationEmail('u1');
+
+      const updateData = mockPrisma.user.update.mock.calls[0][0].data;
+      expect(updateData.emailVerificationToken).toMatch(/^[a-f0-9]{64}$/);
+      const sentCode = mockNotifications.sendVerificationCodeEmail.mock.calls[0][0].code;
+      expect(sentCode).toMatch(/^\d{6}$/);
+      expect(updateData.emailVerificationToken).not.toBe(sentCode);
+      const remainingMs = updateData.emailVerificationExpiresAt.getTime() - Date.now();
+      expect(remainingMs).toBeGreaterThan(14 * 60 * 1000);
+      expect(remainingMs).toBeLessThanOrEqual(15 * 60 * 1000);
+      expect(mockNotifications.sendVerificationCodeEmail).toHaveBeenCalledWith({
+        to: 'john@example.com',
+        code: sentCode,
+      });
+      expect(result.message).toContain('15 minuta');
+      expect(updateData.emailVerificationExpiresAt.getTime()).toBeGreaterThan(before);
     });
   });
 
@@ -233,6 +329,7 @@ describe('AuthService', () => {
         username: 'x',
         email: 'x@x.com',
         isActive: false,
+        passwordChangedAt: null,
         userRoles: [],
       });
       expect(await service.validateUser('u1')).toBeNull();
@@ -244,6 +341,8 @@ describe('AuthService', () => {
         username: 'john',
         email: 'john@example.com',
         isActive: true,
+        mustChangePassword: true,
+        passwordChangedAt: null,
         userRoles: [{ role: { name: 'CLIENT' } }],
       });
       const result = await service.validateUser('u1');
@@ -252,25 +351,55 @@ describe('AuthService', () => {
         username: 'john',
         email: 'john@example.com',
         roles: ['CLIENT'],
+        mustChangePassword: true,
       });
+    });
+
+    it('rejects tokens minted before the recorded password change', async () => {
+      const changedAt = new Date('2026-10-25T12:34:56.789Z');
+      const user = {
+        id: 'u1',
+        username: 'john',
+        email: 'john@example.com',
+        isActive: true,
+        passwordChangedAt: changedAt,
+        userRoles: [{ role: { name: 'CLIENT' } }],
+      };
+      mockPrisma.user.findUnique.mockResolvedValue(user);
+
+      expect(await service.validateUser('u1', 0)).toBeNull();
+      expect(await service.validateUser('u1', undefined)).toBeNull();
+      await expect(
+        service.validateUser('u1', changedAt.getTime()),
+      ).resolves.toMatchObject({ sub: 'u1', roles: ['CLIENT'] });
     });
   });
 
   describe('changePassword', () => {
-    it('resetuje mustChangePassword nakon promjene lozinke', async () => {
+    it('invalidates existing sessions and returns a replacement access token', async () => {
       const dto: ChangePasswordDto = {
-        currentPassword: 'Init2026!',
+        currentPassword: 'temporary-test-password',
         newPassword: 'NovaLozinka123!',
       };
+      const updatedAt = new Date('2026-10-25T12:34:56.789Z');
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'u1',
+        username: 'john',
+        email: 'john@example.com',
         passwordHash: 'old-hash',
+        passwordChangedAt: null,
+        userRoles: [{ role: { name: 'CLIENT' } }],
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       (bcrypt.hash as jest.Mock).mockResolvedValue('new-hash');
-      mockPrisma.user.update.mockResolvedValue({});
+      mockPrisma.user.update.mockResolvedValue({
+        passwordChangedAt: updatedAt,
+      });
 
-      await service.changePassword('u1', dto);
+      await expect(service.changePassword('u1', dto)).resolves.toEqual({
+        message: 'Lozinka je uspješno promijenjena.',
+        access_token: 'mock-jwt-token',
+      });
 
       expect(mockPrisma.user.update).toHaveBeenCalledWith({
         where: { id: 'u1' },
@@ -279,7 +408,15 @@ describe('AuthService', () => {
           mustChangePassword: false,
           passwordChangedAt: expect.any(Date),
         },
+        select: { passwordChangedAt: true },
       });
+      expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
+        'u1',
+      );
+      expect(mockJwtService.signAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ sub: 'u1', pwdv: updatedAt.getTime() }),
+        expect.any(Object),
+      );
     });
   });
 });

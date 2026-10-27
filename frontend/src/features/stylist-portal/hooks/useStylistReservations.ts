@@ -9,6 +9,7 @@ import {
   rejectReservationForStylist,
 } from '../api/stylist-portal.api'
 import type { Reservation } from '../types'
+import { addDateOnlyDays, getSalonDateOnly } from '../../../../../shared/business-date.mjs'
 
 export const useStylistInboxReservations = (params: { stylistProfileId: string | null }) => {
   const queryClient = useQueryClient()
@@ -83,13 +84,10 @@ export const useStylistInboxReservations = (params: { stylistProfileId: string |
 const SCHEDULE_WINDOW_DAYS = 30
 
 export const getStylistScheduleWindow = () => {
-  const from = new Date()
-  from.setHours(0, 0, 0, 0)
-  const to = new Date(from)
-  to.setDate(to.getDate() + SCHEDULE_WINDOW_DAYS)
+  const fromDate = getSalonDateOnly()
   return {
-    fromDate: from.toISOString().slice(0, 10),
-    toDate: to.toISOString().slice(0, 10),
+    fromDate,
+    toDate: addDateOnlyDays(fromDate, SCHEDULE_WINDOW_DAYS),
   }
 }
 

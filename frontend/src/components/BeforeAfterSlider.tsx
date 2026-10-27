@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback } from 'react'
 import { ChevronsLeftRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { MediaImage } from './media-image'
 import { cssBackgroundImage } from '../constants/media-fallback'
@@ -21,8 +22,9 @@ export function BeforeAfterSlider({
   afterSrc,
   alt = '',
   aspectRatio = 4 / 3,
-  ariaLabel = 'Prije / Poslije',
+  ariaLabel,
 }: BeforeAfterSliderProps) {
+  const { t } = useTranslation()
   const [position, setPosition] = useState(50)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -67,10 +69,11 @@ export function BeforeAfterSlider({
     <div
       ref={containerRef}
       role="slider"
-      aria-label={ariaLabel}
+      aria-label={ariaLabel ?? t('public.beforeAfter.sliderLabel')}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(position)}
+      aria-valuetext={t('public.beforeAfter.positionValue', { position: Math.round(position) })}
       tabIndex={0}
       className="relative w-full overflow-hidden rounded-2xl bg-slate-100 cursor-col-resize select-none ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/20"
       onMouseDown={onMouseDown}

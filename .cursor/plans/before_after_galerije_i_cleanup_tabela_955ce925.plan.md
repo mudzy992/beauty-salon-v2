@@ -32,11 +32,11 @@ isProject: false
 # Šta je trenutno stanje (iz koda)
 
 - **Postoji i koristi se** `daily_log_images`:
-  - Backend: `POST /api/daily-log/:id/images` i public `GET /api/daily-log/before-after` ([backend/src/daily-log/daily-log.controller.ts](backend/src/daily-log/daily-log.controller.ts), [backend/src/daily-log/daily-log.service.ts](backend/src/daily-log/daily-log.service.ts)).
-  - Frontend public: `PublicSatisfiedClients` učitava `/api/daily-log/before-after` ([frontend/src/pages/public/PublicSatisfiedClients.tsx](frontend/src/pages/public/PublicSatisfiedClients.tsx)).
-  - Mobile: `SatisfiedClientsScreen` učitava isti endpoint; stilist upload radi preko `DailyLogDetailScreen` → `/api/uploads` + `/api/daily-log/:id/images` ([mobile/src/screens/stylist/DailyLogDetailScreen.tsx](mobile/src/screens/stylist/DailyLogDetailScreen.tsx)).
+  - Backend: `POST /api/daily-log/:id/images` i public `GET /api/daily-log/before-after` ([backend/src/daily-log/daily-log.controller.ts](../../backend/src/daily-log/daily-log.controller.ts), [backend/src/daily-log/daily-log.service.ts](../../backend/src/daily-log/daily-log.service.ts)).
+  - Frontend public: `PublicSatisfiedClients` učitava `/api/daily-log/before-after` ([frontend/src/pages/public/PublicSatisfiedClients.tsx](../../frontend/src/pages/public/PublicSatisfiedClients.tsx)).
+  - Mobile: `SatisfiedClientsScreen` učitava isti endpoint; stilist upload radi preko `DailyLogDetailScreen` → `/api/uploads` + `/api/daily-log/:id/images` ([mobile/src/screens/stylist/DailyLogDetailScreen.tsx](../../mobile/src/screens/stylist/DailyLogDetailScreen.tsx)).
 - `**service_images`**:
-  - Definisan u šemi i čak se includa u `findOneService()` ([backend/src/services/services.service.ts](backend/src/services/services.service.ts)), ali nema endpoints/UI koji upravljaju tim slikama → praktično neiskorišteno.
+  - Definisan u šemi i čak se includa u `findOneService()` ([backend/src/services/services.service.ts](../../backend/src/services/services.service.ts)), ali nema endpoints/UI koji upravljaju tim slikama → praktično neiskorišteno.
 - `**reservation_images`**:
   - Definisan u šemi, ali nema backend implementacije/poziva u `backend/src`.
 
@@ -76,7 +76,7 @@ isProject: false
 - Dodati novu rutu/stranicu “Service detail” u public dijelu (npr. `/services/:serviceId`):
   - koristi postojeći `GET /api/services/:id`
   - dodaje sekciju **Galerija urađenih radova** koja poziva `GET /api/daily-log/before-after?serviceId=...` (paginacija kao danas: `limit/offset`)
-  - prikaz: grid sa `BeforeAfterSlider` (postojeći [frontend/src/components/BeforeAfterSlider.tsx](frontend/src/components/BeforeAfterSlider.tsx))
+  - prikaz: grid sa `BeforeAfterSlider` (postojeći [frontend/src/components/BeforeAfterSlider.tsx](../../frontend/src/components/BeforeAfterSlider.tsx))
 - U `PublicServices` listi dodati link/click na tu novu public detalj stranicu.
 
 ## Admin (dashboard)
@@ -88,9 +88,9 @@ isProject: false
 
 # Mobile implementacija
 
-- U `ServiceSingleDetailScreen` ([mobile/src/screens/client/ServiceSingleDetailScreen.tsx](mobile/src/screens/client/ServiceSingleDetailScreen.tsx)) dodati sekciju “Prije / Poslije”:
+- U `ServiceSingleDetailScreen` ([mobile/src/screens/client/ServiceSingleDetailScreen.tsx](../../mobile/src/screens/client/ServiceSingleDetailScreen.tsx)) dodati sekciju “Prije / Poslije”:
   - fetch `GET /api/daily-log/before-after?serviceId=...` (prikaz prvih N parova)
-  - prikaz: vertikalna lista kartica sa postojećim `BeforeAfterSlider` ([mobile/src/components/BeforeAfterSlider.tsx](mobile/src/components/BeforeAfterSlider.tsx))
+  - prikaz: vertikalna lista kartica sa postojećim `BeforeAfterSlider` ([mobile/src/components/BeforeAfterSlider.tsx](../../mobile/src/components/BeforeAfterSlider.tsx))
   - dugme “Vidi sve” → nova screen `ServiceWorkGalleryScreen` sa infinite scroll (isti endpoint)
 
 # i18n + Dark/Light

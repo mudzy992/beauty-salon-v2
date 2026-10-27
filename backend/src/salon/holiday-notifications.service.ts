@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { toDateOnlyString } from '../common/utils/date-only';
 
 @Injectable()
 export class HolidayNotificationsService {
@@ -44,7 +45,7 @@ export class HolidayNotificationsService {
         title,
         body,
         type: 'holiday',
-        data: { holidayId: holiday.id, date: holiday.date.toISOString(), kind: 'holiday' },
+        data: { holidayId: holiday.id, date: toDateOnlyString(holiday.date), kind: 'holiday' },
       });
     }
 

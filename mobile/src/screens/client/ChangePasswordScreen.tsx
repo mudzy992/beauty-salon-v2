@@ -30,6 +30,7 @@ export function ChangePasswordScreen({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const refreshProfile = useAuthStore((s) => s.refreshProfile);
+  const replaceToken = useAuthStore((s) => s.replaceToken);
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const bottomInset = includeTabBarPadding ? tabBarBottom : Math.max(insets.bottom, 12) + spacing.md;
   const [currentPassword, setCurrentPassword] = useState('');
@@ -52,10 +53,14 @@ export function ChangePasswordScreen({
     }
     setLoading(true);
     try {
-      await api.post('/auth/change-password', {
-        currentPassword: currentPassword.trim(),
-        newPassword,
-      });
+      const response = await api.post<{ access_token: string }>(
+        '/auth/change-password',
+        {
+          currentPassword: currentPassword.trim(),
+          newPassword,
+        },
+      );
+      await replaceToken(response.data.access_token);
       await refreshProfile();
       const goNext = () => {
         if (onSuccess) onSuccess();

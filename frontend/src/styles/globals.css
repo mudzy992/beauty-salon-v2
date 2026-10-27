@@ -4,36 +4,48 @@
 
 @layer base {
   :root {
+    --brand-accent-text-light: #8A641E;
+    --brand-accent-text-dark: #D4A843;
+    --brand-accent-text: var(--brand-accent-text-light);
+    --brand-accent-ring: #8A641E;
+    --brand-primary-text-light: #632238;
+    --brand-primary-text-dark: #E5B3C5;
+    --brand-primary-text: var(--brand-primary-text-light);
+    --brand-primary-ring: #632238;
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 38 62% 55%;
-    --primary-foreground: 0 0% 0%;
+    --primary: 38 62% 34%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 240 3% 18%;
     --secondary-foreground: 0 0% 100%;
     --muted: 240 5% 96%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --muted-foreground: 240 3.8% 42%;
     --accent: 38 70% 90%;
     --accent-foreground: 0 0% 0%;
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84.2% 46%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 38 62% 55%;
+    --ring: 38 62% 34%;
     --radius: 0.5rem;
   }
 
   .dark {
+    --brand-accent-text: var(--brand-accent-text-dark);
+    --brand-accent-ring: #D4A843;
+    --brand-primary-text: var(--brand-primary-text-dark);
+    --brand-primary-ring: #E5B3C5;
     --background: 240 5% 10%;
     --foreground: 210 40% 98%;
     --card: 240 5% 12%;
     --card-foreground: 210 40% 98%;
     --popover: 240 5% 12%;
     --popover-foreground: 210 40% 98%;
-    --primary: 38 62% 55%;
+    --primary: 38 62% 68%;
     --primary-foreground: 0 0% 0%;
     --secondary: 240 4% 20%;
     --secondary-foreground: 210 40% 98%;
@@ -45,7 +57,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 240 4% 20%;
     --input: 240 4% 20%;
-    --ring: 38 62% 55%;
+    --ring: 38 62% 68%;
   }
 
   .app-logo {

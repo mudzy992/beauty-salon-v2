@@ -5,6 +5,13 @@ import {
   getZonedDateParts,
   zonedWallTimeToUtc,
 } from '../common/utils/zoned-time'
+import {
+  addDateOnlyDays,
+  parseDateOnlyString,
+  toDateOnlyString as formatDateOnlyUtc,
+  toDateOnlyStringInTimeZone as formatDateOnlyInTimeZone,
+  toTimeOnlyStringInTimeZone,
+} from '../common/utils/date-only'
 import { ATTENDANCE_CONFIRM_DEADLINE_HOURS, DAILY_LOG_REMINDER_HOURS, INBOX_TIMEOUT_HOURS } from './constants'
 
 const ATTENDANCE_HOURS_SETTING = 'system_reservation_attendance_hours'
@@ -73,29 +80,45 @@ export class ReservationDateService implements OnModuleInit {
   }
 
   /**
-   * Parse a value to a stable UTC-midnight date for calendar-day comparison.
-   * - string `YYYY-MM-DD`: UTC midnight of that day
-   * - Date: calendar day **in salon TZ** → UTC midnight of that day
+   * Parse a strict date-only value to UTC midnight. A Date input is an instant
+   * and is first resolved to its calendar date in the configured salon TZ.
    */
   parseDateOnly(value: Date | string): Date {
-    if (typeof value === 'string') {
-      const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
-      if (match) {
-        return new Date(
-          Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])),
-        )
-      }
+    if (typeof value === 'string') return parseDateOnlyString(value)
+    if (!(value instanceof Date) || !Number.isFinite(value.getTime())) {
+      throw new RangeError('Invalid date-only value.')
     }
-    const d = value instanceof Date ? value : new Date(value)
-    const parts = getZonedDateParts(d, this.tz)
-    return new Date(Date.UTC(parts.year, parts.month - 1, parts.day))
+    return parseDateOnlyString(formatDateOnlyInTimeZone(value, this.tz))
   }
 
-  toLocalDateOnlyString(date: Date): string {
+  /** Canonical YYYY-MM-DD serialization for a Prisma @db.Date value. */
+  toDateOnlyString(date: Date): string {
+    return formatDateOnlyUtc(date)
+  }
+
+  /** Calendar date of an instant in the configured salon timezone. */
+  toSalonDateOnlyString(date: Date): string {
+    return formatDateOnlyInTimeZone(date, this.tz)
+  }
+
+  /** Wall-clock HH:mm of an instant in the configured salon timezone. */
+  toSalonTimeString(date: Date): string {
+    return toTimeOnlyStringInTimeZone(date, this.tz)
+  }
+
+  addSalonCalendarDays(date: Date, days: number): Date {
+    if (!Number.isInteger(days)) throw new RangeError('days must be an integer.')
     const parts = getZonedDateParts(date, this.tz)
-    const m = String(parts.month).padStart(2, '0')
-    const d = String(parts.day).padStart(2, '0')
-    return `${parts.year}-${m}-${d}`
+    const sourceDate = this.toSalonDateOnlyString(date)
+    const targetDate = parseDateOnlyString(addDateOnlyDays(sourceDate, days))
+    return zonedWallTimeToUtc(
+      targetDate.getUTCFullYear(),
+      targetDate.getUTCMonth(),
+      targetDate.getUTCDate(),
+      parts.hour,
+      parts.minute,
+      this.tz,
+    )
   }
 
   getDayStartEnd(date: Date) {

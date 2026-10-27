@@ -26,6 +26,7 @@ import { Input } from '../../components/ui/Input';
 import api, { getImageUrl } from '../../services/api';
 import { spacing } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
+import { formatDate } from '../../utils/date';
 import type { ProfileScreenProps } from '../../navigation/types';
 import { useApkUpdateCheck } from '../../features/app-update/use-apk-update-check';
 import { ApkForceUpdateModal } from '../../features/app-update/apk-force-update-modal';
@@ -58,6 +59,24 @@ function hasGender(user: { gender?: string | null } | null): boolean {
   return user?.gender === 'MALE' || user?.gender === 'FEMALE';
 }
 
+interface ConsentItem {
+  imageId: string;
+  serviceName: string;
+  serviceDate: string;
+  isBefore: boolean;
+  previewUrl: string;
+  consentedAt: string | null;
+  isPublished: boolean;
+  publishedCategories: Array<{ id: string; name: string }>;
+}
+
+interface ConsentPayload {
+  policyVersion: string;
+  consentText: string;
+  pending: ConsentItem[];
+  active: ConsentItem[];
+}
+
 export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const { t } = useTranslation();
   const apkUpdate = useApkUpdateCheck({ auto: false });
@@ -73,6 +92,35 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const [openDebts, setOpenDebts] = useState<
     Array<{ id: string; amount: number | string; createdAt: string; service?: { name?: string } | null }>
   >([]);
+  const [mediaConsent, setMediaConsent] = useState<ConsentPayload | null>(null);
+  const [mediaConsentLoading, setMediaConsentLoading] = useState(false);
+  const [mediaConsentSavingId, setMediaConsentSavingId] = useState<string | null>(null);
+  const [mediaConsentAccepted, setMediaConsentAccepted] = useState<Record<string, boolean>>({});
+  const [mediaConsentMessage, setMediaConsentMessage] = useState('');
+  const isClient = Boolean(user?.roles.some((item) => item.role.name === 'CLIENT'));
+
+  const loadMediaConsent = useCallback(async () => {
+    if (!isClient) {
+      setMediaConsent(null);
+      return;
+    }
+    setMediaConsentLoading(true);
+    try {
+      const { data } = await api.get<ConsentPayload>('/api/media/consents/me');
+      setMediaConsent(data);
+      setMediaConsentAccepted({});
+      setMediaConsentMessage('');
+    } catch {
+      setMediaConsent(null);
+      setMediaConsentMessage('Saglasnosti trenutno nije moguće učitati. Pokušajte ponovo.');
+    } finally {
+      setMediaConsentLoading(false);
+    }
+  }, [isClient]);
+
+  useEffect(() => {
+    void loadMediaConsent();
+  }, [loadMediaConsent]);
 
   useEffect(() => {
     let mounted = true;
@@ -143,6 +191,56 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
       setVerifySubmitting(false);
     }
   }, [verifyCode, refreshProfile, t]);
+
+  const grantMediaConsent = useCallback(async (item: ConsentItem) => {
+    if (!mediaConsent || !mediaConsentAccepted[item.imageId]) return;
+    setMediaConsentSavingId(item.imageId);
+    setMediaConsentMessage('');
+    try {
+      await api.post(`/api/media/consents/${item.imageId}/grant`, {
+        policyVersion: mediaConsent.policyVersion,
+      });
+      await loadMediaConsent();
+      setMediaConsentMessage('Saglasnost je zabilježena. Status javne objave prikazan je uz aktivnu saglasnost.');
+    } catch (error: unknown) {
+      const message =
+        error && typeof error === 'object' && 'response' in error
+          ? (error as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
+          : null;
+      setMediaConsentMessage(Array.isArray(message) ? message[0] : String(message ?? 'Saglasnost nije mogla biti sačuvana.'));
+    } finally {
+      setMediaConsentSavingId(null);
+    }
+  }, [loadMediaConsent, mediaConsent, mediaConsentAccepted]);
+
+  const revokeMediaConsent = useCallback((item: ConsentItem) => {
+    Alert.alert(
+      'Povući saglasnost?',
+      'Fotografija će odmah biti uklonjena iz javnog prikaza. Privatna kopija se ne briše automatski.',
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: 'Povuci saglasnost',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              setMediaConsentSavingId(item.imageId);
+              setMediaConsentMessage('');
+              try {
+                await api.delete(`/api/media/consents/${item.imageId}`);
+                await loadMediaConsent();
+                setMediaConsentMessage('Saglasnost je povučena; budući pristup kroz sistem je blokiran.');
+              } catch {
+                setMediaConsentMessage('Saglasnost nije mogla biti povučena. Pokušajte ponovo.');
+              } finally {
+                setMediaConsentSavingId(null);
+              }
+            })();
+          },
+        },
+      ],
+    );
+  }, [loadMediaConsent, t]);
 
   const onboardingBasicsDone =
     user &&
@@ -230,6 +328,105 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
             variant="outline"
             style={styles.phoneNudgeBtn}
           />
+        </Card>
+      ) : null}
+
+      {isClient ? (
+        <Card style={[styles.menuCard, { borderColor: colors.border, padding: spacing.md }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+            <Ionicons name="shield-checkmark-outline" size={22} color={colors.primary} />
+            <Text style={[styles.menuLabel, { color: colors.text, fontWeight: '700' }]}>Saglasnosti za fotografije</Text>
+          </View>
+          <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginBottom: spacing.md }}>
+            Saglasnost je dobrovoljna i odvojena za svaku fotografiju. Odbijanje ne utiče na uslugu.
+          </Text>
+          {mediaConsentLoading ? (
+            <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>Učitavanje…</Text>
+          ) : null}
+          {!mediaConsentLoading && mediaConsent?.pending.length ? (
+            <View style={{ gap: spacing.md }}>
+              <View style={{ backgroundColor: colors.accentLight, borderRadius: 12, padding: spacing.md }}>
+                <Text style={{ color: colors.text, fontSize: 13, lineHeight: 20 }}>{mediaConsent.consentText}</Text>
+              </View>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>Fotografije koje čekaju vašu odluku</Text>
+              {mediaConsent.pending.map((item) => {
+                const label = item.isBefore ? 'Fotografija prije tretmana' : 'Fotografija poslije tretmana';
+                const checked = Boolean(mediaConsentAccepted[item.imageId]);
+                return (
+                  <View key={item.imageId} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.sm }}>
+                    <MediaImage
+                      uri={getImageUrl(item.previewUrl)}
+                      style={{ width: '100%', height: 190, borderRadius: 8, backgroundColor: colors.accent }}
+                    />
+                    <Text style={{ color: colors.text, fontWeight: '700', marginTop: spacing.sm }}>{label}</Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }}>
+                      {item.serviceName} · {formatDate(item.serviceDate)}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setMediaConsentAccepted((current) => ({ ...current, [item.imageId]: !checked }))}
+                      style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.md }}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={20} color={colors.primary} />
+                      <Text style={{ color: colors.text, flex: 1, fontSize: 13, lineHeight: 19 }}>
+                        Pročitao/la sam tekst i izričito pristajem na objavu ove fotografije u navedenom obimu.
+                      </Text>
+                    </TouchableOpacity>
+                    <Button
+                      title={mediaConsentSavingId === item.imageId ? 'Spremanje…' : 'Dajem saglasnost'}
+                      onPress={() => void grantMediaConsent(item)}
+                      disabled={!checked || mediaConsentSavingId === item.imageId}
+                      size="sm"
+                    />
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
+          {!mediaConsentLoading && mediaConsent?.active.length ? (
+            <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>Aktivne saglasnosti</Text>
+              {mediaConsent.active.map((item) => (
+                <View key={item.imageId} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.sm }}>
+                  <MediaImage
+                    uri={getImageUrl(item.previewUrl)}
+                    style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: colors.accent }}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.text, fontWeight: '600' }} numberOfLines={2}>
+                      {item.isBefore ? 'Prije' : 'Poslije'} · {item.serviceName}
+                    </Text>
+                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                      {formatDate(item.serviceDate)}
+                    </Text>
+                    <Text style={{ color: item.isPublished ? colors.success : colors.textSecondary, fontSize: 11, marginTop: 2 }}>
+                      {item.isPublished
+                        ? `Objavljeno: ${item.publishedCategories.map((category) => category.name).join(', ')}`
+                        : 'Saglasnost je aktivna; fotografija još nije u javnom prikazu.'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => revokeMediaConsent(item)}
+                    disabled={mediaConsentSavingId === item.imageId}
+                    style={{ padding: spacing.xs }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Povući saglasnost"
+                  >
+                    <Ionicons name="close-circle-outline" size={24} color={colors.error} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          ) : null}
+          {!mediaConsentLoading && mediaConsent && mediaConsent.pending.length === 0 && mediaConsent.active.length === 0 ? (
+            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Trenutno nema fotografija za koje je potrebna odluka.</Text>
+          ) : null}
+          {mediaConsentMessage ? (
+            <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: spacing.sm }}>{mediaConsentMessage}</Text>
+          ) : null}
+          <Text style={{ color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: spacing.md }}>
+            Fotografije bez saglasnosti ostaju privatne. Povlačenje blokira budući pristup kroz sistem; kopije koje su već preuzete ili snimljene izvan njega ne mogu se opozvati.
+          </Text>
         </Card>
       ) : null}
 

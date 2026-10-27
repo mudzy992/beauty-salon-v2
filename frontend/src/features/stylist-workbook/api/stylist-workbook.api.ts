@@ -1,4 +1,5 @@
 import api from '../../../api/client'
+import { fetchAllPublicServices } from '../../../api/catalog'
 import type {
   ClientOption,
   DailyLogEntry,
@@ -29,10 +30,8 @@ export const fetchDailyLogEntry = async (entryId: string): Promise<DailyLogEntry
   return data
 }
 
-export const fetchActiveServices = async (): Promise<ServiceOption[]> => {
-  const { data } = await api.get<ServiceOption[]>('/api/services', { params: { activeOnly: true } })
-  return Array.isArray(data) ? data : []
-}
+export const fetchActiveServices = (): Promise<ServiceOption[]> =>
+  fetchAllPublicServices<ServiceOption>({ activeOnly: true })
 
 export const fetchClientsForDailyLog = async (): Promise<ClientOption[]> => {
   const { data } = await api.get<ClientOption[]>('/api/users/for-daily-log')

@@ -15,6 +15,12 @@ describe('assertReservationTransition', () => {
     ).toBe(true);
     expect(
       canReservationTransition(
+        RESERVATION_STATUS.PENDING,
+        RESERVATION_STATUS.CONFIRMED,
+      ),
+    ).toBe(true);
+    expect(
+      canReservationTransition(
         RESERVATION_STATUS.IN_PROGRESS,
         RESERVATION_STATUS.CANCELLED_BY_STYLISTS,
       ),
