@@ -228,13 +228,17 @@ HAVING COUNT(*) > 1;
 
 **Status:** BIZ-05 source commit `98f856a` je pushan i source/synthetic-disposable-CI verified u runu `40140672041`; to nije production/deployment proof. Nije primijenjena migracija/repair niti zaključivan produkcijski saldo iz synthetic testa.
 
-### AUTH-01 — Public auth/email verification nema app-level throttling, verifikacijski kod je kratak i važi 24h
+### AUTH-01 — Public auth/email verification had no app throttling and six-digit codes had a 24h lifetime (source mitigation partial)
 
-`AuthController` ima public register/login/verify-email (`auth.controller.ts#L37-L93`); `AuthService` koristi 6-digit code i 24h expiry ([L18-L20](../../backend/src/auth/auth.service.ts#L18), [L189-L244](../../backend/src/auth/auth.service.ts#L189)). U app kodu nije pronađen Nest throttler/rate-limit guard. External proxy/WAF limiter nije provjeren.
+At audit baseline, `AuthController` had public register/login/verify-email routes and `AuthService` used a six-digit code with 24-hour expiry. App-level policies and a 15-minute expiry were added in source later (see **Source update** below); production proxy/WAF and Redis availability are not verified.
 
 **Uticaj:** bez edge rate limit-a login/register/verification email endpointi mogu biti brute-force/spam target. Ne tvrdimo da produkcija nema proxy zaštitu.
 
 **Popravka:** per-IP + per-account throttling, resend cooldown, verification attempt counter/short TTL, response normalization, abuse logging; prove edge limiter config. Dodati password reset account recovery kao odvojeni signed/one-time flow.
+
+**Source update (2026-10-27; CI verified):** Redis-backed application policies now annotate public login (30/IP/minute and 10/normalized account/15 minutes), registration (10/IP/hour), verification-code checks (10/IP/15 minutes), and authenticated verification-email sends (3/user/hour plus 10/IP/hour). Multiple policies can be applied to one route; account identities are normalized and hashed before becoming Redis keys. Inactive-account login errors now match invalid-credential errors. New six-digit email verification codes expire after 15 minutes; verification also rejects legacy stored codes whose recorded expiry is more than 15 minutes away. Built-in default email/settings copy reflects the shorter lifetime. Policy metadata, identity normalization, limiter headers, new expiry and legacy-code rejection have focused tests; CI run `40507057959` passed all four jobs. Frontend full test suite (92 tests), production build, strict BS/EN key parity, hygiene, docs links and source contrast checks passed.
+
+**Remaining:** the rate-limit store intentionally fails open if its dedicated Redis is missing/unavailable; actual Redis/proxy configuration and abuse response were not exercised in production. Verification remains a six-digit code with no per-challenge attempt counter, and register is IP-only (multipart parsing prevents reliable account identity at the global interceptor stage). Account lockout/DoS trade-offs and thresholds need owner review. Previously saved custom email templates may still claim a 24-hour validity; inspect/update them in the environment before rollout. Password-reset recovery and edge/WAF evidence remain open. No live DB or deployment was accessed.
 
 ### AUTH-02 — Hardcoded admin-created initial password i backend ne provodi forced-change globalno
 
