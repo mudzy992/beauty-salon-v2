@@ -459,7 +459,9 @@ export class StylistsService {
       this.prisma.stylistService.findMany({
         where,
         include: {
-          service: { include: { subcategory: { include: { category: true } } } },
+          service: {
+            include: { subcategory: { include: { category: true } } },
+          },
         },
         orderBy: [{ service: { sortOrder: 'asc' } }, { serviceId: 'asc' }],
         skip: offset,

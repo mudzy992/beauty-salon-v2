@@ -175,10 +175,7 @@ export class StylistsController {
     windowSeconds: HTTP_RATE_LIMIT_WINDOW_SECONDS,
     identity: 'ip',
   })
-  getServices(
-    @Param('id') id: string,
-    @Query() query: PagePaginationQueryDto,
-  ) {
+  getServices(@Param('id') id: string, @Query() query: PagePaginationQueryDto) {
     return this.stylistsService.getServices(
       id,
       {

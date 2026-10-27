@@ -142,7 +142,7 @@ describe('StylistsService socket revocation', () => {
     expect(result.items[0]).not.toHaveProperty('hireDate');
     expect(result.items[0]).not.toHaveProperty('createdAt');
     expect(result.items[0]).not.toHaveProperty('stylistServices');
-    expect(result.items[0]).toMatchObject({
+    expect(result.items[0].user).toMatchObject({
       firstName: 'Test',
       lastName: 'Stylist',
     });
@@ -423,10 +423,9 @@ describe('StylistsService socket revocation', () => {
     });
     mockPrisma.role.findUnique.mockResolvedValue(null);
 
-    await service.create(
-      { userId: 'stylist-user-1', hireDate: '2026-04-01' },
-      ['OWNER'],
-    );
+    await service.create({ userId: 'stylist-user-1', hireDate: '2026-04-01' }, [
+      'OWNER',
+    ]);
 
     expect(mockPrisma.stylistProfile.create).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -1754,9 +1754,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
     expect(publicStylistDetail.body.user).not.toHaveProperty('email');
     expect(publicStylistDetail.body.user).not.toHaveProperty('phone');
 
-    await request(getHttpServer(app!))
-      .get('/api/stylists/admin')
-      .expect(401);
+    await request(getHttpServer(app!)).get('/api/stylists/admin').expect(401);
     await request(getHttpServer(app!))
       .get('/api/stylists/admin')
       .set('Authorization', `Bearer ${clientToken}`)
@@ -1770,9 +1768,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
         expect.objectContaining({ id: fixtureIds.stylistProfile }),
       ]),
     );
-    expect(adminStylistPage.body.items.find(
-      (item: { id: string }) => item.id === fixtureIds.stylistProfile,
-    ).user).toHaveProperty('email');
+    expect(
+      adminStylistPage.body.items.find(
+        (item: { id: string }) => item.id === fixtureIds.stylistProfile,
+      ).user,
+    ).toHaveProperty('email');
 
     await request(getHttpServer(app!))
       .get(`/api/stylists/admin/${fixtureIds.stylistProfile}/services`)
