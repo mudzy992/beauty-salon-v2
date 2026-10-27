@@ -51,7 +51,8 @@
     "test:admin-notifications-i18n": "node --test src/features/notifications/notifications-i18n.test.mjs",
     "test:force-change-password-i18n": "node --test src/features/onboarding/force-change-password-i18n.test.mjs",
     "test:onboarding-gender-i18n": "node --test src/features/onboarding/onboarding-gender-i18n.test.mjs",
-    "test:onboarding-email-i18n": "node --test src/features/onboarding/onboarding-email-i18n.test.mjs"
+    "test:onboarding-email-i18n": "node --test src/features/onboarding/onboarding-email-i18n.test.mjs",
+    "test:admin-settings-seo-i18n": "node --test src/features/settings/admin-settings-seo-i18n.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

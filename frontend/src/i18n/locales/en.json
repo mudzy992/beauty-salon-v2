@@ -129,6 +129,51 @@
     "resendCode": "Resend code"
   },
 
+  "adminSettings": {
+    "nav": {
+      "site": "Site",
+      "operations": "Operations",
+      "appearance": "Appearance",
+      "seo": "SEO"
+    },
+    "editor": {
+      "configured": "Configured",
+      "notConfigured": "Not configured",
+      "configure": "Set up",
+      "upload": "Upload",
+      "uploading": "Uploading file…",
+      "uploadSuccess": "File uploaded successfully.",
+      "uploadFailed": "Could not upload the file.",
+      "saveSuccess": "Setting saved.",
+      "saveFailed": "Could not save the setting.",
+      "invalidHex": "Enter a valid HEX color, e.g. #D4A843."
+    },
+    "seo": {
+      "title": "Settings — SEO",
+      "description": "Titles, descriptions and OG image. The canonical URL uses the base URL from the Site tab.",
+      "defaultGroup": "Default SEO",
+      "defaultGroupDescription": "Fallback values for pages without their own title or description.",
+      "pageGroup": "Page-specific SEO",
+      "pageGroupDescription": "Titles and descriptions for the main public pages.",
+      "fields": {
+        "defaultTitle": "Default title",
+        "defaultDescription": "Default description",
+        "openGraphImage": "Open Graph image",
+        "homeTitle": "Home — title",
+        "homeDescription": "Home — description",
+        "servicesTitle": "Services — title",
+        "servicesDescription": "Services — description",
+        "blogTitle": "Blog — title",
+        "blogDescription": "Blog — description",
+        "galleryTitle": "Gallery — title",
+        "galleryDescription": "Gallery — description",
+        "contactTitle": "Contact — title",
+        "contactDescription": "Contact — description",
+        "reservationTitle": "Reservation — title",
+        "reservationDescription": "Reservation — description"
+      }
+    }
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",

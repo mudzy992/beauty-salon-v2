@@ -126,6 +126,51 @@
     "resendCode": "Pošalji kod ponovo"
   },
 
+  "adminSettings": {
+    "nav": {
+      "site": "Sajt",
+      "operations": "Operacije",
+      "appearance": "Izgled",
+      "seo": "SEO"
+    },
+    "editor": {
+      "configured": "Postavljeno",
+      "notConfigured": "Nije postavljeno",
+      "configure": "Postavi",
+      "upload": "Prenesi",
+      "uploading": "Učitavanje datoteke…",
+      "uploadSuccess": "Datoteka je uspješno učitana.",
+      "uploadFailed": "Datoteku nije bilo moguće učitati.",
+      "saveSuccess": "Postavka je sačuvana.",
+      "saveFailed": "Postavku nije bilo moguće sačuvati.",
+      "invalidHex": "Unesite ispravnu HEX boju, npr. #D4A843."
+    },
+    "seo": {
+      "title": "Postavke — SEO",
+      "description": "Naslovi, opisi i OG slika. Canonical URL koristi osnovni URL sa kartice Sajt.",
+      "defaultGroup": "SEO zadano",
+      "defaultGroupDescription": "Rezervne vrijednosti ako stranica nema vlastiti naslov ili opis.",
+      "pageGroup": "SEO po stranici",
+      "pageGroupDescription": "Naslovi i opisi za glavne javne stranice.",
+      "fields": {
+        "defaultTitle": "Zadani naslov",
+        "defaultDescription": "Zadani opis",
+        "openGraphImage": "OG slika",
+        "homeTitle": "Početna — naslov",
+        "homeDescription": "Početna — opis",
+        "servicesTitle": "Usluge — naslov",
+        "servicesDescription": "Usluge — opis",
+        "blogTitle": "Blog — naslov",
+        "blogDescription": "Blog — opis",
+        "galleryTitle": "Galerija — naslov",
+        "galleryDescription": "Galerija — opis",
+        "contactTitle": "Kontakt — naslov",
+        "contactDescription": "Kontakt — opis",
+        "reservationTitle": "Rezervacija — naslov",
+        "reservationDescription": "Rezervacija — opis"
+      }
+    }
+  },
   "common": {
     "save": "Sačuvaj",
     "cancel": "Odustani",

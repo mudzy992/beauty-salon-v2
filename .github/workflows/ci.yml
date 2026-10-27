@@ -250,6 +250,9 @@ jobs:
       - name: Test localized email-verification onboarding
         working-directory: frontend
         run: npm run test:onboarding-email-i18n
+      - name: Test localized admin SEO settings
+        working-directory: frontend
+        run: npm run test:admin-settings-seo-i18n
       - name: Test localized stylist analytics page
         working-directory: frontend
         run: npm run test:stylist-analytics-i18n

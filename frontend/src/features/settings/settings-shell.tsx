@@ -1,12 +1,6 @@
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { NavLink } from 'react-router-dom'
-
-const LINKS = [
-  { to: '/admin/settings', label: 'Sajt', end: true },
-  { to: '/admin/settings/operations', label: 'Operacije', end: true },
-  { to: '/admin/settings/appearance', label: 'Izgled', end: true },
-  { to: '/admin/settings/seo', label: 'SEO', end: true },
-]
 
 export function SettingsShell({
   title,
@@ -17,12 +11,20 @@ export function SettingsShell({
   description: string
   children: ReactNode
 }) {
+  const { t } = useTranslation()
+  const links = [
+    { to: '/admin/settings', label: t('adminSettings.nav.site'), end: true },
+    { to: '/admin/settings/operations', label: t('adminSettings.nav.operations'), end: true },
+    { to: '/admin/settings/appearance', label: t('adminSettings.nav.appearance'), end: true },
+    { to: '/admin/settings/seo', label: t('adminSettings.nav.seo'), end: true },
+  ]
+
   return (
     <div className="pb-10">
       <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{title}</h1>
       <p className="mt-1 max-w-2xl text-sm text-slate-600 dark:text-slate-300">{description}</p>
       <nav className="mt-4 flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-slate-800 dark:bg-slate-900/40">
-        {LINKS.map((l) => (
+        {links.map((l) => (
           <NavLink
             key={l.to}
             to={l.to}
