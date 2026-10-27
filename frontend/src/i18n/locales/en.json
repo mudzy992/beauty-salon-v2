@@ -1093,7 +1093,19 @@
       "returnedFromDailyLog": "The appointment left the daily log and was returned to the schedule.",
       "moveError": "Unable to move appointment",
       "cancelled": "Reservation cancelled",
-      "cancelError": "Error cancelling reservation"
+      "cancelError": "Error cancelling reservation",
+      "toolbar": {
+        "title": "Reservations",
+        "selectedStylistsCount": "Selected stylists: {{count}}",
+        "allStylists": "All stylists",
+        "newAppointment": "New appointment",
+        "previous": "Previous period",
+        "next": "Next period",
+        "stylists": "Stylists",
+        "all": "All",
+        "unassigned": "Unconfirmed",
+        "dailyLog": "Daily log"
+      }
     },
     "statuses": {
       "PENDING": "Pending",

@@ -1090,7 +1090,19 @@
       "returnedFromDailyLog": "Termin je izašao iz dnevne knjige i vraćen u raspored.",
       "moveError": "Pomjeranje nije moguće",
       "cancelled": "Rezervacija otkazana",
-      "cancelError": "Greška pri otkazivanju"
+      "cancelError": "Greška pri otkazivanju",
+      "toolbar": {
+        "title": "Rezervacije",
+        "selectedStylistsCount": "Odabrano stilista: {{count}}",
+        "allStylists": "Svi stilisti",
+        "newAppointment": "Novi termin",
+        "previous": "Prethodni period",
+        "next": "Sljedeći period",
+        "stylists": "Stilisti",
+        "all": "Svi",
+        "unassigned": "Nije potvrđen",
+        "dailyLog": "Dnevna knjiga"
+      }
     },
     "statuses": {
       "PENDING": "Na čekanju",

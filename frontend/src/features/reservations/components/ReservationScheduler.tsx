@@ -197,9 +197,11 @@ export const ReservationScheduler = (props: Props) => {
       hasUnassignedReservations || props.selectedStylistIds.includes('unassigned')
     return [
       ...active.map((s) => ({ id: s.id, title: stylistName(s) })),
-      ...(shouldShowUnassigned ? [{ id: 'unassigned', title: 'Nije potvrđen' }] : []),
+      ...(shouldShowUnassigned
+        ? [{ id: 'unassigned', title: t('reservations.calendar.toolbar.unassigned') }]
+        : []),
     ]
-  }, [hasUnassignedReservations, props.selectedStylistIds, props.stylists])
+  }, [hasUnassignedReservations, props.selectedStylistIds, props.stylists, t])
 
   const events = useMemo(() => {
     const byStylists = new Set(props.selectedStylistIds)
@@ -482,16 +484,20 @@ export const ReservationScheduler = (props: Props) => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-slate-500" aria-hidden="true" />
-            <div className="font-semibold text-slate-900 dark:text-slate-50">Rezervacije</div>
+            <div className="font-semibold text-slate-900 dark:text-slate-50">
+              {t('reservations.calendar.toolbar.title')}
+            </div>
             <Badge variant="secondary" className="text-[10px]">
-              {props.selectedStylistIds.length ? `${props.selectedStylistIds.length} stilist(a)` : 'Svi stilisti'}
+              {props.selectedStylistIds.length
+                ? t('reservations.calendar.toolbar.selectedStylistsCount', { count: props.selectedStylistIds.length })
+                : t('reservations.calendar.toolbar.allStylists')}
             </Badge>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => openCreate()}>
               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              Novi termin
+              {t('reservations.calendar.toolbar.newAppointment')}
             </Button>
 
             <Button
@@ -502,10 +508,10 @@ export const ReservationScheduler = (props: Props) => {
             >
               {messages.today}
             </Button>
-            <Button type="button" variant="outline" size="icon" className="h-9 w-9" aria-label="Prethodni" onClick={handlePrev}>
+            <Button type="button" variant="outline" size="icon" className="h-9 w-9" aria-label={t('reservations.calendar.toolbar.previous')} onClick={handlePrev}>
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </Button>
-            <Button type="button" variant="outline" size="icon" className="h-9 w-9" aria-label="Sljedeći" onClick={handleNext}>
+            <Button type="button" variant="outline" size="icon" className="h-9 w-9" aria-label={t('reservations.calendar.toolbar.next')} onClick={handleNext}>
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
 
@@ -545,14 +551,14 @@ export const ReservationScheduler = (props: Props) => {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
             <Filter className="h-4 w-4" aria-hidden="true" />
-            <span>Stilisti</span>
+            <span>{t('reservations.calendar.toolbar.stylists')}</span>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 className={props.selectedStylistIds.length === 0 ? 'rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white' : 'rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-700 dark:border-slate-800 dark:text-slate-200'}
                 onClick={() => props.onSelectedStylistIdsChange([])}
               >
-                Svi
+                {t('reservations.calendar.toolbar.all')}
               </button>
               {resources.map((r) => (
                 <button
@@ -581,7 +587,7 @@ export const ReservationScheduler = (props: Props) => {
             {[
               { status: 'CONFIRMED', label: getReservationStatusLabel('CONFIRMED') },
               { status: 'PENDING', label: getReservationStatusLabel('PENDING') },
-              { status: 'AWAITING_DAILY_LOG', label: 'Dnevnik' },
+              { status: 'AWAITING_DAILY_LOG', label: t('reservations.calendar.toolbar.dailyLog') },
               { status: 'CANCELLED_BY_CLIENT', label: getReservationStatusLabel('CANCELLED_BY_CLIENT') },
               { status: 'COMPLETED', label: getReservationStatusLabel('COMPLETED') },
             ].map((x) => (
