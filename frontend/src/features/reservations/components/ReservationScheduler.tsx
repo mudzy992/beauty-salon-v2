@@ -134,8 +134,8 @@ const combineLocal = (dateStr: string, timeStr: string): Date => {
   return new Date(yyyy, (mm ?? 1) - 1, dd ?? 1, hh ?? 0, mi ?? 0, 0, 0)
 }
 
-const stylistName = (s?: StylistProfile | null): string => {
-  if (!s?.user) return s?.id ?? 'Stilist'
+const stylistName = (s: StylistProfile | null | undefined, fallbackLabel: string): string => {
+  if (!s?.user) return s?.id ?? fallbackLabel
   return [s.user.firstName, s.user.lastName].filter(Boolean).join(' ') || s.user.username || s.id
 }
 
@@ -150,10 +150,10 @@ const reservationServices = (r: Reservation | null | undefined) => {
   return r?.service ? [r.service] : []
 }
 
-const reservationServiceTitle = (r: Reservation): string => {
+const reservationServiceTitle = (r: Reservation, fallbackLabel: string): string => {
   const svcs = reservationServices(r)
-  if (svcs.length === 0) return 'Usluga'
-  const first = svcs[0]?.name ?? 'Usluga'
+  if (svcs.length === 0) return fallbackLabel
+  const first = svcs[0]?.name ?? fallbackLabel
   const rest = svcs.length - 1
   return rest > 0 ? `${first} (+${rest})` : first
 }
@@ -204,7 +204,10 @@ export const ReservationScheduler = (props: Props) => {
     const shouldShowUnassigned =
       hasUnassignedReservations || props.selectedStylistIds.includes('unassigned')
     return [
-      ...active.map((s) => ({ id: s.id, title: stylistName(s) })),
+      ...active.map((s) => ({
+        id: s.id,
+        title: stylistName(s, t('reservations.calendar.eventFallbacks.stylist')),
+      })),
       ...(shouldShowUnassigned
         ? [{ id: 'unassigned', title: t('reservations.calendar.toolbar.unassigned') }]
         : []),
@@ -219,12 +222,17 @@ export const ReservationScheduler = (props: Props) => {
 
     return filtered
       .map((r): SchedulerEvent => {
-        const serviceTitle = reservationServiceTitle(r)
+        const serviceTitle = reservationServiceTitle(
+          r,
+          t('reservations.calendar.eventFallbacks.service'),
+        )
         const clientTitle =
-          [r.client?.firstName, r.client?.lastName].filter(Boolean).join(' ').trim() || r.client?.username || 'Klijent'
+          [r.client?.firstName, r.client?.lastName].filter(Boolean).join(' ').trim() ||
+          r.client?.username ||
+          t('reservations.calendar.eventFallbacks.client')
         const title =
           r.status === 'AWAITING_DAILY_LOG'
-            ? `Dnevnik • ${serviceTitle} • ${clientTitle}`
+            ? `${t('reservations.calendar.eventFallbacks.dailyLogPrefix')} • ${serviceTitle} • ${clientTitle}`
             : `${serviceTitle} • ${clientTitle}`
         const start = combineLocal(String(r.reservationDate).slice(0, 10), r.startTime)
         const end = combineLocal(String(r.reservationDate).slice(0, 10), r.endTime)
@@ -232,7 +240,7 @@ export const ReservationScheduler = (props: Props) => {
         return { id: r.id, title, start, end, resourceId, status: r.status, reservation: r }
       })
       .filter((e) => !Number.isNaN(e.start.getTime()) && !Number.isNaN(e.end.getTime()))
-  }, [props.reservations, props.selectedStylistIds])
+  }, [props.reservations, props.selectedStylistIds, t])
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerMode, setDrawerMode] = useState<'details' | 'create'>('details')
@@ -729,7 +737,7 @@ export const ReservationScheduler = (props: Props) => {
                       '-'}
                   </p>
                   <p className="text-sm text-slate-600 dark:text-slate-300">
-                    {t('reservations.calendar.details.stylist')}: {activeReservation.confirmedStylist ? stylistName(activeReservation.confirmedStylist) : t('reservations.calendar.details.unconfirmed')}
+                    {t('reservations.calendar.details.stylist')}: {activeReservation.confirmedStylist ? stylistName(activeReservation.confirmedStylist, t('reservations.calendar.eventFallbacks.stylist')) : t('reservations.calendar.details.unconfirmed')}
                   </p>
                 </div>
 
@@ -965,7 +973,7 @@ export const ReservationScheduler = (props: Props) => {
                   <Label>{t('reservations.calendar.create.stylist')}</Label>
                   <div className="grid grid-cols-1 gap-2">
                     {props.stylists.map((stylist) => {
-                      const label = stylistName(stylist)
+                      const label = stylistName(stylist, t('reservations.calendar.eventFallbacks.stylist'))
                       const active = createDraft.stylistProfileId === stylist.id
                       return (
                         <button

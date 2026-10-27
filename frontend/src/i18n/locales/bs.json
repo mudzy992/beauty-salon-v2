@@ -1159,6 +1159,12 @@
         "removeService": "Ukloni",
         "clientNote": "Napomena klijenta (opcionalno)",
         "submit": "Kreiraj rezervaciju"
+      },
+      "eventFallbacks": {
+        "service": "Usluga",
+        "client": "Klijent",
+        "stylist": "Stilist",
+        "dailyLogPrefix": "Dnevna knjiga"
       }
     },
     "statuses": {

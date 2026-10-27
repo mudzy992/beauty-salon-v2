@@ -1162,6 +1162,12 @@
         "removeService": "Remove",
         "clientNote": "Client note (optional)",
         "submit": "Create reservation"
+      },
+      "eventFallbacks": {
+        "service": "Service",
+        "client": "Client",
+        "stylist": "Stylist",
+        "dailyLogPrefix": "Daily log"
       }
     },
     "statuses": {

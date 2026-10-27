@@ -113,6 +113,22 @@ test('reservation creation drawer copy has matching Bosnian and English translat
   assert.match(scheduler, /!createDraft\.clientId\.trim\(\)/)
 })
 
+test('calendar event fallback labels have matching translations', () => {
+  const expectedKeys = ['service', 'client', 'stylist', 'dailyLogPrefix'].map(
+    (key) => `reservations.calendar.eventFallbacks.${key}`,
+  )
+
+  for (const key of expectedKeys) {
+    assert.ok(scheduler.includes(key), `Scheduler does not use ${key}`)
+    for (const resource of locales) {
+      assert.ok(hasLocaleKey(resource, key), `Missing locale key: ${key}`)
+    }
+  }
+
+  assert.match(scheduler, /const serviceTitle = reservationServiceTitle\(/)
+  assert.match(scheduler, /t\('reservations\.calendar\.eventFallbacks\.dailyLogPrefix'\)/)
+})
+
 test('calendar localization preserves reservation endpoints, requests and navigation', () => {
   assert.match(source, /api\.post\('\/api\/reservations\/admin', payload\)/)
   assert.match(source, /api\.patch\(`\/api\/reservations\/\$\{payload\.reservationId\}`/)
