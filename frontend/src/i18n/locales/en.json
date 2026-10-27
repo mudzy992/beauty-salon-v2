@@ -172,6 +172,47 @@
         "reservationTitle": "Reservation — title",
         "reservationDescription": "Reservation — description"
       }
+    },
+    "operations": {
+      "title": "Settings — Operations",
+      "description": "Salon time zone, reservation deadlines, reminders and push notifications.",
+      "groups": {
+        "timezone": "Time zone",
+        "reservations": "Reservation deadlines",
+        "notifications": "Notifications"
+      },
+      "groupDescriptions": {
+        "timezone": "The time zone is used for reservations, deadlines and reminders.",
+        "reservations": "Attendance confirmation, request-processing deadlines and daily log reminders. Set the reservation lock duration under Salon.",
+        "notifications": "Manage customer reminders and global push notifications. Email sender details are in Email Settings."
+      },
+      "fields": {
+        "timezone": "Salon time zone",
+        "attendanceDeadline": "How many hours before an appointment clients must confirm attendance",
+        "inboxTimeout": "Automatically cancel pending requests after",
+        "dailyLogReminder": "Remind stylists about pending daily logs after",
+        "customerReminder": "Hours before an appointment to send a customer reminder",
+        "pushEnabled": "Send push notifications globally"
+      },
+      "units": {
+        "hours": "hours"
+      }
+    },
+    "appearance": {
+      "title": "Settings — Appearance",
+      "description": "Logo, application name and public website theme colors.",
+      "group": "Branding",
+      "groupDescription": "The logo and application name; theme colors change accents on the public website.",
+      "fields": {
+        "appTitle": "Application name",
+        "logo": "Logo",
+        "svgLogoColor": "SVG logo color",
+        "logoTextColor": "Text color beside the logo",
+        "logoAccentColor": "Logo accent color",
+        "animateLogo": "Animate the logo",
+        "primarySiteColor": "Primary website color",
+        "siteAccentColor": "Website accent color (gold)"
+      }
     }
   },
   "common": {

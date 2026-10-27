@@ -169,6 +169,47 @@
         "reservationTitle": "Rezervacija — naslov",
         "reservationDescription": "Rezervacija — opis"
       }
+    },
+    "operations": {
+      "title": "Postavke — Operacije",
+      "description": "Vremenska zona salona, rezervacijski rokovi, podsjetnici i push obavijesti.",
+      "groups": {
+        "timezone": "Vremenska zona",
+        "reservations": "Rezervacije — rokovi",
+        "notifications": "Obavijesti"
+      },
+      "groupDescriptions": {
+        "timezone": "Vremenska zona se koristi za rezervacije, rokove i podsjetnike.",
+        "reservations": "Potvrda dolaska, rok za obradu zahtjeva i podsjetnici za dnevnik rada. Rok zaključavanja rezervacije podešava se u odjeljku Salon.",
+        "notifications": "Upravljajte podsjetnicima klijentima i globalnim push obavijestima. Podaci o pošiljaocu e-pošte nalaze se u postavkama e-pošte."
+      },
+      "fields": {
+        "timezone": "Vremenska zona salona",
+        "attendanceDeadline": "Koliko sati prije početka termina klijent mora potvrditi dolazak",
+        "inboxTimeout": "Automatski otkaži zahtjeve na čekanju nakon",
+        "dailyLogReminder": "Podsjeti stilistu na dnevnik rada na čekanju nakon",
+        "customerReminder": "Koliko sati prije termina poslati podsjetnik klijentu",
+        "pushEnabled": "Šalji push obavijesti globalno"
+      },
+      "units": {
+        "hours": "sati"
+      }
+    },
+    "appearance": {
+      "title": "Postavke — Izgled",
+      "description": "Logo, naziv aplikacije i boje teme javnog sajta.",
+      "group": "Vizuelni identitet",
+      "groupDescription": "Logo i naziv aplikacije; boje teme mijenjaju akcentne boje javnog sajta.",
+      "fields": {
+        "appTitle": "Naziv aplikacije",
+        "logo": "Logo",
+        "svgLogoColor": "Boja SVG logotipa",
+        "logoTextColor": "Boja teksta uz logotip",
+        "logoAccentColor": "Akcentna boja logotipa",
+        "animateLogo": "Animiraj logotip",
+        "primarySiteColor": "Primarna boja sajta",
+        "siteAccentColor": "Akcentna boja sajta (zlatna)"
+      }
     }
   },
   "common": {

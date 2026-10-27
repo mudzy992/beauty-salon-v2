@@ -13,12 +13,13 @@ export function SettingEditorBoolean({
   onSave: (key: string, value: string, desc: string) => Promise<void>
 }) {
   const [saving, setSaving] = useState(false)
+  const displayLabel = def.label ?? def.desc
   const isOn = (setting?.value ?? 'false').toLowerCase() === 'true'
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{def.desc}</p>
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{displayLabel}</p>
           <p className="mt-0.5 font-mono text-xs text-slate-400">{def.key}</p>
         </div>
         <Switch

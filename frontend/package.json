@@ -53,6 +53,7 @@
     "test:onboarding-gender-i18n": "node --test src/features/onboarding/onboarding-gender-i18n.test.mjs",
     "test:onboarding-email-i18n": "node --test src/features/onboarding/onboarding-email-i18n.test.mjs",
     "test:admin-settings-seo-i18n": "node --test src/features/settings/admin-settings-seo-i18n.test.mjs",
+    "test:admin-settings-operations-appearance-i18n": "node --test src/features/settings/admin-settings-operations-appearance-i18n.test.mjs",
     "test:temporary-user-credentials": "node --test src/features/users/temporary-user-credentials.test.mjs"
   },
   "dependencies": {
