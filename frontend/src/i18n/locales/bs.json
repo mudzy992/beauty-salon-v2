@@ -1080,6 +1080,18 @@
     "confirmedStylist": "Potvrđeni stilista",
     "clientNotes": "Napomena klijenta",
     "stylistResponses": "Odgovori stilista",
+    "calendar": {
+      "title": "Kalendar rezervacija",
+      "workspace": "Radna površina (preko cijelog ekrana).",
+      "back": "Nazad",
+      "created": "Rezervacija kreirana",
+      "createError": "Greška pri kreiranju rezervacije",
+      "moved": "Termin pomjeren",
+      "returnedFromDailyLog": "Termin je izašao iz dnevne knjige i vraćen u raspored.",
+      "moveError": "Pomjeranje nije moguće",
+      "cancelled": "Rezervacija otkazana",
+      "cancelError": "Greška pri otkazivanju"
+    },
     "statuses": {
       "PENDING": "Na čekanju",
       "STYLIST_REVIEW": "Pregled stiliste",

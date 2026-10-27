@@ -1083,6 +1083,18 @@
     "confirmedStylist": "Confirmed stylist",
     "clientNotes": "Client notes",
     "stylistResponses": "Stylist responses",
+    "calendar": {
+      "title": "Reservation calendar",
+      "workspace": "Full-screen workspace.",
+      "back": "Back",
+      "created": "Reservation created",
+      "createError": "Error creating reservation",
+      "moved": "Appointment moved",
+      "returnedFromDailyLog": "The appointment left the daily log and was returned to the schedule.",
+      "moveError": "Unable to move appointment",
+      "cancelled": "Reservation cancelled",
+      "cancelError": "Error cancelling reservation"
+    },
     "statuses": {
       "PENDING": "Pending",
       "STYLIST_REVIEW": "Stylist review",

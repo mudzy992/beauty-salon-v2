@@ -152,6 +152,9 @@ jobs:
       - name: Test localized public reservation errors
         working-directory: frontend
         run: npm run test:reservation-errors
+      - name: Test localized admin reservation calendar page
+        working-directory: frontend
+        run: npm run test:admin-reservations-calendar-i18n
       - name: Test localized client reservation action errors
         working-directory: frontend
         run: npm run test:client-reservation-errors

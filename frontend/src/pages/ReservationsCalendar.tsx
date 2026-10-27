@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 
@@ -30,6 +31,7 @@ const toLocalCalendarDate = (dateOnly: string): Date => {
 }
 
 export default function ReservationsCalendar() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const toast = useAppToast()
 
@@ -114,10 +116,10 @@ export default function ReservationsCalendar() {
   }) => {
     try {
       await api.post('/api/reservations/admin', payload)
-      toast.success('Rezervacija kreirana')
+      toast.success(t('reservations.calendar.created'))
       await loadReservations()
     } catch (err) {
-      toast.error(getErrorMessage(err, 'Greška pri kreiranju rezervacije'))
+      toast.error(getErrorMessage(err, t('reservations.calendar.createError')))
       throw err
     }
   }
@@ -134,12 +136,12 @@ export default function ReservationsCalendar() {
       })
       toast.success(
         wasAwaitingDailyLog
-          ? 'Termin je izašao iz dnevne knjige i vraćen u raspored.'
-          : 'Termin pomjeren',
+          ? t('reservations.calendar.returnedFromDailyLog')
+          : t('reservations.calendar.moved'),
       )
       await loadReservations()
     } catch (err) {
-      toast.error(getErrorMessage(err, 'Pomjeranje nije moguće'))
+      toast.error(getErrorMessage(err, t('reservations.calendar.moveError')))
       throw err
     }
   }
@@ -153,10 +155,10 @@ export default function ReservationsCalendar() {
       await api.post(`/api/reservations/${payload.reservationId}/admin-cancel`, {
         cancelReason: payload.cancelReason || undefined,
       })
-      toast.success('Rezervacija otkazana')
+      toast.success(t('reservations.calendar.cancelled'))
       await loadReservations()
     } catch (err) {
-      toast.error(getErrorMessage(err, 'Greška pri otkazivanju'))
+      toast.error(getErrorMessage(err, t('reservations.calendar.cancelError')))
       throw err
     }
   }
@@ -167,15 +169,15 @@ export default function ReservationsCalendar() {
         <div className="mb-3 flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="truncate text-base font-semibold text-slate-900 dark:text-slate-50">
-              Kalendar rezervacija
+              {t('reservations.calendar.title')}
             </h1>
             <p className="mt-0.5 hidden text-xs text-slate-600 dark:text-slate-300 sm:block">
-              Radna površina (full screen).
+              {t('reservations.calendar.workspace')}
             </p>
           </div>
           <Button type="button" variant="outline" onClick={() => navigate('/admin/reservations')}>
             <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-            Nazad
+            {t('reservations.calendar.back')}
           </Button>
         </div>
 
