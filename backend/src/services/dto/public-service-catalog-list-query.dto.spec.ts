@@ -17,7 +17,7 @@ describe('public service category query DTOs', () => {
     expect(category).toMatchObject({
       page: 0,
       pageSize: 20,
-      activeOnly: 'false',
+      activeOnly: 'true',
     });
     expect(await validate(category)).toHaveLength(0);
     expect(subcategory).toMatchObject({
