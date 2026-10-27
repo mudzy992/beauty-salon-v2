@@ -16,6 +16,10 @@ const SITE_GROUP_COPY_KEYS = {
     label: 'adminSettings.site.groups.contact',
     description: 'adminSettings.site.groupDescriptions.contact',
   },
+  public_pages_: {
+    label: 'adminSettings.site.groups.pages',
+    description: 'adminSettings.site.groupDescriptions.pages',
+  },
 } as const
 
 const SITE_FIELD_COPY_KEYS = {
@@ -51,6 +55,24 @@ const SITE_FIELD_COPY_KEYS = {
   public_social_tiktok: 'adminSettings.site.fields.tiktok',
   public_site_base_url: 'adminSettings.site.fields.siteBaseUrl',
   public_footer_text: 'adminSettings.site.fields.footerText',
+  public_reserve_title: 'adminSettings.site.fields.reservationTitle',
+  public_reserve_subtitle: 'adminSettings.site.fields.reservationSubtitle',
+  public_reserve_bg: 'adminSettings.site.fields.reservationBackground',
+  public_services_bg: 'adminSettings.site.fields.servicesBackground',
+  public_services_title: 'adminSettings.site.fields.servicesTitle',
+  public_services_subtitle: 'adminSettings.site.fields.servicesSubtitle',
+  public_gallery_bg: 'adminSettings.site.fields.galleryBackground',
+  public_gallery_title: 'adminSettings.site.fields.galleryTitle',
+  public_gallery_subtitle: 'adminSettings.site.fields.gallerySubtitle',
+  public_blog_bg: 'adminSettings.site.fields.blogBackground',
+  public_blog_title: 'adminSettings.site.fields.blogTitle',
+  public_blog_subtitle: 'adminSettings.site.fields.blogSubtitle',
+  public_login_image: 'adminSettings.site.fields.signInImage',
+  public_login_title: 'adminSettings.site.fields.signInTitle',
+  public_login_subtitle: 'adminSettings.site.fields.signInSubtitle',
+  public_register_image: 'adminSettings.site.fields.registrationImage',
+  public_register_title: 'adminSettings.site.fields.registrationTitle',
+  public_register_subtitle: 'adminSettings.site.fields.registrationSubtitle',
 } as const
 
 const SITE_PLACEHOLDER_COPY_KEYS = {

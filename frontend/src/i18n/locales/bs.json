@@ -176,12 +176,14 @@
       "groups": {
         "maintenance": "Režim održavanja",
         "home": "Sekcije na početnoj",
-        "contact": "Kontakt i društvene mreže"
+        "contact": "Kontakt i društvene mreže",
+        "pages": "Stranice i prijava"
       },
       "groupDescriptions": {
         "maintenance": "Posjetioci javnog sajta i mobilne početne vide poruku o održavanju. Administracija i prijava ostaju dostupne.",
         "home": "Hero sekcija (web CTA je odvojen od mobilnog), o nama, istaknuti sadržaj i donji CTA blok.",
-        "contact": "Radno vrijeme se podešava u odjeljku Salon, ne ovdje."
+        "contact": "Radno vrijeme se podešava u odjeljku Salon, ne ovdje.",
+        "pages": "Naslovni sadržaj usluga, galerije, bloga i rezervacije te vizuali za prijavu i registraciju."
       },
       "fields": {
         "maintenanceMode": "Režim održavanja",
@@ -215,7 +217,25 @@
         "instagram": "Instagram",
         "tiktok": "TikTok",
         "siteBaseUrl": "Osnovni URL sajta (dijeljenje + SEO canonical)",
-        "footerText": "Tekst u footeru"
+        "footerText": "Tekst u footeru",
+        "reservationTitle": "Rezervacija — naslov",
+        "reservationSubtitle": "Rezervacija — podnaslov",
+        "reservationBackground": "Rezervacija — pozadina",
+        "servicesBackground": "Usluge — pozadina",
+        "servicesTitle": "Usluge — naslov",
+        "servicesSubtitle": "Usluge — podnaslov",
+        "galleryBackground": "Galerija — pozadina",
+        "galleryTitle": "Galerija — naslov",
+        "gallerySubtitle": "Galerija — podnaslov",
+        "blogBackground": "Blog — pozadina",
+        "blogTitle": "Blog — naslov",
+        "blogSubtitle": "Blog — podnaslov",
+        "signInImage": "Prijava — slika",
+        "signInTitle": "Prijava — naslov",
+        "signInSubtitle": "Prijava — podnaslov",
+        "registrationImage": "Registracija — slika",
+        "registrationTitle": "Registracija — naslov",
+        "registrationSubtitle": "Registracija — podnaslov"
       },
       "placeholders": {
         "webHeroCtaText": "Rezervišite termin"

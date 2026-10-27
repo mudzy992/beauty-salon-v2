@@ -179,12 +179,14 @@
       "groups": {
         "maintenance": "Maintenance mode",
         "home": "Homepage sections",
-        "contact": "Contact and social media"
+        "contact": "Contact and social media",
+        "pages": "Pages and sign-in"
       },
       "groupDescriptions": {
         "maintenance": "Visitors to the public website and mobile home see the maintenance message. Admin and sign-in remain available.",
         "home": "Hero section (the website CTA is separate from mobile), about content, highlights and the bottom CTA block.",
-        "contact": "Business hours are configured under Salon settings, not here."
+        "contact": "Business hours are configured under Salon settings, not here.",
+        "pages": "Hero content for services, gallery, blog and reservations, plus sign-in and registration visuals."
       },
       "fields": {
         "maintenanceMode": "Maintenance mode",
@@ -218,7 +220,25 @@
         "instagram": "Instagram",
         "tiktok": "TikTok",
         "siteBaseUrl": "Website base URL (sharing + SEO canonical)",
-        "footerText": "Footer text"
+        "footerText": "Footer text",
+        "reservationTitle": "Reservation — title",
+        "reservationSubtitle": "Reservation — subtitle",
+        "reservationBackground": "Reservation — background",
+        "servicesBackground": "Services — background",
+        "servicesTitle": "Services — title",
+        "servicesSubtitle": "Services — subtitle",
+        "galleryBackground": "Gallery — background",
+        "galleryTitle": "Gallery — title",
+        "gallerySubtitle": "Gallery — subtitle",
+        "blogBackground": "Blog — background",
+        "blogTitle": "Blog — title",
+        "blogSubtitle": "Blog — subtitle",
+        "signInImage": "Sign-in — image",
+        "signInTitle": "Sign-in — title",
+        "signInSubtitle": "Sign-in — subtitle",
+        "registrationImage": "Registration — image",
+        "registrationTitle": "Registration — title",
+        "registrationSubtitle": "Registration — subtitle"
       },
       "placeholders": {
         "webHeroCtaText": "Book an appointment"
