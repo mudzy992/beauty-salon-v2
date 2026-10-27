@@ -232,6 +232,9 @@ jobs:
       - name: Test localized stylist analytics page
         working-directory: frontend
         run: npm run test:stylist-analytics-i18n
+      - name: Test localized SMTP email settings
+        working-directory: frontend
+        run: npm run test:email-settings-smtp-i18n
       - name: Test runtime web language selection and fallback
         working-directory: frontend
         run: npm run test:i18n-language
