@@ -52,7 +52,13 @@ type SchedulerEvent = {
   reservation: Reservation
 }
 
+const reservationStatusTranslationKey = (status: string, cancelReason?: string | null) =>
+  status === 'CANCELLED_BY_CLIENT' && (cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
+    ? 'reservations.statuses.CANCELLED_UNCONFIRMED_ATTENDANCE'
+    : `reservations.statuses.${status}`
+
 const SchedulerEventContent = ({ event }: { event: SchedulerEvent }) => {
+  const { t } = useTranslation()
   const startLabel = event.start instanceof Date ? format(event.start, 'HH:mm') : ''
   const endLabel = event.end instanceof Date ? format(event.end, 'HH:mm') : ''
   const timeLabel = startLabel && endLabel ? `${startLabel}–${endLabel}` : startLabel
@@ -63,7 +69,9 @@ const SchedulerEventContent = ({ event }: { event: SchedulerEvent }) => {
         <div className="shrink-0 text-[10px] font-semibold opacity-80">{timeLabel}</div>
       </div>
       <div className="mt-0.5 truncate text-[10px] opacity-80">
-        {getReservationStatusLabel(event.status, event.reservation.cancelReason)}
+        {t(reservationStatusTranslationKey(event.status, event.reservation.cancelReason), {
+          defaultValue: getReservationStatusLabel(event.status, event.reservation.cancelReason),
+        })}
       </div>
     </div>
   )
@@ -585,11 +593,11 @@ export const ReservationScheduler = (props: Props) => {
 
           <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-300">
             {[
-              { status: 'CONFIRMED', label: getReservationStatusLabel('CONFIRMED') },
-              { status: 'PENDING', label: getReservationStatusLabel('PENDING') },
+              { status: 'CONFIRMED', label: t('reservations.statuses.CONFIRMED') },
+              { status: 'PENDING', label: t('reservations.statuses.PENDING') },
               { status: 'AWAITING_DAILY_LOG', label: t('reservations.calendar.toolbar.dailyLog') },
-              { status: 'CANCELLED_BY_CLIENT', label: getReservationStatusLabel('CANCELLED_BY_CLIENT') },
-              { status: 'COMPLETED', label: getReservationStatusLabel('COMPLETED') },
+              { status: 'CANCELLED_BY_CLIENT', label: t('reservations.statuses.CANCELLED_BY_CLIENT') },
+              { status: 'COMPLETED', label: t('reservations.statuses.COMPLETED') },
             ].map((x) => (
               <span key={x.status} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 dark:border-slate-800 dark:bg-slate-950">
                 <span
@@ -674,15 +682,17 @@ export const ReservationScheduler = (props: Props) => {
             {drawerMode === 'details' && activeReservation ? (
               <div className="space-y-4">
               <div>
-                <p className="text-xs text-slate-500">Status</p>
+                <p className="text-xs text-slate-500">{t('reservations.calendar.details.status')}</p>
                 <p className="mt-1 font-semibold text-slate-900 dark:text-slate-50">
-                  {getReservationStatusLabel(activeReservation.status, activeReservation.cancelReason)}
+                  {t(reservationStatusTranslationKey(activeReservation.status, activeReservation.cancelReason), {
+                    defaultValue: getReservationStatusLabel(activeReservation.status, activeReservation.cancelReason),
+                  })}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 gap-3">
                 <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                  <p className="text-xs text-slate-500">Termin</p>
+                  <p className="text-xs text-slate-500">{t('reservations.calendar.details.appointment')}</p>
                   <p className="mt-1 font-semibold text-slate-900 dark:text-slate-50">
                     {String(activeReservation.reservationDate).slice(0, 10)} • {activeReservation.startTime}–{activeReservation.endTime}
                   </p>
@@ -702,7 +712,7 @@ export const ReservationScheduler = (props: Props) => {
                           </div>
                         ))}
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-sm">
-                        <p className="font-medium text-slate-900 dark:text-slate-50">Ukupno</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-50">{t('reservations.calendar.details.total')}</p>
                         <p className="text-slate-700 dark:text-slate-300">
                           {reservationTotals(activeReservation).totalMinutes} min |{' '}
                           {reservationTotals(activeReservation).totalPrice.toFixed(2)} KM
@@ -713,19 +723,19 @@ export const ReservationScheduler = (props: Props) => {
                     <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{activeReservation.service?.name ?? '-'}</p>
                   )}
                   <p className="text-sm text-slate-600 dark:text-slate-300">
-                    Klijent:{' '}
+                    {t('reservations.calendar.details.client')}:{' '}
                     {[activeReservation.client?.firstName, activeReservation.client?.lastName].filter(Boolean).join(' ').trim() ||
                       activeReservation.client?.username ||
                       '-'}
                   </p>
                   <p className="text-sm text-slate-600 dark:text-slate-300">
-                    Stilist: {activeReservation.confirmedStylist ? stylistName(activeReservation.confirmedStylist) : 'Nije potvrđen'}
+                    {t('reservations.calendar.details.stylist')}: {activeReservation.confirmedStylist ? stylistName(activeReservation.confirmedStylist) : t('reservations.calendar.details.unconfirmed')}
                   </p>
                 </div>
 
                 {activeReservation.clientNotes ? (
                   <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                    <p className="text-xs text-slate-500">Napomena klijenta</p>
+                    <p className="text-xs text-slate-500">{t('reservations.calendar.details.clientNotes')}</p>
                     <p className="mt-1 whitespace-pre-wrap text-sm text-slate-900 dark:text-slate-50">
                       {activeReservation.clientNotes}
                     </p>
@@ -734,7 +744,7 @@ export const ReservationScheduler = (props: Props) => {
 
                 {activeReservation.cancelReason ? (
                   <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 dark:border-rose-900/40 dark:bg-rose-950/20">
-                    <p className="text-xs text-rose-700 dark:text-rose-300">Razlog otkazivanja</p>
+                    <p className="text-xs text-rose-700 dark:text-rose-300">{t('reservations.calendar.details.cancelReason')}</p>
                     <p className="mt-1 whitespace-pre-wrap text-sm text-rose-900 dark:text-rose-200">
                       {activeReservation.cancelReason}
                     </p>
@@ -742,15 +752,15 @@ export const ReservationScheduler = (props: Props) => {
                 ) : null}
 
                 <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Uredi termin</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('reservations.calendar.details.editAppointment')}</p>
                   <p className="mt-1 text-xs text-slate-500">
                     {activeReservation.status === 'AWAITING_DAILY_LOG'
-                      ? 'Pomjeranje zatvara dnevnu knjigu i vraća termin u raspored.'
-                      : 'Promjena datuma/vremena (admin).'}
+                      ? t('reservations.calendar.details.dailyLogMoveHelp')
+                      : t('reservations.calendar.details.editHelp')}
                   </p>
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div className="space-y-2">
-                      <Label>Datum</Label>
+                      <Label>{t('reservations.calendar.details.date')}</Label>
                       <Input
                         type="date"
                         value={editDraft.reservationDate}
@@ -759,7 +769,7 @@ export const ReservationScheduler = (props: Props) => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Početak</Label>
+                      <Label>{t('reservations.calendar.details.startTime')}</Label>
                       <Input
                         type="time"
                         value={editDraft.startTime}
@@ -768,7 +778,7 @@ export const ReservationScheduler = (props: Props) => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Kraj</Label>
+                      <Label>{t('reservations.calendar.details.endTime')}</Label>
                       <Input
                         type="time"
                         value={editDraft.endTime}
@@ -802,33 +812,35 @@ export const ReservationScheduler = (props: Props) => {
                           })
                           setDrawerOpen(false)
                         } catch (err) {
-                          toast.error(getErrorMessage(err, 'Spremanje nije moguće'))
+                          toast.error(getErrorMessage(err, t('reservations.calendar.details.saveError')))
                         } finally {
                           setSavingEdit(false)
                         }
                       }}
                     >
-                      {savingEdit ? 'Spremanje...' : 'Spasi promjenu'}
+                      {savingEdit
+                        ? t('reservations.calendar.details.saving')
+                        : t('reservations.calendar.details.saveChanges')}
                     </Button>
                   </div>
                 </div>
 
                 {activeReservation.status === 'AWAITING_DAILY_LOG' ? (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Dnevna knjiga</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('reservations.calendar.details.dailyLogTitle')}</p>
                     <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                      Termin čeka unos. Pomjeranje na kalendaru zatvara zapis.
+                      {t('reservations.calendar.details.dailyLogHelp')}
                     </p>
                     <Button type="button" variant="outline" className="mt-3" asChild>
-                      <Link to="/admin/daily-log">Otvori dnevnu knjigu</Link>
+                      <Link to="/admin/daily-log">{t('reservations.calendar.details.openDailyLog')}</Link>
                     </Button>
                   </div>
                 ) : null}
 
                 {canAdminConfirmAttendance(activeReservation) ? (
                   <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Potvrdi dolazak</p>
-                    <p className="mt-1 text-xs text-slate-500">Salon može potvrditi do početka termina.</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('reservations.calendar.details.confirmAttendanceTitle')}</p>
+                    <p className="mt-1 text-xs text-slate-500">{t('reservations.calendar.details.confirmAttendanceHelp')}</p>
                     <div className="mt-3 flex justify-end">
                       <Button
                         type="button"
@@ -838,16 +850,18 @@ export const ReservationScheduler = (props: Props) => {
                           setConfirmingAttendance(true)
                           try {
                             await api.post(`/api/reservations/${activeReservation.id}/staff-confirm-attendance`)
-                            toast.success('Dolazak potvrđen')
+                            toast.success(t('reservations.calendar.details.attendanceConfirmed'))
                             setDrawerOpen(false)
                           } catch (err) {
-                            toast.error(getErrorMessage(err, 'Potvrda nije moguća'))
+                            toast.error(getErrorMessage(err, t('reservations.calendar.details.attendanceConfirmError')))
                           } finally {
                             setConfirmingAttendance(false)
                           }
                         }}
                       >
-                        {confirmingAttendance ? 'Potvrđivanje...' : 'Potvrdi dolazak'}
+                        {confirmingAttendance
+                          ? t('reservations.calendar.details.confirmingAttendance')
+                          : t('reservations.calendar.details.confirmAttendance')}
                       </Button>
                     </div>
                   </div>
@@ -855,18 +869,18 @@ export const ReservationScheduler = (props: Props) => {
 
                 {canAdminCancelReservation(activeReservation.status) ? (
                   <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Otkaži rezervaciju</p>
-                    <p className="mt-1 text-xs text-slate-500">Otkazivanje je dozvoljeno za ovaj status.</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('reservations.calendar.details.cancelTitle')}</p>
+                    <p className="mt-1 text-xs text-slate-500">{t('reservations.calendar.details.cancelHelp')}</p>
                     <div className="mt-3 space-y-2">
                       <Textarea
-                        placeholder="Razlog otkazivanja (opciono)"
+                        placeholder={t('reservations.calendar.details.cancelReasonPlaceholder')}
                         value={cancelReason}
                         onChange={(e) => setCancelReason(e.target.value)}
                         rows={3}
                       />
                       <div className="flex justify-end gap-2">
                         <Button type="button" variant="ghost" onClick={() => setDrawerOpen(false)} disabled={cancelling}>
-                          Zatvori
+                          {t('reservations.calendar.details.close')}
                         </Button>
                         <Button
                           type="button"
@@ -883,13 +897,15 @@ export const ReservationScheduler = (props: Props) => {
                               })
                               setDrawerOpen(false)
                             } catch (err) {
-                              toast.error(getErrorMessage(err, 'Greška pri otkazivanju'))
+                              toast.error(getErrorMessage(err, t('reservations.calendar.details.cancelError')))
                             } finally {
                               setCancelling(false)
                             }
                           }}
                         >
-                          {cancelling ? 'Otkazivanje...' : 'Otkaži'}
+                          {cancelling
+                            ? t('reservations.calendar.details.cancelling')
+                            : t('reservations.calendar.details.cancelAction')}
                         </Button>
                       </div>
                     </div>

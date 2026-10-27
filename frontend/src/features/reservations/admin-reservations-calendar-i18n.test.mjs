@@ -35,7 +35,7 @@ test('reservation calendar page copy has matching Bosnian and English translatio
 })
 
 test('calendar toolbar and filters have matching Bosnian and English translations', () => {
-const toolbarKeys = [...scheduler.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)
+  const toolbarKeys = [...scheduler.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)
   const expectedKeys = [
     'reservations.calendar.toolbar.title',
     'reservations.calendar.toolbar.selectedStylistsCount',
@@ -58,6 +58,34 @@ const toolbarKeys = [...scheduler.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => 
 
   assert.match(scheduler, /props\.onViewChange\('dayGridMonth'\)/)
   assert.match(scheduler, /props\.onSelectedStylistIdsChange\(\[\]\)/)
+})
+
+test('reservation detail drawer copy has matching Bosnian and English translations', () => {
+  const detailKeys = [...scheduler.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)
+    .filter((key) => key.startsWith('reservations.calendar.details.'))
+  const expectedKeys = [
+    'status', 'appointment', 'total', 'client', 'stylist', 'unconfirmed', 'clientNotes',
+    'cancelReason', 'editAppointment', 'dailyLogMoveHelp', 'editHelp', 'date', 'startTime',
+    'endTime', 'saveError', 'saving', 'saveChanges', 'dailyLogTitle', 'dailyLogHelp',
+    'openDailyLog', 'confirmAttendanceTitle', 'confirmAttendanceHelp', 'attendanceConfirmed',
+    'attendanceConfirmError', 'confirmingAttendance', 'confirmAttendance', 'cancelTitle',
+    'cancelHelp', 'cancelReasonPlaceholder', 'close', 'cancelError', 'cancelling', 'cancelAction',
+  ].map((key) => `reservations.calendar.details.${key}`)
+
+  for (const key of expectedKeys) {
+    assert.ok(detailKeys.includes(key), `Reservation detail drawer does not use ${key}`)
+    for (const resource of locales) {
+      assert.ok(hasLocaleKey(resource, key), `Missing locale key: ${key}`)
+    }
+  }
+
+  assert.match(scheduler, /t\(reservationStatusTranslationKey\(activeReservation\.status/)
+  assert.match(scheduler, /CANCELLED_UNCONFIRMED_ATTENDANCE/)
+  for (const resource of locales) {
+    for (const status of ['CONFIRMED', 'PENDING', 'CANCELLED_BY_CLIENT', 'COMPLETED', 'CANCELLED_UNCONFIRMED_ATTENDANCE']) {
+      assert.ok(hasLocaleKey(resource, `reservations.statuses.${status}`), `Missing reservation status translation: ${status}`)
+    }
+  }
 })
 
 test('calendar localization preserves reservation endpoints, requests and navigation', () => {
