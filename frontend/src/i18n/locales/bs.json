@@ -827,6 +827,14 @@
         "debtWithStylist": "Dug kod {{stylist}}",
         "selectedDebtsHint": "Odabrana dugovanja će biti dodata na ukupnu cijenu i neće se računati u napojnicu.",
         "selectedDebtsTotal": "Ukupno za dugovanja: {{amount}}"
+      },
+      "overrun": {
+        "title": "Kašnjenje termina",
+        "description": "Odaberite kako želite obraditi kašnjenje prije nastavka rada.",
+        "actualOverrun": "Rekalkuliši po stvarnom kašnjenju",
+        "manualMinutes": "Ručni unos minuta",
+        "manualShift": "Rekalkuliši po ručnom unosu",
+        "useShorterBreak": "Ne pomjeraj termine (iskoristi kraću pauzu)"
       }
     },
     "reservationDetail": {

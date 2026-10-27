@@ -214,6 +214,9 @@ jobs:
       - name: Test localized stylist reservation completion dialog
         working-directory: frontend
         run: npm run test:stylist-reservation-complete-dialog-i18n
+      - name: Test localized stylist reservation overrun dialog
+        working-directory: frontend
+        run: npm run test:stylist-reservation-overrun-dialog-i18n
       - name: Test runtime web language selection and fallback
         working-directory: frontend
         run: npm run test:i18n-language

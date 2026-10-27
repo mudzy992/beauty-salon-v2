@@ -830,6 +830,14 @@
         "debtWithStylist": "Debt with {{stylist}}",
         "selectedDebtsHint": "Selected debts are added to the amount due and are not included in the tip.",
         "selectedDebtsTotal": "Selected debts total: {{amount}}"
+      },
+      "overrun": {
+        "title": "Appointment overrun",
+        "description": "Choose how to handle the delay before continuing work.",
+        "actualOverrun": "Recalculate using the actual overrun",
+        "manualMinutes": "Enter minutes manually",
+        "manualShift": "Recalculate using the manual shift",
+        "useShorterBreak": "Do not move appointments (use a shorter break)"
       }
     },
     "reservationDetail": {
