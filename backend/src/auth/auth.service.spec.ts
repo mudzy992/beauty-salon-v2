@@ -50,6 +50,7 @@ const mockConfigService = {
   get: jest.fn(
     (key: string, defaultValue?: string) => defaultValue ?? 'test-secret',
   ),
+  getOrThrow: jest.fn(() => 'test-secret'),
 };
 const mockNotifications = {
   sendVerificationCodeEmail: jest.fn(),

@@ -6,7 +6,7 @@ import { JwtStrategy } from './jwt.strategy';
 describe('JwtStrategy', () => {
   const authService = { validateUser: jest.fn() };
   const configService = {
-    get: (_key: string, defaultValue?: string) => defaultValue ?? 'test-secret',
+    getOrThrow: (_key: string) => 'test-secret',
   };
   const strategy = new JwtStrategy(
     configService as unknown as ConfigService,

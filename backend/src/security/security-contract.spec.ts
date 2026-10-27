@@ -128,6 +128,7 @@ describe('HTTP security contracts for reviews and public blog reads', () => {
           useValue: {
             get: (_key: string, defaultValue?: string) =>
               TEST_JWT_SECRET || defaultValue,
+            getOrThrow: () => TEST_JWT_SECRET,
           },
         },
         { provide: ReviewsService, useValue: mockReviewsService },

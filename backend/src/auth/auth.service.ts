@@ -309,7 +309,7 @@ export class AuthService {
       pwdv: getPasswordVersion(passwordChangedAt),
     };
     return this.jwtService.signAsync(payload, {
-      secret: this.config.get<string>('JWT_SECRET', 'change-me-in-production'),
+      secret: this.config.getOrThrow<string>('JWT_SECRET'),
       expiresIn: this.config.get('JWT_EXPIRES_IN', '7d') as '7d',
     });
   }

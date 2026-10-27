@@ -56,6 +56,7 @@ jobs:
       DATABASE_URL: postgresql://ci_user:ci_only_not_a_secret@127.0.0.1:5432/beauty_salon_ci?schema=public
       E2E_DATABASE_URL: postgresql://ci_user:ci_only_not_a_secret@127.0.0.1:5432/beauty_salon_ci?schema=public
       JWT_SECRET: ci_only_not_a_secret_value_replace_in_real_environments
+      APP_SETTINGS_ENCRYPTION_KEY: Y2ktb25seS10ZXN0LWVuY3J5cHRpb24ta2V5LTMyYnk=
       NODE_ENV: test
     steps:
       - name: Checkout
