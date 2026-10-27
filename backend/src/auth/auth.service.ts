@@ -275,13 +275,20 @@ export class AuthService {
   }
 
   async verifyEmail(token: string): Promise<{ message: string }> {
+    const now = new Date();
     const user = await this.prisma.user.findFirst({
       where: {
         emailVerificationToken: token,
-        emailVerificationExpiresAt: { gt: new Date() },
+        emailVerificationExpiresAt: { gt: now },
       },
     });
-    if (!user) {
+    const maximumExpiry =
+      now.getTime() + EMAIL_VERIFICATION_EXPIRY_MINUTES * 60 * 1000;
+    if (
+      !user ||
+      !user.emailVerificationExpiresAt ||
+      user.emailVerificationExpiresAt.getTime() > maximumExpiry
+    ) {
       throw new BadRequestException(
         'Kod nije ispravan ili je istekao. Zatražite novi kod.',
       );

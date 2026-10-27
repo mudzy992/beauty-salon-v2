@@ -236,6 +236,20 @@ describe('AuthService', () => {
     });
   });
 
+  describe('verifyEmail', () => {
+    it('rejects legacy verification codes that still claim a 24-hour lifetime', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: 'u1',
+        emailVerificationExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      });
+
+      await expect(service.verifyEmail('123456')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe('sendVerificationEmail', () => {
     it('stores a six-digit code with a 15-minute expiry', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
