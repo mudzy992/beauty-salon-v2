@@ -682,7 +682,8 @@
       "username": "Korisničko ime",
       "initialPassword": "Inicijalna lozinka",
       "instructions": "Sačuvajte ove podatke i proslijedite ih korisniku. Nakon prve prijave korisnik mora promijeniti lozinku.",
-      "acknowledge": "U redu"
+      "acknowledge": "U redu",
+      "unavailable": "Korisnik je kreiran, ali jednokratna lozinka nije vraćena. Nemojte pokušavati zadanu lozinku; obratite se administratoru."
     },
     "stylistRemoval": {
       "title": "Ukloni ulogu stiliste",

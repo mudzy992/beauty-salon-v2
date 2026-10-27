@@ -32,6 +32,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { AllowDuringPasswordChange } from '../common/decorators/allow-during-password-change.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -104,6 +105,7 @@ export class UsersController {
   }
 
   @Get('profile')
+  @AllowDuringPasswordChange()
   getProfile(@CurrentUser() user: CurrentUserPayload) {
     return this.usersService.getProfile(user.sub);
   }

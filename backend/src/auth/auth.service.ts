@@ -160,6 +160,7 @@ export class AuthService {
         username: true,
         email: true,
         isActive: true,
+        mustChangePassword: true,
         passwordChangedAt: true,
         userRoles: { select: { role: { select: { name: true } } } },
       },
@@ -175,6 +176,7 @@ export class AuthService {
       username: user.username,
       email: user.email ?? '',
       roles: user.userRoles.map((userRole) => userRole.role.name),
+      mustChangePassword: user.mustChangePassword,
     };
   }
 

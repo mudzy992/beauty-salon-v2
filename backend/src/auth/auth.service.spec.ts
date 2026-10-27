@@ -260,6 +260,7 @@ describe('AuthService', () => {
         username: 'john',
         email: 'john@example.com',
         isActive: true,
+        mustChangePassword: true,
         passwordChangedAt: null,
         userRoles: [{ role: { name: 'CLIENT' } }],
       });
@@ -269,6 +270,7 @@ describe('AuthService', () => {
         username: 'john',
         email: 'john@example.com',
         roles: ['CLIENT'],
+        mustChangePassword: true,
       });
     });
 
@@ -295,7 +297,7 @@ describe('AuthService', () => {
   describe('changePassword', () => {
     it('invalidates existing sessions and returns a replacement access token', async () => {
       const dto: ChangePasswordDto = {
-        currentPassword: 'Init2026!',
+        currentPassword: 'temporary-test-password',
         newPassword: 'NovaLozinka123!',
       };
       const updatedAt = new Date('2026-10-25T12:34:56.789Z');

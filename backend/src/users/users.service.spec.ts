@@ -221,7 +221,7 @@ describe('UsersService', () => {
     expect(result.suggestions.length).toBeGreaterThan(0);
   });
 
-  it('kreira korisnika sa init lozinkom i mustChangePassword', async () => {
+  it('generiše jedinstvenu početnu lozinku i zahtijeva njenu promjenu', async () => {
     mockRepo.user.findUnique
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(null)
@@ -260,10 +260,17 @@ describe('UsersService', () => {
         }),
       }),
     );
-    expect(result).toMatchObject({
-      initialPasswordShownOnce: true,
-      initialPassword: 'Init2026!',
-    });
+    expect(result).toMatchObject({ initialPasswordShownOnce: true });
+    expect(result.initialPassword).toMatch(/^[A-Za-z0-9_-]{32}$/);
+    expect(bcrypt.hash).toHaveBeenCalledWith(result.initialPassword, 10);
+    const credentialReadback = mockRepo.user.findUnique.mock.calls[2][0];
+    expect(credentialReadback.select).toEqual(
+      expect.objectContaining({ mustChangePassword: true }),
+    );
+    expect(credentialReadback.select).not.toHaveProperty('passwordHash');
+    expect(credentialReadback.select).not.toHaveProperty(
+      'emailVerificationToken',
+    );
   });
 
   it('baca grešku kada je ručno uneseni username zauzet', async () => {

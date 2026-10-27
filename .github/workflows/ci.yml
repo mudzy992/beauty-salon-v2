@@ -254,6 +254,9 @@ jobs:
       - name: Test localized admin SEO settings
         working-directory: frontend
         run: npm run test:admin-settings-seo-i18n
+      - name: Test one-time admin-created credentials
+        working-directory: frontend
+        run: npm run test:temporary-user-credentials
       - name: Test localized stylist analytics page
         working-directory: frontend
         run: npm run test:stylist-analytics-i18n

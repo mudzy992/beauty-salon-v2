@@ -685,7 +685,8 @@
       "username": "Username",
       "initialPassword": "Initial password",
       "instructions": "Save these details and share them with the user. The user must change the password after the first sign-in.",
-      "acknowledge": "Got it"
+      "acknowledge": "Got it",
+      "unavailable": "The user was created, but the one-time password was not returned. Do not guess a default password; contact an administrator."
     },
     "stylistRemoval": {
       "title": "Remove stylist role",

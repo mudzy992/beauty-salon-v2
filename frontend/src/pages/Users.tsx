@@ -427,11 +427,17 @@ export default function Users() {
         role: 'CLIENT',
         gender: createData.gender || undefined,
       })
+      const username = response.data?.username || createData.username.trim()
+      const initialPassword = response.data?.initialPassword
+      if (!username || typeof initialPassword !== 'string' || initialPassword.length === 0) {
+        loadData()
+        setCreateOpen(false)
+        setCreateData({ username: '', firstName: '', lastName: '', role: 'CLIENT', gender: '' })
+        error(t('users.credentials.unavailable'))
+        return
+      }
       success(t('users.toast.created'))
-      setCreatedCredentials({
-        username: response.data?.username || createData.username,
-        initialPassword: response.data?.initialPassword || 'Init2026!',
-      })
+      setCreatedCredentials({ username, initialPassword })
       loadData()
       setCreateOpen(false)
       setCredentialsOpen(true)
@@ -1321,7 +1327,13 @@ export default function Users() {
       </Dialog>
 
       {/* Credentials */}
-      <Dialog open={credentialsOpen} onOpenChange={setCredentialsOpen}>
+      <Dialog
+        open={credentialsOpen}
+        onOpenChange={(open) => {
+          setCredentialsOpen(open)
+          if (!open) setCreatedCredentials(null)
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{t('users.credentials.title')}</DialogTitle>

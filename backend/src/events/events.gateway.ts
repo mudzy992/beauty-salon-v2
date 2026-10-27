@@ -175,6 +175,7 @@ export class EventsGateway
       where: { id: payload.sub },
       select: {
         isActive: true,
+        mustChangePassword: true,
         passwordChangedAt: true,
         userRoles: { select: { role: { select: { name: true } } } },
         stylistProfile: { select: { isActive: true, status: true } },
@@ -182,6 +183,7 @@ export class EventsGateway
     });
     if (
       !user?.isActive ||
+      user.mustChangePassword ||
       !matchesPasswordVersion(user.passwordChangedAt, payload.pwdv)
     ) {
       throw new Error('Inactive or unknown user');

@@ -6,6 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'node:crypto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
@@ -77,7 +78,6 @@ const USER_DETAIL_SELECT = {
 
 @Injectable()
 export class UsersService {
-  private static readonly DEFAULT_INITIAL_PASSWORD = 'Init2026!';
   private static readonly CLIENT_ROLE = 'CLIENT';
 
   constructor(
@@ -339,7 +339,7 @@ export class UsersService {
       throw new BadRequestException('Spol je obavezan.');
     }
     const initialPassword =
-      dto.password?.trim() || UsersService.DEFAULT_INITIAL_PASSWORD;
+      dto.password?.trim() || randomBytes(24).toString('base64url');
     const passwordHash = await bcrypt.hash(initialPassword, 10);
     const roleIds = Array.from(
       new Set([
@@ -370,8 +370,9 @@ export class UsersService {
     });
     const fullUser = await this.repo.user.findUnique({
       where: { id: user.id },
-      include: { userRoles: { include: { role: true } }, stylistProfile: true },
+      select: USER_DETAIL_SELECT,
     });
+    if (!fullUser) throw new NotFoundException('Korisnik nije pronađen.');
     return {
       ...fullUser,
       initialPasswordShownOnce: true,

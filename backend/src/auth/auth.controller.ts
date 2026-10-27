@@ -14,6 +14,7 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { Public } from '../common/decorators/public.decorator';
+import { AllowDuringPasswordChange } from '../common/decorators/allow-during-password-change.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
@@ -73,6 +74,7 @@ export class AuthController {
 
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
+  @AllowDuringPasswordChange()
   async changePassword(
     @Body() dto: ChangePasswordDto,
     @CurrentUser() user: CurrentUserPayload,

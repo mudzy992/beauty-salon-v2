@@ -18,6 +18,7 @@ const EVENT_ABSENCE_WINDOW_MS = 500;
 
 type SocketUserRecord = {
   isActive: boolean;
+  mustChangePassword?: boolean;
   userRoles: { role: { name: string } }[];
   stylistProfile?: { isActive: boolean; status: 'PENDING' | 'ACTIVE' } | null;
 };
@@ -63,6 +64,14 @@ describe('EventsGateway live Socket.IO integration', () => {
       { isActive: true, userRoles: [{ role: { name: 'SYSTEM_ADMIN' } }] },
     ],
     ['owner-1', { isActive: true, userRoles: [{ role: { name: 'OWNER' } }] }],
+    [
+      'forced-password-change-1',
+      {
+        isActive: true,
+        mustChangePassword: true,
+        userRoles: [{ role: { name: 'CLIENT' } }],
+      },
+    ],
     [
       'inactive-1',
       { isActive: false, userRoles: [{ role: { name: 'SYSTEM_ADMIN' } }] },
@@ -353,6 +362,9 @@ describe('EventsGateway live Socket.IO integration', () => {
 
     expect(await roomMemberIds('admin')).toEqual([admin.id, owner.id].sort());
 
+    await expect(connectSocket('forced-password-change-1', ['CLIENT'])).rejects.toThrow(
+      'Unauthorized',
+    );
     await expect(connectSocket('inactive-1', ['SYSTEM_ADMIN'])).rejects.toThrow(
       'Unauthorized',
     );
