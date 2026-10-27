@@ -482,9 +482,13 @@ The user reported a frontend image build failure: TypeScript could not resolve `
 
 ### AUTH-03 — Socket/HTTP security headers/CORS policy nije production allowlist-om kodirana
 
-[`main.ts#L32-L35`](../../backend/src/main.ts#L32) koristi `origin: true, credentials: true`; [`events.gateway.ts#L13-L16`](../../backend/src/events/events.gateway.ts#L13) koristi wildcard origin + credentials. HTTP API token je u Authorization headeru (ne cookie) pa ne tvrdimo cross-site account takeover. Helmet/CSP/rate-limit/edge proxy policy nisu vidljivi u repo.
+At audit baseline, [`main.ts`](../../backend/src/main.ts) reflected every HTTP Origin and [`EventsGateway`](../../backend/src/events/events.gateway.ts) used wildcard origin with credentials. The source allowlist mitigation is recorded below. HTTP API authentication uses an Authorization bearer token, not a browser cookie, so we do not claim a cookie-based cross-site account takeover. Helmet/security headers, CSP and production proxy behavior remain unverified.
 
-**Popravka:** explicit trusted origin allowlist per environment; Socket.IO auth test; safe security headers/CSP report-only rollout; document trusted proxy and CSRF/cookie decision.
+**Popravka:** exact trusted-origin allowlist per environment for HTTP and Socket.IO; preserve auth tests; add safe security headers/CSP report-only rollout; document trusted proxy and CSRF/cookie decision.
+
+**Source update (2026-10-27; CI verified):** HTTP and Socket.IO CORS now use the same exact-origin parser. Non-development/test environments must supply `CORS_ALLOWED_ORIGINS`; all configured origins must be exact HTTPS origins (no wildcards, paths or credentials). Development/test defaults are restricted to Vite/Expo localhost origins. Production Compose refuses configuration without the allowlist. Requests without an `Origin` remain permitted for native/non-browser clients; this is CORS response policy, not CSRF protection. Unit coverage validates missing deployment config, exact origins, duplicates, wildcard/path/credential/http rejection. CI run `40510854381` passed all four jobs, including backend build/unit/DB-backed tests and synthetic Compose/image validation; the preceding `40510520477` run failed because CI's synthetic Compose environment omitted the new required variable, which was fixed in `3761caa`.
+
+**Remaining:** the owner/operator must set the actual web/admin origins in the repository-root Compose runtime environment; no production domain or live config was inferred or inspected. No browser CORS preflight, native client, real proxy, or deployment test was run. Helmet/security headers, CSP report-only rollout and final trusted-proxy/CSRF decision remain open. The CORS allowlist alone does not close AUTH-03 or Phase 3.
 
 ## Pozitivni kontrolleri / postojeće zaštite
 
