@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
 import {
@@ -22,6 +23,7 @@ import {
   parseReservationMoney,
 } from '../utils/reservation-detail'
 import { ClientDebtSelector } from './client-debt-selector'
+import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
 
 export type CompleteReservationPayload = {
   paidAmount: number
@@ -55,6 +57,7 @@ export const CompleteReservationDialog = ({
   onValidationError,
   onConfirm,
 }: CompleteReservationDialogProps) => {
+  const { t, i18n } = useTranslation()
   const [actualPrice, setActualPrice] = useState('')
   const [notes, setNotes] = useState('')
   const [createDebt, setCreateDebt] = useState(true)
@@ -96,21 +99,21 @@ export const CompleteReservationDialog = ({
 
   const handleConfirm = async () => {
     if (!Number.isFinite(paidAmount) || paidAmount < 0) {
-      onValidationError('Unesite ispravan iznos.')
+      onValidationError(t('stylistPortal.reservationDialogs.complete.invalidAmount'))
       return
     }
     if (selectedDebtSum > 0 && paidAmount < selectedDebtSum) {
-      onValidationError('Nedovoljno za naplatu označenih dugova.')
+      onValidationError(t('stylistPortal.reservationDialogs.complete.insufficientForDebts'))
       return
     }
     const intentError = validateCompleteDebtsIntent({
       payDebtsIntent: reservation.payDebtsIntent,
-      debts,
+      debtsCount: debts.length,
       selectedDebtIds,
       skipDebtsDespiteIntent,
     })
     if (intentError) {
-      onValidationError(intentError)
+      onValidationError(t(intentError))
       return
     }
     await onConfirm({
@@ -127,11 +130,19 @@ export const CompleteReservationDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Završi termin</DialogTitle>
-          <DialogDescription>{buildCompleteDialogHints(reservation)}</DialogDescription>
+          <DialogTitle>{t('stylistPortal.reservationDialogs.complete.title')}</DialogTitle>
+          <DialogDescription>
+            {buildCompleteDialogHints(reservation)
+              .map(({ key, amount }) =>
+                t(key, amount === undefined
+                  ? undefined
+                  : { amount: formatLocalizedAmount(amount, i18n.language) }),
+              )
+              .join(' ')}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <Label htmlFor="price">Naplaćeno (KM)</Label>
+          <Label htmlFor="price">{t('stylistPortal.reservationDialogs.complete.paidAmount')}</Label>
           <Input
             id="price"
             value={actualPrice}
@@ -139,11 +150,15 @@ export const CompleteReservationDialog = ({
             inputMode="decimal"
           />
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Za naplatu: {chargeAmount.toFixed(2)} KM
+            {t('stylistPortal.reservationDialogs.complete.chargeAmount', {
+              amount: formatLocalizedAmount(chargeAmount, i18n.language),
+            })}
           </p>
           {tipAmount > 0 ? (
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              Napojnica: {tipAmount.toFixed(2)} KM
+              {t('stylistPortal.reservationDialogs.complete.tipAmount', {
+                amount: formatLocalizedAmount(tipAmount, i18n.language),
+              })}
             </p>
           ) : null}
           {shortfall > 0 ? (
@@ -153,7 +168,9 @@ export const CompleteReservationDialog = ({
                 checked={createDebt}
                 onChange={(event) => setCreateDebt(event.target.checked)}
               />
-              Zavedi dug ({shortfall.toFixed(2)} KM)
+              {t('stylistPortal.reservationDialogs.complete.recordDebt', {
+                amount: formatLocalizedAmount(shortfall, i18n.language),
+              })}
             </label>
           ) : null}
         </div>
@@ -178,19 +195,19 @@ export const CompleteReservationDialog = ({
               checked={skipDebtsDespiteIntent}
               onChange={(event) => setSkipDebtsDespiteIntent(event.target.checked)}
             />
-            <span>Namjerno ne naplaćujem dugove iako je klijent označio plaćanje duga.</span>
+            <span>{t('stylistPortal.reservationDialogs.complete.skipDebtsDespiteIntent')}</span>
           </label>
         ) : null}
         <div className="space-y-2">
-          <Label htmlFor="notes">Napomena (opciono)</Label>
+          <Label htmlFor="notes">{t('stylistPortal.reservationDialogs.complete.notes')}</Label>
           <Textarea id="notes" value={notes} onChange={(event) => setNotes(event.target.value)} />
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Odustani
+            {t('common.cancel')}
           </Button>
           <Button type="button" onClick={() => void handleConfirm()} disabled={pending}>
-            Potvrdi
+            {t('common.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

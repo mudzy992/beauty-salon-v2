@@ -1,32 +1,44 @@
-import type { ClientDebt, Reservation } from '../types'
+import type { Reservation } from '../types'
 
-export const buildCompleteDialogHints = (reservation: Reservation): string => {
-  const parts = [
-    'Za naplatu = usluge + odabrana dugovanja. Napojnica = naplaćeno − za naplatu.',
-    'Završetak knjiži u KIF; ako je mjesec zaključan, upis neće proći — kontaktirajte admina.',
+export type CompleteDialogHint = {
+  key: string
+  amount?: number
+}
+
+export const buildCompleteDialogHints = (
+  reservation: Reservation,
+): CompleteDialogHint[] => {
+  const hints: CompleteDialogHint[] = [
+    { key: 'stylistPortal.reservationDialogs.complete.chargeTipHint' },
+    { key: 'stylistPortal.reservationDialogs.complete.kifHint' },
   ]
   if (reservation.payDebtsIntent) {
-    parts.push('Klijent je označio plaćanje dugovanja.')
+    hints.push({ key: 'stylistPortal.reservationDialogs.complete.clientDebtIntentHint' })
   }
   const loyaltyAmount = Number(reservation.loyaltyDiscountAmount ?? 0)
   if (loyaltyAmount > 0) {
-    parts.push(
-      `Loyalty popust (${loyaltyAmount.toFixed(2)} KM) je uračunat u “Za naplatu” — ne umanjujte cijenu ponovo osim ako je naplata drugačija.`,
-    )
+    hints.push({
+      key: 'stylistPortal.reservationDialogs.complete.loyaltyDiscountHint',
+      amount: loyaltyAmount,
+    })
   }
-  return parts.join(' ')
+  return hints
 }
 
 export const validateCompleteDebtsIntent = (params: {
   payDebtsIntent?: boolean | null
-  debts: ClientDebt[]
+  debtsCount: number
   selectedDebtIds: Record<string, boolean>
   skipDebtsDespiteIntent: boolean
 }): string | null => {
-  const hasOpenDebts = params.debts.length > 0
-  const noneSelected = Object.values(params.selectedDebtIds).every((v) => !v)
-  if (params.payDebtsIntent && hasOpenDebts && noneSelected && !params.skipDebtsDespiteIntent) {
-    return 'Klijent je označio plaćanje duga. Odaberite dugove ili potvrdite da ih namjerno ne naplaćujete.'
+  const noneSelected = Object.values(params.selectedDebtIds).every((value) => !value)
+  if (
+    params.payDebtsIntent &&
+    params.debtsCount > 0 &&
+    noneSelected &&
+    !params.skipDebtsDespiteIntent
+  ) {
+    return 'stylistPortal.reservationDialogs.complete.debtIntentRequired'
   }
   return null
 }

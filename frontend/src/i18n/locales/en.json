@@ -805,6 +805,31 @@
         "penalty": "Penalty: {{state}}",
         "applyPenaltyDescription": "Apply a no-show penalty.",
         "confirm": "Mark as no-show"
+      },
+      "complete": {
+        "title": "Complete appointment",
+        "chargeTipHint": "Amount due = services + selected debts. Tip = amount paid − amount due.",
+        "kifHint": "Completion is recorded in KIF. If the month is locked, the entry cannot be saved; contact an administrator.",
+        "clientDebtIntentHint": "The client indicated that they intend to repay debts.",
+        "loyaltyDiscountHint": "The loyalty discount ({{amount}}) is already included in “Amount due”. Do not subtract it again unless the actual payment differs.",
+        "debtIntentRequired": "The client indicated they would repay debt. Select debts or confirm that you intentionally will not collect them.",
+        "invalidAmount": "Enter a valid amount.",
+        "insufficientForDebts": "The amount is not enough to collect the selected debts.",
+        "paidAmount": "Amount paid (KM)",
+        "chargeAmount": "Amount due: {{amount}}",
+        "tipAmount": "Tip: {{amount}}",
+        "recordDebt": "Record as debt ({{amount}})",
+        "skipDebtsDespiteIntent": "I am intentionally not collecting debts even though the client indicated they would repay them.",
+        "notes": "Note (optional)",
+        "debtsTitle": "Client debts",
+        "debtsLoading": "Loading…",
+        "noDebts": "There are no open debts.",
+        "stylistFallback": "Stylist",
+        "serviceFallback": "Service",
+        "debtWithYou": "Debt with you",
+        "debtWithStylist": "Debt with {{stylist}}",
+        "selectedDebtsHint": "Selected debts are added to the amount due and are not included in the tip.",
+        "selectedDebtsTotal": "Selected debts total: {{amount}}"
       }
     },
     "reservationDetail": {

@@ -802,6 +802,31 @@
         "penalty": "Penal: {{state}}",
         "applyPenaltyDescription": "Primijeni penal za no-show.",
         "confirm": "Označi no-show"
+      },
+      "complete": {
+        "title": "Završi termin",
+        "chargeTipHint": "Za naplatu = usluge + odabrana dugovanja. Napojnica = naplaćeno − za naplatu.",
+        "kifHint": "Završetak knjiži u KIF; ako je mjesec zaključan, upis neće proći — kontaktirajte admina.",
+        "clientDebtIntentHint": "Klijent je označio plaćanje dugovanja.",
+        "loyaltyDiscountHint": "Loyalty popust ({{amount}}) je uračunat u „Za naplatu” — ne umanjujte cijenu ponovo osim ako je naplata drugačija.",
+        "debtIntentRequired": "Klijent je označio plaćanje duga. Odaberite dugove ili potvrdite da ih namjerno ne naplaćujete.",
+        "invalidAmount": "Unesite ispravan iznos.",
+        "insufficientForDebts": "Nedovoljno za naplatu označenih dugova.",
+        "paidAmount": "Naplaćeni iznos (KM)",
+        "chargeAmount": "Za naplatu: {{amount}}",
+        "tipAmount": "Napojnica: {{amount}}",
+        "recordDebt": "Zavedi dug ({{amount}})",
+        "skipDebtsDespiteIntent": "Namjerno ne naplaćujem dugove iako je klijent označio plaćanje duga.",
+        "notes": "Napomena (opciono)",
+        "debtsTitle": "Dugovanja klijenta",
+        "debtsLoading": "Učitavanje…",
+        "noDebts": "Nema otvorenih dugovanja.",
+        "stylistFallback": "Stilist",
+        "serviceFallback": "Usluga",
+        "debtWithYou": "Dug kod vas",
+        "debtWithStylist": "Dug kod {{stylist}}",
+        "selectedDebtsHint": "Odabrana dugovanja će biti dodata na ukupnu cijenu i neće se računati u napojnicu.",
+        "selectedDebtsTotal": "Ukupno za dugovanja: {{amount}}"
       }
     },
     "reservationDetail": {
