@@ -103,6 +103,23 @@ export default function Reservations() {
   const { t } = useTranslation()
   const { success, error } = useAppToast()
 
+  const getListStatusLabel = (status: string, cancelReason?: string | null) => {
+    const statusKey =
+      status === 'CANCELLED_BY_CLIENT' &&
+      (cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
+        ? 'reservations.statuses.CANCELLED_UNCONFIRMED_ATTENDANCE'
+        : `reservations.statuses.${status}`
+    return t(statusKey, { defaultValue: getReservationStatusLabel(status, cancelReason) })
+  }
+  const getListStylistName = (stylist?: Reservation['confirmedStylist']) => {
+    if (!stylist?.user) return t('reservations.adminList.unconfirmedStylist')
+    return (
+      `${stylist.user.firstName ?? ''} ${stylist.user.lastName ?? ''}`.trim() ||
+      stylist.user.username ||
+      t('reservations.adminList.stylistFallback')
+    )
+  }
+
   const [items, setItems] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(0)
@@ -212,7 +229,7 @@ export default function Reservations() {
     const items = Array.isArray(r.items) ? r.items : []
     if (items.length > 0) {
       const sorted = [...items].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-      const firstName = sorted[0]?.service?.name ?? 'Servis'
+      const firstName = sorted[0]?.service?.name ?? t('reservations.adminList.serviceFallback')
       const rest = sorted.length - 1
       return rest > 0 ? `${firstName} (+${rest})` : firstName
     }
@@ -261,7 +278,7 @@ export default function Reservations() {
         <Button asChild type="button" variant="outline">
           <RouterLink to="/admin/reservations/calendar">
             <CalendarDays className="mr-2 h-4 w-4" aria-hidden="true" />
-            Kalendar
+            {t('reservations.adminList.calendar')}
           </RouterLink>
         </Button>
       </div>
@@ -320,7 +337,7 @@ export default function Reservations() {
                         </p>
                       </div>
                       <Badge variant={getStatusBadgeVariant(r.status)} className="text-[10px]">
-                        {getReservationStatusLabel(r.status, r.cancelReason)}
+                        {getListStatusLabel(r.status, r.cancelReason)}
                       </Badge>
                     </div>
                   <p className="mt-2 text-sm text-slate-900 dark:text-slate-50">{serviceSummary(r)}</p>
@@ -334,14 +351,14 @@ export default function Reservations() {
               <table className="app-table w-full border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                    <th className="p-3 font-medium">Datum</th>
-                    <th className="p-3 font-medium">Vrijeme</th>
-                    <th className="p-3 font-medium">Klijent</th>
-                    <th className="p-3 font-medium">Servis</th>
-                    <th className="p-3 font-medium text-right">Cijena / Loyalty</th>
-                    <th className="p-3 font-medium">Stilista</th>
-                    <th className="p-3 font-medium">Status</th>
-                    <th className="p-3 font-medium text-right">Akcije</th>
+                    <th className="p-3 font-medium">{t('reservations.adminList.date')}</th>
+                    <th className="p-3 font-medium">{t('reservations.adminList.time')}</th>
+                    <th className="p-3 font-medium">{t('reservations.adminList.client')}</th>
+                    <th className="p-3 font-medium">{t('reservations.adminList.service')}</th>
+                    <th className="p-3 font-medium text-right">{t('reservations.adminList.priceLoyalty')}</th>
+                    <th className="p-3 font-medium">{t('reservations.adminList.stylist')}</th>
+                    <th className="p-3 font-medium">{t('reservations.adminList.status')}</th>
+                    <th className="p-3 font-medium text-right">{t('reservations.adminList.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -382,7 +399,7 @@ export default function Reservations() {
                               to={`/admin/stylist-analytics?stylistId=${r.confirmedStylist.id}`}
                               className="text-brand-gold-text hover:underline"
                             >
-                              {getStylistName(r.confirmedStylist)}
+                              {getListStylistName(r.confirmedStylist)}
                             </RouterLink>
                           ) : (
                             '-'
@@ -390,11 +407,11 @@ export default function Reservations() {
                         </td>
                         <td className="p-3">
                           <Badge variant={getStatusBadgeVariant(r.status)} className="text-[10px]">
-                            {getReservationStatusLabel(r.status, r.cancelReason)}
+                            {getListStatusLabel(r.status, r.cancelReason)}
                           </Badge>
                         </td>
                         <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
-                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Detalji" onClick={() => void openDetail(r)}>
+                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('reservations.adminList.details')} onClick={() => void openDetail(r)}>
                             <Eye className="h-4 w-4 text-blue-600" aria-hidden="true" />
                           </Button>
                         </td>
@@ -409,10 +426,10 @@ export default function Reservations() {
       </Card>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">Ukupno: {total}</p>
+        <p className="text-sm text-slate-500">{t('reservations.adminList.total', { total })}</p>
         <div className="flex items-center gap-2">
           <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-            Prethodna
+            {t('reservations.adminList.previous')}
           </Button>
           <span className="text-sm text-slate-600 dark:text-slate-300">
             {page + 1} / {totalPages}
@@ -424,7 +441,7 @@ export default function Reservations() {
             disabled={page >= totalPages - 1}
             onClick={() => setPage((p) => p + 1)}
           >
-            Sljedeća
+            {t('reservations.adminList.next')}
           </Button>
         </div>
       </div>

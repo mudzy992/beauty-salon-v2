@@ -1170,6 +1170,24 @@
         "dailyLogPrefix": "Daily log"
       }
     },
+    "adminList": {
+      "calendar": "Calendar",
+      "date": "Date",
+      "time": "Time",
+      "client": "Client",
+      "service": "Service",
+      "priceLoyalty": "Price / loyalty",
+      "stylist": "Stylist",
+      "status": "Status",
+      "actions": "Actions",
+      "details": "Reservation details",
+      "total": "Total: {{total}}",
+      "previous": "Previous",
+      "next": "Next",
+      "unconfirmedStylist": "Unconfirmed",
+      "stylistFallback": "Stylist",
+      "serviceFallback": "Service"
+    },
     "listFilters": {
       "fromDate": "From date",
       "toDate": "To date",

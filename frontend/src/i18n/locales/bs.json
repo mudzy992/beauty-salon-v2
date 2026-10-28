@@ -1167,6 +1167,24 @@
         "dailyLogPrefix": "Dnevna knjiga"
       }
     },
+    "adminList": {
+      "calendar": "Kalendar",
+      "date": "Datum",
+      "time": "Vrijeme",
+      "client": "Klijent",
+      "service": "Servis",
+      "priceLoyalty": "Cijena / program lojalnosti",
+      "stylist": "Stilista",
+      "status": "Status",
+      "actions": "Akcije",
+      "details": "Detalji rezervacije",
+      "total": "Ukupno: {{total}}",
+      "previous": "Prethodna",
+      "next": "Sljedeća",
+      "unconfirmedStylist": "Nije potvrđen",
+      "stylistFallback": "Stilista",
+      "serviceFallback": "Servis"
+    },
     "listFilters": {
       "fromDate": "Od datuma",
       "toDate": "Do datuma",
