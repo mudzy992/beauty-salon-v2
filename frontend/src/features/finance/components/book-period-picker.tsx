@@ -1,6 +1,9 @@
+import { useTranslation } from 'react-i18next'
+import { formatMonthName } from '../../../i18n/locale-utils.mjs'
+
 import { Button } from '../../../components/ui/button'
 import { Label } from '../../../components/ui/label'
-import { MONTHS, isFuturePeriod } from '../finance.utils'
+import { isFuturePeriod } from '../finance.utils'
 import { getDateTimePartsInTimeZone } from '../../../../../shared/business-date.mjs'
 
 const YEAR_SPAN = 5
@@ -27,6 +30,7 @@ export function BookPeriodPicker({
   openLabel,
   isPending = false,
 }: BookPeriodPickerProps) {
+  const { t, i18n } = useTranslation()
   const currentYear = getDateTimePartsInTimeZone(new Date()).year
   const years = Array.from({ length: YEAR_SPAN }, (_, i) => currentYear - i)
   const isFuture = isFuturePeriod(year, month)
@@ -35,7 +39,7 @@ export function BookPeriodPicker({
     <div className="flex flex-wrap items-end gap-2">
       <div className="grid gap-1">
         <Label htmlFor="period-month" className="text-xs">
-          Mjesec
+          {t('finance.book.month')}
         </Label>
         <select
           id="period-month"
@@ -43,16 +47,20 @@ export function BookPeriodPicker({
           value={month}
           onChange={(event) => onMonthChange(Number(event.target.value))}
         >
-          {MONTHS.slice(1).map((name, index) => (
-            <option key={name} value={index + 1}>
-              {name}
-            </option>
-          ))}
+          {Array.from({ length: 12 }, (_, index) => {
+            const value = index + 1
+            const name = formatMonthName(value, i18n.language)
+            return (
+              <option key={value} value={value}>
+                {name}
+              </option>
+            )
+          })}
         </select>
       </div>
       <div className="grid gap-1">
         <Label htmlFor="period-year" className="text-xs">
-          Godina
+          {t('finance.book.year')}
         </Label>
         <select
           id="period-year"
@@ -72,7 +80,7 @@ export function BookPeriodPicker({
       </Button>
       {isFuture ? (
         <p className="text-xs text-amber-600 dark:text-amber-400">
-          Knjiga za budući mjesec se ne može otvoriti.
+          {t('finance.book.futureMonthCannotOpen')}
         </p>
       ) : null}
     </div>

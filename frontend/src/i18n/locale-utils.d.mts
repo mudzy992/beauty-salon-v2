@@ -1,6 +1,12 @@
-export function getIntlLocale(language: string | null | undefined): 'en-GB' | 'bs-BA'
+export function getIntlLocale(
+  language: string | null | undefined,
+): 'en-GB' | 'bs-BA'
 export function formatLocalizedAmount(
   value: number | string,
+  language: string | null | undefined,
+): string
+export function formatMonthName(
+  month: number,
   language: string | null | undefined,
 ): string
 export function formatWeekday(

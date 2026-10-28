@@ -6,6 +6,7 @@ import {
   formatLocalizedAmount,
   formatLocalizedDateTime,
   formatLocalizedNumber,
+  formatMonthName,
   formatWeekday,
   getIntlLocale,
 } from './locale-utils.mjs'
@@ -17,6 +18,15 @@ test('maps the active web language to its expected Intl locale', () => {
   assert.equal(getIntlLocale(undefined), 'bs-BA')
 })
 
+test('formats month names using the active locale', () => {
+  assert.equal(formatMonthName(1, 'bs'), 'Januar')
+  assert.equal(formatMonthName(3, 'bs'), 'Mart')
+  assert.equal(formatMonthName(1, 'en'), 'January')
+  assert.equal(formatMonthName(3, 'en'), 'March')
+  assert.equal(formatMonthName(0, 'en'), '')
+  assert.equal(formatMonthName(13, 'bs'), '')
+})
+
 test('formats weekday labels using the active locale without timezone drift', () => {
   assert.equal(formatWeekday(0, 'en'), 'Sunday')
   assert.equal(formatWeekday(1, 'en'), 'Monday')
@@ -26,7 +36,12 @@ test('formats weekday labels using the active locale without timezone drift', ()
 
 test('formats date-only values and money using the active locale', () => {
   const date = '2026-10-26'
-  const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+  const options = {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }
 
   assert.equal(
     formatDateOnlyLocale(date, getIntlLocale('en'), options),
@@ -38,8 +53,14 @@ test('formats date-only values and money using the active locale', () => {
   )
   assert.equal(formatLocalizedAmount(1234.5, 'en'), '1,234.50 KM')
   assert.equal(formatLocalizedAmount(1234.5, 'bs'), '1.234,50 KM')
-  assert.equal(formatLocalizedNumber(1234.5, 'en', { minimumFractionDigits: 2 }), '1,234.50')
-  assert.equal(formatLocalizedNumber(1234.5, 'bs', { minimumFractionDigits: 2 }), '1.234,50')
+  assert.equal(
+    formatLocalizedNumber(1234.5, 'en', { minimumFractionDigits: 2 }),
+    '1,234.50',
+  )
+  assert.equal(
+    formatLocalizedNumber(1234.5, 'bs', { minimumFractionDigits: 2 }),
+    '1.234,50',
+  )
   assert.equal(formatLocalizedAmount('not-a-number', 'en'), '—')
 
   const timestamp = new Date(2026, 9, 26, 12, 30)

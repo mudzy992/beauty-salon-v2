@@ -27,6 +27,16 @@ export const formatLocalizedDateTime = (value, language) => {
   }).format(date)
 }
 
+export const formatMonthName = (month, language) => {
+  if (!Number.isInteger(month) || month < 1 || month > 12) return ''
+  const locale = getIntlLocale(language)
+  const name = new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(2024, month - 1, 1, 12)))
+  return name.replace(/^\p{L}/u, (letter) => letter.toLocaleUpperCase(locale))
+}
+
 export const formatWeekday = (dayOfWeek, language) => {
   if (!Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) return ''
   const date = new Date(Date.UTC(2024, 0, 7 + dayOfWeek))

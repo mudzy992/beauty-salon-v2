@@ -2,7 +2,12 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '../../../components/ui/card'
 import { BookList } from '../components/book-list'
 import { BookPeriodPicker } from '../components/book-period-picker'
 import { ErrorState } from '../components/data-state'
@@ -30,10 +35,12 @@ export function ExpenseBooksTab() {
     setIsOpening(true)
     try {
       const book = await fetchExpenseBookForMonth(year, month)
-      await queryClient.invalidateQueries({ queryKey: financeKeys.expenseBooks() })
+      await queryClient.invalidateQueries({
+        queryKey: financeKeys.expenseBooks(),
+      })
       setSelectedBookId(book.id)
     } catch (err) {
-      toastApiError(err, 'Otvaranje knjige nije uspjelo')
+      toastApiError(err, t('finance.book.openFailed'))
     } finally {
       setIsOpening(false)
     }
@@ -52,7 +59,9 @@ export function ExpenseBooksTab() {
     <div className="grid gap-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t('finance.book.openForMonth')}</CardTitle>
+          <CardTitle className="text-base">
+            {t('finance.book.openForMonth')}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <BookPeriodPicker
@@ -69,12 +78,14 @@ export function ExpenseBooksTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t('finance.expenseBook')}</CardTitle>
+          <CardTitle className="text-base">
+            {t('finance.expenseBook')}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {booksQuery.isError ? (
             <ErrorState
-              description="Knjige rashoda nije moguće učitati."
+              description={t('finance.book.expenseBooksLoadFailed')}
               onRetry={() => void booksQuery.refetch()}
             />
           ) : (
