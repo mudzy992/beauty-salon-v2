@@ -3,8 +3,16 @@ import { ArrowLeft, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
-import { BookLockBadge, BookLockControls } from '../components/book-lock-controls'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '../../../components/ui/card'
+import {
+  BookLockBadge,
+  BookLockControls,
+} from '../components/book-lock-controls'
 import { ConfirmDialog } from '../components/confirm-dialog'
 import { ErrorState, TableSkeleton } from '../components/data-state'
 import { ExportMenu } from '../components/export-menu'
@@ -28,7 +36,8 @@ import {
   useIncomeBookMutations,
 } from '../hooks/use-income-books'
 import { exportRowsToCsv, printReport } from '../export.utils'
-import { formatDateOnlyBs, formatMoney, formatPeriod } from '../finance.utils'
+import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
+import { formatDateOnlyLocalized, formatPeriod } from '../finance.utils'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import type {
   IncomeBookManualEntry,
@@ -44,23 +53,30 @@ export function IncomeBookDetail({
   bookId: string
   onBack: () => void
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { success, toastApiError } = useAppToast()
   const bookQuery = useIncomeBook(bookId)
   const integrityQuery = useIncomeBookIntegrity(bookId)
   const mutations = useIncomeBookMutations(bookId)
 
-  const [filters, setFilters] = useState<IncomeEntryFilters>(EMPTY_INCOME_FILTERS)
+  const [filters, setFilters] =
+    useState<IncomeEntryFilters>(EMPTY_INCOME_FILTERS)
   const [sortField, setSortField] = useState<IncomeSortField>('date')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const [isManualOpen, setIsManualOpen] = useState(false)
   const [editing, setEditing] = useState<IncomeBookManualEntry | null>(null)
-  const [pendingDelete, setPendingDelete] = useState<IncomeBookManualEntry | null>(null)
+  const [pendingDelete, setPendingDelete] =
+    useState<IncomeBookManualEntry | null>(null)
 
   const book = bookQuery.data
   const allRows = useMemo(() => toIncomeEntryRows(book), [book])
   const rows = useMemo(
-    () => sortIncomeRows(filterIncomeRows(allRows, filters), sortField, sortDirection),
+    () =>
+      sortIncomeRows(
+        filterIncomeRows(allRows, filters),
+        sortField,
+        sortDirection,
+      ),
     [allRows, filters, sortField, sortDirection],
   )
   const summary = useMemo(() => summarizeIncomeRows(rows), [rows])
@@ -76,12 +92,21 @@ export function IncomeBookDetail({
 
   const handleSaveManual = async (payload: ManualEntryPayload) => {
     try {
-      await mutations.saveManualEntry.mutateAsync({ entryId: editing?.id, payload })
-      success(editing ? 'Stavka je izmijenjena.' : 'Stavka je dodana.')
+      await mutations.saveManualEntry.mutateAsync({
+        entryId: editing?.id,
+        payload,
+      })
+      success(
+        t(
+          editing
+            ? 'finance.incomeDetail.entryEdited'
+            : 'finance.incomeDetail.entryAdded',
+        ),
+      )
       setIsManualOpen(false)
       setEditing(null)
     } catch (err) {
-      toastApiError(err, 'Čuvanje stavke nije uspjelo')
+      toastApiError(err, t('finance.incomeDetail.saveFailed'))
     }
   }
 
@@ -89,9 +114,9 @@ export function IncomeBookDetail({
     if (!pendingDelete) return
     try {
       await mutations.removeManualEntry.mutateAsync(pendingDelete.id)
-      success('Stavka je obrisana.')
+      success(t('finance.incomeDetail.entryDeleted'))
     } catch (err) {
-      toastApiError(err, 'Brisanje nije uspjelo')
+      toastApiError(err, t('finance.incomeDetail.deleteFailed'))
     } finally {
       setPendingDelete(null)
     }
@@ -100,28 +125,28 @@ export function IncomeBookDetail({
   const handleLock = async () => {
     try {
       await mutations.lock.mutateAsync()
-      success('Knjiga je zaključana.')
+      success(t('finance.incomeDetail.bookLockedSuccess'))
     } catch (err) {
-      toastApiError(err, 'Zaključavanje nije uspjelo')
+      toastApiError(err, t('finance.incomeDetail.lockFailed'))
     }
   }
 
   const handleUnlock = async (reason: string) => {
     try {
       await mutations.unlock.mutateAsync(reason)
-      success('Knjiga je otključana.')
+      success(t('finance.incomeDetail.bookUnlockedSuccess'))
     } catch (err) {
-      toastApiError(err, 'Otključavanje nije uspjelo')
+      toastApiError(err, t('finance.incomeDetail.unlockFailed'))
     }
   }
 
   const handleResync = async () => {
     try {
       const result = await mutations.resync.mutateAsync()
-      success('Sinhronizacija je završena.')
+      success(t('finance.incomeDetail.resyncSuccess'))
       return result
     } catch (err) {
-      toastApiError(err, 'Sinhronizacija nije uspjela')
+      toastApiError(err, t('finance.incomeDetail.resyncFailed'))
     }
   }
 
@@ -129,30 +154,56 @@ export function IncomeBookDetail({
   if (bookQuery.isError || !book) {
     return (
       <ErrorState
-        description="Knjigu prihoda nije moguće učitati."
+        description={t('finance.incomeDetail.errorDescription')}
         onRetry={() => void bookQuery.refetch()}
       />
     )
   }
 
-  const period = formatPeriod(book.year, book.month)
+  const period = formatPeriod(book.year, book.month, i18n.language)
   const isLocked = Boolean(book.closedAt)
 
   const handleExportCsv = () =>
     exportRowsToCsv({
       filename: `KIF-${book.year}-${String(book.month).padStart(2, '0')}`,
       columns: [
-        { header: 'Datum', value: (r) => formatDateOnlyBs(r.date) },
-        { header: 'Servis', value: (r) => r.serviceName },
-        { header: 'Stilista', value: (r) => r.stylistName },
-        { header: 'Klijent', value: (r) => r.clientName },
-        { header: 'Vrsta', value: (r) => (r.kind === 'MANUAL' ? 'Ručno' : 'Dnevnik') },
-        { header: 'Prihod', value: (r) => r.amount.toFixed(2) },
-        { header: 'Napojnica', value: (r) => r.tipAmount.toFixed(2) },
+        {
+          header: t('finance.incomeList.columns.date'),
+          value: (r) => formatDateOnlyLocalized(r.date, i18n.language),
+        },
+        {
+          header: t('finance.incomeList.columns.service'),
+          value: (r) => r.serviceName,
+        },
+        {
+          header: t('finance.incomeList.columns.stylist'),
+          value: (r) => r.stylistName,
+        },
+        {
+          header: t('finance.incomeList.columns.client'),
+          value: (r) => r.clientName,
+        },
+        {
+          header: t('finance.incomeList.columns.kind'),
+          value: (r) =>
+            t(
+              r.kind === 'MANUAL'
+                ? 'finance.filters.manual'
+                : 'finance.filters.fromDailyLog',
+            ),
+        },
+        {
+          header: t('finance.incomeList.columns.revenue'),
+          value: (r) => r.amount.toFixed(2),
+        },
+        {
+          header: t('finance.incomeList.columns.tips'),
+          value: (r) => r.tipAmount.toFixed(2),
+        },
       ],
       rows,
       summary: [
-        'UKUPNO',
+        t('finance.incomeDetail.csvTotal'),
         '',
         '',
         '',
@@ -164,21 +215,45 @@ export function IncomeBookDetail({
 
   const handlePrint = () =>
     printReport({
-      title: `Knjiga prihoda – ${period}`,
-      subtitle: `${summary.count} stavki · ${isLocked ? 'zaključana' : 'otvorena'}`,
-      headers: ['Datum', 'Servis', 'Stilista', 'Klijent', 'Prihod', 'Napojnica'],
+      title: t('finance.incomeDetail.printTitle', { period }),
+      subtitle: t('finance.incomeDetail.printSubtitle', {
+        count: summary.count,
+        status: t(
+          isLocked
+            ? 'finance.incomeDetail.statusLocked'
+            : 'finance.incomeDetail.statusOpen',
+        ),
+      }),
+      language: i18n.language.startsWith('en') ? 'en' : 'bs',
+      headers: [
+        t('finance.incomeList.columns.date'),
+        t('finance.incomeList.columns.service'),
+        t('finance.incomeList.columns.stylist'),
+        t('finance.incomeList.columns.client'),
+        t('finance.incomeList.columns.revenue'),
+        t('finance.incomeList.columns.tips'),
+      ],
       rows: rows.map((r) => [
-        formatDateOnlyBs(r.date),
+        formatDateOnlyLocalized(r.date, i18n.language),
         r.serviceName,
         r.stylistName,
         r.clientName,
-        formatMoney(r.amount),
-        formatMoney(r.tipAmount),
+        formatLocalizedAmount(r.amount, i18n.language),
+        formatLocalizedAmount(r.tipAmount, i18n.language),
       ]),
       summary: [
-        { label: 'Prihod bez napojnice', value: formatMoney(summary.revenue) },
-        { label: 'Napojnice', value: formatMoney(summary.tips) },
-        { label: 'Ukupno naplaćeno', value: formatMoney(summary.total) },
+        {
+          label: t('finance.summary.revenue'),
+          value: formatLocalizedAmount(summary.revenue, i18n.language),
+        },
+        {
+          label: t('finance.summary.tips'),
+          value: formatLocalizedAmount(summary.tips, i18n.language),
+        },
+        {
+          label: t('finance.summary.totalCollected'),
+          value: formatLocalizedAmount(summary.total, i18n.language),
+        },
       ],
     })
 
@@ -186,7 +261,12 @@ export function IncomeBookDetail({
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={onBack} aria-label="Nazad na listu">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            aria-label={t('finance.incomeDetail.backToList')}
+          >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
@@ -217,7 +297,7 @@ export function IncomeBookDetail({
             disabled={isLocked}
           >
             <Plus className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
-            Ručni prihod
+            {t('finance.incomeDetail.manualIncome')}
           </Button>
         </div>
       </div>
@@ -225,7 +305,11 @@ export function IncomeBookDetail({
       <SummaryCards
         items={[
           { label: t('finance.summary.revenue'), value: summary.revenue },
-          { label: t('finance.summary.tips'), value: summary.tips, tone: 'muted' },
+          {
+            label: t('finance.summary.tips'),
+            value: summary.tips,
+            tone: 'muted',
+          },
           {
             label: t('finance.summary.totalCollected'),
             value: summary.total,
@@ -243,7 +327,9 @@ export function IncomeBookDetail({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Stavke ({summary.count})</CardTitle>
+          <CardTitle className="text-base">
+            {t('finance.incomeDetail.entriesTitle', { count: summary.count })}
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3">
           <IncomeEntryFiltersBar
@@ -273,7 +359,7 @@ export function IncomeBookDetail({
             <HistoryPanel
               title={t('finance.book.lockHistory')}
               events={book.lockEvents ?? []}
-              emptyLabel="Nema zabilježenih zaključavanja."
+              emptyLabel={t('finance.incomeDetail.lockHistoryEmpty')}
             />
           </CardContent>
         </Card>
@@ -287,7 +373,7 @@ export function IncomeBookDetail({
                 createdAt: audit.createdAt,
                 createdBy: audit.createdBy,
               }))}
-              emptyLabel="Nema izmjena ručnih stavki."
+              emptyLabel={t('finance.incomeDetail.manualHistoryEmpty')}
             />
           </CardContent>
         </Card>
@@ -309,9 +395,9 @@ export function IncomeBookDetail({
       <ConfirmDialog
         open={Boolean(pendingDelete)}
         onOpenChange={(open) => !open && setPendingDelete(null)}
-        title="Obrisati stavku?"
-        description="Ako je uz stavku evidentiran otvoren dug, i on će biti obrisan."
-        confirmLabel="Obriši"
+        title={t('finance.incomeDetail.deleteTitle')}
+        description={t('finance.incomeDetail.deleteDescription')}
+        confirmLabel={t('finance.incomeDetail.deleteConfirm')}
         isDestructive
         isPending={mutations.removeManualEntry.isPending}
         onConfirm={() => void handleDelete()}

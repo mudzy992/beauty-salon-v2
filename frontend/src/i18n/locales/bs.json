@@ -1727,6 +1727,8 @@
       "lockConfirmBody": "Nakon zaključavanja stavke se ne mogu dodavati, mijenjati ni brisati.",
       "unlockConfirmTitle": "Otključati knjigu?",
       "unlockReason": "Razlog otključavanja",
+      "unlockPastOnly": "Otključavanje je dozvoljeno samo za prošle mjesece",
+      "unlockExceptionDescription": "Otključavanje zatvorenog perioda je izuzetak i mora biti obrazloženo.",
       "lockHistory": "Zaključavanja",
       "auditHistory": "Izmjene ručnih stavki"
     },
@@ -1759,6 +1761,57 @@
       "sortBy": "Sortiraj po {{label}}",
       "editManualEntry": "Uredi ručni prihod",
       "deleteManualEntry": "Obriši ručni prihod"
+    },
+    "incomeDetail": {
+      "backToList": "Nazad na listu",
+      "manualIncome": "Ručni prihod",
+      "errorDescription": "Knjigu prihoda nije moguće učitati.",
+      "entryEdited": "Stavka je izmijenjena.",
+      "entryAdded": "Stavka je dodana.",
+      "saveFailed": "Čuvanje stavke nije uspjelo",
+      "entryDeleted": "Stavka je obrisana.",
+      "deleteFailed": "Brisanje nije uspjelo",
+      "bookLockedSuccess": "Knjiga je zaključana.",
+      "lockFailed": "Zaključavanje nije uspjelo",
+      "bookUnlockedSuccess": "Knjiga je otključana.",
+      "unlockFailed": "Otključavanje nije uspjelo",
+      "resyncSuccess": "Sinhronizacija je završena.",
+      "resyncFailed": "Sinhronizacija nije uspjela",
+      "entriesTitle": "Stavke ({{count}})",
+      "deleteTitle": "Obrisati stavku?",
+      "deleteDescription": "Ako je uz stavku evidentiran otvoren dug, i on će biti obrisan.",
+      "deleteConfirm": "Obriši",
+      "lockHistoryEmpty": "Nema zabilježenih zaključavanja.",
+      "manualHistoryEmpty": "Nema izmjena ručnih stavki.",
+      "csvTotal": "UKUPNO",
+      "printTitle": "Knjiga prihoda – {{period}}",
+      "printSubtitle": "{{count}} stavki · {{status}}",
+      "statusLocked": "zaključana",
+      "statusOpen": "otvorena"
+    },
+    "export": {
+      "downloadCsv": "Preuzmi CSV",
+      "printPdf": "Štampaj ili sačuvaj kao PDF"
+    },
+    "confirm": {
+      "confirm": "Potvrdi",
+      "cancel": "Odustani",
+      "processing": "Obrada…",
+      "reasonPlaceholder": "Najmanje {{count}} znaka…",
+      "reasonHistory": "Razlog se trajno bilježi u historiji knjige."
+    },
+    "history": {
+      "system": "sistem",
+      "lock": "Zaključavanje",
+      "unlock": "Otključavanje",
+      "create": "Kreiranje",
+      "update": "Izmjena",
+      "delete": "Brisanje"
+    },
+    "states": {
+      "loading": "Učitavanje podataka",
+      "errorTitle": "Došlo je do greške",
+      "retry": "Pokušaj ponovo"
     },
     "expenseList": {
       "searchPlaceholder": "Naziv, kategorija, napomena…",
@@ -1871,7 +1924,13 @@
     "integrity": {
       "healthy": "Knjiga je usklađena sa dnevnikom rada.",
       "drift": "Knjiga nije usklađena sa dnevnikom",
-      "resync": "Sinhronizuj"
+      "missingCount": "Neknjiženih zapisa: {{count}}",
+      "orphanedCount": "Zastarjelih stavki: {{count}}",
+      "resync": "Sinhronizuj",
+      "moreItems_one": "…i još {{count}} zapis",
+      "moreItems_few": "…i još {{count}} zapisa",
+      "moreItems_other": "…i još {{count}} zapisa",
+      "lockedHint": "Otključajte knjigu da biste je mogli sinhronizovati."
     },
     "filters": {
       "search": "Pretraga",

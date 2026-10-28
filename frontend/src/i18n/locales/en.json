@@ -1730,6 +1730,8 @@
       "lockConfirmBody": "Once locked, entries cannot be added, edited or deleted.",
       "unlockConfirmTitle": "Unlock this book?",
       "unlockReason": "Reason for unlocking",
+      "unlockPastOnly": "Unlocking is allowed only for past months",
+      "unlockExceptionDescription": "Unlocking a closed period is exceptional and requires a reason.",
       "lockHistory": "Lock history",
       "auditHistory": "Manual entry changes"
     },
@@ -1762,6 +1764,57 @@
       "sortBy": "Sort by {{label}}",
       "editManualEntry": "Edit manual income entry",
       "deleteManualEntry": "Delete manual income entry"
+    },
+    "incomeDetail": {
+      "backToList": "Back to list",
+      "manualIncome": "Manual income",
+      "errorDescription": "The income book could not be loaded.",
+      "entryEdited": "Entry updated.",
+      "entryAdded": "Entry added.",
+      "saveFailed": "Could not save the entry",
+      "entryDeleted": "Entry deleted.",
+      "deleteFailed": "Could not delete the entry",
+      "bookLockedSuccess": "The book is locked.",
+      "lockFailed": "Could not lock the book",
+      "bookUnlockedSuccess": "The book is unlocked.",
+      "unlockFailed": "Could not unlock the book",
+      "resyncSuccess": "Synchronization completed.",
+      "resyncFailed": "Synchronization failed.",
+      "entriesTitle": "Entries ({{count}})",
+      "deleteTitle": "Delete this entry?",
+      "deleteDescription": "If an open debt is recorded for this entry, it will also be deleted.",
+      "deleteConfirm": "Delete",
+      "lockHistoryEmpty": "There is no lock history.",
+      "manualHistoryEmpty": "There are no manual-entry changes.",
+      "csvTotal": "TOTAL",
+      "printTitle": "Income book – {{period}}",
+      "printSubtitle": "{{count}} entries · {{status}}",
+      "statusLocked": "locked",
+      "statusOpen": "open"
+    },
+    "export": {
+      "downloadCsv": "Download CSV",
+      "printPdf": "Print or save as PDF"
+    },
+    "confirm": {
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "processing": "Processing…",
+      "reasonPlaceholder": "At least {{count}} characters…",
+      "reasonHistory": "The reason is permanently recorded in the book history."
+    },
+    "history": {
+      "system": "system",
+      "lock": "Locked",
+      "unlock": "Unlocked",
+      "create": "Created",
+      "update": "Updated",
+      "delete": "Deleted"
+    },
+    "states": {
+      "loading": "Loading data",
+      "errorTitle": "Something went wrong",
+      "retry": "Try again"
     },
     "expenseList": {
       "searchPlaceholder": "Name, category, note…",
@@ -1874,7 +1927,13 @@
     "integrity": {
       "healthy": "The book matches the daily log.",
       "drift": "The book does not match the daily log",
-      "resync": "Synchronise"
+      "missingCount": "Unposted entries: {{count}}",
+      "orphanedCount": "Outdated entries: {{count}}",
+      "resync": "Synchronise",
+      "moreItems_one": "…and {{count}} more entry",
+      "moreItems_few": "…and {{count}} more entries",
+      "moreItems_other": "…and {{count}} more entries",
+      "lockedHint": "Unlock the book to synchronize it."
     },
     "filters": {
       "search": "Search",

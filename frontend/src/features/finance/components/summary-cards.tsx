@@ -1,4 +1,5 @@
-import { formatMoney } from '../finance.utils'
+import { useTranslation } from 'react-i18next'
+import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
 
 export type SummaryItem = {
   label: string
@@ -15,6 +16,7 @@ const toneClass: Record<NonNullable<SummaryItem['tone']>, string> = {
 }
 
 export function SummaryCards({ items }: { items: SummaryItem[] }) {
+  const { i18n } = useTranslation()
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       {items.map((item) => (
@@ -22,13 +24,15 @@ export function SummaryCards({ items }: { items: SummaryItem[] }) {
           key={item.label}
           className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950"
         >
-          <div className="text-xs text-slate-500 dark:text-slate-400">{item.label}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {item.label}
+          </div>
           <div
             className={`mt-1 text-base font-semibold tabular-nums ${
               toneClass[item.tone ?? 'default']
             }`}
           >
-            {formatMoney(item.value)}
+            {formatLocalizedAmount(item.value, i18n.language)}
           </div>
           {item.hint ? (
             <div className="mt-0.5 text-[11px] text-slate-400">{item.hint}</div>

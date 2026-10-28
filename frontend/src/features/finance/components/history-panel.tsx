@@ -1,3 +1,6 @@
+import { useTranslation } from 'react-i18next'
+import { formatLocalizedDateTime } from '../../../i18n/locale-utils.mjs'
+
 import { Badge } from '../../../components/ui/badge'
 import { EmptyState } from './data-state'
 
@@ -9,9 +12,12 @@ export type HistoryEvent = {
   createdBy?: { id: string; username: string } | null
 }
 
-const formatTimestamp = (iso: string): string => {
-  const date = new Date(iso)
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('bs-BA')
+const ACTION_KEYS: Record<string, string> = {
+  LOCK: 'finance.history.lock',
+  UNLOCK: 'finance.history.unlock',
+  CREATE: 'finance.history.create',
+  UPDATE: 'finance.history.update',
+  DELETE: 'finance.history.delete',
 }
 
 export function HistoryPanel({
@@ -23,6 +29,7 @@ export function HistoryPanel({
   events: HistoryEvent[]
   emptyLabel: string
 }) {
+  const { t, i18n } = useTranslation()
   return (
     <section aria-label={title} className="grid gap-2">
       <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
@@ -38,12 +45,16 @@ export function HistoryPanel({
               className="rounded-md border border-slate-200 p-2 text-xs dark:border-slate-800"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{event.action}</Badge>
+                <Badge variant="outline">
+                  {ACTION_KEYS[event.action]
+                    ? t(ACTION_KEYS[event.action])
+                    : event.action}
+                </Badge>
                 <span className="text-slate-500">
-                  {formatTimestamp(event.createdAt)}
+                  {formatLocalizedDateTime(event.createdAt, i18n.language)}
                 </span>
                 <span className="text-slate-500">
-                  {event.createdBy?.username ?? 'sistem'}
+                  {event.createdBy?.username ?? t('finance.history.system')}
                 </span>
               </div>
               {event.reason ? (

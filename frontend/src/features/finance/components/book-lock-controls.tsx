@@ -48,8 +48,8 @@ export function BookLockControls({
           disabled={isPending || !canUnlock}
           title={
             canUnlock
-              ? 'Otključaj knjigu'
-              : 'Otključavanje je dozvoljeno samo za prošle mjesece'
+              ? t('finance.book.unlock')
+              : t('finance.book.unlockPastOnly')
           }
         >
           <LockOpen className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
@@ -84,7 +84,7 @@ export function BookLockControls({
         open={dialog === 'unlock'}
         onOpenChange={(open) => setDialog(open ? 'unlock' : null)}
         title={t('finance.book.unlockConfirmTitle')}
-        description="Otključavanje zatvorenog perioda je izuzetak i mora biti obrazloženo."
+        description={t('finance.book.unlockExceptionDescription')}
         confirmLabel={t('finance.book.unlock')}
         isDestructive
         isPending={isPending}

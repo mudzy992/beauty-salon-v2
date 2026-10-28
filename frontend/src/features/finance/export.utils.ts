@@ -20,7 +20,7 @@ const downloadBlob = (blob: Blob, filename: string): void => {
 }
 
 /** Excel na bs-BA locale očekuje `;` kao separator; BOM osigurava ispravne dijakritike. */
-export const exportRowsToCsv = <T,>(params: {
+export const exportRowsToCsv = <T>(params: {
   filename: string
   columns: ExportColumn<T>[]
   rows: T[]
@@ -46,6 +46,7 @@ export const exportRowsToCsv = <T,>(params: {
 /** Štampa u zaseban prozor; korisnik bira "Save as PDF" u dijalogu štampe. */
 export const printReport = (params: {
   title: string
+  language?: 'bs' | 'en'
   subtitle?: string
   headers: string[]
   rows: (string | number)[][]
@@ -57,7 +58,9 @@ export const printReport = (params: {
   const summaryHtml = (params.summary ?? [])
     .map((s) => `<div><span>${s.label}</span><strong>${s.value}</strong></div>`)
     .join('')
-  win.document.write(`<!doctype html><html lang="bs"><head><meta charset="utf-8" />
+  const documentLanguage = params.language === 'en' ? 'en' : 'bs'
+  win.document
+    .write(`<!doctype html><html lang="${documentLanguage}"><head><meta charset="utf-8" />
 <title>${params.title}</title>
 <style>
   body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #0f172a; padding: 32px; }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
 import { Label } from '../../../components/ui/label'
@@ -24,16 +25,18 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = 'Potvrdi',
+  confirmLabel,
   isDestructive = false,
   isPending = false,
   reasonLabel,
   minReasonLength = 3,
   onConfirm,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation()
   const [reason, setReason] = useState('')
   const requiresReason = Boolean(reasonLabel)
-  const isReasonValid = !requiresReason || reason.trim().length >= minReasonLength
+  const isReasonValid =
+    !requiresReason || reason.trim().length >= minReasonLength
 
   const handleOpenChange = (next: boolean) => {
     if (!next) setReason('')
@@ -54,14 +57,16 @@ export function ConfirmDialog({
             onClick={() => handleOpenChange(false)}
             disabled={isPending}
           >
-            Odustani
+            {t('finance.confirm.cancel')}
           </Button>
           <Button
             variant={isDestructive ? 'destructive' : 'default'}
             onClick={() => onConfirm(reason.trim())}
             disabled={isPending || !isReasonValid}
           >
-            {isPending ? 'Obrada…' : confirmLabel}
+            {isPending
+              ? t('finance.confirm.processing')
+              : (confirmLabel ?? t('finance.confirm.confirm'))}
           </Button>
         </div>
       }
@@ -74,10 +79,12 @@ export function ConfirmDialog({
             rows={3}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            placeholder={`Najmanje ${minReasonLength} znaka…`}
+            placeholder={t('finance.confirm.reasonPlaceholder', {
+              count: minReasonLength,
+            })}
           />
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Razlog se trajno bilježi u historiji knjige.
+            {t('finance.confirm.reasonHistory')}
           </p>
         </div>
       ) : null}

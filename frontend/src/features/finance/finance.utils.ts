@@ -1,3 +1,4 @@
+import { getIntlLocale } from '../../i18n/locale-utils.mjs'
 import {
   formatDateOnlyLocale,
   formatInstantDateLocale,
@@ -29,7 +30,9 @@ export const toNumber = (value: number | string | null | undefined): number => {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-export const formatMoney = (value: number | string | null | undefined): string =>
+export const formatMoney = (
+  value: number | string | null | undefined,
+): string =>
   `${toNumber(value).toLocaleString('bs-BA', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -49,11 +52,14 @@ export const formatDateBs = (date: Date): string =>
     day: '2-digit',
   })
 
-export const formatDateOnlyBs = (value: string | null | undefined): string => {
+export const formatDateOnlyLocalized = (
+  value: string | null | undefined,
+  language: string,
+): string => {
   if (!value) return '—'
   const dateOnly = value.slice(0, 10)
   try {
-    return formatDateOnlyLocale(dateOnly, 'bs-BA', {
+    return formatDateOnlyLocale(dateOnly, getIntlLocale(language), {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -62,6 +68,9 @@ export const formatDateOnlyBs = (value: string | null | undefined): string => {
     return '—'
   }
 }
+
+export const formatDateOnlyBs = (value: string | null | undefined): string =>
+  formatDateOnlyLocalized(value, 'bs')
 
 export const formatInstantDateBs = (
   value: Date | string | null | undefined,
@@ -81,8 +90,23 @@ export const formatInstantDateBs = (
 /** Backwards-compatible alias for callers that display a timestamp. */
 export const formatIsoDateBs = formatInstantDateBs
 
-export const formatPeriod = (year: number, month: number): string =>
-  `${MONTHS[month] ?? month} ${year}`
+export const formatPeriod = (
+  year: number,
+  month: number,
+  language = 'bs',
+): string => {
+  if (!Number.isInteger(month) || month < 1 || month > 12)
+    return `${month} ${year}`
+  const locale = getIntlLocale(language)
+  const formatted = new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, month - 1, 1, 12)))
+  return formatted.replace(/^\p{L}/u, (letter) =>
+    letter.toLocaleUpperCase(locale),
+  )
+}
 
 export const toDateInputValue = (date: Date): string =>
   getDateOnlyFromLocalCalendarDate(date)
