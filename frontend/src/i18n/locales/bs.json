@@ -1694,7 +1694,17 @@
     "fromReservation": "Iz rezervacije",
     "complete": "Kompletiraj",
     "totalRevenue": "Ukupni prihod",
-    "totalTips": "Ukupne napojnice"
+    "totalTips": "Ukupne napojnice",
+    "list": {
+      "fromDate": "Od datuma",
+      "toDate": "Do datuma",
+      "stylist": "Stilista",
+      "allStylists": "Svi stilisti",
+      "includeDeleted": "Prikaži obrisane",
+      "resetFilters": "Resetuj",
+      "serviceRevenue": "Prihod od servisa",
+      "completed": "Kompletirano"
+    }
   },
   "finance": {
     "incomeBook": "Knjiga Prihoda",

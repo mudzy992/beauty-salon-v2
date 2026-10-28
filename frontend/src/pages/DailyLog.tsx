@@ -38,7 +38,7 @@ export default function DailyLog() {
         </h1>
         <Button type="button" onClick={form.openCreateForm}>
           <Plus className="mr-2 h-4 w-4" />
-          Novi Unos
+          {t('dailyLog.newEntry')}
         </Button>
       </div>
       <DailyLogStats entries={data.entries} />

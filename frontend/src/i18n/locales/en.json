@@ -1697,7 +1697,17 @@
     "fromReservation": "From reservation",
     "complete": "Complete",
     "totalRevenue": "Total revenue",
-    "totalTips": "Total tips"
+    "totalTips": "Total tips",
+    "list": {
+      "fromDate": "From date",
+      "toDate": "To date",
+      "stylist": "Stylist",
+      "allStylists": "All stylists",
+      "includeDeleted": "Show deleted",
+      "resetFilters": "Reset",
+      "serviceRevenue": "Service revenue",
+      "completed": "Completed"
+    }
   },
   "finance": {
     "incomeBook": "Income Book",
