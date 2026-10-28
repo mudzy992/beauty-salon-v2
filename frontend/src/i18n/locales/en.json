@@ -1170,6 +1170,16 @@
         "dailyLogPrefix": "Daily log"
       }
     },
+    "listFilters": {
+      "fromDate": "From date",
+      "toDate": "To date",
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "clientName": "Client (first / last name)",
+      "clientSearchPlaceholder": "e.g. Jane Smith",
+      "clientSearchLabel": "Search by client first and last name",
+      "reset": "Reset"
+    },
     "statuses": {
       "PENDING": "Pending",
       "STYLIST_REVIEW": "Stylist review",

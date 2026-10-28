@@ -1167,6 +1167,16 @@
         "dailyLogPrefix": "Dnevna knjiga"
       }
     },
+    "listFilters": {
+      "fromDate": "Od datuma",
+      "toDate": "Do datuma",
+      "status": "Status",
+      "allStatuses": "Svi statusi",
+      "clientName": "Klijent (ime / prezime)",
+      "clientSearchPlaceholder": "npr. Ana Marić",
+      "clientSearchLabel": "Pretraga po imenu i prezimenu klijenta",
+      "reset": "Resetuj"
+    },
     "statuses": {
       "PENDING": "Na čekanju",
       "STYLIST_REVIEW": "Pregled stiliste",

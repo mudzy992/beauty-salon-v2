@@ -273,7 +273,12 @@ export default function Reservations() {
             toDate={toDate}
             statusFilter={statusFilter}
             clientSearch={clientSearch}
-            statusOptions={RESERVATION_STATUS_OPTIONS}
+            statusOptions={RESERVATION_STATUS_OPTIONS.map((option) => ({
+              ...option,
+              label: option.value
+                ? t(`reservations.statuses.${option.value}`, { defaultValue: option.label })
+                : t('reservations.listFilters.allStatuses'),
+            }))}
             onFromDateChange={setFromDate}
             onToDateChange={setToDate}
             onStatusChange={setStatusFilter}
