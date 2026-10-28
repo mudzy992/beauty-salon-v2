@@ -14,6 +14,7 @@
     "test:admin-reservations-calendar-i18n": "node --test src/features/reservations/admin-reservations-calendar-i18n.test.mjs",
     "test:admin-reservations-list-filters-i18n": "node --test src/features/reservations/admin-reservations-list-filters-i18n.test.mjs",
     "test:admin-reservations-list-page-i18n": "node --test src/features/reservations/admin-reservations-list-page-i18n.test.mjs",
+    "test:admin-reservation-details-i18n": "node --test src/features/reservations/admin-reservation-details-i18n.test.mjs",
     "test:client-reservation-errors": "node --test src/features/client-reservations/client-reservation-error.test.mjs",
     "test:admin-api-errors": "node --test src/features/admin/admin-api-error.test.mjs",
     "test:profile-api-errors": "node --test src/features/profile/profile-api-error.test.mjs",

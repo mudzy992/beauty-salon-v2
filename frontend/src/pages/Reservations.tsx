@@ -7,6 +7,7 @@ import api from '../api/client'
 import { getErrorMessage } from '../api/error'
 import { useReservationSocketRefresh } from '../features/reservations/use-reservation-socket-refresh'
 import { useAppToast } from '../lib/toast/useAppToast'
+import { formatLocalizedAmount, formatLocalizedDateTime } from '../i18n/locale-utils.mjs'
 import { getCalendarMonthRange } from '../lib/date-range'
 import {
   ReservationFilters,
@@ -94,16 +95,11 @@ const getClientName = (c?: ReservationClient) => {
   return (`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || c.username || '-') as string
 }
 
-const getStylistName = (s?: Reservation['confirmedStylist']) => {
-  if (!s?.user) return 'Nije potvrđen'
-  return `${s.user.firstName ?? ''} ${s.user.lastName ?? ''}`.trim() || s.user.username || 'Stilista'
-}
-
 export default function Reservations() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { success, error } = useAppToast()
 
-  const getListStatusLabel = (status: string, cancelReason?: string | null) => {
+  const getLocalizedReservationStatusLabel = (status: string, cancelReason?: string | null) => {
     const statusKey =
       status === 'CANCELLED_BY_CLIENT' &&
       (cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
@@ -197,12 +193,12 @@ export default function Reservations() {
     setConfirmingAttendance(true)
     try {
       await api.post(`/api/reservations/${detail.id}/staff-confirm-attendance`)
-      success('Dolazak potvrđen')
+      success(t('reservations.adminDetail.attendanceConfirmed'))
       loadData()
       const { data } = await api.get<Reservation>(`/api/reservations/${detail.id}`)
       setDetail(data)
     } catch (err) {
-      error(getErrorMessage(err, 'Greška pri potvrdi dolaska'))
+      error(getErrorMessage(err, t('reservations.adminDetail.attendanceConfirmError')))
     } finally {
       setConfirmingAttendance(false)
     }
@@ -213,11 +209,11 @@ export default function Reservations() {
     setCancelling(true)
     try {
       await api.post(`/api/reservations/${detail.id}/admin-cancel`, { cancelReason: cancelReason || undefined })
-      success('Rezervacija otkazana')
+      success(t('reservations.adminDetail.cancelled'))
       loadData()
       setOpen(false)
     } catch (err) {
-      error(getErrorMessage(err, 'Greška pri otkazivanju'))
+      error(getErrorMessage(err, t('reservations.adminDetail.cancelError')))
     } finally {
       setCancelling(false)
     }
@@ -337,7 +333,7 @@ export default function Reservations() {
                         </p>
                       </div>
                       <Badge variant={getStatusBadgeVariant(r.status)} className="text-[10px]">
-                        {getListStatusLabel(r.status, r.cancelReason)}
+                        {getLocalizedReservationStatusLabel(r.status, r.cancelReason)}
                       </Badge>
                     </div>
                   <p className="mt-2 text-sm text-slate-900 dark:text-slate-50">{serviceSummary(r)}</p>
@@ -407,7 +403,7 @@ export default function Reservations() {
                         </td>
                         <td className="p-3">
                           <Badge variant={getStatusBadgeVariant(r.status)} className="text-[10px]">
-                            {getListStatusLabel(r.status, r.cancelReason)}
+                            {getLocalizedReservationStatusLabel(r.status, r.cancelReason)}
                           </Badge>
                         </td>
                         <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
@@ -449,49 +445,49 @@ export default function Reservations() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Detalji rezervacije</DialogTitle>
+            <DialogTitle>{t('reservations.adminDetail.title')}</DialogTitle>
           </DialogHeader>
 
           {detail ? (
             <div className="space-y-4 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-medium text-slate-900 dark:text-slate-50">Status</p>
+                <p className="font-medium text-slate-900 dark:text-slate-50">{t('reservations.adminDetail.status')}</p>
                 <Badge variant={getStatusBadgeVariant(detail.status)} className="px-3 py-1 text-sm">
-                  {getReservationStatusLabel(detail.status, detail.cancelReason)}
+                  {getLocalizedReservationStatusLabel(detail.status, detail.cancelReason)}
                 </Badge>
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div>
-                  <p className="text-xs text-slate-500">Datum</p>
+                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.date')}</p>
                   <p className="font-medium text-slate-900 dark:text-slate-50">{String(detail.reservationDate).slice(0, 10)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Vrijeme</p>
+                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.time')}</p>
                   <p className="font-medium text-slate-900 dark:text-slate-50">
                     {detail.startTime} – {detail.endTime}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Kreirano</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-50">{new Date(detail.createdAt).toLocaleString('bs-BA')}</p>
+                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.created')}</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-50">{formatLocalizedDateTime(detail.createdAt, i18n.language)}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
-                  <p className="text-xs text-slate-500">Klijent</p>
+                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.client')}</p>
                   <p className="font-medium text-slate-900 dark:text-slate-50">{getClientName(detail.client)}</p>
-                  {detail.client?.phone ? <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">Tel: {detail.client.phone}</p> : null}
+                  {detail.client?.phone ? <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('reservations.adminDetail.phone')}: {detail.client.phone}</p> : null}
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Potvrđeni stilista</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-50">{getStylistName(detail.confirmedStylist)}</p>
+                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.confirmedStylist')}</p>
+                  <p className="font-medium text-slate-900 dark:text-slate-50">{getListStylistName(detail.confirmedStylist)}</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-xs text-slate-500">Servis</p>
+                <p className="text-xs text-slate-500">{t('reservations.adminDetail.service')}</p>
                 {detail.items && detail.items.length > 0 ? (
                   <div className="mt-2 space-y-2">
                     {[...detail.items]
@@ -500,14 +496,14 @@ export default function Reservations() {
                         <div key={it.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900/30">
                           <p className="font-medium text-slate-900 dark:text-slate-50">{it.service?.name ?? '-'}</p>
                           <p className="text-sm text-slate-600 dark:text-slate-300">
-                            {Number(it.service?.durationMinutes ?? 0)} min | {Number(it.service?.price ?? 0).toFixed(2)} KM
+                            {Number(it.service?.durationMinutes ?? 0)} {t('reservations.adminDetail.minuteUnit')} | {formatLocalizedAmount(Number(it.service?.price ?? 0), i18n.language)}
                           </p>
                         </div>
                       ))}
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-sm">
-                      <p className="font-medium text-slate-900 dark:text-slate-50">Ukupno</p>
+                      <p className="font-medium text-slate-900 dark:text-slate-50">{t('reservations.adminDetail.total')}</p>
                       <p className="text-slate-700 dark:text-slate-300">
-                        {getServicesTotals(detail).totalMinutes} min | {getServicesTotals(detail).totalPrice.toFixed(2)} KM
+                        {getServicesTotals(detail).totalMinutes} {t('reservations.adminDetail.minuteUnit')} | {formatLocalizedAmount(getServicesTotals(detail).totalPrice, i18n.language)}
                       </p>
                     </div>
                   </div>
@@ -516,7 +512,7 @@ export default function Reservations() {
                     <p className="font-medium text-slate-900 dark:text-slate-50">{detail.service?.name ?? '-'}</p>
                     {detail.service ? (
                       <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                        {detail.service.durationMinutes} min | {Number(detail.service.price).toFixed(2)} KM
+                        {detail.service.durationMinutes} {t('reservations.adminDetail.minuteUnit')} | {formatLocalizedAmount(Number(detail.service.price), i18n.language)}
                       </p>
                     ) : null}
                   </>
@@ -525,21 +521,21 @@ export default function Reservations() {
 
               {detail.clientNotes ? (
                 <div>
-                  <p className="text-xs text-slate-500">Napomena klijenta</p>
+                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.clientNotes')}</p>
                   <p className="mt-1 whitespace-pre-wrap text-slate-900 dark:text-slate-50">{detail.clientNotes}</p>
                 </div>
               ) : null}
 
               {detail.cancelReason ? (
                 <div>
-                  <p className="text-xs text-slate-500">Razlog otkazivanja</p>
+                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.cancellationReason')}</p>
                   <p className="mt-1 whitespace-pre-wrap text-rose-700 dark:text-rose-300">{detail.cancelReason}</p>
                 </div>
               ) : null}
 
               {detail.stylistResponses && detail.stylistResponses.length > 0 ? (
                 <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Odgovori stilista</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('reservations.adminDetail.stylistResponses')}</p>
                   <div className="mt-2 space-y-2">
                     {detail.stylistResponses.map((sr) => (
                       <div key={sr.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900/30">
@@ -556,7 +552,7 @@ export default function Reservations() {
                           }
                           className="text-[10px]"
                         >
-                          {sr.status}
+                          {t(`reservations.adminDetail.responseStatuses.${sr.status}`, { defaultValue: sr.status })}
                         </Badge>
                         {sr.rejectionReason ? <p className="text-xs text-slate-500">{sr.rejectionReason}</p> : null}
                       </div>
@@ -568,14 +564,14 @@ export default function Reservations() {
               {detail.status === 'AWAITING_DAILY_LOG' ? (
                 <div className="rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
                   <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
-                    Termin je u dnevnoj knjizi
+                    {t('reservations.adminDetail.dailyLogTitle')}
                   </p>
                   <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-                    Pomjeranje na kalendaru zatvara dnevnik i vraća termin u raspored.
+                    {t('reservations.adminDetail.dailyLogHelp')}
                   </p>
                   <div className="mt-3 flex justify-end">
                     <Button type="button" variant="outline" asChild>
-                      <RouterLink to="/admin/daily-log">Otvori dnevnu knjigu</RouterLink>
+                      <RouterLink to="/admin/daily-log">{t('reservations.adminDetail.openDailyLog')}</RouterLink>
                     </Button>
                   </div>
                 </div>
@@ -584,10 +580,10 @@ export default function Reservations() {
               {canAdminConfirmAttendance(detail) ? (
                 <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
                   <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
-                    Potvrdi dolazak
+                    {t('reservations.adminDetail.confirmAttendanceTitle')}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">
-                    Klijentski rok je istekao ili još traje — salon može potvrditi do početka termina.
+                    {t('reservations.adminDetail.confirmAttendanceHelp')}
                   </p>
                   <div className="mt-3 flex justify-end">
                     <Button
@@ -595,7 +591,7 @@ export default function Reservations() {
                       onClick={() => void handleStaffConfirmAttendance()}
                       disabled={confirmingAttendance}
                     >
-                      {confirmingAttendance ? 'Potvrđivanje...' : 'Potvrdi dolazak'}
+                      {confirmingAttendance ? t('reservations.adminDetail.attendanceConfirming') : t('reservations.adminDetail.confirmAttendance')}
                     </Button>
                   </div>
                 </div>
@@ -603,11 +599,11 @@ export default function Reservations() {
 
               {canAdminCancelReservation(detail.status) ? (
                 <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">Otkaži rezervaciju</p>
-                  <p className="mt-1 text-xs text-slate-500">Otkazivanje je dozvoljeno za ovu fazu.</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('reservations.adminDetail.cancelTitle')}</p>
+                  <p className="mt-1 text-xs text-slate-500">{t('reservations.adminDetail.cancelHelp')}</p>
                   <div className="mt-3 space-y-2">
                     <Textarea
-                      placeholder="Razlog otkazivanja (opciono)"
+                      placeholder={t('reservations.adminDetail.cancelReasonPlaceholder')}
                       value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value)}
                       rows={3}
@@ -620,7 +616,7 @@ export default function Reservations() {
                         onClick={() => void handleCancel()}
                         disabled={cancelling}
                       >
-                        {cancelling ? 'Otkazivanje...' : 'Otkaži rezervaciju'}
+                        {cancelling ? t('reservations.adminDetail.cancelling') : t('reservations.adminDetail.cancelAction')}
                       </Button>
                     </div>
                   </div>
@@ -631,7 +627,7 @@ export default function Reservations() {
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-              Zatvori
+              {t('reservations.adminDetail.close')}
             </Button>
           </DialogFooter>
         </DialogContent>

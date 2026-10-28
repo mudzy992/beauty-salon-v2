@@ -161,6 +161,9 @@ jobs:
       - name: Test localized admin reservation list page
         working-directory: frontend
         run: npm run test:admin-reservations-list-page-i18n
+      - name: Test localized admin reservation detail dialog
+        working-directory: frontend
+        run: npm run test:admin-reservation-details-i18n
       - name: Test localized client reservation action errors
         working-directory: frontend
         run: npm run test:client-reservation-errors
