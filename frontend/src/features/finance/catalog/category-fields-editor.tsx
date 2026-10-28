@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, Trash2 } from 'lucide-react'
 
 import { Badge } from '../../../components/ui/badge'
@@ -20,12 +21,20 @@ const FIELD_TYPES: TemplateFieldPayload['fieldType'][] = [
   'FILE',
 ]
 
-const ROLE_LABELS: Record<ExpenseLineRole, string> = {
-  LABEL: 'Oznaka',
-  QTY: 'Količina',
-  UNIT_PRICE: 'Jed. cijena',
-  AMOUNT: 'Iznos',
-  NONE: '—',
+const FIELD_TYPE_KEYS: Record<TemplateFieldPayload['fieldType'], string> = {
+  TEXT: 'finance.expenseCategories.fieldTypes.text',
+  NUMBER: 'finance.expenseCategories.fieldTypes.number',
+  CURRENCY: 'finance.expenseCategories.fieldTypes.currency',
+  DATE: 'finance.expenseCategories.fieldTypes.date',
+  FILE: 'finance.expenseCategories.fieldTypes.file',
+}
+
+const ROLE_KEYS: Record<ExpenseLineRole, string> = {
+  LABEL: 'finance.expenseCategories.roles.label',
+  QTY: 'finance.expenseCategories.roles.quantity',
+  UNIT_PRICE: 'finance.expenseCategories.roles.unitPrice',
+  AMOUNT: 'finance.expenseCategories.roles.amount',
+  NONE: 'finance.expenseCategories.roles.none',
 }
 
 type Props = {
@@ -48,9 +57,15 @@ export function CategoryFieldsEditor({
   onAddSaved,
   onRemoveSaved,
 }: Props) {
+  const { t } = useTranslation()
+  const fieldTypeLabel = (fieldType: string) => {
+    const key = FIELD_TYPE_KEYS[fieldType as TemplateFieldPayload['fieldType']]
+    return key ? t(key) : fieldType
+  }
   const [fieldName, setFieldName] = useState('')
-  const [fieldType, setFieldType] =
-    useState<TemplateFieldPayload['fieldType']>(isFixed ? 'CURRENCY' : 'TEXT')
+  const [fieldType, setFieldType] = useState<TemplateFieldPayload['fieldType']>(
+    isFixed ? 'CURRENCY' : 'TEXT',
+  )
   const [defaultValue, setDefaultValue] = useState('')
   const [isRequired, setIsRequired] = useState(true)
   const [lineRole, setLineRole] = useState<ExpenseLineRole>(
@@ -90,12 +105,18 @@ export function CategoryFieldsEditor({
     <div className="grid gap-3">
       <div>
         <Label className="text-sm">
-          {isFixed ? 'Fiksna polja (stavke)' : 'Kolone reda'}
+          {t(
+            isFixed
+              ? 'finance.expenseCategories.fixedFieldsList'
+              : 'finance.expenseCategories.rowColumns',
+          )}
         </Label>
         <p className="text-xs text-slate-500">
-          {isFixed
-            ? 'Npr. PIO, Zdravstvo — sa default iznosom.'
-            : 'Npr. Naziv + Količina + Jedinična cijena. Uloga određuje kako se računa total.'}
+          {t(
+            isFixed
+              ? 'finance.expenseCategories.fixedFieldsHint'
+              : 'finance.expenseCategories.rowColumnsHint',
+          )}
         </p>
       </div>
 
@@ -108,25 +129,37 @@ export function CategoryFieldsEditor({
             >
               <span className="flex flex-wrap items-center gap-2">
                 {field.fieldName}
-                <Badge variant="outline">{field.fieldType}</Badge>
+                <Badge variant="outline">
+                  {fieldTypeLabel(field.fieldType)}
+                </Badge>
                 {!isFixed && field.lineRole && field.lineRole !== 'NONE' ? (
                   <Badge variant="secondary">
-                    {ROLE_LABELS[field.lineRole as ExpenseLineRole] ?? field.lineRole}
+                    {ROLE_KEYS[field.lineRole as ExpenseLineRole]
+                      ? t(ROLE_KEYS[field.lineRole as ExpenseLineRole])
+                      : field.lineRole}
                   </Badge>
                 ) : null}
                 {field.defaultValue ? (
-                  <Badge variant="secondary">default: {field.defaultValue}</Badge>
+                  <Badge variant="secondary">
+                    {t('finance.expenseCategories.defaultValue')}:{' '}
+                    {field.defaultValue}
+                  </Badge>
                 ) : null}
               </span>
               {onRemoveSaved ? (
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label={`Ukloni polje ${field.fieldName}`}
+                  aria-label={t('finance.expenseCategories.removeField', {
+                    name: field.fieldName,
+                  })}
                   onClick={() => onRemoveSaved(field.id)}
                   disabled={isPending}
                 >
-                  <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
+                  <Trash2
+                    className="h-3.5 w-3.5 text-rose-500"
+                    aria-hidden="true"
+                  />
                 </Button>
               ) : null}
             </li>
@@ -143,22 +176,31 @@ export function CategoryFieldsEditor({
             >
               <span className="flex flex-wrap items-center gap-2">
                 {field.fieldName}
-                <Badge variant="outline">{field.fieldType}</Badge>
+                <Badge variant="outline">
+                  {t(FIELD_TYPE_KEYS[field.fieldType])}
+                </Badge>
                 {!isFixed && field.lineRole ? (
                   <Badge variant="secondary">
-                    {ROLE_LABELS[field.lineRole] ?? field.lineRole}
+                    {ROLE_KEYS[field.lineRole]
+                      ? t(ROLE_KEYS[field.lineRole])
+                      : field.lineRole}
                   </Badge>
                 ) : null}
               </span>
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={`Ukloni draft ${field.fieldName}`}
+                aria-label={t('finance.expenseCategories.removeDraftField', {
+                  name: field.fieldName,
+                })}
                 onClick={() =>
                   onDraftChange(draftFields.filter((_, i) => i !== index))
                 }
               >
-                <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
+                <Trash2
+                  className="h-3.5 w-3.5 text-rose-500"
+                  aria-hidden="true"
+                />
               </Button>
             </li>
           ))}
@@ -167,15 +209,23 @@ export function CategoryFieldsEditor({
 
       <div className="grid items-end gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto_auto]">
         <div className="grid gap-1">
-          <Label className="text-xs">Novo polje</Label>
+          <Label className="text-xs">
+            {t('finance.expenseCategories.newField')}
+          </Label>
           <Input
             value={fieldName}
             onChange={(e) => setFieldName(e.target.value)}
-            placeholder={isFixed ? 'npr. PIO' : 'npr. Naziv'}
+            placeholder={t(
+              isFixed
+                ? 'finance.expenseCategories.fixedFieldPlaceholder'
+                : 'finance.expenseCategories.rowFieldPlaceholder',
+            )}
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-xs">Tip</Label>
+          <Label className="text-xs">
+            {t('finance.expenseCategories.fieldType')}
+          </Label>
           <select
             className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-800 dark:bg-slate-950"
             value={fieldType}
@@ -185,14 +235,16 @@ export function CategoryFieldsEditor({
           >
             {FIELD_TYPES.map((type) => (
               <option key={type} value={type}>
-                {type}
+                {t(FIELD_TYPE_KEYS[type])}
               </option>
             ))}
           </select>
         </div>
         {!isFixed ? (
           <div className="grid gap-1">
-            <Label className="text-xs">Uloga</Label>
+            <Label className="text-xs">
+              {t('finance.expenseCategories.lineRole')}
+            </Label>
             <select
               className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-800 dark:bg-slate-950"
               value={lineRole}
@@ -200,14 +252,16 @@ export function CategoryFieldsEditor({
             >
               {LINE_ROLES.map((role) => (
                 <option key={role} value={role}>
-                  {ROLE_LABELS[role]}
+                  {t(ROLE_KEYS[role])}
                 </option>
               ))}
             </select>
           </div>
         ) : (
           <div className="grid gap-1">
-            <Label className="text-xs">Default</Label>
+            <Label className="text-xs">
+              {t('finance.expenseCategories.defaultValue')}
+            </Label>
             <Input
               value={defaultValue}
               onChange={(e) => setDefaultValue(e.target.value)}
@@ -223,11 +277,11 @@ export function CategoryFieldsEditor({
             checked={isRequired}
             onChange={(e) => setIsRequired(e.target.checked)}
           />
-          Obavezno
+          {t('finance.expenseCategories.required')}
         </label>
         <Button onClick={handleAdd} disabled={isPending || !fieldName.trim()}>
           <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-          Dodaj
+          {t('finance.expenseCategories.addField')}
         </Button>
       </div>
     </div>

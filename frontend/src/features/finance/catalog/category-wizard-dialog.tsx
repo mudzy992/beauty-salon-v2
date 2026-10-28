@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
@@ -51,6 +52,7 @@ export function CategoryWizardDialog({
   onAddField,
   onRemoveField,
 }: Props) {
+  const { t } = useTranslation()
   const [form, setForm] = useState(empty)
 
   useEffect(() => {
@@ -71,9 +73,9 @@ export function CategoryWizardDialog({
   }, [open, editing])
 
   const error = !form.name.trim()
-    ? 'Naziv je obavezan.'
+    ? t('finance.expenseCategories.validation.nameRequired')
     : !editing && form.draftFields.length === 0
-      ? 'Dodajte barem jedno polje/kolonu.'
+      ? t('finance.expenseCategories.validation.fieldRequired')
       : null
 
   const handleSave = () => {
@@ -104,23 +106,33 @@ export function CategoryWizardDialog({
     <ResponsiveDialog
       open={open}
       onOpenChange={onOpenChange}
-      title={editing ? 'Uredi kategoriju' : 'Nova kategorija rashoda'}
-      description="Jedan korak: mod, prilozi i polja/kolone. Predložak se kreira ispod haube."
+      title={
+        editing
+          ? t('finance.expenseCategories.editTitle')
+          : t('finance.expenseCategories.createTitle')
+      }
+      description={t('finance.expenseCategories.wizardDescription')}
       className="max-w-2xl"
       footer={
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-            Odustani
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isSaving}
+          >
+            {t('finance.expenseCategories.cancel')}
           </Button>
           <Button onClick={handleSave} disabled={isSaving || Boolean(error)}>
-            Sačuvaj
+            {t('finance.expenseCategories.save')}
           </Button>
         </div>
       }
     >
       <div className="grid gap-4">
         <div className="grid gap-1">
-          <Label htmlFor="wiz-name">Naziv</Label>
+          <Label htmlFor="wiz-name">
+            {t('finance.expenseCategories.name')}
+          </Label>
           <Input
             id="wiz-name"
             value={form.name}
@@ -128,7 +140,9 @@ export function CategoryWizardDialog({
           />
         </div>
         <div className="grid gap-1">
-          <Label htmlFor="wiz-desc">Opis</Label>
+          <Label htmlFor="wiz-desc">
+            {t('finance.expenseCategories.description')}
+          </Label>
           <Textarea
             id="wiz-desc"
             rows={2}
@@ -138,24 +152,28 @@ export function CategoryWizardDialog({
         </div>
         <div className="flex items-center justify-between gap-4">
           <div>
-            <Label htmlFor="wiz-fixed">Fiksne stavke</Label>
+            <Label htmlFor="wiz-fixed">
+              {t('finance.expenseCategories.fixedItems')}
+            </Label>
             <p className="text-xs text-slate-500">
-              Uključeno: unaprijed definisana polja (npr. doprinosi). Isključeno:
-              varijabilni redovi (npr. materijal).
+              {t('finance.expenseCategories.fixedItemsHint')}
             </p>
           </div>
           <Switch
             id="wiz-fixed"
             checked={form.isFixed}
-            onCheckedChange={(checked) => setForm({ ...form, isFixed: checked })}
+            onCheckedChange={(checked) =>
+              setForm({ ...form, isFixed: checked })
+            }
           />
         </div>
         <div className="flex items-center justify-between gap-4">
           <div>
-            <Label htmlFor="wiz-att">Prilog po stavci / liniji</Label>
+            <Label htmlFor="wiz-att">
+              {t('finance.expenseCategories.attachmentPerItem')}
+            </Label>
             <p className="text-xs text-slate-500">
-              Uključeno: obavezan prilog uz svaku stavku. Isključeno: prilozi na
-              cijeli rashod.
+              {t('finance.expenseCategories.attachmentPerItemHint')}
             </p>
           </div>
           <Switch
@@ -167,11 +185,15 @@ export function CategoryWizardDialog({
           />
         </div>
         <div className="flex items-center justify-between">
-          <Label htmlFor="wiz-active">Aktivna</Label>
+          <Label htmlFor="wiz-active">
+            {t('finance.expenseCategories.active')}
+          </Label>
           <Switch
             id="wiz-active"
             checked={form.isActive}
-            onCheckedChange={(checked) => setForm({ ...form, isActive: checked })}
+            onCheckedChange={(checked) =>
+              setForm({ ...form, isActive: checked })
+            }
           />
         </div>
 
