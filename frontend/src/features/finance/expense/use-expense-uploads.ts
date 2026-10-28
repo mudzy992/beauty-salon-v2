@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { renameFileForLabel } from './expense-attachment-match'
 import { uploadExpenseFile } from '../api/expense-books.api'
@@ -14,6 +15,7 @@ type Params = {
 }
 
 export const useExpenseUploads = (params: Params) => {
+  const { t } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pendingUploads, setPendingUploads] = useState<{ id: string; name: string }[]>([])
   const [isUploading, setIsUploading] = useState(false)
@@ -30,7 +32,7 @@ export const useExpenseUploads = (params: Params) => {
       const uploaded = await Promise.all(Array.from(files).map((file) => uploadOne(file)))
       setPendingUploads((prev) => [...prev, ...uploaded])
     } catch (err) {
-      params.onError(err, 'Slanje priloga nije uspjelo')
+      params.onError(err, t('finance.expenseForm.uploadFailed'))
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -46,7 +48,7 @@ export const useExpenseUploads = (params: Params) => {
         [fieldId]: { uploadId: uploaded.id, name: uploaded.name },
       })
     } catch (err) {
-      params.onError(err, 'Slanje priloga nije uspjelo')
+      params.onError(err, t('finance.expenseForm.uploadFailed'))
     } finally {
       setIsUploading(false)
     }
@@ -61,7 +63,7 @@ export const useExpenseUploads = (params: Params) => {
       next[index] = { uploadId: uploaded.id, name: uploaded.name }
       params.onLineAttachments(next)
     } catch (err) {
-      params.onError(err, 'Slanje priloga nije uspjelo')
+      params.onError(err, t('finance.expenseForm.uploadFailed'))
     } finally {
       setIsUploading(false)
     }

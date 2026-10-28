@@ -1,5 +1,6 @@
 import type { ChangeEvent, Ref } from 'react'
 import { Paperclip, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
 import { Label } from '../../../components/ui/label'
@@ -25,13 +26,15 @@ export function ExpenseAttachmentFields({
   onFiles,
   onRemovePending,
 }: Props) {
+  const { t } = useTranslation()
+
   return (
     <div className="grid gap-2">
-      <Label htmlFor="expense-files">Prilozi</Label>
+      <Label htmlFor="expense-files">{t('finance.expenseForm.attachments')}</Label>
       {existing.length > 0 ? (
         <div className="rounded-md border border-slate-200 p-2 dark:border-slate-800">
           <p className="mb-1 text-xs font-medium text-slate-500">
-            Postojeći prilozi
+            {t('finance.expenseForm.existingAttachments')}
           </p>
           <ExpenseAttachmentsList attachments={existing} />
         </div>
@@ -47,7 +50,7 @@ export function ExpenseAttachmentFields({
         }
       />
       {isUploading ? (
-        <p className="text-xs text-slate-500">Slanje priloga…</p>
+        <p className="text-xs text-slate-500">{t('finance.expenseForm.uploadingAttachments')}</p>
       ) : null}
       {pending.length > 0 ? (
         <ul className="grid gap-1">
@@ -63,7 +66,7 @@ export function ExpenseAttachmentFields({
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={`Ukloni prilog ${upload.name}`}
+                aria-label={t('finance.expenseForm.removeAttachment', { name: upload.name })}
                 onClick={() => onRemovePending(upload.id)}
               >
                 <X className="h-3 w-3" aria-hidden="true" />

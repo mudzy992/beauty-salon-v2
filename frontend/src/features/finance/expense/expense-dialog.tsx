@@ -1,4 +1,6 @@
 import { Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
 
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
@@ -10,7 +12,6 @@ import { FixedFieldsEditor } from './fixed-fields-editor'
 import { LineItemsEditor } from './line-items-editor'
 import { useExpenseForm } from './use-expense-form'
 import { useExpenseUploads } from './use-expense-uploads'
-import { formatMoney } from '../finance.utils'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import type { Expense, ExpenseCategory, ExpensePayload } from '../finance.types'
 
@@ -33,7 +34,10 @@ export function ExpenseDialog({
   isSaving,
   onSubmit,
 }: Props) {
+  const { t, i18n } = useTranslation()
   const { toastApiError } = useAppToast()
+  const formatAmount = (value: number | string) =>
+    formatLocalizedAmount(value, i18n.language)
   const f = useExpenseForm({ open, bookId, editing, categories })
   const uploads = useExpenseUploads({
     fieldAttachments: f.form.fieldAttachments,
@@ -53,16 +57,16 @@ export function ExpenseDialog({
     <ResponsiveDialog
       open={open}
       onOpenChange={handleOpenChange}
-      title={editing ? 'Uredi rashod' : 'Novi rashod'}
-      description={
+      title={t(editing ? 'finance.expenseForm.editTitle' : 'finance.expenseForm.createTitle')}
+      description={t(
         f.isFixed
-          ? 'Fiksne stavke iz predloška – vrijednosti i prilozi po stavci.'
-          : 'Unesite stavke fakture; prilog može biti na cijeli rashod ili po stavci.'
-      }
+          ? 'finance.expenseForm.fixedDescription'
+          : 'finance.expenseForm.lineItemsDescription',
+      )}
       footer={
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSaving}>
-            Odustani
+            {t('finance.expenseForm.cancel')}
           </Button>
           <Button
             onClick={() => onSubmit(f.toPayload(uploads.pendingUploads.map((u) => u.id)))}
@@ -71,14 +75,14 @@ export function ExpenseDialog({
             {isSaving ? (
               <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
             ) : null}
-            Sačuvaj
+            {t('finance.expenseForm.save')}
           </Button>
         </div>
       }
     >
       <div className="grid gap-4">
         <div className="grid gap-1">
-          <Label htmlFor="expense-cat">Kategorija</Label>
+          <Label htmlFor="expense-cat">{t('finance.expenseForm.category')}</Label>
           <select
             id="expense-cat"
             className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-800 dark:bg-slate-950"
@@ -86,20 +90,20 @@ export function ExpenseDialog({
             onChange={(e) => f.selectCategory(e.target.value)}
             disabled={Boolean(editing)}
           >
-            <option value="">— Odaberi kategoriju —</option>
+            <option value="">{t('finance.expenseForm.selectCategory')}</option>
             {categories
               .filter((c) => c.isActive || c.id === f.form.categoryId)
               .map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
-                  {c.isFixed ? ' (fiksno)' : ''}
+                  {c.isFixed ? ` (${t('finance.expenseForm.fixed')})` : ''}
                 </option>
               ))}
           </select>
         </div>
 
         <div className="grid gap-1">
-          <Label htmlFor="expense-title">Naziv</Label>
+          <Label htmlFor="expense-title">{t('finance.expenseForm.title')}</Label>
           <Input
             id="expense-title"
             value={f.form.title}
@@ -144,7 +148,7 @@ export function ExpenseDialog({
             />
             {f.form.lineItems.length === 0 ? (
               <div className="grid gap-1">
-                <Label htmlFor="expense-total">Ukupan iznos</Label>
+                <Label htmlFor="expense-total">{t('finance.expenseForm.totalAmount')}</Label>
                 <Input
                   id="expense-total"
                   type="number"
@@ -155,7 +159,9 @@ export function ExpenseDialog({
                 />
               </div>
             ) : (
-              <p className="text-xs text-slate-500">Iznos: {formatMoney(f.effectiveTotal)}</p>
+              <p className="text-xs text-slate-500">
+                {t('finance.expenseForm.amount')}: {formatAmount(f.effectiveTotal)}
+              </p>
             )}
             <ExpenseAttachmentFields
               existing={editing?.attachments ?? []}
@@ -171,7 +177,7 @@ export function ExpenseDialog({
         ) : null}
 
         <div className="grid gap-1">
-          <Label htmlFor="expense-notes">Napomena</Label>
+          <Label htmlFor="expense-notes">{t('finance.expenseForm.notes')}</Label>
           <Textarea
             id="expense-notes"
             rows={2}

@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next'
+import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
+
 import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
 import { Label } from '../../../components/ui/label'
 import { findAttachmentForLabel } from './expense-attachment-match'
-import { formatMoney, toNumber } from '../finance.utils'
+import { toNumber } from '../finance.utils'
 import type { ExpenseAttachment, TemplateField } from '../finance.types'
 import type { PendingAtt } from './expense-form-state'
 
@@ -30,11 +33,12 @@ export function FixedFieldsEditor({
   onUpload,
   onClearPending,
 }: Props) {
+  const { t, i18n } = useTranslation()
   const total = fields.reduce((sum, f) => sum + toNumber(values[f.id]), 0)
 
   return (
     <div className="grid gap-3">
-      <Label>Fiksne stavke</Label>
+      <Label>{t('finance.expenseForm.fixedFields')}</Label>
       <ul className="grid gap-2">
         {fields.map((field) => {
           const pending = attachments[field.id]
@@ -54,7 +58,7 @@ export function FixedFieldsEditor({
                     type="number"
                     step="0.01"
                     min={0}
-                    aria-label={`Iznos ${field.fieldName}`}
+                    aria-label={t('finance.expenseForm.fieldAmount', { name: field.fieldName })}
                     value={values[field.id] ?? ''}
                     onChange={(e) => onValueChange(field.id, e.target.value)}
                   />
@@ -63,7 +67,7 @@ export function FixedFieldsEditor({
               </div>
               {requiresPerItem ? (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-slate-500">Prilog:</span>
+                  <span className="text-xs text-slate-500">{t('finance.expenseForm.attachment')}:</span>
                   {pending ? (
                     <>
                       <Badge variant="secondary">{pending.name}</Badge>
@@ -73,12 +77,12 @@ export function FixedFieldsEditor({
                         size="sm"
                         onClick={() => onClearPending(field.id)}
                       >
-                        Ukloni
+                        {t('finance.expenseForm.remove')}
                       </Button>
                     </>
                   ) : existing ? (
                     <Badge variant="outline">
-                      {existing.upload?.originalName ?? 'postojeći'}
+                      {existing.upload?.originalName ?? t('finance.expenseForm.existingAttachment')}
                     </Badge>
                   ) : (
                     <input
@@ -99,8 +103,10 @@ export function FixedFieldsEditor({
         })}
       </ul>
       <div className="flex justify-between rounded-md bg-slate-50 px-3 py-2 text-sm dark:bg-slate-900">
-        <span className="text-slate-500">Ukupno</span>
-        <span className="font-semibold tabular-nums">{formatMoney(total)}</span>
+        <span className="text-slate-500">{t('finance.expenseForm.total')}</span>
+        <span className="font-semibold tabular-nums">
+          {formatLocalizedAmount(total, i18n.language)}
+        </span>
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 import { Download, ExternalLink, Paperclip } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import api from '../../../api/client'
 import { getUploadUrl } from '../../../utils/uploadUrl'
@@ -17,6 +18,7 @@ async function openPrivateAttachment(
   url: string,
   name: string,
   mode: 'open' | 'download',
+  errorMessage: string,
 ) {
   event.preventDefault()
   const popup = mode === 'open' ? window.open('about:blank', '_blank') : null
@@ -38,11 +40,12 @@ async function openPrivateAttachment(
     window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
   } catch {
     popup?.close()
-    window.alert('Privatni prilog nije moguće učitati.')
+    window.alert(errorMessage)
   }
 }
 
 export function ExpenseAttachmentsList({ attachments, compact = false }: Props) {
+  const { t } = useTranslation()
   if (attachments.length === 0) {
     return compact ? (
       <span className="text-xs text-slate-400">—</span>
@@ -53,7 +56,7 @@ export function ExpenseAttachmentsList({ attachments, compact = false }: Props) 
     <ul className={compact ? 'grid gap-1' : 'grid gap-2'}>
       {attachments.map((attachment) => {
         const upload = attachment.upload
-        const name = upload?.originalName || attachment.description || 'Prilog'
+        const name = upload?.originalName || attachment.description || t('finance.expenseForm.attachment')
         const href = getUploadUrl(upload?.pathOriginal)
         const privateUpload = upload?.pathOriginal?.startsWith('private/') ?? false
         if (!href) {
@@ -78,11 +81,18 @@ export function ExpenseAttachmentsList({ attachments, compact = false }: Props) 
               rel="noopener noreferrer"
               onClick={
                 privateUpload
-                  ? (event) => void openPrivateAttachment(event, href, name, 'open')
+                  ? (event) =>
+                      void openPrivateAttachment(
+                        event,
+                        href,
+                        name,
+                        'open',
+                        t('finance.expenseForm.attachmentLoadFailed'),
+                      )
                   : undefined
               }
               className={actionClass}
-              aria-label={`Otvori prilog ${name}`}
+              aria-label={t('finance.expenseForm.openAttachment', { name })}
             >
               <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
             </a>
@@ -91,11 +101,18 @@ export function ExpenseAttachmentsList({ attachments, compact = false }: Props) 
               download={name}
               onClick={
                 privateUpload
-                  ? (event) => void openPrivateAttachment(event, href, name, 'download')
+                  ? (event) =>
+                      void openPrivateAttachment(
+                        event,
+                        href,
+                        name,
+                        'download',
+                        t('finance.expenseForm.attachmentLoadFailed'),
+                      )
                   : undefined
               }
               className={actionClass}
-              aria-label={`Preuzmi prilog ${name}`}
+              aria-label={t('finance.expenseForm.downloadAttachment', { name })}
             >
               <Download className="h-3.5 w-3.5" aria-hidden="true" />
             </a>

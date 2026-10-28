@@ -1,4 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
 
 import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
@@ -10,7 +12,7 @@ import {
   computeLineTotal,
   labelFromLineValues,
 } from './expense-line-roles'
-import { formatMoney, toNumber } from '../finance.utils'
+import { toNumber } from '../finance.utils'
 import type {
   ExpenseAttachment,
   LineItem,
@@ -44,6 +46,7 @@ export function LineItemsEditor({
   onUploadItem,
   onClearItemAttachment,
 }: Props) {
+  const { t, i18n } = useTranslation()
   const updateValue = (index: number, fieldId: string, value: string) =>
     onChange(
       items.map((item, i) =>
@@ -56,8 +59,7 @@ export function LineItemsEditor({
   if (fields.length === 0) {
     return (
       <p className="text-xs text-amber-700 dark:text-amber-400" role="alert">
-        Kategorija nema definisane kolone. Uredite kategoriju i dodajte polja
-        (npr. Naziv, Količina, Cijena).
+        {t('finance.expenseForm.categoryHasNoColumnsHint')}
       </p>
     )
   }
@@ -65,19 +67,19 @@ export function LineItemsEditor({
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between">
-        <Label>Stavke</Label>
+        <Label>{t('finance.expenseForm.lineItems')}</Label>
         <Button
           variant="outline"
           size="sm"
           onClick={() => onChange([...items, createEmptyLineItem(fields)])}
         >
           <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-          Dodaj stavku
+          {t('finance.expenseForm.addLineItem')}
         </Button>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-xs text-slate-500">Bez stavki – unesite ukupan iznos ručno.</p>
+        <p className="text-xs text-slate-500">{t('finance.expenseForm.noLineItemsHint')}</p>
       ) : (
         <ul className="grid gap-2">
           {items.map((item, index) => {
@@ -116,21 +118,21 @@ export function LineItemsEditor({
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label={`Ukloni stavku ${index + 1}`}
+                    aria-label={t('finance.expenseForm.removeLineItem', { number: index + 1 })}
                     onClick={() => onChange(items.filter((_, i) => i !== index))}
                   >
                     <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />
                   </Button>
                 </div>
                 <div className="flex justify-between text-xs text-slate-500">
-                  <span>Red</span>
+                  <span>{t('finance.expenseForm.lineTotal')}</span>
                   <span className="tabular-nums font-medium text-slate-800 dark:text-slate-100">
-                    {formatMoney(computeLineTotal(fields, item.values))}
+                    {formatLocalizedAmount(computeLineTotal(fields, item.values), i18n.language)}
                   </span>
                 </div>
                 {requiresPerItem ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs text-slate-500">Prilog:</span>
+                    <span className="text-xs text-slate-500">{t('finance.expenseForm.attachment')}:</span>
                     {pending ? (
                       <>
                         <Badge variant="secondary">{pending.name}</Badge>
@@ -140,12 +142,12 @@ export function LineItemsEditor({
                           size="sm"
                           onClick={() => onClearItemAttachment?.(index)}
                         >
-                          Ukloni
+                          {t('finance.expenseForm.remove')}
                         </Button>
                       </>
                     ) : existing ? (
                       <Badge variant="outline">
-                        {existing.upload?.originalName ?? 'postojeći'}
+                        {existing.upload?.originalName ?? t('finance.expenseForm.existingAttachment')}
                       </Badge>
                     ) : (
                       <input
@@ -169,9 +171,9 @@ export function LineItemsEditor({
 
       {items.length > 0 ? (
         <div className="flex justify-between rounded-md bg-slate-50 px-3 py-2 text-sm dark:bg-slate-900">
-          <span className="text-slate-500">Zbir stavki</span>
+          <span className="text-slate-500">{t('finance.expenseForm.lineItemsTotal')}</span>
           <span className="font-semibold tabular-nums">
-            {formatMoney(sumLineItems(items, fields))}
+            {formatLocalizedAmount(sumLineItems(items, fields), i18n.language)}
           </span>
         </div>
       ) : null}

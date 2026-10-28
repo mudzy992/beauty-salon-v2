@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { findAttachmentForLabel } from './expense-attachment-match'
 import {
@@ -27,6 +28,7 @@ export const useExpenseForm = (params: {
   editing: Expense | null
   categories: ExpenseCategory[]
 }) => {
+  const { t } = useTranslation()
   const [form, setForm] = useState<ExpenseFormState>(emptyExpenseForm)
 
   useEffect(() => {
@@ -86,15 +88,17 @@ export const useExpenseForm = (params: {
     }))
 
   const validationError = (() => {
-    if (!form.categoryId) return 'Odaberite kategoriju.'
-    if (!form.title.trim()) return 'Naziv je obavezan.'
+    if (!form.categoryId) return t('finance.expenseForm.validation.categoryRequired')
+    if (!form.title.trim()) return t('finance.expenseForm.validation.titleRequired')
     if (!Number.isFinite(effectiveTotal) || effectiveTotal <= 0) {
-      return 'Iznos mora biti veći od nule.'
+      return t('finance.expenseForm.validation.amountGreaterThanZero')
     }
     if (isFixed) {
       const missing = templateFields.filter((f) => !(form.fieldValues[f.id] ?? '').trim())
       if (missing.length) {
-        return `Nedostaju vrijednosti: ${missing.map((f) => f.fieldName).join(', ')}.`
+        return t('finance.expenseForm.validation.missingValues', {
+          fields: missing.map((f) => f.fieldName).join(', '),
+        })
       }
       if (requiresPerItem) {
         const noAtt = templateFields.filter(
@@ -103,12 +107,14 @@ export const useExpenseForm = (params: {
             !findAttachmentForLabel(params.editing?.attachments, f.fieldName),
         )
         if (noAtt.length) {
-          return `Dodajte prilog za: ${noAtt.map((f) => f.fieldName).join(', ')}.`
+          return t('finance.expenseForm.validation.missingFixedAttachments', {
+            fields: noAtt.map((f) => f.fieldName).join(', '),
+          })
         }
       }
     } else {
       if (templateFields.length === 0) {
-        return 'Kategorija nema kolona — uredite kategoriju.'
+        return t('finance.expenseForm.validation.categoryHasNoFields')
       }
       const incomplete = form.lineItems.filter((item) => {
         const requiredMissing = templateFields.some(
@@ -117,9 +123,9 @@ export const useExpenseForm = (params: {
         return requiredMissing || !labelFromLineValues(templateFields, item.values)
       })
       if (form.lineItems.length === 0 || incomplete.length === form.lineItems.length) {
-        return 'Dodajte barem jednu popunjenu stavku.'
+        return t('finance.expenseForm.validation.addFilledLine')
       }
-      if (incomplete.length) return 'Popunite obavezna polja na svim stavkama.'
+      if (incomplete.length) return t('finance.expenseForm.validation.completeRequiredFields')
       if (requiresPerItem) {
         const noAtt = form.lineItems.filter((item, i) => {
           const label = labelFromLineValues(templateFields, item.values)
@@ -129,7 +135,7 @@ export const useExpenseForm = (params: {
             !findAttachmentForLabel(params.editing?.attachments, label)
           )
         })
-        if (noAtt.length) return 'Dodajte prilog uz svaku stavku.'
+        if (noAtt.length) return t('finance.expenseForm.validation.missingLineAttachments')
       }
     }
     return null
