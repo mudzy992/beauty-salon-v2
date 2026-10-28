@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { useClientSearch, useStylistServices, useStylists } from '../hooks/use-lookups'
 import { getDefaultEntryDate, toNumber } from '../finance.utils'
@@ -46,6 +47,7 @@ export const useManualEntryForm = (params: {
   month: number
   editing: IncomeBookManualEntry | null
 }) => {
+  const { t } = useTranslation()
   const [form, setForm] = useState<ManualEntryFormState>(() =>
     emptyForm(params.year, params.month),
   )
@@ -87,13 +89,13 @@ export const useManualEntryForm = (params: {
 
   const canCreateDebt = Boolean(form.clientId && form.stylistProfileId)
   const validationError = (() => {
-    if (!form.date) return 'Datum je obavezan.'
-    if (!form.serviceId) return 'Odaberite servis.'
+    if (!form.date) return t('finance.manualEntry.validation.dateRequired')
+    if (!form.serviceId) return t('finance.manualEntry.validation.serviceRequired')
     if (form.paidAmount === '' || !Number.isFinite(paidAmount) || paidAmount < 0) {
-      return 'Unesite validan iznos naplate.'
+      return t('finance.manualEntry.validation.validPaidAmount')
     }
     if (form.debtHandling === 'CREATE_DEBT' && debtAmount > 0 && !canCreateDebt) {
-      return 'Za kreiranje duga obavezni su i klijent i stilista.'
+      return t('finance.manualEntry.validation.debtRequiresClientStylist')
     }
     return null
   })()

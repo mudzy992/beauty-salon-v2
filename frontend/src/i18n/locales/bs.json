@@ -1741,11 +1741,32 @@
     "manualEntry": {
       "create": "Novi ručni prihod",
       "edit": "Uredi ručni prihod",
+      "description": "Iznos iznad cijene servisa knjiži se kao napojnica, a manjak se može evidentirati kao dug.",
+      "cancel": "Odustani",
+      "save": "Sačuvaj",
+      "date": "Datum",
+      "stylist": "Stilista",
+      "selectStylist": "— Odaberite stilistu —",
+      "service": "Servis",
+      "selectService": "— Odaberite servis —",
+      "selectStylistFirst": "Prvo odaberite stilistu",
+      "client": "Klijent",
+      "removeClient": "Ukloni klijenta",
+      "searchClient": "Pretražite klijenta (najmanje 2 znaka)…",
       "paid": "Naplaćeno",
       "servicePrice": "Cijena servisa",
       "unpaid": "Nenaplaćeno",
+      "unpaidAmount": "Nenaplaćeni iznos",
       "ignoreDebt": "Zanemari",
-      "createDebt": "Evidentiraj dug"
+      "createDebt": "Evidentiraj dug",
+      "debtRequiresClientStylist": "Za evidentiranje duga potrebni su i klijent i stilista.",
+      "notes": "Napomena",
+      "validation": {
+        "dateRequired": "Datum je obavezan.",
+        "serviceRequired": "Odaberite servis.",
+        "validPaidAmount": "Unesite ispravan iznos naplate.",
+        "debtRequiresClientStylist": "Za kreiranje duga obavezni su i klijent i stilista."
+      }
     },
     "integrity": {
       "healthy": "Knjiga je usklađena sa dnevnikom rada.",

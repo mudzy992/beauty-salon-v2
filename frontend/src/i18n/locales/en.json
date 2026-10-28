@@ -1744,11 +1744,32 @@
     "manualEntry": {
       "create": "New manual income",
       "edit": "Edit manual income",
+      "description": "Any amount above the service price is recorded as a tip; a shortfall can be recorded as debt.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "date": "Date",
+      "stylist": "Stylist",
+      "selectStylist": "— Select a stylist —",
+      "service": "Service",
+      "selectService": "— Select a service —",
+      "selectStylistFirst": "Select a stylist first",
+      "client": "Client",
+      "removeClient": "Remove client",
+      "searchClient": "Search for a client (at least 2 characters)…",
       "paid": "Amount paid",
       "servicePrice": "Service price",
       "unpaid": "Outstanding",
+      "unpaidAmount": "Outstanding amount",
       "ignoreDebt": "Ignore",
-      "createDebt": "Record as debt"
+      "createDebt": "Record as debt",
+      "debtRequiresClientStylist": "A client and stylist are both required to record debt.",
+      "notes": "Note",
+      "validation": {
+        "dateRequired": "Date is required.",
+        "serviceRequired": "Select a service.",
+        "validPaidAmount": "Enter a valid amount paid.",
+        "debtRequiresClientStylist": "A client and stylist are both required to create debt."
+      }
     },
     "integrity": {
       "healthy": "The book matches the daily log.",
