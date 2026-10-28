@@ -245,6 +245,9 @@ jobs:
       - name: Test localized admin analytics page
         working-directory: frontend
         run: npm run test:admin-analytics-i18n
+      - name: Test localized client analytics page
+        working-directory: frontend
+        run: npm run test:client-analytics-i18n
       - name: Test localized admin loyalty page
         working-directory: frontend
         run: npm run test:admin-loyalty-i18n

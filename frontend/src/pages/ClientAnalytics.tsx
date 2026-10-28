@@ -19,6 +19,8 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import type { BadgeProps } from '../components/ui/badge'
+import { formatLocalizedAmount, formatLocalizedNumber, getIntlLocale } from '../i18n/locale-utils.mjs'
+import { formatDateOnlyLocale } from '../../../shared/business-date.mjs'
 
 interface ManualEntry {
   id: string
@@ -108,18 +110,6 @@ const statusBadgeVariant: Record<string, NonNullable<BadgeProps['variant']>> = {
   NO_SHOW: 'secondary',
 }
 
-const statusLabels: Record<string, string> = {
-  PENDING: 'Na čekanju',
-  STYLIST_REVIEW: 'Pregled stiliste',
-  CONFIRMED: 'Potvrđeno',
-  ATTENDANCE_CONFIRMED: 'Dolazak potvrđen',
-  IN_PROGRESS: 'U toku',
-  COMPLETED: 'Završeno',
-  CANCELLED_BY_CLIENT: 'Otkazano (klijent)',
-  CANCELLED_BY_STYLISTS: 'Otkazano (stilist)',
-  NO_SHOW: 'Nije došao/la',
-}
-
 const SmallStatCard = ({
   title,
   value,
@@ -138,20 +128,40 @@ const SmallStatCard = ({
   </Card>
 )
 
-const StarRating = ({ rating, max = 5 }: { rating: number; max?: number }) => (
-  <div className="flex items-center gap-0.5" aria-label={`Ocjena ${rating} od ${max}`}>
-    {Array.from({ length: max }, (_, i) => (
-      <Star
-        key={i}
-        className={cn('h-3.5 w-3.5', i < rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200 dark:text-slate-700')}
-        aria-hidden="true"
-      />
-    ))}
-  </div>
-)
+const StarRating = ({ rating, max = 5 }: { rating: number; max?: number }) => {
+  const { t } = useTranslation()
+  return (
+    <div className="flex items-center gap-0.5" aria-label={t('clientAnalyticsPage.rating', { rating, max })}>
+      {Array.from({ length: max }, (_, i) => (
+        <Star
+          key={i}
+          className={cn('h-3.5 w-3.5', i < rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200 dark:text-slate-700')}
+          aria-hidden="true"
+        />
+      ))}
+    </div>
+  )
+}
 
 export default function ClientAnalytics() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const formatDateOnly = (value: string | null | undefined) =>
+    value
+      ? formatDateOnlyLocale(value.slice(0, 10), getIntlLocale(i18n.language), {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : '—'
+  const formatInstantDate = (value: string | null | undefined) => {
+    if (!value) return '—'
+    const date = new Date(value)
+    return Number.isFinite(date.getTime())
+      ? new Intl.DateTimeFormat(getIntlLocale(i18n.language), { dateStyle: 'medium' }).format(date)
+      : '—'
+  }
+  const getReservationStatusLabel = (status: string) =>
+    t(`reservations.statuses.${status}`, { defaultValue: status })
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedUserId, setSelectedUserId] = useState<string | null>(searchParams.get('userId'))
@@ -184,7 +194,7 @@ export default function ClientAnalytics() {
         const debtsRes = await api.get<ClientDebtRow[]>('/api/client-debts', { params: { clientId: userId } })
         setClientDebts(Array.isArray(debtsRes.data) ? debtsRes.data : [])
       } catch {
-        toast.error('Greška pri učitavanju analitike')
+        toast.error(t('clientAnalyticsPage.loadError'))
         setAnalytics(null)
         setClientDebts([])
       } finally {
@@ -192,7 +202,7 @@ export default function ClientAnalytics() {
         setDebtsLoading(false)
       }
     },
-    [setSearchParams],
+    [setSearchParams, t],
   )
 
   useEffect(() => {
@@ -250,7 +260,7 @@ export default function ClientAnalytics() {
     <div>
       <Button type="button" variant="ghost" className="mb-4" onClick={goBack}>
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Nazad na korisnike
+        {t('clientAnalyticsPage.backToUsers')}
       </Button>
 
       {loading ? (
@@ -264,25 +274,25 @@ export default function ClientAnalytics() {
           <div className="flex flex-col flex-wrap gap-3 md:flex-row md:items-end">
             <div className="w-full md:w-auto">
               <Label htmlFor="client-from" className="text-sm">
-                Od datuma
+                {t('clientAnalyticsPage.fromDate')}
               </Label>
               <Input id="client-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1 md:max-w-[160px]" />
             </div>
             <div className="w-full md:w-auto">
               <Label htmlFor="client-to" className="text-sm">
-                Do datuma
+                {t('clientAnalyticsPage.toDate')}
               </Label>
               <Input id="client-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1 md:max-w-[160px]" />
             </div>
             <Button type="button" size="sm" onClick={applyDateFilter} disabled={!dateFrom || !dateTo} className="md:mb-0.5">
-              Primijeni period
+              {t('clientAnalyticsPage.applyPeriod')}
             </Button>
             <Button type="button" size="sm" variant="outline" onClick={clearDateFilter} className="md:mb-0.5">
-              Cijeli period
+              {t('clientAnalyticsPage.fullPeriod')}
             </Button>
             {analytics.fromDate || analytics.toDate ? (
               <p className="pb-1 text-sm text-slate-500 md:self-center">
-                Prikaz: {analytics.fromDate} – {analytics.toDate}
+                {t('clientAnalyticsPage.showingPeriod', { from: formatDateOnly(analytics.fromDate), to: formatDateOnly(analytics.toDate) })}
               </p>
             ) : null}
           </div>
@@ -293,9 +303,9 @@ export default function ClientAnalytics() {
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{getUserName(analytics.user)}</h2>
                 <p className="text-sm text-slate-500">{analytics.user.email}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <p className="text-sm text-slate-500">Telefon: {analytics.user.phone ?? '-'}</p>
+                  <p className="text-sm text-slate-500">{t('clientAnalyticsPage.phone')}: {analytics.user.phone ?? '-'}</p>
                   <Badge variant={analytics.user.isActive ? 'success' : 'danger'} className="text-[10px]">
-                    {analytics.user.isActive ? 'Aktivan' : 'Neaktivan'}
+                    {analytics.user.isActive ? t('clientAnalyticsPage.active') : t('clientAnalyticsPage.inactive')}
                   </Badge>
                   {analytics.user.userRoles?.map((r) => (
                     <Badge key={r.role.name} variant="secondary" className="text-[10px]">
@@ -303,17 +313,17 @@ export default function ClientAnalytics() {
                     </Badge>
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-slate-400">Registrovan: {new Date(analytics.user.createdAt).toLocaleDateString('bs-BA')}</p>
+                <p className="mt-2 text-xs text-slate-400">{t('clientAnalyticsPage.registered')}: {formatInstantDate(analytics.user.createdAt)}</p>
               </div>
 
               {analytics.penalty.isPenalized ? (
                 <Card className="border-rose-200 bg-rose-50 p-4 dark:border-rose-900/40 dark:bg-rose-950/30">
                   <div className="flex items-center gap-2 font-semibold text-rose-700 dark:text-rose-200">
                     <TriangleAlert className="h-4 w-4" aria-hidden="true" />
-                    PENALIZIRAN
+                    {t('clientAnalyticsPage.penalized').toLocaleUpperCase(i18n.language)}
                   </div>
                   <p className="mt-1 text-sm text-rose-600 dark:text-rose-200">
-                    Do: {analytics.penalty.penaltyUntil ? new Date(analytics.penalty.penaltyUntil).toLocaleDateString('bs-BA') : '-'}
+                    {t('clientAnalyticsPage.until')}: {formatInstantDate(analytics.penalty.penaltyUntil)}
                   </p>
                 </Card>
               ) : null}
@@ -322,43 +332,45 @@ export default function ClientAnalytics() {
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
             <SmallStatCard
-              title="Rezervacije"
+              title={t('clientAnalyticsPage.stats.reservations')}
               value={String(analytics.stats.totalReservations)}
-              hint={`${analytics.stats.completedReservations} završenih`}
+              hint={t('clientAnalyticsPage.stats.completed', { count: analytics.stats.completedReservations })}
             />
             <SmallStatCard
-              title="Otkazane / No-show"
+              title={t('clientAnalyticsPage.stats.cancelledNoShow')}
               value={`${analytics.stats.cancelledReservations} / ${analytics.stats.noShowCount}`}
               className="border-rose-100 dark:border-rose-900/30"
             />
             <SmallStatCard
-              title="Manuelni unosi"
+              title={t('clientAnalyticsPage.stats.manualEntries')}
               value={String(analytics.stats.manualEntryCount)}
-              hint={`${Number(analytics.stats.manualSpent).toFixed(2)} KM`}
+              hint={formatLocalizedAmount(analytics.stats.manualSpent, i18n.language)}
             />
             <SmallStatCard
-              title="Ukupno potrošeno"
-              value={`${Number(analytics.stats.totalSpent).toFixed(2)} KM`}
-              hint="rezervacije + manuelno"
+              title={t('clientAnalyticsPage.stats.totalSpent')}
+              value={formatLocalizedAmount(analytics.stats.totalSpent, i18n.language)}
+              hint={t('clientAnalyticsPage.stats.reservationsPlusManual')}
             />
             <SmallStatCard
-              title="Penali"
-              value={`${analytics.penalty.cancellationCount} otkazivanja`}
-              hint={analytics.penalty.isPenalized ? 'Penaliziran' : 'OK'}
+              title={t('clientAnalyticsPage.stats.penalties')}
+              value={t('clientAnalyticsPage.stats.cancellations', { count: analytics.penalty.cancellationCount })}
+              hint={analytics.penalty.isPenalized ? t('clientAnalyticsPage.penalized') : t('clientAnalyticsPage.stats.ok')}
               className={analytics.penalty.isPenalized ? 'border-rose-200 bg-rose-50 dark:border-rose-900/40 dark:bg-rose-950/20' : undefined}
             />
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <SmallStatCard
-              title="Prosječna ocjena"
-              value={analytics.stats.avgServiceRating != null ? String(analytics.stats.avgServiceRating) : '-'}
-              hint={`od ${analytics.stats.reviewCount} recenzija`}
+              title={t('clientAnalyticsPage.stats.averageRating')}
+              value={analytics.stats.avgServiceRating != null
+                ? formatLocalizedNumber(analytics.stats.avgServiceRating, i18n.language, { maximumFractionDigits: 2 })
+                : '-'}
+              hint={t('clientAnalyticsPage.stats.reviewCount', { count: analytics.stats.reviewCount })}
             />
             {analytics.stats.totalReservations > 0 ? (
               <Card className="p-4">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Stopa završavanja</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('clientAnalyticsPage.stats.completionRate')}</p>
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
                     {Math.round((analytics.stats.completedReservations / analytics.stats.totalReservations) * 100)}%
                   </p>
@@ -375,14 +387,14 @@ export default function ClientAnalytics() {
 
           {analytics.topServices.length > 0 ? (
             <Card className="p-5">
-              <p className="mb-3 font-semibold text-slate-900 dark:text-slate-50">Najčešći servisi</p>
+              <p className="mb-3 font-semibold text-slate-900 dark:text-slate-50">{t('clientAnalyticsPage.topServices')}</p>
               <div className="app-table-wrap">
                 <table className="app-table w-full border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                      <th className="py-2 pr-3 font-medium">Servis</th>
-                      <th className="py-2 pr-3 text-right font-medium">Broj posjeta</th>
-                      <th className="py-2 text-right font-medium">Ukupno (KM)</th>
+                      <th className="py-2 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
+                      <th className="py-2 pr-3 text-right font-medium">{t('clientAnalyticsPage.visitCount')}</th>
+                      <th className="py-2 text-right font-medium">{t('clientAnalyticsPage.total')} (KM)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -390,7 +402,7 @@ export default function ClientAnalytics() {
                       <tr key={`${s.name}-${i}`} className="border-b border-slate-100 dark:border-slate-800/80">
                         <td className="py-2 pr-3 font-medium">{s.name}</td>
                         <td className="py-2 pr-3 text-right tabular-nums">{s.count}</td>
-                        <td className="py-2 text-right tabular-nums">{s.totalSpent.toFixed(2)}</td>
+                        <td className="py-2 text-right tabular-nums">{formatLocalizedNumber(s.totalSpent, i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -401,10 +413,10 @@ export default function ClientAnalytics() {
 
           <Tabs defaultValue="reservations">
             <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-2">
-              <TabsTrigger value="reservations">Rezervacije ({analytics.reservations.length})</TabsTrigger>
-              <TabsTrigger value="manual">Manuelni prihodi ({analytics.manualEntries.length})</TabsTrigger>
-              <TabsTrigger value="debts">Dugovanja ({clientDebts.length})</TabsTrigger>
-              <TabsTrigger value="reviews">Recenzije ({analytics.reviews.length})</TabsTrigger>
+              <TabsTrigger value="reservations">{t('clientAnalyticsPage.tabs.reservations')} ({analytics.reservations.length})</TabsTrigger>
+              <TabsTrigger value="manual">{t('clientAnalyticsPage.tabs.manualEntries')} ({analytics.manualEntries.length})</TabsTrigger>
+              <TabsTrigger value="debts">{t('clientAnalyticsPage.tabs.debts')} ({clientDebts.length})</TabsTrigger>
+              <TabsTrigger value="reviews">{t('clientAnalyticsPage.tabs.reviews')} ({analytics.reviews.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="reservations" className="mt-4">
@@ -413,13 +425,13 @@ export default function ClientAnalytics() {
                   <table className="app-table w-full border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                        <th className="py-3 pl-4 pr-3 font-medium">Datum</th>
-                        <th className="py-3 pr-3 font-medium">Vrijeme</th>
-                        <th className="py-3 pr-3 font-medium">Servis</th>
-                        <th className="py-3 pr-3 font-medium">Stilista</th>
-                        <th className="py-3 pr-3 text-right font-medium">Cijena</th>
-                        <th className="py-3 pr-3 font-medium">Status</th>
-                        <th className="py-3 pr-4 text-right font-medium">Detalji</th>
+                        <th className="py-3 pl-4 pr-3 font-medium">{t('clientAnalyticsPage.date')}</th>
+                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.time')}</th>
+                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
+                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.stylist')}</th>
+                        <th className="py-3 pr-3 text-right font-medium">{t('clientAnalyticsPage.price')}</th>
+                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.status')}</th>
+                        <th className="py-3 pr-4 text-right font-medium">{t('clientAnalyticsPage.details')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -443,20 +455,20 @@ export default function ClientAnalytics() {
                             }}
                             tabIndex={0}
                           >
-                            <td className="py-3 pl-4 pr-3">{r.reservationDate?.slice(0, 10)}</td>
+                            <td className="py-3 pl-4 pr-3">{formatDateOnly(r.reservationDate)}</td>
                             <td className="py-3 pr-3">
                               {r.startTime} - {r.endTime}
                             </td>
                             <td className="py-3 pr-3">{r.service?.name ?? '-'}</td>
                             <td className="py-3 pr-3">{getStylistName(r.confirmedStylist)}</td>
-                            <td className="py-3 pr-3 text-right tabular-nums">{Number(r.service?.price ?? 0).toFixed(2)}</td>
+                            <td className="py-3 pr-3 text-right tabular-nums">{formatLocalizedNumber(Number(r.service?.price ?? 0), i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             <td className="py-3 pr-3">
                               <Badge variant={statusBadgeVariant[r.status] ?? 'secondary'} className="text-[10px]">
-                                {statusLabels[r.status] ?? r.status}
+                                {getReservationStatusLabel(r.status)}
                               </Badge>
                             </td>
                             <td className="py-3 pr-4 text-right">
-                              <Button type="button" size="icon" variant="ghost" aria-label="Detalji" onClick={(e) => {
+                              <Button type="button" size="icon" variant="ghost" aria-label={t('clientAnalyticsPage.details')} onClick={(e) => {
                                 e.stopPropagation()
                                 openReservationDetail(r)
                               }}
@@ -479,13 +491,13 @@ export default function ClientAnalytics() {
                   <table className="app-table w-full border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                        <th className="py-3 pl-4 pr-3 font-medium">Datum</th>
-                        <th className="py-3 pr-3 font-medium">Servis</th>
-                        <th className="py-3 pr-3 font-medium">Stilista</th>
-                        <th className="py-3 pr-3 text-right font-medium">Cijena (KM)</th>
-                        <th className="py-3 pr-3 text-right font-medium">Napojnica (KM)</th>
-                        <th className="py-3 pr-3 font-medium">Izvor</th>
-                        <th className="py-3 pr-4 font-medium">Bilješka</th>
+                        <th className="py-3 pl-4 pr-3 font-medium">{t('clientAnalyticsPage.date')}</th>
+                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
+                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.stylist')}</th>
+                        <th className="py-3 pr-3 text-right font-medium">{t('clientAnalyticsPage.price')} (KM)</th>
+                        <th className="py-3 pr-3 text-right font-medium">{t('clientAnalyticsPage.tip')} (KM)</th>
+                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.source')}</th>
+                        <th className="py-3 pr-4 font-medium">{t('clientAnalyticsPage.note')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -498,14 +510,14 @@ export default function ClientAnalytics() {
                       ) : (
                         analytics.manualEntries.map((e) => (
                           <tr key={e.id} className="border-b border-slate-100 dark:border-slate-800/80">
-                            <td className="py-3 pl-4 pr-3">{typeof e.date === 'string' ? e.date.slice(0, 10) : '-'}</td>
+                            <td className="py-3 pl-4 pr-3">{formatDateOnly(e.date)}</td>
                             <td className="py-3 pr-3">{e.service?.name ?? '-'}</td>
                             <td className="py-3 pr-3">{getStylistName(e.stylistProfile)}</td>
-                            <td className="py-3 pr-3 text-right font-medium tabular-nums">{Number(e.actualPrice).toFixed(2)}</td>
-                            <td className="py-3 pr-3 text-right tabular-nums">{Number(e.tipAmount).toFixed(2)}</td>
+                            <td className="py-3 pr-3 text-right font-medium tabular-nums">{formatLocalizedNumber(Number(e.actualPrice), i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="py-3 pr-3 text-right tabular-nums">{formatLocalizedNumber(Number(e.tipAmount), i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             <td className="py-3 pr-3">
                               <Badge variant={e.isManual ? 'brand' : 'secondary'} className="text-[10px]">
-                                {e.isManual ? 'Manuelno' : 'Rezervacija'}
+                                {e.isManual ? t('clientAnalyticsPage.manual') : t('clientAnalyticsPage.reservation')}
                               </Badge>
                             </td>
                             <td className="max-w-xs py-3 pr-4">
@@ -543,15 +555,15 @@ export default function ClientAnalytics() {
                           <div className="mb-1 flex flex-wrap items-center gap-2">
                             <p className="font-medium text-slate-900 dark:text-slate-50">{r.service?.name ?? '-'}</p>
                             <Badge variant={r.isApproved ? 'success' : 'warning'} className="text-[10px]">
-                              {r.isApproved ? 'Odobreno' : 'Na čekanju'}
+                              {r.isApproved ? t('clientAnalyticsPage.approved') : t('clientAnalyticsPage.pending')}
                             </Badge>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-xs text-slate-500">Servis:</p>
+                            <p className="text-xs text-slate-500">{t('clientAnalyticsPage.service')}:</p>
                             <StarRating rating={r.serviceRating} />
                             {r.stylistRating != null ? (
                               <>
-                                <p className="ml-2 text-xs text-slate-500">Stilista:</p>
+                                <p className="ml-2 text-xs text-slate-500">{t('clientAnalyticsPage.stylist')}:</p>
                                 <StarRating rating={r.stylistRating} />
                               </>
                             ) : null}
@@ -560,7 +572,7 @@ export default function ClientAnalytics() {
                             <p className="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">{r.comment}</p>
                           ) : null}
                         </div>
-                        <p className="shrink-0 text-xs text-slate-400">{new Date(r.createdAt).toLocaleDateString('bs-BA')}</p>
+                        <p className="shrink-0 text-xs text-slate-400">{formatInstantDate(r.createdAt)}</p>
                       </div>
                     </Card>
                   ))}
@@ -571,7 +583,7 @@ export default function ClientAnalytics() {
             <TabsContent value="debts" className="mt-4">
               <Card className="p-4">
                 {debtsLoading ? (
-                  <p className="text-sm text-slate-500">Učitavanje…</p>
+                  <p className="text-sm text-slate-500">{t('clientAnalyticsPage.loading')}</p>
                 ) : clientDebts.length === 0 ? (
                   <p className="text-sm text-slate-500">{t('common.noData')}</p>
                 ) : (
@@ -582,11 +594,11 @@ export default function ClientAnalytics() {
                         : '—'
                       const ref =
                         d.reservation?.publicReferenceCode
-                          ? `Rezervacija: ${d.reservation.publicReferenceCode}`
+                          ? t('clientAnalyticsPage.reservationReference', { code: d.reservation.publicReferenceCode })
                           : d.dailyLogEntry?.id
-                            ? `Daily log: ${d.dailyLogEntry.date.slice(0, 10)}`
+                            ? `${t('clientAnalyticsPage.dailyLog')}: ${formatDateOnly(d.dailyLogEntry.date)}`
                             : d.manualEntry?.id
-                              ? `Manual entry: ${d.manualEntry.date.slice(0, 10)}`
+                              ? `${t('clientAnalyticsPage.manualEntry')}: ${formatDateOnly(d.manualEntry.date)}`
                               : '—'
                       return (
                         <div
@@ -595,15 +607,15 @@ export default function ClientAnalytics() {
                         >
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                              {d.service?.name ?? 'Dug'} · {Number(d.amount).toFixed(2)} KM
+                              {d.service?.name ?? t('clientAnalyticsPage.debt')} · {formatLocalizedAmount(d.amount, i18n.language)}
                             </p>
                             <p className="text-xs text-slate-600 dark:text-slate-300">
-                              <span className="font-semibold">Stilist:</span> {stylistName} · {ref}
+                              <span className="font-semibold">{t('clientAnalyticsPage.stylist')}:</span> {stylistName} · {ref}
                             </p>
-                            <p className="text-xs text-slate-500 mt-0.5">{d.createdAt.slice(0, 10)}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{formatInstantDate(d.createdAt)}</p>
                           </div>
                           <Badge variant={d.status === 'OPEN' ? 'warning' : 'success'} className="text-[10px]">
-                            {d.status === 'OPEN' ? 'Otvoren' : 'Zatvoren'}
+                            {d.status === 'OPEN' ? t('clientAnalyticsPage.open') : t('clientAnalyticsPage.closed')}
                           </Badge>
                         </div>
                       )
@@ -626,54 +638,54 @@ export default function ClientAnalytics() {
           {detailReservation ? (
             <>
               <DialogHeader>
-                <DialogTitle>Detalji Rezervacije</DialogTitle>
+                <DialogTitle>{t('clientAnalyticsPage.reservationDetails')}</DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <p className="text-xs text-slate-500">Datum</p>
-                  <p className="font-semibold text-slate-900 dark:text-slate-50">{detailReservation.reservationDate?.slice(0, 10)}</p>
+                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.date')}</p>
+                  <p className="font-semibold text-slate-900 dark:text-slate-50">{formatDateOnly(detailReservation.reservationDate)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Vrijeme</p>
+                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.time')}</p>
                   <p className="font-semibold text-slate-900 dark:text-slate-50">
                     {detailReservation.startTime} - {detailReservation.endTime}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Servis</p>
+                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.service')}</p>
                   <p className="text-slate-800 dark:text-slate-100">{detailReservation.service?.name ?? '-'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Cijena</p>
-                  <p className="text-slate-800 dark:text-slate-100">{Number(detailReservation.service?.price ?? 0).toFixed(2)} KM</p>
+                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.price')}</p>
+                  <p className="text-slate-800 dark:text-slate-100">{formatLocalizedAmount(Number(detailReservation.service?.price ?? 0), i18n.language)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Stilista</p>
+                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.stylist')}</p>
                   <p className="text-slate-800 dark:text-slate-100">{getStylistName(detailReservation.confirmedStylist)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Status</p>
+                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.status')}</p>
                   <Badge variant={statusBadgeVariant[detailReservation.status] ?? 'secondary'} className="text-[10px]">
-                    {statusLabels[detailReservation.status] ?? detailReservation.status}
+                    {getReservationStatusLabel(detailReservation.status)}
                   </Badge>
                 </div>
                 {detailReservation.clientNotes ? (
                   <div className="md:col-span-2">
-                    <p className="text-xs text-slate-500">Bilješke klijenta</p>
+                    <p className="text-xs text-slate-500">{t('clientAnalyticsPage.clientNotes')}</p>
                     <p className="text-slate-800 dark:text-slate-100">{detailReservation.clientNotes}</p>
                   </div>
                 ) : null}
                 {detailReservation.cancelReason ? (
                   <div className="md:col-span-2">
-                    <p className="text-xs text-slate-500">Razlog otkazivanja</p>
+                    <p className="text-xs text-slate-500">{t('clientAnalyticsPage.cancellationReason')}</p>
                     <p className="text-rose-600">{detailReservation.cancelReason}</p>
                   </div>
                 ) : null}
                 {detailReservation.cancelledAt ? (
                   <div>
-                    <p className="text-xs text-slate-500">Otkazano</p>
+                    <p className="text-xs text-slate-500">{t('clientAnalyticsPage.cancelled')}</p>
                     <p className="text-slate-800 dark:text-slate-100">
-                      {new Date(detailReservation.cancelledAt).toLocaleDateString('bs-BA')}
+                      {formatInstantDate(detailReservation.cancelledAt)}
                     </p>
                   </div>
                 ) : null}
@@ -684,48 +696,48 @@ export default function ClientAnalytics() {
           {detailReview ? (
             <>
               <DialogHeader>
-                <DialogTitle>Detalji Recenzije</DialogTitle>
+                <DialogTitle>{t('clientAnalyticsPage.reviewDetails')}</DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <p className="text-xs text-slate-500">Servis</p>
+                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.service')}</p>
                   <p className="font-semibold text-slate-900 dark:text-slate-50">{detailReview.service?.name ?? '-'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Stilista</p>
+                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.stylist')}</p>
                   <p className="text-slate-800 dark:text-slate-100">{getStylistName(detailReview.stylist)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Ocjena servisa</p>
+                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.serviceRating')}</p>
                   <div className="flex items-center gap-2">
                     <StarRating rating={detailReview.serviceRating} />
-                    <p className="text-sm text-slate-700 dark:text-slate-200">{detailReview.serviceRating}/5</p>
+                    <p className="text-sm text-slate-700 dark:text-slate-200">{formatLocalizedNumber(detailReview.serviceRating, i18n.language)}/5</p>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Ocjena stiliste</p>
+                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.stylistRating')}</p>
                   {detailReview.stylistRating != null ? (
                     <div className="flex items-center gap-2">
                       <StarRating rating={detailReview.stylistRating} />
-                      <p className="text-sm text-slate-700 dark:text-slate-200">{detailReview.stylistRating}/5</p>
+                      <p className="text-sm text-slate-700 dark:text-slate-200">{formatLocalizedNumber(detailReview.stylistRating, i18n.language)}/5</p>
                     </div>
                   ) : (
                     <p className="text-slate-800 dark:text-slate-100">-</p>
                   )}
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Status</p>
+                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.status')}</p>
                   <Badge variant={detailReview.isApproved ? 'success' : 'warning'} className="text-[10px]">
-                    {detailReview.isApproved ? 'Odobreno' : 'Na čekanju'}
+                    {detailReview.isApproved ? t('clientAnalyticsPage.approved') : t('clientAnalyticsPage.pending')}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">Datum</p>
-                  <p className="text-slate-800 dark:text-slate-100">{new Date(detailReview.createdAt).toLocaleDateString('bs-BA')}</p>
+                  <p className="text-xs text-slate-500">{t('clientAnalyticsPage.date')}</p>
+                  <p className="text-slate-800 dark:text-slate-100">{formatInstantDate(detailReview.createdAt)}</p>
                 </div>
                 {detailReview.comment ? (
                   <div className="md:col-span-2">
-                    <p className="text-xs text-slate-500">Komentar</p>
+                    <p className="text-xs text-slate-500">{t('clientAnalyticsPage.comment')}</p>
                     <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-800 dark:bg-slate-900/40 dark:text-slate-100">
                       {detailReview.comment}
                     </div>
