@@ -1789,6 +1789,31 @@
       "statusLocked": "zaključana",
       "statusOpen": "otvorena"
     },
+    "expenseDetail": {
+      "backToList": "Nazad na listu",
+      "newExpense": "Novi rashod",
+      "errorDescription": "Knjigu rashoda nije moguće učitati.",
+      "expenseUpdated": "Rashod je izmijenjen.",
+      "expenseAdded": "Rashod je dodan.",
+      "saveFailed": "Čuvanje rashoda nije uspjelo",
+      "expenseDeleted": "Rashod je obrisan.",
+      "deleteFailed": "Brisanje nije uspjelo",
+      "bookLockedSuccess": "Knjiga je zaključana.",
+      "lockFailed": "Zaključavanje nije uspjelo",
+      "bookUnlockedSuccess": "Knjiga je otključana.",
+      "unlockFailed": "Otključavanje nije uspjelo",
+      "expensesTitle_one": "Rashod ({{count}})",
+      "expensesTitle_few": "Rashodi ({{count}})",
+      "expensesTitle_other": "Rashodi ({{count}})",
+      "deleteTitle": "Obrisati rashod?",
+      "deleteDescription": "Rashod „{{title}}“ i njegovi prilozi bit će trajno uklonjeni.",
+      "deleteConfirm": "Obriši",
+      "csvTotal": "UKUPNO",
+      "printTitle": "Knjiga rashoda – {{period}}",
+      "printSubtitle": "{{count}} stavki · {{status}}",
+      "statusLocked": "zaključana",
+      "statusOpen": "otvorena"
+    },
     "export": {
       "downloadCsv": "Preuzmi CSV",
       "printPdf": "Štampaj ili sačuvaj kao PDF"

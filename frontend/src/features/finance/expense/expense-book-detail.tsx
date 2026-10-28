@@ -3,8 +3,16 @@ import { ArrowLeft, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card'
-import { BookLockBadge, BookLockControls } from '../components/book-lock-controls'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '../../../components/ui/card'
+import {
+  BookLockBadge,
+  BookLockControls,
+} from '../components/book-lock-controls'
 import { ConfirmDialog } from '../components/confirm-dialog'
 import { ErrorState, TableSkeleton } from '../components/data-state'
 import { ExportMenu } from '../components/export-menu'
@@ -21,10 +29,18 @@ import {
   type ExpenseSortField,
 } from './expenses.helpers'
 import { formatExpenseNotesSummary } from './expense-notes'
-import { useExpenseBook, useExpenseBookMutations } from '../hooks/use-expense-books'
+import {
+  useExpenseBook,
+  useExpenseBookMutations,
+} from '../hooks/use-expense-books'
 import { useExpenseCategories } from '../hooks/use-expense-catalog'
 import { exportRowsToCsv, printReport } from '../export.utils'
-import { formatInstantDateBs, formatMoney, formatPeriod, toNumber } from '../finance.utils'
+import {
+  formatInstantDateLocalized,
+  formatPeriod,
+  toNumber,
+} from '../finance.utils'
+import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
 import { useAppToast } from '../../../lib/toast/useAppToast'
 import type {
   Expense,
@@ -40,7 +56,7 @@ export function ExpenseBookDetail({
   bookId: string
   onBack: () => void
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { success, toastApiError } = useAppToast()
   const bookQuery = useExpenseBook(bookId)
   const categoriesQuery = useExpenseCategories()
@@ -56,7 +72,12 @@ export function ExpenseBookDetail({
   const book = bookQuery.data
   const allExpenses = useMemo(() => book?.expenses ?? [], [book])
   const expenses = useMemo(
-    () => sortExpenses(filterExpenses(allExpenses, filters), sortField, sortDirection),
+    () =>
+      sortExpenses(
+        filterExpenses(allExpenses, filters),
+        sortField,
+        sortDirection,
+      ),
     [allExpenses, filters, sortField, sortDirection],
   )
   const filteredTotal = useMemo(() => sumExpenses(expenses), [expenses])
@@ -72,12 +93,19 @@ export function ExpenseBookDetail({
 
   const handleSave = async (payload: ExpensePayload) => {
     try {
-      await mutations.saveExpense.mutateAsync({ expenseId: editing?.id, payload })
-      success(editing ? 'Rashod je izmijenjen.' : 'Rashod je dodan.')
+      await mutations.saveExpense.mutateAsync({
+        expenseId: editing?.id,
+        payload,
+      })
+      success(
+        editing
+          ? t('finance.expenseDetail.expenseUpdated')
+          : t('finance.expenseDetail.expenseAdded'),
+      )
       setIsDialogOpen(false)
       setEditing(null)
     } catch (err) {
-      toastApiError(err, 'Čuvanje rashoda nije uspjelo')
+      toastApiError(err, t('finance.expenseDetail.saveFailed'))
     }
   }
 
@@ -85,9 +113,9 @@ export function ExpenseBookDetail({
     if (!pendingDelete) return
     try {
       await mutations.removeExpense.mutateAsync(pendingDelete.id)
-      success('Rashod je obrisan.')
+      success(t('finance.expenseDetail.expenseDeleted'))
     } catch (err) {
-      toastApiError(err, 'Brisanje nije uspjelo')
+      toastApiError(err, t('finance.expenseDetail.deleteFailed'))
     } finally {
       setPendingDelete(null)
     }
@@ -96,18 +124,18 @@ export function ExpenseBookDetail({
   const handleLock = async () => {
     try {
       await mutations.lock.mutateAsync()
-      success('Knjiga je zaključana.')
+      success(t('finance.expenseDetail.bookLockedSuccess'))
     } catch (err) {
-      toastApiError(err, 'Zaključavanje nije uspjelo')
+      toastApiError(err, t('finance.expenseDetail.lockFailed'))
     }
   }
 
   const handleUnlock = async (reason: string) => {
     try {
       await mutations.unlock.mutateAsync(reason)
-      success('Knjiga je otključana.')
+      success(t('finance.expenseDetail.bookUnlockedSuccess'))
     } catch (err) {
-      toastApiError(err, 'Otključavanje nije uspjelo')
+      toastApiError(err, t('finance.expenseDetail.unlockFailed'))
     }
   }
 
@@ -115,52 +143,97 @@ export function ExpenseBookDetail({
   if (bookQuery.isError || !book) {
     return (
       <ErrorState
-        description="Knjigu rashoda nije moguće učitati."
+        description={t('finance.expenseDetail.errorDescription')}
         onRetry={() => void bookQuery.refetch()}
       />
     )
   }
 
-  const period = formatPeriod(book.year, book.month)
+  const period = formatPeriod(book.year, book.month, i18n.language)
   const isLocked = book.isClosed
 
   const handleExportCsv = () =>
     exportRowsToCsv({
       filename: `KUF-${book.year}-${String(book.month).padStart(2, '0')}`,
       columns: [
-        { header: 'Datum', value: (e: Expense) => formatInstantDateBs(e.createdAt) },
-        { header: 'Naziv', value: (e: Expense) => e.title },
-        { header: 'Kategorija', value: (e: Expense) => e.category?.name ?? '' },
-        { header: 'Iznos', value: (e: Expense) => toNumber(e.totalAmount).toFixed(2) },
-        { header: 'Napomena', value: (e: Expense) => {
-          const fields = e.category?.template?.fields ?? []
-          const n = formatExpenseNotesSummary(e.notes, fields)
-          return [n.userNotes, ...n.lineLabels].filter(Boolean).join(' | ')
-        }},
+        {
+          header: t('finance.expenseList.columns.date'),
+          value: (e: Expense) =>
+            formatInstantDateLocalized(e.createdAt, i18n.language),
+        },
+        {
+          header: t('finance.expenseList.columns.title'),
+          value: (e: Expense) => e.title,
+        },
+        {
+          header: t('finance.expenseList.columns.category'),
+          value: (e: Expense) => e.category?.name ?? '',
+        },
+        {
+          header: t('finance.expenseList.columns.amount'),
+          value: (e: Expense) => toNumber(e.totalAmount).toFixed(2),
+        },
+        {
+          header: t('finance.expenseForm.notes'),
+          value: (e: Expense) => {
+            const fields = e.category?.template?.fields ?? []
+            const n = formatExpenseNotesSummary(e.notes, fields)
+            return [n.userNotes, ...n.lineLabels].filter(Boolean).join(' | ')
+          },
+        },
       ],
       rows: expenses,
-      summary: ['UKUPNO', '', '', filteredTotal.toFixed(2), ''],
+      summary: [
+        t('finance.expenseDetail.csvTotal'),
+        '',
+        '',
+        filteredTotal.toFixed(2),
+        '',
+      ],
     })
 
   const handlePrint = () =>
     printReport({
-      title: `Knjiga rashoda – ${period}`,
-      subtitle: `${expenses.length} stavki · ${isLocked ? 'zaključana' : 'otvorena'}`,
-      headers: ['Datum', 'Naziv', 'Kategorija', 'Iznos'],
+      title: t('finance.expenseDetail.printTitle', { period }),
+      subtitle: t('finance.expenseDetail.printSubtitle', {
+        count: expenses.length,
+        status: t(
+          isLocked
+            ? 'finance.expenseDetail.statusLocked'
+            : 'finance.expenseDetail.statusOpen',
+        ),
+      }),
+      language: i18n.language.startsWith('en') ? 'en' : 'bs',
+      headers: [
+        t('finance.expenseList.columns.date'),
+        t('finance.expenseForm.title'),
+        t('finance.expenseList.columns.category'),
+        t('finance.expenseList.columns.amount'),
+      ],
       rows: expenses.map((e) => [
-        formatInstantDateBs(e.createdAt),
+        formatInstantDateLocalized(e.createdAt, i18n.language),
         e.title,
         e.category?.name ?? '—',
-        formatMoney(e.totalAmount),
+        formatLocalizedAmount(e.totalAmount, i18n.language),
       ]),
-      summary: [{ label: 'Ukupno rashodi', value: formatMoney(filteredTotal) }],
+      summary: [
+        {
+          label: t('finance.summary.totalExpenses'),
+          value: formatLocalizedAmount(filteredTotal, i18n.language),
+        },
+      ],
     })
 
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={onBack} aria-label="Nazad na listu">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            aria-label={t('finance.expenseDetail.backToList')}
+          >
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">
@@ -191,7 +264,7 @@ export function ExpenseBookDetail({
             disabled={isLocked}
           >
             <Plus className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
-            Novi rashod
+            {t('finance.expenseDetail.newExpense')}
           </Button>
         </div>
       </div>
@@ -206,13 +279,21 @@ export function ExpenseBookDetail({
                 : toNumber(book.totalExpenses),
             tone: 'negative',
           },
-          { label: t('finance.summary.filtered'), value: filteredTotal, tone: 'muted' },
+          {
+            label: t('finance.summary.filtered'),
+            value: filteredTotal,
+            tone: 'muted',
+          },
         ]}
       />
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Rashodi ({expenses.length})</CardTitle>
+          <CardTitle className="text-base">
+            {t('finance.expenseDetail.expensesTitle', {
+              count: expenses.length,
+            })}
+          </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3">
           <ExpenseFiltersBar
@@ -242,7 +323,7 @@ export function ExpenseBookDetail({
           <HistoryPanel
             title={t('finance.book.lockHistory')}
             events={book.lockEvents ?? []}
-            emptyLabel="Nema zabilježenih zaključavanja."
+            emptyLabel={t('finance.incomeDetail.lockHistoryEmpty')}
           />
         </CardContent>
       </Card>
@@ -263,9 +344,11 @@ export function ExpenseBookDetail({
       <ConfirmDialog
         open={Boolean(pendingDelete)}
         onOpenChange={(open) => !open && setPendingDelete(null)}
-        title="Obrisati rashod?"
-        description={`Rashod "${pendingDelete?.title ?? ''}" i njegovi prilozi bit će trajno uklonjeni.`}
-        confirmLabel="Obriši"
+        title={t('finance.expenseDetail.deleteTitle')}
+        description={t('finance.expenseDetail.deleteDescription', {
+          title: pendingDelete?.title ?? '',
+        })}
+        confirmLabel={t('finance.expenseDetail.deleteConfirm')}
         isDestructive
         isPending={mutations.removeExpense.isPending}
         onConfirm={() => void handleDelete()}

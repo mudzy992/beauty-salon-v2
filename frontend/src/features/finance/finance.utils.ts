@@ -72,12 +72,13 @@ export const formatDateOnlyLocalized = (
 export const formatDateOnlyBs = (value: string | null | undefined): string =>
   formatDateOnlyLocalized(value, 'bs')
 
-export const formatInstantDateBs = (
+export const formatInstantDateLocalized = (
   value: Date | string | null | undefined,
+  language: string,
 ): string => {
   if (!value) return '—'
   try {
-    return formatInstantDateLocale(value, 'bs-BA', {
+    return formatInstantDateLocale(value, getIntlLocale(language), {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -86,6 +87,10 @@ export const formatInstantDateBs = (
     return '—'
   }
 }
+
+export const formatInstantDateBs = (
+  value: Date | string | null | undefined,
+): string => formatInstantDateLocalized(value, 'bs')
 
 /** Backwards-compatible alias for callers that display a timestamp. */
 export const formatIsoDateBs = formatInstantDateBs

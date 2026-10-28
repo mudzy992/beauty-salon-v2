@@ -1792,6 +1792,31 @@
       "statusLocked": "locked",
       "statusOpen": "open"
     },
+    "expenseDetail": {
+      "backToList": "Back to list",
+      "newExpense": "New expense",
+      "errorDescription": "The expense book could not be loaded.",
+      "expenseUpdated": "Expense updated.",
+      "expenseAdded": "Expense added.",
+      "saveFailed": "Could not save the expense",
+      "expenseDeleted": "Expense deleted.",
+      "deleteFailed": "Could not delete the expense",
+      "bookLockedSuccess": "The book is locked.",
+      "lockFailed": "Could not lock the book",
+      "bookUnlockedSuccess": "The book is unlocked.",
+      "unlockFailed": "Could not unlock the book",
+      "expensesTitle_one": "Expense ({{count}})",
+      "expensesTitle_few": "Expenses ({{count}})",
+      "expensesTitle_other": "Expenses ({{count}})",
+      "deleteTitle": "Delete this expense?",
+      "deleteDescription": "Expense “{{title}}” and its attachments will be permanently removed.",
+      "deleteConfirm": "Delete",
+      "csvTotal": "TOTAL",
+      "printTitle": "Expense book – {{period}}",
+      "printSubtitle": "{{count}} entries · {{status}}",
+      "statusLocked": "locked",
+      "statusOpen": "open"
+    },
     "export": {
       "downloadCsv": "Download CSV",
       "printPdf": "Print or save as PDF"

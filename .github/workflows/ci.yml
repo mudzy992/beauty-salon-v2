@@ -266,6 +266,9 @@ jobs:
       - name: Test localized finance income book detail
         working-directory: frontend
         run: npm run test:finance-income-detail-i18n
+      - name: Test localized finance expense book detail
+        working-directory: frontend
+        run: npm run test:finance-expense-detail-i18n
       - name: Test localized admin loyalty page
         working-directory: frontend
         run: npm run test:admin-loyalty-i18n
