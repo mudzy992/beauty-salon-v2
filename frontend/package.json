@@ -61,6 +61,7 @@
     "test:finance-book-navigation-i18n": "node --test src/features/finance/finance-book-navigation-i18n.test.mjs",
     "test:finance-expense-categories-i18n": "node --test src/features/finance/catalog/expense-categories-i18n.test.mjs",
     "test:daily-log-list-i18n": "node --test src/features/daily-log/daily-log-list-i18n.test.mjs",
+    "test:daily-log-table-i18n": "node --test src/features/daily-log/daily-log-table-i18n.test.mjs",
     "test:admin-loyalty-i18n": "node --test src/features/loyalty/admin-loyalty-i18n.test.mjs",
     "test:admin-reviews-i18n": "node --test src/features/reviews/admin-reviews-i18n.test.mjs",
     "test:admin-notifications-i18n": "node --test src/features/notifications/notifications-i18n.test.mjs",

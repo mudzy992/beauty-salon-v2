@@ -1,4 +1,6 @@
 import { Check, Eye, Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+
 import { Button } from '../../components/ui/button'
 import type { DailyLogEntry } from './types'
 
@@ -19,6 +21,7 @@ export const DailyLogEntryActions = ({
   onDelete,
   onRestore,
 }: Props) => {
+  const { t } = useTranslation()
   if (entry.deletedAt) {
     return (
       <div className="flex justify-end gap-1">
@@ -27,7 +30,7 @@ export const DailyLogEntryActions = ({
           size="icon"
           variant="ghost"
           className="h-8 w-8"
-          aria-label="Pregledaj"
+          aria-label={t('dailyLog.table.actions.view')}
           onClick={() => onView(entry)}
         >
           <Eye className="h-4 w-4" />
@@ -37,7 +40,7 @@ export const DailyLogEntryActions = ({
           size="icon"
           variant="ghost"
           className="h-8 w-8"
-          aria-label="Vrati"
+          aria-label={t('dailyLog.table.actions.restore')}
           onClick={() => onRestore(entry)}
         >
           <RotateCcw className="h-4 w-4" />
@@ -52,7 +55,7 @@ export const DailyLogEntryActions = ({
         size="icon"
         variant="ghost"
         className="h-8 w-8"
-        aria-label="Pregledaj"
+        aria-label={t('dailyLog.table.actions.view')}
         onClick={() => onView(entry)}
       >
         <Eye className="h-4 w-4" />
@@ -62,7 +65,7 @@ export const DailyLogEntryActions = ({
         size="icon"
         variant="ghost"
         className="h-8 w-8"
-        aria-label="Uredi"
+        aria-label={t('dailyLog.table.actions.edit')}
         onClick={() => onEdit(entry)}
       >
         <Pencil className="h-4 w-4" />
@@ -73,7 +76,7 @@ export const DailyLogEntryActions = ({
           size="icon"
           variant="ghost"
           className="h-8 w-8 text-emerald-600"
-          aria-label="Kompletiraj"
+          aria-label={t('dailyLog.table.actions.complete')}
           onClick={() => onComplete(entry.id)}
         >
           <Check className="h-4 w-4" />
@@ -84,7 +87,7 @@ export const DailyLogEntryActions = ({
         size="icon"
         variant="ghost"
         className="h-8 w-8 text-rose-600"
-        aria-label="Obriši"
+        aria-label={t('dailyLog.table.actions.delete')}
         onClick={() => onDelete(entry)}
       >
         <Trash2 className="h-4 w-4" />

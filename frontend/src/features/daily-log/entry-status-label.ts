@@ -1,12 +1,20 @@
 import type { DailyLogEntry } from './types'
 
-export const getDailyLogStatusLabel = (entry: DailyLogEntry): string => {
-  if (entry.deletedAt) return 'Obrisan'
-  if (entry.status === 'COMPLETED') return 'Kompletiran'
+export type DailyLogStatusKey =
+  | 'dailyLog.table.statuses.deleted'
+  | 'dailyLog.table.statuses.completed'
+  | 'dailyLog.table.statuses.inProgress'
+  | 'dailyLog.table.statuses.pending'
+
+export const getDailyLogStatusKey = (
+  entry: DailyLogEntry,
+): DailyLogStatusKey => {
+  if (entry.deletedAt) return 'dailyLog.table.statuses.deleted'
+  if (entry.status === 'COMPLETED') return 'dailyLog.table.statuses.completed'
   if (entry.reservation?.status === 'IN_PROGRESS') {
-    return 'Na čekanju (termin u toku)'
+    return 'dailyLog.table.statuses.inProgress'
   }
-  return 'Na čekanju'
+  return 'dailyLog.table.statuses.pending'
 }
 
 export const getDailyLogStatusVariant = (

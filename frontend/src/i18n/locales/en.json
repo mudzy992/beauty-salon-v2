@@ -1707,6 +1707,44 @@
       "resetFilters": "Reset",
       "serviceRevenue": "Service revenue",
       "completed": "Completed"
+    },
+    "table": {
+      "columns": {
+        "reference": "Ref.",
+        "stylist": "Stylist",
+        "services": "Services",
+        "client": "Client",
+        "serviceRevenue": "Service revenue",
+        "debts": "Debt payments",
+        "tip": "Tip",
+        "source": "Source"
+      },
+      "sources": {
+        "manual": "Manual",
+        "reservation": "Reservation"
+      },
+      "statuses": {
+        "deleted": "Deleted",
+        "completed": "Completed",
+        "inProgress": "Pending (appointment in progress)",
+        "pending": "Pending"
+      },
+      "actions": {
+        "view": "View entry",
+        "restore": "Restore entry",
+        "edit": "Edit entry",
+        "complete": "Complete entry",
+        "delete": "Delete entry"
+      },
+      "mobile": {
+        "services": "services",
+        "tip": "tip",
+        "debts": "debt payments",
+        "debtCollection": "+ debt payment {{amount}}",
+        "debtCount": "+ debt payments ({{count}})",
+        "reason": "Reason",
+        "loyaltyDiscount": "Loyalty discount: {{percent}}% ({{amount}})"
+      }
     }
   },
   "finance": {

@@ -1704,6 +1704,44 @@
       "resetFilters": "Resetuj",
       "serviceRevenue": "Prihod od servisa",
       "completed": "Kompletirano"
+    },
+    "table": {
+      "columns": {
+        "reference": "Ref.",
+        "stylist": "Stilista",
+        "services": "Servisi",
+        "client": "Klijent",
+        "serviceRevenue": "Iznos usluga",
+        "debts": "Dugovi",
+        "tip": "Napojnica",
+        "source": "Izvor"
+      },
+      "sources": {
+        "manual": "Ručno",
+        "reservation": "Rezervacija"
+      },
+      "statuses": {
+        "deleted": "Obrisan",
+        "completed": "Kompletiran",
+        "inProgress": "Na čekanju (termin u toku)",
+        "pending": "Na čekanju"
+      },
+      "actions": {
+        "view": "Pregledaj unos",
+        "restore": "Vrati unos",
+        "edit": "Uredi unos",
+        "complete": "Kompletiraj unos",
+        "delete": "Obriši unos"
+      },
+      "mobile": {
+        "services": "servisi",
+        "tip": "nap.",
+        "debts": "dugovi",
+        "debtCollection": "+ naplata duga {{amount}}",
+        "debtCount": "+ dugovi ({{count}})",
+        "reason": "Razlog",
+        "loyaltyDiscount": "Loyalty popust: {{percent}}% ({{amount}})"
+      }
     }
   },
   "finance": {

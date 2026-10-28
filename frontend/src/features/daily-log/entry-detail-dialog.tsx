@@ -20,7 +20,7 @@ import {
   statusLabel,
   statusVariant,
 } from './entry-detail-helpers'
-import { loyaltyLine } from './entry-table-helpers'
+import { LoyaltyDiscountLine } from './entry-table-helpers'
 import type { DailyLogEntry } from './types'
 import { getStylistName } from './types'
 
@@ -30,11 +30,16 @@ type Props = {
   onOpenChange: (open: boolean) => void
 }
 
-export const DailyLogEntryDetailDialog = ({ entry, open, onOpenChange }: Props) => {
+export const DailyLogEntryDetailDialog = ({
+  entry,
+  open,
+  onOpenChange,
+}: Props) => {
   const isMobile = useIsMobile()
   if (!entry) return null
 
-  const title = entry.publicReferenceCode ?? entry.date?.slice(0, 10) ?? 'Detalji zapisa'
+  const title =
+    entry.publicReferenceCode ?? entry.date?.slice(0, 10) ?? 'Detalji zapisa'
   const services = serviceRows(entry)
   const debts = entry.debtPaymentEntries ?? []
   const tip = getTipAmount(entry)
@@ -48,7 +53,10 @@ export const DailyLogEntryDetailDialog = ({ entry, open, onOpenChange }: Props) 
         <Badge variant={statusVariant(entry)} className="text-[10px]">
           {statusLabel(entry)}
         </Badge>
-        <Badge variant={entry.isManual ? 'warning' : 'secondary'} className="text-[10px]">
+        <Badge
+          variant={entry.isManual ? 'warning' : 'secondary'}
+          className="text-[10px]"
+        >
           {entry.isManual ? 'Ručno' : 'Rezervacija'}
         </Badge>
       </div>
@@ -81,7 +89,9 @@ export const DailyLogEntryDetailDialog = ({ entry, open, onOpenChange }: Props) 
         ) : null}
       </dl>
       <div>
-        <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Servisi</p>
+        <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+          Servisi
+        </p>
         {services.length === 0 ? (
           <p className="mt-1 text-slate-500">—</p>
         ) : (
@@ -92,12 +102,14 @@ export const DailyLogEntryDetailDialog = ({ entry, open, onOpenChange }: Props) 
                 className="flex justify-between gap-3 text-slate-700 dark:text-slate-200"
               >
                 <span>{row.name}</span>
-                <span className="tabular-nums shrink-0">{formatDetailKm(row.price)}</span>
+                <span className="tabular-nums shrink-0">
+                  {formatDetailKm(row.price)}
+                </span>
               </li>
             ))}
           </ul>
         )}
-        {loyaltyLine(entry)}
+        <LoyaltyDiscountLine entry={entry} />
       </div>
       {debts.length > 0 ? (
         <div>
@@ -137,7 +149,9 @@ export const DailyLogEntryDetailDialog = ({ entry, open, onOpenChange }: Props) 
         ) : null}
         {tip > 0 ? (
           <div className="mt-1 flex justify-between tabular-nums">
-            <span className="text-slate-600 dark:text-slate-300">Napojnica</span>
+            <span className="text-slate-600 dark:text-slate-300">
+              Napojnica
+            </span>
             <span>{formatDetailKm(tip)}</span>
           </div>
         ) : null}
@@ -149,11 +163,15 @@ export const DailyLogEntryDetailDialog = ({ entry, open, onOpenChange }: Props) 
       {entry.notes ? (
         <div>
           <p className="text-xs text-slate-500">Bilješke</p>
-          <p className="mt-0.5 text-slate-900 dark:text-slate-50">{entry.notes}</p>
+          <p className="mt-0.5 text-slate-900 dark:text-slate-50">
+            {entry.notes}
+          </p>
         </div>
       ) : null}
       {entry.deletedAt && entry.deleteReason ? (
-        <p className="text-xs text-rose-600">Razlog brisanja: {entry.deleteReason}</p>
+        <p className="text-xs text-rose-600">
+          Razlog brisanja: {entry.deleteReason}
+        </p>
       ) : null}
     </div>
   )

@@ -1,13 +1,31 @@
 import { Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link as RouterLink } from 'react-router-dom'
 import { Badge } from '../../components/ui/badge'
 import { Card } from '../../components/ui/card'
 import type { DailyLogEntry } from './types'
 import { getStylistName } from './types'
-import { getServiceAmount, getSettledDebtsSum, getServicesLabel, getTipAmount, getTotalAmount } from './amounts'
+import {
+  getServiceAmount,
+  getSettledDebtsSum,
+  getServicesLabel,
+  getTipAmount,
+  getTotalAmount,
+} from './amounts'
+import {
+  formatLocalizedAmount,
+  formatLocalizedNumber,
+} from '../../i18n/locale-utils.mjs'
 import { DailyLogEntryActions } from './entry-table-actions'
-import { formatMobileAmount, loyaltyLine } from './entry-table-helpers'
-import { getDailyLogStatusLabel, getDailyLogStatusVariant } from './entry-status-label'
+import {
+  formatDailyLogDate,
+  formatMobileAmount,
+  LoyaltyDiscountLine,
+} from './entry-table-helpers'
+import {
+  getDailyLogStatusKey,
+  getDailyLogStatusVariant,
+} from './entry-status-label'
 
 type Props = {
   entries: DailyLogEntry[]
@@ -30,16 +48,25 @@ export const DailyLogEntryTable = ({
   onDelete,
   onRestore,
 }: Props) => {
+  const { t, i18n } = useTranslation()
   if (loading) {
     return (
       <Card className="overflow-hidden">
         <div className="flex justify-center p-10">
-          <Loader2 className="h-8 w-8 animate-spin text-slate-500" aria-hidden="true" />
+          <Loader2
+            className="h-8 w-8 animate-spin text-slate-500"
+            aria-hidden="true"
+          />
         </div>
       </Card>
     )
   }
   const actions = { onView, onEdit, onComplete, onDelete, onRestore }
+  const formatAmount = (amount: number) =>
+    formatLocalizedNumber(amount, i18n.language, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
   return (
     <Card className="overflow-hidden">
       <div className="space-y-3 p-3 lg:hidden">
@@ -55,30 +82,50 @@ export const DailyLogEntryTable = ({
             >
               <div className="flex items-center justify-between">
                 <p className="font-medium text-slate-900 dark:text-slate-50">
-                  {e.publicReferenceCode ?? e.date?.slice(0, 10)}
+                  {e.publicReferenceCode ??
+                    formatDailyLogDate(e.date, i18n.language)}
                 </p>
                 <Badge
                   variant={getDailyLogStatusVariant(e)}
                   className="text-[10px]"
                 >
-                  {getDailyLogStatusLabel(e)}
+                  {t(getDailyLogStatusKey(e))}
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500">{e.date?.slice(0, 10)}</p>
+              <p className="text-xs text-slate-500">
+                {formatDailyLogDate(e.date, i18n.language)}
+              </p>
               <p className="text-sm">{getServicesLabel(e)}</p>
               {getSettledDebtsSum(e) > 0 ? (
                 <p className="text-xs text-slate-600 dark:text-slate-300">
-                  + naplata duga {getSettledDebtsSum(e).toFixed(2)} KM
+                  {t('dailyLog.table.mobile.debtCollection', {
+                    amount: formatLocalizedAmount(
+                      getSettledDebtsSum(e),
+                      i18n.language,
+                    ),
+                  })}
                 </p>
               ) : null}
               <p className="text-sm text-slate-600 dark:text-slate-300">
                 {getStylistName(e.stylistProfile)}
               </p>
               {e.deletedAt && e.deleteReason ? (
-                <p className="mt-1 text-xs text-rose-600">Razlog: {e.deleteReason}</p>
+                <p className="mt-1 text-xs text-rose-600">
+                  {t('dailyLog.table.mobile.reason')}: {e.deleteReason}
+                </p>
               ) : null}
               <div className="mt-2 flex items-center justify-between">
-                <p className="text-sm font-medium">{formatMobileAmount(e)}</p>
+                <p className="text-sm font-medium">
+                  {formatMobileAmount(
+                    e,
+                    {
+                      services: t('dailyLog.table.mobile.services'),
+                      tip: t('dailyLog.table.mobile.tip'),
+                      debts: t('dailyLog.table.mobile.debts'),
+                    },
+                    i18n.language,
+                  )}
+                </p>
                 <DailyLogEntryActions entry={e} {...actions} />
               </div>
             </div>
@@ -89,18 +136,38 @@ export const DailyLogEntryTable = ({
         <table className="app-table w-full border-collapse">
           <thead>
             <tr className="border-b border-slate-200 text-left dark:border-slate-800">
-              <th className="p-3 font-medium">Datum</th>
-              <th className="p-3 font-medium">Ref.</th>
-              <th className="p-3 font-medium">Stilista</th>
-              <th className="p-3 font-medium">Servisi</th>
-              <th className="p-3 font-medium">Klijent</th>
-              <th className="p-3 text-right font-medium">Servisi</th>
-              <th className="p-3 text-right font-medium">Dugovi</th>
-              <th className="p-3 text-right font-medium">Napojnica</th>
-              <th className="p-3 text-right font-medium">Ukupno</th>
-              <th className="p-3 font-medium">Izvor</th>
-              <th className="p-3 font-medium">Status</th>
-              <th className="p-3 text-right font-medium">Akcije</th>
+              <th className="p-3 font-medium">{t('common.date')}</th>
+              <th className="p-3 font-medium">
+                {t('dailyLog.table.columns.reference')}
+              </th>
+              <th className="p-3 font-medium">
+                {t('dailyLog.table.columns.stylist')}
+              </th>
+              <th className="p-3 font-medium">
+                {t('dailyLog.table.columns.services')}
+              </th>
+              <th className="p-3 font-medium">
+                {t('dailyLog.table.columns.client')}
+              </th>
+              <th className="p-3 text-right font-medium">
+                {t('dailyLog.table.columns.serviceRevenue')}
+              </th>
+              <th className="p-3 text-right font-medium">
+                {t('dailyLog.table.columns.debts')}
+              </th>
+              <th className="p-3 text-right font-medium">
+                {t('dailyLog.table.columns.tip')}
+              </th>
+              <th className="p-3 text-right font-medium">
+                {t('common.total')}
+              </th>
+              <th className="p-3 font-medium">
+                {t('dailyLog.table.columns.source')}
+              </th>
+              <th className="p-3 font-medium">{t('common.status')}</th>
+              <th className="p-3 text-right font-medium">
+                {t('common.actions')}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -115,14 +182,18 @@ export const DailyLogEntryTable = ({
                 <tr
                   key={e.id}
                   className={`border-b border-slate-100 dark:border-slate-800/80 ${
-                    e.deletedAt ? 'bg-slate-50 opacity-70 dark:bg-slate-900/40' : ''
+                    e.deletedAt
+                      ? 'bg-slate-50 opacity-70 dark:bg-slate-900/40'
+                      : ''
                   }`}
                   title={e.deleteReason ?? undefined}
                 >
                   <td className={`p-3 ${e.deletedAt ? 'line-through' : ''}`}>
-                    {e.date?.slice(0, 10)}
+                    {formatDailyLogDate(e.date, i18n.language)}
                   </td>
-                  <td className="p-3 font-mono text-xs">{e.publicReferenceCode ?? '—'}</td>
+                  <td className="p-3 font-mono text-xs">
+                    {e.publicReferenceCode ?? '—'}
+                  </td>
                   <td className="p-3">
                     {e.stylistProfile?.id ? (
                       <RouterLink
@@ -137,17 +208,26 @@ export const DailyLogEntryTable = ({
                   </td>
                   <td className="p-3">
                     <div className="flex flex-col gap-0">
-                      <span title={e.items?.map((i) => i.service?.name).filter(Boolean).join(', ')}>
+                      <span
+                        title={e.items
+                          ?.map((i) => i.service?.name)
+                          .filter(Boolean)
+                          .join(', ')}
+                      >
                         {getServicesLabel(e)}
                       </span>
                       {getSettledDebtsSum(e) > 0 ? (
                         <span className="text-xs text-slate-500">
-                          + dugovi ({e.debtPaymentEntries?.length ?? 0})
+                          {t('dailyLog.table.mobile.debtCount', {
+                            count: e.debtPaymentEntries?.length ?? 0,
+                          })}
                         </span>
                       ) : null}
-                      {loyaltyLine(e)}
+                      <LoyaltyDiscountLine entry={e} />
                       {e.deletedAt && e.deleteReason ? (
-                        <span className="text-xs text-rose-600">Razlog: {e.deleteReason}</span>
+                        <span className="text-xs text-rose-600">
+                          {t('dailyLog.table.mobile.reason')}: {e.deleteReason}
+                        </span>
                       ) : null}
                     </div>
                   </td>
@@ -157,7 +237,9 @@ export const DailyLogEntryTable = ({
                         to={`/admin/client-analytics?userId=${e.client.id}`}
                         className="text-brand-gold-text hover:underline"
                       >
-                        {[e.client.firstName, e.client.lastName].filter(Boolean).join(' ') ||
+                        {[e.client.firstName, e.client.lastName]
+                          .filter(Boolean)
+                          .join(' ') ||
                           e.client.user?.username ||
                           '-'}
                       </RouterLink>
@@ -166,23 +248,35 @@ export const DailyLogEntryTable = ({
                     )}
                   </td>
                   <td className="p-3 text-right font-medium tabular-nums">
-                    {getServiceAmount(e).toFixed(2)}
+                    {formatAmount(getServiceAmount(e))}
                   </td>
                   <td className="p-3 text-right tabular-nums">
-                    {getSettledDebtsSum(e).toFixed(2)}
+                    {formatAmount(getSettledDebtsSum(e))}
                   </td>
-                  <td className="p-3 text-right tabular-nums">{getTipAmount(e).toFixed(2)}</td>
+                  <td className="p-3 text-right tabular-nums">
+                    {formatAmount(getTipAmount(e))}
+                  </td>
                   <td className="p-3 text-right font-semibold tabular-nums">
-                    {getTotalAmount(e).toFixed(2)}
+                    {formatAmount(getTotalAmount(e))}
                   </td>
                   <td className="p-3">
-                    <Badge variant={e.isManual ? 'warning' : 'secondary'} className="text-[10px]">
-                      {e.isManual ? 'Ručno' : 'Rezervacija'}
+                    <Badge
+                      variant={e.isManual ? 'warning' : 'secondary'}
+                      className="text-[10px]"
+                    >
+                      {t(
+                        e.isManual
+                          ? 'dailyLog.table.sources.manual'
+                          : 'dailyLog.table.sources.reservation',
+                      )}
                     </Badge>
                   </td>
                   <td className="p-3">
-                    <Badge variant={getDailyLogStatusVariant(e)} className="text-[10px]">
-                      {getDailyLogStatusLabel(e)}
+                    <Badge
+                      variant={getDailyLogStatusVariant(e)}
+                      className="text-[10px]"
+                    >
+                      {t(getDailyLogStatusKey(e))}
                     </Badge>
                   </td>
                   <td className="p-3 text-right">
