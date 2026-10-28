@@ -1745,6 +1745,14 @@
         "reason": "Reason",
         "loyaltyDiscount": "Loyalty discount: {{percent}}% ({{amount}})"
       }
+    },
+    "detail": {
+      "title": "Entry details",
+      "serviceFallback": "Service",
+      "debtFallback": "Debt",
+      "debtCollection": "Debt payment",
+      "notes": "Notes",
+      "deleteReason": "Deletion reason"
     }
   },
   "finance": {

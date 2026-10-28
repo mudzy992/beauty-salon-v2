@@ -1742,6 +1742,14 @@
         "reason": "Razlog",
         "loyaltyDiscount": "Loyalty popust: {{percent}}% ({{amount}})"
       }
+    },
+    "detail": {
+      "title": "Detalji zapisa",
+      "serviceFallback": "Usluga",
+      "debtFallback": "Dug",
+      "debtCollection": "Naplata dugovanja",
+      "notes": "Bilješke",
+      "deleteReason": "Razlog brisanja"
     }
   },
   "finance": {

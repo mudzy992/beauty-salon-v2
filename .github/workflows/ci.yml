@@ -281,6 +281,9 @@ jobs:
       - name: Test localized daily-log table
         working-directory: frontend
         run: npm run test:daily-log-table-i18n
+      - name: Test localized daily-log detail dialog
+        working-directory: frontend
+        run: npm run test:daily-log-detail-i18n
       - name: Test localized admin loyalty page
         working-directory: frontend
         run: npm run test:admin-loyalty-i18n

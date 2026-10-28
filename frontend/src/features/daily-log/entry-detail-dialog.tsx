@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { Badge } from '../../components/ui/badge'
 import {
   Dialog,
@@ -16,11 +18,11 @@ import {
 import {
   clientLabel,
   formatDetailKm,
+  getDailyLogDetailStatusKey,
   serviceRows,
-  statusLabel,
-  statusVariant,
 } from './entry-detail-helpers'
-import { LoyaltyDiscountLine } from './entry-table-helpers'
+import { formatDailyLogDate, LoyaltyDiscountLine } from './entry-table-helpers'
+import { getDailyLogStatusVariant } from './entry-status-label'
 import type { DailyLogEntry } from './types'
 import { getStylistName } from './types'
 
@@ -36,11 +38,15 @@ export const DailyLogEntryDetailDialog = ({
   onOpenChange,
 }: Props) => {
   const isMobile = useIsMobile()
+  const { t, i18n } = useTranslation()
   if (!entry) return null
 
   const title =
-    entry.publicReferenceCode ?? entry.date?.slice(0, 10) ?? 'Detalji zapisa'
-  const services = serviceRows(entry)
+    entry.publicReferenceCode ??
+    (entry.date
+      ? formatDailyLogDate(entry.date, i18n.language)
+      : t('dailyLog.detail.title'))
+  const services = serviceRows(entry, t('dailyLog.detail.serviceFallback'))
   const debts = entry.debtPaymentEntries ?? []
   const tip = getTipAmount(entry)
   const serviceAmt = getServiceAmount(entry)
@@ -50,38 +56,51 @@ export const DailyLogEntryDetailDialog = ({
   const body = (
     <div className="space-y-4 text-sm">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={statusVariant(entry)} className="text-[10px]">
-          {statusLabel(entry)}
+        <Badge
+          variant={getDailyLogStatusVariant(entry)}
+          className="text-[10px]"
+        >
+          {t(getDailyLogDetailStatusKey(entry))}
         </Badge>
         <Badge
           variant={entry.isManual ? 'warning' : 'secondary'}
           className="text-[10px]"
         >
-          {entry.isManual ? 'Ručno' : 'Rezervacija'}
+          {t(
+            entry.isManual
+              ? 'dailyLog.table.sources.manual'
+              : 'dailyLog.table.sources.reservation',
+          )}
         </Badge>
       </div>
       <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <div>
-          <dt className="text-xs text-slate-500">Datum</dt>
+          <dt className="text-xs text-slate-500">{t('common.date')}</dt>
           <dd className="font-medium text-slate-900 dark:text-slate-50">
-            {entry.date?.slice(0, 10) ?? '—'}
+            {formatDailyLogDate(entry.date, i18n.language)}
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-slate-500">Stilista</dt>
+          <dt className="text-xs text-slate-500">
+            {t('dailyLog.table.columns.stylist')}
+          </dt>
           <dd className="font-medium text-slate-900 dark:text-slate-50">
             {getStylistName(entry.stylistProfile)}
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-slate-500">Klijent</dt>
+          <dt className="text-xs text-slate-500">
+            {t('dailyLog.table.columns.client')}
+          </dt>
           <dd className="font-medium text-slate-900 dark:text-slate-50">
             {clientLabel(entry)}
           </dd>
         </div>
         {entry.publicReferenceCode ? (
           <div>
-            <dt className="text-xs text-slate-500">Ref.</dt>
+            <dt className="text-xs text-slate-500">
+              {t('dailyLog.table.columns.reference')}
+            </dt>
             <dd className="font-mono text-xs font-medium text-slate-900 dark:text-slate-50">
               {entry.publicReferenceCode}
             </dd>
@@ -90,7 +109,7 @@ export const DailyLogEntryDetailDialog = ({
       </dl>
       <div>
         <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-          Servisi
+          {t('dailyLog.table.columns.services')}
         </p>
         {services.length === 0 ? (
           <p className="mt-1 text-slate-500">—</p>
@@ -103,7 +122,7 @@ export const DailyLogEntryDetailDialog = ({
               >
                 <span>{row.name}</span>
                 <span className="tabular-nums shrink-0">
-                  {formatDetailKm(row.price)}
+                  {formatDetailKm(row.price, i18n.language)}
                 </span>
               </li>
             ))}
@@ -114,22 +133,27 @@ export const DailyLogEntryDetailDialog = ({
       {debts.length > 0 ? (
         <div>
           <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-            Naplata dugovanja
+            {t('dailyLog.detail.debtCollection')}
           </p>
           <ul className="mt-1 space-y-1">
-            {debts.map((dp) => (
+            {debts.map((payment) => (
               <li
-                key={dp.id}
+                key={payment.id}
                 className="flex justify-between gap-3 text-slate-700 dark:text-slate-200"
               >
                 <span>
-                  {dp.debt?.service?.name ?? dp.service?.name ?? 'Dug'}
-                  {dp.debt?.createdAt
-                    ? ` · ${String(dp.debt.createdAt).slice(0, 10)}`
+                  {payment.debt?.service?.name ??
+                    payment.service?.name ??
+                    t('dailyLog.detail.debtFallback')}
+                  {payment.debt?.createdAt
+                    ? ` · ${formatDailyLogDate(String(payment.debt.createdAt), i18n.language)}`
                     : ''}
                 </span>
                 <span className="tabular-nums shrink-0">
-                  {formatDetailKm(Number(dp.actualPrice ?? 0))}
+                  {formatDetailKm(
+                    Number(payment.actualPrice ?? 0),
+                    i18n.language,
+                  )}
                 </span>
               </li>
             ))}
@@ -138,31 +162,35 @@ export const DailyLogEntryDetailDialog = ({
       ) : null}
       <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
         <div className="flex justify-between tabular-nums">
-          <span className="text-slate-600 dark:text-slate-300">Servisi</span>
-          <span>{formatDetailKm(serviceAmt)}</span>
+          <span className="text-slate-600 dark:text-slate-300">
+            {t('dailyLog.table.columns.serviceRevenue')}
+          </span>
+          <span>{formatDetailKm(serviceAmt, i18n.language)}</span>
         </div>
         {debtsSum > 0 ? (
           <div className="mt-1 flex justify-between tabular-nums">
-            <span className="text-slate-600 dark:text-slate-300">Dugovi</span>
-            <span>{formatDetailKm(debtsSum)}</span>
+            <span className="text-slate-600 dark:text-slate-300">
+              {t('dailyLog.table.columns.debts')}
+            </span>
+            <span>{formatDetailKm(debtsSum, i18n.language)}</span>
           </div>
         ) : null}
         {tip > 0 ? (
           <div className="mt-1 flex justify-between tabular-nums">
             <span className="text-slate-600 dark:text-slate-300">
-              Napojnica
+              {t('dailyLog.table.columns.tip')}
             </span>
-            <span>{formatDetailKm(tip)}</span>
+            <span>{formatDetailKm(tip, i18n.language)}</span>
           </div>
         ) : null}
         <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 font-semibold tabular-nums dark:border-slate-800">
-          <span>Ukupno</span>
-          <span>{formatDetailKm(total)}</span>
+          <span>{t('common.total')}</span>
+          <span>{formatDetailKm(total, i18n.language)}</span>
         </div>
       </div>
       {entry.notes ? (
         <div>
-          <p className="text-xs text-slate-500">Bilješke</p>
+          <p className="text-xs text-slate-500">{t('dailyLog.detail.notes')}</p>
           <p className="mt-0.5 text-slate-900 dark:text-slate-50">
             {entry.notes}
           </p>
@@ -170,7 +198,7 @@ export const DailyLogEntryDetailDialog = ({
       ) : null}
       {entry.deletedAt && entry.deleteReason ? (
         <p className="text-xs text-rose-600">
-          Razlog brisanja: {entry.deleteReason}
+          {t('dailyLog.detail.deleteReason')}: {entry.deleteReason}
         </p>
       ) : null}
     </div>

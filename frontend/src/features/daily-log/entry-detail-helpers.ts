@@ -1,6 +1,9 @@
+import { formatLocalizedAmount } from '../../i18n/locale-utils.mjs'
+import type { DailyLogStatusKey } from './entry-status-label'
 import type { DailyLogEntry } from './types'
 
-export const formatDetailKm = (v: number): string => `${v.toFixed(2)} KM`
+export const formatDetailKm = (value: number, language: string): string =>
+  formatLocalizedAmount(value, language)
 
 export const clientLabel = (entry: DailyLogEntry): string => {
   if (!entry.client) return '—'
@@ -13,12 +16,15 @@ export const clientLabel = (entry: DailyLogEntry): string => {
 
 export type DetailServiceRow = { key: string; name: string; price: number }
 
-export const serviceRows = (entry: DailyLogEntry): DetailServiceRow[] => {
+export const serviceRows = (
+  entry: DailyLogEntry,
+  missingServiceLabel: string,
+): DetailServiceRow[] => {
   if (entry.items && entry.items.length > 0) {
-    return entry.items.map((it) => ({
-      key: it.id || it.serviceId,
-      name: it.service?.name ?? 'Usluga',
-      price: Number(it.unitPrice ?? it.service?.price ?? 0),
+    return entry.items.map((item) => ({
+      key: item.id || item.serviceId,
+      name: item.service?.name ?? missingServiceLabel,
+      price: Number(item.unitPrice ?? item.service?.price ?? 0),
     }))
   }
   if (entry.service) {
@@ -33,14 +39,11 @@ export const serviceRows = (entry: DailyLogEntry): DetailServiceRow[] => {
   return []
 }
 
-export const statusLabel = (entry: DailyLogEntry): string => {
-  if (entry.deletedAt) return 'Obrisan'
-  return entry.status === 'COMPLETED' ? 'Kompletiran' : 'Na čekanju'
-}
-
-export const statusVariant = (
+export const getDailyLogDetailStatusKey = (
   entry: DailyLogEntry,
-): 'secondary' | 'success' | 'warning' => {
-  if (entry.deletedAt) return 'secondary'
-  return entry.status === 'COMPLETED' ? 'success' : 'warning'
+): DailyLogStatusKey => {
+  if (entry.deletedAt) return 'dailyLog.table.statuses.deleted'
+  return entry.status === 'COMPLETED'
+    ? 'dailyLog.table.statuses.completed'
+    : 'dailyLog.table.statuses.pending'
 }
