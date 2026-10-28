@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { ArrowDown, ArrowUp, Eye, Pencil, Trash2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { formatLocalizedAmount, getIntlLocale } from '../../../i18n/locale-utils.mjs'
+import { formatInstantDateLocale } from '../../../../../shared/business-date.mjs'
 
 import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
@@ -12,7 +15,6 @@ import {
   notesPreviewFor,
   PREVIEW_LIMIT,
 } from './expense-table.helpers'
-import { formatInstantDateBs, formatMoney } from '../finance.utils'
 import type { ExpenseSortField } from './expenses.helpers'
 import type { Expense, SortDirection } from '../finance.types'
 
@@ -26,10 +28,10 @@ type ExpenseTableProps = {
   onDelete: (expense: Expense) => void
 }
 
-const COLUMNS: { field: ExpenseSortField; label: string; numeric?: boolean }[] = [
-  { field: 'createdAt', label: 'Datum' },
-  { field: 'title', label: 'Naziv' },
-  { field: 'totalAmount', label: 'Iznos', numeric: true },
+const COLUMNS: { field: ExpenseSortField; labelKey: string; numeric?: boolean }[] = [
+  { field: 'createdAt', labelKey: 'finance.expenseList.columns.date' },
+  { field: 'title', labelKey: 'finance.expenseList.columns.title' },
+  { field: 'totalAmount', labelKey: 'finance.expenseList.columns.amount', numeric: true },
 ]
 
 export function ExpenseTable({
@@ -41,13 +43,14 @@ export function ExpenseTable({
   onEdit,
   onDelete,
 }: ExpenseTableProps) {
+  const { t, i18n } = useTranslation()
   const [preview, setPreview] = useState<Expense | null>(null)
 
   if (expenses.length === 0) {
     return (
       <EmptyState
-        title="Nema rashoda"
-        description="Promijenite filtere ili dodajte novi rashod."
+        title={t('finance.expenseList.noExpenses')}
+        description={t('finance.expenseList.noExpensesHint')}
       />
     )
   }
@@ -58,7 +61,7 @@ export function ExpenseTable({
     <>
       <div className="app-table-wrap">
         <table className="app-table w-full">
-          <caption className="sr-only">Stavke knjige rashoda</caption>
+          <caption className="sr-only">{t('finance.expenseList.caption')}</caption>
           <thead>
             <tr className="border-b border-slate-200 text-left dark:border-slate-800">
               {COLUMNS.map((column) => (
@@ -71,9 +74,9 @@ export function ExpenseTable({
                     type="button"
                     className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-50"
                     onClick={() => onSort(column.field)}
-                    aria-label={`Sortiraj po ${column.label}`}
+                    aria-label={t('finance.expenseList.sortBy', { label: t(column.labelKey) })}
                   >
-                    {column.label}
+                    {t(column.labelKey)}
                     {sortField === column.field ? (
                       <SortIcon className="h-3 w-3" aria-hidden="true" />
                     ) : null}
@@ -81,13 +84,13 @@ export function ExpenseTable({
                 </th>
               ))}
               <th scope="col" className="py-2 pr-3 font-medium">
-                Kategorija
+                {t('finance.expenseList.columns.category')}
               </th>
               <th scope="col" className="py-2 pr-3 font-medium">
-                Prilozi
+                {t('finance.expenseList.columns.attachments')}
               </th>
               <th scope="col" className="py-2 text-right font-medium">
-                Akcije
+                {t('finance.expenseList.columns.actions')}
               </th>
             </tr>
           </thead>
@@ -95,7 +98,7 @@ export function ExpenseTable({
             {expenses.map((expense) => {
               const isFixed = Boolean(expense.category?.isFixed)
               const notes = notesPreviewFor(expense)
-              const detailLabels = detailLabelsFor(expense)
+              const detailLabels = detailLabelsFor(expense, t('finance.expenseList.fieldFallback'))
               const canPreview = hasInvoiceDetail(expense)
               return (
                 <tr
@@ -103,7 +106,11 @@ export function ExpenseTable({
                   className="border-b border-slate-100 last:border-0 dark:border-slate-900"
                 >
                   <td className="whitespace-nowrap py-2 pr-3 align-top">
-                    {formatInstantDateBs(expense.createdAt)}
+                    {formatInstantDateLocale(
+                      expense.createdAt,
+                      getIntlLocale(i18n.language),
+                      { year: 'numeric', month: '2-digit', day: '2-digit' },
+                    )}
                   </td>
                   <td className="py-2 pr-3 align-top">
                     <div className="font-medium text-slate-900 dark:text-slate-50">
@@ -126,8 +133,9 @@ export function ExpenseTable({
                               className="text-brand-gold-text hover:underline"
                               onClick={() => setPreview(expense)}
                             >
-                              + još {detailLabels.length - PREVIEW_LIMIT} stavki — pogledaj
-                              fakturu
+                              {t('finance.expenseList.moreItems', {
+                                count: detailLabels.length - PREVIEW_LIMIT,
+                              })}
                             </button>
                           </li>
                         ) : null}
@@ -135,12 +143,14 @@ export function ExpenseTable({
                     ) : null}
                   </td>
                   <td className="py-2 pr-3 text-right tabular-nums align-top">
-                    {formatMoney(expense.totalAmount)}
+                    {formatLocalizedAmount(expense.totalAmount, i18n.language)}
                   </td>
                   <td className="py-2 pr-3 align-top">
                     <div className="flex flex-wrap items-center gap-1">
                       <span>{expense.category?.name ?? '—'}</span>
-                      {isFixed ? <Badge variant="secondary">fiksno</Badge> : null}
+                      {isFixed ? (
+                        <Badge variant="secondary">{t('finance.expenseForm.fixed')}</Badge>
+                      ) : null}
                     </div>
                   </td>
                   <td className="min-w-[160px] py-2 pr-3 align-top">
@@ -155,7 +165,7 @@ export function ExpenseTable({
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label={`Pregledaj fakturu ${expense.title}`}
+                          aria-label={t('finance.expenseList.previewInvoice', { title: expense.title })}
                           onClick={() => setPreview(expense)}
                         >
                           <Eye className="h-3.5 w-3.5" aria-hidden="true" />
@@ -166,7 +176,7 @@ export function ExpenseTable({
                           <Button
                             variant="ghost"
                             size="icon"
-                            aria-label={`Uredi rashod ${expense.title}`}
+                            aria-label={t('finance.expenseList.editExpense', { title: expense.title })}
                             onClick={() => onEdit(expense)}
                           >
                             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
@@ -174,7 +184,7 @@ export function ExpenseTable({
                           <Button
                             variant="ghost"
                             size="icon"
-                            aria-label={`Obriši rashod ${expense.title}`}
+                            aria-label={t('finance.expenseList.deleteExpense', { title: expense.title })}
                             onClick={() => onDelete(expense)}
                           >
                             <Trash2 className="h-3.5 w-3.5 text-rose-500" aria-hidden="true" />

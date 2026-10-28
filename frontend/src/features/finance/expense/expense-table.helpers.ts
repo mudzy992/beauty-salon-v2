@@ -4,10 +4,10 @@ import type { Expense } from '../finance.types'
 
 export const PREVIEW_LIMIT = 3
 
-export const detailLabelsFor = (expense: Expense): string[] => {
+export const detailLabelsFor = (expense: Expense, fieldFallback = 'Polje'): string[] => {
   if (expense.category?.isFixed) {
     return (expense.fieldValues ?? []).map((fv) => {
-      const name = fv.field?.fieldName ?? 'Polje'
+      const name = fv.field?.fieldName ?? fieldFallback
       return `${name}: ${toNumber(fv.value).toFixed(2)} KM`
     })
   }

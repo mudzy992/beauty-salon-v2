@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
@@ -21,6 +22,7 @@ export function ExpenseFiltersBar({
   resultCount,
   totalCount,
 }: ExpenseFiltersBarProps) {
+  const { t } = useTranslation()
   const isFiltered =
     JSON.stringify(filters) !== JSON.stringify(EMPTY_EXPENSE_FILTERS)
   const update = (patch: Partial<ExpenseFilters>) =>
@@ -31,18 +33,18 @@ export function ExpenseFiltersBar({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="grid gap-1">
           <Label htmlFor="expense-search" className="text-xs">
-            Pretraga
+            {t('finance.filters.search')}
           </Label>
           <Input
             id="expense-search"
             value={filters.search}
             onChange={(event) => update({ search: event.target.value })}
-            placeholder="Naziv, kategorija, napomena…"
+            placeholder={t('finance.expenseList.searchPlaceholder')}
           />
         </div>
         <div className="grid gap-1">
           <Label htmlFor="expense-category" className="text-xs">
-            Kategorija
+            {t('finance.filters.category')}
           </Label>
           <select
             id="expense-category"
@@ -50,7 +52,7 @@ export function ExpenseFiltersBar({
             value={filters.categoryId}
             onChange={(event) => update({ categoryId: event.target.value })}
           >
-            <option value="">Sve kategorije</option>
+            <option value="">{t('finance.expenseList.allCategories')}</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
@@ -60,7 +62,7 @@ export function ExpenseFiltersBar({
         </div>
         <div className="grid gap-1">
           <Label htmlFor="expense-min" className="text-xs">
-            Iznos od
+            {t('finance.filters.amountFrom')}
           </Label>
           <Input
             id="expense-min"
@@ -72,7 +74,7 @@ export function ExpenseFiltersBar({
         </div>
         <div className="grid gap-1">
           <Label htmlFor="expense-max" className="text-xs">
-            Iznos do
+            {t('finance.filters.amountTo')}
           </Label>
           <Input
             id="expense-max"
@@ -94,11 +96,11 @@ export function ExpenseFiltersBar({
               update({ onlyWithAttachments: event.target.checked })
             }
           />
-          Samo rashodi sa prilogom
+          {t('finance.expenseList.onlyWithAttachments')}
         </label>
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            Prikazano {resultCount} od {totalCount}
+            {t('finance.expenseList.resultCount', { resultCount, totalCount })}
           </span>
           {isFiltered ? (
             <Button
@@ -107,7 +109,7 @@ export function ExpenseFiltersBar({
               onClick={() => onChange(EMPTY_EXPENSE_FILTERS)}
             >
               <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              Očisti
+              {t('finance.filters.clear')}
             </Button>
           ) : null}
         </div>

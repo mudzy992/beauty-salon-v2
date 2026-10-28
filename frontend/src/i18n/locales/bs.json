@@ -1738,6 +1738,37 @@
       "net": "Neto (KIF − KUF)",
       "filtered": "Prikazano (filter)"
     },
+    "expenseList": {
+      "searchPlaceholder": "Naziv, kategorija, napomena…",
+      "allCategories": "Sve kategorije",
+      "onlyWithAttachments": "Samo rashodi sa prilogom",
+      "resultCount": "Prikazano {{resultCount}} od {{totalCount}}",
+      "noExpenses": "Nema rashoda",
+      "noExpensesHint": "Promijenite filtere ili dodajte novi rashod.",
+      "caption": "Stavke knjige rashoda",
+      "columns": {
+        "date": "Datum",
+        "title": "Naziv",
+        "amount": "Iznos",
+        "category": "Kategorija",
+        "attachments": "Prilozi",
+        "actions": "Akcije",
+        "lineItem": "Stavka"
+      },
+      "sortBy": "Sortiraj po {{label}}",
+      "moreItems_one": "+ još {{count}} stavka — pogledaj fakturu",
+      "moreItems_few": "+ još {{count}} stavke — pogledaj fakturu",
+      "moreItems_other": "+ još {{count}} stavki — pogledaj fakturu",
+      "previewInvoice": "Pregledaj fakturu {{title}}",
+      "editExpense": "Uredi rashod {{title}}",
+      "deleteExpense": "Obriši rashod {{title}}",
+      "fieldFallback": "Polje",
+      "lineFallback": "Stavka",
+      "previewTitle": "Pregled: {{title}}",
+      "categoryFallback": "Rashod",
+      "close": "Zatvori",
+      "noInvoiceItems": "Nema pojedinačnih stavki."
+    },
     "expenseForm": {
       "createTitle": "Novi rashod",
       "editTitle": "Uredi rashod",

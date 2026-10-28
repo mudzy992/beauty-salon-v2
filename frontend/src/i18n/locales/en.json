@@ -1741,6 +1741,37 @@
       "net": "Net (income − expenses)",
       "filtered": "Shown (filtered)"
     },
+    "expenseList": {
+      "searchPlaceholder": "Name, category, note…",
+      "allCategories": "All categories",
+      "onlyWithAttachments": "Expenses with attachments only",
+      "resultCount": "Showing {{resultCount}} of {{totalCount}}",
+      "noExpenses": "No expenses",
+      "noExpensesHint": "Adjust the filters or add a new expense.",
+      "caption": "Expense book entries",
+      "columns": {
+        "date": "Date",
+        "title": "Name",
+        "amount": "Amount",
+        "category": "Category",
+        "attachments": "Attachments",
+        "actions": "Actions",
+        "lineItem": "Line item"
+      },
+      "sortBy": "Sort by {{label}}",
+      "moreItems_one": "+ {{count}} more item — view invoice",
+      "moreItems_few": "+ {{count}} more items — view invoice",
+      "moreItems_other": "+ {{count}} more items — view invoice",
+      "previewInvoice": "Preview invoice for {{title}}",
+      "editExpense": "Edit expense {{title}}",
+      "deleteExpense": "Delete expense {{title}}",
+      "fieldFallback": "Field",
+      "lineFallback": "Item",
+      "previewTitle": "Preview: {{title}}",
+      "categoryFallback": "Expense",
+      "close": "Close",
+      "noInvoiceItems": "There are no individual line items."
+    },
     "expenseForm": {
       "createTitle": "New expense",
       "editTitle": "Edit expense",
