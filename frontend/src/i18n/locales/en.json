@@ -1741,6 +1741,28 @@
       "net": "Net (income − expenses)",
       "filtered": "Shown (filtered)"
     },
+    "incomeList": {
+      "searchPlaceholder": "Service, client, note…",
+      "stylistPlaceholder": "Stylist name",
+      "kindFilterLabel": "Filter by entry type",
+      "resultCount": "Showing {{resultCount}} of {{totalCount}}",
+      "noEntries": "No entries",
+      "noEntriesHint": "Adjust the filters or add a manual income entry.",
+      "caption": "Income book entries",
+      "columns": {
+        "date": "Date",
+        "service": "Service",
+        "revenue": "Income",
+        "tips": "Tip",
+        "stylist": "Stylist",
+        "client": "Client",
+        "kind": "Type",
+        "actions": "Actions"
+      },
+      "sortBy": "Sort by {{label}}",
+      "editManualEntry": "Edit manual income entry",
+      "deleteManualEntry": "Delete manual income entry"
+    },
     "expenseList": {
       "searchPlaceholder": "Name, category, note…",
       "allCategories": "All categories",

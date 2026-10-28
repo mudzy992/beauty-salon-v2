@@ -1738,6 +1738,28 @@
       "net": "Neto (KIF − KUF)",
       "filtered": "Prikazano (filter)"
     },
+    "incomeList": {
+      "searchPlaceholder": "Servis, klijent, napomena…",
+      "stylistPlaceholder": "Ime stiliste",
+      "kindFilterLabel": "Filtriraj po vrsti stavke",
+      "resultCount": "Prikazano {{resultCount}} od {{totalCount}}",
+      "noEntries": "Nema stavki",
+      "noEntriesHint": "Promijenite filtere ili dodajte ručni prihod.",
+      "caption": "Stavke knjige prihoda",
+      "columns": {
+        "date": "Datum",
+        "service": "Servis",
+        "revenue": "Prihod",
+        "tips": "Napojnica",
+        "stylist": "Stilista",
+        "client": "Klijent",
+        "kind": "Vrsta",
+        "actions": "Akcije"
+      },
+      "sortBy": "Sortiraj po {{label}}",
+      "editManualEntry": "Uredi ručni prihod",
+      "deleteManualEntry": "Obriši ručni prihod"
+    },
     "expenseList": {
       "searchPlaceholder": "Naziv, kategorija, napomena…",
       "allCategories": "Sve kategorije",

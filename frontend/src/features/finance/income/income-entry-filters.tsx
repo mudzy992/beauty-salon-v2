@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
 import { Input } from '../../../components/ui/input'
@@ -13,10 +14,16 @@ type IncomeEntryFiltersBarProps = {
   totalCount: number
 }
 
-const KINDS: { value: IncomeEntryFilters['kind']; label: string }[] = [
-  { value: 'ALL', label: 'Sve' },
-  { value: 'AUTO', label: 'Iz dnevnika' },
-  { value: 'MANUAL', label: 'Ručne' },
+const KINDS: {
+  value: IncomeEntryFilters['kind']
+  labelKey:
+    | 'finance.filters.all'
+    | 'finance.filters.fromDailyLog'
+    | 'finance.filters.manual'
+}[] = [
+  { value: 'ALL', labelKey: 'finance.filters.all' },
+  { value: 'AUTO', labelKey: 'finance.filters.fromDailyLog' },
+  { value: 'MANUAL', labelKey: 'finance.filters.manual' },
 ]
 
 export function IncomeEntryFiltersBar({
@@ -25,6 +32,7 @@ export function IncomeEntryFiltersBar({
   resultCount,
   totalCount,
 }: IncomeEntryFiltersBarProps) {
+  const { t } = useTranslation()
   const isFiltered =
     JSON.stringify(filters) !== JSON.stringify(EMPTY_INCOME_FILTERS)
   const update = (patch: Partial<IncomeEntryFilters>) =>
@@ -35,29 +43,29 @@ export function IncomeEntryFiltersBar({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="grid gap-1">
           <Label htmlFor="income-search" className="text-xs">
-            Pretraga
+            {t('finance.filters.search')}
           </Label>
           <Input
             id="income-search"
             value={filters.search}
             onChange={(event) => update({ search: event.target.value })}
-            placeholder="Servis, klijent, napomena…"
+            placeholder={t('finance.incomeList.searchPlaceholder')}
           />
         </div>
         <div className="grid gap-1">
           <Label htmlFor="income-stylist" className="text-xs">
-            Stilista
+            {t('finance.filters.stylist')}
           </Label>
           <Input
             id="income-stylist"
             value={filters.stylistName}
             onChange={(event) => update({ stylistName: event.target.value })}
-            placeholder="Ime stiliste"
+            placeholder={t('finance.incomeList.stylistPlaceholder')}
           />
         </div>
         <div className="grid gap-1">
           <Label htmlFor="income-min" className="text-xs">
-            Iznos od
+            {t('finance.filters.amountFrom')}
           </Label>
           <Input
             id="income-min"
@@ -69,7 +77,7 @@ export function IncomeEntryFiltersBar({
         </div>
         <div className="grid gap-1">
           <Label htmlFor="income-max" className="text-xs">
-            Iznos do
+            {t('finance.filters.amountTo')}
           </Label>
           <Input
             id="income-max"
@@ -85,7 +93,7 @@ export function IncomeEntryFiltersBar({
         <div
           className="flex gap-1"
           role="group"
-          aria-label="Filtriraj po vrsti stavke"
+          aria-label={t('finance.incomeList.kindFilterLabel')}
         >
           {KINDS.map((kind) => (
             <Button
@@ -95,13 +103,13 @@ export function IncomeEntryFiltersBar({
               onClick={() => update({ kind: kind.value })}
               aria-pressed={filters.kind === kind.value}
             >
-              {kind.label}
+              {t(kind.labelKey)}
             </Button>
           ))}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-500 dark:text-slate-400">
-            Prikazano {resultCount} od {totalCount}
+            {t('finance.incomeList.resultCount', { resultCount, totalCount })}
           </span>
           {isFiltered ? (
             <Button
@@ -110,7 +118,7 @@ export function IncomeEntryFiltersBar({
               onClick={() => onChange(EMPTY_INCOME_FILTERS)}
             >
               <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-              Očisti
+              {t('finance.filters.clear')}
             </Button>
           ) : null}
         </div>

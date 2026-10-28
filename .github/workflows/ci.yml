@@ -260,6 +260,9 @@ jobs:
       - name: Test localized finance expense list and invoice preview
         working-directory: frontend
         run: npm run test:finance-expense-list-i18n
+      - name: Test localized finance income list
+        working-directory: frontend
+        run: npm run test:finance-income-list-i18n
       - name: Test localized admin loyalty page
         working-directory: frontend
         run: npm run test:admin-loyalty-i18n
