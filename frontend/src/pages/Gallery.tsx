@@ -4,6 +4,7 @@ import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
 
 import api from '../api/client'
 import { formatDateOnlyLocale } from '../../../shared/business-date.mjs'
+import { getIntlLocale } from '../i18n/locale-utils.mjs'
 import { MediaImage } from '../components/media-image'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { useAppToast } from '../lib/toast/useAppToast'
@@ -47,7 +48,7 @@ interface EligibleGalleryImage {
 }
 
 export default function Gallery() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { success, error, warning } = useAppToast()
 
   const [categories, setCategories] = useState<GalleryCategory[]>([])
@@ -129,7 +130,7 @@ export default function Gallery() {
 
   const handleSaveCat = async () => {
     if (!catForm.name.trim()) {
-      warning('Unesite naziv kategorije')
+      warning(t('gallery.admin.categoryNameRequired'))
       return
     }
     const activeAutoCategory = categories.find(
@@ -137,7 +138,7 @@ export default function Gallery() {
     )
     if (catForm.autoPublishConsentedPairs && activeAutoCategory) {
       warning(
-        `Već postoji aktivna automatska kategorija „${activeAutoCategory.name}“. Isključite je prije aktiviranja druge.`,
+        t('gallery.admin.duplicateAutoCategory', { name: activeAutoCategory.name }),
       )
       return
     }
@@ -145,29 +146,29 @@ export default function Gallery() {
     try {
       if (editCatId) await api.patch(`/api/gallery/categories/${editCatId}`, catForm)
       else await api.post('/api/gallery/categories', catForm)
-      success('Sačuvano')
+      success(t('gallery.admin.saved'))
       loadCategories()
       setCatOpen(false)
     } catch (err: any) {
       const message = err?.response?.data?.message
-      error(Array.isArray(message) ? message.join(' ') : message || 'Greška')
+      error(Array.isArray(message) ? message.join(' ') : message || t('gallery.admin.genericError'))
     } finally {
       setSaving(false)
     }
   }
 
   const handleDeleteCat = async (id: string) => {
-    if (!window.confirm('Obrisati kategoriju i sve slike?')) return
+    if (!window.confirm(t('gallery.admin.deleteCategoryConfirm'))) return
     try {
       await api.delete(`/api/gallery/categories/${id}`)
-      success('Kategorija obrisana')
+      success(t('gallery.admin.categoryDeleted'))
       if (selectedCatId === id) {
         setSelectedCatId(null)
         setCatImages([])
       }
       loadCategories()
     } catch {
-      error('Greška')
+      error(t('gallery.admin.genericError'))
     }
   }
 
@@ -182,31 +183,31 @@ export default function Gallery() {
     setSaving(true)
     try {
       await api.patch(`/api/gallery/images/${editImgId}`, imgForm)
-      success('Sačuvano')
+      success(t('gallery.admin.saved'))
       if (selectedCatId) await loadImages(selectedCatId)
       setImgOpen(false)
     } catch {
-      error('Greška')
+      error(t('gallery.admin.genericError'))
     } finally {
       setSaving(false)
     }
   }
 
   const handleDeleteImg = async (id: string) => {
-    if (!window.confirm('Obrisati sliku?')) return
+    if (!window.confirm(t('gallery.admin.deleteImageConfirm'))) return
     try {
       await api.delete(`/api/gallery/images/${id}`)
-      success('Slika obrisana')
+      success(t('gallery.admin.imageDeleted'))
       if (selectedCatId) await loadImages(selectedCatId)
       loadCategories()
     } catch {
-      error('Greška')
+      error(t('gallery.admin.genericError'))
     }
   }
 
   const openAddImage = async () => {
     if (!selectedCatId) {
-      warning('Prvo odaberite kategoriju.')
+      warning(t('gallery.admin.selectCategoryFirst'))
       return
     }
     setAddImageOpen(true)
@@ -223,7 +224,7 @@ export default function Gallery() {
     } catch (err: any) {
       setEligibleImages([])
       const message = err?.response?.data?.message
-      error(Array.isArray(message) ? message.join(' ') : message || 'Odobrene fotografije nije moguće učitati.')
+      error(Array.isArray(message) ? message.join(' ') : message || t('gallery.admin.eligibleImagesLoadFailed'))
     } finally {
       setEligibleLoading(false)
     }
@@ -238,13 +239,13 @@ export default function Gallery() {
         categoryId: selectedCatId,
         uploadId: selected.uploadId,
       })
-      success('Odobrena fotografija dodana u galeriju.')
+      success(t('gallery.admin.consentedImageAdded'))
       await loadImages(selectedCatId)
       loadCategories()
       setAddImageOpen(false)
     } catch (err: any) {
       const message = err?.response?.data?.message
-      error(Array.isArray(message) ? message.join(' ') : message || 'Fotografija nije mogla biti dodana.')
+      error(Array.isArray(message) ? message.join(' ') : message || t('gallery.admin.consentedImageAddFailed'))
     } finally {
       setAddingImage(false)
     }
@@ -263,13 +264,13 @@ export default function Gallery() {
         formData,
         { headers: { 'Content-Type': 'multipart/form-data' } },
       )
-      success('Fotografija dodana u galeriju.')
+      success(t('gallery.admin.nonClientImageAdded'))
       await loadImages(selectedCatId)
       loadCategories()
       setAddImageOpen(false)
     } catch (err: any) {
       const message = err?.response?.data?.message
-      error(Array.isArray(message) ? message.join(' ') : message || 'Upload nije uspio.')
+      error(Array.isArray(message) ? message.join(' ') : message || t('gallery.admin.nonClientImageUploadFailed'))
     } finally {
       setAddingImage(false)
     }
@@ -289,7 +290,7 @@ export default function Gallery() {
         <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('nav.gallery')}</h1>
         <Button type="button" onClick={() => openCatForm()}>
           <Plus className="mr-2 h-4 w-4" />
-          Nova Kategorija
+          {t('gallery.admin.newCategory')}
         </Button>
       </div>
 
@@ -313,16 +314,16 @@ export default function Gallery() {
                       <p className="truncate font-semibold text-slate-900 dark:text-slate-50">{c.name}</p>
                       <p className="mt-1 text-xs text-slate-500">
                         {c.autoPublishConsentedPairs
-                          ? `Auto parovi · ${c._count?.images ?? 0} ručno odabranih slika`
-                          : `${c._count?.images ?? 0} slika`}{' '}
-                        | Redoslijed: {c.sortOrder}
+                          ? t('gallery.admin.autoCategorySummary', { count: c._count?.images ?? 0 })
+                          : t('gallery.admin.imageCount', { count: c._count?.images ?? 0 })}{' '}
+                        | {t('gallery.admin.sortOrderValue', { value: c.sortOrder })}
                       </p>
                     </div>
                     <div className="flex shrink-0 gap-1" onClick={(e) => e.stopPropagation()}>
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Uredi" onClick={() => openCatForm(c)}>
+                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('gallery.admin.edit')} onClick={() => openCatForm(c)}>
                         <Pencil className="h-4 w-4 text-blue-600" />
                       </Button>
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label="Obriši" onClick={() => void handleDeleteCat(c.id)}>
+                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('gallery.admin.delete')} onClick={() => void handleDeleteCat(c.id)}>
                         <Trash2 className="h-4 w-4 text-rose-600" />
                       </Button>
                     </div>
@@ -336,28 +337,28 @@ export default function Gallery() {
         <div className="flex-1">
           {!selectedCatId ? (
             <Card className="p-6">
-              <p className="text-sm text-slate-500">Odaberite kategoriju da upravljate slikama.</p>
+              <p className="text-sm text-slate-500">{t('gallery.admin.selectCategoryPrompt')}</p>
             </Card>
           ) : (
             <Card className="p-6">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="secondary" className="text-[10px]">
-                    {catImages.length} ručno odabranih slika
+                    {t('gallery.admin.selectedImageCount', { count: catImages.length })}
                   </Badge>
                   {categories.find((category) => category.id === selectedCatId)?.autoPublishConsentedPairs ? (
                     <Badge variant="outline" className="text-[10px]">
-                      Automatski parovi prije/poslije
+                      {t('gallery.admin.autoPairsBadge')}
                     </Badge>
                   ) : null}
-                  {imagesLoading ? <span className="text-xs text-slate-500">Učitavam…</span> : null}
+                  {imagesLoading ? <span className="text-xs text-slate-500">{t('gallery.admin.loadingImages')}</span> : null}
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-xs text-slate-500 sm:max-w-md">
-                    Direktni upload je samo za neklijentske fotografije. Klijentske fotografije dodaju se isključivo iz birača aktivno odobrenih slika.
+                    {t('gallery.admin.addImageGuidance')}
                   </p>
                   <Button type="button" size="sm" onClick={() => void openAddImage()}>
-                    <Plus className="mr-2 h-4 w-4" /> Dodaj fotografiju
+                    <Plus className="mr-2 h-4 w-4" /> {t('gallery.admin.addPhoto')}
                   </Button>
                 </div>
               </div>
@@ -378,17 +379,17 @@ export default function Gallery() {
                     return (
                       <div key={img.id} className="group overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
                         <div className="relative aspect-[4/3] bg-slate-50 dark:bg-slate-900/40">
-                          <MediaImage src={src} alt={img.title ?? 'Gallery'} className="h-full w-full object-cover" />
+                          <MediaImage src={src} alt={img.title ?? t('gallery.admin.galleryImageAlt')} className="h-full w-full object-cover" />
                           <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/40 p-2 opacity-100">
                             <div className="min-w-0">
-                              <p className="truncate text-xs font-semibold text-white">{img.title ?? 'Bez naslova'}</p>
-                              <p className="truncate text-[10px] text-white/80">Redoslijed: {img.sortOrder}</p>
+                              <p className="truncate text-xs font-semibold text-white">{img.title ?? t('gallery.admin.untitled')}</p>
+                              <p className="truncate text-[10px] text-white/80">{t('gallery.admin.sortOrderValue', { value: img.sortOrder })}</p>
                             </div>
                             <div className="flex shrink-0 gap-1">
-                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-white/10" aria-label="Uredi" onClick={() => openImgEdit(img)}>
+                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-white/10" aria-label={t('gallery.admin.edit')} onClick={() => openImgEdit(img)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
-                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-white/10" aria-label="Obriši" onClick={() => void handleDeleteImg(img.id)}>
+                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-white/10" aria-label={t('gallery.admin.delete')} onClick={() => void handleDeleteImg(img.id)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -407,19 +408,19 @@ export default function Gallery() {
       <Dialog open={catOpen} onOpenChange={setCatOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editCatId ? 'Uredi kategoriju' : 'Nova kategorija'}</DialogTitle>
+            <DialogTitle>{editCatId ? t('gallery.admin.editCategoryTitle') : t('gallery.admin.newCategory')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Naziv</Label>
+              <Label>{t('gallery.admin.name')}</Label>
               <Input className="mt-1" value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value })} />
             </div>
             <div>
-              <Label>Opis</Label>
+              <Label>{t('gallery.admin.description')}</Label>
               <Textarea className="mt-1" value={catForm.description} onChange={(e) => setCatForm({ ...catForm, description: e.target.value })} />
             </div>
             <div>
-              <Label>Redoslijed</Label>
+              <Label>{t('gallery.admin.sortOrder')}</Label>
               <Input className="mt-1" type="number" min={0} value={catForm.sortOrder} onChange={(e) => setCatForm({ ...catForm, sortOrder: Number(e.target.value) || 0 })} />
             </div>
             <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700">
@@ -432,9 +433,9 @@ export default function Gallery() {
                 className="mt-1 h-4 w-4 accent-amber-700"
               />
               <span>
-                <span className="font-semibold">Automatski objavljuj parove prije/poslije</span>
+                <span className="font-semibold">{t('gallery.admin.autoPublishPairs')}</span>
                 <span className="mt-1 block text-xs leading-5 text-slate-500">
-                  Najviše jedna kategorija može imati ovu opciju. Par se javno prikazuje tek kada obje fotografije imaju aktivnu saglasnost klijenta.
+                  {t('gallery.admin.autoPublishPairsHint')}
                 </span>
               </span>
             </label>
@@ -454,18 +455,18 @@ export default function Gallery() {
       <Dialog open={addImageOpen} onOpenChange={setAddImageOpen}>
         <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Dodaj fotografiju u galeriju</DialogTitle>
+            <DialogTitle>{t('gallery.admin.addImageTitle')}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-5 md:grid-cols-2">
             <section className="space-y-4 rounded-xl border border-slate-200 p-4">
               <div>
-                <h3 className="font-semibold text-slate-900">Salon, proizvodi i drugi materijali</h3>
+                <h3 className="font-semibold text-slate-900">{t('gallery.admin.nonClientSectionTitle')}</h3>
                 <p className="mt-1 text-xs leading-5 text-slate-600">
-                  Direktni upload je samo za fotografije koje ne prikazuju klijenta. Klijentsku fotografiju ne uploadujte ovdje.
+                  {t('gallery.admin.nonClientSectionGuidance')}
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="gallery-manual-file">Fotografija</Label>
+                <Label htmlFor="gallery-manual-file">{t('gallery.admin.photo')}</Label>
                 <input
                   id="gallery-manual-file"
                   type="file"
@@ -475,7 +476,7 @@ export default function Gallery() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="gallery-manual-title">Naslov (opcionalno)</Label>
+                <Label htmlFor="gallery-manual-title">{t('gallery.admin.optionalTitle')}</Label>
                 <Input
                   id="gallery-manual-title"
                   value={manualTitle}
@@ -490,7 +491,7 @@ export default function Gallery() {
                   onChange={(event) => setNonClientConfirmed(event.target.checked)}
                   className="mt-1 h-4 w-4 accent-amber-700"
                 />
-                <span>Potvrđujem da ova datoteka ne sadrži fotografiju klijenta niti zaobilazi njegovu saglasnost.</span>
+                <span>{t('gallery.admin.nonClientConfirmation')}</span>
               </label>
               <Button
                 type="button"
@@ -499,23 +500,23 @@ export default function Gallery() {
                 onClick={() => void handleUploadNonClientImage()}
               >
                 {addingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                Upload neklijentske fotografije
+                {t('gallery.admin.uploadNonClientPhoto')}
               </Button>
             </section>
 
             <section className="space-y-4 rounded-xl border border-slate-200 p-4">
               <div>
-                <h3 className="font-semibold text-slate-900">Odobrena fotografija klijenta</h3>
+                <h3 className="font-semibold text-slate-900">{t('gallery.admin.consentedSectionTitle')}</h3>
                 <p className="mt-1 text-xs leading-5 text-slate-600">
-                  Ovdje se prikazuju samo fotografije s važećom saglasnošću. Saglasnost se provjerava ponovo na serveru pri dodavanju.
+                  {t('gallery.admin.consentedSectionGuidance')}
                 </p>
               </div>
               {eligibleLoading ? (
                 <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Učitavanje odobrenih fotografija…
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t('gallery.admin.loadingEligibleImages')}
                 </div>
               ) : eligibleImages.length === 0 ? (
-                <p className="text-sm text-slate-500">Trenutno nema aktivno odobrenih fotografija.</p>
+                <p className="text-sm text-slate-500">{t('gallery.admin.noEligibleImages')}</p>
               ) : (
                 <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                   {eligibleImages.map((image) => (
@@ -536,8 +537,8 @@ export default function Gallery() {
                         className="h-14 w-14 rounded-md object-cover"
                       />
                       <span className="min-w-0 text-xs text-slate-700">
-                        <span className="block font-semibold">{image.isBefore ? 'Prije' : 'Poslije'} · {image.serviceName}</span>
-                        <span className="block text-slate-500">{formatDateOnlyLocale(image.serviceDate.slice(0, 10), 'bs-BA')}</span>
+                        <span className="block font-semibold">{image.isBefore ? t('gallery.admin.before') : t('gallery.admin.after')} · {image.serviceName}</span>
+                        <span className="block text-slate-500">{formatDateOnlyLocale(image.serviceDate.slice(0, 10), getIntlLocale(i18n.language), { dateStyle: 'medium' })}</span>
                       </span>
                     </label>
                   ))}
@@ -551,13 +552,13 @@ export default function Gallery() {
                 onClick={() => void handleAddConsentedImage()}
               >
                 {addingImage ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Dodaj odobrenu fotografiju
+                {t('gallery.admin.addConsentedPhoto')}
               </Button>
             </section>
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setAddImageOpen(false)}>
-              Zatvori
+              {t('gallery.admin.close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -566,19 +567,19 @@ export default function Gallery() {
       <Dialog open={imgOpen} onOpenChange={setImgOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Uredi sliku</DialogTitle>
+            <DialogTitle>{t('gallery.admin.editImageTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Naslov</Label>
+              <Label>{t('gallery.admin.title')}</Label>
               <Input className="mt-1" value={imgForm.title} onChange={(e) => setImgForm({ ...imgForm, title: e.target.value })} />
             </div>
             <div>
-              <Label>Opis</Label>
+              <Label>{t('gallery.admin.description')}</Label>
               <Textarea className="mt-1" value={imgForm.description} onChange={(e) => setImgForm({ ...imgForm, description: e.target.value })} />
             </div>
             <div>
-              <Label>Redoslijed</Label>
+              <Label>{t('gallery.admin.sortOrder')}</Label>
               <Input className="mt-1" type="number" min={0} value={imgForm.sortOrder} onChange={(e) => setImgForm({ ...imgForm, sortOrder: Number(e.target.value) || 0 })} />
             </div>
           </div>
