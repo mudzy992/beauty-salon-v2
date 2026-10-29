@@ -434,6 +434,9 @@ jobs:
       - name: Test localized stylist schedule section headings
         working-directory: mobile
         run: npm run test:stylist-schedule-sections-i18n
+      - name: Test localized stylist pending-reschedule hint
+        working-directory: mobile
+        run: npm run test:stylist-schedule-reschedule-hint-i18n
       - name: Test localized stylist direct-booking heading
         working-directory: mobile
         run: npm run test:stylist-direct-booking-title-i18n

@@ -339,6 +339,7 @@ export const bs = {
     schedule: {
       todaySection: 'Danas',
       completedCanceledTodaySection: 'Završeni / otkazani (danas)',
+      pendingRescheduleHint: 'Klijent treba potvrditi novi termin',
       activeReservationTitle: 'Aktivna rezervacija',
       activeReservationHint: 'Dodirnite karticu za naplatu, završetak i slike.',
       reservationDetails: 'Detalji',

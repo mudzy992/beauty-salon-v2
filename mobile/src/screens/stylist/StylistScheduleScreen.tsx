@@ -448,7 +448,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                       <View style={[styles.inlineRow, { marginTop: 6 }]}>
                         <Ionicons name="alert-circle-outline" size={15} color={gold} />
                         <Text style={[styles.client, styles.subtleOverlay]}>
-                          Klijent treba potvrditi novi termin
+                          {t('stylist.schedule.pendingRescheduleHint')}
                         </Text>
                       </View>
                     )}
