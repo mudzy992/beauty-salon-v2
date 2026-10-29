@@ -485,6 +485,9 @@ jobs:
       - name: Test localized mobile daily-log delete modal
         working-directory: mobile
         run: npm run test:stylist-daily-log-delete-modal-i18n
+      - name: Test localized mobile daily-log completion confirmation
+        working-directory: mobile
+        run: npm run test:stylist-daily-log-complete-confirm-i18n
       - name: Bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"

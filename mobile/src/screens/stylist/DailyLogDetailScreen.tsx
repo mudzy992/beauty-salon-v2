@@ -72,14 +72,14 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
 
   const handleComplete = useCallback(() => {
     Alert.alert(
-      'Završi zapis',
+      t('stylist.dailyLogDetail.completeConfirmTitle'),
       entry?.reservationId
-        ? 'Označiti zapis kao završen? Ovo će završiti i rezervaciju, te upisati prihod u knjigu.'
-        : 'Označiti zapis kao završen? Prihod će biti upisan u knjigu.',
+        ? t('stylist.dailyLogDetail.completeConfirmWithReservation')
+        : t('stylist.dailyLogDetail.completeConfirmStandalone'),
       [
-        { text: 'Odustani', style: 'cancel' },
+        { text: t('stylist.dailyLogDetail.completeConfirmCancel'), style: 'cancel' },
         {
-          text: 'Završi',
+          text: t('stylist.dailyLogDetail.completeConfirmAction'),
           onPress: async () => {
             setActing(true);
             try {
@@ -152,7 +152,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         },
       ],
     );
-  }, [entryId, fetchEntry, entry?.reservationId, navigation]);
+  }, [entryId, fetchEntry, entry?.reservationId, navigation, t]);
 
   const handleDelete = useCallback(() => {
     setDeleteReason('');

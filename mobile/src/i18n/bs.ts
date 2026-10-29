@@ -270,6 +270,11 @@ export const bs = {
       deleteReasonLabel: 'Razlog brisanja',
       deleteReasonPlaceholder: 'Npr. greška u unosu',
       deleteCancel: 'Odustani',
+      completeConfirmTitle: 'Završi zapis',
+      completeConfirmWithReservation: 'Označiti zapis kao završen? Ovo će završiti i rezervaciju, te upisati prihod u knjigu.',
+      completeConfirmStandalone: 'Označiti zapis kao završen? Prihod će biti upisan u knjigu.',
+      completeConfirmCancel: 'Odustani',
+      completeConfirmAction: 'Završi',
     },
     profile: {
       role: 'Stilist',
