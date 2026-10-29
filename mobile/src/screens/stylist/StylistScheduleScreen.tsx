@@ -293,7 +293,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                     <View style={styles.activeHeaderRow}>
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.activeTitle, styles.titleOverlay]}>
-                          Aktivna rezervacija
+                          {t('stylist.schedule.activeReservationTitle')}
                         </Text>
                         <Text style={[styles.activeTimeRange, styles.subtleOverlay]}>
                           {formatTime(activeReservation.startTime)} –{' '}
@@ -338,14 +338,14 @@ export function StylistScheduleScreen({ navigation }: Props) {
 
                     <View style={{ marginTop: spacing.sm }}>
                       <Text style={[styles.activeHint, styles.mutedOverlay]}>
-                        Dodirnite karticu za naplatu, završetak i slike.
+                        {t('stylist.schedule.activeReservationHint')}
                       </Text>
                     </View>
                   </TouchableOpacity>
 
                   <View style={[styles.activeActionsRow, styles.cardBackdropActions]}>
                     <Button
-                      title="Detalji"
+                      title={t('stylist.schedule.reservationDetails')}
                       onPress={() =>
                         navigation.navigate('StylistReservationDetail', {
                           reservationId: activeReservation.id,
@@ -363,7 +363,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                       style={{ flex: 1 }}
                     />
                     <Button
-                      title="Naplata"
+                      title={t('stylist.schedule.payment')}
                       onPress={() =>
                         navigation.navigate('StylistReservationDetail', {
                           reservationId: activeReservation.id,

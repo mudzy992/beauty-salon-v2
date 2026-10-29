@@ -313,6 +313,10 @@ export const bs = {
       },
     },
     schedule: {
+      activeReservationTitle: 'Aktivna rezervacija',
+      activeReservationHint: 'Dodirnite karticu za naplatu, završetak i slike.',
+      reservationDetails: 'Detalji',
+      payment: 'Naplata',
       noProfileTitle: 'Nema profila',
       noProfileMessage: 'Profil stilista nije pronađen.',
       emptyTitle: 'Nema termina',
