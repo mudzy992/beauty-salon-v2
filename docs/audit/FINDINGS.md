@@ -744,3 +744,7 @@ Localized the inbox's missing-profile and no-pending-request title/message pairs
 ### I18N-01 follow-up — Mobile stylist inbox action labels
 
 Localized the inbox lock/accept/unlock/reject button titles in mobile Bosnian resources. Preserved visibility rules, action callbacks, loading state, and button variants. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40892903624` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `c94a47d` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile stylist inbox status badges
+
+Localized the inbox reservation badges for “under review by me”, “under review”, and “pending” in mobile Bosnian resources. Preserved status selection, variant, and status props. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40894496757` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `dad6a04` is pushed separately from this audit-doc update; the broader audit remains open.
