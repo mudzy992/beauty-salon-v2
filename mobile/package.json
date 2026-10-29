@@ -35,6 +35,7 @@
     "test:stylist-profile-logout-i18n": "node --test src/screens/stylist/stylist-profile-logout-i18n.test.mjs",
     "test:stylist-profile-mode-switch-i18n": "node --test src/screens/stylist/stylist-profile-mode-switch-i18n.test.mjs",
     "test:stylist-inbox-empty-state-i18n": "node --test src/screens/stylist/stylist-inbox-empty-state-i18n.test.mjs",
+    "test:stylist-inbox-actions-i18n": "node --test src/screens/stylist/stylist-inbox-actions-i18n.test.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "postinstall": "node ./scripts/patch-calendars-assets.js && node ./scripts/patch-expo-router-query-string.js"

@@ -461,6 +461,9 @@ jobs:
       - name: Test localized stylist inbox empty states
         working-directory: mobile
         run: npm run test:stylist-inbox-empty-state-i18n
+      - name: Test localized stylist inbox actions
+        working-directory: mobile
+        run: npm run test:stylist-inbox-actions-i18n
       - name: Bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"

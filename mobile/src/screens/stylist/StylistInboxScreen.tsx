@@ -330,7 +330,7 @@ export function StylistInboxScreen() {
               ) : null}
               {canLock && (
                 <Button
-                  title="Zaključaj"
+                  title={t('stylist.inbox.lock')}
                   onPress={() => handleLock(item.id)}
                   loading={acting}
                   variant="outline"
@@ -339,7 +339,7 @@ export function StylistInboxScreen() {
               )}
               {canAccept && (
                 <Button
-                  title="Prihvati"
+                  title={t('stylist.inbox.accept')}
                   onPress={() => handleAccept(item)}
                   loading={acting}
                   size="sm"
@@ -348,7 +348,7 @@ export function StylistInboxScreen() {
               )}
               {isLockedByMe && (
                 <Button
-                  title="Oslobodi"
+                  title={t('stylist.inbox.unlock')}
                   onPress={() => handleUnlock(item.id)}
                   loading={acting}
                   variant="outline"
@@ -357,7 +357,7 @@ export function StylistInboxScreen() {
               )}
               {(isLockedByMe || canAccept) && (
                 <Button
-                  title="Odbij"
+                  title={t('stylist.inbox.reject')}
                   onPress={() => handleReject(item.id)}
                   loading={acting}
                   variant="ghost"
