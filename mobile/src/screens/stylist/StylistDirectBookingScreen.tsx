@@ -45,10 +45,10 @@ export function StylistDirectBookingScreen({
             {t('stylist.directBooking.subtitle')}
           </Text>
           <Input
-            label="Klijent"
+            label={t('stylist.directBooking.clientLabel')}
             value={form.clientSearch}
             onChangeText={form.handleClientSearchChange}
-            placeholder="Pretraži klijenta..."
+            placeholder={t('stylist.directBooking.clientPlaceholder')}
           />
           <DirectBookingPickers
             colors={colors}
@@ -60,15 +60,25 @@ export function StylistDirectBookingScreen({
             onToggleServiceId={form.handleToggleServiceId}
           />
           <DateTimeField
-            label="Datum"
+            label={t('stylist.directBooking.dateLabel')}
             mode="date"
             value={form.reservationDate}
             onChange={form.setReservationDate}
           />
-          <DateTimeField label="Početak" mode="time" value={form.startTime} onChange={form.setStartTime} />
-          <DateTimeField label="Kraj" mode="time" value={form.endTime} onChange={form.setEndTime} />
+          <DateTimeField
+            label={t('stylist.directBooking.startLabel')}
+            mode="time"
+            value={form.startTime}
+            onChange={form.setStartTime}
+          />
+          <DateTimeField
+            label={t('stylist.directBooking.endLabel')}
+            mode="time"
+            value={form.endTime}
+            onChange={form.setEndTime}
+          />
           <Input
-            label="Napomena"
+            label={t('stylist.directBooking.notesLabel')}
             value={form.clientNotes}
             onChangeText={form.setClientNotes}
             multiline
@@ -76,9 +86,13 @@ export function StylistDirectBookingScreen({
             style={{ minHeight: 96, textAlignVertical: 'top' }}
           />
           <View style={styles.actions}>
-            <Button title="Odustani" variant="ghost" onPress={() => navigation.goBack()} />
             <Button
-              title="Kreiraj termin"
+              title={t('stylist.directBooking.cancel')}
+              variant="ghost"
+              onPress={() => navigation.goBack()}
+            />
+            <Button
+              title={t('stylist.directBooking.submit')}
               onPress={form.handleSubmit}
               loading={form.saving}
               disabled={

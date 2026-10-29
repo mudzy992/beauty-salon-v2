@@ -240,6 +240,14 @@ export const bs = {
     directBooking: {
       title: 'Direktna rezervacija',
       subtitle: 'Termin ide direktno u vaš raspored i ne traži attendance potvrdu klijenta.',
+      clientLabel: 'Klijent',
+      clientPlaceholder: 'Pretraži klijenta...',
+      dateLabel: 'Datum',
+      startLabel: 'Početak',
+      endLabel: 'Kraj',
+      notesLabel: 'Napomena',
+      cancel: 'Odustani',
+      submit: 'Kreiraj termin',
     },
     reservationDetail: {
       notFound: 'Rezervacija nije pronađena.',

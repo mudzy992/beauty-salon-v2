@@ -16,9 +16,34 @@ test('stylist direct-booking title and introduction use Bosnian resources', () =
   assert.doesNotMatch(schedule, /accessibilityLabel="Direktna rezervacija"/)
 })
 
+test('direct-booking form fields and actions use Bosnian resources', () => {
+  for (const [key, copy] of [
+    ['clientLabel', 'Klijent'],
+    ['clientPlaceholder', 'Pretraži klijenta...'],
+    ['dateLabel', 'Datum'],
+    ['startLabel', 'Početak'],
+    ['endLabel', 'Kraj'],
+    ['notesLabel', 'Napomena'],
+    ['cancel', 'Odustani'],
+    ['submit', 'Kreiraj termin'],
+  ]) {
+    assert.ok(resource.includes(`${key}: '${copy}'`), `Missing direct-booking copy: ${key}`)
+    assert.ok(screen.includes(`t('stylist.directBooking.${key}')`), `Form is missing key: ${key}`)
+  }
+  assert.doesNotMatch(
+    screen,
+    /label="Klijent"|placeholder="Pretraži klijenta\.\.\."|label="Datum"|label="Početak"|label="Kraj"|label="Napomena"|title="Odustani"|title="Kreiraj termin"/,
+  )
+})
+
 test('direct-booking navigation and form wiring remain unchanged', () => {
   assert.match(schedule, /navigation\.navigate\('StylistDirectBooking'\)/)
   assert.match(screen, /useStylistDirectBookingForm\(\(\) => navigation\.goBack\(\)\)/)
   assert.match(screen, /onChangeText=\{form\.handleClientSearchChange\}/)
+  assert.match(screen, /value=\{form\.reservationDate\}[\s\S]*?onChange=\{form\.setReservationDate\}/)
+  assert.match(screen, /value=\{form\.startTime\}[\s\S]*?onChange=\{form\.setStartTime\}/)
+  assert.match(screen, /value=\{form\.endTime\}[\s\S]*?onChange=\{form\.setEndTime\}/)
+  assert.match(screen, /value=\{form\.clientNotes\}[\s\S]*?onChangeText=\{form\.setClientNotes\}/)
   assert.match(screen, /onPress=\{form\.handleSubmit\}/)
+  assert.match(screen, /disabled=\{[\s\S]*?!form\.selectedClient[\s\S]*?!form\.endTime/)
 })
