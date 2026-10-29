@@ -168,15 +168,15 @@ export function StylistInboxScreen() {
     (reservationId: string) => {
       if (!profileId) return;
       Alert.alert(
-        'Odbij rezervaciju',
-        'Želite odbiti ovu rezervaciju? Klijent će biti obaviješten.',
+        t('stylist.inbox.rejectConfirmTitle'),
+        t('stylist.inbox.rejectConfirmMessage'),
         [
-          { text: 'Odustani', style: 'cancel' },
-          { text: 'Odbij', style: 'destructive', onPress: () => doReject(reservationId, undefined) },
+          { text: t('stylist.inbox.rejectCancel'), style: 'cancel' },
+          { text: t('stylist.inbox.reject'), style: 'destructive', onPress: () => doReject(reservationId, undefined) },
         ],
       );
     },
-    [profileId],
+    [profileId, t],
   );
 
   const doReject = useCallback(
