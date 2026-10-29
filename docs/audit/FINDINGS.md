@@ -769,3 +769,8 @@ Localized the client-debt warning title and the per-stylist warning lines with i
 ### I18N-01 follow-up — Mobile daily-log delete validation and error fallback
 
 Localized the required-delete-reason validation and generic delete-error fallback on the mobile daily-log detail screen. Preserved trimmed-reason validation, API error passthrough, delete request payload, and successful modal close/navigation. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite, mobile TypeScript check, and repository hygiene pass locally. CI run `40918004055` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `dd2ef13` is pushed separately from this audit-doc update; the broad repository audit remains open.
+
+
+### I18N-01 follow-up — Mobile daily-log delete modal
+
+Moved the daily-log delete modal title, debt-restoration explanation, reason label and placeholder, and cancel/delete labels into mobile Bosnian resources. Reused the common delete label and preserved modal visibility, input state, multiline behavior, cancel callback, and delete callback/loading state. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite and mobile TypeScript check pass locally. CI run `40919222941` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `e4a8ed1` is pushed separately from this audit-doc update; the broad audit remains open.
