@@ -396,7 +396,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         <Card style={styles.card}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Klijent</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t('stylist.dailyLogDetail.clientLabel')}</Text>
           <TouchableOpacity
             style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}
             onPress={() => setShowClientPicker(true)}
@@ -405,12 +405,12 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
               {selectedClient
                 ? [selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ') ||
                   selectedClient.username
-                : 'Odaberi klijenta'}
+                : t('stylist.dailyLogDetail.clientPlaceholder')}
             </Text>
           </TouchableOpacity>
         </Card>
         <Card style={styles.card}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Servis</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t('stylist.dailyLogDetail.serviceLabel')}</Text>
           <TouchableOpacity
             style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}
             onPress={() => setShowServicePicker(true)}
@@ -418,10 +418,10 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
           >
             <Text style={[styles.pickerText, { color: selectedServices.length ? colors.text : colors.textMuted }]}>
               {!selectedClient
-                ? 'Prvo odaberite klijenta'
+                ? t('stylist.dailyLogDetail.serviceSelectNeedsClient')
                 : selectedServices.length > 0
-                  ? `${selectedServices.length} servis(a) odabrano`
-                  : 'Odaberi servis(e)'}
+                  ? t('stylist.dailyLogDetail.selectedServicesCount', { count: selectedServices.length })
+                  : t('stylist.dailyLogDetail.servicePlaceholder')}
             </Text>
           </TouchableOpacity>
           <DailyLogEntryPricingBlock
@@ -506,8 +506,8 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
       <Modal visible={showServicePicker} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <Card style={{ ...styles.pickerModal, backgroundColor: colors.surface }}>
-            <Text style={[styles.pickerModalTitle, { color: colors.text }]}>Odaberi servis</Text>
-            <Input placeholder="Pretraži..." value={serviceSearch} onChangeText={setServiceSearch} />
+            <Text style={[styles.pickerModalTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.servicePlaceholder')}</Text>
+            <Input placeholder={t('common.search')} value={serviceSearch} onChangeText={setServiceSearch} />
             <FlatList
               data={filteredServices}
               keyExtractor={(s) => s.id}
@@ -521,15 +521,15 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
                 </TouchableOpacity>
               )}
             />
-            <Button title="U redu" variant="outline" onPress={() => setShowServicePicker(false)} />
+            <Button title={t('common.ok')} variant="outline" onPress={() => setShowServicePicker(false)} />
           </Card>
         </View>
       </Modal>
       <Modal visible={showClientPicker} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <Card style={{ ...styles.pickerModal, backgroundColor: colors.surface }}>
-            <Text style={[styles.pickerModalTitle, { color: colors.text }]}>Odaberi klijenta</Text>
-            <Input placeholder="Pretraži..." value={clientSearch} onChangeText={setClientSearch} />
+            <Text style={[styles.pickerModalTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.clientPlaceholder')}</Text>
+            <Input placeholder={t('common.search')} value={clientSearch} onChangeText={setClientSearch} />
             <FlatList
               data={filteredClients.slice(0, 50)}
               keyExtractor={(c) => c.id}
@@ -542,7 +542,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
                 </TouchableOpacity>
               )}
             />
-            <Button title="Zatvori" variant="outline" onPress={() => setShowClientPicker(false)} />
+            <Button title={t('common.close')} variant="outline" onPress={() => setShowClientPicker(false)} />
           </Card>
         </View>
       </Modal>
