@@ -732,3 +732,7 @@ Localized the missing-profile title/message, reservation counts, total revenue l
 ### I18N-01 follow-up — Mobile stylist profile logout confirmation
 
 Localized the profile logout button and confirmation message/action with mobile Bosnian resources, reusing common logout/cancel labels where applicable. Preserved the destructive alert option, logout callback, and trigger behavior. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40886207343` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `adb82df` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile stylist profile role and client-mode switch
+
+Localized the profile role, client-mode switch label, and hint text in mobile Bosnian resources. Preserved the client-role visibility condition, mode state update, route replacement, and card behavior. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40888594709` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `05767fc` is pushed separately from this audit-doc update; the broader audit remains open.
