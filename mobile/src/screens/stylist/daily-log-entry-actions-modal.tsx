@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -22,40 +23,57 @@ export const DailyLogEntryActionsModal = ({
   onAddBeforePhoto,
   onAddAfterPhoto,
   onDelete,
-}: Props) => (
-  <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-    <View style={styles.modalOverlay}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <Card style={{ ...styles.modalCard, backgroundColor: colors.surface, zIndex: 1 }}>
-        <Text style={[styles.title, { color: colors.text }]}>Akcije zapisa</Text>
-        <Button title="Uredi unos" variant="outline" onPress={onEdit} style={styles.item} fullWidth />
-        <Button
-          title="Dodaj sliku prije"
-          variant="outline"
-          onPress={onAddBeforePhoto}
-          style={styles.item}
-          fullWidth
-        />
-        <Button
-          title="Dodaj sliku poslije"
-          variant="outline"
-          onPress={onAddAfterPhoto}
-          style={styles.item}
-          fullWidth
-        />
-        <Button
-          title="Obriši unos"
-          variant="ghost"
-          textStyle={{ color: colors.error }}
-          onPress={onDelete}
-          style={styles.item}
-          fullWidth
-        />
-        <Button title="Odustani" variant="outline" onPress={onClose} fullWidth />
-      </Card>
-    </View>
-  </Modal>
-);
+}: Props) => {
+  const { t } = useTranslation();
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        <Card style={{ ...styles.modalCard, backgroundColor: colors.surface, zIndex: 1 }}>
+          <Text style={[styles.title, { color: colors.text }]}>
+            {t('stylist.dailyLogDetail.actionsMenuTitle')}
+          </Text>
+          <Button
+            title={t('stylist.dailyLogDetail.actionsMenuEdit')}
+            variant="outline"
+            onPress={onEdit}
+            style={styles.item}
+            fullWidth
+          />
+          <Button
+            title={t('stylist.dailyLogDetail.actionsMenuAddBeforePhoto')}
+            variant="outline"
+            onPress={onAddBeforePhoto}
+            style={styles.item}
+            fullWidth
+          />
+          <Button
+            title={t('stylist.dailyLogDetail.actionsMenuAddAfterPhoto')}
+            variant="outline"
+            onPress={onAddAfterPhoto}
+            style={styles.item}
+            fullWidth
+          />
+          <Button
+            title={t('stylist.dailyLogDetail.actionsMenuDelete')}
+            variant="ghost"
+            textStyle={{ color: colors.error }}
+            onPress={onDelete}
+            style={styles.item}
+            fullWidth
+          />
+          <Button
+            title={t('stylist.dailyLogDetail.actionsMenuCancel')}
+            variant="outline"
+            onPress={onClose}
+            fullWidth
+          />
+        </Card>
+      </View>
+    </Modal>
+  );
+};
 
 const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '700', marginBottom: spacing.sm },
