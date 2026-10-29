@@ -19,8 +19,8 @@ import { useTranslation } from 'react-i18next';
 import type { DailyLogEntry } from '../../types';
 import { DispositionActionMenuModal } from './disposition-action-menu-modal';
 import {
-  DISPOSITION_ACTION_HINTS,
-  DISPOSITION_ACTION_LABELS,
+  DISPOSITION_ACTION_HINT_KEYS,
+  DISPOSITION_ACTION_LABEL_KEYS,
   DISPOSITION_PANEL_HINT,
   DISPOSITION_PANEL_TITLE,
   type DispositionAction,
@@ -127,11 +127,11 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
           >
             <Card style={{ ...styles.modalCard, backgroundColor: colors.surface }}>
               <Text style={[styles.title, { color: colors.text }]}>
-                {action ? DISPOSITION_ACTION_LABELS[action] : 'Akcija'}
+                {action ? t(DISPOSITION_ACTION_LABEL_KEYS[action]) : 'Akcija'}
               </Text>
               {action ? (
                 <Text style={[styles.hint, { color: colors.textSecondary }]}>
-                  {DISPOSITION_ACTION_HINTS[action]}
+                  {t(DISPOSITION_ACTION_HINT_KEYS[action])}
                 </Text>
               ) : null}
               {action === 'reorder' ? (
