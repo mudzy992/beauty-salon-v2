@@ -85,13 +85,13 @@ export function StylistInboxScreen() {
         const msg =
           err && typeof err === 'object' && 'response' in err
             ? (err as any).response?.data?.message
-            : 'Greška pri zaključavanju.';
-        Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+            : t('stylist.inbox.lockErrorFallback');
+        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
       } finally {
         setActingId(null);
       }
     },
-    [profileId, fetchReservations],
+    [profileId, fetchReservations, t],
   );
 
   const handleUnlock = useCallback(
@@ -105,13 +105,13 @@ export function StylistInboxScreen() {
         const msg =
           err && typeof err === 'object' && 'response' in err
             ? (err as any).response?.data?.message
-            : 'Greška pri oslobađanju.';
-        Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+            : t('stylist.inbox.unlockErrorFallback');
+        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
       } finally {
         setActingId(null);
       }
     },
-    [profileId, fetchReservations],
+    [profileId, fetchReservations, t],
   );
 
   const handleAccept = useCallback(
@@ -130,20 +130,29 @@ export function StylistInboxScreen() {
             const lines: string[] = [];
             if (mine.length > 0) {
               const first = mine[0];
+              const serviceSuffix = first.service?.name ? ` (${first.service.name})` : '';
               lines.push(
-                `Klijent ima dugovanje kod vas${first.service?.name ? ` (${first.service.name})` : ''} od ${first.createdAt.slice(0, 10)}.`,
+                t('stylist.inbox.clientDebtByMe', {
+                  serviceSuffix,
+                  date: first.createdAt.slice(0, 10),
+                }),
               );
             }
             if (others.length > 0) {
               const d = others[0];
               const stylistName = d.stylistProfile?.user
                 ? `${d.stylistProfile.user.firstName} ${d.stylistProfile.user.lastName}`.trim()
-                : 'drugog stiliste';
+                : t('stylist.inbox.otherStylist');
+              const serviceSuffix = d.service?.name ? ` (${d.service.name})` : '';
               lines.push(
-                `Klijent ima dugovanje kod ${stylistName}${d.service?.name ? ` (${d.service.name})` : ''} od ${d.createdAt.slice(0, 10)}.`,
+                t('stylist.inbox.clientDebtByOther', {
+                  stylistName,
+                  serviceSuffix,
+                  date: d.createdAt.slice(0, 10),
+                }),
               );
             }
-            if (lines.length > 0) Alert.alert('Dugovanje klijenta', lines.join('\n'));
+            if (lines.length > 0) Alert.alert(t('stylist.inbox.clientDebtTitle'), lines.join('\n'));
           }
         } catch {
           // ignore - rezervacija se i dalje može prihvatiti
@@ -155,28 +164,28 @@ export function StylistInboxScreen() {
         const msg =
           err && typeof err === 'object' && 'response' in err
             ? (err as any).response?.data?.message
-            : 'Greška pri prihvatanju.';
-        Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+            : t('stylist.inbox.acceptErrorFallback');
+        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
       } finally {
         setActingId(null);
       }
     },
-    [profileId, fetchReservations],
+    [profileId, fetchReservations, t],
   );
 
   const handleReject = useCallback(
     (reservationId: string) => {
       if (!profileId) return;
       Alert.alert(
-        'Odbij rezervaciju',
-        'Želite odbiti ovu rezervaciju? Klijent će biti obaviješten.',
+        t('stylist.inbox.rejectConfirmTitle'),
+        t('stylist.inbox.rejectConfirmMessage'),
         [
-          { text: 'Odustani', style: 'cancel' },
-          { text: 'Odbij', style: 'destructive', onPress: () => doReject(reservationId, undefined) },
+          { text: t('stylist.inbox.rejectCancel'), style: 'cancel' },
+          { text: t('stylist.inbox.reject'), style: 'destructive', onPress: () => doReject(reservationId, undefined) },
         ],
       );
     },
-    [profileId],
+    [profileId, t],
   );
 
   const doReject = useCallback(
@@ -192,13 +201,13 @@ export function StylistInboxScreen() {
         const msg =
           err && typeof err === 'object' && 'response' in err
             ? (err as any).response?.data?.message
-            : 'Greška pri odbijanju.';
-        Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+            : t('stylist.inbox.rejectErrorFallback');
+        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
       } finally {
         setActingId(null);
       }
     },
-    [profileId, fetchReservations],
+    [profileId, fetchReservations, t],
   );
 
   if (profileLoading || (loading && reservations.length === 0)) {
@@ -325,7 +334,7 @@ export function StylistInboxScreen() {
             <View style={styles.actions}>
               {lockedByOther ? (
                 <Text style={[styles.notes, { color: colors.textMuted }]}>
-                  Drugi stilist trenutno razmatra ovaj zahtjev.
+                  {t('stylist.inbox.lockedByOtherMessage')}
                 </Text>
               ) : null}
               {canLock && (

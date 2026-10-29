@@ -72,14 +72,14 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
 
   const handleComplete = useCallback(() => {
     Alert.alert(
-      'Završi zapis',
+      t('stylist.dailyLogDetail.completeConfirmTitle'),
       entry?.reservationId
-        ? 'Označiti zapis kao završen? Ovo će završiti i rezervaciju, te upisati prihod u knjigu.'
-        : 'Označiti zapis kao završen? Prihod će biti upisan u knjigu.',
+        ? t('stylist.dailyLogDetail.completeConfirmWithReservation')
+        : t('stylist.dailyLogDetail.completeConfirmStandalone'),
       [
-        { text: 'Odustani', style: 'cancel' },
+        { text: t('stylist.dailyLogDetail.completeConfirmCancel'), style: 'cancel' },
         {
-          text: 'Završi',
+          text: t('stylist.dailyLogDetail.completeConfirmAction'),
           onPress: async () => {
             setActing(true);
             try {
@@ -152,7 +152,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         },
       ],
     );
-  }, [entryId, fetchEntry, entry?.reservationId, navigation]);
+  }, [entryId, fetchEntry, entry?.reservationId, navigation, t]);
 
   const handleDelete = useCallback(() => {
     setDeleteReason('');
@@ -162,7 +162,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const confirmDelete = useCallback(async () => {
     const reason = deleteReason.trim();
     if (!reason) {
-      Alert.alert('Greška', 'Unesite razlog brisanja.');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.deleteReasonRequired'));
       return;
     }
     setActing(true);
@@ -175,12 +175,12 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data
               ?.message
-          : 'Greška pri brisanju.';
-      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : String(msg));
+          : t('stylist.dailyLogDetail.deleteErrorFallback');
+      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg));
     } finally {
       setActing(false);
     }
-  }, [deleteReason, entryId, navigation]);
+  }, [deleteReason, entryId, navigation, t]);
 
   const addImage = useCallback(
     async (isBefore: boolean) => {
@@ -488,26 +488,26 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
             style={{ width: '100%' }}
           >
             <Card style={{ ...styles.modalCard, backgroundColor: colors.surface }}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Obriši unos</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.deleteTitle')}</Text>
               <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
-                Unos će biti obrisan. Ako je preko ovog unosa naplaćen dug, dug se vraća u status OPEN.
+                {t('stylist.dailyLogDetail.deleteDescription')}
               </Text>
               <Input
-                label="Razlog brisanja"
+                label={t('stylist.dailyLogDetail.deleteReasonLabel')}
                 value={deleteReason}
                 onChangeText={setDeleteReason}
                 multiline
-                placeholder="Npr. greška u unosu"
+                placeholder={t('stylist.dailyLogDetail.deleteReasonPlaceholder')}
               />
               <View style={styles.modalActions}>
                 <Button
-                  title="Odustani"
+                  title={t('stylist.dailyLogDetail.deleteCancel')}
                   variant="outline"
                   onPress={() => setDeleteModalOpen(false)}
                   style={{ flex: 1 }}
                 />
                 <Button
-                  title="Obriši"
+                  title={t('common.delete')}
                   onPress={confirmDelete}
                   loading={acting}
                   style={{ flex: 1 }}
