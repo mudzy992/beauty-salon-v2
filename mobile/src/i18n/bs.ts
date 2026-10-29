@@ -282,7 +282,7 @@ export const bs = {
       editPriceAccessibilityLabel: 'Uredi cijenu',
       removeServiceAccessibilityLabel: 'Ukloni servis',
       priceEditTitle: 'Uredi cijenu',
-      priceEditDescription: 'Cijena vrijedi samo za ovaj unos (snapshot). Katalog ostaje nepromijenjen.',
+      priceEditDescription: 'Cijena se mijenja samo za ovaj unos. Katalog ostaje nepromijenjen.',
       priceEditServiceFallback: 'Servis',
       priceLabel: 'Cijena (KM)',
       dispositionPanelTitle: 'Termin se nije desio / treba drugi slot',
