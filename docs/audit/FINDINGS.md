@@ -801,3 +801,11 @@ Moved the actions modal title and edit, before-photo, after-photo, delete, and c
 ### I18N-01 follow-up — Mobile daily-log not-found state
 
 Moved the missing daily-log entry message into mobile Bosnian resources and reused the shared back label. Preserved the not-found condition and navigation back callback. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite, mobile TypeScript check, and repository hygiene pass locally. CI run `40941308697` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `8a9a21f` is pushed separately from this audit-doc update; the repository-wide audit remains open.
+
+### I18N-01 follow-up — Mobile daily-log completion CTA
+
+Moved both reservation-dependent completion button labels and the completed-entry notice into mobile Bosnian resources. Preserved the reservation condition, completion callback/loading state, and completed-entry display condition. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite, mobile TypeScript check, and repository hygiene pass locally. CI run `40943038349` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `e81d087` is pushed separately from this audit-doc update; the repository-wide audit remains open.
+
+### I18N-01 follow-up — Mobile daily-log completion CTA
+
+Moved both reservation-dependent completion button labels and the completed-entry notice into mobile Bosnian resources. Preserved the reservation condition, completion callback/loading state, and completed-entry display condition. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite, mobile TypeScript check, and repository hygiene pass locally. CI run `40943038349` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `e81d087` is pushed separately from this audit-doc update; the repository-wide audit remains open.
