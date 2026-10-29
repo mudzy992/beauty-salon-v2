@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { getSalonDateOnly } from '../../utils/date';
 import { fetchAllPublicServices } from '../../services/catalog';
@@ -10,6 +11,7 @@ import {
 } from './direct-booking-pickers';
 
 export const useStylistDirectBookingForm = (onCreated: () => void) => {
+  const { t } = useTranslation();
   const [clients, setClients] = useState<DirectBookingClient[]>([]);
   const [services, setServices] = useState<DirectBookingService[]>([]);
   const [clientSearch, setClientSearch] = useState('');
@@ -96,11 +98,11 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
 
   const handleSubmit = async () => {
     if (!selectedClient) {
-      Alert.alert('Greška', 'Odaberite klijenta.');
+      Alert.alert(t('common.error'), t('stylist.directBooking.noClientError'));
       return;
     }
     if (!selectedClient.gender) {
-      Alert.alert('Greška', 'Klijent nema definisan spol — ažurirajte profil klijenta.');
+      Alert.alert(t('common.error'), t('stylist.directBooking.missingGenderError'));
       return;
     }
     setSaving(true);
@@ -113,11 +115,16 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
         endTime,
         clientNotes: clientNotes.trim() || undefined,
       });
-      Alert.alert('Termin kreiran', 'Direktna rezervacija je odmah dodana u raspored.', [
-        { text: 'U redu', onPress: onCreated },
-      ]);
+      Alert.alert(
+        t('stylist.directBooking.successTitle'),
+        t('stylist.directBooking.successMessage'),
+        [{ text: t('common.ok'), onPress: onCreated }],
+      );
     } catch (error: any) {
-      Alert.alert('Greška', error?.response?.data?.message ?? 'Kreiranje termina nije uspjelo.');
+      Alert.alert(
+        t('common.error'),
+        error?.response?.data?.message ?? t('stylist.directBooking.errorFallback'),
+      );
     } finally {
       setSaving(false);
     }

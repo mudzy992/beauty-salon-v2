@@ -255,6 +255,11 @@ export const bs = {
       selectClientPrompt: 'Prvo odaberite klijenta — lista servisa se filtrira po spolu.',
       missingGenderWarning: 'Klijent nema definisan spol. Servisi se ne mogu filtrirati.',
       noServicesForGender: 'Nema aktivnih servisa za odabrani spol.',
+      noClientError: 'Odaberite klijenta.',
+      missingGenderError: 'Klijent nema definisan spol — ažurirajte profil klijenta.',
+      successTitle: 'Termin kreiran',
+      successMessage: 'Direktna rezervacija je odmah dodana u raspored.',
+      errorFallback: 'Kreiranje termina nije uspjelo.'
     },
     reservationDetail: {
       notFound: 'Rezervacija nije pronađena.',
