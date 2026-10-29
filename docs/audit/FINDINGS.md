@@ -720,3 +720,7 @@ Localized missing-client and missing-gender validation alerts, success title/mes
 ### I18N-01 follow-up — Mobile stylist schedule pending-reschedule hint
 
 Localized the schedule-list notice that the client must confirm a proposed new time. Preserved the pending-status condition, warning icon, row styling, and reservation values. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40881175506` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `98280f7` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile stylist schedule weekday abbreviations
+
+Moved the schedule's seven short weekday labels into mobile Bosnian resources. Preserved the Sunday-to-Saturday index mapping, date formatting, and future-section grouping. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40883040908` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `dc1c175` is pushed separately from this audit-doc update; the broader audit remains open.
