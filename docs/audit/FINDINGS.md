@@ -708,3 +708,7 @@ Localized the direct-booking screen title and intro copy and reused the title fo
 ### I18N-01 follow-up — Mobile stylist direct-booking form controls
 
 Localized direct-booking client label/search placeholder, date/start/end labels, notes label, and cancel/submit button titles. Preserved field state and callbacks, required-field disabling, back navigation, and form submission. Extended the focused regression suite to 3 tests; the suite and mobile TypeScript check pass. CI run `40876525103` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `d0a14db` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile stylist direct-booking pickers
+
+Localized the direct-booking picker’s client gender labels, services heading, and guidance/empty-state copy in mobile Bosnian resources. Client selection, gender-based service filtering, empty-state conditions, service toggles, and service values are unchanged. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40877743421` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `4f496c9` is pushed separately from this audit-doc update; the broader audit remains open.
