@@ -473,6 +473,9 @@ jobs:
       - name: Test localized stylist inbox rejection confirmation
         working-directory: mobile
         run: npm run test:stylist-inbox-reject-confirm-i18n
+      - name: Test localized stylist inbox action error fallbacks
+        working-directory: mobile
+        run: npm run test:stylist-inbox-error-fallbacks-i18n
       - name: Bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"

@@ -85,13 +85,13 @@ export function StylistInboxScreen() {
         const msg =
           err && typeof err === 'object' && 'response' in err
             ? (err as any).response?.data?.message
-            : 'Greška pri zaključavanju.';
-        Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+            : t('stylist.inbox.lockErrorFallback');
+        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
       } finally {
         setActingId(null);
       }
     },
-    [profileId, fetchReservations],
+    [profileId, fetchReservations, t],
   );
 
   const handleUnlock = useCallback(
@@ -105,13 +105,13 @@ export function StylistInboxScreen() {
         const msg =
           err && typeof err === 'object' && 'response' in err
             ? (err as any).response?.data?.message
-            : 'Greška pri oslobađanju.';
-        Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+            : t('stylist.inbox.unlockErrorFallback');
+        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
       } finally {
         setActingId(null);
       }
     },
-    [profileId, fetchReservations],
+    [profileId, fetchReservations, t],
   );
 
   const handleAccept = useCallback(
@@ -155,13 +155,13 @@ export function StylistInboxScreen() {
         const msg =
           err && typeof err === 'object' && 'response' in err
             ? (err as any).response?.data?.message
-            : 'Greška pri prihvatanju.';
-        Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+            : t('stylist.inbox.acceptErrorFallback');
+        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
       } finally {
         setActingId(null);
       }
     },
-    [profileId, fetchReservations],
+    [profileId, fetchReservations, t],
   );
 
   const handleReject = useCallback(
@@ -192,13 +192,13 @@ export function StylistInboxScreen() {
         const msg =
           err && typeof err === 'object' && 'response' in err
             ? (err as any).response?.data?.message
-            : 'Greška pri odbijanju.';
-        Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+            : t('stylist.inbox.rejectErrorFallback');
+        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
       } finally {
         setActingId(null);
       }
     },
-    [profileId, fetchReservations],
+    [profileId, fetchReservations, t],
   );
 
   if (profileLoading || (loading && reservations.length === 0)) {
