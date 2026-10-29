@@ -777,7 +777,11 @@ Moved the daily-log delete modal title, debt-restoration explanation, reason lab
 
 Localized the completion-confirmation title, reservation-dependent prompt, and cancel/complete labels on the mobile daily-log detail screen. Preserved the reservation condition, alert button style, completion endpoint, follow-up fetch, and optional reschedule-preview flow. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite and mobile TypeScript check pass locally. CI run `40927256949` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `5594868` is pushed separately from this audit-doc update; the repository-wide audit remains open.
 
-
-### I18N-01 follow-up — Mobile daily-log overrun alerts
+I18N-01 follow-up — Mobile daily-log overrun alerts
 
 Localized the overrun/reschedule alert title and prompt, cancel/option labels, and the no-future-appointments message with interpolated minutes. Preserved delay/item-count thresholds, button styles, both `ReschedulePreview` routes and their include-breaks/mode/lock parameters. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite and adjacent daily-log completion/delete suites pass; mobile TypeScript check passes locally. CI run `40932228499` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `0c70c38` is pushed separately from this audit-doc update; the repository-wide audit remains open.
+
+
+### I18N-01 follow-up — Mobile daily-log completion error fallback
+
+Moved the generic daily-log completion failure fallback into mobile Bosnian resources and reused the common error title. Preserved server-provided error messages, first-array-item selection, completion request/refresh behavior, and callback dependencies. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite and adjacent completion-confirmation/overrun suites pass; mobile TypeScript check passes locally. CI run `40934055730` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `f9b4586` is pushed separately from this audit-doc update; the repository-wide audit remains open.
