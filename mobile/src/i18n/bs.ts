@@ -313,6 +313,8 @@ export const bs = {
       },
     },
     schedule: {
+      countdownRemaining: 'Do kraja: {{time}}',
+      countdownOverrun: 'Prekoračenje: {{sign}}{{time}}',
       completeTitle: 'Završi i upiši u dnevnu knjigu',
       completeHint: 'Dodirni za: Završi i upiši u dnevnu knjigu',
       completeSubmit: 'Upiši i označi završenim',

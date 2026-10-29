@@ -212,8 +212,10 @@ export function StylistScheduleScreen({ navigation }: Props) {
     const ss = totalSec % 60;
     const hh = Math.floor(totalSec / 3600);
     const core = hh > 0 ? `${hh}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : `${mm}:${String(ss).padStart(2, '0')}`;
-    return diffMs >= 0 ? `Do kraja: ${core}` : `Prekoračenje: ${sign}${core}`;
-  }, [activeReservation, tick]);
+    return diffMs >= 0
+      ? t('stylist.schedule.countdownRemaining', { time: core })
+      : t('stylist.schedule.countdownOverrun', { sign, time: core });
+  }, [activeReservation, t, tick]);
 
   const activeHeroUri = useMemo(() => {
     const path = pickReservationBackdropHeroImage(activeReservation);
