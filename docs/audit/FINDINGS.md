@@ -676,3 +676,7 @@ Localized the remaining static reservation-summary copy for the reservation fall
 ### I18N-01 follow-up — Mobile reservation modal accessibility label
 
 The shared reservation-detail modal's backdrop button had a hardcoded Bosnian accessibility label. Replaced it with the already registered `common.close` translation; button role, backdrop and OS-request close handlers, visibility, and animation remain unchanged. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40864377448` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `7974586` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile stylist reservation detail empty state
+
+Localized the reservation-not-found message and reused the existing `common.back` resource for the empty-state return button. The empty-state condition, `navigation.goBack()` callback, and button variant are unchanged. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40865806258` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `d5c2f81` is pushed separately from this audit-doc update; the broader audit remains open.
