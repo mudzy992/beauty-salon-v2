@@ -34,8 +34,11 @@ export const ReservationDetailSummary = ({ reservation }: ReservationDetailSumma
   const title =
     reservation.publicReferenceCode?.trim() ||
     services[0]?.name ||
-    'Rezervacija';
-  const durationSuffix = totalMinutes > 0 ? ` · ${totalMinutes} min` : '';
+    t('stylist.reservationDetail.summary.reservationFallback');
+  const durationSuffix =
+    totalMinutes > 0
+      ? ` · ${totalMinutes} ${t('stylist.reservationDetail.summary.minutesShort')}`
+      : '';
 
   return (
     <Card style={[styles.card, { borderWidth: 1, borderColor: colors.border }]}>
@@ -57,7 +60,9 @@ export const ReservationDetailSummary = ({ reservation }: ReservationDetailSumma
             <Ionicons name="cut-outline" size={16} color={colors.textSecondary} />
             <Text style={[styles.infoText, { color: colors.text, flex: 1 }]}>
               {service.name}
-              {service.durationMinutes ? ` · ${service.durationMinutes} min` : ''}
+              {service.durationMinutes
+                ? ` · ${service.durationMinutes} ${t('stylist.reservationDetail.summary.minutesShort')}`
+                : ''}
             </Text>
             <Text style={[styles.infoText, { color: colors.text }]}>
               {Number(service.price ?? 0).toFixed(2)} KM
@@ -68,7 +73,7 @@ export const ReservationDetailSummary = ({ reservation }: ReservationDetailSumma
         <View style={styles.infoItem}>
           <Ionicons name="cash-outline" size={16} color={colors.primary} />
           <Text style={[styles.infoText, { color: colors.text, flex: 1, fontWeight: '700' }]}>
-            Procjenjena naplata
+            {t('stylist.reservationDetail.summary.estimatedCharge')}
           </Text>
           <Text style={[styles.infoText, { color: colors.primary, fontWeight: '700' }]}>
             {estimatedAfterLoyalty.toFixed(2)} KM
@@ -76,8 +81,11 @@ export const ReservationDetailSummary = ({ reservation }: ReservationDetailSumma
         </View>
         {loyaltyAmount > 0 ? (
           <Text style={[styles.meta, { color: colors.textSecondary }]}>
-            Bruto {estimated.toFixed(2)} KM − loyalty {loyaltyPercent}% (
-            {loyaltyAmount.toFixed(2)} KM)
+            {t('stylist.reservationDetail.summary.grossLoyaltyDiscount', {
+              amount: estimated.toFixed(2),
+              percent: loyaltyPercent,
+              discount: loyaltyAmount.toFixed(2),
+            })}
           </Text>
         ) : null}
 
@@ -107,7 +115,7 @@ export const ReservationDetailSummary = ({ reservation }: ReservationDetailSumma
           <View style={styles.infoItem}>
             <Ionicons name="wallet-outline" size={16} color={colors.primary} />
             <Text style={[styles.infoText, { color: colors.primary, fontWeight: '700' }]}>
-              Klijent želi platiti dugovanje
+              {t('stylist.reservationDetail.summary.payDebtsIntent')}
             </Text>
           </View>
         ) : null}
@@ -115,12 +123,12 @@ export const ReservationDetailSummary = ({ reservation }: ReservationDetailSumma
           <View style={[styles.infoItem, { alignItems: 'flex-start' }]}>
             <Ionicons name="alert-circle-outline" size={16} color={colors.warning} />
             <Text style={[styles.infoText, { color: colors.warning, flex: 1 }]}>
-              Predloženo pomjeranje:{' '}
+              {t('stylist.reservationDetail.summary.rescheduleProposed')}{' '}
               {reservation.rescheduleProposedStartTime
                 ? `${formatTime(reservation.rescheduleProposedStartTime)} – ${formatTime(
                     reservation.rescheduleProposedEndTime ?? '',
                   )}`
-                : 'klijent treba potvrditi'}
+                : t('stylist.reservationDetail.summary.clientConfirmationPending')}
             </Text>
           </View>
         ) : null}

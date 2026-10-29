@@ -238,6 +238,15 @@ export const bs = {
   },
   stylist: {
     reservationDetail: {
+      summary: {
+        reservationFallback: 'Rezervacija',
+        minutesShort: 'min',
+        estimatedCharge: 'Procijenjena naplata',
+        grossLoyaltyDiscount: 'Bruto {{amount}} KM − program lojalnosti {{percent}}% ({{discount}} KM)',
+        payDebtsIntent: 'Klijent želi platiti dugovanje',
+        rescheduleProposed: 'Predloženo pomjeranje:',
+        clientConfirmationPending: 'klijent treba potvrditi',
+      },
       complete: {
         chargedLabel: 'Naplaćeno (KM)',
         amountDue: 'Za naplatu: {{amount}} KM',
