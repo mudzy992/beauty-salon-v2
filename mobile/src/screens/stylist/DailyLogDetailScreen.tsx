@@ -312,7 +312,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
 
         <View style={styles.infoGrid}>
           <View>
-            <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 4 }]}>Servisi</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 4 }]}>{t('stylist.dailyLogDetail.servicesSectionTitle')}</Text>
             {(entry.items && entry.items.length > 0
               ? entry.items
               : entry.service
@@ -330,7 +330,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                 }}
               >
                 <Text style={{ color: colors.text, flex: 1 }}>
-                  {it.service?.name ?? 'Usluga'}
+                  {it.service?.name ?? t('stylist.dailyLogDetail.serviceFallback')}
                 </Text>
                 <Text style={{ color: colors.textSecondary }}>
                   {Number(it.unitPrice ?? 0).toFixed(2)} KM
@@ -342,7 +342,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           {(entry.debtPaymentEntries?.length ?? 0) > 0 ? (
             <View>
               <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 4 }]}>
-                Naplata dugovanja
+                {t('stylist.dailyLogDetail.debtPaymentSectionTitle')}
               </Text>
               {entry.debtPaymentEntries!.map((dp) => (
                 <View
@@ -356,7 +356,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                   }}
                 >
                   <Text style={{ color: colors.text, flex: 1 }}>
-                    {dp.debt?.service?.name ?? dp.service?.name ?? 'Dug'}
+                    {dp.debt?.service?.name ?? dp.service?.name ?? t('stylist.dailyLogDetail.debtFallback')}
                     {dp.debt?.createdAt
                       ? ` · ${String(dp.debt.createdAt).slice(0, 10)}`
                       : ''}
@@ -373,7 +373,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
             <View style={styles.infoItem}>
               <Ionicons name="bookmark-outline" size={16} color={colors.textSecondary} />
               <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-                Rezervacija:{' '}
+                {t('stylist.dailyLogDetail.reservationLabel')}{' '}
                 <Text style={{ color: colors.text }}>
                   {reservationStatusLabel}
                 </Text>
@@ -390,14 +390,24 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           <View style={styles.infoItem}>
             <Ionicons name="cash-outline" size={16} color={colors.textSecondary} />
             <Text style={[styles.infoText, { color: colors.text }]}>
-              Ukupno naplaćeno: {getCollectedTotal(entry).toFixed(2)} KM
+              {t('stylist.dailyLogDetail.totalChargedAmount', {
+                amount: getCollectedTotal(entry).toFixed(2),
+              })}
             </Text>
           </View>
           <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-            Servisi: {Number(entry.actualPrice).toFixed(2)} KM
-            {entry.tipAmount > 0 ? ` (napojnica ${Number(entry.tipAmount).toFixed(2)} KM)` : ''}
+            {t('stylist.dailyLogDetail.servicesAmount', {
+              amount: Number(entry.actualPrice).toFixed(2),
+            })}
+            {entry.tipAmount > 0
+              ? t('stylist.dailyLogDetail.tipAmount', {
+                  amount: Number(entry.tipAmount).toFixed(2),
+                })
+              : ''}
             {getSettledDebtsSum(entry) > 0
-              ? ` · Dugovi: ${getSettledDebtsSum(entry).toFixed(2)} KM`
+              ? t('stylist.dailyLogDetail.settledDebtsAmount', {
+                  amount: getSettledDebtsSum(entry).toFixed(2),
+                })
               : ''}
           </Text>
           {entry.notes ? (
