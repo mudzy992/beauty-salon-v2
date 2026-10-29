@@ -407,6 +407,9 @@ jobs:
       - name: Test localized stylist reservation actions UI
         working-directory: mobile
         run: npm run test:stylist-reservation-actions-i18n
+      - name: Test localized stylist reservation completion UI
+        working-directory: mobile
+        run: npm run test:stylist-reservation-complete-i18n
       - name: Bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"

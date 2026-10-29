@@ -61,18 +61,20 @@ export function CompleteReservationModal({
     <ReservationDetailModalShell visible={visible} onClose={onClose}>
       <Text style={[styles.title, { color: colors.text }]}>{t('stylist.schedule.completeTitle')}</Text>
       <Input
-        label="Naplaćeno (KM)"
+        label={t('stylist.reservationDetail.complete.chargedLabel')}
         value={actualPrice}
         onChangeText={onActualPriceChange}
         keyboardType="decimal-pad"
       />
       <Text style={[styles.infoText, { color: colors.textSecondary, marginTop: 4 }]}>
-        Za naplatu: {completeChargeAmount.toFixed(2)} KM
-        {reservation.payDebtsIntent ? ' · klijent želi platiti dug' : ''}
+        {t('stylist.reservationDetail.complete.amountDue', { amount: completeChargeAmount.toFixed(2) })}
+        {reservation.payDebtsIntent
+          ? ` · ${t('stylist.reservationDetail.complete.payDebtsIntent')}`
+          : ''}
       </Text>
       {tipAmount > 0 ? (
         <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-          Napojnica: {tipAmount.toFixed(2)} KM
+          {t('stylist.reservationDetail.complete.tipAmount', { amount: tipAmount.toFixed(2) })}
         </Text>
       ) : null}
       {shortfall > 0 ? (
@@ -81,26 +83,31 @@ export function CompleteReservationModal({
           style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 8 }}
         >
           <Text style={{ color: colors.primary, fontWeight: '700' }}>
-            {createDebt ? '✓' : '○'} Zavedi dug ({shortfall.toFixed(2)} KM)
+            {createDebt ? '✓' : '○'}{' '}
+            {t('stylist.reservationDetail.complete.recordDebt', { amount: shortfall.toFixed(2) })}
           </Text>
         </TouchableOpacity>
       ) : null}
       <View style={{ marginTop: spacing.sm }}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Dugovanja klijenta</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          {t('stylist.reservationDetail.complete.clientDebtsTitle')}
+        </Text>
         {clientDebtsLoading ? (
           <View style={{ paddingVertical: spacing.sm }}>
             <ActivityIndicator size="small" color={colors.primary} />
           </View>
         ) : clientDebts.length === 0 ? (
-          <Text style={[styles.infoText, { color: colors.textSecondary }]}>Nema otvorenih dugovanja.</Text>
+          <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+            {t('stylist.reservationDetail.complete.noOpenDebts')}
+          </Text>
         ) : (
           <View style={{ gap: 8 }}>
             {clientDebts.slice(0, 6).map((d) => {
               const isMine = d.stylistProfileId === profileId;
-              const label = d.service?.name ?? 'Usluga';
+              const label = d.service?.name ?? t('stylist.reservationDetail.complete.serviceFallback');
               const stylistName = d.stylistProfile?.user
                 ? `${d.stylistProfile.user.firstName} ${d.stylistProfile.user.lastName}`.trim()
-                : 'Stilist';
+                : t('stylist.reservationDetail.complete.stylistFallback');
               const selected = !!selectedDebtIds[d.id];
               return (
                 <TouchableOpacity
@@ -118,22 +125,32 @@ export function CompleteReservationModal({
                       {label} · {Number(d.amount).toFixed(2)} KM
                     </Text>
                     <Text style={[styles.debtMeta, { color: colors.textSecondary }]}>
-                      {isMine ? 'Dug kod vas' : `Dug kod ${stylistName}`} · {d.createdAt.slice(0, 10)}
+                      {isMine
+                        ? t('stylist.reservationDetail.complete.debtWithYou')
+                        : t('stylist.reservationDetail.complete.debtWithStylist', { stylist: stylistName })}{' '}
+                      · {d.createdAt.slice(0, 10)}
                     </Text>
                   </View>
                 </TouchableOpacity>
               );
             })}
             <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-              Odabrana dugovanja će biti dodata na ukupnu cijenu i neće se računati u napojnicu.
+              {t('stylist.reservationDetail.complete.selectedDebtsExplanation')}
             </Text>
             <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-              Ukupno za dugovanja: {selectedDebtSum.toFixed(2)} KM
+              {t('stylist.reservationDetail.complete.selectedDebtsTotal', {
+                amount: selectedDebtSum.toFixed(2),
+              })}
             </Text>
           </View>
         )}
       </View>
-      <Input label="Napomena (opciono)" value={notes} onChangeText={onNotesChange} multiline />
+      <Input
+        label={t('stylist.reservationDetail.complete.notesLabel')}
+        value={notes}
+        onChangeText={onNotesChange}
+        multiline
+      />
       <View style={styles.actions}>
         <Button title={t('common.cancel')} onPress={onClose} variant="outline" style={styles.btn} />
         <Button

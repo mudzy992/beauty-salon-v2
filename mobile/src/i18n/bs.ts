@@ -238,6 +238,22 @@ export const bs = {
   },
   stylist: {
     reservationDetail: {
+      complete: {
+        chargedLabel: 'Naplaćeno (KM)',
+        amountDue: 'Za naplatu: {{amount}} KM',
+        payDebtsIntent: 'klijent želi platiti dug',
+        tipAmount: 'Napojnica: {{amount}} KM',
+        recordDebt: 'Zavedi dug ({{amount}} KM)',
+        clientDebtsTitle: 'Dugovanja klijenta',
+        noOpenDebts: 'Nema otvorenih dugovanja.',
+        serviceFallback: 'Usluga',
+        stylistFallback: 'Stilist',
+        debtWithYou: 'Dug kod vas',
+        debtWithStylist: 'Dug kod {{stylist}}',
+        selectedDebtsExplanation: 'Odabrana dugovanja će biti dodata na ukupnu cijenu i neće se računati u napojnicu.',
+        selectedDebtsTotal: 'Ukupno za dugovanja: {{amount}} KM',
+        notesLabel: 'Napomena (opciono)',
+      },
       actions: {
         title: 'Akcije',
         confirmAttendance: 'Potvrdi dolazak',
