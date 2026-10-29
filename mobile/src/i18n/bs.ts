@@ -237,6 +237,11 @@ export const bs = {
     androidOnly: 'In-app update je dostupan samo na Androidu.',
   },
   stylist: {
+    profile: {
+      logoutButton: 'Odjavi se',
+      logoutConfirmMessage: 'Da li ste sigurni da se želite odjaviti?',
+      logoutConfirmButton: 'Odjavi se',
+    },
     stats: {
       noProfileTitle: 'Nema profila',
       noProfileMessage: 'Profil stilista nije pronađen.',

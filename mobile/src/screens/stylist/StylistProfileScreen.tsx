@@ -28,9 +28,13 @@ export function StylistProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert('Odjava', 'Da li ste sigurni da se želite odjaviti?', [
-      { text: 'Otkaži', style: 'cancel' },
-      { text: 'Odjavi se', style: 'destructive', onPress: logout },
+    Alert.alert(t('auth.logout'), t('stylist.profile.logoutConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('stylist.profile.logoutConfirmButton'),
+        style: 'destructive',
+        onPress: logout,
+      },
     ]);
   };
 
@@ -80,7 +84,13 @@ export function StylistProfileScreen() {
       </Card>
 
       <Card style={styles.menuCard}>
-        <Button title="Odjavi se" onPress={handleLogout} variant="ghost" textStyle={{ color: colors.error }} fullWidth />
+        <Button
+          title={t('stylist.profile.logoutButton')}
+          onPress={handleLogout}
+          variant="ghost"
+          textStyle={{ color: colors.error }}
+          fullWidth
+        />
       </Card>
 
       <ApkForceUpdateModal
