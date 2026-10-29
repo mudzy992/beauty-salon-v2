@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/ui/Input';
+import { useTranslation } from 'react-i18next';
 import { DateTimeField } from '../../components/ui/DateTimeField';
 import { Button } from '../../components/ui/Button';
 import { spacing } from '../../theme';
@@ -48,6 +49,7 @@ type Props = {
 };
 
 export function DailyLogEntryPricingBlock(props: Props) {
+  const { t } = useTranslation();
   const {
     colors,
     selectedServices,
@@ -106,14 +108,14 @@ export function DailyLogEntryPricingBlock(props: Props) {
           </View>
           <TouchableOpacity
             onPress={() => openEditPrice(s.id)}
-            accessibilityLabel="Uredi cijenu"
+            accessibilityLabel={t('stylist.dailyLogDetail.editPriceAccessibilityLabel')}
             style={[styles.iconBtn, { borderColor: colors.inputBorder, backgroundColor: colors.inputBg }]}
           >
             <Ionicons name="create-outline" size={18} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => onRemoveService(s.id)}
-            accessibilityLabel="Ukloni servis"
+            accessibilityLabel={t('stylist.dailyLogDetail.removeServiceAccessibilityLabel')}
             style={[styles.iconBtn, { borderColor: colors.inputBorder, backgroundColor: colors.inputBg }]}
           >
             <Ionicons name="trash-outline" size={18} color={colors.textSecondary} />
@@ -230,22 +232,22 @@ export function DailyLogEntryPricingBlock(props: Props) {
       <Modal visible={!!editServiceId} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Uredi cijenu</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.priceEditTitle')}</Text>
             <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
-              Cijena vrijedi samo za ovaj unos (snapshot). Katalog ostaje nepromijenjen.
+              {t('stylist.dailyLogDetail.priceEditDescription')}
             </Text>
             <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 4 }}>
-              {editingService?.name ?? 'Servis'}
+              {editingService?.name ?? t('stylist.dailyLogDetail.priceEditServiceFallback')}
             </Text>
             <Input
-              label="Cijena (KM)"
+              label={t('stylist.dailyLogDetail.priceLabel')}
               value={editPriceDraft}
               onChangeText={setEditPriceDraft}
               keyboardType="decimal-pad"
             />
             <View style={styles.modalActions}>
-              <Button title="Odustani" variant="outline" onPress={() => setEditServiceId(null)} style={{ flex: 1 }} />
-              <Button title="Sačuvaj" onPress={saveEditPrice} style={{ flex: 1 }} />
+              <Button title={t('common.cancel')} variant="outline" onPress={() => setEditServiceId(null)} style={{ flex: 1 }} />
+              <Button title={t('common.save')} onPress={saveEditPrice} style={{ flex: 1 }} />
             </View>
           </View>
         </View>
