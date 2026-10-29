@@ -193,11 +193,12 @@ Suggested browser flows: public home/services/blog/reviews; login/onboarding/for
 cd mobile
 npm run test:socket-recovery
 npm run test:stylist-daily-log-entry-form-errors-i18n
+npm run test:stylist-daily-log-entry-form-pickers-i18n
 npm run typecheck
 npm run lint
 ```
 
-`typecheck` script is added in this branch; equivalent baseline command `npx tsc --noEmit` passed. `test:socket-recovery` uses Node's built-in runner and passes 6/6 for the mobile controller; it does not require a database, Redis or device. Focused localization source-contract tests are registered individually in `mobile/package.json` and `.github/workflows/ci.yml`; `test:stylist-daily-log-entry-form-errors-i18n` covers daily-log editor validation/error resources and guards its edit/create/error-passthrough contracts (2 tests). These are source-contract checks, not React Native rendering or device locale tests. `lint` remains non-gating until ESLint is installed/configured.
+`typecheck` script is added in this branch; equivalent baseline command `npx tsc --noEmit` passed. `test:socket-recovery` uses Node's built-in runner and passes 6/6 for the mobile controller; it does not require a database, Redis or device. Focused localization source-contract tests are registered individually in `mobile/package.json` and `.github/workflows/ci.yml`; `test:stylist-daily-log-entry-form-errors-i18n` covers daily-log editor validation/error resources and guards its edit/create/error-passthrough contracts, while `test:stylist-daily-log-entry-form-pickers-i18n` checks client/service picker copy and preserves filtering/selection behavior (2 tests each). These are source-contract checks, not React Native rendering or device locale tests. `lint` remains non-gating until ESLint is installed/configured.
 
 ### Add as implementation progresses
 
