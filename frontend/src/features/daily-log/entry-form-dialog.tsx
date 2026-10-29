@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,7 @@ type Props = {
 }
 
 export const DailyLogEntryFormDialog = (props: Props) => {
+  const { t } = useTranslation()
   const {
     open,
     onOpenChange,
@@ -250,7 +252,7 @@ export const DailyLogEntryFormDialog = (props: Props) => {
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent side="right" className="max-w-lg overflow-y-auto p-4">
           <h2 className="mb-4 text-lg font-semibold">
-            {editId ? 'Uredi Unos' : 'Novi Unos u Dnevnu Knjigu'}
+            {editId ? t('dailyLog.editEntry') : t('dailyLog.newEntry')}
           </h2>
           {fields}
         </DrawerContent>
@@ -262,7 +264,7 @@ export const DailyLogEntryFormDialog = (props: Props) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editId ? 'Uredi Unos' : 'Novi Unos u Dnevnu Knjigu'}</DialogTitle>
+          <DialogTitle>{editId ? t('dailyLog.editEntry') : t('dailyLog.newEntry')}</DialogTitle>
         </DialogHeader>
         {fields}
       </DialogContent>

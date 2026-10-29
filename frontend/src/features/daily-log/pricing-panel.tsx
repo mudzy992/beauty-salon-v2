@@ -1,6 +1,9 @@
+import { useTranslation } from 'react-i18next'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Switch } from '../../components/ui/switch'
+import { formatLocalizedAmount, formatLocalizedNumber, getIntlLocale } from '../../i18n/locale-utils.mjs'
+import { formatDateOnlyLocale } from '../../../../shared/business-date.mjs'
 import type { ClientDebtOption, ServiceOption } from './types'
 import { getStylistName } from './types'
 
@@ -23,6 +26,16 @@ type Props = {
   onCreateDebtChange: (v: boolean) => void
 }
 
+const formatDate = (value: string | Date | null | undefined, language: string) => {
+  const dateOnly = value?.toString().slice(0, 10)
+  if (!dateOnly) return '—'
+  try {
+    return formatDateOnlyLocale(dateOnly, getIntlLocale(language), { dateStyle: 'medium' })
+  } catch {
+    return dateOnly
+  }
+}
+
 export const DailyLogPricingPanel = ({
   selectedServices,
   unitPrices,
@@ -40,11 +53,13 @@ export const DailyLogPricingPanel = ({
   shortfall,
   createDebt,
   onCreateDebtChange,
-}: Props) => (
-  <div className="space-y-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
+}: Props) => {
+  const { t, i18n } = useTranslation()
+
+  return <div className="space-y-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
     {selectedServices.length > 0 ? (
       <div className="space-y-2">
-        <Label>Servisi i cijene</Label>
+        <Label>{t('dailyLog.form.servicePrices')}</Label>
         {selectedServices.map((svc) => (
           <div key={svc.id} className="flex items-center gap-2">
             <span className="min-w-0 flex-1 truncate text-sm">{svc.name}</span>
@@ -57,7 +72,7 @@ export const DailyLogPricingPanel = ({
               onChange={(e) =>
                 onUnitPriceChange(svc.id, Number(e.target.value.replace(',', '.')) || 0)
               }
-              aria-label={`Cijena ${svc.name}`}
+              aria-label={t('dailyLog.form.priceForService', { service: svc.name })}
             />
             <span className="text-xs text-slate-500">KM</span>
           </div>
@@ -67,8 +82,10 @@ export const DailyLogPricingPanel = ({
     {openDebts.length > 0 ? (
       <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-800">
         <p className="text-sm text-amber-700 dark:text-amber-400">
-          Klijent ima {openDebts.length} otvorenih dugovanja (
-          {openDebts.reduce((a, d) => a + Number(d.amount), 0).toFixed(2)} KM).
+          {t('dailyLog.form.openDebts', {
+            items: formatLocalizedNumber(openDebts.length, i18n.language),
+            amount: formatLocalizedAmount(openDebts.reduce((a, d) => a + Number(d.amount), 0), i18n.language),
+          })}
         </p>
         <div className="flex items-center gap-2">
           <Switch
@@ -76,7 +93,7 @@ export const DailyLogPricingPanel = ({
             checked={settleDebtsEnabled}
             onCheckedChange={onSettleDebtsEnabledChange}
           />
-          <Label htmlFor="settle-debts">Naplati dug</Label>
+          <Label htmlFor="settle-debts">{t('dailyLog.form.settleDebt')}</Label>
         </div>
         {settleDebtsEnabled
           ? openDebts.map((d) => (
@@ -91,11 +108,13 @@ export const DailyLogPricingPanel = ({
                   onChange={() => onToggleSettledDebt(d.id)}
                 />
                 <span className="min-w-0 flex-1">
-                  Naplata dugovanja · {d.service?.name ?? 'Servis'} ·{' '}
-                  {(d.dailyLogEntry?.date ?? d.createdAt)?.toString().slice(0, 10)} ·{' '}
-                  {getStylistName(d.stylistProfile)}
+                  {t('dailyLog.form.debtItem', {
+                    service: d.service?.name ?? t('dailyLog.form.serviceFallback'),
+                    date: formatDate(d.dailyLogEntry?.date ?? d.createdAt, i18n.language),
+                    stylist: getStylistName(d.stylistProfile),
+                  })}
                 </span>
-                <span className="font-medium tabular-nums">{Number(d.amount).toFixed(2)} KM</span>
+                <span className="font-medium tabular-nums">{formatLocalizedAmount(Number(d.amount), i18n.language)}</span>
               </label>
             ))
           : null}
@@ -103,14 +122,14 @@ export const DailyLogPricingPanel = ({
     ) : null}
     <div className="border-t border-slate-200 pt-3 dark:border-slate-800">
       <p className="text-sm font-semibold">
-        Za naplatu: {chargeAmount.toFixed(2)} KM
+        {t('dailyLog.form.amountToCollect', { amount: formatLocalizedAmount(chargeAmount, i18n.language) })}
         {debtsSum > 0 ? (
           <span className="ml-1 text-xs font-normal text-slate-500">
-            (uklj. dugove {debtsSum.toFixed(2)} KM)
+            {t('dailyLog.form.includingDebts', { amount: formatLocalizedAmount(debtsSum, i18n.language) })}
           </span>
         ) : null}
       </p>
-      <Label className="mt-2 block">Naplaćeno (KM)</Label>
+      <Label className="mt-2 block">{t('dailyLog.form.amountPaid')}</Label>
       <Input
         className="mt-1"
         value={paidAmount}
@@ -119,20 +138,20 @@ export const DailyLogPricingPanel = ({
       />
       {tipPreview > 0 ? (
         <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">
-          Napojnica: {tipPreview.toFixed(2)} KM
+          {t('dailyLog.form.tip', { amount: formatLocalizedAmount(tipPreview, i18n.language) })}
         </p>
       ) : null}
       {shortfall > 0 ? (
         <div className="mt-2 space-y-2">
           <p className="text-xs text-amber-700 dark:text-amber-400">
-            Dug: {shortfall.toFixed(2)} KM
+            {t('dailyLog.form.shortfall', { amount: formatLocalizedAmount(shortfall, i18n.language) })}
           </p>
           <div className="flex items-center gap-2">
             <Switch id="create-debt" checked={createDebt} onCheckedChange={onCreateDebtChange} />
-            <Label htmlFor="create-debt">Zavedi dug</Label>
+            <Label htmlFor="create-debt">{t('dailyLog.form.createDebt')}</Label>
           </div>
         </div>
       ) : null}
     </div>
   </div>
-)
+}

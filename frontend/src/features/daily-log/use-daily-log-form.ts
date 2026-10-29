@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import type {
@@ -25,6 +26,7 @@ type Args = {
 }
 
 export const useDailyLogForm = ({ loadData, toast }: Args) => {
+  const { t } = useTranslation()
   const { success, error, warning } = toast
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -193,19 +195,19 @@ export const useDailyLogForm = ({ loadData, toast }: Args) => {
 
   const handleSave = async () => {
     if (!form.stylistProfileId || form.serviceIds.length === 0) {
-      warning('Odaberite stilistu i servis')
+      warning(t('dailyLog.form.validation.stylistAndServiceRequired'))
       return
     }
     if (!Number.isFinite(paidRaw) || paidRaw < 0) {
-      warning('Unesite ispravan iznos naplaćenog računa')
+      warning(t('dailyLog.form.validation.paidAmountInvalid'))
       return
     }
     if (settleDebtsEnabled && settledDebtIds.length > 0 && paidRaw < charge.debtsSum) {
-      warning('Nedovoljno za naplatu označenih dugova')
+      warning(t('dailyLog.form.validation.debtsAmountInsufficient'))
       return
     }
     if (shortfall > 0 && createDebt && !form.clientId) {
-      warning('Za zavođenje duga odaberite klijenta')
+      warning(t('dailyLog.form.validation.clientRequiredForDebt'))
       return
     }
     const tipAuto = tipPreview
@@ -243,11 +245,11 @@ export const useDailyLogForm = ({ loadData, toast }: Args) => {
           ...loyalty,
         })
       }
-      success('Sačuvano')
+      success(t('dailyLog.form.feedback.saved'))
       loadData()
       setOpen(false)
     } catch {
-      error('Greška')
+      error(t('dailyLog.form.feedback.saveFailed'))
     } finally {
       setSaving(false)
     }

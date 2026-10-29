@@ -1688,6 +1688,47 @@
   "dailyLog": {
     "newEntry": "Novi Unos",
     "editEntry": "Uredi Unos",
+    "form": {
+      "stylist": "Stilista",
+      "chooseStylist": "Odaberite stilistu",
+      "client": "Klijent",
+      "searchClient": "Pretražite klijenta...",
+      "services": "Servisi",
+      "searchService": "Pretražite servis...",
+      "date": "Datum",
+      "status": "Status",
+      "pending": "Na čekanju",
+      "completed": "Kompletiran",
+      "pendingWarning": "Povratak na „Na čekanju“ za kompletiran unos može poništiti KIF efekte i vratiti povezanu rezervaciju u „U toku“.",
+      "servicePrices": "Servisi i cijene",
+      "priceForService": "Cijena: {{service}}",
+      "openDebts": "Otvorena dugovanja klijenta: {{items}} stavki, ukupno {{amount}}.",
+      "settleDebt": "Naplati dug",
+      "debtItem": "Naplata dugovanja · {{service}} · {{date}} · {{stylist}}",
+      "serviceFallback": "Servis",
+      "amountToCollect": "Za naplatu: {{amount}}",
+      "includingDebts": "(uklj. dugove {{amount}})",
+      "amountPaid": "Naplaćeno (KM)",
+      "tip": "Napojnica: {{amount}}",
+      "shortfall": "Dug: {{amount}}",
+      "createDebt": "Zavedi dug",
+      "notes": "Bilješke",
+      "loyaltyDiscount": "Loyalty popust: {{percent}}% ({{amount}})",
+      "loyaltyProgram": "Program lojalnosti",
+      "pointsAndMaxDiscount": "Bodovi: {{points}} · Maksimalni popust: {{percent}}%",
+      "loyaltyUnavailable": "Program lojalnosti nije dostupan.",
+      "saving": "Čuvam…",
+      "validation": {
+        "stylistAndServiceRequired": "Odaberite stilistu i servis.",
+        "paidAmountInvalid": "Unesite ispravan iznos naplaćenog računa.",
+        "debtsAmountInsufficient": "Nedovoljno za naplatu označenih dugova.",
+        "clientRequiredForDebt": "Za zavođenje duga odaberite klijenta."
+      },
+      "feedback": {
+        "saved": "Sačuvano.",
+        "saveFailed": "Nije moguće sačuvati unos."
+      }
+    },
     "actualPrice": "Cijena",
     "tip": "Napojnica",
     "manual": "Ručno",
@@ -2636,4 +2677,3 @@
     "registerSuccess": "Registracija uspješna. Možete se prijaviti."
   }
 }
-

@@ -1,4 +1,6 @@
 import { Check, Loader2, Search } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { formatLocalizedAmount, formatLocalizedNumber } from '../../i18n/locale-utils.mjs'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
@@ -102,17 +104,19 @@ export const DailyLogEntryFormFields = ({
   onCancel,
   cancelLabel,
   saveLabel,
-}: Props) => (
-  <div className="space-y-4">
+}: Props) => {
+  const { t, i18n } = useTranslation()
+
+  return <div className="space-y-4">
     <div>
-      <Label>Stilista</Label>
+      <Label>{t('dailyLog.form.stylist')}</Label>
       <select
         required
         value={form.stylistProfileId}
         onChange={(e) => setForm({ ...form, stylistProfileId: e.target.value })}
         className="mt-1 flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
       >
-        <option value="">Odaberite stilistu</option>
+        <option value="">{t('dailyLog.form.chooseStylist')}</option>
         {stylists.map((s) => (
           <option key={s.id} value={s.id}>
             {getStylistName(s)}
@@ -121,7 +125,7 @@ export const DailyLogEntryFormFields = ({
       </select>
     </div>
     <div>
-      <Label>Klijent</Label>
+      <Label>{t('dailyLog.form.client')}</Label>
       <div ref={clientDropdownRef} className="relative mt-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
@@ -133,7 +137,7 @@ export const DailyLogEntryFormFields = ({
             setForm((prev) => ({ ...prev, clientId: '' }))
           }}
           onFocus={() => setShowClientDropdown(true)}
-          placeholder="Pretražite klijenta..."
+          placeholder={t('dailyLog.form.searchClient')}
         />
         {showClientDropdown && filteredClients.length > 0 ? (
           <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
@@ -152,7 +156,7 @@ export const DailyLogEntryFormFields = ({
       </div>
     </div>
     <div>
-      <Label>Servisi</Label>
+      <Label>{t('dailyLog.form.services')}</Label>
       <div ref={serviceDropdownRef} className="relative mt-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
@@ -163,7 +167,7 @@ export const DailyLogEntryFormFields = ({
             setShowServiceDropdown(true)
           }}
           onFocus={() => setShowServiceDropdown(true)}
-          placeholder="Pretražite servis..."
+          placeholder={t('dailyLog.form.searchService')}
         />
         {showServiceDropdown && filteredServices.length > 0 ? (
           <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
@@ -181,7 +185,7 @@ export const DailyLogEntryFormFields = ({
                     ) : null}
                     {svc.name}
                   </span>
-                  <span className="text-slate-500">{Number(svc.price).toFixed(2)} KM</span>
+                  <span className="text-slate-500">{formatLocalizedAmount(svc.price, i18n.language)}</span>
                 </div>
               </li>
             ))}
@@ -199,7 +203,7 @@ export const DailyLogEntryFormFields = ({
       ) : null}
     </div>
     <div>
-      <Label>Datum</Label>
+      <Label>{t('dailyLog.form.date')}</Label>
       <Input
         type="date"
         className="mt-1"
@@ -209,7 +213,7 @@ export const DailyLogEntryFormFields = ({
     </div>
     {editId ? (
       <div>
-        <Label>Status</Label>
+        <Label>{t('dailyLog.form.status')}</Label>
         <select
           value={form.status}
           onChange={(e) =>
@@ -217,13 +221,12 @@ export const DailyLogEntryFormFields = ({
           }
           className="mt-1 flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
         >
-          <option value="PENDING">Na čekanju</option>
-          <option value="COMPLETED">Kompletiran</option>
+          <option value="PENDING">{t('dailyLog.form.pending')}</option>
+          <option value="COMPLETED">{t('dailyLog.form.completed')}</option>
         </select>
         {form.status === 'PENDING' ? (
           <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-            Povratak na „Na čekanju“ za kompletiran unos može poništiti KIF efekte i vratiti
-            povezanu rezervaciju u „U toku“.
+            {t('dailyLog.form.pendingWarning')}
           </p>
         ) : null}
       </div>
@@ -248,11 +251,14 @@ export const DailyLogEntryFormFields = ({
     />
     {loyaltyPercent > 0 ? (
       <p className="text-xs text-slate-500">
-        Loyalty popust: {loyaltyPercent}% ({loyaltyDiscountAmount.toFixed(2)} KM)
+        {t('dailyLog.form.loyaltyDiscount', {
+          percent: loyaltyPercent,
+          amount: formatLocalizedAmount(loyaltyDiscountAmount, i18n.language),
+        })}
       </p>
     ) : null}
     <div>
-      <Label>Bilješke</Label>
+      <Label>{t('dailyLog.form.notes')}</Label>
       <Textarea
         className="mt-1"
         value={form.notes}
@@ -261,7 +267,7 @@ export const DailyLogEntryFormFields = ({
       />
     </div>
     <div className="border-t border-slate-200 pt-3 dark:border-slate-800">
-      <Label className="mb-2 block">Loyalty</Label>
+      <Label className="mb-2 block">{t('dailyLog.form.loyaltyProgram')}</Label>
       {loadingLoyalty ? (
         <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
       ) : loyaltyInfo?.enabled &&
@@ -270,8 +276,10 @@ export const DailyLogEntryFormFields = ({
         loyaltyInfo?.service ? (
         <div className="space-y-2">
           <p className="text-sm">
-            Bodovi: {loyaltyInfo.points ?? 0} · Max popust:{' '}
-            {loyaltyInfo.service.maxDiscountPercent}%
+            {t('dailyLog.form.pointsAndMaxDiscount', {
+              points: formatLocalizedNumber(loyaltyInfo.points ?? 0, i18n.language),
+              percent: loyaltyInfo.service.maxDiscountPercent,
+            })}
           </p>
           <Input
             type="number"
@@ -290,7 +298,7 @@ export const DailyLogEntryFormFields = ({
           />
         </div>
       ) : (
-        <p className="text-sm text-slate-600">Loyalty nije dostupan.</p>
+        <p className="text-sm text-slate-600">{t('dailyLog.form.loyaltyUnavailable')}</p>
       )}
     </div>
     <div className="flex justify-end gap-2 pt-2">
@@ -301,7 +309,7 @@ export const DailyLogEntryFormFields = ({
         {saving ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Čuvam...
+            {t('dailyLog.form.saving')}
           </>
         ) : (
           saveLabel
@@ -309,4 +317,4 @@ export const DailyLogEntryFormFields = ({
       </Button>
     </div>
   </div>
-)
+}

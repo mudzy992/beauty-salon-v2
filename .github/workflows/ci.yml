@@ -287,6 +287,9 @@ jobs:
       - name: Test localized daily-log delete and restore dialogs
         working-directory: frontend
         run: npm run test:daily-log-restore-delete-i18n
+      - name: Test localized daily-log create/edit form
+        working-directory: frontend
+        run: npm run test:daily-log-form-i18n
       - name: Test localized admin loyalty page
         working-directory: frontend
         run: npm run test:admin-loyalty-i18n
