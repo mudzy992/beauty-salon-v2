@@ -238,6 +238,13 @@ export const bs = {
   },
   stylist: {
     reservationDetail: {
+      actions: {
+        title: 'Akcije',
+        confirmAttendance: 'Potvrdi dolazak',
+        handleOverrun: 'Obradi kašnjenje termina',
+        startReservation: 'Započni rezervaciju',
+        proposeReschedule: 'Predloži pomjeranje termina',
+      },
       cancel: {
         reasonLabel: 'Razlog otkazivanja',
         reasonRequired: 'Unesite obrazloženje otkazivanja.',

@@ -60,10 +60,12 @@ export const ReservationDetailActions = ({
 
   return (
     <Card style={[styles.card, { borderWidth: 1, borderColor: colors.border }]}>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Akcije</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        {t('stylist.reservationDetail.actions.title')}
+      </Text>
       {canStaffConfirm ? (
         <Button
-          title="Potvrdi dolazak"
+          title={t('stylist.reservationDetail.actions.confirmAttendance')}
           onPress={onStaffConfirm}
           loading={staffConfirmSubmitting}
           style={{ marginBottom: spacing.sm }}
@@ -71,7 +73,11 @@ export const ReservationDetailActions = ({
       ) : null}
       {canStart ? (
         <Button
-          title={isStartOverdue ? 'Obradi kašnjenje termina' : 'Startuj rezervaciju'}
+          title={
+            isStartOverdue
+              ? t('stylist.reservationDetail.actions.handleOverrun')
+              : t('stylist.reservationDetail.actions.startReservation')
+          }
           onPress={isStartOverdue ? onOpenOverrun : onStart}
           loading={startSubmitting}
           disabled={!!startBlockedReason}
@@ -95,7 +101,7 @@ export const ReservationDetailActions = ({
       ) : null}
       {canMarkNoShow ? (
         <Button
-          title="Klijent se nije pojavio (no-show)"
+          title={t('stylist.reservationDetail.noShow.title')}
           onPress={onOpenNoShow}
           variant="outline"
           textStyle={{ color: colors.error }}
@@ -115,7 +121,7 @@ export const ReservationDetailActions = ({
       !isStartOverdue &&
       !isStaffWaivedAttendance(reservation) ? (
         <Button
-          title="Predloži pomjeranje termina (reorder)"
+          title={t('stylist.reservationDetail.actions.proposeReschedule')}
           onPress={onOpenReorder}
           variant="outline"
           style={{ marginTop: spacing.sm }}
