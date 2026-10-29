@@ -740,3 +740,7 @@ Localized the profile role, client-mode switch label, and hint text in mobile Bo
 ### I18N-01 follow-up — Mobile stylist inbox empty states
 
 Localized the inbox's missing-profile and no-pending-request title/message pairs. Preserved the profile and pending-list conditions, empty-state layout, source list, and refresh behavior. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40890742856` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `1cf6202` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile stylist inbox action labels
+
+Localized the inbox lock/accept/unlock/reject button titles in mobile Bosnian resources. Preserved visibility rules, action callbacks, loading state, and button variants. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40892903624` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `c94a47d` is pushed separately from this audit-doc update; the broader audit remains open.
