@@ -1580,6 +1580,14 @@
       "pendingReschedule": "The client needs to confirm the proposed appointment time.",
       "actionsUnavailable": "Actions unavailable",
       "actionsUnavailableDescription": "This usually happens when the current user is not recognized as the confirmed stylist for this appointment.",
+      "diagnostics": {
+        "status": "Reservation status",
+        "profileId": "Stylist profile ID",
+        "confirmedStylistId": "Confirmed stylist ID",
+        "confirmedStylistRecordId": "Stylist ID on reservation",
+        "isConfirmedStylist": "You are the confirmed stylist",
+        "notSet": "Not set"
+      },
       "actions": "Actions",
       "confirmAttendance": "Confirm attendance",
       "handleOverrun": "Handle appointment overrun",

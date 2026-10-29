@@ -33,6 +33,9 @@ test('stylist reservation-detail UI uses keys present in both locales', () => {
   assert.ok(keys.has('stylistPortal.reservationDetail.actionsUnavailable'))
   assert.ok(keys.has('stylistPortal.reservationDetail.earlierAppointmentPending'))
   assert.ok(keys.has('stylistPortal.reservationDetail.paymentWithDebt'))
+  assert.ok(keys.has('stylistPortal.reservationDetail.diagnostics.status'))
+  assert.ok(keys.has('stylistPortal.reservationDetail.diagnostics.profileId'))
+  assert.ok(keys.has('stylistPortal.reservationDetail.diagnostics.notSet'))
 
   for (const resource of locales) {
     for (const key of keys) {
@@ -57,4 +60,15 @@ test('reservation-detail translations have matching Bosnian and English keys', (
     getReservationDetailLeafPaths(resource.stylistPortal.reservationDetail).sort(),
   )
   assert.deepEqual(bosnian, english)
+})
+
+test('reservation-detail diagnostic labels and empty values are localized', () => {
+  const actionsSource = sourceFiles[2]
+  assert.match(actionsSource, /getReservationStatusTranslationKey\(reservation\.status, reservation\.cancelReason\)/)
+  assert.match(actionsSource, /profileId \?\? t\('stylistPortal\.reservationDetail\.diagnostics\.notSet'\)/)
+  assert.match(actionsSource, /reservation\.confirmedStylistId \?\? t\('stylistPortal\.reservationDetail\.diagnostics\.notSet'\)/)
+  assert.match(actionsSource, /reservation\.confirmedStylist\?\.id \?\? t\('stylistPortal\.reservationDetail\.diagnostics\.notSet'\)/)
+  assert.match(actionsSource, /isConfirmedStylist \? t\('common\.yes'\) : t\('common\.no'\)/)
+  assert.doesNotMatch(actionsSource, /<span[^>]*>(?:status|profileId|confirmedStylistId|confirmedStylist\.id|isConfirmedStylist):<\/span>/)
+  assert.doesNotMatch(actionsSource, /\?\? 'null'/)
 })

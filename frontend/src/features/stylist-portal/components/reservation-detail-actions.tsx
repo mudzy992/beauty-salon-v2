@@ -70,11 +70,11 @@ export const ReservationDetailActions = ({
           {t('stylistPortal.reservationDetail.actionsUnavailableDescription')}
         </p>
         <div className="space-y-1 rounded-md border border-slate-200 p-3 text-xs text-slate-700 dark:border-slate-800 dark:text-slate-200">
-          <div><span className="font-semibold">status:</span> {t(getReservationStatusTranslationKey(reservation.status, reservation.cancelReason), { defaultValue: reservation.status })}</div>
-          <div><span className="font-semibold">profileId:</span> {profileId ?? 'null'}</div>
-          <div><span className="font-semibold">confirmedStylistId:</span> {reservation.confirmedStylistId ?? 'null'}</div>
-          <div><span className="font-semibold">confirmedStylist.id:</span> {reservation.confirmedStylist?.id ?? 'null'}</div>
-          <div><span className="font-semibold">isConfirmedStylist:</span> {isConfirmedStylist ? t('common.yes') : t('common.no')}</div>
+          <div><span className="font-semibold">{t('stylistPortal.reservationDetail.diagnostics.status')}:</span> {t(getReservationStatusTranslationKey(reservation.status, reservation.cancelReason), { defaultValue: reservation.status })}</div>
+          <div><span className="font-semibold">{t('stylistPortal.reservationDetail.diagnostics.profileId')}:</span> {profileId ?? t('stylistPortal.reservationDetail.diagnostics.notSet')}</div>
+          <div><span className="font-semibold">{t('stylistPortal.reservationDetail.diagnostics.confirmedStylistId')}:</span> {reservation.confirmedStylistId ?? t('stylistPortal.reservationDetail.diagnostics.notSet')}</div>
+          <div><span className="font-semibold">{t('stylistPortal.reservationDetail.diagnostics.confirmedStylistRecordId')}:</span> {reservation.confirmedStylist?.id ?? t('stylistPortal.reservationDetail.diagnostics.notSet')}</div>
+          <div><span className="font-semibold">{t('stylistPortal.reservationDetail.diagnostics.isConfirmedStylist')}:</span> {isConfirmedStylist ? t('common.yes') : t('common.no')}</div>
         </div>
         <Button type="button" variant="outline" onClick={onRefresh} disabled={isFetching}>
           {t('stylistPortal.reservationDetail.refresh')}

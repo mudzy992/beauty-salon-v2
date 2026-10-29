@@ -1577,6 +1577,14 @@
       "pendingReschedule": "Klijent treba potvrditi predloženi termin.",
       "actionsUnavailable": "Akcije nisu dostupne",
       "actionsUnavailableDescription": "Ovo se obično desi ako trenutni korisnik nije prepoznat kao potvrđeni stilist za ovaj termin.",
+      "diagnostics": {
+        "status": "Status rezervacije",
+        "profileId": "ID profila stiliste",
+        "confirmedStylistId": "ID potvrđenog stiliste",
+        "confirmedStylistRecordId": "ID stiliste na rezervaciji",
+        "isConfirmedStylist": "Vi ste potvrđeni stilista",
+        "notSet": "Nije postavljeno"
+      },
       "actions": "Akcije",
       "confirmAttendance": "Potvrdi dolazak",
       "handleOverrun": "Obradi kašnjenje termina",
