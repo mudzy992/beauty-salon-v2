@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -22,6 +23,7 @@ export function StylistDirectBookingScreen({
 }: {
   navigation: { goBack: () => void };
 }) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const form = useStylistDirectBookingForm(() => navigation.goBack());
@@ -38,9 +40,9 @@ export function StylistDirectBookingScreen({
         showsVerticalScrollIndicator={false}
       >
         <Card style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-          <Text style={[styles.title, { color: colors.text }]}>Direktna rezervacija</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('stylist.directBooking.title')}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Termin ide direktno u vaš raspored i ne traži attendance potvrdu klijenta.
+            {t('stylist.directBooking.subtitle')}
           </Text>
           <Input
             label="Klijent"

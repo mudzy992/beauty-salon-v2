@@ -237,6 +237,10 @@ export const bs = {
     androidOnly: 'In-app update je dostupan samo na Androidu.',
   },
   stylist: {
+    directBooking: {
+      title: 'Direktna rezervacija',
+      subtitle: 'Termin ide direktno u vaš raspored i ne traži attendance potvrdu klijenta.',
+    },
     reservationDetail: {
       notFound: 'Rezervacija nije pronađena.',
       summary: {

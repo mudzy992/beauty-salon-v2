@@ -54,7 +54,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
           onPress={() => navigation.navigate('StylistDirectBooking')}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityRole="button"
-          accessibilityLabel="Direktna rezervacija"
+          accessibilityLabel={t('stylist.directBooking.title')}
           style={{ marginRight: spacing.sm }}
         >
           <Ionicons name="add-circle-outline" size={26} color={colors.headerText} />
