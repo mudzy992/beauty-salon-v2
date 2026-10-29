@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
 import {
@@ -25,6 +26,7 @@ export const RejectReservationDialog = ({
   pending,
   onConfirm,
 }: RejectReservationDialogProps) => {
+  const { t } = useTranslation()
   const [reason, setReason] = useState('')
 
   const handleOpenChange = (next: boolean) => {
@@ -43,13 +45,13 @@ export const RejectReservationDialog = ({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Odbij rezervaciju</DialogTitle>
+          <DialogTitle>{t('stylistPortal.reservationDialogs.reject.title')}</DialogTitle>
           <DialogDescription>
-            Unesite razlog odbijanja. Obrazloženje se čuva uz vaš odgovor.
+            {t('stylistPortal.reservationDialogs.reject.description')}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
-          <Label htmlFor="rejectionReason">Razlog</Label>
+          <Label htmlFor="rejectionReason">{t('stylistPortal.reservationDialogs.reject.reason')}</Label>
           <Textarea
             id="rejectionReason"
             value={reason}
@@ -61,14 +63,14 @@ export const RejectReservationDialog = ({
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
-            Odustani
+            {t('common.cancel')}
           </Button>
           <Button
             type="button"
             onClick={() => void handleConfirm()}
             disabled={pending || reason.trim().length === 0}
           >
-            Odbij
+            {t('stylistPortal.inbox.reject')}
           </Button>
         </DialogFooter>
       </DialogContent>

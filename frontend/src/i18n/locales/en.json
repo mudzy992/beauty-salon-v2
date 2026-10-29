@@ -1510,6 +1510,11 @@
         "description": "Enter a reason for cancelling. The client will be notified.",
         "reason": "Reason"
       },
+      "reject": {
+        "title": "Reject reservation",
+        "description": "Enter a reason for rejecting the reservation. The explanation is saved with your response.",
+        "reason": "Rejection reason"
+      },
       "noShow": {
         "title": "Client did not attend",
         "description": "Mark the reservation as a no-show and apply a penalty if appropriate.",

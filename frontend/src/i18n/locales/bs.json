@@ -1507,6 +1507,11 @@
         "description": "Unesite obrazloženje otkazivanja. Klijent će biti obaviješten.",
         "reason": "Razlog"
       },
+      "reject": {
+        "title": "Odbij rezervaciju",
+        "description": "Unesite razlog odbijanja. Obrazloženje se čuva uz vaš odgovor.",
+        "reason": "Razlog odbijanja"
+      },
       "noShow": {
         "title": "Klijent se nije pojavio",
         "description": "Označite no-show i po potrebi primijenite penal.",
