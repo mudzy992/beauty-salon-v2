@@ -712,3 +712,7 @@ Localized direct-booking client label/search placeholder, date/start/end labels,
 ### I18N-01 follow-up — Mobile stylist direct-booking pickers
 
 Localized the direct-booking picker’s client gender labels, services heading, and guidance/empty-state copy in mobile Bosnian resources. Client selection, gender-based service filtering, empty-state conditions, service toggles, and service values are unchanged. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40877743421` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `4f496c9` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile stylist direct-booking submit alerts
+
+Localized missing-client and missing-gender validation alerts, success title/message/confirmation button, and generic error fallback using mobile Bosnian resources and existing common labels. Preserved validation order, endpoint/payload, API error passthrough, loading state, and completion callback. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40879478951` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `675731f` is pushed separately from this audit-doc update; broader audit remains open.
