@@ -264,6 +264,10 @@ export const bs = {
     },
     dailyLogDetail: {
       notFound: 'Zapis nije pronađen.',
+      manualEntryType: '· Ručno',
+      reservationEntryType: '· Rezervacija',
+      statusCompleted: 'Završeno',
+      statusPending: 'Na čekanju',
       servicesSectionTitle: 'Servisi',
       serviceFallback: 'Usluga',
       debtPaymentSectionTitle: 'Naplata dugovanja',
