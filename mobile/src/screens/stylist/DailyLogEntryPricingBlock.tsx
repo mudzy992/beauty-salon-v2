@@ -126,8 +126,10 @@ export function DailyLogEntryPricingBlock(props: Props) {
       {!editMode && openDebts.length > 0 ? (
         <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
           <Text style={{ color: colors.textSecondary }}>
-            Otvorena dugovanja: {openDebts.length} ·{' '}
-            {openDebts.reduce((a, d) => a + Number(d.amount || 0), 0).toFixed(2)} KM
+            {t('stylist.dailyLogDetail.openDebtsSummary', {
+              count: openDebts.length,
+              amount: openDebts.reduce((a, d) => a + Number(d.amount || 0), 0).toFixed(2),
+            })}
           </Text>
           <TouchableOpacity
             onPress={() => onSettleDebtsEnabledChange(!settleDebtsEnabled)}
@@ -151,13 +153,13 @@ export function DailyLogEntryPricingBlock(props: Props) {
                 fontSize: 15,
               }}
             >
-              Naplati dug
+              {t('stylist.dailyLogDetail.settleDebtAction')}
             </Text>
           </TouchableOpacity>
           {settleDebtsEnabled ? (
             <>
               <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-                Označite dugovanja za naplatu
+                {t('stylist.dailyLogDetail.selectDebtsHint')}
               </Text>
               {openDebts.map((d) => {
                 const selected = settledDebtIds.includes(d.id);
@@ -174,7 +176,7 @@ export function DailyLogEntryPricingBlock(props: Props) {
                     />
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: colors.text, fontWeight: '600' }}>
-                        {d.service?.name ?? 'Usluga'} · {Number(d.amount).toFixed(2)} KM
+                        {d.service?.name ?? t('stylist.dailyLogDetail.serviceFallback')} · {Number(d.amount).toFixed(2)} KM
                       </Text>
                       <Text style={{ color: colors.textSecondary }}>
                         {String(d.createdAt).slice(0, 10)}
