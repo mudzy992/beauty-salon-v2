@@ -265,6 +265,11 @@ export const bs = {
     dailyLogDetail: {
       deleteReasonRequired: 'Unesite razlog brisanja.',
       deleteErrorFallback: 'Greška pri brisanju.',
+      deleteTitle: 'Obriši unos',
+      deleteDescription: 'Unos će biti obrisan. Ako je preko ovog unosa naplaćen dug, dug se vraća u status OPEN.',
+      deleteReasonLabel: 'Razlog brisanja',
+      deleteReasonPlaceholder: 'Npr. greška u unosu',
+      deleteCancel: 'Odustani',
     },
     profile: {
       role: 'Stilist',

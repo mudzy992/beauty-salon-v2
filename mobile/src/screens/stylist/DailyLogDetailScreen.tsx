@@ -488,26 +488,26 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
             style={{ width: '100%' }}
           >
             <Card style={{ ...styles.modalCard, backgroundColor: colors.surface }}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Obriši unos</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.deleteTitle')}</Text>
               <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
-                Unos će biti obrisan. Ako je preko ovog unosa naplaćen dug, dug se vraća u status OPEN.
+                {t('stylist.dailyLogDetail.deleteDescription')}
               </Text>
               <Input
-                label="Razlog brisanja"
+                label={t('stylist.dailyLogDetail.deleteReasonLabel')}
                 value={deleteReason}
                 onChangeText={setDeleteReason}
                 multiline
-                placeholder="Npr. greška u unosu"
+                placeholder={t('stylist.dailyLogDetail.deleteReasonPlaceholder')}
               />
               <View style={styles.modalActions}>
                 <Button
-                  title="Odustani"
+                  title={t('stylist.dailyLogDetail.deleteCancel')}
                   variant="outline"
                   onPress={() => setDeleteModalOpen(false)}
                   style={{ flex: 1 }}
                 />
                 <Button
-                  title="Obriši"
+                  title={t('common.delete')}
                   onPress={confirmDelete}
                   loading={acting}
                   style={{ flex: 1 }}
