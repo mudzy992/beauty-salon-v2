@@ -263,6 +263,7 @@ export const bs = {
       statusPending: 'Na čekanju',
     },
     dailyLogDetail: {
+      notFound: 'Zapis nije pronađen.',
       deleteReasonRequired: 'Unesite razlog brisanja.',
       deleteErrorFallback: 'Greška pri brisanju.',
       deleteTitle: 'Obriši unos',

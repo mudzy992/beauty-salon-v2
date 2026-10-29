@@ -270,8 +270,8 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   if (!entry) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>Zapis nije pronađen.</Text>
-        <Button title="Nazad" onPress={() => navigation.goBack()} variant="outline" style={{ marginTop: spacing.md }} />
+        <Text style={{ color: colors.text }}>{t('stylist.dailyLogDetail.notFound')}</Text>
+        <Button title={t('common.back')} onPress={() => navigation.goBack()} variant="outline" style={{ marginTop: spacing.md }} />
       </View>
     );
   }

@@ -797,3 +797,7 @@ Moved the generic image-upload failure fallback into mobile Bosnian resources an
 ### I18N-01 follow-up — Mobile daily-log actions modal
 
 Moved the actions modal title and edit, before-photo, after-photo, delete, and cancel labels into mobile Bosnian resources. Preserved all modal controls and their original callbacks. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite, mobile TypeScript check, and repository hygiene pass locally. CI run `40939680846` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `be8ca4b` is pushed separately from this audit-doc update; the repository-wide audit remains open.
+
+### I18N-01 follow-up — Mobile daily-log not-found state
+
+Moved the missing daily-log entry message into mobile Bosnian resources and reused the shared back label. Preserved the not-found condition and navigation back callback. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite, mobile TypeScript check, and repository hygiene pass locally. CI run `40941308697` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `8a9a21f` is pushed separately from this audit-doc update; the repository-wide audit remains open.
