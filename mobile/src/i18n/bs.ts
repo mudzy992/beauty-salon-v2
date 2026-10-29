@@ -275,6 +275,13 @@ export const bs = {
       completeConfirmStandalone: 'Označiti zapis kao završen? Prihod će biti upisan u knjigu.',
       completeConfirmCancel: 'Odustani',
       completeConfirmAction: 'Završi',
+      overrunTitle: 'Kašnjenje termina',
+      overrunReschedulePrompt: 'Želiš li rekalkulaciju budućih termina i preview novog rasporeda?',
+      overrunNotNow: 'Ne sada',
+      overrunWithoutBreaks: 'Bez pauza',
+      overrunWithBreaks: 'Uključi pauze',
+      overrunNoFutureAppointments: 'Ovaj termin je kasnio {{minutes}} min. Nema drugih potvrđenih termina danas za pomjeranje — rekalkulacija rasporeda nije potrebna.',
+      overrunOk: 'U redu',
     },
     profile: {
       role: 'Stilist',
