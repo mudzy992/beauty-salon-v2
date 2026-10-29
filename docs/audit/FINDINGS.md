@@ -724,3 +724,7 @@ Localized the schedule-list notice that the client must confirm a proposed new t
 ### I18N-01 follow-up — Mobile stylist schedule weekday abbreviations
 
 Moved the schedule's seven short weekday labels into mobile Bosnian resources. Preserved the Sunday-to-Saturday index mapping, date formatting, and future-section grouping. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40883040908` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `dc1c175` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile stylist statistics screen
+
+Localized the missing-profile title/message, reservation counts, total revenue label, and service/tip/debt breakdown labels in mobile Bosnian resources. Preserved reservation/daily-log filters, revenue calculations, and loading/refresh behavior. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40884592064` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `c02a9ce` is pushed separately from this audit-doc update; the broader audit remains open.
