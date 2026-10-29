@@ -757,3 +757,8 @@ Localized the inline message shown while another stylist has the reservation loc
 ### I18N-01 follow-up — Mobile stylist inbox rejection confirmation
 
 Localized the rejection alert title, prompt, and cancel/reject button labels in mobile Bosnian resources. Preserved the `Alert.alert` option styles, destructive rejection callback, and reservation ID passed to the action. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite and adjacent inbox action/lock-hint suites pass; mobile TypeScript check passes locally. CI run `40913273656` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `9edd677` is pushed separately from this audit-doc update; the broad repository audit remains open.
+
+
+### I18N-01 follow-up — Mobile stylist inbox action error fallbacks
+
+Moved the lock, unlock, accept, and reject network-failure fallback copy into mobile Bosnian resources and reused the existing common error title. Preserved server-provided error messages, first-item selection for array messages, action endpoints, and callback behavior. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite and adjacent rejection-confirmation/action suites pass; mobile TypeScript check passes locally. CI run `40914600379` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `4f2198f` is pushed separately from this audit-doc update; the repository-wide audit remains open.
