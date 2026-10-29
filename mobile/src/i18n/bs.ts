@@ -2,6 +2,7 @@ export const bs = {
   common: {
     loading: 'Učitavanje...',
     error: 'Greška',
+    info: 'Informacija',
     retry: 'Pokušaj ponovo',
     cancel: 'Otkaži',
     confirm: 'Potvrdi',
@@ -264,6 +265,14 @@ export const bs = {
     },
     dailyLogDetail: {
       notFound: 'Zapis nije pronađen.',
+      editCompletedUnavailable: 'Kompletirani unos se ne može uređivati na mobilnoj.',
+      loadErrorFallback: 'Nije moguće učitati unos.',
+      profileMissing: 'Profil stilista nije pronađen.',
+      clientGenderRequired: 'Odaberite klijenta sa definisanim spolom.',
+      serviceRequired: 'Odaberite servis(e).',
+      paidAmountInvalid: 'Unesite ispravan iznos naplaćenog računa.',
+      settledDebtAmountInsufficient: 'Nedovoljno za naplatu označenih dugova.',
+      saveErrorFallback: 'Greška pri kreiranju zapisa.',
       dispositionPanelTitle: 'Termin se nije desio / treba drugi slot',
       dispositionPanelHint: 'Naplata je gore: Završi zapis. Ove akcije su izuzeci — otkaz, no-show ili pomjeranje.',
       dispositionOpenMenu: 'Izuzeci (otkaz / no-show / pomjeri)',

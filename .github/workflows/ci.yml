@@ -527,6 +527,9 @@ jobs:
       - name: Test localized mobile daily-log disposition panel
         working-directory: mobile
         run: npm run test:stylist-daily-log-disposition-shell-i18n
+      - name: Test localized mobile daily-log entry form errors
+        working-directory: mobile
+        run: npm run test:stylist-daily-log-entry-form-errors-i18n
       - name: Bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"

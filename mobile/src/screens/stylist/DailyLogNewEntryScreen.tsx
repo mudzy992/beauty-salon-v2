@@ -11,6 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { Card } from '../../components/ui/Card';
@@ -53,6 +54,7 @@ type Props = {
 };
 
 export function DailyLogNewEntryScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const editEntryId = route?.params?.entryId;
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
@@ -113,7 +115,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         }>(`/api/daily-log/${editEntryId}`);
         if (!mounted) return;
         if (data.status === 'COMPLETED') {
-          Alert.alert('Info', 'Kompletirani unos se ne može uređivati na mobilnoj.');
+          Alert.alert(t('common.info'), t('stylist.dailyLogDetail.editCompletedUnavailable'));
           navigation.goBack();
           return;
         }
@@ -146,14 +148,14 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
           : 0;
         setPaidAmount(String(servicesPortion + debtsPortion));
       } catch {
-        Alert.alert('Greška', 'Nije moguće učitati unos.');
+        Alert.alert(t('common.error'), t('stylist.dailyLogDetail.loadErrorFallback'));
         navigation.goBack();
       }
     })();
     return () => {
       mounted = false;
     };
-  }, [editEntryId, navigation]);
+  }, [editEntryId, navigation, t]);
 
   const selectedClient = clients.find((c) => c.id === clientId);
   const selectedServices = useMemo(
@@ -284,23 +286,23 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
 
   const handleSubmit = useCallback(async () => {
     if (!profileId) {
-      Alert.alert('Greška', 'Profil stilista nije pronađen.');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.profileMissing'));
       return;
     }
     if (!clientId || !selectedClient?.gender) {
-      Alert.alert('Greška', 'Odaberite klijenta sa definisanim spolom.');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.clientGenderRequired'));
       return;
     }
     if (serviceIds.length === 0) {
-      Alert.alert('Greška', 'Odaberite servis(e).');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.serviceRequired'));
       return;
     }
     if (!Number.isFinite(paidRaw) || paidRaw < 0) {
-      Alert.alert('Greška', 'Unesite ispravan iznos naplaćenog računa.');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.paidAmountInvalid'));
       return;
     }
     if (!editEntryId && settleDebtsEnabled && settledDebtIds.length > 0 && paidRaw < charge.debtsSum) {
-      Alert.alert('Greška', 'Nedovoljno za naplatu označenih dugova.');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.settledDebtAmountInsufficient'));
       return;
     }
     const debtHandling =
@@ -344,8 +346,8 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data
               ?.message
-          : 'Greška pri kreiranju zapisa.';
-      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : String(msg));
+          : t('stylist.dailyLogDetail.saveErrorFallback');
+      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg));
     } finally {
       setSaving(false);
     }
@@ -367,6 +369,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     notes,
     loyaltyPercent,
     navigation,
+    t,
   ]);
 
   if (profileLoading || (loading && !profileId)) {
@@ -379,8 +382,8 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
   if (!profileId) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>Profil stilista nije pronađen.</Text>
-        <Button title="Nazad" onPress={() => navigation.goBack()} variant="outline" style={{ marginTop: spacing.md }} />
+        <Text style={{ color: colors.text }}>{t('stylist.dailyLogDetail.profileMissing')}</Text>
+        <Button title={t('common.back')} onPress={() => navigation.goBack()} variant="outline" style={{ marginTop: spacing.md }} />
       </View>
     );
   }
