@@ -430,10 +430,10 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
 
       {(canComplete || hasBeforeAfter) && (
         <Card style={styles.card}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Before / After</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.photosSectionTitle')}</Text>
           {beforeImages.length > 0 && (
             <>
-              <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Prije</Text>
+              <Text style={[styles.subLabel, { color: colors.textSecondary }]}>{t('stylist.dailyLogDetail.beforePhotosLabel')}</Text>
               <View style={styles.imageRow}>
                 {beforeImages.map((img) => {
                   const uri = getUploadUrl(
@@ -454,7 +454,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           )}
           {afterImages.length > 0 && (
             <>
-              <Text style={[styles.subLabel, { color: colors.textSecondary }]}>Poslije</Text>
+              <Text style={[styles.subLabel, { color: colors.textSecondary }]}>{t('stylist.dailyLogDetail.afterPhotosLabel')}</Text>
               <View style={styles.imageRow}>
                 {afterImages.map((img) => {
                   const uri = getUploadUrl(
@@ -475,7 +475,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           )}
           {canComplete && !hasBeforeAfter ? (
             <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-              Dodajte prije/poslije fotografije preko menija akcija (⋯).
+              {t('stylist.dailyLogDetail.addPhotosHint')}
             </Text>
           ) : null}
         </Card>
