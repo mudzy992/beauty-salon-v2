@@ -248,6 +248,13 @@ export const bs = {
       notesLabel: 'Napomena',
       cancel: 'Odustani',
       submit: 'Kreiraj termin',
+      genderMale: 'Muški',
+      genderFemale: 'Ženski',
+      genderUndefined: 'Spol nije definisan',
+      servicesTitle: 'Servisi',
+      selectClientPrompt: 'Prvo odaberite klijenta — lista servisa se filtrira po spolu.',
+      missingGenderWarning: 'Klijent nema definisan spol. Servisi se ne mogu filtrirati.',
+      noServicesForGender: 'Nema aktivnih servisa za odabrani spol.',
     },
     reservationDetail: {
       notFound: 'Rezervacija nije pronađena.',

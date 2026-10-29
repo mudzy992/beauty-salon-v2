@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Text, TouchableOpacity, View, StyleSheet } from 'react-native';
 import { spacing } from '../../theme';
 
@@ -50,8 +51,10 @@ export const DirectBookingPickers = ({
   serviceIds,
   onSelectClient,
   onToggleServiceId,
-}: Props) => (
-  <>
+}: Props) => {
+  const { t } = useTranslation();
+  return (
+    <>
     <View style={styles.list}>
       {clients.map((client) => {
         const selected = client.id === selectedClient?.id;
@@ -72,28 +75,30 @@ export const DirectBookingPickers = ({
             </Text>
             <Text style={[styles.optionMeta, { color: colors.textSecondary }]}>
               {client.gender === 'MALE'
-                ? 'Muški'
+                ? t('stylist.directBooking.genderMale')
                 : client.gender === 'FEMALE'
-                  ? 'Ženski'
-                  : 'Spol nije definisan'}
+                  ? t('stylist.directBooking.genderFemale')
+                  : t('stylist.directBooking.genderUndefined')}
             </Text>
           </TouchableOpacity>
         );
       })}
     </View>
 
-    <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Servisi</Text>
+    <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+      {t('stylist.directBooking.servicesTitle')}
+    </Text>
     {!selectedClient ? (
       <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-        Prvo odaberite klijenta — lista servisa se filtrira po spolu.
+        {t('stylist.directBooking.selectClientPrompt')}
       </Text>
     ) : !selectedClient.gender ? (
       <Text style={{ color: colors.warning, fontSize: 13 }}>
-        Klijent nema definisan spol. Servisi se ne mogu filtrirati.
+        {t('stylist.directBooking.missingGenderWarning')}
       </Text>
     ) : filteredServices.length === 0 ? (
       <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-        Nema aktivnih servisa za odabrani spol.
+        {t('stylist.directBooking.noServicesForGender')}
       </Text>
     ) : (
       <View style={styles.list}>
@@ -120,8 +125,9 @@ export const DirectBookingPickers = ({
         })}
       </View>
     )}
-  </>
-);
+    </>
+  );
+};
 
 const styles = StyleSheet.create({
   sectionLabel: { fontSize: 14, fontWeight: '600' },
