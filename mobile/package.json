@@ -44,6 +44,7 @@
     "test:stylist-daily-log-delete-error-i18n": "node --test src/screens/stylist/daily-log-delete-error-i18n.test.mjs",
     "test:stylist-daily-log-delete-modal-i18n": "node --test src/screens/stylist/daily-log-delete-modal-i18n.test.mjs",
     "test:stylist-daily-log-complete-confirm-i18n": "node --test src/screens/stylist/daily-log-complete-confirm-i18n.test.mjs",
+    "test:stylist-daily-log-overrun-alerts-i18n": "node --test src/screens/stylist/daily-log-overrun-alerts-i18n.test.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "postinstall": "node ./scripts/patch-calendars-assets.js && node ./scripts/patch-expo-router-query-string.js"

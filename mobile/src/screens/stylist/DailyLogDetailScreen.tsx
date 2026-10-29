@@ -102,12 +102,12 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                   const overrunLabel = data?.overrunMinutes ?? delay;
                   if (delay > 0 && itemCount > 0) {
                     Alert.alert(
-                      'Kašnjenje termina',
-                      'Želiš li rekalkulaciju budućih termina i preview novog rasporeda?',
+                      t('stylist.dailyLogDetail.overrunTitle'),
+                      t('stylist.dailyLogDetail.overrunReschedulePrompt'),
                       [
-                        { text: 'Ne sada', style: 'cancel' },
+                        { text: t('stylist.dailyLogDetail.overrunNotNow'), style: 'cancel' },
                         {
-                          text: 'Bez pauza',
+                          text: t('stylist.dailyLogDetail.overrunWithoutBreaks'),
                           onPress: () =>
                             navigation.navigate('ReschedulePreview', {
                               reservationId,
@@ -117,7 +117,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                             }),
                         },
                         {
-                          text: 'Uključi pauze',
+                          text: t('stylist.dailyLogDetail.overrunWithBreaks'),
                           onPress: () =>
                             navigation.navigate('ReschedulePreview', {
                               reservationId,
@@ -130,9 +130,9 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                     );
                   } else if (delay > 0 && itemCount === 0) {
                     Alert.alert(
-                      'Kašnjenje termina',
-                      `Ovaj termin je kasnio ${overrunLabel} min. Nema drugih potvrđenih termina danas za pomjeranje — rekalkulacija rasporeda nije potrebna.`,
-                      [{ text: 'U redu' }],
+                      t('stylist.dailyLogDetail.overrunTitle'),
+                      t('stylist.dailyLogDetail.overrunNoFutureAppointments', { minutes: overrunLabel }),
+                      [{ text: t('stylist.dailyLogDetail.overrunOk') }],
                     );
                   }
                 } catch {
