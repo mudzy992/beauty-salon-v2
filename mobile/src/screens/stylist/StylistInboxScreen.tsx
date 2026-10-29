@@ -275,9 +275,9 @@ export function StylistInboxScreen() {
                 label={
                   item.status === 'STYLIST_REVIEW'
                     ? isLockedByMe
-                      ? 'Na pregledu (vi)'
-                      : 'Na pregledu'
-                    : 'Na čekanju'
+                      ? t('stylist.inbox.statusReviewSelf')
+                      : t('stylist.inbox.statusReview')
+                    : t('stylist.inbox.statusPending')
                 }
                 variant={item.status === 'STYLIST_REVIEW' ? 'info' : 'warning'}
                 status={item.status}

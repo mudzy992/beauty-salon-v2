@@ -246,6 +246,9 @@ export const bs = {
       accept: 'Prihvati',
       unlock: 'Oslobodi',
       reject: 'Odbij',
+      statusReviewSelf: 'Na pregledu (vi)',
+      statusReview: 'Na pregledu',
+      statusPending: 'Na čekanju',
     },
     profile: {
       role: 'Stilist',
