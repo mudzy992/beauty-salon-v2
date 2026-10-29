@@ -264,6 +264,12 @@ export const bs = {
     },
     dailyLogDetail: {
       notFound: 'Zapis nije pronađen.',
+      dispositionPanelTitle: 'Termin se nije desio / treba drugi slot',
+      dispositionPanelHint: 'Naplata je gore: Završi zapis. Ove akcije su izuzeci — otkaz, no-show ili pomjeranje.',
+      dispositionOpenMenu: 'Izuzeci (otkaz / no-show / pomjeri)',
+      dispositionMenuTitle: 'Izuzeci za rezervaciju',
+      dispositionMenuHint: 'Naplata je Završi zapis. Ovdje: otkaz, no-show ili pomjeranje.',
+      dispositionActionFallback: 'Akcija',
       dispositionActionReorderLabel: 'Pomjeri termin',
       dispositionActionCancelStylistLabel: 'Otkaži u ime salona',
       dispositionActionCancelClientLabel: 'Otkaži u ime klijenta',

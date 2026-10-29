@@ -18,10 +18,6 @@ export const DISPOSITION_ACTION_HINT_KEYS: Record<DispositionAction, string> = {
   no_show: 'stylist.dailyLogDetail.dispositionActionNoShowHint',
 };
 
-export const DISPOSITION_PANEL_TITLE = 'Termin se nije desio / treba drugi slot';
-export const DISPOSITION_PANEL_HINT =
-  'Naplata je gore: Završi zapis. Ove akcije su izuzeci — otkaz, no-show ili pomjeranje.';
-
 export const DISPOSITION_ACTION_KEYS = Object.keys(
   DISPOSITION_ACTION_LABEL_KEYS,
 ) as DispositionAction[];

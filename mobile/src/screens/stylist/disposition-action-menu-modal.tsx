@@ -25,9 +25,9 @@ export const DispositionActionMenuModal = ({ visible, colors, onClose, onSelect 
     <View style={styles.modalOverlay}>
       <Pressable style={styles.backdrop} onPress={onClose} />
       <Card style={{ ...styles.modalCard, backgroundColor: colors.surface, zIndex: 1 }}>
-        <Text style={[styles.title, { color: colors.text }]}>Izuzeci za rezervaciju</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t('stylist.dailyLogDetail.dispositionMenuTitle')}</Text>
         <Text style={[styles.hint, { color: colors.textSecondary }]}>
-          Naplata je Završi zapis. Ovdje: otkaz, no-show ili pomjeranje.
+          {t('stylist.dailyLogDetail.dispositionMenuHint')}
         </Text>
         {DISPOSITION_ACTION_KEYS.map((key) => (
           <Button
