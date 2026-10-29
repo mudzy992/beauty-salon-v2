@@ -696,3 +696,7 @@ Localized the active card's title, instructional copy, details label, and paymen
 ### I18N-01 follow-up — Mobile schedule special cancellation status
 
 Reused the existing reservation-detail translation for the special unconfirmed-attendance cancellation badge in both schedule-card variants. Preserved the exact status/reason detection, generic status lookup, and badge variant. Added a focused regression suite (2 tests) and npm/CI registration. The test suite, mobile TypeScript check, and diff hygiene pass. Implementation CI run `40870722244` was cancelled after the docs push; subsequent documentation CI run `40870739199` passed all four jobs, including mobile typecheck and its registered suite. Implementation commit `43afd92` is pushed separately from this documentation update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile stylist schedule section headings
+
+Localized the “today” and “completed/cancelled today” section headings in mobile Bosnian resources. Preserved section membership, status classification, sorting, future date grouping and labels, and refresh behavior. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40872557710` passed all four jobs, including the mobile localization suites and Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `06ab96a` is pushed separately from this audit-doc update; the broader audit remains open.
