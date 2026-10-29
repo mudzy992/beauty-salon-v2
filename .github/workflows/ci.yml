@@ -491,6 +491,12 @@ jobs:
       - name: Test localized mobile daily-log overrun alerts
         working-directory: mobile
         run: npm run test:stylist-daily-log-overrun-alerts-i18n
+      - name: Test localized mobile daily-log completion error
+        working-directory: mobile
+        run: npm run test:stylist-daily-log-complete-error-i18n
+      - name: Test localized mobile daily-log image permission alert
+        working-directory: mobile
+        run: npm run test:stylist-daily-log-image-permission-i18n
       - name: Bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"

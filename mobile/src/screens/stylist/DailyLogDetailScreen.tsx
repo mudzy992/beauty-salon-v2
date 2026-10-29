@@ -143,8 +143,8 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
               const msg =
                 err && typeof err === 'object' && 'response' in err
                   ? (err as any).response?.data?.message
-                  : 'Greška.';
-              Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+                  : t('stylist.dailyLogDetail.completeErrorFallback');
+              Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
             } finally {
               setActing(false);
             }
@@ -186,7 +186,10 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
     async (isBefore: boolean) => {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Dozvola', 'Potrebna je dozvola za pristup galeriji.');
+        Alert.alert(
+          t('stylist.dailyLogDetail.imagePermissionTitle'),
+          t('stylist.dailyLogDetail.imagePermissionMessage'),
+        );
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -225,7 +228,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         setUploading(false);
       }
     },
-    [entryId, fetchEntry],
+    [entryId, fetchEntry, t],
   );
 
   const openActionsMenu = useCallback(() => {
