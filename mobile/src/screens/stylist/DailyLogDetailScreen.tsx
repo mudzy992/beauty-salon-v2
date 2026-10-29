@@ -143,8 +143,8 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
               const msg =
                 err && typeof err === 'object' && 'response' in err
                   ? (err as any).response?.data?.message
-                  : 'Greška.';
-              Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+                  : t('stylist.dailyLogDetail.completeErrorFallback');
+              Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
             } finally {
               setActing(false);
             }

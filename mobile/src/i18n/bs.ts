@@ -275,6 +275,7 @@ export const bs = {
       completeConfirmStandalone: 'Označiti zapis kao završen? Prihod će biti upisan u knjigu.',
       completeConfirmCancel: 'Odustani',
       completeConfirmAction: 'Završi',
+      completeErrorFallback: 'Greška.',
       overrunTitle: 'Kašnjenje termina',
       overrunReschedulePrompt: 'Želiš li rekalkulaciju budućih termina i preview novog rasporeda?',
       overrunNotNow: 'Ne sada',
