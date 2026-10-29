@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CalendarIcon, Info } from 'lucide-react'
 import {
   Dialog,
@@ -10,6 +11,7 @@ import {
 import { Button } from '../../components/ui/button'
 import { Label } from '../../components/ui/label'
 import { Input } from '../../components/ui/input'
+import { getIntlLocale } from '../../i18n/locale-utils.mjs'
 import type { DailyLogEntry } from './types'
 import {
   formatDateOnlyLocale,
@@ -26,9 +28,9 @@ type Props = {
 const isFutureDate = (dateStr: string): boolean =>
   dateStr.slice(0, 10) > getSalonDateOnly()
 
-const formatDate = (dateStr: string) => {
+const formatDate = (dateStr: string, language: string) => {
   try {
-    return formatDateOnlyLocale(dateStr.slice(0, 10), 'bs-BA', {
+    return formatDateOnlyLocale(dateStr.slice(0, 10), getIntlLocale(language), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -38,14 +40,8 @@ const formatDate = (dateStr: string) => {
   }
 }
 
-const getPolicyLabel = (acceptanceMode?: string | null): string => {
-  if (acceptanceMode === 'DIRECT_ASSIGN') {
-    return 'Direktna rezervacija — automatski potvrđena, bez čekanja klijenta.'
-  }
-  return 'Standardna rezervacija — klijent treba potvrditi termin.'
-}
-
 export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props) => {
+  const { t, i18n } = useTranslation()
   const [mode, setMode] = useState<'original' | 'new'>('original')
   const [newDate, setNewDate] = useState('')
 
@@ -71,7 +67,7 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Vraćanje zapisa</DialogTitle>
+          <DialogTitle>{t('dailyLog.restoreDialog.title')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -86,8 +82,8 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
                 className="accent-primary"
               />
               <span className="text-sm">
-                Vrati na originalni datum{' '}
-                <span className="font-semibold">{formatDate(originalDate)}</span>
+                {t('dailyLog.restoreDialog.originalDate')}{' '}
+                <span className="font-semibold">{formatDate(originalDate, i18n.language)}</span>
               </span>
             </label>
             <label className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary">
@@ -99,7 +95,7 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
                 onChange={() => setMode('new')}
                 className="accent-primary"
               />
-              <span className="text-sm">Definiši novi datum</span>
+              <span className="text-sm">{t('dailyLog.restoreDialog.newDateOption')}</span>
             </label>
           </div>
 
@@ -107,7 +103,7 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
             <div className="space-y-1">
               <Label htmlFor="new-date" className="flex items-center gap-1">
                 <CalendarIcon className="h-3.5 w-3.5" />
-                Novi datum
+                {t('dailyLog.restoreDialog.newDate')}
               </Label>
               <Input
                 id="new-date"
@@ -127,15 +123,14 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
               <Info className="mt-0.5 h-4 w-4 shrink-0" />
               <div className="space-y-1">
                 {willCreateReservation ? (
-                  <p>
-                    Datum je u budućnosti — kreiraće se{' '}
-                    <strong>nova rezervacija</strong> s istim terminima i stilistom.
-                  </p>
+                  <p>{t('dailyLog.restoreDialog.futureReservation')}</p>
                 ) : (
-                  <p>Zapis će biti vraćen u dnevnu knjigu kao PENDING na odabrani datum.</p>
+                  <p>{t('dailyLog.restoreDialog.restoredPending')}</p>
                 )}
                 <p className="text-xs opacity-80">
-                  {getPolicyLabel(entry.reservation?.acceptanceMode)}
+                  {entry.reservation?.acceptanceMode === 'DIRECT_ASSIGN'
+                    ? t('dailyLog.restoreDialog.directAssignPolicy')
+                    : t('dailyLog.restoreDialog.standardPolicy')}
                 </p>
               </div>
             </div>
@@ -144,10 +139,10 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={loading}>
-            Odustani
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={!isValid || loading}>
-            {loading ? 'Vraćanje...' : 'Potvrdi'}
+            {loading ? t('dailyLog.restoreDialog.restoring') : t('common.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

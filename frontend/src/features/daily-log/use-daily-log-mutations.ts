@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useAppToast } from '../../lib/toast/useAppToast'
 import type { DailyLogEntry } from './types'
@@ -12,6 +13,7 @@ type Args = {
 }
 
 export const useDailyLogMutations = ({ loadData, setSaving, toast }: Args) => {
+  const { t } = useTranslation()
   const { success, error } = toast
   const [deleteTarget, setDeleteTarget] = useState<DailyLogEntry | null>(null)
   const [deleteReason, setDeleteReason] = useState('')
@@ -21,10 +23,10 @@ export const useDailyLogMutations = ({ loadData, setSaving, toast }: Args) => {
   const handleComplete = async (id: string) => {
     try {
       await api.post(`/api/daily-log/${id}/complete`)
-      success('Unos kompletiran i prihod dodan u knjigu')
+      success(t('dailyLog.feedback.completed'))
       loadData()
     } catch {
-      error('Greška')
+      error(t('dailyLog.feedback.completeFailed'))
     }
   }
 
@@ -35,12 +37,12 @@ export const useDailyLogMutations = ({ loadData, setSaving, toast }: Args) => {
       await api.delete(`/api/daily-log/${deleteTarget.id}`, {
         data: { reason: deleteReason.trim() },
       })
-      success('Unos obrisan')
+      success(t('dailyLog.feedback.deleted'))
       setDeleteTarget(null)
       setDeleteReason('')
       loadData()
     } catch {
-      error('Greška pri brisanju')
+      error(t('dailyLog.feedback.deleteFailed'))
     } finally {
       setSaving(false)
     }
@@ -50,11 +52,11 @@ export const useDailyLogMutations = ({ loadData, setSaving, toast }: Args) => {
     setRestoring(true)
     try {
       await api.post(`/api/daily-log/${id}/restore`, date ? { date } : {})
-      success('Unos vraćen')
+      success(t('dailyLog.feedback.restored'))
       setRestoreTarget(null)
       loadData()
     } catch {
-      error('Greška pri vraćanju')
+      error(t('dailyLog.feedback.restoreFailed'))
     } finally {
       setRestoring(false)
     }

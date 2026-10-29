@@ -1,4 +1,6 @@
+import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
+
 import { Button } from '../../components/ui/button'
 import {
   Dialog,
@@ -29,52 +31,60 @@ export const DailyLogDeleteDialog = ({
   onReasonChange,
   saving,
   onConfirm,
-}: Props) => (
-  <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Obriši unos</DialogTitle>
-      </DialogHeader>
-      <p className="text-sm text-slate-600 dark:text-slate-300">
-        Brisanje će ukloniti unos iz statistika
-        {entry?.status === 'COMPLETED'
-          ? ' i poništiti knjiženje u KIF-u (ako mjesec nije zaključan)'
-          : ''}
-        .
-        {entry?.status === 'COMPLETED' && entry.reservation
-          ? ' Ako je unos vezan za rezervaciju, termin se vraća u status „U toku“ (IN_PROGRESS) — stilist ga ponovo vidi kao aktivan.'
-          : ''}
-      </p>
-      <div>
-        <Label>Razlog brisanja (obavezno)</Label>
-        <Textarea
-          className="mt-1"
-          value={reason}
-          onChange={(e) => onReasonChange(e.target.value)}
-          rows={3}
-          placeholder="Npr. greška pri unosu..."
-        />
-      </div>
-      <DialogFooter className="gap-2">
-        <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-          Odustani
-        </Button>
-        <Button
-          type="button"
-          variant="destructive"
-          onClick={onConfirm}
-          disabled={saving || !reason.trim()}
-        >
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Brišem...
-            </>
-          ) : (
-            'Obriši'
-          )}
-        </Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
-)
+}: Props) => {
+  const { t } = useTranslation()
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('dailyLog.deleteDialog.title')}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+          <p>{t('dailyLog.deleteDialog.description')}</p>
+          {entry?.status === 'COMPLETED' ? (
+            <p>{t('dailyLog.deleteDialog.completedWarning')}</p>
+          ) : null}
+          {entry?.status === 'COMPLETED' && entry.reservation ? (
+            <p>{t('dailyLog.deleteDialog.reservationWarning')}</p>
+          ) : null}
+        </div>
+        <div>
+          <Label>{t('dailyLog.deleteDialog.reasonLabel')}</Label>
+          <Textarea
+            className="mt-1"
+            value={reason}
+            onChange={(e) => onReasonChange(e.target.value)}
+            rows={3}
+            placeholder={t('dailyLog.deleteDialog.reasonPlaceholder')}
+          />
+        </div>
+        <DialogFooter className="gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={saving}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={saving || !reason.trim()}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                {t('dailyLog.deleteDialog.deleting')}
+              </>
+            ) : (
+              t('common.delete')
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

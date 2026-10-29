@@ -1750,6 +1750,34 @@
       "debtCollection": "Naplata dugovanja",
       "notes": "Bilješke",
       "deleteReason": "Razlog brisanja"
+    },
+    "deleteDialog": {
+      "title": "Obriši unos",
+      "description": "Brisanje će ukloniti unos iz statistika.",
+      "completedWarning": "Ovo će poništiti knjiženje u KIF-u ako mjesec nije zaključan.",
+      "reservationWarning": "Povezani termin će se vratiti u status „U toku“ i stilist će ga ponovo vidjeti kao aktivan.",
+      "reasonLabel": "Razlog brisanja (obavezno)",
+      "reasonPlaceholder": "Npr. greška pri unosu...",
+      "deleting": "Brišem…"
+    },
+    "restoreDialog": {
+      "title": "Vraćanje zapisa",
+      "originalDate": "Vrati na originalni datum",
+      "newDateOption": "Odaberi novi datum",
+      "newDate": "Novi datum",
+      "futureReservation": "Datum je u budućnosti — kreiraće se nova rezervacija s istim terminima i stilistom.",
+      "restoredPending": "Zapis će biti vraćen u dnevnu knjigu kao na čekanju za odabrani datum.",
+      "directAssignPolicy": "Direktna rezervacija — automatski potvrđena, bez čekanja klijenta.",
+      "standardPolicy": "Standardna rezervacija — klijent treba potvrditi termin.",
+      "restoring": "Vraćanje…"
+    },
+    "feedback": {
+      "completed": "Unos je kompletiran, a prihod je dodan u knjigu.",
+      "completeFailed": "Nije moguće kompletirati unos.",
+      "deleted": "Unos je obrisan.",
+      "deleteFailed": "Nije moguće obrisati unos.",
+      "restored": "Unos je vraćen.",
+      "restoreFailed": "Nije moguće vratiti unos."
     }
   },
   "finance": {

@@ -1753,6 +1753,34 @@
       "debtCollection": "Debt payment",
       "notes": "Notes",
       "deleteReason": "Deletion reason"
+    },
+    "deleteDialog": {
+      "title": "Delete entry",
+      "description": "Deleting the entry will remove it from statistics.",
+      "completedWarning": "This will reverse the income-book posting if the month is not locked.",
+      "reservationWarning": "The linked appointment will return to In progress, and the stylist will see it as active again.",
+      "reasonLabel": "Deletion reason (required)",
+      "reasonPlaceholder": "e.g. entry error...",
+      "deleting": "Deleting…"
+    },
+    "restoreDialog": {
+      "title": "Restore entry",
+      "originalDate": "Restore to original date",
+      "newDateOption": "Choose a new date",
+      "newDate": "New date",
+      "futureReservation": "The date is in the future — a new appointment will be created with the same time and stylist.",
+      "restoredPending": "The entry will be restored to the daily log as pending on the selected date.",
+      "directAssignPolicy": "Direct booking — confirmed automatically without waiting for the client.",
+      "standardPolicy": "Standard booking — the client must confirm the appointment.",
+      "restoring": "Restoring…"
+    },
+    "feedback": {
+      "completed": "Entry completed and income added to the book.",
+      "completeFailed": "Could not complete the entry.",
+      "deleted": "Entry deleted.",
+      "deleteFailed": "Could not delete the entry.",
+      "restored": "Entry restored.",
+      "restoreFailed": "Could not restore the entry."
     }
   },
   "finance": {
