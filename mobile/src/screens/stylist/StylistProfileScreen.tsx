@@ -55,19 +55,19 @@ export function StylistProfileScreen() {
         <Text style={[styles.userName, { color: colors.text }]}>
           {user?.firstName} {user?.lastName}
         </Text>
-        <Text style={[styles.roleLabel, { color: colors.primary }]}>Stilist</Text>
+        <Text style={[styles.roleLabel, { color: colors.primary }]}>{t('stylist.profile.role')}</Text>
       </Card>
 
       {canSwitchToClient && (
         <Card style={styles.menuCard}>
           <Button
-            title="Prebaci na Client app"
+            title={t('stylist.profile.switchToClient')}
             onPress={handleSwitchToClient}
             variant="outline"
             fullWidth
           />
           <Text style={[styles.hint, { color: colors.textMuted }]}>
-            Prikazat će se klijentska aplikacija (početna, usluge, rezervacije).
+            {t('stylist.profile.switchToClientHint')}
           </Text>
         </Card>
       )}

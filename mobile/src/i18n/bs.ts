@@ -238,6 +238,9 @@ export const bs = {
   },
   stylist: {
     profile: {
+      role: 'Stilist',
+      switchToClient: 'Prebaci na klijentsku aplikaciju',
+      switchToClientHint: 'Prikazat će se klijentska aplikacija (početna, usluge, rezervacije).',
       logoutButton: 'Odjavi se',
       logoutConfirmMessage: 'Da li ste sigurni da se želite odjaviti?',
       logoutConfirmButton: 'Odjavi se',
