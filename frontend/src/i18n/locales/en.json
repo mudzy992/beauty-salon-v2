@@ -65,6 +65,7 @@
     "loginError": "Incorrect username or password.",
     "loginPrompt": "Enter your login details.",
     "usernameOrEmail": "Username or email",
+    "loginIdentifierPlaceholder": "username@example.com",
     "backHome": "Back to home",
     "loginSuccess": "You signed in successfully.",
     "noAccount": "Don't have an account?",

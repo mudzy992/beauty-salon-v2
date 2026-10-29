@@ -9,6 +9,7 @@
     "test:socket-recovery": "node --test src/context/socket-recovery.test.mjs",
     "test:brand-colors": "node --test src/utils/brand-colors.test.mjs",
     "test:registration-errors": "node --test src/features/auth/registration-error.test.mjs",
+    "test:login-i18n": "node --test src/features/auth/login-i18n.test.mjs",
     "test:locale-formatting": "node --test src/i18n/locale-utils.test.mjs",
     "test:reservation-errors": "node --test src/features/reservations/public-reservation-error.test.mjs",
     "test:admin-reservations-calendar-i18n": "node --test src/features/reservations/admin-reservations-calendar-i18n.test.mjs",

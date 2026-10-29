@@ -146,6 +146,9 @@ jobs:
       - name: Test localized registration errors
         working-directory: frontend
         run: npm run test:registration-errors
+      - name: Test localized login placeholder
+        working-directory: frontend
+        run: npm run test:login-i18n
       - name: Test locale-aware date and amount formatting
         working-directory: frontend
         run: npm run test:locale-formatting

@@ -62,6 +62,7 @@
     "loginError": "Pogrešno korisničko ime ili lozinka.",
     "loginPrompt": "Unesite svoje podatke za prijavu.",
     "usernameOrEmail": "Korisničko ime ili email",
+    "loginIdentifierPlaceholder": "korisnik@example.com",
     "backHome": "Nazad na početnu",
     "loginSuccess": "Uspješna prijava!",
     "noAccount": "Nemate račun?",

@@ -131,7 +131,7 @@ export default function Login() {
                   id="usernameOrEmail"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="vasemail@example.com"
+                  placeholder={t('auth.loginIdentifierPlaceholder')}
                   autoComplete="username"
                 />
               </div>
