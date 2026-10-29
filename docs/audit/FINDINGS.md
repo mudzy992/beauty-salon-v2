@@ -692,3 +692,7 @@ Localized the missing-profile and no-appointments title/message pairs in the mob
 ### I18N-01 follow-up — Mobile stylist active reservation card
 
 Localized the active card's title, instructional copy, details label, and payment label in the mobile Bosnian resources. Kept the card's visibility condition and detail-route callbacks unchanged. Added a focused regression suite (2 tests) and npm/CI registration. The focused suite, mobile TypeScript check, and diff hygiene pass. GitHub API requests remain rate-limited (HTTP 403), preventing verification of the push-triggered CI outcome; retry when access resumes. Mobile currently supports a Bosnian-only resource. Implementation commit `3b3052e` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile schedule special cancellation status
+
+Reused the existing reservation-detail translation for the special unconfirmed-attendance cancellation badge in both schedule-card variants. Preserved the exact status/reason detection, generic status lookup, and badge variant. Added a focused regression suite (2 tests) and npm/CI registration. The test suite, mobile TypeScript check, and diff hygiene pass. GitHub API remains rate-limited (HTTP 403), preventing confirmation of the push-triggered CI result; verify when access resumes. Implementation commit `43afd92` is pushed separately from this documentation update; the broader audit remains open.
