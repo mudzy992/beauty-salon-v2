@@ -278,6 +278,7 @@ export const bs = {
       completeErrorFallback: 'Greška.',
       imagePermissionTitle: 'Dozvola',
       imagePermissionMessage: 'Potrebna je dozvola za pristup galeriji.',
+      imageUploadErrorFallback: 'Greška pri uploadu.',
       overrunTitle: 'Kašnjenje termina',
       overrunReschedulePrompt: 'Želiš li rekalkulaciju budućih termina i preview novog rasporeda?',
       overrunNotNow: 'Ne sada',
