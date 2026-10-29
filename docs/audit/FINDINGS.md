@@ -672,3 +672,7 @@ Localized the remaining hardcoded completion-modal copy for charge amount, amoun
 ### I18N-01 follow-up — Mobile stylist reservation summary
 
 Localized the remaining static reservation-summary copy for the reservation fallback, minute abbreviation, estimated charge, gross and loyalty discount, client intent to pay debt, and pending reschedule confirmation. Preserved service/client data, date/time formatting, amount calculations, row conditions, and source reservation values. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40863226302` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `2880648` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile reservation modal accessibility label
+
+The shared reservation-detail modal's backdrop button had a hardcoded Bosnian accessibility label. Replaced it with the already registered `common.close` translation; button role, backdrop and OS-request close handlers, visibility, and animation remain unchanged. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40864377448` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `7974586` is pushed separately from this audit-doc update; the broader audit remains open.
