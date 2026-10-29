@@ -748,3 +748,7 @@ Localized the inbox lock/accept/unlock/reject button titles in mobile Bosnian re
 ### I18N-01 follow-up — Mobile stylist inbox status badges
 
 Localized the inbox reservation badges for “under review by me”, “under review”, and “pending” in mobile Bosnian resources. Preserved status selection, variant, and status props. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40894496757` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `dad6a04` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile stylist inbox other-stylist lock hint
+
+Localized the inline message shown while another stylist has the reservation locked. Preserved the `STYLIST_REVIEW`/active-other-lock condition and the existing lock/accept restrictions. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite and the adjacent inbox empty-state/actions/status suites pass; mobile TypeScript check, repository hygiene, and CI run `40911898296` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `46d60df` is pushed separately from this audit-doc update; the broader repository audit remains open.
