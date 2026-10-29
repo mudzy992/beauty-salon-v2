@@ -656,3 +656,7 @@ Moved the stylist cancellation's required-reason, success/error alert copy, the 
 ### I18N-01 follow-up — Mobile stylist appointment-overrun modal
 
 Moved the overrun modal title/description, recalculation options, manual-minutes label and shorter-break copy into mobile Bosnian translation resources, reusing `common.cancel` for dismissal. Callback order (close then chosen action) and manual-minute input behavior are preserved. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40856444167` passed all four jobs, including the new test and Expo SDK57 iOS bundle. The mobile runtime currently has a Bosnian-only resource. Implementation commit `4ec4031` is pushed separately from this documentation commit; the broad audit remains open.
+
+### I18N-01 follow-up — Mobile stylist reschedule/reorder flow
+
+Localized the mobile stylist reorder modal's title, instructions, start/end labels, preview, empty preview and send button, as well as invalid-time, success and failure-fallback alerts. Preserved time normalization and validation, the reorder endpoint and payload fields, modal reset, refresh flow and API-provided error copy. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40858001724` passed all four jobs, including the new test and Expo SDK57 iOS bundle. Mobile currently supports only a Bosnian resource. Implementation commit `d112b38` is pushed separately from this documentation update; the broad audit remains open.
