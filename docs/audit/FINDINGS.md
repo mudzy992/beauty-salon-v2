@@ -762,3 +762,8 @@ Localized the rejection alert title, prompt, and cancel/reject button labels in 
 ### I18N-01 follow-up — Mobile stylist inbox action error fallbacks
 
 Moved the lock, unlock, accept, and reject network-failure fallback copy into mobile Bosnian resources and reused the existing common error title. Preserved server-provided error messages, first-item selection for array messages, action endpoints, and callback behavior. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite and adjacent rejection-confirmation/action suites pass; mobile TypeScript check passes locally. CI run `40914600379` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `4f2198f` is pushed separately from this audit-doc update; the repository-wide audit remains open.
+
+
+### I18N-01 follow-up — Mobile stylist inbox client-debt warning
+
+Localized the client-debt warning title and the per-stylist warning lines with interpolation for stylist name, optional service name, and the existing date substring. Preserved debt filtering by stylist, line visibility, warning behavior when debt lookup fails, and reservation acceptance flow. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite and mobile TypeScript check pass locally. CI run `40915928352` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `42b1a5a` is pushed separately from this audit-doc update; the repository-wide audit remains open.
