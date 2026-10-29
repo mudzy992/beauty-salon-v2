@@ -237,6 +237,19 @@ export const bs = {
     androidOnly: 'In-app update je dostupan samo na Androidu.',
   },
   stylist: {
+    reservationDetail: {
+      noShow: {
+        title: 'Klijent se nije pojavio',
+        reasonLabel: 'Obrazloženje',
+        reasonPlaceholder: 'Npr. Klijent se nije pojavio na termin',
+        penalty: 'Penal: {{state}}',
+        confirm: 'Označi nedolazak',
+        reasonRequired: 'Unesite obrazloženje.',
+        markedTitle: 'Označeno',
+        markedMessage: 'Rezervacija je označena kao nedolazak.',
+        errorFallback: 'Greška pri označavanju.',
+      },
+    },
     schedule: {
       completeTitle: 'Završi i upiši u dnevnu knjigu',
       completeHint: 'Dodirni za: Završi i upiši u dnevnu knjigu',

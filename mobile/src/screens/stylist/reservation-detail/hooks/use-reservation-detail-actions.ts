@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 import api from '../../../../services/api';
 import {
@@ -34,6 +35,7 @@ export const useReservationDetailActions = ({
   fetchReservation,
   navigation,
 }: UseReservationDetailActionsParams) => {
+  const { t } = useTranslation();
   const completeFlow = useReservationCompleteFlow({ reservation, fetchReservation, navigation });
 
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
@@ -122,7 +124,7 @@ export const useReservationDetailActions = ({
     if (!reservation) return;
     const reason = noShowReason.trim();
     if (!reason) {
-      Alert.alert('Greška', 'Unesite obrazloženje.');
+      Alert.alert(t('common.error'), t('stylist.reservationDetail.noShow.reasonRequired'));
       return;
     }
     setNoShowSubmitting(true);
@@ -133,14 +135,20 @@ export const useReservationDetailActions = ({
       });
       setNoShowModalOpen(false);
       await fetchReservation();
-      Alert.alert('Označeno', 'Rezervacija je označena kao no-show.');
+      Alert.alert(
+        t('stylist.reservationDetail.noShow.markedTitle'),
+        t('stylist.reservationDetail.noShow.markedMessage'),
+      );
       navigation.goBack();
     } catch (err: unknown) {
-      Alert.alert('Greška', getApiErrorMessage(err, 'Greška pri označavanju.'));
+      Alert.alert(
+        t('common.error'),
+        getApiErrorMessage(err, t('stylist.reservationDetail.noShow.errorFallback')),
+      );
     } finally {
       setNoShowSubmitting(false);
     }
-  }, [reservation, noShowReason, noShowApplyPenalty, fetchReservation, navigation]);
+  }, [reservation, noShowReason, noShowApplyPenalty, fetchReservation, navigation, t]);
 
   const submitReorderRequest = useCallback(async () => {
     if (!reservation) return;

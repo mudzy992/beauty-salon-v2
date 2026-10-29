@@ -33,22 +33,31 @@ export function NoShowReservationModal({
   const { colors } = useTheme();
   return (
     <ReservationDetailModalShell visible={visible} onClose={onClose}>
-      <Text style={[styles.title, { color: colors.text }]}>Klijent se nije pojavio</Text>
+      <Text style={[styles.title, { color: colors.text }]}>
+        {t('stylist.reservationDetail.noShow.title')}
+      </Text>
       <Input
-        label="Obrazloženje"
+        label={t('stylist.reservationDetail.noShow.reasonLabel')}
         value={reason}
         onChangeText={onReasonChange}
-        placeholder="Npr. Klijent se nije pojavio na termin"
+        placeholder={t('stylist.reservationDetail.noShow.reasonPlaceholder')}
         multiline
       />
       <View style={styles.actions}>
         <Button
-          title={applyPenalty ? 'Penal: DA' : 'Penal: NE'}
+          title={t('stylist.reservationDetail.noShow.penalty', {
+            state: t(applyPenalty ? 'common.yes' : 'common.no'),
+          })}
           onPress={onTogglePenalty}
           variant={applyPenalty ? 'primary' : 'outline'}
           style={styles.btn}
         />
-        <Button title="Označi no-show" onPress={onSubmit} loading={submitting} style={styles.btn} />
+        <Button
+          title={t('stylist.reservationDetail.noShow.confirm')}
+          onPress={onSubmit}
+          loading={submitting}
+          style={styles.btn}
+        />
       </View>
       <Button
         title={t('common.cancel')}

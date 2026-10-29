@@ -392,6 +392,9 @@ jobs:
       - name: Test Expo Router query-string override compatibility
         working-directory: mobile
         run: npm run test:expo-router-query-compat
+      - name: Test localized stylist no-show reservation UI
+        working-directory: mobile
+        run: npm run test:stylist-no-show-i18n
       - name: Bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"
