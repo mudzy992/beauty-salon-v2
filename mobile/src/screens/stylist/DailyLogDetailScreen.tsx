@@ -186,7 +186,10 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
     async (isBefore: boolean) => {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Dozvola', 'Potrebna je dozvola za pristup galeriji.');
+        Alert.alert(
+          t('stylist.dailyLogDetail.imagePermissionTitle'),
+          t('stylist.dailyLogDetail.imagePermissionMessage'),
+        );
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -225,7 +228,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         setUploading(false);
       }
     },
-    [entryId, fetchEntry],
+    [entryId, fetchEntry, t],
   );
 
   const openActionsMenu = useCallback(() => {

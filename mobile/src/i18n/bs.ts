@@ -276,6 +276,8 @@ export const bs = {
       completeConfirmCancel: 'Odustani',
       completeConfirmAction: 'Završi',
       completeErrorFallback: 'Greška.',
+      imagePermissionTitle: 'Dozvola',
+      imagePermissionMessage: 'Potrebna je dozvola za pristup galeriji.',
       overrunTitle: 'Kašnjenje termina',
       overrunReschedulePrompt: 'Želiš li rekalkulaciju budućih termina i preview novog rasporeda?',
       overrunNotNow: 'Ne sada',
