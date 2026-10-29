@@ -245,7 +245,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
               onPress={openActionsMenu}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               accessibilityRole="button"
-              accessibilityLabel="Akcije zapisa"
+              accessibilityLabel={t('stylist.dailyLogDetail.actionsMenuTitle')}
               style={{ marginRight: spacing.sm }}
             >
               <Ionicons
@@ -257,7 +257,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           )
         : undefined,
     });
-  }, [colors.headerText, entry, navigation, openActionsMenu]);
+  }, [colors.headerText, entry, navigation, openActionsMenu, t]);
 
   if (loading) {
     return (
@@ -302,11 +302,15 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
               {entry.publicReferenceCode ?? entry.id.slice(0, 8).toUpperCase()}
             </Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              {formatDate(entry.date)} {entry.isManual ? '· Ručno' : '· Rezervacija'}
+              {formatDate(entry.date)} {entry.isManual
+                ? t('stylist.dailyLogDetail.manualEntryType')
+                : t('stylist.dailyLogDetail.reservationEntryType')}
             </Text>
           </View>
           <Text style={[styles.statusPill, { color: entry.status === 'COMPLETED' ? colors.success : colors.warning }]}>
-            {entry.status === 'COMPLETED' ? 'Završeno' : 'Na čekanju'}
+            {entry.status === 'COMPLETED'
+              ? t('stylist.dailyLogDetail.statusCompleted')
+              : t('stylist.dailyLogDetail.statusPending')}
           </Text>
         </View>
 
