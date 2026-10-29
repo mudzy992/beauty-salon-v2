@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { useTheme } from '../../../hooks/useTheme';
@@ -26,15 +27,18 @@ export function OverrunReservationModal({
   onManualMinutes,
   onUseBreakOnly,
 }: OverrunReservationModalProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   return (
     <ReservationDetailModalShell visible={visible} onClose={onClose}>
-      <Text style={[styles.title, { color: colors.text }]}>Kašnjenje termina</Text>
+      <Text style={[styles.title, { color: colors.text }]}>
+        {t('stylist.reservationDetail.overrun.title')}
+      </Text>
       <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-        Odaberite kako želite obraditi kašnjenje prije nastavka rada.
+        {t('stylist.reservationDetail.overrun.description')}
       </Text>
       <Button
-        title="Rekalkuliši po stvarnom kašnjenju"
+        title={t('stylist.reservationDetail.overrun.actualOverrun')}
         onPress={() => {
           onClose();
           onActualOverrun();
@@ -42,13 +46,13 @@ export function OverrunReservationModal({
         style={{ marginTop: spacing.md }}
       />
       <Input
-        label="Ručni unos minuta"
+        label={t('stylist.reservationDetail.overrun.manualMinutesLabel')}
         value={manualShiftMinutes}
         onChangeText={onManualShiftMinutesChange}
         keyboardType="number-pad"
       />
       <Button
-        title="Rekalkuliši po ručnom unosu"
+        title={t('stylist.reservationDetail.overrun.manualMinutes')}
         onPress={() => {
           onClose();
           onManualMinutes();
@@ -56,14 +60,14 @@ export function OverrunReservationModal({
         variant="outline"
       />
       <Button
-        title="Ne pomjeraj termine (iskoristi kraću pauzu)"
+        title={t('stylist.reservationDetail.overrun.useShorterBreak')}
         onPress={() => {
           onClose();
           onUseBreakOnly();
         }}
         variant="ghost"
       />
-      <Button title="Odustani" onPress={onClose} variant="outline" style={{ marginTop: spacing.sm }} />
+      <Button title={t('common.cancel')} onPress={onClose} variant="outline" style={{ marginTop: spacing.sm }} />
     </ReservationDetailModalShell>
   );
 }

@@ -246,6 +246,14 @@ export const bs = {
         errorFallback: 'Greška pri otkazivanju.',
         unconfirmedAttendanceStatus: 'Otkazano (nepotvrđen dolazak)',
       },
+      overrun: {
+        title: 'Kašnjenje termina',
+        description: 'Odaberite kako želite obraditi kašnjenje prije nastavka rada.',
+        actualOverrun: 'Rekalkuliši po stvarnom kašnjenju',
+        manualMinutesLabel: 'Ručni unos minuta',
+        manualMinutes: 'Rekalkuliši po ručnom unosu',
+        useShorterBreak: 'Ne pomjeraj termine (iskoristi kraću pauzu)',
+      },
       noShow: {
         title: 'Klijent se nije pojavio',
         reasonLabel: 'Obrazloženje',

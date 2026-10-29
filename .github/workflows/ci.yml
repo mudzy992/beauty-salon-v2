@@ -398,6 +398,9 @@ jobs:
       - name: Test localized stylist reservation cancellation UI
         working-directory: mobile
         run: npm run test:stylist-cancel-i18n
+      - name: Test localized stylist reservation overrun UI
+        working-directory: mobile
+        run: npm run test:stylist-overrun-i18n
       - name: Bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"
