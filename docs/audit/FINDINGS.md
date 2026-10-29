@@ -825,3 +825,7 @@ Moved the manual/reservation origin labels and completed/pending status labels i
 ### I18N-01 follow-up — Mobile daily-log disposition reorder dialog
 
 Moved the reorder date/time fields, reason input, cancel/confirm actions, and reorder-success alert copy into mobile Bosnian resources. Preserved reorder-only visibility, date/time validation, request payload fields, and the success callback. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite, mobile TypeScript check, and repository hygiene pass locally. CI run `40951391487` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `0f4cc11` is pushed separately from this audit-doc update; the repository-wide audit remains open.
+
+### I18N-01 follow-up — Mobile daily-log disposition action labels
+
+Moved the four disposition action labels and their explanatory hints into mobile Bosnian resources. Both the disposition menu and selected-action modal now resolve the same labels through i18next. Preserved action keys/order, visual variants, and the selection callback. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite, mobile TypeScript check, and repository hygiene pass locally. CI run `40952968292` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `2e9aba9` is pushed separately from this audit-doc update; the repository-wide audit remains open.
