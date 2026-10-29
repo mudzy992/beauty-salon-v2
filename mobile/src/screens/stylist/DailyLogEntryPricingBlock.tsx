@@ -192,15 +192,19 @@ export function DailyLogEntryPricingBlock(props: Props) {
 
       <DateTimeField label="Datum" mode="date" value={date} onChange={onDateChange} />
       <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
-        Servisi: {servicesSum.toFixed(2)} KM
-        {loyaltyDiscount > 0 ? ` − loyalty ${loyaltyDiscount.toFixed(2)} KM` : ''}
-        {debtsSum > 0 ? ` + dugovi ${debtsSum.toFixed(2)} KM` : ''}
+        {t('stylist.dailyLogDetail.servicesAmount', { amount: servicesSum.toFixed(2) })}
+        {loyaltyDiscount > 0
+          ? t('stylist.dailyLogDetail.loyaltyDiscountAmount', { amount: loyaltyDiscount.toFixed(2) })
+          : ''}
+        {debtsSum > 0
+          ? t('stylist.dailyLogDetail.debtChargeAmount', { amount: debtsSum.toFixed(2) })
+          : ''}
       </Text>
       <Text style={{ color: colors.text, marginTop: 2, fontWeight: '700' }}>
-        Za naplatu: {chargeAmount.toFixed(2)} KM
+        {t('stylist.dailyLogDetail.totalDueAmount', { amount: chargeAmount.toFixed(2) })}
       </Text>
       <Input
-        label="Naplaćeno (KM)"
+        label={t('stylist.dailyLogDetail.paidAmountLabel')}
         value={paidAmount}
         onChangeText={onPaidAmountChange}
         keyboardType="decimal-pad"
@@ -208,13 +212,13 @@ export function DailyLogEntryPricingBlock(props: Props) {
       />
       {tipPreview > 0 ? (
         <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
-          Napojnica: {tipPreview.toFixed(2)} KM
+          {t('stylist.dailyLogDetail.tipPreviewAmount', { amount: tipPreview.toFixed(2) })}
         </Text>
       ) : null}
       {shortfall > 0 ? (
         <View style={{ marginTop: 8, gap: 6 }}>
           <Text style={{ color: colors.textSecondary }}>
-            Dug (preview): {shortfall.toFixed(2)} KM
+            {t('stylist.dailyLogDetail.shortfallPreviewAmount', { amount: shortfall.toFixed(2) })}
           </Text>
           <TouchableOpacity
             onPress={() => onCreateDebtChange(!createDebt)}
@@ -225,7 +229,7 @@ export function DailyLogEntryPricingBlock(props: Props) {
               size={20}
               color={colors.primary}
             />
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>Zavedi dug</Text>
+            <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('stylist.dailyLogDetail.createDebtToggle')}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
