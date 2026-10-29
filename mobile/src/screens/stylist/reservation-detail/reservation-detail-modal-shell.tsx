@@ -6,6 +6,7 @@ import {
   Pressable,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../../../components/ui/Card';
 import { useTheme } from '../../../hooks/useTheme';
 import { reservationDetailModalStyles as styles } from './modal-styles';
@@ -21,6 +22,7 @@ export function ReservationDetailModalShell({
   onClose,
   children,
 }: ReservationDetailModalShellProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -29,7 +31,7 @@ export function ReservationDetailModalShell({
           style={StyleSheetAbsoluteFill}
           onPress={onClose}
           accessibilityRole="button"
-          accessibilityLabel="Zatvori"
+          accessibilityLabel={t('common.close')}
         />
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
