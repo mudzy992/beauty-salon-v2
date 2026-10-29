@@ -680,3 +680,7 @@ The shared reservation-detail modal's backdrop button had a hardcoded Bosnian ac
 ### I18N-01 follow-up — Mobile stylist reservation detail empty state
 
 Localized the reservation-not-found message and reused the existing `common.back` resource for the empty-state return button. The empty-state condition, `navigation.goBack()` callback, and button variant are unchanged. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40865806258` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `d5c2f81` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile stylist schedule countdown
+
+Localized the active reservation countdown prefixes for remaining time and overrun in the mobile Bosnian resource. Preserved the timer, duration formatting, overrun sign, and branch condition. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass. CI run `40867354910` was queued, but GitHub API returned HTTP 403 rate limiting before its result could be confirmed. Mobile currently supports a Bosnian-only resource. Implementation commit `e1fb59b` is pushed separately from this audit-doc update; verify CI later and continue the broader audit.
