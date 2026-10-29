@@ -1174,6 +1174,24 @@
         "unassigned": "Unconfirmed",
         "dailyLog": "Daily log"
       },
+      "messages": {
+        "today": "Today",
+        "previous": "Back",
+        "next": "Next",
+        "month": "Month",
+        "week": "Week",
+        "day": "Day",
+        "agenda": "Agenda",
+        "date": "Date",
+        "time": "Time",
+        "event": "Event",
+        "allDay": "All day",
+        "workWeek": "Work week",
+        "yesterday": "Yesterday",
+        "tomorrow": "Tomorrow",
+        "showMore": "+{{total}} more",
+        "noEventsInRange": "No events in range."
+      },
       "details": {
         "status": "Status",
         "appointment": "Appointment",

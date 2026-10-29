@@ -1171,6 +1171,24 @@
         "unassigned": "Nije potvrđen",
         "dailyLog": "Dnevna knjiga"
       },
+      "messages": {
+        "today": "Danas",
+        "previous": "Nazad",
+        "next": "Naprijed",
+        "month": "Mjesec",
+        "week": "Sedmica",
+        "day": "Dan",
+        "agenda": "Agenda",
+        "date": "Datum",
+        "time": "Vrijeme",
+        "event": "Termin",
+        "allDay": "Cijeli dan",
+        "workWeek": "Radna sedmica",
+        "yesterday": "Jučer",
+        "tomorrow": "Sutra",
+        "showMore": "+{{total}} više",
+        "noEventsInRange": "Nema termina u odabranom periodu."
+      },
       "details": {
         "status": "Status",
         "appointment": "Termin",

@@ -60,6 +60,27 @@ test('calendar toolbar and filters have matching Bosnian and English translation
   assert.match(scheduler, /props\.onSelectedStylistIdsChange\(\[\]\)/)
 })
 
+test('react-big-calendar labels use matching BS/EN translation resources', () => {
+  const calendarMessages = scheduler.match(
+    /const messages = useMemo\(([\s\S]*?)\n  const openCreate/,
+  )?.[1]
+  assert.ok(calendarMessages, 'Calendar messages should remain memoized')
+
+  const keys = [
+    'today', 'previous', 'next', 'month', 'week', 'day', 'agenda', 'date', 'time', 'event',
+    'allDay', 'workWeek', 'yesterday', 'tomorrow', 'showMore', 'noEventsInRange',
+  ].map((key) => `reservations.calendar.messages.${key}`)
+  for (const key of keys) {
+    assert.ok(calendarMessages.includes(key), `Calendar messages do not use ${key}`)
+    for (const resource of locales) {
+      assert.ok(hasLocaleKey(resource, key), `Missing locale key: ${key}`)
+    }
+  }
+
+  assert.match(calendarMessages, /\[t\]/)
+  assert.doesNotMatch(calendarMessages, /localeKey\.startsWith/)
+})
+
 test('reservation detail drawer copy has matching Bosnian and English translations', () => {
   const detailKeys = [...scheduler.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)
     .filter((key) => key.startsWith('reservations.calendar.details.'))

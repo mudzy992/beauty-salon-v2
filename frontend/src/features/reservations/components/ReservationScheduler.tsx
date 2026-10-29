@@ -395,36 +395,28 @@ export const ReservationScheduler = (props: Props) => {
     return Views.WEEK
   }, [props.view])
 
-  const messages = useMemo(() => {
-    if (localeKey.startsWith('en')) {
-      return {
-        today: 'Today',
-        previous: 'Back',
-        next: 'Next',
-        month: 'Month',
-        week: 'Week',
-        day: 'Day',
-        agenda: 'Agenda',
-        date: 'Date',
-        time: 'Time',
-        event: 'Event',
-        noEventsInRange: 'No events in range.',
-      }
-    }
-    return {
-      today: 'Danas',
-      previous: 'Nazad',
-      next: 'Naprijed',
-      month: 'Mjesec',
-      week: 'Sedmica',
-      day: 'Dan',
-      agenda: 'Agenda',
-      date: 'Datum',
-      time: 'Vrijeme',
-      event: 'Termin',
-      noEventsInRange: 'Nema termina u odabranom periodu.',
-    }
-  }, [localeKey])
+  const messages = useMemo(
+    () => ({
+      today: t('reservations.calendar.messages.today'),
+      previous: t('reservations.calendar.messages.previous'),
+      next: t('reservations.calendar.messages.next'),
+      month: t('reservations.calendar.messages.month'),
+      week: t('reservations.calendar.messages.week'),
+      day: t('reservations.calendar.messages.day'),
+      agenda: t('reservations.calendar.messages.agenda'),
+      date: t('reservations.calendar.messages.date'),
+      time: t('reservations.calendar.messages.time'),
+      event: t('reservations.calendar.messages.event'),
+      allDay: t('reservations.calendar.messages.allDay'),
+      work_week: t('reservations.calendar.messages.workWeek'),
+      yesterday: t('reservations.calendar.messages.yesterday'),
+      tomorrow: t('reservations.calendar.messages.tomorrow'),
+      showMore: (total: number) =>
+        t('reservations.calendar.messages.showMore', { total }),
+      noEventsInRange: t('reservations.calendar.messages.noEventsInRange'),
+    }),
+    [t],
+  )
 
   const openCreate = (slot?: SlotInfo) => {
     const start = slot?.start instanceof Date ? slot.start : new Date(props.date)
