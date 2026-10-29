@@ -41,26 +41,41 @@ export function ReorderReservationModal({
 
   return (
     <ReservationDetailModalShell visible={visible} onClose={onClose}>
-      <Text style={[styles.title, { color: colors.text }]}>Reorder termina</Text>
+      <Text style={[styles.title, { color: colors.text }]}>
+        {t('stylist.reservationDetail.reorder.title')}
+      </Text>
       <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
-        Odaberite novo vrijeme. Kraj se automatski računa iz trajanja kad mijenjate početak.
+        {t('stylist.reservationDetail.reorder.description')}
       </Text>
       <DateTimeField
-        label="Novi početak"
+        label={t('stylist.reservationDetail.reorder.newStart')}
         mode="time"
         value={startTime}
         onChange={onStartTimeChange}
       />
-      <DateTimeField label="Novi kraj" mode="time" value={endTime} onChange={onEndTimeChange} />
+      <DateTimeField
+        label={t('stylist.reservationDetail.reorder.newEnd')}
+        mode="time"
+        value={endTime}
+        onChange={onEndTimeChange}
+      />
       <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
-        Pregled:{' '}
         {previewStart && previewEnd
-          ? `${previewStart} – ${previewEnd} (${previewDuration} min)`
-          : '—'}
+          ? t('stylist.reservationDetail.reorder.preview', {
+              start: previewStart,
+              end: previewEnd,
+              minutes: previewDuration,
+            })
+          : t('stylist.reservationDetail.reorder.emptyPreview')}
       </Text>
       <View style={styles.actions}>
         <Button title={t('common.cancel')} onPress={onClose} variant="outline" style={styles.btn} />
-        <Button title="Pošalji klijentu" onPress={onSubmit} loading={submitting} style={styles.btn} />
+        <Button
+          title={t('stylist.reservationDetail.reorder.sendToClient')}
+          onPress={onSubmit}
+          loading={submitting}
+          style={styles.btn}
+        />
       </View>
     </ReservationDetailModalShell>
   );

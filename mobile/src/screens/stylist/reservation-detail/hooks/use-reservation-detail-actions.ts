@@ -161,7 +161,7 @@ export const useReservationDetailActions = ({
     const start = normalizeHm(reorderStartTime);
     const end = normalizeHm(reorderEndTime);
     if (!start || !end || (parseHmToMinutes(end) as number) <= (parseHmToMinutes(start) as number)) {
-      Alert.alert('Greška', 'Odaberite valjan početak i kraj (HH:mm).');
+      Alert.alert(t('common.error'), t('stylist.reservationDetail.reorder.invalidTime'));
       return;
     }
     setReorderSubmitting(true);
@@ -174,13 +174,19 @@ export const useReservationDetailActions = ({
       setReorderStartTime('');
       setReorderEndTime('');
       await fetchReservation();
-      Alert.alert('Poslano', 'Klijentu je poslan prijedlog pomjeranja termina.');
+      Alert.alert(
+        t('stylist.reservationDetail.reorder.sentTitle'),
+        t('stylist.reservationDetail.reorder.sentMessage'),
+      );
     } catch (err: unknown) {
-      Alert.alert('Greška', getApiErrorMessage(err, 'Greška pri slanju prijedloga.'));
+      Alert.alert(
+        t('common.error'),
+        getApiErrorMessage(err, t('stylist.reservationDetail.reorder.errorFallback')),
+      );
     } finally {
       setReorderSubmitting(false);
     }
-  }, [reservation, reorderStartTime, reorderEndTime, fetchReservation]);
+  }, [reservation, reorderStartTime, reorderEndTime, fetchReservation, t]);
 
   const openReorderModal = useCallback(() => {
     if (!reservation) return;
