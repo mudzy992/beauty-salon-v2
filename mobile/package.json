@@ -22,6 +22,7 @@
     "test:stylist-reservation-modal-shell-i18n": "node --test src/screens/stylist/reservation-detail/reservation-detail-modal-shell-i18n.test.mjs",
     "test:stylist-reservation-detail-screen-i18n": "node --test src/screens/stylist/reservation-detail-screen-i18n.test.mjs",
     "test:stylist-schedule-countdown-i18n": "node --test src/screens/stylist/stylist-schedule-countdown-i18n.test.mjs",
+    "test:stylist-schedule-empty-state-i18n": "node --test src/screens/stylist/stylist-schedule-empty-state-i18n.test.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "postinstall": "node ./scripts/patch-calendars-assets.js && node ./scripts/patch-expo-router-query-string.js"

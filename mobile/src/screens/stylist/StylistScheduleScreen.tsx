@@ -236,8 +236,8 @@ export function StylistScheduleScreen({ navigation }: Props) {
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <EmptyState
           icon="calendar-outline"
-          title="Nema profila"
-          message="Profil stilista nije pronađen."
+          title={t('stylist.schedule.noProfileTitle')}
+          message={t('stylist.schedule.noProfileMessage')}
         />
       </View>
     );
@@ -258,8 +258,8 @@ export function StylistScheduleScreen({ navigation }: Props) {
         ListEmptyComponent={
           <EmptyState
             icon="calendar-outline"
-            title="Nema termina"
-            message="Trenutno nema termina za prikaz."
+            title={t('stylist.schedule.emptyTitle')}
+            message={t('stylist.schedule.emptyMessage')}
           />
         }
         refreshControl={

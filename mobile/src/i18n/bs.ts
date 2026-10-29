@@ -313,6 +313,10 @@ export const bs = {
       },
     },
     schedule: {
+      noProfileTitle: 'Nema profila',
+      noProfileMessage: 'Profil stilista nije pronađen.',
+      emptyTitle: 'Nema termina',
+      emptyMessage: 'Trenutno nema termina za prikaz.',
       countdownRemaining: 'Do kraja: {{time}}',
       countdownOverrun: 'Prekoračenje: {{sign}}{{time}}',
       completeTitle: 'Završi i upiši u dnevnu knjigu',
