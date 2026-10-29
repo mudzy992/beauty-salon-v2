@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -30,6 +31,7 @@ function getMyResponse(reservation: Reservation, profileId: string): StylistResp
 }
 
 export function StylistInboxScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { connected: socketConnected } = useSocket();
@@ -212,8 +214,8 @@ export function StylistInboxScreen() {
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <EmptyState
           icon="person-outline"
-          title="Nema profila stilista"
-          message="Vaš profil stilista nije pronađen. Obratite se administratoru."
+          title={t('stylist.inbox.noProfileTitle')}
+          message={t('stylist.inbox.noProfileMessage')}
         />
       </View>
     );
@@ -236,8 +238,8 @@ export function StylistInboxScreen() {
       ListEmptyComponent={
         <EmptyState
           icon="calendar-outline"
-          title="Nema novih zahtjeva"
-          message="Rezervacije koje trebaju vaš odgovor (zaključaj → prihvati ili odbij) pojavit će se ovdje."
+          title={t('stylist.inbox.emptyTitle')}
+          message={t('stylist.inbox.emptyMessage')}
         />
       }
       renderItem={({ item }) => {

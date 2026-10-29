@@ -237,6 +237,12 @@ export const bs = {
     androidOnly: 'In-app update je dostupan samo na Androidu.',
   },
   stylist: {
+    inbox: {
+      noProfileTitle: 'Nema profila stilista',
+      noProfileMessage: 'Vaš profil stilista nije pronađen. Obratite se administratoru.',
+      emptyTitle: 'Nema novih zahtjeva',
+      emptyMessage: 'Rezervacije koje trebaju vaš odgovor (zaključaj → prihvati ili odbij) pojavit će se ovdje.',
+    },
     profile: {
       role: 'Stilist',
       switchToClient: 'Prebaci na klijentsku aplikaciju',
