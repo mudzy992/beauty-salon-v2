@@ -789,3 +789,7 @@ Moved the generic daily-log completion failure fallback into mobile Bosnian reso
 ### I18N-01 follow-up — Mobile daily-log gallery permission alert
 
 Localized the media-library permission alert title and message in the mobile daily-log detail screen. Preserved the `status !== 'granted'` guard and early return before opening the gallery picker. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite, mobile TypeScript check, and repository hygiene pass locally. CI run `40935656655` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `d6954e1` is pushed separately from this audit-doc update; the repository-wide audit remains open.
+
+### I18N-01 follow-up — Mobile daily-log image upload error fallback
+
+Moved the generic image-upload failure fallback into mobile Bosnian resources and reused the common error title. Preserved server-provided upload error messages, first-array-item selection, both upload endpoints, and the image attachment flow. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite, adjacent daily-log image-permission/completion-error suites, mobile TypeScript check, and repository hygiene pass locally. CI run `40937424513` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `2b81a14` is pushed separately from this audit-doc update; the repository-wide audit remains open.
