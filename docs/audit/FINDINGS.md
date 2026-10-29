@@ -813,3 +813,7 @@ Moved both reservation-dependent completion button labels and the completed-entr
 ### I18N-01 follow-up — Mobile daily-log before-and-after photos
 
 Localized the before-and-after section title, labels, and add-photos hint on the mobile daily-log detail screen. Preserved section visibility conditions, photo-list rendering, and the no-photos hint condition. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite, mobile TypeScript check, and repository hygiene pass locally. CI run `40945845313` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `394c593` is pushed separately from this audit-doc update; the repository-wide audit remains open.
+
+### I18N-01 follow-up — Mobile daily-log service and financial summary
+
+Moved the service/debt section headings and fallbacks, reservation label, total charged amount, and service/tip/settled-debt amount summaries into mobile Bosnian resources with interpolation. Preserved item/debt visibility conditions and existing amount formatting. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite, mobile TypeScript check, and repository hygiene pass locally. CI run `40948155917` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `ed2fd80` is pushed separately from this audit-doc update; the repository-wide audit remains open.
