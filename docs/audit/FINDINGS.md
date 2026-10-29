@@ -688,3 +688,7 @@ Localized the active reservation countdown prefixes for remaining time and overr
 ### I18N-01 follow-up — Mobile stylist schedule empty states
 
 Localized the missing-profile and no-appointments title/message pairs in the mobile Bosnian resources. Conditions, icons, layout, and pull-to-refresh behavior remain unchanged. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass. GitHub API requests continue to fail with HTTP 403 rate limiting, so the push-triggered CI outcome could not be verified; retry when API access resumes. Mobile currently supports a Bosnian-only resource. Implementation commit `ab7a590` is pushed separately from this audit-doc update; the broad audit remains open.
+
+### I18N-01 follow-up — Mobile stylist active reservation card
+
+Localized the active card's title, instructional copy, details label, and payment label in the mobile Bosnian resources. Kept the card's visibility condition and detail-route callbacks unchanged. Added a focused regression suite (2 tests) and npm/CI registration. The focused suite, mobile TypeScript check, and diff hygiene pass. GitHub API requests remain rate-limited (HTTP 403), preventing verification of the push-triggered CI outcome; retry when access resumes. Mobile currently supports a Bosnian-only resource. Implementation commit `3b3052e` is pushed separately from this audit-doc update; the broader audit remains open.
