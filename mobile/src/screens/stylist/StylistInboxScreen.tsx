@@ -130,20 +130,29 @@ export function StylistInboxScreen() {
             const lines: string[] = [];
             if (mine.length > 0) {
               const first = mine[0];
+              const serviceSuffix = first.service?.name ? ` (${first.service.name})` : '';
               lines.push(
-                `Klijent ima dugovanje kod vas${first.service?.name ? ` (${first.service.name})` : ''} od ${first.createdAt.slice(0, 10)}.`,
+                t('stylist.inbox.clientDebtByMe', {
+                  serviceSuffix,
+                  date: first.createdAt.slice(0, 10),
+                }),
               );
             }
             if (others.length > 0) {
               const d = others[0];
               const stylistName = d.stylistProfile?.user
                 ? `${d.stylistProfile.user.firstName} ${d.stylistProfile.user.lastName}`.trim()
-                : 'drugog stiliste';
+                : t('stylist.inbox.otherStylist');
+              const serviceSuffix = d.service?.name ? ` (${d.service.name})` : '';
               lines.push(
-                `Klijent ima dugovanje kod ${stylistName}${d.service?.name ? ` (${d.service.name})` : ''} od ${d.createdAt.slice(0, 10)}.`,
+                t('stylist.inbox.clientDebtByOther', {
+                  stylistName,
+                  serviceSuffix,
+                  date: d.createdAt.slice(0, 10),
+                }),
               );
             }
-            if (lines.length > 0) Alert.alert('Dugovanje klijenta', lines.join('\n'));
+            if (lines.length > 0) Alert.alert(t('stylist.inbox.clientDebtTitle'), lines.join('\n'));
           }
         } catch {
           // ignore - rezervacija se i dalje može prihvatiti
