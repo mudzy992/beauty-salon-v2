@@ -162,7 +162,15 @@ export function StylistScheduleScreen({ navigation }: Props) {
     Object.values(futureByDate).forEach((arr) => arr.sort(sortFn));
 
     const dayAbbrev = (dateStr: string) => {
-      const map = ['Ned', 'Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub'];
+      const map = [
+        t('stylist.schedule.weekdaySundayShort'),
+        t('stylist.schedule.weekdayMondayShort'),
+        t('stylist.schedule.weekdayTuesdayShort'),
+        t('stylist.schedule.weekdayWednesdayShort'),
+        t('stylist.schedule.weekdayThursdayShort'),
+        t('stylist.schedule.weekdayFridayShort'),
+        t('stylist.schedule.weekdaySaturdayShort'),
+      ];
       return map[getDateOnlyWeekday(dateStr)] ?? '';
     };
 

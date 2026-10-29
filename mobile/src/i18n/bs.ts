@@ -337,6 +337,13 @@ export const bs = {
       },
     },
     schedule: {
+      weekdaySundayShort: 'Ned',
+      weekdayMondayShort: 'Pon',
+      weekdayTuesdayShort: 'Uto',
+      weekdayWednesdayShort: 'Sri',
+      weekdayThursdayShort: 'Čet',
+      weekdayFridayShort: 'Pet',
+      weekdaySaturdayShort: 'Sub',
       todaySection: 'Danas',
       completedCanceledTodaySection: 'Završeni / otkazani (danas)',
       pendingRescheduleHint: 'Klijent treba potvrditi novi termin',
