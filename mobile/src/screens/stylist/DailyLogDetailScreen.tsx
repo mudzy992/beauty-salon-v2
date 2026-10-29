@@ -411,14 +411,18 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
 
           {canComplete ? (
             <Button
-              title={entry.reservationId ? 'Završi zapis (završava i rezervaciju)' : 'Završi zapis (upis u knjigu)'}
+              title={
+                entry.reservationId
+                  ? t('stylist.dailyLogDetail.completeButtonWithReservation')
+                  : t('stylist.dailyLogDetail.completeButtonStandalone')
+              }
               onPress={handleComplete}
               loading={acting}
               style={{ marginTop: spacing.md }}
             />
           ) : (
             <Text style={[styles.infoText, { color: colors.textSecondary, marginTop: spacing.md }]}>
-              Kompletirani unos može mijenjati ili vratiti na čekanje samo administrator (web).
+              {t('stylist.dailyLogDetail.completedEntryNotice')}
             </Text>
           )}
         </View>
