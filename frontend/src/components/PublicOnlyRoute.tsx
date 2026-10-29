@@ -1,9 +1,11 @@
 import { ReactNode, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { getPostAuthRedirectPath } from '../utils/clientOnboarding'
 
 export default function PublicOnlyRoute({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
   const { token, user, isReady } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
@@ -20,7 +22,7 @@ export default function PublicOnlyRoute({ children }: { children: ReactNode }) {
   if (!isReady) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-sm text-slate-600">Učitavanje…</div>
+        <div className="text-sm text-slate-600">{t('common.loading')}</div>
       </div>
     )
   }
@@ -32,7 +34,7 @@ export default function PublicOnlyRoute({ children }: { children: ReactNode }) {
   if (token && !user) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-sm text-slate-600">Učitavanje…</div>
+        <div className="text-sm text-slate-600">{t('common.loading')}</div>
       </div>
     )
   }

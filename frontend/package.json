@@ -79,7 +79,8 @@
     "test:admin-settings-site-pages-i18n": "node --test src/features/settings/admin-settings-site-pages-i18n.test.mjs",
     "test:admin-settings-site-modules-i18n": "node --test src/features/settings/admin-settings-site-modules-i18n.test.mjs",
     "test:admin-settings-site-comments-i18n": "node --test src/features/settings/admin-settings-site-comments-i18n.test.mjs",
-    "test:temporary-user-credentials": "node --test src/features/users/temporary-user-credentials.test.mjs"
+    "test:temporary-user-credentials": "node --test src/features/users/temporary-user-credentials.test.mjs",
+    "test:route-guards-i18n": "node --test src/components/route-guards-i18n.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

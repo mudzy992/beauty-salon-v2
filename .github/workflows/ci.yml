@@ -350,6 +350,9 @@ jobs:
       - name: Test runtime web language selection and fallback
         working-directory: frontend
         run: npm run test:i18n-language
+      - name: Test localized route-guard loading states
+        working-directory: frontend
+        run: npm run test:route-guards-i18n
       - name: Build (includes TypeScript project check)
         working-directory: frontend
         run: npm run build
