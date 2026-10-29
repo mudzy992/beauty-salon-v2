@@ -162,7 +162,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const confirmDelete = useCallback(async () => {
     const reason = deleteReason.trim();
     if (!reason) {
-      Alert.alert('Greška', 'Unesite razlog brisanja.');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.deleteReasonRequired'));
       return;
     }
     setActing(true);
@@ -175,12 +175,12 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data
               ?.message
-          : 'Greška pri brisanju.';
-      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : String(msg));
+          : t('stylist.dailyLogDetail.deleteErrorFallback');
+      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg));
     } finally {
       setActing(false);
     }
-  }, [deleteReason, entryId, navigation]);
+  }, [deleteReason, entryId, navigation, t]);
 
   const addImage = useCallback(
     async (isBefore: boolean) => {

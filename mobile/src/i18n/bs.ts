@@ -262,6 +262,10 @@ export const bs = {
       statusReview: 'Na pregledu',
       statusPending: 'Na čekanju',
     },
+    dailyLogDetail: {
+      deleteReasonRequired: 'Unesite razlog brisanja.',
+      deleteErrorFallback: 'Greška pri brisanju.',
+    },
     profile: {
       role: 'Stilist',
       switchToClient: 'Prebaci na klijentsku aplikaciju',
