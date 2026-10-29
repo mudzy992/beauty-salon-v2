@@ -467,6 +467,9 @@ jobs:
       - name: Test localized stylist inbox status badges
         working-directory: mobile
         run: npm run test:stylist-inbox-status-i18n
+      - name: Test localized stylist inbox lock hint
+        working-directory: mobile
+        run: npm run test:stylist-inbox-lock-hint-i18n
       - name: Bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"

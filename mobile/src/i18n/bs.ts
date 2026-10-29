@@ -242,6 +242,7 @@ export const bs = {
       noProfileMessage: 'Vaš profil stilista nije pronađen. Obratite se administratoru.',
       emptyTitle: 'Nema novih zahtjeva',
       emptyMessage: 'Rezervacije koje trebaju vaš odgovor (zaključaj → prihvati ili odbij) pojavit će se ovdje.',
+      lockedByOtherMessage: 'Drugi stilist trenutno razmatra ovaj zahtjev.',
       lock: 'Zaključaj',
       accept: 'Prihvati',
       unlock: 'Oslobodi',

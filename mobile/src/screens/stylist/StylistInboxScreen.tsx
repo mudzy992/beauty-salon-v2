@@ -325,7 +325,7 @@ export function StylistInboxScreen() {
             <View style={styles.actions}>
               {lockedByOther ? (
                 <Text style={[styles.notes, { color: colors.textMuted }]}>
-                  Drugi stilist trenutno razmatra ovaj zahtjev.
+                  {t('stylist.inbox.lockedByOtherMessage')}
                 </Text>
               ) : null}
               {canLock && (
