@@ -305,7 +305,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                           activeReservation.status === 'CANCELLED_BY_CLIENT' &&
                           (activeReservation.cancelReason ?? '').trim() ===
                             'Nije potvrđen dolazak u roku'
-                            ? 'Otkazano (nepotvrđen dolazak)'
+                            ? t('stylist.reservationDetail.cancel.unconfirmedAttendanceStatus')
                             : t(`myReservations.status.${activeReservation.status}` as any)
                         }
                         variant={getStatusVariant(activeReservation.status)}
@@ -423,7 +423,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
                           item.status === 'CANCELLED_BY_CLIENT' &&
                           (item.cancelReason ?? '').trim() ===
                             'Nije potvrđen dolazak u roku'
-                            ? 'Otkazano (nepotvrđen dolazak)'
+                            ? t('stylist.reservationDetail.cancel.unconfirmedAttendanceStatus')
                             : t(`myReservations.status.${item.status}` as any)
                         }
                         variant={getStatusVariant(item.status)}

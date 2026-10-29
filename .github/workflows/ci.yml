@@ -428,6 +428,9 @@ jobs:
       - name: Test localized stylist active reservation card
         working-directory: mobile
         run: npm run test:stylist-schedule-active-card-i18n
+      - name: Test localized stylist schedule cancellation status
+        working-directory: mobile
+        run: npm run test:stylist-schedule-cancel-status-i18n
       - name: Bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"
