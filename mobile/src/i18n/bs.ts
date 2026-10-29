@@ -313,6 +313,8 @@ export const bs = {
       },
     },
     schedule: {
+      todaySection: 'Danas',
+      completedCanceledTodaySection: 'Završeni / otkazani (danas)',
       activeReservationTitle: 'Aktivna rezervacija',
       activeReservationHint: 'Dodirnite karticu za naplatu, završetak i slike.',
       reservationDetails: 'Detalji',

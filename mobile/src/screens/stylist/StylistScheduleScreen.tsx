@@ -167,10 +167,10 @@ export function StylistScheduleScreen({ navigation }: Props) {
     };
 
     const result: Section[] = [];
-    result.push({ title: 'Danas', data: todayActive });
+    result.push({ title: t('stylist.schedule.todaySection'), data: todayActive });
     if (todayCompletedLike.length > 0) {
       result.push({
-        title: 'Završeni / otkazani (danas)',
+        title: t('stylist.schedule.completedCanceledTodaySection'),
         data: todayCompletedLike,
       });
     }
@@ -182,7 +182,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
       });
     }
     return result;
-  }, [reservations]);
+  }, [reservations, t]);
 
   const activeReservation = React.useMemo(() => {
     return (
