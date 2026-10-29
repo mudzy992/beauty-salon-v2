@@ -700,3 +700,7 @@ Reused the existing reservation-detail translation for the special unconfirmed-a
 ### I18N-01 follow-up — Mobile stylist schedule section headings
 
 Localized the “today” and “completed/cancelled today” section headings in mobile Bosnian resources. Preserved section membership, status classification, sorting, future date grouping and labels, and refresh behavior. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40872557710` passed all four jobs, including the mobile localization suites and Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `06ab96a` is pushed separately from this audit-doc update; the broader audit remains open.
+
+### I18N-01 follow-up — Mobile stylist direct-booking heading
+
+Localized the direct-booking screen title and intro copy and reused the title for the schedule screen's add-booking accessibility label. Preserved the navigation target and form submit/search callbacks. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40874449759` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `e01b6fe` is pushed separately from this audit-doc update; the broad audit remains open.
