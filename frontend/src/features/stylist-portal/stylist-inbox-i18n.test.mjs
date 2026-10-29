@@ -14,6 +14,10 @@ test('stylist reservation inbox UI uses keys present in both locales', () => {
   assert.ok(keys.has('stylistPortal.inbox.title'))
   assert.ok(keys.has('stylistPortal.inbox.ownDebtWarning'))
   assert.ok(keys.has('stylistPortal.inbox.loadFailed'))
+  assert.ok(keys.has('stylistPortal.inbox.cancellationCount'))
+  assert.doesNotMatch(source, /CXL:\\s*\\{/)
+  assert.match(source, /count > 0 \? <Badge variant="warning">\{t\('stylistPortal\.inbox\.cancellationCount'/)
+  assert.match(source, /new Intl\.NumberFormat\(locale, \{ maximumFractionDigits: 0 \}\)\.format\(count\)/)
 
   for (const resource of locales) {
     for (const key of keys) {

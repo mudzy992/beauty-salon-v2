@@ -226,7 +226,7 @@ export const StylistInboxPage = () => {
                   <p className="text-sm text-slate-600 dark:text-slate-300">
                     {r.client.firstName} {r.client.lastName}
                   </p>
-                  {count > 0 ? <Badge variant="warning">CXL: {t('stylistPortal.inbox.cancellationCount', { formattedCount: new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(count) })}</Badge> : null}
+                  {count > 0 ? <Badge variant="warning">{t('stylistPortal.inbox.cancellationCount', { formattedCount: new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(count) })}</Badge> : null}
                   {isPenalized ? <Badge variant="danger">{t('stylistPortal.inbox.penaltyUntil', { date: formatDate(getSalonDateOnly(until!), locale) })}</Badge> : null}
                 </div>
               ) : null}
