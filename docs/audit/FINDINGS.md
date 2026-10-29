@@ -773,7 +773,11 @@ Localized the required-delete-reason validation and generic delete-error fallbac
 
 Moved the daily-log delete modal title, debt-restoration explanation, reason label and placeholder, and cancel/delete labels into mobile Bosnian resources. Reused the common delete label and preserved modal visibility, input state, multiline behavior, cancel callback, and delete callback/loading state. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite and mobile TypeScript check pass locally. CI run `40919222941` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `e4a8ed1` is pushed separately from this audit-doc update; the broad audit remains open.
 
-
 ### I18N-01 follow-up — Mobile daily-log completion confirmation
 
 Localized the completion-confirmation title, reservation-dependent prompt, and cancel/complete labels on the mobile daily-log detail screen. Preserved the reservation condition, alert button style, completion endpoint, follow-up fetch, and optional reschedule-preview flow. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite and mobile TypeScript check pass locally. CI run `40927256949` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `5594868` is pushed separately from this audit-doc update; the repository-wide audit remains open.
+
+
+### I18N-01 follow-up — Mobile daily-log overrun alerts
+
+Localized the overrun/reschedule alert title and prompt, cancel/option labels, and the no-future-appointments message with interpolated minutes. Preserved delay/item-count thresholds, button styles, both `ReschedulePreview` routes and their include-breaks/mode/lock parameters. Added a focused regression suite (2 tests), npm script, and CI registration. The focused suite and adjacent daily-log completion/delete suites pass; mobile TypeScript check passes locally. CI run `40932228499` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `0c70c38` is pushed separately from this audit-doc update; the repository-wide audit remains open.
