@@ -15,6 +15,7 @@ import { DateTimeField } from '../../components/ui/DateTimeField';
 import { Input } from '../../components/ui/Input';
 import api from '../../services/api';
 import { spacing } from '../../theme';
+import { useTranslation } from 'react-i18next';
 import type { DailyLogEntry } from '../../types';
 import { DispositionActionMenuModal } from './disposition-action-menu-modal';
 import {
@@ -39,6 +40,7 @@ type Props = {
 };
 
 export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [action, setAction] = useState<DispositionAction | null>(null);
@@ -87,9 +89,9 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
       setModalOpen(false);
       if (action === 'reorder') {
         Alert.alert(
-          'Termin pomjeren',
-          'Novi datum i vrijeme su odmah primijenjeni. Klijent je obaviješten i ne mora potvrđivati.',
-          [{ text: 'U redu', onPress: onDone }],
+          t('stylist.dailyLogDetail.dispositionReorderSuccessTitle'),
+          t('stylist.dailyLogDetail.dispositionReorderSuccessMessage'),
+          [{ text: t('stylist.dailyLogDetail.dispositionReorderSuccessOk'), onPress: onDone }],
         );
       } else {
         onDone();
@@ -97,7 +99,7 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [action, entry.id, onDone, reason, targetDate, targetEndTime, targetStartTime]);
+  }, [action, entry.id, onDone, reason, t, targetDate, targetEndTime, targetStartTime]);
 
   if (!showPanel) return null;
 
@@ -134,15 +136,15 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
               ) : null}
               {action === 'reorder' ? (
                 <>
-                  <DateTimeField label="Novi datum" mode="date" value={targetDate} onChange={setTargetDate} />
+                  <DateTimeField label={t('stylist.dailyLogDetail.dispositionNewDate')} mode="date" value={targetDate} onChange={setTargetDate} />
                   <DateTimeField
-                    label="Novi početak"
+                    label={t('stylist.dailyLogDetail.dispositionNewStart')}
                     mode="time"
                     value={targetStartTime}
                     onChange={setTargetStartTime}
                   />
                   <DateTimeField
-                    label="Novi kraj"
+                    label={t('stylist.dailyLogDetail.dispositionNewEnd')}
                     mode="time"
                     value={targetEndTime}
                     onChange={setTargetEndTime}
@@ -150,21 +152,21 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
                 </>
               ) : null}
               <Input
-                label="Razlog"
+                label={t('stylist.dailyLogDetail.dispositionReasonLabel')}
                 value={reason}
                 onChangeText={setReason}
                 multiline
-                placeholder="Obrazloženje"
+                placeholder={t('stylist.dailyLogDetail.dispositionReasonPlaceholder')}
               />
               <View style={styles.modalActions}>
                 <Button
-                  title="Odustani"
+                  title={t('stylist.dailyLogDetail.dispositionCancel')}
                   variant="outline"
                   onPress={() => setModalOpen(false)}
                   style={{ flex: 1 }}
                 />
                 <Button
-                  title="Potvrdi"
+                  title={t('stylist.dailyLogDetail.dispositionConfirm')}
                   onPress={() => void handleSubmit()}
                   loading={submitting}
                   style={{ flex: 1 }}

@@ -518,6 +518,9 @@ jobs:
       - name: Test localized mobile daily-log header
         working-directory: mobile
         run: npm run test:stylist-daily-log-header-i18n
+      - name: Test localized mobile daily-log disposition reorder dialog
+        working-directory: mobile
+        run: npm run test:stylist-daily-log-disposition-reorder-i18n
       - name: Bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"
