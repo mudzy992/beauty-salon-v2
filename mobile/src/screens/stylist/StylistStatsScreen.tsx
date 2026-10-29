@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTheme } from '../../hooks/useTheme';
@@ -13,6 +14,7 @@ import { getServiceAmount, getSettledDebtsSum, getTipAmount } from './daily-log-
 import { getCalendarMonthRange, getSalonMonthLabel } from '../../utils/date';
 
 export function StylistStatsScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { profileId, loading: profileLoading } = useStylistProfile();
@@ -99,8 +101,8 @@ export function StylistStatsScreen() {
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <EmptyState
           icon="stats-chart-outline"
-          title="Nema profila"
-          message="Profil stilista nije pronađen."
+          title={t('stylist.stats.noProfileTitle')}
+          message={t('stylist.stats.noProfileMessage')}
         />
       </View>
     );
@@ -121,12 +123,16 @@ export function StylistStatsScreen() {
 
       <Card style={styles.card}>
         <Text style={[styles.statValue, { color: colors.primary }]}>{completedReservations.length}</Text>
-        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Završene rezervacije (mjesec)</Text>
+        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+          {t('stylist.stats.completedReservations')}
+        </Text>
       </Card>
 
       <Card style={styles.card}>
         <Text style={[styles.statValue, { color: colors.primary }]}>{confirmedUpcoming.length}</Text>
-        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Predstojeći potvrđeni termini</Text>
+        <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
+          {t('stylist.stats.upcomingConfirmed')}
+        </Text>
       </Card>
 
       <Card style={styles.card}>
@@ -134,23 +140,29 @@ export function StylistStatsScreen() {
           {totalRevenue.toFixed(2)} KM
         </Text>
         <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
-          Ukupan prihod (dnevna knjiga, mjesec)
+          {t('stylist.stats.totalRevenue')}
         </Text>
         <View style={[styles.breakdown, { borderTopColor: colors.borderLight }]}>
           <View style={styles.breakdownRow}>
-            <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Prihod iz servisa</Text>
+            <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>
+              {t('stylist.stats.serviceRevenue')}
+            </Text>
             <Text style={[styles.breakdownValue, { color: colors.text }]}>
               {serviceRevenue.toFixed(2)} KM
             </Text>
           </View>
           <View style={styles.breakdownRow}>
-            <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Napojnice</Text>
+            <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>
+              {t('stylist.stats.tips')}
+            </Text>
             <Text style={[styles.breakdownValue, { color: colors.text }]}>
               {totalTips.toFixed(2)} KM
             </Text>
           </View>
           <View style={styles.breakdownRow}>
-            <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>Dugovi</Text>
+            <Text style={[styles.breakdownLabel, { color: colors.textSecondary }]}>
+              {t('stylist.stats.debts')}
+            </Text>
             <Text style={[styles.breakdownValue, { color: colors.text }]}>
               {totalDebts.toFixed(2)} KM
             </Text>

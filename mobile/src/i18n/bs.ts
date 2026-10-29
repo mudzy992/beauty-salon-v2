@@ -237,6 +237,16 @@ export const bs = {
     androidOnly: 'In-app update je dostupan samo na Androidu.',
   },
   stylist: {
+    stats: {
+      noProfileTitle: 'Nema profila',
+      noProfileMessage: 'Profil stilista nije pronađen.',
+      completedReservations: 'Završene rezervacije (mjesec)',
+      upcomingConfirmed: 'Predstojeći potvrđeni termini',
+      totalRevenue: 'Ukupan prihod (dnevna knjiga, mjesec)',
+      serviceRevenue: 'Prihod iz servisa',
+      tips: 'Napojnice',
+      debts: 'Dugovi',
+    },
     directBooking: {
       title: 'Direktna rezervacija',
       subtitle: 'Termin ide direktno u vaš raspored i ne traži attendance potvrdu klijenta.',
