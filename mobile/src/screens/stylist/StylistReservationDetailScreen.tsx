@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -31,6 +32,7 @@ type Props = NativeStackScreenProps<
 >;
 
 export function StylistReservationDetailScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { profileId } = useStylistProfile();
@@ -66,9 +68,9 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
   if (!reservation) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>Rezervacija nije pronađena.</Text>
+        <Text style={{ color: colors.text }}>{t('stylist.reservationDetail.notFound')}</Text>
         <Button
-          title="Nazad"
+          title={t('common.back')}
           onPress={() => navigation.goBack()}
           variant="outline"
           style={{ marginTop: spacing.md }}

@@ -238,6 +238,7 @@ export const bs = {
   },
   stylist: {
     reservationDetail: {
+      notFound: 'Rezervacija nije pronađena.',
       summary: {
         reservationFallback: 'Rezervacija',
         minutesShort: 'min',
