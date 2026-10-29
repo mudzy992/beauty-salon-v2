@@ -128,7 +128,7 @@ export const ReservationDetailSummary = ({ reservation }: ReservationDetailSumma
           <View style={[styles.infoItem, { alignItems: 'flex-start' }]}>
             <Ionicons name="close-circle-outline" size={16} color={colors.error} />
             <Text style={[styles.infoText, { color: colors.textSecondary, flex: 1 }]}>
-              Razlog otkazivanja: {reservation.cancelReason}
+              {t('stylist.reservationDetail.cancel.reasonLabel')}: {reservation.cancelReason}
             </Text>
           </View>
         ) : null}

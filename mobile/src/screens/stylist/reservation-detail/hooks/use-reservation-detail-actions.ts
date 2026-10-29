@@ -103,7 +103,7 @@ export const useReservationDetailActions = ({
     if (!reservation) return;
     const reason = cancelReason.trim();
     if (!reason) {
-      Alert.alert('Greška', 'Unesite obrazloženje otkazivanja.');
+      Alert.alert(t('common.error'), t('stylist.reservationDetail.cancel.reasonRequired'));
       return;
     }
     setCancelSubmitting(true);
@@ -111,14 +111,20 @@ export const useReservationDetailActions = ({
       await api.post(`/api/reservations/${reservation.id}/stylist-cancel`, { cancelReason: reason });
       setCancelModalOpen(false);
       await fetchReservation();
-      Alert.alert('Otkazano', 'Rezervacija je otkazana.');
+      Alert.alert(
+        t('stylist.reservationDetail.cancel.cancelledTitle'),
+        t('stylist.reservationDetail.cancel.cancelledMessage'),
+      );
       navigation.goBack();
     } catch (err: unknown) {
-      Alert.alert('Greška', getApiErrorMessage(err, 'Greška pri otkazivanju.'));
+      Alert.alert(
+        t('common.error'),
+        getApiErrorMessage(err, t('stylist.reservationDetail.cancel.errorFallback')),
+      );
     } finally {
       setCancelSubmitting(false);
     }
-  }, [reservation, cancelReason, fetchReservation, navigation]);
+  }, [reservation, cancelReason, fetchReservation, navigation, t]);
 
   const submitNoShow = useCallback(async () => {
     if (!reservation) return;

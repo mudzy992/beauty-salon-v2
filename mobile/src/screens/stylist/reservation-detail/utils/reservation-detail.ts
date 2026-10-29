@@ -43,7 +43,7 @@ export const getReservationStatusLabel = (
     reservation.status === 'CANCELLED_BY_CLIENT' &&
     (reservation.cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
   ) {
-    return 'Otkazano (nepotvrđen dolazak)';
+    return t('stylist.reservationDetail.cancel.unconfirmedAttendanceStatus');
   }
   return t(`myReservations.status.${reservation.status}`);
 };

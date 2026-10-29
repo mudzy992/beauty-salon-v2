@@ -238,6 +238,14 @@ export const bs = {
   },
   stylist: {
     reservationDetail: {
+      cancel: {
+        reasonLabel: 'Razlog otkazivanja',
+        reasonRequired: 'Unesite obrazloženje otkazivanja.',
+        cancelledTitle: 'Otkazano',
+        cancelledMessage: 'Rezervacija je otkazana.',
+        errorFallback: 'Greška pri otkazivanju.',
+        unconfirmedAttendanceStatus: 'Otkazano (nepotvrđen dolazak)',
+      },
       noShow: {
         title: 'Klijent se nije pojavio',
         reasonLabel: 'Obrazloženje',
