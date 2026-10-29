@@ -704,3 +704,7 @@ Localized the “today” and “completed/cancelled today” section headings i
 ### I18N-01 follow-up — Mobile stylist direct-booking heading
 
 Localized the direct-booking screen title and intro copy and reused the title for the schedule screen's add-booking accessibility label. Preserved the navigation target and form submit/search callbacks. Added a focused regression suite (2 tests) and npm/CI registration. The suite and mobile TypeScript check pass; CI run `40874449759` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `e01b6fe` is pushed separately from this audit-doc update; the broad audit remains open.
+
+### I18N-01 follow-up — Mobile stylist direct-booking form controls
+
+Localized direct-booking client label/search placeholder, date/start/end labels, notes label, and cancel/submit button titles. Preserved field state and callbacks, required-field disabling, back navigation, and form submission. Extended the focused regression suite to 3 tests; the suite and mobile TypeScript check pass. CI run `40876525103` passed all four jobs, including Expo SDK57 iOS bundling. Mobile currently supports a Bosnian-only resource. Implementation commit `d0a14db` is pushed separately from this audit-doc update; the broader audit remains open.
