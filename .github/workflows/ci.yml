@@ -413,6 +413,9 @@ jobs:
       - name: Test safe mobile mutation errors and upload retry
         working-directory: mobile
         run: npm run test:mutation-error-handling
+      - name: Test service detail runtime validation and recovery UI
+        working-directory: mobile
+        run: npm run test:catalog-detail-recovery
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate

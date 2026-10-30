@@ -31,8 +31,19 @@ async function fetchAllPages<T>(
       items.push(...data.slice(0, MAX_ITEMS));
       break;
     }
+    if (!data || typeof data !== 'object' || !Array.isArray(data.items)) {
+      throw new Error('Invalid service catalogue page');
+    }
+    if (
+      (data.hasMore !== undefined && typeof data.hasMore !== 'boolean') ||
+      (data.total !== undefined && (!Number.isSafeInteger(data.total) || data.total < 0)) ||
+      (data.nextPage !== undefined && data.nextPage !== null &&
+        (!Number.isSafeInteger(data.nextPage) || data.nextPage < 0))
+    ) {
+      throw new Error('Invalid service catalogue pagination metadata');
+    }
 
-    const pageItems = Array.isArray(data.items) ? data.items : [];
+    const pageItems = data.items;
     items.push(...pageItems.slice(0, MAX_ITEMS - items.length));
     const hasMore =
       data.hasMore ??

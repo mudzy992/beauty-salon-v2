@@ -40,6 +40,9 @@ const {
   normalizeDebtAmounts,
   normalizeLoyaltyPreview,
   normalizeNotifications,
+  normalizePublicReviewPage,
+  normalizePublicServiceCategories,
+  normalizePublicServices,
   normalizeReservations,
   normalizeStylistDebtRows,
   sumDebtAmounts,
@@ -127,6 +130,39 @@ test('stylist client-search parser validates the paged envelope and filters malf
   ] });
   assert.deepEqual(clients, [{ id: 'u-1', username: 'amina', firstName: null, lastName: 'K.', gender: 'FEMALE' }]);
   assert.equal(normalizeClientSearchResults({}), null);
+});
+
+test('public service parsers validate catalogue rows and keep valid entries from partial payloads', () => {
+  const service = {
+    id: 's-1', subcategoryId: 'sub-1', name: 'Šišanje', durationMinutes: 30,
+    price: 25, gender: 'FEMALE', isActive: true, sortOrder: 0,
+    subcategory: { id: 'sub-1', categoryId: 'cat-1', name: 'Njega' },
+  };
+  assert.equal(normalizePublicServices([service, { ...service, id: null }]).length, 1);
+  assert.equal(normalizePublicServices([{ id: 'invalid' }]), null);
+  assert.equal(normalizePublicServices([]).length, 0);
+  assert.equal(normalizePublicServiceCategories([{ id: 'cat-1', name: 'Žene', sortOrder: 0, isActive: true }]).length, 1);
+  assert.equal(normalizePublicServiceCategories({ items: [] }), null);
+});
+
+test('public review page parser validates pagination and filters malformed reviews', () => {
+  const page = normalizePublicReviewPage({
+    items: [
+      { id: 'rev-1', serviceRating: 5, createdAt: '2026-10-30T10:00:00Z', comment: 'Odlično', user: { firstName: 'Amina', lastName: 'K.' } },
+      { id: 'rev-bad', serviceRating: 9, createdAt: 'today' },
+    ],
+    total: 1, hasMore: false, nextOffset: 1,
+  }, 0, 20);
+  assert.equal(page.items.length, 1);
+  assert.equal(page.items[0].user.firstName, 'Amina');
+  assert.equal(normalizePublicReviewPage({ items: [], total: -1 }, 0, 20), null);
+  assert.equal(normalizePublicReviewPage('invalid', 0, 20), null);
+});
+
+test('catalog pagination helper throws rather than masking malformed envelopes as empty catalogues', () => {
+  const catalogSource = readFileSync(new URL('../services/catalog.ts', import.meta.url), 'utf8');
+  assert.match(catalogSource, /throw new Error\('Invalid service catalogue page'\)/);
+  assert.match(catalogSource, /Invalid service catalogue pagination metadata/);
 });
 
 test('reservation and daily-log parsers reject malformed envelopes and filter unsafe rows', () => {

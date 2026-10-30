@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,11 +15,13 @@ import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { MediaBackdrop } from '../../components/MediaImage';
 import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { getUploadUrl } from '../../services/api';
 import { fetchAllPublicServices } from '../../services/catalog';
 import { spacing } from '../../theme';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Service } from '../../types';
+import { normalizePublicServices } from '../../utils/apiPayload';
 
 interface Section {
   title: string;
@@ -34,36 +36,67 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const requestGeneration = useRef(0);
 
   useEffect(() => {
     navigation.setOptions({ title: categoryName });
   }, [navigation, categoryName]);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const catalogServices = await fetchAllPublicServices<Service>({ activeOnly: true });
-        const sectionMap = new Map<string, Section>();
-        catalogServices.forEach((service) => {
-          const subcategory = service.subcategory;
-          if (subcategory?.categoryId !== categoryId) return;
-          const section = sectionMap.get(service.subcategoryId) ?? {
-            title: subcategory.name,
-            data: [],
-          };
-          section.data.push(service);
-          sectionMap.set(service.subcategoryId, section);
-        });
-        setSections(Array.from(sectionMap.values()));
-      } catch { /* silent */ }
-      setLoading(false);
-    })();
+  const fetchServices = useCallback(async () => {
+    const generation = ++requestGeneration.current;
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const rawServices = await fetchAllPublicServices<unknown>({ activeOnly: true });
+      const catalogServices = normalizePublicServices(rawServices);
+      if (!catalogServices) throw new Error('Invalid service catalogue payload');
+      if (generation !== requestGeneration.current) return;
+      const sectionMap = new Map<string, Section>();
+      catalogServices.forEach((service) => {
+        const subcategory = service.subcategory;
+        if (subcategory?.categoryId !== categoryId) return;
+        const section = sectionMap.get(service.subcategoryId) ?? {
+          title: subcategory.name,
+          data: [],
+        };
+        section.data.push(service);
+        sectionMap.set(service.subcategoryId, section);
+      });
+      setSections(Array.from(sectionMap.values()));
+    } catch {
+      if (generation === requestGeneration.current) setLoadError(true);
+    } finally {
+      if (generation === requestGeneration.current) setLoading(false);
+    }
   }, [categoryId]);
+
+  useEffect(() => {
+    setSections([]);
+    void fetchServices();
+    return () => {
+      requestGeneration.current += 1;
+    };
+  }, [fetchServices]);
 
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (loadError || sections.length === 0) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <EmptyState
+          icon={loadError ? 'cloud-offline-outline' : 'cut-outline'}
+          title={loadError ? t('services.detailLoadErrorTitle') : t('services.noServices')}
+          message={loadError ? t('services.detailLoadErrorMessage') : undefined}
+          actionLabel={loadError ? t('common.retry') : undefined}
+          onAction={loadError ? () => void fetchServices() : undefined}
+        />
       </View>
     );
   }

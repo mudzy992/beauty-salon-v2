@@ -15,13 +15,19 @@ import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { MediaBackdrop } from '../../components/MediaImage';
 import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
 import api, { getUploadUrl } from '../../services/api';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import { spacing } from '../../theme';
-import { normalizeBeforeAfterPairs } from '../../utils/apiPayload';
+import {
+  normalizeBeforeAfterPage,
+  normalizePublicReviewPage,
+  normalizePublicServices,
+  type PublicReviewPayload,
+} from '../../utils/apiPayload';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Service } from '../../types';
-import type { Review } from '../../types';
+
 
 type BeforeAfterPair = {
   id: string;
@@ -29,48 +35,7 @@ type BeforeAfterPair = {
   after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
 };
 
-type PublicReviewPage = {
-  items?: Review[];
-  total?: number;
-  hasMore?: boolean;
-  nextOffset?: number;
-};
-
-type ReviewPageResult = {
-  items: Review[];
-  total: number;
-  hasMore: boolean;
-  nextOffset: number;
-};
-
 const REVIEW_PAGE_SIZE = 20;
-
-function normalizeReviewPage(
-  data: PublicReviewPage | Review[],
-  offset: number,
-): ReviewPageResult {
-  if (Array.isArray(data)) {
-    const items = data.slice(offset, offset + REVIEW_PAGE_SIZE);
-    const nextOffset = offset + items.length;
-    return {
-      items,
-      total: data.length,
-      hasMore: nextOffset < data.length,
-      nextOffset,
-    };
-  }
-
-  const items = Array.isArray(data?.items) ? data.items : [];
-  const total = typeof data?.total === 'number' ? data.total : items.length;
-  const nextOffset =
-    typeof data?.nextOffset === 'number' ? data.nextOffset : offset + items.length;
-  return {
-    items,
-    total,
-    hasMore: data?.hasMore === true && items.length > 0,
-    nextOffset,
-  };
-}
 
 export function ServiceSingleDetailScreen({
   route,
@@ -83,65 +48,76 @@ export function ServiceSingleDetailScreen({
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { width } = useWindowDimensions();
   const [service, setService] = useState<Service | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [serviceLoadError, setServiceLoadError] = useState(false);
+  const [reviews, setReviews] = useState<PublicReviewPayload[]>([]);
+  const [reviewsLoadError, setReviewsLoadError] = useState(false);
   const [reviewsTotal, setReviewsTotal] = useState(0);
   const [reviewNextOffset, setReviewNextOffset] = useState<number | null>(null);
   const [loadingMoreReviews, setLoadingMoreReviews] = useState(false);
   const [pairs, setPairs] = useState<BeforeAfterPair[]>([]);
   const [loadingPairs, setLoadingPairs] = useState(false);
+  const [galleryLoadError, setGalleryLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const reviewRequestGeneration = useRef(0);
+  const galleryRequestGeneration = useRef(0);
 
   useEffect(() => {
     navigation.setOptions({ title: serviceName || t('services.detail') });
   }, [navigation, serviceName, t]);
 
-  useEffect(() => {
+  const fetchDetails = useCallback(async (showLoading = true) => {
     const requestGeneration = ++reviewRequestGeneration.current;
-    setLoading(true);
+    if (showLoading) setLoading(true);
+    setServiceLoadError(false);
+    setReviewsLoadError(false);
+
+    const [serviceResult, reviewsResult] = await Promise.allSettled([
+      api.get<unknown>(`/api/services/${serviceId}`),
+      api.get<unknown>('/api/reviews', {
+        params: {
+          serviceId,
+          approved: 'true',
+          limit: REVIEW_PAGE_SIZE,
+          offset: 0,
+        },
+      }),
+    ]);
+    if (requestGeneration !== reviewRequestGeneration.current) return;
+
+    if (serviceResult.status === 'fulfilled') {
+      const normalizedService = normalizePublicServices([serviceResult.value.data])?.[0] ?? null;
+      if (normalizedService) setService(normalizedService);
+      else setServiceLoadError(true);
+    } else {
+      setServiceLoadError(true);
+    }
+
+    if (reviewsResult.status === 'fulfilled') {
+      const page = normalizePublicReviewPage(reviewsResult.value.data, 0, REVIEW_PAGE_SIZE);
+      if (page) {
+        setReviews(page.items);
+        setReviewsTotal(page.total);
+        setReviewNextOffset(page.hasMore ? page.nextOffset : null);
+      } else {
+        setReviewsLoadError(true);
+      }
+    } else {
+      setReviewsLoadError(true);
+    }
+    if (requestGeneration === reviewRequestGeneration.current && showLoading) setLoading(false);
+  }, [serviceId]);
+
+  useEffect(() => {
+    setService(null);
     setReviews([]);
     setReviewsTotal(0);
     setReviewNextOffset(null);
     setLoadingMoreReviews(false);
-
-    (async () => {
-      try {
-        const [svcRes, revRes] = await Promise.all([
-          api.get<Service>(`/api/services/${serviceId}`),
-          api.get<PublicReviewPage | Review[]>('/api/reviews', {
-            params: {
-              serviceId,
-              approved: 'true',
-              limit: REVIEW_PAGE_SIZE,
-              offset: 0,
-            },
-          }),
-        ]);
-        if (requestGeneration !== reviewRequestGeneration.current) return;
-        const page = normalizeReviewPage(revRes.data, 0);
-        setService(svcRes.data);
-        setReviews(page.items);
-        setReviewsTotal(page.total);
-        setReviewNextOffset(page.hasMore ? page.nextOffset : null);
-      } catch {
-        if (requestGeneration !== reviewRequestGeneration.current) return;
-        setService(null);
-        setReviews([]);
-        setReviewsTotal(0);
-        setReviewNextOffset(null);
-      } finally {
-        if (requestGeneration === reviewRequestGeneration.current) {
-          setLoading(false);
-        }
-      }
-    })();
-
+    void fetchDetails(true);
     return () => {
-      if (requestGeneration === reviewRequestGeneration.current) {
-        reviewRequestGeneration.current += 1;
-      }
+      reviewRequestGeneration.current += 1;
     };
-  }, [serviceId]);
+  }, [fetchDetails]);
 
   const loadMoreReviews = useCallback(async () => {
     const offset = reviewNextOffset;
@@ -150,7 +126,7 @@ export function ServiceSingleDetailScreen({
     const requestGeneration = reviewRequestGeneration.current;
     setLoadingMoreReviews(true);
     try {
-      const { data } = await api.get<PublicReviewPage | Review[]>('/api/reviews', {
+      const { data } = await api.get<unknown>('/api/reviews', {
         params: {
           serviceId,
           approved: 'true',
@@ -160,7 +136,12 @@ export function ServiceSingleDetailScreen({
       });
       if (requestGeneration !== reviewRequestGeneration.current) return;
 
-      const page = normalizeReviewPage(data, offset);
+      const page = normalizePublicReviewPage(data, offset, REVIEW_PAGE_SIZE);
+      if (!page) {
+        setReviewsLoadError(true);
+        return;
+      }
+      setReviewsLoadError(false);
       setReviews((current) => {
         const existingIds = new Set(current.map((review) => review.id));
         return [
@@ -171,7 +152,7 @@ export function ServiceSingleDetailScreen({
       setReviewsTotal(page.total);
       setReviewNextOffset(page.hasMore ? page.nextOffset : null);
     } catch {
-      // Keep the current offset so the user can retry.
+      if (requestGeneration === reviewRequestGeneration.current) setReviewsLoadError(true);
     } finally {
       if (requestGeneration === reviewRequestGeneration.current) {
         setLoadingMoreReviews(false);
@@ -179,25 +160,35 @@ export function ServiceSingleDetailScreen({
     }
   }, [loadingMoreReviews, reviewNextOffset, serviceId]);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoadingPairs(true);
-      try {
-        const { data } = await api.get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
-          params: { serviceId, limit: 3, offset: 0 },
-        });
-        if (!cancelled) setPairs(normalizeBeforeAfterPairs(data?.items) ?? []);
-      } catch {
-        if (!cancelled) setPairs([]);
-      } finally {
-        if (!cancelled) setLoadingPairs(false);
+  const fetchPairs = useCallback(async () => {
+    const requestGeneration = ++galleryRequestGeneration.current;
+    setLoadingPairs(true);
+    setGalleryLoadError(false);
+    try {
+      const { data } = await api.get<unknown>('/api/daily-log/before-after', {
+        params: { serviceId, limit: 3, offset: 0 },
+      });
+      if (requestGeneration !== galleryRequestGeneration.current) return;
+      const page = normalizeBeforeAfterPage(data);
+      if (!page) {
+        setGalleryLoadError(true);
+        return;
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      setPairs(page.items.slice(0, 3));
+    } catch {
+      if (requestGeneration === galleryRequestGeneration.current) setGalleryLoadError(true);
+    } finally {
+      if (requestGeneration === galleryRequestGeneration.current) setLoadingPairs(false);
+    }
   }, [serviceId]);
+
+  useEffect(() => {
+    setPairs([]);
+    void fetchPairs();
+    return () => {
+      galleryRequestGeneration.current += 1;
+    };
+  }, [fetchPairs]);
 
   if (loading) {
     return (
@@ -209,8 +200,14 @@ export function ServiceSingleDetailScreen({
 
   if (!service) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background, padding: spacing.lg }]}>
-        <Text style={{ color: colors.textSecondary }}>{t('common.error')}</Text>
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <EmptyState
+          icon="cloud-offline-outline"
+          title={t('services.detailLoadErrorTitle')}
+          message={t('services.detailLoadErrorMessage')}
+          actionLabel={t('common.retry')}
+          onAction={() => void fetchDetails(false)}
+        />
       </View>
     );
   }
@@ -227,6 +224,20 @@ export function ServiceSingleDetailScreen({
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
+      {serviceLoadError ? (
+        <Card style={styles.section}>
+          <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
+            {t('services.staleMessage')}
+          </Text>
+          <Button
+            title={t('common.retry')}
+            onPress={() => void fetchDetails(false)}
+            size="sm"
+            variant="outline"
+            style={{ marginTop: spacing.sm }}
+          />
+        </Card>
+      ) : null}
       {/* Hero / backdrop */}
       <View style={styles.heroWrap}>
           <MediaBackdrop
@@ -260,8 +271,13 @@ export function ServiceSingleDetailScreen({
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           {t('reviews.title')} ({reviewsTotal})
         </Text>
+        {reviewsLoadError ? (
+          <Text style={[styles.bodyText, { color: colors.textSecondary }]}>{t('reviews.loadError')}</Text>
+        ) : null}
         {reviews.length === 0 ? (
-          <Text style={[styles.bodyText, { color: colors.textMuted }]}>{t('reviews.noReviews')}</Text>
+          !reviewsLoadError ? (
+            <Text style={[styles.bodyText, { color: colors.textMuted }]}>{t('reviews.noReviews')}</Text>
+          ) : null
         ) : (
           <View style={styles.reviewList}>
             {reviews.map((r) => (
@@ -293,10 +309,12 @@ export function ServiceSingleDetailScreen({
             ))}
           </View>
         )}
-        {reviewNextOffset !== null ? (
+        {reviewNextOffset !== null || reviewsLoadError ? (
           <Button
-            title={t('reviews.loadMore')}
-            onPress={() => void loadMoreReviews()}
+            title={reviewsLoadError ? t('common.retry') : t('reviews.loadMore')}
+            onPress={() =>
+              void (reviewNextOffset === null ? fetchDetails(false) : loadMoreReviews())
+            }
             loading={loadingMoreReviews}
             size="sm"
             variant="ghost"
@@ -323,6 +341,19 @@ export function ServiceSingleDetailScreen({
         </View>
         {loadingPairs ? (
           <ActivityIndicator size="small" color={colors.primary} />
+        ) : galleryLoadError ? (
+          <View>
+            <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
+              {t('services.galleryLoadError')}
+            </Text>
+            <Button
+              title={t('common.retry')}
+              onPress={() => void fetchPairs()}
+              size="sm"
+              variant="outline"
+              style={{ marginTop: spacing.sm }}
+            />
+          </View>
         ) : pairs.length === 0 ? (
           <Text style={[styles.bodyText, { color: colors.textMuted }]}>
             Trenutno nema dostupnih transformacija za ovaj servis.

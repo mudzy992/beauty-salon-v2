@@ -25,7 +25,11 @@ import { spacing, borderRadius } from '../../theme';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Reservation, Service, ServiceCategory } from '../../types';
-import { normalizeReservations } from '../../utils/apiPayload';
+import {
+  normalizePublicServiceCategories,
+  normalizePublicServices,
+  normalizeReservations,
+} from '../../utils/apiPayload';
 
 type PopularService = Service & { reservationsCount: number };
 
@@ -44,13 +48,18 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
   const fetchData = useCallback(async () => {
     try {
       const [categoriesRes, servicesRes, reservationsRes, popularRes] = await Promise.all([
-        fetchAllPublicServiceCategories<ServiceCategory>({ activeOnly: true }),
-        fetchAllPublicServices<Service>({ activeOnly: true }),
+        fetchAllPublicServiceCategories<unknown>({ activeOnly: true }),
+        fetchAllPublicServices<unknown>({ activeOnly: true }),
         api.get<Reservation[]>('/api/reservations', { params: { asClient: true } }).catch(() => null),
         api.get<PopularService | null>('/api/services/popular').catch(() => null),
       ]);
-      setCategories(categoriesRes);
-      setServices(servicesRes);
+      const normalizedCategoryData = normalizePublicServiceCategories(categoriesRes);
+      const normalizedServiceData = normalizePublicServices(servicesRes);
+      if (!normalizedCategoryData || !normalizedServiceData) {
+        throw new Error('Invalid public service catalogue payload');
+      }
+      setCategories(normalizedCategoryData);
+      setServices(normalizedServiceData);
       setReservations(normalizeReservations(reservationsRes?.data) ?? []);
       setPopularService(popularRes?.data ?? null);
       setLoadError(false);

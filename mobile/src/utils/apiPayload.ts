@@ -3,6 +3,8 @@ import type {
   DailyLogEntry,
   Notification,
   Reservation,
+  Service,
+  ServiceCategory,
 } from '../types';
 
 export interface DebtAmountRow {
@@ -47,6 +49,10 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
 function finiteNumber(value: unknown): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string' && value.trim()) {
@@ -58,6 +64,111 @@ function finiteNumber(value: unknown): number | null {
 
 function isOptionalString(value: unknown): boolean {
   return value === undefined || value === null || typeof value === 'string';
+}
+
+export function normalizePublicServices(payload: unknown): Service[] | null {
+  if (!Array.isArray(payload)) return null;
+  const services = payload.filter((row): row is Service => {
+    if (
+      !isRecord(row) || !isNonEmptyString(row.id) || !isNonEmptyString(row.subcategoryId) ||
+      !isNonEmptyString(row.name) || !isFiniteNumber(row.durationMinutes) ||
+      !isFiniteNumber(row.price) || typeof row.isActive !== 'boolean' ||
+      !isFiniteNumber(row.sortOrder) || (row.gender !== 'MALE' && row.gender !== 'FEMALE') ||
+      !isOptionalString(row.shortDescription) || !isOptionalString(row.heroImage)
+    ) return false;
+    if (row.subcategory !== undefined && row.subcategory !== null) {
+      if (
+        !isRecord(row.subcategory) || !isNonEmptyString(row.subcategory.id) ||
+        !isNonEmptyString(row.subcategory.categoryId) || !isNonEmptyString(row.subcategory.name)
+      ) return false;
+    }
+    return true;
+  });
+  return payload.length > 0 && services.length === 0 ? null : services;
+}
+
+export function normalizePublicServiceCategories(payload: unknown): ServiceCategory[] | null {
+  if (!Array.isArray(payload)) return null;
+  const categories = payload.filter((row): row is ServiceCategory =>
+    isRecord(row) && isNonEmptyString(row.id) && isNonEmptyString(row.name) &&
+    isFiniteNumber(row.sortOrder) && typeof row.isActive === 'boolean' &&
+    isOptionalString(row.description)
+  );
+  return payload.length > 0 && categories.length === 0 ? null : categories;
+}
+
+export interface PublicReviewPayload {
+  id: string;
+  serviceRating: number;
+  comment?: string | null;
+  createdAt: string;
+  user?: { firstName?: string | null; lastName?: string | null } | null;
+}
+
+export interface PublicReviewPagePayload {
+  items: PublicReviewPayload[];
+  total: number;
+  hasMore: boolean;
+  nextOffset: number;
+}
+
+function normalizePublicReview(payload: unknown): PublicReviewPayload | null {
+  if (
+    !isRecord(payload) || !isNonEmptyString(payload.id) ||
+    !isFiniteNumber(payload.serviceRating) || payload.serviceRating < 1 || payload.serviceRating > 5 ||
+    !isNonEmptyString(payload.createdAt) || !isOptionalString(payload.comment)
+  ) return null;
+  let user: PublicReviewPayload['user'];
+  if (payload.user === null) user = null;
+  else if (payload.user !== undefined) {
+    if (
+      !isRecord(payload.user) || !isOptionalString(payload.user.firstName) ||
+      !isOptionalString(payload.user.lastName)
+    ) return null;
+    user = { firstName: payload.user.firstName as string | null | undefined, lastName: payload.user.lastName as string | null | undefined };
+  }
+  return {
+    id: payload.id,
+    serviceRating: payload.serviceRating,
+    comment: payload.comment as string | null | undefined,
+    createdAt: payload.createdAt,
+    user,
+  };
+}
+
+export function normalizePublicReviewPage(
+  payload: unknown,
+  offset: number,
+  pageSize: number,
+): PublicReviewPagePayload | null {
+  if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(pageSize) || pageSize <= 0) return null;
+  let rawItems: unknown[];
+  let total: number;
+  let hasMore: boolean | undefined;
+  let nextOffset: number;
+  if (Array.isArray(payload)) {
+    total = payload.length;
+    rawItems = payload.slice(offset, offset + pageSize);
+    nextOffset = offset + rawItems.length;
+  } else {
+    if (!isRecord(payload) || !Array.isArray(payload.items)) return null;
+    rawItems = payload.items;
+    total = payload.total === undefined ? rawItems.length : payload.total as number;
+    hasMore = payload.hasMore as boolean | undefined;
+    nextOffset = payload.nextOffset === undefined ? offset + rawItems.length : payload.nextOffset as number;
+    if (!Number.isSafeInteger(total) || total < 0) return null;
+    if (hasMore !== undefined && typeof hasMore !== 'boolean') return null;
+    if (!Number.isSafeInteger(nextOffset) || nextOffset < 0) return null;
+  }
+  const items = rawItems.map(normalizePublicReview).filter((item): item is PublicReviewPayload => item !== null);
+  if (rawItems.length > 0 && items.length === 0) return null;
+  const effectiveNextOffset = nextOffset;
+  return {
+    items,
+    total,
+    hasMore: hasMore ?? effectiveNextOffset < total,
+    nextOffset: effectiveNextOffset,
+  };
 }
 
 export function normalizeDebtAmounts(payload: unknown): DebtAmountRow[] | null {
