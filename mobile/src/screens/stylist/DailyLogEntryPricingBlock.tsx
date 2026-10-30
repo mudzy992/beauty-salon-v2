@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/ui/Input';
+import { useTranslation } from 'react-i18next';
 import { DateTimeField } from '../../components/ui/DateTimeField';
 import { Button } from '../../components/ui/Button';
 import { spacing } from '../../theme';
@@ -48,6 +49,7 @@ type Props = {
 };
 
 export function DailyLogEntryPricingBlock(props: Props) {
+  const { t } = useTranslation();
   const {
     colors,
     selectedServices,
@@ -106,14 +108,14 @@ export function DailyLogEntryPricingBlock(props: Props) {
           </View>
           <TouchableOpacity
             onPress={() => openEditPrice(s.id)}
-            accessibilityLabel="Uredi cijenu"
+            accessibilityLabel={t('stylist.dailyLogDetail.editPriceAccessibilityLabel')}
             style={[styles.iconBtn, { borderColor: colors.inputBorder, backgroundColor: colors.inputBg }]}
           >
             <Ionicons name="create-outline" size={18} color={colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => onRemoveService(s.id)}
-            accessibilityLabel="Ukloni servis"
+            accessibilityLabel={t('stylist.dailyLogDetail.removeServiceAccessibilityLabel')}
             style={[styles.iconBtn, { borderColor: colors.inputBorder, backgroundColor: colors.inputBg }]}
           >
             <Ionicons name="trash-outline" size={18} color={colors.textSecondary} />
@@ -124,8 +126,10 @@ export function DailyLogEntryPricingBlock(props: Props) {
       {!editMode && openDebts.length > 0 ? (
         <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
           <Text style={{ color: colors.textSecondary }}>
-            Otvorena dugovanja: {openDebts.length} ·{' '}
-            {openDebts.reduce((a, d) => a + Number(d.amount || 0), 0).toFixed(2)} KM
+            {t('stylist.dailyLogDetail.openDebtsSummary', {
+              count: openDebts.length,
+              amount: openDebts.reduce((a, d) => a + Number(d.amount || 0), 0).toFixed(2),
+            })}
           </Text>
           <TouchableOpacity
             onPress={() => onSettleDebtsEnabledChange(!settleDebtsEnabled)}
@@ -149,13 +153,13 @@ export function DailyLogEntryPricingBlock(props: Props) {
                 fontSize: 15,
               }}
             >
-              Naplati dug
+              {t('stylist.dailyLogDetail.settleDebtAction')}
             </Text>
           </TouchableOpacity>
           {settleDebtsEnabled ? (
             <>
               <Text style={{ color: colors.textMuted, fontSize: 13 }}>
-                Označite dugovanja za naplatu
+                {t('stylist.dailyLogDetail.selectDebtsHint')}
               </Text>
               {openDebts.map((d) => {
                 const selected = settledDebtIds.includes(d.id);
@@ -172,7 +176,7 @@ export function DailyLogEntryPricingBlock(props: Props) {
                     />
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: colors.text, fontWeight: '600' }}>
-                        {d.service?.name ?? 'Usluga'} · {Number(d.amount).toFixed(2)} KM
+                        {d.service?.name ?? t('stylist.dailyLogDetail.serviceFallback')} · {Number(d.amount).toFixed(2)} KM
                       </Text>
                       <Text style={{ color: colors.textSecondary }}>
                         {String(d.createdAt).slice(0, 10)}
@@ -188,15 +192,19 @@ export function DailyLogEntryPricingBlock(props: Props) {
 
       <DateTimeField label="Datum" mode="date" value={date} onChange={onDateChange} />
       <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
-        Servisi: {servicesSum.toFixed(2)} KM
-        {loyaltyDiscount > 0 ? ` − loyalty ${loyaltyDiscount.toFixed(2)} KM` : ''}
-        {debtsSum > 0 ? ` + dugovi ${debtsSum.toFixed(2)} KM` : ''}
+        {t('stylist.dailyLogDetail.servicesAmount', { amount: servicesSum.toFixed(2) })}
+        {loyaltyDiscount > 0
+          ? t('stylist.dailyLogDetail.loyaltyDiscountAmount', { amount: loyaltyDiscount.toFixed(2) })
+          : ''}
+        {debtsSum > 0
+          ? t('stylist.dailyLogDetail.debtChargeAmount', { amount: debtsSum.toFixed(2) })
+          : ''}
       </Text>
       <Text style={{ color: colors.text, marginTop: 2, fontWeight: '700' }}>
-        Za naplatu: {chargeAmount.toFixed(2)} KM
+        {t('stylist.dailyLogDetail.totalDueAmount', { amount: chargeAmount.toFixed(2) })}
       </Text>
       <Input
-        label="Naplaćeno (KM)"
+        label={t('stylist.dailyLogDetail.paidAmountLabel')}
         value={paidAmount}
         onChangeText={onPaidAmountChange}
         keyboardType="decimal-pad"
@@ -204,13 +212,13 @@ export function DailyLogEntryPricingBlock(props: Props) {
       />
       {tipPreview > 0 ? (
         <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
-          Napojnica: {tipPreview.toFixed(2)} KM
+          {t('stylist.dailyLogDetail.tipPreviewAmount', { amount: tipPreview.toFixed(2) })}
         </Text>
       ) : null}
       {shortfall > 0 ? (
         <View style={{ marginTop: 8, gap: 6 }}>
           <Text style={{ color: colors.textSecondary }}>
-            Dug (preview): {shortfall.toFixed(2)} KM
+            {t('stylist.dailyLogDetail.shortfallPreviewAmount', { amount: shortfall.toFixed(2) })}
           </Text>
           <TouchableOpacity
             onPress={() => onCreateDebtChange(!createDebt)}
@@ -221,7 +229,7 @@ export function DailyLogEntryPricingBlock(props: Props) {
               size={20}
               color={colors.primary}
             />
-            <Text style={{ color: colors.primary, fontWeight: '700' }}>Zavedi dug</Text>
+            <Text style={{ color: colors.primary, fontWeight: '700' }}>{t('stylist.dailyLogDetail.createDebtToggle')}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -230,22 +238,22 @@ export function DailyLogEntryPricingBlock(props: Props) {
       <Modal visible={!!editServiceId} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Uredi cijenu</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.priceEditTitle')}</Text>
             <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
-              Cijena vrijedi samo za ovaj unos (snapshot). Katalog ostaje nepromijenjen.
+              {t('stylist.dailyLogDetail.priceEditDescription')}
             </Text>
             <Text style={{ color: colors.text, fontWeight: '600', marginBottom: 4 }}>
-              {editingService?.name ?? 'Servis'}
+              {editingService?.name ?? t('stylist.dailyLogDetail.priceEditServiceFallback')}
             </Text>
             <Input
-              label="Cijena (KM)"
+              label={t('stylist.dailyLogDetail.priceLabel')}
               value={editPriceDraft}
               onChangeText={setEditPriceDraft}
               keyboardType="decimal-pad"
             />
             <View style={styles.modalActions}>
-              <Button title="Odustani" variant="outline" onPress={() => setEditServiceId(null)} style={{ flex: 1 }} />
-              <Button title="Sačuvaj" onPress={saveEditPrice} style={{ flex: 1 }} />
+              <Button title={t('common.cancel')} variant="outline" onPress={() => setEditServiceId(null)} style={{ flex: 1 }} />
+              <Button title={t('common.save')} onPress={saveEditPrice} style={{ flex: 1 }} />
             </View>
           </View>
         </View>

@@ -11,6 +11,7 @@ import {
   Modal,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { Card } from '../../components/ui/Card';
@@ -53,6 +54,7 @@ type Props = {
 };
 
 export function DailyLogNewEntryScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const editEntryId = route?.params?.entryId;
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
@@ -113,7 +115,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         }>(`/api/daily-log/${editEntryId}`);
         if (!mounted) return;
         if (data.status === 'COMPLETED') {
-          Alert.alert('Info', 'Kompletirani unos se ne može uređivati na mobilnoj.');
+          Alert.alert(t('common.info'), t('stylist.dailyLogDetail.editCompletedUnavailable'));
           navigation.goBack();
           return;
         }
@@ -146,14 +148,14 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
           : 0;
         setPaidAmount(String(servicesPortion + debtsPortion));
       } catch {
-        Alert.alert('Greška', 'Nije moguće učitati unos.');
+        Alert.alert(t('common.error'), t('stylist.dailyLogDetail.loadErrorFallback'));
         navigation.goBack();
       }
     })();
     return () => {
       mounted = false;
     };
-  }, [editEntryId, navigation]);
+  }, [editEntryId, navigation, t]);
 
   const selectedClient = clients.find((c) => c.id === clientId);
   const selectedServices = useMemo(
@@ -284,23 +286,23 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
 
   const handleSubmit = useCallback(async () => {
     if (!profileId) {
-      Alert.alert('Greška', 'Profil stilista nije pronađen.');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.profileMissing'));
       return;
     }
     if (!clientId || !selectedClient?.gender) {
-      Alert.alert('Greška', 'Odaberite klijenta sa definisanim spolom.');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.clientGenderRequired'));
       return;
     }
     if (serviceIds.length === 0) {
-      Alert.alert('Greška', 'Odaberite servis(e).');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.serviceRequired'));
       return;
     }
     if (!Number.isFinite(paidRaw) || paidRaw < 0) {
-      Alert.alert('Greška', 'Unesite ispravan iznos naplaćenog računa.');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.paidAmountInvalid'));
       return;
     }
     if (!editEntryId && settleDebtsEnabled && settledDebtIds.length > 0 && paidRaw < charge.debtsSum) {
-      Alert.alert('Greška', 'Nedovoljno za naplatu označenih dugova.');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.settledDebtAmountInsufficient'));
       return;
     }
     const debtHandling =
@@ -344,8 +346,8 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data
               ?.message
-          : 'Greška pri kreiranju zapisa.';
-      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : String(msg));
+          : t('stylist.dailyLogDetail.saveErrorFallback');
+      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg));
     } finally {
       setSaving(false);
     }
@@ -367,6 +369,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     notes,
     loyaltyPercent,
     navigation,
+    t,
   ]);
 
   if (profileLoading || (loading && !profileId)) {
@@ -379,8 +382,8 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
   if (!profileId) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>Profil stilista nije pronađen.</Text>
-        <Button title="Nazad" onPress={() => navigation.goBack()} variant="outline" style={{ marginTop: spacing.md }} />
+        <Text style={{ color: colors.text }}>{t('stylist.dailyLogDetail.profileMissing')}</Text>
+        <Button title={t('common.back')} onPress={() => navigation.goBack()} variant="outline" style={{ marginTop: spacing.md }} />
       </View>
     );
   }
@@ -393,7 +396,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         <Card style={styles.card}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Klijent</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t('stylist.dailyLogDetail.clientLabel')}</Text>
           <TouchableOpacity
             style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}
             onPress={() => setShowClientPicker(true)}
@@ -402,12 +405,12 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
               {selectedClient
                 ? [selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ') ||
                   selectedClient.username
-                : 'Odaberi klijenta'}
+                : t('stylist.dailyLogDetail.clientPlaceholder')}
             </Text>
           </TouchableOpacity>
         </Card>
         <Card style={styles.card}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Servis</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>{t('stylist.dailyLogDetail.serviceLabel')}</Text>
           <TouchableOpacity
             style={[styles.pickerBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}
             onPress={() => setShowServicePicker(true)}
@@ -415,10 +418,10 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
           >
             <Text style={[styles.pickerText, { color: selectedServices.length ? colors.text : colors.textMuted }]}>
               {!selectedClient
-                ? 'Prvo odaberite klijenta'
+                ? t('stylist.dailyLogDetail.serviceSelectNeedsClient')
                 : selectedServices.length > 0
-                  ? `${selectedServices.length} servis(a) odabrano`
-                  : 'Odaberi servis(e)'}
+                  ? t('stylist.dailyLogDetail.selectedServicesCount', { count: selectedServices.length })
+                  : t('stylist.dailyLogDetail.servicePlaceholder')}
             </Text>
           </TouchableOpacity>
           <DailyLogEntryPricingBlock
@@ -503,8 +506,8 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
       <Modal visible={showServicePicker} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <Card style={{ ...styles.pickerModal, backgroundColor: colors.surface }}>
-            <Text style={[styles.pickerModalTitle, { color: colors.text }]}>Odaberi servis</Text>
-            <Input placeholder="Pretraži..." value={serviceSearch} onChangeText={setServiceSearch} />
+            <Text style={[styles.pickerModalTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.servicePlaceholder')}</Text>
+            <Input placeholder={t('common.search')} value={serviceSearch} onChangeText={setServiceSearch} />
             <FlatList
               data={filteredServices}
               keyExtractor={(s) => s.id}
@@ -518,15 +521,15 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
                 </TouchableOpacity>
               )}
             />
-            <Button title="U redu" variant="outline" onPress={() => setShowServicePicker(false)} />
+            <Button title={t('common.ok')} variant="outline" onPress={() => setShowServicePicker(false)} />
           </Card>
         </View>
       </Modal>
       <Modal visible={showClientPicker} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <Card style={{ ...styles.pickerModal, backgroundColor: colors.surface }}>
-            <Text style={[styles.pickerModalTitle, { color: colors.text }]}>Odaberi klijenta</Text>
-            <Input placeholder="Pretraži..." value={clientSearch} onChangeText={setClientSearch} />
+            <Text style={[styles.pickerModalTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.clientPlaceholder')}</Text>
+            <Input placeholder={t('common.search')} value={clientSearch} onChangeText={setClientSearch} />
             <FlatList
               data={filteredClients.slice(0, 50)}
               keyExtractor={(c) => c.id}
@@ -539,7 +542,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
                 </TouchableOpacity>
               )}
             />
-            <Button title="Zatvori" variant="outline" onPress={() => setShowClientPicker(false)} />
+            <Button title={t('common.close')} variant="outline" onPress={() => setShowClientPicker(false)} />
           </Card>
         </View>
       </Modal>

@@ -21,8 +21,6 @@ import { DispositionActionMenuModal } from './disposition-action-menu-modal';
 import {
   DISPOSITION_ACTION_HINT_KEYS,
   DISPOSITION_ACTION_LABEL_KEYS,
-  DISPOSITION_PANEL_HINT,
-  DISPOSITION_PANEL_TITLE,
   type DispositionAction,
 } from './disposition-copy';
 
@@ -106,9 +104,9 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
   return (
     <>
       <Card style={[styles.card, { borderColor: colors.border }]}>
-        <Text style={[styles.title, { color: colors.text }]}>{DISPOSITION_PANEL_TITLE}</Text>
-        <Text style={[styles.hint, { color: colors.textSecondary }]}>{DISPOSITION_PANEL_HINT}</Text>
-        <Button title="Izuzeci (otkaz / no-show / pomjeri)" variant="outline" onPress={() => setMenuOpen(true)} />
+        <Text style={[styles.title, { color: colors.text }]}>{t('stylist.dailyLogDetail.dispositionPanelTitle')}</Text>
+        <Text style={[styles.hint, { color: colors.textSecondary }]}>{t('stylist.dailyLogDetail.dispositionPanelHint')}</Text>
+        <Button title={t('stylist.dailyLogDetail.dispositionOpenMenu')} variant="outline" onPress={() => setMenuOpen(true)} />
       </Card>
 
       <DispositionActionMenuModal
@@ -127,7 +125,7 @@ export function DailyLogDispositionPanel({ entry, colors, onDone }: Props) {
           >
             <Card style={{ ...styles.modalCard, backgroundColor: colors.surface }}>
               <Text style={[styles.title, { color: colors.text }]}>
-                {action ? t(DISPOSITION_ACTION_LABEL_KEYS[action]) : 'Akcija'}
+                {action ? t(DISPOSITION_ACTION_LABEL_KEYS[action]) : t('stylist.dailyLogDetail.dispositionActionFallback')}
               </Text>
               {action ? (
                 <Text style={[styles.hint, { color: colors.textSecondary }]}>
