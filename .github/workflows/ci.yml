@@ -383,6 +383,12 @@ jobs:
       - name: Install locked dependencies
         working-directory: mobile
         run: npm ci --no-audit --no-fund
+      - name: Test mobile hard-coded text guard
+        working-directory: mobile
+        run: npm run test:mobile-i18n-guard
+      - name: Enforce localized copy in audited mobile screens
+        working-directory: mobile
+        run: npm run check:i18n
       - name: Test socket recovery policy
         working-directory: mobile
         run: npm run test:socket-recovery
@@ -542,9 +548,12 @@ jobs:
       - name: Test localized mobile daily-log pricing summary
         working-directory: mobile
         run: npm run test:stylist-daily-log-pricing-summary-i18n
-      - name: Bundle Expo SDK57 iOS JavaScript
+      - name: Test mobile daily-log entry form copy resources
         working-directory: mobile
-        run: npx expo export --platform ios --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"
+        run: npm run test:stylist-daily-log-entry-form-copy-i18n
+      - name: Guard and bundle Expo SDK57 iOS JavaScript
+        working-directory: mobile
+        run: npm run build:ios -- --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"
       - name: Test multipart upload request handling
         working-directory: mobile
         run: npm run test:api-multipart

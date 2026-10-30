@@ -103,7 +103,9 @@ export function DailyLogEntryPricingBlock(props: Props) {
           <View style={{ flex: 1 }}>
             <Text style={{ color: colors.text, fontWeight: '700' }}>{s.name}</Text>
             <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
-              {(unitPrices[s.id] ?? 0).toFixed(2)} KM
+              {t('stylist.dailyLogDetail.currencyAmount', {
+                amount: (unitPrices[s.id] ?? 0).toFixed(2),
+              })}
             </Text>
           </View>
           <TouchableOpacity
@@ -176,7 +178,10 @@ export function DailyLogEntryPricingBlock(props: Props) {
                     />
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: colors.text, fontWeight: '600' }}>
-                        {d.service?.name ?? t('stylist.dailyLogDetail.serviceFallback')} · {Number(d.amount).toFixed(2)} KM
+                        {t('stylist.dailyLogDetail.debtServiceAmount', {
+                          service: d.service?.name ?? t('stylist.dailyLogDetail.serviceFallback'),
+                          amount: Number(d.amount).toFixed(2),
+                        })}
                       </Text>
                       <Text style={{ color: colors.textSecondary }}>
                         {String(d.createdAt).slice(0, 10)}
@@ -190,7 +195,12 @@ export function DailyLogEntryPricingBlock(props: Props) {
         </View>
       ) : null}
 
-      <DateTimeField label="Datum" mode="date" value={date} onChange={onDateChange} />
+      <DateTimeField
+        label={t('stylist.dailyLogDetail.dateLabel')}
+        mode="date"
+        value={date}
+        onChange={onDateChange}
+      />
       <Text style={{ color: colors.textSecondary, marginTop: 6 }}>
         {t('stylist.dailyLogDetail.servicesAmount', { amount: servicesSum.toFixed(2) })}
         {loyaltyDiscount > 0
@@ -208,7 +218,11 @@ export function DailyLogEntryPricingBlock(props: Props) {
         value={paidAmount}
         onChangeText={onPaidAmountChange}
         keyboardType="decimal-pad"
-        placeholder={chargeAmount > 0 ? chargeAmount.toFixed(2) : '0.00'}
+        placeholder={
+          chargeAmount > 0
+            ? chargeAmount.toFixed(2)
+            : t('stylist.dailyLogDetail.amountPlaceholder')
+        }
       />
       {tipPreview > 0 ? (
         <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
@@ -233,7 +247,12 @@ export function DailyLogEntryPricingBlock(props: Props) {
           </TouchableOpacity>
         </View>
       ) : null}
-      <Input label="Napomena (opciono)" value={notes} onChangeText={onNotesChange} multiline />
+      <Input
+        label={t('stylist.dailyLogDetail.notesLabel')}
+        value={notes}
+        onChangeText={onNotesChange}
+        multiline
+      />
 
       <Modal visible={!!editServiceId} animationType="fade" transparent>
         <View style={styles.modalOverlay}>

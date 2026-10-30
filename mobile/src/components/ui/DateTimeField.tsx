@@ -4,6 +4,7 @@ import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import { useTheme } from '../../hooks/useTheme';
+import { useTranslation } from 'react-i18next';
 import { borderRadius, spacing } from '../../theme';
 
 type Mode = 'date' | 'time';
@@ -41,17 +42,23 @@ const formatValue = (mode: Mode, date: Date): string => {
   return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
-const displayValue = (mode: Mode, value: string): string => {
-  if (!value) return mode === 'date' ? 'Odaberite datum' : 'Odaberite vrijeme';
+const displayValue = (
+  mode: Mode,
+  value: string,
+  placeholder: string,
+  formatDate: (day: string, month: string, year: string) => string,
+): string => {
+  if (!value) return placeholder;
   if (mode === 'date') {
     const [y, m, d] = value.split('-');
-    if (y && m && d) return `${d}.${m}.${y}`;
+    if (y && m && d) return formatDate(d, m, y);
   }
   return value.slice(0, 5);
 };
 
 export const DateTimeField = ({ label, mode, value, onChange }: Props) => {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const pickerDate = useMemo(() => parseValue(mode, value), [mode, value]);
 
@@ -78,7 +85,14 @@ export const DateTimeField = ({ label, mode, value, onChange }: Props) => {
           },
         ]}
       >
-        <Text style={{ color: colors.inputText }}>{displayValue(mode, value)}</Text>
+        <Text style={{ color: colors.inputText }}>
+          {displayValue(
+            mode,
+            value,
+            t(mode === 'date' ? 'common.selectDate' : 'common.selectTime'),
+            (day, month, year) => t('common.dateDisplay', { day, month, year }),
+          )}
+        </Text>
       </Pressable>
       {open ? (
         <DateTimePicker

@@ -471,7 +471,9 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
           />
         </Card>
         <Card style={styles.card}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>Loyalty</Text>
+          <Text style={[styles.label, { color: colors.textSecondary }]}>
+            {t('stylist.dailyLogDetail.loyaltyTitle')}
+          </Text>
           {loadingLoyalty ? (
             <ActivityIndicator size="small" color={colors.primary} />
           ) : loyaltyInfo?.enabled &&
@@ -480,10 +482,13 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
             loyaltyInfo?.service ? (
             <>
               <Text style={{ color: colors.text }}>
-                Bodovi: {loyaltyInfo.points ?? 0} · Max: {loyaltyInfo.service.maxDiscountPercent}%
+                {t('stylist.dailyLogDetail.loyaltyPointsAndMaximum', {
+                  points: loyaltyInfo.points ?? 0,
+                  maxPercent: loyaltyInfo.service.maxDiscountPercent,
+                })}
               </Text>
               <Input
-                label="Popust (%)"
+                label={t('stylist.dailyLogDetail.loyaltyDiscountLabel')}
                 value={String(desiredLoyaltyPercent)}
                 onChangeText={(v) => {
                   const n = Math.max(
@@ -497,10 +502,20 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
               />
             </>
           ) : (
-            <Text style={{ color: colors.textMuted }}>Loyalty nije dostupan.</Text>
+            <Text style={{ color: colors.textMuted }}>
+              {t('stylist.dailyLogDetail.loyaltyUnavailable')}
+            </Text>
           )}
         </Card>
-        <Button title={editEntryId ? 'Sačuvaj izmjene' : 'Kreiraj zapis'} onPress={handleSubmit} loading={saving} />
+        <Button
+          title={
+            editEntryId
+              ? t('stylist.dailyLogDetail.saveEntry')
+              : t('stylist.dailyLogDetail.createEntry')
+          }
+          onPress={handleSubmit}
+          loading={saving}
+        />
       </ScrollView>
 
       <Modal visible={showServicePicker} animationType="slide" transparent>
