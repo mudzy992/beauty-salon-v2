@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -53,22 +53,18 @@ export function StylistInboxScreen() {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchReservations();
-  }, [fetchReservations]);
-
-  useReservationSocketRefresh(fetchReservations);
-  useAutoRefresh(fetchReservations, {
+  const refreshReservations = useAutoRefresh(fetchReservations, {
     intervalMs: 30000,
     connectedIntervalMs: 120000,
     isSocketConnected: socketConnected,
   });
+  useReservationSocketRefresh(refreshReservations);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([fetchReservations(), refetchProfile()]);
+    await Promise.all([refreshReservations(), refetchProfile()]);
     setRefreshing(false);
-  }, [fetchReservations, refetchProfile]);
+  }, [refreshReservations, refetchProfile]);
 
   const pending = reservations.filter(
     (r) => r.status === 'PENDING' || r.status === 'STYLIST_REVIEW',

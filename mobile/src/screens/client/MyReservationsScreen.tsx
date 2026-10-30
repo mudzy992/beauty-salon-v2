@@ -116,19 +116,18 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchReservations(); }, [fetchReservations]);
-  useReservationSocketRefresh(fetchReservations);
-  useAutoRefresh(fetchReservations, {
+  const refreshReservations = useAutoRefresh(fetchReservations, {
     intervalMs: 30000,
     connectedIntervalMs: 120000,
     isSocketConnected: socketConnected,
   });
+  useReservationSocketRefresh(refreshReservations);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchReservations();
+    await refreshReservations();
     setRefreshing(false);
-  }, [fetchReservations]);
+  }, [refreshReservations]);
 
   const openCancelModal = (reservation: Reservation) => {
     setCancelModalReservation(reservation);

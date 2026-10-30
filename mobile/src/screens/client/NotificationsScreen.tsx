@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -35,8 +35,7 @@ export function NotificationsScreen() {
   const { connected: socketConnected } = useSocket();
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => { fetch(); }, [fetch]);
-  useAutoRefresh(fetch, {
+  const refreshNotifications = useAutoRefresh(fetch, {
     intervalMs: 30000,
     connectedIntervalMs: 120000,
     isSocketConnected: socketConnected,
@@ -44,9 +43,9 @@ export function NotificationsScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetch();
+    await refreshNotifications();
     setRefreshing(false);
-  }, [fetch]);
+  }, [refreshNotifications]);
 
   const getIcon = (type: string): keyof typeof Ionicons.glyphMap => {
     return ICON_MAP[type] || 'notifications-outline';

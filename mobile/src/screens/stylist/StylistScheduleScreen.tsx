@@ -94,22 +94,18 @@ export function StylistScheduleScreen({ navigation }: Props) {
     setLoading(false);
   }, [profileId]);
 
-  useEffect(() => {
-    fetchReservations();
-  }, [fetchReservations]);
-
-  useReservationSocketRefresh(fetchReservations);
-  useAutoRefresh(fetchReservations, {
+  const refreshReservations = useAutoRefresh(fetchReservations, {
     intervalMs: 30000,
     connectedIntervalMs: 120000,
     isSocketConnected: socketConnected,
   });
+  useReservationSocketRefresh(refreshReservations);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchReservations();
+    await refreshReservations();
     setRefreshing(false);
-  }, [fetchReservations]);
+  }, [refreshReservations]);
 
   const sections: Section[] = useMemo(() => {
     if (reservations.length === 0) return [];

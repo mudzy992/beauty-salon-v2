@@ -262,8 +262,6 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
     } catch { /* silent */ }
   }, [user]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
-
   const userId = user?.id;
   useEffect(() => {
     if (!userId) {
@@ -302,18 +300,18 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
     };
   }, [userId]);
 
-  usePublicContentSocketRefresh(fetchData);
-  useAutoRefresh(fetchData, {
+  const refreshHomeData = useAutoRefresh(fetchData, {
     intervalMs: 60000,
     connectedIntervalMs: 300000,
     isSocketConnected: socketConnected,
   });
+  usePublicContentSocketRefresh(refreshHomeData);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchData();
+    await refreshHomeData();
     setRefreshing(false);
-  }, [fetchData]);
+  }, [refreshHomeData]);
 
   const heroImageUrl = resolveHeroImageUrl(getSettingValue(settings, 'public_hero_image', ''));
   const heroSubtitle = getSettingValue(settings, 'public_hero_subtitle', t('home.heroSubtitle'));

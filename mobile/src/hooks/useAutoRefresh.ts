@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import { createRefreshGate } from './refreshGate';
 
 /**
  * Periodično poziva callback dok je ekran fokusiran i aplikacija aktivna.
@@ -21,10 +22,13 @@ export function useAutoRefresh(
       : baseIntervalMs;
   const cbRef = useRef(callback);
   cbRef.current = callback;
+  const refreshGateRef = useRef<ReturnType<typeof createRefreshGate> | null>(null);
+  if (!refreshGateRef.current) refreshGateRef.current = createRefreshGate();
 
-  const run = useCallback(() => {
-    void cbRef.current();
-  }, []);
+  const run = useCallback(
+    () => refreshGateRef.current?.run(() => cbRef.current()) ?? Promise.resolve(),
+    [],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -58,12 +62,9 @@ export function useAutoRefresh(
         stop();
         sub.remove();
       };
-    }, [intervalMs, run]),
+    }, [intervalMs, run, callback]),
   );
 
-  // Also run once on mount when used outside focus contexts
-  useEffect(() => {
-    run();
-  }, [run]);
+  return run;
 }
 

@@ -389,6 +389,9 @@ jobs:
       - name: Test client profile API contract and malformed-response handling
         working-directory: mobile
         run: npm run test:client-profile-contract
+      - name: Test API refresh request coalescing and error handling
+        working-directory: mobile
+        run: npm run test:refresh-gate
       - name: Enforce localized copy in audited mobile screens
         working-directory: mobile
         run: npm run check:i18n
