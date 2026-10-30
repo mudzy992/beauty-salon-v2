@@ -27,6 +27,8 @@ import { spacing, borderRadius } from '../../theme';
 import { formatDate, formatTime, getDateRange, getSalonDateOnly, getSalonTime } from '../../utils/date';
 import { useAvailabilitySocketRefresh } from '../../hooks/useAvailabilitySocketRefresh';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { normalizeDebtAmounts, normalizeLoyaltyPreview, sumDebtAmounts } from '../../utils/apiPayload';
+import type { LoyaltyPreview } from '../../utils/apiPayload';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Service, TimeSlot } from '../../types';
 import { normalizeAvailableDates, normalizeAvailableSlots } from './reservation-availability';
@@ -37,23 +39,7 @@ import {
 
 type Step = 1 | 2 | 3 | 4;
 
-type LoyaltyInfo = {
-  enabled: boolean;
-  hasAccount: boolean;
-  redeemEnabled?: boolean;
-  points?: number;
-  tier?: string | null;
-  tierMaxDiscountPercent?: number;
-  globalMaxDiscountPercent?: number;
-  minPointsToRedeem?: number;
-  service?: {
-    id: string;
-    price: number;
-    maxDiscountPercent: number;
-    maxDiscountAmount: number;
-    maxUsablePoints: number;
-  } | null;
-};
+type LoyaltyInfo = LoyaltyPreview;
 
 export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Reservation'>) {
   const { t } = useTranslation();
@@ -324,10 +310,10 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     if (selectedServiceIds.length > 0) {
       (async () => {
         try {
-          const { data } = await api.get<LoyaltyInfo>('/api/loyalty/client/me', {
+          const { data } = await api.get<unknown>('/api/loyalty/client/me', {
             params: { serviceIds: selectedServiceIds.join(',') },
           });
-          setLoyaltyInfo(data);
+          setLoyaltyInfo(normalizeLoyaltyPreview(data));
         } catch {
           setLoyaltyInfo(null);
         }
@@ -337,9 +323,9 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     }
     (async () => {
       try {
-        const { data } = await api.get<Array<{ amount: number | string }>>('/api/client-debts/me');
-        const rows = Array.isArray(data) ? data : [];
-        setOpenDebtsTotal(rows.reduce((acc, d) => acc + Number(d.amount || 0), 0));
+        const { data } = await api.get<unknown>('/api/client-debts/me');
+        const rows = normalizeDebtAmounts(data);
+        setOpenDebtsTotal(rows ? sumDebtAmounts(rows) : 0);
       } catch {
         setOpenDebtsTotal(0);
       }

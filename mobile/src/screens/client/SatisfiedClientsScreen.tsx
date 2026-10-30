@@ -15,6 +15,7 @@ import api, { getUploadUrl } from '../../services/api';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { spacing } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
+import { normalizeBeforeAfterPairs } from '../../utils/apiPayload';
 import type { HomeScreenProps } from '../../navigation/types';
 
 interface BeforeAfterPair {
@@ -44,7 +45,7 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
         '/api/daily-log/before-after',
         { params: { limit: PAGE_SIZE, offset: nextOffset } },
       );
-      const list = Array.isArray(data.items) ? data.items : [];
+      const list = normalizeBeforeAfterPairs(data?.items) ?? [];
       setItems((prev) => (append ? [...prev, ...list] : list));
       setHasMore(data.hasMore ?? false);
       setOffset(data.nextOffset ?? nextOffset + list.length);

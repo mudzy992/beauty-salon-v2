@@ -20,6 +20,7 @@ import api from '../../services/api';
 import { spacing } from '../../theme';
 import { addDateOnlyDays, addDateOnlyMonths, formatDate, getDateOnlyWeekday, getSalonDateOnly } from '../../utils/date';
 import type { DailyLogEntry } from '../../types';
+import { normalizeDailyLogEntries } from '../../utils/apiPayload';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import { useDailyLogSocketRefresh } from '../../hooks/useDailyLogSocketRefresh';
 import {
@@ -54,14 +55,14 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
       const today = getSalonDateOnly();
       const fromDate = addDateOnlyMonths(today, -1);
       const toDate = addDateOnlyDays(today, 7);
-      const { data } = await api.get<DailyLogEntry[]>('/api/daily-log', {
+      const { data } = await api.get<unknown>('/api/daily-log', {
         params: {
           stylistProfileId: profileId,
           fromDate,
           toDate,
         },
       });
-      setEntries(data);
+      setEntries(normalizeDailyLogEntries(data) ?? []);
     } catch {
       setEntries([]);
     }

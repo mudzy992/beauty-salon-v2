@@ -38,6 +38,12 @@ import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import type { HomeScreenProps } from '../../navigation/types';
 import type { Service, BlogPost, ServiceCategory, Reservation, ReservationStatus } from '../../types';
 import { formatDateOnlyLocale, formatInstantDateLocale, isUpcoming } from '../../utils/date';
+import {
+  normalizeBeforeAfterPairs,
+  normalizeDebtAmounts,
+  normalizeReservations,
+  sumDebtAmounts,
+} from '../../utils/apiPayload';
 
 interface BeforeAfterPair {
   id: string;
@@ -208,13 +214,9 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           : Promise.resolve(null),
       ]);
 
-      if (debtsRes?.data && Array.isArray(debtsRes.data)) {
-        setOpenDebtsCount(debtsRes.data.length);
-        setOpenDebtsTotal(debtsRes.data.reduce((acc, d) => acc + Number(d.amount || 0), 0));
-      } else {
-        setOpenDebtsCount(0);
-        setOpenDebtsTotal(0);
-      }
+      const debtRows = debtsRes?.data ? normalizeDebtAmounts(debtsRes.data) : [];
+      setOpenDebtsCount(debtRows?.length ?? 0);
+      setOpenDebtsTotal(debtRows ? sumDebtAmounts(debtRows) : 0);
 
       setSettings(normalizeSettings(settingsRes));
       const blogOn = getSettingValue(normalizeSettings(settingsRes), 'public_feature_blog', 'true').toLowerCase() !== 'false';
@@ -239,8 +241,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         const { data } = await api.get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
           params: { limit: 6, random: 1 },
         });
-        const list = Array.isArray(data?.items) ? data.items : [];
-        setBeforeAfterPairs(list.slice(0, 1));
+        const list = normalizeBeforeAfterPairs(data?.items);
+        setBeforeAfterPairs((list ?? []).slice(0, 1));
       } catch {
         setBeforeAfterPairs([]);
       }
@@ -282,11 +284,11 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
       .then(({ data }) => {
         if (cancelled) return;
 
-        const arr = Array.isArray(data) ? data : (data as any)?.data ?? [];
-        const next = arr.find(
-          (r: any) =>
-            ACTIVE_STATUSES.includes(r.status) &&
-            isUpcoming(r.reservationDate, r.endTime),
+        const rows = normalizeReservations(data) ?? [];
+        const next = rows.find(
+          (reservation) =>
+            ACTIVE_STATUSES.includes(reservation.status) &&
+            isUpcoming(reservation.reservationDate, reservation.endTime),
         ) ?? null;
 
         setUpcomingReservation(next);

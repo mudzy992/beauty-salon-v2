@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
 import { SOCKET_EVENTS } from '../realtime/socket-events';
+import {
+  normalizeAvailabilityChangedPayload,
+  type AvailabilityChangedPayload,
+} from '../utils/apiPayload';
 import { useSocketEvent } from './useSocketEvent';
 
-export type AvailabilityChangedPayload = {
-  serviceId?: string;
-  serviceIds?: string[];
-  date?: string;
-};
+export type { AvailabilityChangedPayload } from '../utils/apiPayload';
 
 export function useAvailabilitySocketRefresh(
   serviceIds: string[],
@@ -15,7 +15,8 @@ export function useAvailabilitySocketRefresh(
   const handler = useCallback(
     (data: unknown) => {
       if (serviceIds.length === 0) return;
-      const payload = data as AvailabilityChangedPayload;
+      const payload = normalizeAvailabilityChangedPayload(data);
+      if (!payload) return;
       const intersects = Array.isArray(payload.serviceIds)
         ? payload.serviceIds.some((id) => serviceIds.includes(id))
         : payload.serviceId

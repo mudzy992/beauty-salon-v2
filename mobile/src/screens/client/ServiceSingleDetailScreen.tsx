@@ -18,6 +18,7 @@ import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import { spacing } from '../../theme';
+import { normalizeBeforeAfterPairs } from '../../utils/apiPayload';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Service } from '../../types';
 import type { Review } from '../../types';
@@ -186,7 +187,7 @@ export function ServiceSingleDetailScreen({
         const { data } = await api.get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
           params: { serviceId, limit: 3, offset: 0 },
         });
-        if (!cancelled) setPairs(Array.isArray(data?.items) ? data.items : []);
+        if (!cancelled) setPairs(normalizeBeforeAfterPairs(data?.items) ?? []);
       } catch {
         if (!cancelled) setPairs([]);
       } finally {

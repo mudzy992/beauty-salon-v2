@@ -7,6 +7,7 @@ import type {
   StylistScheduleStackParamList,
 } from '../../../../navigation/types';
 import { computeCompleteMinCharge, getApiErrorMessage } from '../utils/reservation-detail';
+import { normalizeClientDebts } from '../../../../utils/apiPayload';
 
 type Navigation = NativeStackNavigationProp<
   StylistScheduleStackParamList,
@@ -40,8 +41,8 @@ export const useReservationCompleteFlow = ({
     }
     setClientDebtsLoading(true);
     try {
-      const { data } = await api.get<ClientDebt[]>('/api/client-debts', { params: { clientId } });
-      setClientDebts(Array.isArray(data) ? data : []);
+      const { data } = await api.get<unknown>('/api/client-debts', { params: { clientId } });
+      setClientDebts(normalizeClientDebts(data) ?? []);
     } catch {
       setClientDebts([]);
     } finally {

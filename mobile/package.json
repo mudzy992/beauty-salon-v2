@@ -19,6 +19,7 @@
     "test:mobile-i18n-guard": "node --test scripts/check-mobile-i18n.test.cjs",
     "test:client-profile-contract": "node --test src/screens/client/profile-contract.test.mjs src/screens/client/profile-api-errors.test.mjs",
     "test:reservation-availability": "node --test src/screens/client/reservation-availability.test.mjs",
+    "test:api-payload": "node --test src/utils/apiPayload.test.mjs",
     "test:refresh-gate": "node --test src/hooks/refreshGate.test.mjs",
     "test:auth-session": "node --test src/store/auth-session.test.mjs",
     "test:session-recovery": "node --test src/store/session-recovery.test.mjs",

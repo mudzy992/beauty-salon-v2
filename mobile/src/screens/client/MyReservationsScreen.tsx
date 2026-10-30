@@ -28,6 +28,7 @@ import api from '../../services/api';
 import { spacing, borderRadius } from '../../theme';
 import { formatDate, formatTime, isUpcoming, salonWallTimeToInstant } from '../../utils/date';
 import { getReservationServices } from '../../utils/reservationServices';
+import { normalizeReservations } from '../../utils/apiPayload';
 import type { ReservationsScreenProps } from '../../navigation/types';
 import type { Reservation, ReservationStatus } from '../../types';
 
@@ -103,13 +104,13 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
 
   const fetchReservations = useCallback(async () => {
     try {
-      const { data } = await api.get<Reservation[]>('/api/reservations', {
+      const { data } = await api.get<unknown>('/api/reservations', {
         params: { asClient: true },
       });
       // Direktne rezervacije u dnevniku više nisu klijentov posao.
       setReservations(
-        (Array.isArray(data) ? data : []).filter(
-          (r) => r.status !== 'AWAITING_DAILY_LOG',
+        (normalizeReservations(data) ?? []).filter(
+          (reservation) => reservation.status !== 'AWAITING_DAILY_LOG',
         ),
       );
     } catch { /* silent */ }

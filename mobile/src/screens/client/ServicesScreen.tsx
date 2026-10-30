@@ -25,6 +25,7 @@ import { spacing, borderRadius } from '../../theme';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Reservation, Service, ServiceCategory } from '../../types';
+import { normalizeReservations } from '../../utils/apiPayload';
 
 type PopularService = Service & { reservationsCount: number };
 
@@ -49,7 +50,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
       ]);
       setCategories(categoriesRes);
       setServices(servicesRes);
-      setReservations(reservationsRes?.data ?? []);
+      setReservations(normalizeReservations(reservationsRes?.data) ?? []);
       setPopularService(popularRes?.data ?? null);
     } catch { /* silent */ }
     setLoading(false);

@@ -7,6 +7,7 @@ import { Button } from '../../../../src/components/ui/Button';
 import { Input } from '../../../../src/components/ui/Input';
 import { spacing } from '../../../../src/theme';
 import { getSalonDateOnly } from '../../../../src/utils/date';
+import { normalizeStylistDebtRows } from '../../../../src/utils/apiPayload';
 
 type DebtRow = {
   id: string;
@@ -31,8 +32,8 @@ export default function StylistDebtsScreen() {
 
   const fetchRows = async () => {
     try {
-      const { data } = await api.get<DebtRow[]>('/api/client-debts/stylist/me');
-      setRows(Array.isArray(data) ? data : []);
+      const { data } = await api.get<unknown>('/api/client-debts/stylist/me');
+      setRows((normalizeStylistDebtRows(data) ?? []) as DebtRow[]);
     } catch {
       setRows([]);
     } finally {

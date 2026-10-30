@@ -17,6 +17,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { spacing } from '../../theme'
 import type { ServicesScreenProps } from '../../navigation/types'
 import { fontFamily } from '../../theme/fonts'
+import { normalizeBeforeAfterPairs } from '../../utils/apiPayload'
 
 type BeforeAfterPair = {
   id: string
@@ -62,7 +63,7 @@ export function ServiceWorkGalleryScreen({
         }>('/api/daily-log/before-after', {
           params: { serviceId, limit: PAGE_SIZE, offset: nextOffset },
         })
-        const list = Array.isArray(data?.items) ? data.items : []
+        const list = normalizeBeforeAfterPairs(data?.items) ?? []
         setItems((prev) => (append ? [...prev, ...list] : list))
         setHasMore(data?.hasMore ?? false)
         setOffset(data?.nextOffset ?? nextOffset + list.length)

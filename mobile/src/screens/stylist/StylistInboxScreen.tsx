@@ -24,7 +24,8 @@ import api from '../../services/api';
 import { spacing } from '../../theme';
 import { formatDate, formatTime, getSalonDateOnly } from '../../utils/date';
 import { getReservationServicesLabel } from '../../utils/reservationServices';
-import type { ClientDebt, Reservation, StylistResponse } from '../../types';
+import type { Reservation, StylistResponse } from '../../types';
+import { normalizeClientDebts, normalizeReservations } from '../../utils/apiPayload';
 
 function getMyResponse(reservation: Reservation, profileId: string): StylistResponse | undefined {
   return reservation.stylistResponses?.find((r) => r.stylistProfileId === profileId);
@@ -43,10 +44,10 @@ export function StylistInboxScreen() {
 
   const fetchReservations = useCallback(async () => {
     try {
-      const { data } = await api.get<Reservation[]>('/api/reservations', {
+      const { data } = await api.get<unknown>('/api/reservations', {
         params: { asStylist: true },
       });
-      setReservations(data);
+      setReservations(normalizeReservations(data) ?? []);
     } catch {
       setReservations([]);
     }
@@ -116,10 +117,10 @@ export function StylistInboxScreen() {
       setActingId(reservation.id);
       try {
         try {
-          const { data } = await api.get<ClientDebt[]>('/api/client-debts', {
+          const { data } = await api.get<unknown>('/api/client-debts', {
             params: { clientId: reservation.clientId },
           });
-          const list = Array.isArray(data) ? data : [];
+          const list = normalizeClientDebts(data) ?? [];
           if (list.length > 0) {
             const mine = list.filter((d) => d.stylistProfileId === profileId);
             const others = list.filter((d) => d.stylistProfileId !== profileId);

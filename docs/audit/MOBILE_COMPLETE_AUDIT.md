@@ -2,7 +2,7 @@
 
 ## Status i obuhvat
 
-**Audit izvornog koda mobilne aplikacije je završen.** U skladu s dogovorenim redoslijedom, audit nije donio **nikakve izmjene aplikacijskog koda**. Ranije završeni MOB-01–MOB-06 navedeni su kao već implementirani, a preostali nalazi čine plan za narednu fazu.
+**Audit izvornog koda mobilne aplikacije je završen.** Audit-prvo faza nije mijenjala aplikacijski kod. MOB-01–MOB-06 su ranije implementirani; sada je započela zasebna implementacijska faza po uskim, testiranim sliceovima. Prvi slice pokriva dio MOB-AUD-02 i MOB-AUD-05; preostali nalazi i nedovršeni dijelovi ostaju u planu.
 
 Pregledani su: Expo Router rute i rasporedi; ekrani za klijente, stiliste, prijavu i početno podešavanje naloga; zajedničke UI, medijske i navigacijske komponente; auth i notification storeovi; API, katalog, javne postavke i servisi za URL-ove uploadovanih fajlova; hookovi za osvježavanje, socket i push obavijesti; Android updater; aplikacijska/EAS konfiguracija i zavisnosti za mobilnu aplikaciju; te mobilni API pozivi u odnosu na odgovarajuće NestJS kontrolere, guardove i relevantne DTO/servisne oblike odgovora. U `mobile/src/screens` nalazi se 55 fajlova koji nisu testovi, a u `mobile/app` 51 TypeScript fajl koji nije test, uključujući rute, rasporede i komponente.
 
@@ -26,6 +26,12 @@ Pregledani su: Expo Router rute i rasporedi; ekrani za klijente, stiliste, prija
 - **MOB-06:** validiraju se odgovori availability datuma/slotova, zastarjeli odgovori se ignorišu, dostupna je ponovna provjera, a greške pri slanju rezervacije obrađuju se sigurnim parserom.
 
 Ove izmjene imaju fokusirane helper/source testove. One ne predstavljaju provjeru renderovanja React Native komponenti, živog servisa ili stvarnog uređaja.
+
+## Status implementacije novih nalaza
+
+- **Slice 1 — runtime API payload validacija (u provjeri):** dodani su normalizatori za debt iznose, loyalty preview, dugove (uključujući stylist debt listu), rezervacije, daily-log zapise, notifikacije, before/after medije i availability socket događaj. Povezani su s klijentskim booking/Home/listama, galerijama, notification storeom te stylist inbox/daily-log prikazima. Dodani su regresijski testovi i CI korak.
+- Provjere lokalno: Mobile Node suite **150/150**, TypeScript `typecheck`, i18n guard te Expo iOS i Android JavaScript export prolaze. CI YAML se parsira. ESLint nije pokrenut jer Mobile paket nema instaliran `eslint` binarni fajl/dependency. Slice još nije potvrđen CI-jem ni commitom/pushom u trenutku ovog zapisa; fizički uređaj i živi API nisu testirani.
+- Ovaj slice ublažava crash/malformed-response rizike, ali **ne** dovršava UX stanja za mrežne greške, djelimično neispravne odgovore ili zastarjele podatke (AUD-03), niti validira sve kataloške response liste (AUD-02). Ne mijenja API host niti izvodi upise.
 
 ## Nalazi i plan implementacije
 

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import api from '../services/api';
 import type { Notification } from '../types';
+import { normalizeNotifications } from '../utils/apiPayload';
 
 interface NotificationState {
   notifications: Notification[];
@@ -19,9 +20,14 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   fetch: async () => {
     set({ isLoading: true });
     try {
-      const { data } = await api.get<Notification[]>('/api/notifications');
-      const unreadCount = data.filter((n) => !n.isRead).length;
-      set({ notifications: data, unreadCount, isLoading: false });
+      const { data } = await api.get<unknown>('/api/notifications');
+      const notifications = normalizeNotifications(data);
+      if (!notifications) {
+        set({ isLoading: false });
+        return;
+      }
+      const unreadCount = notifications.filter((notification) => !notification.isRead).length;
+      set({ notifications, unreadCount, isLoading: false });
     } catch {
       set({ isLoading: false });
     }
