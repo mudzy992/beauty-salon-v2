@@ -151,6 +151,9 @@ export const bs = {
     paymentPending: 'Detalji uplate još nisu dostupni.',
   },
   blog: {
+    loadErrorTitle: 'Blog trenutno nije dostupan',
+    loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
+    staleMessage: 'Prikazujemo ranije učitane članke; osvježavanje nije uspjelo.',
     title: 'Blog',
     readMore: 'Pročitaj više',
     noPosts: 'Nema objavljenih članaka',
