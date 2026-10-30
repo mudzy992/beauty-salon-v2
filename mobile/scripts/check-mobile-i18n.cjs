@@ -9,6 +9,7 @@ const ts = require('typescript');
 // migrated are checked, so unrelated screens remain explicit follow-up work.
 const GUARDED_FILES = [
   'src/screens/client/ProfileScreen.tsx',
+  'src/screens/client/BlogPostScreen.tsx',
   'src/screens/client/EditProfileScreen.tsx',
   'src/screens/stylist/DailyLogNewEntryScreen.tsx',
   'src/screens/stylist/DailyLogEntryPricingBlock.tsx',

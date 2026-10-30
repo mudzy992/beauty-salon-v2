@@ -32,7 +32,9 @@ function loadTypeScriptModule(relativePath) {
 const payloads = loadTypeScriptModule('./apiPayload.ts');
 const {
   normalizeAvailabilityChangedPayload,
+  normalizeBlogCommentPage,
   normalizeBlogPage,
+  normalizeBlogPost,
   normalizeBlogPosts,
   normalizeBeforeAfterPage,
   normalizeBeforeAfterPairs,
@@ -156,6 +158,8 @@ test('blog page parser validates public post fields and coherent legacy/paged re
   };
   assert.equal(normalizeBlogPosts([post, { ...post, id: null }]), null);
   assert.equal(normalizeBlogPosts([{ ...post, title: 5 }]), null);
+  assert.deepEqual(normalizeBlogPost(post), post);
+  assert.equal(normalizeBlogPost({ ...post, content: 5 }), null);
   assert.deepEqual(normalizeBlogPage([post], 20, 0), {
     items: [post], total: 1, limit: 20, offset: 0, hasMore: false, nextOffset: 1,
   });
@@ -168,6 +172,25 @@ test('blog page parser validates public post fields and coherent legacy/paged re
     items: [post], total: 2, limit: 20, offset: 0, hasMore: true, nextOffset: 2,
   }, 20, 0), null);
   assert.equal(normalizeBlogPage({ items: [], total: 0 }, 20, 0), null);
+});
+
+test('blog comments parser validates legacy and paginated entries and rejects malformed data', () => {
+  const comment = {
+    id: 'comment-1', content: 'Odličan tekst', createdAt: '2026-10-30T10:00:00.000Z',
+    user: { firstName: 'Amina', lastName: 'K.' },
+  };
+  assert.deepEqual(normalizeBlogCommentPage([comment], 20, 0), {
+    items: [comment], total: 1, limit: 20, offset: 0, hasMore: false, nextOffset: 1,
+  });
+  assert.deepEqual(normalizeBlogCommentPage({
+    items: [comment], total: 2, limit: 20, offset: 0, hasMore: true, nextOffset: 1,
+  }, 20, 0), {
+    items: [comment], total: 2, limit: 20, offset: 0, hasMore: true, nextOffset: 1,
+  });
+  assert.equal(normalizeBlogCommentPage([{ ...comment, user: null }], 20, 0), null);
+  assert.equal(normalizeBlogCommentPage({
+    items: [comment], total: 2, limit: 20, offset: 0, hasMore: true, nextOffset: 2,
+  }, 20, 0), null);
 });
 
 test('public review page parser validates pagination and filters malformed reviews', () => {

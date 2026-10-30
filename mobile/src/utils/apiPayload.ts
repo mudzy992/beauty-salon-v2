@@ -97,6 +97,7 @@ function isBlogPostRow(row: unknown): row is BlogPost {
     !isNonEmptyString(row.slug) ||
     typeof row.isPublished !== 'boolean' ||
     !isOptionalString(row.excerpt) ||
+    !isOptionalString(row.content) ||
     !isOptionalString(row.heroImage) ||
     (row.publishedAt !== undefined && row.publishedAt !== null && (
       typeof row.publishedAt !== 'string' || Number.isNaN(Date.parse(row.publishedAt))
@@ -115,6 +116,72 @@ export function normalizeBlogPosts(payload: unknown): BlogPost[] | null {
   if (!Array.isArray(payload)) return null;
   const posts = payload.filter(isBlogPostRow);
   return posts.length === payload.length ? posts : null;
+}
+
+export function normalizeBlogPost(payload: unknown): BlogPost | null {
+  return normalizeBlogPosts([payload])?.[0] ?? null;
+}
+
+export interface BlogComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: { firstName: string; lastName: string };
+}
+
+export interface BlogCommentPage {
+  items: BlogComment[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  nextOffset: number;
+}
+
+function isBlogCommentRow(row: unknown): row is BlogComment {
+  return Boolean(
+    isRecord(row) && isNonEmptyString(row.id) && isNonEmptyString(row.content) &&
+    typeof row.createdAt === 'string' && !Number.isNaN(Date.parse(row.createdAt)) &&
+    isRecord(row.user) && typeof row.user.firstName === 'string' &&
+    typeof row.user.lastName === 'string'
+  );
+}
+
+export function normalizeBlogCommentPage(
+  payload: unknown,
+  requestedLimit: number,
+  requestedOffset: number,
+): BlogCommentPage | null {
+  if (Array.isArray(payload)) {
+    const items = payload.filter(isBlogCommentRow);
+    if (items.length !== payload.length) return null;
+    return {
+      items,
+      total: items.length,
+      limit: requestedLimit,
+      offset: requestedOffset,
+      hasMore: false,
+      nextOffset: requestedOffset + items.length,
+    };
+  }
+  if (!isRecord(payload) || !Array.isArray(payload.items)) return null;
+  const { total, limit, offset, hasMore, nextOffset } = payload;
+  if (
+    !Number.isInteger(total) || (total as number) < 0 || limit !== requestedLimit ||
+    offset !== requestedOffset || typeof hasMore !== 'boolean' || !Number.isInteger(nextOffset) ||
+    nextOffset !== requestedOffset + payload.items.length || nextOffset > (total as number) ||
+    (hasMore && (payload.items.length === 0 || nextOffset >= (total as number)))
+  ) return null;
+  const items = payload.items.filter(isBlogCommentRow);
+  if (items.length !== payload.items.length) return null;
+  return {
+    items,
+    total: total as number,
+    limit: requestedLimit,
+    offset: requestedOffset,
+    hasMore,
+    nextOffset: nextOffset as number,
+  };
 }
 
 export interface BlogPagePayload {

@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  RefreshControl,
   ActivityIndicator,
   useWindowDimensions,
   Share,
@@ -15,31 +16,17 @@ import { MediaImage } from '../../components/MediaImage';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useTheme } from '../../hooks/useTheme';
+import { useTranslation } from 'react-i18next';
 import api, { getImageUrl } from '../../services/api';
 import { fetchPublicSettings, type PublicSettingItem } from '../../services/publicSettings';
 import { usePublicContentSocketRefresh } from '../../hooks/usePublicContentSocketRefresh';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { spacing } from '../../theme';
 import type { HomeScreenProps } from '../../navigation/types';
-import type { BlogPost } from '../../types';
-
-type BlogComment = {
-  id: string;
-  content: string;
-  createdAt: string;
-  user: { firstName: string; lastName: string };
-};
-
-type BlogCommentPage = {
-  items: BlogComment[];
-  total: number;
-  limit: number;
-  offset: number;
-  hasMore: boolean;
-  nextOffset: number;
-};
+import { normalizeBlogCommentPage, normalizeBlogPost, type BlogComment } from '../../utils/apiPayload';
 
 const COMMENT_PAGE_SIZE = 20;
 
@@ -55,31 +42,70 @@ function getSettingValue(
 export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'>) {
   const { slug } = route.params;
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const tabBarBottom = useFloatingTabBarTotalHeight();
-  const [post, setPost] = useState<BlogPost | null>(null);
+  const [postState, setPostState] = useState<{ slug: string; post: NonNullable<ReturnType<typeof normalizeBlogPost>> } | null>(null);
+  const post = postState?.slug === slug ? postState.post : null;
   const [loading, setLoading] = useState(true);
+  const [postErrorSlug, setPostErrorSlug] = useState<string | null>(null);
+  const [postNotFoundSlug, setPostNotFoundSlug] = useState<string | null>(null);
+  const postLoadError = postErrorSlug === slug;
+  const postNotFound = postNotFoundSlug === slug;
+  const postRequestGeneration = useRef(0);
   const { width } = useWindowDimensions();
   const user = useAuthStore((state) => state.user);
   const [settings, setSettings] = useState<PublicSettingItem[] | null>(null);
-  const [comments, setComments] = useState<BlogComment[]>([]);
-  const [commentsTotal, setCommentsTotal] = useState(0);
+  const [commentsState, setCommentsState] = useState<{
+    postId: string; items: BlogComment[]; total: number;
+    hasMore: boolean; nextOffset: number;
+  } | null>(null);
+  const comments = commentsState && commentsState.postId === post?.id ? commentsState.items : [];
+  const commentsTotal = commentsState && commentsState.postId === post?.id ? commentsState.total : 0;
+  const commentsHasMore = commentsState && commentsState.postId === post?.id ? commentsState.hasMore : false;
+  const commentsNextOffset = commentsState && commentsState.postId === post?.id ? commentsState.nextOffset : 0;
+  const [commentsErrorPostId, setCommentsErrorPostId] = useState<string | null>(null);
+  const commentRequestGeneration = useRef(0);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentsLoadingMore, setCommentsLoadingMore] = useState(false);
-  const [commentsHasMore, setCommentsHasMore] = useState(false);
-  const [commentsNextOffset, setCommentsNextOffset] = useState(0);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
 
+  const fetchPost = useCallback(async (requestedSlug: string) => {
+    const generation = ++postRequestGeneration.current;
+    setLoading(true);
+    setPostErrorSlug(null);
+    setPostNotFoundSlug(null);
+    try {
+      const { data } = await api.get<unknown>(`/api/blog/slug/${requestedSlug}`);
+      const normalized = normalizeBlogPost(data);
+      if (!normalized || normalized.slug !== requestedSlug) throw new Error();
+      if (generation !== postRequestGeneration.current) return;
+      if (!normalized.isPublished) {
+        setPostState((current) => current?.slug === requestedSlug ? null : current);
+        setPostNotFoundSlug(requestedSlug);
+        return;
+      }
+      setPostState({ slug: requestedSlug, post: normalized });
+      navigation.setOptions({ title: normalized.title });
+    } catch (error: unknown) {
+      if (generation === postRequestGeneration.current) {
+        const status = typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { status?: unknown } }).response?.status
+          : undefined;
+        if (status === 404) {
+          setPostState((current) => current?.slug === requestedSlug ? null : current);
+          setPostNotFoundSlug(requestedSlug);
+        } else setPostErrorSlug(requestedSlug);
+      }
+    } finally {
+      if (generation === postRequestGeneration.current) setLoading(false);
+    }
+  }, [navigation]);
+
   useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await api.get<BlogPost>(`/api/blog/slug/${slug}`);
-        setPost(data);
-        navigation.setOptions({ title: data.title });
-      } catch { /* silent */ }
-      setLoading(false);
-    })();
-  }, [slug, navigation]);
+    void fetchPost(slug);
+    return () => { postRequestGeneration.current += 1; };
+  }, [fetchPost, slug]);
 
   const loadPublicSettings = useCallback(() => {
     fetchPublicSettings()
@@ -94,39 +120,39 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
   usePublicContentSocketRefresh(loadPublicSettings);
 
   const loadPublicComments = useCallback(async (postId: string, offset = 0, append = false) => {
+    const generation = ++commentRequestGeneration.current;
     if (append) setCommentsLoadingMore(true);
     else setCommentsLoading(true);
+    setCommentsErrorPostId(null);
     try {
-      const { data } = await api.get<BlogCommentPage | BlogComment[]>(
+      const { data } = await api.get<unknown>(
         `/api/blog/${postId}/comments`,
         { params: { limit: COMMENT_PAGE_SIZE, offset } },
       );
-      const items = Array.isArray(data) ? data : data.items;
-      setComments((current) => (append ? [...current, ...items] : items));
-      if (Array.isArray(data)) {
-        setCommentsTotal(items.length);
-        setCommentsHasMore(false);
-        setCommentsNextOffset(offset + items.length);
-      } else {
-        setCommentsTotal(data.total);
-        setCommentsHasMore(data.hasMore);
-        setCommentsNextOffset(data.nextOffset);
-      }
+      const page = normalizeBlogCommentPage(data, COMMENT_PAGE_SIZE, offset);
+      if (!page) throw new Error();
+      if (generation !== commentRequestGeneration.current) return;
+      setCommentsState((current) => ({
+        postId,
+        items: append && current?.postId === postId ? [...current.items, ...page.items] : page.items,
+        total: page.total,
+        hasMore: page.hasMore,
+        nextOffset: page.nextOffset,
+      }));
     } catch {
-      if (!append) {
-        setComments([]);
-        setCommentsTotal(0);
-        setCommentsHasMore(false);
-      }
+      if (generation === commentRequestGeneration.current) setCommentsErrorPostId(postId);
     } finally {
-      setCommentsLoading(false);
-      setCommentsLoadingMore(false);
+      if (generation === commentRequestGeneration.current) {
+        setCommentsLoading(false);
+        setCommentsLoadingMore(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     if (!post?.id) return;
     void loadPublicComments(post.id, 0, false);
+    return () => { commentRequestGeneration.current += 1; };
   }, [loadPublicComments, post?.id]);
 
   const handleShare = async () => {
@@ -156,7 +182,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
 
   const handleSubmitComment = async () => {
     if (!user) {
-      Alert.alert('Prijava', 'Prijavite se da biste komentarisali.');
+      Alert.alert(t('blog.loginRequiredTitle'), t('blog.commentLoginRequiredMessage'));
       return;
     }
     if (!post?.id || !newComment.trim()) return;
@@ -164,16 +190,16 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
     try {
       await api.post(`/api/blog/${post.id}/comments`, { content: newComment.trim() });
       setNewComment('');
-      Alert.alert('Hvala!', 'Komentar je poslan na odobrenje.');
+      Alert.alert(t('blog.commentSuccessTitle'), t('blog.commentSuccessMessage'));
       await reloadApprovedComments(post.id);
     } catch {
-      Alert.alert('Greška', 'Greška pri slanju komentara.');
+      Alert.alert(t('blog.commentErrorTitle'), t('blog.commentErrorMessage'));
     } finally {
       setSubmittingComment(false);
     }
   };
 
-  if (loading) {
+  if (!post && !postLoadError && !postNotFound) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -183,8 +209,14 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
 
   if (!post) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.textSecondary }}>Članak nije pronađen</Text>
+      <View style={[styles.center, styles.loadError, { backgroundColor: colors.background }]}>
+        <EmptyState
+          icon="cloud-offline-outline"
+          title={postLoadError ? t('blog.postLoadErrorTitle') : t('blog.postNotFound')}
+          message={postLoadError ? t('blog.postLoadErrorMessage') : undefined}
+          actionLabel={postLoadError ? t('common.retry') : undefined}
+          onAction={postLoadError ? () => void fetchPost(slug) : undefined}
+        />
       </View>
     );
   }
@@ -194,6 +226,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={[styles.content, { paddingBottom: spacing.xxl + tabBarBottom }]}
       contentInsetAdjustmentBehavior="automatic"
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void fetchPost(slug)} tintColor={colors.primary} />}
       showsVerticalScrollIndicator={false}
     >
       <MediaImage
@@ -202,10 +235,19 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
         />
 
       <View style={styles.body}>
+        {postLoadError ? (
+          <Card style={[styles.errorCard, { borderColor: colors.border }]}>
+            <View style={styles.errorCopy}>
+              <Text style={[styles.errorTitle, { color: colors.text }]}>{t('blog.postLoadErrorTitle')}</Text>
+              <Text style={[styles.errorMessage, { color: colors.textSecondary }]}>{t('blog.postStaleMessage')}</Text>
+            </View>
+            <Button title={t('common.retry')} onPress={() => void fetchPost(slug)} variant="outline" size="sm" />
+          </Card>
+        ) : null}
         <View style={styles.titleRow}>
           <Text style={[styles.title, { color: colors.text }]}>{post.title}</Text>
           <Button
-            title=""
+            title={t('blog.share')}
             variant="ghost"
             size="sm"
             onPress={handleShare}
@@ -232,7 +274,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
         <View style={styles.commentsHeader}>
           <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.textSecondary} />
           <Text style={[styles.commentsTitle, { color: colors.text }]}>
-            Komentari{commentsTotal ? ` (${commentsTotal})` : ''}
+            {t('blog.commentsTitle')}{commentsTotal ? ` (${commentsTotal})` : ''}
           </Text>
         </View>
 
@@ -246,7 +288,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
                 borderColor: colors.inputBorder,
               },
             ]}
-            placeholder={user ? 'Napišite komentar…' : 'Prijavite se da biste komentarisali…'}
+            placeholder={user ? t('blog.commentPlaceholder') : t('blog.commentLoginPlaceholder')}
             placeholderTextColor={colors.inputPlaceholder}
             editable={!!user && !submittingComment}
             value={newComment}
@@ -255,20 +297,36 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
             maxLength={2000}
           />
           <Button
-            title={submittingComment ? 'Slanje…' : 'Pošalji'}
+            title={submittingComment ? t('blog.commentSending') : t('blog.commentSubmit')}
             onPress={handleSubmitComment}
             disabled={!user || submittingComment || !newComment.trim()}
             size="sm"
           />
         </Card>
 
+        {commentsErrorPostId === post.id ? (
+          <Card style={[styles.errorCard, { borderColor: colors.border }]}>
+            <View style={styles.errorCopy}>
+              <Text style={[styles.errorTitle, { color: colors.text }]}>{t('blog.commentsLoadErrorTitle')}</Text>
+              <Text style={[styles.errorMessage, { color: colors.textSecondary }]}>
+                {comments.length > 0 ? t('blog.commentsStaleMessage') : t('blog.commentsLoadErrorMessage')}
+              </Text>
+            </View>
+            <Button
+              title={t('common.retry')}
+              onPress={() => void loadPublicComments(post.id, 0, false)}
+              variant="outline"
+              size="sm"
+            />
+          </Card>
+        ) : null}
         {commentsLoading ? (
           <View style={{ paddingVertical: spacing.md }}>
             <ActivityIndicator size="small" color={colors.primary} />
           </View>
-        ) : comments.length === 0 ? (
+        ) : commentsErrorPostId === post.id ? null : comments.length === 0 ? (
           <Text style={{ color: colors.textMuted, fontStyle: 'italic' }}>
-            Nema odobrenih komentara.
+            {t('blog.noApprovedComments')}
           </Text>
         ) : (
           <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
@@ -289,7 +347,7 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
         )}
         {commentsHasMore ? (
           <Button
-            title="Učitaj još komentara"
+            title={t('blog.loadMoreComments')}
             onPress={() => void loadPublicComments(post.id, commentsNextOffset, true)}
             disabled={commentsLoadingMore}
             loading={commentsLoadingMore}
@@ -304,6 +362,11 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadError: { padding: spacing.lg },
+  errorCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  errorCopy: { flex: 1, gap: 4 },
+  errorTitle: { fontWeight: '700' },
+  errorMessage: { fontSize: 13, lineHeight: 18 },
   content: {},
   hero: { height: 220, borderCurve: 'continuous' },
   body: { padding: spacing.lg },
