@@ -19,7 +19,7 @@ import { router } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { useAppModeStore } from '../../store/appModeStore';
-import { isStylist } from '../../utils/roles';
+import { isClient as userIsClient, isStylist } from '../../utils/roles';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -27,6 +27,16 @@ import api, { getImageUrl } from '../../services/api';
 import { spacing } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
 import { formatDate } from '../../utils/date';
+import { getApiErrorMessage } from '../../utils/apiError';
+import {
+  formatProfileAmount,
+  formatProfileDate,
+  normalizeConsentPayload,
+  normalizeProfileDebts,
+  type ConsentItem,
+  type ConsentPayload,
+  type ProfileDebt,
+} from './profile-data';
 import type { ProfileScreenProps } from '../../navigation/types';
 import { useApkUpdateCheck } from '../../features/app-update/use-apk-update-check';
 import { ApkForceUpdateModal } from '../../features/app-update/apk-force-update-modal';
@@ -59,24 +69,6 @@ function hasGender(user: { gender?: string | null } | null): boolean {
   return user?.gender === 'MALE' || user?.gender === 'FEMALE';
 }
 
-interface ConsentItem {
-  imageId: string;
-  serviceName: string;
-  serviceDate: string;
-  isBefore: boolean;
-  previewUrl: string;
-  consentedAt: string | null;
-  isPublished: boolean;
-  publishedCategories: Array<{ id: string; name: string }>;
-}
-
-interface ConsentPayload {
-  policyVersion: string;
-  consentText: string;
-  pending: ConsentItem[];
-  active: ConsentItem[];
-}
-
 export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const { t } = useTranslation();
   const apkUpdate = useApkUpdateCheck({ auto: false });
@@ -89,53 +81,71 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const [verifyCode, setVerifyCode] = useState('');
   const [verifySending, setVerifySending] = useState(false);
   const [verifySubmitting, setVerifySubmitting] = useState(false);
-  const [openDebts, setOpenDebts] = useState<
-    Array<{ id: string; amount: number | string; createdAt: string; service?: { name?: string } | null }>
-  >([]);
+  const [openDebts, setOpenDebts] = useState<ProfileDebt[]>([]);
+  const [openDebtsError, setOpenDebtsError] = useState(false);
+  const [openDebtsRetryCount, setOpenDebtsRetryCount] = useState(0);
   const [mediaConsent, setMediaConsent] = useState<ConsentPayload | null>(null);
   const [mediaConsentLoading, setMediaConsentLoading] = useState(false);
   const [mediaConsentSavingId, setMediaConsentSavingId] = useState<string | null>(null);
   const [mediaConsentAccepted, setMediaConsentAccepted] = useState<Record<string, boolean>>({});
   const [mediaConsentMessage, setMediaConsentMessage] = useState('');
-  const isClient = Boolean(user?.roles.some((item) => item.role.name === 'CLIENT'));
+  const isClient = userIsClient(user);
 
   const loadMediaConsent = useCallback(async () => {
     if (!isClient) {
       setMediaConsent(null);
-      return;
+      setMediaConsentAccepted({});
+      setMediaConsentMessage('');
+      setMediaConsentLoading(false);
+      return false;
     }
     setMediaConsentLoading(true);
     try {
-      const { data } = await api.get<ConsentPayload>('/api/media/consents/me');
-      setMediaConsent(data);
+      const { data } = await api.get<unknown>('/api/media/consents/me');
+      const payload = normalizeConsentPayload(data);
+      if (!payload) throw new Error('INVALID_MEDIA_CONSENT_RESPONSE');
+      setMediaConsent(payload);
       setMediaConsentAccepted({});
       setMediaConsentMessage('');
+      return true;
     } catch {
       setMediaConsent(null);
-      setMediaConsentMessage('Saglasnosti trenutno nije moguće učitati. Pokušajte ponovo.');
+      setMediaConsentMessage(t('profile.mediaConsent.loadError'));
+      return false;
     } finally {
       setMediaConsentLoading(false);
     }
-  }, [isClient]);
+  }, [isClient, t]);
 
   useEffect(() => {
     void loadMediaConsent();
   }, [loadMediaConsent]);
 
   useEffect(() => {
+    if (!isClient) {
+      setOpenDebts([]);
+      setOpenDebtsError(false);
+      return;
+    }
     let mounted = true;
+    setOpenDebtsError(false);
     api
-      .get<typeof openDebts>('/api/client-debts/me')
+      .get<unknown>('/api/client-debts/me')
       .then((r) => {
-        if (mounted) setOpenDebts(Array.isArray(r.data) ? r.data : []);
+        const debts = normalizeProfileDebts(r.data);
+        if (!debts) throw new Error('INVALID_CLIENT_DEBTS_RESPONSE');
+        if (mounted) setOpenDebts(debts);
       })
       .catch(() => {
-        if (mounted) setOpenDebts([]);
+        if (mounted) {
+          setOpenDebts([]);
+          setOpenDebtsError(true);
+        }
       });
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [isClient, openDebtsRetryCount]);
 
   const themeLabel =
     mode === 'light'
@@ -158,11 +168,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
       Alert.alert(t('common.ok'), t('profile.verifyEmailCodeSent'));
       setVerifyModalVisible(true);
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : t('common.error');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
+      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
     } finally {
       setVerifySending(false);
     }
@@ -182,11 +188,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
       await refreshProfile();
       Alert.alert(t('common.ok'), t('profile.verifyEmailSuccess'));
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : t('common.error');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
+      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
     } finally {
       setVerifySubmitting(false);
     }
@@ -197,41 +199,41 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
     setMediaConsentSavingId(item.imageId);
     setMediaConsentMessage('');
     try {
-      await api.post(`/api/media/consents/${item.imageId}/grant`, {
+      await api.post(`/api/media/consents/${encodeURIComponent(item.imageId)}/grant`, {
         policyVersion: mediaConsent.policyVersion,
       });
-      await loadMediaConsent();
-      setMediaConsentMessage('Saglasnost je zabilježena. Status javne objave prikazan je uz aktivnu saglasnost.');
+      const refreshed = await loadMediaConsent();
+      setMediaConsentMessage(
+        t(refreshed ? 'profile.mediaConsent.saveSuccess' : 'profile.mediaConsent.saveRefreshError'),
+      );
     } catch (error: unknown) {
-      const message =
-        error && typeof error === 'object' && 'response' in error
-          ? (error as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : null;
-      setMediaConsentMessage(Array.isArray(message) ? message[0] : String(message ?? 'Saglasnost nije mogla biti sačuvana.'));
+      setMediaConsentMessage(getApiErrorMessage(error, t('profile.mediaConsent.saveError')));
     } finally {
       setMediaConsentSavingId(null);
     }
-  }, [loadMediaConsent, mediaConsent, mediaConsentAccepted]);
+  }, [loadMediaConsent, mediaConsent, mediaConsentAccepted, t]);
 
   const revokeMediaConsent = useCallback((item: ConsentItem) => {
     Alert.alert(
-      'Povući saglasnost?',
-      'Fotografija će odmah biti uklonjena iz javnog prikaza. Privatna kopija se ne briše automatski.',
+      t('profile.mediaConsent.revokeTitle'),
+      t('profile.mediaConsent.revokeDescription'),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Povuci saglasnost',
+          text: t('profile.mediaConsent.revokeAction'),
           style: 'destructive',
           onPress: () => {
             void (async () => {
               setMediaConsentSavingId(item.imageId);
               setMediaConsentMessage('');
               try {
-                await api.delete(`/api/media/consents/${item.imageId}`);
-                await loadMediaConsent();
-                setMediaConsentMessage('Saglasnost je povučena; budući pristup kroz sistem je blokiran.');
+                await api.delete(`/api/media/consents/${encodeURIComponent(item.imageId)}`);
+                const refreshed = await loadMediaConsent();
+                setMediaConsentMessage(
+                  t(refreshed ? 'profile.mediaConsent.revokeSuccess' : 'profile.mediaConsent.revokeRefreshError'),
+                );
               } catch {
-                setMediaConsentMessage('Saglasnost nije mogla biti povučena. Pokušajte ponovo.');
+                setMediaConsentMessage(t('profile.mediaConsent.revokeError'));
               } finally {
                 setMediaConsentSavingId(null);
               }
@@ -286,7 +288,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
           </Text>
           <View style={styles.emailRow}>
             <Text style={[styles.heroEmail, { color: colors.textSecondary }]} numberOfLines={1}>
-              {user?.email ?? '—'}
+              {user?.email ?? t('profile.noEmail')}
             </Text>
             {user?.isEmailVerified ? (
               <View style={styles.verifiedBadge}>
@@ -302,7 +304,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
                 style={styles.verifyBtn}
               >
                 <Text style={[styles.verifyBtnText, { color: colors.primary }]}>
-                  {verifySending ? '...' : t('profile.verifyEmailSendCode')}
+                  {verifySending ? t('profile.sending') : t('profile.verifyEmailSendCode')}
                 </Text>
               </TouchableOpacity>
             )}
@@ -335,22 +337,22 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
         <Card style={[styles.menuCard, { borderColor: colors.border, padding: spacing.md }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
             <Ionicons name="shield-checkmark-outline" size={22} color={colors.primary} />
-            <Text style={[styles.menuLabel, { color: colors.text, fontWeight: '700' }]}>Saglasnosti za fotografije</Text>
+            <Text style={[styles.menuLabel, { color: colors.text, fontWeight: '700' }]}>{t('profile.mediaConsent.title')}</Text>
           </View>
           <Text style={{ color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginBottom: spacing.md }}>
-            Saglasnost je dobrovoljna i odvojena za svaku fotografiju. Odbijanje ne utiče na uslugu.
+            {t('profile.mediaConsent.intro')}
           </Text>
           {mediaConsentLoading ? (
-            <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>Učitavanje…</Text>
+            <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>{t('common.loading')}</Text>
           ) : null}
           {!mediaConsentLoading && mediaConsent?.pending.length ? (
             <View style={{ gap: spacing.md }}>
               <View style={{ backgroundColor: colors.accentLight, borderRadius: 12, padding: spacing.md }}>
                 <Text style={{ color: colors.text, fontSize: 13, lineHeight: 20 }}>{mediaConsent.consentText}</Text>
               </View>
-              <Text style={{ color: colors.text, fontWeight: '700' }}>Fotografije koje čekaju vašu odluku</Text>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>{t('profile.mediaConsent.pendingTitle')}</Text>
               {mediaConsent.pending.map((item) => {
-                const label = item.isBefore ? 'Fotografija prije tretmana' : 'Fotografija poslije tretmana';
+                const label = item.isBefore ? t('profile.mediaConsent.beforeTreatment') : t('profile.mediaConsent.afterTreatment');
                 const checked = Boolean(mediaConsentAccepted[item.imageId]);
                 return (
                   <View key={item.imageId} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.sm }}>
@@ -360,7 +362,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
                     />
                     <Text style={{ color: colors.text, fontWeight: '700', marginTop: spacing.sm }}>{label}</Text>
                     <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }}>
-                      {item.serviceName} · {formatDate(item.serviceDate)}
+                      {item.serviceName || t('profile.serviceFallback')} · {formatProfileDate(item.serviceDate, formatDate) || t('common.notAvailable')}
                     </Text>
                     <TouchableOpacity
                       onPress={() => setMediaConsentAccepted((current) => ({ ...current, [item.imageId]: !checked }))}
@@ -369,11 +371,11 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
                     >
                       <Ionicons name={checked ? 'checkbox' : 'square-outline'} size={20} color={colors.primary} />
                       <Text style={{ color: colors.text, flex: 1, fontSize: 13, lineHeight: 19 }}>
-                        Pročitao/la sam tekst i izričito pristajem na objavu ove fotografije u navedenom obimu.
+                        {t('profile.mediaConsent.checkbox')}
                       </Text>
                     </TouchableOpacity>
                     <Button
-                      title={mediaConsentSavingId === item.imageId ? 'Spremanje…' : 'Dajem saglasnost'}
+                      title={mediaConsentSavingId === item.imageId ? t('profile.sending') : t('profile.mediaConsent.grantAction')}
                       onPress={() => void grantMediaConsent(item)}
                       disabled={!checked || mediaConsentSavingId === item.imageId}
                       size="sm"
@@ -385,7 +387,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
           ) : null}
           {!mediaConsentLoading && mediaConsent?.active.length ? (
             <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
-              <Text style={{ color: colors.text, fontWeight: '700' }}>Aktivne saglasnosti</Text>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>{t('profile.mediaConsent.activeHeading')}</Text>
               {mediaConsent.active.map((item) => (
                 <View key={item.imageId} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.sm }}>
                   <MediaImage
@@ -394,15 +396,15 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
                   />
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: colors.text, fontWeight: '600' }} numberOfLines={2}>
-                      {item.isBefore ? 'Prije' : 'Poslije'} · {item.serviceName}
+                      {item.isBefore ? t('profile.mediaConsent.beforeTreatment') : t('profile.mediaConsent.afterTreatment')} · {item.serviceName || t('profile.serviceFallback')}
                     </Text>
                     <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                      {formatDate(item.serviceDate)}
+                      {formatProfileDate(item.serviceDate, formatDate) || t('common.notAvailable')}
                     </Text>
                     <Text style={{ color: item.isPublished ? colors.success : colors.textSecondary, fontSize: 11, marginTop: 2 }}>
                       {item.isPublished
-                        ? `Objavljeno: ${item.publishedCategories.map((category) => category.name).join(', ')}`
-                        : 'Saglasnost je aktivna; fotografija još nije u javnom prikazu.'}
+                        ? t('profile.mediaConsent.publishedCategories', { categories: item.publishedCategories.map((category) => category.name).join(', ') })
+                        : t('profile.mediaConsent.notPublished')}
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -410,7 +412,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
                     disabled={mediaConsentSavingId === item.imageId}
                     style={{ padding: spacing.xs }}
                     accessibilityRole="button"
-                    accessibilityLabel="Povući saglasnost"
+                    accessibilityLabel={t('profile.mediaConsent.revokeAction')}
                   >
                     <Ionicons name="close-circle-outline" size={24} color={colors.error} />
                   </TouchableOpacity>
@@ -419,21 +421,35 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
             </View>
           ) : null}
           {!mediaConsentLoading && mediaConsent && mediaConsent.pending.length === 0 && mediaConsent.active.length === 0 ? (
-            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>Trenutno nema fotografija za koje je potrebna odluka.</Text>
+            <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{t('profile.mediaConsent.empty')}</Text>
           ) : null}
           {mediaConsentMessage ? (
             <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: spacing.sm }}>{mediaConsentMessage}</Text>
           ) : null}
           <Text style={{ color: colors.textMuted, fontSize: 11, lineHeight: 16, marginTop: spacing.md }}>
-            Fotografije bez saglasnosti ostaju privatne. Povlačenje blokira budući pristup kroz sistem; kopije koje su već preuzete ili snimljene izvan njega ne mogu se opozvati.
+            {t('profile.mediaConsent.privacyNote')}
           </Text>
+        </Card>
+      ) : null}
+
+      {isClient && openDebtsError ? (
+        <Card style={[styles.menuCard, { borderColor: colors.border }]}>
+          <Text style={[styles.menuLabel, { color: colors.text, marginBottom: spacing.sm }]}>
+            {t('profile.debtLoadError')}
+          </Text>
+          <Button
+            title={t('common.retry')}
+            onPress={() => setOpenDebtsRetryCount((count) => count + 1)}
+            variant="outline"
+            size="sm"
+          />
         </Card>
       ) : null}
 
       {openDebts.length > 0 ? (
         <Card style={[styles.menuCard, { borderColor: colors.border }]}>
           <Text style={[styles.menuLabel, { color: colors.text, paddingHorizontal: 16, paddingTop: 14, fontWeight: '700' }]}>
-            Otvorena dugovanja
+            {t('profile.openDebtsTitle')}
           </Text>
           {openDebts.map((d, idx) => (
             <View key={d.id}>
@@ -444,10 +460,10 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.menuLabel, { color: colors.text }]}>
-                    {d.service?.name ?? 'Usluga'} · {Number(d.amount).toFixed(2)} KM
+                    {t('profile.debtAmount', { service: d.service?.name || t('profile.serviceFallback'), amount: formatProfileAmount(d.amount) ?? t('profile.unavailableValue') })}
                   </Text>
                   <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                    {String(d.createdAt).slice(0, 10)}
+                    {formatProfileDate(d.createdAt, formatDate) || t('common.notAvailable')}
                   </Text>
                 </View>
               </View>
@@ -460,12 +476,12 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
         <Card style={styles.menuCard}>
           <MenuItem
             icon="person-outline"
-            label="Prebaci na Stylist app"
+            label={t('profile.switchToStylistTitle')}
             onPress={() => {
               setMode('stylist');
               router.replace('/');
             }}
-            rightText="Inbox, profil"
+            rightText={t('profile.switchToStylistSubtitle')}
           />
         </Card>
       )}
@@ -499,7 +515,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
         <View style={[styles.separator, { backgroundColor: colors.borderLight }]} />
         <MenuItem
           icon="call-outline"
-          label="Kontakt"
+          label={t('profile.contact.title')}
           onPress={() => navigation.navigate('Contact')}
         />
         <View style={[styles.separator, { backgroundColor: colors.borderLight }]} />
@@ -540,7 +556,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
                 onChangeText={setVerifyCode}
                 keyboardType="number-pad"
                 maxLength={6}
-                placeholder="000000"
+                placeholder={t('profile.verifyCodePlaceholder')}
               />
               <View style={styles.modalActions}>
                 <Button

@@ -386,6 +386,9 @@ jobs:
       - name: Test mobile hard-coded text guard
         working-directory: mobile
         run: npm run test:mobile-i18n-guard
+      - name: Test client profile API contract and malformed-response handling
+        working-directory: mobile
+        run: npm run test:client-profile-contract
       - name: Enforce localized copy in audited mobile screens
         working-directory: mobile
         run: npm run check:i18n

@@ -43,8 +43,10 @@ test('guard ignores translation keys, identifiers, and non-copy configuration li
         <Text>{t('common.close')}</Text>
         <DateTimePicker mode="date" display="default" />
         <Text>{status === 'COMPLETED' ? '✓' : value.toFixed(2)}</Text>
+        {navigation.navigate('Contact')}
       </>
     );
+    type RouteProps = ProfileScreenProps<'Profile'>;
   `;
   assert.deepEqual(scanSource(source, 'fixture.tsx', resourceKeys), []);
 });

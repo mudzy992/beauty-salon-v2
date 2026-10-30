@@ -8,6 +8,8 @@ const ts = require('typescript');
 // This guard grows with the audit: only files whose visible copy has been
 // migrated are checked, so unrelated screens remain explicit follow-up work.
 const GUARDED_FILES = [
+  'src/screens/client/ProfileScreen.tsx',
+  'src/screens/client/EditProfileScreen.tsx',
   'src/screens/stylist/DailyLogNewEntryScreen.tsx',
   'src/screens/stylist/DailyLogEntryPricingBlock.tsx',
   'src/components/ui/DateTimeField.tsx',
@@ -43,6 +45,17 @@ function looksLikeVisibleCopy(value) {
   // Catch single-word, title-cased copy such as "Loyalty", while ignoring
   // PascalCase identifiers (e.g. DailyLogDetail) and all-caps enum values.
   return /^[A-Z][a-z]+$/u.test(value);
+}
+
+function isNavigationTargetLiteral(node) {
+  const parent = node.parent;
+  if (ts.isLiteralTypeNode(parent)) return true;
+  return Boolean(
+    ts.isCallExpression(parent) &&
+    parent.arguments.includes(node) &&
+    ts.isPropertyAccessExpression(parent.expression) &&
+    parent.expression.name.text === 'navigate',
+  );
 }
 
 function collectTranslationKeys(expression, found = []) {
@@ -166,7 +179,7 @@ function scanSource(sourceText, fileName = 'source.tsx', resourceKeys) {
         }
       }
     } else if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
-      inspectString(node);
+      if (!isNavigationTargetLiteral(node)) inspectString(node);
     } else if (ts.isTemplateExpression(node)) {
       inspectString(node);
     }

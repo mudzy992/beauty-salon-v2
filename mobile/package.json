@@ -17,6 +17,7 @@
     "eas-build-post-install": "npm run check:i18n",
     "check:i18n": "node scripts/check-mobile-i18n.cjs",
     "test:mobile-i18n-guard": "node --test scripts/check-mobile-i18n.test.cjs",
+    "test:client-profile-contract": "node --test src/screens/client/profile-contract.test.mjs src/screens/client/profile-api-errors.test.mjs",
     "test:socket-recovery": "node --test src/realtime/socket-recovery.test.mjs",
     "test:api-multipart": "node --test src/services/api-multipart.test.cjs",
     "test:expo-cli-zod-compat": "node --test scripts/expo-cli-zod-compat.test.cjs",

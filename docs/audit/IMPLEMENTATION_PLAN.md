@@ -325,3 +325,11 @@ Do not resolve these by assumption during implementation:
 | A11Y-01, I18N-01 | Phase 5 |
 | TEST-01–TEST-02, SCM-01 | Phase 6 |
 | Redis optional (no finding/mandatory dependency) | Phase 7 |
+
+## 13. Mobile crash/API audit — incremental workstream (active)
+
+Proceed by small, auditable screen/API slices; compare mobile route, payload and role assumptions against Nest controller/service contracts before changing behavior. For each slice add a narrowly scoped regression test, update the mobile copy guard where user-visible text is audited, run mobile typecheck and the relevant Expo export, record scope and limitations, then commit/push the slice before starting the next one. Keep user merge responsibility; do not open/merge a PR unless requested.
+
+**MOB-01 implementation and local build verified; CI pending:** fix the proven client-profile role-shape crash; normalize consent/debt API payloads and date/amount formatting; skip client-only debt reads for non-clients; harden profile/edit-profile API error and image-picker paths; verify the private-avatar token URL and separate opt-in public-avatar route; guard the Profile/Edit Profile visible copy. Focused tests exercise contract/helper behavior and source wiring, not React rendering or a live API.
+
+**Remaining work:** inventory every mobile screen, shared component, store, socket and API path; map requests to backend routes/guards/response DTOs; prioritize auth/session initialization, upload/media, booking, daily log, debt/finance-facing views, notification/realtime, app-update and offline/network behavior. Add tests and document any discovered mismatch in separate slices. A complete device matrix, backend deployment validation and production API observability remain owner/environment work; never state that crash-free operation has been proven without them.

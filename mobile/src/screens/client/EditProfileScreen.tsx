@@ -24,6 +24,7 @@ import { MediaImage } from '../../components/MediaImage';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import api, { getImageUrl } from '../../services/api';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { spacing } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
 import type { ProfileScreenProps } from '../../navigation/types';
@@ -56,37 +57,38 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
 
   const pickAndUploadAvatar = useCallback(async () => {
     if (!user?.id) return;
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert(t('common.error'), t('profile.galleryPermission'));
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets?.[0]?.uri) return;
-    const asset = result.assets[0];
-    const assetName = asset.fileName?.trim() || asset.uri.split(/[?#]/, 1)[0];
-    const extension = assetName.split('.').pop()?.toLowerCase() ?? '';
-    const mimeTypeByExtension: Record<string, string> = {
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      png: 'image/png',
-      webp: 'image/webp',
-      gif: 'image/gif',
-      heic: 'image/heic',
-      heif: 'image/heif',
-    };
-    const mimeType =
-      asset.mimeType?.trim().toLowerCase() ||
-      mimeTypeByExtension[extension] ||
-      'image/jpeg';
-    const fileName = asset.fileName?.trim() || `avatar.${extension || 'jpg'}`;
-    setAvatarLoading(true);
     try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t('common.error'), t('profile.galleryPermission'));
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+
+      const asset = result.assets[0];
+      const assetName = asset.fileName?.trim() || asset.uri.split(/[?#]/, 1)[0];
+      const extension = assetName.split('.').pop()?.toLowerCase() ?? '';
+      const mimeTypeByExtension: Record<string, string> = {
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        webp: 'image/webp',
+        gif: 'image/gif',
+        heic: 'image/heic',
+        heif: 'image/heif',
+      };
+      const mimeType =
+        asset.mimeType?.trim().toLowerCase() ||
+        mimeTypeByExtension[extension] ||
+        'image/jpeg';
+      const fileName = asset.fileName?.trim() || `avatar.${extension || 'jpg'}`;
+      setAvatarLoading(true);
       const formData = new FormData();
       formData.append('file', {
         uri: asset.uri,
@@ -96,11 +98,7 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
       await api.post('/api/users/profile/avatar', formData);
       await refreshProfile();
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : t('common.error');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
+      Alert.alert(t('common.error'), getApiErrorMessage(err, t('profile.avatarUploadError')));
     } finally {
       setAvatarLoading(false);
     }
@@ -112,11 +110,7 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
       await api.patch('/api/users/profile/avatar-visibility', { isAvatarPublic });
       await refreshProfile();
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : t('common.error');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
+      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
     } finally {
       setAvatarPrivacySaving(false);
     }
@@ -129,11 +123,7 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
       Alert.alert(t('common.ok'), t('profile.verifyEmailCodeSent'));
       setVerifyModalVisible(true);
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : t('common.error');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
+      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
     } finally {
       setVerifySending(false);
     }
@@ -153,11 +143,7 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
       await refreshProfile();
       Alert.alert(t('common.ok'), t('profile.verifyEmailSuccess'));
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : t('common.error');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
+      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
     } finally {
       setVerifySubmitting(false);
     }
@@ -178,11 +164,7 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
       await refreshProfile();
       Alert.alert(t('common.ok'), t('profile.contactUpdated'));
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : t('common.error');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
+      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
     } finally {
       setProfileSaving(false);
     }
@@ -212,14 +194,16 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
         <Text style={[styles.avatarHint, { color: colors.textMuted }]}>{t('profile.avatarChange')}</Text>
         <View style={[styles.avatarPrivacyRow, { borderColor: colors.border }]}>
           <View style={styles.avatarPrivacyCopy}>
-            <Text style={[styles.avatarPrivacyTitle, { color: colors.text }]}>Moj avatar je javan</Text>
+            <Text style={[styles.avatarPrivacyTitle, { color: colors.text }]}>{t('profile.avatarPublicTitle')}</Text>
             <Text style={[styles.avatarPrivacyDescription, { color: colors.textMuted }]}>
-              Avatar je privatan po zadanom. Ova postavka ne važi za galeriju, oglase ili društvene mreže.
+              {t('profile.avatarPublicDescription')}
             </Text>
           </View>
           <Switch
             value={Boolean(user?.isAvatarPublic)}
             onValueChange={(value) => void handleAvatarPublicChange(value)}
+            accessibilityRole="switch"
+            accessibilityLabel={t('profile.avatarPublicTitle')}
             disabled={!user?.avatar || avatarPrivacySaving}
             trackColor={{ false: colors.border, true: colors.primary }}
           />
@@ -249,7 +233,7 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
             </View>
           ) : (
             <Button
-              title={verifySending ? '...' : t('profile.verifyEmailSendCode')}
+              title={verifySending ? t('profile.sending') : t('profile.verifyEmailSendCode')}
               onPress={handleSendVerificationCode}
               disabled={verifySending}
               variant="outline"
@@ -309,7 +293,7 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
                 onChangeText={setVerifyCode}
                 keyboardType="number-pad"
                 maxLength={6}
-                placeholder="000000"
+                placeholder={t('profile.verifyCodePlaceholder')}
               />
               <View style={styles.modalActions}>
                 <Button
