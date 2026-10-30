@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -18,17 +18,9 @@ import api, { getImageUrl } from '../../services/api';
 import { spacing } from '../../theme';
 import type { HomeScreenProps } from '../../navigation/types';
 import type { BlogPost } from '../../types';
+import { normalizeBlogPage } from '../../utils/apiPayload';
 
 const PAGE_SIZE = 20;
-
-type BlogPage = {
-  items: BlogPost[];
-  total: number;
-  limit: number;
-  offset: number;
-  hasMore: boolean;
-  nextOffset: number;
-};
 
 export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
   const { t } = useTranslation();
@@ -40,40 +32,52 @@ export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
   const [refreshing, setRefreshing] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [nextOffset, setNextOffset] = useState(0);
+  const [loadError, setLoadError] = useState(false);
+  const requestGeneration = useRef(0);
 
   const fetchPosts = useCallback(async (offset = 0, append = false) => {
+    const generation = ++requestGeneration.current;
     if (append) setLoadingMore(true);
     else if (offset === 0) setLoading(true);
     try {
-      const { data } = await api.get<BlogPage | BlogPost[]>('/api/blog', {
+      const { data } = await api.get<unknown>('/api/blog', {
         params: { limit: PAGE_SIZE, offset },
       });
-      const items = Array.isArray(data) ? data : data.items;
-      setPosts((current) => (append ? [...current, ...items] : items));
-      if (Array.isArray(data)) {
-        setHasMore(false);
-        setNextOffset(offset + items.length);
-      } else {
-        setHasMore(data.hasMore);
-        setNextOffset(data.nextOffset);
+      if (generation !== requestGeneration.current) return;
+      const page = normalizeBlogPage(data, PAGE_SIZE, offset);
+      if (!page) {
+        setLoadError(true);
+        return;
       }
+      setPosts((current) => (append ? [...current, ...page.items] : page.items));
+      setHasMore(page.hasMore);
+      setNextOffset(page.nextOffset);
+      setLoadError(false);
     } catch {
-      if (!append) {
-        setPosts([]);
-        setHasMore(false);
-      }
+      if (generation === requestGeneration.current) setLoadError(true);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (generation === requestGeneration.current) {
+        setLoading(false);
+        setLoadingMore(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
-  useEffect(() => { void fetchPosts(0, false); }, [fetchPosts]);
+  useEffect(() => {
+    void fetchPosts(0, false);
+    return () => {
+      requestGeneration.current += 1;
+    };
+  }, [fetchPosts]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchPosts(0, false);
-    setRefreshing(false);
+    try {
+      await fetchPosts(0, false);
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchPosts]);
 
   const loadMore = useCallback(() => {
@@ -109,8 +113,23 @@ export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
       ) : hasMore ? (
         <Button title="Učitaj još" onPress={loadMore} variant="outline" style={styles.footer} />
       ) : null}
+      ListHeaderComponent={loadError && posts.length > 0 ? (
+        <Card style={[styles.card, { borderColor: colors.border }]}>
+          <Text style={[styles.title, { color: colors.text }]}>{t('blog.loadErrorTitle')}</Text>
+          <Text style={[styles.date, { color: colors.textSecondary }]}>{t('blog.staleMessage')}</Text>
+          <Button title={t('common.retry')} onPress={() => void fetchPosts(0, false)} variant="outline" size="sm" style={{ marginTop: spacing.sm }} />
+        </Card>
+      ) : null}
       ListEmptyComponent={
-        <EmptyState icon="newspaper-outline" title={t('blog.noPosts')} />
+        loadError ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title={t('blog.loadErrorTitle')}
+            message={t('blog.loadErrorMessage')}
+            actionLabel={t('common.retry')}
+            onAction={() => void fetchPosts(0, false)}
+          />
+        ) : <EmptyState icon="newspaper-outline" title={t('blog.noPosts')} />
       }
       renderItem={({ item }) => (
         <View>

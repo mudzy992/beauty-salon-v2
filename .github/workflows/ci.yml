@@ -431,6 +431,9 @@ jobs:
       - name: Test client reservation detail read recovery
         working-directory: mobile
         run: npm run test:reservation-detail-read-recovery
+      - name: Test public blog list read recovery and payload validation
+        working-directory: mobile
+        run: npm run test:blog-list-read-recovery
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate

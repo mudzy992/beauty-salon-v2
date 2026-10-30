@@ -32,6 +32,8 @@ function loadTypeScriptModule(relativePath) {
 const payloads = loadTypeScriptModule('./apiPayload.ts');
 const {
   normalizeAvailabilityChangedPayload,
+  normalizeBlogPage,
+  normalizeBlogPosts,
   normalizeBeforeAfterPage,
   normalizeBeforeAfterPairs,
   normalizeClientDebts,
@@ -144,6 +146,28 @@ test('public service parsers validate catalogue rows and keep valid entries from
   assert.equal(normalizePublicServices([]).length, 0);
   assert.equal(normalizePublicServiceCategories([{ id: 'cat-1', name: 'Žene', sortOrder: 0, isActive: true }]).length, 1);
   assert.equal(normalizePublicServiceCategories({ items: [] }), null);
+});
+
+test('blog page parser validates public post fields and coherent legacy/paged responses', () => {
+  const post = {
+    id: 'post-1', title: 'Savjeti', slug: 'savjeti', excerpt: 'Kratak opis',
+    heroImage: null, isPublished: true, publishedAt: '2026-10-30T10:00:00.000Z',
+    createdAt: '2026-10-29T10:00:00.000Z',
+  };
+  assert.equal(normalizeBlogPosts([post, { ...post, id: null }]), null);
+  assert.equal(normalizeBlogPosts([{ ...post, title: 5 }]), null);
+  assert.deepEqual(normalizeBlogPage([post], 20, 0), {
+    items: [post], total: 1, limit: 20, offset: 0, hasMore: false, nextOffset: 1,
+  });
+  assert.deepEqual(normalizeBlogPage({
+    items: [post], total: 2, limit: 20, offset: 0, hasMore: true, nextOffset: 1,
+  }, 20, 0), {
+    items: [post], total: 2, limit: 20, offset: 0, hasMore: true, nextOffset: 1,
+  });
+  assert.equal(normalizeBlogPage({
+    items: [post], total: 2, limit: 20, offset: 0, hasMore: true, nextOffset: 2,
+  }, 20, 0), null);
+  assert.equal(normalizeBlogPage({ items: [], total: 0 }, 20, 0), null);
 });
 
 test('public review page parser validates pagination and filters malformed reviews', () => {

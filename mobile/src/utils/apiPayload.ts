@@ -1,4 +1,5 @@
 import type {
+  BlogPost,
   ClientDebt,
   DailyLogEntry,
   Notification,
@@ -86,6 +87,75 @@ export function normalizePublicServices(payload: unknown): Service[] | null {
     return true;
   });
   return payload.length > 0 && services.length === 0 ? null : services;
+}
+
+function isBlogPostRow(row: unknown): row is BlogPost {
+  if (
+    !isRecord(row) ||
+    !isNonEmptyString(row.id) ||
+    !isNonEmptyString(row.title) ||
+    !isNonEmptyString(row.slug) ||
+    typeof row.isPublished !== 'boolean' ||
+    !isOptionalString(row.excerpt) ||
+    !isOptionalString(row.heroImage) ||
+    (row.publishedAt !== undefined && row.publishedAt !== null && (
+      typeof row.publishedAt !== 'string' || Number.isNaN(Date.parse(row.publishedAt))
+    )) ||
+    (row.createdAt !== undefined && row.createdAt !== null && (
+      typeof row.createdAt !== 'string' || Number.isNaN(Date.parse(row.createdAt))
+    ))
+  ) return false;
+  if (row.author !== undefined && row.author !== null && (
+    !isRecord(row.author) || typeof row.author.firstName !== 'string' || typeof row.author.lastName !== 'string'
+  )) return false;
+  return true;
+}
+
+export function normalizeBlogPosts(payload: unknown): BlogPost[] | null {
+  if (!Array.isArray(payload)) return null;
+  const posts = payload.filter(isBlogPostRow);
+  return posts.length === payload.length ? posts : null;
+}
+
+export interface BlogPagePayload {
+  items: BlogPost[];
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+  nextOffset: number;
+}
+
+export function normalizeBlogPage(
+  payload: unknown,
+  requestedLimit: number,
+  requestedOffset: number,
+): BlogPagePayload | null {
+  if (Array.isArray(payload)) {
+    const items = normalizeBlogPosts(payload);
+    if (!items) return null;
+    return {
+      items,
+      total: items.length,
+      limit: requestedLimit,
+      offset: requestedOffset,
+      hasMore: false,
+      nextOffset: requestedOffset + items.length,
+    };
+  }
+  if (!isRecord(payload) || !Array.isArray(payload.items)) return null;
+  const { total, limit, offset, hasMore, nextOffset } = payload;
+  if (
+    !Number.isInteger(total) || (total as number) < 0 ||
+    limit !== requestedLimit || offset !== requestedOffset ||
+    typeof hasMore !== 'boolean' || !Number.isInteger(nextOffset) ||
+    nextOffset !== requestedOffset + payload.items.length ||
+    nextOffset > (total as number) ||
+    (hasMore && (payload.items.length === 0 || nextOffset >= (total as number)))
+  ) return null;
+  const items = normalizeBlogPosts(payload.items);
+  if (!items) return null;
+  return { items, total: total as number, limit: requestedLimit, offset: requestedOffset, hasMore, nextOffset: nextOffset as number };
 }
 
 export function normalizePublicServiceCategories(payload: unknown): ServiceCategory[] | null {
