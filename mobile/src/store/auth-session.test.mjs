@@ -74,5 +74,5 @@ test('failed SecureStore deletion cannot block in-memory logout or initializatio
 
   assert.equal((authStoreSource.match(/await removeAuthTokenSafely\(removeStoredToken\)/g) ?? []).length, 2);
   assert.match(authStoreSource, /get\(\)\.logout\(\)\.catch\(\(\) => undefined\)/);
-  assert.match(authStoreSource, /set\(\{ user: null, token: null, isInitialized: true \}\)/);
+  assert.match(authStoreSource, /set\(\{\s*user: null,\s*token: null,[\s\S]*?isInitialized: true/);
 });

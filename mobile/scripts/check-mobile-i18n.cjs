@@ -13,6 +13,8 @@ const GUARDED_FILES = [
   'src/screens/stylist/DailyLogNewEntryScreen.tsx',
   'src/screens/stylist/DailyLogEntryPricingBlock.tsx',
   'src/components/ui/DateTimeField.tsx',
+  'src/components/SessionBootstrapNotice.tsx',
+  'src/components/ProfileRefreshNotice.tsx',
 ];
 
 const COPY_ATTRIBUTES = new Set([

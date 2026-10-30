@@ -16,6 +16,7 @@ import {
 import { ThemeProvider } from '../src/theme/ThemeContext';
 import { useTheme } from '../src/hooks/useTheme';
 import { useAuthStore } from '../src/store/authStore';
+import { ProfileRefreshNotice } from '../src/components/ProfileRefreshNotice';
 import { useNotificationStore } from '../src/store/notificationStore';
 import { usePushNotifications } from '../src/hooks/usePushNotifications';
 import { useApkUpdateCheck } from '../src/features/app-update/use-apk-update-check';
@@ -61,7 +62,15 @@ function ThemedRootShell({ children }: { children: React.ReactNode }) {
 
 function AppContent() {
   const { colors, isDark } = useTheme();
-  const { isInitialized, initialize, user, token } = useAuthStore();
+  const {
+    isInitialized,
+    initialize,
+    user,
+    token,
+    profileRefreshError,
+    isRefreshingProfile,
+    refreshProfile,
+  } = useAuthStore();
   const fetchNotifications = useNotificationStore((s) => s.fetch);
 
   usePushNotifications();
@@ -110,6 +119,12 @@ function AppContent() {
       <SocketRealtimeSync />
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         {bars}
+        {user && profileRefreshError && (
+          <ProfileRefreshNotice
+            loading={isRefreshingProfile}
+            onRetry={() => { void refreshProfile(); }}
+          />
+        )}
         <Stack screenOptions={{ headerShown: false }} />
         <ApkForceUpdateModal
           release={apkUpdate.release}

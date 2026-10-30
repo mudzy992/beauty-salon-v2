@@ -395,6 +395,9 @@ jobs:
       - name: Test auth session payload validation and safe cleanup
         working-directory: mobile
         run: npm run test:auth-session
+      - name: Test offline session recovery and profile refresh errors
+        working-directory: mobile
+        run: npm run test:session-recovery
       - name: Test push notification failure containment
         working-directory: mobile
         run: npm run test:push-notification-effects

@@ -1,22 +1,29 @@
 import { create } from 'zustand';
 import { AxiosError } from 'axios';
-import api, { setStoredToken, removeStoredToken, getStoredToken, setOnUnauthorized } from '../services/api';
+import api, { setStoredToken, removeStoredToken, readStoredToken, setOnUnauthorized } from '../services/api';
 import type { User, LoginResponse } from '../types';
+import { StoredTokenUnavailableError } from '../services/token-storage';
 import { extractUserFromPayload } from './auth-user';
 import { removeAuthTokenSafely } from './session-cleanup';
+
+export type SessionBootstrapError = 'storage' | 'network' | 'profile';
 
 interface AuthState {
   user: User | null;
   token: string | null;
   isLoading: boolean;
   isInitialized: boolean;
+  isInitializing: boolean;
+  bootstrapError: SessionBootstrapError | null;
+  profileRefreshError: boolean;
+  isRefreshingProfile: boolean;
 
   initialize: () => Promise<void>;
   login: (login: string, password: string) => Promise<void>;
   replaceToken: (token: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<boolean>;
 }
 
 interface RegisterData {
@@ -29,6 +36,8 @@ interface RegisterData {
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {
+  let profileRefreshCount = 0;
+
   setOnUnauthorized(() => {
     void get().logout().catch(() => undefined);
   });
@@ -38,31 +47,73 @@ export const useAuthStore = create<AuthState>((set, get) => {
     token: null,
     isLoading: false,
     isInitialized: false,
+    isInitializing: false,
+    bootstrapError: null,
+    profileRefreshError: false,
+    isRefreshingProfile: false,
 
     initialize: async () => {
+      if (get().isInitializing) return;
+      set({ isInitializing: true });
+
+      const tokenRead = await readStoredToken();
+      if (tokenRead.status === 'unavailable') {
+        set({ bootstrapError: 'storage', isInitialized: true, isInitializing: false });
+        return;
+      }
+
+      const token = tokenRead.token;
+      if (!token) {
+        set({
+          user: null,
+          token: null,
+          bootstrapError: null,
+          isInitialized: true,
+          isInitializing: false,
+        });
+        return;
+      }
+
       try {
-        const token = await getStoredToken();
-        if (token) {
-          const { data } = await api.get<unknown>('/api/users/profile');
-          const user = extractUserFromPayload(data);
-          if (user) {
-            set({ user, token, isInitialized: true });
-            return;
-          }
-          // Ako payload nije validan user, ne brišemo token odmah; samo završimo init.
-          set({ token, isInitialized: true });
-        } else {
-          set({ isInitialized: true });
+        const { data } = await api.get<unknown>('/api/users/profile');
+        const user = extractUserFromPayload(data);
+        if (!user) {
+          set({ token, bootstrapError: 'profile', isInitialized: true, isInitializing: false });
+          return;
         }
+        set({
+          user,
+          token,
+          bootstrapError: null,
+          profileRefreshError: false,
+          isInitialized: true,
+          isInitializing: false,
+        });
       } catch (error) {
         const status = (error as AxiosError)?.response?.status;
         if (status === 401) {
           await removeAuthTokenSafely(removeStoredToken);
-          set({ user: null, token: null, isInitialized: true });
+          set({
+            user: null,
+            token: null,
+            bootstrapError: null,
+            isInitialized: true,
+            isInitializing: false,
+          });
           return;
         }
-        // Za mrežne/privremene greške ne brišemo token da se sesija ne izgubi nakon reload-a.
-        set({ isInitialized: true });
+
+        // Storage/network/server/contract errors are not proof of logout; preserve the saved token for retry.
+        set({
+          token,
+          bootstrapError: error instanceof StoredTokenUnavailableError
+            ? 'storage'
+            : status === undefined || status >= 500
+              ? 'network'
+              : 'profile',
+          isInitialized: true,
+          isInitializing: false,
+        });
       }
     },
 
@@ -80,7 +131,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
           throw new Error('Neispravan odgovor servera pri prijavi.');
         }
         await setStoredToken(token);
-        set({ user, token, isLoading: false });
+        set({ user, token, isLoading: false, bootstrapError: null, profileRefreshError: false });
         await get().refreshProfile();
       } catch (error) {
         set({ isLoading: false });
@@ -106,16 +157,33 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
     logout: async () => {
       await removeAuthTokenSafely(removeStoredToken);
-      set({ user: null, token: null });
+      set({ user: null, token: null, bootstrapError: null, profileRefreshError: false });
     },
 
     refreshProfile: async () => {
+      const currentUserId = get().user?.id;
+      if (!currentUserId) return false;
+
+      profileRefreshCount += 1;
+      set({ isRefreshingProfile: true });
       try {
         const { data } = await api.get<unknown>('/api/users/profile');
         const user = extractUserFromPayload(data);
-        if (user) set({ user });
-      } catch {
-        // silent fail
+        if (!user || user.id !== currentUserId || get().user?.id !== currentUserId) {
+          if (get().user?.id === currentUserId) set({ profileRefreshError: true });
+          return false;
+        }
+        set({ user, profileRefreshError: false });
+        return true;
+      } catch (error) {
+        const status = (error as AxiosError)?.response?.status;
+        if (status !== 401 && get().user?.id === currentUserId) {
+          set({ profileRefreshError: true });
+        }
+        return false;
+      } finally {
+        profileRefreshCount = Math.max(0, profileRefreshCount - 1);
+        set({ isRefreshingProfile: profileRefreshCount > 0 });
       }
     },
   };

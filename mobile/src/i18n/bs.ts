@@ -45,6 +45,11 @@ export const bs = {
     loginOrUsername: 'Email ili korisničko ime',
     forgotPassword: 'Zaboravili ste lozinku?',
     logoutConfirm: 'Da li ste sigurni da se želite odjaviti?',
+    sessionCheckTitle: 'Provjera prijave nije uspjela',
+    sessionStorageUnavailable: 'Aplikacija ne može pristupiti sigurno sačuvanoj sesiji. Niste automatski odjavljeni. Pokušajte ponovo.',
+    sessionNetworkUnavailable: 'Sačuvana sesija nije provjerena zbog greške pri povezivanju. Provjerite internet i pokušajte ponovo. Token nije uklonjen.',
+    sessionProfileUnavailable: 'Server nije vratio očekivane podatke profila. Sačuvani token nije uklonjen; pokušajte ponovo kasnije.',
+    profileRefreshUnavailable: 'Profil nije moguće osvježiti. Prikazani podaci mogu biti zastarjeli.',
   },
   tabs: {
     home: 'Početna',

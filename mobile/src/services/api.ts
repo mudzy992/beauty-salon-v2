@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { getImageUrl, getUploadUrl } from '../utils/uploadUrl';
+import { readTokenSafely, StoredTokenUnavailableError } from './token-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -15,12 +16,17 @@ export { getImageUrl, getUploadUrl };
 
 const TOKEN_KEY = 'auth_token';
 
+export async function readStoredToken() {
+  return readTokenSafely(() => SecureStore.getItemAsync(TOKEN_KEY));
+}
+
 export async function getStoredToken(): Promise<string | null> {
-  try {
-    return await SecureStore.getItemAsync(TOKEN_KEY);
-  } catch {
-    return null;
+  const result = await readStoredToken();
+  if (result.status === 'unavailable') {
+    // Do not silently send protected API requests without a token after a storage error.
+    throw new StoredTokenUnavailableError();
   }
+  return result.token;
 }
 
 export async function setStoredToken(token: string): Promise<void> {
