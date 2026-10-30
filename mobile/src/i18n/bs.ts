@@ -77,6 +77,9 @@ export const bs = {
     loadErrorTitle: 'Usluge nisu dostupne',
     loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
     staleMessage: 'Prikazujemo ranije učitane usluge. Osvježavanje nije uspjelo.',
+    detailLoadErrorTitle: 'Detalji usluge nisu dostupni',
+    detailLoadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
+    galleryLoadError: 'Galeriju nije moguće učitati. Pokušajte ponovo.'
   },
   reservation: {
     title: 'Rezervacija',
@@ -151,6 +154,7 @@ export const bs = {
     reviewSuccess: 'Recenzija poslana!',
     reviewSuccessMessage: 'Hvala na vašoj recenziji. Biće objavljena nakon pregleda.',
     noReviews: 'Nema recenzija',
+    loadError: 'Recenzije nisu dostupne. Pokušajte ponovo.',
     loadMore: 'Učitaj još recenzija',
     selectService: 'Odaberite uslugu',
     selectReservation: 'Odaberite rezervaciju (opciono)',
