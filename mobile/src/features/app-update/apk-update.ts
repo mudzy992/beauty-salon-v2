@@ -5,18 +5,15 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import * as SecureStore from 'expo-secure-store';
 import { getSalonDateOnly } from '../../../../shared/business-date.mjs';
 import { base64ToBytes, Sha256 } from './sha256';
+import {
+  MAX_APK_SIZE_BYTES,
+  MAX_RELEASE_METADATA_BYTES,
+  parseLatestAndroidRelease,
+  resolveApkAbsoluteUrl as resolveSafeApkAbsoluteUrl,
+  type LatestAndroidRelease,
+} from './release-payload';
 
-export type LatestAndroidRelease = {
-  version: string;
-  versionCode: number;
-  minSupportedVersionCode: number;
-  forceUpdate: boolean;
-  apkUrl: string;
-  apkSha256: string;
-  apkSizeBytes: number;
-  releaseNotes: string | null;
-  publishedAt: string | null;
-};
+export type { LatestAndroidRelease } from './release-payload';
 
 export type UpdateDecision =
   | { kind: 'none' }
@@ -35,16 +32,32 @@ export const getLocalVersionCode = (): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-export const resolveApkAbsoluteUrl = (apkUrl: string): string => {
-  if (/^https?:\/\//i.test(apkUrl)) return apkUrl;
-  return `${API_URL}${apkUrl.startsWith('/') ? '' : '/'}${apkUrl}`;
-};
+export const resolveApkAbsoluteUrl = (apkUrl: string): string =>
+  resolveSafeApkAbsoluteUrl(apkUrl, API_URL);
 
 export const fetchLatestAndroidRelease = async (): Promise<LatestAndroidRelease | null> => {
-  const res = await fetch(`${API_URL}/api/public/app-releases/android/latest`);
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`version_check_failed_${res.status}`);
-  return (await res.json()) as LatestAndroidRelease;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const res = await fetch(`${API_URL}/api/public/app-releases/android/latest`, {
+      signal: controller.signal,
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`version_check_failed_${res.status}`);
+    const contentLength = Number(res.headers.get('content-length'));
+    if (Number.isFinite(contentLength) && contentLength > MAX_RELEASE_METADATA_BYTES) {
+      throw new Error('release_metadata_too_large');
+    }
+    const text = await res.text();
+    if (text.length > MAX_RELEASE_METADATA_BYTES) throw new Error('release_metadata_too_large');
+    const value: unknown = JSON.parse(text);
+    if (value === null) return null;
+    const release = parseLatestAndroidRelease(value);
+    if (!release) throw new Error('invalid_release_metadata');
+    return release;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 };
 
 export const decideUpdate = (
@@ -72,9 +85,10 @@ export const markSoftPromptShownToday = async (): Promise<void> => {
 
 export const hashFileSha256 = async (fileUri: string): Promise<string> => {
   const info = await FileSystem.getInfoAsync(fileUri);
-  if (!info.exists || typeof info.size !== 'number') {
+  if (!info.exists || typeof info.size !== 'number' || info.size < 4) {
     throw new Error('apk_missing');
   }
+  if (info.size > MAX_APK_SIZE_BYTES) throw new Error('apk_too_large');
   const hasher = new Sha256();
   let offset = 0;
   while (offset < info.size) {
@@ -98,24 +112,49 @@ export const downloadAndInstallApk = async (
   onPhase?: (phase: ApkInstallPhase) => void,
 ): Promise<void> => {
   if (!isAndroid()) throw new Error('android_only');
+  const safeRelease = parseLatestAndroidRelease(release);
+  if (!safeRelease) throw new Error('invalid_release_metadata');
   onPhase?.('download');
-  const url = resolveApkAbsoluteUrl(release.apkUrl);
-  const target = `${FileSystem.cacheDirectory}app-update-${release.versionCode}.apk`;
-  const download = FileSystem.createDownloadResumable(
+  const url = resolveApkAbsoluteUrl(safeRelease.apkUrl);
+  const target = `${FileSystem.cacheDirectory}app-update-${safeRelease.versionCode}.apk`;
+  let exceededLimit = false;
+  let download: ReturnType<typeof FileSystem.createDownloadResumable>;
+  download = FileSystem.createDownloadResumable(
     url,
     target,
     {},
     (p) => {
+      if (
+        p.totalBytesWritten > MAX_APK_SIZE_BYTES ||
+        p.totalBytesExpectedToWrite > MAX_APK_SIZE_BYTES
+      ) {
+        exceededLimit = true;
+        void download.pauseAsync().catch(() => undefined);
+        return;
+      }
       if (!onProgress || !p.totalBytesExpectedToWrite) return;
       onProgress(p.totalBytesWritten / p.totalBytesExpectedToWrite);
     },
   );
-  const result = await download.downloadAsync();
-  if (!result?.uri) throw new Error('download_failed');
+  let result: Awaited<ReturnType<typeof download.downloadAsync>>;
+  try {
+    result = await download.downloadAsync();
+    if (exceededLimit) throw new Error('apk_too_large');
+    if (!result?.uri) throw new Error('download_failed');
+    const downloadedInfo = await FileSystem.getInfoAsync(result.uri);
+    if (
+      !downloadedInfo.exists || typeof downloadedInfo.size !== 'number' ||
+      downloadedInfo.size !== safeRelease.apkSizeBytes ||
+      downloadedInfo.size > MAX_APK_SIZE_BYTES
+    ) throw new Error('apk_size_mismatch');
+  } catch (error) {
+    await FileSystem.deleteAsync(target, { idempotent: true }).catch(() => undefined);
+    throw error;
+  }
   onProgress?.(1);
   onPhase?.('verify');
   const sha = await hashFileSha256(result.uri);
-  if (sha.toLowerCase() !== release.apkSha256.toLowerCase()) {
+  if (sha !== safeRelease.apkSha256) {
     await FileSystem.deleteAsync(result.uri, { idempotent: true });
     throw new Error('sha256_mismatch');
   }
