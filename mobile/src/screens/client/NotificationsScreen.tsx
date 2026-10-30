@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Button } from '../../components/ui/Button';
 import { useNotificationStore } from '../../store/notificationStore';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 import { useSocket } from '../../realtime/SocketContext';
@@ -31,7 +32,7 @@ export function NotificationsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
-  const { notifications, isLoading, fetch, markAsRead } = useNotificationStore();
+  const { notifications, isLoading, fetchError, fetch, markAsRead } = useNotificationStore();
   const { connected: socketConnected } = useSocket();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -103,6 +104,19 @@ export function NotificationsScreen() {
       data={notifications}
       keyExtractor={(item) => item.id}
       renderItem={renderItem}
+      ListHeaderComponent={
+        fetchError && notifications.length > 0 ? (
+          <View style={[styles.errorBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View style={styles.errorCopy}>
+              <Text style={[styles.errorTitle, { color: colors.text }]}>{t('notifications.loadErrorTitle')}</Text>
+              <Text style={[styles.errorMessage, { color: colors.textSecondary }]}>
+                {t('notifications.staleMessage')}
+              </Text>
+            </View>
+            <Button title={t('common.retry')} onPress={() => void fetch()} variant="outline" size="sm" />
+          </View>
+        ) : null
+      }
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={
         notifications.length === 0
@@ -115,8 +129,11 @@ export function NotificationsScreen() {
       }
       ListEmptyComponent={
         <EmptyState
-          icon="notifications-off-outline"
-          title={t('notifications.noNotifications')}
+          icon={fetchError ? 'cloud-offline-outline' : 'notifications-off-outline'}
+          title={fetchError ? t('notifications.loadErrorTitle') : t('notifications.noNotifications')}
+          message={fetchError ? t('notifications.loadErrorMessage') : undefined}
+          actionLabel={fetchError ? t('common.retry') : undefined}
+          onAction={fetchError ? () => void fetch() : undefined}
         />
       }
     />
@@ -125,6 +142,18 @@ export function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  errorBanner: {
+    margin: spacing.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  errorCopy: { flex: 1, gap: spacing.xs },
+  errorTitle: { fontSize: 14, fontWeight: '700' },
+  errorMessage: { fontSize: 12, lineHeight: 17 },
   emptyList: { flex: 1 },
   item: {
     flexDirection: 'row',

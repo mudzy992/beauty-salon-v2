@@ -395,6 +395,9 @@ jobs:
       - name: Test runtime mobile API payload parsing
         working-directory: mobile
         run: npm run test:api-payload
+      - name: Test notification fetch error and stale-data states
+        working-directory: mobile
+        run: npm run test:notification-fetch-state
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate
