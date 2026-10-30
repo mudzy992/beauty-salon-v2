@@ -28,6 +28,7 @@
     "test:mutation-error-handling": "node --test src/utils/mutation-error-handling.test.mjs src/screens/client/profile-api-errors.test.mjs",
     "test:catalog-detail-recovery": "node --test src/utils/catalog-detail-recovery.test.mjs",
     "test:daily-log-read-recovery": "node --test src/utils/daily-log-read-recovery.test.mjs",
+    "test:home-read-recovery": "node --test src/utils/home-read-recovery.test.mjs",
     "test:refresh-gate": "node --test src/hooks/refreshGate.test.mjs",
     "test:auth-session": "node --test src/store/auth-session.test.mjs",
     "test:session-recovery": "node --test src/store/session-recovery.test.mjs",

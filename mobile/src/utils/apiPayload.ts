@@ -103,6 +103,7 @@ export interface PublicReviewPayload {
   comment?: string | null;
   createdAt: string;
   user?: { firstName?: string | null; lastName?: string | null } | null;
+  service?: { name: string } | null;
 }
 
 export interface PublicReviewPagePayload {
@@ -127,12 +128,19 @@ function normalizePublicReview(payload: unknown): PublicReviewPayload | null {
     ) return null;
     user = { firstName: payload.user.firstName as string | null | undefined, lastName: payload.user.lastName as string | null | undefined };
   }
+  let service: PublicReviewPayload['service'];
+  if (payload.service === null) service = null;
+  else if (payload.service !== undefined) {
+    if (!isRecord(payload.service) || !isNonEmptyString(payload.service.name)) return null;
+    service = { name: payload.service.name };
+  }
   return {
     id: payload.id,
     serviceRating: payload.serviceRating,
     comment: payload.comment as string | null | undefined,
     createdAt: payload.createdAt,
     user,
+    service,
   };
 }
 

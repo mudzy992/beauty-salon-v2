@@ -39,10 +39,15 @@ import type { HomeScreenProps } from '../../navigation/types';
 import type { Service, BlogPost, ServiceCategory, Reservation, ReservationStatus } from '../../types';
 import { formatDateOnlyLocale, formatInstantDateLocale, isUpcoming } from '../../utils/date';
 import {
-  normalizeBeforeAfterPairs,
+  isRecord,
+  normalizeBeforeAfterPage,
   normalizeDebtAmounts,
+  normalizePublicReviewPage,
+  normalizePublicServiceCategories,
+  normalizePublicServices,
   normalizeReservations,
   sumDebtAmounts,
+  type PublicReviewPayload,
 } from '../../utils/apiPayload';
 
 interface BeforeAfterPair {
@@ -90,6 +95,31 @@ function normalizeSettings(input: unknown): PublicSetting[] {
     if (Array.isArray(payload.settings)) return payload.settings.filter(isPublicSetting);
   }
   return [];
+}
+
+function normalizeHomeBlogPosts(payload: unknown): BlogPost[] | null {
+  const items = Array.isArray(payload)
+    ? payload
+    : isRecord(payload) && Array.isArray(payload.items)
+      ? payload.items
+      : null;
+  if (!items) return null;
+  const posts = items.filter((item): item is BlogPost =>
+    isRecord(item) && typeof item.id === 'string' && item.id.trim().length > 0 &&
+    typeof item.title === 'string' && typeof item.slug === 'string' &&
+    item.isPublished === true &&
+    (item.excerpt === undefined || item.excerpt === null || typeof item.excerpt === 'string') &&
+    (item.content === undefined || typeof item.content === 'string') &&
+    (item.heroImage === undefined || item.heroImage === null || typeof item.heroImage === 'string') &&
+    (item.publishedAt === undefined || item.publishedAt === null || typeof item.publishedAt === 'string')
+  );
+  return items.length > 0 && posts.length === 0 ? null : posts;
+}
+
+function normalizeFeaturedReview(payload: unknown): PublicReviewPayload | null | undefined {
+  if (payload === null) return null;
+  const page = normalizePublicReviewPage([payload], 0, 1);
+  return page?.items[0];
 }
 
 function getSettingValue(settings: PublicSetting[] | null | undefined, key: string, fallback: string): string {
@@ -183,6 +213,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { connected: socketConnected } = useSocket();
   const user = useAuthStore((s) => s.user);
+  const userId = user?.id ?? null;
   const serviceCardWidth = Math.min(screenWidth * 0.66, 300);
   const sectionScrollRefs = useRef<Record<number, ScrollView | null>>({});
   const sectionInitOffsetApplied = useRef<Record<number, boolean>>({});
@@ -191,38 +222,45 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const [categoriesWithServices, setCategoriesWithServices] = useState<CategoryWithServices[]>([]);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [beforeAfterPairs, setBeforeAfterPairs] = useState<BeforeAfterPair[]>([]);
-  const [featuredReview, setFeaturedReview] = useState<{
-    comment: string | null;
-    serviceRating: number;
-    user?: { firstName: string | null; lastName: string | null };
-    service?: { name: string };
-  } | null>(null);
+  const [featuredReview, setFeaturedReview] = useState<PublicReviewPayload | null>(null);
+  const [homeLoadError, setHomeLoadError] = useState(false);
+  const [debtsLoadError, setDebtsLoadError] = useState(false);
+  const [beforeAfterLoadError, setBeforeAfterLoadError] = useState(false);
+  const [featuredReviewLoadError, setFeaturedReviewLoadError] = useState(false);
+  const [upcomingReservationLoadError, setUpcomingReservationLoadError] = useState(false);
+  const homeRequestGeneration = useRef(0);
+  const reservationRequestGeneration = useRef(0);
+  const previousUserId = useRef(userId);
   const [refreshing, setRefreshing] = useState(false);
   const [openDebtsTotal, setOpenDebtsTotal] = useState(0);
   const [openDebtsCount, setOpenDebtsCount] = useState(0);
   const [upcomingReservation, setUpcomingReservation] = useState<Reservation | null>(null);
 
   const fetchData = useCallback(async () => {
+    const generation = ++homeRequestGeneration.current;
     try {
-      const [settingsRes, categories, catalogServices, blogRes, debtsRes] = await Promise.all([
+      const [settingsRes, rawCategories, rawServices, blogRes, debtsRes] = await Promise.all([
         fetchPublicSettings(),
-        fetchAllPublicServiceCategories<ServiceCategory>({ activeOnly: true }),
-        fetchAllPublicServices<Service>({ activeOnly: true }),
-        api.get<BlogPost[] | { items: BlogPost[] }>('/api/blog', { params: { limit: 3, offset: 0 } }),
-        user
-          ? api.get<Array<{ amount: number | string }>>('/api/client-debts/me').catch(() => null)
+        fetchAllPublicServiceCategories<unknown>({ activeOnly: true }),
+        fetchAllPublicServices<unknown>({ activeOnly: true }),
+        api.get<unknown>('/api/blog', { params: { limit: 3, offset: 0 } }),
+        userId
+          ? api.get<unknown>('/api/client-debts/me').catch(() => null)
           : Promise.resolve(null),
       ]);
+      if (generation !== homeRequestGeneration.current) return;
 
-      const debtRows = debtsRes?.data ? normalizeDebtAmounts(debtsRes.data) : [];
-      setOpenDebtsCount(debtRows?.length ?? 0);
-      setOpenDebtsTotal(debtRows ? sumDebtAmounts(debtRows) : 0);
+      const normalizedSettings = normalizeSettings(settingsRes);
+      const categories = normalizePublicServiceCategories(rawCategories);
+      const catalogServices = normalizePublicServices(rawServices);
+      const blogItems = normalizeHomeBlogPosts(blogRes.data);
+      if (!categories || !catalogServices || !blogItems) {
+        throw new Error('Invalid home payload');
+      }
 
-      setSettings(normalizeSettings(settingsRes));
-      const blogOn = getSettingValue(normalizeSettings(settingsRes), 'public_feature_blog', 'true').toLowerCase() !== 'false';
-      const blogItems = Array.isArray(blogRes.data) ? blogRes.data : blogRes.data.items;
+      setSettings(normalizedSettings);
+      const blogOn = getSettingValue(normalizedSettings, 'public_feature_blog', 'true').toLowerCase() !== 'false';
       setBlogPosts(blogOn ? blogItems.slice(0, 3) : []);
-
       const servicesByCategory = new Map<string, Service[]>();
       catalogServices.forEach((service) => {
         const categoryId = service.subcategory?.categoryId;
@@ -237,70 +275,112 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           return services.length > 0 ? [{ category, services }] : [];
         }),
       );
+      setHomeLoadError(false);
+
+      if (!userId) {
+        setOpenDebtsCount(0);
+        setOpenDebtsTotal(0);
+        setDebtsLoadError(false);
+      } else if (!debtsRes) {
+        setDebtsLoadError(true);
+      } else {
+        const debtRows = normalizeDebtAmounts(debtsRes.data);
+        if (!debtRows) setDebtsLoadError(true);
+        else {
+          setOpenDebtsCount(debtRows.length);
+          setOpenDebtsTotal(sumDebtAmounts(debtRows));
+          setDebtsLoadError(false);
+        }
+      }
+
       try {
-        const { data } = await api.get<{ items: BeforeAfterPair[] }>('/api/daily-log/before-after', {
+        const { data } = await api.get<unknown>('/api/daily-log/before-after', {
           params: { limit: 6, random: 1 },
         });
-        const list = normalizeBeforeAfterPairs(data?.items);
-        setBeforeAfterPairs((list ?? []).slice(0, 1));
+        if (generation !== homeRequestGeneration.current) return;
+        const page = normalizeBeforeAfterPage(data);
+        if (!page) setBeforeAfterLoadError(true);
+        else {
+          setBeforeAfterPairs(page.items.slice(0, 1));
+          setBeforeAfterLoadError(false);
+        }
       } catch {
-        setBeforeAfterPairs([]);
+        if (generation === homeRequestGeneration.current) setBeforeAfterLoadError(true);
       }
-      try {
-        const { data: review } = await api.get<{
-          comment: string | null;
-          serviceRating: number;
-          user?: { firstName: string | null; lastName: string | null };
-          service?: { name: string };
-        } | null>('/api/reviews/featured/random');
-        setFeaturedReview(
-          getSettingValue(normalizeSettings(settingsRes), 'public_feature_reviews', 'true').toLowerCase() === 'false'
-            ? null
-            : review ?? null,
-        );
-      } catch {
+
+      if (getSettingValue(normalizedSettings, 'public_feature_reviews', 'true').toLowerCase() === 'false') {
         setFeaturedReview(null);
+        setFeaturedReviewLoadError(false);
+      } else {
+        try {
+          const { data } = await api.get<unknown>('/api/reviews/featured/random');
+          if (generation !== homeRequestGeneration.current) return;
+          const review = normalizeFeaturedReview(data);
+          if (review === undefined) setFeaturedReviewLoadError(true);
+          else {
+            setFeaturedReview(review);
+            setFeaturedReviewLoadError(false);
+          }
+        } catch {
+          if (generation === homeRequestGeneration.current) setFeaturedReviewLoadError(true);
+        }
       }
-    } catch { /* silent */ }
-  }, [user]);
-
-  const userId = user?.id;
-  useEffect(() => {
-    if (!userId) {
-      setUpcomingReservation(null);
-      return;
+    } catch {
+      if (generation === homeRequestGeneration.current) setHomeLoadError(true);
     }
+  }, [userId]);
 
-    const ACTIVE_STATUSES: ReservationStatus[] = [
-      'PENDING',
-      'STYLIST_REVIEW',
-      'CONFIRMED',
-      'ATTENDANCE_CONFIRMED',
-      'IN_PROGRESS'
-    ];
-    let cancelled = false;
-
-    api.get<Reservation[]>('/api/reservations', { params: { asClient: true } })
-      .then(({ data }) => {
-        if (cancelled) return;
-
-        const rows = normalizeReservations(data) ?? [];
-        const next = rows.find(
-          (reservation) =>
-            ACTIVE_STATUSES.includes(reservation.status) &&
-            isUpcoming(reservation.reservationDate, reservation.endTime),
-        ) ?? null;
-
-        setUpcomingReservation(next);
-      })
-      .catch(() => {
-        if (!cancelled) setUpcomingReservation(null);
-      });
-
+  useEffect(() => {
+    setOpenDebtsCount(0);
+    setOpenDebtsTotal(0);
+    setDebtsLoadError(false);
     return () => {
-      cancelled = true;
+      homeRequestGeneration.current += 1;
     };
   }, [userId]);
+
+  const fetchUpcomingReservation = useCallback(async () => {
+    const generation = ++reservationRequestGeneration.current;
+    if (!userId) {
+      setUpcomingReservation(null);
+      setUpcomingReservationLoadError(false);
+      return;
+    }
+    try {
+      const { data } = await api.get<unknown>('/api/reservations', { params: { asClient: true } });
+      if (generation !== reservationRequestGeneration.current) return;
+      const rows = normalizeReservations(data);
+      if (!rows) {
+        setUpcomingReservationLoadError(true);
+        return;
+      }
+      const activeStatuses: ReservationStatus[] = [
+        'PENDING',
+        'STYLIST_REVIEW',
+        'CONFIRMED',
+        'ATTENDANCE_CONFIRMED',
+        'IN_PROGRESS',
+      ];
+      const next = rows.find(
+        (reservation) =>
+          activeStatuses.includes(reservation.status) &&
+          isUpcoming(reservation.reservationDate, reservation.endTime),
+      ) ?? null;
+      setUpcomingReservation(next);
+      setUpcomingReservationLoadError(false);
+    } catch {
+      if (generation === reservationRequestGeneration.current) setUpcomingReservationLoadError(true);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    setUpcomingReservation(null);
+    setUpcomingReservationLoadError(false);
+    void fetchUpcomingReservation();
+    return () => {
+      reservationRequestGeneration.current += 1;
+    };
+  }, [fetchUpcomingReservation]);
 
   const refreshHomeData = useAutoRefresh(fetchData, {
     intervalMs: 60000,
@@ -308,6 +388,12 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
     isSocketConnected: socketConnected,
   });
   usePublicContentSocketRefresh(refreshHomeData);
+
+  useEffect(() => {
+    if (previousUserId.current === userId) return;
+    previousUserId.current = userId;
+    void refreshHomeData();
+  }, [userId, refreshHomeData]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -433,6 +519,19 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         <View style={styles.homeBelowHero}>
         <View style={[styles.homeBelowHeroSurface, { backgroundColor: colors.background }]}>
         <View style={{ backgroundColor: 'transparent', paddingBottom: spacing.xxl, paddingTop: spacing.sm }}>
+        {homeLoadError ? (
+          <Card style={{ marginHorizontal: spacing.md, marginBottom: spacing.md, borderColor: colors.border }}>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{t('home.loadErrorTitle')}</Text>
+            <Text style={{ color: colors.textSecondary, marginTop: spacing.xs }}>{t('home.staleMessage')}</Text>
+            <Button title={t('common.retry')} onPress={() => void fetchData()} variant="outline" size="sm" style={{ marginTop: spacing.sm }} />
+          </Card>
+        ) : null}
+        {user && debtsLoadError ? (
+          <Card style={{ marginHorizontal: spacing.md, marginBottom: spacing.md, borderColor: colors.border }}>
+            <Text style={{ color: colors.textSecondary }}>{t('home.debtLoadError')}</Text>
+            <Button title={t('common.retry')} onPress={() => void fetchData()} variant="outline" size="sm" style={{ marginTop: spacing.sm }} />
+          </Card>
+        ) : null}
         {user && openDebtsCount > 0 ? (
           <TouchableOpacity
             onPress={() =>
@@ -462,6 +561,13 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </TouchableOpacity>
+        ) : null}
+
+        {upcomingReservationLoadError ? (
+          <Card style={{ marginHorizontal: spacing.md, marginBottom: spacing.md, borderColor: colors.border }}>
+            <Text style={{ color: colors.textSecondary }}>{t('home.reservationLoadError')}</Text>
+            <Button title={t('common.retry')} onPress={() => void fetchUpcomingReservation()} variant="outline" size="sm" style={{ marginTop: spacing.sm }} />
+          </Card>
         ) : null}
 
         {/* Kartica sljedećeg termina — prikazuje se samo ako postoji */}
@@ -621,6 +727,14 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             </Text>
           </View>
           <Card style={[styles.satisfiedCard, { backgroundColor: colors.card || colors.background }]}>
+            {beforeAfterLoadError ? (
+              <View style={{ marginBottom: spacing.sm }}>
+                <Text style={[styles.beforeAfterHint, { color: colors.textSecondary }]}>
+                  {t('home.beforeAfterLoadError')}
+                </Text>
+                <Button title={t('common.retry')} onPress={() => void fetchData()} variant="outline" size="sm" style={{ marginTop: spacing.xs }} />
+              </View>
+            ) : null}
             {beforeAfterPairs.length > 0 && (
               <View style={styles.satisfiedSliderWrap}>
                 <BeforeAfterSlider
@@ -631,7 +745,14 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 />
               </View>
             )}
-            {featuredReview ? (
+            {featuredReviewLoadError ? (
+              <View>
+                <Text style={[styles.beforeAfterHint, { color: colors.textSecondary, marginTop: spacing.sm }]}>
+                  {t('home.featuredReviewLoadError')}
+                </Text>
+                <Button title={t('common.retry')} onPress={() => void fetchData()} variant="outline" size="sm" style={{ marginTop: spacing.xs }} />
+              </View>
+            ) : featuredReview ? (
               <View style={styles.satisfiedReview}>
                 <View style={styles.starRow}>
                   {[1, 2, 3, 4, 5].map((i) => (
