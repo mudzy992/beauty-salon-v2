@@ -138,6 +138,9 @@ export const bs = {
     },
   },
   reservationDetail: {
+    loadErrorTitle: 'Detalji rezervacije nisu dostupni',
+    loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
+    staleMessage: 'Prikazujemo ranije učitane detalje; osvježavanje nije uspjelo.',
     title: 'Detalji rezervacije',
     notFound: 'Rezervacija nije pronađena.',
     paymentTitle: 'Uplata',
