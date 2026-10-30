@@ -15,6 +15,7 @@ import {
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useAuthStore } from '../../store/authStore';
 import { useTheme } from '../../hooks/useTheme';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
@@ -90,8 +91,18 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { connected: socketConnected } = useSocket();
+  const userId = useAuthStore((state) => state.user?.id ?? null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [reservationsOwnerId, setReservationsOwnerId] = useState<string | null>(null);
+  const visibleReservations = reservationsOwnerId === userId ? reservations : [];
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const requestGeneration = useRef(0);
+  const requestOwnerId = useRef(userId);
+  if (requestOwnerId.current !== userId) {
+    requestOwnerId.current = userId;
+    requestGeneration.current += 1;
+  }
   const [refreshing, setRefreshing] = useState(false);
   const [cancelModalReservation, setCancelModalReservation] = useState<Reservation | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -104,19 +115,43 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
     undefined;
 
   const fetchReservations = useCallback(async () => {
+    const generation = ++requestGeneration.current;
+    if (!userId) {
+      setReservations([]);
+      setReservationsOwnerId(null);
+      setLoadError(false);
+      setLoading(false);
+      return;
+    }
     try {
       const { data } = await api.get<unknown>('/api/reservations', {
         params: { asClient: true },
       });
-      // Direktne rezervacije u dnevniku više nisu klijentov posao.
-      setReservations(
-        (normalizeReservations(data) ?? []).filter(
-          (reservation) => reservation.status !== 'AWAITING_DAILY_LOG',
-        ),
-      );
-    } catch { /* silent */ }
-    setLoading(false);
-  }, []);
+      if (generation !== requestGeneration.current) return;
+      const rows = normalizeReservations(data);
+      if (!rows) setLoadError(true);
+      else {
+        // Direktne rezervacije u dnevniku više nisu klijentov posao.
+        setReservations(rows.filter((reservation) => reservation.status !== 'AWAITING_DAILY_LOG'));
+        setReservationsOwnerId(userId);
+        setLoadError(false);
+      }
+    } catch {
+      if (generation === requestGeneration.current) setLoadError(true);
+    } finally {
+      if (generation === requestGeneration.current) setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    setReservations([]);
+    setLoading(true);
+    setLoadError(false);
+    void fetchReservations();
+    return () => {
+      requestGeneration.current += 1;
+    };
+  }, [fetchReservations]);
 
   const refreshReservations = useAutoRefresh(fetchReservations, {
     intervalMs: 30000,
@@ -127,8 +162,11 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refreshReservations();
-    setRefreshing(false);
+    try {
+      await refreshReservations();
+    } finally {
+      setRefreshing(false);
+    }
   }, [refreshReservations]);
 
   const openCancelModal = (reservation: Reservation) => {
@@ -199,7 +237,7 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
   };
 
   const sections: Section[] = [];
-  const activeReservation = reservations
+  const activeReservation = visibleReservations
     .filter((r) =>
       isUpcoming(r.reservationDate, r.endTime) &&
       !['COMPLETED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_STYLISTS', 'NO_SHOW'].includes(r.status),
@@ -207,8 +245,8 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
     .sort((a, b) => getReservationStartTime(a) - getReservationStartTime(b))[0];
 
   const listSource = activeReservation
-    ? reservations.filter((r) => r.id !== activeReservation.id)
-    : reservations;
+    ? visibleReservations.filter((r) => r.id !== activeReservation.id)
+    : visibleReservations;
   const upcoming = listSource.filter((r) => isUpcoming(r.reservationDate, r.endTime) && !['COMPLETED', 'CANCELLED_BY_CLIENT', 'CANCELLED_BY_STYLISTS', 'NO_SHOW'].includes(r.status));
   const past = listSource.filter((r) => !upcoming.includes(r));
 
@@ -437,7 +475,18 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
       stickySectionHeadersEnabled={false}
       ListHeaderComponent={
         <View>
-          {activeReservation ? (
+          {loadError ? (
+            <Card style={[styles.featuredCtaCard, { borderColor: colors.border }]}>
+              <Text style={[styles.featuredCtaTitle, { color: colors.text }]}>
+                {t('reservation.listLoadErrorTitle')}
+              </Text>
+              <Text style={[styles.featuredCtaDesc, { color: colors.textSecondary }]}>
+                {visibleReservations.length > 0 ? t('reservation.staleListMessage') : t('reservation.listLoadErrorMessage')}
+              </Text>
+              <Button title={t('common.retry')} onPress={() => void fetchReservations()} size="sm" variant="outline" />
+            </Card>
+          ) : null}
+          {(!loadError || visibleReservations.length > 0) ? activeReservation ? (
             <View style={styles.featuredWrap}>
               <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
                 Trenutna rezervacija
@@ -463,11 +512,11 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
                 size="sm"
               />
             </Card>
-          )}
+          ) : null}
         </View>
       }
       ListEmptyComponent={
-        !activeReservation ? (
+        !loadError && !activeReservation ? (
           <EmptyState
             icon="calendar-outline"
             title={t('myReservations.noReservations')}

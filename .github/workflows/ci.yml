@@ -422,6 +422,9 @@ jobs:
       - name: Test home data validation and per-section recovery
         working-directory: mobile
         run: npm run test:home-read-recovery
+      - name: Test private reservation, inbox, and daily-log detail read recovery
+        working-directory: mobile
+        run: npm run test:private-read-recovery
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate

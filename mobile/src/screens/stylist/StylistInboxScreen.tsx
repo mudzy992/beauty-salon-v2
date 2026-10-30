@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   View,
@@ -39,21 +39,56 @@ export function StylistInboxScreen() {
   const { connected: socketConnected } = useSocket();
   const { profileId, loading: profileLoading, refetch: refetchProfile } = useStylistProfile();
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [reservationsOwnerId, setReservationsOwnerId] = useState<string | null>(null);
+  const visibleReservations = reservationsOwnerId === profileId ? reservations : [];
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const requestGeneration = useRef(0);
+  const requestOwnerId = useRef(profileId);
+  if (requestOwnerId.current !== profileId) {
+    requestOwnerId.current = profileId;
+    requestGeneration.current += 1;
+  }
   const [actingId, setActingId] = useState<string | null>(null);
 
   const fetchReservations = useCallback(async () => {
+    const generation = ++requestGeneration.current;
+    if (!profileId) {
+      setReservations([]);
+      setReservationsOwnerId(null);
+      setLoadError(false);
+      setLoading(false);
+      return;
+    }
     try {
       const { data } = await api.get<unknown>('/api/reservations', {
         params: { asStylist: true },
       });
-      setReservations(normalizeReservations(data) ?? []);
+      if (generation !== requestGeneration.current) return;
+      const rows = normalizeReservations(data);
+      if (!rows) setLoadError(true);
+      else {
+        setReservations(rows);
+        setReservationsOwnerId(profileId);
+        setLoadError(false);
+      }
     } catch {
-      setReservations([]);
+      if (generation === requestGeneration.current) setLoadError(true);
+    } finally {
+      if (generation === requestGeneration.current) setLoading(false);
     }
-    setLoading(false);
-  }, []);
+  }, [profileId]);
+
+  useEffect(() => {
+    setReservations([]);
+    setLoading(true);
+    setLoadError(false);
+    void fetchReservations();
+    return () => {
+      requestGeneration.current += 1;
+    };
+  }, [fetchReservations]);
 
   const refreshReservations = useAutoRefresh(fetchReservations, {
     intervalMs: 30000,
@@ -64,11 +99,14 @@ export function StylistInboxScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([refreshReservations(), refetchProfile()]);
-    setRefreshing(false);
+    try {
+      await Promise.all([refreshReservations(), refetchProfile()]);
+    } finally {
+      setRefreshing(false);
+    }
   }, [refreshReservations, refetchProfile]);
 
-  const pending = reservations.filter(
+  const pending = visibleReservations.filter(
     (r) => r.status === 'PENDING' || r.status === 'STYLIST_REVIEW',
   );
 
@@ -204,7 +242,7 @@ export function StylistInboxScreen() {
     [profileId, fetchReservations, t],
   );
 
-  if (profileLoading || (loading && reservations.length === 0)) {
+  if (profileLoading || (loading && visibleReservations.length === 0)) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -238,13 +276,28 @@ export function StylistInboxScreen() {
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
-      ListEmptyComponent={
+      ListHeaderComponent={loadError && pending.length > 0 ? (
+        <Card style={[styles.card, { borderColor: colors.border }]}>
+          <Text style={{ color: colors.text, fontWeight: '700' }}>{t('stylist.inbox.loadErrorTitle')}</Text>
+          <Text style={{ color: colors.textSecondary, marginTop: spacing.xs }}>{t('stylist.inbox.staleMessage')}</Text>
+          <Button title={t('common.retry')} onPress={() => void fetchReservations()} variant="outline" size="sm" style={{ marginTop: spacing.sm }} />
+        </Card>
+      ) : null}
+      ListEmptyComponent={loadError ? (
+        <EmptyState
+          icon="cloud-offline-outline"
+          title={t('stylist.inbox.loadErrorTitle')}
+          message={t('stylist.inbox.loadErrorMessage')}
+          actionLabel={t('common.retry')}
+          onAction={() => void fetchReservations()}
+        />
+      ) : (
         <EmptyState
           icon="calendar-outline"
           title={t('stylist.inbox.emptyTitle')}
           message={t('stylist.inbox.emptyMessage')}
         />
-      }
+      )}
       renderItem={({ item }) => {
         const myResponse = getMyResponse(item, profileId);
         const lockActive =

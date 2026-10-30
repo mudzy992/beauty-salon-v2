@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { Input } from '../../components/ui/Input';
 import api, { getUploadUrl } from '../../services/api';
 import { spacing } from '../../theme';
@@ -26,6 +27,7 @@ import { getApiErrorMessage } from '../../utils/apiError';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import { useDailyLogSocketRefresh } from '../../hooks/useDailyLogSocketRefresh';
 import type { DailyLogEntry } from '../../types';
+import { normalizeDailyLogEntries } from '../../utils/apiPayload';
 import { getCollectedTotal, getSettledDebtsSum } from './daily-log-display';
 import { DailyLogDispositionPanel } from './DailyLogDispositionPanel';
 import { DailyLogEntryActionsModal } from './daily-log-entry-actions-modal';
@@ -47,6 +49,13 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const [entry, setEntry] = useState<DailyLogEntry | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const requestGeneration = useRef(0);
+  const requestEntryId = useRef(entryId);
+  if (requestEntryId.current !== entryId) {
+    requestEntryId.current = entryId;
+    requestGeneration.current += 1;
+  }
   const [acting, setActing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pendingImageLink, setPendingImageLink] = useState<{ uploadId: string; isBefore: boolean } | null>(null);
@@ -56,19 +65,35 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const [deleteReason, setDeleteReason] = useState('');
 
   const fetchEntry = useCallback(async (): Promise<DailyLogEntry | null> => {
+    const generation = ++requestGeneration.current;
+    setLoadError(false);
     try {
-      const { data } = await api.get<DailyLogEntry>(`/api/daily-log/${entryId}`);
-      setEntry(data);
-      return data;
+      const { data } = await api.get<unknown>(`/api/daily-log/${entryId}`);
+      if (generation !== requestGeneration.current) return null;
+      const entries = normalizeDailyLogEntries([data]);
+      if (!entries || entries.length !== 1) {
+        setLoadError(true);
+        return null;
+      }
+      setEntry(entries[0]);
+      setLoadError(false);
+      return entries[0];
     } catch {
+      if (generation === requestGeneration.current) setLoadError(true);
       return null;
     } finally {
-      setLoading(false);
+      if (generation === requestGeneration.current) setLoading(false);
     }
   }, [entryId]);
 
   useEffect(() => {
-    fetchEntry();
+    setEntry(null);
+    setLoading(true);
+    setLoadError(false);
+    void fetchEntry();
+    return () => {
+      requestGeneration.current += 1;
+    };
   }, [fetchEntry]);
 
   useReservationSocketRefresh(fetchEntry);
@@ -303,7 +328,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
     });
   }, [colors.headerText, entry, navigation, openActionsMenu, t]);
 
-  if (loading) {
+  if (loading && !entry) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -313,8 +338,14 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
 
   if (!entry) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>{t('stylist.dailyLogDetail.notFound')}</Text>
+      <View style={[styles.center, { backgroundColor: colors.background, padding: spacing.lg }]}>
+        <EmptyState
+          icon={loadError ? 'cloud-offline-outline' : 'document-text-outline'}
+          title={loadError ? t('stylist.dailyLogDetail.loadErrorTitle') : t('stylist.dailyLogDetail.notFound')}
+          message={loadError ? t('stylist.dailyLogDetail.loadErrorMessage') : undefined}
+          actionLabel={loadError ? t('common.retry') : undefined}
+          onAction={loadError ? () => { setLoading(true); void fetchEntry(); } : undefined}
+        />
         <Button title={t('common.back')} onPress={() => navigation.goBack()} variant="outline" style={{ marginTop: spacing.md }} />
       </View>
     );
@@ -339,6 +370,13 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
       contentInsetAdjustmentBehavior="automatic"
       showsVerticalScrollIndicator={false}
     >
+      {loadError ? (
+        <Card style={[styles.card, { borderWidth: 1, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.loadErrorTitle')}</Text>
+          <Text style={{ color: colors.textSecondary, marginTop: spacing.xs }}>{t('stylist.dailyLogDetail.loadErrorMessage')}</Text>
+          <Button title={t('common.retry')} onPress={() => void fetchEntry()} variant="outline" size="sm" style={{ marginTop: spacing.sm }} />
+        </Card>
+      ) : null}
       <Card style={[styles.card, { borderWidth: 1, borderColor: colors.border }]}>
         <View style={[styles.headerRow, { borderBottomColor: colors.border }]}>
           <View style={{ flex: 1 }}>
