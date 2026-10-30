@@ -74,6 +74,9 @@ export const bs = {
     price: '{{price}} KM',
     bookService: 'Rezerviši',
     noServices: 'Nema dostupnih usluga',
+    loadErrorTitle: 'Usluge nisu dostupne',
+    loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
+    staleMessage: 'Prikazujemo ranije učitane usluge. Osvježavanje nije uspjelo.',
   },
   reservation: {
     title: 'Rezervacija',
