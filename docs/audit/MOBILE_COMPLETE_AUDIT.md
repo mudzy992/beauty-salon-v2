@@ -2,7 +2,7 @@
 
 ## Status i obuhvat
 
-**Audit izvornog koda mobilne aplikacije je završen.** Audit-prvo faza nije mijenjala aplikacijski kod. MOB-01–MOB-06 su ranije implementirani; sada se nalazi rješavaju zasebnim, testiranim i CI-potvrđenim sliceovima. Sliceovi 1–12 pokrivaju dijelove MOB-AUD-02–09; preostali nalazi i nedovršeni dijelovi ostaju u planu.
+**Audit izvornog koda mobilne aplikacije je završen.** Audit-prvo faza nije mijenjala aplikacijski kod. MOB-01–MOB-06 su ranije implementirani; sada se nalazi rješavaju zasebnim, testiranim i CI-potvrđenim sliceovima. Sliceovi 1–13 pokrivaju dijelove MOB-AUD-02–09; preostali nalazi i nedovršeni dijelovi ostaju u planu.
 
 Pregledani su: Expo Router rute i rasporedi; ekrani za klijente, stiliste, prijavu i početno podešavanje naloga; zajedničke UI, medijske i navigacijske komponente; auth i notification storeovi; API, katalog, javne postavke i servisi za URL-ove uploadovanih fajlova; hookovi za osvježavanje, socket i push obavijesti; Android updater; aplikacijska/EAS konfiguracija i zavisnosti za mobilnu aplikaciju; te mobilni API pozivi u odnosu na odgovarajuće NestJS kontrolere, guardove i relevantne DTO/servisne oblike odgovora. U `mobile/src/screens` nalazi se 55 fajlova koji nisu testovi, a u `mobile/app` 51 TypeScript fajl koji nije test, uključujući rute, rasporede i komponente.
 
@@ -46,6 +46,7 @@ Ove izmjene imaju fokusirane helper/source testove. One ne predstavljaju provjer
 - **Pripremni i18n commit za stylist schedule recovery:** dodani su bosanski naslovi i poruke za početnu grešku te neuspjelo osvježavanje rasporeda. Commit `816530f`; i18n guard prolazi, CI run `41125727430` prošao sva četiri joba.
 - **Slice 12 — oporavak čitanja rasporeda stiliste:** response se runtime-validira, a greške osvježavanja čuvaju ranije učitane termine uz upozorenje i retry; početni neuspjeh ima zaseban error/retry prikaz. Zahtjevi su zaštićeni generacijom i profilom stiliste, uključujući skrivanje tuđih ranije učitanih podataka pri promjeni profila. Svih 16 schedule testova, `typecheck`, i18n guard i `git diff --check` prošli lokalno; implementacijski commit `089a57c`, CI run `41128904071` prošao sva četiri joba.
 - **Pripremni i18n commit za client reservation detail recovery:** dodane su bosanske poruke za grešku učitavanja i zastarjele detalje. Commit `351ab34`; i18n guard prolazi, CI run `41129865825` prošao sva četiri joba.
+- **Slice 13 — oporavak detalja rezervacije klijenta:** dodan je validator rezervacije i uplate (uključujući sve iznose i pojedinačne stavke); error/retry i zastarjeli detalj se razlikuju, a raniji odgovor više ne briše podatke. Prikaz je vezan uz trenutni korisnik i reservation ID, uz odbacivanje odgovora za zastarjelu rutu/nalog. Fokusirani detail i API-payload testovi (API parser suite **15/15**), `typecheck`, i18n guard i `git diff --check` prošli lokalno; implementacijski commit `d84e54f`, CI run `41131215956` prošao sva četiri joba.
 - Za Slice 1 lokalno su prošli Expo iOS i Android JavaScript export; YAML se parsira. ESLint nije pokrenut jer Mobile paket nema instaliran `eslint` binarni fajl/dependency. Fizički uređaj i živi API nisu testirani.
 - Preostaje implementirati UX stanja i retry za ostale mrežne/API tokove (AUD-03), validirati ostale katalog liste (AUD-02) te preostale nalaze. Nijedan API host nije promijenjen i nijedan upis nije izveden.
 
