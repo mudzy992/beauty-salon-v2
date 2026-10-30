@@ -267,6 +267,9 @@ export const bs = {
   notifications: {
     title: 'Obavještenja',
     noNotifications: 'Nemate obavještenja',
+    loadErrorTitle: 'Obavještenja nisu dostupna',
+    loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
+    staleMessage: 'Prikazujemo ranije učitana obavještenja. Osvježavanje nije uspjelo.',
     markAsRead: 'Označi kao pročitano',
   },
   appUpdate: {
