@@ -4,17 +4,17 @@ export interface User {
   email: string | null;
   firstName: string;
   lastName: string;
-  phone?: string;
+  phone?: string | null;
   gender?: 'MALE' | 'FEMALE' | null;
   /** false dok korisnik ne potvrdi spol u onboarding / profilu (admin može imati gender u bazi prije toga) */
   genderOnboardingCompleted?: boolean;
   avatar?: string;
   isAvatarPublic?: boolean;
-  isActive: boolean;
+  isActive?: boolean;
   isEmailVerified: boolean;
   mustChangePassword?: boolean;
-  roles: UserRole[];
-  createdAt: string;
+  roles: string[] | UserRole[];
+  createdAt?: string;
 }
 
 export interface UserRole {

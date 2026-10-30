@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { AxiosError } from 'axios';
 import api, { setStoredToken, removeStoredToken, getStoredToken, setOnUnauthorized } from '../services/api';
 import type { User, LoginResponse } from '../types';
+import { extractUserFromPayload } from './auth-user';
+import { removeAuthTokenSafely } from './session-cleanup';
 
 interface AuthState {
   user: User | null;
@@ -26,24 +28,9 @@ interface RegisterData {
   phone?: string;
 }
 
-function extractUserFromPayload(payload: unknown): User | null {
-  if (!payload || typeof payload !== 'object') return null;
-
-  const direct = payload as Partial<User>;
-  if (typeof direct.id === 'string') return direct as User;
-
-  const nested = payload as { user?: unknown; data?: { user?: unknown } };
-  const nestedUser = nested.user ?? nested.data?.user;
-  if (nestedUser && typeof nestedUser === 'object' && typeof (nestedUser as Partial<User>).id === 'string') {
-    return nestedUser as User;
-  }
-
-  return null;
-}
-
 export const useAuthStore = create<AuthState>((set, get) => {
   setOnUnauthorized(() => {
-    get().logout();
+    void get().logout().catch(() => undefined);
   });
 
   return {
@@ -70,7 +57,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       } catch (error) {
         const status = (error as AxiosError)?.response?.status;
         if (status === 401) {
-          await removeStoredToken();
+          await removeAuthTokenSafely(removeStoredToken);
           set({ user: null, token: null, isInitialized: true });
           return;
         }
@@ -118,7 +105,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
 
     logout: async () => {
-      await removeStoredToken();
+      await removeAuthTokenSafely(removeStoredToken);
       set({ user: null, token: null });
     },
 

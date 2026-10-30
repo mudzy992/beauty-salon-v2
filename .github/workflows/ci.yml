@@ -392,6 +392,9 @@ jobs:
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate
+      - name: Test auth session payload validation and safe cleanup
+        working-directory: mobile
+        run: npm run test:auth-session
       - name: Enforce localized copy in audited mobile screens
         working-directory: mobile
         run: npm run check:i18n
