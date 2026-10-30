@@ -8,7 +8,8 @@ const translations = readFileSync(new URL('../../i18n/bs.ts', import.meta.url), 
 test('blog detail runtime-validates article reads and rejects stale route responses', () => {
   assert.match(screen, /api\.get<unknown>\(`\/api\/blog\/slug\/\$\{requestedSlug\}`\)/);
   assert.match(screen, /normalizeBlogPost\(data\)/);
-  assert.match(screen, /normalized\.slug !== requestedSlug \|\| !normalized\.isPublished/);
+  assert.match(screen, /normalized\.slug !== requestedSlug/);
+  assert.match(screen, /if \(!normalized\.isPublished\)/);
   assert.match(screen, /generation !== postRequestGeneration\.current/);
   assert.match(screen, /postRequestGeneration\.current \+= 1/);
   assert.match(screen, /postState\?\.slug === slug/);
