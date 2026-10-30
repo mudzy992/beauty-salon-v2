@@ -32,8 +32,10 @@ function loadTypeScriptModule(relativePath) {
 const payloads = loadTypeScriptModule('./apiPayload.ts');
 const {
   normalizeAvailabilityChangedPayload,
+  normalizeBeforeAfterPage,
   normalizeBeforeAfterPairs,
   normalizeClientDebts,
+  normalizeClientSearchResults,
   normalizeDailyLogEntries,
   normalizeDebtAmounts,
   normalizeLoyaltyPreview,
@@ -109,6 +111,22 @@ test('before-after parser filters incomplete nested media rows and normalizes us
   assert.equal(rows.length, 1);
   assert.equal(rows[0].before.pathOriginal, 'private/before.webp');
   assert.equal(normalizeBeforeAfterPairs({ items: [] }), null);
+});
+
+test('before-after page parser requires a coherent pagination envelope', () => {
+  const page = normalizeBeforeAfterPage({ items: [], hasMore: false, nextOffset: 0 });
+  assert.deepEqual(page, { items: [], hasMore: false, nextOffset: 0 });
+  assert.equal(normalizeBeforeAfterPage({ items: [], hasMore: 'false', nextOffset: 0 }), null);
+  assert.equal(normalizeBeforeAfterPage({ items: [], hasMore: false, nextOffset: -1 }), null);
+});
+
+test('stylist client-search parser validates the paged envelope and filters malformed users', () => {
+  const clients = normalizeClientSearchResults({ items: [
+    { id: 'u-1', username: 'amina', firstName: null, lastName: 'K.', gender: 'FEMALE' },
+    { id: 'bad', username: 5, firstName: null, lastName: null },
+  ] });
+  assert.deepEqual(clients, [{ id: 'u-1', username: 'amina', firstName: null, lastName: 'K.', gender: 'FEMALE' }]);
+  assert.equal(normalizeClientSearchResults({}), null);
 });
 
 test('reservation and daily-log parsers reject malformed envelopes and filter unsafe rows', () => {

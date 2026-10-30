@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { getSalonDateOnly } from '../../utils/date';
+import { normalizeClientSearchResults } from '../../utils/apiPayload';
 import { fetchAllPublicServices } from '../../services/catalog';
 import {
   clientLabel,
@@ -22,6 +23,7 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
   const [endTime, setEndTime] = useState('10:00');
   const [clientNotes, setClientNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const clientSearchGeneration = useRef(0);
 
   useEffect(() => {
     fetchAllPublicServices<DirectBookingService>({ activeOnly: 'true' })
@@ -30,6 +32,7 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
   }, []);
 
   useEffect(() => {
+    const generation = ++clientSearchGeneration.current;
     const handle = setTimeout(() => {
       const q = clientSearch.trim();
       if (!q) {
@@ -41,13 +44,21 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
         return;
       }
       api
-        .get<{ items: DirectBookingClient[] }>('/api/users/clients', {
+        .get<unknown>('/api/users/clients', {
           params: { page: 0, pageSize: 10, q },
         })
-        .then(({ data }) => setClients(Array.isArray(data.items) ? data.items : []))
-        .catch(() => setClients([]));
+        .then(({ data }) => {
+          if (clientSearchGeneration.current !== generation) return;
+          setClients(normalizeClientSearchResults(data) ?? []);
+        })
+        .catch(() => {
+          if (clientSearchGeneration.current === generation) setClients([]);
+        });
     }, 250);
-    return () => clearTimeout(handle);
+    return () => {
+      clearTimeout(handle);
+      if (clientSearchGeneration.current === generation) clientSearchGeneration.current += 1;
+    };
   }, [clientSearch, selectedClient]);
 
   const filteredServices = useMemo(() => {

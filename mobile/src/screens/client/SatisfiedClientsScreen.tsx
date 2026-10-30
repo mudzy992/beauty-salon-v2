@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import api, { getUploadUrl } from '../../services/api';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { spacing } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
-import { normalizeBeforeAfterPairs } from '../../utils/apiPayload';
+import { normalizeBeforeAfterPage } from '../../utils/apiPayload';
 import type { HomeScreenProps } from '../../navigation/types';
 
 interface BeforeAfterPair {
@@ -36,24 +36,32 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
   const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const requestGeneration = useRef(0);
 
-  const loadPage = useCallback(async (nextOffset: number, append: boolean) => {
+  const loadPage = useCallback(async (nextOffset: number, append: boolean, generation = requestGeneration.current) => {
     if (nextOffset === 0) setLoading(true);
     else setLoadingMore(true);
     try {
-      const { data } = await api.get<{ items: BeforeAfterPair[]; hasMore: boolean; nextOffset: number }>(
+      const { data } = await api.get<unknown>(
         '/api/daily-log/before-after',
         { params: { limit: PAGE_SIZE, offset: nextOffset } },
       );
-      const list = normalizeBeforeAfterPairs(data?.items) ?? [];
-      setItems((prev) => (append ? [...prev, ...list] : list));
-      setHasMore(data.hasMore ?? false);
-      setOffset(data.nextOffset ?? nextOffset + list.length);
+      if (generation !== requestGeneration.current) return;
+      const page = normalizeBeforeAfterPage(data);
+      if (!page) {
+        setHasMore(false);
+        return;
+      }
+      setItems((prev) => (append ? [...prev, ...page.items] : page.items));
+      setHasMore(page.hasMore);
+      setOffset(page.nextOffset);
     } catch {
-      setHasMore(false);
+      if (generation === requestGeneration.current) setHasMore(false);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (generation === requestGeneration.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, []);
 
@@ -64,7 +72,11 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
   }, [loading, loadingMore, hasMore, offset, items.length, loadPage]);
 
   React.useEffect(() => {
-    loadPage(0, false);
+    const generation = ++requestGeneration.current;
+    void loadPage(0, false, generation);
+    return () => {
+      if (requestGeneration.current === generation) requestGeneration.current += 1;
+    };
   }, [loadPage]);
 
   const renderItem: ListRenderItem<BeforeAfterPair> = useCallback(

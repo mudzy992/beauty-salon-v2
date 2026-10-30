@@ -407,6 +407,9 @@ jobs:
       - name: Test guarded external link handling
         working-directory: mobile
         run: npm run test:external-links
+      - name: Test stale-response and notification account isolation
+        working-directory: mobile
+        run: npm run test:async-response-identity
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate

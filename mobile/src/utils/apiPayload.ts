@@ -179,6 +179,22 @@ export function normalizeBeforeAfterPairs(payload: unknown): BeforeAfterPairPayl
   return result;
 }
 
+export interface BeforeAfterPagePayload {
+  items: BeforeAfterPairPayload[];
+  hasMore: boolean;
+  nextOffset: number;
+}
+
+export function normalizeBeforeAfterPage(payload: unknown): BeforeAfterPagePayload | null {
+  if (!isRecord(payload)) return null;
+  const items = normalizeBeforeAfterPairs(payload.items);
+  if (
+    !items || typeof payload.hasMore !== 'boolean' ||
+    !Number.isSafeInteger(payload.nextOffset) || (payload.nextOffset as number) < 0
+  ) return null;
+  return { items, hasMore: payload.hasMore, nextOffset: payload.nextOffset as number };
+}
+
 const RESERVATION_STATUSES = new Set([
   'PENDING', 'STYLIST_REVIEW', 'CONFIRMED', 'ATTENDANCE_CONFIRMED',
   'IN_PROGRESS', 'AWAITING_DAILY_LOG', 'COMPLETED', 'CANCELLED_BY_CLIENT',
@@ -209,6 +225,26 @@ function isReservationRow(row: unknown): row is Reservation {
 export function normalizeReservations(payload: unknown): Reservation[] | null {
   if (!Array.isArray(payload)) return null;
   return payload.filter(isReservationRow);
+}
+
+export interface ClientSearchRow {
+  id: string;
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+  gender?: 'MALE' | 'FEMALE' | null;
+}
+
+export function normalizeClientSearchResults(payload: unknown): ClientSearchRow[] | null {
+  if (!isRecord(payload) || !Array.isArray(payload.items)) return null;
+  return payload.items.filter((row): row is ClientSearchRow =>
+    isRecord(row) &&
+    isNonEmptyString(row.id) &&
+    isNonEmptyString(row.username) &&
+    (row.firstName === null || typeof row.firstName === 'string') &&
+    (row.lastName === null || typeof row.lastName === 'string') &&
+    (row.gender === undefined || row.gender === null || row.gender === 'MALE' || row.gender === 'FEMALE')
+  );
 }
 
 function isDailyLogRow(row: unknown): row is DailyLogEntry {

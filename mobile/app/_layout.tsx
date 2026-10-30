@@ -72,6 +72,7 @@ function AppContent() {
     refreshProfile,
   } = useAuthStore();
   const fetchNotifications = useNotificationStore((s) => s.fetch);
+  const setNotificationUser = useNotificationStore((s) => s.setActiveUser);
 
   usePushNotifications();
   const apkUpdate = useApkUpdateCheck();
@@ -92,8 +93,10 @@ function AppContent() {
   }, [initialize]);
 
   useEffect(() => {
-    if (user?.id) fetchNotifications();
-  }, [user?.id, fetchNotifications]);
+    const userId = user?.id ?? null;
+    setNotificationUser(userId);
+    if (userId) void fetchNotifications();
+  }, [user?.id, fetchNotifications, setNotificationUser]);
 
   const [fontsLoaded, fontsError] = useFonts({
     Inter_400Regular,

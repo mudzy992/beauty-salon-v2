@@ -10,7 +10,7 @@ const translations = readFileSync(new URL('../../i18n/bs.ts', import.meta.url), 
 test('notification fetch marks malformed and failed responses while preserving loaded data', () => {
   assert.match(store, /fetchError:\s*boolean/);
   assert.match(store, /if \(!notifications\)\s*\{\s*set\(\{ isLoading: false, fetchError: true \}\)/);
-  assert.match(store, /catch\s*\{\s*set\(\{ isLoading: false, fetchError: true \}\)/);
+  assert.match(store, /catch\s*\{\s*if \(isCurrentRequest\(\)\) set\(\{ isLoading: false, fetchError: true \}\)/);
   assert.match(store, /set\(\{ notifications, unreadCount, isLoading: false, fetchError: false \}\)/);
   assert.doesNotMatch(store, /set\(\{ notifications: \[\], unreadCount: 0/);
 });
