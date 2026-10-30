@@ -577,6 +577,9 @@ export const bs = {
       },
     },
     schedule: {
+      loadErrorTitle: 'Raspored nije dostupan',
+      loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
+      staleMessage: 'Prikazujemo ranije učitane termine; osvježavanje nije uspjelo.',
       weekdaySundayShort: 'Ned',
       weekdayMondayShort: 'Pon',
       weekdayTuesdayShort: 'Uto',
