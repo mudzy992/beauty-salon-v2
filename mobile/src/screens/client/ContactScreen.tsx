@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Linking, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Linking, TouchableOpacity, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
@@ -10,6 +10,7 @@ import { fetchPublicSettings, type PublicSettingItem } from '../../services/publ
 import { formatSalonWorkingHours } from '../../utils/formatSalonHours';
 import api from '../../services/api';
 import { usePublicContentSocketRefresh } from '../../hooks/usePublicContentSocketRefresh';
+import { tryOpenExternalUrl, type ExternalLinkScheme } from '../../utils/externalLink';
 import type { ProfileScreenProps } from '../../navigation/types';
 
 function getSettingValue(
@@ -25,15 +26,17 @@ function SocialLink({
   label,
   url,
   icon,
+  onOpen,
 }: {
   label: string;
   url: string;
   icon: keyof typeof Ionicons.glyphMap;
+  onOpen: (url: string) => void;
 }) {
   const { colors } = useTheme();
   return (
     <TouchableOpacity
-      onPress={() => Linking.openURL(url)}
+      onPress={() => onOpen(url)}
       activeOpacity={0.75}
       style={[styles.socialChip, { borderColor: colors.border, backgroundColor: colors.surface }]}
     >
@@ -88,6 +91,19 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
     Math.abs(lat) > 0.000001 &&
     Math.abs(lng) > 0.000001;
 
+  const showLinkError = useCallback(() => {
+    Alert.alert(t('common.error'), t('profile.contact.openLinkError'));
+  }, [t]);
+
+  const openExternal = useCallback(async (
+    value: unknown,
+    schemes: readonly ExternalLinkScheme[],
+  ) => {
+    if (!(await tryOpenExternalUrl(value, schemes, (url) => Linking.openURL(url)))) {
+      showLinkError();
+    }
+  }, [showLinkError]);
+
   const openMaps = async () => {
     const label = address || 'Beauty salon';
     const query = encodeURIComponent(label);
@@ -103,18 +119,11 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
     const webUrl = hasCoords
       ? `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
       : `https://www.google.com/maps/search/?api=1&query=${query}`;
+    const nativeScheme: ExternalLinkScheme = Platform.OS === 'ios' ? 'maps' : 'geo';
 
-    try {
-      const canNative = await Linking.canOpenURL(nativeUrl);
-      if (canNative) {
-        await Linking.openURL(nativeUrl);
-        return;
-      }
-    } catch {
-      // ignore
-    }
-
-    await Linking.openURL(webUrl);
+    if (await tryOpenExternalUrl(nativeUrl, [nativeScheme], (url) => Linking.openURL(url))) return;
+    if (await tryOpenExternalUrl(webUrl, ['https'], (url) => Linking.openURL(url))) return;
+    showLinkError();
   };
 
   const socials = useMemo(() => {
@@ -152,7 +161,7 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
         {phone ? (
           <TouchableOpacity
             style={styles.row}
-            onPress={() => Linking.openURL(`tel:${phone}`)}
+            onPress={() => void openExternal(`tel:${phone.replace(/\s/g, '')}`, ['tel'])}
             activeOpacity={0.75}
           >
             <Ionicons name="call-outline" size={18} color={colors.textMuted} />
@@ -163,7 +172,7 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
         {email ? (
           <TouchableOpacity
             style={styles.row}
-            onPress={() => Linking.openURL(`mailto:${email}`)}
+            onPress={() => void openExternal(`mailto:${email}`, ['mailto'])}
             activeOpacity={0.75}
           >
             <Ionicons name="mail-outline" size={18} color={colors.textMuted} />
@@ -199,13 +208,13 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Društvene mreže</Text>
           <View style={styles.socialRow}>
             {socials.facebook ? (
-              <SocialLink label="Facebook" url={socials.facebook} icon="logo-facebook" />
+              <SocialLink label="Facebook" url={socials.facebook} icon="logo-facebook" onOpen={(url) => void openExternal(url, ['https', 'http'])} />
             ) : null}
             {socials.instagram ? (
-              <SocialLink label="Instagram" url={socials.instagram} icon="logo-instagram" />
+              <SocialLink label="Instagram" url={socials.instagram} icon="logo-instagram" onOpen={(url) => void openExternal(url, ['https', 'http'])} />
             ) : null}
             {socials.tiktok ? (
-              <SocialLink label="TikTok" url={socials.tiktok} icon="link-outline" />
+              <SocialLink label="TikTok" url={socials.tiktok} icon="link-outline" onOpen={(url) => void openExternal(url, ['https', 'http'])} />
             ) : null}
           </View>
         </Card>

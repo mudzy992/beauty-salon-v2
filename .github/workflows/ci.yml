@@ -404,6 +404,9 @@ jobs:
       - name: Test Android updater release metadata and APK bounds
         working-directory: mobile
         run: npm run test:android-release-payload
+      - name: Test guarded external link handling
+        working-directory: mobile
+        run: npm run test:external-links
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate
