@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,14 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
 import { spacing } from '../../theme';
@@ -40,17 +42,24 @@ type Section = { title: string; data: DailyLogEntry[] };
 
 export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { profileId, loading: profileLoading } = useStylistProfile();
   const [entries, setEntries] = useState<DailyLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const requestGeneration = useRef(0);
 
   const fetchEntries = useCallback(async () => {
+    const generation = ++requestGeneration.current;
     if (!profileId) {
+      setEntries([]);
+      setLoadError(false);
       setLoading(false);
       return;
     }
+    setLoadError(false);
     try {
       const today = getSalonDateOnly();
       const fromDate = addDateOnlyMonths(today, -1);
@@ -62,15 +71,25 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
           toDate,
         },
       });
-      setEntries(normalizeDailyLogEntries(data) ?? []);
+      if (generation !== requestGeneration.current) return;
+      const normalizedEntries = normalizeDailyLogEntries(data);
+      if (!normalizedEntries) setLoadError(true);
+      else {
+        setEntries(normalizedEntries);
+        setLoadError(false);
+      }
     } catch {
-      setEntries([]);
+      if (generation === requestGeneration.current) setLoadError(true);
+    } finally {
+      if (generation === requestGeneration.current) setLoading(false);
     }
-    setLoading(false);
   }, [profileId]);
 
   useEffect(() => {
-    fetchEntries();
+    void fetchEntries();
+    return () => {
+      requestGeneration.current += 1;
+    };
   }, [fetchEntries]);
 
   useReservationSocketRefresh(fetchEntries);
@@ -151,7 +170,7 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
     return result;
   }, [entries]);
 
-  if (profileLoading || (loading && !profileId)) {
+  if (profileLoading || (loading && entries.length === 0)) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -185,13 +204,38 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
       }
-      ListEmptyComponent={
+      ListHeaderComponent={loadError && entries.length > 0 ? (
+        <Card style={{ marginBottom: spacing.md, borderWidth: 1, borderColor: colors.border }}>
+          <Text style={{ color: colors.text, fontWeight: '700' }}>
+            {t('stylist.dailyLogList.loadErrorTitle')}
+          </Text>
+          <Text style={{ color: colors.textSecondary, marginTop: spacing.xs }}>
+            {t('stylist.dailyLogList.staleMessage')}
+          </Text>
+          <Button
+            title={t('common.retry')}
+            onPress={() => void fetchEntries()}
+            variant="outline"
+            size="sm"
+            style={{ marginTop: spacing.sm }}
+          />
+        </Card>
+      ) : null}
+      ListEmptyComponent={loadError ? (
+        <EmptyState
+          icon="cloud-offline-outline"
+          title={t('stylist.dailyLogList.loadErrorTitle')}
+          message={t('stylist.dailyLogList.loadErrorMessage')}
+          actionLabel={t('common.retry')}
+          onAction={() => void fetchEntries()}
+        />
+      ) : (
         <EmptyState
           icon="document-text-outline"
           title="Nema zapisa"
           message="Zapisi iz rezervacija ili ručno dodani pojavit će se ovdje. Završite zapis i dodajte before/after slike."
         />
-      }
+      )}
       renderSectionHeader={({ section }) => (
         <Text style={[styles.sectionHeader, { color: colors.primary }]}>{section.title}</Text>
       )}

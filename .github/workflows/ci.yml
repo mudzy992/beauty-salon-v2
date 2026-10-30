@@ -416,6 +416,9 @@ jobs:
       - name: Test service detail runtime validation and recovery UI
         working-directory: mobile
         run: npm run test:catalog-detail-recovery
+      - name: Test daily-log list read recovery and stale-data behavior
+        working-directory: mobile
+        run: npm run test:daily-log-read-recovery
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate

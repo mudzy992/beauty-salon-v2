@@ -2,7 +2,7 @@
 
 ## Status i obuhvat
 
-**Audit izvornog koda mobilne aplikacije je završen.** Audit-prvo faza nije mijenjala aplikacijski kod. MOB-01–MOB-06 su ranije implementirani; sada se nalazi rješavaju zasebnim, testiranim i CI-potvrđenim sliceovima. Sliceovi 1–8 pokrivaju dijelove MOB-AUD-02–09; preostali nalazi i nedovršeni dijelovi ostaju u planu.
+**Audit izvornog koda mobilne aplikacije je završen.** Audit-prvo faza nije mijenjala aplikacijski kod. MOB-01–MOB-06 su ranije implementirani; sada se nalazi rješavaju zasebnim, testiranim i CI-potvrđenim sliceovima. Sliceovi 1–9 pokrivaju dijelove MOB-AUD-02–09; preostali nalazi i nedovršeni dijelovi ostaju u planu.
 
 Pregledani su: Expo Router rute i rasporedi; ekrani za klijente, stiliste, prijavu i početno podešavanje naloga; zajedničke UI, medijske i navigacijske komponente; auth i notification storeovi; API, katalog, javne postavke i servisi za URL-ove uploadovanih fajlova; hookovi za osvježavanje, socket i push obavijesti; Android updater; aplikacijska/EAS konfiguracija i zavisnosti za mobilnu aplikaciju; te mobilni API pozivi u odnosu na odgovarajuće NestJS kontrolere, guardove i relevantne DTO/servisne oblike odgovora. U `mobile/src/screens` nalazi se 55 fajlova koji nisu testovi, a u `mobile/app` 51 TypeScript fajl koji nije test, uključujući rute, rasporede i komponente.
 
@@ -39,6 +39,7 @@ Ove izmjene imaju fokusirane helper/source testove. One ne predstavljaju provjer
 - **Pripremni i18n commit za naredni katalog/detail slice:** dodane su bosanske poruke za grešku detalja usluge, recenzija i galerije. Commit `2170835`; i18n guard prolazi, CI run `41117557419` prošao sva četiri joba.
 - **Slice 8 — runtime validacija kataloga/detalja i oporavak recenzija/galerije (lokalna provjera završena):** paginirani katalog odbacuje neispravne envelope/metapodatke; kategorije, usluge, recenzije i galerija prolaze runtime normalizaciju. Category/detail ekrani razlikuju grešku od validno praznog rezultata, nude retry, a review/gallery greške više ne brišu uslugu ni ranije podatke. Node suite **174/174**, `typecheck` i i18n guard prolaze; commit `9fb91a5`, CI run `41119072752` prošao sva četiri joba.
 - **Pripremni i18n commit za Home i daily-log listu:** dodani su prevodi za greške i retry poruke na oba toka. Commit `b5e8643`; i18n guard prolazi, CI run `41119665054` prošao sva četiri joba.
+- **Slice 9 — daily-log lista: greška, zastarjeli podaci i zaštita zahtjeva (lokalna provjera završena):** neuspješno/neispravno osvježavanje više ne briše ranije zapise; prikazuje se retry ili vidljiva oznaka zastarjelih podataka, a stari odgovori se odbacuju. Node suite **176/176**, `typecheck`, i18n guard i `git diff --check` prolaze; CI treba potvrditi nakon pusha.
 - Za Slice 1 lokalno su prošli Expo iOS i Android JavaScript export; YAML se parsira. ESLint nije pokrenut jer Mobile paket nema instaliran `eslint` binarni fajl/dependency. Fizički uređaj i živi API nisu testirani.
 - Preostaje implementirati UX stanja i retry za ostale mrežne/API tokove (AUD-03), validirati ostale katalog liste (AUD-02) te preostale nalaze. Nijedan API host nije promijenjen i nijedan upis nije izveden.
 
