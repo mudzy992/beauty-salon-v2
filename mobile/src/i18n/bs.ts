@@ -91,6 +91,8 @@ export const bs = {
     success: 'Rezervacija poslana!',
     successMessage: 'Vaša rezervacija je uspješno kreirana. Obavijestit ćemo vas o statusu.',
     noSlots: 'Nema slobodnih termina za odabrani datum',
+    availabilityError: 'Dostupnost trenutno nije moguće učitati. Pokušajte ponovo.',
+    submitError: 'Rezervaciju nije moguće kreirati. Provjerite odabrani termin i pokušajte ponovo.',
     noDates: 'Nema dostupnih datuma',
     step: 'Korak {{current}} od {{total}}',
   },

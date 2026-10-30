@@ -389,6 +389,9 @@ jobs:
       - name: Test client profile API contract and malformed-response handling
         working-directory: mobile
         run: npm run test:client-profile-contract
+      - name: Test reservation availability API contracts and malformed responses
+        working-directory: mobile
+        run: npm run test:reservation-availability
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate

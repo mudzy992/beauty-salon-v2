@@ -26,8 +26,10 @@ import { fetchAllPublicServices } from '../../services/catalog';
 import { spacing, borderRadius } from '../../theme';
 import { formatDate, formatTime, getDateRange, getSalonDateOnly, getSalonTime } from '../../utils/date';
 import { useAvailabilitySocketRefresh } from '../../hooks/useAvailabilitySocketRefresh';
+import { getApiErrorMessage } from '../../utils/apiError';
 import type { ServicesScreenProps } from '../../navigation/types';
-import type { Service, AvailableDate, TimeSlot } from '../../types';
+import type { Service, TimeSlot } from '../../types';
+import { normalizeAvailableDates, normalizeAvailableSlots } from './reservation-availability';
 import {
   createIdempotencyKey,
   type PendingIdempotentRequest,
@@ -74,13 +76,18 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const [slots, setSlots] = useState<TimeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [datesLoading, setDatesLoading] = useState(false);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [datesError, setDatesError] = useState(false);
+  const [slotsError, setSlotsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0);
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
   const [payDebtsIntent, setPayDebtsIntent] = useState(false);
   const [openDebtsTotal, setOpenDebtsTotal] = useState(0);
   const bookingAttemptRef = useRef<PendingIdempotentRequest>(null);
+  const datesRequestIdRef = useRef(0);
+  const slotsRequestIdRef = useRef(0);
   const servicesById = useMemo(
     () => new Map(services.map((service) => [service.id, service])),
     [services],
@@ -118,8 +125,13 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     if (!initialServiceId) return;
     const fromList = servicesById.get(initialServiceId);
     if (fromList && (!user?.gender || fromList.gender === user.gender)) {
+      datesRequestIdRef.current += 1;
+      slotsRequestIdRef.current += 1;
       setSelectedServices([fromList]);
+      setAvailableDates({});
+      setDatesError(false);
       setSelectedDate(null);
+      setSlots([]);
       setSelectedSlot(null);
       setNotes('');
       setDesiredLoyaltyPercent(0);
@@ -134,8 +146,13 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
           setStep(1);
           return;
         }
+        datesRequestIdRef.current += 1;
+        slotsRequestIdRef.current += 1;
         setSelectedServices([data]);
+        setAvailableDates({});
+        setDatesError(false);
         setSelectedDate(null);
+        setSlots([]);
         setSelectedSlot(null);
         setNotes('');
         setDesiredLoyaltyPercent(0);
@@ -147,32 +164,67 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     })();
   }, [initialServiceId, requestId, servicesById, user?.gender, startAtStep]);
 
+  useEffect(() => () => {
+    datesRequestIdRef.current += 1;
+    slotsRequestIdRef.current += 1;
+  }, []);
+
   // Load available dates when service is selected
   const loadAvailableDates = useCallback(async () => {
-    if (selectedServiceIds.length === 0) return;
-    setLoading(true);
+    const requestId = ++datesRequestIdRef.current;
+    setAvailableDates({});
+    setDatesError(false);
+    if (selectedServiceIds.length === 0) {
+      setDatesLoading(false);
+      return;
+    }
+
+    setDatesLoading(true);
     const { fromDate, toDate } = getDateRange(60);
     try {
-      const { data } = await api.get<AvailableDate[]>('/api/reservations/availability/dates', {
+      const { data } = await api.get<unknown>('/api/reservations/availability/dates', {
         params: { serviceIds: selectedServiceIds.join(','), fromDate, toDate },
       });
-      const dateMap: Record<string, boolean> = {};
-      data.forEach((d) => { dateMap[d.date] = d.available; });
+      if (requestId !== datesRequestIdRef.current) return;
+      const dateMap = normalizeAvailableDates(data);
+      if (!dateMap) throw new Error('Invalid availability dates response.');
       setAvailableDates(dateMap);
-    } catch { /* silent */ }
-    setLoading(false);
+    } catch {
+      if (requestId === datesRequestIdRef.current) {
+        setAvailableDates({});
+        setDatesError(true);
+      }
+    } finally {
+      if (requestId === datesRequestIdRef.current) setDatesLoading(false);
+    }
   }, [selectedServiceIds]);
 
   const loadSlotsForDate = useCallback(async (date: string) => {
-    if (selectedServiceIds.length === 0 || !date) return;
-    setLoading(true);
+    const requestId = ++slotsRequestIdRef.current;
+    setSlots([]);
+    setSlotsError(false);
+    if (selectedServiceIds.length === 0 || !date) {
+      setSlotsLoading(false);
+      return;
+    }
+
+    setSlotsLoading(true);
     try {
-      const { data } = await api.get<TimeSlot[]>('/api/reservations/availability/slots', {
+      const { data } = await api.get<unknown>('/api/reservations/availability/slots', {
         params: { serviceIds: selectedServiceIds.join(','), date },
       });
-      setSlots(data);
-    } catch { /* silent */ }
-    setLoading(false);
+      if (requestId !== slotsRequestIdRef.current) return;
+      const normalizedSlots = normalizeAvailableSlots(data);
+      if (!normalizedSlots) throw new Error('Invalid availability slots response.');
+      setSlots(normalizedSlots);
+    } catch {
+      if (requestId === slotsRequestIdRef.current) {
+        setSlots([]);
+        setSlotsError(true);
+      }
+    } finally {
+      if (requestId === slotsRequestIdRef.current) setSlotsLoading(false);
+    }
   }, [selectedServiceIds]);
 
   useEffect(() => {
@@ -230,11 +282,19 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   }, [availableDates, selectedDate, colors]);
 
   const handleToggleService = useCallback((service: Service) => {
+    datesRequestIdRef.current += 1;
+    slotsRequestIdRef.current += 1;
+    setDatesLoading(false);
+    setSlotsLoading(false);
     setSelectedServices((prev) => {
       const exists = prev.some((x) => x.id === service.id);
       return exists ? prev.filter((x) => x.id !== service.id) : [...prev, service];
     });
+    setAvailableDates({});
+    setDatesError(false);
     setSelectedDate(null);
+    setSlots([]);
+    setSlotsError(false);
     setSelectedSlot(null);
   }, []);
 
@@ -245,6 +305,10 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
   const handleSelectDate = useCallback((day: DateData) => {
     if (availableDates[day.dateString]) {
+      slotsRequestIdRef.current += 1;
+      setSlotsLoading(false);
+      setSlots([]);
+      setSlotsError(false);
       setSelectedDate(day.dateString);
       setSelectedSlot(null);
       setStep(3);
@@ -324,11 +388,11 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
           onPress: () => navigation.getParent()?.navigate('ReservationsTab'),
         },
       ]);
-    } catch (error: any) {
-      const msg = error.response?.data?.message || 'Greška pri kreiranju rezervacije';
-      Alert.alert(t('common.error'), typeof msg === 'string' ? msg : 'Greška');
+    } catch (error: unknown) {
+      Alert.alert(t('common.error'), getApiErrorMessage(error, t('reservation.submitError')));
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const goBackToOrigin = useCallback(() => {
@@ -499,8 +563,15 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             </View>
           </Card>
 
-          {loading ? (
+          {datesLoading ? (
             <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
+          ) : datesError ? (
+            <View style={styles.availabilityError}>
+              <Text style={[styles.noSlots, { color: colors.textSecondary }]}>
+                {t('reservation.availabilityError')}
+              </Text>
+              <Button title={t('common.retry')} onPress={() => { void loadAvailableDates(); }} variant="outline" />
+            </View>
           ) : (
             <Calendar
               onDayPress={handleSelectDate}
@@ -557,8 +628,19 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             </Text>
           </Card>
 
-          {loading ? (
+          {slotsLoading ? (
             <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
+          ) : slotsError ? (
+            <View style={styles.availabilityError}>
+              <Text style={[styles.noSlots, { color: colors.textSecondary }]}>
+                {t('reservation.availabilityError')}
+              </Text>
+              <Button
+                title={t('common.retry')}
+                onPress={() => { void loadSlotsForDate(selectedDate ?? ''); }}
+                variant="outline"
+              />
+            </View>
           ) : slots.length === 0 ? (
             <Text style={[styles.noSlots, { color: colors.textSecondary }]}>
               {t('reservation.noSlots')}
@@ -850,6 +932,7 @@ const styles = StyleSheet.create({
   selectedValue: { fontSize: 16, fontWeight: '600', marginTop: 2 },
   calendar: { marginTop: spacing.md, borderRadius: borderRadius.lg },
   noSlots: { textAlign: 'center', marginTop: spacing.xl, fontSize: 15 },
+  availabilityError: { alignItems: 'center', gap: spacing.md, marginTop: spacing.xl },
   slotsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
