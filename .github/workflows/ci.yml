@@ -398,6 +398,9 @@ jobs:
       - name: Test notification fetch error and stale-data states
         working-directory: mobile
         run: npm run test:notification-fetch-state
+      - name: Test service catalogue fetch error and retry states
+        working-directory: mobile
+        run: npm run test:services-fetch-state
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate

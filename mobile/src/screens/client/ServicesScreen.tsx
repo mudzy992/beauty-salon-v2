@@ -39,6 +39,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
   const [popularService, setPopularService] = useState<PopularService | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -52,7 +53,10 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
       setServices(servicesRes);
       setReservations(normalizeReservations(reservationsRes?.data) ?? []);
       setPopularService(popularRes?.data ?? null);
-    } catch { /* silent */ }
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    }
     setLoading(false);
   }, []);
 
@@ -107,8 +111,27 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.list}>
+        {loadError && categories.length > 0 ? (
+          <Card style={[styles.errorCard, { borderColor: colors.border }]}>
+            <View style={styles.errorCopy}>
+              <Text style={[styles.errorTitle, { color: colors.text }]}>{t('services.loadErrorTitle')}</Text>
+              <Text style={[styles.errorMessage, { color: colors.textSecondary }]}>
+                {t('services.staleMessage')}
+              </Text>
+            </View>
+            <Button title={t('common.retry')} onPress={() => void fetchData()} variant="outline" size="sm" />
+          </Card>
+        ) : null}
         {normalizedCategories.length === 0 ? (
-          <EmptyState icon="cut-outline" title={t('services.noServices')} />
+          loadError ? (
+            <EmptyState
+              icon="cloud-offline-outline"
+              title={t('services.loadErrorTitle')}
+              message={t('services.loadErrorMessage')}
+              actionLabel={t('common.retry')}
+              onAction={() => void fetchData()}
+            />
+          ) : <EmptyState icon="cut-outline" title={t('services.noServices')} />
         ) : (
           <>
             <View style={styles.heroCardWrap}>
@@ -243,6 +266,17 @@ const styles = StyleSheet.create({
   list: { padding: spacing.md },
   section: { marginTop: spacing.sm },
   heroCardWrap: { marginBottom: spacing.sm },
+  errorCard: {
+    padding: spacing.md,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  errorCopy: { flex: 1, gap: spacing.xs },
+  errorTitle: { fontSize: 14, fontWeight: '700' },
+  errorMessage: { fontSize: 12, lineHeight: 17 },
   heroCard: { overflow: 'hidden', padding: spacing.md, position: 'relative' },
   heroWatermark: {
     position: 'absolute',
