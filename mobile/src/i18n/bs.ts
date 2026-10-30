@@ -89,6 +89,9 @@ export const bs = {
     galleryLoadError: 'Galeriju nije moguće učitati. Pokušajte ponovo.'
   },
   reservation: {
+    listLoadErrorTitle: 'Rezervacije nisu dostupne',
+    listLoadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
+    staleListMessage: 'Prikazujemo ranije učitane rezervacije; osvježavanje nije uspjelo.',
     title: 'Rezervacija',
     selectService: 'Odaberite uslugu',
     selectDate: 'Odaberite datum',
@@ -305,6 +308,9 @@ export const bs = {
   },
   stylist: {
     inbox: {
+      loadErrorTitle: 'Zahtjevi rezervacija nisu dostupni',
+      loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
+      staleMessage: 'Prikazujemo ranije učitane zahtjeve; osvježavanje nije uspjelo.',
       noProfileTitle: 'Nema profila stilista',
       noProfileMessage: 'Vaš profil stilista nije pronađen. Obratite se administratoru.',
       emptyTitle: 'Nema novih zahtjeva',
@@ -335,6 +341,8 @@ export const bs = {
       staleMessage: 'Prikazujemo ranije učitane zapise; osvježavanje nije uspjelo.',
     },
     dailyLogDetail: {
+      loadErrorTitle: 'Zapis dnevnika nije dostupan',
+      loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
       notFound: 'Zapis nije pronađen.',
       editCompletedUnavailable: 'Kompletirani unos se ne može uređivati na mobilnoj.',
       loadErrorFallback: 'Nije moguće učitati unos.',
