@@ -161,6 +161,7 @@ export const bs = {
     changePasswordLabel: 'Promijeni lozinku',
     contact: {
         title: 'Kontakt',
+        openLinkError: 'Link nije moguće otvoriti na ovom uređaju.',
     },
     changePassword: {
       currentPassword: 'Trenutna lozinka',
