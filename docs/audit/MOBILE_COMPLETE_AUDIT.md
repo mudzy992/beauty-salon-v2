@@ -30,7 +30,7 @@ Ove izmjene imaju fokusirane helper/source testove. One ne predstavljaju provjer
 ## Status implementacije novih nalaza
 
 - **Slice 1 — runtime API payload validacija (u provjeri):** dodani su normalizatori za debt iznose, loyalty preview, dugove (uključujući stylist debt listu), rezervacije, daily-log zapise, notifikacije, before/after medije i availability socket događaj. Povezani su s klijentskim booking/Home/listama, galerijama, notification storeom te stylist inbox/daily-log prikazima. Dodani su regresijski testovi i CI korak.
-- Provjere lokalno: Mobile Node suite **150/150**, TypeScript `typecheck`, i18n guard te Expo iOS i Android JavaScript export prolaze. CI YAML se parsira. ESLint nije pokrenut jer Mobile paket nema instaliran `eslint` binarni fajl/dependency. Slice još nije potvrđen CI-jem ni commitom/pushom u trenutku ovog zapisa; fizički uređaj i živi API nisu testirani.
+- Provjere lokalno: Mobile Node suite **150/150**, TypeScript `typecheck`, i18n guard te Expo iOS i Android JavaScript export prolaze. CI YAML se parsira. ESLint nije pokrenut jer Mobile paket nema instaliran `eslint` binarni fajl/dependency. Slice je commitan kao `72b4762` i pushan na radni branch; GitHub Actions CI run `41038262258` je prošao sva četiri joba. Fizički uređaj i živi API nisu testirani.
 - Ovaj slice ublažava crash/malformed-response rizike, ali **ne** dovršava UX stanja za mrežne greške, djelimično neispravne odgovore ili zastarjele podatke (AUD-03), niti validira sve kataloške response liste (AUD-02). Ne mijenja API host niti izvodi upise.
 
 ## Nalazi i plan implementacije
