@@ -410,6 +410,9 @@ jobs:
       - name: Test stale-response and notification account isolation
         working-directory: mobile
         run: npm run test:async-response-identity
+      - name: Test safe mobile mutation errors and upload retry
+        working-directory: mobile
+        run: npm run test:mutation-error-handling
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate

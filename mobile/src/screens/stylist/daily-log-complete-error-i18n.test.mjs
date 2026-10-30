@@ -13,10 +13,10 @@ test('mobile daily-log completion API fallback uses a Bosnian resource', () => {
   assert.doesNotMatch(screen, /: 'Greška\.'/)
 })
 
-test('server error passthrough, array-message selection, and completion flow remain unchanged', () => {
+test('daily-log completion uses the shared safe API error parser and keeps the flow intact', () => {
   assert.match(
     screen,
-    /err && typeof err === 'object' && 'response' in err\s*\?\s*\(err as any\)\.response\?\.data\?\.message\s*:\s*t\('stylist\.dailyLogDetail\.completeErrorFallback'\);\s*Alert\.alert\(t\('common\.error'\), Array\.isArray\(msg\) \? msg\[0\] : msg\);/,
+    /getApiErrorMessage\(err, t\('stylist\.dailyLogDetail\.completeErrorFallback'\)\)/,
   )
   assert.match(screen, /await api\.post\(`\/api\/daily-log\/\$\{entryId\}\/complete`\);\s*await fetchEntry\(\)/)
   assert.match(screen, /\}, \[entryId, fetchEntry, entry\?\.reservationId, navigation, t\]\);/)

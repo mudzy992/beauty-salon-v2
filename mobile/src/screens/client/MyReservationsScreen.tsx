@@ -29,6 +29,7 @@ import { spacing, borderRadius } from '../../theme';
 import { formatDate, formatTime, isUpcoming, salonWallTimeToInstant } from '../../utils/date';
 import { getReservationServices } from '../../utils/reservationServices';
 import { normalizeReservations } from '../../utils/apiPayload';
+import { getApiErrorMessage } from '../../utils/apiError';
 import type { ReservationsScreenProps } from '../../navigation/types';
 import type { Reservation, ReservationStatus } from '../../types';
 
@@ -150,11 +151,7 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
       closeCancelModal();
       fetchReservations();
     } catch (error: unknown) {
-      const msg =
-        error && typeof error === 'object' && 'response' in error
-          ? (error as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : t('common.error');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? 'Greška'));
+      Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
     } finally {
       setCancelSubmitting(false);
     }
@@ -164,8 +161,8 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
     try {
       await api.post(`/api/reservations/${reservation.id}/confirm-attendance`);
       fetchReservations();
-    } catch (error: any) {
-      Alert.alert(t('common.error'), error.response?.data?.message || 'Greška');
+    } catch (error: unknown) {
+      Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
     }
   };
 
@@ -174,8 +171,8 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
       await api.post(`/api/reservations/${reservation.id}/reschedule/accept`);
       fetchReservations();
       Alert.alert('Potvrđeno', 'Potvrdili ste novi termin.');
-    } catch (error: any) {
-      Alert.alert(t('common.error'), error.response?.data?.message || 'Greška');
+    } catch (error: unknown) {
+      Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
     }
   };
 
@@ -192,8 +189,8 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
             try {
               await api.post(`/api/reservations/${reservation.id}/reschedule/decline`);
               fetchReservations();
-            } catch (error: any) {
-              Alert.alert(t('common.error'), error.response?.data?.message || 'Greška');
+            } catch (error: unknown) {
+              Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
             }
           },
         },

@@ -22,10 +22,10 @@ test('stylist inbox action error fallback copy uses Bosnian resources', () => {
   }
 })
 
-test('server error passthrough, first-array-message selection, and error alert title remain unchanged', () => {
+test('four inbox action handlers use the bounded API error parser and localized fallbacks', () => {
   const errorBranches = screen.match(
-    /const msg =\s*err && typeof err === 'object' && 'response' in err\s*\?\s*\(err as any\)\.response\?\.data\?\.message\s*:\s*t\('stylist\.inbox\.(?:lock|unlock|accept|reject)ErrorFallback'\);\s*Alert\.alert\(t\('common\.error'\), Array\.isArray\(msg\) \? msg\[0\] : msg\);/g,
+    /getApiErrorMessage\(err, t\('stylist\.inbox\.(?:lock|unlock|accept|reject)ErrorFallback'\)\)/g,
   )
-  assert.equal(errorBranches?.length, 4, 'Expected all four action handlers to preserve API error passthrough')
+  assert.equal(errorBranches?.length, 4, 'Expected each action to use the shared API error parser')
   assert.doesNotMatch(screen, /Alert\.alert\('Greška'/)
 })

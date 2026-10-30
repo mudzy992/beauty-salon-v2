@@ -23,5 +23,5 @@ test('permission denial still stops before launching the gallery picker', () => 
     screen,
     /const \{ status \} = await ImagePicker\.requestMediaLibraryPermissionsAsync\(\);\s*if \(status !== 'granted'\) \{\s*Alert\.alert\(\s*t\('stylist\.dailyLogDetail\.imagePermissionTitle'\),\s*t\('stylist\.dailyLogDetail\.imagePermissionMessage'\),\s*\);\s*return;\s*\}\s*const result = await ImagePicker\.launchImageLibraryAsync\(/,
   )
-  assert.match(screen, /\[entryId, fetchEntry, t\],\s*\);\s*\n\s*const openActionsMenu/)
+  assert.match(screen, /\[linkUploadedImage, pendingImageLink, t\],\s*\);\s*\n\s*const openActionsMenu/)
 })

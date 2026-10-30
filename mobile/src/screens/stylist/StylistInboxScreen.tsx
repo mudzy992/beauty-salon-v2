@@ -26,6 +26,7 @@ import { formatDate, formatTime, getSalonDateOnly } from '../../utils/date';
 import { getReservationServicesLabel } from '../../utils/reservationServices';
 import type { Reservation, StylistResponse } from '../../types';
 import { normalizeClientDebts, normalizeReservations } from '../../utils/apiPayload';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 function getMyResponse(reservation: Reservation, profileId: string): StylistResponse | undefined {
   return reservation.stylistResponses?.find((r) => r.stylistProfileId === profileId);
@@ -79,11 +80,10 @@ export function StylistInboxScreen() {
         await api.post(`/api/reservations/${reservationId}/stylist/${profileId}/lock`);
         await fetchReservations();
       } catch (err: unknown) {
-        const msg =
-          err && typeof err === 'object' && 'response' in err
-            ? (err as any).response?.data?.message
-            : t('stylist.inbox.lockErrorFallback');
-        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
+        Alert.alert(
+          t('common.error'),
+          getApiErrorMessage(err, t('stylist.inbox.lockErrorFallback')),
+        );
       } finally {
         setActingId(null);
       }
@@ -99,11 +99,10 @@ export function StylistInboxScreen() {
         await api.post(`/api/reservations/${reservationId}/stylist/${profileId}/unlock`);
         await fetchReservations();
       } catch (err: unknown) {
-        const msg =
-          err && typeof err === 'object' && 'response' in err
-            ? (err as any).response?.data?.message
-            : t('stylist.inbox.unlockErrorFallback');
-        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
+        Alert.alert(
+          t('common.error'),
+          getApiErrorMessage(err, t('stylist.inbox.unlockErrorFallback')),
+        );
       } finally {
         setActingId(null);
       }
@@ -158,11 +157,10 @@ export function StylistInboxScreen() {
         await api.post(`/api/reservations/${reservation.id}/stylist/${profileId}/accept`);
         await fetchReservations();
       } catch (err: unknown) {
-        const msg =
-          err && typeof err === 'object' && 'response' in err
-            ? (err as any).response?.data?.message
-            : t('stylist.inbox.acceptErrorFallback');
-        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
+        Alert.alert(
+          t('common.error'),
+          getApiErrorMessage(err, t('stylist.inbox.acceptErrorFallback')),
+        );
       } finally {
         setActingId(null);
       }
@@ -195,11 +193,10 @@ export function StylistInboxScreen() {
         });
         await fetchReservations();
       } catch (err: unknown) {
-        const msg =
-          err && typeof err === 'object' && 'response' in err
-            ? (err as any).response?.data?.message
-            : t('stylist.inbox.rejectErrorFallback');
-        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
+        Alert.alert(
+          t('common.error'),
+          getApiErrorMessage(err, t('stylist.inbox.rejectErrorFallback')),
+        );
       } finally {
         setActingId(null);
       }

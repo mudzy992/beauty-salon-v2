@@ -22,6 +22,7 @@ import { Input } from '../../components/ui/Input';
 import api, { getUploadUrl } from '../../services/api';
 import { spacing } from '../../theme';
 import { formatDate } from '../../utils/date';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import { useDailyLogSocketRefresh } from '../../hooks/useDailyLogSocketRefresh';
 import type { DailyLogEntry } from '../../types';
@@ -48,19 +49,22 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pendingImageLink, setPendingImageLink] = useState<{ uploadId: string; isBefore: boolean } | null>(null);
   const { t } = useTranslation();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
 
-  const fetchEntry = useCallback(async () => {
+  const fetchEntry = useCallback(async (): Promise<DailyLogEntry | null> => {
     try {
       const { data } = await api.get<DailyLogEntry>(`/api/daily-log/${entryId}`);
       setEntry(data);
+      return data;
     } catch {
-      setEntry(null);
+      return null;
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [entryId]);
 
   useEffect(() => {
@@ -140,11 +144,10 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                 }
               }
             } catch (err: unknown) {
-              const msg =
-                err && typeof err === 'object' && 'response' in err
-                  ? (err as any).response?.data?.message
-                  : t('stylist.dailyLogDetail.completeErrorFallback');
-              Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
+              Alert.alert(
+                t('common.error'),
+                getApiErrorMessage(err, t('stylist.dailyLogDetail.completeErrorFallback')),
+              );
             } finally {
               setActing(false);
             }
@@ -171,64 +174,105 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
       setDeleteModalOpen(false);
       navigation.goBack();
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data
-              ?.message
-          : t('stylist.dailyLogDetail.deleteErrorFallback');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg));
+      Alert.alert(
+        t('common.error'),
+        getApiErrorMessage(err, t('stylist.dailyLogDetail.deleteErrorFallback')),
+      );
     } finally {
       setActing(false);
     }
   }, [deleteReason, entryId, navigation, t]);
 
-  const addImage = useCallback(
-    async (isBefore: boolean) => {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          t('stylist.dailyLogDetail.imagePermissionTitle'),
-          t('stylist.dailyLogDetail.imagePermissionMessage'),
-        );
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (result.canceled || !result.assets?.[0]?.uri) return;
-      const uri = result.assets[0].uri;
+  const linkUploadedImage = useCallback(
+    async (uploadId: string, isBefore: boolean, checkExisting = false) => {
       setUploading(true);
       try {
-        const formData = new FormData();
-        formData.append('file', {
-          uri,
-          name: 'daily-log.jpg',
-          type: 'image/jpeg',
-        } as any);
-        formData.append('entity', 'daily-log');
-        const { data: uploadResult } = await api.post<{ id: string }>('/api/uploads', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        if (checkExisting) {
+          const latestEntry = await fetchEntry();
+          if (!latestEntry) throw new Error('Unable to confirm image link state');
+          if (latestEntry.images?.some((image) => image.uploadId === uploadId)) {
+            setPendingImageLink(null);
+            return;
+          }
+        }
         await api.post(`/api/daily-log/${entryId}/images`, {
-          uploadId: uploadResult.id,
+          uploadId,
           isBefore,
           isAfter: !isBefore,
         });
-        await fetchEntry();
-      } catch (err: unknown) {
-        const msg =
-          err && typeof err === 'object' && 'response' in err
-            ? (err as any).response?.data?.message
-            : t('stylist.dailyLogDetail.imageUploadErrorFallback');
-        Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : msg);
+        const updatedEntry = await fetchEntry();
+        if (!updatedEntry) throw new Error('Unable to confirm linked image');
+        setPendingImageLink(null);
+      } catch (error: unknown) {
+        setPendingImageLink({ uploadId, isBefore });
+        Alert.alert(
+          t('common.error'),
+          getApiErrorMessage(error, t('common.error')),
+        );
       } finally {
         setUploading(false);
       }
     },
     [entryId, fetchEntry, t],
+  );
+
+  const retryPendingImageLink = useCallback(() => {
+    if (pendingImageLink) {
+      void linkUploadedImage(pendingImageLink.uploadId, pendingImageLink.isBefore, true);
+    }
+  }, [linkUploadedImage, pendingImageLink]);
+
+  const addImage = useCallback(
+    async (isBefore: boolean) => {
+      if (pendingImageLink) {
+        Alert.alert(t('common.error'), t('stylist.dailyLogDetail.imageUploadErrorFallback'));
+        return;
+      }
+      try {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert(
+            t('stylist.dailyLogDetail.imagePermissionTitle'),
+            t('stylist.dailyLogDetail.imagePermissionMessage'),
+          );
+          return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+        if (result.canceled || !result.assets?.[0]?.uri) return;
+        setUploading(true);
+        const formData = new FormData();
+        formData.append('file', {
+          uri: result.assets[0].uri,
+          name: 'daily-log.jpg',
+          type: 'image/jpeg',
+        } as any);
+        formData.append('entity', 'daily-log');
+        const { data: uploadResult } = await api.post<unknown>('/api/uploads', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        const uploadId =
+          uploadResult && typeof uploadResult === 'object' && 'id' in uploadResult &&
+          typeof uploadResult.id === 'string' && uploadResult.id.trim()
+            ? uploadResult.id
+            : null;
+        if (!uploadId) throw new Error('Invalid upload response');
+        setPendingImageLink({ uploadId, isBefore });
+        await linkUploadedImage(uploadId, isBefore);
+      } catch (error: unknown) {
+        Alert.alert(
+          t('common.error'),
+          getApiErrorMessage(error, t('stylist.dailyLogDetail.imageUploadErrorFallback')),
+        );
+      } finally {
+        setUploading(false);
+      }
+    },
+    [linkUploadedImage, pendingImageLink, t],
   );
 
   const openActionsMenu = useCallback(() => {
@@ -492,6 +536,14 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
               {t('stylist.dailyLogDetail.addPhotosHint')}
             </Text>
           ) : null}
+          {pendingImageLink && (
+            <Button
+              title={t('common.retry')}
+              onPress={retryPendingImageLink}
+              loading={uploading}
+              style={{ marginTop: spacing.md }}
+            />
+          )}
         </Card>
       )}
 

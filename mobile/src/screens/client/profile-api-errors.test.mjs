@@ -22,4 +22,8 @@ test('API error messages safely handle server strings, arrays, network failures,
   assert.equal(getApiErrorMessage({ response: { data: { message: { text: 'unsafe object' } } } }, 'Fallback'), 'Fallback');
   assert.equal(getApiErrorMessage(new Error('Network Error'), 'Fallback'), 'Fallback');
   assert.equal(getApiErrorMessage(null, 'Fallback'), 'Fallback');
+  assert.equal(getApiErrorMessage({ response: { data: { message: 'x'.repeat(1200) } } }, 'Fallback').length, 1000);
+  const boundedList = getApiErrorMessage({ response: { data: { message: Array(7).fill('y'.repeat(400)) } } }, 'Fallback');
+  assert.equal(boundedList.split('\n').length, 5);
+  assert.ok(boundedList.length <= 1504);
 });

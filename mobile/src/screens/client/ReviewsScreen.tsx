@@ -17,6 +17,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import api from '../../services/api';
 import { fetchAllPublicServices } from '../../services/catalog';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { spacing, borderRadius } from '../../theme';
 import type { ReservationsScreenProps } from '../../navigation/types';
 import type { Service } from '../../types';
@@ -85,10 +86,11 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
       Alert.alert(t('reviews.reviewSuccess'), t('reviews.reviewSuccessMessage'), [
         { text: t('common.ok'), onPress: () => navigation.goBack() },
       ]);
-    } catch (error: any) {
-      Alert.alert(t('common.error'), error.response?.data?.message || 'Greška');
+    } catch (error: unknown) {
+      Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   if (loading) {

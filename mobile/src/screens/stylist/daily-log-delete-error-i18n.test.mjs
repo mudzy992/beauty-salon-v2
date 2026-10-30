@@ -18,16 +18,12 @@ test('mobile daily-log deletion validation and fallback copy use Bosnian resourc
   }
 })
 
-test('delete reason validation, API error passthrough, and successful navigation remain unchanged', () => {
+test('delete reason validation, safe API errors, and successful navigation remain intact', () => {
   assert.match(
     screen,
     /const reason = deleteReason\.trim\(\);\s*if \(!reason\) \{\s*Alert\.alert\(t\('common\.error'\), t\('stylist\.dailyLogDetail\.deleteReasonRequired'\)\);\s*return;\s*\}/,
   )
   assert.match(screen, /await api\.delete\(`\/api\/daily-log\/\$\{entryId\}`, \{ data: \{ reason \} \}\)/)
   assert.match(screen, /setDeleteModalOpen\(false\);\s*navigation\.goBack\(\)/)
-  assert.match(
-    screen,
-    /err && typeof err === 'object' && 'response' in err\s*\?\s*\(err as \{ response\?: \{ data\?: \{ message\?: string \| string\[\] \} \} \}\)\.response\?\.data\s*\?\.message\s*:\s*t\('stylist\.dailyLogDetail\.deleteErrorFallback'\)/,
-  )
-  assert.match(screen, /Alert\.alert\(t\('common\.error'\), Array\.isArray\(msg\) \? msg\[0\] : String\(msg\)\)/)
+  assert.match(screen, /getApiErrorMessage\(err, t\('stylist\.dailyLogDetail\.deleteErrorFallback'\)\)/)
 })

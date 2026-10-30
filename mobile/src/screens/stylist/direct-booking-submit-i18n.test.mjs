@@ -29,6 +29,6 @@ test('direct-booking validation, request payload, and completion callbacks remai
     assert.ok(hook.includes(field), `Request payload changed: ${field}`)
   }
   assert.match(hook, /\[\{ text: t\('common\.ok'\), onPress: onCreated \}\]/)
-  assert.match(hook, /error\?\.response\?\.data\?\.message \?\? t\('stylist\.directBooking\.errorFallback'\)/)
+  assert.match(hook, /getApiErrorMessage\(error, t\('stylist\.directBooking\.errorFallback'\)\)/)
   assert.match(hook, /finally \{\s*setSaving\(false\)/)
 })

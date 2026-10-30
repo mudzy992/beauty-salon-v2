@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { getSalonDateOnly } from '../../utils/date';
 import { normalizeClientSearchResults } from '../../utils/apiPayload';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { fetchAllPublicServices } from '../../services/catalog';
 import {
   clientLabel,
@@ -131,10 +132,10 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
         t('stylist.directBooking.successMessage'),
         [{ text: t('common.ok'), onPress: onCreated }],
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       Alert.alert(
         t('common.error'),
-        error?.response?.data?.message ?? t('stylist.directBooking.errorFallback'),
+        getApiErrorMessage(error, t('stylist.directBooking.errorFallback')),
       );
     } finally {
       setSaving(false);
