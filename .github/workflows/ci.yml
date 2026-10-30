@@ -425,6 +425,9 @@ jobs:
       - name: Test private reservation, inbox, and daily-log detail read recovery
         working-directory: mobile
         run: npm run test:private-read-recovery
+      - name: Test stylist schedule read recovery and stale-data behavior
+        working-directory: mobile
+        run: npm run test:stylist-schedule-read-recovery
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate

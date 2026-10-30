@@ -21,7 +21,7 @@ test('active reservation card copy uses stylist schedule resources', () => {
 })
 
 test('active reservation card remains conditional and opens the same detail route', () => {
-  assert.match(screen, /ListHeaderComponent=\{\s*activeReservation \?/)
+  assert.match(screen, /ListHeaderComponent=\{[\s\S]*?activeReservation \?/)
   assert.equal((screen.match(/navigation\.navigate\('StylistReservationDetail'/g) ?? []).length, 4)
   assert.equal((screen.match(/reservationId: activeReservation\.id/g) ?? []).length, 3)
 })

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -29,10 +29,12 @@ import {
   getReservationTotalDurationMinutes,
   pickReservationBackdropHeroImage,
 } from '../../utils/reservationServices';
-import type { Reservation, DailyLogEntry } from '../../types';
+import type { Reservation } from '../../types';
+import { normalizeReservations } from '../../utils/apiPayload';
 import type { NativeStackScreenProps, StylistScheduleStackParamList } from '../../navigation/types';
 
 type Section = { title: string; data: Reservation[] };
+const EMPTY_RESERVATIONS: Reservation[] = [];
 
 type Props = NativeStackScreenProps<StylistScheduleStackParamList, 'ScheduleList'>;
 
@@ -44,8 +46,17 @@ export function StylistScheduleScreen({ navigation }: Props) {
   const { connected: socketConnected } = useSocket();
   const { profileId, loading: profileLoading } = useStylistProfile();
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [reservationsOwnerId, setReservationsOwnerId] = useState<string | null>(null);
+  const visibleReservations = reservationsOwnerId === profileId ? reservations : EMPTY_RESERVATIONS;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const requestGeneration = useRef(0);
+  const requestOwnerId = useRef(profileId);
+  if (requestOwnerId.current !== profileId) {
+    requestOwnerId.current = profileId;
+    requestGeneration.current += 1;
+  }
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -64,35 +75,54 @@ export function StylistScheduleScreen({ navigation }: Props) {
   }, [navigation, colors.headerText]);
 
   const fetchReservations = useCallback(async () => {
+    const generation = ++requestGeneration.current;
     if (!profileId) {
+      setReservations([]);
+      setReservationsOwnerId(null);
+      setLoadError(false);
       setLoading(false);
       return;
     }
     try {
       // Fokus: od današnjeg salonskog datuma nadalje.
       const { fromDate, toDate } = getDateRange(30);
-      const { data } = await api.get<Reservation[]>('/api/reservations', {
+      const { data } = await api.get<unknown>('/api/reservations', {
         params: {
           asStylist: true,
           fromDate,
           toDate,
         },
       });
-      const filtered = (Array.isArray(data) ? data : [])
+      if (generation !== requestGeneration.current) return;
+      const rows = normalizeReservations(data);
+      if (!rows) {
+        setLoadError(true);
+        return;
+      }
+      const filtered = rows
         .filter((r) => r.status !== 'CANCELLED_BY_CLIENT' && r.status !== 'CANCELLED_BY_STYLISTS')
-      .filter((r) => r.status !== 'AWAITING_DAILY_LOG')
+        .filter((r) => r.status !== 'AWAITING_DAILY_LOG')
         // Raspored prikazuje samo termine koje je stilist zaista preuzeo
         // (ili aktivni termin), a ne sve koji su mu samo stigli u inbox.
-        .filter(
-          (r) =>
-            r.confirmedStylistId === profileId || r.status === 'IN_PROGRESS',
-        );
+        .filter((r) => r.confirmedStylistId === profileId || r.status === 'IN_PROGRESS');
       setReservations(filtered);
+      setReservationsOwnerId(profileId);
+      setLoadError(false);
     } catch {
-      setReservations([]);
+      if (generation === requestGeneration.current) setLoadError(true);
+    } finally {
+      if (generation === requestGeneration.current) setLoading(false);
     }
-    setLoading(false);
   }, [profileId]);
+
+  useEffect(() => {
+    setLoading(true);
+    setLoadError(false);
+    void fetchReservations();
+    return () => {
+      requestGeneration.current += 1;
+    };
+  }, [fetchReservations]);
 
   const refreshReservations = useAutoRefresh(fetchReservations, {
     intervalMs: 30000,
@@ -103,12 +133,15 @@ export function StylistScheduleScreen({ navigation }: Props) {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refreshReservations();
-    setRefreshing(false);
+    try {
+      await refreshReservations();
+    } finally {
+      setRefreshing(false);
+    }
   }, [refreshReservations]);
 
   const sections: Section[] = useMemo(() => {
-    if (reservations.length === 0) return [];
+    if (visibleReservations.length === 0) return [];
     const todayStr = getSalonDateOnly();
     const todayActive: Reservation[] = [];
     const todayCompletedLike: Reservation[] = [];
@@ -120,7 +153,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
       'CANCELLED_BY_STYLISTS',
     ]);
 
-    for (const r of reservations) {
+    for (const r of visibleReservations) {
       const d = r.reservationDate.slice(0, 10);
       if (d === todayStr) {
         if (completedLikeStatuses.has(r.status)) todayCompletedLike.push(r);
@@ -186,15 +219,15 @@ export function StylistScheduleScreen({ navigation }: Props) {
       });
     }
     return result;
-  }, [reservations, t]);
+  }, [visibleReservations, t]);
 
   const activeReservation = React.useMemo(() => {
     return (
-      reservations.find(
+      visibleReservations.find(
         (r) => r.status === 'IN_PROGRESS' && r.confirmedStylistId === profileId,
       ) ?? null
     );
-  }, [reservations, profileId]);
+  }, [visibleReservations, profileId]);
 
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -227,7 +260,7 @@ export function StylistScheduleScreen({ navigation }: Props) {
     return uri || null;
   }, [activeReservation]);
 
-  if (profileLoading || (loading && !profileId)) {
+  if (profileLoading || (loading && visibleReservations.length === 0 && !!profileId)) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -260,17 +293,35 @@ export function StylistScheduleScreen({ navigation }: Props) {
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: colors.background }}
         ListEmptyComponent={
-          <EmptyState
-            icon="calendar-outline"
-            title={t('stylist.schedule.emptyTitle')}
-            message={t('stylist.schedule.emptyMessage')}
-          />
+          loadError ? (
+            <EmptyState
+              icon="cloud-offline-outline"
+              title={t('stylist.schedule.loadErrorTitle')}
+              message={t('stylist.schedule.loadErrorMessage')}
+              actionLabel={t('common.retry')}
+              onAction={() => void fetchReservations()}
+            />
+          ) : (
+            <EmptyState
+              icon="calendar-outline"
+              title={t('stylist.schedule.emptyTitle')}
+              message={t('stylist.schedule.emptyMessage')}
+            />
+          )
         }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListHeaderComponent={
-          activeReservation ? (
+          <>
+            {loadError && visibleReservations.length > 0 ? (
+              <Card style={[styles.card, { borderColor: colors.border }]}>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>{t('stylist.schedule.loadErrorTitle')}</Text>
+                <Text style={{ color: colors.textSecondary, marginTop: spacing.xs }}>{t('stylist.schedule.staleMessage')}</Text>
+                <Button title={t('common.retry')} onPress={() => void fetchReservations()} variant="outline" size="sm" style={{ marginTop: spacing.sm }} />
+              </Card>
+            ) : null}
+            {activeReservation ? (
             <View style={{ gap: spacing.md }}>
             <Card style={[styles.activeCard, { backgroundColor: colors.card }]} padded={false}>
                 <MediaBackdrop
@@ -381,7 +432,8 @@ export function StylistScheduleScreen({ navigation }: Props) {
                 </MediaBackdrop>
             </Card>
           </View>
-          ) : null
+            ) : null}
+          </>
         }
         renderSectionHeader={({ section }) => (
           <Text style={[styles.sectionHeader, { color: colors.primary }]}>{section.title}</Text>

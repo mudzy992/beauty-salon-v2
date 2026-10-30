@@ -14,11 +14,11 @@ test('stylist schedule section headings use Bosnian translation resources', () =
 })
 
 test('schedule section membership and date-group labels are unchanged', () => {
-  assert.match(screen, /if \(reservations\.length === 0\) return \[\]/)
+  assert.match(screen, /if \(visibleReservations\.length === 0\) return \[\]/)
   assert.match(screen, /if \(d === todayStr\)/)
   assert.match(screen, /completedLikeStatuses\.has\(r\.status\)/)
   assert.match(screen, /if \(todayCompletedLike\.length > 0\)/)
   assert.match(screen, /const sortedFutureDates = Object\.keys\(futureByDate\)\.sort\(\)/)
   assert.match(screen, /title: `\$\{dayAbbrev\(dateStr\)\} · \$\{formatDate\(dateStr\)\}`/)
-  assert.match(screen, /\}, \[reservations, t\]\)/)
+  assert.match(screen, /\}, \[visibleReservations, t\]\)/)
 })

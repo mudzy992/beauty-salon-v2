@@ -18,7 +18,7 @@ test('stylist schedule empty-state copy uses Bosnian resources', () => {
 test('schedule profile and reservation empty-state conditions remain unchanged', () => {
   assert.match(screen, /if \(!profileId\) \{/)
   assert.match(screen, /<EmptyState\s+icon="calendar-outline"\s+title=\{t\('stylist\.schedule\.noProfileTitle'\)\}/)
-  assert.match(screen, /ListEmptyComponent=\{\s*<EmptyState/)
+  assert.match(screen, /ListEmptyComponent=\{[\s\S]*?<EmptyState/)
   assert.match(screen, /title=\{t\('stylist\.schedule\.emptyTitle'\)\}/)
   assert.match(screen, /refreshControl=\{/)
 })
