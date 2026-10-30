@@ -20,6 +20,7 @@
     "test:client-profile-contract": "node --test src/screens/client/profile-contract.test.mjs src/screens/client/profile-api-errors.test.mjs",
     "test:refresh-gate": "node --test src/hooks/refreshGate.test.mjs",
     "test:auth-session": "node --test src/store/auth-session.test.mjs",
+    "test:push-notification-effects": "node --test src/hooks/push-notification-effects.test.mjs",
     "test:socket-recovery": "node --test src/realtime/socket-recovery.test.mjs",
     "test:api-multipart": "node --test src/services/api-multipart.test.cjs",
     "test:expo-cli-zod-compat": "node --test scripts/expo-cli-zod-compat.test.cjs",

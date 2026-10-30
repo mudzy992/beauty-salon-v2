@@ -8,6 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { useRouter } from 'expo-router';
 import { resolvePushRoute } from '../utils/resolve-push-route';
+import { safelyRunPushTask } from './safe-push-task';
 
 function resolveProjectId(): string | undefined {
   const fromEnv = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
@@ -116,7 +117,10 @@ export function usePushNotifications() {
         registeredTokenRef.current = null;
       }
       if (Platform.OS !== 'web') {
-        void Notifications.setBadgeCountAsync(0);
+        void safelyRunPushTask(
+          () => Notifications.setBadgeCountAsync(0),
+          () => console.warn('[Push] Unable to clear the notification badge.'),
+        );
       }
       return;
     }
@@ -125,15 +129,25 @@ export function usePushNotifications() {
 
     (async () => {
       if (!handledColdStartRef.current) {
-        const lastResponse = await Notifications.getLastNotificationResponseAsync();
+        const lastResponse = await safelyRunPushTask(
+          () => Notifications.getLastNotificationResponseAsync(),
+          () => console.warn('[Push] Unable to read the last notification response.'),
+        );
+        if (!isMounted) return;
         if (lastResponse?.notification) {
           handledColdStartRef.current = true;
           const data = (lastResponse.notification.request?.content?.data ?? {}) as Record<string, unknown>;
-          navigateFromPushData(router, data);
+          await safelyRunPushTask(
+            () => navigateFromPushData(router, data),
+            () => console.warn('[Push] Unable to navigate from the last notification.'),
+          );
         }
       }
 
-      const token = await registerForPushNotificationsAsync();
+      const token = await safelyRunPushTask(
+        registerForPushNotificationsAsync,
+        () => console.warn('[Push] Notification permission or token setup failed.'),
+      );
       if (!isMounted || !token) return;
 
       registeredTokenRef.current = token;
@@ -152,25 +166,50 @@ export function usePushNotifications() {
       }
     })();
 
-    receivedListener.current = Notifications.addNotificationReceivedListener(() => {
-      void fetchNotifications();
-    });
+    try {
+      receivedListener.current = Notifications.addNotificationReceivedListener(() => {
+        void safelyRunPushTask(
+          fetchNotifications,
+          () => console.warn('[Push] Unable to refresh notifications after receiving a push.'),
+        );
+      });
+    } catch {
+      console.warn('[Push] Unable to install the notification-received listener.');
+    }
 
-    responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = (response?.notification?.request?.content?.data ?? {}) as Record<string, unknown>;
-      navigateFromPushData(router, data);
-    });
+    try {
+      responseListener.current = Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = (response?.notification?.request?.content?.data ?? {}) as Record<string, unknown>;
+        void safelyRunPushTask(
+          () => navigateFromPushData(router, data),
+          () => console.warn('[Push] Unable to navigate from a notification response.'),
+        );
+      });
+    } catch {
+      console.warn('[Push] Unable to install the notification-response listener.');
+    }
 
     return () => {
       isMounted = false;
-      receivedListener.current?.remove();
-      responseListener.current?.remove();
+      try {
+        receivedListener.current?.remove();
+      } catch {
+        console.warn('[Push] Unable to remove the notification-received listener.');
+      }
+      try {
+        responseListener.current?.remove();
+      } catch {
+        console.warn('[Push] Unable to remove the notification-response listener.');
+      }
     };
   }, [user, router, fetchNotifications]);
 
   useEffect(() => {
     if (Platform.OS === 'web' || !user) return;
-    void Notifications.setBadgeCountAsync(unreadCount);
+    void safelyRunPushTask(
+      () => Notifications.setBadgeCountAsync(unreadCount),
+      () => console.warn('[Push] Unable to update the notification badge.'),
+    );
   }, [unreadCount, user]);
 
   return { expoPushToken: registeredTokenRef.current };

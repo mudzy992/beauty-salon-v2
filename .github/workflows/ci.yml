@@ -395,6 +395,9 @@ jobs:
       - name: Test auth session payload validation and safe cleanup
         working-directory: mobile
         run: npm run test:auth-session
+      - name: Test push notification failure containment
+        working-directory: mobile
+        run: npm run test:push-notification-effects
       - name: Enforce localized copy in audited mobile screens
         working-directory: mobile
         run: npm run check:i18n
