@@ -3,6 +3,7 @@ import type {
   DailyLogEntry,
   Notification,
   Reservation,
+  ReservationPaymentSummary,
   Service,
   ServiceCategory,
 } from '../types';
@@ -344,6 +345,42 @@ function isReservationRow(row: unknown): row is Reservation {
 export function normalizeReservations(payload: unknown): Reservation[] | null {
   if (!Array.isArray(payload)) return null;
   return payload.filter(isReservationRow);
+}
+
+export type ReservationDetailPayload = Reservation & {
+  paymentSummary?: ReservationPaymentSummary | null;
+};
+
+function isReservationPaymentSummary(value: unknown): value is ReservationPaymentSummary {
+  return (
+    isRecord(value) &&
+    isNonEmptyString(value.publicReferenceCode) &&
+    isFiniteNumber(value.actualPrice) &&
+    isFiniteNumber(value.tipAmount) &&
+    isFiniteNumber(value.serviceAmount) &&
+    isFiniteNumber(value.loyaltyDiscountAmount) &&
+    typeof value.completedAt === 'string' &&
+    !Number.isNaN(Date.parse(value.completedAt)) &&
+    Array.isArray(value.items) &&
+    value.items.every((item) =>
+      isRecord(item) && typeof item.name === 'string' && isFiniteNumber(item.unitPrice),
+    )
+  );
+}
+
+export function normalizeReservationDetail(payload: unknown): ReservationDetailPayload | null {
+  if (!isRecord(payload)) return null;
+  const reservations = normalizeReservations([payload]);
+  if (!reservations || reservations.length !== 1) return null;
+  if (
+    payload.paymentSummary !== undefined &&
+    payload.paymentSummary !== null &&
+    !isReservationPaymentSummary(payload.paymentSummary)
+  ) return null;
+  return {
+    ...reservations[0],
+    paymentSummary: payload.paymentSummary as ReservationPaymentSummary | null | undefined,
+  };
 }
 
 export interface ClientSearchRow {

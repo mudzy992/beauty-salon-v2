@@ -44,6 +44,7 @@ const {
   normalizePublicServiceCategories,
   normalizePublicServices,
   normalizeReservations,
+  normalizeReservationDetail,
   normalizeStylistDebtRows,
   sumDebtAmounts,
 } = payloads;
@@ -177,6 +178,20 @@ test('reservation and daily-log parsers reject malformed envelopes and filter un
   assert.equal(normalizeDailyLogEntries([dailyLog, null]).length, 1);
   assert.equal(normalizeDailyLogEntries([{ ...dailyLog, actualPrice: 'not-money' }]).length, 0);
   assert.equal(normalizeDailyLogEntries({ items: [dailyLog] }), null);
+});
+
+test('reservation detail parser validates the reservation and payment amounts consumed by the detail screen', () => {
+  const paymentSummary = {
+    publicReferenceCode: 'PAY-100', actualPrice: 30, tipAmount: 2,
+    serviceAmount: 28, completedAt: '2026-10-30T10:00:00.000Z',
+    loyaltyDiscountAmount: 0, items: [{ name: 'Šišanje', unitPrice: 28 }],
+  };
+  assert.deepEqual(normalizeReservationDetail({ ...reservation, paymentSummary }).paymentSummary, paymentSummary);
+  assert.equal(normalizeReservationDetail({ ...reservation, paymentSummary: null }).paymentSummary, null);
+  assert.equal(normalizeReservationDetail({ ...reservation, paymentSummary: { ...paymentSummary, actualPrice: 'bad' } }), null);
+  assert.equal(normalizeReservationDetail({ ...reservation, paymentSummary: { ...paymentSummary, items: [{ name: 'Šišanje', unitPrice: Infinity }] } }), null);
+  assert.equal(normalizeReservationDetail({ ...reservation, status: 'UNKNOWN' }), null);
+  assert.equal(normalizeReservationDetail(null), null);
 });
 
 test('client debt parser validates required identity, date, status and numeric amount', () => {

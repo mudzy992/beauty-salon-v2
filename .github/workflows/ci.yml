@@ -428,6 +428,9 @@ jobs:
       - name: Test stylist schedule read recovery and stale-data behavior
         working-directory: mobile
         run: npm run test:stylist-schedule-read-recovery
+      - name: Test client reservation detail read recovery
+        working-directory: mobile
+        run: npm run test:reservation-detail-read-recovery
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate

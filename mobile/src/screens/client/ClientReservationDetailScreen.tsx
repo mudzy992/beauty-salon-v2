@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -14,16 +14,14 @@ import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Card } from '../../components/ui/Card';
 import { Badge, getStatusVariant } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 import { spacing } from '../../theme';
 import { formatDate, formatTime } from '../../utils/date';
 import { getReservationServices } from '../../utils/reservationServices';
 import type { ReservationsScreenProps } from '../../navigation/types';
-import type { Reservation, ReservationPaymentSummary } from '../../types';
-
-type ReservationDetail = Reservation & {
-  paymentSummary?: ReservationPaymentSummary | null;
-};
+import { normalizeReservationDetail, type ReservationDetailPayload } from '../../utils/apiPayload';
 
 export function ClientReservationDetailScreen({
   navigation,
@@ -33,31 +31,77 @@ export function ClientReservationDetailScreen({
   const { t } = useTranslation();
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
-  const [reservation, setReservation] = useState<ReservationDetail | null>(null);
+  const userId = useAuthStore((state) => state.user?.id ?? null);
+  const [reservation, setReservation] = useState<ReservationDetailPayload | null>(null);
+  const [reservationOwner, setReservationOwner] = useState<{ userId: string; reservationId: string } | null>(null);
+  const visibleReservation = reservationOwner?.userId === userId && reservationOwner.reservationId === reservationId
+    ? reservation
+    : null;
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const requestGeneration = useRef(0);
+  const requestIdentity = useRef({ userId, reservationId });
+  if (requestIdentity.current.userId !== userId || requestIdentity.current.reservationId !== reservationId) {
+    requestIdentity.current = { userId, reservationId };
+    requestGeneration.current += 1;
+  }
 
   const load = useCallback(async () => {
-    try {
-      const { data } = await api.get<ReservationDetail>(`/api/reservations/${reservationId}`);
-      setReservation(data);
-    } catch {
+    const generation = ++requestGeneration.current;
+    setLoadError(false);
+    if (!userId) {
       setReservation(null);
-    } finally {
+      setReservationOwner(null);
       setLoading(false);
       setRefreshing(false);
+      return;
     }
-  }, [reservationId]);
+    try {
+      const { data } = await api.get<unknown>(`/api/reservations/${reservationId}`);
+      if (generation !== requestGeneration.current) return;
+      const normalized = normalizeReservationDetail(data);
+      if (!normalized) {
+        setLoadError(true);
+        return;
+      }
+      setReservation(normalized);
+      setReservationOwner({ userId, reservationId });
+      setLoadError(false);
+    } catch {
+      if (generation === requestGeneration.current) setLoadError(true);
+    } finally {
+      if (generation === requestGeneration.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    }
+  }, [reservationId, userId]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await load();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [load]);
 
   useEffect(() => {
     navigation.setOptions({ title: t('reservationDetail.title') });
   }, [navigation, t]);
 
   useEffect(() => {
+    setLoading(true);
+    setRefreshing(false);
+    setLoadError(false);
     void load();
+    return () => {
+      requestGeneration.current += 1;
+    };
   }, [load]);
 
-  if (loading) {
+  if (loading && !visibleReservation) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -65,45 +109,59 @@ export function ClientReservationDetailScreen({
     );
   }
 
-  if (!reservation) {
+  if (!visibleReservation) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.textSecondary }}>{t('reservationDetail.notFound')}</Text>
+      <View style={[styles.center, { backgroundColor: colors.background, padding: spacing.lg }]}>
+        <EmptyState
+          icon={loadError ? 'cloud-offline-outline' : 'document-text-outline'}
+          title={loadError ? t('reservationDetail.loadErrorTitle') : t('reservationDetail.notFound')}
+          message={loadError ? t('reservationDetail.loadErrorMessage') : undefined}
+          actionLabel={loadError ? t('common.retry') : undefined}
+          onAction={loadError ? () => { setLoading(true); void load(); } : undefined}
+        />
+        <Button title={t('common.back')} onPress={() => navigation.goBack()} variant="outline" style={{ marginTop: spacing.md }} />
       </View>
     );
   }
 
-  const services = getReservationServices(reservation);
-  const stylistName = reservation.confirmedStylist?.user
-    ? [reservation.confirmedStylist.user.firstName, reservation.confirmedStylist.user.lastName]
+  const services = getReservationServices(visibleReservation);
+  const stylistName = visibleReservation.confirmedStylist?.user
+    ? [visibleReservation.confirmedStylist.user.firstName, visibleReservation.confirmedStylist.user.lastName]
         .filter(Boolean)
         .join(' ')
     : null;
-  const payment = reservation.paymentSummary;
+  const payment = visibleReservation.paymentSummary;
 
   return (
     <ScrollView
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + tabBarBottom }]}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} />
+        <RefreshControl refreshing={refreshing} onRefresh={() => void handleRefresh()} />
       }
     >
+      {loadError ? (
+        <Card style={[styles.card, { borderWidth: 1, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('reservationDetail.loadErrorTitle')}</Text>
+          <Text style={{ color: colors.textSecondary }}>{t('reservationDetail.staleMessage')}</Text>
+          <Button title={t('common.retry')} onPress={() => void load()} variant="outline" size="sm" />
+        </Card>
+      ) : null}
       <Card style={styles.card}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>
-            {reservation.publicReferenceCode?.trim() || services[0]?.name || t('reservationDetail.title')}
+            {visibleReservation.publicReferenceCode?.trim() || services[0]?.name || t('reservationDetail.title')}
           </Text>
           <Badge
-            label={t(`myReservations.status.${reservation.status}` as any)}
-            variant={getStatusVariant(reservation.status)}
-            status={reservation.status}
+            label={t(`myReservations.status.${visibleReservation.status}` as any)}
+            variant={getStatusVariant(visibleReservation.status)}
+            status={visibleReservation.status}
           />
         </View>
         <View style={styles.row}>
           <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
           <Text style={[styles.rowText, { color: colors.text }]}>
-            {formatDate(reservation.reservationDate)} · {formatTime(reservation.startTime)}–{formatTime(reservation.endTime)}
+            {formatDate(visibleReservation.reservationDate)} · {formatTime(visibleReservation.startTime)}–{formatTime(visibleReservation.endTime)}
           </Text>
         </View>
         {stylistName ? (
@@ -146,19 +204,19 @@ export function ClientReservationDetailScreen({
           </View>
           <Text style={[styles.thankYou, { color: colors.textSecondary }]}>{t('reservationDetail.thankYou')}</Text>
         </Card>
-      ) : reservation.status === 'COMPLETED' ? (
+      ) : visibleReservation.status === 'COMPLETED' ? (
         <Card style={styles.card}>
           <Text style={{ color: colors.textSecondary }}>{t('reservationDetail.paymentPending')}</Text>
         </Card>
       ) : null}
 
-      {reservation.status === 'COMPLETED' ? (
+      {visibleReservation.status === 'COMPLETED' ? (
         <Button
           title={t('reviews.writeReview')}
           onPress={() =>
             navigation.navigate('WriteReview', {
-              reservationId: reservation.id,
-              serviceId: reservation.serviceId,
+              reservationId: visibleReservation.id,
+              serviceId: visibleReservation.serviceId,
             })
           }
           variant="outline"
