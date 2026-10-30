@@ -64,6 +64,13 @@ export const bs = {
     bookNow: 'Rezervišite termin',
     heroTitle: 'Beauty Salon Nejra',
     heroSubtitle: 'Vaša ljepota, naša strast',
+    loadErrorTitle: 'Početne podatke nije moguće učitati',
+    loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
+    staleMessage: 'Prikazujemo ranije učitane podatke; osvježavanje nije uspjelo.',
+    debtLoadError: 'Dugovanja trenutno nisu dostupna.',
+    reservationLoadError: 'Sljedeći termin trenutno nije dostupan.',
+    beforeAfterLoadError: 'Galeriju trenutno nije moguće učitati.',
+    featuredReviewLoadError: 'Istaknutu recenziju trenutno nije moguće učitati.',
   },
   services: {
     title: 'Usluge',
@@ -321,6 +328,11 @@ export const bs = {
       statusReviewSelf: 'Na pregledu (vi)',
       statusReview: 'Na pregledu',
       statusPending: 'Na čekanju',
+    },
+    dailyLogList: {
+      loadErrorTitle: 'Dnevnik trenutno nije dostupan',
+      loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
+      staleMessage: 'Prikazujemo ranije učitane zapise; osvježavanje nije uspjelo.',
     },
     dailyLogDetail: {
       notFound: 'Zapis nije pronađen.',
