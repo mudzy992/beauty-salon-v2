@@ -81,6 +81,7 @@
     "test:stylist-picker-read-recovery": "node --test src/screens/stylist/stylist-picker-read-recovery.test.mjs",
     "test:stylist-direct-booking-submit-i18n": "node --test src/screens/stylist/direct-booking-submit-i18n.test.mjs",
     "test:stylist-stats-i18n": "node --test src/screens/stylist/stylist-stats-i18n.test.mjs",
+    "test:stylist-stats-recovery-copy": "node --test src/screens/stylist/stylist-stats-recovery-copy.test.mjs",
     "test:stylist-profile-logout-i18n": "node --test src/screens/stylist/stylist-profile-logout-i18n.test.mjs",
     "test:stylist-profile-mode-switch-i18n": "node --test src/screens/stylist/stylist-profile-mode-switch-i18n.test.mjs",
     "test:stylist-inbox-empty-state-i18n": "node --test src/screens/stylist/stylist-inbox-empty-state-i18n.test.mjs",

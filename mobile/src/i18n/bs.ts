@@ -529,6 +529,11 @@ export const bs = {
       serviceRevenue: 'Prihod iz servisa',
       tips: 'Napojnice',
       debts: 'Dugovi',
+      reservationsLoadError: 'Statistiku rezervacija nije moguće učitati.',
+      reservationsStale: 'Prikazuju se raniji podaci o rezervacijama.',
+      dailyLogLoadError: 'Prihod iz dnevnika nije moguće učitati.',
+      dailyLogStale: 'Prikazuju se raniji podaci o prihodu.',
+      retry: 'Pokušaj ponovo',
     },
     directBooking: {
       title: 'Direktna rezervacija',
