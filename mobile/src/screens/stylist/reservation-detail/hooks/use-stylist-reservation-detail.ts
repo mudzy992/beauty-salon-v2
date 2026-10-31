@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 
 import api from '../../../../services/api';
 import { useReservationSocketRefresh } from '../../../../hooks/useReservationSocketRefresh';
+import { normalizeReservationDetail } from '../../../../utils/apiPayload';
 import type { Reservation } from '../../../../types';
 
 type UseStylistReservationDetailParams = {
@@ -24,8 +25,13 @@ export const useStylistReservationDetail = ({ reservationId }: UseStylistReserva
     setNotFound(false);
     setRetrying(true);
     try {
-      const { data } = await api.get<Reservation>(`/api/reservations/${reservationId}`);
-      if (generation === requestGeneration.current) setReservation(data);
+      const { data } = await api.get<unknown>(`/api/reservations/${reservationId}`);
+      const parsed = normalizeReservationDetail(data);
+      if (!parsed || parsed.id !== reservationId) {
+        if (generation === requestGeneration.current) setLoadError(true);
+        return;
+      }
+      if (generation === requestGeneration.current) setReservation(parsed);
     } catch (error: unknown) {
       if (generation === requestGeneration.current) {
         const status = typeof error === 'object' && error !== null && 'response' in error
