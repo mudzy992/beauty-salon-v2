@@ -605,6 +605,9 @@ jobs:
       - name: Test stylist reservation start-order read recovery
         working-directory: mobile
         run: npm run test:stylist-start-order-check
+      - name: Test ambiguous daily-log save response copy
+        working-directory: mobile
+        run: npm run test:daily-log-save-response-copy
       - name: Test reschedule proposal payload validation
         working-directory: mobile
         run: npm run test:stylist-reschedule-proposal
