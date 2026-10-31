@@ -440,6 +440,9 @@ jobs:
       - name: Test before-after slider accessibility
         working-directory: mobile
         run: npm run test:before-after-slider-accessibility
+      - name: Test review rating accessibility
+        working-directory: mobile
+        run: npm run test:review-rating-accessibility
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate

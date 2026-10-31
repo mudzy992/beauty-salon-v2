@@ -22,12 +22,30 @@ import { spacing, borderRadius } from '../../theme';
 import type { ReservationsScreenProps } from '../../navigation/types';
 import type { Service } from '../../types';
 
-function StarRating({ rating, onRate, size = 32 }: { rating: number; onRate: (r: number) => void; size?: number }) {
+function StarRating({
+  rating,
+  onRate,
+  category,
+  size = 32,
+}: {
+  rating: number;
+  onRate: (r: number) => void;
+  category: string;
+  size?: number;
+}) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   return (
     <View style={styles.stars}>
       {[1, 2, 3, 4, 5].map((star) => (
-        <TouchableOpacity key={star} onPress={() => onRate(star)}>
+        <TouchableOpacity
+          key={star}
+          accessibilityRole="radio"
+          accessibilityLabel={t('reviews.ratingOption', { category, rating: star, total: 5 })}
+          accessibilityHint={t('reviews.ratingSelectionHint')}
+          accessibilityState={{ selected: rating === star }}
+          onPress={() => onRate(star)}
+        >
           <Ionicons
             name={star <= rating ? 'star' : 'star-outline'}
             size={size}
@@ -70,7 +88,7 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
       return;
     }
     if (serviceRating === 0) {
-      Alert.alert(t('common.error'), 'Molimo ocijenite uslugu');
+      Alert.alert(t('common.error'), t('reviews.rateServiceRequired'));
       return;
     }
 
@@ -145,14 +163,23 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
         <Text style={[styles.label, { color: colors.textSecondary }]}>
           {t('reviews.serviceRating')}
         </Text>
-        <StarRating rating={serviceRating} onRate={setServiceRating} />
+        <StarRating
+          rating={serviceRating}
+          onRate={setServiceRating}
+          category={t('reviews.serviceRating')}
+        />
       </Card>
 
       <Card style={{ marginBottom: spacing.md }}>
         <Text style={[styles.label, { color: colors.textSecondary }]}>
           {t('reviews.stylistRating')}
         </Text>
-        <StarRating rating={stylistRating} onRate={setStylistRating} size={28} />
+        <StarRating
+          rating={stylistRating}
+          onRate={setStylistRating}
+          category={t('reviews.stylistRating')}
+          size={28}
+        />
       </Card>
 
       <Card style={{ marginBottom: spacing.lg }}>
