@@ -425,6 +425,9 @@ jobs:
       - name: Test Bosnian contact read recovery copy
         working-directory: mobile
         run: npm run test:contact-read-recovery-copy
+      - name: Test contact data and working-hours read recovery
+        working-directory: mobile
+        run: npm run test:contact-read-recovery
       - name: Test Bosnian copy for login public-settings recovery
         working-directory: mobile
         run: npm run test:login-public-settings-recovery-copy

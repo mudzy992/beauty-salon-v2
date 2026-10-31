@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Linking, TouchableOpacity, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
+import { Button } from '../../components/ui/Button';
 import { spacing } from '../../theme';
 import { fetchPublicSettings, type PublicSettingItem } from '../../services/publicSettings';
 import { formatSalonWorkingHours } from '../../utils/formatSalonHours';
@@ -53,19 +54,57 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<PublicSettingItem[] | null>(null);
   const [workingHours, setWorkingHours] = useState('');
+  const [settingsError, setSettingsError] = useState(false);
+  const [workingHoursError, setWorkingHoursError] = useState(false);
+  const [settingsRetrying, setSettingsRetrying] = useState(false);
+  const [workingHoursRetrying, setWorkingHoursRetrying] = useState(false);
+  const settingsRequestGeneration = useRef(0);
+  const hoursRequestGeneration = useRef(0);
 
-  const loadSettings = useCallback(() => {
+  const loadPublicSettings = useCallback(() => {
+    const generation = ++settingsRequestGeneration.current;
+    setSettingsError(false);
+    setSettingsRetrying(true);
     fetchPublicSettings()
-      .then((items) => setSettings(items))
-      .catch(() => setSettings(null))
-      .finally(() => setLoading(false));
+      .then((items) => {
+        if (generation === settingsRequestGeneration.current) setSettings(items);
+      })
+      .catch(() => {
+        if (generation === settingsRequestGeneration.current) setSettingsError(true);
+      })
+      .finally(() => {
+        if (generation === settingsRequestGeneration.current) {
+          setSettingsRetrying(false);
+          setLoading(false);
+        }
+      });
+  }, []);
+
+  const loadWorkingHours = useCallback(() => {
+    const generation = ++hoursRequestGeneration.current;
+    setWorkingHoursError(false);
+    setWorkingHoursRetrying(true);
     api
       .get<{ workingHours?: { dayOfWeek: number; isWorkingDay: boolean; openTime: string; closeTime: string }[] } | null>(
         '/api/salon',
       )
-      .then((r) => setWorkingHours(formatSalonWorkingHours(r.data?.workingHours)))
-      .catch(() => setWorkingHours(''));
+      .then((r) => {
+        if (generation === hoursRequestGeneration.current) {
+          setWorkingHours(formatSalonWorkingHours(r.data?.workingHours));
+        }
+      })
+      .catch(() => {
+        if (generation === hoursRequestGeneration.current) setWorkingHoursError(true);
+      })
+      .finally(() => {
+        if (generation === hoursRequestGeneration.current) setWorkingHoursRetrying(false);
+      });
   }, []);
+
+  const loadSettings = useCallback(() => {
+    loadPublicSettings();
+    loadWorkingHours();
+  }, [loadPublicSettings, loadWorkingHours]);
 
   useEffect(() => {
     navigation.setOptions({ title: t('profile.contact.title') });
@@ -73,6 +112,10 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
 
   useEffect(() => {
     loadSettings();
+    return () => {
+      settingsRequestGeneration.current += 1;
+      hoursRequestGeneration.current += 1;
+    };
   }, [loadSettings]);
 
   usePublicContentSocketRefresh(loadSettings);
@@ -151,6 +194,19 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
       <Card style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Kontakt</Text>
 
+        {settingsError ? (
+          <View style={styles.recoveryNotice}>
+            <Text style={{ color: colors.error }}>{t('profile.contact.settingsLoadError')}</Text>
+            <Button
+              title={t('common.retry')}
+              onPress={loadPublicSettings}
+              loading={settingsRetrying}
+              variant="outline"
+              size="sm"
+            />
+          </View>
+        ) : null}
+
         {address ? (
           <View style={styles.row}>
             <Ionicons name="location-outline" size={18} color={colors.textMuted} />
@@ -186,6 +242,19 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
             <Text style={{ color: colors.textSecondary, flex: 1, lineHeight: 20 }}>
               {workingHours}
             </Text>
+          </View>
+        ) : null}
+
+        {workingHoursError ? (
+          <View style={styles.recoveryNotice}>
+            <Text style={{ color: colors.error }}>{t('profile.contact.workingHoursLoadError')}</Text>
+            <Button
+              title={t('common.retry')}
+              onPress={loadWorkingHours}
+              loading={workingHoursRetrying}
+              variant="outline"
+              size="sm"
+            />
           </View>
         ) : null}
 
@@ -228,6 +297,7 @@ const styles = StyleSheet.create({
   content: { padding: spacing.md },
   section: { marginBottom: spacing.md },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: spacing.sm },
+  recoveryNotice: { gap: spacing.xs, paddingVertical: spacing.xs },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
   socialRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   socialChip: {
