@@ -23,9 +23,11 @@ import { fetchAllNormalizedPublicServices } from '../../services/catalog';
 import { spacing } from '../../theme';
 import type { Service } from '../../types';
 import { getSalonDateOnly } from '../../utils/date';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { DailyLogEntryPricingBlock } from './DailyLogEntryPricingBlock';
 import {
   computeCharge,
+  parseCreatedDailyLogEntryId,
   parsePaid,
   type OpenDebtRow,
 } from './daily-log-entry-math';
@@ -359,7 +361,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         navigation.navigate('DailyLogDetail', { entryId: editEntryId });
         return;
       }
-      const { data: entry } = await api.post<{ id: string }>('/api/daily-log', {
+      const { data: response } = await api.post<unknown>('/api/daily-log', {
         stylistProfileId: profileId,
         items,
         clientId,
@@ -373,14 +375,17 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         settledDebtIds: settleDebtsEnabled ? settledDebtIds : undefined,
         ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
       });
-      navigation.navigate('DailyLogDetail', { entryId: entry.id });
+      const entryId = parseCreatedDailyLogEntryId(response);
+      if (!entryId) {
+        Alert.alert(t('common.error'), t('stylist.dailyLogDetail.saveResponseFallback'));
+        return;
+      }
+      navigation.navigate('DailyLogDetail', { entryId });
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data
-              ?.message
-          : t('stylist.dailyLogDetail.saveErrorFallback');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg));
+      Alert.alert(
+        t('common.error'),
+        getApiErrorMessage(err, t('stylist.dailyLogDetail.saveErrorFallback')),
+      );
     } finally {
       setSaving(false);
     }

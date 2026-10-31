@@ -608,6 +608,9 @@ jobs:
       - name: Test ambiguous daily-log save response copy
         working-directory: mobile
         run: npm run test:daily-log-save-response-copy
+      - name: Test daily-log create response validation and safe errors
+        working-directory: mobile
+        run: npm run test:daily-log-save-response
       - name: Test reschedule proposal payload validation
         working-directory: mobile
         run: npm run test:stylist-reschedule-proposal

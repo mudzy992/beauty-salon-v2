@@ -91,6 +91,7 @@
     "test:stylist-start-order-check-copy": "node --test src/screens/stylist/stylist-start-order-check-copy.test.mjs",
     "test:stylist-start-order-check": "node --test src/screens/stylist/stylist-start-order-check.test.mjs",
     "test:daily-log-save-response-copy": "node --test src/screens/stylist/daily-log-save-response-copy.test.mjs",
+    "test:daily-log-save-response": "node --test src/screens/stylist/daily-log-save-response.test.mjs",
     "test:stylist-reschedule-proposal": "node --test src/screens/stylist/reschedule-proposal.test.mjs",
     "test:stylist-reschedule-preview-recovery": "node --test src/screens/stylist/stylist-reschedule-preview-read-recovery.test.mjs",
     "test:stylist-profile-logout-i18n": "node --test src/screens/stylist/stylist-profile-logout-i18n.test.mjs",
