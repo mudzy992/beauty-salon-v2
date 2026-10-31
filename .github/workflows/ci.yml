@@ -392,6 +392,9 @@ jobs:
       - name: Test Bosnian copy for profile read recovery
         working-directory: mobile
         run: npm run test:profile-read-recovery-copy
+      - name: Test profile debt and media-consent read recovery
+        working-directory: mobile
+        run: npm run test:profile-read-recovery
       - name: Test reservation availability API contracts and malformed responses
         working-directory: mobile
         run: npm run test:reservation-availability

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -81,19 +81,42 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const [verifyCode, setVerifyCode] = useState('');
   const [verifySending, setVerifySending] = useState(false);
   const [verifySubmitting, setVerifySubmitting] = useState(false);
+  const userId = user?.id ?? null;
   const [openDebts, setOpenDebts] = useState<ProfileDebt[]>([]);
+  const [openDebtsOwnerId, setOpenDebtsOwnerId] = useState<string | null>(null);
+  const [openDebtsLoaded, setOpenDebtsLoaded] = useState(false);
+  const [openDebtsLoading, setOpenDebtsLoading] = useState(false);
   const [openDebtsError, setOpenDebtsError] = useState(false);
   const [openDebtsRetryCount, setOpenDebtsRetryCount] = useState(0);
   const [mediaConsent, setMediaConsent] = useState<ConsentPayload | null>(null);
+  const [mediaConsentOwnerId, setMediaConsentOwnerId] = useState<string | null>(null);
+  const [mediaConsentLoaded, setMediaConsentLoaded] = useState(false);
+  const [mediaConsentError, setMediaConsentError] = useState(false);
+  const [mediaConsentRetryCount, setMediaConsentRetryCount] = useState(0);
   const [mediaConsentLoading, setMediaConsentLoading] = useState(false);
   const [mediaConsentSavingId, setMediaConsentSavingId] = useState<string | null>(null);
   const [mediaConsentAccepted, setMediaConsentAccepted] = useState<Record<string, boolean>>({});
   const [mediaConsentMessage, setMediaConsentMessage] = useState('');
+  const mediaConsentGeneration = useRef(0);
+  const debtsGeneration = useRef(0);
+  const requestOwnerId = useRef(userId);
+  if (requestOwnerId.current !== userId) {
+    requestOwnerId.current = userId;
+    mediaConsentGeneration.current += 1;
+    debtsGeneration.current += 1;
+  }
   const isClient = userIsClient(user);
+  const visibleOpenDebts = openDebtsOwnerId === userId ? openDebts : [];
+  const visibleMediaConsent = mediaConsentOwnerId === userId ? mediaConsent : null;
 
   const loadMediaConsent = useCallback(async () => {
-    if (!isClient) {
+    if (requestOwnerId.current !== userId) return false;
+    const generation = ++mediaConsentGeneration.current;
+    if (!isClient || !userId) {
       setMediaConsent(null);
+      setMediaConsentOwnerId(null);
+      setMediaConsentLoaded(false);
+      setMediaConsentError(false);
       setMediaConsentAccepted({});
       setMediaConsentMessage('');
       setMediaConsentLoading(false);
@@ -104,48 +127,63 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
       const { data } = await api.get<unknown>('/api/media/consents/me');
       const payload = normalizeConsentPayload(data);
       if (!payload) throw new Error('INVALID_MEDIA_CONSENT_RESPONSE');
+      if (generation !== mediaConsentGeneration.current) return false;
       setMediaConsent(payload);
+      setMediaConsentOwnerId(userId);
+      setMediaConsentLoaded(true);
+      setMediaConsentError(false);
       setMediaConsentAccepted({});
       setMediaConsentMessage('');
       return true;
     } catch {
-      setMediaConsent(null);
-      setMediaConsentMessage(t('profile.mediaConsent.loadError'));
+      if (generation === mediaConsentGeneration.current) setMediaConsentError(true);
       return false;
     } finally {
-      setMediaConsentLoading(false);
+      if (generation === mediaConsentGeneration.current) setMediaConsentLoading(false);
     }
-  }, [isClient, t]);
+  }, [isClient, userId]);
 
   useEffect(() => {
     void loadMediaConsent();
-  }, [loadMediaConsent]);
+    return () => {
+      mediaConsentGeneration.current += 1;
+    };
+  }, [loadMediaConsent, mediaConsentRetryCount]);
 
-  useEffect(() => {
-    if (!isClient) {
+  const loadOpenDebts = useCallback(async () => {
+    if (requestOwnerId.current !== userId) return;
+    const generation = ++debtsGeneration.current;
+    if (!isClient || !userId) {
       setOpenDebts([]);
+      setOpenDebtsOwnerId(null);
+      setOpenDebtsLoaded(false);
       setOpenDebtsError(false);
+      setOpenDebtsLoading(false);
       return;
     }
-    let mounted = true;
-    setOpenDebtsError(false);
-    api
-      .get<unknown>('/api/client-debts/me')
-      .then((r) => {
-        const debts = normalizeProfileDebts(r.data);
-        if (!debts) throw new Error('INVALID_CLIENT_DEBTS_RESPONSE');
-        if (mounted) setOpenDebts(debts);
-      })
-      .catch(() => {
-        if (mounted) {
-          setOpenDebts([]);
-          setOpenDebtsError(true);
-        }
-      });
+    setOpenDebtsLoading(true);
+    try {
+      const { data } = await api.get<unknown>('/api/client-debts/me');
+      const debts = normalizeProfileDebts(data);
+      if (!debts) throw new Error('INVALID_CLIENT_DEBTS_RESPONSE');
+      if (generation !== debtsGeneration.current) return;
+      setOpenDebts(debts);
+      setOpenDebtsOwnerId(userId);
+      setOpenDebtsLoaded(true);
+      setOpenDebtsError(false);
+    } catch {
+      if (generation === debtsGeneration.current) setOpenDebtsError(true);
+    } finally {
+      if (generation === debtsGeneration.current) setOpenDebtsLoading(false);
+    }
+  }, [isClient, userId]);
+
+  useEffect(() => {
+    void loadOpenDebts();
     return () => {
-      mounted = false;
+      debtsGeneration.current += 1;
     };
-  }, [isClient, openDebtsRetryCount]);
+  }, [loadOpenDebts, openDebtsRetryCount]);
 
   const themeLabel =
     mode === 'light'
@@ -195,12 +233,12 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   }, [verifyCode, refreshProfile, t]);
 
   const grantMediaConsent = useCallback(async (item: ConsentItem) => {
-    if (!mediaConsent || !mediaConsentAccepted[item.imageId]) return;
+    if (!visibleMediaConsent || !mediaConsentAccepted[item.imageId]) return;
     setMediaConsentSavingId(item.imageId);
     setMediaConsentMessage('');
     try {
       await api.post(`/api/media/consents/${encodeURIComponent(item.imageId)}/grant`, {
-        policyVersion: mediaConsent.policyVersion,
+        policyVersion: visibleMediaConsent.policyVersion,
       });
       const refreshed = await loadMediaConsent();
       setMediaConsentMessage(
@@ -211,7 +249,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
     } finally {
       setMediaConsentSavingId(null);
     }
-  }, [loadMediaConsent, mediaConsent, mediaConsentAccepted, t]);
+  }, [loadMediaConsent, visibleMediaConsent, mediaConsentAccepted, t]);
 
   const revokeMediaConsent = useCallback((item: ConsentItem) => {
     Alert.alert(
@@ -345,13 +383,29 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
           {mediaConsentLoading ? (
             <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>{t('common.loading')}</Text>
           ) : null}
-          {!mediaConsentLoading && mediaConsent?.pending.length ? (
+          {mediaConsentError ? (
+            <View style={{ marginBottom: spacing.sm, gap: spacing.xs }}>
+              <Text style={{ color: colors.error, fontSize: 13 }}>
+                {mediaConsentLoaded && mediaConsentOwnerId === userId
+                  ? t('profile.mediaConsent.stale')
+                  : t('profile.mediaConsent.loadError')}
+              </Text>
+              <Button
+                title={t('common.retry')}
+                onPress={() => setMediaConsentRetryCount((count) => count + 1)}
+                variant="outline"
+                size="sm"
+                disabled={mediaConsentLoading}
+              />
+            </View>
+          ) : null}
+          {!mediaConsentLoading && visibleMediaConsent?.pending.length ? (
             <View style={{ gap: spacing.md }}>
               <View style={{ backgroundColor: colors.accentLight, borderRadius: 12, padding: spacing.md }}>
-                <Text style={{ color: colors.text, fontSize: 13, lineHeight: 20 }}>{mediaConsent.consentText}</Text>
+                <Text style={{ color: colors.text, fontSize: 13, lineHeight: 20 }}>{visibleMediaConsent.consentText}</Text>
               </View>
               <Text style={{ color: colors.text, fontWeight: '700' }}>{t('profile.mediaConsent.pendingTitle')}</Text>
-              {mediaConsent.pending.map((item) => {
+              {visibleMediaConsent.pending.map((item) => {
                 const label = item.isBefore ? t('profile.mediaConsent.beforeTreatment') : t('profile.mediaConsent.afterTreatment');
                 const checked = Boolean(mediaConsentAccepted[item.imageId]);
                 return (
@@ -385,10 +439,10 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
               })}
             </View>
           ) : null}
-          {!mediaConsentLoading && mediaConsent?.active.length ? (
+          {!mediaConsentLoading && visibleMediaConsent?.active.length ? (
             <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
               <Text style={{ color: colors.text, fontWeight: '700' }}>{t('profile.mediaConsent.activeHeading')}</Text>
-              {mediaConsent.active.map((item) => (
+              {visibleMediaConsent.active.map((item) => (
                 <View key={item.imageId} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.sm }}>
                   <MediaImage
                     uri={getImageUrl(item.previewUrl)}
@@ -420,7 +474,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
               ))}
             </View>
           ) : null}
-          {!mediaConsentLoading && mediaConsent && mediaConsent.pending.length === 0 && mediaConsent.active.length === 0 ? (
+          {!mediaConsentLoading && visibleMediaConsent && visibleMediaConsent.pending.length === 0 && visibleMediaConsent.active.length === 0 ? (
             <Text style={{ color: colors.textSecondary, fontSize: 13 }}>{t('profile.mediaConsent.empty')}</Text>
           ) : null}
           {mediaConsentMessage ? (
@@ -435,23 +489,26 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
       {isClient && openDebtsError ? (
         <Card style={[styles.menuCard, { borderColor: colors.border }]}>
           <Text style={[styles.menuLabel, { color: colors.text, marginBottom: spacing.sm }]}>
-            {t('profile.debtLoadError')}
+            {openDebtsLoaded && openDebtsOwnerId === userId
+              ? t('profile.debtStale')
+              : t('profile.debtLoadError')}
           </Text>
           <Button
             title={t('common.retry')}
             onPress={() => setOpenDebtsRetryCount((count) => count + 1)}
             variant="outline"
             size="sm"
+            disabled={openDebtsLoading}
           />
         </Card>
       ) : null}
 
-      {openDebts.length > 0 ? (
+      {visibleOpenDebts.length > 0 ? (
         <Card style={[styles.menuCard, { borderColor: colors.border }]}>
           <Text style={[styles.menuLabel, { color: colors.text, paddingHorizontal: 16, paddingTop: 14, fontWeight: '700' }]}>
             {t('profile.openDebtsTitle')}
           </Text>
-          {openDebts.map((d, idx) => (
+          {visibleOpenDebts.map((d, idx) => (
             <View key={d.id}>
               {idx > 0 ? <View style={[styles.separator, { backgroundColor: colors.borderLight }]} /> : null}
               <View style={styles.menuItem}>
