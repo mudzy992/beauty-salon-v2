@@ -407,7 +407,7 @@ export const bs = {
       paidAmountInvalid: 'Unesite ispravan iznos naplaćenog računa.',
       settledDebtAmountInsufficient: 'Nedovoljno za naplatu označenih dugova.',
       saveErrorFallback: 'Greška pri kreiranju zapisa.',
-      saveResponseFallback: 'Unos je možda sačuvan, ali server nije vratio njegov ID. Provjerite dnevnik prije ponovnog slanja.'
+      saveResponseFallback: 'Unos je možda sačuvan, ali server nije vratio njegov ID. Provjerite dnevnik prije ponovnog slanja.',
       dateLabel: 'Datum',
       notesLabel: 'Napomena (opciono)',
       amountPlaceholder: '0.00',
