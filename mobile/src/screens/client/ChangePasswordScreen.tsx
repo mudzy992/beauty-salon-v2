@@ -11,6 +11,7 @@ import api from '../../services/api';
 import { useAuthStore } from '../../store/authStore';
 import { spacing } from '../../theme';
 import type { ProfileScreenProps } from '../../navigation/types';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 type ChangePasswordProps = Omit<ProfileScreenProps<'ChangePassword'>, 'route'> & {
   route?: ProfileScreenProps<'ChangePassword'>['route'];
@@ -68,11 +69,7 @@ export function ChangePasswordScreen({
       };
       Alert.alert(t('common.ok'), t('profile.changePassword.success'), [{ text: t('common.ok'), onPress: goNext }]);
     } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : t('common.error');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
+      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
     } finally {
       setLoading(false);
     }

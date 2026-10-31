@@ -1,5 +1,6 @@
 import type { Reservation } from '../../../../types';
 import { salonWallTimeToInstant } from '../../../../utils/date';
+import { getApiErrorMessage as getSafeApiErrorMessage } from '../../../../utils/apiError';
 
 export const getPlannedReservationDateTime = (reservationDate: string, time: string): Date => {
   return salonWallTimeToInstant(reservationDate.slice(0, 10), time);
@@ -48,13 +49,7 @@ export const getReservationStatusLabel = (
   return t(`myReservations.status.${reservation.status}`);
 };
 
-export const getApiErrorMessage = (err: unknown, fallback: string): string => {
-  const msg =
-    err && typeof err === 'object' && 'response' in err
-      ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-      : fallback;
-  return Array.isArray(msg) ? (msg[0] ?? fallback) : String(msg ?? fallback);
-};
+export const getApiErrorMessage = getSafeApiErrorMessage;
 
 export const computeCompleteMinCharge = (reservation: Reservation): number => {
   const basePrice =

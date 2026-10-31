@@ -37,7 +37,7 @@
     "test:android-release-payload": "node --test src/features/app-update/release-payload.test.mjs",
     "test:external-links": "node --test src/utils/externalLink.test.mjs",
     "test:async-response-identity": "node --test src/utils/async-response-identity.test.mjs",
-    "test:mutation-error-handling": "node --test src/utils/mutation-error-handling.test.mjs src/screens/client/profile-api-errors.test.mjs",
+    "test:mutation-error-handling": "node --test src/utils/mutation-error-handling.test.mjs src/utils/mutation-error-parser-adoption.test.mjs src/screens/client/profile-api-errors.test.mjs",
     "test:catalog-detail-recovery": "node --test src/utils/catalog-detail-recovery.test.mjs",
     "test:daily-log-read-recovery": "node --test src/utils/daily-log-read-recovery.test.mjs",
     "test:home-read-recovery": "node --test src/utils/home-read-recovery.test.mjs",

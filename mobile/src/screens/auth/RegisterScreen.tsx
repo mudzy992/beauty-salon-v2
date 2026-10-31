@@ -18,7 +18,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { spacing } from '../../theme';
 import type { AuthScreenProps } from '../../navigation/types';
-import { AxiosError } from 'axios';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
   const { t } = useTranslation();
@@ -66,11 +66,8 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
         password: form.password,
         phone: form.phone.trim() || undefined,
       });
-    } catch (error) {
-      const axiosError = error as AxiosError<{ message: string | string[] }>;
-      const msg = axiosError.response?.data?.message;
-      const message = Array.isArray(msg) ? msg.join('\n') : msg || 'Greška pri registraciji';
-      Alert.alert(t('common.error'), message);
+    } catch (error: unknown) {
+      Alert.alert(t('common.error'), getApiErrorMessage(error, 'Greška pri registraciji'));
     }
   };
 
