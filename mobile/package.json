@@ -34,6 +34,7 @@
     "test:reservation-detail-read-recovery": "node --test src/screens/client/reservation-detail-read-recovery.test.mjs",
     "test:blog-list-read-recovery": "node --test src/screens/client/blog-list-read-recovery.test.mjs",
     "test:blog-post-read-recovery": "node --test src/screens/client/blog-post-read-recovery.test.mjs",
+    "test:before-after-slider-accessibility": "node --test src/components/before-after-slider-accessibility.test.mjs",
     "test:refresh-gate": "node --test src/hooks/refreshGate.test.mjs",
     "test:auth-session": "node --test src/store/auth-session.test.mjs",
     "test:session-recovery": "node --test src/store/session-recovery.test.mjs",

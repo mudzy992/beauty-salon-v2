@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { View, StyleSheet, PanResponder, useWindowDimensions } from 'react-native';
 import { MediaImage } from './MediaImage';
 import { useTheme } from '../hooks/useTheme';
+import { useTranslation } from 'react-i18next';
 import { borderRadius } from '../theme';
 
 interface BeforeAfterSliderProps {
@@ -21,6 +22,7 @@ export function BeforeAfterSlider({
 }: BeforeAfterSliderProps) {
   const { width: winW } = useWindowDimensions();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const width = widthProp ?? winW * 0.85;
   const height = heightProp ?? width;
 
@@ -42,12 +44,34 @@ export function BeforeAfterSlider({
     }),
   ).current;
 
+  const adjustPosition = (delta: number) => {
+    setPosition((current) => Math.max(0, Math.min(1, current + delta)));
+  };
+  const accessibilityPercent = Math.round(position * 100);
   const lineColor = isDark ? colors.gray100 : colors.white;
   const knobBorder = colors.border;
 
   return (
     <View
       style={[styles.container, { width, height, borderRadius: borderRadius.lg }]}
+      accessible
+      accessibilityRole="adjustable"
+      accessibilityLabel={t('home.beforeAfterSliderLabel')}
+      accessibilityHint={t('home.beforeAfterSliderHint')}
+      accessibilityValue={{
+        min: 0,
+        max: 100,
+        now: accessibilityPercent,
+        text: t('home.beforeAfterSliderPosition', { percent: accessibilityPercent }),
+      }}
+      accessibilityActions={[
+        { name: 'increment', label: t('home.beforeAfterSliderIncrease') },
+        { name: 'decrement', label: t('home.beforeAfterSliderDecrease') },
+      ]}
+      onAccessibilityAction={({ nativeEvent }) => {
+        if (nativeEvent.actionName === 'increment') adjustPosition(0.05);
+        if (nativeEvent.actionName === 'decrement') adjustPosition(-0.05);
+      }}
       {...panResponder.panHandlers}
     >
       <MediaImage uri={beforeSrc} style={styles.beforeImage} />

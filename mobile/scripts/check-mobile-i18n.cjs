@@ -8,6 +8,7 @@ const ts = require('typescript');
 // This guard grows with the audit: only files whose visible copy has been
 // migrated are checked, so unrelated screens remain explicit follow-up work.
 const GUARDED_FILES = [
+  'src/components/BeforeAfterSlider.tsx',
   'src/screens/client/ProfileScreen.tsx',
   'src/screens/client/BlogPostScreen.tsx',
   'src/screens/client/EditProfileScreen.tsx',
@@ -58,6 +59,15 @@ function isNavigationTargetLiteral(node) {
     parent.arguments.includes(node) &&
     ts.isPropertyAccessExpression(parent.expression) &&
     parent.expression.name.text === 'navigate',
+  );
+}
+
+function isNonVisibleStyleLiteral(node) {
+  const parent = node.parent;
+  return Boolean(
+    ts.isPropertyAssignment(parent) &&
+    ts.isIdentifier(parent.name) &&
+    parent.name.text === 'boxShadow',
   );
 }
 
@@ -182,7 +192,7 @@ function scanSource(sourceText, fileName = 'source.tsx', resourceKeys) {
         }
       }
     } else if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
-      if (!isNavigationTargetLiteral(node)) inspectString(node);
+      if (!isNavigationTargetLiteral(node) && !isNonVisibleStyleLiteral(node)) inspectString(node);
     } else if (ts.isTemplateExpression(node)) {
       inspectString(node);
     }

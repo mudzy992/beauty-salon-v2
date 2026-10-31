@@ -437,6 +437,9 @@ jobs:
       - name: Test public blog detail and comments read recovery
         working-directory: mobile
         run: npm run test:blog-post-read-recovery
+      - name: Test before-after slider accessibility
+        working-directory: mobile
+        run: npm run test:before-after-slider-accessibility
       - name: Test API refresh request coalescing and error handling
         working-directory: mobile
         run: npm run test:refresh-gate

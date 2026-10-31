@@ -42,6 +42,7 @@ test('guard ignores translation keys, identifiers, and non-copy configuration li
       <>
         <Text>{t('common.close')}</Text>
         <DateTimePicker mode="date" display="default" />
+        <View style={{ boxShadow: '0 0 10px rgba(0,0,0,0.25)' }} />
         <Text>{status === 'COMPLETED' ? '✓' : value.toFixed(2)}</Text>
         {navigation.navigate('Contact')}
       </>
