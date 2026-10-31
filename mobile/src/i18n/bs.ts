@@ -70,6 +70,11 @@ export const bs = {
     debtLoadError: 'Dugovanja trenutno nisu dostupna.',
     reservationLoadError: 'Sljedeći termin trenutno nije dostupan.',
     beforeAfterLoadError: 'Galeriju trenutno nije moguće učitati.',
+    beforeAfterSliderLabel: 'Poređenje fotografija prije i poslije',
+    beforeAfterSliderHint: 'Povucite lijevo ili desno za promjenu prikaza. Dostupne su i radnje povećanja i smanjenja.',
+    beforeAfterSliderPosition: 'Razdjelnik je na {{percent}} posto.',
+    beforeAfterSliderIncrease: 'Prikaži više fotografije poslije',
+    beforeAfterSliderDecrease: 'Prikaži više fotografije prije',
     featuredReviewLoadError: 'Istaknutu recenziju trenutno nije moguće učitati.',
   },
   services: {
