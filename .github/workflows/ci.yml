@@ -392,6 +392,9 @@ jobs:
       - name: Test reservation availability API contracts and malformed responses
         working-directory: mobile
         run: npm run test:reservation-availability
+      - name: Test localized reservation benefit error copy
+        working-directory: mobile
+        run: npm run test:reservation-benefit-copy
       - name: Test runtime mobile API payload parsing
         working-directory: mobile
         run: npm run test:api-payload

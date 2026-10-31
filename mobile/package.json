@@ -19,6 +19,7 @@
     "test:mobile-i18n-guard": "node --test scripts/check-mobile-i18n.test.cjs",
     "test:client-profile-contract": "node --test src/screens/client/profile-contract.test.mjs src/screens/client/profile-api-errors.test.mjs",
     "test:reservation-availability": "node --test src/screens/client/reservation-availability.test.mjs",
+    "test:reservation-benefit-copy": "node --test src/screens/client/reservation-benefit-error-copy.test.mjs",
     "test:api-payload": "node --test src/utils/apiPayload.test.mjs",
     "test:public-service-consumers": "node --test src/services/public-service-consumers.test.mjs",
     "test:notification-fetch-state": "node --test src/screens/client/notification-fetch-state.test.mjs",
