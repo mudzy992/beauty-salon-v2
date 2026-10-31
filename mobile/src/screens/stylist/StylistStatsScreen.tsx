@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
@@ -10,6 +10,7 @@ import api from '../../services/api';
 import { spacing } from '../../theme';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import type { DailyLogEntry, Reservation } from '../../types';
+import { normalizeDailyLogEntries, normalizeReservations } from '../../utils/apiPayload';
 import { getServiceAmount, getSettledDebtsSum, getTipAmount } from './daily-log-display';
 import { getCalendarMonthRange, getSalonMonthLabel } from '../../utils/date';
 
@@ -22,50 +23,88 @@ export function StylistStatsScreen() {
   const [dailyLog, setDailyLog] = useState<DailyLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [reservationsLoaded, setReservationsLoaded] = useState(false);
+  const [dailyLogLoaded, setDailyLogLoaded] = useState(false);
+  const [reservationsOwnerId, setReservationsOwnerId] = useState<string | null>(null);
+  const [dailyLogOwnerId, setDailyLogOwnerId] = useState<string | null>(null);
+  const [reservationsError, setReservationsError] = useState(false);
+  const [dailyLogError, setDailyLogError] = useState(false);
+  const requestGeneration = useRef(0);
 
   const fetchData = useCallback(async () => {
+    const generation = ++requestGeneration.current;
     if (!profileId) {
       setLoading(false);
       return;
     }
-    try {
-      const now = new Date();
-      const { fromDate, toDate } = getCalendarMonthRange(now);
-      const [resRes, logRes] = await Promise.all([
-        api.get<Reservation[]>('/api/reservations', {
-          params: {
-            asStylist: true,
-            fromDate: fromDate,
-            toDate: toDate,
-          },
-        }),
-        api.get<DailyLogEntry[]>('/api/daily-log', {
-          params: {
-            stylistProfileId: profileId,
-            fromDate: fromDate,
-            toDate: toDate,
-          },
-        }),
-      ]);
-      setReservations(Array.isArray(resRes.data) ? resRes.data : []);
-      setDailyLog(Array.isArray(logRes.data) ? logRes.data : []);
-    } catch {
-      setReservations([]);
-      setDailyLog([]);
-    }
-    setLoading(false);
+    setLoading(true);
+    const { fromDate, toDate } = getCalendarMonthRange(new Date());
+    const loadReservations = async () => {
+      try {
+        const { data } = await api.get<unknown>('/api/reservations', {
+          params: { asStylist: true, fromDate, toDate },
+        });
+        const parsed = normalizeReservations(data);
+        if (!Array.isArray(data) || !parsed || parsed.length !== data.length) {
+          throw new Error('Invalid reservations payload');
+        }
+        if (generation !== requestGeneration.current) return;
+        setReservations(parsed);
+        setReservationsLoaded(true);
+        setReservationsOwnerId(profileId);
+        setReservationsError(false);
+      } catch {
+        if (generation === requestGeneration.current) setReservationsError(true);
+      }
+    };
+    const loadDailyLog = async () => {
+      try {
+        const { data } = await api.get<unknown>('/api/daily-log', {
+          params: { stylistProfileId: profileId, fromDate, toDate },
+        });
+        const parsed = normalizeDailyLogEntries(data);
+        if (!Array.isArray(data) || !parsed || parsed.length !== data.length) {
+          throw new Error('Invalid daily-log payload');
+        }
+        if (generation !== requestGeneration.current) return;
+        setDailyLog(parsed);
+        setDailyLogLoaded(true);
+        setDailyLogOwnerId(profileId);
+        setDailyLogError(false);
+      } catch {
+        if (generation === requestGeneration.current) setDailyLogError(true);
+      }
+    };
+    await Promise.all([loadReservations(), loadDailyLog()]);
+    if (generation === requestGeneration.current) setLoading(false);
   }, [profileId]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    requestGeneration.current += 1;
+    setReservations([]);
+    setDailyLog([]);
+    setReservationsLoaded(false);
+    setDailyLogLoaded(false);
+    setReservationsOwnerId(null);
+    setDailyLogOwnerId(null);
+    setReservationsError(false);
+    setDailyLogError(false);
+    setLoading(Boolean(profileId));
+    if (profileId) void fetchData();
+    return () => {
+      requestGeneration.current += 1;
+    };
+  }, [fetchData, profileId]);
 
   useReservationSocketRefresh(fetchData);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchData();
-    setRefreshing(false);
+    try {
+      await fetchData();
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchData]);
 
   const completedReservations = reservations.filter((r) => r.status === 'COMPLETED');
@@ -87,6 +126,8 @@ export function StylistStatsScreen() {
     0,
   );
   const totalRevenue = serviceRevenue + totalTips + totalDebts;
+  const hasReservationsData = reservationsLoaded && reservationsOwnerId === profileId;
+  const hasDailyLogData = dailyLogLoaded && dailyLogOwnerId === profileId;
 
   if (profileLoading || (loading && !profileId)) {
     return (
@@ -121,15 +162,55 @@ export function StylistStatsScreen() {
     >
       <Text style={[styles.period, { color: colors.textSecondary }]}>{monthLabel}</Text>
 
+      {loading && !hasReservationsData && !hasDailyLogData ? (
+        <ActivityIndicator size="small" color={colors.primary} style={styles.loading} />
+      ) : null}
+      {reservationsError ? (
+        <View style={[styles.readNotice, { borderColor: colors.error }]} accessibilityRole="alert">
+          <Text style={[styles.noticeText, { color: colors.error }]}>
+            {t(hasReservationsData ? 'stylist.stats.reservationsStale' : 'stylist.stats.reservationsLoadError')}
+          </Text>
+          <Pressable
+            onPress={() => { void fetchData(); }}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel={t('stylist.stats.retry')}
+            style={styles.retryButton}
+          >
+            <Text style={[styles.retryText, { color: colors.primary }]}>{t('stylist.stats.retry')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {dailyLogError ? (
+        <View style={[styles.readNotice, { borderColor: colors.error }]} accessibilityRole="alert">
+          <Text style={[styles.noticeText, { color: colors.error }]}>
+            {t(hasDailyLogData ? 'stylist.stats.dailyLogStale' : 'stylist.stats.dailyLogLoadError')}
+          </Text>
+          <Pressable
+            onPress={() => { void fetchData(); }}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel={t('stylist.stats.retry')}
+            style={styles.retryButton}
+          >
+            <Text style={[styles.retryText, { color: colors.primary }]}>{t('stylist.stats.retry')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       <Card style={styles.card}>
-        <Text style={[styles.statValue, { color: colors.primary }]}>{completedReservations.length}</Text>
+        <Text style={[styles.statValue, { color: colors.primary }]}>
+          {hasReservationsData ? completedReservations.length : '—'}
+        </Text>
         <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
           {t('stylist.stats.completedReservations')}
         </Text>
       </Card>
 
       <Card style={styles.card}>
-        <Text style={[styles.statValue, { color: colors.primary }]}>{confirmedUpcoming.length}</Text>
+        <Text style={[styles.statValue, { color: colors.primary }]}>
+          {hasReservationsData ? confirmedUpcoming.length : '—'}
+        </Text>
         <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
           {t('stylist.stats.upcomingConfirmed')}
         </Text>
@@ -137,7 +218,7 @@ export function StylistStatsScreen() {
 
       <Card style={styles.card}>
         <Text style={[styles.statValue, { color: colors.primary }]}>
-          {totalRevenue.toFixed(2)} KM
+          {hasDailyLogData ? `${totalRevenue.toFixed(2)} KM` : '—'}
         </Text>
         <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
           {t('stylist.stats.totalRevenue')}
@@ -148,7 +229,7 @@ export function StylistStatsScreen() {
               {t('stylist.stats.serviceRevenue')}
             </Text>
             <Text style={[styles.breakdownValue, { color: colors.text }]}>
-              {serviceRevenue.toFixed(2)} KM
+              {hasDailyLogData ? `${serviceRevenue.toFixed(2)} KM` : '—'}
             </Text>
           </View>
           <View style={styles.breakdownRow}>
@@ -156,7 +237,7 @@ export function StylistStatsScreen() {
               {t('stylist.stats.tips')}
             </Text>
             <Text style={[styles.breakdownValue, { color: colors.text }]}>
-              {totalTips.toFixed(2)} KM
+              {hasDailyLogData ? `${totalTips.toFixed(2)} KM` : '—'}
             </Text>
           </View>
           <View style={styles.breakdownRow}>
@@ -164,7 +245,7 @@ export function StylistStatsScreen() {
               {t('stylist.stats.debts')}
             </Text>
             <Text style={[styles.breakdownValue, { color: colors.text }]}>
-              {totalDebts.toFixed(2)} KM
+              {hasDailyLogData ? `${totalDebts.toFixed(2)} KM` : '—'}
             </Text>
           </View>
         </View>
@@ -177,6 +258,17 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content: { padding: spacing.md },
   period: { fontSize: 14, marginBottom: spacing.md, textTransform: 'capitalize' },
+  loading: { marginBottom: spacing.md },
+  readNotice: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 8,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+    gap: spacing.xs,
+  },
+  noticeText: { fontSize: 13 },
+  retryButton: { alignSelf: 'flex-start', paddingVertical: spacing.xs },
+  retryText: { fontSize: 14, fontWeight: '600' },
   card: { marginBottom: spacing.sm },
   statValue: { fontSize: 28, fontWeight: '700', fontVariant: ['tabular-nums'] },
   statLabel: { fontSize: 14, marginTop: 4 },

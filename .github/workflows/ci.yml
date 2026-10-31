@@ -581,6 +581,9 @@ jobs:
       - name: Test Bosnian copy for stylist statistics recovery
         working-directory: mobile
         run: npm run test:stylist-stats-recovery-copy
+      - name: Test stylist statistics read recovery
+        working-directory: mobile
+        run: npm run test:stylist-stats-recovery
       - name: Test localized stylist profile logout confirmation
         working-directory: mobile
         run: npm run test:stylist-profile-logout-i18n
