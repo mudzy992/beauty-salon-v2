@@ -602,6 +602,7 @@ export const bs = {
         confirmAttendance: 'Potvrdi dolazak',
         handleOverrun: 'Obradi kašnjenje termina',
         startReservation: 'Započni rezervaciju',
+        startOrderCheckError: 'Nije moguće provjeriti redoslijed ranijih termina. Pokušajte ponovo.',
         proposeReschedule: 'Predloži pomjeranje termina',
       },
       cancel: {

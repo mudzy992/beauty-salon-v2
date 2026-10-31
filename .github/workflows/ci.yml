@@ -599,6 +599,9 @@ jobs:
       - name: Test stylist profile lookup recovery and account isolation
         working-directory: mobile
         run: npm run test:stylist-profile-read-recovery
+      - name: Test Bosnian copy for stylist start-order check recovery
+        working-directory: mobile
+        run: npm run test:stylist-start-order-check-copy
       - name: Test reschedule proposal payload validation
         working-directory: mobile
         run: npm run test:stylist-reschedule-proposal
