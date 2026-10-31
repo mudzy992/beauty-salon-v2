@@ -516,6 +516,8 @@ export const bs = {
     },
     profile: {
       role: 'Stilist',
+      profileLoadError: 'Profil stilista nije moguće učitati. Provjerite vezu i pokušajte ponovo.',
+      retryProfileLoad: 'Pokušaj ponovo',
       switchToClient: 'Prebaci na klijentsku aplikaciju',
       switchToClientHint: 'Prikazat će se klijentska aplikacija (početna, usluge, rezervacije).',
       logoutButton: 'Odjavi se',
