@@ -21,6 +21,7 @@ import { Button } from '../../components/ui/Button';
 import api, { getImageUrl } from '../../services/api';
 import { spacing, borderRadius } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
+import { getApiErrorMessage } from '../../utils/apiError';
 import type { AuthScreenProps } from '../../navigation/types';
 import { AxiosError } from 'axios';
 
@@ -69,9 +70,8 @@ function getLoginErrorMessage(error: unknown): string {
       'Nema konekcije s serverom. Na emulatoru/uređaju u .env postavite EXPO_PUBLIC_API_URL na IP računala (npr. http://192.168.1.100:3000).'
     );
   }
-  const msg = axiosError.response.data?.message;
-  if (Array.isArray(msg)) return msg.join('\n');
-  if (typeof msg === 'string') return msg;
+  const serverMessage = getApiErrorMessage(error, '');
+  if (serverMessage) return serverMessage;
   if (axiosError.response.status === 401) return 'Pogrešno korisničko ime ili lozinka.';
   if (axiosError.response.status >= 500) return 'Greška na serveru. Pokušajte ponovo.';
   return 'Greška pri prijavi.';
