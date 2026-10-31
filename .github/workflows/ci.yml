@@ -413,6 +413,9 @@ jobs:
       - name: Test Bosnian copy for optional service read recovery
         working-directory: mobile
         run: npm run test:services-optional-recovery-copy
+      - name: Test optional service reads distinguish errors and empty results
+        working-directory: mobile
+        run: npm run test:services-optional-recovery
       - name: Test reservation and review service picker recovery
         working-directory: mobile
         run: npm run test:public-service-picker-recovery

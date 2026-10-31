@@ -31,6 +31,7 @@
     "test:notification-fetch-state": "node --test src/screens/client/notification-fetch-state.test.mjs",
     "test:services-fetch-state": "node --test src/screens/client/services-fetch-state.test.mjs",
     "test:services-optional-recovery-copy": "node --test src/screens/client/services-optional-read-recovery-copy.test.mjs",
+    "test:services-optional-recovery": "node --test src/screens/client/services-optional-read-recovery.test.mjs",
     "test:android-release-payload": "node --test src/features/app-update/release-payload.test.mjs",
     "test:external-links": "node --test src/utils/externalLink.test.mjs",
     "test:async-response-identity": "node --test src/utils/async-response-identity.test.mjs",

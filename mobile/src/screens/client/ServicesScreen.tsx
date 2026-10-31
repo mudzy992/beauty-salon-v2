@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,19 @@ import {
 
 type PopularService = Service & { reservationsCount: number };
 
+function normalizePopularService(payload: unknown): PopularService | null | undefined {
+  if (payload === null) return null;
+  if (typeof payload !== 'object' || Array.isArray(payload)) return undefined;
+
+  const reservationsCount = (payload as Record<string, unknown>).reservationsCount;
+  if (typeof reservationsCount !== 'number' || !Number.isInteger(reservationsCount) || reservationsCount < 0) {
+    return undefined;
+  }
+  const services = normalizePublicServices([payload]);
+  if (!services || services.length !== 1) return undefined;
+  return { ...services[0], reservationsCount };
+}
+
 export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) {
   const { t } = useTranslation();
   const { colors } = useTheme();
@@ -44,32 +57,76 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [reservationsError, setReservationsError] = useState(false);
+  const [popularServiceError, setPopularServiceError] = useState(false);
+  const [reservationsRetrying, setReservationsRetrying] = useState(false);
+  const [popularServiceRetrying, setPopularServiceRetrying] = useState(false);
+  const reservationsRequestGeneration = useRef(0);
+  const popularServiceRequestGeneration = useRef(0);
+
+  const fetchReservations = useCallback(async () => {
+    const generation = ++reservationsRequestGeneration.current;
+    setReservationsError(false);
+    setReservationsRetrying(true);
+    try {
+      const { data } = await api.get<unknown>('/api/reservations', { params: { asClient: true } });
+      const normalized = normalizeReservations(data);
+      if (!normalized) throw new Error();
+      if (generation === reservationsRequestGeneration.current) setReservations(normalized);
+    } catch {
+      if (generation === reservationsRequestGeneration.current) setReservationsError(true);
+    } finally {
+      if (generation === reservationsRequestGeneration.current) setReservationsRetrying(false);
+    }
+  }, []);
+
+  const fetchPopularService = useCallback(async () => {
+    const generation = ++popularServiceRequestGeneration.current;
+    setPopularServiceError(false);
+    setPopularServiceRetrying(true);
+    try {
+      const { data } = await api.get<unknown>('/api/services/popular');
+      const normalized = normalizePopularService(data);
+      if (normalized === undefined) throw new Error();
+      if (generation === popularServiceRequestGeneration.current) setPopularService(normalized);
+    } catch {
+      if (generation === popularServiceRequestGeneration.current) setPopularServiceError(true);
+    } finally {
+      if (generation === popularServiceRequestGeneration.current) setPopularServiceRetrying(false);
+    }
+  }, []);
 
   const fetchData = useCallback(async () => {
+    const reservationsRead = fetchReservations();
+    const popularServiceRead = fetchPopularService();
     try {
-      const [categoriesRes, servicesRes, reservationsRes, popularRes] = await Promise.all([
+      const [categoriesRes, servicesRes] = await Promise.all([
         fetchAllPublicServiceCategories<unknown>({ activeOnly: true }),
         fetchAllPublicServices<unknown>({ activeOnly: true }),
-        api.get<Reservation[]>('/api/reservations', { params: { asClient: true } }).catch(() => null),
-        api.get<PopularService | null>('/api/services/popular').catch(() => null),
       ]);
       const normalizedCategoryData = normalizePublicServiceCategories(categoriesRes);
       const normalizedServiceData = normalizePublicServices(servicesRes);
       if (!normalizedCategoryData || !normalizedServiceData) {
-        throw new Error('Invalid public service catalogue payload');
+        throw new Error();
       }
       setCategories(normalizedCategoryData);
       setServices(normalizedServiceData);
-      setReservations(normalizeReservations(reservationsRes?.data) ?? []);
-      setPopularService(popularRes?.data ?? null);
       setLoadError(false);
     } catch {
       setLoadError(true);
+    } finally {
+      await Promise.all([reservationsRead, popularServiceRead]);
+      setLoading(false);
     }
-    setLoading(false);
-  }, []);
+  }, [fetchPopularService, fetchReservations]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    void fetchData();
+    return () => {
+      reservationsRequestGeneration.current += 1;
+      popularServiceRequestGeneration.current += 1;
+    };
+  }, [fetchData]);
   useReservationSocketRefresh(fetchData);
 
   const onRefresh = useCallback(async () => {
@@ -85,7 +142,9 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
     })
     .slice(0, 2);
 
-  const featuredService = popularService ?? services[0] ?? null;
+  const featuredService = popularServiceError && !popularService
+    ? null
+    : popularService ?? services[0] ?? null;
   const lastUsedService = (() => {
     const completed = reservations
       .filter((r) => r.status === 'COMPLETED' && r.service)
@@ -157,6 +216,22 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
               </Card>
             </View>
 
+            {popularServiceError ? (
+              <Card style={[styles.errorCard, { borderColor: colors.border }]}>
+                <View style={styles.errorCopy}>
+                  <Text style={[styles.errorMessage, { color: colors.textSecondary }]}>
+                    {t('services.popularServiceLoadError')}
+                  </Text>
+                </View>
+                <Button
+                  title={t('common.retry')}
+                  onPress={() => void fetchPopularService()}
+                  loading={popularServiceRetrying}
+                  variant="outline"
+                  size="sm"
+                />
+              </Card>
+            ) : null}
             {featuredService ? (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
@@ -193,6 +268,22 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
               </View>
             ) : null}
 
+            {reservationsError ? (
+              <Card style={[styles.errorCard, { borderColor: colors.border }]}>
+                <View style={styles.errorCopy}>
+                  <Text style={[styles.errorMessage, { color: colors.textSecondary }]}>
+                    {t('services.lastUsedServiceLoadError')}
+                  </Text>
+                </View>
+                <Button
+                  title={t('common.retry')}
+                  onPress={() => void fetchReservations()}
+                  loading={reservationsRetrying}
+                  variant="outline"
+                  size="sm"
+                />
+              </Card>
+            ) : null}
             {lastUsedService ? (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
