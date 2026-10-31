@@ -410,6 +410,9 @@ jobs:
       - name: Test service catalogue fetch error and retry states
         working-directory: mobile
         run: npm run test:services-fetch-state
+      - name: Test Bosnian copy for optional service read recovery
+        working-directory: mobile
+        run: npm run test:services-optional-recovery-copy
       - name: Test reservation and review service picker recovery
         working-directory: mobile
         run: npm run test:public-service-picker-recovery

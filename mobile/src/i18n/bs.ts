@@ -90,6 +90,8 @@ export const bs = {
     loadErrorTitle: 'Usluge nisu dostupne',
     loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
     staleMessage: 'Prikazujemo ranije učitane usluge. Osvježavanje nije uspjelo.',
+    popularServiceLoadError: 'Popularnu uslugu trenutno nije moguće učitati.',
+    lastUsedServiceLoadError: 'Ranije rezervisane usluge trenutno nije moguće učitati.',
     detailLoadErrorTitle: 'Detalji usluge nisu dostupni',
     detailLoadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
     galleryLoadError: 'Galeriju nije moguće učitati. Pokušajte ponovo.'
