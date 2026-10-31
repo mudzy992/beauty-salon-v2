@@ -95,6 +95,7 @@ export const bs = {
     galleryLoadError: 'Galeriju nije moguće učitati. Pokušajte ponovo.'
   },
   beforeAfterGallery: {
+    title: 'Galerija',
     pageHint: 'Povucite razdjelnik lijevo ili desno za poređenje fotografija prije i poslije.',
     emptyTitle: 'Nema transformacija',
     emptyMessage: 'Kada budu dostupne, pojavit će se ovdje.',

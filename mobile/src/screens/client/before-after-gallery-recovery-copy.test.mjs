@@ -6,6 +6,7 @@ const resources = readFileSync(new URL('../../i18n/bs.ts', import.meta.url), 'ut
 
 test('before-after gallery recovery and empty-state copy is localized in Bosnian', () => {
   for (const [key, copy] of [
+    ['title', 'Galerija'],
     ['pageHint', 'Povucite razdjelnik lijevo ili desno za poređenje fotografija prije i poslije.'],
     ['emptyTitle', 'Nema transformacija'],
     ['emptyMessage', 'Kada budu dostupne, pojavit će se ovdje.'],
