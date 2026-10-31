@@ -537,6 +537,11 @@ export const bs = {
       dailyLogStale: 'Prikazuju se raniji podaci o prihodu.',
       retry: 'Pokušaj ponovo',
     },
+    reschedulePreview: {
+      loadError: 'Preview pomjeranja termina trenutno nije moguće učitati.',
+      stale: 'Prikazuju se raniji podaci. Osvježite preview prije slanja izmjena.',
+      retry: 'Osvježi preview',
+    },
     directBooking: {
       title: 'Direktna rezervacija',
       subtitle: 'Termin ide direktno u vaš raspored i ne traži attendance potvrdu klijenta.',
