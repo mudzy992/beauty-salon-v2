@@ -22,12 +22,17 @@ import { Card } from '../../components/ui/Card';
 import { MediaBackdrop } from '../../components/MediaImage';
 import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
-import { fetchAllPublicServices } from '../../services/catalog';
+import { fetchAllNormalizedPublicServices } from '../../services/catalog';
 import { spacing, borderRadius } from '../../theme';
 import { formatDate, formatTime, getDateRange, getSalonDateOnly, getSalonTime } from '../../utils/date';
 import { useAvailabilitySocketRefresh } from '../../hooks/useAvailabilitySocketRefresh';
 import { getApiErrorMessage } from '../../utils/apiError';
-import { normalizeDebtAmounts, normalizeLoyaltyPreview, sumDebtAmounts } from '../../utils/apiPayload';
+import {
+  normalizeDebtAmounts,
+  normalizeLoyaltyPreview,
+  normalizePublicServices,
+  sumDebtAmounts,
+} from '../../utils/apiPayload';
 import type { LoyaltyPreview } from '../../utils/apiPayload';
 import type { ServicesScreenProps } from '../../navigation/types';
 import type { Service, TimeSlot } from '../../types';
@@ -92,7 +97,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   useEffect(() => {
     (async () => {
       try {
-        setServices(await fetchAllPublicServices<Service>({ activeOnly: true }));
+        setServices(await fetchAllNormalizedPublicServices({ activeOnly: true }));
       } catch { /* silent */ }
     })();
   }, []);
@@ -127,14 +132,16 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     }
     (async () => {
       try {
-        const { data } = await api.get<Service>(`/api/services/${initialServiceId}`);
-        if (user?.gender && data.gender !== user.gender) {
+        const { data } = await api.get<unknown>(`/api/services/${initialServiceId}`);
+        const service = normalizePublicServices([data])?.[0];
+        if (!service) throw new Error('Invalid public service payload');
+        if (user?.gender && service.gender !== user.gender) {
           setStep(1);
           return;
         }
         datesRequestIdRef.current += 1;
         slotsRequestIdRef.current += 1;
-        setSelectedServices([data]);
+        setSelectedServices([service]);
         setAvailableDates({});
         setDatesError(false);
         setSelectedDate(null);

@@ -16,7 +16,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import api from '../../services/api';
-import { fetchAllPublicServices } from '../../services/catalog';
+import { fetchAllNormalizedPublicServices } from '../../services/catalog';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { spacing, borderRadius } from '../../theme';
 import type { ReservationsScreenProps } from '../../navigation/types';
@@ -75,7 +75,7 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
     if (!serviceId) {
       (async () => {
         try {
-          setServices(await fetchAllPublicServices<Service>({ activeOnly: true }));
+          setServices(await fetchAllNormalizedPublicServices({ activeOnly: true }));
         } catch { /* silent */ }
         setLoading(false);
       })();

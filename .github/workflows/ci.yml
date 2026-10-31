@@ -395,6 +395,9 @@ jobs:
       - name: Test runtime mobile API payload parsing
         working-directory: mobile
         run: npm run test:api-payload
+      - name: Test runtime validation for remaining public service consumers
+        working-directory: mobile
+        run: npm run test:public-service-consumers
       - name: Test notification fetch error and stale-data states
         working-directory: mobile
         run: npm run test:notification-fetch-state

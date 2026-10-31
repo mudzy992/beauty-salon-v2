@@ -5,7 +5,7 @@ import api from '../../services/api';
 import { getSalonDateOnly } from '../../utils/date';
 import { normalizeClientSearchResults } from '../../utils/apiPayload';
 import { getApiErrorMessage } from '../../utils/apiError';
-import { fetchAllPublicServices } from '../../services/catalog';
+import { fetchAllNormalizedPublicServices } from '../../services/catalog';
 import {
   clientLabel,
   type DirectBookingClient,
@@ -27,7 +27,7 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
   const clientSearchGeneration = useRef(0);
 
   useEffect(() => {
-    fetchAllPublicServices<DirectBookingService>({ activeOnly: 'true' })
+    fetchAllNormalizedPublicServices({ activeOnly: 'true' })
       .then(setServices)
       .catch(() => setServices([]));
   }, []);

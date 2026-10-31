@@ -18,7 +18,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import api from '../../services/api';
-import { fetchAllPublicServices } from '../../services/catalog';
+import { fetchAllNormalizedPublicServices } from '../../services/catalog';
 import { spacing } from '../../theme';
 import type { Service } from '../../types';
 import { getSalonDateOnly } from '../../utils/date';
@@ -84,7 +84,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     Promise.all([
-      fetchAllPublicServices<Service>({ activeOnly: true }),
+      fetchAllNormalizedPublicServices({ activeOnly: true }),
       api.get<ClientOption[]>('/api/users/for-daily-log'),
     ])
       .then(([serviceItems, cliRes]) => {

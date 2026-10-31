@@ -1,4 +1,6 @@
 import api from "./api";
+import { normalizePublicServices } from "../utils/apiPayload";
+import type { Service } from "../types";
 
 const PAGE_SIZE = 50;
 const MAX_OFFSET = 1000;
@@ -71,6 +73,15 @@ export const fetchAllPublicServices = <T>(
     subcategoryId?: string;
   } = {},
 ): Promise<T[]> => fetchAllPages<T>("/api/services", params);
+
+export async function fetchAllNormalizedPublicServices(
+  params: { activeOnly?: string | boolean; subcategoryId?: string } = {},
+): Promise<Service[]> {
+  const payload = await fetchAllPublicServices<unknown>(params);
+  const services = normalizePublicServices(payload);
+  if (!services) throw new Error("Invalid public service catalogue payload");
+  return services;
+}
 
 export const fetchAllPublicStylistServices = <T>(
   stylistProfileId: string,
