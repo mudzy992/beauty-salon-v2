@@ -16,6 +16,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { Input } from '../../components/ui/Input';
 import api from '../../services/api';
 import { fetchAllNormalizedPublicServices } from '../../services/catalog';
@@ -58,7 +59,12 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
   const editEntryId = route?.params?.entryId;
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
-  const { profileId, loading: profileLoading } = useStylistProfile();
+  const {
+    profileId,
+    loading: profileLoading,
+    loadError: profileLoadError,
+    refetch: refetchProfile,
+  } = useStylistProfile();
   const [services, setServices] = useState<Service[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
@@ -409,8 +415,19 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
   if (!profileId) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>{t('stylist.dailyLogDetail.profileMissing')}</Text>
-        <Button title={t('common.back')} onPress={() => navigation.goBack()} variant="outline" style={{ marginTop: spacing.md }} />
+        {profileLoadError ? (
+          <EmptyState
+            icon="person-outline"
+            title={t('stylist.profile.profileLoadError')}
+            actionLabel={t('stylist.profile.retryProfileLoad')}
+            onAction={() => { void refetchProfile(); }}
+          />
+        ) : (
+          <>
+            <Text style={{ color: colors.text }}>{t('stylist.dailyLogDetail.profileMissing')}</Text>
+            <Button title={t('common.back')} onPress={() => navigation.goBack()} variant="outline" style={{ marginTop: spacing.md }} />
+          </>
+        )}
       </View>
     );
   }

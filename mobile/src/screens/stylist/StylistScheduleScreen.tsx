@@ -44,7 +44,12 @@ export function StylistScheduleScreen({ navigation }: Props) {
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const gold = '#D4AF37';
   const { connected: socketConnected } = useSocket();
-  const { profileId, loading: profileLoading } = useStylistProfile();
+  const {
+    profileId,
+    loading: profileLoading,
+    loadError: profileLoadError,
+    refetch: refetchProfile,
+  } = useStylistProfile();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [reservationsOwnerId, setReservationsOwnerId] = useState<string | null>(null);
   const visibleReservations = reservationsOwnerId === profileId ? reservations : EMPTY_RESERVATIONS;
@@ -273,8 +278,10 @@ export function StylistScheduleScreen({ navigation }: Props) {
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <EmptyState
           icon="calendar-outline"
-          title={t('stylist.schedule.noProfileTitle')}
-          message={t('stylist.schedule.noProfileMessage')}
+          title={profileLoadError ? t('stylist.profile.profileLoadError') : t('stylist.schedule.noProfileTitle')}
+          message={profileLoadError ? undefined : t('stylist.schedule.noProfileMessage')}
+          actionLabel={profileLoadError ? t('stylist.profile.retryProfileLoad') : undefined}
+          onAction={profileLoadError ? () => { void refetchProfile(); } : undefined}
         />
       </View>
     );

@@ -35,7 +35,11 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
-  const { profileId } = useStylistProfile();
+  const {
+    profileId,
+    loadError: profileLoadError,
+    refetch: refetchProfile,
+  } = useStylistProfile();
   const reservationId = route.params.reservationId;
 
   const {
@@ -111,6 +115,17 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
         }
         showsVerticalScrollIndicator={false}
       >
+        {profileLoadError ? (
+          <View style={styles.loadErrorNotice}>
+            <Text style={{ color: colors.error }}>{t('stylist.profile.profileLoadError')}</Text>
+            <Button
+              title={t('stylist.profile.retryProfileLoad')}
+              onPress={() => { void refetchProfile(); }}
+              variant="outline"
+              size="sm"
+            />
+          </View>
+        ) : null}
         {loadError ? (
           <View style={styles.loadErrorNotice}>
             <Text style={{ color: colors.error }}>{t('reservationDetail.staleMessage')}</Text>

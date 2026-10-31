@@ -18,7 +18,12 @@ export function StylistStatsScreen() {
   const { t } = useTranslation();
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
-  const { profileId, loading: profileLoading } = useStylistProfile();
+  const {
+    profileId,
+    loading: profileLoading,
+    loadError: profileLoadError,
+    refetch: refetchProfile,
+  } = useStylistProfile();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [dailyLog, setDailyLog] = useState<DailyLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,8 +147,10 @@ export function StylistStatsScreen() {
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <EmptyState
           icon="stats-chart-outline"
-          title={t('stylist.stats.noProfileTitle')}
-          message={t('stylist.stats.noProfileMessage')}
+          title={profileLoadError ? t('stylist.profile.profileLoadError') : t('stylist.stats.noProfileTitle')}
+          message={profileLoadError ? undefined : t('stylist.stats.noProfileMessage')}
+          actionLabel={profileLoadError ? t('stylist.profile.retryProfileLoad') : undefined}
+          onAction={profileLoadError ? () => { void refetchProfile(); } : undefined}
         />
       </View>
     );

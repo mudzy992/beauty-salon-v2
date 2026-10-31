@@ -87,6 +87,7 @@
     "test:stylist-stats-recovery": "node --test src/screens/stylist/stylist-stats-read-recovery.test.mjs",
     "test:stylist-reschedule-preview-copy": "node --test src/screens/stylist/stylist-reschedule-preview-copy.test.mjs",
     "test:stylist-profile-recovery-copy": "node --test src/hooks/stylist-profile-recovery-copy.test.mjs",
+    "test:stylist-profile-read-recovery": "node --test src/hooks/use-stylist-profile-read-recovery.test.mjs",
     "test:stylist-reschedule-proposal": "node --test src/screens/stylist/reschedule-proposal.test.mjs",
     "test:stylist-reschedule-preview-recovery": "node --test src/screens/stylist/stylist-reschedule-preview-read-recovery.test.mjs",
     "test:stylist-profile-logout-i18n": "node --test src/screens/stylist/stylist-profile-logout-i18n.test.mjs",

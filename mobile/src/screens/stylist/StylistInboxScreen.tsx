@@ -37,7 +37,12 @@ export function StylistInboxScreen() {
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { connected: socketConnected } = useSocket();
-  const { profileId, loading: profileLoading, refetch: refetchProfile } = useStylistProfile();
+  const {
+    profileId,
+    loading: profileLoading,
+    loadError: profileLoadError,
+    refetch: refetchProfile,
+  } = useStylistProfile();
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [reservationsOwnerId, setReservationsOwnerId] = useState<string | null>(null);
   const visibleReservations = reservationsOwnerId === profileId ? reservations : [];
@@ -255,8 +260,10 @@ export function StylistInboxScreen() {
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <EmptyState
           icon="person-outline"
-          title={t('stylist.inbox.noProfileTitle')}
-          message={t('stylist.inbox.noProfileMessage')}
+          title={profileLoadError ? t('stylist.profile.profileLoadError') : t('stylist.inbox.noProfileTitle')}
+          message={profileLoadError ? undefined : t('stylist.inbox.noProfileMessage')}
+          actionLabel={profileLoadError ? t('stylist.profile.retryProfileLoad') : undefined}
+          onAction={profileLoadError ? () => { void refetchProfile(); } : undefined}
         />
       </View>
     );

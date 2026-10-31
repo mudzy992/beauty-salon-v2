@@ -44,7 +44,12 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const tabBarBottom = useFloatingTabBarTotalHeight();
-  const { profileId, loading: profileLoading } = useStylistProfile();
+  const {
+    profileId,
+    loading: profileLoading,
+    loadError: profileLoadError,
+    refetch: refetchProfile,
+  } = useStylistProfile();
   const [entries, setEntries] = useState<DailyLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -183,8 +188,10 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <EmptyState
           icon="document-text-outline"
-          title="Nema profila"
-          message="Profil stilista nije pronađen."
+          title={profileLoadError ? t('stylist.profile.profileLoadError') : t('stylist.stats.noProfileTitle')}
+          message={profileLoadError ? undefined : t('stylist.stats.noProfileMessage')}
+          actionLabel={profileLoadError ? t('stylist.profile.retryProfileLoad') : undefined}
+          onAction={profileLoadError ? () => { void refetchProfile(); } : undefined}
         />
       </View>
     );
