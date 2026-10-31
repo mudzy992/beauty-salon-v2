@@ -67,6 +67,7 @@
     "test:stylist-direct-booking-title-i18n": "node --test src/screens/stylist/direct-booking-title-i18n.test.mjs",
     "test:stylist-direct-booking-pickers-i18n": "node --test src/screens/stylist/direct-booking-pickers-i18n.test.mjs",
     "test:stylist-picker-recovery-copy": "node --test src/screens/stylist/stylist-picker-recovery-copy.test.mjs",
+    "test:login-public-settings-recovery-copy": "node --test src/screens/auth/login-public-settings-recovery-copy.test.mjs",
     "test:stylist-picker-read-recovery": "node --test src/screens/stylist/stylist-picker-read-recovery.test.mjs",
     "test:stylist-direct-booking-submit-i18n": "node --test src/screens/stylist/direct-booking-submit-i18n.test.mjs",
     "test:stylist-stats-i18n": "node --test src/screens/stylist/stylist-stats-i18n.test.mjs",

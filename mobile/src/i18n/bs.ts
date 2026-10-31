@@ -40,6 +40,7 @@ export const bs = {
     hasAccount: 'Već imate račun?',
     loginTitle: 'Dobrodošli nazad',
     loginSubtitle: 'Prijavite se na svoj račun',
+    loginPublicSettingsLoadError: 'Postavke izgleda prijave trenutno nisu dostupne. Prikazujemo zadani izgled.',
     registerTitle: 'Kreirajte račun',
     registerSubtitle: 'Registrujte se za rezervacije',
     loginOrUsername: 'Email ili korisničko ime',
