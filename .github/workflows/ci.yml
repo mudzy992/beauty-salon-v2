@@ -416,6 +416,9 @@ jobs:
       - name: Test Bosnian copy for stylist picker recovery
         working-directory: mobile
         run: npm run test:stylist-picker-recovery-copy
+      - name: Test independent stylist picker loading, error, and retry states
+        working-directory: mobile
+        run: npm run test:stylist-picker-read-recovery
       - name: Test Android updater release metadata and APK bounds
         working-directory: mobile
         run: npm run test:android-release-payload

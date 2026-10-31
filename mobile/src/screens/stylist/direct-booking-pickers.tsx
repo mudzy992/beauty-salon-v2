@@ -33,6 +33,8 @@ type Props = {
   clients: DirectBookingClient[];
   selectedClient: DirectBookingClient | null;
   filteredServices: DirectBookingService[];
+  servicesLoading: boolean;
+  servicesLoadError: boolean;
   serviceIds: string[];
   onSelectClient: (client: DirectBookingClient) => void;
   onToggleServiceId: (serviceId: string) => void;
@@ -48,6 +50,8 @@ export const DirectBookingPickers = ({
   clients,
   selectedClient,
   filteredServices,
+  servicesLoading,
+  servicesLoadError,
   serviceIds,
   onSelectClient,
   onToggleServiceId,
@@ -97,9 +101,11 @@ export const DirectBookingPickers = ({
         {t('stylist.directBooking.missingGenderWarning')}
       </Text>
     ) : filteredServices.length === 0 ? (
-      <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
-        {t('stylist.directBooking.noServicesForGender')}
-      </Text>
+      servicesLoading || servicesLoadError ? null : (
+        <Text style={{ color: colors.textSecondary, fontSize: 13 }}>
+          {t('stylist.directBooking.noServicesForGender')}
+        </Text>
+      )
     ) : (
       <View style={styles.list}>
         {filteredServices.map((service) => {

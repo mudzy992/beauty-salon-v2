@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -61,7 +61,12 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
   const { profileId, loading: profileLoading } = useStylistProfile();
   const [services, setServices] = useState<Service[]>([]);
   const [clients, setClients] = useState<ClientOption[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesLoadError, setServicesLoadError] = useState(false);
+  const [clientsLoading, setClientsLoading] = useState(true);
+  const [clientsLoadError, setClientsLoadError] = useState(false);
+  const serviceLoadGeneration = useRef(0);
+  const clientLoadGeneration = useRef(0);
   const [saving, setSaving] = useState(false);
   const [date, setDate] = useState(() => getSalonDateOnly());
   const [serviceIds, setServiceIds] = useState<string[]>([]);
@@ -82,21 +87,43 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
   const [showServicePicker, setShowServicePicker] = useState(false);
   const [showClientPicker, setShowClientPicker] = useState(false);
 
-  useEffect(() => {
-    Promise.all([
-      fetchAllNormalizedPublicServices({ activeOnly: true }),
-      api.get<ClientOption[]>('/api/users/for-daily-log'),
-    ])
-      .then(([serviceItems, cliRes]) => {
-        setServices(serviceItems);
-        setClients(Array.isArray(cliRes.data) ? cliRes.data : []);
-      })
-      .catch(() => {
-        setServices([]);
-        setClients([]);
-      })
-      .finally(() => setLoading(false));
+  const loadServices = useCallback(async () => {
+    const generation = ++serviceLoadGeneration.current;
+    setServicesLoading(true);
+    setServicesLoadError(false);
+    try {
+      const serviceItems = await fetchAllNormalizedPublicServices({ activeOnly: true });
+      if (serviceLoadGeneration.current === generation) setServices(serviceItems);
+    } catch {
+      if (serviceLoadGeneration.current === generation) setServicesLoadError(true);
+    } finally {
+      if (serviceLoadGeneration.current === generation) setServicesLoading(false);
+    }
   }, []);
+
+  const loadClients = useCallback(async () => {
+    const generation = ++clientLoadGeneration.current;
+    setClientsLoading(true);
+    setClientsLoadError(false);
+    try {
+      const { data } = await api.get<unknown>('/api/users/for-daily-log');
+      if (!Array.isArray(data)) throw new Error();
+      if (clientLoadGeneration.current === generation) setClients(data as ClientOption[]);
+    } catch {
+      if (clientLoadGeneration.current === generation) setClientsLoadError(true);
+    } finally {
+      if (clientLoadGeneration.current === generation) setClientsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadServices();
+    void loadClients();
+    return () => {
+      serviceLoadGeneration.current += 1;
+      clientLoadGeneration.current += 1;
+    };
+  }, [loadServices, loadClients]);
 
   useEffect(() => {
     if (!editEntryId) return;
@@ -372,7 +399,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     t,
   ]);
 
-  if (profileLoading || (loading && !profileId)) {
+  if (profileLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -408,6 +435,21 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
                 : t('stylist.dailyLogDetail.clientPlaceholder')}
             </Text>
           </TouchableOpacity>
+          {clientsLoading && clients.length === 0 ? (
+            <ActivityIndicator size="small" color={colors.primary} style={styles.recoveryNotice} />
+          ) : null}
+          {clientsLoadError ? (
+            <View style={styles.recoveryNotice}>
+              <Text style={{ color: colors.textSecondary }}>
+                {t(
+                  clients.length > 0
+                    ? 'stylist.dailyLogDetail.clientListStaleMessage'
+                    : 'stylist.dailyLogDetail.clientListLoadError',
+                )}
+              </Text>
+              <Button title={t('common.retry')} variant="outline" onPress={() => void loadClients()} />
+            </View>
+          ) : null}
         </Card>
         <Card style={styles.card}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>{t('stylist.dailyLogDetail.serviceLabel')}</Text>
@@ -424,6 +466,17 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
                   : t('stylist.dailyLogDetail.servicePlaceholder')}
             </Text>
           </TouchableOpacity>
+          {servicesLoading && services.length === 0 ? (
+            <ActivityIndicator size="small" color={colors.primary} style={styles.recoveryNotice} />
+          ) : null}
+          {servicesLoadError ? (
+            <View style={styles.recoveryNotice}>
+              <Text style={{ color: colors.textSecondary }}>
+                {t(services.length > 0 ? 'services.staleMessage' : 'services.loadErrorMessage')}
+              </Text>
+              <Button title={t('common.retry')} variant="outline" onPress={() => void loadServices()} />
+            </View>
+          ) : null}
           <DailyLogEntryPricingBlock
             colors={colors}
             selectedServices={selectedServices}
@@ -523,6 +576,20 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
           <Card style={{ ...styles.pickerModal, backgroundColor: colors.surface }}>
             <Text style={[styles.pickerModalTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.servicePlaceholder')}</Text>
             <Input placeholder={t('common.search')} value={serviceSearch} onChangeText={setServiceSearch} />
+            {servicesLoading && services.length === 0 ? (
+              <ActivityIndicator size="small" color={colors.primary} style={styles.recoveryNotice} />
+            ) : null}
+            {servicesLoadError ? (
+              <View style={styles.recoveryNotice}>
+                <Text style={{ color: colors.textSecondary }}>
+                  {t(services.length > 0 ? 'services.staleMessage' : 'services.loadErrorMessage')}
+                </Text>
+                <Button title={t('common.retry')} variant="outline" onPress={() => void loadServices()} />
+              </View>
+            ) : null}
+            {!servicesLoading && !servicesLoadError && filteredServices.length === 0 ? (
+              <Text style={{ color: colors.textSecondary }}>{t('services.noServices')}</Text>
+            ) : null}
             <FlatList
               data={filteredServices}
               keyExtractor={(s) => s.id}
@@ -545,6 +612,24 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
           <Card style={{ ...styles.pickerModal, backgroundColor: colors.surface }}>
             <Text style={[styles.pickerModalTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.clientPlaceholder')}</Text>
             <Input placeholder={t('common.search')} value={clientSearch} onChangeText={setClientSearch} />
+            {clientsLoading && clients.length === 0 ? (
+              <ActivityIndicator size="small" color={colors.primary} style={styles.recoveryNotice} />
+            ) : null}
+            {clientsLoadError ? (
+              <View style={styles.recoveryNotice}>
+                <Text style={{ color: colors.textSecondary }}>
+                  {t(
+                    clients.length > 0
+                      ? 'stylist.dailyLogDetail.clientListStaleMessage'
+                      : 'stylist.dailyLogDetail.clientListLoadError',
+                  )}
+                </Text>
+                <Button title={t('common.retry')} variant="outline" onPress={() => void loadClients()} />
+              </View>
+            ) : null}
+            {!clientsLoading && !clientsLoadError && filteredClients.length === 0 ? (
+              <Text style={{ color: colors.textSecondary }}>{t('common.noResults')}</Text>
+            ) : null}
             <FlatList
               data={filteredClients.slice(0, 50)}
               keyExtractor={(c) => c.id}
@@ -572,6 +657,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, marginBottom: 4, fontWeight: '600' },
   pickerBtn: { borderWidth: 1, borderRadius: 8, padding: 14 },
   pickerText: { fontSize: 16 },
+  recoveryNotice: { marginTop: spacing.sm, gap: spacing.sm },
   modalOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: spacing.md },
   pickerModal: { padding: spacing.md, maxHeight: '80%' },
   pickerModalTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.sm },

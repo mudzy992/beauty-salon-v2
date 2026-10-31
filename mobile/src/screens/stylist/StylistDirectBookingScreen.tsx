@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -50,11 +51,43 @@ export function StylistDirectBookingScreen({
             onChangeText={form.handleClientSearchChange}
             placeholder={t('stylist.directBooking.clientPlaceholder')}
           />
+          {form.clientSearchLoading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : null}
+          {!form.clientSearchLoading &&
+          !form.clientSearchLoadError &&
+          form.clientSearch.trim().length > 0 &&
+          form.clients.length === 0 ? (
+            <Text style={{ color: colors.textSecondary }}>{t('common.noResults')}</Text>
+          ) : null}
+          {form.clientSearchLoadError ? (
+            <View style={styles.recoveryNotice}>
+              <Text style={{ color: colors.textSecondary }}>
+                {t('stylist.directBooking.clientSearchLoadError')}
+              </Text>
+              <Button
+                title={t('common.retry')}
+                variant="outline"
+                onPress={form.handleRetryClientSearch}
+              />
+            </View>
+          ) : null}
+          {form.servicesLoading ? <ActivityIndicator size="small" color={colors.primary} /> : null}
+          {form.servicesLoadError ? (
+            <View style={styles.recoveryNotice}>
+              <Text style={{ color: colors.textSecondary }}>
+                {t(form.servicesHaveData ? 'services.staleMessage' : 'services.loadErrorMessage')}
+              </Text>
+              <Button title={t('common.retry')} variant="outline" onPress={form.retryServices} />
+            </View>
+          ) : null}
           <DirectBookingPickers
             colors={colors}
             clients={form.clients}
             selectedClient={form.selectedClient}
             filteredServices={form.filteredServices}
+            servicesLoading={form.servicesLoading}
+            servicesLoadError={form.servicesLoadError}
             serviceIds={form.serviceIds}
             onSelectClient={form.handleSelectClient}
             onToggleServiceId={form.handleToggleServiceId}
@@ -116,5 +149,6 @@ const styles = StyleSheet.create({
   card: { padding: spacing.md, gap: spacing.md },
   title: { fontSize: 20, fontWeight: '700' },
   subtitle: { fontSize: 14, lineHeight: 20 },
+  recoveryNotice: { gap: spacing.sm },
   actions: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
 });

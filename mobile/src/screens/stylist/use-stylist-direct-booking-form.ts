@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -16,6 +16,11 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
   const { t } = useTranslation();
   const [clients, setClients] = useState<DirectBookingClient[]>([]);
   const [services, setServices] = useState<DirectBookingService[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesLoadError, setServicesLoadError] = useState(false);
+  const [clientSearchLoading, setClientSearchLoading] = useState(false);
+  const [clientSearchLoadError, setClientSearchLoadError] = useState(false);
+  const [clientSearchRetryCount, setClientSearchRetryCount] = useState(0);
   const [clientSearch, setClientSearch] = useState('');
   const [selectedClient, setSelectedClient] = useState<DirectBookingClient | null>(null);
   const [serviceIds, setServiceIds] = useState<string[]>([]);
@@ -25,12 +30,28 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
   const [clientNotes, setClientNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const clientSearchGeneration = useRef(0);
+  const serviceLoadGeneration = useRef(0);
+
+  const loadServices = useCallback(async () => {
+    const generation = ++serviceLoadGeneration.current;
+    setServicesLoading(true);
+    setServicesLoadError(false);
+    try {
+      const loadedServices = await fetchAllNormalizedPublicServices({ activeOnly: 'true' });
+      if (serviceLoadGeneration.current === generation) setServices(loadedServices);
+    } catch {
+      if (serviceLoadGeneration.current === generation) setServicesLoadError(true);
+    } finally {
+      if (serviceLoadGeneration.current === generation) setServicesLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchAllNormalizedPublicServices({ activeOnly: 'true' })
-      .then(setServices)
-      .catch(() => setServices([]));
-  }, []);
+    void loadServices();
+    return () => {
+      serviceLoadGeneration.current += 1;
+    };
+  }, [loadServices]);
 
   useEffect(() => {
     const generation = ++clientSearchGeneration.current;
@@ -38,29 +59,43 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
       const q = clientSearch.trim();
       if (!q) {
         setClients([]);
+        setClientSearchLoading(false);
+        setClientSearchLoadError(false);
         return;
       }
       if (selectedClient && q === clientLabel(selectedClient)) {
         setClients([selectedClient]);
+        setClientSearchLoading(false);
+        setClientSearchLoadError(false);
         return;
       }
+      setClientSearchLoading(true);
+      setClientSearchLoadError(false);
       api
         .get<unknown>('/api/users/clients', {
           params: { page: 0, pageSize: 10, q },
         })
         .then(({ data }) => {
           if (clientSearchGeneration.current !== generation) return;
-          setClients(normalizeClientSearchResults(data) ?? []);
+          const results = normalizeClientSearchResults(data);
+          if (!results) throw new Error();
+          setClients(results);
         })
         .catch(() => {
-          if (clientSearchGeneration.current === generation) setClients([]);
+          if (clientSearchGeneration.current === generation) {
+            setClients([]);
+            setClientSearchLoadError(true);
+          }
+        })
+        .finally(() => {
+          if (clientSearchGeneration.current === generation) setClientSearchLoading(false);
         });
     }, 250);
     return () => {
       clearTimeout(handle);
       if (clientSearchGeneration.current === generation) clientSearchGeneration.current += 1;
     };
-  }, [clientSearch, selectedClient]);
+  }, [clientSearch, selectedClient, clientSearchRetryCount]);
 
   const filteredServices = useMemo(() => {
     const gender = selectedClient?.gender;
@@ -87,6 +122,8 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
   }, [filteredServices, serviceIds, startTime]);
 
   const handleClientSearchChange = (value: string) => {
+    setClientSearchLoadError(false);
+    setClientSearchLoading(false);
     setClientSearch(value);
     if (selectedClient && value.trim() !== clientLabel(selectedClient)) {
       setSelectedClient(null);
@@ -98,6 +135,11 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
     setSelectedClient(client);
     setClientSearch(clientLabel(client));
     setServiceIds([]);
+  };
+
+  const handleRetryClientSearch = () => {
+    setClientSearchLoadError(false);
+    setClientSearchRetryCount((count) => count + 1);
   };
 
   const handleToggleServiceId = (serviceId: string) => {
@@ -145,7 +187,14 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
   return {
     clients,
     clientSearch,
+    clientSearchLoading,
+    clientSearchLoadError,
+    handleRetryClientSearch,
     selectedClient,
+    servicesLoading,
+    servicesLoadError,
+    servicesHaveData: services.length > 0,
+    retryServices: loadServices,
     filteredServices,
     serviceIds,
     reservationDate,
