@@ -1,4 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -13,6 +14,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import api, { getUploadUrl } from '../../services/api';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Button } from '../../components/ui/Button';
 import { spacing } from '../../theme';
 import { fontFamily } from '../../theme/fonts';
 import { normalizeBeforeAfterPage } from '../../utils/apiPayload';
@@ -27,6 +29,7 @@ interface BeforeAfterPair {
 const PAGE_SIZE = 10;
 
 export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const tabBarBottom = useFloatingTabBarTotalHeight();
@@ -36,11 +39,13 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
   const [loadingMore, setLoadingMore] = useState(false);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const requestGeneration = useRef(0);
 
   const loadPage = useCallback(async (nextOffset: number, append: boolean, generation = requestGeneration.current) => {
     if (nextOffset === 0) setLoading(true);
     else setLoadingMore(true);
+    setLoadError(false);
     try {
       const { data } = await api.get<unknown>(
         '/api/daily-log/before-after',
@@ -49,14 +54,14 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
       if (generation !== requestGeneration.current) return;
       const page = normalizeBeforeAfterPage(data);
       if (!page) {
-        setHasMore(false);
+        setLoadError(true);
         return;
       }
       setItems((prev) => (append ? [...prev, ...page.items] : page.items));
       setHasMore(page.hasMore);
       setOffset(page.nextOffset);
     } catch {
-      if (generation === requestGeneration.current) setHasMore(false);
+      if (generation === requestGeneration.current) setLoadError(true);
     } finally {
       if (generation === requestGeneration.current) {
         setLoading(false);
@@ -65,11 +70,15 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
     }
   }, []);
 
+  const retryLoad = useCallback(() => {
+    void loadPage(items.length === 0 ? 0 : offset, items.length > 0);
+  }, [items.length, offset, loadPage]);
+
   const onEndReached = useCallback(() => {
-    if (!loading && !loadingMore && hasMore && items.length > 0) {
+    if (!loading && !loadingMore && !loadError && hasMore && items.length > 0) {
       loadPage(offset, true);
     }
-  }, [loading, loadingMore, hasMore, offset, items.length, loadPage]);
+  }, [loading, loadingMore, loadError, hasMore, offset, items.length, loadPage]);
 
   React.useEffect(() => {
     const generation = ++requestGeneration.current;
@@ -116,8 +125,22 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.hint, { color: colors.textSecondary }]}>
-        Povucite sliku lijevo ili desno za prije / poslije
+        {t('beforeAfterGallery.pageHint')}
       </Text>
+      {loadError ? (
+        <View accessibilityRole="alert" style={styles.recoveryNotice}>
+          <Text style={{ color: colors.textSecondary }}>
+            {t(items.length > 0 ? 'beforeAfterGallery.loadMoreError' : 'beforeAfterGallery.loadError')}
+          </Text>
+          <Button
+            title={t('common.retry')}
+            variant="outline"
+            size="sm"
+            loading={loading || loadingMore}
+            onPress={retryLoad}
+          />
+        </View>
+      ) : null}
       <FlatList
         data={items}
         renderItem={renderItem}
@@ -127,7 +150,13 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
         onEndReached={onEndReached}
         onEndReachedThreshold={0.4}
         ListEmptyComponent={
-          <EmptyState icon="images-outline" title="Nema transformacija" message="Kada budu dostupne, pojaviće se ovdje." />
+          !loadError ? (
+            <EmptyState
+              icon="images-outline"
+              title={t('beforeAfterGallery.emptyTitle')}
+              message={t('beforeAfterGallery.emptyMessage')}
+            />
+          ) : null
         }
         ListFooterComponent={ListFooter}
       />
@@ -138,6 +167,7 @@ export function SatisfiedClientsScreen({}: HomeScreenProps<'SatisfiedClients'>) 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  recoveryNotice: { alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.md, marginTop: spacing.sm },
   hint: {
     fontSize: 13,
     paddingHorizontal: spacing.md,

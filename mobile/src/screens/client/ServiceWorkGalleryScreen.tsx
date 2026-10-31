@@ -8,12 +8,14 @@ import {
   useWindowDimensions,
   ListRenderItem,
 } from 'react-native'
+import { useTranslation } from 'react-i18next'
 import { useTheme } from '../../hooks/useTheme'
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar'
 import api, { getUploadUrl } from '../../services/api'
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider'
 import { Card } from '../../components/ui/Card'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { Button } from '../../components/ui/Button'
 import { spacing } from '../../theme'
 import type { ServicesScreenProps } from '../../navigation/types'
 import { fontFamily } from '../../theme/fonts'
@@ -34,6 +36,7 @@ export function ServiceWorkGalleryScreen({
   navigation,
 }: ServicesScreenProps<'ServiceWorkGallery'>) {
   const { serviceId, serviceName } = route.params
+  const { t } = useTranslation()
   const { colors } = useTheme()
   const tabBarBottom = useFloatingTabBarTotalHeight()
   const { width } = useWindowDimensions()
@@ -44,9 +47,10 @@ export function ServiceWorkGalleryScreen({
   const [loadingMore, setLoadingMore] = useState(false)
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const requestGeneration = useRef(0)
 
-  const title = useMemo(() => serviceName?.trim() || 'Galerija', [serviceName])
+  const title = useMemo(() => serviceName?.trim() || t('beforeAfterGallery.title'), [serviceName, t])
 
   useEffect(() => {
     navigation.setOptions({ title })
@@ -56,6 +60,7 @@ export function ServiceWorkGalleryScreen({
     async (nextOffset: number, append: boolean, generation = requestGeneration.current) => {
       if (nextOffset === 0) setLoading(true)
       else setLoadingMore(true)
+      setLoadError(false)
       try {
         const { data } = await api.get<unknown>('/api/daily-log/before-after', {
           params: { serviceId, limit: PAGE_SIZE, offset: nextOffset },
@@ -63,14 +68,14 @@ export function ServiceWorkGalleryScreen({
         if (generation !== requestGeneration.current) return
         const page = normalizeBeforeAfterPage(data)
         if (!page) {
-          setHasMore(false)
+          setLoadError(true)
           return
         }
         setItems((prev) => (append ? [...prev, ...page.items] : page.items))
         setHasMore(page.hasMore)
         setOffset(page.nextOffset)
       } catch {
-        if (generation === requestGeneration.current) setHasMore(false)
+        if (generation === requestGeneration.current) setLoadError(true)
       } finally {
         if (generation === requestGeneration.current) {
           setLoading(false)
@@ -86,17 +91,24 @@ export function ServiceWorkGalleryScreen({
     setItems([])
     setOffset(0)
     setHasMore(true)
+    setLoadError(false)
+    setLoading(true)
+    setLoadingMore(false)
     void loadPage(0, false, generation)
     return () => {
       if (requestGeneration.current === generation) requestGeneration.current += 1
     }
   }, [serviceId, loadPage])
 
+  const retryLoad = useCallback(() => {
+    void loadPage(items.length === 0 ? 0 : offset, items.length > 0)
+  }, [items.length, offset, loadPage])
+
   const onEndReached = useCallback(() => {
-    if (!loading && !loadingMore && hasMore && items.length > 0) {
+    if (!loading && !loadingMore && !loadError && hasMore && items.length > 0) {
       void loadPage(offset, true)
     }
-  }, [loading, loadingMore, hasMore, offset, items.length, loadPage])
+  }, [loading, loadingMore, loadError, hasMore, offset, items.length, loadPage])
 
   const renderItem: ListRenderItem<BeforeAfterPair> = useCallback(
     ({ item }) => (
@@ -125,8 +137,22 @@ export function ServiceWorkGalleryScreen({
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <Text style={[styles.hint, { color: colors.textSecondary }]}>
-        Povucite sliku lijevo ili desno za prije / poslije
+        {t('beforeAfterGallery.pageHint')}
       </Text>
+      {loadError ? (
+        <View accessibilityRole="alert" style={styles.recoveryNotice}>
+          <Text style={{ color: colors.textSecondary }}>
+            {t(items.length > 0 ? 'beforeAfterGallery.loadMoreError' : 'beforeAfterGallery.loadError')}
+          </Text>
+          <Button
+            title={t('common.retry')}
+            variant="outline"
+            size="sm"
+            loading={loading || loadingMore}
+            onPress={retryLoad}
+          />
+        </View>
+      ) : null}
       <FlatList
         data={items}
         renderItem={renderItem}
@@ -136,11 +162,13 @@ export function ServiceWorkGalleryScreen({
         onEndReached={onEndReached}
         onEndReachedThreshold={0.4}
         ListEmptyComponent={
-          <EmptyState
-            icon="images-outline"
-            title="Nema transformacija"
-            message="Kada budu dostupne, pojaviće se ovdje."
-          />
+          !loadError ? (
+            <EmptyState
+              icon="images-outline"
+              title={t('beforeAfterGallery.emptyTitle')}
+              message={t('beforeAfterGallery.emptyMessage')}
+            />
+          ) : null
         }
         ListFooterComponent={
           loadingMore ? (
@@ -157,6 +185,7 @@ export function ServiceWorkGalleryScreen({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  recoveryNotice: { alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.md, marginTop: spacing.sm },
   hint: {
     fontSize: 13,
     paddingHorizontal: spacing.md,
