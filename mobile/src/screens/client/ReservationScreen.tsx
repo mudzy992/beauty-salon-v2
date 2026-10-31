@@ -17,12 +17,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
+import { usePublicServiceCatalog } from '../../hooks/usePublicServiceCatalog';
 import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { MediaBackdrop } from '../../components/MediaImage';
 import { Button } from '../../components/ui/Button';
 import api, { getUploadUrl } from '../../services/api';
-import { fetchAllNormalizedPublicServices } from '../../services/catalog';
 import { spacing, borderRadius } from '../../theme';
 import { formatDate, formatTime, getDateRange, getSalonDateOnly, getSalonTime } from '../../utils/date';
 import { useAvailabilitySocketRefresh } from '../../hooks/useAvailabilitySocketRefresh';
@@ -59,7 +60,8 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const originCategoryName = route.params?.originCategoryName;
 
   const [step, setStep] = useState<Step>(startAtStep ?? (initialServiceId ? 2 : 1));
-  const [services, setServices] = useState<Service[]>([]);
+  const serviceCatalog = usePublicServiceCatalog();
+  const services = serviceCatalog.services;
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [availableDates, setAvailableDates] = useState<Record<string, boolean>>({});
@@ -98,15 +100,6 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     if (selectedServices.length === 1) return selectedServices[0]!.name;
     return `${selectedServices[0]!.name} + ${selectedServices.length - 1}`;
   }, [selectedServices]);
-
-  // Load all services for step 1
-  useEffect(() => {
-    (async () => {
-      try {
-        setServices(await fetchAllNormalizedPublicServices({ activeOnly: true }));
-      } catch { /* silent */ }
-    })();
-  }, []);
 
   useEffect(() => {
     if (user?.gender) return;
@@ -529,6 +522,27 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       {/* Step 1: Select Service */}
       {step === 1 && (
         <View style={styles.flex}>
+          {serviceCatalog.loading && services.length === 0 ? (
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
+          ) : null}
+          {serviceCatalog.loading && services.length > 0 ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: spacing.xs }} />
+          ) : null}
+          {serviceCatalog.error ? (
+            <Card style={{ marginHorizontal: spacing.md, marginTop: spacing.sm, borderColor: colors.error }}>
+              <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
+                {services.length > 0 ? t('services.staleMessage') : t('services.loadErrorMessage')}
+              </Text>
+              <Button
+                title={t('common.retry')}
+                onPress={() => { void serviceCatalog.retry(); }}
+                variant="outline"
+              />
+            </Card>
+          ) : null}
+          {!serviceCatalog.loading && !serviceCatalog.error && services.length === 0 ? (
+            <EmptyState icon="cut-outline" title={t('services.noServices')} />
+          ) : null}
           <View style={[styles.searchContainer, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}>
             <Ionicons name="search" size={18} color={colors.textMuted} />
             <TextInput

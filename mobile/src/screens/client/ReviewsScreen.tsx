@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,14 +13,14 @@ import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
+import { usePublicServiceCatalog } from '../../hooks/usePublicServiceCatalog';
 import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { Card } from '../../components/ui/Card';
 import api from '../../services/api';
-import { fetchAllNormalizedPublicServices } from '../../services/catalog';
 import { getApiErrorMessage } from '../../utils/apiError';
 import { spacing, borderRadius } from '../../theme';
 import type { ReservationsScreenProps } from '../../navigation/types';
-import type { Service } from '../../types';
 
 function StarRating({
   rating,
@@ -63,24 +63,13 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
 
-  const [services, setServices] = useState<Service[]>([]);
+  const serviceCatalog = usePublicServiceCatalog({ enabled: !serviceId });
+  const services = serviceCatalog.services;
   const [selectedServiceId, setSelectedServiceId] = useState(serviceId || '');
   const [serviceRating, setServiceRating] = useState(0);
   const [stylistRating, setStylistRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [loading, setLoading] = useState(!serviceId);
-
-  useEffect(() => {
-    if (!serviceId) {
-      (async () => {
-        try {
-          setServices(await fetchAllNormalizedPublicServices({ activeOnly: true }));
-        } catch { /* silent */ }
-        setLoading(false);
-      })();
-    }
-  }, [serviceId]);
 
   const handleSubmit = async () => {
     if (!selectedServiceId) {
@@ -111,7 +100,7 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
     }
   };
 
-  if (loading) {
+  if (!serviceId && serviceCatalog.loading && services.length === 0) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -127,6 +116,24 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
+      {!serviceId && serviceCatalog.loading && services.length > 0 ? (
+        <ActivityIndicator size="small" color={colors.primary} style={{ marginBottom: spacing.sm }} />
+      ) : null}
+      {!serviceId && serviceCatalog.error ? (
+        <Card style={{ marginBottom: spacing.md, borderColor: colors.error }}>
+          <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
+            {services.length > 0 ? t('services.staleMessage') : t('services.loadErrorMessage')}
+          </Text>
+          <Button
+            title={t('common.retry')}
+            onPress={() => { void serviceCatalog.retry(); }}
+            variant="outline"
+          />
+        </Card>
+      ) : null}
+      {!serviceId && !serviceCatalog.loading && !serviceCatalog.error && services.length === 0 ? (
+        <EmptyState icon="cut-outline" title={t('services.noServices')} />
+      ) : null}
       {!serviceId && services.length > 0 && (
         <Card style={{ marginBottom: spacing.md }}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>
