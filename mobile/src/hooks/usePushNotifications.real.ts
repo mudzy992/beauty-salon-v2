@@ -157,11 +157,10 @@ export function usePushNotifications() {
           platform: Platform.OS === 'ios' ? 'IOS' : 'ANDROID',
         });
       } catch (e: unknown) {
-        const err = e as { response?: { status?: number; data?: unknown } };
+        const err = e as { response?: { status?: number } };
         console.warn(
-          '[Push] Push token register failed:',
-          err?.response?.status,
-          err?.response?.data ?? err,
+          '[Push] Push token register failed.',
+          err?.response?.status ?? 'network error',
         );
       }
     })();
