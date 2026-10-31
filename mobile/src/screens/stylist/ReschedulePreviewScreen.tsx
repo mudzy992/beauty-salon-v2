@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Switch, ActivityIndicator } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,35 +8,17 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { useTheme } from '../../hooks/useTheme';
 import { spacing, borderRadius } from '../../theme';
-
-type ProposalItem = {
-  id: string;
-  clientId: string;
-  serviceName: string;
-  clientName: string;
-  oldStartTime: string;
-  oldEndTime: string;
-  newStartTime: string;
-  newEndTime: string;
-  shiftMinutes: number;
-  reducedBreakMinutes?: number;
-};
-
-type Proposal = {
-  mode?: 'actual_overrun' | 'manual_minutes' | 'use_break_only';
-  overrunMinutes?: number;
-  delayMinutes: number;
-  shiftMinutes: number;
-  includeBreaks?: boolean;
-  items: ProposalItem[];
-};
+import { useTranslation } from 'react-i18next';
+import { getApiErrorMessage } from '../../utils/apiError';
+import { normalizeRescheduleProposal } from './reschedule-proposal.mjs';
+import type { RescheduleMode, RescheduleProposal } from './reschedule-proposal.mjs';
 
 type Props = {
   route: {
     params: {
       reservationId: string;
       includeBreaks?: boolean;
-      mode?: 'actual_overrun' | 'manual_minutes' | 'use_break_only';
+      mode?: RescheduleMode;
       manualShiftMinutes?: number;
       lockMode?: boolean;
     };
@@ -45,25 +27,32 @@ type Props = {
 };
 
 export function ReschedulePreviewScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { reservationId } = route.params;
   const lockMode = route.params.lockMode === true;
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const [includeBreaks, setIncludeBreaks] = useState(route.params.includeBreaks === true);
-  const [mode, setMode] = useState<'actual_overrun' | 'manual_minutes' | 'use_break_only'>(
-    route.params.mode ?? 'actual_overrun',
-  );
+  const [mode, setMode] = useState<RescheduleMode>(route.params.mode ?? 'actual_overrun');
   const [manualShiftMinutes, setManualShiftMinutes] = useState(
     route.params.manualShiftMinutes ? String(route.params.manualShiftMinutes) : '5',
   );
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [proposal, setProposal] = useState<RescheduleProposal | null>(null);
+  const [proposalOwnerKey, setProposalOwnerKey] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const requestGeneration = useRef(0);
+  const proposalKey = `${reservationId}:${includeBreaks}:${mode}:${manualShiftMinutes}`;
+  const hasCurrentProposal = proposalOwnerKey === proposalKey && proposal !== null;
+  const currentProposal = hasCurrentProposal ? proposal : null;
 
   const fetchProposal = useCallback(async () => {
+    const generation = ++requestGeneration.current;
     setLoading(true);
+    setLoadError(false);
     try {
-      const { data } = await api.post<Proposal>(`/api/reservations/${reservationId}/reschedule/propose`, {
+      const { data } = await api.post<unknown>(`/api/reservations/${reservationId}/reschedule/propose`, {
         includeBreaks,
         mode,
         manualShiftMinutes:
@@ -71,21 +60,28 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
             ? Math.max(0, parseInt(manualShiftMinutes || '0', 10) || 0)
             : undefined,
       });
-      setProposal(data);
-    } catch (err: any) {
-      Alert.alert('Greška', err?.response?.data?.message || 'Greška pri rekalkulaciji.');
-      setProposal(null);
+      const parsed = normalizeRescheduleProposal(data);
+      if (!parsed) throw new Error('INVALID_RESCHEDULE_PROPOSAL');
+      if (generation !== requestGeneration.current) return;
+      setProposal(parsed);
+      setProposalOwnerKey(proposalKey);
+      setLoadError(false);
+    } catch {
+      if (generation === requestGeneration.current) setLoadError(true);
     } finally {
-      setLoading(false);
+      if (generation === requestGeneration.current) setLoading(false);
     }
-  }, [includeBreaks, mode, manualShiftMinutes, reservationId]);
+  }, [includeBreaks, mode, manualShiftMinutes, proposalKey, reservationId]);
 
   useEffect(() => {
-    fetchProposal();
+    void fetchProposal();
+    return () => {
+      requestGeneration.current += 1;
+    };
   }, [fetchProposal]);
 
-  const items = proposal?.items ?? [];
-  const hasChanges = items.length > 0 && (proposal?.delayMinutes ?? 0) > 0;
+  const items = currentProposal?.items ?? [];
+  const hasChanges = items.length > 0 && (currentProposal?.delayMinutes ?? 0) > 0;
 
   const totalShift = useMemo(() => {
     if (!items.length) return 0;
@@ -93,6 +89,7 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
   }, [items]);
 
   const submitNotify = useCallback(async () => {
+    if (loading || loadError || !hasCurrentProposal) return;
     if (!hasChanges && mode !== 'use_break_only') return;
     Alert.alert(
       'Obavijestiti klijente?',
@@ -102,6 +99,7 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
         {
           text: 'Obavijesti',
           onPress: async () => {
+            if (loading || loadError || !hasCurrentProposal) return;
             setSubmitting(true);
             try {
               await api.post(`/api/reservations/${reservationId}/reschedule/commit`, {
@@ -119,8 +117,8 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
                   : 'Obavijesti su poslane klijentima.',
               );
               navigation.goBack();
-            } catch (err: any) {
-              Alert.alert('Greška', err?.response?.data?.message || 'Greška pri slanju obavijesti.');
+            } catch (err: unknown) {
+              Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
             } finally {
               setSubmitting(false);
             }
@@ -128,9 +126,9 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
         },
       ],
     );
-  }, [hasChanges, includeBreaks, mode, manualShiftMinutes, navigation, reservationId]);
+  }, [hasChanges, hasCurrentProposal, includeBreaks, loadError, loading, mode, manualShiftMinutes, navigation, reservationId, t]);
 
-  if (loading) {
+  if (loading && !hasCurrentProposal) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -150,7 +148,7 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
           <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: colors.text }]}>Rekalkulacija termina</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              Kašnjenje: {proposal?.overrunMinutes ?? proposal?.delayMinutes ?? 0} min · Ukupno pomjeranje: {totalShift} min
+              Kašnjenje: {currentProposal?.overrunMinutes ?? currentProposal?.delayMinutes ?? 0} min · Ukupno pomjeranje: {totalShift} min
             </Text>
           </View>
           <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
@@ -213,15 +211,35 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
         </View>
 
         <Button
-          title="Osvježi preview"
+          title={t('stylist.reschedulePreview.retry')}
           onPress={fetchProposal}
           variant="outline"
           size="sm"
+          loading={loading}
           style={{ marginTop: spacing.sm }}
         />
+        {loading && hasCurrentProposal ? (
+          <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: spacing.sm }} />
+        ) : null}
       </Card>
 
-      {!hasChanges ? (
+      {loadError ? (
+        <Card style={styles.card}>
+          <Text style={[styles.emptyText, { color: colors.error }]}>
+            {t(hasCurrentProposal ? 'stylist.reschedulePreview.stale' : 'stylist.reschedulePreview.loadError')}
+          </Text>
+          <Button
+            title={t('stylist.reschedulePreview.retry')}
+            onPress={() => { void fetchProposal(); }}
+            loading={loading}
+            variant="outline"
+            size="sm"
+            style={{ marginTop: spacing.sm }}
+          />
+        </Card>
+      ) : null}
+
+      {!hasChanges && !loadError ? (
         <Card style={styles.card}>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>Nema promjena</Text>
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
@@ -234,6 +252,7 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
               title="Primijeni bez pomjeranja"
               onPress={submitNotify}
               loading={submitting}
+              disabled={loading || loadError || !hasCurrentProposal}
               style={{ marginTop: spacing.md }}
             />
           ) : null}
@@ -262,6 +281,7 @@ export function ReschedulePreviewScreen({ route, navigation }: Props) {
             title="Obavijesti klijente"
             onPress={submitNotify}
             loading={submitting}
+            disabled={loading || loadError || !hasCurrentProposal}
             style={{ marginTop: spacing.sm }}
           />
         </>
