@@ -17,6 +17,12 @@ test('login public settings failures are visible and can be retried without bloc
   assert.match(screen, /getSettingValue\(settings, 'public_login_title', t\('auth\.loginTitle'\)\)/)
 })
 
+test('malformed settings envelopes and rows enter the same visible recovery state', () => {
+  assert.match(screen, /if \(!Array\.isArray\(entries\)\) throw new Error\(\)/)
+  assert.match(screen, /if \(validSettings\.length !== entries\.length\) throw new Error\(\)/)
+  assert.match(screen, /setSettings\(normalizeSettings\(data\)\)[\s\S]*?catch \{[\s\S]*?setSettingsLoadError\(true\)/)
+})
+
 test('login settings requests ignore stale responses after unmount', () => {
   assert.match(screen, /settingsRequestGeneration\.current !== generation/)
   assert.match(screen, /settingsRequestGeneration\.current \+= 1/)

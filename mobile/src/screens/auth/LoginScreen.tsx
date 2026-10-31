@@ -43,13 +43,17 @@ function isPublicSetting(value: unknown): value is PublicSetting {
 }
 
 function normalizeSettings(input: unknown): PublicSetting[] {
-  if (Array.isArray(input)) return input.filter(isPublicSetting);
-  if (input && typeof input === 'object') {
+  let entries: unknown = null;
+  if (Array.isArray(input)) entries = input;
+  else if (input && typeof input === 'object') {
     const payload = input as { items?: unknown; settings?: unknown };
-    if (Array.isArray(payload.items)) return payload.items.filter(isPublicSetting);
-    if (Array.isArray(payload.settings)) return payload.settings.filter(isPublicSetting);
+    if (Array.isArray(payload.items)) entries = payload.items;
+    else if (Array.isArray(payload.settings)) entries = payload.settings;
   }
-  return [];
+  if (!Array.isArray(entries)) throw new Error();
+  const validSettings = entries.filter(isPublicSetting);
+  if (validSettings.length !== entries.length) throw new Error();
+  return validSettings;
 }
 
 function getSettingValue(settings: PublicSetting[] | null | undefined, key: string, fallback: string): string {
