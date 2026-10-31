@@ -38,8 +38,16 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
   const { profileId } = useStylistProfile();
   const reservationId = route.params.reservationId;
 
-  const { reservation, loading, refreshing, fetchReservation, onRefresh } =
-    useStylistReservationDetail({ reservationId });
+  const {
+    reservation,
+    loading,
+    refreshing,
+    loadError,
+    notFound,
+    retrying,
+    fetchReservation,
+    onRefresh,
+  } = useStylistReservationDetail({ reservationId });
 
   const detailActions = useReservationDetailActions({
     reservation,
@@ -68,7 +76,20 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
   if (!reservation) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.text }}>{t('stylist.reservationDetail.notFound')}</Text>
+        <Text style={{ color: colors.text }}>
+          {loadError
+            ? t('reservationDetail.loadErrorMessage')
+            : t('stylist.reservationDetail.notFound')}
+        </Text>
+        {loadError && !notFound ? (
+          <Button
+            title={t('common.retry')}
+            onPress={() => void fetchReservation()}
+            loading={retrying}
+            variant="outline"
+            style={{ marginTop: spacing.md }}
+          />
+        ) : null}
         <Button
           title={t('common.back')}
           onPress={() => navigation.goBack()}
@@ -90,6 +111,18 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
         }
         showsVerticalScrollIndicator={false}
       >
+        {loadError ? (
+          <View style={styles.loadErrorNotice}>
+            <Text style={{ color: colors.error }}>{t('reservationDetail.staleMessage')}</Text>
+            <Button
+              title={t('common.retry')}
+              onPress={() => void fetchReservation()}
+              loading={retrying}
+              variant="outline"
+              size="sm"
+            />
+          </View>
+        ) : null}
         <ReservationDetailSummary reservation={reservation} />
         <ReservationDetailActions
           reservation={reservation}
@@ -171,4 +204,5 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content: { padding: spacing.md },
+  loadErrorNotice: { gap: spacing.sm, padding: spacing.sm, marginBottom: spacing.md },
 });

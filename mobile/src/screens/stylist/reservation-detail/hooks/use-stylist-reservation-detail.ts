@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 
 import api from '../../../../services/api';
@@ -13,19 +13,42 @@ export const useStylistReservationDetail = ({ reservationId }: UseStylistReserva
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const requestGeneration = useRef(0);
 
   const fetchReservation = useCallback(async () => {
+    const generation = ++requestGeneration.current;
+    setLoadError(false);
+    setNotFound(false);
+    setRetrying(true);
     try {
       const { data } = await api.get<Reservation>(`/api/reservations/${reservationId}`);
-      setReservation(data);
-    } catch {
-      setReservation(null);
+      if (generation === requestGeneration.current) setReservation(data);
+    } catch (error: unknown) {
+      if (generation === requestGeneration.current) {
+        const status = typeof error === 'object' && error !== null && 'response' in error
+          ? (error as { response?: { status?: unknown } }).response?.status
+          : undefined;
+        if (status === 404) {
+          setReservation(null);
+          setNotFound(true);
+        } else {
+          setLoadError(true);
+        }
+      }
+    } finally {
+      if (generation === requestGeneration.current) {
+        setLoading(false);
+        setRetrying(false);
+      }
     }
-    setLoading(false);
   }, [reservationId]);
 
   useEffect(() => {
     void fetchReservation();
+    return () => { requestGeneration.current += 1; };
   }, [fetchReservation]);
 
   useFocusEffect(
@@ -46,6 +69,9 @@ export const useStylistReservationDetail = ({ reservationId }: UseStylistReserva
     reservation,
     loading,
     refreshing,
+    loadError,
+    notFound,
+    retrying,
     fetchReservation,
     onRefresh,
   };
