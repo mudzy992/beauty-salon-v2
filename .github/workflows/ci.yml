@@ -419,6 +419,9 @@ jobs:
       - name: Test Bosnian copy for login public-settings recovery
         working-directory: mobile
         run: npm run test:login-public-settings-recovery-copy
+      - name: Test login public-settings recovery and retry
+        working-directory: mobile
+        run: npm run test:login-public-settings-recovery
       - name: Test independent stylist picker loading, error, and retry states
         working-directory: mobile
         run: npm run test:stylist-picker-read-recovery

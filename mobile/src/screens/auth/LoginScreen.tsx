@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -80,13 +80,34 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
   const { login, isLoading } = useAuthStore();
 
   const [settings, setSettings] = useState<PublicSetting[] | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsLoadError, setSettingsLoadError] = useState(false);
+  const settingsRequestGeneration = useRef(0);
   const [loginValue, setLoginValue] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ login?: string; password?: string }>({});
 
-  useEffect(() => {
-    api.get<unknown>('/api/settings/public').then(({ data }) => setSettings(normalizeSettings(data))).catch(() => {});
+  const loadPublicSettings = useCallback(async () => {
+    const generation = ++settingsRequestGeneration.current;
+    setSettingsLoading(true);
+    try {
+      const { data } = await api.get<unknown>('/api/settings/public');
+      if (settingsRequestGeneration.current !== generation) return;
+      setSettings(normalizeSettings(data));
+      setSettingsLoadError(false);
+    } catch {
+      if (settingsRequestGeneration.current === generation) setSettingsLoadError(true);
+    } finally {
+      if (settingsRequestGeneration.current === generation) setSettingsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadPublicSettings();
+    return () => {
+      settingsRequestGeneration.current += 1;
+    };
+  }, [loadPublicSettings]);
 
   const validate = (): boolean => {
     const newErrors: typeof errors = {};
@@ -143,6 +164,21 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
                 {loginSubtitle}
               </Text>
             </View>
+
+            {settingsLoadError ? (
+              <View accessibilityRole="alert" style={styles.settingsNotice}>
+                <Text style={[styles.settingsNoticeText, { color: colors.white }]}>
+                  {t('auth.loginPublicSettingsLoadError')}
+                </Text>
+                <Button
+                  title={t('common.retry')}
+                  variant="outline"
+                  size="sm"
+                  loading={settingsLoading}
+                  onPress={() => void loadPublicSettings()}
+                />
+              </View>
+            ) : null}
 
             {/* Form card */}
             <View style={[styles.formCard, { borderColor: 'rgba(212,168,67,0.30)' }]}>
@@ -214,6 +250,21 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     marginBottom: spacing.xl,
+  },
+  settingsNotice: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(212,168,67,0.55)',
+    backgroundColor: 'rgba(0,0,0,0.72)',
+  },
+  settingsNoticeText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   title: {
     fontSize: 34,
