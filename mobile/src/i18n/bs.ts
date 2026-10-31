@@ -223,6 +223,8 @@ export const bs = {
     contact: {
         title: 'Kontakt',
         openLinkError: 'Link nije moguće otvoriti na ovom uređaju.',
+        settingsLoadError: 'Kontaktne podatke nije moguće učitati.',
+        workingHoursLoadError: 'Radno vrijeme trenutno nije moguće učitati.',
     },
     changePassword: {
       currentPassword: 'Trenutna lozinka',

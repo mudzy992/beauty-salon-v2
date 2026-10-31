@@ -422,6 +422,9 @@ jobs:
       - name: Test before-after gallery errors, empty states, and retry
         working-directory: mobile
         run: npm run test:before-after-gallery-recovery
+      - name: Test Bosnian contact read recovery copy
+        working-directory: mobile
+        run: npm run test:contact-read-recovery-copy
       - name: Test Bosnian copy for login public-settings recovery
         working-directory: mobile
         run: npm run test:login-public-settings-recovery-copy
