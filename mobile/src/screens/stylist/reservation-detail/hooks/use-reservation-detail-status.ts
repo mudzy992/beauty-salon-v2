@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useIsFocused } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 import api from '../../../../services/api';
 import { formatTime } from '../../../../utils/date';
+import { normalizeReservations } from '../../../../utils/apiPayload';
 import type { Reservation } from '../../../../types';
 import { getPlannedReservationDateTime, canStartReservationUi, canStaffConfirmAttendanceUi } from '../utils/reservation-detail';
 
@@ -20,8 +22,12 @@ export const useReservationDetailStatus = ({
   profileId,
   onOverrunReschedule,
 }: UseReservationDetailStatusParams) => {
+  const { t } = useTranslation();
   const [startBlockedReason, setStartBlockedReason] = useState<string | null>(null);
+  const [startOrderCheckError, setStartOrderCheckError] = useState(false);
+  const [startOrderCheckLoading, setStartOrderCheckLoading] = useState(false);
   const [timeTick, setTimeTick] = useState(0);
+  const retryStartOrderCheck = useCallback(() => setTimeTick((value) => value + 1), []);
   const overrunPopupShownForRef = useRef<string | null>(null);
   const isFocused = useIsFocused();
 
@@ -86,13 +92,20 @@ export const useReservationDetailStatus = ({
 
   useEffect(() => {
     let cancelled = false;
+    const setCheckState = (reason: string | null, hasError: boolean, isLoading = false) => {
+      if (cancelled) return;
+      setStartBlockedReason(reason);
+      setStartOrderCheckError(hasError);
+      setStartOrderCheckLoading(isLoading);
+    };
+
     async function resolveStartBlockReason() {
       if (!reservation || !profileId || !canStartReservationUi(reservation, true)) {
-        if (!cancelled) setStartBlockedReason(null);
+        setCheckState(null, false);
         return;
       }
       if (reservation.confirmedStylistId !== profileId) {
-        if (!cancelled) setStartBlockedReason(null);
+        setCheckState(null, false);
         return;
       }
       const plannedStart = getPlannedReservationDateTime(
@@ -100,19 +113,24 @@ export const useReservationDetailStatus = ({
         reservation.startTime,
       );
       if (Date.now() < plannedStart.getTime()) {
-        if (!cancelled) {
-          setStartBlockedReason(
-            `Termin još nije počeo. Start je dozvoljen od ${formatTime(reservation.startTime)}.`,
-          );
-        }
+        setCheckState(
+          `Termin još nije počeo. Start je dozvoljen od ${formatTime(reservation.startTime)}.`,
+          false,
+        );
         return;
       }
+
+      setCheckState(t('stylist.reservationDetail.actions.startOrderCheckPending'), false, true);
       try {
         const day = reservation.reservationDate.slice(0, 10);
-        const { data } = await api.get<Reservation[]>('/api/reservations', {
+        const { data } = await api.get<unknown>('/api/reservations', {
           params: { asStylist: true, fromDate: day, toDate: day },
         });
-        const list = Array.isArray(data) ? data : [];
+        const list = normalizeReservations(data);
+        if (!Array.isArray(data) || !list || list.length !== data.length) {
+          setCheckState(t('stylist.reservationDetail.actions.startOrderCheckError'), true);
+          return;
+        }
         const earlierPending = list
           .filter((r) => r.id !== reservation.id)
           .filter((r) => r.confirmedStylistId === profileId)
@@ -124,22 +142,21 @@ export const useReservationDetailStatus = ({
                 (r.attendancePolicy === 'STAFF_WAIVED' ||
                   r.acceptanceMode === 'DIRECT_ASSIGN')),
           );
-        if (!cancelled) {
-          setStartBlockedReason(
-            earlierPending
-              ? `Postoji raniji termin (${formatTime(earlierPending.startTime)}–${formatTime(earlierPending.endTime)}) koji prvo treba obraditi.`
-              : null,
-          );
-        }
+        setCheckState(
+          earlierPending
+            ? `Postoji raniji termin (${formatTime(earlierPending.startTime)}–${formatTime(earlierPending.endTime)}) koji prvo treba obraditi.`
+            : null,
+          false,
+        );
       } catch {
-        if (!cancelled) setStartBlockedReason(null);
+        setCheckState(t('stylist.reservationDetail.actions.startOrderCheckError'), true);
       }
     }
     void resolveStartBlockReason();
     return () => {
       cancelled = true;
     };
-  }, [reservation, profileId, timeTick]);
+  }, [reservation, profileId, timeTick, t]);
 
   useEffect(() => {
     if (!isFocused || !reservation) return;
@@ -174,5 +191,8 @@ export const useReservationDetailStatus = ({
     isConfirmedStylist,
     isStartOverdue,
     startBlockedReason,
+    startOrderCheckError,
+    startOrderCheckLoading,
+    retryStartOrderCheck,
   };
 };

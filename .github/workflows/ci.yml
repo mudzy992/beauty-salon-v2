@@ -602,6 +602,9 @@ jobs:
       - name: Test Bosnian copy for stylist start-order check recovery
         working-directory: mobile
         run: npm run test:stylist-start-order-check-copy
+      - name: Test stylist reservation start-order read recovery
+        working-directory: mobile
+        run: npm run test:stylist-start-order-check
       - name: Test reschedule proposal payload validation
         working-directory: mobile
         run: npm run test:stylist-reschedule-proposal

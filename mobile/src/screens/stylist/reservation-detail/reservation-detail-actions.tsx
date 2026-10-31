@@ -20,6 +20,9 @@ type ReservationDetailActionsProps = {
   hasAnyAction: boolean;
   isStartOverdue: boolean;
   startBlockedReason: string | null;
+  startOrderCheckError: boolean;
+  startOrderCheckLoading: boolean;
+  retryStartOrderCheck: () => void;
   startSubmitting: boolean;
   onStart: () => void;
   onOpenOverrun: () => void;
@@ -42,6 +45,9 @@ export const ReservationDetailActions = ({
   hasAnyAction,
   isStartOverdue,
   startBlockedReason,
+  startOrderCheckError,
+  startOrderCheckLoading,
+  retryStartOrderCheck,
   startSubmitting,
   onStart,
   onOpenOverrun,
@@ -91,6 +97,16 @@ export const ReservationDetailActions = ({
             {startBlockedReason}
           </Text>
         </View>
+      ) : null}
+      {canStart && startOrderCheckError ? (
+        <Button
+          title={t('common.retry')}
+          onPress={retryStartOrderCheck}
+          loading={startOrderCheckLoading}
+          variant="outline"
+          size="sm"
+          style={{ marginBottom: spacing.sm }}
+        />
       ) : null}
       {canComplete ? (
         <Button
