@@ -413,6 +413,9 @@ jobs:
       - name: Test reservation and review service picker recovery
         working-directory: mobile
         run: npm run test:public-service-picker-recovery
+      - name: Test Bosnian copy for stylist picker recovery
+        working-directory: mobile
+        run: npm run test:stylist-picker-recovery-copy
       - name: Test Android updater release metadata and APK bounds
         working-directory: mobile
         run: npm run test:android-release-payload
