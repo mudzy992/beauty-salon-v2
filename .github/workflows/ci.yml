@@ -395,6 +395,9 @@ jobs:
       - name: Test localized reservation benefit error copy
         working-directory: mobile
         run: npm run test:reservation-benefit-copy
+      - name: Test reservation benefit read recovery
+        working-directory: mobile
+        run: npm run test:reservation-benefit-recovery
       - name: Test runtime mobile API payload parsing
         working-directory: mobile
         run: npm run test:api-payload

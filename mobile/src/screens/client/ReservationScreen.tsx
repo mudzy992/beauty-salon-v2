@@ -74,11 +74,17 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const [submitting, setSubmitting] = useState(false);
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState<number>(0);
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+  const [loyaltyLoadError, setLoyaltyLoadError] = useState(false);
   const [payDebtsIntent, setPayDebtsIntent] = useState(false);
-  const [openDebtsTotal, setOpenDebtsTotal] = useState(0);
+  const [openDebtsTotal, setOpenDebtsTotal] = useState<number | null>(null);
+  const [debtsLoading, setDebtsLoading] = useState(false);
+  const [debtsLoadError, setDebtsLoadError] = useState(false);
   const bookingAttemptRef = useRef<PendingIdempotentRequest>(null);
   const datesRequestIdRef = useRef(0);
   const slotsRequestIdRef = useRef(0);
+  const loyaltyRequestIdRef = useRef(0);
+  const debtsRequestIdRef = useRef(0);
   const servicesById = useMemo(
     () => new Map(services.map((service) => [service.id, service])),
     [services],
@@ -160,6 +166,8 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   useEffect(() => () => {
     datesRequestIdRef.current += 1;
     slotsRequestIdRef.current += 1;
+    loyaltyRequestIdRef.current += 1;
+    debtsRequestIdRef.current += 1;
   }, []);
 
   // Load available dates when service is selected
@@ -240,6 +248,67 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   );
   useAvailabilitySocketRefresh(selectedServiceIds, onAvailabilityChanged);
 
+  useEffect(() => {
+    loyaltyRequestIdRef.current += 1;
+    setLoyaltyInfo(null);
+    setDesiredLoyaltyPercent(0);
+    setLoyaltyLoading(false);
+    setLoyaltyLoadError(false);
+  }, [selectedServiceIds]);
+
+  useEffect(() => {
+    debtsRequestIdRef.current += 1;
+    setOpenDebtsTotal(null);
+    setDebtsLoading(false);
+    setDebtsLoadError(false);
+  }, [user?.id]);
+
+  const loadLoyaltyPreview = useCallback(async () => {
+    if (selectedServiceIds.length === 0) {
+      setLoyaltyInfo(null);
+      setLoyaltyLoadError(false);
+      return;
+    }
+    const requestId = ++loyaltyRequestIdRef.current;
+    setLoyaltyLoading(true);
+    setLoyaltyLoadError(false);
+    try {
+      const { data } = await api.get<unknown>('/api/loyalty/client/me', {
+        params: { serviceIds: selectedServiceIds.join(',') },
+      });
+      if (requestId !== loyaltyRequestIdRef.current) return;
+      const preview = normalizeLoyaltyPreview(data);
+      if (!preview) throw new Error('Invalid loyalty preview response');
+      setLoyaltyInfo(preview);
+    } catch {
+      if (requestId === loyaltyRequestIdRef.current) setLoyaltyLoadError(true);
+    } finally {
+      if (requestId === loyaltyRequestIdRef.current) setLoyaltyLoading(false);
+    }
+  }, [selectedServiceIds]);
+
+  const loadDebtPreview = useCallback(async () => {
+    if (!user?.id) {
+      setOpenDebtsTotal(null);
+      setDebtsLoadError(false);
+      return;
+    }
+    const requestId = ++debtsRequestIdRef.current;
+    setDebtsLoading(true);
+    setDebtsLoadError(false);
+    try {
+      const { data } = await api.get<unknown>('/api/client-debts/me');
+      if (requestId !== debtsRequestIdRef.current) return;
+      const debts = normalizeDebtAmounts(data);
+      if (!debts) throw new Error('Invalid debt preview response');
+      setOpenDebtsTotal(sumDebtAmounts(debts));
+    } catch {
+      if (requestId === debtsRequestIdRef.current) setDebtsLoadError(true);
+    } finally {
+      if (requestId === debtsRequestIdRef.current) setDebtsLoading(false);
+    }
+  }, [user?.id]);
+
   const filteredServices = useMemo(() => {
     const servicesByGender = user?.gender
       ? services.filter((service) => service.gender === user.gender)
@@ -314,30 +383,9 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     setStep(4);
     setDesiredLoyaltyPercent(0);
     setPayDebtsIntent(false);
-    if (selectedServiceIds.length > 0) {
-      (async () => {
-        try {
-          const { data } = await api.get<unknown>('/api/loyalty/client/me', {
-            params: { serviceIds: selectedServiceIds.join(',') },
-          });
-          setLoyaltyInfo(normalizeLoyaltyPreview(data));
-        } catch {
-          setLoyaltyInfo(null);
-        }
-      })();
-    } else {
-      setLoyaltyInfo(null);
-    }
-    (async () => {
-      try {
-        const { data } = await api.get<unknown>('/api/client-debts/me');
-        const rows = normalizeDebtAmounts(data);
-        setOpenDebtsTotal(rows ? sumDebtAmounts(rows) : 0);
-      } catch {
-        setOpenDebtsTotal(0);
-      }
-    })();
-  }, [selectedServiceIds]);
+    void loadLoyaltyPreview();
+    void loadDebtPreview();
+  }, [loadDebtPreview, loadLoyaltyPreview]);
 
   const handleSubmit = async () => {
     if (selectedServiceIds.length === 0 || !selectedDate || !selectedSlot) return;
@@ -738,6 +786,48 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             </View>
           </Card>
 
+          {loyaltyLoading && !loyaltyInfo ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginBottom: spacing.md }} />
+          ) : null}
+          {loyaltyLoadError ? (
+            <Card style={{ marginBottom: spacing.md, borderColor: colors.error }}>
+              <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
+                {t('reservation.loyaltyPreviewLoadError')}
+              </Text>
+              {loyaltyInfo ? (
+                <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
+                  {t('reservation.previewStale')}
+                </Text>
+              ) : null}
+              <Button
+                title={t('common.retry')}
+                onPress={() => { void loadLoyaltyPreview(); }}
+                variant="outline"
+              />
+            </Card>
+          ) : null}
+
+          {debtsLoading && openDebtsTotal === null ? (
+            <ActivityIndicator size="small" color={colors.primary} style={{ marginBottom: spacing.md }} />
+          ) : null}
+          {debtsLoadError ? (
+            <Card style={{ marginBottom: spacing.md, borderColor: colors.error }}>
+              <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
+                {t('reservation.debtPreviewLoadError')}
+              </Text>
+              {openDebtsTotal !== null ? (
+                <Text style={{ color: colors.textMuted, marginBottom: spacing.sm }}>
+                  {t('reservation.previewStale')}
+                </Text>
+              ) : null}
+              <Button
+                title={t('common.retry')}
+                onPress={() => { void loadDebtPreview(); }}
+                variant="outline"
+              />
+            </Card>
+          ) : null}
+
           {loyaltyInfo &&
             loyaltyInfo.enabled &&
             loyaltyInfo.redeemEnabled &&
@@ -790,7 +880,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
               </Card>
             )}
 
-          {openDebtsTotal > 0 ? (
+          {openDebtsTotal !== null && openDebtsTotal > 0 ? (
             <TouchableOpacity
               onPress={() => setPayDebtsIntent((v) => !v)}
               style={{
