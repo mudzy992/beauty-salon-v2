@@ -39,7 +39,12 @@ test('daily-log entry validation, server error passthrough, and edit/create flow
   assert.match(screen, /if \(!Number\.isFinite\(paidRaw\) \|\| paidRaw < 0\) \{\s*Alert\.alert\(t\('common\.error'\), t\('stylist\.dailyLogDetail\.paidAmountInvalid'\)\);\s*return;/)
   assert.match(screen, /!editEntryId && settleDebtsEnabled && settledDebtIds\.length > 0 && paidRaw < charge\.debtsSum[\s\S]*?t\('stylist\.dailyLogDetail\.settledDebtAmountInsufficient'\)/)
   assert.ok(screen.includes("await api.patch(`/api/daily-log/${editEntryId}`, {"))
-  assert.ok(screen.includes("await api.post<{ id: string }>('/api/daily-log', {"))
-  assert.match(screen, /'response' in err[\s\S]*?\?\.message\s*:\s*t\('stylist\.dailyLogDetail\.saveErrorFallback'\)/)
-  assert.ok(screen.includes("Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg))"))
+  assert.ok(screen.includes("api.post<unknown>('/api/daily-log', {"))
+  assert.ok(screen.includes('parseCreatedDailyLogEntryId(response)'))
+  assert.ok(screen.includes("t('stylist.dailyLogDetail.saveResponseFallback')"))
+  assert.match(
+    screen,
+    /getApiErrorMessage\(err, t\('stylist\.dailyLogDetail\.saveErrorFallback'\)\)/,
+  )
+  assert.ok(!screen.includes("'response' in err"))
 })
