@@ -573,6 +573,7 @@ export const bs = {
         tipAmount: 'Napojnica: {{amount}} KM',
         recordDebt: 'Zavedi dug ({{amount}} KM)',
         clientDebtsTitle: 'Dugovanja klijenta',
+        clientDebtsLoadError: 'Otvorena dugovanja trenutno nije moguće učitati.',
         noOpenDebts: 'Nema otvorenih dugovanja.',
         serviceFallback: 'Usluga',
         stylistFallback: 'Stilist',
