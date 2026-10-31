@@ -74,7 +74,7 @@ export function normalizePublicServices(payload: unknown): Service[] | null {
     if (
       !isRecord(row) || !isNonEmptyString(row.id) || !isNonEmptyString(row.subcategoryId) ||
       !isNonEmptyString(row.name) || !isFiniteNumber(row.durationMinutes) ||
-      !isFiniteNumber(row.price) || typeof row.isActive !== 'boolean' ||
+      !isFiniteNumber(row.price) || (row.isActive !== undefined && row.isActive !== true) ||
       !isFiniteNumber(row.sortOrder) || (row.gender !== 'MALE' && row.gender !== 'FEMALE') ||
       !isOptionalString(row.shortDescription) || !isOptionalString(row.heroImage)
     ) return false;
@@ -86,7 +86,9 @@ export function normalizePublicServices(payload: unknown): Service[] | null {
     }
     return true;
   });
-  return payload.length > 0 && services.length === 0 ? null : services;
+  if (payload.length > 0 && services.length === 0) return null;
+  // The public catalog endpoint filters to active services but intentionally omits isActive.
+  return services.map((service) => ({ ...service, isActive: true }));
 }
 
 function isBlogPostRow(row: unknown): row is BlogPost {

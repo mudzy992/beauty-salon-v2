@@ -137,13 +137,20 @@ test('stylist client-search parser validates the paged envelope and filters malf
   assert.equal(normalizeClientSearchResults({}), null);
 });
 
-test('public service parsers validate catalogue rows and keep valid entries from partial payloads', () => {
+test('public service parser matches the active-only API DTO and rejects malformed rows', () => {
   const service = {
     id: 's-1', subcategoryId: 'sub-1', name: 'Šišanje', durationMinutes: 30,
     price: 25, gender: 'FEMALE', isActive: true, sortOrder: 0,
     subcategory: { id: 'sub-1', categoryId: 'cat-1', name: 'Njega' },
   };
   assert.equal(normalizePublicServices([service, { ...service, id: null }]).length, 1);
+  const publicServiceDto = { ...service, subcategory: {
+    id: 'sub-1', categoryId: 'cat-1', name: 'Njega', category: { id: 'cat-1', name: 'Žene' },
+  } };
+  delete publicServiceDto.isActive;
+  assert.deepEqual(normalizePublicServices([publicServiceDto]), [{ ...publicServiceDto, isActive: true }]);
+  assert.equal(normalizePublicServices([{ ...service, isActive: false }]), null);
+  assert.equal(normalizePublicServices([{ ...service, isActive: 'true' }]), null);
   assert.equal(normalizePublicServices([{ id: 'invalid' }]), null);
   assert.equal(normalizePublicServices([]).length, 0);
   assert.equal(normalizePublicServiceCategories([{ id: 'cat-1', name: 'Žene', sortOrder: 0, isActive: true }]).length, 1);
