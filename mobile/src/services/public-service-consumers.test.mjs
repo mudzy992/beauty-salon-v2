@@ -32,8 +32,6 @@ function loadTypeScriptModule(relativePath) {
 const { normalizePublicServices } = loadTypeScriptModule('../utils/apiPayload.ts');
 const catalogSource = readFileSync(new URL('./catalog.ts', import.meta.url), 'utf8');
 const consumers = [
-  ['../screens/client/ReservationScreen.tsx', 'reservation booking'],
-  ['../screens/client/ReviewsScreen.tsx', 'review service picker'],
   ['../screens/stylist/DailyLogNewEntryScreen.tsx', 'stylist daily-log service picker'],
   ['../screens/stylist/use-stylist-direct-booking-form.ts', 'stylist direct-booking service picker'],
 ];
@@ -64,6 +62,17 @@ test('remaining service-catalog consumers use runtime-normalized services, not g
     const source = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
     assert.match(source, /fetchAllNormalizedPublicServices/, `${label} should use the validated loader`);
     assert.doesNotMatch(source, /fetchAllPublicServices<\s*(?:Service|DirectBookingService)\s*>/);
+  }
+
+  const hookSource = readFileSync(new URL('../hooks/usePublicServiceCatalog.ts', import.meta.url), 'utf8');
+  assert.match(hookSource, /fetchAllNormalizedPublicServices/);
+  for (const relativePath of [
+    '../screens/client/ReservationScreen.tsx',
+    '../screens/client/ReviewsScreen.tsx',
+  ]) {
+    const source = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
+    assert.match(source, /usePublicServiceCatalog/);
+    assert.doesNotMatch(source, /fetchAllPublicServices<\s*Service\s*>/);
   }
 
   const reservationSource = readFileSync(new URL('../screens/client/ReservationScreen.tsx', import.meta.url), 'utf8');
