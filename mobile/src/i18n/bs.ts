@@ -275,10 +275,12 @@ export const bs = {
     switchToStylistSubtitle: 'Inbox, profil',
     openDebtsTitle: 'Otvorena dugovanja',
     debtLoadError: 'Dugovanja trenutno nije moguće učitati.',
+    debtStale: 'Prikazuju se ranije učitana dugovanja.',
     serviceFallback: 'Usluga',
     debtAmount: '{{service}} · {{amount}} KM',
     mediaConsent: {
       loadError: 'Saglasnosti trenutno nije moguće učitati. Pokušajte ponovo.',
+      stale: 'Prikazuju se ranije učitane saglasnosti.',
       saveSuccess: 'Saglasnost je uspješno sačuvana.',
       saveRefreshError: 'Saglasnost je sačuvana, ali status trenutno nije moguće osvježiti.',
       saveError: 'Saglasnost nije moguće sačuvati. Pokušajte ponovo.',
