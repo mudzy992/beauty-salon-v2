@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import api from '../../../../services/api';
 import type { ClientDebt, DailyLogEntry, Reservation } from '../../../../types';
@@ -31,27 +31,44 @@ export const useReservationCompleteFlow = ({
   const [completeSubmitting, setCompleteSubmitting] = useState(false);
   const [clientDebts, setClientDebts] = useState<ClientDebt[]>([]);
   const [clientDebtsLoading, setClientDebtsLoading] = useState(false);
+  const [clientDebtsError, setClientDebtsError] = useState(false);
   const [selectedDebtIds, setSelectedDebtIds] = useState<Record<string, boolean>>({});
   const [createDebt, setCreateDebt] = useState(true);
+  const debtRequestGeneration = useRef(0);
+  const debtClientId = useRef<string | undefined>(undefined);
 
   const fetchClientDebts = useCallback(async (clientId?: string) => {
+    const generation = ++debtRequestGeneration.current;
     if (!clientId) {
+      debtClientId.current = undefined;
       setClientDebts([]);
+      setClientDebtsError(false);
+      setClientDebtsLoading(false);
+      setSelectedDebtIds({});
       return;
     }
+    if (debtClientId.current !== clientId) {
+      debtClientId.current = clientId;
+      setClientDebts([]);
+      setSelectedDebtIds({});
+    }
+    setClientDebtsError(false);
     setClientDebtsLoading(true);
     try {
       const { data } = await api.get<unknown>('/api/client-debts', { params: { clientId } });
-      setClientDebts(normalizeClientDebts(data) ?? []);
+      const normalized = normalizeClientDebts(data);
+      if (!normalized) throw new Error();
+      if (generation === debtRequestGeneration.current) setClientDebts(normalized);
     } catch {
-      setClientDebts([]);
+      if (generation === debtRequestGeneration.current) setClientDebtsError(true);
     } finally {
-      setClientDebtsLoading(false);
+      if (generation === debtRequestGeneration.current) setClientDebtsLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void fetchClientDebts(reservation?.clientId);
+    return () => { debtRequestGeneration.current += 1; };
   }, [reservation?.clientId, fetchClientDebts]);
 
   const selectedDebtSum = useMemo(() => {
@@ -145,6 +162,7 @@ export const useReservationCompleteFlow = ({
     completeSubmitting,
     clientDebts,
     clientDebtsLoading,
+    clientDebtsError,
     selectedDebtIds,
     createDebt,
     completeChargeAmount,
@@ -156,5 +174,6 @@ export const useReservationCompleteFlow = ({
     submitComplete,
     openComplete,
     handleToggleDebt,
+    fetchClientDebts,
   };
 };

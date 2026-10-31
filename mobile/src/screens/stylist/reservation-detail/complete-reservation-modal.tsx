@@ -20,6 +20,8 @@ type CompleteReservationModalProps = {
   submitting: boolean;
   clientDebts: ClientDebt[];
   clientDebtsLoading: boolean;
+  clientDebtsError: boolean;
+  onRetryClientDebts: () => void;
   selectedDebtIds: Record<string, boolean>;
   completeChargeAmount: number;
   selectedDebtSum: number;
@@ -41,6 +43,8 @@ export function CompleteReservationModal({
   submitting,
   clientDebts,
   clientDebtsLoading,
+  clientDebtsError,
+  onRetryClientDebts,
   selectedDebtIds,
   completeChargeAmount,
   selectedDebtSum,
@@ -92,15 +96,31 @@ export function CompleteReservationModal({
         <Text style={[styles.sectionTitle, { color: colors.text }]}>
           {t('stylist.reservationDetail.complete.clientDebtsTitle')}
         </Text>
+        {clientDebtsError ? (
+          <View style={{ gap: spacing.xs }}>
+            <Text style={[styles.infoText, { color: colors.error }]}>
+              {t('stylist.reservationDetail.complete.clientDebtsLoadError')}
+            </Text>
+            <Button
+              title={t('common.retry')}
+              onPress={onRetryClientDebts}
+              loading={clientDebtsLoading}
+              variant="outline"
+              size="sm"
+            />
+          </View>
+        ) : null}
         {clientDebtsLoading ? (
           <View style={{ paddingVertical: spacing.sm }}>
             <ActivityIndicator size="small" color={colors.primary} />
           </View>
-        ) : clientDebts.length === 0 ? (
+        ) : null}
+        {!clientDebtsLoading && !clientDebtsError && clientDebts.length === 0 ? (
           <Text style={[styles.infoText, { color: colors.textSecondary }]}>
             {t('stylist.reservationDetail.complete.noOpenDebts')}
           </Text>
-        ) : (
+        ) : null}
+        {clientDebts.length > 0 ? (
           <View style={{ gap: 8 }}>
             {clientDebts.slice(0, 6).map((d) => {
               const isMine = d.stylistProfileId === profileId;
@@ -143,7 +163,7 @@ export function CompleteReservationModal({
               })}
             </Text>
           </View>
-        )}
+        ) : null}
       </View>
       <Input
         label={t('stylist.reservationDetail.complete.notesLabel')}
@@ -157,6 +177,7 @@ export function CompleteReservationModal({
           title={t('stylist.schedule.completeSubmit')}
           onPress={onSubmit}
           loading={submitting}
+          disabled={clientDebtsLoading || clientDebtsError}
           style={styles.btn}
         />
       </View>

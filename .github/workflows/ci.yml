@@ -479,6 +479,9 @@ jobs:
       - name: Test Bosnian copy for completion debt read recovery
         working-directory: mobile
         run: npm run test:stylist-completion-debts-recovery-copy
+      - name: Test stylist completion debt read recovery
+        working-directory: mobile
+        run: npm run test:stylist-completion-debts-recovery
       - name: Test public blog list read recovery and payload validation
         working-directory: mobile
         run: npm run test:blog-list-read-recovery

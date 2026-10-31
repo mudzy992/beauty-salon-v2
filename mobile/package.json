@@ -44,6 +44,7 @@
     "test:reservation-detail-read-recovery": "node --test src/screens/client/reservation-detail-read-recovery.test.mjs",
     "test:stylist-reservation-detail-read-recovery": "node --test src/screens/stylist/stylist-reservation-detail-read-recovery.test.mjs",
     "test:stylist-completion-debts-recovery-copy": "node --test src/screens/stylist/reservation-detail/stylist-completion-debt-recovery-copy.test.mjs",
+    "test:stylist-completion-debts-recovery": "node --test src/screens/stylist/reservation-detail/stylist-completion-debt-recovery.test.mjs",
     "test:blog-list-read-recovery": "node --test src/screens/client/blog-list-read-recovery.test.mjs",
     "test:blog-post-read-recovery": "node --test src/screens/client/blog-post-read-recovery.test.mjs",
     "test:before-after-slider-accessibility": "node --test src/components/before-after-slider-accessibility.test.mjs",

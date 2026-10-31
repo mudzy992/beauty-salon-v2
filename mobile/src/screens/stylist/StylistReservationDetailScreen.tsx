@@ -168,6 +168,8 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
         submitting={detailActions.completeSubmitting}
         clientDebts={detailActions.clientDebts}
         clientDebtsLoading={detailActions.clientDebtsLoading}
+        clientDebtsError={detailActions.clientDebtsError}
+        onRetryClientDebts={() => void detailActions.fetchClientDebts(reservation.clientId)}
         selectedDebtIds={detailActions.selectedDebtIds}
         completeChargeAmount={detailActions.completeChargeAmount}
         selectedDebtSum={detailActions.selectedDebtSum}
