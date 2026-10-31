@@ -75,9 +75,8 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
       return null;
     }
     return token;
-  } catch (e: unknown) {
-    const msg = e && typeof e === 'object' && 'message' in e ? (e as { message: string }).message : e;
-    console.error('[Push] getExpoPushTokenAsync failed:', msg);
+  } catch {
+    console.error('[Push] getExpoPushTokenAsync failed.');
     return null;
   }
 }

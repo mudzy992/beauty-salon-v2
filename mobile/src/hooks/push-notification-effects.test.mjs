@@ -63,7 +63,7 @@ test('push notification native APIs, callbacks and navigation are best-effort', 
   assert.match(hookSource, /try \{\s*responseListener\.current\?\.remove\(\)/);
 });
 
-test('push token registration failures log only status metadata, never the API error payload', () => {
+test('push registration and token-generation failures never log raw error payloads', () => {
   const registrationCatch = hookSource.match(
     /await api\.post\('\/api\/notifications\/push-token'[\s\S]*?catch \(e: unknown\) \{([\s\S]*?)\n\s{6}\}/,
   )?.[1];
@@ -71,4 +71,6 @@ test('push token registration failures log only status metadata, never the API e
   assert.match(registrationCatch, /const err = e as \{ response\?: \{ status\?: number \} \}/);
   assert.match(registrationCatch, /err\?\.response\?\.status \?\? 'network error'/);
   assert.doesNotMatch(registrationCatch, /response\?\.data|console\.warn\([\s\S]*\b(?:error|err|data)\s*\)/);
+  assert.match(hookSource, /console\.error\('\[Push\] getExpoPushTokenAsync failed\.'\)/);
+  assert.doesNotMatch(hookSource, /getExpoPushTokenAsync failed:',\s*msg/);
 });
