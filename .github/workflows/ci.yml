@@ -416,6 +416,9 @@ jobs:
       - name: Test Bosnian copy for stylist picker recovery
         working-directory: mobile
         run: npm run test:stylist-picker-recovery-copy
+      - name: Test Bosnian before-after gallery recovery copy
+        working-directory: mobile
+        run: npm run test:before-after-gallery-recovery-copy
       - name: Test Bosnian copy for login public-settings recovery
         working-directory: mobile
         run: npm run test:login-public-settings-recovery-copy

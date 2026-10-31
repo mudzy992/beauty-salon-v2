@@ -94,6 +94,13 @@ export const bs = {
     detailLoadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
     galleryLoadError: 'Galeriju nije moguće učitati. Pokušajte ponovo.'
   },
+  beforeAfterGallery: {
+    pageHint: 'Povucite razdjelnik lijevo ili desno za poređenje fotografija prije i poslije.',
+    emptyTitle: 'Nema transformacija',
+    emptyMessage: 'Kada budu dostupne, pojavit će se ovdje.',
+    loadError: 'Galeriju trenutno nije moguće učitati.',
+    loadMoreError: 'Dodatne fotografije nije moguće učitati. Pokušajte ponovo.',
+  },
   reservation: {
     listLoadErrorTitle: 'Rezervacije nisu dostupne',
     listLoadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
