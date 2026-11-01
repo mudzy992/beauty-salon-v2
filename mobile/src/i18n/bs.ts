@@ -583,6 +583,7 @@ export const bs = {
       },
       complete: {
         chargedLabel: 'Naplaćeno (KM)',
+        errorFallback: 'Greška pri upisu dnevnika.',
         amountDue: 'Za naplatu: {{amount}} KM',
         payDebtsIntent: 'klijent želi platiti dug',
         tipAmount: 'Napojnica: {{amount}} KM',
@@ -603,6 +604,8 @@ export const bs = {
         confirmAttendance: 'Potvrdi dolazak',
         handleOverrun: 'Obradi kašnjenje termina',
         startReservation: 'Započni rezervaciju',
+        startErrorFallback: 'Greška pri pokretanju rezervacije.',
+        confirmAttendanceErrorFallback: 'Greška pri potvrdi dolaska.',
         startOrderCheckError: 'Nije moguće provjeriti redoslijed ranijih termina. Pokušajte ponovo.',
         proposeReschedule: 'Predloži pomjeranje termina',
       },
