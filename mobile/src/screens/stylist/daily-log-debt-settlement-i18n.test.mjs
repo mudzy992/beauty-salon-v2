@@ -4,10 +4,14 @@ import test from 'node:test'
 
 const resource = readFileSync(new URL('../../i18n/bs.ts', import.meta.url), 'utf8')
 const block = readFileSync(new URL('./DailyLogEntryPricingBlock.tsx', import.meta.url), 'utf8')
+const screen = readFileSync(new URL('./DailyLogNewEntryScreen.tsx', import.meta.url), 'utf8')
 const dailyLogTranslations = resource.match(/dailyLogDetail:\s*\{([\s\S]*?)\n\s*\},\n\s*profile:/)?.[1]
 
 const messages = [
   ['openDebtsSummary', 'Otvorena dugovanja: {{count}} · {{amount}} KM'],
+  ['openDebtsLoading', 'Učitavanje dugovanja...'],
+  ['openDebtsLoadError', 'Dugovanja trenutno nisu dostupna. Ponovo pokušajte učitati prije odabira dugovanja za naplatu.'],
+  ['openDebtsRetry', 'Pokušaj ponovo'],
   ['settleDebtAction', 'Naplati dug'],
   ['selectDebtsHint', 'Označite dugovanja za naplatu'],
   ['serviceFallback', 'Usluga'],
@@ -34,4 +38,16 @@ test('debt visibility, summary amounts, selection state, and callbacks stay unch
   assert.ok(block.includes('onPress={() => onToggleDebt(d.id)}'))
   assert.ok(block.includes('Number(d.amount).toFixed(2)'))
   assert.ok(block.includes('String(d.createdAt).slice(0, 10)'))
+})
+
+test('daily-log client-debt reads validate open debt data, ignore stale results, and expose retry states', () => {
+  assert.ok(screen.includes('const debts = normalizeClientDebts(data);'))
+  assert.ok(screen.includes("debts.some((debt) => debt.status !== 'OPEN')"))
+  assert.ok(screen.includes('setOpenDebtsLoadError(true)'))
+  assert.ok(screen.includes('openDebtsLoadGeneration.current === generation'))
+  assert.ok(screen.includes('onRetryOpenDebts={() => void loadOpenDebts()}'))
+  assert.ok(block.includes('openDebtsLoading'))
+  assert.ok(block.includes('openDebtsLoadError'))
+  assert.ok(block.includes('onPress={onRetryOpenDebts}'))
+  assert.doesNotMatch(screen, /Array\.isArray\(r\.data\) \? r\.data : \[\]/)
 })

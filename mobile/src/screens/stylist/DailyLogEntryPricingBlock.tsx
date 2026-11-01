@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Input } from '../../components/ui/Input';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +27,9 @@ type Props = {
   onUnitPriceChange: (serviceId: string, value: number) => void;
   onRemoveService: (serviceId: string) => void;
   openDebts: OpenDebtRow[];
+  openDebtsLoading: boolean;
+  openDebtsLoadError: boolean;
+  onRetryOpenDebts: () => void;
   settleDebtsEnabled: boolean;
   onSettleDebtsEnabledChange: (value: boolean) => void;
   settledDebtIds: string[];
@@ -57,6 +60,9 @@ export function DailyLogEntryPricingBlock(props: Props) {
     onUnitPriceChange,
     onRemoveService,
     openDebts,
+    openDebtsLoading,
+    openDebtsLoadError,
+    onRetryOpenDebts,
     settleDebtsEnabled,
     onSettleDebtsEnabledChange,
     settledDebtIds,
@@ -125,6 +131,26 @@ export function DailyLogEntryPricingBlock(props: Props) {
         </View>
       ))}
 
+      {!editMode && openDebtsLoading ? (
+        <View style={{ marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <ActivityIndicator size="small" color={colors.primary} />
+          <Text style={{ color: colors.textSecondary }}>{t('stylist.dailyLogDetail.openDebtsLoading')}</Text>
+        </View>
+      ) : null}
+      {!editMode && openDebtsLoadError ? (
+        <View style={{ marginTop: spacing.md, gap: spacing.sm }} accessibilityLiveRegion="polite">
+          <Text style={{ color: colors.textSecondary }}>{t('stylist.dailyLogDetail.openDebtsLoadError')}</Text>
+          <TouchableOpacity
+            onPress={onRetryOpenDebts}
+            accessibilityRole="button"
+            style={[styles.settleBtn, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}
+          >
+            <Text style={{ color: colors.primary, fontWeight: '700', fontSize: 15 }}>
+              {t('stylist.dailyLogDetail.openDebtsRetry')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
       {!editMode && openDebts.length > 0 ? (
         <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
           <Text style={{ color: colors.textSecondary }}>

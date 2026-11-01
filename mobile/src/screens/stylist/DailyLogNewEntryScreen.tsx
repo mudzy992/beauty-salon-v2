@@ -25,6 +25,7 @@ import type { Service } from '../../types';
 import { getSalonDateOnly } from '../../utils/date';
 import { getApiErrorMessage } from '../../utils/apiError';
 import {
+  normalizeClientDebts,
   normalizeDailyLogClients,
   normalizeDailyLogEditorEntry,
   parseCreatedDailyLogEntryId,
@@ -92,6 +93,9 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState(0);
   const [loadingLoyalty, setLoadingLoyalty] = useState(false);
   const [openDebts, setOpenDebts] = useState<OpenDebtRow[]>([]);
+  const [openDebtsLoading, setOpenDebtsLoading] = useState(false);
+  const [openDebtsLoadError, setOpenDebtsLoadError] = useState(false);
+  const openDebtsLoadGeneration = useRef(0);
   const [settleDebtsEnabled, setSettleDebtsEnabled] = useState(false);
   const [settledDebtIds, setSettledDebtIds] = useState<string[]>([]);
   const [serviceSearch, setServiceSearch] = useState('');
@@ -257,26 +261,51 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     };
   }, [serviceIds, clientId]);
 
-  useEffect(() => {
+  const loadOpenDebts = useCallback(async () => {
+    const generation = ++openDebtsLoadGeneration.current;
     if (!clientId || editEntryId) {
       setOpenDebts([]);
+      setOpenDebtsLoading(false);
+      setOpenDebtsLoadError(false);
       setSettledDebtIds([]);
       setSettleDebtsEnabled(false);
       return;
     }
-    let mounted = true;
-    api
-      .get<OpenDebtRow[]>('/api/client-debts', { params: { clientId } })
-      .then((r) => {
-        if (mounted) setOpenDebts(Array.isArray(r.data) ? r.data : []);
-      })
-      .catch(() => {
-        if (mounted) setOpenDebts([]);
-      });
-    return () => {
-      mounted = false;
-    };
+    setOpenDebts([]);
+    setOpenDebtsLoading(true);
+    setOpenDebtsLoadError(false);
+    setSettledDebtIds([]);
+    setSettleDebtsEnabled(false);
+    try {
+      const { data } = await api.get<unknown>('/api/client-debts', { params: { clientId } });
+      const debts = normalizeClientDebts(data);
+      if (!debts || debts.some((debt) => debt.status !== 'OPEN')) {
+        throw new Error();
+      }
+      if (openDebtsLoadGeneration.current === generation) {
+        setOpenDebts(debts.map(({ id, amount, createdAt, service }) => ({
+          id,
+          amount,
+          createdAt,
+          service: service ? { name: service.name } : null,
+        })));
+      }
+    } catch {
+      if (openDebtsLoadGeneration.current === generation) {
+        setOpenDebts([]);
+        setOpenDebtsLoadError(true);
+      }
+    } finally {
+      if (openDebtsLoadGeneration.current === generation) setOpenDebtsLoading(false);
+    }
   }, [clientId, editEntryId]);
+
+  useEffect(() => {
+    void loadOpenDebts();
+    return () => {
+      openDebtsLoadGeneration.current += 1;
+    };
+  }, [loadOpenDebts]);
 
   const paidRaw = parsePaid(paidAmount, charge.chargeAmount);
   const tipPreview = Number.isFinite(paidRaw) ? Math.max(0, paidRaw - charge.chargeAmount) : 0;
@@ -507,6 +536,9 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
               if (svc) toggleService(svc);
             }}
             openDebts={openDebts}
+            openDebtsLoading={openDebtsLoading}
+            openDebtsLoadError={openDebtsLoadError}
+            onRetryOpenDebts={() => void loadOpenDebts()}
             settleDebtsEnabled={settleDebtsEnabled}
             onSettleDebtsEnabledChange={(v) => {
               setSettleDebtsEnabled(v);
