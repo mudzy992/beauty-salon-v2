@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const resource = readFileSync(new URL('../../i18n/bs.ts', import.meta.url), 'utf8');
+const screen = readFileSync(new URL('../../../app/stylist/(tabs)/daily-log/debts.tsx', import.meta.url), 'utf8');
 const translations = resource.match(/dailyLogDebts:\s*\{([\s\S]*?)\n\s*\},\n\s*dailyLogDetail:/)?.[1];
 
 test('stylist debt list copy resources cover loading, recovery, references, and repayment', () => {
@@ -27,5 +28,7 @@ test('stylist debt list copy resources cover loading, recovery, references, and 
     ['currencyAmount', '{{amount}} KM'],
   ]) {
     assert.ok(translations.includes(`${key}: '${copy}'`), `Missing stylist debt resource: ${key}`);
+    assert.ok(screen.includes(`t('stylist.dailyLogDebts.${key}'`), `Stylist debt screen does not use ${key}`);
+    assert.ok(!screen.includes(`'${copy}'`), `Stylist debt copy remains hard-coded: ${copy}`);
   }
 });

@@ -590,6 +590,9 @@ jobs:
       - name: Test stylist statistics read recovery
         working-directory: mobile
         run: npm run test:stylist-stats-recovery
+      - name: Test stylist debt list read recovery
+        working-directory: mobile
+        run: npm run test:stylist-debts-read-recovery
       - name: Test Bosnian copy for stylist reschedule preview recovery
         working-directory: mobile
         run: npm run test:stylist-reschedule-preview-copy

@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import api from '../../../../src/services/api';
 import { useTheme } from '../../../../src/hooks/useTheme';
 import { Card } from '../../../../src/components/ui/Card';
@@ -7,64 +8,75 @@ import { Button } from '../../../../src/components/ui/Button';
 import { Input } from '../../../../src/components/ui/Input';
 import { spacing } from '../../../../src/theme';
 import { getSalonDateOnly } from '../../../../src/utils/date';
-import { normalizeStylistDebtRows } from '../../../../src/utils/apiPayload';
+import { getApiErrorMessage } from '../../../../src/utils/apiError';
+import { normalizeStylistDebtRows, type StylistDebtRowPayload } from '../../../../src/utils/apiPayload';
 
-type DebtRow = {
-  id: string;
-  amount: number | string;
-  createdAt: string;
-  client: { id: string; username: string; firstName: string | null; lastName: string | null };
-  service?: { id: string; name: string } | null;
-  reservation?: { id: string; publicReferenceCode: string } | null;
-  dailyLogEntry?: { id: string; date: string } | null;
-  manualEntry?: { id: string; date: string } | null;
-};
-
-const formatMoney = (v: number | string) => `${Number(v || 0).toFixed(2)} KM`;
+type DebtRow = StylistDebtRowPayload;
 
 export default function StylistDebtsScreen() {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const [rows, setRows] = useState<DebtRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [q, setQ] = useState('');
   const [repayingId, setRepayingId] = useState<string | null>(null);
+  const requestGeneration = useRef(0);
+  const mounted = useRef(true);
 
-  const fetchRows = async () => {
+  const fetchRows = useCallback(async (refresh = false) => {
+    const generation = ++requestGeneration.current;
+    if (refresh) setRefreshing(true);
+    else setLoading(true);
+
     try {
       const { data } = await api.get<unknown>('/api/client-debts/stylist/me');
-      setRows((normalizeStylistDebtRows(data) ?? []) as DebtRow[]);
+      const normalizedRows = normalizeStylistDebtRows(data);
+      if (!normalizedRows) throw new Error('INVALID_STYLIST_DEBT_LIST_RESPONSE');
+      if (!mounted.current || generation !== requestGeneration.current) return;
+      setRows(normalizedRows);
+      setLoadError(false);
     } catch {
-      setRows([]);
+      if (mounted.current && generation === requestGeneration.current) setLoadError(true);
     } finally {
-      setLoading(false);
+      if (mounted.current && generation === requestGeneration.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
-  };
+  }, []);
 
   React.useEffect(() => {
-    fetchRows();
-  }, []);
+    mounted.current = true;
+    void fetchRows();
+    return () => {
+      mounted.current = false;
+      requestGeneration.current += 1;
+    };
+  }, [fetchRows]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return rows;
-    return rows.filter((d) => {
-      const name = `${d.client.firstName ?? ''} ${d.client.lastName ?? ''}`.trim().toLowerCase();
+    return rows.filter((debt) => {
+      const name = `${debt.client.firstName ?? ''} ${debt.client.lastName ?? ''}`.trim().toLowerCase();
       return (
-        d.client.username.toLowerCase().includes(term) ||
+        debt.client.username.toLowerCase().includes(term) ||
         name.includes(term) ||
-        (d.service?.name ?? '').toLowerCase().includes(term) ||
-        (d.reservation?.publicReferenceCode ?? '').toLowerCase().includes(term)
+        (debt.service?.name ?? '').toLowerCase().includes(term) ||
+        (debt.reservation?.publicReferenceCode ?? '').toLowerCase().includes(term)
       );
     });
   }, [rows, q]);
 
-  const total = filtered.reduce((acc, d) => acc + (Number(d.amount) || 0), 0);
+  const total = filtered.reduce((sum, debt) => sum + debt.amount, 0);
+  const formatMoney = (amount: number) => t('stylist.dailyLogDebts.currencyAmount', {
+    amount: amount.toFixed(2),
+  });
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchRows();
-    setRefreshing(false);
+  const onRefresh = () => {
+    void fetchRows(true);
   };
 
   const repay = async (debtId: string) => {
@@ -72,16 +84,21 @@ export default function StylistDebtsScreen() {
     setRepayingId(debtId);
     try {
       await api.post(`/api/client-debts/${debtId}/repay`, { date: today });
-      Alert.alert('Naplaćeno', 'Dug je zatvoren i evidentiran u dnevnoj knjizi.');
-      await fetchRows();
-    } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as any).response?.data?.message
-          : 'Greška pri naplati duga.';
-      Alert.alert('Greška', Array.isArray(msg) ? msg[0] : msg);
+      if (!mounted.current) return;
+      Alert.alert(
+        t('stylist.dailyLogDebts.repaySuccessTitle'),
+        t('stylist.dailyLogDebts.repaySuccessMessage'),
+      );
+      await fetchRows(true);
+    } catch (error: unknown) {
+      if (mounted.current) {
+        Alert.alert(
+          t('common.error'),
+          getApiErrorMessage(error, t('stylist.dailyLogDebts.repayErrorFallback')),
+        );
+      }
     } finally {
-      setRepayingId(null);
+      if (mounted.current) setRepayingId(null);
     }
   };
 
@@ -93,60 +110,82 @@ export default function StylistDebtsScreen() {
       showsVerticalScrollIndicator={false}
     >
       <Card style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-        <Text style={[styles.title, { color: colors.text }]}>Dužnici</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{t('stylist.dailyLogDebts.title')}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Ukupno: {formatMoney(total)}
+          {t('stylist.dailyLogDebts.total', { amount: formatMoney(total) })}
         </Text>
         <Input
-          label="Pretraga"
+          label={t('stylist.dailyLogDebts.searchLabel')}
           value={q}
           onChangeText={setQ}
-          placeholder="Klijent, servis, kod…"
+          placeholder={t('stylist.dailyLogDebts.searchPlaceholder')}
         />
       </Card>
 
       <Card style={[styles.card, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-        {loading ? (
-          <Text style={{ color: colors.textSecondary }}>Učitavanje…</Text>
-        ) : filtered.length === 0 ? (
-          <Text style={{ color: colors.textSecondary }}>Nema otvorenih dugovanja.</Text>
+        {loading && rows.length === 0 ? (
+          <Text style={{ color: colors.textSecondary }}>{t('common.loading')}</Text>
+        ) : loadError && rows.length === 0 ? (
+          <View style={styles.recovery}>
+            <Text style={[styles.title, { color: colors.text }]}>{t('stylist.dailyLogDebts.loadErrorTitle')}</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              {t('stylist.dailyLogDebts.loadErrorMessage')}
+            </Text>
+            <Button title={t('stylist.dailyLogDebts.retry')} onPress={() => void fetchRows()} />
+          </View>
         ) : (
-          <View style={{ gap: 10 }}>
-            {filtered.map((d) => {
-              const clientName = `${d.client.firstName ?? ''} ${d.client.lastName ?? ''}`.trim() || d.client.username;
-              const ref = d.reservation?.publicReferenceCode
-                ? `Rezervacija: ${d.reservation.publicReferenceCode}`
-                : d.dailyLogEntry?.id
-                  ? `Daily log: ${d.dailyLogEntry.date.slice(0, 10)}`
-                  : d.manualEntry?.id
-                    ? `Manual entry: ${d.manualEntry.date.slice(0, 10)}`
-                    : '—';
-              return (
-                <View key={d.id} style={[styles.row, { borderColor: colors.border }]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.rowTitle, { color: colors.text }]} numberOfLines={1}>
-                      {clientName}
-                    </Text>
-                    <Text style={[styles.rowMeta, { color: colors.textSecondary }]}>
-                      {d.service?.name ? `${d.service.name} · ` : ''}
-                      {ref}
-                    </Text>
-                    <Text style={[styles.rowMeta, { color: colors.textSecondary }]}>
-                      {d.createdAt.slice(0, 10)}
-                    </Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={[styles.amount, { color: colors.text }]}>{formatMoney(d.amount)}</Text>
-                    <Button
-                      title="Naplati dug"
-                      onPress={() => repay(d.id)}
-                      loading={repayingId === d.id}
-                      style={{ marginTop: spacing.xs }}
-                    />
-                  </View>
-                </View>
-              );
-            })}
+          <View style={{ gap: spacing.sm }}>
+            {loadError ? (
+              <View style={styles.recovery}>
+                <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+                  {t('stylist.dailyLogDebts.staleMessage')}
+                </Text>
+                <Button title={t('stylist.dailyLogDebts.retry')} onPress={() => void fetchRows(true)} />
+              </View>
+            ) : null}
+            {rows.length === 0 ? (
+              <Text style={{ color: colors.textSecondary }}>{t('stylist.dailyLogDebts.empty')}</Text>
+            ) : filtered.length === 0 ? (
+              <Text style={{ color: colors.textSecondary }}>{t('common.noResults')}</Text>
+            ) : (
+              <View style={{ gap: 10 }}>
+                {filtered.map((debt) => {
+                  const clientName = `${debt.client.firstName ?? ''} ${debt.client.lastName ?? ''}`.trim() || debt.client.username;
+                  const reference = debt.reservation?.publicReferenceCode
+                    ? t('stylist.dailyLogDebts.reservationReference', { code: debt.reservation.publicReferenceCode })
+                    : debt.dailyLogEntry?.id
+                      ? t('stylist.dailyLogDebts.dailyLogReference', { date: debt.dailyLogEntry.date.slice(0, 10) })
+                      : debt.manualEntry?.id
+                        ? t('stylist.dailyLogDebts.manualEntryReference', { date: debt.manualEntry.date.slice(0, 10) })
+                        : t('stylist.dailyLogDebts.noReference');
+                  return (
+                    <View key={debt.id} style={[styles.row, { borderColor: colors.border }]}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.rowTitle, { color: colors.text }]} numberOfLines={1}>
+                          {clientName}
+                        </Text>
+                        <Text style={[styles.rowMeta, { color: colors.textSecondary }]}>
+                          {debt.service?.name ? `${debt.service.name} · ` : ''}
+                          {reference}
+                        </Text>
+                        <Text style={[styles.rowMeta, { color: colors.textSecondary }]}>
+                          {debt.createdAt.slice(0, 10)}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={[styles.amount, { color: colors.text }]}>{formatMoney(debt.amount)}</Text>
+                        <Button
+                          title={t('stylist.dailyLogDebts.repayButton')}
+                          onPress={() => void repay(debt.id)}
+                          loading={repayingId === debt.id}
+                          style={{ marginTop: spacing.xs }}
+                        />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </View>
         )}
       </Card>
@@ -157,6 +196,7 @@ export default function StylistDebtsScreen() {
 const styles = StyleSheet.create({
   content: { padding: spacing.md },
   card: { padding: spacing.md, borderWidth: 1, marginBottom: spacing.md },
+  recovery: { gap: spacing.xs },
   title: { fontSize: 18, fontWeight: '800' },
   subtitle: { fontSize: 13, marginTop: 4, marginBottom: spacing.sm },
   row: { borderWidth: 1, borderRadius: 12, padding: 12, flexDirection: 'row', gap: 12 },
@@ -164,4 +204,3 @@ const styles = StyleSheet.create({
   rowMeta: { fontSize: 12, marginTop: 2 },
   amount: { fontSize: 14, fontWeight: '800' },
 });
-
