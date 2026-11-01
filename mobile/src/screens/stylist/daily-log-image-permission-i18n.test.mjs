@@ -21,7 +21,7 @@ test('daily-log gallery permission alert uses Bosnian resources', () => {
 test('permission denial still stops before launching the gallery picker', () => {
   assert.match(
     screen,
-    /const \{ status \} = await ImagePicker\.requestMediaLibraryPermissionsAsync\(\);\s*if \(status !== 'granted'\) \{\s*Alert\.alert\(\s*t\('stylist\.dailyLogDetail\.imagePermissionTitle'\),\s*t\('stylist\.dailyLogDetail\.imagePermissionMessage'\),\s*\);\s*return;\s*\}\s*const result = await ImagePicker\.launchImageLibraryAsync\(/,
+    /const \{ status \} = await ImagePicker\.requestMediaLibraryPermissionsAsync\(\);\s*if \(!isCurrentAction\(\)\) return;\s*if \(status !== 'granted'\) \{\s*Alert\.alert\(\s*t\('stylist\.dailyLogDetail\.imagePermissionTitle'\),\s*t\('stylist\.dailyLogDetail\.imagePermissionMessage'\),\s*\);\s*return;\s*\}\s*const result = await ImagePicker\.launchImageLibraryAsync\(/,
   )
-  assert.match(screen, /\[linkUploadedImage, pendingImageLink, t\],\s*\);\s*\n\s*const openActionsMenu/)
+  assert.match(screen, /\[linkUploadedImage, pendingImageLink, t, beginAction\],\s*\);\s*\n\s*const openActionsMenu/)
 })
