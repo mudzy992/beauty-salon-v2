@@ -9,6 +9,7 @@ import type {
 } from '../../../../navigation/types';
 import { computeCompleteMinCharge, getApiErrorMessage } from '../utils/reservation-detail';
 import { normalizeClientDebts, parseCreatedDailyLogEntryId } from '../../../../utils/apiPayload';
+import type { ReservationActionIdentity } from './use-reservation-action-identity';
 
 type Navigation = NativeStackNavigationProp<
   StylistScheduleStackParamList,
@@ -19,14 +20,17 @@ type UseReservationCompleteFlowParams = {
   reservation: Reservation | null;
   fetchReservation: () => Promise<void>;
   navigation: Navigation;
+  identity: ReservationActionIdentity;
 };
 
 export const useReservationCompleteFlow = ({
   reservation,
   fetchReservation,
   navigation,
+  identity,
 }: UseReservationCompleteFlowParams) => {
   const { t } = useTranslation();
+  const { beginAction, isCurrent, reservationId, userId } = identity;
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [completeActualPrice, setCompleteActualPrice] = useState('');
   const [completeNotes, setCompleteNotes] = useState('');
@@ -39,8 +43,30 @@ export const useReservationCompleteFlow = ({
   const debtRequestGeneration = useRef(0);
   const debtClientId = useRef<string | undefined>(undefined);
 
+  useEffect(() => {
+    debtRequestGeneration.current += 1;
+    debtClientId.current = undefined;
+    setCompleteModalOpen(false);
+    setCompleteActualPrice('');
+    setCompleteNotes('');
+    setCompleteSubmitting(false);
+    setClientDebts([]);
+    setClientDebtsLoading(false);
+    setClientDebtsError(false);
+    setSelectedDebtIds({});
+    setCreateDebt(true);
+  }, [reservationId, userId]);
+
   const fetchClientDebts = useCallback(async (clientId?: string) => {
+    if (!isCurrent()) return;
+    const requestedUserId = userId;
+    const requestedReservationId = reservationId;
     const generation = ++debtRequestGeneration.current;
+    const isCurrentRead = () =>
+      generation === debtRequestGeneration.current &&
+      isCurrent() &&
+      requestedUserId === userId &&
+      requestedReservationId === reservationId;
     if (!clientId) {
       debtClientId.current = undefined;
       setClientDebts([]);
@@ -60,13 +86,13 @@ export const useReservationCompleteFlow = ({
       const { data } = await api.get<unknown>('/api/client-debts', { params: { clientId } });
       const normalized = normalizeClientDebts(data);
       if (!normalized) throw new Error();
-      if (generation === debtRequestGeneration.current) setClientDebts(normalized);
+      if (isCurrentRead()) setClientDebts(normalized);
     } catch {
-      if (generation === debtRequestGeneration.current) setClientDebtsError(true);
+      if (isCurrentRead()) setClientDebtsError(true);
     } finally {
-      if (generation === debtRequestGeneration.current) setClientDebtsLoading(false);
+      if (isCurrentRead()) setClientDebtsLoading(false);
     }
-  }, []);
+  }, [isCurrent, reservationId, userId]);
 
   useEffect(() => {
     void fetchClientDebts(reservation?.clientId);
@@ -87,7 +113,7 @@ export const useReservationCompleteFlow = ({
   const completeChargeAmount = completeMinCharge + selectedDebtSum;
 
   const openComplete = useCallback(() => {
-    if (!reservation || reservation.status !== 'IN_PROGRESS') return;
+    if (!isCurrent() || !reservation || reservation.id !== reservationId || reservation.status !== 'IN_PROGRESS') return;
     const intent = !!reservation.payDebtsIntent;
     const nextSelected: Record<string, boolean> = {};
     if (intent) clientDebts.forEach((d) => { nextSelected[d.id] = true; });
@@ -99,10 +125,10 @@ export const useReservationCompleteFlow = ({
     setCompleteActualPrice(String(computeCompleteMinCharge(reservation) + debtsSum));
     setCompleteNotes('');
     setCompleteModalOpen(true);
-  }, [reservation, clientDebts]);
+  }, [clientDebts, isCurrent, reservation, reservationId]);
 
   const submitComplete = useCallback(async () => {
-    if (!reservation) return;
+    if (!isCurrent() || !reservation || reservation.id !== reservationId) return;
     const paidRaw = parseFloat(completeActualPrice.replace(',', '.'));
     if (isNaN(paidRaw) || paidRaw < 0) {
       Alert.alert(t('common.error'), t('stylist.dailyLogDetail.paidAmountInvalid'));
@@ -112,6 +138,8 @@ export const useReservationCompleteFlow = ({
       Alert.alert(t('common.error'), t('stylist.dailyLogDetail.settledDebtAmountInsufficient'));
       return;
     }
+    const isCurrentAction = beginAction();
+    if (!isCurrentAction()) return;
     const shortfall = Math.max(0, completeChargeAmount - paidRaw);
     const tipAmount = Math.max(0, paidRaw - completeChargeAmount);
     const debtHandling = shortfall > 0 && createDebt ? 'CREATE_DEBT' : 'IGNORE_DEBT';
@@ -119,7 +147,7 @@ export const useReservationCompleteFlow = ({
     try {
       const selectedDebts = clientDebts.filter((d) => selectedDebtIds[d.id]);
       const { data: response } = await api.post<unknown>(
-        `/api/daily-log/from-reservation/${reservation.id}`,
+        `/api/daily-log/from-reservation/${reservationId}`,
         {
           paidAmount: paidRaw,
           settledDebtIds: selectedDebts.map((d) => d.id),
@@ -128,30 +156,39 @@ export const useReservationCompleteFlow = ({
           notes: completeNotes.trim() || undefined,
         },
       );
+      if (!isCurrentAction()) return;
       const entryId = parseCreatedDailyLogEntryId(response);
       if (!entryId) {
         setCompleteModalOpen(false);
         await fetchReservation();
+        if (!isCurrentAction()) return;
         await fetchClientDebts(reservation.clientId);
+        if (!isCurrentAction()) return;
         Alert.alert(t('common.error'), t('stylist.dailyLogDetail.saveResponseFallback'));
         return;
       }
       setCompleteModalOpen(false);
       await fetchReservation();
+      if (!isCurrentAction()) return;
       await fetchClientDebts(reservation.clientId);
+      if (!isCurrentAction()) return;
       (
         navigation.getParent() as { navigate: (name: string, params: object) => void } | undefined
       )?.navigate('DailyLogTab', { screen: 'DailyLogDetail', params: { entryId } });
     } catch (err: unknown) {
+      if (!isCurrentAction()) return;
       Alert.alert(
         t('common.error'),
         getApiErrorMessage(err, t('stylist.reservationDetail.complete.errorFallback')),
       );
     } finally {
-      setCompleteSubmitting(false);
+      if (isCurrentAction()) setCompleteSubmitting(false);
     }
   }, [
+    beginAction,
+    isCurrent,
     reservation,
+    reservationId,
     completeActualPrice,
     completeNotes,
     fetchReservation,
@@ -166,8 +203,9 @@ export const useReservationCompleteFlow = ({
   ]);
 
   const handleToggleDebt = useCallback((debtId: string) => {
+    if (!isCurrent()) return;
     setSelectedDebtIds((prev) => ({ ...prev, [debtId]: !prev[debtId] }));
-  }, []);
+  }, [isCurrent]);
 
   return {
     completeModalOpen,

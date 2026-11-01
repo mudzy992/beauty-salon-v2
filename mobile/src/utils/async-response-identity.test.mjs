@@ -65,6 +65,55 @@ test('reservation and daily-log actions stay bound to their route and active acc
   assert.match(dailyLogDetail, /await api\.post<unknown>\('\/api\/uploads',[\s\S]*?if \(!isCurrentAction\(\)\) return;/);
 });
 
+test('stylist reservation-detail reads and mutations stay bound to the active account, route, and mount', () => {
+  const identity = source('../screens/stylist/reservation-detail/hooks/use-reservation-action-identity.ts');
+  assert.match(identity, /useAuthStore\(\(state\) => state\.user\?\.id\)/);
+  assert.match(identity, /current\.reservationId === reservationId/);
+  assert.match(identity, /useAuthStore\.getState\(\)\.user\?\.id === userId/);
+  assert.match(identity, /current\.mounted/);
+  assert.match(identity, /identityRef\.current\.generation === generation/);
+  assert.match(identity, /identityRef\.current\.generation \+= 1/);
+
+  const detailScreen = source('../screens/stylist/StylistReservationDetailScreen.tsx');
+  assert.match(detailScreen, /const identity = useReservationActionIdentity\(reservationId\)/);
+  assert.match(detailScreen, /useStylistReservationDetail\(\{ reservationId, identity \}\)/);
+  assert.match(detailScreen, /useReservationDetailActions\(\{[\s\S]*?identity,/);
+  assert.match(detailScreen, /useStaffConfirmAttendance\(\{[\s\S]*?identity,/);
+
+  const readHook = source('../screens/stylist/reservation-detail/hooks/use-stylist-reservation-detail.ts');
+  assert.match(readHook, /const \{ isCurrent, userId \} = identity/);
+  assert.match(readHook, /if \(!isCurrent\(\)\) return/);
+  assert.match(readHook, /generation === requestGeneration\.current && isCurrent\(\)/);
+  assert.match(readHook, /parsed\.id !== reservationId/);
+  assert.match(readHook, /reservationMatchesCurrent \? reservation : null/);
+
+  const actionHook = source('../screens/stylist/reservation-detail/hooks/use-reservation-detail-actions.ts');
+  for (const path of [
+    'stylist-start',
+    'stylist-cancel',
+    'stylist-no-show',
+    'reorder/request',
+  ]) {
+    assert.match(actionHook, new RegExp(`await api\\.post\\([\\s\\S]{0,500}${path}[\\s\\S]{0,220}if \\(!isCurrentAction\\(\\)\\) return;`), path);
+  }
+  assert.match(actionHook, /await fetchReservation\(\);\s*if \(!isCurrentAction\(\)\) return;/);
+  assert.match(actionHook, /if \(!isCurrentAction\(\)\) return;\s*Alert\.alert\(/);
+  assert.match(actionHook, /if \(isCurrentAction\(\)\) set(?:Start|Cancel|NoShow|Reorder)Submitting\(false\)/);
+
+  const completeHook = source('../screens/stylist/reservation-detail/hooks/use-reservation-complete-flow.ts');
+  assert.match(completeHook, /const isCurrentRead = \(\) =>[\s\S]*?isCurrent\(\)/);
+  assert.match(completeHook, /await api\.post<unknown>\([\s\S]*?if \(!isCurrentAction\(\)\) return;/);
+  assert.match(completeHook, /await fetchClientDebts\(reservation\.clientId\);\s*if \(!isCurrentAction\(\)\) return;/);
+  assert.match(completeHook, /if \(!isCurrentAction\(\)\) return;\s*Alert\.alert\(/);
+  assert.match(completeHook, /if \(isCurrentAction\(\)\) setCompleteSubmitting\(false\)/);
+
+  const staffConfirm = source('../screens/stylist/reservation-detail/hooks/use-staff-confirm-attendance.ts');
+  assert.match(staffConfirm, /reservationId !== currentReservationId \|\| !isCurrent\(\)/);
+  assert.match(staffConfirm, /await api\.post\([\s\S]*?if \(!isCurrentAction\(\)\) return;/);
+  assert.match(staffConfirm, /if \(!isCurrentAction\(\)\) return;\s*Alert\.alert\(/);
+  assert.match(staffConfirm, /if \(isCurrentAction\(\)\) setSubmitting\(false\)/);
+});
+
 test('gallery requests are invalidated on route changes and unmount', () => {
   for (const path of [
     '../screens/client/ServiceWorkGalleryScreen.tsx',

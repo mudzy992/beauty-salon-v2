@@ -25,6 +25,7 @@ import { useStylistReservationDetail } from './reservation-detail/hooks/use-styl
 import { useReservationDetailStatus } from './reservation-detail/hooks/use-reservation-detail-status';
 import { useReservationDetailActions } from './reservation-detail/hooks/use-reservation-detail-actions';
 import { useStaffConfirmAttendance } from './reservation-detail/hooks/use-staff-confirm-attendance';
+import { useReservationActionIdentity } from './reservation-detail/hooks/use-reservation-action-identity';
 
 type Props = NativeStackScreenProps<
   StylistScheduleStackParamList,
@@ -41,6 +42,7 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     refetch: refetchProfile,
   } = useStylistProfile();
   const reservationId = route.params.reservationId;
+  const identity = useReservationActionIdentity(reservationId);
 
   const {
     reservation,
@@ -51,16 +53,18 @@ export function StylistReservationDetailScreen({ route, navigation }: Props) {
     retrying,
     fetchReservation,
     onRefresh,
-  } = useStylistReservationDetail({ reservationId });
+  } = useStylistReservationDetail({ reservationId, identity });
 
   const detailActions = useReservationDetailActions({
     reservation,
     fetchReservation,
     navigation,
+    identity,
   });
   const staffConfirm = useStaffConfirmAttendance({
     reservationId: reservation?.id,
     fetchReservation,
+    identity,
   });
 
   const status = useReservationDetailStatus({
