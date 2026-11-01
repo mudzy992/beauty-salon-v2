@@ -30,6 +30,7 @@ function loadTypeScriptModule(relativePath) {
 }
 
 const { normalizePublicServices } = loadTypeScriptModule('../utils/apiPayload.ts');
+const { normalizeCatalogPageEnvelope } = loadTypeScriptModule('./catalog-pagination.ts');
 const catalogSource = readFileSync(new URL('./catalog.ts', import.meta.url), 'utf8');
 const consumers = [
   ['../screens/stylist/DailyLogNewEntryScreen.tsx', 'stylist daily-log service picker'],
@@ -55,6 +56,45 @@ test('shared public service loader validates the active-only backend DTO', () =>
   assert.match(catalogSource, /fetchAllPublicServices<unknown>\(params\)/);
   assert.match(catalogSource, /normalizePublicServices\(payload\)/);
   assert.match(catalogSource, /if \(!services\) throw new Error/);
+});
+
+test('catalog pagination accepts complete pages and rejects malformed or truncated envelopes', () => {
+  const firstPage = {
+    items: Array.from({ length: 50 }, (_, index) => ({ id: `service-${index}` })),
+    total: 70,
+    page: 0,
+    pageSize: 50,
+    hasMore: true,
+    nextPage: 1,
+  };
+  const finalPage = {
+    items: Array.from({ length: 20 }, (_, index) => ({ id: `service-${index + 50}` })),
+    total: 70,
+    page: 1,
+    pageSize: 50,
+    hasMore: false,
+    nextPage: null,
+  };
+
+  assert.equal(normalizeCatalogPageEnvelope(firstPage, 0, 50, 1000)?.nextPage, 1);
+  assert.equal(normalizeCatalogPageEnvelope(finalPage, 1, 50, 1000)?.items.length, 20);
+  assert.deepEqual(normalizeCatalogPageEnvelope([], 0, 50, 1000)?.items, []);
+  assert.equal(normalizeCatalogPageEnvelope({
+    items: [], total: 0, page: 0, pageSize: 50, hasMore: false, nextPage: null,
+  }, 0, 50, 1000)?.items.length, 0);
+  assert.equal(normalizeCatalogPageEnvelope({
+    ...firstPage, items: Array(50).fill({}), total: 1050, page: 20,
+    hasMore: false, nextPage: null,
+  }, 20, 50, 1000)?.items.length, 50);
+
+  assert.equal(normalizeCatalogPageEnvelope({ ...firstPage, page: 1 }, 0, 50, 1000), null);
+  assert.equal(normalizeCatalogPageEnvelope({ ...firstPage, nextPage: 0 }, 0, 50, 1000), null);
+  assert.equal(normalizeCatalogPageEnvelope({ ...firstPage, items: firstPage.items.slice(0, 10) }, 0, 50, 1000), null);
+  assert.equal(normalizeCatalogPageEnvelope({ ...finalPage, total: 100 }, 1, 50, 1000), null);
+  assert.equal(normalizeCatalogPageEnvelope({ ...firstPage, total: 1051, page: 20, hasMore: false, nextPage: null }, 20, 50, 1000), null);
+  assert.match(catalogSource, /normalizeCatalogPageEnvelope\(data, page, PAGE_SIZE, MAX_OFFSET\)/);
+  assert.match(catalogSource, /if \(!normalizedPage\) throw new Error/);
+  assert.match(catalogSource, /if \(!completed\) throw new Error/);
 });
 
 test('remaining service-catalog consumers use runtime-normalized services, not generic casts', () => {

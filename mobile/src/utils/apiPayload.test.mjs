@@ -219,10 +219,14 @@ test('public review page parser validates pagination and rejects partial malform
   assert.equal(normalizePublicReviewPage('invalid', 0, 20), null);
 });
 
-test('catalog pagination helper throws rather than masking malformed envelopes as empty catalogues', () => {
+test('catalog pagination fails rather than silently returning incomplete or malformed catalogues', () => {
   const catalogSource = readFileSync(new URL('../services/catalog.ts', import.meta.url), 'utf8');
+  const paginationSource = readFileSync(new URL('../services/catalog-pagination.ts', import.meta.url), 'utf8');
+  assert.match(catalogSource, /normalizeCatalogPageEnvelope/);
   assert.match(catalogSource, /throw new Error\('Invalid service catalogue page'\)/);
-  assert.match(catalogSource, /Invalid service catalogue pagination metadata/);
+  assert.match(catalogSource, /throw new Error\('Service catalogue pagination exceeded the supported page limit'\)/);
+  assert.match(paginationSource, /items\.length > requestedPageSize/);
+  assert.match(paginationSource, /nextOffset >= \(total as number\)/);
 });
 
 test('reservation and daily-log parsers reject partial malformed lists instead of implying empty results', () => {
