@@ -158,43 +158,75 @@ export function StylistInboxScreen() {
       if (!profileId) return;
       setActingId(reservation.id);
       try {
-        try {
-          const { data } = await api.get<unknown>('/api/client-debts', {
-            params: { clientId: reservation.clientId },
-          });
-          const list = normalizeClientDebts(data) ?? [];
-          if (list.length > 0) {
-            const mine = list.filter((d) => d.stylistProfileId === profileId);
-            const others = list.filter((d) => d.stylistProfileId !== profileId);
-            const lines: string[] = [];
-            if (mine.length > 0) {
-              const first = mine[0];
-              const serviceSuffix = first.service?.name ? ` (${first.service.name})` : '';
-              lines.push(
-                t('stylist.inbox.clientDebtByMe', {
-                  serviceSuffix,
-                  date: first.createdAt.slice(0, 10),
-                }),
-              );
+        const confirmDebtWarning = (message: string) => new Promise<boolean>((resolve) => {
+          Alert.alert(
+            t('stylist.inbox.clientDebtTitle'),
+            message,
+            [
+              { text: t('common.cancel'), style: 'cancel', onPress: () => resolve(false) },
+              { text: t('stylist.inbox.clientDebtAcceptAnyway'), onPress: () => resolve(true) },
+            ],
+            { cancelable: false },
+          );
+        });
+        let debtCheckResolved = false;
+        while (!debtCheckResolved) {
+          try {
+            const { data } = await api.get<unknown>('/api/client-debts', {
+              params: { clientId: reservation.clientId },
+            });
+            const list = normalizeClientDebts(data);
+            if (!list) throw new Error('Invalid client debt response');
+            if (list.length > 0) {
+              const mine = list.filter((d) => d.stylistProfileId === profileId);
+              const others = list.filter((d) => d.stylistProfileId !== profileId);
+              const lines: string[] = [];
+              if (mine.length > 0) {
+                const first = mine[0];
+                const serviceSuffix = first.service?.name ? ` (${first.service.name})` : '';
+                lines.push(
+                  t('stylist.inbox.clientDebtByMe', {
+                    serviceSuffix,
+                    date: first.createdAt.slice(0, 10),
+                  }),
+                );
+              }
+              if (others.length > 0) {
+                const d = others[0];
+                const stylistName = d.stylistProfile?.user
+                  ? `${d.stylistProfile.user.firstName} ${d.stylistProfile.user.lastName}`.trim()
+                  : t('stylist.inbox.otherStylist');
+                const serviceSuffix = d.service?.name ? ` (${d.service.name})` : '';
+                lines.push(
+                  t('stylist.inbox.clientDebtByOther', {
+                    stylistName,
+                    serviceSuffix,
+                    date: d.createdAt.slice(0, 10),
+                  }),
+                );
+              }
+              if (lines.length > 0 && !(await confirmDebtWarning(lines.join('\n')))) return;
             }
-            if (others.length > 0) {
-              const d = others[0];
-              const stylistName = d.stylistProfile?.user
-                ? `${d.stylistProfile.user.firstName} ${d.stylistProfile.user.lastName}`.trim()
-                : t('stylist.inbox.otherStylist');
-              const serviceSuffix = d.service?.name ? ` (${d.service.name})` : '';
-              lines.push(
-                t('stylist.inbox.clientDebtByOther', {
-                  stylistName,
-                  serviceSuffix,
-                  date: d.createdAt.slice(0, 10),
-                }),
+            debtCheckResolved = true;
+          } catch {
+            const decision = await new Promise<'cancel' | 'retry' | 'continue'>((resolve) => {
+              Alert.alert(
+                t('stylist.inbox.clientDebtCheckErrorTitle'),
+                t('stylist.inbox.clientDebtCheckErrorMessage'),
+                [
+                  { text: t('common.cancel'), style: 'cancel', onPress: () => resolve('cancel') },
+                  { text: t('common.retry'), onPress: () => resolve('retry') },
+                  {
+                    text: t('stylist.inbox.clientDebtContinueWithoutCheck'),
+                    onPress: () => resolve('continue'),
+                  },
+                ],
+                { cancelable: false },
               );
-            }
-            if (lines.length > 0) Alert.alert(t('stylist.inbox.clientDebtTitle'), lines.join('\n'));
+            });
+            if (decision === 'cancel') return;
+            if (decision === 'continue') debtCheckResolved = true;
           }
-        } catch {
-          // ignore - rezervacija se i dalje može prihvatiti
         }
 
         await api.post(`/api/reservations/${reservation.id}/stylist/${profileId}/accept`);

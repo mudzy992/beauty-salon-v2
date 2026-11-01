@@ -13,6 +13,10 @@ test('stylist inbox client-debt warning copy uses Bosnian resources and interpol
     ['clientDebtByMe', ['{{serviceSuffix}}', '{{date}}']],
     ['clientDebtByOther', ['{{stylistName}}', '{{serviceSuffix}}', '{{date}}']],
     ['otherStylist', []],
+    ['clientDebtAcceptAnyway', []],
+    ['clientDebtCheckErrorTitle', []],
+    ['clientDebtCheckErrorMessage', []],
+    ['clientDebtContinueWithoutCheck', []],
   ]) {
     const entry = inboxTranslations.match(new RegExp(`${key}: '([^']*)'`))?.[1]
     assert.ok(entry, `Missing inbox debt-warning resource: ${key}`)
@@ -21,14 +25,19 @@ test('stylist inbox client-debt warning copy uses Bosnian resources and interpol
     }
     assert.ok(screen.includes(`t('stylist.inbox.${key}'`), `Debt warning missing translation key: ${key}`)
   }
-  assert.doesNotMatch(screen, /Klijent ima dugovanje kod vas|Klijent ima dugovanje kod \$\{stylistName\}|Dugovanje klijenta|'drugog stiliste'/)
+  assert.doesNotMatch(screen, /Klijent ima dugovanje kod vas|Dugovanje klijenta|'drugog stiliste'/)
 })
 
-test('debt-warning filters, optional data, and acceptance behavior remain unchanged', () => {
-  assert.match(screen, /const mine = list\.filter\(\(d\) => d\.stylistProfileId === profileId\)/)
-  assert.match(screen, /const others = list\.filter\(\(d\) => d\.stylistProfileId !== profileId\)/)
-  assert.match(screen, /if \(mine\.length > 0\)[\s\S]*?first\.createdAt\.slice\(0, 10\)/)
-  assert.match(screen, /if \(others\.length > 0\)[\s\S]*?d\.createdAt\.slice\(0, 10\)/)
-  assert.match(screen, /if \(lines\.length > 0\) Alert\.alert\(t\('stylist\.inbox\.clientDebtTitle'\), lines\.join\('\\n'\)\)/)
-  assert.match(screen, /await api\.post\(`\/api\/reservations\/\$\{reservation\.id\}\/stylist\/\$\{profileId\}\/accept`\)/)
+test('debt-warning distinguishes malformed responses and keeps acceptance deliberate', () => {
+  assert.ok(screen.includes('const mine = list.filter((d) => d.stylistProfileId === profileId)'))
+  assert.ok(screen.includes('const others = list.filter((d) => d.stylistProfileId !== profileId)'))
+  assert.ok(screen.includes('const list = normalizeClientDebts(data);'))
+  assert.ok(screen.includes('if (!list) throw new Error('))
+  assert.ok(screen.includes('while (!debtCheckResolved)'))
+  assert.ok(screen.includes("t('stylist.inbox.clientDebtCheckErrorMessage')"))
+  assert.ok(screen.includes("t('stylist.inbox.clientDebtContinueWithoutCheck')"))
+  assert.ok(screen.includes("decision === 'cancel'"))
+  assert.ok(screen.includes('confirmDebtWarning(lines.join('))
+  assert.doesNotMatch(screen, /normalizeClientDebts\(data\) \?\? \[\]/)
+  assert.ok(screen.includes('`/api/reservations/${reservation.id}/stylist/${profileId}/accept`'))
 })
