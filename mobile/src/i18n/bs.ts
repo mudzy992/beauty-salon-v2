@@ -69,6 +69,8 @@ export const bs = {
     loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
     staleMessage: 'Prikazujemo ranije učitane podatke; osvježavanje nije uspjelo.',
     debtLoadError: 'Dugovanja trenutno nisu dostupna.',
+    openDebtTitle: 'Otvoreno dugovanje',
+    openDebtSummary: 'Otvorena dugovanja: {{count}} · {{amount}} KM — pogledajte profil.',
     reservationLoadError: 'Sljedeći termin trenutno nije dostupan.',
     beforeAfterLoadError: 'Galeriju trenutno nije moguće učitati.',
     beforeAfterSliderLabel: 'Poređenje fotografija prije i poslije',
