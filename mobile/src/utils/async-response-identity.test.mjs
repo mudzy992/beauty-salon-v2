@@ -38,6 +38,33 @@ test('onboarding mutations do not continue after the active user changes or the 
   }
 });
 
+test('reservation and daily-log actions stay bound to their route and active account', () => {
+  const reservation = source('../screens/client/ReservationScreen.tsx');
+  assert.match(reservation, /bookingRequestIdRef = useRef\(0\)/);
+  assert.match(reservation, /bookingRequestId === bookingRequestIdRef\.current/);
+  assert.match(reservation, /bookingRouteGeneration === routeGeneration\.current/);
+  assert.match(reservation, /screenMounted\.current &&[\s\S]{0,160}useAuthStore\.getState\(\)\.user\?\.id === requestUserId/);
+  assert.match(reservation, /if \(!isCurrentRequest\(\)\) return;/);
+  assert.match(reservation, /user\?\.id\]\);\s*\n\s*const loadLoyaltyPreview/);
+
+  const dailyLogForm = source('../screens/stylist/DailyLogNewEntryScreen.tsx');
+  assert.match(dailyLogForm, /const beginAction = useCallback/);
+  assert.match(dailyLogForm, /editEntryId === actionEntryId/);
+  assert.match(dailyLogForm, /screenMounted\.current &&[\s\S]{0,160}useAuthStore\.getState\(\)\.user\?\.id === actionUserId/);
+  assert.match(dailyLogForm, /if \(!mounted \|\| useAuthStore\.getState\(\)\.user\?\.id !== userId\) return;/);
+  assert.match(dailyLogForm, /clientLoadGeneration\.current === generation &&[\s\S]{0,120}useAuthStore\.getState\(\)\.user\?\.id === requestUserId/);
+
+  const dailyLogDetail = source('../screens/stylist/DailyLogDetailScreen.tsx');
+  assert.match(dailyLogDetail, /requestIdentity\.current\.userId !== userId/);
+  assert.match(dailyLogDetail, /entryIdentity\?\.entryId === entryId && entryIdentity\.userId === userId/);
+  assert.match(dailyLogDetail, /if \(!entryMatchesCurrentIdentity \|\| \(loading && !entry\)\)/);
+  assert.match(dailyLogDetail, /const beginAction = useCallback/);
+  assert.match(dailyLogDetail, /currentScreenGeneration === screenGeneration\.current/);
+  assert.match(dailyLogDetail, /await api\.post\(`\/api\/daily-log\/\$\{entryId\}\/complete`\);\s*if \(!isCurrentAction\(\)\) return;/);
+  assert.match(dailyLogDetail, /if \(!isCurrentAction\(\)\) return;\s*navigation\.navigate\('ReschedulePreview'/);
+  assert.match(dailyLogDetail, /await api\.post<unknown>\('\/api\/uploads',[\s\S]*?if \(!isCurrentAction\(\)\) return;/);
+});
+
 test('gallery requests are invalidated on route changes and unmount', () => {
   for (const path of [
     '../screens/client/ServiceWorkGalleryScreen.tsx',

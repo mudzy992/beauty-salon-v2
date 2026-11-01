@@ -14,6 +14,7 @@ import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
+import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -64,6 +65,7 @@ type Props = {
 export function DailyLogNewEntryScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const editEntryId = route?.params?.entryId;
+  const userId = useAuthStore((state) => state.user?.id);
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const {
@@ -80,6 +82,17 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
   const [clientsLoadError, setClientsLoadError] = useState(false);
   const serviceLoadGeneration = useRef(0);
   const clientLoadGeneration = useRef(0);
+  const openDebtsLoadGeneration = useRef(0);
+  const screenMounted = useRef(true);
+  const actionGeneration = useRef(0);
+  const observedUserId = useRef(userId);
+  const previousUserId = useRef(userId);
+  if (observedUserId.current !== userId) {
+    observedUserId.current = userId;
+    actionGeneration.current += 1;
+    clientLoadGeneration.current += 1;
+    openDebtsLoadGeneration.current += 1;
+  }
   const [saving, setSaving] = useState(false);
   const [date, setDate] = useState(() => getSalonDateOnly());
   const [serviceIds, setServiceIds] = useState<string[]>([]);
@@ -95,13 +108,55 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
   const [openDebts, setOpenDebts] = useState<OpenDebtRow[]>([]);
   const [openDebtsLoading, setOpenDebtsLoading] = useState(false);
   const [openDebtsLoadError, setOpenDebtsLoadError] = useState(false);
-  const openDebtsLoadGeneration = useRef(0);
   const [settleDebtsEnabled, setSettleDebtsEnabled] = useState(false);
   const [settledDebtIds, setSettledDebtIds] = useState<string[]>([]);
   const [serviceSearch, setServiceSearch] = useState('');
   const [clientSearch, setClientSearch] = useState('');
   const [showServicePicker, setShowServicePicker] = useState(false);
   const [showClientPicker, setShowClientPicker] = useState(false);
+
+  useEffect(() => {
+    screenMounted.current = true;
+    return () => {
+      screenMounted.current = false;
+      actionGeneration.current += 1;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (previousUserId.current === userId) return;
+    previousUserId.current = userId;
+    actionGeneration.current += 1;
+    setSaving(false);
+    setClients([]);
+    setClientId('');
+    setClientSearch('');
+    setServiceIds([]);
+    setUnitPrices({});
+    setPaidAmount('');
+    setPaidTouched(false);
+    setCreateDebt(true);
+    setNotes('');
+    setLoyaltyInfo(null);
+    setDesiredLoyaltyPercent(0);
+    setLoadingLoyalty(false);
+    setOpenDebts([]);
+    setOpenDebtsLoading(false);
+    setOpenDebtsLoadError(false);
+    setSettleDebtsEnabled(false);
+    setSettledDebtIds([]);
+  }, [userId]);
+
+  const beginAction = useCallback(() => {
+    const generation = ++actionGeneration.current;
+    const actionUserId = userId;
+    const actionEntryId = editEntryId;
+    return () =>
+      screenMounted.current &&
+      generation === actionGeneration.current &&
+      editEntryId === actionEntryId &&
+      useAuthStore.getState().user?.id === actionUserId;
+  }, [editEntryId, userId]);
 
   const loadServices = useCallback(async () => {
     const generation = ++serviceLoadGeneration.current;
@@ -119,19 +174,41 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
 
   const loadClients = useCallback(async () => {
     const generation = ++clientLoadGeneration.current;
+    const requestUserId = userId;
+    if (!requestUserId) {
+      setClients([]);
+      setClientsLoadError(false);
+      setClientsLoading(false);
+      return;
+    }
     setClientsLoading(true);
     setClientsLoadError(false);
     try {
       const { data } = await api.get<unknown>('/api/users/for-daily-log');
       const normalized = normalizeDailyLogClients(data);
       if (!normalized) throw new Error();
-      if (clientLoadGeneration.current === generation) setClients(normalized);
+      if (
+        clientLoadGeneration.current === generation &&
+        useAuthStore.getState().user?.id === requestUserId
+      ) {
+        setClients(normalized);
+      }
     } catch {
-      if (clientLoadGeneration.current === generation) setClientsLoadError(true);
+      if (
+        clientLoadGeneration.current === generation &&
+        useAuthStore.getState().user?.id === requestUserId
+      ) {
+        setClientsLoadError(true);
+      }
     } finally {
-      if (clientLoadGeneration.current === generation) setClientsLoading(false);
+      if (
+        clientLoadGeneration.current === generation &&
+        useAuthStore.getState().user?.id === requestUserId
+      ) {
+        setClientsLoading(false);
+      }
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     void loadServices();
@@ -148,9 +225,9 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     (async () => {
       try {
         const { data } = await api.get<unknown>(`/api/daily-log/${editEntryId}`);
+        if (!mounted || useAuthStore.getState().user?.id !== userId) return;
         const entry = normalizeDailyLogEditorEntry(data, editEntryId);
         if (!entry) throw new Error();
-        if (!mounted) return;
         if (entry.status === 'COMPLETED') {
           Alert.alert(t('common.info'), t('stylist.dailyLogDetail.editCompletedUnavailable'));
           navigation.goBack();
@@ -182,6 +259,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
           : 0;
         setPaidAmount(String(servicesPortion + debtsPortion));
       } catch {
+        if (!mounted || useAuthStore.getState().user?.id !== userId) return;
         Alert.alert(t('common.error'), t('stylist.dailyLogDetail.loadErrorFallback'));
         navigation.goBack();
       }
@@ -189,7 +267,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     return () => {
       mounted = false;
     };
-  }, [editEntryId, navigation, t]);
+  }, [editEntryId, navigation, t, userId]);
 
   const selectedClient = clients.find((c) => c.id === clientId);
   const selectedServices = useMemo(
@@ -242,28 +320,32 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
       return;
     }
     let mounted = true;
+    const requestUserId = userId;
     setLoadingLoyalty(true);
     api
       .get<LoyaltyInfo>(`/api/loyalty/stylist/client/${clientId}`, {
         params: { serviceIds: serviceIds.join(',') },
       })
       .then((r) => {
-        if (mounted) setLoyaltyInfo(r.data);
+        if (mounted && useAuthStore.getState().user?.id === requestUserId) {
+          setLoyaltyInfo(r.data);
+        }
       })
       .catch(() => {
-        if (mounted) setLoyaltyInfo(null);
+        if (mounted && useAuthStore.getState().user?.id === requestUserId) setLoyaltyInfo(null);
       })
       .finally(() => {
-        if (mounted) setLoadingLoyalty(false);
+        if (mounted && useAuthStore.getState().user?.id === requestUserId) setLoadingLoyalty(false);
       });
     return () => {
       mounted = false;
     };
-  }, [serviceIds, clientId]);
+  }, [serviceIds, clientId, userId]);
 
   const loadOpenDebts = useCallback(async () => {
     const generation = ++openDebtsLoadGeneration.current;
-    if (!clientId || editEntryId) {
+    const requestUserId = userId;
+    if (!requestUserId || !clientId || editEntryId) {
       setOpenDebts([]);
       setOpenDebtsLoading(false);
       setOpenDebtsLoadError(false);
@@ -282,7 +364,10 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
       if (!debts || debts.some((debt) => debt.status !== 'OPEN')) {
         throw new Error();
       }
-      if (openDebtsLoadGeneration.current === generation) {
+      if (
+        openDebtsLoadGeneration.current === generation &&
+        useAuthStore.getState().user?.id === requestUserId
+      ) {
         setOpenDebts(debts.map(({ id, amount, createdAt, service }) => ({
           id,
           amount,
@@ -291,14 +376,22 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         })));
       }
     } catch {
-      if (openDebtsLoadGeneration.current === generation) {
+      if (
+        openDebtsLoadGeneration.current === generation &&
+        useAuthStore.getState().user?.id === requestUserId
+      ) {
         setOpenDebts([]);
         setOpenDebtsLoadError(true);
       }
     } finally {
-      if (openDebtsLoadGeneration.current === generation) setOpenDebtsLoading(false);
+      if (
+        openDebtsLoadGeneration.current === generation &&
+        useAuthStore.getState().user?.id === requestUserId
+      ) {
+        setOpenDebtsLoading(false);
+      }
     }
-  }, [clientId, editEntryId]);
+  }, [clientId, editEntryId, userId]);
 
   useEffect(() => {
     void loadOpenDebts();
@@ -364,6 +457,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
       Alert.alert(t('common.error'), t('stylist.dailyLogDetail.settledDebtAmountInsufficient'));
       return;
     }
+    const isCurrentRequest = beginAction();
     const debtHandling =
       !editEntryId && shortfall > 0 && createDebt ? 'CREATE_DEBT' : 'IGNORE_DEBT';
     const items = serviceIds.map((serviceId) => ({
@@ -382,6 +476,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
           notes: notes.trim() || undefined,
           ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
         });
+        if (!isCurrentRequest()) return;
         navigation.navigate('DailyLogDetail', { entryId: editEntryId });
         return;
       }
@@ -399,6 +494,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         settledDebtIds: settleDebtsEnabled ? settledDebtIds : undefined,
         ...(loyaltyPercent > 0 ? { desiredLoyaltyPercent: loyaltyPercent } : {}),
       });
+      if (!isCurrentRequest()) return;
       const entryId = parseCreatedDailyLogEntryId(response);
       if (!entryId) {
         Alert.alert(t('common.error'), t('stylist.dailyLogDetail.saveResponseFallback'));
@@ -406,12 +502,14 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
       }
       navigation.navigate('DailyLogDetail', { entryId });
     } catch (err: unknown) {
-      Alert.alert(
-        t('common.error'),
-        getApiErrorMessage(err, t('stylist.dailyLogDetail.saveErrorFallback')),
-      );
+      if (isCurrentRequest()) {
+        Alert.alert(
+          t('common.error'),
+          getApiErrorMessage(err, t('stylist.dailyLogDetail.saveErrorFallback')),
+        );
+      }
     } finally {
-      setSaving(false);
+      if (isCurrentRequest()) setSaving(false);
     }
   }, [
     profileId,
@@ -432,7 +530,16 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     loyaltyPercent,
     navigation,
     t,
+    beginAction,
   ]);
+
+  if (previousUserId.current !== userId) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   if (profileLoading) {
     return (

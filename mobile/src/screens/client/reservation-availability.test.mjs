@@ -103,7 +103,7 @@ test('reservation submit errors safely handle network, malformed and array serve
     'Termin nije dostupan.\nOdaberite drugi termin.',
   );
   assert.match(screenSource, /getApiErrorMessage\(error, t\('reservation\.submitError'\)\)/);
-  assert.match(screenSource, /finally \{\s*setSubmitting\(false\)/);
+  assert.match(screenSource, /finally \{\s*if \(isCurrentRequest\(\)\) setSubmitting\(false\)/);
   assert.match(localeSource, /submitError:/);
 });
 

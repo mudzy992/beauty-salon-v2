@@ -16,6 +16,7 @@ import { MediaImage } from '../../components/MediaImage';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
@@ -45,16 +46,23 @@ type DailyLogDetailScreenProps = {
 
 export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreenProps) {
   const { entryId } = route.params;
+  const userId = useAuthStore((state) => state.user?.id);
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const [entry, setEntry] = useState<DailyLogEntry | null>(null);
+  const [entryIdentity, setEntryIdentity] = useState<{ entryId: string; userId?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const requestGeneration = useRef(0);
-  const requestEntryId = useRef(entryId);
-  if (requestEntryId.current !== entryId) {
-    requestEntryId.current = entryId;
+  const screenGeneration = useRef(0);
+  const actionGeneration = useRef(0);
+  const screenMounted = useRef(true);
+  const requestIdentity = useRef({ entryId, userId });
+  if (requestIdentity.current.entryId !== entryId || requestIdentity.current.userId !== userId) {
+    requestIdentity.current = { entryId, userId };
     requestGeneration.current += 1;
+    screenGeneration.current += 1;
+    actionGeneration.current += 1;
   }
   const [acting, setActing] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -64,12 +72,47 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
 
+  useEffect(() => {
+    screenMounted.current = true;
+    return () => {
+      screenMounted.current = false;
+      requestGeneration.current += 1;
+      screenGeneration.current += 1;
+      actionGeneration.current += 1;
+    };
+  }, []);
+
+  const beginAction = useCallback(() => {
+    const generation = ++actionGeneration.current;
+    const currentScreenGeneration = screenGeneration.current;
+    const actionEntryId = entryId;
+    const actionUserId = userId;
+    return () =>
+      screenMounted.current &&
+      generation === actionGeneration.current &&
+      currentScreenGeneration === screenGeneration.current &&
+      requestIdentity.current.entryId === actionEntryId &&
+      requestIdentity.current.userId === actionUserId &&
+      useAuthStore.getState().user?.id === actionUserId;
+  }, [entryId, userId]);
+
   const fetchEntry = useCallback(async (): Promise<DailyLogEntry | null> => {
+    if (!screenMounted.current) return null;
     const generation = ++requestGeneration.current;
+    const requestUserId = userId;
+    setEntryIdentity((current) =>
+      current?.entryId === entryId && current.userId === requestUserId
+        ? current
+        : { entryId, userId: requestUserId },
+    );
     setLoadError(false);
     try {
       const { data } = await api.get<unknown>(`/api/daily-log/${entryId}`);
-      if (generation !== requestGeneration.current) return null;
+      if (
+        !screenMounted.current ||
+        generation !== requestGeneration.current ||
+        useAuthStore.getState().user?.id !== requestUserId
+      ) return null;
       const entries = normalizeDailyLogEntries([data]);
       if (!entries || entries.length !== 1) {
         setLoadError(true);
@@ -79,17 +122,35 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
       setLoadError(false);
       return entries[0];
     } catch {
-      if (generation === requestGeneration.current) setLoadError(true);
+      if (
+        screenMounted.current &&
+        generation === requestGeneration.current &&
+        useAuthStore.getState().user?.id === requestUserId
+      ) {
+        setLoadError(true);
+      }
       return null;
     } finally {
-      if (generation === requestGeneration.current) setLoading(false);
+      if (
+        screenMounted.current &&
+        generation === requestGeneration.current &&
+        useAuthStore.getState().user?.id === requestUserId
+      ) {
+        setLoading(false);
+      }
     }
-  }, [entryId]);
+  }, [entryId, userId]);
 
   useEffect(() => {
     setEntry(null);
     setLoading(true);
     setLoadError(false);
+    setActing(false);
+    setUploading(false);
+    setPendingImageLink(null);
+    setDeleteModalOpen(false);
+    setActionsMenuOpen(false);
+    setDeleteReason('');
     void fetchEntry();
     return () => {
       requestGeneration.current += 1;
@@ -100,6 +161,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   useDailyLogSocketRefresh(fetchEntry);
 
   const handleComplete = useCallback(() => {
+    const isCurrentAction = beginAction();
     Alert.alert(
       t('stylist.dailyLogDetail.completeConfirmTitle'),
       entry?.reservationId
@@ -110,11 +172,14 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         {
           text: t('stylist.dailyLogDetail.completeConfirmAction'),
           onPress: async () => {
+            if (!isCurrentAction()) return;
             setActing(true);
             try {
               const reservationId = entry?.reservationId ?? null;
               await api.post(`/api/daily-log/${entryId}/complete`);
+              if (!isCurrentAction()) return;
               await fetchEntry();
+              if (!isCurrentAction()) return;
 
               if (reservationId) {
                 try {
@@ -126,6 +191,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                     includeBreaks: false,
                     mode: 'actual_overrun',
                   });
+                  if (!isCurrentAction()) return;
                   const delay = data?.delayMinutes ?? 0;
                   const itemCount = data?.items?.length ?? 0;
                   const overrunLabel = data?.overrunMinutes ?? delay;
@@ -137,23 +203,27 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                         { text: t('stylist.dailyLogDetail.overrunNotNow'), style: 'cancel' },
                         {
                           text: t('stylist.dailyLogDetail.overrunWithoutBreaks'),
-                          onPress: () =>
+                          onPress: () => {
+                            if (!isCurrentAction()) return;
                             navigation.navigate('ReschedulePreview', {
                               reservationId,
                               includeBreaks: false,
                               mode: 'actual_overrun',
                               lockMode: true,
-                            }),
+                            });
+                          },
                         },
                         {
                           text: t('stylist.dailyLogDetail.overrunWithBreaks'),
-                          onPress: () =>
+                          onPress: () => {
+                            if (!isCurrentAction()) return;
                             navigation.navigate('ReschedulePreview', {
                               reservationId,
                               includeBreaks: true,
                               mode: 'actual_overrun',
                               lockMode: true,
-                            }),
+                            });
+                          },
                         },
                       ],
                     );
@@ -169,18 +239,20 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                 }
               }
             } catch (err: unknown) {
-              Alert.alert(
-                t('common.error'),
-                getApiErrorMessage(err, t('stylist.dailyLogDetail.completeErrorFallback')),
-              );
+              if (isCurrentAction()) {
+                Alert.alert(
+                  t('common.error'),
+                  getApiErrorMessage(err, t('stylist.dailyLogDetail.completeErrorFallback')),
+                );
+              }
             } finally {
-              setActing(false);
+              if (isCurrentAction()) setActing(false);
             }
           },
         },
       ],
     );
-  }, [entryId, fetchEntry, entry?.reservationId, navigation, t]);
+  }, [entryId, fetchEntry, entry?.reservationId, navigation, t, beginAction]);
 
   const handleDelete = useCallback(() => {
     setDeleteReason('');
@@ -193,27 +265,34 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
       Alert.alert(t('common.error'), t('stylist.dailyLogDetail.deleteReasonRequired'));
       return;
     }
+    const isCurrentAction = beginAction();
     setActing(true);
     try {
       await api.delete(`/api/daily-log/${entryId}`, { data: { reason } });
+      if (!isCurrentAction()) return;
       setDeleteModalOpen(false);
       navigation.goBack();
     } catch (err: unknown) {
-      Alert.alert(
-        t('common.error'),
-        getApiErrorMessage(err, t('stylist.dailyLogDetail.deleteErrorFallback')),
-      );
+      if (isCurrentAction()) {
+        Alert.alert(
+          t('common.error'),
+          getApiErrorMessage(err, t('stylist.dailyLogDetail.deleteErrorFallback')),
+        );
+      }
     } finally {
-      setActing(false);
+      if (isCurrentAction()) setActing(false);
     }
-  }, [deleteReason, entryId, navigation, t]);
+  }, [deleteReason, entryId, navigation, t, beginAction]);
 
   const linkUploadedImage = useCallback(
     async (uploadId: string, isBefore: boolean, checkExisting = false) => {
+      const isCurrentAction = beginAction();
+      if (!isCurrentAction()) return;
       setUploading(true);
       try {
         if (checkExisting) {
           const latestEntry = await fetchEntry();
+          if (!isCurrentAction()) return;
           if (!latestEntry) throw new Error('Unable to confirm image link state');
           if (latestEntry.images?.some((image) => image.uploadId === uploadId)) {
             setPendingImageLink(null);
@@ -225,20 +304,24 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           isBefore,
           isAfter: !isBefore,
         });
+        if (!isCurrentAction()) return;
         const updatedEntry = await fetchEntry();
+        if (!isCurrentAction()) return;
         if (!updatedEntry) throw new Error('Unable to confirm linked image');
         setPendingImageLink(null);
       } catch (error: unknown) {
-        setPendingImageLink({ uploadId, isBefore });
-        Alert.alert(
-          t('common.error'),
-          getApiErrorMessage(error, t('common.error')),
-        );
+        if (isCurrentAction()) {
+          setPendingImageLink({ uploadId, isBefore });
+          Alert.alert(
+            t('common.error'),
+            getApiErrorMessage(error, t('common.error')),
+          );
+        }
       } finally {
-        setUploading(false);
+        if (isCurrentAction()) setUploading(false);
       }
     },
-    [entryId, fetchEntry, t],
+    [entryId, fetchEntry, t, beginAction],
   );
 
   const retryPendingImageLink = useCallback(() => {
@@ -249,12 +332,15 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
 
   const addImage = useCallback(
     async (isBefore: boolean) => {
+      const isCurrentAction = beginAction();
+      if (!isCurrentAction()) return;
       if (pendingImageLink) {
         Alert.alert(t('common.error'), t('stylist.dailyLogDetail.imageUploadErrorFallback'));
         return;
       }
       try {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!isCurrentAction()) return;
         if (status !== 'granted') {
           Alert.alert(
             t('stylist.dailyLogDetail.imagePermissionTitle'),
@@ -268,7 +354,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           aspect: [1, 1],
           quality: 0.8,
         });
-        if (result.canceled || !result.assets?.[0]?.uri) return;
+        if (!isCurrentAction() || result.canceled || !result.assets?.[0]?.uri) return;
         setUploading(true);
         const formData = new FormData();
         formData.append('file', {
@@ -280,6 +366,7 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         const { data: uploadResult } = await api.post<unknown>('/api/uploads', formData, {
           headers: { 'Content-Type': 'multipart/form-data' },
         });
+        if (!isCurrentAction()) return;
         const uploadId =
           uploadResult && typeof uploadResult === 'object' && 'id' in uploadResult &&
           typeof uploadResult.id === 'string' && uploadResult.id.trim()
@@ -289,15 +376,17 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
         setPendingImageLink({ uploadId, isBefore });
         await linkUploadedImage(uploadId, isBefore);
       } catch (error: unknown) {
-        Alert.alert(
-          t('common.error'),
-          getApiErrorMessage(error, t('stylist.dailyLogDetail.imageUploadErrorFallback')),
-        );
+        if (isCurrentAction()) {
+          Alert.alert(
+            t('common.error'),
+            getApiErrorMessage(error, t('stylist.dailyLogDetail.imageUploadErrorFallback')),
+          );
+        }
       } finally {
-        setUploading(false);
+        if (isCurrentAction()) setUploading(false);
       }
     },
-    [linkUploadedImage, pendingImageLink, t],
+    [linkUploadedImage, pendingImageLink, t, beginAction],
   );
 
   const openActionsMenu = useCallback(() => {
@@ -306,7 +395,9 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
   }, [entry]);
 
   useLayoutEffect(() => {
-    const canAct = !!entry && entry.status !== 'COMPLETED';
+    const entryMatchesCurrentIdentity =
+      entryIdentity?.entryId === entryId && entryIdentity.userId === userId;
+    const canAct = entryMatchesCurrentIdentity && !!entry && entry.status !== 'COMPLETED';
     navigation.setOptions({
       headerRight: canAct
         ? () => (
@@ -326,9 +417,12 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
           )
         : undefined,
     });
-  }, [colors.headerText, entry, navigation, openActionsMenu, t]);
+  }, [colors.headerText, entry, entryIdentity, entryId, userId, navigation, openActionsMenu, t]);
 
-  if (loading && !entry) {
+  const entryMatchesCurrentIdentity =
+    entryIdentity?.entryId === entryId && entryIdentity.userId === userId;
+
+  if (!entryMatchesCurrentIdentity || (loading && !entry)) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />

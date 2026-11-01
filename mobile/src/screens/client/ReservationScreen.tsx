@@ -87,6 +87,33 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const slotsRequestIdRef = useRef(0);
   const loyaltyRequestIdRef = useRef(0);
   const debtsRequestIdRef = useRef(0);
+  const bookingRequestIdRef = useRef(0);
+  const serviceDetailRequestIdRef = useRef(0);
+  const screenMounted = useRef(true);
+  const observedUserId = useRef(user?.id);
+  const observedRoute = useRef({ initialServiceId, requestId });
+  const routeGeneration = useRef(0);
+  const previousUserId = useRef(user?.id);
+  if (
+    observedRoute.current.initialServiceId !== initialServiceId ||
+    observedRoute.current.requestId !== requestId
+  ) {
+    observedRoute.current = { initialServiceId, requestId };
+    routeGeneration.current += 1;
+    bookingRequestIdRef.current += 1;
+    serviceDetailRequestIdRef.current += 1;
+    bookingAttemptRef.current = null;
+  }
+  if (observedUserId.current !== user?.id) {
+    observedUserId.current = user?.id;
+    datesRequestIdRef.current += 1;
+    slotsRequestIdRef.current += 1;
+    loyaltyRequestIdRef.current += 1;
+    debtsRequestIdRef.current += 1;
+    bookingRequestIdRef.current += 1;
+    serviceDetailRequestIdRef.current += 1;
+    bookingAttemptRef.current = null;
+  }
   const servicesById = useMemo(
     () => new Map(services.map((service) => [service.id, service])),
     [services],
@@ -102,6 +129,38 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   }, [selectedServices]);
 
   useEffect(() => {
+    if (previousUserId.current === user?.id) return;
+    previousUserId.current = user?.id;
+    datesRequestIdRef.current += 1;
+    slotsRequestIdRef.current += 1;
+    bookingRequestIdRef.current += 1;
+    serviceDetailRequestIdRef.current += 1;
+    loyaltyRequestIdRef.current += 1;
+    debtsRequestIdRef.current += 1;
+    bookingAttemptRef.current = null;
+    setSubmitting(false);
+    setStep(startAtStep ?? (initialServiceId ? 2 : 1));
+    setSelectedServices([]);
+    setAvailableDates({});
+    setSelectedDate(null);
+    setSlots([]);
+    setSelectedSlot(null);
+    setNotes('');
+    setDatesLoading(false);
+    setSlotsLoading(false);
+    setDatesError(false);
+    setSlotsError(false);
+    setDesiredLoyaltyPercent(0);
+    setLoyaltyInfo(null);
+    setLoyaltyLoading(false);
+    setLoyaltyLoadError(false);
+    setPayDebtsIntent(false);
+    setOpenDebtsTotal(null);
+    setDebtsLoading(false);
+    setDebtsLoadError(false);
+  }, [initialServiceId, startAtStep, user?.id]);
+
+  useEffect(() => {
     if (user?.gender) return;
     Alert.alert(
       t('common.error'),
@@ -113,6 +172,12 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   // Re-apply preselected service whenever route request changes (important for repeated entry from Home).
   useEffect(() => {
     if (!initialServiceId) return;
+    const requestId = ++serviceDetailRequestIdRef.current;
+    const requestUserId = user?.id;
+    const isCurrentRequest = () =>
+      screenMounted.current &&
+      requestId === serviceDetailRequestIdRef.current &&
+      useAuthStore.getState().user?.id === requestUserId;
     const fromList = servicesById.get(initialServiceId);
     if (fromList && (!user?.gender || fromList.gender === user.gender)) {
       datesRequestIdRef.current += 1;
@@ -127,11 +192,16 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       setDesiredLoyaltyPercent(0);
       setLoyaltyInfo(null);
       setStep((startAtStep ?? 2) as Step);
-      return;
+      return () => {
+        if (serviceDetailRequestIdRef.current === requestId) {
+          serviceDetailRequestIdRef.current += 1;
+        }
+      };
     }
-    (async () => {
+    void (async () => {
       try {
         const { data } = await api.get<unknown>(`/api/services/${initialServiceId}`);
+        if (!isCurrentRequest()) return;
         const service = normalizePublicServices([data])?.[0];
         if (!service) throw new Error('Invalid public service payload');
         if (user?.gender && service.gender !== user.gender) {
@@ -151,16 +221,27 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
         setLoyaltyInfo(null);
         setStep((startAtStep ?? 2) as Step);
       } catch {
-        setStep(1);
+        if (isCurrentRequest()) setStep(1);
       }
     })();
-  }, [initialServiceId, requestId, servicesById, user?.gender, startAtStep]);
+    return () => {
+      if (serviceDetailRequestIdRef.current === requestId) {
+        serviceDetailRequestIdRef.current += 1;
+      }
+    };
+  }, [initialServiceId, requestId, servicesById, user?.gender, user?.id, startAtStep]);
 
-  useEffect(() => () => {
-    datesRequestIdRef.current += 1;
-    slotsRequestIdRef.current += 1;
-    loyaltyRequestIdRef.current += 1;
-    debtsRequestIdRef.current += 1;
+  useEffect(() => {
+    screenMounted.current = true;
+    return () => {
+      screenMounted.current = false;
+      datesRequestIdRef.current += 1;
+      slotsRequestIdRef.current += 1;
+      loyaltyRequestIdRef.current += 1;
+      debtsRequestIdRef.current += 1;
+      bookingRequestIdRef.current += 1;
+      serviceDetailRequestIdRef.current += 1;
+    };
   }, []);
 
   // Load available dates when service is selected
@@ -247,7 +328,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     setDesiredLoyaltyPercent(0);
     setLoyaltyLoading(false);
     setLoyaltyLoadError(false);
-  }, [selectedServiceIds]);
+  }, [selectedServiceIds, user?.id]);
 
   useEffect(() => {
     debtsRequestIdRef.current += 1;
@@ -263,22 +344,32 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       return;
     }
     const requestId = ++loyaltyRequestIdRef.current;
+    const requestUserId = user?.id;
     setLoyaltyLoading(true);
     setLoyaltyLoadError(false);
     try {
       const { data } = await api.get<unknown>('/api/loyalty/client/me', {
         params: { serviceIds: selectedServiceIds.join(',') },
       });
-      if (requestId !== loyaltyRequestIdRef.current) return;
+      if (
+        requestId !== loyaltyRequestIdRef.current ||
+        useAuthStore.getState().user?.id !== requestUserId
+      ) return;
       const preview = normalizeLoyaltyPreview(data);
       if (!preview) throw new Error('Invalid loyalty preview response');
       setLoyaltyInfo(preview);
     } catch {
-      if (requestId === loyaltyRequestIdRef.current) setLoyaltyLoadError(true);
+      if (
+        requestId === loyaltyRequestIdRef.current &&
+        useAuthStore.getState().user?.id === requestUserId
+      ) setLoyaltyLoadError(true);
     } finally {
-      if (requestId === loyaltyRequestIdRef.current) setLoyaltyLoading(false);
+      if (
+        requestId === loyaltyRequestIdRef.current &&
+        useAuthStore.getState().user?.id === requestUserId
+      ) setLoyaltyLoading(false);
     }
-  }, [selectedServiceIds]);
+  }, [selectedServiceIds, user?.id]);
 
   const loadDebtPreview = useCallback(async () => {
     if (!user?.id) {
@@ -287,18 +378,28 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       return;
     }
     const requestId = ++debtsRequestIdRef.current;
+    const requestUserId = user.id;
     setDebtsLoading(true);
     setDebtsLoadError(false);
     try {
       const { data } = await api.get<unknown>('/api/client-debts/me');
-      if (requestId !== debtsRequestIdRef.current) return;
+      if (
+        requestId !== debtsRequestIdRef.current ||
+        useAuthStore.getState().user?.id !== requestUserId
+      ) return;
       const debts = normalizeDebtAmounts(data);
       if (!debts) throw new Error('Invalid debt preview response');
       setOpenDebtsTotal(sumDebtAmounts(debts));
     } catch {
-      if (requestId === debtsRequestIdRef.current) setDebtsLoadError(true);
+      if (
+        requestId === debtsRequestIdRef.current &&
+        useAuthStore.getState().user?.id === requestUserId
+      ) setDebtsLoadError(true);
     } finally {
-      if (requestId === debtsRequestIdRef.current) setDebtsLoading(false);
+      if (
+        requestId === debtsRequestIdRef.current &&
+        useAuthStore.getState().user?.id === requestUserId
+      ) setDebtsLoading(false);
     }
   }, [user?.id]);
 
@@ -381,7 +482,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   }, [loadDebtPreview, loadLoyaltyPreview]);
 
   const handleSubmit = async () => {
-    if (selectedServiceIds.length === 0 || !selectedDate || !selectedSlot) return;
+    if (submitting || selectedServiceIds.length === 0 || !selectedDate || !selectedSlot) return;
     if (user?.mustChangePassword) {
       Alert.alert(t('common.error'), 'Prvo morate promijeniti inicijalnu lozinku.', [
         { text: t('common.ok'), onPress: () => router.replace('/') },
@@ -396,6 +497,14 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       );
       return;
     }
+    const bookingRequestId = ++bookingRequestIdRef.current;
+    const bookingRouteGeneration = routeGeneration.current;
+    const requestUserId = user?.id;
+    const isCurrentRequest = () =>
+      screenMounted.current &&
+      bookingRequestId === bookingRequestIdRef.current &&
+      bookingRouteGeneration === routeGeneration.current &&
+      useAuthStore.getState().user?.id === requestUserId;
     setSubmitting(true);
     const payload = {
       serviceIds: selectedServiceIds,
@@ -415,17 +524,22 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       await api.post('/api/reservations', payload, {
         headers: { 'Idempotency-Key': idempotencyKey },
       });
+      if (!isCurrentRequest()) return;
       bookingAttemptRef.current = null;
       Alert.alert(t('reservation.success'), t('reservation.successMessage'), [
         {
           text: t('common.ok'),
-          onPress: () => navigation.getParent()?.navigate('ReservationsTab'),
+          onPress: () => {
+            if (isCurrentRequest()) navigation.getParent()?.navigate('ReservationsTab');
+          },
         },
       ]);
     } catch (error: unknown) {
-      Alert.alert(t('common.error'), getApiErrorMessage(error, t('reservation.submitError')));
+      if (isCurrentRequest()) {
+        Alert.alert(t('common.error'), getApiErrorMessage(error, t('reservation.submitError')));
+      }
     } finally {
-      setSubmitting(false);
+      if (isCurrentRequest()) setSubmitting(false);
     }
   };
 
@@ -490,6 +604,14 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     });
     return () => sub.remove();
   }, [handleBack]);
+
+  if (previousUserId.current !== user?.id) {
+    return (
+      <View style={[styles.flex, { backgroundColor: colors.background, justifyContent: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   const stepIndicator = (
     <View style={styles.steps}>
