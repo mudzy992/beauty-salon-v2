@@ -8,21 +8,27 @@ const dailyLogDetail = readFileSync(new URL('../screens/stylist/DailyLogDetailSc
 const translations = readFileSync(new URL('../i18n/bs.ts', import.meta.url), 'utf8');
 
 test('private reservation and stylist inbox reads validate payloads and ignore stale requests', () => {
-  for (const screen of [reservations, inbox]) {
-    assert.match(screen, /api\.get<unknown>\('\/api\/reservations'/);
-    assert.match(screen, /const rows = normalizeReservations\(data\)/);
-    assert.match(screen, /if \(!rows\) setLoadError\(true\)/);
-    assert.match(screen, /generation !== requestGeneration\.current/);
-    assert.match(screen, /requestGeneration\.current \+= 1/);
-    assert.match(screen, /catch \{\s*if \(generation === requestGeneration\.current\) setLoadError\(true\)/);
-    assert.match(screen, /onPress=\{\(\) => void fetchReservations\(\)\}/);
-  }
+  assert.match(reservations, /api\.get<unknown>\('\/api\/reservations'/);
+  assert.match(reservations, /const rows = normalizeReservations\(data\)/);
+  assert.match(reservations, /if \(!rows\) setLoadError\(true\)/);
+  assert.match(reservations, /generation !== requestGeneration\.current/);
+  assert.match(reservations, /requestGeneration\.current \+= 1/);
+  assert.match(reservations, /catch \{\s*if \(generation === requestGeneration\.current\) setLoadError\(true\)/);
+  assert.match(reservations, /onPress=\{\(\) => void fetchReservations\(\)\}/);
   assert.match(reservations, /const userId = useAuthStore\(\(state\) => state\.user\?\.id \?\? null\)/);
   assert.match(reservations, /reservationsOwnerId === userId \? reservations : \[\]/);
   assert.match(reservations, /requestOwnerId\.current !== userId/);
-  assert.match(inbox, /reservationsOwnerId === profileId \? reservations : \[\]/);
-  assert.match(inbox, /requestOwnerId\.current !== profileId/);
-  assert.match(inbox, /\}, \[profileId\]\)/);
+
+  assert.match(inbox, /api\.get<unknown>\('\/api\/reservations'/);
+  assert.match(inbox, /const rows = normalizeReservations\(data\)/);
+  assert.match(inbox, /if \(!rows\) setLoadError\(true\)/);
+  assert.match(inbox, /generation === requestGeneration\.current/);
+  assert.match(inbox, /requestGeneration\.current \+= 1/);
+  assert.match(inbox, /if \(isCurrentRequest\(\)\) setLoadError\(true\)/);
+  assert.match(inbox, /onPress=\{\(\) => void fetchReservations\(\)\}/);
+  assert.match(inbox, /reservationsOwner\.userId === userId &&[\s\S]*?reservationsOwner\.profileId === profileId/);
+  assert.match(inbox, /requestIdentityRef\.current\.userId !== userId/);
+  assert.match(inbox, /requestIdentityRef\.current\.profileId !== profileId/);
 });
 
 test('daily-log detail validates its payload, retains stale entry, and supports retry', () => {

@@ -13,6 +13,7 @@ import {
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { useTheme } from '../../hooks/useTheme';
 import { useStylistProfile } from '../../hooks/useStylistProfile';
+import { useAuthStore } from '../../store/authStore';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import { useSocket } from '../../realtime/SocketContext';
@@ -43,25 +44,93 @@ export function StylistInboxScreen() {
     loadError: profileLoadError,
     refetch: refetchProfile,
   } = useStylistProfile();
+  const userId = useAuthStore((state) => state.user?.id);
   const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [reservationsOwnerId, setReservationsOwnerId] = useState<string | null>(null);
-  const visibleReservations = reservationsOwnerId === profileId ? reservations : [];
+  const [reservationsOwner, setReservationsOwner] = useState<{ userId: string; profileId: string } | null>(null);
+  const visibleReservations =
+    reservationsOwner !== null &&
+    reservationsOwner.userId === userId &&
+    reservationsOwner.profileId === profileId
+      ? reservations
+      : [];
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const requestGeneration = useRef(0);
-  const requestOwnerId = useRef(profileId);
-  if (requestOwnerId.current !== profileId) {
-    requestOwnerId.current = profileId;
+  const requestIdentityRef = useRef({ userId, profileId });
+  if (requestIdentityRef.current.userId !== userId || requestIdentityRef.current.profileId !== profileId) {
+    requestIdentityRef.current = { userId, profileId };
     requestGeneration.current += 1;
   }
+  const actionIdentityRef = useRef({ userId, profileId, generation: 0, mounted: true });
+  if (actionIdentityRef.current.userId !== userId || actionIdentityRef.current.profileId !== profileId) {
+    actionIdentityRef.current = {
+      userId,
+      profileId,
+      generation: actionIdentityRef.current.generation + 1,
+      mounted: actionIdentityRef.current.mounted,
+    };
+  }
+  const activeActionIdRef = useRef<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
+
+  const isCurrentIdentity = useCallback(() => {
+    const current = actionIdentityRef.current;
+    return (
+      !!userId &&
+      current.mounted &&
+      current.userId === userId &&
+      current.profileId === profileId &&
+      useAuthStore.getState().user?.id === userId
+    );
+  }, [profileId, userId]);
+
+  const beginAction = useCallback((reservationId: string) => {
+    if (!profileId || !isCurrentIdentity() || activeActionIdRef.current) return null;
+    const generation = actionIdentityRef.current.generation;
+    activeActionIdRef.current = reservationId;
+    setActingId(reservationId);
+    return () =>
+      isCurrentIdentity() &&
+      actionIdentityRef.current.generation === generation &&
+      activeActionIdRef.current === reservationId;
+  }, [isCurrentIdentity, profileId]);
+
+  const finishAction = useCallback((reservationId: string, isCurrentAction: () => boolean) => {
+    if (!isCurrentAction() || activeActionIdRef.current !== reservationId) return;
+    activeActionIdRef.current = null;
+    setActingId(null);
+  }, []);
+
+  useEffect(() => {
+    actionIdentityRef.current.mounted = true;
+    return () => {
+      actionIdentityRef.current.mounted = false;
+      actionIdentityRef.current.generation += 1;
+      activeActionIdRef.current = null;
+      requestGeneration.current += 1;
+    };
+  }, []);
+
+  useEffect(() => {
+    activeActionIdRef.current = null;
+    setActingId(null);
+    setRefreshing(false);
+  }, [profileId, userId]);
 
   const fetchReservations = useCallback(async () => {
     const generation = ++requestGeneration.current;
+    const requestedUserId = userId;
+    const requestedProfileId = profileId;
+    const isCurrentRequest = () =>
+      generation === requestGeneration.current &&
+      isCurrentIdentity() &&
+      requestIdentityRef.current.userId === requestedUserId &&
+      requestIdentityRef.current.profileId === requestedProfileId;
     if (!profileId) {
+      if (!isCurrentRequest()) return;
       setReservations([]);
-      setReservationsOwnerId(null);
+      setReservationsOwner(null);
       setLoadError(false);
       setLoading(false);
       return;
@@ -70,20 +139,20 @@ export function StylistInboxScreen() {
       const { data } = await api.get<unknown>('/api/reservations', {
         params: { asStylist: true },
       });
-      if (generation !== requestGeneration.current) return;
+      if (!isCurrentRequest()) return;
       const rows = normalizeReservations(data);
       if (!rows) setLoadError(true);
       else {
         setReservations(rows);
-        setReservationsOwnerId(profileId);
+        setReservationsOwner({ userId: requestedUserId!, profileId });
         setLoadError(false);
       }
     } catch {
-      if (generation === requestGeneration.current) setLoadError(true);
+      if (isCurrentRequest()) setLoadError(true);
     } finally {
-      if (generation === requestGeneration.current) setLoading(false);
+      if (isCurrentRequest()) setLoading(false);
     }
-  }, [profileId]);
+  }, [isCurrentIdentity, profileId, userId]);
 
   useEffect(() => {
     setReservations([]);
@@ -103,13 +172,14 @@ export function StylistInboxScreen() {
   useReservationSocketRefresh(refreshReservations);
 
   const onRefresh = useCallback(async () => {
+    if (!isCurrentIdentity()) return;
     setRefreshing(true);
     try {
       await Promise.all([refreshReservations(), refetchProfile()]);
     } finally {
-      setRefreshing(false);
+      if (isCurrentIdentity()) setRefreshing(false);
     }
-  }, [refreshReservations, refetchProfile]);
+  }, [isCurrentIdentity, refreshReservations, refetchProfile]);
 
   const pending = visibleReservations.filter(
     (r) => r.status === 'PENDING' || r.status === 'STYLIST_REVIEW',
@@ -118,45 +188,52 @@ export function StylistInboxScreen() {
   const handleLock = useCallback(
     async (reservationId: string) => {
       if (!profileId) return;
-      setActingId(reservationId);
+      const isCurrentAction = beginAction(reservationId);
+      if (!isCurrentAction) return;
       try {
         await api.post(`/api/reservations/${reservationId}/stylist/${profileId}/lock`);
+        if (!isCurrentAction()) return;
         await fetchReservations();
       } catch (err: unknown) {
+        if (!isCurrentAction()) return;
         Alert.alert(
           t('common.error'),
           getApiErrorMessage(err, t('stylist.inbox.lockErrorFallback')),
         );
       } finally {
-        setActingId(null);
+        finishAction(reservationId, isCurrentAction);
       }
     },
-    [profileId, fetchReservations, t],
+    [beginAction, finishAction, profileId, fetchReservations, t],
   );
 
   const handleUnlock = useCallback(
     async (reservationId: string) => {
       if (!profileId) return;
-      setActingId(reservationId);
+      const isCurrentAction = beginAction(reservationId);
+      if (!isCurrentAction) return;
       try {
         await api.post(`/api/reservations/${reservationId}/stylist/${profileId}/unlock`);
+        if (!isCurrentAction()) return;
         await fetchReservations();
       } catch (err: unknown) {
+        if (!isCurrentAction()) return;
         Alert.alert(
           t('common.error'),
           getApiErrorMessage(err, t('stylist.inbox.unlockErrorFallback')),
         );
       } finally {
-        setActingId(null);
+        finishAction(reservationId, isCurrentAction);
       }
     },
-    [profileId, fetchReservations, t],
+    [beginAction, finishAction, profileId, fetchReservations, t],
   );
 
   const handleAccept = useCallback(
     async (reservation: Reservation) => {
       if (!profileId) return;
-      setActingId(reservation.id);
+      const isCurrentAction = beginAction(reservation.id);
+      if (!isCurrentAction) return;
       try {
         const confirmDebtWarning = (message: string) => new Promise<boolean>((resolve) => {
           Alert.alert(
@@ -175,6 +252,7 @@ export function StylistInboxScreen() {
             const { data } = await api.get<unknown>('/api/client-debts', {
               params: { clientId: reservation.clientId },
             });
+            if (!isCurrentAction()) return;
             const list = normalizeClientDebts(data);
             if (!list) throw new Error('Invalid client debt response');
             if (list.length > 0) {
@@ -205,10 +283,15 @@ export function StylistInboxScreen() {
                   }),
                 );
               }
-              if (lines.length > 0 && !(await confirmDebtWarning(lines.join('\n')))) return;
+              if (lines.length > 0) {
+                const confirmed = await confirmDebtWarning(lines.join('\n'));
+                if (!isCurrentAction()) return;
+                if (!confirmed) return;
+              }
             }
             debtCheckResolved = true;
           } catch {
+            if (!isCurrentAction()) return;
             const decision = await new Promise<'cancel' | 'retry' | 'continue'>((resolve) => {
               Alert.alert(
                 t('stylist.inbox.clientDebtCheckErrorTitle'),
@@ -224,59 +307,71 @@ export function StylistInboxScreen() {
                 { cancelable: false },
               );
             });
+            if (!isCurrentAction()) return;
             if (decision === 'cancel') return;
             if (decision === 'continue') debtCheckResolved = true;
           }
         }
 
         await api.post(`/api/reservations/${reservation.id}/stylist/${profileId}/accept`);
+        if (!isCurrentAction()) return;
         await fetchReservations();
       } catch (err: unknown) {
+        if (!isCurrentAction()) return;
         Alert.alert(
           t('common.error'),
           getApiErrorMessage(err, t('stylist.inbox.acceptErrorFallback')),
         );
       } finally {
-        setActingId(null);
+        finishAction(reservation.id, isCurrentAction);
       }
     },
-    [profileId, fetchReservations, t],
-  );
-
-  const handleReject = useCallback(
-    (reservationId: string) => {
-      if (!profileId) return;
-      Alert.alert(
-        t('stylist.inbox.rejectConfirmTitle'),
-        t('stylist.inbox.rejectConfirmMessage'),
-        [
-          { text: t('stylist.inbox.rejectCancel'), style: 'cancel' },
-          { text: t('stylist.inbox.reject'), style: 'destructive', onPress: () => doReject(reservationId, undefined) },
-        ],
-      );
-    },
-    [profileId, t],
+    [beginAction, fetchReservations, finishAction, profileId, t],
   );
 
   const doReject = useCallback(
     async (reservationId: string, rejectionReason?: string) => {
       if (!profileId) return;
-      setActingId(reservationId);
+      const isCurrentAction = beginAction(reservationId);
+      if (!isCurrentAction) return;
       try {
         await api.post(`/api/reservations/${reservationId}/stylist/${profileId}/reject`, {
           rejectionReason: rejectionReason?.trim().slice(0, 500) || undefined,
         });
+        if (!isCurrentAction()) return;
         await fetchReservations();
       } catch (err: unknown) {
+        if (!isCurrentAction()) return;
         Alert.alert(
           t('common.error'),
           getApiErrorMessage(err, t('stylist.inbox.rejectErrorFallback')),
         );
       } finally {
-        setActingId(null);
+        finishAction(reservationId, isCurrentAction);
       }
     },
-    [profileId, fetchReservations, t],
+    [beginAction, fetchReservations, finishAction, profileId, t],
+  );
+
+  const handleReject = useCallback(
+    (reservationId: string) => {
+      if (!profileId || !isCurrentIdentity()) return;
+      Alert.alert(
+        t('stylist.inbox.rejectConfirmTitle'),
+        t('stylist.inbox.rejectConfirmMessage'),
+        [
+          { text: t('stylist.inbox.rejectCancel'), style: 'cancel' },
+          {
+            text: t('stylist.inbox.reject'),
+            style: 'destructive',
+            onPress: () => {
+              if (isCurrentIdentity()) void doReject(reservationId, undefined);
+            },
+          },
+        ],
+      );
+    },
+    [doReject, isCurrentIdentity, profileId, t],
   );
 
   if (profileLoading || (loading && visibleReservations.length === 0)) {

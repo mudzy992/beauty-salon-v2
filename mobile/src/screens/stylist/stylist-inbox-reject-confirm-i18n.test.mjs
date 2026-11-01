@@ -22,7 +22,7 @@ test('stylist inbox rejection-confirmation copy uses Bosnian resources', () => {
 test('rejection alert options and reservation callback remain unchanged', () => {
   assert.match(
     screen,
-    /Alert\.alert\(\s*t\('stylist\.inbox\.rejectConfirmTitle'\),\s*t\('stylist\.inbox\.rejectConfirmMessage'\),\s*\[\s*\{ text: t\('stylist\.inbox\.rejectCancel'\), style: 'cancel' \},\s*\{ text: t\('stylist\.inbox\.reject'\), style: 'destructive', onPress: \(\) => doReject\(reservationId, undefined\) \},\s*\],\s*\)/,
+    /Alert\.alert\(\s*t\('stylist\.inbox\.rejectConfirmTitle'\),\s*t\('stylist\.inbox\.rejectConfirmMessage'\),\s*\[\s*\{ text: t\('stylist\.inbox\.rejectCancel'\), style: 'cancel' \},\s*\{[\s\S]*?text: t\('stylist\.inbox\.reject'\),\s*style: 'destructive',[\s\S]*?if \(isCurrentIdentity\(\)\) void doReject\(reservationId, undefined\);[\s\S]*?\},\s*\},\s*\],\s*\)/,
   )
-  assert.match(screen, /\},\s*\[profileId, t\],\s*\);\s*\n\s*const doReject/)
+  assert.match(screen, /\},\s*\[doReject, isCurrentIdentity, profileId, t\],\s*\);/)
 })

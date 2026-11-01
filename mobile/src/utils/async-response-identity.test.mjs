@@ -114,6 +114,32 @@ test('stylist reservation-detail reads and mutations stay bound to the active ac
   assert.match(staffConfirm, /if \(isCurrentAction\(\)\) setSubmitting\(false\)/);
 });
 
+test('stylist inbox reads and reservation mutations stay bound to the active account and profile', () => {
+  const inbox = source('../screens/stylist/StylistInboxScreen.tsx');
+  assert.match(inbox, /const userId = useAuthStore\(\(state\) => state\.user\?\.id\)/);
+  assert.match(inbox, /reservationsOwner\.userId === userId &&[\s\S]*?reservationsOwner\.profileId === profileId/);
+  assert.match(inbox, /requestIdentityRef\.current\.userId !== userId/);
+  assert.match(inbox, /requestIdentityRef\.current\.profileId !== profileId/);
+  assert.match(inbox, /generation === requestGeneration\.current &&[\s\S]*?isCurrentIdentity\(\)/);
+  assert.match(inbox, /current\.mounted[\s\S]*?useAuthStore\.getState\(\)\.user\?\.id === userId/);
+  assert.match(inbox, /actionIdentityRef\.current\.generation === generation/);
+  assert.match(inbox, /actionIdentityRef\.current\.generation \+= 1/);
+
+  for (const action of ['lock', 'unlock', 'accept', 'reject']) {
+    assert.match(
+      inbox,
+      new RegExp(`await api\\.post\\([\\s\\S]{0,260}\\/${action}[\\s\\S]{0,160}if \\(!isCurrentAction\\(\\)\\) return;`),
+      action,
+    );
+  }
+  assert.match(inbox, /await api\.get<unknown>\('\/api\/client-debts'[\s\S]*?if \(!isCurrentAction\(\)\) return;/);
+  assert.match(inbox, /await confirmDebtWarning\([\s\S]*?if \(!isCurrentAction\(\)\) return;/);
+  assert.match(inbox, /await new Promise<'cancel' \| 'retry' \| 'continue'>[\s\S]*?if \(!isCurrentAction\(\)\) return;/);
+  assert.match(inbox, /onPress: \(\) => \{\s*if \(isCurrentIdentity\(\)\) void doReject\(/);
+  assert.match(inbox, /finally \{\s*finishAction\(/);
+  assert.match(inbox, /finally \{\s*if \(isCurrentIdentity\(\)\) setRefreshing\(false\);/);
+});
+
 test('gallery requests are invalidated on route changes and unmount', () => {
   for (const path of [
     '../screens/client/ServiceWorkGalleryScreen.tsx',
