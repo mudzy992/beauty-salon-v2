@@ -27,5 +27,6 @@ test('daily-log header origin and status labels use Bosnian resources', () => {
 test('header still reflects manual/reservation origin and completion state', () => {
   assert.match(screen, /entry\.isManual\s*\? t\('stylist\.dailyLogDetail\.manualEntryType'\)\s*: t\('stylist\.dailyLogDetail\.reservationEntryType'\)/)
   assert.match(screen, /entry\.status === 'COMPLETED'\s*\? t\('stylist\.dailyLogDetail\.statusCompleted'\)\s*: t\('stylist\.dailyLogDetail\.statusPending'\)/)
-  assert.match(screen, /setOptions\(\{[\s\S]*?accessibilityLabel=\{t\('stylist\.dailyLogDetail\.actionsMenuTitle'\)\}[\s\S]*?\}, \[colors\.headerText, entry, navigation, openActionsMenu, t\]\)/)
+  assert.match(screen, /const canAct = entryMatchesCurrentIdentity && !!entry && entry\.status !== 'COMPLETED'/)
+  assert.match(screen, /setOptions\(\{[\s\S]*?accessibilityLabel=\{t\('stylist\.dailyLogDetail\.actionsMenuTitle'\)\}[\s\S]*?\}, \[colors\.headerText, entry, entryIdentity, entryId, userId, navigation, openActionsMenu, t\]\)/)
 })
