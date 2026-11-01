@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
@@ -9,6 +9,7 @@ import { isClient } from '../../src/utils/roles';
 import { useTheme } from '../../src/hooks/useTheme';
 import { Button } from '../../src/components/ui/Button';
 import api from '../../src/services/api';
+import { getApiErrorMessage } from '../../src/utils/apiError';
 import { spacing } from '../../src/theme';
 import { fontFamily } from '../../src/theme/fonts';
 
@@ -21,6 +22,22 @@ export default function OnboardingGenderRoute() {
     user?.gender === 'MALE' || user?.gender === 'FEMALE' ? user.gender : null,
   );
   const [loading, setLoading] = useState(false);
+  const requestGeneration = useRef(0);
+  const mounted = useRef(true);
+
+  React.useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      requestGeneration.current += 1;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    requestGeneration.current += 1;
+    setLoading(false);
+    setGender(user?.gender === 'MALE' || user?.gender === 'FEMALE' ? user.gender : null);
+  }, [user?.id]);
 
   if (!user) return <Redirect href="/login" />;
   if (!isClient(user)) return <Redirect href="/" />;
@@ -28,24 +45,33 @@ export default function OnboardingGenderRoute() {
     return <Redirect href="/" />;
   }
 
+  const beginRequest = () => {
+    const generation = ++requestGeneration.current;
+    const requestUserId = user.id;
+    return () =>
+      mounted.current &&
+      generation === requestGeneration.current &&
+      useAuthStore.getState().user?.id === requestUserId;
+  };
+
   const handleContinue = async () => {
     if (!gender) {
       Alert.alert(t('common.error'), t('onboarding.genderPickError'));
       return;
     }
+    const isCurrentRequest = beginRequest();
     setLoading(true);
     try {
       await api.put('/api/users/profile', { gender });
+      if (!isCurrentRequest()) return;
       await refreshProfile();
-      router.replace('/');
-    } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
-          : t('common.error');
-      Alert.alert(t('common.error'), Array.isArray(msg) ? msg[0] : String(msg ?? t('common.error')));
+      if (isCurrentRequest()) router.replace('/');
+    } catch (error: unknown) {
+      if (isCurrentRequest()) {
+        Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
+      }
     } finally {
-      setLoading(false);
+      if (isCurrentRequest()) setLoading(false);
     }
   };
 

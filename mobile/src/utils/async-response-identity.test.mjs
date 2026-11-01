@@ -24,6 +24,20 @@ test('debounced stylist client searches discard older responses and validate the
   assert.match(form, /clearTimeout\(handle\)/);
 });
 
+test('onboarding mutations do not continue after the active user changes or the route unmounts', () => {
+  for (const path of [
+    '../../app/onboarding/email.tsx',
+    '../../app/onboarding/phone.tsx',
+    '../../app/onboarding/gender.tsx',
+  ]) {
+    const screen = source(path);
+    assert.match(screen, /useAuthStore\.getState\(\)\.user\?\.id === requestUserId/, path);
+    assert.match(screen, /mounted\.current = false;\s*requestGeneration\.current \+= 1/, path);
+    assert.match(screen, /if \(!isCurrentRequest\(\)\) return;/, path);
+    assert.match(screen, /getApiErrorMessage\(error, t\('common\.error'\)\)/, path);
+  }
+});
+
 test('gallery requests are invalidated on route changes and unmount', () => {
   for (const path of [
     '../screens/client/ServiceWorkGalleryScreen.tsx',
