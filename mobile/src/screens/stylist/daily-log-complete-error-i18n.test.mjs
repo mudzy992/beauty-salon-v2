@@ -18,6 +18,9 @@ test('daily-log completion uses the shared safe API error parser and keeps the f
     screen,
     /getApiErrorMessage\(err, t\('stylist\.dailyLogDetail\.completeErrorFallback'\)\)/,
   )
-  assert.match(screen, /await api\.post\(`\/api\/daily-log\/\$\{entryId\}\/complete`\);\s*await fetchEntry\(\)/)
-  assert.match(screen, /\}, \[entryId, fetchEntry, entry\?\.reservationId, navigation, t\]\);/)
+  assert.match(
+    screen,
+    /await api\.post\(`\/api\/daily-log\/\$\{entryId\}\/complete`\);\s*if \(!isCurrentAction\(\)\) return;\s*await fetchEntry\(\)/,
+  )
+  assert.match(screen, /\}, \[entryId, fetchEntry, entry\?\.reservationId, navigation, t, beginAction\]\);/)
 })

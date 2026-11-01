@@ -26,6 +26,9 @@ test('reservation-dependent prompt, alert actions, and completion callback remai
     screen,
     /Alert\.alert\(\s*t\('stylist\.dailyLogDetail\.completeConfirmTitle'\),\s*entry\?\.reservationId\s*\? t\('stylist\.dailyLogDetail\.completeConfirmWithReservation'\)\s*:\s*t\('stylist\.dailyLogDetail\.completeConfirmStandalone'\),\s*\[\s*\{ text: t\('stylist\.dailyLogDetail\.completeConfirmCancel'\), style: 'cancel' \},\s*\{\s*text: t\('stylist\.dailyLogDetail\.completeConfirmAction'\),\s*onPress: async \(\) => \{/,
   )
-  assert.match(screen, /await api\.post\(`\/api\/daily-log\/\$\{entryId\}\/complete`\);\s*await fetchEntry\(\)/)
-  assert.match(screen, /\}, \[entryId, fetchEntry, entry\?\.reservationId, navigation, t\]\);/)
+  assert.match(
+    screen,
+    /await api\.post\(`\/api\/daily-log\/\$\{entryId\}\/complete`\);\s*if \(!isCurrentAction\(\)\) return;\s*await fetchEntry\(\)/,
+  )
+  assert.match(screen, /\}, \[entryId, fetchEntry, entry\?\.reservationId, navigation, t, beginAction\]\);/)
 })
