@@ -24,10 +24,10 @@ import { spacing } from '../../theme';
 import type { Service } from '../../types';
 import { getSalonDateOnly } from '../../utils/date';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { parseCreatedDailyLogEntryId } from '../../utils/apiPayload';
 import { DailyLogEntryPricingBlock } from './DailyLogEntryPricingBlock';
 import {
   computeCharge,
-  parseCreatedDailyLogEntryId,
   parsePaid,
   type OpenDebtRow,
 } from './daily-log-entry-math';

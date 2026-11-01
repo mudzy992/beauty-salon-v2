@@ -17,3 +17,13 @@ test('completion debt reads preserve prior data and distinguish failure from an 
   assert.match(modal, /!clientDebtsLoading && !clientDebtsError && clientDebts\.length === 0/)
   assert.match(modal, /disabled=\{clientDebtsLoading \|\| clientDebtsError\}/)
 })
+
+test('completion mutation validates the created entry ID and avoids re-submission on ambiguous success', () => {
+  assert.match(hook, /api\.post<unknown>\([\s\S]*?\/api\/daily-log\/from-reservation/)
+  assert.match(hook, /parseCreatedDailyLogEntryId\(response\)/)
+  assert.match(
+    hook,
+    /if \(!entryId\) \{\s*setCompleteModalOpen\(false\);\s*await fetchReservation\(\);\s*await fetchClientDebts\(reservation\.clientId\);\s*Alert\.alert\(t\('common\.error'\), t\('stylist\.dailyLogDetail\.saveResponseFallback'\)\);\s*return;/,
+  )
+  assert.match(hook, /params: \{ entryId \}/)
+})

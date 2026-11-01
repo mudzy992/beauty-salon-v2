@@ -41,6 +41,7 @@ const {
   normalizeClientDebts,
   normalizeClientSearchResults,
   normalizeDailyLogEntries,
+  parseCreatedDailyLogEntryId,
   normalizeDebtAmounts,
   normalizeLoyaltyPreview,
   normalizeNotifications,
@@ -232,6 +233,14 @@ test('reservation and daily-log parsers reject malformed envelopes and filter un
   assert.equal(normalizeDailyLogEntries([dailyLog, null]).length, 1);
   assert.equal(normalizeDailyLogEntries([{ ...dailyLog, actualPrice: 'not-money' }]).length, 0);
   assert.equal(normalizeDailyLogEntries({ items: [dailyLog] }), null);
+});
+
+test('created daily-log entry ID parser accepts only non-empty string IDs', () => {
+  assert.equal(parseCreatedDailyLogEntryId({ id: ' entry-1 ' }), 'entry-1');
+  assert.equal(parseCreatedDailyLogEntryId(null), null);
+  assert.equal(parseCreatedDailyLogEntryId([]), null);
+  assert.equal(parseCreatedDailyLogEntryId({ id: 12 }), null);
+  assert.equal(parseCreatedDailyLogEntryId({ id: ' ' }), null);
 });
 
 test('reservation detail parser validates the reservation and payment amounts consumed by the detail screen', () => {

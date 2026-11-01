@@ -28,7 +28,7 @@ function loadTypeScriptModule(relativePath) {
   return loadedModule.exports
 }
 
-const { parseCreatedDailyLogEntryId } = loadTypeScriptModule('./daily-log-entry-math.ts')
+const { parseCreatedDailyLogEntryId } = loadTypeScriptModule('../../utils/apiPayload.ts')
 const screen = readFileSync(new URL('./DailyLogNewEntryScreen.tsx', import.meta.url), 'utf8')
 
 test('daily-log create response parser accepts only a non-empty string ID', () => {

@@ -38,14 +38,6 @@ export const computeCharge = (opts: {
   return { servicesSum, loyaltyDiscount, debtsSum, chargeAmount };
 };
 
-export const parseCreatedDailyLogEntryId = (payload: unknown): string | null => {
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload) || !('id' in payload)) {
-    return null;
-  }
-  const id = payload.id;
-  return typeof id === 'string' && id.trim() ? id.trim() : null;
-};
-
 export const parsePaid = (raw: string, fallback: number): number => {
   const trimmed = raw.trim();
   if (!trimmed) return fallback;

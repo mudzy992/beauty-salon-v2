@@ -566,6 +566,11 @@ export function normalizeDailyLogEntries(payload: unknown): DailyLogEntry[] | nu
   return payload.filter(isDailyLogRow);
 }
 
+export function parseCreatedDailyLogEntryId(payload: unknown): string | null {
+  if (!isRecord(payload) || !isNonEmptyString(payload.id)) return null;
+  return payload.id.trim();
+}
+
 export interface StylistDebtRowPayload extends ClientDebt {
   client: { id: string; username: string; firstName: string | null; lastName: string | null };
   reservation?: { id: string; publicReferenceCode: string | null } | null;

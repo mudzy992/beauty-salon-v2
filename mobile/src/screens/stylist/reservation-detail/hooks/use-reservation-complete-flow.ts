@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import api from '../../../../services/api';
-import type { ClientDebt, DailyLogEntry, Reservation } from '../../../../types';
+import type { ClientDebt, Reservation } from '../../../../types';
 import type {
   NativeStackNavigationProp,
   StylistScheduleStackParamList,
 } from '../../../../navigation/types';
 import { computeCompleteMinCharge, getApiErrorMessage } from '../utils/reservation-detail';
-import { normalizeClientDebts } from '../../../../utils/apiPayload';
+import { normalizeClientDebts, parseCreatedDailyLogEntryId } from '../../../../utils/apiPayload';
 
 type Navigation = NativeStackNavigationProp<
   StylistScheduleStackParamList,
@@ -25,6 +26,7 @@ export const useReservationCompleteFlow = ({
   fetchReservation,
   navigation,
 }: UseReservationCompleteFlowParams) => {
+  const { t } = useTranslation();
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [completeActualPrice, setCompleteActualPrice] = useState('');
   const [completeNotes, setCompleteNotes] = useState('');
@@ -116,7 +118,7 @@ export const useReservationCompleteFlow = ({
     setCompleteSubmitting(true);
     try {
       const selectedDebts = clientDebts.filter((d) => selectedDebtIds[d.id]);
-      const { data: entry } = await api.post<DailyLogEntry>(
+      const { data: response } = await api.post<unknown>(
         `/api/daily-log/from-reservation/${reservation.id}`,
         {
           paidAmount: paidRaw,
@@ -126,12 +128,20 @@ export const useReservationCompleteFlow = ({
           notes: completeNotes.trim() || undefined,
         },
       );
+      const entryId = parseCreatedDailyLogEntryId(response);
+      if (!entryId) {
+        setCompleteModalOpen(false);
+        await fetchReservation();
+        await fetchClientDebts(reservation.clientId);
+        Alert.alert(t('common.error'), t('stylist.dailyLogDetail.saveResponseFallback'));
+        return;
+      }
       setCompleteModalOpen(false);
       await fetchReservation();
       await fetchClientDebts(reservation.clientId);
       (
         navigation.getParent() as { navigate: (name: string, params: object) => void } | undefined
-      )?.navigate('DailyLogTab', { screen: 'DailyLogDetail', params: { entryId: entry.id } });
+      )?.navigate('DailyLogTab', { screen: 'DailyLogDetail', params: { entryId } });
     } catch (err: unknown) {
       Alert.alert('Greška', getApiErrorMessage(err, 'Greška pri upisu.'));
     } finally {
