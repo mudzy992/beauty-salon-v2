@@ -109,18 +109,17 @@ test('notification parser rejects malformed envelope, entries and primitive fiel
   assert.equal(normalizeNotifications([{ ...valid, sentAt: 'not-a-date' }]), null);
 });
 
-test('before-after parser filters incomplete nested media rows and normalizes usable paths', () => {
-  const rows = normalizeBeforeAfterPairs([
-    {
-      id: 'pair-1',
-      before: { pathMedium: 'private/before.webp' },
-      after: { pathOriginal: 'private/after.webp', pathThumb: null },
-    },
-    { id: 'pair-2', before: null, after: { pathOriginal: 'private/after.jpg' } },
-    { id: 'pair-3', before: { pathOriginal: 'private/before.jpg' }, after: {} },
-  ]);
+test('before-after parser rejects partial malformed pages and normalizes complete rows', () => {
+  const pair = {
+    id: 'pair-1',
+    before: { pathMedium: 'private/before.webp' },
+    after: { pathOriginal: 'private/after.webp', pathThumb: null },
+  };
+  const rows = normalizeBeforeAfterPairs([pair]);
   assert.equal(rows.length, 1);
   assert.equal(rows[0].before.pathOriginal, 'private/before.webp');
+  assert.equal(normalizeBeforeAfterPairs([pair, { id: 'pair-2', before: null, after: {} }]), null);
+  assert.equal(normalizeBeforeAfterPairs([]).length, 0);
   assert.equal(normalizeBeforeAfterPairs({ items: [] }), null);
 });
 
@@ -131,12 +130,11 @@ test('before-after page parser requires a coherent pagination envelope', () => {
   assert.equal(normalizeBeforeAfterPage({ items: [], hasMore: false, nextOffset: -1 }), null);
 });
 
-test('stylist client-search parser validates the paged envelope and filters malformed users', () => {
-  const clients = normalizeClientSearchResults({ items: [
-    { id: 'u-1', username: 'amina', firstName: null, lastName: 'K.', gender: 'FEMALE' },
-    { id: 'bad', username: 5, firstName: null, lastName: null },
-  ] });
-  assert.deepEqual(clients, [{ id: 'u-1', username: 'amina', firstName: null, lastName: 'K.', gender: 'FEMALE' }]);
+test('stylist client-search parser validates the paged envelope and every returned user', () => {
+  const client = { id: 'u-1', username: 'amina', firstName: null, lastName: 'K.', gender: 'FEMALE' };
+  assert.deepEqual(normalizeClientSearchResults({ items: [client] }), [client]);
+  assert.equal(normalizeClientSearchResults({ items: [client, { id: 'bad', username: 5, firstName: null, lastName: null }] }), null);
+  assert.equal(normalizeClientSearchResults({ items: [] }).length, 0);
   assert.equal(normalizeClientSearchResults({}), null);
 });
 
@@ -146,7 +144,7 @@ test('public service parser matches the active-only API DTO and rejects malforme
     price: 25, gender: 'FEMALE', isActive: true, sortOrder: 0,
     subcategory: { id: 'sub-1', categoryId: 'cat-1', name: 'Njega' },
   };
-  assert.equal(normalizePublicServices([service, { ...service, id: null }]).length, 1);
+  assert.equal(normalizePublicServices([service, { ...service, id: null }]), null);
   const publicServiceDto = { ...service, subcategory: {
     id: 'sub-1', categoryId: 'cat-1', name: 'Njega', category: { id: 'cat-1', name: 'Žene' },
   } };
@@ -156,7 +154,10 @@ test('public service parser matches the active-only API DTO and rejects malforme
   assert.equal(normalizePublicServices([{ ...service, isActive: 'true' }]), null);
   assert.equal(normalizePublicServices([{ id: 'invalid' }]), null);
   assert.equal(normalizePublicServices([]).length, 0);
-  assert.equal(normalizePublicServiceCategories([{ id: 'cat-1', name: 'Žene', sortOrder: 0, isActive: true }]).length, 1);
+  const category = { id: 'cat-1', name: 'Žene', sortOrder: 0, isActive: true };
+  assert.deepEqual(normalizePublicServiceCategories([category]), [category]);
+  assert.equal(normalizePublicServiceCategories([category, null]), null);
+  assert.equal(normalizePublicServiceCategories([]).length, 0);
   assert.equal(normalizePublicServiceCategories({ items: [] }), null);
 });
 
@@ -203,16 +204,17 @@ test('blog comments parser validates legacy and paginated entries and rejects ma
   }, 20, 0), null);
 });
 
-test('public review page parser validates pagination and filters malformed reviews', () => {
+test('public review page parser validates pagination and rejects partial malformed pages', () => {
+  const review = { id: 'rev-1', serviceRating: 5, createdAt: '2026-10-30T10:00:00Z', comment: 'Odlično', user: { firstName: 'Amina', lastName: 'K.' } };
   const page = normalizePublicReviewPage({
-    items: [
-      { id: 'rev-1', serviceRating: 5, createdAt: '2026-10-30T10:00:00Z', comment: 'Odlično', user: { firstName: 'Amina', lastName: 'K.' } },
-      { id: 'rev-bad', serviceRating: 9, createdAt: 'today' },
-    ],
-    total: 1, hasMore: false, nextOffset: 1,
+    items: [review], total: 2, limit: 20, offset: 0, hasMore: true, nextOffset: 1,
   }, 0, 20);
   assert.equal(page.items.length, 1);
   assert.equal(page.items[0].user.firstName, 'Amina');
+  assert.equal(normalizePublicReviewPage({
+    items: [review, { id: 'rev-bad', serviceRating: 9, createdAt: 'today' }],
+    total: 2, limit: 20, offset: 0, hasMore: false, nextOffset: 2,
+  }, 0, 20), null);
   assert.equal(normalizePublicReviewPage({ items: [], total: -1 }, 0, 20), null);
   assert.equal(normalizePublicReviewPage('invalid', 0, 20), null);
 });
@@ -223,17 +225,21 @@ test('catalog pagination helper throws rather than masking malformed envelopes a
   assert.match(catalogSource, /Invalid service catalogue pagination metadata/);
 });
 
-test('reservation and daily-log parsers reject malformed envelopes and filter unsafe rows', () => {
-  assert.deepEqual(normalizeReservations([reservation, null, { id: 'bad' }]).map((row) => row.id), ['r-1']);
+test('reservation and daily-log parsers reject partial malformed lists instead of implying empty results', () => {
+  assert.deepEqual(normalizeReservations([reservation]), [reservation]);
+  assert.equal(normalizeReservations([]).length, 0);
+  assert.equal(normalizeReservations([reservation, null]), null);
   assert.equal(normalizeReservations({ data: [reservation] }), null);
-  assert.equal(normalizeReservations([{ ...reservation, items: [null] }]).length, 0);
+  assert.equal(normalizeReservations([{ ...reservation, items: [null] }]), null);
 
   const dailyLog = {
     id: 'entry-1', date: '2026-10-30', status: 'COMPLETED',
     actualPrice: 25, tipAmount: 0, items: [], debtPaymentEntries: [],
   };
-  assert.equal(normalizeDailyLogEntries([dailyLog, null]).length, 1);
-  assert.equal(normalizeDailyLogEntries([{ ...dailyLog, actualPrice: 'not-money' }]).length, 0);
+  assert.deepEqual(normalizeDailyLogEntries([dailyLog]), [dailyLog]);
+  assert.equal(normalizeDailyLogEntries([]).length, 0);
+  assert.equal(normalizeDailyLogEntries([dailyLog, null]), null);
+  assert.equal(normalizeDailyLogEntries([{ ...dailyLog, actualPrice: 'not-money' }]), null);
   assert.equal(normalizeDailyLogEntries({ items: [dailyLog] }), null);
 });
 

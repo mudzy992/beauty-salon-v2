@@ -86,7 +86,7 @@ export function normalizePublicServices(payload: unknown): Service[] | null {
     }
     return true;
   });
-  if (payload.length > 0 && services.length === 0) return null;
+  if (services.length !== payload.length) return null;
   // The public catalog endpoint filters to active services but intentionally omits isActive.
   return services.map((service) => ({ ...service, isActive: true }));
 }
@@ -234,7 +234,7 @@ export function normalizePublicServiceCategories(payload: unknown): ServiceCateg
     isFiniteNumber(row.sortOrder) && typeof row.isActive === 'boolean' &&
     isOptionalString(row.description)
   );
-  return payload.length > 0 && categories.length === 0 ? null : categories;
+  return categories.length === payload.length ? categories : null;
 }
 
 export interface PublicReviewPayload {
@@ -305,11 +305,17 @@ export function normalizePublicReviewPage(
     hasMore = payload.hasMore as boolean | undefined;
     nextOffset = payload.nextOffset === undefined ? offset + rawItems.length : payload.nextOffset as number;
     if (!Number.isSafeInteger(total) || total < 0) return null;
+    if (payload.limit !== pageSize || payload.offset !== offset) return null;
     if (hasMore !== undefined && typeof hasMore !== 'boolean') return null;
-    if (!Number.isSafeInteger(nextOffset) || nextOffset < 0) return null;
+    if (!Number.isSafeInteger(nextOffset) || nextOffset !== offset + rawItems.length || nextOffset > total) return null;
+    if (hasMore && (rawItems.length === 0 || nextOffset >= total)) return null;
   }
-  const items = rawItems.map(normalizePublicReview).filter((item): item is PublicReviewPayload => item !== null);
-  if (rawItems.length > 0 && items.length === 0) return null;
+  const items: PublicReviewPayload[] = [];
+  for (const rawItem of rawItems) {
+    const item = normalizePublicReview(rawItem);
+    if (!item) return null;
+    items.push(item);
+  }
   const effectiveNextOffset = nextOffset;
   return {
     items,
@@ -429,10 +435,10 @@ export function normalizeBeforeAfterPairs(payload: unknown): BeforeAfterPairPayl
   if (!Array.isArray(payload)) return null;
   const result: BeforeAfterPairPayload[] = [];
   for (const row of payload) {
-    if (!isRecord(row) || !isNonEmptyString(row.id)) continue;
+    if (!isRecord(row) || !isNonEmptyString(row.id)) return null;
     const before = normalizeImageSide(row.before);
     const after = normalizeImageSide(row.after);
-    if (!before || !after) continue;
+    if (!before || !after) return null;
     result.push({ id: row.id, before, after });
   }
   return result;
@@ -483,7 +489,12 @@ function isReservationRow(row: unknown): row is Reservation {
 
 export function normalizeReservations(payload: unknown): Reservation[] | null {
   if (!Array.isArray(payload)) return null;
-  return payload.filter(isReservationRow);
+  const reservations: Reservation[] = [];
+  for (const row of payload) {
+    if (!isReservationRow(row)) return null;
+    reservations.push(row);
+  }
+  return reservations;
 }
 
 export type ReservationDetailPayload = Reservation & {
@@ -530,9 +541,8 @@ export interface ClientSearchRow {
   gender?: 'MALE' | 'FEMALE' | null;
 }
 
-export function normalizeClientSearchResults(payload: unknown): ClientSearchRow[] | null {
-  if (!isRecord(payload) || !Array.isArray(payload.items)) return null;
-  return payload.items.filter((row): row is ClientSearchRow =>
+function isClientSearchRow(row: unknown): row is ClientSearchRow {
+  return Boolean(
     isRecord(row) &&
     isNonEmptyString(row.id) &&
     isNonEmptyString(row.username) &&
@@ -540,6 +550,12 @@ export function normalizeClientSearchResults(payload: unknown): ClientSearchRow[
     (row.lastName === null || typeof row.lastName === 'string') &&
     (row.gender === undefined || row.gender === null || row.gender === 'MALE' || row.gender === 'FEMALE')
   );
+}
+
+export function normalizeClientSearchResults(payload: unknown): ClientSearchRow[] | null {
+  if (!isRecord(payload) || !Array.isArray(payload.items)) return null;
+  const results = payload.items.filter(isClientSearchRow);
+  return results.length === payload.items.length ? results : null;
 }
 
 function isDailyLogRow(row: unknown): row is DailyLogEntry {
@@ -563,7 +579,12 @@ function isDailyLogRow(row: unknown): row is DailyLogEntry {
 
 export function normalizeDailyLogEntries(payload: unknown): DailyLogEntry[] | null {
   if (!Array.isArray(payload)) return null;
-  return payload.filter(isDailyLogRow);
+  const entries: DailyLogEntry[] = [];
+  for (const row of payload) {
+    if (!isDailyLogRow(row)) return null;
+    entries.push(row);
+  }
+  return entries;
 }
 
 export interface DailyLogClientOption {
