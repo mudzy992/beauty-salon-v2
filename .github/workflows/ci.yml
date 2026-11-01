@@ -683,6 +683,9 @@ jobs:
       - name: Test localized mobile daily-log header
         working-directory: mobile
         run: npm run test:stylist-daily-log-header-i18n
+      - name: Test localized stylist daily-log debt list copy
+        working-directory: mobile
+        run: npm run test:stylist-debts-i18n
       - name: Test localized mobile daily-log disposition reorder dialog
         working-directory: mobile
         run: npm run test:stylist-daily-log-disposition-reorder-i18n

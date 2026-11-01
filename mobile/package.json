@@ -116,6 +116,7 @@
     "test:stylist-daily-log-photos-i18n": "node --test src/screens/stylist/daily-log-photos-i18n.test.mjs",
     "test:stylist-daily-log-summary-i18n": "node --test src/screens/stylist/daily-log-summary-i18n.test.mjs",
     "test:stylist-daily-log-header-i18n": "node --test src/screens/stylist/daily-log-header-i18n.test.mjs",
+    "test:stylist-debts-i18n": "node --test src/screens/stylist/stylist-debts-i18n.test.mjs",
     "test:stylist-daily-log-disposition-reorder-i18n": "node --test src/screens/stylist/daily-log-disposition-reorder-i18n.test.mjs",
     "test:stylist-daily-log-disposition-actions-i18n": "node --test src/screens/stylist/daily-log-disposition-actions-i18n.test.mjs",
     "test:stylist-daily-log-disposition-shell-i18n": "node --test src/screens/stylist/daily-log-disposition-shell-i18n.test.mjs",
