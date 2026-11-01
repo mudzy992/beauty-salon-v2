@@ -31,8 +31,10 @@ test('daily-log detail validates its payload, retains stale entry, and supports 
   assert.match(dailyLogDetail, /entries\.length !== 1/);
   assert.match(dailyLogDetail, /generation !== requestGeneration\.current/);
   assert.match(dailyLogDetail, /requestGeneration\.current \+= 1/);
-  assert.match(dailyLogDetail, /requestEntryId\.current !== entryId/);
-  assert.match(dailyLogDetail, /if \(loading && !entry\)/);
+  assert.match(dailyLogDetail, /requestIdentity\.current\.entryId !== entryId/);
+  assert.match(dailyLogDetail, /requestIdentity\.current\.userId !== userId/);
+  assert.match(dailyLogDetail, /entryIdentity\?\.entryId === entryId && entryIdentity\.userId === userId/);
+  assert.match(dailyLogDetail, /if \(!entryMatchesCurrentIdentity \|\| \(loading && !entry\)\)/);
   assert.match(dailyLogDetail, /setEntry\(entries\[0\]\)/);
   assert.match(dailyLogDetail, /stylist\.dailyLogDetail\.loadErrorTitle/);
   assert.match(dailyLogDetail, /onPress=\{\(\) => void fetchEntry\(\)\}/);
