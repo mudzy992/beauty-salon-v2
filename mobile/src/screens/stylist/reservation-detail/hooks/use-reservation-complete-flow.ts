@@ -105,11 +105,11 @@ export const useReservationCompleteFlow = ({
     if (!reservation) return;
     const paidRaw = parseFloat(completeActualPrice.replace(',', '.'));
     if (isNaN(paidRaw) || paidRaw < 0) {
-      Alert.alert('Greška', 'Unesite ispravan iznos naplaćenog računa.');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.paidAmountInvalid'));
       return;
     }
     if (selectedDebtSum > 0 && paidRaw < selectedDebtSum) {
-      Alert.alert('Greška', 'Nedovoljno za naplatu označenih dugova.');
+      Alert.alert(t('common.error'), t('stylist.dailyLogDetail.settledDebtAmountInsufficient'));
       return;
     }
     const shortfall = Math.max(0, completeChargeAmount - paidRaw);
@@ -143,7 +143,10 @@ export const useReservationCompleteFlow = ({
         navigation.getParent() as { navigate: (name: string, params: object) => void } | undefined
       )?.navigate('DailyLogTab', { screen: 'DailyLogDetail', params: { entryId } });
     } catch (err: unknown) {
-      Alert.alert('Greška', getApiErrorMessage(err, 'Greška pri upisu.'));
+      Alert.alert(
+        t('common.error'),
+        getApiErrorMessage(err, t('stylist.reservationDetail.complete.errorFallback')),
+      );
     } finally {
       setCompleteSubmitting(false);
     }
@@ -159,6 +162,7 @@ export const useReservationCompleteFlow = ({
     clientDebts,
     selectedDebtIds,
     fetchClientDebts,
+    t,
   ]);
 
   const handleToggleDebt = useCallback((debtId: string) => {

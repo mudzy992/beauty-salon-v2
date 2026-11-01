@@ -4,6 +4,8 @@ import test from 'node:test'
 
 const resource = readFileSync(new URL('../../../i18n/bs.ts', import.meta.url), 'utf8')
 const actions = readFileSync(new URL('./reservation-detail-actions.tsx', import.meta.url), 'utf8')
+const actionHook = readFileSync(new URL('./hooks/use-reservation-detail-actions.ts', import.meta.url), 'utf8')
+const attendanceHook = readFileSync(new URL('./hooks/use-staff-confirm-attendance.ts', import.meta.url), 'utf8')
 const actionTranslations = resource.match(/actions:\s*\{([\s\S]*?)\n\s*\},\n\s*cancel:/)?.[1]
 
 test('stylist reservation action labels use the Bosnian translation resources', () => {
@@ -25,6 +27,15 @@ test('stylist reservation action labels use the Bosnian translation resources', 
   assert.ok(actions.includes("t('stylist.schedule.completeSubmit')"))
   assert.ok(actions.includes("t('stylist.schedule.cancelWithReason')"))
   assert.doesNotMatch(actions, /Potvrdi dolazak|Obradi kašnjenje termina|Startuj rezervaciju|no-show|\(reorder\)/)
+})
+
+test('reservation start and attendance failures use localized titles and safe error fallbacks', () => {
+  assert.match(actionTranslations, /startErrorFallback:/)
+  assert.match(actionTranslations, /confirmAttendanceErrorFallback:/)
+  assert.match(actionHook, /Alert\.alert\(\s*t\('common\.error'\),\s*getApiErrorMessage\(err, t\('stylist\.reservationDetail\.actions\.startErrorFallback'\)\)/)
+  assert.match(attendanceHook, /Alert\.alert\(\s*t\('common\.error'\),\s*getApiErrorMessage\(err, t\('stylist\.reservationDetail\.actions\.confirmAttendanceErrorFallback'\)\)/)
+  assert.doesNotMatch(actionHook, /Alert\.alert\('Greška'|Greška pri startovanju/)
+  assert.doesNotMatch(attendanceHook, /Alert\.alert\('Greška'|Greška pri potvrdi dolaska/)
 })
 
 test('reservation action visibility and callbacks remain unchanged', () => {

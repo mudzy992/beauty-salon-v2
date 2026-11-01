@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import api from '../../../../services/api';
 import { getApiErrorMessage } from '../utils/reservation-detail';
@@ -13,6 +14,7 @@ export const useStaffConfirmAttendance = ({
   reservationId,
   fetchReservation,
 }: UseStaffConfirmAttendanceParams) => {
+  const { t } = useTranslation();
   const [submitting, setSubmitting] = useState(false);
 
   const submit = useCallback(async () => {
@@ -22,11 +24,14 @@ export const useStaffConfirmAttendance = ({
       await api.post(`/api/reservations/${reservationId}/staff-confirm-attendance`);
       await fetchReservation();
     } catch (err) {
-      Alert.alert('Greška', getApiErrorMessage(err, 'Greška pri potvrdi dolaska'));
+      Alert.alert(
+        t('common.error'),
+        getApiErrorMessage(err, t('stylist.reservationDetail.actions.confirmAttendanceErrorFallback')),
+      );
     } finally {
       setSubmitting(false);
     }
-  }, [reservationId, fetchReservation]);
+  }, [reservationId, fetchReservation, t]);
 
   return { submitting, submit };
 };

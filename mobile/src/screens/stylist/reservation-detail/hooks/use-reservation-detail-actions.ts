@@ -82,11 +82,14 @@ export const useReservationDetailActions = ({
       await fetchReservation();
       navigation.goBack();
     } catch (err: unknown) {
-      Alert.alert('Greška', getApiErrorMessage(err, 'Greška pri startovanju.'));
+      Alert.alert(
+        t('common.error'),
+        getApiErrorMessage(err, t('stylist.reservationDetail.actions.startErrorFallback')),
+      );
     } finally {
       setStartSubmitting(false);
     }
-  }, [reservation, fetchReservation, navigation]);
+  }, [reservation, fetchReservation, navigation, t]);
 
   const openCancel = useCallback(() => {
     setCancelReason('');

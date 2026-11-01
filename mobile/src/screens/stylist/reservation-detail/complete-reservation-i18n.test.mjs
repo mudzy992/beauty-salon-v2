@@ -4,6 +4,7 @@ import test from 'node:test'
 
 const resource = readFileSync(new URL('../../../i18n/bs.ts', import.meta.url), 'utf8')
 const modal = readFileSync(new URL('./complete-reservation-modal.tsx', import.meta.url), 'utf8')
+const completionFlow = readFileSync(new URL('./hooks/use-reservation-complete-flow.ts', import.meta.url), 'utf8')
 const completionTranslations = resource.match(/complete:\s*\{([\s\S]*?)\n\s*\},\n\s*actions:/)?.[1]
 
 test('stylist reservation completion copy uses Bosnian translation resources', () => {
@@ -34,6 +35,15 @@ test('stylist reservation completion copy uses Bosnian translation resources', (
     modal,
     /Naplaćeno \(KM\)|Za naplatu:|klijent želi platiti dug|Napojnica:|Zavedi dug|Dugovanja klijenta|Nema otvorenih dugovanja|Dug kod vas|Odabrana dugovanja|Ukupno za dugovanja|Napomena \(opciono\)/,
   )
+})
+
+test('reservation completion validation and mutation errors use localized copy', () => {
+  assert.match(completionTranslations, /errorFallback: 'Greška pri upisu dnevnika\.'/)
+  assert.match(completionFlow, /t\('stylist\.dailyLogDetail\.paidAmountInvalid'\)/)
+  assert.match(completionFlow, /t\('stylist\.dailyLogDetail\.settledDebtAmountInsufficient'\)/)
+  assert.match(completionFlow, /getApiErrorMessage\(err, t\('stylist\.reservationDetail\.complete\.errorFallback'\)\)/)
+  assert.match(completionFlow, /Alert\.alert\(t\('common\.error'\), t\('stylist\.dailyLogDetail\.paidAmountInvalid'\)\)/)
+  assert.doesNotMatch(completionFlow, /Alert\.alert\('Greška'|Unesite ispravan iznos naplaćenog računa|Nedovoljno za naplatu označenih dugova|Greška pri upisu\./)
 })
 
 test('reservation completion calculations and interactions remain unchanged', () => {
