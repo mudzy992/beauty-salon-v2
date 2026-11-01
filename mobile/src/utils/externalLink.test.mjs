@@ -49,8 +49,9 @@ test('external link opener reports rejected OS links without throwing', async ()
   assert.equal(await tryOpenExternalUrl('javascript:alert(1)', ['https'], async () => {}), false);
 });
 
-test('Contact screen routes social, phone, email and maps links through guarded handlers', () => {
+test('Contact and Home screens route social, phone, email and maps links through guarded handlers', () => {
   const screen = readFileSync(new URL('../screens/client/ContactScreen.tsx', import.meta.url), 'utf8');
+  const homeScreen = readFileSync(new URL('../screens/client/HomeScreen.tsx', import.meta.url), 'utf8');
   assert.match(screen, /tryOpenExternalUrl\(nativeUrl, \[nativeScheme\]/);
   assert.match(screen, /tryOpenExternalUrl\(webUrl, \['https'\]/);
   assert.match(screen, /openExternal\(`tel:\$\{phone\.replace/);
@@ -58,4 +59,12 @@ test('Contact screen routes social, phone, email and maps links through guarded 
   assert.match(screen, /openExternal\(url, \['https', 'http'\]\)/);
   assert.match(screen, /showLinkError\(\)/);
   assert.doesNotMatch(screen, /onPress=\{\(\) => Linking\.openURL/);
+
+  assert.match(homeScreen, /openExternal\(`tel:\$\{phone\}`, \['tel'\]\)/);
+  assert.match(homeScreen, /openExternal\(`mailto:\$\{email\}`, \['mailto'\]\)/);
+  for (const social of ['facebook', 'instagram', 'tiktok']) {
+    assert.ok(homeScreen.includes(`openExternal(${social}, ['https', 'http'])`));
+  }
+  assert.match(homeScreen, /t\('profile\.contact\.openLinkError'\)/);
+  assert.doesNotMatch(homeScreen, /onPress=\{\(\) => Linking\.openURL/);
 });

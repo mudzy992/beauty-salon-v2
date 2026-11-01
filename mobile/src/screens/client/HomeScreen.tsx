@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   Pressable,
+  Alert,
   Linking,
   type StyleProp,
   type ViewStyle,
@@ -38,6 +39,7 @@ import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import type { HomeScreenProps } from '../../navigation/types';
 import type { Service, BlogPost, ServiceCategory, Reservation, ReservationStatus } from '../../types';
 import { formatDateOnlyLocale, formatInstantDateLocale, isUpcoming } from '../../utils/date';
+import { tryOpenExternalUrl, type ExternalLinkScheme } from '../../utils/externalLink';
 import {
   isRecord,
   normalizeBeforeAfterPage,
@@ -235,6 +237,19 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const [openDebtsTotal, setOpenDebtsTotal] = useState(0);
   const [openDebtsCount, setOpenDebtsCount] = useState(0);
   const [upcomingReservation, setUpcomingReservation] = useState<Reservation | null>(null);
+
+  const showLinkError = useCallback(() => {
+    Alert.alert(t('common.error'), t('profile.contact.openLinkError'));
+  }, [t]);
+
+  const openExternal = useCallback(async (
+    value: unknown,
+    schemes: readonly ExternalLinkScheme[],
+  ) => {
+    if (!(await tryOpenExternalUrl(value, schemes, (url) => Linking.openURL(url)))) {
+      showLinkError();
+    }
+  }, [showLinkError]);
 
   const fetchData = useCallback(async () => {
     const generation = ++homeRequestGeneration.current;
@@ -874,7 +889,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 ) : null}
                 {phone ? (
                   <TouchableOpacity
-                    onPress={() => Linking.openURL(`tel:${phone}`)}
+                    onPress={() => void openExternal(`tel:${phone}`, ['tel'])}
                     activeOpacity={0.75}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 8 }}
                   >
@@ -884,7 +899,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 ) : null}
                 {email ? (
                   <TouchableOpacity
-                    onPress={() => Linking.openURL(`mailto:${email}`)}
+                    onPress={() => void openExternal(`mailto:${email}`, ['mailto'])}
                     activeOpacity={0.75}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 8 }}
                   >
@@ -897,7 +912,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm }}>
                     {facebook ? (
                       <TouchableOpacity
-                        onPress={() => Linking.openURL(facebook)}
+                        onPress={() => void openExternal(facebook, ['https', 'http'])}
                         activeOpacity={0.75}
                         style={{
                           flexDirection: 'row',
@@ -917,7 +932,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     ) : null}
                     {instagram ? (
                       <TouchableOpacity
-                        onPress={() => Linking.openURL(instagram)}
+                        onPress={() => void openExternal(instagram, ['https', 'http'])}
                         activeOpacity={0.75}
                         style={{
                           flexDirection: 'row',
@@ -937,7 +952,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     ) : null}
                     {tiktok ? (
                       <TouchableOpacity
-                        onPress={() => Linking.openURL(tiktok)}
+                        onPress={() => void openExternal(tiktok, ['https', 'http'])}
                         activeOpacity={0.75}
                         style={{
                           flexDirection: 'row',
