@@ -566,6 +566,110 @@ export function normalizeDailyLogEntries(payload: unknown): DailyLogEntry[] | nu
   return payload.filter(isDailyLogRow);
 }
 
+export interface DailyLogClientOption {
+  id: string;
+  username: string;
+  firstName: string | null;
+  lastName: string | null;
+  gender: 'MALE' | 'FEMALE' | null;
+}
+
+export function normalizeDailyLogClients(payload: unknown): DailyLogClientOption[] | null {
+  if (!Array.isArray(payload)) return null;
+  const clients: DailyLogClientOption[] = [];
+  for (const row of payload) {
+    if (
+      !isRecord(row) || !isNonEmptyString(row.id) || !isNonEmptyString(row.username) ||
+      !(row.firstName === null || typeof row.firstName === 'string') ||
+      !(row.lastName === null || typeof row.lastName === 'string') ||
+      !(row.gender === null || row.gender === 'MALE' || row.gender === 'FEMALE')
+    ) return null;
+    clients.push({
+      id: row.id,
+      username: row.username,
+      firstName: row.firstName,
+      lastName: row.lastName,
+      gender: row.gender,
+    });
+  }
+  return clients;
+}
+
+export interface DailyLogEditorEntryPayload {
+  id: string;
+  status: 'PENDING' | 'COMPLETED';
+  date: string;
+  notes: string | null;
+  actualPrice: number;
+  clientId?: string | null;
+  client?: { id: string } | null;
+  items?: Array<{ serviceId: string; unitPrice?: number }>;
+  serviceId?: string;
+  debtPaymentEntries?: Array<{ actualPrice: number }>;
+}
+
+export function normalizeDailyLogEditorEntry(
+  payload: unknown,
+  expectedId: string,
+): DailyLogEditorEntryPayload | null {
+  if (
+    !isRecord(payload) || !isNonEmptyString(expectedId) || payload.id !== expectedId ||
+    (payload.status !== 'PENDING' && payload.status !== 'COMPLETED') ||
+    typeof payload.date !== 'string' || !Number.isFinite(Date.parse(payload.date)) ||
+    !(payload.notes === null || typeof payload.notes === 'string')
+  ) return null;
+  const actualPrice = finiteNumber(payload.actualPrice);
+  if (actualPrice === null || actualPrice < 0) return null;
+  if (
+    payload.clientId !== undefined && payload.clientId !== null && !isNonEmptyString(payload.clientId)
+  ) return null;
+  let client: { id: string } | null | undefined;
+  if (payload.client === null) client = null;
+  else if (payload.client !== undefined) {
+    if (!isRecord(payload.client) || !isNonEmptyString(payload.client.id)) return null;
+    client = { id: payload.client.id };
+  }
+  if (payload.serviceId !== undefined && !isNonEmptyString(payload.serviceId)) return null;
+  let items: DailyLogEditorEntryPayload['items'];
+  if (payload.items !== undefined) {
+    if (!Array.isArray(payload.items)) return null;
+    items = [];
+    for (const item of payload.items) {
+      if (!isRecord(item) || !isNonEmptyString(item.serviceId)) return null;
+      let unitPrice: number | undefined;
+      if (item.unitPrice !== undefined) {
+        const parsedUnitPrice = finiteNumber(item.unitPrice);
+        if (parsedUnitPrice === null || parsedUnitPrice < 0) return null;
+        unitPrice = parsedUnitPrice;
+      }
+      items.push({ serviceId: item.serviceId, ...(unitPrice !== undefined && { unitPrice }) });
+    }
+  }
+  let debtPaymentEntries: DailyLogEditorEntryPayload['debtPaymentEntries'];
+  if (payload.debtPaymentEntries !== undefined) {
+    if (!Array.isArray(payload.debtPaymentEntries)) return null;
+    debtPaymentEntries = [];
+    for (const row of payload.debtPaymentEntries) {
+      if (!isRecord(row)) return null;
+      const amount = finiteNumber(row.actualPrice);
+      if (amount === null || amount < 0) return null;
+      debtPaymentEntries.push({ actualPrice: amount });
+    }
+  }
+  return {
+    id: expectedId,
+    status: payload.status,
+    date: payload.date,
+    notes: payload.notes,
+    actualPrice,
+    clientId: payload.clientId as string | null | undefined,
+    client,
+    items,
+    serviceId: payload.serviceId as string | undefined,
+    debtPaymentEntries,
+  };
+}
+
 export function parseCreatedDailyLogEntryId(payload: unknown): string | null {
   if (!isRecord(payload) || !isNonEmptyString(payload.id)) return null;
   return payload.id.trim();

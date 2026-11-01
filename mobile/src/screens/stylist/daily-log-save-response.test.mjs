@@ -28,7 +28,11 @@ function loadTypeScriptModule(relativePath) {
   return loadedModule.exports
 }
 
-const { parseCreatedDailyLogEntryId } = loadTypeScriptModule('../../utils/apiPayload.ts')
+const {
+  normalizeDailyLogClients,
+  normalizeDailyLogEditorEntry,
+  parseCreatedDailyLogEntryId,
+} = loadTypeScriptModule('../../utils/apiPayload.ts')
 const screen = readFileSync(new URL('./DailyLogNewEntryScreen.tsx', import.meta.url), 'utf8')
 
 test('daily-log create response parser accepts only a non-empty string ID', () => {
@@ -38,6 +42,15 @@ test('daily-log create response parser accepts only a non-empty string ID', () =
   assert.equal(parseCreatedDailyLogEntryId({}), null)
   assert.equal(parseCreatedDailyLogEntryId({ id: 42 }), null)
   assert.equal(parseCreatedDailyLogEntryId({ id: '  ' }), null)
+})
+
+test('daily-log editor validates client lists and edit responses before state updates', () => {
+  assert.match(screen, /normalizeDailyLogClients\(data\)/)
+  assert.match(screen, /api\.get<unknown>\(`\/api\/daily-log\/\$\{editEntryId\}`\)/)
+  assert.match(screen, /normalizeDailyLogEditorEntry\(data, editEntryId\)/)
+  assert.match(screen, /if \(!entry\) throw new Error\(\)/)
+  assert.doesNotMatch(screen, /api\.get<\{[\s\S]*?\}>\(`\/api\/daily-log\/\$\{editEntryId\}`\)/)
+  assert.doesNotMatch(screen, /data as ClientOption\[\]/)
 })
 
 test('daily-log creation validates response IDs and safely surfaces API errors', () => {

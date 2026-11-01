@@ -40,6 +40,8 @@ const {
   normalizeBeforeAfterPairs,
   normalizeClientDebts,
   normalizeClientSearchResults,
+  normalizeDailyLogClients,
+  normalizeDailyLogEditorEntry,
   normalizeDailyLogEntries,
   parseCreatedDailyLogEntryId,
   normalizeDebtAmounts,
@@ -241,6 +243,42 @@ test('created daily-log entry ID parser accepts only non-empty string IDs', () =
   assert.equal(parseCreatedDailyLogEntryId([]), null);
   assert.equal(parseCreatedDailyLogEntryId({ id: 12 }), null);
   assert.equal(parseCreatedDailyLogEntryId({ id: ' ' }), null);
+});
+
+test('daily-log client picker parser validates every client row and gender value', () => {
+  const clients = [
+    { id: 'client-1', username: 'amina', firstName: 'Amina', lastName: null, gender: 'FEMALE' },
+    { id: 'client-2', username: 'user2', firstName: null, lastName: 'Kovač', gender: null },
+  ];
+  assert.deepEqual(normalizeDailyLogClients(clients), clients);
+  assert.deepEqual(normalizeDailyLogClients([]), []);
+  assert.equal(normalizeDailyLogClients({ items: clients }), null);
+  assert.equal(normalizeDailyLogClients([{ ...clients[0], gender: 'OTHER' }]), null);
+  assert.equal(normalizeDailyLogClients([{ ...clients[0], username: null }]), null);
+});
+
+test('daily-log editor parser validates route identity, dates, prices and nested rows', () => {
+  const payload = {
+    id: 'entry-1',
+    status: 'PENDING',
+    date: '2026-10-30T00:00:00.000Z',
+    notes: null,
+    actualPrice: '15.50',
+    clientId: 'client-1',
+    client: { id: 'client-1' },
+    serviceId: 'service-1',
+    items: [{ serviceId: 'service-1', unitPrice: '15.50' }],
+    debtPaymentEntries: [{ actualPrice: '3.25' }],
+  };
+  const normalized = normalizeDailyLogEditorEntry(payload, 'entry-1');
+  assert.equal(normalized.actualPrice, 15.5);
+  assert.equal(normalized.items[0].unitPrice, 15.5);
+  assert.equal(normalized.debtPaymentEntries[0].actualPrice, 3.25);
+  assert.equal(normalizeDailyLogEditorEntry(payload, 'another-entry'), null);
+  assert.equal(normalizeDailyLogEditorEntry({ ...payload, date: 'not-a-date' }, 'entry-1'), null);
+  assert.equal(normalizeDailyLogEditorEntry({ ...payload, status: 'UNKNOWN' }, 'entry-1'), null);
+  assert.equal(normalizeDailyLogEditorEntry({ ...payload, items: [{ serviceId: '' }] }, 'entry-1'), null);
+  assert.equal(normalizeDailyLogEditorEntry({ ...payload, debtPaymentEntries: [{ actualPrice: -1 }] }, 'entry-1'), null);
 });
 
 test('reservation detail parser validates the reservation and payment amounts consumed by the detail screen', () => {

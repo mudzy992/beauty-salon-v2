@@ -24,7 +24,11 @@ import { spacing } from '../../theme';
 import type { Service } from '../../types';
 import { getSalonDateOnly } from '../../utils/date';
 import { getApiErrorMessage } from '../../utils/apiError';
-import { parseCreatedDailyLogEntryId } from '../../utils/apiPayload';
+import {
+  normalizeDailyLogClients,
+  normalizeDailyLogEditorEntry,
+  parseCreatedDailyLogEntryId,
+} from '../../utils/apiPayload';
 import { DailyLogEntryPricingBlock } from './DailyLogEntryPricingBlock';
 import {
   computeCharge,
@@ -115,8 +119,9 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     setClientsLoadError(false);
     try {
       const { data } = await api.get<unknown>('/api/users/for-daily-log');
-      if (!Array.isArray(data)) throw new Error();
-      if (clientLoadGeneration.current === generation) setClients(data as ClientOption[]);
+      const normalized = normalizeDailyLogClients(data);
+      if (!normalized) throw new Error();
+      if (clientLoadGeneration.current === generation) setClients(normalized);
     } catch {
       if (clientLoadGeneration.current === generation) setClientsLoadError(true);
     } finally {
@@ -138,43 +143,33 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     let mounted = true;
     (async () => {
       try {
-        const { data } = await api.get<{
-          status: string;
-          date: string;
-          notes: string | null;
-          actualPrice: number | string;
-          clientId?: string | null;
-          client?: { id: string };
-          items?: Array<{ serviceId: string; unitPrice?: number | string }>;
-          serviceId?: string;
-        }>(`/api/daily-log/${editEntryId}`);
+        const { data } = await api.get<unknown>(`/api/daily-log/${editEntryId}`);
+        const entry = normalizeDailyLogEditorEntry(data, editEntryId);
+        if (!entry) throw new Error();
         if (!mounted) return;
-        if (data.status === 'COMPLETED') {
+        if (entry.status === 'COMPLETED') {
           Alert.alert(t('common.info'), t('stylist.dailyLogDetail.editCompletedUnavailable'));
           navigation.goBack();
           return;
         }
-        setDate(data.date?.slice(0, 10) ?? getSalonDateOnly());
-        setNotes(data.notes ?? '');
+        setDate(entry.date.slice(0, 10));
+        setNotes(entry.notes ?? '');
         const ids =
-          Array.isArray(data.items) && data.items.length > 0
-            ? data.items.map((x) => x.serviceId)
-            : data.serviceId
-              ? [data.serviceId]
+          entry.items && entry.items.length > 0
+            ? entry.items.map((x) => x.serviceId)
+            : entry.serviceId
+              ? [entry.serviceId]
               : [];
         setServiceIds(ids);
         const prices: Record<string, number> = {};
-        (data.items ?? []).forEach((it) => {
-          const fromItem = Number(it.unitPrice ?? NaN);
-          prices[it.serviceId] = Number.isFinite(fromItem) ? fromItem : 0;
+        (entry.items ?? []).forEach((it) => {
+          prices[it.serviceId] = it.unitPrice ?? 0;
         });
         setUnitPrices(prices);
-        setClientId(data.clientId ?? data.client?.id ?? '');
+        setClientId(entry.clientId ?? entry.client?.id ?? '');
         setPaidTouched(true);
-        const servicesPortion = Number(data.actualPrice ?? 0);
-        const debtPaymentEntries = (data as unknown as {
-          debtPaymentEntries?: Array<{ actualPrice?: number | string }>;
-        }).debtPaymentEntries;
+        const servicesPortion = entry.actualPrice;
+        const debtPaymentEntries = entry.debtPaymentEntries;
         const debtsPortion = Array.isArray(debtPaymentEntries)
           ? debtPaymentEntries.reduce(
               (acc, row) => acc + Number(row.actualPrice ?? 0),
