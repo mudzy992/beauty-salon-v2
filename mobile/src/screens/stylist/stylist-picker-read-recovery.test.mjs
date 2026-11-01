@@ -17,7 +17,10 @@ test('daily-log services and clients load independently and preserve successful 
   assert.match(dailyLog, /if \(!normalized\) throw new Error\(\)/)
   assert.doesNotMatch(dailyLog, /setClients\(data as ClientOption\[\]\)/)
   assert.match(dailyLog, /if \(serviceLoadGeneration\.current === generation\) setServicesLoadError\(true\)/)
-  assert.match(dailyLog, /if \(clientLoadGeneration\.current === generation\) setClientsLoadError\(true\)/)
+  assert.match(
+    dailyLog,
+    /} catch \{\s*if \(\s*clientLoadGeneration\.current === generation &&\s*useAuthStore\.getState\(\)\.user\?\.id === requestUserId\s*\) \{\s*setClientsLoadError\(true\)/,
+  )
   assert.doesNotMatch(dailyLog, /catch \{\s*setServices\(\[\]\)/)
   assert.doesNotMatch(dailyLog, /catch \{\s*setClients\(\[\]\)/)
   assert.match(dailyLog, /clients\.length > 0\s*\? 'stylist\.dailyLogDetail\.clientListStaleMessage'/)
