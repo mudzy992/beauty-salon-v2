@@ -33,7 +33,7 @@ test('daily-log entry edit and validation messages use Bosnian resources', () =>
 
 test('daily-log entry validation, server error passthrough, and edit/create flows are preserved', () => {
   assert.match(screen, /if \(entry\.status === 'COMPLETED'\) \{\s*Alert\.alert\(t\('common\.info'\), t\('stylist\.dailyLogDetail\.editCompletedUnavailable'\)\);\s*navigation\.goBack\(\);\s*return;/)
-  assert.match(screen, /catch \{\s*Alert\.alert\(t\('common\.error'\), t\('stylist\.dailyLogDetail\.loadErrorFallback'\)\);\s*navigation\.goBack\(\);/)
+  assert.match(screen, /catch \{\s*if \(!mounted \|\| useAuthStore\.getState\(\)\.user\?\.id !== userId\) return;\s*Alert\.alert\(t\('common\.error'\), t\('stylist\.dailyLogDetail\.loadErrorFallback'\)\);\s*navigation\.goBack\(\);/)
   assert.match(screen, /if \(!clientId \|\| !selectedClient\?\.gender\) \{\s*Alert\.alert\(t\('common\.error'\), t\('stylist\.dailyLogDetail\.clientGenderRequired'\)\);\s*return;/)
   assert.match(screen, /if \(serviceIds\.length === 0\) \{\s*Alert\.alert\(t\('common\.error'\), t\('stylist\.dailyLogDetail\.serviceRequired'\)\);\s*return;/)
   assert.match(screen, /if \(!Number\.isFinite\(paidRaw\) \|\| paidRaw < 0\) \{\s*Alert\.alert\(t\('common\.error'\), t\('stylist\.dailyLogDetail\.paidAmountInvalid'\)\);\s*return;/)
