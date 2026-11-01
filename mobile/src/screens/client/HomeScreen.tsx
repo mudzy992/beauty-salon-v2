@@ -569,9 +569,12 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           >
             <Ionicons name="wallet-outline" size={22} color={colors.primary} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: colors.text, fontWeight: '700' }}>Imate otvoreno dugovanje</Text>
+              <Text style={{ color: colors.text, fontWeight: '700' }}>{t('home.openDebtTitle')}</Text>
               <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
-                {openDebtsCount} stavk(i) · {openDebtsTotal.toFixed(2)} KM — pogledajte profil
+                {t('home.openDebtSummary', {
+                  count: openDebtsCount,
+                  amount: openDebtsTotal.toFixed(2),
+                })}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />

@@ -29,6 +29,14 @@ test('optional home debts, reservation, gallery and featured review failures rem
   assert.match(screen, /onPress=\{\(\) => void fetchData\(\)\}/);
 });
 
+test('home debt notice uses localized Bosnian title and amount interpolation', () => {
+  assert.match(translations, /openDebtTitle: 'Otvoreno dugovanje'/)
+  assert.match(translations, /openDebtSummary: 'Otvorena dugovanja: \{\{count\}\} · \{\{amount\}\} KM — pogledajte profil\.'/)
+  assert.match(screen, /t\('home\.openDebtTitle'\)/)
+  assert.match(screen, /t\('home\.openDebtSummary', \{[\s\S]*?count: openDebtsCount,[\s\S]*?amount: openDebtsTotal\.toFixed\(2\)/)
+  assert.doesNotMatch(screen, /Imate otvoreno dugovanje|stavk\(i\)/)
+})
+
 test('home clears private debt and reservation data across account identity changes', () => {
   assert.match(screen, /const userId = user\?\.id \?\? null/);
   assert.match(screen, /setOpenDebtsCount\(0\);\s*setOpenDebtsTotal\(0\)/);
