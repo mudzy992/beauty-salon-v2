@@ -88,7 +88,20 @@
     "loginBannerSubtitle": "Your hair deserves the best. Sign in to book an appointment with our expert stylists quickly and easily.",
     "registerBannerAlt": "Beauty salon interior",
     "registerBannerTitle": "Become part of our story",
-    "registerBannerSubtitle": "Create an account to book appointments easily and keep track of your salon visit history."
+    "registerBannerSubtitle": "Create an account to book appointments easily and keep track of your salon visit history.",
+    "resetPassword": {
+      "title": "Set a new password",
+      "intro": "Set a new password for your account using this secure link.",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "submit": "Save new password",
+      "tooShort": "The password must be at least 6 characters long.",
+      "mismatch": "The passwords do not match.",
+      "invalidLink": "This link is invalid or expired. Ask an administrator for a new one.",
+      "success": "Your password has been set. You can now sign in.",
+      "failed": "Could not set the password. Try again or request a new link.",
+      "backToLogin": "Go to sign in"
+    }
   },
   "onboarding": {
     "title": "Change your initial password",
@@ -877,7 +890,12 @@
       "initialPassword": "Initial password",
       "instructions": "Save these details and share them with the user. The user must change the password after the first sign-in.",
       "acknowledge": "Got it",
-      "unavailable": "The user was created, but the one-time password was not returned. Do not guess a default password; contact an administrator."
+      "unavailable": "The user was created, but the one-time password was not returned. Do not guess a default password; contact an administrator.",
+      "changeRequired": "Password change required",
+      "resetLinkAction": "Send secure password reset link",
+      "resetLinkConfirm": "Sending a reset link to {{email}} will immediately invalidate the existing temporary password. The link expires in 7 days. Continue?",
+      "resetLinkNeedsVerifiedEmail": "A verified email address is required for a reset link.",
+      "resetLinkSent": "The secure password setup link was sent to the verified email address."
     },
     "stylistRemoval": {
       "title": "Remove stylist role",
@@ -916,6 +934,7 @@
     },
     "errors": {
       "writeOffFailed": "Could not write off the debt.",
+      "passwordResetLinkFailed": "Could not send the password reset link.",
       "updateFailed": "Could not update the user.",
       "createFailed": "Could not create the user.",
       "deactivateFailed": "Could not deactivate the user.",

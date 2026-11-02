@@ -50,6 +50,7 @@ const ADMIN_CLIENT_SELECT = {
   avatar: true,
   isActive: true,
   isEmailVerified: true,
+  mustChangePassword: true,
   createdAt: true,
   userRoles: { select: { role: { select: { name: true } } } },
 } as const;
@@ -112,6 +113,7 @@ const ADMIN_USER_LIST_SELECT = {
   avatar: true,
   isActive: true,
   isEmailVerified: true,
+  mustChangePassword: true,
   createdAt: true,
   userRoles: { select: { role: { select: { name: true } } } },
   stylistProfile: { select: { id: true, status: true } },
@@ -529,6 +531,10 @@ export class UsersService {
           emailVerificationExpiresAt: shouldResetEmailVerification
             ? null
             : user.emailVerificationExpiresAt,
+          ...(shouldResetEmailVerification && {
+            passwordResetTokenHash: null,
+            passwordResetExpiresAt: null,
+          }),
         }),
         ...(dto.username != null && { username: dto.username }),
         ...(dto.phone !== undefined && { phone: dto.phone || null }),
@@ -609,6 +615,8 @@ export class UsersService {
             dto.email.trim() === user.email ? user.isEmailVerified : false,
           emailVerificationToken: null,
           emailVerificationExpiresAt: null,
+          passwordResetTokenHash: null,
+          passwordResetExpiresAt: null,
         }),
         ...(dto.phone !== undefined && { phone: dto.phone?.trim() || null }),
         ...(dto.gender !== undefined && {

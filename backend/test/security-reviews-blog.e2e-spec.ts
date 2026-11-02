@@ -467,6 +467,12 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
           useValue: {
             sendToMany: jest.fn().mockResolvedValue(undefined),
             send: jest.fn().mockResolvedValue(undefined),
+            assertInitialPasswordResetLinkEmailReady: jest
+              .fn()
+              .mockResolvedValue(undefined),
+            sendInitialPasswordResetLinkEmail: jest
+              .fn()
+              .mockResolvedValue(undefined),
           },
         },
         {

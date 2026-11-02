@@ -6,6 +6,7 @@ import {
   UploadedFile,
   BadRequestException,
   UseGuards,
+  Param,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
@@ -13,14 +14,18 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { AllowDuringPasswordChange } from '../common/decorators/allow-during-password-change.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { UploadsService } from '../uploads/uploads.service';
 import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
 import {
+  HTTP_RATE_LIMIT_ADMIN_USER,
   AUTH_LOGIN_ACCOUNT_LIMIT,
   AUTH_LOGIN_ACCOUNT_WINDOW_SECONDS,
   AUTH_LOGIN_IP_LIMIT,
@@ -29,6 +34,8 @@ import {
   AUTH_REGISTER_IP_WINDOW_SECONDS,
   AUTH_SEND_VERIFICATION_IP_LIMIT,
   AUTH_SEND_VERIFICATION_IP_WINDOW_SECONDS,
+  AUTH_PASSWORD_RESET_IP_LIMIT,
+  AUTH_PASSWORD_RESET_IP_WINDOW_SECONDS,
   AUTH_SEND_VERIFICATION_USER_LIMIT,
   AUTH_SEND_VERIFICATION_USER_WINDOW_SECONDS,
   AUTH_VERIFY_EMAIL_IP_LIMIT,
@@ -131,6 +138,33 @@ export class AuthController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.authService.changePassword(user.sub, dto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpRateLimit({
+    bucket: 'auth:reset-password:ip',
+    limit: AUTH_PASSWORD_RESET_IP_LIMIT,
+    windowSeconds: AUTH_PASSWORD_RESET_IP_WINDOW_SECONDS,
+    identity: 'ip',
+    failClosedOnUnavailable: true,
+  })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPasswordWithToken(dto.token, dto.newPassword);
+  }
+
+  @Post('admin/users/:id/password-reset-link')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  @HttpRateLimit({
+    bucket: 'auth:admin-password-reset:user',
+    limit: HTTP_RATE_LIMIT_ADMIN_USER,
+    windowSeconds: AUTH_RATE_LIMIT_WINDOW_SECONDS,
+    identity: 'user',
+    failClosedOnUnavailable: true,
+  })
+  async issueInitialPasswordResetLink(@Param('id') userId: string) {
+    return this.authService.issueInitialPasswordResetLink(userId);
   }
 
   @Post('send-verification-email')

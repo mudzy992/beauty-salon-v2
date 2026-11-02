@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
@@ -95,7 +100,9 @@ export class NotificationsService {
       pushMaster = true;
     }
     const doPush =
-      (channel === 'PUSH' || channel === 'BOTH') && prefs.pushEnabled && pushMaster;
+      (channel === 'PUSH' || channel === 'BOTH') &&
+      prefs.pushEnabled &&
+      pushMaster;
     const doEmail =
       (channel === 'EMAIL' || channel === 'BOTH') && prefs.emailEnabled;
 
@@ -334,13 +341,16 @@ export class NotificationsService {
         skipped += 1;
         continue;
       }
-      const personalizedHtml = this.applyCampaignVariables(selectedTemplate.html, {
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        username: user.username,
-        email: user.email,
-        appUrl,
-      });
+      const personalizedHtml = this.applyCampaignVariables(
+        selectedTemplate.html,
+        {
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          username: user.username,
+          email: user.email,
+          appUrl,
+        },
+      );
       await transporter.sendMail({
         from: `"${mailConfig.fromName}" <${mailConfig.fromEmail}>`,
         to: user.email,
@@ -401,7 +411,9 @@ export class NotificationsService {
       select: { token: true },
     });
     const { default: Expo } = await import('expo-server-sdk');
-    const tokens = rows.map((r) => r.token).filter((t) => Expo.isExpoPushToken(t));
+    const tokens = rows
+      .map((r) => r.token)
+      .filter((t) => Expo.isExpoPushToken(t));
     if (tokens.length === 0) return;
 
     const expo = new Expo({
@@ -498,6 +510,82 @@ export class NotificationsService {
     });
   }
 
+  async assertInitialPasswordResetLinkEmailReady(): Promise<void> {
+    await this.resolveInitialPasswordResetEmailContext();
+  }
+
+  async sendInitialPasswordResetLinkEmail(params: {
+    to: string;
+    firstName?: string | null;
+    token: string;
+    expiresAt: Date;
+  }): Promise<void> {
+    const { mailConfig, appUrl } =
+      await this.resolveInitialPasswordResetEmailContext();
+    appUrl.searchParams.set('token', params.token);
+    const resetUrl = appUrl.toString();
+    const greeting = params.firstName?.trim() || 'korisniče';
+    const expiryLabel = params.expiresAt.toLocaleString('bs-BA', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: 'Europe/Sarajevo',
+    });
+    const subject = 'Sigurna promjena lozinke';
+    const text =
+      `Poštovani ${greeting},\n\n` +
+      'Administrator je zatražio postavljanje nove lozinke za vaš nalog.\n' +
+      `Otvorite ovaj link u roku od 7 dana: ${resetUrl}\n` +
+      `Link ističe: ${expiryLabel} (Europe/Sarajevo).\n\n` +
+      'Ako niste očekivali ovu poruku, obratite se salonu.';
+    const html = `<div style="font-family:Arial,sans-serif;color:#2d1f1c;max-width:640px;margin:24px auto;padding:24px;border:1px solid #eee;border-radius:12px"><h1 style="font-size:22px">Sigurna promjena lozinke</h1><p>Poštovani ${this.escapeHtml(greeting)},</p><p>Administrator je zatražio postavljanje nove lozinke za vaš nalog. Stara privremena lozinka više ne važi.</p><p><a href="${this.escapeHtml(resetUrl)}" rel="noreferrer" style="display:inline-block;padding:12px 18px;background:#2d1f1c;color:#fff;text-decoration:none;border-radius:8px">Postavi novu lozinku</a></p><p>Link važi 7 dana i ističe ${this.escapeHtml(expiryLabel)} (Europe/Sarajevo).</p><p>Ako niste očekivali ovu poruku, obratite se salonu.</p><hr/><p>${this.escapeHtml(mailConfig.signature)}</p></div>`;
+    const transporter = this.createSmtpTransporter(mailConfig);
+    await transporter.sendMail({
+      from: `"${mailConfig.fromName}" <${mailConfig.fromEmail}>`,
+      to: params.to,
+      subject,
+      text,
+      html,
+      ...(mailConfig.replyTo ? { replyTo: mailConfig.replyTo } : {}),
+    });
+  }
+
+  private async resolveInitialPasswordResetEmailContext(): Promise<{
+    mailConfig: MailConfig;
+    appUrl: URL;
+  }> {
+    const mailConfig = await this.resolveMailConfig();
+    if (!mailConfig) {
+      throw new ServiceUnavailableException(
+        'Usluga e-pošte trenutno nije dostupna.',
+      );
+    }
+
+    try {
+      const configured = new URL(await this.resolveAppBaseUrl());
+      const environment =
+        this.config.get<string>('NODE_ENV')?.trim().toLowerCase() ||
+        'development';
+      if (
+        !configured.hostname ||
+        !['http:', 'https:'].includes(configured.protocol) ||
+        configured.username ||
+        configured.password ||
+        (!['development', 'test'].includes(environment) &&
+          configured.protocol !== 'https:')
+      ) {
+        throw new Error('Unsafe password-reset app URL.');
+      }
+      return {
+        mailConfig,
+        appUrl: new URL('/reset-password', configured.origin),
+      };
+    } catch {
+      throw new ServiceUnavailableException(
+        'Link za promjenu lozinke nije moguće sigurno pripremiti.',
+      );
+    }
+  }
+
   async sendPaymentReceiptEmail(params: {
     to: string;
     firstName?: string | null;
@@ -562,7 +650,12 @@ export class NotificationsService {
       ctaLabel:
         template.ctaLabel ||
         (params.reservationId ? 'Pogledaj rezervaciju' : 'Otvori aplikaciju'),
-      ctaUrl: template.ctaUrl ? this.applyNotificationEmailPlaceholders(template.ctaUrl, { appUrl, reservationId: params.reservationId ?? '' }) : ctaUrl,
+      ctaUrl: template.ctaUrl
+        ? this.applyNotificationEmailPlaceholders(template.ctaUrl, {
+            appUrl,
+            reservationId: params.reservationId ?? '',
+          })
+        : ctaUrl,
       signature: mailConfig.signature,
     });
     await transporter.sendMail({
@@ -649,34 +742,38 @@ export class NotificationsService {
     };
     const ph = (s: string) =>
       this.applyNotificationEmailPlaceholders(s, placeholderVars);
-    const ctaByType: Record<NotificationType, { label: string; url: string }> = {
-      reservation_new: { label: 'Otvori rezervacije', url: adminReservationsUrl },
-      reservation_confirmed: {
-        label: 'Pregled rezervacije',
-        url: reservationViewUrl,
-      },
-      reservation_cancelled: {
-        label: 'Pregled rezervacije',
-        url: reservationViewUrl,
-      },
-      reservation_reminder: {
-        label: 'Pregled rezervacije',
-        url: reservationViewUrl,
-      },
-      reservation_reschedule: {
-        label: 'Pregled rezervacije',
-        url: reservationViewUrl,
-      },
-      holiday: { label: 'Otvori aplikaciju', url: appUrl },
-      client_debt: { label: 'Moj profil', url: appUrl },
-      payment_receipt: {
-        label: 'Pogledaj rezervaciju',
-        url: reservationId
-          ? `${appUrl}/moje-rezervacije/${encodeURIComponent(reservationId)}`
-          : appUrl,
-      },
-      general: { label: 'Otvori aplikaciju', url: appUrl },
-    };
+    const ctaByType: Record<NotificationType, { label: string; url: string }> =
+      {
+        reservation_new: {
+          label: 'Otvori rezervacije',
+          url: adminReservationsUrl,
+        },
+        reservation_confirmed: {
+          label: 'Pregled rezervacije',
+          url: reservationViewUrl,
+        },
+        reservation_cancelled: {
+          label: 'Pregled rezervacije',
+          url: reservationViewUrl,
+        },
+        reservation_reminder: {
+          label: 'Pregled rezervacije',
+          url: reservationViewUrl,
+        },
+        reservation_reschedule: {
+          label: 'Pregled rezervacije',
+          url: reservationViewUrl,
+        },
+        holiday: { label: 'Otvori aplikaciju', url: appUrl },
+        client_debt: { label: 'Moj profil', url: appUrl },
+        payment_receipt: {
+          label: 'Pogledaj rezervaciju',
+          url: reservationId
+            ? `${appUrl}/moje-rezervacije/${encodeURIComponent(reservationId)}`
+            : appUrl,
+        },
+        general: { label: 'Otvori aplikaciju', url: appUrl },
+      };
     const plainTextByType: Record<NotificationType, string> = {
       reservation_new:
         'Imate novu rezervaciju. Provjerite listu rezervacija u admin panelu.',
@@ -694,8 +791,7 @@ export class NotificationsService {
         'Kreirano je novo dugovanje na vašem računu. Pregledajte iznos u profilu.',
       payment_receipt:
         'Vaša uplata je uspješno evidentirana. U prilogu su detalji plaćenih usluga.',
-      general:
-        'Imate novu opću notifikaciju iz sistema.',
+      general: 'Imate novu opću notifikaciju iz sistema.',
     };
     const template = await this.getEmailTemplateConfig(params.type);
     const reservationLine = reservationReference
@@ -779,6 +875,15 @@ ${params.signature || 'Beauty Salon Nejra'}
     }
   }
 
+  private escapeHtml(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
   private convertHtmlToText(html: string): string {
     return html
       .replace(/<style[\s\S]*?<\/style>/gi, ' ')
@@ -827,8 +932,10 @@ ${params.signature || 'Beauty Salon Nejra'}
   private async resolveCampaignAudienceUsers(audience: CampaignAudienceDto) {
     const users = await this.repo.findUsers({
       where: {
-        ...(audience.onlyActive ?? true ? { isActive: true } : {}),
-        ...(audience.onlyEmailVerified ?? false ? { isEmailVerified: true } : {}),
+        ...((audience.onlyActive ?? true) ? { isActive: true } : {}),
+        ...((audience.onlyEmailVerified ?? false)
+          ? { isEmailVerified: true }
+          : {}),
         ...(audience.includeUserIds?.length
           ? { id: { in: audience.includeUserIds } }
           : {}),
@@ -842,11 +949,18 @@ ${params.signature || 'Beauty Salon Nejra'}
     });
     const roleFiltered = audience.roles?.length
       ? users.filter((user) =>
-          user.userRoles.some((userRole) => audience.roles?.includes(userRole.role.name as 'SYSTEM_ADMIN' | 'OWNER' | 'STYLIST' | 'CLIENT')),
+          user.userRoles.some((userRole) =>
+            audience.roles?.includes(
+              userRole.role.name as
+                'SYSTEM_ADMIN' | 'OWNER' | 'STYLIST' | 'CLIENT',
+            ),
+          ),
         )
       : users;
     const excluded = audience.excludeUserIds?.length
-      ? roleFiltered.filter((user) => !audience.excludeUserIds?.includes(user.id))
+      ? roleFiltered.filter(
+          (user) => !audience.excludeUserIds?.includes(user.id),
+        )
       : roleFiltered;
     return excluded;
   }
@@ -856,7 +970,10 @@ ${params.signature || 'Beauty Salon Nejra'}
     const fromEnv =
       this.config.get<string>('APP_PUBLIC_URL') ||
       this.config.get<string>('FRONTEND_URL');
-    return (fromSettings || fromEnv || 'http://localhost:3000').replace(/\/$/, '');
+    return (fromSettings || fromEnv || 'http://localhost:3000').replace(
+      /\/$/,
+      '',
+    );
   }
 
   private toBoolean(value: string | null, fallback: boolean): boolean {
@@ -968,7 +1085,12 @@ ${params.signature || 'Beauty Salon Nejra'}
       rejectUnauthorized: this.toBoolean(rejectUnauthorizedRaw, true),
       requireTls: this.toBoolean(requireTlsRaw, false),
       ignoreTls: this.toBoolean(ignoreTlsRaw, false),
-      connectionTimeoutMs: this.toNumber(connectionTimeoutRaw, 10000, 1000, 120000),
+      connectionTimeoutMs: this.toNumber(
+        connectionTimeoutRaw,
+        10000,
+        1000,
+        120000,
+      ),
       greetingTimeoutMs: this.toNumber(greetingTimeoutRaw, 10000, 1000, 120000),
       socketTimeoutMs: this.toNumber(socketTimeoutRaw, 20000, 1000, 300000),
       pool: this.toBoolean(poolRaw, true),

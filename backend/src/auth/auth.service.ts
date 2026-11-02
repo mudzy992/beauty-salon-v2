@@ -4,7 +4,6 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -25,6 +24,9 @@ import {
 const SALT_ROUNDS = 10;
 const EMAIL_VERIFICATION_EXPIRY_MINUTES = 15;
 const VERIFICATION_CODE_LENGTH = 6;
+const PASSWORD_RESET_LINK_EXPIRY_DAYS = 7;
+const PASSWORD_RESET_TOKEN_BYTES = 32;
+const PASSWORD_RESET_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const CLIENT_ROLE_NAME = 'CLIENT';
 
 @Injectable()
@@ -217,33 +219,182 @@ export class AuthService {
     const nextPasswordChangedAt = new Date(
       Math.max(Date.now(), getPasswordVersion(user.passwordChangedAt) + 1),
     );
-    const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
+    const updated = await this.prisma.user.updateMany({
+      where: {
+        id: userId,
+        passwordHash: user.passwordHash,
+        passwordChangedAt: user.passwordChangedAt,
+      },
       data: {
         passwordHash: newHash,
         mustChangePassword: false,
         passwordChangedAt: nextPasswordChangedAt,
+        passwordResetTokenHash: null,
+        passwordResetExpiresAt: null,
       },
-      select: { passwordChangedAt: true },
     });
-
-    this.eventsGateway.disconnectUserSockets(userId);
-    if (!updatedUser.passwordChangedAt) {
-      throw new InternalServerErrorException(
-        'Password change could not be confirmed.',
+    if (updated.count !== 1) {
+      throw new ConflictException(
+        'Lozinka je u međuvremenu promijenjena. Pokušajte ponovo.',
       );
     }
+
+    this.eventsGateway.disconnectUserSockets(userId);
     const roles = user.userRoles.map((userRole) => userRole.role.name);
     const access_token = await this.createAccessToken(
       user.id,
       user.email,
       user.username,
       roles,
-      updatedUser.passwordChangedAt,
+      nextPasswordChangedAt,
     );
     return {
       message: 'Lozinka je uspješno promijenjena.',
       access_token,
+    };
+  }
+
+  async issueInitialPasswordResetLink(
+    userId: string,
+  ): Promise<{ message: string; expiresAt: Date }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        isEmailVerified: true,
+        mustChangePassword: true,
+        passwordHash: true,
+        passwordChangedAt: true,
+      },
+    });
+    if (!user) throw new NotFoundException('Korisnik nije pronađen.');
+    if (!user.mustChangePassword) {
+      throw new BadRequestException(
+        'Nalog nema početnu lozinku na čekanju za reset.',
+      );
+    }
+    if (!user.email || !user.isEmailVerified) {
+      throw new BadRequestException(
+        'Reset link se šalje samo na potvrđenu email adresu.',
+      );
+    }
+    if (!user.passwordHash) {
+      throw new BadRequestException(
+        'Za ovaj nalog nije moguće izdati reset link.',
+      );
+    }
+
+    await this.notifications.assertInitialPasswordResetLinkEmailReady();
+
+    const token = crypto
+      .randomBytes(PASSWORD_RESET_TOKEN_BYTES)
+      .toString('base64url');
+    const tokenHash = this.hashPasswordResetToken(token);
+    const expiresAt = new Date(
+      Date.now() + PASSWORD_RESET_LINK_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+    );
+    const unusablePasswordHash = await bcrypt.hash(
+      crypto.randomBytes(PASSWORD_RESET_TOKEN_BYTES).toString('base64url'),
+      SALT_ROUNDS,
+    );
+    const nextPasswordChangedAt = new Date(
+      Math.max(Date.now(), getPasswordVersion(user.passwordChangedAt) + 1),
+    );
+    const issued = await this.prisma.user.updateMany({
+      where: {
+        id: user.id,
+        mustChangePassword: true,
+        email: user.email,
+        isEmailVerified: true,
+        passwordHash: user.passwordHash,
+        passwordChangedAt: user.passwordChangedAt,
+      },
+      data: {
+        passwordHash: unusablePasswordHash,
+        passwordChangedAt: nextPasswordChangedAt,
+        passwordResetTokenHash: tokenHash,
+        passwordResetExpiresAt: expiresAt,
+      },
+    });
+    if (issued.count !== 1) {
+      throw new ConflictException(
+        'Nalog je promijenjen prije izdavanja reset linka. Osvježite stranicu i pokušajte ponovo.',
+      );
+    }
+
+    this.eventsGateway.disconnectUserSockets(user.id);
+    await this.notifications.sendInitialPasswordResetLinkEmail({
+      to: user.email,
+      firstName: user.firstName,
+      token,
+      expiresAt,
+    });
+    return {
+      message: 'Reset link je poslan na potvrđenu email adresu.',
+      expiresAt,
+    };
+  }
+
+  async resetPasswordWithToken(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    if (!PASSWORD_RESET_TOKEN_PATTERN.test(token)) {
+      throw new BadRequestException(
+        'Reset link nije ispravan ili je istekao. Zatražite novi link od administratora.',
+      );
+    }
+
+    const now = new Date();
+    const tokenHash = this.hashPasswordResetToken(token);
+    const user = await this.prisma.user.findFirst({
+      where: {
+        passwordResetTokenHash: tokenHash,
+        passwordResetExpiresAt: { gt: now },
+        mustChangePassword: true,
+        isEmailVerified: true,
+      },
+      select: { id: true, passwordChangedAt: true },
+    });
+    if (!user) {
+      throw new BadRequestException(
+        'Reset link nije ispravan ili je istekao. Zatražite novi link od administratora.',
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    const nextPasswordChangedAt = new Date(
+      Math.max(Date.now(), getPasswordVersion(user.passwordChangedAt) + 1),
+    );
+    const consumed = await this.prisma.user.updateMany({
+      where: {
+        id: user.id,
+        passwordResetTokenHash: tokenHash,
+        passwordResetExpiresAt: { gt: now },
+        mustChangePassword: true,
+        isEmailVerified: true,
+        passwordChangedAt: user.passwordChangedAt,
+      },
+      data: {
+        passwordHash,
+        mustChangePassword: false,
+        passwordChangedAt: nextPasswordChangedAt,
+        passwordResetTokenHash: null,
+        passwordResetExpiresAt: null,
+      },
+    });
+    if (consumed.count !== 1) {
+      throw new BadRequestException(
+        'Reset link nije ispravan ili je istekao. Zatražite novi link od administratora.',
+      );
+    }
+
+    this.eventsGateway.disconnectUserSockets(user.id);
+    return {
+      message:
+        'Lozinka je postavljena. Sada se možete prijaviti novom lozinkom.',
     };
   }
 
@@ -333,6 +484,13 @@ export class AuthService {
       );
     }
     return { message: 'Email adresa je uspješno potvrđena.' };
+  }
+
+  private hashPasswordResetToken(token: string): string {
+    return crypto
+      .createHmac('sha256', this.config.getOrThrow<string>('JWT_SECRET'))
+      .update(`admin-initial-password-reset:v1:${token}`)
+      .digest('hex');
   }
 
   private hashVerificationCode(code: string): string {

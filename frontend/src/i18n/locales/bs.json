@@ -85,7 +85,20 @@
     "loginBannerSubtitle": "Vaša kosa zaslužuje samo najbolje. Prijavite se kako biste brzo i jednostavno rezervisali svoj termin kod naših vrhunskih stilista.",
     "registerBannerAlt": "Unutrašnjost salona",
     "registerBannerTitle": "Postanite dio naše priče",
-    "registerBannerSubtitle": "Kreirajte račun kako biste jednostavno zakazivali termine i pratili svoju historiju frizerskih posjeta."
+    "registerBannerSubtitle": "Kreirajte račun kako biste jednostavno zakazivali termine i pratili svoju historiju frizerskih posjeta.",
+    "resetPassword": {
+      "title": "Postavljanje nove lozinke",
+      "intro": "Postavite novu lozinku za svoj nalog putem sigurnog linka.",
+      "newPassword": "Nova lozinka",
+      "confirmPassword": "Potvrda nove lozinke",
+      "submit": "Sačuvaj novu lozinku",
+      "tooShort": "Lozinka mora imati najmanje 6 znakova.",
+      "mismatch": "Lozinke se ne podudaraju.",
+      "invalidLink": "Link nije ispravan ili je istekao. Zatražite novi od administratora.",
+      "success": "Lozinka je postavljena. Sada se možete prijaviti.",
+      "failed": "Nije moguće postaviti lozinku. Pokušajte ponovo ili zatražite novi link.",
+      "backToLogin": "Idi na prijavu"
+    }
   },
   "onboarding": {
     "title": "Promjena inicijalne lozinke",
@@ -874,7 +887,12 @@
       "initialPassword": "Inicijalna lozinka",
       "instructions": "Sačuvajte ove podatke i proslijedite ih korisniku. Nakon prve prijave korisnik mora promijeniti lozinku.",
       "acknowledge": "U redu",
-      "unavailable": "Korisnik je kreiran, ali jednokratna lozinka nije vraćena. Nemojte pokušavati zadanu lozinku; obratite se administratoru."
+      "unavailable": "Korisnik je kreiran, ali jednokratna lozinka nije vraćena. Nemojte pokušavati zadanu lozinku; obratite se administratoru.",
+      "changeRequired": "Potrebna je promjena lozinke",
+      "resetLinkAction": "Pošalji sigurni link za novu lozinku",
+      "resetLinkConfirm": "Slanjem linka na {{email}} stara privremena lozinka odmah prestaje važiti. Link ističe za 7 dana. Nastaviti?",
+      "resetLinkNeedsVerifiedEmail": "Za reset link je potrebna potvrđena email adresa.",
+      "resetLinkSent": "Sigurni link za postavljanje lozinke poslan je na potvrđenu email adresu."
     },
     "stylistRemoval": {
       "title": "Ukloni ulogu stiliste",
@@ -913,6 +931,7 @@
     },
     "errors": {
       "writeOffFailed": "Nije moguće otpisati dug.",
+      "passwordResetLinkFailed": "Nije moguće poslati link za postavljanje lozinke.",
       "updateFailed": "Nije moguće ažurirati korisnika.",
       "createFailed": "Nije moguće kreirati korisnika.",
       "deactivateFailed": "Nije moguće deaktivirati korisnika.",

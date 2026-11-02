@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   BadgeCheck,
   Loader2,
+  Mail,
   Pencil,
   Plus,
   Search,
@@ -55,6 +56,7 @@ interface UserRow {
   avatar: string | null
   isActive: boolean
   isEmailVerified: boolean
+  mustChangePassword?: boolean
   createdAt: string
   userRoles?: UserRole[]
   stylistProfile?: { id: string; status?: string | null } | null
@@ -152,6 +154,7 @@ export default function Users() {
   const [debouncedClientsSearch, setDebouncedClientsSearch] = useState('')
 
   const [saving, setSaving] = useState(false)
+  const [resetLinkSendingId, setResetLinkSendingId] = useState<string | null>(null)
   const [clientDebts, setClientDebts] = useState<ClientDebtRow[]>([])
   const [clientDebtsLoading, setClientDebtsLoading] = useState(false)
   const [debtToWriteOff, setDebtToWriteOff] = useState<string | null>(null)
@@ -410,6 +413,29 @@ export default function Users() {
     }, 300)
     return () => clearTimeout(timeout)
   }, [editUser, formData.username, initialUsername])
+
+  const handleIssueInitialPasswordResetLink = async (user: UserRow) => {
+    if (!user.mustChangePassword) return
+    if (!user.email || !user.isEmailVerified) {
+      warning(t('users.credentials.resetLinkNeedsVerifiedEmail'))
+      return
+    }
+    const confirmed = window.confirm(
+      t('users.credentials.resetLinkConfirm', { email: user.email }),
+    )
+    if (!confirmed) return
+
+    setResetLinkSendingId(user.id)
+    try {
+      await api.post(`/auth/admin/users/${encodeURIComponent(user.id)}/password-reset-link`)
+      success(t('users.credentials.resetLinkSent'))
+      loadData()
+    } catch (err) {
+      showApiError(err, 'users.errors.passwordResetLinkFailed')
+    } finally {
+      setResetLinkSendingId(null)
+    }
+  }
 
   const handleCreate = async () => {
     if (!createData.firstName || !createData.lastName || !createData.role) {
@@ -737,18 +763,52 @@ export default function Users() {
               {u.isEmailVerified ? t('users.status.emailVerified') : t('users.status.emailUnverified')}
             </Badge>
           ) : null}
+          {u.mustChangePassword ? (
+            <Badge variant="warning" className="text-[10px]">
+              {t('users.credentials.changeRequired')}
+            </Badge>
+          ) : null}
         </div>
       </td>
       <td className="p-3">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</td>
       <td className="p-3">{u.phone ?? '-'}</td>
       <td className="p-3">{renderRoles(u)}</td>
       <td className="p-3">
-        <Badge variant={u.isActive ? 'success' : 'danger'} className="text-[10px]">
-          {u.isActive ? t('common.active') : t('common.inactive')}
-        </Badge>
+        <div className="flex flex-col items-end gap-1">
+          <Badge variant={u.isActive ? 'success' : 'danger'} className="text-[10px]">
+            {u.isActive ? t('common.active') : t('common.inactive')}
+          </Badge>
+          {u.mustChangePassword ? (
+            <Badge variant="warning" className="text-[10px]">
+              {t('users.credentials.changeRequired')}
+            </Badge>
+          ) : null}
+        </div>
       </td>
       <td className="p-3 text-right">
         <div className="flex justify-end gap-1">
+          {u.mustChangePassword ? (
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="h-8 w-8"
+              disabled={resetLinkSendingId === u.id || !u.email || !u.isEmailVerified}
+              title={
+                u.email && u.isEmailVerified
+                  ? t('users.credentials.resetLinkAction')
+                  : t('users.credentials.resetLinkNeedsVerifiedEmail')
+              }
+              aria-label={t('users.credentials.resetLinkAction')}
+              onClick={() => void handleIssueInitialPasswordResetLink(u)}
+            >
+              {resetLinkSendingId === u.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Mail className="h-4 w-4" aria-hidden="true" />
+              )}
+            </Button>
+          ) : null}
           <Button
             type="button"
             size="icon"
@@ -820,6 +880,27 @@ export default function Users() {
       </div>
 
       <div className="mt-4 flex justify-end gap-2">
+        {u.mustChangePassword ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={resetLinkSendingId === u.id || !u.email || !u.isEmailVerified}
+            title={
+              u.email && u.isEmailVerified
+                ? t('users.credentials.resetLinkAction')
+                : t('users.credentials.resetLinkNeedsVerifiedEmail')
+            }
+            onClick={() => void handleIssueInitialPasswordResetLink(u)}
+          >
+            {resetLinkSendingId === u.id ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Mail className="mr-2 h-4 w-4" aria-hidden="true" />
+            )}
+            {t('users.credentials.resetLinkAction')}
+          </Button>
+        ) : null}
         <Button type="button" size="sm" variant="outline" onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)}>
           {t('users.aria.analytics')}
         </Button>

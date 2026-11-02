@@ -58,6 +58,10 @@ const mockConfigService = {
 };
 const mockNotifications = {
   sendVerificationCodeEmail: jest.fn(),
+  assertInitialPasswordResetLinkEmailReady: jest
+    .fn()
+    .mockResolvedValue(undefined),
+  sendInitialPasswordResetLinkEmail: jest.fn(),
 };
 const mockEventsGateway = {
   disconnectUserSockets: jest.fn(),
@@ -341,10 +345,12 @@ describe('AuthService', () => {
 
       const updateData = mockPrisma.user.update.mock.calls[0][0].data;
       expect(updateData.emailVerificationToken).toMatch(/^[a-f0-9]{64}$/);
-      const sentCode = mockNotifications.sendVerificationCodeEmail.mock.calls[0][0].code;
+      const sentCode =
+        mockNotifications.sendVerificationCodeEmail.mock.calls[0][0].code;
       expect(sentCode).toMatch(/^\d{6}$/);
       expect(updateData.emailVerificationToken).not.toBe(sentCode);
-      const remainingMs = updateData.emailVerificationExpiresAt.getTime() - Date.now();
+      const remainingMs =
+        updateData.emailVerificationExpiresAt.getTime() - Date.now();
       expect(remainingMs).toBeGreaterThan(14 * 60 * 1000);
       expect(remainingMs).toBeLessThanOrEqual(15 * 60 * 1000);
       expect(mockNotifications.sendVerificationCodeEmail).toHaveBeenCalledWith({
@@ -352,7 +358,9 @@ describe('AuthService', () => {
         code: sentCode,
       });
       expect(result.message).toContain('15 minuta');
-      expect(updateData.emailVerificationExpiresAt.getTime()).toBeGreaterThan(before);
+      expect(updateData.emailVerificationExpiresAt.getTime()).toBeGreaterThan(
+        before,
+      );
     });
   });
 
@@ -420,7 +428,6 @@ describe('AuthService', () => {
         currentPassword: 'temporary-test-password',
         newPassword: 'NovaLozinka123!',
       };
-      const updatedAt = new Date('2026-10-25T12:34:56.789Z');
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'u1',
         username: 'john',
@@ -431,31 +438,161 @@ describe('AuthService', () => {
       });
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
       (bcrypt.hash as jest.Mock).mockResolvedValue('new-hash');
-      mockPrisma.user.update.mockResolvedValue({
-        passwordChangedAt: updatedAt,
-      });
+      mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
 
       await expect(service.changePassword('u1', dto)).resolves.toEqual({
         message: 'Lozinka je uspješno promijenjena.',
         access_token: 'mock-jwt-token',
       });
 
-      expect(mockPrisma.user.update).toHaveBeenCalledWith({
-        where: { id: 'u1' },
+      expect(mockPrisma.user.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'u1',
+          passwordHash: 'old-hash',
+          passwordChangedAt: null,
+        },
         data: {
           passwordHash: 'new-hash',
           mustChangePassword: false,
           passwordChangedAt: expect.any(Date),
+          passwordResetTokenHash: null,
+          passwordResetExpiresAt: null,
         },
-        select: { passwordChangedAt: true },
       });
       expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
         'u1',
       );
       expect(mockJwtService.signAsync).toHaveBeenCalledWith(
-        expect.objectContaining({ sub: 'u1', pwdv: updatedAt.getTime() }),
+        expect.objectContaining({ sub: 'u1', pwdv: expect.any(Number) }),
         expect.any(Object),
       );
+    });
+  });
+
+  describe('admin-issued initial password reset links', () => {
+    const pendingUser = {
+      id: 'u1',
+      email: 'john@example.com',
+      firstName: 'John',
+      isEmailVerified: true,
+      mustChangePassword: true,
+      passwordHash: 'legacy-hash',
+      passwordChangedAt: null,
+    };
+
+    it('invalidates the pending password and mails only a hashed, seven-day token', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(pendingUser);
+      mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
+      (bcrypt.hash as jest.Mock).mockResolvedValue('unusable-hash');
+
+      const startedAt = Date.now();
+      await expect(
+        service.issueInitialPasswordResetLink('u1'),
+      ).resolves.toMatchObject({
+        message: 'Reset link je poslan na potvrđenu email adresu.',
+        expiresAt: expect.any(Date),
+      });
+
+      const email =
+        mockNotifications.sendInitialPasswordResetLinkEmail.mock.calls[0][0];
+      expect(email.to).toBe('john@example.com');
+      expect(email.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(email.expiresAt.getTime()).toBeGreaterThanOrEqual(
+        startedAt + 7 * 24 * 60 * 60 * 1000,
+      );
+      expect(email.expiresAt.getTime()).toBeLessThanOrEqual(
+        Date.now() + 7 * 24 * 60 * 60 * 1000,
+      );
+      const expectedTokenHash = crypto
+        .createHmac('sha256', 'test-secret')
+        .update(`admin-initial-password-reset:v1:${email.token}`)
+        .digest('hex');
+      expect(mockPrisma.user.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'u1',
+          mustChangePassword: true,
+          email: 'john@example.com',
+          isEmailVerified: true,
+          passwordHash: 'legacy-hash',
+          passwordChangedAt: null,
+        },
+        data: {
+          passwordHash: 'unusable-hash',
+          passwordChangedAt: expect.any(Date),
+          passwordResetTokenHash: expectedTokenHash,
+          passwordResetExpiresAt: email.expiresAt,
+        },
+      });
+      expect(
+        mockNotifications.sendInitialPasswordResetLinkEmail,
+      ).toHaveBeenCalledTimes(1);
+      expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
+        'u1',
+      );
+    });
+
+    it('does not issue a reset link to an unverified or missing email', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        ...pendingUser,
+        isEmailVerified: false,
+      });
+
+      await expect(service.issueInitialPasswordResetLink('u1')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mockPrisma.user.updateMany).not.toHaveBeenCalled();
+      expect(
+        mockNotifications.sendInitialPasswordResetLinkEmail,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('consumes a valid reset token once and clears the forced-change state', async () => {
+      const token = crypto.randomBytes(32).toString('base64url');
+      const tokenHash = crypto
+        .createHmac('sha256', 'test-secret')
+        .update(`admin-initial-password-reset:v1:${token}`)
+        .digest('hex');
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: 'u1',
+        passwordChangedAt: null,
+      });
+      mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
+      (bcrypt.hash as jest.Mock).mockResolvedValue('new-password-hash');
+
+      await expect(
+        service.resetPasswordWithToken(token, 'new-password'),
+      ).resolves.toEqual({
+        message:
+          'Lozinka je postavljena. Sada se možete prijaviti novom lozinkom.',
+      });
+      expect(mockPrisma.user.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'u1',
+          passwordResetTokenHash: tokenHash,
+          passwordResetExpiresAt: { gt: expect.any(Date) },
+          mustChangePassword: true,
+          isEmailVerified: true,
+          passwordChangedAt: null,
+        },
+        data: {
+          passwordHash: 'new-password-hash',
+          mustChangePassword: false,
+          passwordChangedAt: expect.any(Date),
+          passwordResetTokenHash: null,
+          passwordResetExpiresAt: null,
+        },
+      });
+      expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
+        'u1',
+      );
+    });
+
+    it('rejects malformed tokens without database access', async () => {
+      await expect(
+        service.resetPasswordWithToken('not-a-reset-token', 'new-password'),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.user.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.user.updateMany).not.toHaveBeenCalled();
     });
   });
 });

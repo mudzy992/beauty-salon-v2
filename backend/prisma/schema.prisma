@@ -77,6 +77,8 @@ model User {
   lastLoginAt                DateTime? @map("last_login_at")
   mustChangePassword         Boolean   @default(false) @map("must_change_password")
   passwordChangedAt          DateTime? @map("password_changed_at")
+  passwordResetTokenHash     String?   @unique(map: "users_password_reset_token_hash_key") @map("password_reset_token_hash")
+  passwordResetExpiresAt     DateTime? @map("password_reset_expires_at")
   createdAt                  DateTime  @default(now()) @map("created_at")
   updatedAt                  DateTime  @updatedAt @map("updated_at")
 

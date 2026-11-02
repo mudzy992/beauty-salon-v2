@@ -8,6 +8,7 @@ jest.mock('../uploads/uploads.service', () => ({
 }));
 
 import { AuthController } from './auth.controller';
+import { ROLES_KEY } from '../common/decorators/roles.decorator';
 import {
   HTTP_RATE_LIMIT_METADATA,
   type HttpRateLimitPolicy,
@@ -33,12 +34,29 @@ describe('AuthController rate-limit policies', () => {
       route: 'verifyEmail' as const,
       buckets: ['auth:verify-email:user', 'auth:verify-email:ip'],
     },
+    {
+      route: 'resetPassword' as const,
+      buckets: ['auth:reset-password:ip'],
+    },
+    {
+      route: 'issueInitialPasswordResetLink' as const,
+      buckets: ['auth:admin-password-reset:user'],
+    },
   ])(
     '$route has independent rate limits for each identity',
     ({ route, buckets }) => {
       expect(policiesFor(route)?.map(({ bucket }) => bucket)).toEqual(buckets);
     },
   );
+
+  it('restricts initial-password reset-link issuance to administrators and owners', () => {
+    expect(
+      Reflect.getMetadata(
+        ROLES_KEY,
+        AuthController.prototype.issueInitialPasswordResetLink,
+      ),
+    ).toEqual(['SYSTEM_ADMIN', 'OWNER']);
+  });
 
   it('uses bounded per-IP and per-account login budgets', () => {
     expect(policiesFor('login')).toMatchObject([
@@ -75,6 +93,8 @@ describe('AuthController rate-limit policies', () => {
     'register' as const,
     'sendVerificationEmail' as const,
     'verifyEmail' as const,
+    'resetPassword' as const,
+    'issueInitialPasswordResetLink' as const,
   ])('$route rejects when its Redis counter is unavailable', (route) => {
     const policies = policiesFor(route);
     expect(policies?.length).toBeGreaterThan(0);

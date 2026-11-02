@@ -4,6 +4,7 @@ import PublicOnlyRoute from '../components/PublicOnlyRoute'
 import ProtectedRoute from '../components/ProtectedRoute'
 import Login from '../pages/Login'
 import Register from '../pages/Register'
+import ResetPassword from '../pages/ResetPassword'
 import ForceChangePassword from '../pages/ForceChangePassword'
 import OnboardingGender from '../pages/onboarding/OnboardingGender'
 import OnboardingEmail from '../pages/onboarding/OnboardingEmail'
@@ -107,6 +108,10 @@ export const AppRouter = () => {
           <Register />
         </PublicOnlyRoute>
       ),
+    },
+    {
+      path: '/reset-password',
+      element: <ResetPassword />,
     },
     {
       path: '/force-change-password',
