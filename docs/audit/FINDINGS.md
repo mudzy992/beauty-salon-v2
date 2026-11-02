@@ -610,11 +610,11 @@ Root `SOURCE_OF_TRUTH.md` sada sadrži aktuelni repository snapshot i odvojenu h
 
 ## Granice i koraci za final proof
 
-- Nije bilo live prod/QA HTTP testa, DB querya/migration runa, browser/manual screen-reader testa, PostgreSQL concurrency reprodukcije ni SMTP/FCM delivery testa.
-- Prisma client generate/validate i backend test/build dio bili su blokirani sandbox TLS engine download-om/nedostajućim generated client-om. Nakon što je backend lint učinjen read-only, `npm run lint` je izvršen i exit 1 sa 6,418 problema (6,070 errors, 348 warnings); generated Prisma Client nedostaje u ovom sandboxu, pa broj nije nužno clean code-only baseline.
-- Nema zaključka o produkcijskoj proxy/WAF rate-limit, SMTP config, DB grants, Redis ACL, backup, log retention, public domain response ili actual customer consent.
-- Redis nije korišten/audit-runtime nije proveo connection. Kod/package/Compose pretrage nisu pokazale Redis wiring; opcionalni plan je [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
-- Nema ručnog DB mutationa, production API calla, `npm audit fix`, migration, `git history` rewrite, PR prema `master` ili merge-a.
+- Nije bilo live production/QA HTTP testa ili upita/migracije nad produkcijskom/shared bazom, browser/manual screen-reader testa niti SMTP/FCM delivery testa. PostgreSQL concurrency testovi jesu izvršeni u CI-ju nad disposable bazom, uključujući SEC-04 attach-vs-delete i BIZ-02/03/04/07/08 scenarije; to nije production/runtime dokaz.
+- **Lokalni sandbox:** Prisma Client generate/typecheck/backend build i DB testovi nisu bili dostupni zbog TLS blokade preuzimanja Prisma engine-a i nedostajućeg generated clienta. Nasuprot tome, CI je uspješno generisao Prisma Client i prošao backend build/unit/DB-backed suiteove na disposable PostgreSQL-u u zabilježenim runovima. Backend `npm run lint` je, nakon uklanjanja mutirajućeg `--fix`, završio sa statusom 1 i 6.418 prijavljenih problema (6.070 errors, 348 warnings); zbog nedostajućeg generated Clienta u lokalnom sandboxu taj broj nije nužno čist code-only baseline.
+- Nema zaključka o produkcijskoj proxy/WAF rate-limit konfiguraciji, SMTP postavkama, stvarnim DB grantovima, Redis ACL/TLS/failoveru, backup/restore, log retentionu, odgovoru javne domene ili stvarnoj customer consent evidenciji.
+- Redis je povezan u izvoru: postoji `RedisIoAdapter`, runtime konfiguracija za Socket.IO i Redis-backed HTTP rate limiter. CI pokriva mock/sintetičke konfiguracijske i adapter testove, ali nije uspostavljena konekcija sa stvarnim Redis servisom; cross-instance delivery, stvarni ACL/TLS/DNS/failover i deployment nisu provjereni. Detalji su u SEC-06, AUTH-01 i [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+- Agent nije pokrenuo production API operaciju, `npm audit fix`, ručnu izmjenu korisničke baze ili Git historije; nije otvorio niti merge-ao PR. Korisnik je ranije prijavio vlastito čišćenje isključivo testnih zapisa i `migrate deploy` za API-03/OPS-01; to nije nezavisno provjereno. Remote `master` sada sadrži tip `fce68f4`, sinhronizovan nakon korisničkog merge-a; to ne predstavlja runtime/deployment potvrdu.
 
 ### I18N-01 follow-up — Admin reservation calendar page shell
 
