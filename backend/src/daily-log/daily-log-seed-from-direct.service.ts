@@ -22,7 +22,7 @@ export class DailyLogSeedFromDirectService {
       include: {
         items: { include: { service: { select: { id: true, price: true } } } },
         service: { select: { id: true, price: true } },
-        dailyLogEntry: { where: { deletedAt: null }, take: 1, select: { id: true } },
+        dailyLogEntry: { where: { kind: 'SERVICE' }, take: 1, select: { id: true } },
       },
     });
     if (!res) return false;
@@ -46,58 +46,77 @@ export class DailyLogSeedFromDirectService {
       date,
     );
 
-    await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.dailyLogEntry.findFirst({
-        where: { reservationId: res.id, deletedAt: null },
+    let seeded: boolean;
+    try {
+      seeded = await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.dailyLogEntry.findFirst({
+          where: { reservationId: res.id, kind: 'SERVICE' },
+          select: { id: true },
+        });
+        if (existing) return false;
+
+        assertReservationTransition(
+          res.status,
+          RESERVATION_STATUS.AWAITING_DAILY_LOG,
+        );
+
+        const created = await tx.dailyLogEntry.create({
+          data: {
+            stylistProfileId: res.confirmedStylistId!,
+            reservationId: res.id,
+            serviceId: primaryServiceId,
+            clientId: res.clientId,
+            date,
+            actualPrice: minCharge,
+            tipAmount: 0,
+            loyaltyDiscountAmount,
+            publicReferenceCode,
+            kind: 'SERVICE',
+            isManual: false,
+            status: 'PENDING',
+          },
+        });
+
+        const itemRows =
+          res.items && res.items.length > 0
+            ? res.items.map((it, idx) => ({
+                dailyLogEntryId: created.id,
+                serviceId: it.serviceId,
+                unitPrice: Number(it.service?.price ?? 0),
+                sortOrder: idx,
+              }))
+            : [
+                {
+                  dailyLogEntryId: created.id,
+                  serviceId: primaryServiceId,
+                  unitPrice: Number(res.service?.price ?? 0),
+                  sortOrder: 0,
+                },
+              ];
+        await tx.dailyLogEntryServiceItem.createMany({ data: itemRows });
+
+        await tx.reservation.update({
+          where: { id: res.id },
+          data: { status: RESERVATION_STATUS.AWAITING_DAILY_LOG },
+        });
+        return true;
+      });
+    } catch (error) {
+      const isUniqueConstraintError =
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code?: unknown }).code === 'P2002';
+      if (!isUniqueConstraintError) throw error;
+      const existing = await this.prisma.dailyLogEntry.findFirst({
+        where: { reservationId: res.id, kind: 'SERVICE' },
         select: { id: true },
       });
-      if (existing) return;
+      if (!existing) throw error;
+      return false;
+    }
 
-      assertReservationTransition(
-        res.status,
-        RESERVATION_STATUS.AWAITING_DAILY_LOG,
-      );
-
-      const created = await tx.dailyLogEntry.create({
-        data: {
-          stylistProfileId: res.confirmedStylistId!,
-          reservationId: res.id,
-          serviceId: primaryServiceId,
-          clientId: res.clientId,
-          date,
-          actualPrice: minCharge,
-          tipAmount: 0,
-          loyaltyDiscountAmount,
-          publicReferenceCode,
-          kind: 'SERVICE',
-          isManual: false,
-          status: 'PENDING',
-        },
-      });
-
-      const itemRows =
-        res.items && res.items.length > 0
-          ? res.items.map((it, idx) => ({
-              dailyLogEntryId: created.id,
-              serviceId: it.serviceId,
-              unitPrice: Number(it.service?.price ?? 0),
-              sortOrder: idx,
-            }))
-          : [
-              {
-                dailyLogEntryId: created.id,
-                serviceId: primaryServiceId,
-                unitPrice: Number(res.service?.price ?? 0),
-                sortOrder: 0,
-              },
-            ];
-      await tx.dailyLogEntryServiceItem.createMany({ data: itemRows });
-
-      await tx.reservation.update({
-        where: { id: res.id },
-        data: { status: RESERVATION_STATUS.AWAITING_DAILY_LOG },
-      });
-    });
+    if (!seeded) return false;
 
     this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_UPDATED, {
       id: reservationId,

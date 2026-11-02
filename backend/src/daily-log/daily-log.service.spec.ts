@@ -290,6 +290,30 @@ describe('DailyLogService', () => {
     expect(mockCompletionOutbox.dispatchAfterCommit).not.toHaveBeenCalled();
   });
 
+  it('maps a concurrent reservation SERVICE unique conflict to HTTP 409', async () => {
+    mockPrisma.dailyLogEntry.findFirst.mockResolvedValue({ id: 'existing' });
+
+    await expect(
+      (service as any).rejectDuplicateServiceLog(
+        { code: 'P2002' },
+        'reservation-1',
+      ),
+    ).rejects.toThrow(ConflictException);
+    expect(mockPrisma.dailyLogEntry.findFirst).toHaveBeenCalledWith({
+      where: { reservationId: 'reservation-1', kind: 'SERVICE' },
+      select: { id: true },
+    });
+  });
+
+  it('does not misclassify unrelated unique errors as duplicate reservation logs', async () => {
+    const error = { code: 'P2002', meta: { target: ['public_reference_code'] } };
+    mockPrisma.dailyLogEntry.findFirst.mockResolvedValue(null);
+
+    await expect(
+      (service as any).rejectDuplicateServiceLog(error, 'reservation-1'),
+    ).rejects.toBe(error);
+  });
+
   it('findOne baca NotFoundException kada zapis ne postoji', async () => {
     mockPrisma.dailyLogEntry.findUnique.mockResolvedValue(null);
     await expect(service.findOne('nope', user as any)).rejects.toThrow(

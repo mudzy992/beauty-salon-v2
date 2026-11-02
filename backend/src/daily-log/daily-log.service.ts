@@ -55,6 +55,29 @@ export class DailyLogService {
     private readonly completionOutbox: DailyLogCompletionOutboxService,
   ) {}
 
+  private async rejectDuplicateServiceLog(
+    error: unknown,
+    reservationId: string,
+  ): Promise<never> {
+    const isUniqueConstraintError =
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      (error as { code?: unknown }).code === 'P2002';
+    if (isUniqueConstraintError) {
+      const existing = await this.prisma.dailyLogEntry.findFirst({
+        where: { reservationId, kind: 'SERVICE' },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new ConflictException(
+          'Za ovu rezervaciju već postoji zapis u dnevnoj knjizi.',
+        );
+      }
+    }
+    throw error;
+  }
+
   private async notifyClientDebt(params: {
     clientId: string;
     amount: number;
@@ -125,6 +148,15 @@ export class DailyLogService {
       if (!same) {
         throw new BadRequestException('Servisi se ne podudaraju s rezervacijom.');
       }
+      const existing = await this.prisma.dailyLogEntry.findFirst({
+        where: { reservationId: dto.reservationId, kind: 'SERVICE' },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new ConflictException(
+          'Za ovu rezervaciju već postoji zapis u dnevnoj knjizi.',
+        );
+      }
     }
     if (dto.clientId) {
       const client = await this.prisma.user.findUnique({
@@ -185,7 +217,7 @@ export class DailyLogService {
       this.prisma,
       date,
     );
-    const created = await this.prisma.dailyLogEntry.create({
+    const createEntry = this.prisma.dailyLogEntry.create({
       data: {
         stylistProfileId: dto.stylistProfileId,
         reservationId: dto.reservationId,
@@ -202,6 +234,11 @@ export class DailyLogService {
       },
       include: this.entryInclude(),
     });
+    const created = dto.reservationId
+      ? await createEntry.catch((error: unknown) =>
+          this.rejectDuplicateServiceLog(error, dto.reservationId!),
+        )
+      : await createEntry;
     await this.prisma.dailyLogEntryServiceItem.createMany({
       data: resolved.map((it, idx) => ({
         dailyLogEntryId: created.id,
@@ -313,12 +350,14 @@ export class DailyLogService {
       throw new BadRequestException('Rezervacija nema potvrđenog stilista.');
     await this.ensureStylistAccess(res.confirmedStylistId, user);
     const existing = await this.prisma.dailyLogEntry.findFirst({
-      where: { reservationId },
+      where: { reservationId, kind: 'SERVICE' },
+      select: { id: true },
     });
-    if (existing)
-      throw new BadRequestException(
+    if (existing) {
+      throw new ConflictException(
         'Za ovu rezervaciju već postoji zapis u dnevnoj knjizi.',
       );
+    }
     const date = parseDateOnlyInput(toDateOnlyString(res.reservationDate));
     const resServiceIds = res.items?.length
       ? res.items.map((i) => i.serviceId)
@@ -377,23 +416,27 @@ export class DailyLogService {
       this.prisma,
       date,
     );
-    const created = await this.prisma.dailyLogEntry.create({
-      data: {
-        stylistProfileId: res.confirmedStylistId,
-        reservationId: res.id,
-        serviceId: primaryServiceId,
-        clientId: res.clientId,
-        date,
-        actualPrice: paidForServices,
-        tipAmount: computedTip,
-        publicReferenceCode,
-        notes,
-        kind: 'SERVICE' as any,
-        isManual: false,
-        status: 'PENDING',
-      },
-      include: this.entryInclude(),
-    });
+    const created = await this.prisma.dailyLogEntry
+      .create({
+        data: {
+          stylistProfileId: res.confirmedStylistId,
+          reservationId: res.id,
+          serviceId: primaryServiceId,
+          clientId: res.clientId,
+          date,
+          actualPrice: paidForServices,
+          tipAmount: computedTip,
+          publicReferenceCode,
+          notes,
+          kind: 'SERVICE' as any,
+          isManual: false,
+          status: 'PENDING',
+        },
+        include: this.entryInclude(),
+      })
+      .catch((error: unknown) =>
+        this.rejectDuplicateServiceLog(error, reservationId),
+      );
     const itemRows =
       res.items && res.items.length > 0
         ? res.items.map((it, idx) => ({

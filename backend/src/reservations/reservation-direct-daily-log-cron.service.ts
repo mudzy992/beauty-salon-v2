@@ -41,7 +41,7 @@ export class ReservationDirectDailyLogCronService {
         },
         confirmedStylistId: { not: null },
         reservationDate: { gte: lookback },
-        dailyLogEntry: { none: { deletedAt: null } },
+        dailyLogEntry: { none: { kind: 'SERVICE' } },
       },
       select: {
         id: true,

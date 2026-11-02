@@ -43,6 +43,7 @@ describe('ReservationDirectDailyLogCronService', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           reservationDate: { gte: new Date('2026-01-08T00:00:00.000Z') },
+          dailyLogEntry: { none: { kind: 'SERVICE' } },
         }),
       }),
     );

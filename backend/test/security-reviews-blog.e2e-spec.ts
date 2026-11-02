@@ -42,6 +42,7 @@ import { DailyLogDispositionService } from '../src/daily-log/daily-log-dispositi
 import { DailyLogPublicService } from '../src/daily-log/daily-log-public.service';
 import { DailyLogRestoreService } from '../src/daily-log/daily-log-restore.service';
 import { DailyLogService } from '../src/daily-log/daily-log.service';
+import { DailyLogSeedFromDirectService } from '../src/daily-log/daily-log-seed-from-direct.service';
 import { ClientDebtsController } from '../src/finance/client-debts.controller';
 import { ClientDebtsService } from '../src/finance/client-debts.service';
 import { ExpenseBooksService } from '../src/finance/expense-books.service';
@@ -188,7 +189,7 @@ const fixtureIds: FixtureIds = {
   reservationIds: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, SEC-04/PRIV-01, SEC-07, API-02, API-03, OPS-03, BIZ-01–BIZ-05, BIZ-07–BIZ-08', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, SEC-04/PRIV-01, SEC-07, API-02, API-03, OPS-03, BIZ-01–BIZ-05, BIZ-07–BIZ-08, OPS-01', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -354,6 +355,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
         UploadsRepository,
         UploadsService,
         DailyLogService,
+        DailyLogSeedFromDirectService,
         {
           provide: DailyLogCompletionOutboxService,
           useValue: {
@@ -5394,5 +5396,81 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     });
     expect(stored).toHaveLength(1);
     expect(stored[0]?.isVerified).toBe(true);
+  });
+
+  it('OPS-01 seeds one SERVICE daily-log per reservation under concurrent cron calls', async () => {
+    const db = prisma!;
+    const reservation = await db.reservation.create({
+      data: {
+        clientId: clientUserId,
+        serviceId,
+        reservationDate: new Date('2026-11-02T00:00:00.000Z'),
+        startTime: '09:00',
+        endTime: '09:45',
+        status: 'CONFIRMED',
+        bookingOrigin: 'STAFF_ADMIN_DIRECT',
+        acceptanceMode: 'DIRECT_ASSIGN',
+        attendancePolicy: 'STAFF_WAIVED',
+        confirmedStylistId: fixtureIds.stylistProfile!,
+        publicReferenceCode: `OPS01-${randomUUID()}`,
+        clientViewToken: randomUUID(),
+      },
+    });
+    fixtureIds.reservationIds.push(reservation.id);
+
+    const suffix = randomUUID().replaceAll('-', '');
+    const functionName = `e2e_ops01_seed_sleep_${suffix}`;
+    const triggerName = `e2e_ops01_seed_sleep_${suffix}`;
+    const seed = app!.get(DailyLogSeedFromDirectService);
+    const events = app!.get(EventsGateway);
+    const adminEmit = events.emitToAdmins as jest.Mock;
+    const adminEmitCount = adminEmit.mock.calls.length;
+
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${functionName}"() RETURNS trigger
+        LANGUAGE plpgsql AS $$
+        BEGIN
+          IF NEW."reservation_id" = '${reservation.id}'
+            AND NEW."kind" = 'SERVICE' THEN
+            PERFORM pg_sleep(0.75);
+          END IF;
+          RETURN NEW;
+        END;
+        $$
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE INSERT ON "daily_log_entries"
+        FOR EACH ROW EXECUTE FUNCTION "${functionName}"()
+      `);
+
+      const outcomes = await Promise.all([
+        seed.seedPendingFromDirectReservation(reservation.id),
+        seed.seedPendingFromDirectReservation(reservation.id),
+      ]);
+      expect(outcomes.filter(Boolean)).toHaveLength(1);
+      expect(outcomes.filter((value) => !value)).toHaveLength(1);
+
+      const serviceEntries = await db.dailyLogEntry.findMany({
+        where: { reservationId: reservation.id, kind: 'SERVICE' },
+        select: { id: true, status: true },
+      });
+      expect(serviceEntries).toHaveLength(1);
+      expect(serviceEntries[0]?.status).toBe('PENDING');
+      expect(adminEmit).toHaveBeenCalledTimes(adminEmitCount + 1);
+
+      await expect(
+        seed.seedPendingFromDirectReservation(reservation.id),
+      ).resolves.toBe(false);
+      expect(adminEmit).toHaveBeenCalledTimes(adminEmitCount + 1);
+    } finally {
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "daily_log_entries"`,
+      );
+      await db.$executeRawUnsafe(
+        `DROP FUNCTION IF EXISTS "${functionName}"()`,
+      );
+    }
   });
 });
