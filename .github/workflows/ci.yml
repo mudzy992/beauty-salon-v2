@@ -401,6 +401,9 @@ jobs:
       - name: Test localized reservation benefit error copy
         working-directory: mobile
         run: npm run test:reservation-benefit-copy
+      - name: Test Bosnian My Reservations copy
+        working-directory: mobile
+        run: npm run test:my-reservations-copy-i18n
       - name: Test reservation benefit read recovery
         working-directory: mobile
         run: npm run test:reservation-benefit-recovery

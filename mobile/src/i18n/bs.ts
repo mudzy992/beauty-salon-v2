@@ -145,6 +145,23 @@ export const bs = {
     confirmAttendanceHint:
       'Potvrdite najkasnije {{hours}}h prije termina. Ako niko ne potvrdi, rezervacija se otkazuje na početku termina.',
     attendanceConfirmed: 'Dolazak potvrđen',
+    rescheduleAcceptSuccessTitle: 'Termin potvrđen',
+    rescheduleAcceptSuccessMessage: 'Potvrdili ste predloženu promjenu termina.',
+    rescheduleDeclineTitle: 'Prijedlog odbijen',
+    rescheduleDeclineMessage: 'Odbili ste predloženu promjenu termina.',
+    rescheduleDeclineConfirmTitle: 'Odbiti novi termin?',
+    rescheduleDeclineConfirmMessage:
+      'Ako je ovo rekalkulacija termina, rezervacija se otkazuje. Ako je reorder prijedlog, ostaje vaš postojeći termin.',
+    rescheduleAccept: 'Potvrdi promjenu termina',
+    rescheduleDecline: 'Odbij promjenu termina',
+    reschedulePending: 'Čeka se vaša potvrda novog termina.',
+    reservationFallbackTitle: 'Rezervacija',
+    cancelledForAttendance: 'Otkazano zbog nepotvrđenog dolaska',
+    estimatedCost: 'Procijenjeni trošak: {{amount}} KM',
+    estimatedCostHint: 'Konačan iznos može se razlikovati nakon završetka usluge.',
+    activeTitle: 'Trenutna rezervacija',
+    noActiveTitle: 'Nemate aktivnu rezervaciju',
+    noActiveMessage: 'Rezervišite termin i pratite status na jednom mjestu.',
     status: {
       PENDING: 'Na čekanju',
       STYLIST_REVIEW: 'Pregled stilista',
