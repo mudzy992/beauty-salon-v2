@@ -98,11 +98,15 @@
 
 ### SEC-03 — Stylist može čitati open dugove proizvoljnog klijenta
 
-[`client-debts.controller.ts#L23-L27`](../../backend/src/finance/client-debts.controller.ts#L23) prihvata `clientId` i uključuje `STYLIST`. [`client-debts.service.ts#L27-L63`](../../backend/src/finance/client-debts.service.ts#L27) provjerava samo da je caller stylist; ne provjerava da je klijent vezan za tog stilistu ili da je dug njegov. Response vraća iznose, servis, stylist profile, vrijeme i creator metadata; samo sakriva note kada ga nije kreirao caller. Za razliku od toga `listForStylistMe` je po stylist profile-u ograničen ([service L69-L84](../../backend/src/finance/client-debts.service.ts#L69)).
+[`client-debts.controller.ts#L23-L27`](../../backend/src/finance/client-debts.controller.ts#L23) prihvata `clientId` i uključuje `STYLIST`. Prije korekcije service je provjeravao samo callerovu ulogu, pa je stilista mogao dobiti otvorene dugove bilo kojeg klijenta; odgovor sadrži iznose, servis, stilistički profil, vrijeme i creator metadata, uz skrivanje tuđih napomena. `ClientDebt.stylistProfileId` je obavezna veza u Prisma modelu; zasebni `listForStylistMe` je već bio scoped na taj profil.
 
-**Uticaj:** ako je politika da stylist vidi samo dugove u svom radnom odnosu, client IDOR izlaže finansijske podatke drugih klijenata/stilista. Namjera aplikacije (zajednički pregled svih dugova) nije potvrđena.
+**Owner odluka (2026-11-02):** stilista smije vidjeti samo dugove klijenta povezane s vlastitim radom/stilističkim profilom; nema salon-wide finansijskog pregleda za stiliste.
 
-**Popravka:** eksplicitno usaglasiti policy; ako nije globalni salon-wide pristup, query ograničiti na `stylistProfileId`/reservation/work relationship; dodati tests za own/other stylist/client/admin.
+**Source mitigacija:** za `STYLIST` koji traži dugove drugog klijenta, service sada traži callerov stylist profile ID i dodaje `stylistProfileId` u isti DB upit. Nedostajući profil odbija se prije upita. Admin/owner salon-wide pregled i klijentov pregled vlastitih dugova ostaju nepromijenjeni; `listForStylistMe` je nepromijenjen. Nema schema migracije.
+
+**Regresije/verifikacija:** unit testovi zaključavaju stylist profile filter, deny bez profila i neograničeni owner scope. Disposable-PostgreSQL HTTP test kreira dva duga za istog klijenta vezana za različite profile i potvrđuje da stilista vidi samo svoj dug, dok klijent i owner vide oba. CI run [`41451103762`](https://github.com/mudzy992/beauty-salon-v2/actions/runs/41451103762) prošao je sva četiri posla, uključujući backend build/unit/HTTP suite, frontend, mobile i repo checks.
+
+**Granice:** source i disposable-CI potvrda nisu live/production provjera, deployment dokaz ni dokaz historijske eksploatacije. Nisu korišteni production/shared DB upisi.
 
 ### SEC-04 — Javno posluživanje upload-a i nepotpuna delete/reference zaštita
 
