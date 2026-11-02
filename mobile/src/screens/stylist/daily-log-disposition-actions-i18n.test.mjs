@@ -28,6 +28,17 @@ test('daily-log disposition action labels and hints resolve through Bosnian reso
   assert.ok(menu.includes('t(DISPOSITION_ACTION_LABEL_KEYS[key])'))
 })
 
+test('disposition mutation errors and stale continuations are contained by account, entry, and mount identity', () => {
+  assert.match(panel, /useAuthStore\.getState\(\)\.user\?\.id === expected\.userId/)
+  assert.match(panel, /current\.mounted &&[\s\S]*current\.entryId === expected\.entryId[\s\S]*current\.generation === expected\.generation/)
+  assert.match(panel, /activeActionTokenRef\.current !== null/)
+  assert.match(panel, /await api\.post\([\s\S]*?if \(!isCurrentAction\(\)\) return;/)
+  assert.match(panel, /catch \(error: unknown\)[\s\S]*?if \(isCurrentAction\(\)\)[\s\S]*getApiErrorMessage\(error, t\('stylist\.dailyLogDetail\.dispositionErrorFallback'\)\)/)
+  assert.match(panel, /onPress: \(\) => \{\s*if \(isCurrentIdentity\(expectedIdentity\)\) onDoneRef\.current\(\);/)
+  assert.match(panel, /finally \{\s*const shouldUpdateCurrentAction = isCurrentAction\(\);\s*if \(activeActionTokenRef\.current === token\) activeActionTokenRef\.current = null;\s*if \(shouldUpdateCurrentAction\) setSubmitting\(false\);/)
+  assert.match(panel, /panelIdentityRef\.current\.mounted = false/)
+});
+
 test('disposition actions preserve their keys, ordering, styles, and selection callback', () => {
   assert.match(copy, /export type DispositionAction =\s*\| 'reorder'\s*\| 'cancel_as_client'\s*\| 'cancel_as_stylist'\s*\| 'no_show'/)
   assert.match(copy, /export const DISPOSITION_ACTION_KEYS = Object\.keys\(\s*DISPOSITION_ACTION_LABEL_KEYS,\s*\) as DispositionAction\[\]/)

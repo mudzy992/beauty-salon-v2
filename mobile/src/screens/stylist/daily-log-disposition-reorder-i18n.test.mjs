@@ -17,6 +17,7 @@ const labels = [
   ['dispositionReorderSuccessTitle', 'Termin pomjeren'],
   ['dispositionReorderSuccessMessage', 'Novi datum i vrijeme su odmah primijenjeni. Klijent je obaviješten i ne mora potvrđivati.'],
   ['dispositionReorderSuccessOk', 'U redu'],
+  ['dispositionErrorFallback', 'Akciju nije moguće potvrditi. Vratite se na listu i provjerite status zapisa prije novog pokušaja.'],
 ]
 
 test('daily-log disposition reorder dialog and success alert use Bosnian resources', () => {
@@ -35,6 +36,6 @@ test('reorder-only fields, validation, API payload, and success callback remain 
   assert.match(panel, /action,\s*reason: trimmed,/)
   assert.match(panel, /targetDate: action === 'reorder' \? targetDate\.trim\(\) : undefined/)
   assert.match(panel, /if \(action === 'reorder'\) \{\s*Alert\.alert\(\s*t\('stylist\.dailyLogDetail\.dispositionReorderSuccessTitle'\)/)
-  assert.match(panel, /dispositionReorderSuccessOk'\), onPress: onDone/)
-  assert.match(panel, /\}, \[action, entry\.id, onDone, reason, t, targetDate, targetEndTime, targetStartTime\]\);/)
+  assert.match(panel, /dispositionReorderSuccessOk'\),\s*onPress: \(\) => \{[\s\S]*isCurrentIdentity\(expectedIdentity\)\) onDoneRef\.current\(\);/)
+  assert.match(panel, /\}, \[action, entry\.id, isCurrentIdentity, reason, t, targetDate, targetEndTime, targetStartTime, userId\]\);/)
 })
