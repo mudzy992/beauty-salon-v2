@@ -370,11 +370,16 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-10, AUTH-01, SEC-04/P
             stylistAcceptSvc: ReservationStylistAcceptService,
             stylistLockSvc: ReservationStylistLockService,
             listSvc: ReservationListService,
+            queriesSvc: ReservationQueriesService,
           ) => ({
             findAll: (
               query: Parameters<ReservationListService['findAll']>[0],
               user: Parameters<ReservationListService['findAll']>[1],
             ) => listSvc.findAll(query, user),
+            findOne: (
+              id: string,
+              user: Parameters<ReservationQueriesService['findOne']>[1],
+            ) => queriesSvc.findOne(id, user),
             create: (
               dto: CreateReservationDto,
               clientId: string,
@@ -418,6 +423,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-10, AUTH-01, SEC-04/P
             ReservationStylistAcceptService,
             ReservationStylistLockService,
             ReservationListService,
+            ReservationQueriesService,
           ],
         },
         AvailabilityService,
@@ -2071,6 +2077,17 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-10, AUTH-01, SEC-04/P
     expect(stylistList.body.map((row: { id: string }) => row.id)).not.toContain(
       otherReservation.id,
     );
+    expect(stylistList.body[0]).not.toHaveProperty('clientViewToken');
+    expect(stylistList.body[0]).not.toHaveProperty('idempotencyKey');
+    expect(stylistList.body[0]).not.toHaveProperty('idempotencyRequestHash');
+
+    const stylistDetail = await request(server)
+      .get(`/api/reservations/${ownReservation.id}`)
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(200);
+    expect(stylistDetail.body).not.toHaveProperty('clientViewToken');
+    expect(stylistDetail.body).not.toHaveProperty('idempotencyKey');
+    expect(stylistDetail.body).not.toHaveProperty('idempotencyRequestHash');
 
     const adminList = await request(server)
       .get('/api/reservations')

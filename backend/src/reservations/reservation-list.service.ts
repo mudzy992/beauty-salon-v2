@@ -201,6 +201,11 @@ export class ReservationListService {
     if (!hasPagination) {
       const rows = await this.prisma.reservation.findMany({
         where,
+        omit: {
+          clientViewToken: true,
+          idempotencyKey: true,
+          idempotencyRequestHash: true,
+        },
         include,
         orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
       });
@@ -218,6 +223,11 @@ export class ReservationListService {
     const [items, total] = await Promise.all([
       this.prisma.reservation.findMany({
         where,
+        omit: {
+          clientViewToken: true,
+          idempotencyKey: true,
+          idempotencyRequestHash: true,
+        },
         include,
         orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
         skip: page * pageSize,

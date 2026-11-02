@@ -70,6 +70,11 @@ export class ReservationQueriesService {
   async findOne(id: string, user: CurrentUserPayload) {
     const r = await this.prisma.reservation.findUnique({
       where: { id },
+      omit: {
+        clientViewToken: true,
+        idempotencyKey: true,
+        idempotencyRequestHash: true,
+      },
       include: {
         service: {
           include: { subcategory: { include: { category: true } } },
@@ -112,14 +117,13 @@ export class ReservationQueriesService {
       },
     });
     if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
-    const stylistProfileId =
-      await this.shared.getStylistProfileIdByUserId(user.sub);
+    const stylistProfileId = await this.shared.getStylistProfileIdByUserId(
+      user.sub,
+    );
     const canAccess =
       r.clientId === user.sub ||
       r.confirmedStylistId === stylistProfileId ||
-      r.stylistResponses.some(
-        (sr) => sr.stylistProfile.userId === user.sub,
-      ) ||
+      r.stylistResponses.some((sr) => sr.stylistProfile.userId === user.sub) ||
       user.roles.includes('SYSTEM_ADMIN') ||
       user.roles.includes('OWNER');
     if (!canAccess)

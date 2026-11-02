@@ -61,7 +61,14 @@ describe('ReservationListService access scopes', () => {
     await service.findAll({ asClient: true }, client);
 
     expect(prisma.reservation.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { clientId: client.sub } }),
+      expect.objectContaining({
+        where: { clientId: client.sub },
+        omit: {
+          clientViewToken: true,
+          idempotencyKey: true,
+          idempotencyRequestHash: true,
+        },
+      }),
     );
     expect(shared.getStylistProfileIdByUserId).not.toHaveBeenCalled();
   });
