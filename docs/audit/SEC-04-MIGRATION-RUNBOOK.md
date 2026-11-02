@@ -1,6 +1,6 @@
 # SEC-04 / PRIV-01 — runbook za buduću migraciju medija
 
-**Stanje:** nacrt, nije odobren za produkcijski/shared volumen ili bazu. Nije izvršen nad stvarnim podacima. Retention rok, restore rehearsal, klasifikacijski izvještaj i vlasnički cutover potpis ostaju obavezni gate-ovi.
+**Stanje (2026-11-02):** vlasnik prijavljuje da je ručno premjestio sve stare fajlove na nove lokacije; taj file-relocation korak smatra se završenim po vlasničkoj potvrdi, ali agent nije pregledao volume, provjerio DB mapping ili checksum-e. Ovaj runbook i source `media:storage:migrate` runner nisu izvršeni nad vlasnikovim stvarnim podacima i ostaju nacrt za buduće kontrolisano/staging korištenje. Runbook nije odobren za produkcijski/shared volumen ili bazu. Retention rok, restore rehearsal, klasifikacijski/privacy-state izvještaj i vlasnički cutover potpis ostaju gate-ovi.
 
 Ovaj dokument opisuje operativni postupak za budući `media:storage:migrate` runner. `--ack-backup-and-rollback` je samo eksplicitna potvrda operatora na komandnoj liniji; runner ne provjerava da backup postoji, da se može vratiti ili da je rollback siguran.
 
@@ -87,4 +87,4 @@ Ovo su budući operativni acceptance kriteriji. U ovoj source-only fazi nisu izv
 
 ## 7. Šta nije urađeno
 
-Nijedna produkcijska/shared baza, upload volume, Redis, browser CORS ili deployment nije pregledan/testiran. Nije potvrđen stvarni mount, broj/veličina fajlova, backup, restore, retention rok ili poslovni consent state. Unit testovi u repozitoriju koriste isključivo sintetički temporary filesystem i mocked service/repository granice. Plan/runner je source-only i zahtijeva generated-client/DB kompatibilnost, vlasnički runbook signoff i disposable E2E/staging provjere prije bilo kakvog stvarnog cutovera.
+Vlasnik prijavljuje da je ručno premjestio sve stare fajlove na nove lokacije; agent taj file-relocation rezultat nije nezavisno provjerio. Agent nije pregledao/testirao produkcijsku/shared bazu ili upload volume, stvarni mount, Redis, browser CORS ili deployment. Nisu potvrđeni file counts/checksums/DB mapping, backup/restore, retention rok ili poslovni consent state. Unit testovi u repozitoriju koriste isključivo sintetički temporary filesystem i mocked service/repository granice. Plan/runner je source-only i zahtijeva generated-client/DB kompatibilnost, vlasnički runbook signoff i disposable E2E/staging provjere prije bilo kakvog budućeg runner/cutover rada.
