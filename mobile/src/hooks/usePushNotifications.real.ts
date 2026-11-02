@@ -9,6 +9,9 @@ import { useNotificationStore } from '../store/notificationStore';
 import { useRouter } from 'expo-router';
 import { resolvePushRoute } from '../utils/resolve-push-route';
 import { safelyRunPushTask } from './safe-push-task';
+import { createSerialTaskQueue } from './serial-task-queue';
+
+const enqueuePushTokenMutation = createSerialTaskQueue();
 
 function resolveProjectId(): string | undefined {
   const fromEnv = process.env.EXPO_PUBLIC_EAS_PROJECT_ID;
@@ -112,7 +115,9 @@ export function usePushNotifications() {
     if (!user) {
       const token = registeredTokenRef.current;
       if (token) {
-        void unregisterPushToken(token);
+        void enqueuePushTokenMutation(() => unregisterPushToken(token)).catch(() => {
+          // Logout token cleanup is best-effort.
+        });
         registeredTokenRef.current = null;
       }
       if (Platform.OS !== 'web') {
@@ -151,10 +156,12 @@ export function usePushNotifications() {
 
       registeredTokenRef.current = token;
       try {
-        await api.post('/api/notifications/push-token', {
-          token,
-          platform: Platform.OS === 'ios' ? 'IOS' : 'ANDROID',
-        });
+        await enqueuePushTokenMutation(() =>
+          api.post('/api/notifications/push-token', {
+            token,
+            platform: Platform.OS === 'ios' ? 'IOS' : 'ANDROID',
+          }),
+        );
       } catch (e: unknown) {
         const err = e as { response?: { status?: number } };
         console.warn(

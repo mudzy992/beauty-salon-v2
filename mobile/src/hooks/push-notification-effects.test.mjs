@@ -30,6 +30,7 @@ function loadTypeScriptModule(relativePath) {
 }
 
 const { safelyRunPushTask } = loadTypeScriptModule('./safe-push-task.ts');
+const { createSerialTaskQueue } = loadTypeScriptModule('./serial-task-queue.ts');
 const hookSource = readFileSync(new URL('./usePushNotifications.real.ts', import.meta.url), 'utf8');
 
 test('push task wrapper contains synchronous, asynchronous and reporter failures', async () => {
@@ -45,6 +46,31 @@ test('push task wrapper contains synchronous, asynchronous and reporter failures
     null,
   );
   assert.deepEqual(reported, ['native async failure']);
+});
+
+test('serialized push-token mutations stay ordered and recover after a rejected request', async () => {
+  const enqueue = createSerialTaskQueue();
+  const events = [];
+  let releaseFirst;
+  const firstGate = new Promise((resolve) => { releaseFirst = resolve; });
+
+  const first = enqueue(async () => {
+    events.push('register-user-a-start');
+    await firstGate;
+    events.push('register-user-a-end');
+  });
+  const second = enqueue(async () => {
+    events.push('register-user-b');
+  });
+  await Promise.resolve();
+  assert.deepEqual(events, ['register-user-a-start']);
+  releaseFirst();
+  await Promise.all([first, second]);
+  assert.deepEqual(events, ['register-user-a-start', 'register-user-a-end', 'register-user-b']);
+
+  await assert.rejects(enqueue(async () => { throw new Error('request failed'); }), /request failed/);
+  await enqueue(async () => { events.push('later-request'); });
+  assert.equal(events.at(-1), 'later-request');
 });
 
 test('push notification native APIs, callbacks and navigation are best-effort', () => {
@@ -65,7 +91,7 @@ test('push notification native APIs, callbacks and navigation are best-effort', 
 
 test('push registration and token-generation failures never log raw error payloads', () => {
   const registrationCatch = hookSource.match(
-    /await api\.post\('\/api\/notifications\/push-token'[\s\S]*?catch \(e: unknown\) \{([\s\S]*?)\n\s{6}\}/,
+    /await enqueuePushTokenMutation\(\(\) =>\s*api\.post\('\/api\/notifications\/push-token'[\s\S]*?catch \(e: unknown\) \{([\s\S]*?)\n\s{6}\}/,
   )?.[1];
   assert.ok(registrationCatch, 'Missing push-token registration error handler');
   assert.match(registrationCatch, /const err = e as \{ response\?: \{ status\?: number \} \}/);
