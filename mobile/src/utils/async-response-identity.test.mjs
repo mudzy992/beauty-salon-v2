@@ -140,6 +140,21 @@ test('stylist inbox reads and reservation mutations stay bound to the active acc
   assert.match(inbox, /finally \{\s*if \(isCurrentIdentity\(\)\) setRefreshing\(false\);/);
 });
 
+test('stylist reschedule proposal reads and confirmation mutation stay bound to user, route, proposal, and mount', () => {
+  const screen = source('../screens/stylist/ReschedulePreviewScreen.tsx');
+  assert.match(screen, /const userId = useAuthStore\(\(state\) => state\.user\?\.id \?\? null\)/);
+  assert.match(screen, /proposalIdentityKey = `\$\{userId \?\? 'signed-out'\}:\$\{reservationId\}:\$\{lockMode\}:\$\{proposalKey\}`/);
+  assert.match(screen, /requestIdentity\.current\.proposalIdentityKey !== proposalIdentityKey/);
+  assert.match(screen, /identity\.mounted &&[\s\S]*identity\.userId === userId/);
+  assert.match(screen, /useAuthStore\.getState\(\)\.user\?\.id === userId/);
+  assert.match(screen, /if \(!isCurrentIdentity\(identityGeneration\)\) return;\s*const generation = \+\+requestGeneration\.current/);
+  assert.match(screen, /generation === requestGeneration\.current && isCurrentIdentity\(identityGeneration\)/);
+  assert.match(screen, /requestIdentity\.current\.mounted = false;[\s\S]*activeActionRef\.current = null/);
+  assert.match(screen, /actionState\.proposalOwnerKey === expectedIdentityKey/);
+  assert.match(screen, /const action = beginAction\(generation, expectedIdentityKey\)/);
+  assert.match(screen, /await api\.post\(`\/api\/reservations\/\$\{reservationId\}\/reschedule\/commit`[\s\S]*?if \(!action\.isCurrent\(\)\) return;/);
+});
+
 test('gallery requests are invalidated on route changes and unmount', () => {
   for (const path of [
     '../screens/client/ServiceWorkGalleryScreen.tsx',
