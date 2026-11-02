@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button';
 import { spacing } from '../../theme';
 import { fetchPublicSettings, type PublicSettingItem } from '../../services/publicSettings';
 import { formatSalonWorkingHours } from '../../utils/formatSalonHours';
+import { normalizeSalonWorkingHours } from '../../utils/apiPayload';
 import api from '../../services/api';
 import { usePublicContentSocketRefresh } from '../../hooks/usePublicContentSocketRefresh';
 import { tryOpenExternalUrl, type ExternalLinkScheme } from '../../utils/externalLink';
@@ -85,12 +86,12 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
     setWorkingHoursError(false);
     setWorkingHoursRetrying(true);
     api
-      .get<{ workingHours?: { dayOfWeek: number; isWorkingDay: boolean; openTime: string; closeTime: string }[] } | null>(
-        '/api/salon',
-      )
+      .get<unknown>('/api/salon')
       .then((r) => {
+        const normalized = normalizeSalonWorkingHours(r.data);
+        if (!normalized) throw new Error();
         if (generation === hoursRequestGeneration.current) {
-          setWorkingHours(formatSalonWorkingHours(r.data?.workingHours));
+          setWorkingHours(formatSalonWorkingHours(normalized));
         }
       })
       .catch(() => {

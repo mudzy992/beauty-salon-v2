@@ -48,6 +48,7 @@ const {
   normalizeLoyaltyPreview,
   normalizeNotifications,
   normalizePublicReviewPage,
+  normalizeSalonWorkingHours,
   normalizePublicServiceCategories,
   normalizePublicServices,
   normalizeReservations,
@@ -94,6 +95,21 @@ test('loyalty preview parser guards nested numbers while preserving optional bac
   assert.equal(normalizeLoyaltyPreview(null), null);
   assert.equal(normalizeLoyaltyPreview({ ...valid, service: { ...valid.service, maxDiscountAmount: 'NaN' } }), null);
   assert.equal(normalizeLoyaltyPreview({ ...valid, service: { ...valid.service, maxDiscountPercent: 101 } }), null);
+});
+
+test('salon working-hours parser validates the envelope, clock values, and unique weekdays', () => {
+  const row = { dayOfWeek: 1, isWorkingDay: true, openTime: '09:00', closeTime: '17:30' };
+  assert.deepEqual(normalizeSalonWorkingHours({ workingHours: [row] }), [row]);
+  assert.deepEqual(normalizeSalonWorkingHours(null), []);
+  assert.deepEqual(normalizeSalonWorkingHours({ workingHours: [] }), []);
+  assert.equal(normalizeSalonWorkingHours([]), null);
+  assert.equal(normalizeSalonWorkingHours({}), null);
+  assert.equal(normalizeSalonWorkingHours({ workingHours: [null] }), null);
+  assert.equal(normalizeSalonWorkingHours({ workingHours: [row, row] }), null);
+  assert.equal(normalizeSalonWorkingHours({ workingHours: [{ ...row, dayOfWeek: 7 }] }), null);
+  assert.equal(normalizeSalonWorkingHours({ workingHours: [{ ...row, isWorkingDay: 'false' }] }), null);
+  assert.equal(normalizeSalonWorkingHours({ workingHours: [{ ...row, openTime: '24:00' }] }), null);
+  assert.equal(normalizeSalonWorkingHours({ workingHours: [{ ...row, closeTime: '12:60' }] }), null);
 });
 
 test('notification parser rejects malformed envelope, entries and primitive fields', () => {

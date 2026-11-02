@@ -31,6 +31,13 @@ export interface LoyaltyPreview {
   } | null;
 }
 
+export interface SalonWorkingHour {
+  dayOfWeek: number;
+  isWorkingDay: boolean;
+  openTime: string;
+  closeTime: string;
+}
+
 export interface BeforeAfterPairPayload {
   id: string;
   before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null };
@@ -391,6 +398,40 @@ export function normalizeLoyaltyPreview(payload: unknown): LoyaltyPreview | null
     ...(payload.minPointsToRedeem === undefined ? {} : { minPointsToRedeem: finiteNumber(payload.minPointsToRedeem)! }),
     ...(payload.service === undefined ? {} : { service }),
   };
+}
+
+function isClockTime(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value);
+  if (!match) return false;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+}
+
+export function normalizeSalonWorkingHours(payload: unknown): SalonWorkingHour[] | null {
+  if (payload === null) return [];
+  if (!isRecord(payload) || !Array.isArray(payload.workingHours)) return null;
+  const seenDays = new Set<number>();
+  const result: SalonWorkingHour[] = [];
+  for (const row of payload.workingHours) {
+    if (
+      !isRecord(row) ||
+      !Number.isInteger(row.dayOfWeek) ||
+      (row.dayOfWeek as number) < 0 || (row.dayOfWeek as number) > 6 ||
+      typeof row.isWorkingDay !== 'boolean' ||
+      !isClockTime(row.openTime) || !isClockTime(row.closeTime) ||
+      seenDays.has(row.dayOfWeek as number)
+    ) return null;
+    seenDays.add(row.dayOfWeek as number);
+    result.push({
+      dayOfWeek: row.dayOfWeek as number,
+      isWorkingDay: row.isWorkingDay,
+      openTime: row.openTime,
+      closeTime: row.closeTime,
+    });
+  }
+  return result;
 }
 
 export function normalizeNotifications(payload: unknown): Notification[] | null {

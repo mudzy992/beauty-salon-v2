@@ -29,6 +29,16 @@ test('daily-log services and clients load independently and preserve successful 
   assert.match(dailyLog, /onPress=\{\(\) => void loadServices\(\)\}/)
 })
 
+test('daily-log loyalty preview is runtime-validated and exposes an explicit retry on read failure', () => {
+  assert.match(dailyLog, /api\s*\.get<unknown>\(`\/api\/loyalty\/stylist\/client\/\$\{clientId\}`/);
+  assert.match(dailyLog, /normalizeLoyaltyPreview\(r\.data\)/);
+  assert.match(dailyLog, /if \(!normalized\) throw new Error\(\)/);
+  assert.match(dailyLog, /setLoyaltyLoadError\(true\)/);
+  assert.match(dailyLog, /t\('reservation\.loyaltyPreviewLoadError'\)/);
+  assert.match(dailyLog, /title=\{t\('common\.retry'\)\}[\s\S]*?setLoyaltyRetryCount/);
+  assert.match(dailyLog, /\[serviceIds, clientId, userId, loyaltyRetryCount\]/);
+});
+
 test('direct-booking catalogue and client search expose errors and retry without masking failure as empty data', () => {
   assert.match(bookingForm, /const loadServices = useCallback/)
   assert.match(bookingForm, /setServicesLoadError\(true\)/)

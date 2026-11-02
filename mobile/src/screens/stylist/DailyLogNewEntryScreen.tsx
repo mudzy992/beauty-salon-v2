@@ -29,7 +29,9 @@ import {
   normalizeClientDebts,
   normalizeDailyLogClients,
   normalizeDailyLogEditorEntry,
+  normalizeLoyaltyPreview,
   parseCreatedDailyLogEntryId,
+  type LoyaltyPreview,
 } from '../../utils/apiPayload';
 import { DailyLogEntryPricingBlock } from './DailyLogEntryPricingBlock';
 import {
@@ -44,14 +46,6 @@ type ClientOption = {
   firstName: string | null;
   lastName: string | null;
   gender: 'MALE' | 'FEMALE' | null;
-};
-
-type LoyaltyInfo = {
-  enabled: boolean;
-  hasAccount: boolean;
-  redeemEnabled?: boolean;
-  points?: number;
-  service?: { maxDiscountPercent: number; maxDiscountAmount: number } | null;
 };
 
 type Props = {
@@ -102,9 +96,11 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
   const [paidTouched, setPaidTouched] = useState(false);
   const [createDebt, setCreateDebt] = useState(true);
   const [notes, setNotes] = useState('');
-  const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null);
+  const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyPreview | null>(null);
   const [desiredLoyaltyPercent, setDesiredLoyaltyPercent] = useState(0);
   const [loadingLoyalty, setLoadingLoyalty] = useState(false);
+  const [loyaltyLoadError, setLoyaltyLoadError] = useState(false);
+  const [loyaltyRetryCount, setLoyaltyRetryCount] = useState(0);
   const [openDebts, setOpenDebts] = useState<OpenDebtRow[]>([]);
   const [openDebtsLoading, setOpenDebtsLoading] = useState(false);
   const [openDebtsLoadError, setOpenDebtsLoadError] = useState(false);
@@ -140,6 +136,8 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     setLoyaltyInfo(null);
     setDesiredLoyaltyPercent(0);
     setLoadingLoyalty(false);
+    setLoyaltyLoadError(false);
+    setLoyaltyRetryCount(0);
     setOpenDebts([]);
     setOpenDebtsLoading(false);
     setOpenDebtsLoadError(false);
@@ -317,22 +315,33 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     if (serviceIds.length === 0 || !clientId) {
       setLoyaltyInfo(null);
       setDesiredLoyaltyPercent(0);
+      setLoadingLoyalty(false);
+      setLoyaltyLoadError(false);
       return;
     }
     let mounted = true;
     const requestUserId = userId;
+    setLoyaltyInfo(null);
+    setDesiredLoyaltyPercent(0);
+    setLoyaltyLoadError(false);
     setLoadingLoyalty(true);
     api
-      .get<LoyaltyInfo>(`/api/loyalty/stylist/client/${clientId}`, {
+      .get<unknown>(`/api/loyalty/stylist/client/${clientId}`, {
         params: { serviceIds: serviceIds.join(',') },
       })
       .then((r) => {
+        const normalized = normalizeLoyaltyPreview(r.data);
+        if (!normalized) throw new Error();
         if (mounted && useAuthStore.getState().user?.id === requestUserId) {
-          setLoyaltyInfo(r.data);
+          setLoyaltyInfo(normalized);
+          setLoyaltyLoadError(false);
         }
       })
       .catch(() => {
-        if (mounted && useAuthStore.getState().user?.id === requestUserId) setLoyaltyInfo(null);
+        if (mounted && useAuthStore.getState().user?.id === requestUserId) {
+          setLoyaltyInfo(null);
+          setLoyaltyLoadError(true);
+        }
       })
       .finally(() => {
         if (mounted && useAuthStore.getState().user?.id === requestUserId) setLoadingLoyalty(false);
@@ -340,7 +349,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     return () => {
       mounted = false;
     };
-  }, [serviceIds, clientId, userId]);
+  }, [serviceIds, clientId, userId, loyaltyRetryCount]);
 
   const loadOpenDebts = useCallback(async () => {
     const generation = ++openDebtsLoadGeneration.current;
@@ -685,6 +694,16 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
           </Text>
           {loadingLoyalty ? (
             <ActivityIndicator size="small" color={colors.primary} />
+          ) : loyaltyLoadError ? (
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ color: colors.error }}>{t('reservation.loyaltyPreviewLoadError')}</Text>
+              <Button
+                title={t('common.retry')}
+                onPress={() => setLoyaltyRetryCount((current) => current + 1)}
+                variant="outline"
+                size="sm"
+              />
+            </View>
           ) : loyaltyInfo?.enabled &&
             loyaltyInfo?.hasAccount &&
             loyaltyInfo?.redeemEnabled &&
