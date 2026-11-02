@@ -11,3 +11,22 @@ test('reschedule preview recovery messages have Bosnian resources', () => {
     assert.match(previewTranslations, new RegExp(`\\b${key}:`), `Missing reschedule preview translation: ${key}`)
   }
 })
+
+test('reschedule preview UI copy has Bosnian resources', () => {
+  assert.ok(previewTranslations, 'Missing stylist reschedule preview resources')
+  for (const key of [
+    'title', 'summary', 'lockedMode', 'actualOverrunMode', 'manualMode', 'breakOnlyMode',
+    'manualShiftLabel', 'includeBreaksLabel', 'includeBreaksHint', 'noChangesTitle',
+    'noChangesBreakOnly', 'noChangesFuture', 'serviceFallback', 'shiftLabel', 'reducedBreak',
+    'confirmTitle', 'confirmMessage', 'confirmCancel', 'confirmSubmit', 'successTitle',
+    'successBreakOnly', 'successNotify', 'applyBreakOnly', 'notifyClients',
+  ]) {
+    assert.match(previewTranslations, new RegExp(`\\b${key}:\\s*'[^']{6,}'`), `Missing meaningful reschedule preview translation: ${key}`)
+  }
+})
+
+test('reschedule preview numeric copy preserves required interpolation names', () => {
+  assert.match(previewTranslations, /summary:\s*'[^']*\{\{overrun\}\}[^']*\{\{totalShift\}\}/)
+  assert.match(previewTranslations, /shiftLabel:\s*'[^']*\{\{minutes\}\}/)
+  assert.match(previewTranslations, /reducedBreak:\s*'[^']*\{\{minutes\}\}/)
+})
