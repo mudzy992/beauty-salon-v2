@@ -107,68 +107,88 @@ test('avatar upload and visibility toggle keep private reads and public opt-in s
   assert.match(uploadsServiceSource, /upload\.storageClass === UploadStorageClass\.PUBLIC/);
 });
 
-test('media-consent parser rejects incomplete response envelopes and normalizes bad collections', () => {
+const validConsentItem = (overrides = {}) => ({
+  imageId: 'pending-1',
+  serviceName: 'Manikir',
+  serviceDate: '2026-10-31',
+  isBefore: true,
+  isAfter: false,
+  previewUrl: '/api/uploads/content?path=private%2Fdaily-log%2Fbefore.webp',
+  consentedAt: null,
+  isPublished: false,
+  publishedCategories: [],
+  ...overrides,
+});
+
+test('media-consent parser rejects incomplete envelopes, invalid rows, and unsafe preview paths', () => {
   assert.equal(profileData.normalizeConsentPayload(null), null);
   assert.equal(profileData.normalizeConsentPayload({ policyVersion: 'v1', consentText: 'text' }), null);
   assert.equal(
-    profileData.normalizeConsentPayload({
-      policyVersion: 'v1',
-      consentText: 'text',
-      pending: {},
-      active: [],
-    }),
+    profileData.normalizeConsentPayload({ policyVersion: 'v1', consentText: 'text', pending: {}, active: [] }),
     null,
   );
 
-  const normalized = profileData.normalizeConsentPayload({
+  const valid = profileData.normalizeConsentPayload({
     policyVersion: 'v1',
     consentText: 'Policy',
-    pending: [
-      null,
-      {
-        imageId: 'pending-1',
-        previewUrl: '/api/uploads/content?path=private%2Fdaily-log%2Fbefore.webp',
-        publishedCategories: 'invalid',
-      },
-    ],
-    active: [
-      {
-        imageId: 'active-1',
-        serviceName: null,
-        serviceDate: 42,
-        previewUrl: 'https://untrusted.example/image.png',
-        isBefore: true,
-        isPublished: true,
-        publishedCategories: [{ id: 'cat-1', name: 'Salon' }, null, { id: 4, name: 'bad' }],
-      },
-    ],
-  });
-
-  assert.deepEqual(normalized.pending, [
-    {
-      imageId: 'pending-1',
-      serviceName: '',
-      serviceDate: '',
+    pending: [validConsentItem()],
+    active: [validConsentItem({
+      imageId: 'active-1',
       isBefore: false,
-      previewUrl: '/api/uploads/content?path=private%2Fdaily-log%2Fbefore.webp',
-      consentedAt: null,
-      isPublished: false,
-      publishedCategories: [],
-    },
-  ]);
-  assert.equal(normalized.active[0].serviceName, '');
-  assert.equal(normalized.active[0].serviceDate, '');
-  assert.equal(normalized.active[0].previewUrl, '');
-  assert.deepEqual(normalized.active[0].publishedCategories, [{ id: 'cat-1', name: 'Salon' }]);
-  assert.equal(normalized.active[0].isPublished, true);
+      isAfter: true,
+      consentedAt: '2026-10-31T12:00:00.000Z',
+      isPublished: true,
+      publishedCategories: [{ id: 'cat-1', name: 'Salon' }],
+    })],
+  });
+  assert.deepEqual(valid.pending, [validConsentItem()]);
+  assert.equal(valid.active[0].isPublished, true);
+  assert.deepEqual(valid.active[0].publishedCategories, [{ id: 'cat-1', name: 'Salon' }]);
+
+  for (const pending of [
+    [null],
+    [validConsentItem({ serviceDate: null })],
+    [validConsentItem({ serviceDate: '' })],
+    [validConsentItem({ previewUrl: 'https://untrusted.example/image.png' })],
+    [validConsentItem({ publishedCategories: [null] })],
+  ]) {
+    assert.equal(profileData.normalizeConsentPayload({
+      policyVersion: 'v1', consentText: 'Policy', pending, active: [],
+    }), null);
+  }
+  assert.equal(profileData.normalizeConsentPayload({
+    policyVersion: 'v1',
+    consentText: 'Policy',
+    pending: [validConsentItem()],
+    active: [validConsentItem()],
+  }), null);
 });
 
-test('debt and date formatters accept malformed API values without throwing', () => {
+test('profile debt parser rejects malformed rows instead of silently dropping or zeroing them', () => {
+  assert.deepEqual(profileData.normalizeProfileDebts([]), []);
   assert.deepEqual(
-    profileData.normalizeProfileDebts([null, {}, { id: 'debt-1', amount: {}, service: 'bad' }]),
-    [{ id: 'debt-1', amount: 0, createdAt: '', service: null }],
+    profileData.normalizeProfileDebts([{
+      id: 'debt-1',
+      amount: '12.50',
+      createdAt: '2026-10-31T12:00:00.000Z',
+      service: { id: 'service-1', name: 'Manikir' },
+    }]),
+    [{ id: 'debt-1', amount: 12.5, createdAt: '2026-10-31T12:00:00.000Z', service: { name: 'Manikir' } }],
   );
+  for (const rows of [
+    [null],
+    [{}],
+    [{ id: 'debt-1', amount: {}, createdAt: '2026-10-31T12:00:00.000Z', service: null }],
+    [{ id: 'debt-1', amount: '12.50', createdAt: '', service: null }],
+    [{ id: 'debt-1', amount: '-1', createdAt: '2026-10-31T12:00:00.000Z', service: null }],
+    [{ id: 'debt-1', amount: '12.50', createdAt: '2026-10-31T12:00:00.000Z', service: { name: 12 } }],
+  ]) {
+    assert.equal(profileData.normalizeProfileDebts(rows), null);
+  }
   assert.equal(profileData.normalizeProfileDebts({ items: [] }), null);
+});
+
+test('profile debt and date formatters accept malformed scalar values without throwing', () => {
   assert.equal(profileData.formatProfileAmount('not-a-number'), null);
   assert.equal(profileData.formatProfileAmount('12.5'), '12.50');
   assert.equal(profileData.formatProfileDate('', () => { throw new Error('should not run'); }), '');

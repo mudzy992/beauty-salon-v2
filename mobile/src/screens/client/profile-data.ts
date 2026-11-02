@@ -3,6 +3,7 @@ export interface ConsentItem {
   serviceName: string;
   serviceDate: string;
   isBefore: boolean;
+  isAfter: boolean;
   previewUrl: string;
   consentedAt: string | null;
   isPublished: boolean;
@@ -36,74 +37,128 @@ function normalizeConsentPreviewUrl(value: unknown): string {
 }
 
 function normalizeConsentItem(value: unknown): ConsentItem | null {
-  if (!isRecord(value) || typeof value.imageId !== 'string' || !value.imageId) {
+  if (
+    !isRecord(value) ||
+    typeof value.imageId !== 'string' ||
+    !value.imageId.trim() ||
+    typeof value.serviceName !== 'string' ||
+    typeof value.serviceDate !== 'string' ||
+    !value.serviceDate.trim() ||
+    typeof value.isBefore !== 'boolean' ||
+    typeof value.isAfter !== 'boolean' ||
+    typeof value.isPublished !== 'boolean' ||
+    (value.consentedAt !== null && typeof value.consentedAt !== 'string') ||
+    !Array.isArray(value.publishedCategories)
+  ) {
     return null;
   }
 
-  const categories = Array.isArray(value.publishedCategories)
-    ? value.publishedCategories
-        .filter(
-          (category): category is { id: string; name: string } =>
-            isRecord(category) &&
-            typeof category.id === 'string' &&
-            typeof category.name === 'string',
-        )
-    : [];
+  const previewUrl = normalizeConsentPreviewUrl(value.previewUrl);
+  if (!previewUrl) return null;
+  const categories: Array<{ id: string; name: string }> = [];
+  for (const category of value.publishedCategories) {
+    if (
+      !isRecord(category) ||
+      typeof category.id !== 'string' ||
+      !category.id.trim() ||
+      typeof category.name !== 'string'
+    ) {
+      return null;
+    }
+    categories.push({ id: category.id, name: category.name });
+  }
+  if (value.isPublished !== (categories.length > 0)) return null;
 
   return {
     imageId: value.imageId,
-    serviceName: typeof value.serviceName === 'string' ? value.serviceName : '',
-    serviceDate: typeof value.serviceDate === 'string' ? value.serviceDate : '',
-    isBefore: value.isBefore === true,
-    previewUrl: normalizeConsentPreviewUrl(value.previewUrl),
-    consentedAt: typeof value.consentedAt === 'string' ? value.consentedAt : null,
-    isPublished: value.isPublished === true && categories.length > 0,
+    serviceName: value.serviceName,
+    serviceDate: value.serviceDate,
+    isBefore: value.isBefore,
+    isAfter: value.isAfter,
+    previewUrl,
+    consentedAt: value.consentedAt,
+    isPublished: value.isPublished,
     publishedCategories: categories,
   };
 }
 
-function normalizeConsentItems(value: unknown): ConsentItem[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map(normalizeConsentItem)
-    .filter((item): item is ConsentItem => item !== null);
+function normalizeConsentItems(value: unknown): ConsentItem[] | null {
+  if (!Array.isArray(value)) return null;
+  const items: ConsentItem[] = [];
+  for (const row of value) {
+    const item = normalizeConsentItem(row);
+    if (!item) return null;
+    items.push(item);
+  }
+  return items;
 }
 
 export function normalizeConsentPayload(value: unknown): ConsentPayload | null {
   if (
     !isRecord(value) ||
     typeof value.policyVersion !== 'string' ||
-    value.policyVersion.length === 0 ||
+    !value.policyVersion.trim() ||
     typeof value.consentText !== 'string' ||
+    !value.consentText.trim() ||
     !Array.isArray(value.pending) ||
     !Array.isArray(value.active)
   ) {
     return null;
   }
 
+  const pending = normalizeConsentItems(value.pending);
+  const active = normalizeConsentItems(value.active);
+  if (!pending || !active) return null;
+  const imageIds = new Set<string>();
+  for (const item of [...pending, ...active]) {
+    if (imageIds.has(item.imageId)) return null;
+    imageIds.add(item.imageId);
+  }
+
   return {
     policyVersion: value.policyVersion,
     consentText: value.consentText,
-    pending: normalizeConsentItems(value.pending),
-    active: normalizeConsentItems(value.active),
+    pending,
+    active,
   };
 }
 
 export function normalizeProfileDebts(value: unknown): ProfileDebt[] | null {
   if (!Array.isArray(value)) return null;
-  return value
-    .filter((debt): debt is Record<string, unknown> => isRecord(debt) && typeof debt.id === 'string')
-    .map((debt) => ({
-      id: debt.id as string,
-      amount:
-        typeof debt.amount === 'number' || typeof debt.amount === 'string'
-          ? debt.amount
-          : 0,
-      createdAt: typeof debt.createdAt === 'string' ? debt.createdAt : '',
-      service: isRecord(debt.service)
-        ? { name: typeof debt.service.name === 'string' ? debt.service.name : undefined }
-        : null,
-    }));
+  const debts: ProfileDebt[] = [];
+  for (const row of value) {
+    if (
+      !isRecord(row) ||
+      typeof row.id !== 'string' ||
+      !row.id.trim() ||
+      (typeof row.amount !== 'number' && typeof row.amount !== 'string') ||
+      (typeof row.amount === 'string' && !row.amount.trim()) ||
+      typeof row.createdAt !== 'string' ||
+      !row.createdAt.trim()
+    ) {
+      return null;
+    }
+    const amount = Number(row.amount);
+    if (!Number.isFinite(amount) || amount < 0) return null;
+
+    let service: ProfileDebt['service'] = null;
+    if (row.service !== null) {
+      if (
+        !isRecord(row.service) ||
+        typeof row.service.name !== 'string'
+      ) {
+        return null;
+      }
+      service = { name: row.service.name };
+    }
+    debts.push({
+      id: row.id,
+      amount,
+      createdAt: row.createdAt,
+      service,
+    });
+  }
+  return debts;
 }
 
 export function formatProfileDate(value: string, format: (date: string) => string): string {
