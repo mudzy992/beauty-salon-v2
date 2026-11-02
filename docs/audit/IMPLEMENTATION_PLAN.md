@@ -93,7 +93,7 @@ Tekst/policy scope je implementiran u izvoru i testiran samo kroz synthetic/mock
 
 ### 0E. Auth, secrets, HTML/SVG — `SEC-05`, `SEC-08`, `AUTH-01`, `AUTH-02`
 
-- Production startup fail-closed za missing/weak `JWT_SECRET` i missing/invalid 32-byte base64 encryption key. Remove shared signing fallback from code/config; local dev uses ignored env.
+- **SEC-05 source status — implementirano i CI-potvrđeno:** backend odbija startup ako `JWT_SECRET` nedostaje, koristi se placeholder, ima okolne razmake ili je kraći od 32 UTF-8 bajta; `APP_SETTINGS_ENCRYPTION_KEY` mora biti canonical Base64 za tačno 32 bajta. Shared JWT fallback je uklonjen; lokalni razvoj koristi ignorisani `.env`. CI `40501439761` prošao je backend build, unit i disposable-PostgreSQL HTTP suite. Runtime secret-store vrijednosti, postojeći ciphertext/plaintext, kompatibilnost i rotacija ključa ostaju neprovjereni.
 - Add explicit backend `mustChangePassword` policy allowing only password-change and necessary profile-bootstrap routes until changed; do not rely on React Router/Expo redirect. An explicit logout exception may be added if/when a server-side logout endpoint exists.
 - Replace the shared initial password with a cryptographically random per-user credential returned once only through the protected admin workflow; never log/replay it. Add expiry/invite/reset handling and audit existing affected users, resetting credentials if indicated.
 - Add per-IP/account throttling on login/register/verify/resend/reset, resend cooldown and verification attempt limit/short TTL; confirm reverse-proxy trusted IP handling before IP limit.
