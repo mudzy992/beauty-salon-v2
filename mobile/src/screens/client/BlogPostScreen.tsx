@@ -54,6 +54,9 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
   const postRequestGeneration = useRef(0);
   const { width } = useWindowDimensions();
   const user = useAuthStore((state) => state.user);
+  const userId = user?.id ?? null;
+  const publicSettingsGeneration = useRef(0);
+  const publicSettingsMounted = useRef(false);
   const [settings, setSettings] = useState<PublicSettingItem[] | null>(null);
   const [commentsState, setCommentsState] = useState<{
     postId: string; items: BlogComment[]; total: number;
@@ -69,6 +72,32 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
   const [commentsLoadingMore, setCommentsLoadingMore] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  const activeCommentActionRef = useRef<number | null>(null);
+  const commentActionSequenceRef = useRef(0);
+  const commentActionIdentityRef = useRef({ userId, slug, generation: 0, mounted: true });
+  if (commentActionIdentityRef.current.userId !== userId || commentActionIdentityRef.current.slug !== slug) {
+    commentActionIdentityRef.current = {
+      userId,
+      slug,
+      generation: commentActionIdentityRef.current.generation + 1,
+      mounted: commentActionIdentityRef.current.mounted,
+    };
+    activeCommentActionRef.current = null;
+  }
+  const currentCommentPostIdRef = useRef(post?.id ?? null);
+  currentCommentPostIdRef.current = post?.id ?? null;
+  useEffect(() => {
+    commentActionIdentityRef.current.mounted = true;
+    return () => {
+      commentActionIdentityRef.current.mounted = false;
+      commentActionIdentityRef.current.generation += 1;
+      activeCommentActionRef.current = null;
+    };
+  }, []);
+  useEffect(() => {
+    setNewComment('');
+    setSubmittingComment(false);
+  }, [userId, slug]);
 
   const fetchPost = useCallback(async (requestedSlug: string) => {
     const generation = ++postRequestGeneration.current;
@@ -107,14 +136,24 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
     return () => { postRequestGeneration.current += 1; };
   }, [fetchPost, slug]);
 
-  const loadPublicSettings = useCallback(() => {
-    fetchPublicSettings()
-      .then((items) => setSettings(items))
-      .catch(() => setSettings(null));
+  const loadPublicSettings = useCallback(async () => {
+    if (!publicSettingsMounted.current) return;
+    const generation = ++publicSettingsGeneration.current;
+    try {
+      const items = await fetchPublicSettings();
+      if (publicSettingsMounted.current && generation === publicSettingsGeneration.current) setSettings(items);
+    } catch {
+      // Settings only provide an optional share URL; keep the last valid value on failure.
+    }
   }, []);
 
   useEffect(() => {
-    loadPublicSettings();
+    publicSettingsMounted.current = true;
+    void loadPublicSettings();
+    return () => {
+      publicSettingsMounted.current = false;
+      publicSettingsGeneration.current += 1;
+    };
   }, [loadPublicSettings]);
 
   usePublicContentSocketRefresh(loadPublicSettings);
@@ -181,21 +220,48 @@ export function BlogPostScreen({ route, navigation }: HomeScreenProps<'BlogPost'
   };
 
   const handleSubmitComment = async () => {
-    if (!user) {
+    if (useAuthStore.getState().user?.id !== userId) return;
+    if (!userId) {
       Alert.alert(t('blog.loginRequiredTitle'), t('blog.commentLoginRequiredMessage'));
       return;
     }
-    if (!post?.id || !newComment.trim()) return;
+    const postId = post?.id;
+    const content = newComment.trim();
+    if (!postId || !content) return;
+    const generation = commentActionIdentityRef.current.generation;
+    const token = ++commentActionSequenceRef.current;
+    if (activeCommentActionRef.current !== null) return;
+    activeCommentActionRef.current = token;
+    const isCurrentAction = () => {
+      const current = commentActionIdentityRef.current;
+      return (
+        activeCommentActionRef.current === token &&
+        current.mounted &&
+        current.userId === userId &&
+        current.slug === slug &&
+        current.generation === generation &&
+        currentCommentPostIdRef.current === postId &&
+        useAuthStore.getState().user?.id === userId
+      );
+    };
+    if (!isCurrentAction()) {
+      activeCommentActionRef.current = null;
+      return;
+    }
     setSubmittingComment(true);
     try {
-      await api.post(`/api/blog/${post.id}/comments`, { content: newComment.trim() });
+      await api.post(`/api/blog/${postId}/comments`, { content });
+      if (!isCurrentAction()) return;
       setNewComment('');
       Alert.alert(t('blog.commentSuccessTitle'), t('blog.commentSuccessMessage'));
-      await reloadApprovedComments(post.id);
+      await reloadApprovedComments(postId);
+      if (!isCurrentAction()) return;
     } catch {
-      Alert.alert(t('blog.commentErrorTitle'), t('blog.commentErrorMessage'));
+      if (isCurrentAction()) Alert.alert(t('blog.commentErrorTitle'), t('blog.commentErrorMessage'));
     } finally {
-      setSubmittingComment(false);
+      const shouldUpdateCurrentAction = isCurrentAction();
+      if (activeCommentActionRef.current === token) activeCommentActionRef.current = null;
+      if (shouldUpdateCurrentAction) setSubmittingComment(false);
     }
   };
 
