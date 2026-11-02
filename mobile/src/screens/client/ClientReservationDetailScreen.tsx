@@ -33,22 +33,69 @@ export function ClientReservationDetailScreen({
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const userId = useAuthStore((state) => state.user?.id ?? null);
   const [reservation, setReservation] = useState<ReservationDetailPayload | null>(null);
-  const [reservationOwner, setReservationOwner] = useState<{ userId: string; reservationId: string } | null>(null);
-  const visibleReservation = reservationOwner?.userId === userId && reservationOwner.reservationId === reservationId
-    ? reservation
-    : null;
+  const [reservationOwner, setReservationOwner] = useState<{
+    userId: string;
+    reservationId: string;
+    routeKey: string;
+  } | null>(null);
+  const visibleReservation =
+    reservationOwner?.userId === userId &&
+    reservationOwner.reservationId === reservationId &&
+    reservationOwner.routeKey === route.key
+      ? reservation
+      : null;
+  const hasCurrentOwner =
+    reservationOwner?.userId === userId &&
+    reservationOwner.reservationId === reservationId &&
+    reservationOwner.routeKey === route.key;
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const requestGeneration = useRef(0);
-  const requestIdentity = useRef({ userId, reservationId });
-  if (requestIdentity.current.userId !== userId || requestIdentity.current.reservationId !== reservationId) {
-    requestIdentity.current = { userId, reservationId };
+  const requestIdentity = useRef({ userId, reservationId, routeKey: route.key, generation: 0, mounted: true });
+  if (
+    requestIdentity.current.userId !== userId ||
+    requestIdentity.current.reservationId !== reservationId ||
+    requestIdentity.current.routeKey !== route.key
+  ) {
+    requestIdentity.current = {
+      userId,
+      reservationId,
+      routeKey: route.key,
+      generation: requestIdentity.current.generation + 1,
+      mounted: requestIdentity.current.mounted,
+    };
     requestGeneration.current += 1;
   }
 
+  const isCurrentIdentity = useCallback((identityGeneration = requestIdentity.current.generation) => {
+    const identity = requestIdentity.current;
+    return (
+      identity.mounted &&
+      identity.userId === userId &&
+      identity.reservationId === reservationId &&
+      identity.routeKey === route.key &&
+      identity.generation === identityGeneration &&
+      useAuthStore.getState().user?.id === userId
+    );
+  }, [reservationId, route.key, userId]);
+
+  useEffect(() => {
+    requestIdentity.current.mounted = true;
+    return () => {
+      requestIdentity.current.mounted = false;
+      requestIdentity.current.generation += 1;
+      requestGeneration.current += 1;
+    };
+  }, []);
+
   const load = useCallback(async () => {
+    if (useAuthStore.getState().user?.id !== userId) return;
+    const identityGeneration = requestIdentity.current.generation;
+    if (!isCurrentIdentity(identityGeneration)) return;
     const generation = ++requestGeneration.current;
+    const isCurrentLoad = () =>
+      generation === requestGeneration.current && isCurrentIdentity(identityGeneration);
     setLoadError(false);
     if (!userId) {
       setReservation(null);
@@ -59,33 +106,42 @@ export function ClientReservationDetailScreen({
     }
     try {
       const { data } = await api.get<unknown>(`/api/reservations/${reservationId}`);
-      if (generation !== requestGeneration.current) return;
+      if (!isCurrentLoad()) return;
       const normalized = normalizeReservationDetail(data);
-      if (!normalized) {
+      if (!normalized || normalized.id !== reservationId) {
         setLoadError(true);
         return;
       }
       setReservation(normalized);
-      setReservationOwner({ userId, reservationId });
+      setReservationOwner({ userId, reservationId, routeKey: route.key });
       setLoadError(false);
     } catch {
-      if (generation === requestGeneration.current) setLoadError(true);
+      if (isCurrentLoad()) setLoadError(true);
     } finally {
-      if (generation === requestGeneration.current) {
+      if (isCurrentLoad()) {
         setLoading(false);
         setRefreshing(false);
       }
     }
-  }, [reservationId, userId]);
+  }, [isCurrentIdentity, reservationId, route.key, userId]);
 
   const handleRefresh = useCallback(async () => {
+    const identityGeneration = requestIdentity.current.generation;
+    if (!isCurrentIdentity(identityGeneration)) return;
     setRefreshing(true);
     try {
       await load();
     } finally {
-      setRefreshing(false);
+      if (isCurrentIdentity(identityGeneration)) setRefreshing(false);
     }
-  }, [load]);
+  }, [isCurrentIdentity, load]);
+
+  const retryLoad = useCallback(() => {
+    const identityGeneration = requestIdentity.current.generation;
+    if (!isCurrentIdentity(identityGeneration)) return;
+    setLoading(true);
+    void load();
+  }, [isCurrentIdentity, load]);
 
   useEffect(() => {
     navigation.setOptions({ title: t('reservationDetail.title') });
@@ -101,7 +157,7 @@ export function ClientReservationDetailScreen({
     };
   }, [load]);
 
-  if (loading && !visibleReservation) {
+  if ((loading || (!!userId && !hasCurrentOwner && !loadError)) && !visibleReservation) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -117,7 +173,7 @@ export function ClientReservationDetailScreen({
           title={loadError ? t('reservationDetail.loadErrorTitle') : t('reservationDetail.notFound')}
           message={loadError ? t('reservationDetail.loadErrorMessage') : undefined}
           actionLabel={loadError ? t('common.retry') : undefined}
-          onAction={loadError ? () => { setLoading(true); void load(); } : undefined}
+          onAction={loadError ? retryLoad : undefined}
         />
         <Button title={t('common.back')} onPress={() => navigation.goBack()} variant="outline" style={{ marginTop: spacing.md }} />
       </View>
