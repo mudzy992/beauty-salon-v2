@@ -76,6 +76,43 @@ const USER_DETAIL_SELECT = {
   },
 } as const;
 
+// User mutation responses keep their UI relations but never serialize auth secrets.
+const USER_MUTATION_SELECT = {
+  id: true,
+  username: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  gender: true,
+  genderOnboardingCompleted: true,
+  avatar: true,
+  isAvatarPublic: true,
+  isActive: true,
+  isEmailVerified: true,
+  mustChangePassword: true,
+  createdAt: true,
+  updatedAt: true,
+  userRoles: { select: { role: { select: { name: true } } } },
+  stylistProfile: { select: { id: true, status: true, isActive: true } },
+} as const;
+
+const ADMIN_USER_LIST_SELECT = {
+  id: true,
+  username: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  phone: true,
+  gender: true,
+  avatar: true,
+  isActive: true,
+  isEmailVerified: true,
+  createdAt: true,
+  userRoles: { select: { role: { select: { name: true } } } },
+  stylistProfile: { select: { id: true, status: true } },
+} as const;
+
 @Injectable()
 export class UsersService {
   private static readonly CLIENT_ROLE = 'CLIENT';
@@ -115,10 +152,7 @@ export class UsersService {
       return this.repo.user.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        include: {
-          userRoles: { include: { role: true } },
-          stylistProfile: true,
-        },
+        select: ADMIN_USER_LIST_SELECT,
       });
     }
     const page = Math.max(0, pagination?.page ?? 0);
@@ -127,10 +161,7 @@ export class UsersService {
       this.repo.user.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        include: {
-          userRoles: { include: { role: true } },
-          stylistProfile: true,
-        },
+        select: ADMIN_USER_LIST_SELECT,
         skip: page * pageSize,
         take: pageSize,
       }),
@@ -151,10 +182,7 @@ export class UsersService {
         userRoles: { some: { role: { name: 'SYSTEM_ADMIN' } } },
       },
       orderBy: [{ createdAt: 'desc' }],
-      include: {
-        userRoles: { include: { role: true } },
-        stylistProfile: true,
-      },
+      select: ADMIN_USER_LIST_SELECT,
     });
   }
 
@@ -166,10 +194,7 @@ export class UsersService {
         NOT: { userRoles: { some: { role: { name: 'SYSTEM_ADMIN' } } } },
       },
       orderBy: [{ createdAt: 'desc' }],
-      include: {
-        userRoles: { include: { role: true } },
-        stylistProfile: true,
-      },
+      select: ADMIN_USER_LIST_SELECT,
     });
   }
 
@@ -514,7 +539,7 @@ export class UsersService {
         ...(this.isAdminOrOwner(currentUser.roles) &&
           dto.isActive !== undefined && { isActive: dto.isActive }),
       },
-      include: { userRoles: { include: { role: true } }, stylistProfile: true },
+      select: USER_MUTATION_SELECT,
     });
     if (
       this.isAdminOrOwner(currentUser.roles) &&
@@ -582,7 +607,7 @@ export class UsersService {
           isAvatarPublic: dto.isAvatarPublic,
         }),
       },
-      include: { userRoles: { include: { role: true } }, stylistProfile: true },
+      select: USER_MUTATION_SELECT,
     });
   }
 
@@ -649,7 +674,12 @@ export class UsersService {
     const existing = user.userRoles.find(
       (ur) => ur.role.name === requestedRoleName,
     );
-    if (existing) return user;
+    if (existing) {
+      return this.repo.user.findUnique({
+        where: { id: userId },
+        select: USER_MUTATION_SELECT,
+      });
+    }
     await this.repo.userRole.create({ data: { userId, roleId: role.id } });
     this.events.disconnectUserSockets(userId);
     if (requestedRoleName === 'STYLIST') {
@@ -669,7 +699,7 @@ export class UsersService {
     }
     return this.repo.user.findUnique({
       where: { id: userId },
-      include: { userRoles: { include: { role: true } }, stylistProfile: true },
+      select: USER_MUTATION_SELECT,
     });
   }
 
@@ -694,7 +724,7 @@ export class UsersService {
     this.events.disconnectUserSockets(userId);
     return this.repo.user.findUnique({
       where: { id: userId },
-      include: { userRoles: { include: { role: true } }, stylistProfile: true },
+      select: USER_MUTATION_SELECT,
     });
   }
 
@@ -861,10 +891,7 @@ export class UsersService {
 
       return tx.user.findUnique({
         where: { id: userId },
-        include: {
-          userRoles: { include: { role: true } },
-          stylistProfile: true,
-        },
+        select: USER_MUTATION_SELECT,
       });
     });
     this.events.disconnectUserSockets(userId);

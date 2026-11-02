@@ -20,6 +20,7 @@ type UserUpdateArgs = {
   where: { id: string };
   data: Record<string, unknown>;
   include?: unknown;
+  select?: Record<string, unknown>;
 };
 
 const mockEventsGateway = {
@@ -458,6 +459,91 @@ describe('UsersService', () => {
     );
   });
 
+  it('selects allowlisted fields for admin user lists instead of returning User scalars', async () => {
+    mockRepo.user.findMany.mockResolvedValue([]);
+    mockRepo.user.count.mockResolvedValue(0);
+
+    await service.findAll(['OWNER']);
+    await service.findAll(['OWNER'], { page: 0, pageSize: 10 });
+    await service.findSystemAdmins(['OWNER']);
+    await service.findStylists(['OWNER']);
+
+    const queries = mockRepo.user.findMany.mock.calls.map(([query]) => query);
+    expect(queries[0]?.select).toMatchObject({
+      id: true,
+      username: true,
+      userRoles: { select: { role: { select: { name: true } } } },
+    });
+    for (const query of queries) {
+      expect(query?.select).toMatchObject({
+        id: true,
+        username: true,
+        userRoles: { select: { role: { select: { name: true } } } },
+      });
+      for (const privateField of [
+        'passwordHash',
+        'emailVerificationToken',
+        'emailVerificationExpiresAt',
+        'googleId',
+        'facebookId',
+        'passwordChangedAt',
+        'lastLoginAt',
+      ]) {
+        expect(query?.select).not.toHaveProperty(privateField);
+      }
+    }
+  });
+
+  it('uses a credential-safe projection for self and admin user mutation responses', async () => {
+    const client = {
+      id: 'user-1',
+      username: 'client.one',
+      email: 'client@example.test',
+      isActive: true,
+      isEmailVerified: true,
+      gender: 'FEMALE',
+      phone: '+38761000000',
+    };
+    mockRepo.user.findUnique
+      .mockResolvedValueOnce(client)
+      .mockResolvedValueOnce({ userRoles: [{ role: { name: 'CLIENT' } }] })
+      .mockResolvedValueOnce({
+        ...client,
+        userRoles: [{ role: { name: 'CLIENT' } }],
+      });
+    mockRepo.user.update.mockResolvedValue({ id: 'user-1' });
+
+    await service.update(
+      'user-1',
+      { phone: '+38761000000' },
+      {
+        sub: 'user-1',
+        username: 'client.one',
+        email: 'client@example.test',
+        roles: ['CLIENT'],
+      },
+    );
+    await service.updateProfile('user-1', { phone: '+38761000000' });
+
+    for (const call of mockRepo.user.update.mock.calls) {
+      expect(call[0].select).toMatchObject({
+        id: true,
+        userRoles: { select: { role: { select: { name: true } } } },
+      });
+      for (const privateField of [
+        'passwordHash',
+        'emailVerificationToken',
+        'emailVerificationExpiresAt',
+        'googleId',
+        'facebookId',
+        'passwordChangedAt',
+        'lastLoginAt',
+      ]) {
+        expect(call[0].select).not.toHaveProperty(privateField);
+      }
+    }
+  });
+
   it('disconnects sockets after an account activity change', async () => {
     const user = {
       id: 'user-1',
@@ -509,6 +595,16 @@ describe('UsersService', () => {
     mockRepo.userRole.create.mockResolvedValue({});
 
     await service.assignRole('user-1', { role: 'SYSTEM_ADMIN' }, ['OWNER']);
+    expect(mockRepo.user.findUnique).toHaveBeenLastCalledWith({
+      where: { id: 'user-1' },
+      select: expect.objectContaining({
+        id: true,
+        userRoles: { select: { role: { select: { name: true } } } },
+      }),
+    });
+    expect(mockRepo.user.findUnique.mock.calls[1][0].select).not.toHaveProperty(
+      'passwordHash',
+    );
     expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
       'user-1',
     );
@@ -526,6 +622,16 @@ describe('UsersService', () => {
     expect(mockRepo.userRole.delete).toHaveBeenCalledWith({
       where: { id: 'user-role-1' },
     });
+    expect(mockRepo.user.findUnique).toHaveBeenLastCalledWith({
+      where: { id: 'user-1' },
+      select: expect.objectContaining({
+        id: true,
+        userRoles: { select: { role: { select: { name: true } } } },
+      }),
+    });
+    expect(mockRepo.user.findUnique.mock.calls[1][0].select).not.toHaveProperty(
+      'passwordHash',
+    );
     expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
       'user-1',
     );
@@ -538,7 +644,21 @@ describe('UsersService', () => {
       userRoles: [{ role: { name: 'STYLIST' } }],
     });
     const removedUser = { id: 'user-1', stylistProfile: null };
-    mockRepo.transaction.mockResolvedValue(removedUser);
+    const tx = {
+      dailyLogEntry: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      reservation: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      review: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      reservationStylistResponse: {
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      },
+      role: { findUnique: jest.fn().mockResolvedValue({ id: 'stylist-role' }) },
+      userRole: { deleteMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      stylistProfile: {
+        delete: jest.fn().mockResolvedValue({ id: 'stylist-profile-1' }),
+      },
+      user: { findUnique: jest.fn().mockResolvedValue(removedUser) },
+    };
+    mockRepo.transaction.mockImplementation(async (callback) => callback(tx));
 
     const result = await service.removeStylistRole(
       'user-1',
@@ -552,6 +672,16 @@ describe('UsersService', () => {
     );
 
     expect(result).toBe(removedUser);
+    expect(tx.user.findUnique).toHaveBeenCalledWith({
+      where: { id: 'user-1' },
+      select: expect.objectContaining({
+        id: true,
+        userRoles: { select: { role: { select: { name: true } } } },
+      }),
+    });
+    expect(tx.user.findUnique.mock.calls[0][0].select).not.toHaveProperty(
+      'passwordHash',
+    );
     expect(mockEventsGateway.disconnectUserSockets).toHaveBeenCalledWith(
       'user-1',
     );

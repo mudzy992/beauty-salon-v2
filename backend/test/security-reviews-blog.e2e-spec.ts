@@ -643,6 +643,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       data: {
         username: `sec-admin-${suffix}`,
         email: `sec-admin-${suffix}@example.test`,
+        passwordHash: `synthetic-admin-hash-${suffix}`,
+        emailVerificationToken: `synthetic-admin-verification-${suffix}`,
+        emailVerificationExpiresAt: new Date(Date.now() + 60_000),
+        googleId: `synthetic-admin-google-${suffix}`,
+        facebookId: `synthetic-admin-facebook-${suffix}`,
         firstName: 'Test',
         lastName: 'Administrator',
       },
@@ -2351,6 +2356,124 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       .expect(200);
     expect(systemAdminList.body.total).toBe(1);
     expect(systemAdminList.body.items[0].email).toBe(clientEmail);
+
+    const staffLists = await Promise.all([
+      request(getHttpServer(app!))
+        .get('/api/users/system-admins')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(200),
+      request(getHttpServer(app!))
+        .get('/api/users/stylists')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(200),
+    ]);
+    const adminRow = staffLists[0].body.find((row: { username: string }) =>
+      row.username.startsWith('sec-admin-'),
+    );
+    const stylistRow = staffLists[1].body.find((row: { username: string }) =>
+      row.username.startsWith('sec-stylist-'),
+    );
+    for (const row of [adminRow, stylistRow]) {
+      expect(row).toMatchObject({
+        username: expect.any(String),
+        userRoles: expect.any(Array),
+      });
+      expect(Object.keys(row).sort()).toEqual(
+        [
+          'id',
+          'username',
+          'email',
+          'firstName',
+          'lastName',
+          'phone',
+          'gender',
+          'avatar',
+          'isActive',
+          'isEmailVerified',
+          'createdAt',
+          'userRoles',
+          'stylistProfile',
+        ].sort(),
+      );
+      for (const privateField of [
+        'passwordHash',
+        'emailVerificationToken',
+        'emailVerificationExpiresAt',
+        'googleId',
+        'facebookId',
+        'passwordChangedAt',
+        'lastLoginAt',
+      ]) {
+        expect(row).not.toHaveProperty(privateField);
+      }
+    }
+
+    const dashboardUsers = await request(getHttpServer(app!))
+      .get('/api/users')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    const allUsersClientRow = dashboardUsers.body.find(
+      (row: { id: string }) => row.id === clientUserId,
+    );
+    expect(allUsersClientRow).toMatchObject({
+      id: clientUserId,
+      email: clientEmail,
+      username: expect.any(String),
+    });
+    expect(Object.keys(allUsersClientRow).sort()).toEqual(
+      [
+        'id',
+        'username',
+        'email',
+        'firstName',
+        'lastName',
+        'phone',
+        'gender',
+        'avatar',
+        'isActive',
+        'isEmailVerified',
+        'createdAt',
+        'userRoles',
+        'stylistProfile',
+      ].sort(),
+    );
+
+    const profileMutation = await request(getHttpServer(app!))
+      .put('/api/users/profile')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({ phone: '+38761000000' })
+      .expect(200);
+    const adminMutation = await request(getHttpServer(app!))
+      .patch(`/api/users/${clientUserId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ isActive: true })
+      .expect(200);
+    const idempotentRoleMutation = await request(getHttpServer(app!))
+      .post(`/api/users/${clientUserId}/roles`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ role: 'CLIENT' })
+      .expect(201);
+    for (const response of [
+      profileMutation,
+      adminMutation,
+      idempotentRoleMutation,
+    ]) {
+      for (const privateField of [
+        'passwordHash',
+        'emailVerificationToken',
+        'emailVerificationExpiresAt',
+        'googleId',
+        'facebookId',
+        'passwordChangedAt',
+        'lastLoginAt',
+      ]) {
+        expect(response.body).not.toHaveProperty(privateField);
+      }
+      expect(response.body).toMatchObject({
+        id: clientUserId,
+        email: clientEmail,
+      });
+    }
   });
 
   it('serializes concurrent debt repayments, replays the recorded payment, and rolls back failed KIF writes', async () => {
