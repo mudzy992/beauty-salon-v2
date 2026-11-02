@@ -21,6 +21,7 @@
 4. **Upload root je javno statički poslužen** i uključuje dokumente; delete endpoint nema vlasničku/reference provjeru.
 5. **Finansijski/booking side-effecti nisu svi u jednoj transakciji/outbox-u**, a repayment nema status uslov u samom update-u; retry/race scenariji mogu ostaviti netačne ili duplirane zapise.
 6. **Odabrani source-token kontrastni parovi sada prolaze, ali rendered/browser accessibility acceptance još nije urađen. Web BS/EN parity prolazi kao source gate (2.139 leaf ključeva po jeziku); web lokalizacija se nastavlja inkrementalno, uključujući finansijske liste, forme, KIF/KUF detalje/izvoze i izbor perioda knjige. Širi hard-coded web pregled, ručna provjera language-switcha i odluka o mobile jeziku ostaju otvoreni. Postojeći critical/high npm advisory-ji i dalje zahtijevaju zasebnu procjenu.**
+7. **API-03 — recenzija je vezana za vlastitu završenu rezervaciju, a javni prikaz sadrži samo odobrene i provjerene recenzije.** Pravilo vlasnika je implementirano i CI-potvrđeno u runu `41455376570`; stare recenzije ostaju neprovjerene, ali vidljive administratoru. Migracija korisničke baze, read-only provjera duplikata i eventualno čišćenje, deployment te vlasnikov developer build i provjera fizičkog uređaja ostaju zasebni koraci.
 
 ## P0 — hitna zaštita / incident review
 
@@ -352,13 +353,29 @@ Prije ovog BIZ-07 rada, stylist lock/accept/reject i admin termin update nisu sv
 
 **Neprovjereni korisnički prijavljeni simptom — novi zapis u knjizi rashoda:** korisnik prijavljuje da ne može dodati novi KUF zapis. Ovo i dalje nije potvrđen source finding niti je riješeno BIZ-08 mitigacijama: nema reprodukcije, konkretne forme/rute, statusa/greške iz API-ja ni utvrđenog uzroka. BIZ-08 mijenja samo utvrđene lock-vs-write i cancellation-count race putanje; ne klasifikuje niti tvrdi da je popravio prijavljeni KUF simptom. Prije posebne izmjene reproducirati ga u neprodukcijskom okruženju i prikupiti tok forme/requesta, ulogu, odabranu knjigu/open status, validation/template polja i sanitizovanu API/DB grešku.
 
-### API-03 — Review može nastati bez završenog booking evidence-a
+### API-03 — Recenzija se mogla kreirati bez dokaza završene rezervacije
 
-[`ReviewsService.create` L36-L85](../../backend/src/reviews/reviews.service.ts#L36) provjerava `reservationId` samo ako je poslan, zatim ownership; ne provjerava `COMPLETED`, service match ili reservation-linked uniqueness. Bez reservationId jedinstvenost je per user/service samo kroz pre-check (race bez unique constraint). `serviceId` i optional stylistProfile nisu vezani za završeni work record.
+**Početni source nalaz:** `ReviewsService.create` je dopuštao izostaviti rezervaciju; ako bi bila poslata, provjeravalo se samo vlasništvo, ne i status `COMPLETED`, pripadnost usluge, potvrđeni stilista ili jedinstvenost po rezervaciji. `serviceId` i opcionalni `stylistProfileId` mogli su biti nepovezani sa završenim radom. Postojala je samo prethodna provjera duplikata u aplikaciji, bez zaštite od istovremenih upisa u bazi.
 
-**Uticaj:** user može ocijeniti uslugu bez dokaza završene rezervacije; policy možda namjerno dopušta free-form review, pa business decision nije pretvoren u tehnički nalaz.
+**Odluka vlasnika (2026-11-02):** recenzija mora pripadati klijentovoj vlastitoj, završenoj (`COMPLETED`) rezervaciji; usluga mora biti dio te rezervacije, a stilista se preuzima iz `confirmedStylistId`. Dozvoljena je najviše jedna recenzija za par rezervacija/usluga. Historijske recenzije bez provjerljivog dokaza rezervacije ostaju sačuvane i dostupne administratoru, ali se ne prikazuju javno.
 
-**Popravka:** owner odluči “verified booking” policy; ako je obavezna, zahtijevati completed reservation, potvrditi service/stylist relation i unique DB constraint per reservation/service; otherwise označiti review verified/unverified.
+**Implementacija izvornog koda (commits `22daf17`, `52bde76`):** [`CreateReviewDto`](../../backend/src/reviews/dto/create-review.dto.ts) zahtijeva `reservationId` i više ne prihvata `stylistProfileId` koji šalje klijent. [`ReviewsService.create`](../../backend/src/reviews/reviews.service.ts) odbija tuđu, nepostojeću ili nezavršenu rezervaciju i uslugu koja nije na reservation graph-u; zatim upisuje `stylistProfileId` preuzet iz potvrđenog stiliste i `isVerified=true`. Prisma schema dodaje `Review.isVerified` (postojeći redovi podrazumijevano dobijaju `false`) i unique ograničenje `(reservationId, serviceId)` koje sprečava istovremeno kreiranje duplikata. Javni list/random/detail upiti zahtijevaju `isApproved=true`, `isVerified=true`, neprazan `reservationId` i status rezervacije `COMPLETED`; admin upit i dalje vraća historijske redove i njihovo stanje provjere. Mobile review ekran više nema slobodni izbor usluge i šalje booking/service IDs iz završene rezervacije; route type zahtijeva oba ID-a.
+
+**Migracija i operativna provjera:** [`migration.sql`](../../backend/prisma/migrations/20261102120000_api03_verified_reviews/migration.sql) u transakciji zaključava tabelu `reviews` prije provjere duplikata i kreiranja indeksa. Ako postojeći neprazan par rezervacija/usluga ima duplikate, migracija prekida s jasnom greškom; nijedna recenzija se automatski ne bira, spaja ili briše. Prije migracije u korisničkoj bazi vlasnik/DBA treba izvršiti samo-čitalačku provjeru:
+
+```sql
+SELECT reservation_id, service_id, COUNT(*) AS review_count
+FROM reviews
+WHERE reservation_id IS NOT NULL
+GROUP BY reservation_id, service_id
+HAVING COUNT(*) > 1;
+```
+
+Svaki rezultat traži posebnu odluku vlasnika o čišćenju prije ponovnog pokušaja. Agent nije pokretao migraciju nad razvojnom, shared ili production bazom.
+
+**Verifikacija:** backend unit testovi pokrivaju vlasništvo, status završetka, pripadnost usluge, stilistu izvedenog iz rezervacije, oznaku provjere, prethodnu provjeru duplikata i mapiranje konflikta unique ograničenja. HTTP testovi na disposable PostgreSQL-u pokrivaju nedostajuću/tuđu/nedovršenu/nepodudarnu rezervaciju, odbacivanje klijentski poslanog ID-a stiliste, istovremeni pokušaj duplikata, skrivanje historijske recenzije iz javnog prikaza i dostupnost administratoru. Mobile source-contract test provjerava obavezne route ID-eve i identitet payload-a. Prvi CI run [`41454340001`](https://github.com/mudzy992/beauty-salon-v2/actions/runs/41454340001) prošao je schema/migration, backend build i unit testove, ali je DB HTTP suite pao na nepovezanom SEC-10 testu zbog dodatnih globalnih rezervacija u fixture-ima; mobile job je našao zastarjele testove koji su očekivali slobodan service picker. Fixture-i su izolovani, API-03 HTTP test pomjeren iza ostalih reservation-flow testova, a zastarjeli picker testovi uklonjeni u `52bde76`. CI run [`41455376570`](https://github.com/mudzy992/beauty-salon-v2/actions/runs/41455376570) zatim je prošao sva četiri posla: Prisma schema i sve migracije na disposable PostgreSQL-u, backend build/unit/DB HTTP suite, frontend build/typecheck, mobile test/typecheck i repository provjere.
+
+**Status i granice:** implementacija API-03 i sintetička CI provjera završeni su na grani. CI koristi samo disposable PostgreSQL; nema upisa u production/shared bazu, ručne provjere duplikata, deploymenta, live HTTP, browser testa, native builda ili provjere na fizičkom uređaju. Vlasnik će izvršiti developer build i vizuelnu provjeru na fizičkom uređaju prije production builda; agent nije zamijenio te korake zelenim CI-jem. Historijske neprovjerene recenzije ostaju skrivene dok se ne utvrdi pouzdan dokaz rezervacije. Audit cijelog repozitorija i provjere runtime/deploymenta ostaju otvoreni.
 
 ### OPS-01 — Scheduled jobs su process-local; duple instance mogu duplirati side-effects
 
