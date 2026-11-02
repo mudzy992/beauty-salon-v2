@@ -21,6 +21,7 @@ import request from 'supertest';
 import sharp from 'sharp';
 import { AppController } from '../src/app.controller';
 import { AppService } from '../src/app.service';
+import { AuthController } from '../src/auth/auth.controller';
 import { AuthService } from '../src/auth/auth.service';
 import { JwtStrategy } from '../src/auth/strategies/jwt.strategy';
 import { JwtAuthGuard } from '../src/common/guards/jwt-auth.guard';
@@ -307,6 +308,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, AUTH-01, SEC-04/PRIV-01, 
       ],
       controllers: [
         AppController,
+        AuthController,
         ReviewsController,
         AnalyticsController,
         BlogController,
