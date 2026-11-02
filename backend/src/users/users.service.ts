@@ -50,7 +50,6 @@ const ADMIN_CLIENT_SELECT = {
   avatar: true,
   isActive: true,
   isEmailVerified: true,
-  mustChangePassword: true,
   createdAt: true,
   userRoles: { select: { role: { select: { name: true } } } },
 } as const;
@@ -113,7 +112,6 @@ const ADMIN_USER_LIST_SELECT = {
   avatar: true,
   isActive: true,
   isEmailVerified: true,
-  mustChangePassword: true,
   createdAt: true,
   userRoles: { select: { role: { select: { name: true } } } },
   stylistProfile: { select: { id: true, status: true } },
@@ -201,6 +199,14 @@ export class UsersService {
       },
       orderBy: [{ createdAt: 'desc' }],
       select: ADMIN_USER_LIST_SELECT,
+    });
+  }
+
+  async findInitialPasswordResetCandidateIds(roles: string[]) {
+    this.requireAdminOrOwner(roles);
+    return this.repo.user.findMany({
+      where: { mustChangePassword: true },
+      select: { id: true },
     });
   }
 

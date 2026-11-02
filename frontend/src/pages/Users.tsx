@@ -240,11 +240,18 @@ export default function Users() {
       api.get<PaginatedResponse<UserRow>>('/api/users/clients/admin', {
         params: { page, pageSize, q: debouncedClientsSearch.trim() || undefined },
       }),
+      api.get<Array<{ id: string }>>('/api/users/password-reset-candidates'),
     ])
-      .then(([adminsRes, stylistsRes, clientsRes]) => {
-        setAdmins(Array.isArray(adminsRes.data) ? adminsRes.data : [])
-        setStylists(Array.isArray(stylistsRes.data) ? stylistsRes.data : [])
-        setClients(Array.isArray(clientsRes.data.items) ? clientsRes.data.items : [])
+      .then(([adminsRes, stylistsRes, clientsRes, resetCandidatesRes]) => {
+        const resetCandidateIds = new Set(resetCandidatesRes.data.map(({ id }) => id))
+        const withResetStatus = (users: UserRow[]) =>
+          users.map((user) => ({
+            ...user,
+            mustChangePassword: resetCandidateIds.has(user.id),
+          }))
+        setAdmins(withResetStatus(Array.isArray(adminsRes.data) ? adminsRes.data : []))
+        setStylists(withResetStatus(Array.isArray(stylistsRes.data) ? stylistsRes.data : []))
+        setClients(withResetStatus(Array.isArray(clientsRes.data.items) ? clientsRes.data.items : []))
         setTotal(clientsRes.data.total ?? 0)
       })
       .catch(() => {

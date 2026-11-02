@@ -145,6 +145,21 @@ describe('UsersService', () => {
     ]);
   });
 
+  it('password-reset candidate projection is restricted to admins and owners', async () => {
+    await expect(
+      service.findInitialPasswordResetCandidateIds(['STYLIST']),
+    ).rejects.toThrow(ForbiddenException)
+
+    mockRepo.user.findMany.mockResolvedValue([{ id: 'user-1' }])
+    await expect(
+      service.findInitialPasswordResetCandidateIds(['OWNER']),
+    ).resolves.toEqual([{ id: 'user-1' }])
+    expect(mockRepo.user.findMany).toHaveBeenCalledWith({
+      where: { mustChangePassword: true },
+      select: { id: true },
+    })
+  })
+
   it('admin client list is role restricted and uses an allowlist', async () => {
     await expect(service.findClientsForAdmin(['STYLIST'])).rejects.toThrow(
       ForbiddenException,

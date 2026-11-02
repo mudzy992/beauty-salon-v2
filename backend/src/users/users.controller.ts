@@ -63,6 +63,15 @@ export class UsersController {
     return this.usersService.findStylists(user.roles);
   }
 
+  @Get('password-reset-candidates')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  findInitialPasswordResetCandidates(
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.usersService.findInitialPasswordResetCandidateIds(user.roles);
+  }
+
   @Get('clients/admin')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
