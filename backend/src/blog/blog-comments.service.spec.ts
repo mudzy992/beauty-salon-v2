@@ -13,6 +13,8 @@ import { SettingsService } from '../settings/settings.service';
 const mockPrisma = {
   blogComment: {
     findMany: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
     count: jest.fn(),
   },
 };
@@ -71,6 +73,28 @@ describe('BlogCommentsService public/admin lists', () => {
         isApproved: true,
         post: { isPublished: true },
       },
+    });
+  });
+
+  it('approval mutation returns only the comment status fields', async () => {
+    mockPrisma.blogComment.findUnique.mockResolvedValue({ id: 'comment-1' });
+    mockPrisma.blogComment.update.mockResolvedValue({
+      id: 'comment-1',
+      isApproved: true,
+    });
+
+    const result = await service.approve('comment-1', {
+      sub: 'owner-1',
+      username: 'owner',
+      email: 'owner@example.test',
+      roles: ['OWNER'],
+    });
+
+    expect(result).toEqual({ id: 'comment-1', isApproved: true });
+    expect(mockPrisma.blogComment.update).toHaveBeenCalledWith({
+      where: { id: 'comment-1' },
+      data: { isApproved: true },
+      select: { id: true, isApproved: true },
     });
   });
 

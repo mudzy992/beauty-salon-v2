@@ -2167,6 +2167,20 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, AUTH-01, SEC-04/PRIV-01, 
     expect(
       adminComments.body.map((comment: { id: string }) => comment.id),
     ).toEqual(expect.arrayContaining([approvedCommentId, pendingCommentId]));
+    await request(getHttpServer(app!))
+      .patch(`/api/blog/comments/${pendingCommentId}/approve`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+    const approvedResponse = await request(getHttpServer(app!))
+      .patch(`/api/blog/comments/${pendingCommentId}/approve`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(approvedResponse.body).toEqual({
+      id: pendingCommentId,
+      isApproved: true,
+    });
+    expect(approvedResponse.body).not.toHaveProperty('user');
+    expect(approvedResponse.body).not.toHaveProperty('post');
   });
 
   it('applies the SEC-02 role matrix to the client picker and admin route', async () => {
@@ -2878,9 +2892,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, AUTH-01, SEC-04/PRIV-01, 
     const incomeTriggerName = `e2e_biz08_income_sleep_${suffix}`;
     const incomeEntryNotes = `biz08-income-race-${suffix}`;
     let incomeWritePromise:
-      ReturnType<IncomeManualEntriesService['create']> | undefined;
+      | ReturnType<IncomeManualEntriesService['create']>
+      | undefined;
     let incomeClosePromise:
-      ReturnType<IncomeBooksService['lockBook']> | undefined;
+      | ReturnType<IncomeBooksService['lockBook']>
+      | undefined;
     try {
       await db.$executeRawUnsafe(`
         CREATE FUNCTION "${incomeFunctionName}"() RETURNS trigger

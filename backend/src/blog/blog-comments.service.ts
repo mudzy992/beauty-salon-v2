@@ -137,7 +137,7 @@ export class BlogCommentsService {
     return this.prisma.blogComment.update({
       where: { id: commentId },
       data: { isApproved: true },
-      include: { user: true, post: true },
+      select: { id: true, isApproved: true },
     });
   }
 
