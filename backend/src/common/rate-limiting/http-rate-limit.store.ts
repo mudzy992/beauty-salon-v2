@@ -133,7 +133,7 @@ export class HttpRateLimitStore implements OnModuleInit, OnModuleDestroy {
     if (this.warnedUnavailable) return;
     this.warnedUnavailable = true;
     this.logger.warn(
-      `HTTP rate limiting is failing open because its dedicated Redis store is unavailable: ${reason}.`,
+      `HTTP rate-limit Redis store is unavailable; route policies determine whether requests fail open or closed: ${reason}.`,
     );
   }
 }

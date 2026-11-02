@@ -2,6 +2,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  ServiceUnavailableException,
   type NestInterceptor,
   type ExecutionContext,
   type CallHandler,
@@ -55,7 +56,18 @@ export class HttpRateLimitInterceptor implements NestInterceptor {
         identity,
         policy.windowSeconds,
       );
-      if (!counter) continue;
+      if (!counter) {
+        if (policy.failClosedOnUnavailable) {
+          response.setHeader('Retry-After', '30');
+          throw new ServiceUnavailableException({
+            statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+            error: 'Service Unavailable',
+            message:
+              'Usluga je privremeno nedostupna. Pokušajte ponovo kasnije.',
+          });
+        }
+        continue;
+      }
 
       const remaining = Math.max(0, policy.limit - counter.count);
       if (
@@ -71,12 +83,7 @@ export class HttpRateLimitInterceptor implements NestInterceptor {
 
       if (counter.count <= policy.limit) continue;
 
-      this.setRateLimitHeaders(
-        response,
-        policy,
-        remaining,
-        counter.ttlSeconds,
-      );
+      this.setRateLimitHeaders(response, policy, remaining, counter.ttlSeconds);
       const retryAfter = Math.max(1, counter.ttlSeconds);
       response.setHeader('Retry-After', String(retryAfter));
       throw new HttpException(

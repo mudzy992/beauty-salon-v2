@@ -10,11 +10,12 @@ export interface HttpRateLimitPolicy {
   windowSeconds: number;
   identity: HttpRateLimitIdentity;
   accountField?: string;
+  /** Reject the request if the counter store cannot enforce this policy. */
+  failClosedOnUnavailable?: boolean;
 }
 
 export type HttpRateLimitPolicies =
-  | HttpRateLimitPolicy
-  | readonly HttpRateLimitPolicy[];
+  HttpRateLimitPolicy | readonly HttpRateLimitPolicy[];
 
 export const HttpRateLimit = (policies: HttpRateLimitPolicies) => {
   const normalized: readonly HttpRateLimitPolicy[] = Array.isArray(policies)

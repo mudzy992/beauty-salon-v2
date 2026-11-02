@@ -22,17 +22,45 @@ class TestController {
   handler(this: void) {}
 }
 
+class PublicReadController {
+  @HttpRateLimit({
+    bucket: 'public:catalog-read',
+    limit: 120,
+    windowSeconds: 60,
+    identity: 'ip',
+  })
+  handler(this: void) {}
+}
+
 class MultiPolicyController {
   @HttpRateLimit([
-    { bucket: 'auth:login:ip', limit: 30, windowSeconds: 60, identity: 'ip' },
+    {
+      bucket: 'auth:login:ip',
+      limit: 30,
+      windowSeconds: 60,
+      identity: 'ip',
+      failClosedOnUnavailable: true,
+    },
     {
       bucket: 'auth:login:account',
       limit: 10,
       windowSeconds: 900,
       identity: 'account',
       accountField: 'login',
+      failClosedOnUnavailable: true,
     },
   ])
+  handler(this: void) {}
+}
+
+class FailClosedController {
+  @HttpRateLimit({
+    bucket: 'auth:login:ip',
+    limit: 30,
+    windowSeconds: 60,
+    identity: 'ip',
+    failClosedOnUnavailable: true,
+  })
   handler(this: void) {}
 }
 
@@ -140,11 +168,41 @@ describe('HttpRateLimitInterceptor', () => {
     expect(response.setHeader).toHaveBeenCalledWith('Retry-After', '17');
   });
 
-  it('fails open when Redis is unavailable', async () => {
+  it('returns a generic 503 with Retry-After for fail-closed policies', async () => {
     mockStore.incrementWindow.mockResolvedValue(null);
+    context = {
+      ...context,
+      getHandler: () => FailClosedController.prototype.handler,
+      getClass: () => FailClosedController,
+    } as unknown as ExecutionContext;
+
+    await expect(interceptor.intercept(context, next)).rejects.toMatchObject({
+      status: 503,
+      response: {
+        statusCode: 503,
+        error: 'Service Unavailable',
+        message: 'Usluga je privremeno nedostupna. Pokušajte ponovo kasnije.',
+      },
+    });
+    expect(response.setHeader).toHaveBeenCalledWith('Retry-After', '30');
+    expect(mockStore.incrementWindow).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps public read policies fail-open when Redis is unavailable', async () => {
+    mockStore.incrementWindow.mockResolvedValue(null);
+    context = {
+      ...context,
+      getHandler: () => PublicReadController.prototype.handler,
+      getClass: () => PublicReadController,
+    } as unknown as ExecutionContext;
 
     const result = await interceptor.intercept(context, next);
 
+    expect(mockStore.incrementWindow).toHaveBeenCalledWith(
+      'public:catalog-read',
+      'ip:203.0.113.10',
+      60,
+    );
     expect(response.setHeader).not.toHaveBeenCalled();
     await expect(firstValueFrom(result)).resolves.toBe('ok');
   });

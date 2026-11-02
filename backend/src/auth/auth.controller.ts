@@ -58,6 +58,7 @@ export class AuthController {
     limit: AUTH_REGISTER_IP_LIMIT,
     windowSeconds: AUTH_REGISTER_IP_WINDOW_SECONDS,
     identity: 'ip',
+    failClosedOnUnavailable: true,
   })
   @UseInterceptors(
     FileInterceptor('avatar', {
@@ -107,12 +108,14 @@ export class AuthController {
       limit: AUTH_LOGIN_IP_LIMIT,
       windowSeconds: AUTH_RATE_LIMIT_WINDOW_SECONDS,
       identity: 'ip',
+      failClosedOnUnavailable: true,
     },
     {
       bucket: 'auth:login:account',
       limit: AUTH_LOGIN_ACCOUNT_LIMIT,
       windowSeconds: AUTH_LOGIN_ACCOUNT_WINDOW_SECONDS,
       identity: 'account',
+      failClosedOnUnavailable: true,
       accountField: 'login',
     },
   ])
@@ -138,12 +141,14 @@ export class AuthController {
       limit: AUTH_SEND_VERIFICATION_USER_LIMIT,
       windowSeconds: AUTH_SEND_VERIFICATION_USER_WINDOW_SECONDS,
       identity: 'user',
+      failClosedOnUnavailable: true,
     },
     {
       bucket: 'auth:send-verification:ip',
       limit: AUTH_SEND_VERIFICATION_IP_LIMIT,
       windowSeconds: AUTH_SEND_VERIFICATION_IP_WINDOW_SECONDS,
       identity: 'ip',
+      failClosedOnUnavailable: true,
     },
   ])
   async sendVerificationEmail(@CurrentUser() user: CurrentUserPayload) {
@@ -158,12 +163,14 @@ export class AuthController {
       limit: AUTH_VERIFY_EMAIL_USER_LIMIT,
       windowSeconds: AUTH_VERIFY_EMAIL_WINDOW_SECONDS,
       identity: 'user',
+      failClosedOnUnavailable: true,
     },
     {
       bucket: 'auth:verify-email:ip',
       limit: AUTH_VERIFY_EMAIL_IP_LIMIT,
       windowSeconds: AUTH_VERIFY_EMAIL_WINDOW_SECONDS,
       identity: 'ip',
+      failClosedOnUnavailable: true,
     },
   ])
   async verifyEmail(

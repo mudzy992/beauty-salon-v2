@@ -1,4 +1,12 @@
 import 'reflect-metadata';
+
+jest.mock('../prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
+jest.mock('../uploads/uploads.service', () => ({
+  UploadsService: class UploadsService {},
+}));
+
 import { AuthController } from './auth.controller';
 import {
   HTTP_RATE_LIMIT_METADATA,
@@ -50,15 +58,29 @@ describe('AuthController rate-limit policies', () => {
     ]);
   });
 
-  it('limits registrations by source IP', () => {
+  it('limits registrations by source IP and fails closed if Redis is unavailable', () => {
     expect(policiesFor('register')).toMatchObject([
       {
         bucket: 'auth:register:ip',
         limit: 10,
         windowSeconds: 3600,
         identity: 'ip',
+        failClosedOnUnavailable: true,
       },
     ]);
+  });
+
+  it.each([
+    'login' as const,
+    'register' as const,
+    'sendVerificationEmail' as const,
+    'verifyEmail' as const,
+  ])('$route rejects when its Redis counter is unavailable', (route) => {
+    const policies = policiesFor(route);
+    expect(policies?.length).toBeGreaterThan(0);
+    expect(policies?.every((policy) => policy.failClosedOnUnavailable)).toBe(
+      true,
+    );
   });
 
   it('limits email verification by authenticated user and source IP', () => {
