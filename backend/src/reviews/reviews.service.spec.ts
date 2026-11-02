@@ -37,6 +37,15 @@ type ReviewQuery = {
   take?: number;
 };
 
+const completedReservation = {
+  id: 'r1',
+  clientId: 'current-user',
+  serviceId: 's1',
+  confirmedStylistId: 'stylist-1',
+  status: 'COMPLETED',
+  items: [],
+};
+
 const firstReviewQuery = (mock: {
   mock: { calls: ReadonlyArray<ReadonlyArray<unknown>> };
 }): ReviewQuery => {
@@ -67,9 +76,8 @@ describe('ReviewsService', () => {
   });
 
   it('create baca ForbiddenException kada reservation nije od tog usera', async () => {
-    mockPrisma.service.findUniqueOrThrow.mockResolvedValue({});
     mockPrisma.reservation.findUnique.mockResolvedValue({
-      id: 'r1',
+      ...completedReservation,
       clientId: 'other-client',
     });
     await expect(
@@ -78,13 +86,87 @@ describe('ReviewsService', () => {
         'current-user',
       ),
     ).rejects.toThrow(ForbiddenException);
+    expect(mockPrisma.review.create).not.toHaveBeenCalled();
   });
 
-  it('create baca BadRequestException kada recenzija za servis već postoji', async () => {
-    mockPrisma.service.findUniqueOrThrow.mockResolvedValue({});
-    mockPrisma.review.findFirst.mockResolvedValue({ id: 'existing' });
+  it('odbija recenziju za rezervaciju koja nije završena', async () => {
+    mockPrisma.reservation.findUnique.mockResolvedValue({
+      ...completedReservation,
+      status: 'CONFIRMED',
+    });
+
     await expect(
-      service.create({ serviceId: 's1', serviceRating: 5 }, 'user-1'),
+      service.create(
+        { serviceId: 's1', reservationId: 'r1', serviceRating: 5 },
+        'current-user',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockPrisma.review.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('odbija uslugu koja ne pripada rezervaciji', async () => {
+    mockPrisma.reservation.findUnique.mockResolvedValue(completedReservation);
+
+    await expect(
+      service.create(
+        { serviceId: 'another-service', reservationId: 'r1', serviceRating: 5 },
+        'current-user',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(mockPrisma.review.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a verified review linked to the reservation stylist', async () => {
+    mockPrisma.reservation.findUnique.mockResolvedValue(completedReservation);
+    mockPrisma.review.findFirst.mockResolvedValue(null);
+    mockPrisma.review.create.mockResolvedValue({ id: 'new-review' });
+
+    await service.create(
+      {
+        serviceId: 's1',
+        reservationId: 'r1',
+        serviceRating: 5,
+        stylistRating: 4,
+      },
+      'current-user',
+    );
+
+    expect(mockPrisma.review.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'current-user',
+          serviceId: 's1',
+          reservationId: 'r1',
+          stylistProfileId: 'stylist-1',
+          isVerified: true,
+          stylistRating: 4,
+        }),
+      }),
+    );
+  });
+
+  it('rejects a concurrent duplicate when the database unique constraint wins', async () => {
+    mockPrisma.reservation.findUnique.mockResolvedValue(completedReservation);
+    mockPrisma.review.findFirst.mockResolvedValue(null);
+    mockPrisma.review.create.mockRejectedValue({ code: 'P2002' });
+
+    await expect(
+      service.create(
+        { serviceId: 's1', reservationId: 'r1', serviceRating: 5 },
+        'current-user',
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects an existing reservation/service review', async () => {
+    mockPrisma.reservation.findUnique.mockResolvedValue(completedReservation);
+    mockPrisma.review.findFirst.mockResolvedValue({ id: 'existing' });
+
+    await expect(
+      service.create(
+        { serviceId: 's1', reservationId: 'r1', serviceRating: 5 },
+        'current-user',
+      ),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -106,7 +188,13 @@ describe('ReviewsService', () => {
     await expect(service.findOne('rev-1')).rejects.toThrow(NotFoundException);
 
     const query = firstReviewQuery(mockPrisma.review.findFirst);
-    expect(query.where).toEqual({ id: 'rev-1', isApproved: true });
+    expect(query.where).toEqual({
+      id: 'rev-1',
+      isApproved: true,
+      isVerified: true,
+      reservationId: { not: null },
+      reservation: { is: { status: 'COMPLETED' } },
+    });
     expect(query.select.user.select).toEqual({
       id: true,
       firstName: true,
@@ -153,7 +241,12 @@ describe('ReviewsService', () => {
     await service.findOneRandomApproved();
 
     const query = firstReviewQuery(mockPrisma.review.findMany);
-    expect(query.where).toEqual({ isApproved: true });
+    expect(query.where).toEqual({
+      isApproved: true,
+      isVerified: true,
+      reservationId: { not: null },
+      reservation: { is: { status: 'COMPLETED' } },
+    });
     expect(query.select).not.toHaveProperty('userId');
     expect(query.select).not.toHaveProperty('reservationId');
     expect(query.select.user.select).not.toHaveProperty('passwordHash');
@@ -181,6 +274,9 @@ describe('ReviewsService', () => {
     const query = firstReviewQuery(mockPrisma.review.findMany);
     expect(query.where).toEqual({
       isApproved: true,
+      isVerified: true,
+      reservationId: { not: null },
+      reservation: { is: { status: 'COMPLETED' } },
       serviceId: 'service-1',
       stylistProfileId: 'stylist-1',
     });

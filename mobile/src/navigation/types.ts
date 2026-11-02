@@ -78,7 +78,7 @@ export type ServicesStackParamList = {
 export type ReservationsStackParamList = {
   MyReservations: { focusReservationId?: string } | undefined;
   ReservationDetail: { reservationId: string };
-  WriteReview: { reservationId?: string; serviceId?: string };
+  WriteReview: { reservationId: string; serviceId: string };
 };
 
 export type ProfileStackParamList = {

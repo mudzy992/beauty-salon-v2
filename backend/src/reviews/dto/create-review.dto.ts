@@ -12,13 +12,8 @@ export class CreateReviewDto {
   @IsUUID()
   serviceId!: string;
 
-  @IsOptional()
   @IsUUID()
-  stylistProfileId?: string;
-
-  @IsOptional()
-  @IsUUID()
-  reservationId?: string;
+  reservationId!: string;
 
   @IsInt()
   @Min(1)

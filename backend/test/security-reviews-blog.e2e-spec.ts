@@ -188,7 +188,7 @@ const fixtureIds: FixtureIds = {
   reservationIds: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, SEC-04/PRIV-01, SEC-07, API-02, OPS-03, BIZ-01–BIZ-05, BIZ-07–BIZ-08', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, SEC-04/PRIV-01, SEC-07, API-02, API-03, OPS-03, BIZ-01–BIZ-05, BIZ-07–BIZ-08', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -207,6 +207,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
   let publishedReviewId: string;
   let secondPublishedReviewId: string;
   let pendingReviewId: string;
+  let legacyApprovedReviewId: string;
   let publishedPostId: string;
   let publishedPostSlug: string;
   let draftPostId: string;
@@ -932,15 +933,49 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       ],
     });
 
+    const reviewReservationDate = new Date('2026-01-03T00:00:00.000Z');
+    const clientReviewReservation = await prisma.reservation.create({
+      data: {
+        clientId: client.id,
+        serviceId: service.id,
+        reservationDate: reviewReservationDate,
+        startTime: '09:00',
+        endTime: '09:45',
+        status: 'COMPLETED',
+        confirmedStylistId: stylistProfile.id,
+        publicReferenceCode: `review-client-${suffix}`,
+        clientViewToken: randomUUID().replaceAll('-', '').repeat(2),
+      },
+    });
+    const ownerReviewReservation = await prisma.reservation.create({
+      data: {
+        clientId: owner.id,
+        serviceId: service.id,
+        reservationDate: reviewReservationDate,
+        startTime: '10:00',
+        endTime: '10:45',
+        status: 'COMPLETED',
+        confirmedStylistId: stylistProfile.id,
+        publicReferenceCode: `review-owner-${suffix}`,
+        clientViewToken: randomUUID().replaceAll('-', '').repeat(2),
+      },
+    });
+    fixtureIds.reservationIds.push(
+      clientReviewReservation.id,
+      ownerReviewReservation.id,
+    );
+
     const reviewPageCreatedAt = new Date('2026-01-02T12:00:00.000Z');
     const secondReviewPageCreatedAt = new Date('2026-01-01T12:00:00.000Z');
     const publishedReview = await prisma.review.create({
       data: {
         userId: client.id,
         serviceId: service.id,
+        reservationId: clientReviewReservation.id,
         serviceRating: 5,
         comment: 'Approved review fixture.',
         isApproved: true,
+        isVerified: true,
         createdAt: reviewPageCreatedAt,
       },
     });
@@ -951,14 +986,28 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       data: {
         userId: owner.id,
         serviceId: service.id,
+        reservationId: ownerReviewReservation.id,
         serviceRating: 4,
         comment: 'Second approved review fixture.',
         isApproved: true,
+        isVerified: true,
         createdAt: secondReviewPageCreatedAt,
       },
     });
     fixtureIds.reviews.push(secondPublishedReview.id);
     secondPublishedReviewId = secondPublishedReview.id;
+
+    const legacyApprovedReview = await prisma.review.create({
+      data: {
+        userId: owner.id,
+        serviceId: service.id,
+        serviceRating: 3,
+        comment: 'Unverified legacy review fixture.',
+        isApproved: true,
+      },
+    });
+    fixtureIds.reviews.push(legacyApprovedReview.id);
+    legacyApprovedReviewId = legacyApprovedReview.id;
 
     const pendingReview = await prisma.review.create({
       data: {
@@ -1636,8 +1685,12 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       nextOffset: 1,
     });
     expect(firstPage.body.items).toHaveLength(1);
+    expect(
+      firstPage.body.items.map((review: { id: string }) => review.id),
+    ).not.toContain(legacyApprovedReviewId);
     expect(firstPage.body.items[0]).toMatchObject({
       id: publishedReviewId,
+      isVerified: true,
       serviceRating: 5,
       comment: 'Approved review fixture.',
       isApproved: true,
@@ -1692,6 +1745,10 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       .get(`/api/reviews/${pendingReviewId}`)
       .set('Authorization', `Bearer ${clientToken}`)
       .expect(404);
+    await request(getHttpServer(app!))
+      .get(`/api/reviews/${legacyApprovedReviewId}`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(404);
 
     await request(getHttpServer(app!))
       .get(`/api/reviews/admin?serviceId=${serviceId}&approved=false`)
@@ -1707,6 +1764,125 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       serviceRating: 2,
       isApproved: false,
     });
+    const approvedForOwner = await request(getHttpServer(app!))
+      .get(`/api/reviews/admin?serviceId=${serviceId}&approved=true`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(approvedForOwner.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: legacyApprovedReviewId,
+          isVerified: false,
+        }),
+      ]),
+    );
+  });
+
+  it('API-03 accepts one verified review only for a completed own reservation/service', async () => {
+    const db = prisma!;
+    const createReservation = async (
+      clientId: string,
+      status: string,
+      reference: string,
+    ) => {
+      const reservation = await db.reservation.create({
+        data: {
+          clientId,
+          serviceId,
+          reservationDate: new Date('2026-02-01T00:00:00.000Z'),
+          startTime: '09:00',
+          endTime: '09:45',
+          status,
+          confirmedStylistId: fixtureIds.stylistProfile!,
+          publicReferenceCode: `api03-${reference}-${randomUUID()}`,
+          clientViewToken: randomUUID().replaceAll('-', '').repeat(2),
+        },
+      });
+      fixtureIds.reservationIds.push(reservation.id);
+      return reservation;
+    };
+    const server = getHttpServer(app!);
+    const postReview = (body: Record<string, unknown>) =>
+      request(server)
+        .post('/api/reviews')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send(body);
+
+    await postReview({ serviceId, serviceRating: 5 }).expect(400);
+
+    const otherClientReservation = await createReservation(
+      concurrentClientTokens[0]!.userId,
+      'COMPLETED',
+      'other-client',
+    );
+    await postReview({
+      reservationId: otherClientReservation.id,
+      serviceId,
+      serviceRating: 5,
+    }).expect(403);
+
+    const incompleteReservation = await createReservation(
+      clientUserId,
+      'CONFIRMED',
+      'incomplete',
+    );
+    await postReview({
+      reservationId: incompleteReservation.id,
+      serviceId,
+      serviceRating: 5,
+    }).expect(400);
+
+    const completedReservation = await createReservation(
+      clientUserId,
+      'COMPLETED',
+      'completed',
+    );
+    await postReview({
+      reservationId: completedReservation.id,
+      serviceId: randomUUID(),
+      serviceRating: 5,
+    }).expect(400);
+
+    await postReview({
+      reservationId: completedReservation.id,
+      serviceId,
+      stylistProfileId: randomUUID(),
+      serviceRating: 5,
+    }).expect(400);
+
+    const payload = {
+      reservationId: completedReservation.id,
+      serviceId,
+      serviceRating: 5,
+      stylistRating: 4,
+      comment: 'Verified reservation review.',
+    };
+    const responses = await Promise.all([
+      postReview(payload),
+      postReview(payload),
+    ]);
+    expect(responses.map((response) => response.status).sort()).toEqual([
+      201, 400,
+    ]);
+    const createdResponse = responses.find(
+      (response) => response.status === 201,
+    );
+    expect(createdResponse?.body).toMatchObject({
+      reservationId: completedReservation.id,
+      serviceId,
+      stylistProfileId: fixtureIds.stylistProfile,
+      isVerified: true,
+      isApproved: false,
+    });
+    expect(createdResponse?.body.userId).toBe(clientUserId);
+    fixtureIds.reviews.push(createdResponse!.body.id as string);
+
+    const stored = await db.review.findMany({
+      where: { reservationId: completedReservation.id, serviceId },
+      select: { id: true, isVerified: true },
+    });
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.isVerified).toBe(true);
   });
 
   it('bounds and strictly validates public service and stylist catalog pages', async () => {

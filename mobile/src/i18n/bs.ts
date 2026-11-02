@@ -234,8 +234,9 @@ export const bs = {
     noReviews: 'Nema recenzija',
     loadError: 'Recenzije nisu dostupne. Pokušajte ponovo.',
     loadMore: 'Učitaj još recenzija',
-    selectService: 'Odaberite uslugu',
-    selectReservation: 'Odaberite rezervaciju (opciono)',
+    completedBookingRequired: 'Recenziju možete ostaviti samo za završenu rezervaciju.',
+    completedBookingRequiredMessage: 'Vratite se na listu rezervacija i odaberite termin označen kao završen.',
+    verifiedBookingHint: 'Recenzija se veže uz završenu rezervaciju. Uslugu i stilista provjeravamo automatski.',
   },
   profile: {
     title: 'Profil',

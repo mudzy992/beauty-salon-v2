@@ -922,6 +922,7 @@ model Review {
   stylistRating    Int?     @map("stylist_rating") // 1-5
   comment          String?  @db.Text
   isApproved       Boolean  @default(false) @map("is_approved")
+  isVerified       Boolean  @default(false) @map("is_verified")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -930,6 +931,7 @@ model Review {
   stylist     StylistProfile? @relation(fields: [stylistProfileId], references: [id], onDelete: SetNull)
   reservation Reservation?    @relation(fields: [reservationId], references: [id], onDelete: SetNull)
 
+  @@unique([reservationId, serviceId], map: "reviews_reservation_id_service_id_key")
   @@map("reviews")
 }
 

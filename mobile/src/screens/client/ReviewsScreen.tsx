@@ -7,13 +7,11 @@ import {
   Alert,
   TouchableOpacity,
   TextInput,
-  ActivityIndicator,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
-import { usePublicServiceCatalog } from '../../hooks/usePublicServiceCatalog';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Card } from '../../components/ui/Card';
@@ -63,17 +61,14 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
 
-  const serviceCatalog = usePublicServiceCatalog({ enabled: !serviceId });
-  const services = serviceCatalog.services;
-  const [selectedServiceId, setSelectedServiceId] = useState(serviceId || '');
   const [serviceRating, setServiceRating] = useState(0);
   const [stylistRating, setStylistRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (!selectedServiceId) {
-      Alert.alert(t('common.error'), t('reviews.selectService'));
+    if (!reservationId || !serviceId) {
+      Alert.alert(t('common.error'), t('reviews.completedBookingRequired'));
       return;
     }
     if (serviceRating === 0) {
@@ -84,8 +79,8 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
     setSubmitting(true);
     try {
       await api.post('/api/reviews', {
-        serviceId: selectedServiceId,
-        reservationId: reservationId || undefined,
+        serviceId,
+        reservationId,
         serviceRating,
         stylistRating: stylistRating || undefined,
         comment: comment.trim() || undefined,
@@ -100,10 +95,16 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
     }
   };
 
-  if (!serviceId && serviceCatalog.loading && services.length === 0) {
+  if (!reservationId || !serviceId) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <EmptyState
+          icon="star-outline"
+          title={t('reviews.completedBookingRequired')}
+          message={t('reviews.completedBookingRequiredMessage')}
+          actionLabel={t('common.back')}
+          onAction={() => navigation.goBack()}
+        />
       </View>
     );
   }
@@ -116,55 +117,11 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
-      {!serviceId && serviceCatalog.loading && services.length > 0 ? (
-        <ActivityIndicator size="small" color={colors.primary} style={{ marginBottom: spacing.sm }} />
-      ) : null}
-      {!serviceId && serviceCatalog.error ? (
-        <Card style={{ marginBottom: spacing.md, borderColor: colors.error }}>
-          <Text style={{ color: colors.textSecondary, marginBottom: spacing.sm }}>
-            {services.length > 0 ? t('services.staleMessage') : t('services.loadErrorMessage')}
-          </Text>
-          <Button
-            title={t('common.retry')}
-            onPress={() => { void serviceCatalog.retry(); }}
-            variant="outline"
-          />
-        </Card>
-      ) : null}
-      {!serviceId && !serviceCatalog.loading && !serviceCatalog.error && services.length === 0 ? (
-        <EmptyState icon="cut-outline" title={t('services.noServices')} />
-      ) : null}
-      {!serviceId && services.length > 0 && (
-        <Card style={{ marginBottom: spacing.md }}>
-          <Text style={[styles.label, { color: colors.textSecondary }]}>
-            {t('reviews.selectService')}
-          </Text>
-          {services.map((s) => (
-            <TouchableOpacity
-              key={s.id}
-              onPress={() => setSelectedServiceId(s.id)}
-              style={[
-                styles.serviceOption,
-                {
-                  backgroundColor:
-                    selectedServiceId === s.id ? colors.accent : colors.surface,
-                  borderColor:
-                    selectedServiceId === s.id ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.serviceOptionText,
-                  { color: selectedServiceId === s.id ? colors.primary : colors.text },
-                ]}
-              >
-                {s.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </Card>
-      )}
+      <Card style={{ marginBottom: spacing.md }}>
+        <Text style={{ color: colors.textSecondary }}>
+          {t('reviews.verifiedBookingHint')}
+        </Text>
+      </Card>
 
       <Card style={{ marginBottom: spacing.md }}>
         <Text style={[styles.label, { color: colors.textSecondary }]}>
@@ -223,7 +180,6 @@ export function ReviewsScreen({ route, navigation }: ReservationsScreenProps<'Wr
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   content: { padding: spacing.md, paddingBottom: spacing.xxl },
   label: {
     fontSize: 14,
@@ -233,13 +189,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   stars: { flexDirection: 'row', gap: spacing.xs },
-  serviceOption: {
-    padding: spacing.sm,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    marginBottom: spacing.xs,
-  },
-  serviceOptionText: { fontSize: 15, fontWeight: '500' },
   commentInput: {
     borderWidth: 1,
     borderRadius: borderRadius.md,

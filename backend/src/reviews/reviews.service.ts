@@ -19,6 +19,7 @@ const REVIEW_DISPLAY_SELECT = {
   stylistRating: true,
   comment: true,
   isApproved: true,
+  isVerified: true,
   createdAt: true,
   user: {
     select: {
@@ -37,19 +38,28 @@ const REVIEW_DISPLAY_SELECT = {
   },
 } as const;
 
+const VERIFIED_PUBLIC_REVIEW_WHERE = {
+  isApproved: true,
+  isVerified: true,
+  reservationId: { not: null },
+  reservation: { is: { status: 'COMPLETED' } },
+} as const;
+
 @Injectable()
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private withPublicAvatar<T extends {
-    user: {
-      id: string;
-      avatar: string | null;
-      isAvatarPublic: boolean;
-      firstName: string | null;
-      lastName: string | null;
-    };
-  }>(review: T) {
+  private withPublicAvatar<
+    T extends {
+      user: {
+        id: string;
+        avatar: string | null;
+        isAvatarPublic: boolean;
+        firstName: string | null;
+        lastName: string | null;
+      };
+    },
+  >(review: T) {
     if (!review.user) return review;
     const { id, avatar, isAvatarPublic, ...user } = review.user;
     return {
@@ -62,64 +72,97 @@ export class ReviewsService {
   }
 
   async create(dto: CreateReviewDto, userId: string) {
-    await this.prisma.service.findUniqueOrThrow({
-      where: { id: dto.serviceId },
+    const reservation = await this.prisma.reservation.findUnique({
+      where: { id: dto.reservationId },
+      select: {
+        id: true,
+        clientId: true,
+        serviceId: true,
+        confirmedStylistId: true,
+        status: true,
+        items: { select: { serviceId: true } },
+      },
     });
-    if (dto.stylistProfileId) {
-      await this.prisma.stylistProfile.findUniqueOrThrow({
-        where: { id: dto.stylistProfileId },
-      });
-    }
-    if (dto.reservationId) {
-      const res = await this.prisma.reservation.findUnique({
-        where: { id: dto.reservationId },
-      });
-      if (!res) throw new NotFoundException('Rezervacija nije pronađena.');
-      if (res.clientId !== userId)
-        throw new ForbiddenException(
-          'Samo klijent rezervacije može ostaviti recenziju.',
-        );
-    }
+    if (!reservation)
+      throw new NotFoundException('Rezervacija nije pronađena.');
+    if (reservation.clientId !== userId)
+      throw new ForbiddenException(
+        'Samo klijent rezervacije može ostaviti recenziju.',
+      );
+    if (reservation.status !== 'COMPLETED')
+      throw new BadRequestException(
+        'Recenziju možete ostaviti samo za završenu rezervaciju.',
+      );
+
+    const reservationServiceIds = new Set([
+      reservation.serviceId,
+      ...reservation.items.map((item) => item.serviceId),
+    ]);
+    if (!reservationServiceIds.has(dto.serviceId))
+      throw new BadRequestException('Usluga ne pripada odabranoj rezervaciji.');
+    if (dto.stylistRating && !reservation.confirmedStylistId)
+      throw new BadRequestException(
+        'Nije moguće ocijeniti stilistu za ovu rezervaciju.',
+      );
+
     const existing = await this.prisma.review.findFirst({
       where: {
-        userId,
+        reservationId: reservation.id,
         serviceId: dto.serviceId,
-        ...(dto.reservationId ? { reservationId: dto.reservationId } : {}),
       },
     });
     if (existing)
       throw new BadRequestException(
-        'Već ste ostavili recenziju za ovaj servis.',
+        'Već ste ostavili recenziju za ovu uslugu i rezervaciju.',
       );
-    return this.prisma.review.create({
-      data: {
-        userId,
-        serviceId: dto.serviceId,
-        stylistProfileId: dto.stylistProfileId,
-        reservationId: dto.reservationId,
-        serviceRating: dto.serviceRating,
-        stylistRating: dto.stylistRating,
-        comment: dto.comment,
-        isApproved: false,
-      },
-      include: {
-        service: { select: { id: true, name: true } },
-        stylist: {
-          include: { user: { select: { firstName: true, lastName: true } } },
+
+    try {
+      return await this.prisma.review.create({
+        data: {
+          userId,
+          serviceId: dto.serviceId,
+          stylistProfileId: reservation.confirmedStylistId,
+          reservationId: reservation.id,
+          serviceRating: dto.serviceRating,
+          stylistRating: dto.stylistRating,
+          comment: dto.comment,
+          isApproved: false,
+          isVerified: true,
         },
-        user: { select: { id: true, firstName: true, lastName: true } },
-      },
-    });
+        include: {
+          service: { select: { id: true, name: true } },
+          stylist: {
+            include: { user: { select: { firstName: true, lastName: true } } },
+          },
+          user: { select: { id: true, firstName: true, lastName: true } },
+        },
+      });
+    } catch (error) {
+      if (this.isUniqueConstraintError(error))
+        throw new BadRequestException(
+          'Već ste ostavili recenziju za ovu uslugu i rezervaciju.',
+        );
+      throw error;
+    }
+  }
+
+  private isUniqueConstraintError(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'P2002'
+    );
   }
 
   async findOneRandomApproved() {
     const count = await this.prisma.review.count({
-      where: { isApproved: true },
+      where: VERIFIED_PUBLIC_REVIEW_WHERE,
     });
     if (count === 0) return null;
     const skip = Math.floor(Math.random() * count);
     const review = await this.prisma.review.findMany({
-      where: { isApproved: true },
+      where: VERIFIED_PUBLIC_REVIEW_WHERE,
       take: 1,
       skip,
       select: REVIEW_DISPLAY_SELECT,
@@ -133,13 +176,13 @@ export class ReviewsService {
     limit?: number;
     offset?: number;
   }) {
-    const where: {
-      serviceId?: string;
-      stylistProfileId?: string;
-      isApproved: true;
-    } = { isApproved: true };
-    if (query.serviceId) where.serviceId = query.serviceId;
-    if (query.stylistProfileId) where.stylistProfileId = query.stylistProfileId;
+    const where = {
+      ...VERIFIED_PUBLIC_REVIEW_WHERE,
+      ...(query.serviceId ? { serviceId: query.serviceId } : {}),
+      ...(query.stylistProfileId
+        ? { stylistProfileId: query.stylistProfileId }
+        : {}),
+    };
 
     const requestedLimit = query.limit ?? DEFAULT_PUBLIC_REVIEW_LIMIT;
     if (!Number.isSafeInteger(requestedLimit) || requestedLimit < 1) {
@@ -206,7 +249,10 @@ export class ReviewsService {
 
   async findOne(id: string) {
     const review = await this.prisma.review.findFirst({
-      where: { id, isApproved: true },
+      where: {
+        id,
+        ...VERIFIED_PUBLIC_REVIEW_WHERE,
+      },
       select: REVIEW_DISPLAY_SELECT,
     });
     if (!review) throw new NotFoundException('Recenzija nije pronađena.');
