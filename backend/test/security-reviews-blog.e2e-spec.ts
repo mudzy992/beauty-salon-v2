@@ -2109,6 +2109,8 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       data: {
         username: `sec03-other-stylist-${randomUUID()}`,
         email: `sec03-other-stylist-${randomUUID()}@example.test`,
+        firstName: 'SEC03',
+        lastName: 'Other Stylist',
       },
     });
     fixtureIds.users.push(otherStylistUser.id);
