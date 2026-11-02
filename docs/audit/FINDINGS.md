@@ -78,6 +78,24 @@
 
 **Preostalo:** UI access je i dalje namjerno admin/owner-only; ne procjenjuje se kao javni leak. Potrebno je nastaviti inventar ostalih User/Upload/Settings relacija i provjeriti deployment/runtime odvojeno. Nisu korišteni production/shared DB, live Redis, browser ili deployment; repo-wide audit ostaje otvoren.
 
+### SEC-10 — `GET /api/reservations` nije zahtijevao list-scope za autenticirane korisnike
+
+**Potvrđen source path:** `GET /api/reservations` je imao samo globalni JWT guard; `asClient` i `asStylist` su bili opcionalni query flagovi. `ReservationListService.findAll` dodavao je `clientId`/stylist-profile filter samo kad je odgovarajući flag bio `true`; bez flagova ili uz oba `false` ostajao je prazan `where`, pa je svaki autenticirani CLIENT/STYLIST mogao dobiti cijelu listu rezervacija. Ovo je source-proven authorization scope defect; nema dokaza da je endpoint iskorišten ili da se ista verzija izvršavala u produkciji.
+
+**Source mitigacija (2026-11-02):** ne-admin/owner bez eksplicitnog `asClient=true` ili `asStylist=true` sada dobija 403. Client query se veže uz `user.sub`. Stylist query zahtijeva STYLIST/OWNER/SYSTEM_ADMIN ulogu i postojeći profile ID, a `where` ograničava redove na confirmed ili inbox odgovore tog profila; nedostajući profil fail-closed vraća 403. Nepaginirani all-reservation view ostaje samo za OWNER/SYSTEM_ADMIN radi postojećeg admin kalendara.
+
+**Regresije/verifikacija:** unit testovi pokrivaju unscoped deny, client-ID filter, stylist role/profile obaveznost, confirmed/inbox filter i očuvanje admin pristupa. DB-backed HTTP test sa disposable fixture-ima pokriva anonymous 401, client bez scope 403, client koji traži stylist view 403, vlastitu klijentsku listu, stylist-specific listu i owner all-list. Prvi run `41443905290` pao je jer je E2E Nest test harness koristio ReservationsService stub bez `findAll` (HTTP 500 prije assertiona); harness je dopunjen da koristi stvarni ReservationListService u `cbc8751`. Rerun [`41444614035`](https://github.com/mudzy992/beauty-salon-v2/actions/runs/41444614035) prošao je sva četiri posla, uključujući pun backend unit i DB HTTP suite nad disposable PostgreSQL-om.
+
+**Granice:** nema live/production HTTP testa, dijeljene ili produkcijske DB izmjene, deploymenta ili browser/device provjere. Admin/owner all-list je i dalje bez pagination kada query ne traži stranice; odvojeno provjeriti boundedness/performance (ne mijenjati postojeći API contract bez posebnog pregleda).
+
+### SEC-11 — Reservation bearer-view token vraćan je u scoped list/detail API odgovorima
+
+[`ReservationListService.findAll`](../../backend/src/reservations/reservation-list.service.ts) i [`ReservationQueriesService.findOne`](../../backend/src/reservations/reservation-queries.service.ts) koristili su Prisma `include` bez root-scalar allowliste/omit-a, pa su API odgovori sadržavali sva polja `Reservation`, uključujući `clientViewToken`. Taj 32-byte random token je bearer credential za odvojeni public `by-token` view; učitan je i vraćan i u rezervacijama koje STYLIST smije pregledati. U istim odgovorima bili su i interni idempotency key/hash, koji klijenti ne koriste.
+
+**Source mitigacija (2026-11-02):** paginated/unpaginated list i authenticated detail queries sada koriste Prisma `omit` za `clientViewToken`, `idempotencyKey` i `idempotencyRequestHash`. Paged contract/UI polja i postojeći pristup samoj rezervaciji ostaju nepromijenjeni. Source testovi provjeravaju query omit; DB-backed HTTP regression potvrđuje da stylist list i detail response ne sadrže ova polja. CI run [`41445490826`](https://github.com/mudzy992/beauty-salon-v2/actions/runs/41445490826) prošao je sva četiri posla.
+
+**Granice:** ovo ne dokazuje historijski pristup/eksfiltraciju. Public view i dalje namjerno koristi token koji posjeduje klijent; nije mijenjan njegov lifecycle. Treba nastaviti pregled mutation/write response putanja za token i ostale osjetljive scalars; nema live/production DB, browser/device ili deployment validacije.
+
 ### SEC-03 — Stylist može čitati open dugove proizvoljnog klijenta
 
 [`client-debts.controller.ts#L23-L27`](../../backend/src/finance/client-debts.controller.ts#L23) prihvata `clientId` i uključuje `STYLIST`. [`client-debts.service.ts#L27-L63`](../../backend/src/finance/client-debts.service.ts#L27) provjerava samo da je caller stylist; ne provjerava da je klijent vezan za tog stilistu ili da je dug njegov. Response vraća iznose, servis, stylist profile, vrijeme i creator metadata; samo sakriva note kada ga nije kreirao caller. Za razliku od toga `listForStylistMe` je po stylist profile-u ograničen ([service L69-L84](../../backend/src/finance/client-debts.service.ts#L69)).
