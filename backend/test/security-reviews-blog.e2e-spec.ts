@@ -64,6 +64,7 @@ import { ReservationDateService } from '../src/reservations/reservation-date.ser
 import { ReservationNotifyService } from '../src/reservations/reservation-notify.service';
 import { ReservationOutboxService } from '../src/reservations/reservation-outbox.service';
 import { ReservationQueriesService } from '../src/reservations/reservation-queries.service';
+import { ReservationListService } from '../src/reservations/reservation-list.service';
 import { ReservationRescheduleClientService } from '../src/reservations/reservation-reschedule-client.service';
 import { getStylistProfilesForSlots } from '../src/reservations/utils/availability-helpers';
 import { ReservationStylistAcceptService } from '../src/reservations/reservation-stylist-accept.service';
@@ -368,7 +369,12 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-10, AUTH-01, SEC-04/P
             updateSvc: ReservationUpdateService,
             stylistAcceptSvc: ReservationStylistAcceptService,
             stylistLockSvc: ReservationStylistLockService,
+            listSvc: ReservationListService,
           ) => ({
+            findAll: (
+              query: Parameters<ReservationListService['findAll']>[0],
+              user: Parameters<ReservationListService['findAll']>[1],
+            ) => listSvc.findAll(query, user),
             create: (
               dto: CreateReservationDto,
               clientId: string,
@@ -411,6 +417,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-10, AUTH-01, SEC-04/P
             ReservationUpdateService,
             ReservationStylistAcceptService,
             ReservationStylistLockService,
+            ReservationListService,
           ],
         },
         AvailabilityService,
@@ -419,6 +426,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-10, AUTH-01, SEC-04/P
         AvailabilityDebugService,
         ReservationDateService,
         ReservationSharedService,
+        ReservationListService,
         ReservationQueriesService,
         ReservationCreateService,
         ReservationDirectCreateService,
