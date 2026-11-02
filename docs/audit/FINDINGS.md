@@ -485,6 +485,16 @@ The user reported a frontend image build failure: TypeScript could not resolve `
 
 **Popravka:** dev/build profile mora setovati non-secret `EXPO_PUBLIC_API_URL`; startup/dev check upozori kad je `localhost`; documented Android emulator/iOS simulator/LAN config; no browser-facing localhost calls.
 
+### AUTH-04 — Registracija je mogla ostaviti račun bez CLIENT role i orphan avatar upload (P1, source/CI verified)
+
+**Baseline evidence:** registration previously created the user and assigned `CLIENT` role in separate Prisma writes. If role assignment failed after user creation, the request could fail while leaving an account without its required role. When an avatar had already been uploaded before registration failed, that file could also be left unreferenced. This is a source-level partial-write risk; no production failure or orphaned record was observed.
+
+**Source mitigation (2026-11-02):** [`AuthService.register`](../../backend/src/auth/auth.service.ts) now creates the user and `CLIENT` role relation through one nested Prisma `create`, so those database writes share one atomic operation. [`AuthController.register`](../../backend/src/auth/auth.controller.ts) best-effort deletes a newly uploaded avatar when registration fails. Cleanup errors are suppressed to preserve the original registration error, and the upload service reference check prevents deletion of an avatar already referenced by a successfully created account.
+
+**Verification:** focused controller/service suites pass **20 tests**, covering atomic role creation, failed-registration cleanup, successful retention, and preservation of the original error when cleanup itself fails. Targeted Prettier, repository hygiene and `git diff --check` pass. GitHub CI run [`41429510675`](https://github.com/mudzy992/beauty-salon-v2/actions/runs/41429510675) passed all four jobs; backend CI generated Prisma Client, validated schema, applied migrations only to disposable PostgreSQL, built the backend and passed the backend unit and DB-backed security HTTP suites. Frontend build/typecheck, mobile typecheck and repository checks also passed.
+
+**Residual / boundary:** CI uses synthetic/disposable resources and does not demonstrate production behavior, deployed version, or whether historical orphan uploads/accounts exist. No production/shared database, live upload volume, browser, deployment or production test write was used. This closes only the reviewed registration atomicity path in source; AUTH-01/02/03, policy-gated findings, operational controls and repository-wide acceptance remain open.
+
 ### AUTH-03 — Socket/HTTP security headers/CORS policy nije production allowlist-om kodirana
 
 At audit baseline, [`main.ts`](../../backend/src/main.ts) reflected every HTTP Origin and [`EventsGateway`](../../backend/src/events/events.gateway.ts) used wildcard origin with credentials. The source allowlist and baseline API response-header mitigations are recorded below. HTTP API authentication uses an Authorization bearer token, not a browser cookie, so we do not claim a cookie-based cross-site account takeover. CSP and production proxy behavior remain unverified; the API headers have not been validated against a deployed edge.
