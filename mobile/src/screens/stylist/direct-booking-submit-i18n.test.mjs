@@ -28,7 +28,10 @@ test('direct-booking validation, request payload, and completion callbacks remai
   for (const field of ['clientId: selectedClient.id', 'serviceIds,', 'reservationDate,', 'startTime,', 'endTime,', 'clientNotes: clientNotes.trim() || undefined']) {
     assert.ok(hook.includes(field), `Request payload changed: ${field}`)
   }
-  assert.match(hook, /\[\{ text: t\('common\.ok'\), onPress: onCreated \}\]/)
+  assert.match(hook, /onPress: \(\) => \{[\s\S]*?if \(action\.isCurrentIdentity\(\)\) onCreated\(\);[\s\S]*?\}/)
   assert.match(hook, /getApiErrorMessage\(error, t\('stylist\.directBooking\.errorFallback'\)\)/)
-  assert.match(hook, /finally \{\s*setSaving\(false\)/)
+  assert.match(hook, /const action = beginAction\(\);\s*if \(!action\) return;/)
+  assert.match(hook, /finally \{\s*if \(action\.isCurrent\(\)\) setSaving\(false\);\s*action\.finish\(\);/)
+  assert.match(hook, /actionIdentity\.current\.active/)
+  assert.match(hook, /actionIdentity\.current\.generation === generation/)
 })

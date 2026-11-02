@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 import { getSalonDateOnly } from '../../utils/date';
 import { normalizeClientSearchResults } from '../../utils/apiPayload';
 import { getApiErrorMessage } from '../../utils/apiError';
@@ -14,6 +15,8 @@ import {
 
 export const useStylistDirectBookingForm = (onCreated: () => void) => {
   const { t } = useTranslation();
+  const userId = useAuthStore((state) => state.user?.id ?? null);
+  const actionIdentity = useRef({ generation: 0, actionId: 0, mounted: true, active: false });
   const [clients, setClients] = useState<DirectBookingClient[]>([]);
   const [services, setServices] = useState<DirectBookingService[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
@@ -31,6 +34,49 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
   const [saving, setSaving] = useState(false);
   const clientSearchGeneration = useRef(0);
   const serviceLoadGeneration = useRef(0);
+
+  useEffect(() => {
+    actionIdentity.current.mounted = true;
+    return () => {
+      actionIdentity.current.mounted = false;
+      actionIdentity.current.generation += 1;
+      actionIdentity.current.actionId += 1;
+      actionIdentity.current.active = false;
+      clientSearchGeneration.current += 1;
+    };
+  }, []);
+
+  useEffect(() => {
+    actionIdentity.current.generation += 1;
+    actionIdentity.current.actionId += 1;
+    actionIdentity.current.active = false;
+    clientSearchGeneration.current += 1;
+    setClients([]);
+    setClientSearch('');
+    setSelectedClient(null);
+    setServiceIds([]);
+    setClientSearchLoadError(false);
+    setClientSearchLoading(false);
+    setClientNotes('');
+    setSaving(false);
+  }, [userId]);
+
+  const beginAction = useCallback(() => {
+    if (!userId || actionIdentity.current.active) return null;
+    actionIdentity.current.active = true;
+    const actionId = ++actionIdentity.current.actionId;
+    const generation = actionIdentity.current.generation;
+    const isCurrentIdentity = () =>
+      actionIdentity.current.mounted &&
+      actionIdentity.current.actionId === actionId &&
+      actionIdentity.current.generation === generation &&
+      useAuthStore.getState().user?.id === userId;
+    const isCurrent = () => actionIdentity.current.active && isCurrentIdentity();
+    const finish = () => {
+      if (actionIdentity.current.actionId === actionId) actionIdentity.current.active = false;
+    };
+    return { isCurrent, isCurrentIdentity, finish };
+  }, [userId]);
 
   const loadServices = useCallback(async () => {
     const generation = ++serviceLoadGeneration.current;
@@ -55,6 +101,15 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
 
   useEffect(() => {
     const generation = ++clientSearchGeneration.current;
+    if (!userId) {
+      setClients([]);
+      setClientSearchLoading(false);
+      setClientSearchLoadError(false);
+      return;
+    }
+    const isCurrentSearch = () =>
+      clientSearchGeneration.current === generation &&
+      useAuthStore.getState().user?.id === userId;
     const handle = setTimeout(() => {
       const q = clientSearch.trim();
       if (!q) {
@@ -76,26 +131,26 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
           params: { page: 0, pageSize: 10, q },
         })
         .then(({ data }) => {
-          if (clientSearchGeneration.current !== generation) return;
+          if (!isCurrentSearch()) return;
           const results = normalizeClientSearchResults(data);
           if (!results) throw new Error();
           setClients(results);
         })
         .catch(() => {
-          if (clientSearchGeneration.current === generation) {
+          if (isCurrentSearch()) {
             setClients([]);
             setClientSearchLoadError(true);
           }
         })
         .finally(() => {
-          if (clientSearchGeneration.current === generation) setClientSearchLoading(false);
+          if (isCurrentSearch()) setClientSearchLoading(false);
         });
     }, 250);
     return () => {
       clearTimeout(handle);
       if (clientSearchGeneration.current === generation) clientSearchGeneration.current += 1;
     };
-  }, [clientSearch, selectedClient, clientSearchRetryCount]);
+  }, [clientSearch, selectedClient, clientSearchRetryCount, userId]);
 
   const filteredServices = useMemo(() => {
     const gender = selectedClient?.gender;
@@ -159,6 +214,8 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
       Alert.alert(t('common.error'), t('stylist.directBooking.missingGenderError'));
       return;
     }
+    const action = beginAction();
+    if (!action) return;
     setSaving(true);
     try {
       await api.post('/api/reservations/stylist/direct', {
@@ -169,18 +226,26 @@ export const useStylistDirectBookingForm = (onCreated: () => void) => {
         endTime,
         clientNotes: clientNotes.trim() || undefined,
       });
+      if (!action.isCurrent()) return;
       Alert.alert(
         t('stylist.directBooking.successTitle'),
         t('stylist.directBooking.successMessage'),
-        [{ text: t('common.ok'), onPress: onCreated }],
+        [{
+          text: t('common.ok'),
+          onPress: () => {
+            if (action.isCurrentIdentity()) onCreated();
+          },
+        }],
       );
     } catch (error: unknown) {
+      if (!action.isCurrent()) return;
       Alert.alert(
         t('common.error'),
         getApiErrorMessage(error, t('stylist.directBooking.errorFallback')),
       );
     } finally {
-      setSaving(false);
+      if (action.isCurrent()) setSaving(false);
+      action.finish();
     }
   };
 

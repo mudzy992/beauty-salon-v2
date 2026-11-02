@@ -123,6 +123,7 @@ export function StylistDirectBookingScreen({
               title={t('stylist.directBooking.cancel')}
               variant="ghost"
               onPress={() => navigation.goBack()}
+              disabled={form.saving}
             />
             <Button
               title={t('stylist.directBooking.submit')}
@@ -131,6 +132,7 @@ export function StylistDirectBookingScreen({
               disabled={
                 !form.selectedClient ||
                 !form.selectedClient.gender ||
+                form.saving ||
                 form.serviceIds.length === 0 ||
                 !form.reservationDate ||
                 !form.startTime ||

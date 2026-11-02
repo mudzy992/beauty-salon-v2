@@ -19,9 +19,27 @@ test('notification responses and mutations remain bound to the current account a
 test('debounced stylist client searches discard older responses and validate their payload', () => {
   const form = source('../screens/stylist/use-stylist-direct-booking-form.ts');
   assert.match(form, /clientSearchGeneration = useRef\(0\)/);
-  assert.match(form, /clientSearchGeneration\.current !== generation/);
+  assert.match(form, /const isCurrentSearch = \(\) =>[\s\S]*?clientSearchGeneration\.current === generation/);
   assert.match(form, /normalizeClientSearchResults\(data\)/);
   assert.match(form, /clearTimeout\(handle\)/);
+  assert.match(form, /const userId = useAuthStore\(\(state\) => state\.user\?\.id \?\? null\)/);
+  assert.match(form, /clientSearchGeneration\.current === generation &&[\s\S]{0,120}useAuthStore\.getState\(\)\.user\?\.id === userId/);
+  assert.match(form, /\}, \[clientSearch, selectedClient, clientSearchRetryCount, userId\]\)/);
+});
+
+test('stylist direct-booking submit rejects stale account and unmounted continuations', () => {
+  const form = source('../screens/stylist/use-stylist-direct-booking-form.ts');
+  assert.match(form, /actionIdentity = useRef\(\{ generation: 0, actionId: 0, mounted: true, active: false \}\)/);
+  assert.match(form, /actionIdentity\.current\.mounted = false;[\s\S]*clientSearchGeneration\.current \+= 1/);
+  assert.match(form, /if \(!userId \|\| actionIdentity\.current\.active\) return null/);
+  assert.match(form, /useAuthStore\.getState\(\)\.user\?\.id === userId/);
+  assert.match(form, /await api\.post\('\/api\/reservations\/stylist\/direct',[\s\S]*?if \(!action\.isCurrent\(\)\) return;/);
+  assert.match(form, /catch \(error: unknown\) \{\s*if \(!action\.isCurrent\(\)\) return;/);
+  assert.match(form, /if \(action\.isCurrentIdentity\(\)\) onCreated\(\)/);
+
+  const screen = source('../screens/stylist/StylistDirectBookingScreen.tsx');
+  assert.match(screen, /onPress=\{form\.handleSubmit\}[\s\S]*?form\.saving \|\|/);
+  assert.match(screen, /onPress=\{\(\) => navigation\.goBack\(\)\}[\s\S]*?disabled=\{form\.saving\}/);
 });
 
 test('onboarding mutations do not continue after the active user changes or the route unmounts', () => {
