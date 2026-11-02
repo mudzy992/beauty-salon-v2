@@ -228,7 +228,7 @@ export class SettingsService {
       registry.isSecret && normalizedValue.trim().length > 0
         ? this.encryption.encrypt(normalizedValue)
         : normalizedValue;
-    const result = await this.repo.upsertByKey({
+    const upsertArgs = {
       where: { key },
       create: {
         key,
@@ -241,7 +241,11 @@ export class SettingsService {
         ...(dto.description !== undefined && { description: dto.description }),
         updatedBy: updatedBy ?? undefined,
       },
-    });
+    };
+    const result =
+      key === 'app_logo'
+        ? await this.repo.upsertByKey(upsertArgs, [normalizedValue])
+        : await this.repo.upsertByKey(upsertArgs);
     if (registry.scope === 'PUBLIC' && !registry.isSecret) {
       this.events.emitToAll(SOCKET_EVENTS.SETTINGS_UPDATED, {
         key,

@@ -381,7 +381,12 @@ describe('UsersService', () => {
       service.getClientAnalytics('user-1', ['OWNER'], '2026-01-01'),
     ).rejects.toThrow('fromDate i toDate moraju biti navedeni zajedno.');
     await expect(
-      service.getClientAnalytics('user-1', ['OWNER'], '2020-01-01', '2025-01-02'),
+      service.getClientAnalytics(
+        'user-1',
+        ['OWNER'],
+        '2020-01-01',
+        '2025-01-02',
+      ),
     ).rejects.toThrow('Analytics date range ne može biti duži od 60 mjeseci.');
     expect(mockRepo.user.findUnique).not.toHaveBeenCalled();
   });
@@ -428,6 +433,69 @@ describe('UsersService', () => {
     expect(mockRepo.user.update).not.toHaveBeenCalled();
   });
 
+  it('locks the owner-bound upload while setting the current user avatar', async () => {
+    const avatar = 'private/avatars/user-thumb.webp';
+    mockRepo.findOwnedAvatarUpload.mockResolvedValue({
+      id: 'avatar-upload',
+      mimeType: 'image/jpeg',
+      pathOriginal: 'private/avatars/user-original.jpg',
+      pathThumb: avatar,
+      pathSmall: 'private/avatars/user-small.webp',
+      pathMedium: 'private/avatars/user-medium.webp',
+      uploadedById: 'user-1',
+      storageClass: 'PRIVATE',
+    });
+    const tx = {
+      $queryRaw: jest.fn().mockResolvedValue([{ locked: true }]),
+      upload: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            pathOriginal: 'private/avatars/user-original.jpg',
+            pathThumb: avatar,
+            pathSmall: 'private/avatars/user-small.webp',
+            pathMedium: 'private/avatars/user-medium.webp',
+          },
+        ]),
+      },
+      user: {
+        update: jest.fn().mockResolvedValue({
+          id: 'user-1',
+          avatar,
+          isAvatarPublic: false,
+        }),
+      },
+    };
+    mockRepo.transaction.mockImplementation(
+      (callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx),
+    );
+
+    await expect(service.setOwnAvatar('user-1', avatar)).resolves.toMatchObject(
+      {
+        avatar,
+      },
+    );
+
+    expect(tx.upload.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          OR: [
+            { pathOriginal: { in: expect.arrayContaining([avatar]) } },
+            { pathThumb: { in: expect.arrayContaining([avatar]) } },
+            { pathSmall: { in: expect.arrayContaining([avatar]) } },
+            { pathMedium: { in: expect.arrayContaining([avatar]) } },
+          ],
+        },
+      }),
+    );
+    expect(tx.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'user-1' },
+        data: { avatar },
+      }),
+    );
+    expect(mockRepo.transaction).toHaveBeenCalledTimes(1);
+  });
+
   it('self-service avatar visibility updates only the current user setting', async () => {
     mockRepo.user.findUnique.mockResolvedValue({
       avatar: 'private/avatars/user-thumb.webp',
@@ -448,7 +516,9 @@ describe('UsersService', () => {
       isAvatarPublic: true,
     });
 
-    await expect(service.setAvatarVisibility('user-1', true)).resolves.toMatchObject({
+    await expect(
+      service.setAvatarVisibility('user-1', true),
+    ).resolves.toMatchObject({
       isAvatarPublic: true,
     });
     expect(mockRepo.user.update).toHaveBeenCalledWith(

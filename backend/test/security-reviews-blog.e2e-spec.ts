@@ -37,6 +37,7 @@ import { MediaConsentController } from '../src/media-consent/media-consent.contr
 import { MediaConsentService } from '../src/media-consent/media-consent.service';
 import { UploadsController } from '../src/uploads/uploads.controller';
 import { UploadsRepository } from '../src/uploads/uploads.repository';
+import { lockUploadPathReferences } from '../src/uploads/upload-reference-lock';
 import { UploadsService } from '../src/uploads/uploads.service';
 import { DailyLogDispositionService } from '../src/daily-log/daily-log-disposition.service';
 import { DailyLogPublicService } from '../src/daily-log/daily-log-public.service';
@@ -3602,6 +3603,76 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       releaseAttach();
       await Promise.allSettled([attachTransaction]);
       await prisma!.galleryImage.deleteMany({ where: { uploadId: upload.id } });
+    }
+  }, 30000);
+
+  it('serializes scalar upload references against deletion with the shared path lock', async () => {
+    const salonId = fixtureIds.salonSettings;
+    const ownerId = fixtureIds.ownerUserId;
+    if (!salonId || !ownerId) {
+      throw new Error('Synthetic upload deletion fixture is incomplete.');
+    }
+    const previousSalon = await prisma!.salonSettings.findUniqueOrThrow({
+      where: { id: salonId },
+      select: { logo: true },
+    });
+    const upload = await prisma!.upload.create({
+      data: {
+        originalName: 'sec04-scalar-race.png',
+        mimeType: 'image/png',
+        sizeBytes: 1,
+        pathOriginal: `private/sec04-scalar-race/${randomUUID()}.png`,
+        uploadedById: ownerId,
+      },
+    });
+    fixtureIds.uploads.push(upload.id);
+
+    let signalAttached!: () => void;
+    let releaseAttach!: () => void;
+    const attached = new Promise<void>((resolve) => {
+      signalAttached = resolve;
+    });
+    const holdAttachOpen = new Promise<void>((resolve) => {
+      releaseAttach = resolve;
+    });
+    const attachTransaction = prisma!.$transaction(async (tx) => {
+      await lockUploadPathReferences(tx, [upload.pathOriginal]);
+      await tx.salonSettings.update({
+        where: { id: salonId },
+        data: { logo: upload.pathOriginal },
+      });
+      signalAttached();
+      await holdAttachOpen;
+    });
+
+    try {
+      await attached;
+      const uploadsRepository = app!.get(UploadsRepository);
+      const deletePromise = uploadsRepository.deleteIfUnreferenced(upload.id);
+      const completedBeforeAttachCommit = await Promise.race([
+        deletePromise.then(() => true),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 40)),
+      ]);
+      expect(completedBeforeAttachCommit).toBe(false);
+
+      releaseAttach();
+      await attachTransaction;
+      await expect(deletePromise).resolves.toMatchObject({
+        status: 'referenced',
+      });
+      await expect(
+        prisma!.salonSettings.findUniqueOrThrow({ where: { id: salonId } }),
+      ).resolves.toMatchObject({ logo: upload.pathOriginal });
+      await expect(
+        prisma!.upload.findUnique({ where: { id: upload.id } }),
+      ).resolves.not.toBeNull();
+    } finally {
+      releaseAttach();
+      await Promise.allSettled([attachTransaction]);
+      await prisma!.salonSettings.update({
+        where: { id: salonId },
+        data: { logo: previousSalon.logo },
+      });
     }
   }, 30000);
 

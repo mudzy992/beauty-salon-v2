@@ -71,6 +71,24 @@ describe('SettingsService', () => {
       ).rejects.toThrow(BadRequestException)
     })
 
+    it('serializira app logo upload reference kroz repository lock opciju', async () => {
+      mockRepo.upsertByKey.mockResolvedValueOnce({
+        key: 'app_logo',
+        value: '/uploads/public/brand/logo.svg',
+      })
+
+      await service.set(
+        'app_logo',
+        { value: '/uploads/public/brand/logo.svg' },
+        'u1',
+      )
+
+      expect(mockRepo.upsertByKey).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { key: 'app_logo' } }),
+        ['/uploads/public/brand/logo.svg'],
+      )
+    })
+
     it('normalizuje boolean vrijednosti', async () => {
       mockRepo.upsertByKey.mockResolvedValueOnce({ key: 'system_maintenance_mode', value: 'true' })
       await service.set('system_maintenance_mode', { value: 'TRUE' }, 'u1')

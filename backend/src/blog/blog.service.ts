@@ -14,6 +14,7 @@ import { optionalSeoFields, slugSource } from './utils/blog-post-data';
 import { emptyToNull } from '../common/utils/empty-to-null';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { sanitizeBlogContent } from './utils/sanitize-blog-content';
+import { withUploadPathReferenceLocks } from '../uploads/upload-reference-lock';
 
 const PUBLIC_BLOG_LIST_SELECT = {
   id: true,
@@ -50,21 +51,28 @@ export class BlogService {
   async create(dto: CreateBlogPostDto, authorId: string) {
     const slug = await this.ensureUniqueSlug(slugSource(dto, dto.title));
     const isPublished = dto.isPublished ?? false;
-    return this.prisma.blogPost.create({
-      data: {
-        authorId,
-        title: dto.title,
-        slug,
-        content: sanitizeBlogContent(dto.content),
-        ...optionalSeoFields(dto),
-        noIndex: dto.noIndex ?? false,
-        isPublished,
-        publishedAt: isPublished ? new Date() : null,
-      },
+    const data = {
+      authorId,
+      title: dto.title,
+      slug,
+      content: sanitizeBlogContent(dto.content),
+      ...optionalSeoFields(dto),
+      noIndex: dto.noIndex ?? false,
+      isPublished,
+      publishedAt: isPublished ? new Date() : null,
+    };
+    const args = {
+      data,
       include: {
         author: { select: { id: true, firstName: true, lastName: true } },
       },
-    });
+    } as const;
+    return withUploadPathReferenceLocks(
+      this.prisma,
+      [data.content, data.heroImage, data.ogImage],
+      (tx) => tx.blogPost.create(args),
+      () => this.prisma.blogPost.create(args),
+    );
   }
 
   async findAllPublic(pagination?: { limit?: number; offset?: number }) {
@@ -167,33 +175,40 @@ export class BlogService {
     const isPublished = dto.isPublished ?? post.isPublished;
     const publishedAt =
       isPublished && !post.publishedAt ? new Date() : post.publishedAt;
-    return this.prisma.blogPost.update({
+    const data = {
+      ...(dto.title != null && { title: dto.title }),
+      ...(dto.content !== undefined && {
+        content: sanitizeBlogContent(dto.content),
+      }),
+      ...(dto.excerpt !== undefined && { excerpt: emptyToNull(dto.excerpt) }),
+      ...(dto.heroImage !== undefined && {
+        heroImage: emptyToNull(dto.heroImage),
+      }),
+      ...(dto.ogImage !== undefined && { ogImage: emptyToNull(dto.ogImage) }),
+      ...(dto.seoTitle !== undefined && {
+        seoTitle: emptyToNull(dto.seoTitle),
+      }),
+      ...(dto.seoDescription !== undefined && {
+        seoDescription: emptyToNull(dto.seoDescription),
+      }),
+      ...(dto.noIndex !== undefined && { noIndex: dto.noIndex }),
+      slug,
+      isPublished,
+      publishedAt,
+    };
+    const args = {
       where: { id },
-      data: {
-        ...(dto.title != null && { title: dto.title }),
-        ...(dto.content !== undefined && {
-          content: sanitizeBlogContent(dto.content),
-        }),
-        ...(dto.excerpt !== undefined && { excerpt: emptyToNull(dto.excerpt) }),
-        ...(dto.heroImage !== undefined && {
-          heroImage: emptyToNull(dto.heroImage),
-        }),
-        ...(dto.ogImage !== undefined && { ogImage: emptyToNull(dto.ogImage) }),
-        ...(dto.seoTitle !== undefined && {
-          seoTitle: emptyToNull(dto.seoTitle),
-        }),
-        ...(dto.seoDescription !== undefined && {
-          seoDescription: emptyToNull(dto.seoDescription),
-        }),
-        ...(dto.noIndex !== undefined && { noIndex: dto.noIndex }),
-        slug,
-        isPublished,
-        publishedAt,
-      },
+      data,
       include: {
         author: { select: { id: true, firstName: true, lastName: true } },
       },
-    });
+    } as const;
+    return withUploadPathReferenceLocks(
+      this.prisma,
+      [data.content, data.heroImage, data.ogImage],
+      (tx) => tx.blogPost.update(args),
+      () => this.prisma.blogPost.update(args),
+    );
   }
 
   async remove(id: string, user: CurrentUserPayload) {

@@ -10,6 +10,7 @@ import {
   MAX_API_PAGE_OFFSET,
 } from '../common/pagination.constants';
 import { PrismaService } from '../prisma/prisma.service';
+import { withUploadPathReferenceLocks } from '../uploads/upload-reference-lock';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CreateSubcategoryDto } from './dto/create-subcategory.dto';
@@ -520,49 +521,56 @@ export class ServicesService {
     await this.prisma.serviceSubcategory.findUniqueOrThrow({
       where: { id: dto.subcategoryId },
     });
-    return this.prisma.service.create({
-      data: {
-        subcategoryId: dto.subcategoryId,
-        name: dto.name,
-        shortDescription: dto.shortDescription,
-        heroImage: dto.heroImage,
-        durationMinutes: dto.durationMinutes,
-        price: new Prisma.Decimal(dto.price),
-        gender: dto.gender,
-        isActive: dto.isActive ?? true,
-        sortOrder: dto.sortOrder ?? 0,
-        loyaltyEnabled: dto.loyaltyEnabled ?? false,
-        loyaltyMaxDiscountPercent: dto.loyaltyMaxDiscountPercent ?? 0,
-      },
-    });
+    const data = {
+      subcategoryId: dto.subcategoryId,
+      name: dto.name,
+      shortDescription: dto.shortDescription,
+      heroImage: dto.heroImage,
+      durationMinutes: dto.durationMinutes,
+      price: new Prisma.Decimal(dto.price),
+      gender: dto.gender,
+      isActive: dto.isActive ?? true,
+      sortOrder: dto.sortOrder ?? 0,
+      loyaltyEnabled: dto.loyaltyEnabled ?? false,
+      loyaltyMaxDiscountPercent: dto.loyaltyMaxDiscountPercent ?? 0,
+    };
+    return withUploadPathReferenceLocks(
+      this.prisma,
+      [data.heroImage],
+      (tx) => tx.service.create({ data }),
+      () => this.prisma.service.create({ data }),
+    );
   }
 
   async updateService(id: string, dto: UpdateServiceDto) {
     await this.findOneService(id);
-    return this.prisma.service.update({
-      where: { id },
-      data: {
-        ...(dto.subcategoryId != null && { subcategoryId: dto.subcategoryId }),
-        ...(dto.name != null && { name: dto.name }),
-        ...(dto.shortDescription !== undefined && {
-          shortDescription: dto.shortDescription,
-        }),
-        ...(dto.heroImage !== undefined && { heroImage: dto.heroImage }),
-        ...(dto.durationMinutes != null && {
-          durationMinutes: dto.durationMinutes,
-        }),
-        ...(dto.price != null && { price: new Prisma.Decimal(dto.price) }),
-        ...(dto.gender != null && { gender: dto.gender }),
-        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
-        ...(dto.sortOrder != null && { sortOrder: dto.sortOrder }),
-        ...(dto.loyaltyEnabled !== undefined && {
-          loyaltyEnabled: dto.loyaltyEnabled,
-        }),
-        ...(dto.loyaltyMaxDiscountPercent != null && {
-          loyaltyMaxDiscountPercent: dto.loyaltyMaxDiscountPercent,
-        }),
-      },
-    });
+    const data = {
+      ...(dto.subcategoryId != null && { subcategoryId: dto.subcategoryId }),
+      ...(dto.name != null && { name: dto.name }),
+      ...(dto.shortDescription !== undefined && {
+        shortDescription: dto.shortDescription,
+      }),
+      ...(dto.heroImage !== undefined && { heroImage: dto.heroImage }),
+      ...(dto.durationMinutes != null && {
+        durationMinutes: dto.durationMinutes,
+      }),
+      ...(dto.price != null && { price: new Prisma.Decimal(dto.price) }),
+      ...(dto.gender != null && { gender: dto.gender }),
+      ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+      ...(dto.sortOrder != null && { sortOrder: dto.sortOrder }),
+      ...(dto.loyaltyEnabled !== undefined && {
+        loyaltyEnabled: dto.loyaltyEnabled,
+      }),
+      ...(dto.loyaltyMaxDiscountPercent != null && {
+        loyaltyMaxDiscountPercent: dto.loyaltyMaxDiscountPercent,
+      }),
+    };
+    return withUploadPathReferenceLocks(
+      this.prisma,
+      [data.heroImage],
+      (tx) => tx.service.update({ where: { id }, data }),
+      () => this.prisma.service.update({ where: { id }, data }),
+    );
   }
 
   async removeService(id: string) {

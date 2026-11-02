@@ -17,6 +17,10 @@ import { getPasswordVersion, matchesPasswordVersion } from './password-version';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import {
+  lockUploadPathReferences,
+  uploadPathsInReferences,
+} from '../uploads/upload-reference-lock';
 
 const SALT_ROUNDS = 10;
 const EMAIL_VERIFICATION_EXPIRY_MINUTES = 15;
@@ -56,7 +60,7 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
-    const user = await this.prisma.user.create({
+    const createArgs = {
       data: {
         username: dto.username,
         email: dto.email,
@@ -72,7 +76,13 @@ export class AuthService {
       include: {
         userRoles: { include: { role: true } },
       },
-    });
+    } as const;
+    const user = uploadPathsInReferences([dto.avatar]).length
+      ? await this.prisma.$transaction(async (tx) => {
+          await lockUploadPathReferences(tx, [dto.avatar]);
+          return tx.user.create(createArgs);
+        })
+      : await this.prisma.user.create(createArgs);
 
     const token = await this.createAccessToken(
       user.id,

@@ -3,6 +3,7 @@ import { UploadStorageClass } from '@prisma/client';
 import { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from '../media-consent/media-consent.constants';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '@prisma/client';
+import { lockUploadPathKeys } from './upload-reference-lock';
 
 export type UploadDeletionOutcome =
   | {
@@ -299,11 +300,21 @@ export class UploadsRepository {
 
   async deleteIfUnreferenced(uploadId: string): Promise<UploadDeletionOutcome> {
     return this.prisma.$transaction(async (tx) => {
+      const initial = await tx.upload.findUnique({ where: { id: uploadId } });
+      if (!initial) return { status: 'not-found' };
+      const initialPaths = this.getUploadPaths(initial);
+      await lockUploadPathKeys(tx, initialPaths);
+
       const locked = await tx.$queryRaw<Array<{ id: string }>>`
         SELECT id FROM uploads WHERE id = ${uploadId} FOR UPDATE
       `;
       if (!locked.length) return { status: 'not-found' };
-      return this.deleteLockedUpload(tx, uploadId);
+      const upload = await tx.upload.findUnique({ where: { id: uploadId } });
+      if (!upload) return { status: 'not-found' };
+      if (!this.sameUploadPaths(initialPaths, this.getUploadPaths(upload))) {
+        return { status: 'referenced' };
+      }
+      return this.deleteLockedUpload(tx, upload.id, upload);
     });
   }
 
@@ -313,25 +324,52 @@ export class UploadsRepository {
     allowAnyOwner: boolean,
   ): Promise<UploadDeletionOutcome> {
     return this.prisma.$transaction(async (tx) => {
+      const initial = await tx.upload.findFirst({
+        where: { pathOriginal },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (!initial) return { status: 'not-found' };
+      const initialPaths = this.getUploadPaths(initial);
+      await lockUploadPathKeys(tx, initialPaths);
+
       const locked = await tx.$queryRaw<Array<{ id: string }>>`
-        SELECT id
-        FROM uploads
-        WHERE path_original = ${pathOriginal}
-        ORDER BY created_at DESC
-        LIMIT 1
-        FOR UPDATE
+        SELECT id FROM uploads WHERE id = ${initial.id} FOR UPDATE
       `;
       if (!locked.length) return { status: 'not-found' };
 
-      const upload = await tx.upload.findUnique({
-        where: { id: locked[0]!.id },
-      });
-      if (!upload) return { status: 'not-found' };
+      const upload = await tx.upload.findUnique({ where: { id: initial.id } });
+      if (!upload || upload.pathOriginal !== pathOriginal) {
+        return { status: 'not-found' };
+      }
       if (!allowAnyOwner && upload.uploadedById !== actorId) {
         return { status: 'forbidden' };
       }
+      if (!this.sameUploadPaths(initialPaths, this.getUploadPaths(upload))) {
+        return { status: 'referenced' };
+      }
       return this.deleteLockedUpload(tx, upload.id, upload);
     });
+  }
+
+  private getUploadPaths(upload: {
+    pathOriginal: string;
+    pathThumb: string | null;
+    pathSmall: string | null;
+    pathMedium: string | null;
+  }): string[] {
+    return [
+      upload.pathOriginal,
+      upload.pathThumb,
+      upload.pathSmall,
+      upload.pathMedium,
+    ].filter((value): value is string => Boolean(value));
+  }
+
+  private sameUploadPaths(left: string[], right: string[]): boolean {
+    return (
+      left.length === right.length &&
+      left.every((filePath, index) => filePath === right[index])
+    );
   }
 
   private async deleteLockedUpload(
@@ -343,12 +381,7 @@ export class UploadsRepository {
       knownUpload ?? (await tx.upload.findUnique({ where: { id: uploadId } }));
     if (!upload) return { status: 'not-found' };
 
-    const paths = [
-      upload.pathOriginal,
-      upload.pathThumb,
-      upload.pathSmall,
-      upload.pathMedium,
-    ].filter((value): value is string => Boolean(value));
+    const paths = this.getUploadPaths(upload);
     if (await this.hasReferences(upload.id, paths, tx)) {
       return { status: 'referenced' };
     }

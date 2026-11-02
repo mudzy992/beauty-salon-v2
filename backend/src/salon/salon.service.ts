@@ -1,5 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { withUploadPathReferenceLocks } from '../uploads/upload-reference-lock';
 import {
   parseDateOnlyString,
   toDateOnlyStringInTimeZone,
@@ -50,9 +55,7 @@ export class SalonService {
         holidays: {
           where: {
             date: {
-              gte: parseHolidayDate(
-                toDateOnlyStringInTimeZone(new Date()),
-              ),
+              gte: parseHolidayDate(toDateOnlyStringInTimeZone(new Date())),
             },
           },
           orderBy: { date: 'asc' },
@@ -63,21 +66,25 @@ export class SalonService {
   }
 
   async create(dto: CreateSalonSettingsDto) {
-    const salon = await this.prisma.salonSettings.create({
-      data: {
-        name: dto.name,
-        address: dto.address,
-        phone: dto.phone,
-        email: dto.email,
-        description: dto.description,
-        logo: dto.logo,
-        pauseBetweenServices: dto.pauseBetweenServices ?? 10,
-        cancellationDeadlineHours: dto.cancellationDeadlineHours ?? 24,
-        maxCancellationsBeforePenalty: dto.maxCancellationsBeforePenalty ?? 3,
-        penaltyDurationDays: dto.penaltyDurationDays ?? 30,
-        reservationLockMinutes: dto.reservationLockMinutes ?? 15,
-      },
-    });
+    const data = {
+      name: dto.name,
+      address: dto.address,
+      phone: dto.phone,
+      email: dto.email,
+      description: dto.description,
+      logo: dto.logo,
+      pauseBetweenServices: dto.pauseBetweenServices ?? 10,
+      cancellationDeadlineHours: dto.cancellationDeadlineHours ?? 24,
+      maxCancellationsBeforePenalty: dto.maxCancellationsBeforePenalty ?? 3,
+      penaltyDurationDays: dto.penaltyDurationDays ?? 30,
+      reservationLockMinutes: dto.reservationLockMinutes ?? 15,
+    };
+    const salon = await withUploadPathReferenceLocks(
+      this.prisma,
+      [data.logo],
+      (tx) => tx.salonSettings.create({ data }),
+      () => this.prisma.salonSettings.create({ data }),
+    );
     if (dto.workingHours?.length) {
       await this.setWorkingHours(salon.id, dto.workingHours);
     } else {
@@ -110,32 +117,35 @@ export class SalonService {
 
   async update(id: string, dto: UpdateSalonSettingsDto) {
     await this.findOne(id);
-    await this.prisma.salonSettings.update({
-      where: { id },
-      data: {
-        ...(dto.name != null && { name: dto.name }),
-        ...(dto.address !== undefined && { address: dto.address }),
-        ...(dto.phone !== undefined && { phone: dto.phone }),
-        ...(dto.email !== undefined && { email: dto.email }),
-        ...(dto.description !== undefined && { description: dto.description }),
-        ...(dto.logo !== undefined && { logo: dto.logo }),
-        ...(dto.pauseBetweenServices != null && {
-          pauseBetweenServices: dto.pauseBetweenServices,
-        }),
-        ...(dto.cancellationDeadlineHours != null && {
-          cancellationDeadlineHours: dto.cancellationDeadlineHours,
-        }),
-        ...(dto.maxCancellationsBeforePenalty != null && {
-          maxCancellationsBeforePenalty: dto.maxCancellationsBeforePenalty,
-        }),
-        ...(dto.penaltyDurationDays != null && {
-          penaltyDurationDays: dto.penaltyDurationDays,
-        }),
-        ...(dto.reservationLockMinutes != null && {
-          reservationLockMinutes: dto.reservationLockMinutes,
-        }),
-      },
-    });
+    const data = {
+      ...(dto.name != null && { name: dto.name }),
+      ...(dto.address !== undefined && { address: dto.address }),
+      ...(dto.phone !== undefined && { phone: dto.phone }),
+      ...(dto.email !== undefined && { email: dto.email }),
+      ...(dto.description !== undefined && { description: dto.description }),
+      ...(dto.logo !== undefined && { logo: dto.logo }),
+      ...(dto.pauseBetweenServices != null && {
+        pauseBetweenServices: dto.pauseBetweenServices,
+      }),
+      ...(dto.cancellationDeadlineHours != null && {
+        cancellationDeadlineHours: dto.cancellationDeadlineHours,
+      }),
+      ...(dto.maxCancellationsBeforePenalty != null && {
+        maxCancellationsBeforePenalty: dto.maxCancellationsBeforePenalty,
+      }),
+      ...(dto.penaltyDurationDays != null && {
+        penaltyDurationDays: dto.penaltyDurationDays,
+      }),
+      ...(dto.reservationLockMinutes != null && {
+        reservationLockMinutes: dto.reservationLockMinutes,
+      }),
+    };
+    await withUploadPathReferenceLocks(
+      this.prisma,
+      [data.logo],
+      (tx) => tx.salonSettings.update({ where: { id }, data }),
+      () => this.prisma.salonSettings.update({ where: { id }, data }),
+    );
     if (dto.workingHours) {
       await this.setWorkingHours(id, dto.workingHours);
     }

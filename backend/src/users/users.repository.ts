@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { UploadStorageClass } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
+import type { Prisma } from '@prisma/client'
 
 @Injectable()
 export class UsersRepository {
@@ -77,7 +78,7 @@ export class UsersRepository {
     return this.prisma.incomeBookManualEntry
   }
 
-  transaction<T>(fn: Parameters<PrismaService['$transaction']>[0]) {
-    return this.prisma.$transaction(fn as any) as Promise<T>
+  transaction<T>(fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(fn)
   }
 }

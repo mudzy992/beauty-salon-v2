@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import type { Prisma } from '@prisma/client'
+import { withUploadPathReferenceLocks } from '../uploads/upload-reference-lock'
 
 @Injectable()
 export class SettingsRepository {
@@ -22,8 +23,17 @@ export class SettingsRepository {
     return this.prisma.appSetting.findUnique({ where: { key } })
   }
 
-  upsertByKey(params: Prisma.AppSettingUpsertArgs) {
-    return this.prisma.appSetting.upsert(params)
+  upsertByKey(
+    params: Prisma.AppSettingUpsertArgs,
+    uploadReferences?: unknown[],
+  ) {
+    if (!uploadReferences?.length) return this.prisma.appSetting.upsert(params)
+    return withUploadPathReferenceLocks(
+      this.prisma,
+      uploadReferences,
+      (tx) => tx.appSetting.upsert(params),
+      () => this.prisma.appSetting.upsert(params),
+    )
   }
 
   deleteByKey(key: string) {

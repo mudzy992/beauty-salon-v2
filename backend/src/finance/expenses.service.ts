@@ -10,6 +10,7 @@ import { UpdateExpenseDto } from './dto/update-expense.dto';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { AddExpenseAttachmentDto } from './dto/add-expense-attachment.dto';
 import { assertExpensePayload } from './utils/expense-payload';
+import { lockUploadIdReference } from '../uploads/upload-reference-lock';
 
 @Injectable()
 export class ExpensesService {
@@ -21,6 +22,7 @@ export class ExpensesService {
 
     const expense = await this.prisma.$transaction(async (tx) => {
       await this.lockEditableBook(tx, dto.bookId, 'dodavati rashode');
+      await lockUploadIdReference(tx, dto.invoiceUploadId);
       const created = await tx.expense.create({
         data: {
           bookId: dto.bookId,
@@ -100,6 +102,9 @@ export class ExpensesService {
 
     await this.prisma.$transaction(async (tx) => {
       await this.lockEditableExpense(tx, id, 'mijenjati rashod');
+      if (dto.invoiceUploadId !== undefined) {
+        await lockUploadIdReference(tx, dto.invoiceUploadId);
+      }
       await tx.expense.update({
         where: { id },
         data: {

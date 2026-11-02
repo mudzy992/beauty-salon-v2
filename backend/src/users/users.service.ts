@@ -18,6 +18,10 @@ import {
   resolveAnalyticsDateRange,
 } from '../common/analytics-date-range';
 import { UsersRepository } from './users.repository';
+import {
+  lockUploadPathReferences,
+  uploadPathsInReferences,
+} from '../uploads/upload-reference-lock';
 import { EventsGateway } from '../events/events.gateway';
 
 const AVATAR_SOURCE_MIMES = new Set([
@@ -474,9 +478,12 @@ export class UsersService {
     }
     const nextAvatar = dto.avatar !== undefined ? dto.avatar : user.avatar;
     if (dto.isAvatarPublic === true && !nextAvatar) {
-      throw new BadRequestException('Prvo postavite avatar pa ga zatim učinite javnim.');
+      throw new BadRequestException(
+        'Prvo postavite avatar pa ga zatim učinite javnim.',
+      );
     }
-    if (dto.isAvatarPublic === true) await this.assertOwnedAvatar(id, nextAvatar!);
+    if (dto.isAvatarPublic === true)
+      await this.assertOwnedAvatar(id, nextAvatar!);
     const userWithRoles = await this.repo.user.findUnique({
       where: { id },
       include: { userRoles: { include: { role: true } } },
@@ -506,7 +513,7 @@ export class UsersService {
     const nextEmail = dto.email?.trim() ?? null;
     const shouldResetEmailVerification =
       dto.email !== undefined && nextEmail !== user.email;
-    const updated = await this.repo.user.update({
+    const updateArgs = {
       where: { id },
       data: {
         ...(dto.firstName != null && { firstName: dto.firstName }),
@@ -540,7 +547,13 @@ export class UsersService {
           dto.isActive !== undefined && { isActive: dto.isActive }),
       },
       select: USER_MUTATION_SELECT,
-    });
+    };
+    const updated = uploadPathsInReferences([dto.avatar]).length
+      ? await this.repo.transaction(async (tx) => {
+          await lockUploadPathReferences(tx, [dto.avatar]);
+          return tx.user.update(updateArgs);
+        })
+      : await this.repo.user.update(updateArgs);
     if (
       this.isAdminOrOwner(currentUser.roles) &&
       dto.isActive !== undefined &&
@@ -562,9 +575,12 @@ export class UsersService {
     }
     const nextAvatar = dto.avatar !== undefined ? dto.avatar : user.avatar;
     if (dto.isAvatarPublic === true && !nextAvatar) {
-      throw new BadRequestException('Prvo postavite avatar pa ga zatim učinite javnim.');
+      throw new BadRequestException(
+        'Prvo postavite avatar pa ga zatim učinite javnim.',
+      );
     }
-    if (dto.isAvatarPublic === true) await this.assertOwnedAvatar(userId, nextAvatar!);
+    if (dto.isAvatarPublic === true)
+      await this.assertOwnedAvatar(userId, nextAvatar!);
     const isClient = user.userRoles.some(
       (userRole) => userRole.role.name === UsersService.CLIENT_ROLE,
     );
@@ -584,7 +600,7 @@ export class UsersService {
         if (taken) throw new ConflictException('Email je već u upotrebi.');
       }
     }
-    return this.repo.user.update({
+    const updateArgs = {
       where: { id: userId },
       data: {
         ...(dto.email !== undefined && {
@@ -608,15 +624,25 @@ export class UsersService {
         }),
       },
       select: USER_MUTATION_SELECT,
-    });
+    };
+    return uploadPathsInReferences([dto.avatar]).length
+      ? this.repo.transaction(async (tx) => {
+          await lockUploadPathReferences(tx, [dto.avatar]);
+          return tx.user.update(updateArgs);
+        })
+      : this.repo.user.update(updateArgs);
   }
 
   async setOwnAvatar(userId: string, avatarPath: string) {
     await this.assertOwnedAvatar(userId, avatarPath);
-    return this.repo.user.update({
+    const updateArgs = {
       where: { id: userId },
       data: { avatar: avatarPath },
       select: { id: true, avatar: true, isAvatarPublic: true },
+    };
+    return this.repo.transaction(async (tx) => {
+      await lockUploadPathReferences(tx, [avatarPath]);
+      return tx.user.update(updateArgs);
     });
   }
 
@@ -627,7 +653,9 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('Korisnik nije pronađen.');
     if (isAvatarPublic && !user.avatar) {
-      throw new BadRequestException('Prvo postavite avatar pa ga zatim učinite javnim.');
+      throw new BadRequestException(
+        'Prvo postavite avatar pa ga zatim učinite javnim.',
+      );
     }
     if (isAvatarPublic && user.avatar) {
       await this.assertOwnedAvatar(userId, user.avatar);
@@ -646,7 +674,9 @@ export class UsersService {
     const upload = await this.repo.findOwnedAvatarUpload(userId, avatarPath);
     if (
       !upload ||
-      ![upload.pathThumb, upload.pathSmall, upload.pathMedium].includes(avatarPath) ||
+      ![upload.pathThumb, upload.pathSmall, upload.pathMedium].includes(
+        avatarPath,
+      ) ||
       !AVATAR_SOURCE_MIMES.has(upload.mimeType.toLowerCase())
     ) {
       throw new BadRequestException(
