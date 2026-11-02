@@ -9,7 +9,9 @@ export type UploadDeletionOutcome =
       status: 'deleted';
       upload: Prisma.UploadGetPayload<Record<string, never>>;
     }
-  | { status: 'not-found' | 'referenced' | 'forbidden' };
+  | { status: 'not-found' }
+  | { status: 'referenced' }
+  | { status: 'forbidden' };
 
 @Injectable()
 export class UploadsRepository {
