@@ -58,6 +58,50 @@ describe('ClientDebtsService', () => {
     prisma.dailyLogEntry.create.mockResolvedValue({ id: 'dl1' });
   });
 
+  describe('listForClient', () => {
+    it('scopes stylist debt reads to the stylist profile for another client', async () => {
+      prisma.stylistProfile.findUnique.mockResolvedValue({ id: 'st1' });
+      prisma.clientDebt.findMany.mockResolvedValue([openDebt]);
+
+      await service.listForClient('c1', stylist);
+
+      expect(prisma.stylistProfile.findUnique).toHaveBeenCalledWith({
+        where: { userId: stylist.sub },
+        select: { id: true },
+      });
+      expect(prisma.clientDebt.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            clientId: 'c1',
+            status: 'OPEN',
+            stylistProfileId: 'st1',
+          },
+        }),
+      );
+    });
+
+    it('denies stylist reads for another client when the profile is missing', async () => {
+      prisma.stylistProfile.findUnique.mockResolvedValue(null);
+
+      await expect(service.listForClient('c1', stylist)).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(prisma.clientDebt.findMany).not.toHaveBeenCalled();
+    });
+
+    it('keeps owner debt reads salon-wide', async () => {
+      prisma.clientDebt.findMany.mockResolvedValue([openDebt]);
+
+      await service.listForClient('c1', owner);
+
+      expect(prisma.clientDebt.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { clientId: 'c1', status: 'OPEN' },
+        }),
+      );
+    });
+  });
+
   describe('writeOff', () => {
     it('zahtijeva razlog otpisa', async () => {
       await expect(

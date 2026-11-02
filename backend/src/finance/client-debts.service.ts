@@ -44,8 +44,19 @@ export class ClientDebtsService {
       throw new ForbiddenException('Nemate dozvolu.');
     }
 
+    let stylistScopeId: string | undefined;
+    if (isStylist && !isAdminOrOwner && !isSelf) {
+      stylistScopeId =
+        (await this.getStylistProfileIdByUserId(currentUser.sub)) ?? undefined;
+      if (!stylistScopeId) throw new ForbiddenException('Nemate profil stilista.');
+    }
+
     const debts = await this.prisma.clientDebt.findMany({
-      where: { clientId, status: 'OPEN' },
+      where: {
+        clientId,
+        status: 'OPEN',
+        ...(stylistScopeId ? { stylistProfileId: stylistScopeId } : {}),
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         service: { select: { id: true, name: true } },

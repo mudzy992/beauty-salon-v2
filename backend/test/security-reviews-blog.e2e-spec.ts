@@ -188,7 +188,7 @@ const fixtureIds: FixtureIds = {
   reservationIds: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-10, AUTH-01, SEC-04/PRIV-01, SEC-07, API-02, OPS-03, BIZ-01–BIZ-05, BIZ-07–BIZ-08', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, SEC-04/PRIV-01, SEC-07, API-02, OPS-03, BIZ-01–BIZ-05, BIZ-07–BIZ-08', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -2100,6 +2100,66 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-10, AUTH-01, SEC-04/P
       .expect(200);
     expect(adminList.body.map((row: { id: string }) => row.id)).toEqual(
       expect.arrayContaining([ownReservation.id, otherReservation.id]),
+    );
+  });
+
+  it('SEC-03 scopes stylist debt reads to their own stylist profile', async () => {
+    const db = prisma!;
+    const otherStylistUser = await db.user.create({
+      data: {
+        username: `sec03-other-stylist-${randomUUID()}`,
+        email: `sec03-other-stylist-${randomUUID()}@example.test`,
+      },
+    });
+    fixtureIds.users.push(otherStylistUser.id);
+    const otherStylistProfile = await db.stylistProfile.create({
+      data: { userId: otherStylistUser.id, status: 'ACTIVE' },
+    });
+    fixtureIds.additionalStylistProfiles.push(otherStylistProfile.id);
+
+    const ownDebt = await db.clientDebt.create({
+      data: {
+        clientId: clientUserId,
+        stylistProfileId: fixtureIds.stylistProfile!,
+        serviceId,
+        amount: 35,
+        createdById: fixtureIds.ownerUserId!,
+      },
+    });
+    const otherDebt = await db.clientDebt.create({
+      data: {
+        clientId: clientUserId,
+        stylistProfileId: otherStylistProfile.id,
+        serviceId,
+        amount: 45,
+        createdById: fixtureIds.ownerUserId!,
+      },
+    });
+    fixtureIds.clientDebts.push(ownDebt.id, otherDebt.id);
+
+    const server = getHttpServer(app!);
+    const stylistRead = await request(server)
+      .get(`/api/client-debts?clientId=${clientUserId}`)
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(200);
+    expect(stylistRead.body.map((debt: { id: string }) => debt.id)).toEqual([
+      ownDebt.id,
+    ]);
+
+    const clientRead = await request(server)
+      .get('/api/client-debts/me')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+    expect(clientRead.body.map((debt: { id: string }) => debt.id)).toEqual(
+      expect.arrayContaining([ownDebt.id, otherDebt.id]),
+    );
+
+    const ownerRead = await request(server)
+      .get(`/api/client-debts?clientId=${clientUserId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(ownerRead.body.map((debt: { id: string }) => debt.id)).toEqual(
+      expect.arrayContaining([ownDebt.id, otherDebt.id]),
     );
   });
 
