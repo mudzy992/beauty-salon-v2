@@ -4,7 +4,7 @@ jest.mock('../src/blog/utils/sanitize-blog-content', () => ({
 }));
 
 import { createHmac, randomUUID } from 'node:crypto';
-import { appendFile, mkdtemp, rm } from 'node:fs/promises';
+import { appendFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -3548,6 +3548,130 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       .query({ path: replacementAvatarPath })
       .set('Authorization', `Bearer ${reviewClientToken}`)
       .expect(200);
+  });
+
+  it('SEC-04 serves a private finance invoice only to its uploader and owner', async () => {
+    const db = prisma!;
+    const ownerId = fixtureIds.ownerUserId!;
+    if (!uploadRoot || !ownerId) {
+      throw new Error('Synthetic private-invoice fixture is incomplete.');
+    }
+
+    const suffix = randomUUID().replaceAll('-', '');
+    const filePath = `private/finance/e2e/${suffix}.pdf`;
+    const absoluteFilePath = join(uploadRoot, filePath);
+    const fileBytes = Buffer.from(
+      '%PDF-1.4\nSynthetic private invoice fixture\n%%EOF\n',
+    );
+    let uploadId: string | undefined;
+    let expenseBookId: string | undefined;
+    let templateId: string | undefined;
+    let categoryId: string | undefined;
+    let expenseId: string | undefined;
+
+    try {
+      await mkdir(join(uploadRoot, 'private', 'finance', 'e2e'), {
+        recursive: true,
+        mode: 0o700,
+      });
+      await writeFile(absoluteFilePath, fileBytes, { mode: 0o600 });
+
+      const upload = await db.upload.create({
+        data: {
+          originalName: 'synthetic-invoice.pdf',
+          mimeType: 'application/pdf',
+          sizeBytes: fileBytes.length,
+          pathOriginal: filePath,
+          uploadedById: clientUserId,
+        },
+        select: { id: true },
+      });
+      uploadId = upload.id;
+
+      const expenseBook = await db.expenseBook.create({
+        data: {
+          year: 1800 + Math.floor(Math.random() * 200),
+          month: 1 + Math.floor(Math.random() * 12),
+        },
+        select: { id: true },
+      });
+      expenseBookId = expenseBook.id;
+      const template = await db.expenseCategoryTemplate.create({
+        data: { name: `SEC-04 private invoice ${suffix}` },
+        select: { id: true },
+      });
+      templateId = template.id;
+      const category = await db.expenseCategory.create({
+        data: {
+          name: `SEC-04 private invoice category ${suffix}`,
+          templateId: template.id,
+        },
+        select: { id: true },
+      });
+      categoryId = category.id;
+      const expense = await db.expense.create({
+        data: {
+          bookId: expenseBook.id,
+          categoryId: category.id,
+          title: `Synthetic invoice ${suffix}`,
+          totalAmount: 1,
+          invoiceUploadId: upload.id,
+          createdById: ownerId,
+        },
+        select: { id: true },
+      });
+      expenseId = expense.id;
+
+      const httpServer = getHttpServer(app!);
+      await request(httpServer)
+        .get('/api/uploads/content')
+        .query({ path: filePath })
+        .expect(401);
+
+      const uploaderResponse = await request(httpServer)
+        .get('/api/uploads/content')
+        .query({ path: filePath })
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(200);
+      expect(uploaderResponse.headers['cache-control']).toContain('no-store');
+      expect(uploaderResponse.headers['x-content-type-options']).toBe(
+        'nosniff',
+      );
+      expect(uploaderResponse.headers['content-type']).toMatch(
+        /^application\/octet-stream(?:;|$)/,
+      );
+      expect(uploaderResponse.headers['content-disposition']).toContain(
+        'attachment',
+      );
+      expect(Buffer.isBuffer(uploaderResponse.body)).toBe(true);
+      expect(uploaderResponse.body.equals(fileBytes)).toBe(true);
+
+      await request(httpServer)
+        .get('/api/uploads/content')
+        .query({ path: filePath })
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(200);
+      await request(httpServer)
+        .get('/api/uploads/content')
+        .query({ path: filePath })
+        .set('Authorization', `Bearer ${stylistToken}`)
+        .expect(404);
+    } finally {
+      if (expenseId) await db.expense.deleteMany({ where: { id: expenseId } });
+      if (expenseBookId) {
+        await db.expenseBook.deleteMany({ where: { id: expenseBookId } });
+      }
+      if (categoryId) {
+        await db.expenseCategory.deleteMany({ where: { id: categoryId } });
+      }
+      if (templateId) {
+        await db.expenseCategoryTemplate.deleteMany({
+          where: { id: templateId },
+        });
+      }
+      if (uploadId) await db.upload.deleteMany({ where: { id: uploadId } });
+      await rm(absoluteFilePath, { force: true });
+    }
   });
 
   it('SEC-04 serializes upload deletion against a concurrent FK-backed gallery attach', async () => {
