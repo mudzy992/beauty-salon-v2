@@ -4,9 +4,16 @@ import { PrismaService } from '../../prisma/prisma.service'
 
 export type PrismaTx = Prisma.TransactionClient
 
+const STYLIST_USER_DISPLAY_SELECT = {
+  id: true,
+  username: true,
+  firstName: true,
+  lastName: true,
+} satisfies Prisma.UserSelect
+
 const manualEntryInclude = {
   service: true,
-  stylistProfile: { include: { user: true } },
+  stylistProfile: { include: { user: { select: STYLIST_USER_DISPLAY_SELECT } } },
   client: {
     select: { id: true, username: true, firstName: true, lastName: true },
   },
@@ -97,7 +104,9 @@ export class IncomeBookRepository {
                   include: { service: true },
                   orderBy: { sortOrder: 'asc' },
                 },
-                stylistProfile: { include: { user: true } },
+                stylistProfile: {
+                  include: { user: { select: STYLIST_USER_DISPLAY_SELECT } },
+                },
                 client: {
                   select: {
                     id: true,

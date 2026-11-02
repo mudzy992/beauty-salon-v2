@@ -620,6 +620,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       data: {
         username: `sec-stylist-${suffix}`,
         email: `sec-stylist-${suffix}@example.test`,
+        passwordHash: `synthetic-stylist-hash-${suffix}`,
+        emailVerificationToken: `synthetic-stylist-verification-${suffix}`,
+        emailVerificationExpiresAt: new Date(Date.now() + 60_000),
+        googleId: `synthetic-stylist-google-${suffix}`,
+        facebookId: `synthetic-stylist-facebook-${suffix}`,
         firstName: 'Test',
         lastName: 'Stylist',
       },
@@ -2454,6 +2459,33 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
     });
     expect(manualEntries).toHaveLength(1);
     fixtureIds.incomeManualEntries.push(manualEntries[0]!.id);
+
+    const incomeBookResponse = await request(httpServer)
+      .get(`/api/income-books/${book.id}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    const paymentEntry = incomeBookResponse.body.manualEntries.find(
+      (entry: { id: string }) => entry.id === manualEntries[0]!.id,
+    );
+    expect(paymentEntry?.stylistProfile?.user).toMatchObject({
+      id: expect.any(String),
+      username: expect.stringContaining('sec-stylist-'),
+      firstName: 'Test',
+      lastName: 'Stylist',
+    });
+    for (const privateField of [
+      'email',
+      'phone',
+      'passwordHash',
+      'emailVerificationToken',
+      'emailVerificationExpiresAt',
+      'googleId',
+      'facebookId',
+    ]) {
+      expect(paymentEntry?.stylistProfile?.user).not.toHaveProperty(
+        privateField,
+      );
+    }
 
     const replay = await repay(debt.id).expect(201);
     expect(replay.body.debtPaymentDailyLogId).toBe(paymentId);
