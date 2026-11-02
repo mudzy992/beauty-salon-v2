@@ -487,21 +487,13 @@ export class UploadsService {
   }
 
   async deleteUnreferencedUpload(uploadId: string): Promise<void> {
-    const upload = await this.repo.findById(uploadId);
-    if (!upload) return;
-    const paths = [
-      upload.pathOriginal,
-      upload.pathThumb,
-      upload.pathSmall,
-      upload.pathMedium,
-    ].filter((value): value is string => Boolean(value));
-    if (await this.repo.hasReferences(upload.id, paths)) return;
-    await this.removeFiles(
-      paths.map((filePath) =>
-        this.resolveStoredPath(filePath, upload.storageClass),
-      ),
-    );
-    await this.repo.deleteById(upload.id);
+    const result = await this.repo.deleteIfUnreferenced(uploadId);
+    if (result.status !== 'deleted') return;
+
+    // Delete the database row before removing files. A crash here can leave an
+    // orphan file for later cleanup, but cannot leave a live DB reference to a
+    // file that has already been removed.
+    await this.removeUploadFiles(result.upload);
   }
 
   async deleteByPathOriginal(
@@ -513,38 +505,48 @@ export class UploadsService {
       throw new BadRequestException('Putanja fajla nije validna.');
     }
 
-    const upload = await this.repo.findFirstByPathOriginal(normalized);
-    if (!upload) throw new NotFoundException('Upload nije pronađen.');
-
     const isAdminOrOwner = currentUser.roles.some((role) =>
       ['SYSTEM_ADMIN', 'OWNER'].includes(role),
     );
-    if (!isAdminOrOwner && upload.uploadedById !== currentUser.sub) {
+    const result = await this.repo.deleteByPathOriginalIfUnreferenced(
+      normalized,
+      currentUser.sub,
+      isAdminOrOwner,
+    );
+    if (result.status === 'not-found') {
+      throw new NotFoundException('Upload nije pronađen.');
+    }
+    if (result.status === 'forbidden') {
       throw new ForbiddenException('Nemate dozvolu za brisanje ovog uploada.');
     }
-
-    const paths = [
-      upload.pathOriginal,
-      upload.pathThumb,
-      upload.pathSmall,
-      upload.pathMedium,
-    ]
-      .filter((filePath): filePath is string => typeof filePath === 'string')
-      .map((filePath) => this.normalizeStoredPath(filePath))
-      .filter(Boolean);
-    const absolutePaths = paths.map((filePath) =>
-      this.resolveStoredPath(filePath, upload.storageClass),
-    );
-
-    if (await this.repo.hasReferences(upload.id, paths)) {
+    if (result.status === 'referenced') {
       throw new ConflictException(
         'Upload je vezan za postojeće podatke i ne može se obrisati.',
       );
     }
 
-    await this.removeFiles(absolutePaths);
-    await this.repo.deleteById(upload.id);
+    await this.removeUploadFiles(result.upload);
     return { deleted: true };
+  }
+
+  private async removeUploadFiles(upload: {
+    pathOriginal: string;
+    pathThumb: string | null;
+    pathSmall: string | null;
+    pathMedium: string | null;
+    storageClass: UploadStorageClass;
+  }): Promise<void> {
+    const paths = [
+      upload.pathOriginal,
+      upload.pathThumb,
+      upload.pathSmall,
+      upload.pathMedium,
+    ].filter((filePath): filePath is string => typeof filePath === 'string');
+    await this.removeFiles(
+      paths.map((filePath) =>
+        this.resolveStoredPath(filePath, upload.storageClass),
+      ),
+    );
   }
 
   private async validateUpload(file: Express.Multer.File): Promise<{
@@ -683,7 +685,13 @@ export class UploadsService {
       .trim()
       .replace(/\\/g, '/')
       .replace(/^\/+/, '');
-    if (!normalized || normalized.includes('\0')) {
+    if (
+      !normalized ||
+      normalized.includes('\0') ||
+      normalized
+        .split('/')
+        .some((segment) => segment === '..' || segment === '.')
+    ) {
       throw new BadRequestException('Putanja fajla nije validna.');
     }
     return normalized;

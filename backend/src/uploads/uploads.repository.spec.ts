@@ -4,6 +4,13 @@ import { UploadsRepository } from './uploads.repository';
 jest.mock('../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
+jest.mock('@prisma/client', () => ({
+  UploadStorageClass: {
+    PRIVATE: 'PRIVATE',
+    PUBLIC: 'PUBLIC',
+    CONSENTED_PUBLIC: 'CONSENTED_PUBLIC',
+  },
+}));
 
 describe('UploadsRepository', () => {
   const createCount = () => jest.fn().mockResolvedValue(0);

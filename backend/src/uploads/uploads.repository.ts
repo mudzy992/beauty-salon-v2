@@ -4,6 +4,13 @@ import { CLIENT_MEDIA_PUBLICATION_POLICY_VERSION } from '../media-consent/media-
 import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '@prisma/client';
 
+export type UploadDeletionOutcome =
+  | {
+      status: 'deleted';
+      upload: Prisma.UploadGetPayload<Record<string, never>>;
+    }
+  | { status: 'not-found' | 'referenced' | 'forbidden' };
+
 @Injectable()
 export class UploadsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -169,7 +176,11 @@ export class UploadsRepository {
     );
   }
 
-  async hasReferences(uploadId: string, filePaths: string[]): Promise<boolean> {
+  async hasReferences(
+    uploadId: string,
+    filePaths: string[],
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ): Promise<boolean> {
     const normalizedPaths = filePaths
       .map((filePath) =>
         filePath.trim().replace(/\\/g, '/').replace(/^\/+/, ''),
@@ -197,14 +208,14 @@ export class UploadsRepository {
     );
 
     const references = await Promise.all([
-      this.prisma.dailyLogImage.count({ where: { uploadId } }),
-      this.prisma.expenseAttachment.count({ where: { uploadId } }),
-      this.prisma.galleryImage.count({ where: { uploadId } }),
-      this.prisma.dailyLogImageConsent.count({
+      db.dailyLogImage.count({ where: { uploadId } }),
+      db.expenseAttachment.count({ where: { uploadId } }),
+      db.galleryImage.count({ where: { uploadId } }),
+      db.dailyLogImageConsent.count({
         where: { publishedUploadId: uploadId },
       }),
-      this.prisma.expense.count({ where: { invoiceUploadId: uploadId } }),
-      this.prisma.user.count({
+      db.expense.count({ where: { invoiceUploadId: uploadId } }),
+      db.user.count({
         where: {
           OR: [
             { avatar: { in: pathVariants } },
@@ -214,7 +225,7 @@ export class UploadsRepository {
           ],
         },
       }),
-      this.prisma.salonSettings.count({
+      db.salonSettings.count({
         where: {
           OR: [
             { logo: { in: pathVariants } },
@@ -224,7 +235,7 @@ export class UploadsRepository {
           ],
         },
       }),
-      this.prisma.service.count({
+      db.service.count({
         where: {
           OR: [
             { heroImage: { in: pathVariants } },
@@ -234,7 +245,7 @@ export class UploadsRepository {
           ],
         },
       }),
-      this.prisma.blogPost.count({
+      db.blogPost.count({
         where: {
           OR: [
             { heroImage: { in: pathVariants } },
@@ -247,7 +258,7 @@ export class UploadsRepository {
           ],
         },
       }),
-      this.prisma.appSetting.count({
+      db.appSetting.count({
         where: {
           key: 'app_logo',
           OR: [
@@ -258,7 +269,7 @@ export class UploadsRepository {
           ],
         },
       }),
-      this.prisma.appRelease.count({
+      db.appRelease.count({
         where: {
           OR: [
             { apkPath: { in: pathVariants } },
@@ -268,7 +279,7 @@ export class UploadsRepository {
           ],
         },
       }),
-      this.prisma.upload.count({
+      db.upload.count({
         where: {
           id: { not: uploadId },
           OR: [
@@ -284,7 +295,66 @@ export class UploadsRepository {
     return references.some((count) => count > 0);
   }
 
-  deleteById(id: string) {
-    return this.prisma.upload.delete({ where: { id } });
+  async deleteIfUnreferenced(uploadId: string): Promise<UploadDeletionOutcome> {
+    return this.prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM uploads WHERE id = ${uploadId} FOR UPDATE
+      `;
+      if (!locked.length) return { status: 'not-found' };
+      return this.deleteLockedUpload(tx, uploadId);
+    });
+  }
+
+  async deleteByPathOriginalIfUnreferenced(
+    pathOriginal: string,
+    actorId: string,
+    allowAnyOwner: boolean,
+  ): Promise<UploadDeletionOutcome> {
+    return this.prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT id
+        FROM uploads
+        WHERE path_original = ${pathOriginal}
+        ORDER BY created_at DESC
+        LIMIT 1
+        FOR UPDATE
+      `;
+      if (!locked.length) return { status: 'not-found' };
+
+      const upload = await tx.upload.findUnique({
+        where: { id: locked[0]!.id },
+      });
+      if (!upload) return { status: 'not-found' };
+      if (!allowAnyOwner && upload.uploadedById !== actorId) {
+        return { status: 'forbidden' };
+      }
+      return this.deleteLockedUpload(tx, upload.id, upload);
+    });
+  }
+
+  private async deleteLockedUpload(
+    tx: Prisma.TransactionClient,
+    uploadId: string,
+    knownUpload?: Prisma.UploadGetPayload<Record<string, never>>,
+  ): Promise<UploadDeletionOutcome> {
+    const upload =
+      knownUpload ?? (await tx.upload.findUnique({ where: { id: uploadId } }));
+    if (!upload) return { status: 'not-found' };
+
+    const paths = [
+      upload.pathOriginal,
+      upload.pathThumb,
+      upload.pathSmall,
+      upload.pathMedium,
+    ].filter((value): value is string => Boolean(value));
+    if (await this.hasReferences(upload.id, paths, tx)) {
+      return { status: 'referenced' };
+    }
+
+    // Keep the reference check and row deletion in one transaction while holding
+    // the upload row lock. FK-backed attachments either become visible to the
+    // check or fail their FK check after this transaction commits.
+    await tx.upload.delete({ where: { id: upload.id } });
+    return { status: 'deleted', upload };
   }
 }

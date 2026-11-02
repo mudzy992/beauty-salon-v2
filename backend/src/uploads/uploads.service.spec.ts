@@ -14,6 +14,13 @@ import * as path from 'path';
 jest.mock('../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
+jest.mock('@prisma/client', () => ({
+  UploadStorageClass: {
+    PRIVATE: 'PRIVATE',
+    PUBLIC: 'PUBLIC',
+    CONSENTED_PUBLIC: 'CONSENTED_PUBLIC',
+  },
+}));
 jest.mock('fs/promises');
 jest.mock('sharp', () => {
   const mockChain = {
@@ -36,7 +43,8 @@ const mockUploadsRepo = {
   canReadPrivateUpload: jest.fn(),
   findFirstByPathOriginal: jest.fn(),
   hasReferences: jest.fn(),
-  deleteById: jest.fn(),
+  deleteIfUnreferenced: jest.fn(),
+  deleteByPathOriginalIfUnreferenced: jest.fn(),
 };
 
 const mockConfigService = {
@@ -52,6 +60,12 @@ describe('UploadsService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     mockUploadsRepo.hasReferences.mockResolvedValue(false);
+    mockUploadsRepo.deleteIfUnreferenced.mockResolvedValue({
+      status: 'not-found',
+    });
+    mockUploadsRepo.deleteByPathOriginalIfUnreferenced.mockResolvedValue({
+      status: 'not-found',
+    });
     mockUploadsRepo.findById.mockResolvedValue(null);
     mockUploadsRepo.findByStoredPath.mockResolvedValue(null);
     mockUploadsRepo.canReadPrivateUpload.mockResolvedValue(false);
@@ -453,21 +467,59 @@ describe('UploadsService', () => {
     });
   });
 
+  describe('deleteUnreferencedUpload', () => {
+    it('removes files only after the repository atomically deletes an unreferenced row', async () => {
+      mockUploadsRepo.deleteIfUnreferenced.mockResolvedValue({
+        status: 'deleted',
+        upload: {
+          pathOriginal: 'private/test/file.png',
+          pathThumb: null,
+          pathSmall: null,
+          pathMedium: null,
+          storageClass: 'PRIVATE',
+        },
+      });
+
+      await service.deleteUnreferencedUpload('upload-atomic-delete');
+
+      expect(mockUploadsRepo.deleteIfUnreferenced).toHaveBeenCalledWith(
+        'upload-atomic-delete',
+      );
+      expect(fs.unlink).toHaveBeenCalledWith(
+        path.join('/tmp/uploads', 'private/test/file.png'),
+      );
+      expect(
+        mockUploadsRepo.deleteIfUnreferenced.mock.invocationCallOrder[0],
+      ).toBeLessThan((fs.unlink as jest.Mock).mock.invocationCallOrder[0]);
+    });
+
+    it('keeps files when the upload is referenced or already absent', async () => {
+      mockUploadsRepo.deleteIfUnreferenced.mockResolvedValue({
+        status: 'referenced',
+      });
+
+      await service.deleteUnreferencedUpload('upload-referenced');
+
+      expect(fs.unlink).not.toHaveBeenCalled();
+    });
+  });
+
   describe('deleteByPathOriginal', () => {
     const upload = {
       id: 'upload-delete-1',
       uploadedById: 'uploader-1',
+      storageClass: 'PRIVATE',
       pathOriginal: 'documents/2026/10/file-original.pdf',
       pathThumb: null,
       pathSmall: null,
       pathMedium: null,
     };
 
-    beforeEach(() => {
-      mockUploadsRepo.findFirstByPathOriginal.mockResolvedValue(upload);
-    });
-
     it('odbija brisanje tuđeg uploada od običnog prijavljenog korisnika', async () => {
+      mockUploadsRepo.deleteByPathOriginalIfUnreferenced.mockResolvedValue({
+        status: 'forbidden',
+      });
+
       await expect(
         service.deleteByPathOriginal(upload.pathOriginal, {
           sub: 'other-user',
@@ -475,12 +527,18 @@ describe('UploadsService', () => {
         }),
       ).rejects.toThrow(ForbiddenException);
 
-      expect(mockUploadsRepo.hasReferences).not.toHaveBeenCalled();
+      expect(
+        mockUploadsRepo.deleteByPathOriginalIfUnreferenced,
+      ).toHaveBeenCalledWith(upload.pathOriginal, 'other-user', false);
       expect(fs.unlink).not.toHaveBeenCalled();
-      expect(mockUploadsRepo.deleteById).not.toHaveBeenCalled();
     });
 
     it('dozvoljava uploaderu brisanje vlastitog nevezanog fajla', async () => {
+      mockUploadsRepo.deleteByPathOriginalIfUnreferenced.mockResolvedValue({
+        status: 'deleted',
+        upload,
+      });
+
       await expect(
         service.deleteByPathOriginal(upload.pathOriginal, {
           sub: 'uploader-1',
@@ -488,19 +546,18 @@ describe('UploadsService', () => {
         }),
       ).resolves.toEqual({ deleted: true });
 
-      expect(mockUploadsRepo.hasReferences).toHaveBeenCalledWith(upload.id, [
-        upload.pathOriginal,
-      ]);
+      expect(
+        mockUploadsRepo.deleteByPathOriginalIfUnreferenced,
+      ).toHaveBeenCalledWith(upload.pathOriginal, 'uploader-1', false);
       expect(fs.unlink).toHaveBeenCalledWith(
         path.join('/tmp/uploads', upload.pathOriginal),
       );
-      expect(mockUploadsRepo.deleteById).toHaveBeenCalledWith(upload.id);
     });
 
     it('dozvoljava OWNER/SYSTEM_ADMIN-u brisanje legacy uploada bez vlasnika', async () => {
-      mockUploadsRepo.findFirstByPathOriginal.mockResolvedValue({
-        ...upload,
-        uploadedById: null,
+      mockUploadsRepo.deleteByPathOriginalIfUnreferenced.mockResolvedValue({
+        status: 'deleted',
+        upload: { ...upload, uploadedById: null },
       });
 
       await expect(
@@ -510,11 +567,15 @@ describe('UploadsService', () => {
         }),
       ).resolves.toEqual({ deleted: true });
 
-      expect(mockUploadsRepo.deleteById).toHaveBeenCalledWith(upload.id);
+      expect(
+        mockUploadsRepo.deleteByPathOriginalIfUnreferenced,
+      ).toHaveBeenCalledWith(upload.pathOriginal, 'admin-1', true);
     });
 
     it('odbija brisanje uploada na koji se postojeći podatak poziva', async () => {
-      mockUploadsRepo.hasReferences.mockResolvedValue(true);
+      mockUploadsRepo.deleteByPathOriginalIfUnreferenced.mockResolvedValue({
+        status: 'referenced',
+      });
 
       await expect(
         service.deleteByPathOriginal(upload.pathOriginal, {
@@ -524,17 +585,11 @@ describe('UploadsService', () => {
       ).rejects.toThrow(ConflictException);
 
       expect(fs.unlink).not.toHaveBeenCalled();
-      expect(mockUploadsRepo.deleteById).not.toHaveBeenCalled();
     });
 
     it.each(['../outside.pdf', '..\\outside.pdf'])(
       'odbija DB putanju koja izlazi iz upload root direktorija: %s',
       async (pathOriginal) => {
-        mockUploadsRepo.findFirstByPathOriginal.mockResolvedValue({
-          ...upload,
-          pathOriginal,
-        });
-
         await expect(
           service.deleteByPathOriginal(pathOriginal, {
             sub: 'uploader-1',
@@ -543,7 +598,9 @@ describe('UploadsService', () => {
         ).rejects.toThrow(BadRequestException);
 
         expect(fs.unlink).not.toHaveBeenCalled();
-        expect(mockUploadsRepo.deleteById).not.toHaveBeenCalled();
+        expect(
+          mockUploadsRepo.deleteByPathOriginalIfUnreferenced,
+        ).not.toHaveBeenCalled();
       },
     );
   });

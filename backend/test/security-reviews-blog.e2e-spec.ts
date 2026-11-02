@@ -3162,11 +3162,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     const incomeTriggerName = `e2e_biz08_income_sleep_${suffix}`;
     const incomeEntryNotes = `biz08-income-race-${suffix}`;
     let incomeWritePromise:
-      | ReturnType<IncomeManualEntriesService['create']>
-      | undefined;
+      ReturnType<IncomeManualEntriesService['create']> | undefined;
     let incomeClosePromise:
-      | ReturnType<IncomeBooksService['lockBook']>
-      | undefined;
+      ReturnType<IncomeBooksService['lockBook']> | undefined;
     try {
       await db.$executeRawUnsafe(`
         CREATE FUNCTION "${incomeFunctionName}"() RETURNS trigger
@@ -3545,6 +3543,66 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       .set('Authorization', `Bearer ${reviewClientToken}`)
       .expect(200);
   });
+
+  it('SEC-04 serializes upload deletion against a concurrent FK-backed gallery attach', async () => {
+    const categoryId = fixtureIds.galleryCategories[0];
+    if (!categoryId || !ownerUserId) {
+      throw new Error('Synthetic upload deletion fixture is incomplete.');
+    }
+    const upload = await prisma!.upload.create({
+      data: {
+        originalName: 'sec04-race.png',
+        mimeType: 'image/png',
+        sizeBytes: 1,
+        pathOriginal: `private/sec04-race/${randomUUID()}.png`,
+        uploadedById: ownerUserId,
+      },
+    });
+    fixtureIds.uploads.push(upload.id);
+
+    let signalAttached!: () => void;
+    let releaseAttach!: () => void;
+    const attached = new Promise<void>((resolve) => {
+      signalAttached = resolve;
+    });
+    const holdAttachOpen = new Promise<void>((resolve) => {
+      releaseAttach = resolve;
+    });
+    const attachTransaction = prisma!.$transaction(async (tx) => {
+      await tx.galleryImage.create({
+        data: { categoryId, uploadId: upload.id },
+      });
+      signalAttached();
+      await holdAttachOpen;
+    });
+
+    try {
+      await attached;
+      const uploadsRepository = app!.get(UploadsRepository);
+      const deletePromise = uploadsRepository.deleteIfUnreferenced(upload.id);
+      const completedBeforeAttachCommit = await Promise.race([
+        deletePromise.then(() => true),
+        new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 40)),
+      ]);
+      expect(completedBeforeAttachCommit).toBe(false);
+
+      releaseAttach();
+      await attachTransaction;
+      await expect(deletePromise).resolves.toMatchObject({
+        status: 'referenced',
+      });
+      await expect(
+        prisma!.galleryImage.findFirst({ where: { uploadId: upload.id } }),
+      ).resolves.not.toBeNull();
+      await expect(
+        prisma!.upload.findUnique({ where: { id: upload.id } }),
+      ).resolves.not.toBeNull();
+    } finally {
+      releaseAttach();
+      await Promise.allSettled([attachTransaction]);
+      await prisma!.galleryImage.deleteMany({ where: { uploadId: upload.id } });
+    }
+  }, 30000);
 
   it('replays a client booking idempotently and persists one reservation graph and outbox event', async () => {
     const db = prisma!;
@@ -5468,9 +5526,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       await db.$executeRawUnsafe(
         `DROP TRIGGER IF EXISTS "${triggerName}" ON "daily_log_entries"`,
       );
-      await db.$executeRawUnsafe(
-        `DROP FUNCTION IF EXISTS "${functionName}"()`,
-      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
     }
   });
 });
