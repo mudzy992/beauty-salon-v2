@@ -2081,6 +2081,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-10, AUTH-01, SEC-04/P
     expect(stylistList.body[0]).not.toHaveProperty('idempotencyKey');
     expect(stylistList.body[0]).not.toHaveProperty('idempotencyRequestHash');
 
+    await request(server)
+      .get(`/api/reservations/${otherReservation.id}`)
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+
     const stylistDetail = await request(server)
       .get(`/api/reservations/${ownReservation.id}`)
       .set('Authorization', `Bearer ${stylistToken}`)

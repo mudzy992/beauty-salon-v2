@@ -1,3 +1,4 @@
+import { ForbiddenException } from '@nestjs/common';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { ReservationQueriesService } from './reservation-queries.service';
 
@@ -41,6 +42,32 @@ describe('ReservationQueriesService detail projection', () => {
       dates as never,
       shared as never,
     );
+  });
+
+  it('does not treat a missing stylist profile as ownership of unassigned bookings', async () => {
+    prisma.reservation.findUnique.mockResolvedValue({
+      id: 'unassigned-reservation',
+      clientId: 'another-client',
+      confirmedStylistId: null,
+      stylistResponses: [],
+      reservationDate: new Date('2026-01-15T00:00:00.000Z'),
+      startTime: '09:00',
+      endTime: '09:45',
+      status: 'PENDING',
+      attendancePolicy: 'CLIENT_REQUIRED',
+    });
+    shared.getStylistProfileIdByUserId.mockResolvedValue(null);
+    const unrelatedClient: CurrentUserPayload = {
+      sub: 'client-2',
+      username: 'other-client',
+      email: 'other-client@example.test',
+      roles: ['CLIENT'],
+    };
+
+    await expect(
+      service.findOne('unassigned-reservation', unrelatedClient),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.dailyLogEntry.findFirst).not.toHaveBeenCalled();
   });
 
   it('omits bearer view tokens and idempotency scalars from staff detail reads', async () => {

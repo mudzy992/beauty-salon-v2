@@ -122,7 +122,8 @@ export class ReservationQueriesService {
     );
     const canAccess =
       r.clientId === user.sub ||
-      r.confirmedStylistId === stylistProfileId ||
+      (stylistProfileId !== null &&
+        r.confirmedStylistId === stylistProfileId) ||
       r.stylistResponses.some((sr) => sr.stylistProfile.userId === user.sub) ||
       user.roles.includes('SYSTEM_ADMIN') ||
       user.roles.includes('OWNER');
