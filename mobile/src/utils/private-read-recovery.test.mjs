@@ -11,9 +11,9 @@ test('private reservation and stylist inbox reads validate payloads and ignore s
   assert.match(reservations, /api\.get<unknown>\('\/api\/reservations'/);
   assert.match(reservations, /const rows = normalizeReservations\(data\)/);
   assert.match(reservations, /if \(!rows\) setLoadError\(true\)/);
-  assert.match(reservations, /generation !== requestGeneration\.current/);
+  assert.match(reservations, /generation === requestGeneration\.current &&\s*useAuthStore\.getState\(\)\.user\?\.id === userId/);
   assert.match(reservations, /requestGeneration\.current \+= 1/);
-  assert.match(reservations, /catch \{\s*if \(generation === requestGeneration\.current\) setLoadError\(true\)/);
+  assert.match(reservations, /catch \{\s*if \(isCurrentRequest\(\)\) setLoadError\(true\)/);
   assert.match(reservations, /onPress=\{\(\) => void fetchReservations\(\)\}/);
   assert.match(reservations, /const userId = useAuthStore\(\(state\) => state\.user\?\.id \?\? null\)/);
   assert.match(reservations, /reservationsOwnerId === userId \? reservations : \[\]/);

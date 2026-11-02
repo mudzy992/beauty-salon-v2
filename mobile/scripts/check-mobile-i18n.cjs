@@ -11,6 +11,7 @@ const GUARDED_FILES = [
   'src/components/BeforeAfterSlider.tsx',
   'src/screens/client/ReviewsScreen.tsx',
   'src/screens/client/ProfileScreen.tsx',
+  'src/screens/client/MyReservationsScreen.tsx',
   'src/screens/client/BlogPostScreen.tsx',
   'src/screens/client/EditProfileScreen.tsx',
   'src/screens/stylist/DailyLogNewEntryScreen.tsx',
@@ -59,12 +60,33 @@ function looksLikeVisibleCopy(value) {
 function isNavigationTargetLiteral(node) {
   const parent = node.parent;
   if (ts.isLiteralTypeNode(parent)) return true;
-  return Boolean(
+  if (
     ts.isCallExpression(parent) &&
     parent.arguments.includes(node) &&
     ts.isPropertyAccessExpression(parent.expression) &&
-    parent.expression.name.text === 'navigate',
-  );
+    parent.expression.name.text === 'navigate'
+  ) {
+    return true;
+  }
+  if (
+    ts.isPropertyAssignment(parent) &&
+    ts.isIdentifier(parent.name) &&
+    parent.name.text === 'screen' &&
+    parent.initializer === node
+  ) {
+    let ancestor = parent.parent;
+    while (ancestor) {
+      if (
+        ts.isCallExpression(ancestor) &&
+        ts.isPropertyAccessExpression(ancestor.expression) &&
+        ancestor.expression.name.text === 'navigate'
+      ) {
+        return true;
+      }
+      ancestor = ancestor.parent;
+    }
+  }
+  return false;
 }
 
 function isNonVisibleStyleLiteral(node) {

@@ -31,6 +31,7 @@ import { formatDate, formatTime, isUpcoming, salonWallTimeToInstant } from '../.
 import { getReservationServices } from '../../utils/reservationServices';
 import { normalizeReservations } from '../../utils/apiPayload';
 import { getApiErrorMessage } from '../../utils/apiError';
+import { ATTENDANCE_UNCONFIRMED_CANCEL_REASON } from '../../constants/reservation';
 import type { ReservationsScreenProps } from '../../navigation/types';
 import type { Reservation, ReservationStatus } from '../../types';
 
@@ -95,6 +96,61 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [reservationsOwnerId, setReservationsOwnerId] = useState<string | null>(null);
   const visibleReservations = reservationsOwnerId === userId ? reservations : [];
+  const actionIdentityRef = useRef({
+    userId,
+    routeKey: route.key,
+    generation: 0,
+    mounted: true,
+  });
+  const activeActionRef = useRef<number | null>(null);
+  const actionSequenceRef = useRef(0);
+  if (
+    actionIdentityRef.current.userId !== userId ||
+    actionIdentityRef.current.routeKey !== route.key
+  ) {
+    actionIdentityRef.current = {
+      userId,
+      routeKey: route.key,
+      generation: actionIdentityRef.current.generation + 1,
+      mounted: actionIdentityRef.current.mounted,
+    };
+    activeActionRef.current = null;
+  }
+  const reservationSnapshotRef = useRef({ ownerId: reservationsOwnerId, reservations });
+  reservationSnapshotRef.current = { ownerId: reservationsOwnerId, reservations };
+  const isCurrentActionIdentity = useCallback((generation = actionIdentityRef.current.generation) => {
+    const identity = actionIdentityRef.current;
+    return (
+      userId !== null &&
+      identity.mounted &&
+      identity.userId === userId &&
+      identity.routeKey === route.key &&
+      identity.generation === generation &&
+      useAuthStore.getState().user?.id === userId
+    );
+  }, [route.key, userId]);
+  const canStartAction = useCallback((reservationId: string) => {
+    const snapshot = reservationSnapshotRef.current;
+    return (
+      isCurrentActionIdentity() &&
+      snapshot.ownerId === userId &&
+      snapshot.reservations.some((reservation) => reservation.id === reservationId) &&
+      activeActionRef.current === null
+    );
+  }, [isCurrentActionIdentity, userId]);
+  const beginAction = useCallback((reservationId: string) => {
+    const generation = actionIdentityRef.current.generation;
+    if (!canStartAction(reservationId)) return null;
+    const token = ++actionSequenceRef.current;
+    activeActionRef.current = token;
+    return {
+      isCurrent: () =>
+        activeActionRef.current === token && isCurrentActionIdentity(generation),
+      finish: () => {
+        if (activeActionRef.current === token) activeActionRef.current = null;
+      },
+    };
+  }, [canStartAction]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const requestGeneration = useRef(0);
@@ -105,6 +161,7 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
   }
   const [refreshing, setRefreshing] = useState(false);
   const [cancelModalReservation, setCancelModalReservation] = useState<Reservation | null>(null);
+  const [cancelModalOwner, setCancelModalOwner] = useState<{ userId: string; routeKey: string } | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelSubmitting, setCancelSubmitting] = useState(false);
   const [visibleCount, setVisibleCount] = useState(4);
@@ -114,8 +171,22 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
     (navigation as any)?.getState?.()?.routes?.find?.((r: any) => r.name === 'MyReservations')?.params?.focusReservationId ??
     undefined;
 
+  useEffect(() => {
+    actionIdentityRef.current.mounted = true;
+    return () => {
+      actionIdentityRef.current.mounted = false;
+      actionIdentityRef.current.generation += 1;
+      activeActionRef.current = null;
+      requestGeneration.current += 1;
+    };
+  }, []);
+
   const fetchReservations = useCallback(async () => {
+    if (useAuthStore.getState().user?.id !== userId) return;
     const generation = ++requestGeneration.current;
+    const isCurrentRequest = () =>
+      generation === requestGeneration.current &&
+      useAuthStore.getState().user?.id === userId;
     if (!userId) {
       setReservations([]);
       setReservationsOwnerId(null);
@@ -127,7 +198,7 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
       const { data } = await api.get<unknown>('/api/reservations', {
         params: { asClient: true },
       });
-      if (generation !== requestGeneration.current) return;
+      if (!isCurrentRequest()) return;
       const rows = normalizeReservations(data);
       if (!rows) setLoadError(true);
       else {
@@ -137,9 +208,9 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
         setLoadError(false);
       }
     } catch {
-      if (generation === requestGeneration.current) setLoadError(true);
+      if (isCurrentRequest()) setLoadError(true);
     } finally {
-      if (generation === requestGeneration.current) setLoading(false);
+      if (isCurrentRequest()) setLoading(false);
     }
   }, [userId]);
 
@@ -161,80 +232,137 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
   useReservationSocketRefresh(refreshReservations);
 
   const onRefresh = useCallback(async () => {
+    const generation = actionIdentityRef.current.generation;
+    if (!isCurrentActionIdentity(generation)) return;
     setRefreshing(true);
     try {
       await refreshReservations();
     } finally {
-      setRefreshing(false);
+      if (isCurrentActionIdentity(generation)) setRefreshing(false);
     }
-  }, [refreshReservations]);
+  }, [isCurrentActionIdentity, refreshReservations]);
 
-  const openCancelModal = (reservation: Reservation) => {
+  const openCancelModal = useCallback((reservation: Reservation) => {
+    if (!userId || !canStartAction(reservation.id)) return;
     setCancelModalReservation(reservation);
+    setCancelModalOwner({ userId, routeKey: route.key });
     setCancelReason('');
-  };
+  }, [canStartAction, route.key, userId]);
 
   const closeCancelModal = useCallback(() => {
     setCancelModalReservation(null);
+    setCancelModalOwner(null);
     setCancelReason('');
   }, []);
 
+  useEffect(() => {
+    closeCancelModal();
+    setCancelSubmitting(false);
+    setRefreshing(false);
+  }, [closeCancelModal, route.key, userId]);
+
   const submitCancel = useCallback(async () => {
-    if (!cancelModalReservation) return;
+    if (
+      !cancelModalReservation ||
+      !cancelModalOwner ||
+      cancelModalOwner.userId !== userId ||
+      cancelModalOwner.routeKey !== route.key
+    ) return;
+    const action = beginAction(cancelModalReservation.id);
+    if (!action) return;
     setCancelSubmitting(true);
     try {
       await api.post(`/api/reservations/${cancelModalReservation.id}/cancel`, {
         cancelReason: cancelReason.trim() || undefined,
       });
+      if (!action.isCurrent()) return;
       closeCancelModal();
-      fetchReservations();
+      await fetchReservations();
     } catch (error: unknown) {
-      Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
+      if (action.isCurrent()) {
+        Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
+      }
     } finally {
-      setCancelSubmitting(false);
+      if (action.isCurrent()) setCancelSubmitting(false);
+      action.finish();
     }
-  }, [cancelModalReservation, cancelReason, closeCancelModal, fetchReservations, t]);
+  }, [beginAction, cancelModalOwner, cancelModalReservation, cancelReason, closeCancelModal, fetchReservations, route.key, t, userId]);
 
-  const handleConfirmAttendance = async (reservation: Reservation) => {
+  const handleConfirmAttendance = useCallback(async (reservation: Reservation) => {
+    const action = beginAction(reservation.id);
+    if (!action) return;
     try {
       await api.post(`/api/reservations/${reservation.id}/confirm-attendance`);
-      fetchReservations();
+      if (!action.isCurrent()) return;
+      await fetchReservations();
     } catch (error: unknown) {
-      Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
+      if (action.isCurrent()) {
+        Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
+      }
+    } finally {
+      action.finish();
     }
-  };
+  }, [beginAction, fetchReservations, t]);
 
-  const handleAcceptReschedule = async (reservation: Reservation) => {
+  const handleAcceptReschedule = useCallback(async (reservation: Reservation) => {
+    const action = beginAction(reservation.id);
+    if (!action) return;
     try {
       await api.post(`/api/reservations/${reservation.id}/reschedule/accept`);
-      fetchReservations();
-      Alert.alert('Potvrđeno', 'Potvrdili ste novi termin.');
+      if (!action.isCurrent()) return;
+      await fetchReservations();
+      if (action.isCurrent()) {
+        Alert.alert(
+          t('myReservations.rescheduleAcceptSuccessTitle'),
+          t('myReservations.rescheduleAcceptSuccessMessage'),
+        );
+      }
     } catch (error: unknown) {
-      Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
+      if (action.isCurrent()) {
+        Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
+      }
+    } finally {
+      action.finish();
     }
-  };
+  }, [beginAction, fetchReservations, t]);
 
-  const handleDeclineReschedule = async (reservation: Reservation) => {
+  const handleDeclineReschedule = useCallback((reservation: Reservation) => {
+    if (!canStartAction(reservation.id)) return;
+    const generation = actionIdentityRef.current.generation;
     Alert.alert(
-      'Odbij novi termin?',
-      'Ako je ovo rekalkulacija termina, rezervacija se otkazuje. Ako je reorder prijedlog, ostaje vaš postojeći termin.',
+      t('myReservations.rescheduleDeclineConfirmTitle'),
+      t('myReservations.rescheduleDeclineConfirmMessage'),
       [
         { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Odbij',
+          text: t('myReservations.rescheduleDecline'),
           style: 'destructive',
           onPress: async () => {
+            if (!isCurrentActionIdentity(generation)) return;
+            const action = beginAction(reservation.id);
+            if (!action) return;
             try {
               await api.post(`/api/reservations/${reservation.id}/reschedule/decline`);
-              fetchReservations();
+              if (!action.isCurrent()) return;
+              await fetchReservations();
+              if (action.isCurrent()) {
+                Alert.alert(
+                  t('myReservations.rescheduleDeclineTitle'),
+                  t('myReservations.rescheduleDeclineMessage'),
+                );
+              }
             } catch (error: unknown) {
-              Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
+              if (action.isCurrent()) {
+                Alert.alert(t('common.error'), getApiErrorMessage(error, t('common.error')));
+              }
+            } finally {
+              action.finish();
             }
           },
         },
       ],
     );
-  };
+  }, [beginAction, canStartAction, fetchReservations, isCurrentActionIdentity, t]);
 
   const sections: Section[] = [];
   const activeReservation = visibleReservations
@@ -291,11 +419,16 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
 
   const renderReservationCard = (item: Reservation, featured = false) => {
     const services = getReservationServices(item);
-    const title = item.publicReferenceCode?.trim() || services[0]?.name || 'Rezervacija';
+    const title = item.publicReferenceCode?.trim() || services[0]?.name || t('myReservations.reservationFallbackTitle');
     const estimatedCost = services.reduce(
       (sum, service) => sum + (Number(service.price) || 0),
       0,
     );
+    const statusLabel =
+      item.status === 'CANCELLED_BY_CLIENT' &&
+      (item.cancelReason ?? '').trim() === ATTENDANCE_UNCONFIRMED_CANCEL_REASON
+        ? t('myReservations.cancelledForAttendance')
+        : t(`myReservations.status.${item.status}` as any);
 
     return (
     <View>
@@ -311,12 +444,7 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
             {title}
           </Text>
           <Badge
-            label={
-              item.status === 'CANCELLED_BY_CLIENT' &&
-              (item.cancelReason ?? '').trim() === 'Nije potvrđen dolazak u roku'
-                ? 'Otkazano (nepotvrđen dolazak)'
-                : t(`myReservations.status.${item.status}` as any)
-            }
+            label={statusLabel}
             variant={getStatusVariant(item.status)}
             status={item.status}
           />
@@ -340,11 +468,11 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
               <View style={styles.infoRow}>
                 <Ionicons name="cash-outline" size={16} color={colors.textSecondary} />
                 <Text style={[styles.infoText, { color: colors.text }]}>
-                  Procjenjeni trošak: {estimatedCost.toFixed(2)} KM
+                  {t('myReservations.estimatedCost', { amount: estimatedCost.toFixed(2) })}
                 </Text>
               </View>
               <Text style={[styles.estimateHint, { color: colors.textMuted }]}>
-                Cijena može varirati ovisno o utrošenom materijalu i vremenu.
+                {t('myReservations.estimatedCostHint')}
               </Text>
             </View>
           ) : null}
@@ -364,7 +492,7 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
             <View style={styles.infoRow}>
               <Ionicons name="alert-circle-outline" size={16} color={colors.warning} />
               <Text style={[styles.infoText, { color: colors.warning }]}>
-                Novi termin čeka potvrdu.
+                {t('myReservations.reschedulePending')}
               </Text>
             </View>
           )}
@@ -383,13 +511,13 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
           {item.rescheduleStatus === 'PENDING' && (
             <>
               <Button
-                title="Potvrdi termin"
+                title={t('myReservations.rescheduleAccept')}
                 onPress={() => handleAcceptReschedule(item)}
                 size="sm"
                 variant="primary"
               />
               <Button
-                title="Odbij"
+                title={t('myReservations.rescheduleDecline')}
                 onPress={() => handleDeclineReschedule(item)}
                 size="sm"
                 variant="ghost"
@@ -489,17 +617,17 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
           {(!loadError || visibleReservations.length > 0) ? activeReservation ? (
             <View style={styles.featuredWrap}>
               <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
-                Trenutna rezervacija
+                {t('myReservations.activeTitle')}
               </Text>
               {renderReservationCard(activeReservation, true)}
             </View>
           ) : (
             <Card style={styles.featuredCtaCard}>
               <Text style={[styles.featuredCtaTitle, { color: colors.text }]}>
-                Nemate aktivnu rezervaciju
+                {t('myReservations.noActiveTitle')}
               </Text>
               <Text style={[styles.featuredCtaDesc, { color: colors.textSecondary }]}>
-                Rezervišite termin i pratite status na jednom mjestu.
+                {t('myReservations.noActiveMessage')}
               </Text>
               <Button
                 title={t('home.bookNow')}
@@ -544,7 +672,16 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
       }}
     />
 
-    <Modal visible={!!cancelModalReservation} animationType="slide" transparent>
+    <Modal
+      visible={
+        !!cancelModalReservation &&
+        !!cancelModalOwner &&
+        cancelModalOwner.userId === userId &&
+        cancelModalOwner.routeKey === route.key
+      }
+      animationType="slide"
+      transparent
+    >
       <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}

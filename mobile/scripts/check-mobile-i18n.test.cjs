@@ -45,6 +45,7 @@ test('guard ignores translation keys, identifiers, and non-copy configuration li
         <View style={{ boxShadow: '0 0 10px rgba(0,0,0,0.25)' }} />
         <Text>{status === 'COMPLETED' ? '✓' : value.toFixed(2)}</Text>
         {navigation.navigate('Contact')}
+        {navigation.navigate('ServicesTab', { screen: 'Reservation', params: { origin: 'reservations' } })}
       </>
     );
     type RouteProps = ProfileScreenProps<'Profile'>;

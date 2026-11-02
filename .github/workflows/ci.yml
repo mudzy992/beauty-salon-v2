@@ -404,6 +404,9 @@ jobs:
       - name: Test Bosnian My Reservations copy
         working-directory: mobile
         run: npm run test:my-reservations-copy-i18n
+      - name: Test My Reservations action identity guards
+        working-directory: mobile
+        run: npm run test:my-reservations-identity
       - name: Test reservation benefit read recovery
         working-directory: mobile
         run: npm run test:reservation-benefit-recovery
