@@ -21,7 +21,7 @@
 4. **Upload root je javno statički poslužen** i uključuje dokumente; delete endpoint nema vlasničku/reference provjeru.
 5. **Finansijski/booking side-effecti nisu svi u jednoj transakciji/outbox-u**, a repayment nema status uslov u samom update-u; retry/race scenariji mogu ostaviti netačne ili duplirane zapise.
 6. **Odabrani source-token kontrastni parovi sada prolaze, ali rendered/browser accessibility acceptance još nije urađen. Web BS/EN parity prolazi kao source gate (2.139 leaf ključeva po jeziku); web lokalizacija se nastavlja inkrementalno, uključujući finansijske liste, forme, KIF/KUF detalje/izvoze i izbor perioda knjige. Širi hard-coded web pregled, ručna provjera language-switcha i odluka o mobile jeziku ostaju otvoreni. Postojeći critical/high npm advisory-ji i dalje zahtijevaju zasebnu procjenu.**
-7. **API-03 — recenzija je vezana za vlastitu završenu rezervaciju, a javni prikaz sadrži samo odobrene i provjerene recenzije.** Pravilo vlasnika je implementirano i CI-potvrđeno u runu `41455376570`; stare recenzije ostaju neprovjerene, ali vidljive administratoru. Migracija korisničke baze, read-only provjera duplikata i eventualno čišćenje, deployment te vlasnikov developer build i provjera fizičkog uređaja ostaju zasebni koraci.
+7. **API-03 — recenzija je vezana za vlastitu završenu rezervaciju, a javni prikaz sadrži samo odobrene i provjerene recenzije.** Pravilo vlasnika je implementirano i CI-potvrđeno u runu `41455376570`; stare recenzije ostaju neprovjerene, ali vidljive administratoru. Vlasnik je 2026-11-02 prijavio da su read-only provjera i čišćenje isključivo testnih rezervacijskih podataka završeni te da je `migrate deploy` prošao za API-03 i OPS-01. Ovo je vlasnički izvještaj, ne nezavisna provjera baze ili deploymenta; browser, native/uređaj i deployment acceptance ostaju zasebni.
 
 ## P0 — hitna zaštita / incident review
 
@@ -389,15 +389,17 @@ Svaki rezultat traži posebnu odluku vlasnika o čišćenju prije ponovnog poku�
 
 **Read-only duplicate preflight (vlasnik/DBA izvršava nad ciljnom bazom prije migracije):**
 ```sql
-SELECT "reservationId", COUNT(*) AS "entryCount"
-FROM "DailyLogEntry"
+SELECT "reservation_id", COUNT(*) AS "entry_count"
+FROM "daily_log_entries"
 WHERE "kind" = 'SERVICE'
-  AND "reservationId" IS NOT NULL
-GROUP BY "reservationId"
+  AND "reservation_id" IS NOT NULL
+GROUP BY "reservation_id"
 HAVING COUNT(*) > 1
-ORDER BY "entryCount" DESC, "reservationId";
+ORDER BY "entry_count" DESC, "reservation_id";
 ```
 Upit samo čita podatke. Svaki rezultat blokira primjenu dok vlasnik/DBA ne odredi i odobri korektivni postupak; agent neće mijenjati korisničku/shared bazu niti pokretati migraciju.
+
+**Ciljna baza — vlasnički prijavljen ishod (2026-11-02):** preflight je vratio jednu grupu od šest `SERVICE` zapisa vezanih za istu testnu rezervaciju; svih šest su bili `PENDING` i soft-deleted. Vlasnik je potvrdio da su rezervacije testne, odobrio čišćenje tih podataka, potom prijavio uspješan `migrate deploy`. Nije bilo charge-a kroz rezervacije prema vlasničkoj potvrdi. Agent nije pristupio bazi niti izvršio čišćenje/migraciju; ovaj izvještaj nije nezavisno potvrđen.
 
 ### OPS-02 — Multi-recipient notifications/campaigns rade sekvencijalno u request-u bez queue/retry contract-a
 
