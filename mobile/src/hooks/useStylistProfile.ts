@@ -33,6 +33,12 @@ function extractStylistProfile(payload: unknown): StylistProfile | null {
   return null;
 }
 
+function isOwnedByUser(profile: unknown, userId: string): profile is StylistProfile {
+  if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return false;
+  const ownerId = (profile as { userId?: unknown }).userId;
+  return typeof ownerId === 'string' && ownerId === userId;
+}
+
 export function useStylistProfile() {
   const userId = useAuthStore((state) => state.user?.id ?? null);
   const [profile, setProfile] = useState<StylistProfile | null>(null);
@@ -71,7 +77,7 @@ export function useStylistProfile() {
       const { data } = await api.get<unknown>('/api/stylists/me');
       if (!isCurrentRequest()) return;
       const parsed = extractStylistProfile(data);
-      if (parsed) {
+      if (parsed && isOwnedByUser(parsed, currentUserId)) {
         setProfile(parsed);
         setProfileOwnerUserId(currentUserId);
         return;
@@ -91,11 +97,14 @@ export function useStylistProfile() {
         (typeof mePayload?.data?.id === 'string' && mePayload.data.id) ||
         (typeof mePayload?.data?.user?.id === 'string' && mePayload.data.user.id);
       if (!userIdFromProfile) throw new Error('USER_ID_NOT_FOUND');
+      if (userIdFromProfile !== currentUserId) throw new Error('PROFILE_USER_ID_MISMATCH');
 
-      const byUser = await api.get<unknown>(`/api/stylists/user/${encodeURIComponent(userIdFromProfile)}`);
+      const byUser = await api.get<unknown>(`/api/stylists/user/${encodeURIComponent(currentUserId)}`);
       if (!isCurrentRequest()) return;
       const parsedByUser = extractStylistProfile(byUser.data);
-      if (!parsedByUser) throw new Error('STYLIST_PROFILE_NOT_FOUND');
+      if (!parsedByUser || !isOwnedByUser(parsedByUser, currentUserId)) {
+        throw new Error('STYLIST_PROFILE_NOT_FOUND');
+      }
       setProfile(parsedByUser);
       setProfileOwnerUserId(currentUserId);
     } catch (error: unknown) {
