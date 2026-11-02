@@ -21,6 +21,10 @@ describe('AuthController rate-limit policies', () => {
       route: 'sendVerificationEmail' as const,
       buckets: ['auth:send-verification:user', 'auth:send-verification:ip'],
     },
+    {
+      route: 'verifyEmail' as const,
+      buckets: ['auth:verify-email:user', 'auth:verify-email:ip'],
+    },
   ])(
     '$route has independent rate limits for each identity',
     ({ route, buckets }) => {
@@ -57,8 +61,14 @@ describe('AuthController rate-limit policies', () => {
     ]);
   });
 
-  it('limits email verification attempts by source IP', () => {
+  it('limits email verification by authenticated user and source IP', () => {
     expect(policiesFor('verifyEmail')).toMatchObject([
+      {
+        bucket: 'auth:verify-email:user',
+        limit: 10,
+        windowSeconds: 900,
+        identity: 'user',
+      },
       {
         bucket: 'auth:verify-email:ip',
         limit: 10,

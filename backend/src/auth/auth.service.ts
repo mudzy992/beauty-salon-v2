@@ -273,18 +273,25 @@ export class AuthService {
     };
   }
 
-  async verifyEmail(token: string): Promise<{ message: string }> {
+  async verifyEmail(
+    userId: string,
+    token: string,
+  ): Promise<{ message: string }> {
     if (!/^\d{6}$/.test(token)) {
       throw new BadRequestException(
         'Kod nije ispravan ili je istekao. Zatražite novi kod.',
       );
     }
     const now = new Date();
+    const tokenDigest = this.hashVerificationCode(token);
     const user = await this.prisma.user.findFirst({
       where: {
-        emailVerificationToken: this.hashVerificationCode(token),
+        id: userId,
+        isEmailVerified: false,
+        emailVerificationToken: tokenDigest,
         emailVerificationExpiresAt: { gt: now },
       },
+      select: { id: true, emailVerificationExpiresAt: true },
     });
     const maximumExpiry =
       now.getTime() + EMAIL_VERIFICATION_EXPIRY_MINUTES * 60 * 1000;
@@ -297,14 +304,24 @@ export class AuthService {
         'Kod nije ispravan ili je istekao. Zatražite novi kod.',
       );
     }
-    await this.prisma.user.update({
-      where: { id: user.id },
+    const consumed = await this.prisma.user.updateMany({
+      where: {
+        id: userId,
+        isEmailVerified: false,
+        emailVerificationToken: tokenDigest,
+        emailVerificationExpiresAt: { gt: now },
+      },
       data: {
         isEmailVerified: true,
         emailVerificationToken: null,
         emailVerificationExpiresAt: null,
       },
     });
+    if (consumed.count !== 1) {
+      throw new BadRequestException(
+        'Kod nije ispravan ili je istekao. Zatražite novi kod.',
+      );
+    }
     return { message: 'Email adresa je uspješno potvrđena.' };
   }
 

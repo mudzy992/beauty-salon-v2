@@ -41,6 +41,7 @@ const mockPrisma = {
     findUnique: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    updateMany: jest.fn(),
   },
   role: { findUnique: jest.fn() },
 };
@@ -248,13 +249,31 @@ describe('AuthService', () => {
         id: 'u1',
         emailVerificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
       });
-      mockPrisma.user.update.mockResolvedValue({});
+      mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
 
-      await expect(service.verifyEmail('123456')).resolves.toMatchObject({
+      await expect(service.verifyEmail('u1', '123456')).resolves.toMatchObject({
         message: 'Email adresa je uspješno potvrđena.',
       });
-      expect(mockPrisma.user.update).toHaveBeenCalledWith({
-        where: { id: 'u1' },
+      const expectedDigest = crypto
+        .createHmac('sha256', 'test-secret')
+        .update('email-verification:v1:123456')
+        .digest('hex');
+      expect(mockPrisma.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'u1',
+          isEmailVerified: false,
+          emailVerificationToken: expectedDigest,
+          emailVerificationExpiresAt: { gt: expect.any(Date) },
+        },
+        select: { id: true, emailVerificationExpiresAt: true },
+      });
+      expect(mockPrisma.user.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'u1',
+          isEmailVerified: false,
+          emailVerificationToken: expectedDigest,
+          emailVerificationExpiresAt: { gt: expect.any(Date) },
+        },
         data: {
           isEmailVerified: true,
           emailVerificationToken: null,
@@ -264,7 +283,7 @@ describe('AuthService', () => {
     });
 
     it('rejects malformed codes before database access', async () => {
-      await expect(service.verifyEmail('not-six-digits')).rejects.toThrow(
+      await expect(service.verifyEmail('u1', 'not-six-digits')).rejects.toThrow(
         BadRequestException,
       );
       expect(mockPrisma.user.findFirst).not.toHaveBeenCalled();
@@ -276,7 +295,7 @@ describe('AuthService', () => {
         emailVerificationExpiresAt: new Date(Date.now() + 60 * 60 * 1000),
       });
 
-      await expect(service.verifyEmail('123456')).rejects.toThrow(
+      await expect(service.verifyEmail('u1', '123456')).rejects.toThrow(
         BadRequestException,
       );
       const expectedDigest = crypto
@@ -285,11 +304,26 @@ describe('AuthService', () => {
         .digest('hex');
       expect(mockPrisma.user.findFirst).toHaveBeenCalledWith({
         where: {
+          id: 'u1',
+          isEmailVerified: false,
           emailVerificationToken: expectedDigest,
           emailVerificationExpiresAt: { gt: expect.any(Date) },
         },
+        select: { id: true, emailVerificationExpiresAt: true },
       });
-      expect(mockPrisma.user.update).not.toHaveBeenCalled();
+      expect(mockPrisma.user.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects a code if its conditional single-use consume loses a race', async () => {
+      mockPrisma.user.findFirst.mockResolvedValue({
+        id: 'u1',
+        emailVerificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      });
+      mockPrisma.user.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.verifyEmail('u1', '123456')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 

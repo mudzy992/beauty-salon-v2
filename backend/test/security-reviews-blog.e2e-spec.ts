@@ -3,7 +3,7 @@ jest.mock('../src/blog/utils/sanitize-blog-content', () => ({
   sanitizeBlogContent: (content: string) => content,
 }));
 
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import { appendFile, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -186,7 +186,7 @@ const fixtureIds: FixtureIds = {
   reservationIds: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, API-02, OPS-03, BIZ-01–BIZ-05, BIZ-07–BIZ-08', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, AUTH-01, SEC-04/PRIV-01, SEC-07, API-02, OPS-03, BIZ-01–BIZ-05, BIZ-07–BIZ-08', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -2199,6 +2199,62 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-04/PRIV-01, SEC-07, A
       .get('/api/users/clients/admin')
       .set('Authorization', `Bearer ${systemAdminToken}`)
       .expect(200);
+  });
+
+  it('scopes email verification to the authenticated account and consumes the code atomically', async () => {
+    const code = '438271';
+    const digest = createHmac('sha256', TEST_JWT_SECRET)
+      .update(`email-verification:v1:${code}`)
+      .digest('hex');
+    await prisma!.user.update({
+      where: { id: fixtureIds.ownerUserId! },
+      data: {
+        isEmailVerified: false,
+        emailVerificationToken: digest,
+        emailVerificationExpiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      },
+    });
+
+    await request(getHttpServer(app!))
+      .post('/auth/verify-email')
+      .send({ token: code })
+      .expect(401);
+    await request(getHttpServer(app!))
+      .post('/auth/verify-email')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .send({ token: code })
+      .expect(400);
+    expect(
+      await prisma!.user.findUnique({
+        where: { id: fixtureIds.ownerUserId! },
+        select: { isEmailVerified: true, emailVerificationToken: true },
+      }),
+    ).toEqual({ isEmailVerified: false, emailVerificationToken: digest });
+
+    await request(getHttpServer(app!))
+      .post('/auth/verify-email')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ token: code })
+      .expect(201);
+    expect(
+      await prisma!.user.findUnique({
+        where: { id: fixtureIds.ownerUserId! },
+        select: {
+          isEmailVerified: true,
+          emailVerificationToken: true,
+          emailVerificationExpiresAt: true,
+        },
+      }),
+    ).toEqual({
+      isEmailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationExpiresAt: null,
+    });
+    await request(getHttpServer(app!))
+      .post('/auth/verify-email')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ token: code })
+      .expect(400);
   });
 
   it('allows self/admin user detail, denies other-client/stylist access, and omits credentials', async () => {

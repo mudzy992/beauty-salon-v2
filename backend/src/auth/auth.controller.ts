@@ -32,6 +32,7 @@ import {
   AUTH_SEND_VERIFICATION_USER_LIMIT,
   AUTH_SEND_VERIFICATION_USER_WINDOW_SECONDS,
   AUTH_VERIFY_EMAIL_IP_LIMIT,
+  AUTH_VERIFY_EMAIL_USER_LIMIT,
   AUTH_VERIFY_EMAIL_WINDOW_SECONDS,
 } from '../common/rate-limiting/http-rate-limit.constants';
 
@@ -149,15 +150,26 @@ export class AuthController {
     return this.authService.sendVerificationEmail(user.sub);
   }
 
-  @Public()
   @Post('verify-email')
-  @HttpRateLimit({
-    bucket: 'auth:verify-email:ip',
-    limit: AUTH_VERIFY_EMAIL_IP_LIMIT,
-    windowSeconds: AUTH_VERIFY_EMAIL_WINDOW_SECONDS,
-    identity: 'ip',
-  })
-  async verifyEmail(@Body() dto: VerifyEmailDto) {
-    return this.authService.verifyEmail(dto.token);
+  @UseGuards(JwtAuthGuard)
+  @HttpRateLimit([
+    {
+      bucket: 'auth:verify-email:user',
+      limit: AUTH_VERIFY_EMAIL_USER_LIMIT,
+      windowSeconds: AUTH_VERIFY_EMAIL_WINDOW_SECONDS,
+      identity: 'user',
+    },
+    {
+      bucket: 'auth:verify-email:ip',
+      limit: AUTH_VERIFY_EMAIL_IP_LIMIT,
+      windowSeconds: AUTH_VERIFY_EMAIL_WINDOW_SECONDS,
+      identity: 'ip',
+    },
+  ])
+  async verifyEmail(
+    @Body() dto: VerifyEmailDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.authService.verifyEmail(user.sub, dto.token);
   }
 }
