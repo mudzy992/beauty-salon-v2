@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,36 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
   const { colors } = useTheme();
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { user, refreshProfile } = useAuthStore();
+  const userId = user?.id ?? null;
+  const actionIdentityRef = useRef({ userId, generation: 0, mounted: true });
+  if (actionIdentityRef.current.userId !== userId) {
+    actionIdentityRef.current = {
+      userId,
+      generation: actionIdentityRef.current.generation + 1,
+      mounted: actionIdentityRef.current.mounted,
+    };
+  }
+  useEffect(() => {
+    actionIdentityRef.current.mounted = true;
+    return () => {
+      actionIdentityRef.current.mounted = false;
+      actionIdentityRef.current.generation += 1;
+    };
+  }, []);
+  const captureActionIdentity = useCallback(
+    () => ({ userId, generation: actionIdentityRef.current.generation }),
+    [userId],
+  );
+  const isCurrentAction = useCallback((identity: ReturnType<typeof captureActionIdentity>) => {
+    const current = actionIdentityRef.current;
+    return (
+      current.mounted &&
+      current.userId === identity.userId &&
+      identity.userId === userId &&
+      current.generation === identity.generation &&
+      useAuthStore.getState().user?.id === identity.userId
+    );
+  }, [userId]);
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarPrivacySaving, setAvatarPrivacySaving] = useState(false);
   const [verifyModalVisible, setVerifyModalVisible] = useState(false);
@@ -53,12 +83,21 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
     setGenderInput(
       user?.gender === 'MALE' || user?.gender === 'FEMALE' ? user.gender : '',
     );
-  }, [user?.email, user?.phone, user?.gender]);
+    setVerifyModalVisible(false);
+    setVerifyCode('');
+    setAvatarLoading(false);
+    setAvatarPrivacySaving(false);
+    setVerifySending(false);
+    setVerifySubmitting(false);
+    setProfileSaving(false);
+  }, [user?.id, user?.email, user?.phone, user?.gender]);
 
   const pickAndUploadAvatar = useCallback(async () => {
-    if (!user?.id) return;
+    const identity = captureActionIdentity();
+    if (!identity.userId || !isCurrentAction(identity)) return;
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!isCurrentAction(identity)) return;
       if (status !== 'granted') {
         Alert.alert(t('common.error'), t('profile.galleryPermission'));
         return;
@@ -69,7 +108,7 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
         aspect: [1, 1],
         quality: 0.8,
       });
-      if (result.canceled || !result.assets?.[0]?.uri) return;
+      if (!isCurrentAction(identity) || result.canceled || !result.assets?.[0]?.uri) return;
 
       const asset = result.assets[0];
       const assetName = asset.fileName?.trim() || asset.uri.split(/[?#]/, 1)[0];
@@ -95,41 +134,59 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
         name: fileName,
         type: mimeType,
       } as unknown as Blob);
+      if (!isCurrentAction(identity)) return;
       await api.post('/api/users/profile/avatar', formData);
+      if (!isCurrentAction(identity)) return;
       await refreshProfile();
+      if (!isCurrentAction(identity)) return;
     } catch (err: unknown) {
-      Alert.alert(t('common.error'), getApiErrorMessage(err, t('profile.avatarUploadError')));
+      if (isCurrentAction(identity)) {
+        Alert.alert(t('common.error'), getApiErrorMessage(err, t('profile.avatarUploadError')));
+      }
     } finally {
-      setAvatarLoading(false);
+      if (isCurrentAction(identity)) setAvatarLoading(false);
     }
-  }, [user?.id, refreshProfile, t]);
+  }, [captureActionIdentity, isCurrentAction, refreshProfile, t]);
 
   const handleAvatarPublicChange = useCallback(async (isAvatarPublic: boolean) => {
+    const identity = captureActionIdentity();
+    if (!identity.userId || !isCurrentAction(identity)) return;
     setAvatarPrivacySaving(true);
     try {
       await api.patch('/api/users/profile/avatar-visibility', { isAvatarPublic });
+      if (!isCurrentAction(identity)) return;
       await refreshProfile();
+      if (!isCurrentAction(identity)) return;
     } catch (err: unknown) {
-      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
+      if (isCurrentAction(identity)) {
+        Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
+      }
     } finally {
-      setAvatarPrivacySaving(false);
+      if (isCurrentAction(identity)) setAvatarPrivacySaving(false);
     }
-  }, [refreshProfile, t]);
+  }, [captureActionIdentity, isCurrentAction, refreshProfile, t]);
 
   const handleSendVerificationCode = useCallback(async () => {
+    const identity = captureActionIdentity();
+    if (!identity.userId || !isCurrentAction(identity)) return;
     setVerifySending(true);
     try {
       await api.post('/auth/send-verification-email');
+      if (!isCurrentAction(identity)) return;
       Alert.alert(t('common.ok'), t('profile.verifyEmailCodeSent'));
       setVerifyModalVisible(true);
     } catch (err: unknown) {
-      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
+      if (isCurrentAction(identity)) {
+        Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
+      }
     } finally {
-      setVerifySending(false);
+      if (isCurrentAction(identity)) setVerifySending(false);
     }
-  }, [t]);
+  }, [captureActionIdentity, isCurrentAction, t]);
 
   const handleVerifyCode = useCallback(async () => {
+    const identity = captureActionIdentity();
+    if (!identity.userId || !isCurrentAction(identity)) return;
     const code = verifyCode.trim();
     if (!code || code.length !== 6) {
       Alert.alert(t('common.error'), t('profile.verifyEmailEnterCode'));
@@ -138,18 +195,24 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
     setVerifySubmitting(true);
     try {
       await api.post('/auth/verify-email', { token: code });
+      if (!isCurrentAction(identity)) return;
       setVerifyModalVisible(false);
       setVerifyCode('');
       await refreshProfile();
+      if (!isCurrentAction(identity)) return;
       Alert.alert(t('common.ok'), t('profile.verifyEmailSuccess'));
     } catch (err: unknown) {
-      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
+      if (isCurrentAction(identity)) {
+        Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
+      }
     } finally {
-      setVerifySubmitting(false);
+      if (isCurrentAction(identity)) setVerifySubmitting(false);
     }
-  }, [verifyCode, refreshProfile, t]);
+  }, [captureActionIdentity, isCurrentAction, verifyCode, refreshProfile, t]);
 
   const handleSaveProfile = useCallback(async () => {
+    const identity = captureActionIdentity();
+    if (!identity.userId || !isCurrentAction(identity)) return;
     if (!genderInput) {
       Alert.alert(t('common.error'), t('profile.genderRequiredReservations'));
       return;
@@ -161,14 +224,18 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
         phone: phoneInput,
         gender: genderInput,
       });
+      if (!isCurrentAction(identity)) return;
       await refreshProfile();
+      if (!isCurrentAction(identity)) return;
       Alert.alert(t('common.ok'), t('profile.contactUpdated'));
     } catch (err: unknown) {
-      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
+      if (isCurrentAction(identity)) {
+        Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
+      }
     } finally {
-      setProfileSaving(false);
+      if (isCurrentAction(identity)) setProfileSaving(false);
     }
-  }, [emailInput, phoneInput, genderInput, refreshProfile, t]);
+  }, [captureActionIdentity, isCurrentAction, emailInput, phoneInput, genderInput, refreshProfile, t]);
 
   return (
     <ScrollView

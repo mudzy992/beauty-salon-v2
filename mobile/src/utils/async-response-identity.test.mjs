@@ -155,6 +155,39 @@ test('stylist reschedule proposal reads and confirmation mutation stay bound to 
   assert.match(screen, /await api\.post\(`\/api\/reservations\/\$\{reservationId\}\/reschedule\/commit`[\s\S]*?if \(!action\.isCurrent\(\)\) return;/);
 });
 
+test('client profile edits, verification, avatar, and media-consent actions stay bound to the current account and mount', () => {
+  const editProfile = source('../screens/client/EditProfileScreen.tsx');
+  assert.match(editProfile, /const userId = user\?\.id \?\? null/);
+  assert.match(editProfile, /actionIdentityRef\.current\.userId !== userId/);
+  assert.match(editProfile, /actionIdentityRef\.current\.mounted = false;[\s\S]*actionIdentityRef\.current\.generation \+= 1/);
+  assert.match(editProfile, /useAuthStore\.getState\(\)\.user\?\.id === identity\.userId/);
+  assert.match(editProfile, /\}, \[user\?\.id, user\?\.email, user\?\.phone, user\?\.gender\]\)/);
+  for (const endpoint of [
+    '/api/users/profile/avatar',
+    '/api/users/profile/avatar-visibility',
+    '/auth/send-verification-email',
+    '/auth/verify-email',
+    '/api/users/profile',
+  ]) {
+    const escaped = endpoint.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(editProfile, new RegExp(`await api\\.(?:post|patch|put)\\(\\s*['\"]${escaped}['\"][\\s\\S]{0,300}if \\(!isCurrentAction\\(identity\\)\\) return;`), endpoint);
+  }
+  assert.match(editProfile, /await ImagePicker\.requestMediaLibraryPermissionsAsync\(\);\s*if \(!isCurrentAction\(identity\)\) return;/);
+  assert.match(editProfile, /await ImagePicker\.launchImageLibraryAsync\([\s\S]*?if \(!isCurrentAction\(identity\) \|\| result\.canceled/);
+  assert.match(editProfile, /finally \{\s*if \(isCurrentAction\(identity\)\) set(?:AvatarLoading|AvatarPrivacySaving|VerifySending|VerifySubmitting|ProfileSaving)\(false\)/);
+
+  const profile = source('../screens/client/ProfileScreen.tsx');
+  assert.match(profile, /actionIdentityRef\.current\.userId !== userId/);
+  assert.match(profile, /useAuthStore\.getState\(\)\.user\?\.id === identity\.userId/);
+  assert.match(profile, /onPress: \(\) => \{\s*if \(isCurrentAction\(identity\)\) logout\(\);/);
+  assert.match(profile, /mediaConsentActionStateRef\.current = \{[\s\S]*ownerId: userId,[\s\S]*consent: visibleMediaConsent/);
+  assert.match(profile, /current\.ownerId === identity\.userId[\s\S]*current\.consent\?\.policyVersion === policyVersion/);
+  assert.match(profile, /await api\.post\(`\/api\/media\/consents\/\$\{encodeURIComponent\(item\.imageId\)\}\/grant`[\s\S]*?if \(!isCurrentConsentAction\(\)\) return;/);
+  assert.match(profile, /onPress: \(\) => \{\s*if \(!isCurrentConsentAction\(\)\) return;/);
+  assert.match(profile, /await api\.delete\(`\/api\/media\/consents\/\$\{encodeURIComponent\(item\.imageId\)\}`\);\s*if \(!isCurrentConsentAction\(\)\) return;/);
+  assert.match(profile, /finally \{\s*if \(isCurrentAction\(identity\)\) setMediaConsentSavingId\(null\)/);
+});
+
 test('gallery requests are invalidated on route changes and unmount', () => {
   for (const path of [
     '../screens/client/ServiceWorkGalleryScreen.tsx',

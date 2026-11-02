@@ -99,15 +99,63 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
   const [mediaConsentMessage, setMediaConsentMessage] = useState('');
   const mediaConsentGeneration = useRef(0);
   const debtsGeneration = useRef(0);
+  const actionIdentityRef = useRef({ userId, generation: 0, mounted: true });
+  if (actionIdentityRef.current.userId !== userId) {
+    actionIdentityRef.current = {
+      userId,
+      generation: actionIdentityRef.current.generation + 1,
+      mounted: actionIdentityRef.current.mounted,
+    };
+  }
   const requestOwnerId = useRef(userId);
   if (requestOwnerId.current !== userId) {
     requestOwnerId.current = userId;
     mediaConsentGeneration.current += 1;
     debtsGeneration.current += 1;
   }
+  useEffect(() => {
+    actionIdentityRef.current.mounted = true;
+    return () => {
+      actionIdentityRef.current.mounted = false;
+      actionIdentityRef.current.generation += 1;
+    };
+  }, []);
+  const captureActionIdentity = useCallback(
+    () => ({ userId, generation: actionIdentityRef.current.generation }),
+    [userId],
+  );
+  const isCurrentAction = useCallback((identity: ReturnType<typeof captureActionIdentity>) => {
+    const current = actionIdentityRef.current;
+    return (
+      current.mounted &&
+      current.userId === identity.userId &&
+      identity.userId === userId &&
+      current.generation === identity.generation &&
+      useAuthStore.getState().user?.id === identity.userId
+    );
+  }, [userId]);
+  useEffect(() => {
+    setVerifyModalVisible(false);
+    setVerifyCode('');
+    setVerifySending(false);
+    setVerifySubmitting(false);
+    setMediaConsentSavingId(null);
+    setMediaConsentAccepted({});
+    setMediaConsentMessage('');
+  }, [userId]);
   const isClient = userIsClient(user);
   const visibleOpenDebts = openDebtsOwnerId === userId ? openDebts : [];
   const visibleMediaConsent = mediaConsentOwnerId === userId ? mediaConsent : null;
+  const mediaConsentActionStateRef = useRef({
+    ownerId: userId,
+    consent: visibleMediaConsent,
+    accepted: mediaConsentAccepted,
+  });
+  mediaConsentActionStateRef.current = {
+    ownerId: userId,
+    consent: visibleMediaConsent,
+    accepted: mediaConsentAccepted,
+  };
 
   const loadMediaConsent = useCallback(async () => {
     if (requestOwnerId.current !== userId) return false;
@@ -193,26 +241,41 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
         : t('profile.themeSystem');
 
   const handleLogout = () => {
+    const identity = captureActionIdentity();
+    if (!identity.userId || !isCurrentAction(identity)) return;
     Alert.alert(t('auth.logout'), t('auth.logoutConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('auth.logout'), style: 'destructive', onPress: logout },
+      {
+        text: t('auth.logout'),
+        style: 'destructive',
+        onPress: () => {
+          if (isCurrentAction(identity)) logout();
+        },
+      },
     ]);
   };
 
   const handleSendVerificationCode = useCallback(async () => {
+    const identity = captureActionIdentity();
+    if (!identity.userId || !isCurrentAction(identity)) return;
     setVerifySending(true);
     try {
       await api.post('/auth/send-verification-email');
+      if (!isCurrentAction(identity)) return;
       Alert.alert(t('common.ok'), t('profile.verifyEmailCodeSent'));
       setVerifyModalVisible(true);
     } catch (err: unknown) {
-      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
+      if (isCurrentAction(identity)) {
+        Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
+      }
     } finally {
-      setVerifySending(false);
+      if (isCurrentAction(identity)) setVerifySending(false);
     }
-  }, [t]);
+  }, [captureActionIdentity, isCurrentAction, t]);
 
   const handleVerifyCode = useCallback(async () => {
+    const identity = captureActionIdentity();
+    if (!identity.userId || !isCurrentAction(identity)) return;
     const code = verifyCode.trim();
     if (!code || code.length !== 6) {
       Alert.alert(t('common.error'), t('profile.verifyEmailEnterCode'));
@@ -221,37 +284,80 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
     setVerifySubmitting(true);
     try {
       await api.post('/auth/verify-email', { token: code });
+      if (!isCurrentAction(identity)) return;
       setVerifyModalVisible(false);
       setVerifyCode('');
       await refreshProfile();
+      if (!isCurrentAction(identity)) return;
       Alert.alert(t('common.ok'), t('profile.verifyEmailSuccess'));
     } catch (err: unknown) {
-      Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
+      if (isCurrentAction(identity)) {
+        Alert.alert(t('common.error'), getApiErrorMessage(err, t('common.error')));
+      }
     } finally {
-      setVerifySubmitting(false);
+      if (isCurrentAction(identity)) setVerifySubmitting(false);
     }
-  }, [verifyCode, refreshProfile, t]);
+  }, [captureActionIdentity, isCurrentAction, verifyCode, refreshProfile, t]);
 
   const grantMediaConsent = useCallback(async (item: ConsentItem) => {
-    if (!visibleMediaConsent || !mediaConsentAccepted[item.imageId]) return;
+    const identity = captureActionIdentity();
+    const consent = visibleMediaConsent;
+    if (
+      !identity.userId ||
+      !consent ||
+      !mediaConsentAccepted[item.imageId] ||
+      !consent.pending.some((pending) => pending.imageId === item.imageId) ||
+      !isCurrentAction(identity)
+    ) return;
+    const policyVersion = consent.policyVersion;
+    const isCurrentConsentAction = () => {
+      const current = mediaConsentActionStateRef.current;
+      return (
+        isCurrentAction(identity) &&
+        current.ownerId === identity.userId &&
+        current.consent?.policyVersion === policyVersion &&
+        current.consent.pending.some((pending) => pending.imageId === item.imageId) &&
+        current.accepted[item.imageId] === true
+      );
+    };
     setMediaConsentSavingId(item.imageId);
     setMediaConsentMessage('');
     try {
       await api.post(`/api/media/consents/${encodeURIComponent(item.imageId)}/grant`, {
-        policyVersion: visibleMediaConsent.policyVersion,
+        policyVersion,
       });
+      if (!isCurrentConsentAction()) return;
       const refreshed = await loadMediaConsent();
+      if (!isCurrentAction(identity)) return;
       setMediaConsentMessage(
         t(refreshed ? 'profile.mediaConsent.saveSuccess' : 'profile.mediaConsent.saveRefreshError'),
       );
     } catch (error: unknown) {
-      setMediaConsentMessage(getApiErrorMessage(error, t('profile.mediaConsent.saveError')));
+      if (isCurrentAction(identity)) {
+        setMediaConsentMessage(getApiErrorMessage(error, t('profile.mediaConsent.saveError')));
+      }
     } finally {
-      setMediaConsentSavingId(null);
+      if (isCurrentAction(identity)) setMediaConsentSavingId(null);
     }
-  }, [loadMediaConsent, visibleMediaConsent, mediaConsentAccepted, t]);
+  }, [captureActionIdentity, isCurrentAction, loadMediaConsent, visibleMediaConsent, mediaConsentAccepted, t]);
 
   const revokeMediaConsent = useCallback((item: ConsentItem) => {
+    const identity = captureActionIdentity();
+    if (
+      !identity.userId ||
+      !visibleMediaConsent?.active.some((active) => active.imageId === item.imageId) ||
+      !isCurrentAction(identity)
+    ) return;
+    const policyVersion = visibleMediaConsent.policyVersion;
+    const isCurrentConsentAction = () => {
+      const current = mediaConsentActionStateRef.current;
+      return (
+        isCurrentAction(identity) &&
+        current.ownerId === identity.userId &&
+        current.consent?.policyVersion === policyVersion &&
+        current.consent.active.some((active) => active.imageId === item.imageId)
+      );
+    };
     Alert.alert(
       t('profile.mediaConsent.revokeTitle'),
       t('profile.mediaConsent.revokeDescription'),
@@ -261,26 +367,29 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
           text: t('profile.mediaConsent.revokeAction'),
           style: 'destructive',
           onPress: () => {
+            if (!isCurrentConsentAction()) return;
             void (async () => {
               setMediaConsentSavingId(item.imageId);
               setMediaConsentMessage('');
               try {
                 await api.delete(`/api/media/consents/${encodeURIComponent(item.imageId)}`);
+                if (!isCurrentConsentAction()) return;
                 const refreshed = await loadMediaConsent();
+                if (!isCurrentAction(identity)) return;
                 setMediaConsentMessage(
                   t(refreshed ? 'profile.mediaConsent.revokeSuccess' : 'profile.mediaConsent.revokeRefreshError'),
                 );
               } catch {
-                setMediaConsentMessage(t('profile.mediaConsent.revokeError'));
+                if (isCurrentAction(identity)) setMediaConsentMessage(t('profile.mediaConsent.revokeError'));
               } finally {
-                setMediaConsentSavingId(null);
+                if (isCurrentAction(identity)) setMediaConsentSavingId(null);
               }
             })();
           },
         },
       ],
     );
-  }, [loadMediaConsent, t]);
+  }, [captureActionIdentity, isCurrentAction, loadMediaConsent, visibleMediaConsent, t]);
 
   const onboardingBasicsDone =
     user &&
