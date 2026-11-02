@@ -265,7 +265,12 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     result: Awaited<ReturnType<typeof submitClientBooking>>,
     label: string,
   ): void => {
-    if (result.response.status === 201) return;
+    if (result.response.status === 201) {
+      expect(result.response.body).not.toHaveProperty('clientViewToken');
+      expect(result.response.body).not.toHaveProperty('idempotencyKey');
+      expect(result.response.body).not.toHaveProperty('idempotencyRequestHash');
+      return;
+    }
 
     const responseBody = result.response.body as {
       error?: unknown;
@@ -3868,6 +3873,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       fixtureIds.stylistProfile!,
     );
     expect(first.status).toBe(201);
+    expect(first.body).not.toHaveProperty('clientViewToken');
+    expect(first.body).not.toHaveProperty('idempotencyKey');
+    expect(first.body).not.toHaveProperty('idempotencyRequestHash');
     if (typeof first.body?.id === 'string') {
       fixtureIds.reservationIds.push(first.body.id);
     }
@@ -3877,6 +3885,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       secondStylistProfile.id,
     );
     expect(second.status).toBe(201);
+    expect(second.body).not.toHaveProperty('clientViewToken');
+    expect(second.body).not.toHaveProperty('idempotencyKey');
+    expect(second.body).not.toHaveProperty('idempotencyRequestHash');
     if (typeof second.body?.id === 'string') {
       fixtureIds.reservationIds.push(second.body.id);
     }
@@ -4244,6 +4255,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       expect([firstAccept.status, secondAccept.status].sort()).toEqual([
         201, 400,
       ]);
+      const accepted =
+        firstAccept.status === 201 ? firstAccept.body : secondAccept.body;
+      expect(accepted).not.toHaveProperty('clientViewToken');
+      expect(accepted).not.toHaveProperty('idempotencyKey');
+      expect(accepted).not.toHaveProperty('idempotencyRequestHash');
       const finalReservations = await db.reservation.findMany({
         where: { id: { in: [firstId, secondId] } },
         select: { id: true, status: true, confirmedStylistId: true },
