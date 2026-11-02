@@ -80,11 +80,22 @@ export class AuthController {
     @UploadedFile() avatar?: Express.Multer.File,
   ) {
     let avatarPath: string | undefined;
+    let avatarUploadId: string | undefined;
     if (avatar) {
       const result = await this.uploadsService.saveFile(avatar, 'avatars');
+      avatarUploadId = result.id;
       avatarPath = result.pathThumb || result.pathSmall || result.pathOriginal;
     }
-    return this.authService.register({ ...dto, avatar: avatarPath });
+    try {
+      return await this.authService.register({ ...dto, avatar: avatarPath });
+    } catch (error) {
+      if (avatarUploadId) {
+        await this.uploadsService
+          .deleteUnreferencedUpload(avatarUploadId)
+          .catch(() => undefined);
+      }
+      throw error;
+    }
   }
 
   @Public()

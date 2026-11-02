@@ -16,6 +16,9 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'node:crypto';
 
+jest.mock('../prisma/prisma.service', () => ({
+  PrismaService: class PrismaService {},
+}));
 jest.mock('bcrypt');
 jest.mock('expo-server-sdk', () => {
   class MockExpo {
@@ -40,7 +43,6 @@ const mockPrisma = {
     update: jest.fn(),
   },
   role: { findUnique: jest.fn() },
-  userRole: { create: jest.fn() },
 };
 
 const mockJwtService = {
@@ -141,7 +143,6 @@ describe('AuthService', () => {
         userRoles: [{ role: { name: 'CLIENT' } }],
       };
       mockPrisma.user.create.mockResolvedValue(createdUser);
-      mockPrisma.userRole.create.mockResolvedValue({});
 
       const result = await service.register(validDto);
 
@@ -154,8 +155,12 @@ describe('AuthService', () => {
         lastName: validDto.lastName,
         roles: ['CLIENT'],
       });
-      expect(mockPrisma.user.create).toHaveBeenCalled();
-      expect(mockPrisma.userRole.create).toHaveBeenCalled();
+      expect(mockPrisma.user.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userRoles: { create: { roleId: 'role-1' } },
+        }),
+        include: { userRoles: { include: { role: true } } },
+      });
       expect(mockJwtService.signAsync).toHaveBeenCalledWith(
         expect.objectContaining({ sub: 'user-1', pwdv: 0 }),
         expect.any(Object),

@@ -65,14 +65,13 @@ export class AuthService {
         lastName: dto.lastName,
         phone: dto.phone ?? null,
         avatar: dto.avatar ?? null,
+        userRoles: {
+          create: { roleId: clientRole.id },
+        },
       },
       include: {
         userRoles: { include: { role: true } },
       },
-    });
-
-    await this.prisma.userRole.create({
-      data: { userId: user.id, roleId: clientRole.id },
     });
 
     const token = await this.createAccessToken(
