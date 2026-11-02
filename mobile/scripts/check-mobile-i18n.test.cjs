@@ -53,6 +53,21 @@ test('guard ignores translation keys, identifiers, and non-copy configuration li
   assert.deepEqual(scanSource(source, 'fixture.tsx', resourceKeys), []);
 });
 
+test('guard permits explicit social-network brand labels but still rejects nearby visible copy', () => {
+  const source = `
+    <>
+      <SocialLink label="Facebook" />
+      <SocialLink label="Instagram" />
+      <SocialLink label="TikTok" />
+      <Button label="Nastavi" />
+    </>
+  `;
+  assert.deepEqual(
+    scanSource(source, 'fixture.tsx', resourceKeys).map(({ value }) => value),
+    ['Nastavi'],
+  );
+});
+
 test('guard rejects a translation key that is absent from mobile resources', () => {
   const violations = scanSource("const label = t('common.missingResource');", 'fixture.tsx', resourceKeys);
   assert.equal(violations.length, 1);

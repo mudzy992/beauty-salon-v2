@@ -148,7 +148,7 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
   }, [showLinkError]);
 
   const openMaps = async () => {
-    const label = address || 'Beauty salon';
+    const label = address || t('profile.contact.salonNameFallback');
     const query = encodeURIComponent(label);
 
     const nativeUrl = hasCoords
@@ -192,7 +192,7 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
       showsVerticalScrollIndicator={false}
     >
       <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Kontakt</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profile.contact.title')}</Text>
 
         {settingsError ? (
           <View style={styles.recoveryNotice}>
@@ -266,7 +266,7 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
           >
             <Ionicons name="navigate-outline" size={18} color={colors.primary} />
             <Text style={{ color: colors.primary, fontWeight: '700' }}>
-              Navigacija (otvori u Maps)
+              {t('profile.contact.openMaps')}
             </Text>
           </TouchableOpacity>
         ) : null}
@@ -274,7 +274,7 @@ export function ContactScreen({ navigation }: ProfileScreenProps<'Contact'>) {
 
       {socials.facebook || socials.instagram || socials.tiktok ? (
         <Card style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Društvene mreže</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('profile.contact.socialTitle')}</Text>
           <View style={styles.socialRow}>
             {socials.facebook ? (
               <SocialLink label="Facebook" url={socials.facebook} icon="logo-facebook" onOpen={(url) => void openExternal(url, ['https', 'http'])} />

@@ -243,6 +243,9 @@ export const bs = {
     changePasswordLabel: 'Promijeni lozinku',
     contact: {
         title: 'Kontakt',
+        socialTitle: 'Društvene mreže',
+        openMaps: 'Navigacija (otvori u Maps)',
+        salonNameFallback: 'Salon ljepote',
         openLinkError: 'Link nije moguće otvoriti na ovom uređaju.',
         settingsLoadError: 'Kontaktne podatke nije moguće učitati.',
         workingHoursLoadError: 'Radno vrijeme trenutno nije moguće učitati.',

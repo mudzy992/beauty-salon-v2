@@ -14,6 +14,7 @@ const GUARDED_FILES = [
   'src/screens/client/MyReservationsScreen.tsx',
   'src/screens/client/ClientReservationDetailScreen.tsx',
   'src/screens/client/BlogPostScreen.tsx',
+  'src/screens/client/ContactScreen.tsx',
   'src/screens/client/EditProfileScreen.tsx',
   'src/screens/stylist/DailyLogNewEntryScreen.tsx',
   'src/screens/stylist/ReschedulePreviewScreen.tsx',
@@ -26,6 +27,8 @@ const GUARDED_FILES = [
   'src/components/SessionBootstrapNotice.tsx',
   'src/components/ProfileRefreshNotice.tsx',
 ];
+
+const NON_TRANSLATABLE_BRAND_LABELS = new Set(['Facebook', 'Instagram', 'TikTok']);
 
 const COPY_ATTRIBUTES = new Set([
   'accessibilityHint',
@@ -57,6 +60,17 @@ function looksLikeVisibleCopy(value) {
   // Catch single-word, title-cased copy such as "Loyalty", while ignoring
   // PascalCase identifiers (e.g. DailyLogDetail) and all-caps enum values.
   return /^[A-Z][a-z]+$/u.test(value);
+}
+
+function isNonTranslatableBrandLabel(node) {
+  const parent = node.parent;
+  return (
+    ts.isJsxAttribute(parent) &&
+    ts.isIdentifier(parent.name) &&
+    parent.name.text === 'label' &&
+    ts.isStringLiteral(node) &&
+    NON_TRANSLATABLE_BRAND_LABELS.has(node.text)
+  );
 }
 
 function isNavigationTargetLiteral(node) {
@@ -201,7 +215,9 @@ function scanSource(sourceText, fileName = 'source.tsx', resourceKeys) {
       if (COPY_ATTRIBUTES.has(node.name.text) && node.initializer) {
         const initializer = node.initializer;
         if (ts.isStringLiteral(initializer)) {
-          addViolation(initializer, initializer.text, `literal JSX ${node.name.text}`);
+          if (!isNonTranslatableBrandLabel(initializer)) {
+            addViolation(initializer, initializer.text, `literal JSX ${node.name.text}`);
+          }
         } else if (ts.isJsxExpression(initializer) && initializer.expression) {
           const inspectCopyExpression = (child) => {
             if (ts.isCallExpression(child) && ts.isIdentifier(child.expression) && child.expression.text === 't') {
@@ -221,7 +237,11 @@ function scanSource(sourceText, fileName = 'source.tsx', resourceKeys) {
         }
       }
     } else if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
-      if (!isNavigationTargetLiteral(node) && !isNonVisibleStyleLiteral(node)) inspectString(node);
+      if (
+        !isNavigationTargetLiteral(node) &&
+        !isNonVisibleStyleLiteral(node) &&
+        !isNonTranslatableBrandLabel(node)
+      ) inspectString(node);
     } else if (ts.isTemplateExpression(node)) {
       inspectString(node);
     }
