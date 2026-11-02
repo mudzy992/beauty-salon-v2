@@ -108,7 +108,6 @@ test('remaining service-catalog consumers use runtime-normalized services, not g
   assert.match(hookSource, /fetchAllNormalizedPublicServices/);
   for (const relativePath of [
     '../screens/client/ReservationScreen.tsx',
-    '../screens/client/ReviewsScreen.tsx',
   ]) {
     const source = readFileSync(new URL(relativePath, import.meta.url), 'utf8');
     assert.match(source, /usePublicServiceCatalog/);

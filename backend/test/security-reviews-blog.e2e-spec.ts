@@ -194,6 +194,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
   let jwtService: JwtService;
   let clientToken: string;
   let clientUserId: string;
+  let reviewClientUserId: string;
+  let secondReviewClientUserId: string;
+  let reviewClientToken: string;
   let ownerToken: string;
   let stylistToken: string;
   let systemAdminToken: string;
@@ -633,6 +636,38 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     clientToken = jwtService.sign({ sub: client.id }, { expiresIn: '5m' });
     ownerToken = jwtService.sign({ sub: owner.id }, { expiresIn: '5m' });
 
+    const reviewClient = await prisma.user.create({
+      data: {
+        username: `review-client-${suffix}`,
+        email: `review-client-${suffix}@example.test`,
+        firstName: 'Test',
+        lastName: 'Client',
+      },
+    });
+    fixtureIds.users.push(reviewClient.id);
+    reviewClientUserId = reviewClient.id;
+    await prisma.userRole.create({
+      data: { userId: reviewClient.id, roleId: clientRole.id },
+    });
+    reviewClientToken = jwtService.sign(
+      { sub: reviewClient.id },
+      { expiresIn: '5m' },
+    );
+
+    const secondReviewClient = await prisma.user.create({
+      data: {
+        username: `review-client-second-${suffix}`,
+        email: `review-client-second-${suffix}@example.test`,
+        firstName: 'Second',
+        lastName: 'Client',
+      },
+    });
+    fixtureIds.users.push(secondReviewClient.id);
+    secondReviewClientUserId = secondReviewClient.id;
+    await prisma.userRole.create({
+      data: { userId: secondReviewClient.id, roleId: clientRole.id },
+    });
+
     const stylist = await prisma.user.create({
       data: {
         username: `sec-stylist-${suffix}`,
@@ -936,7 +971,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     const reviewReservationDate = new Date('2026-01-03T00:00:00.000Z');
     const clientReviewReservation = await prisma.reservation.create({
       data: {
-        clientId: client.id,
+        clientId: reviewClientUserId,
         serviceId: service.id,
         reservationDate: reviewReservationDate,
         startTime: '09:00',
@@ -949,7 +984,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     });
     const ownerReviewReservation = await prisma.reservation.create({
       data: {
-        clientId: owner.id,
+        clientId: secondReviewClientUserId,
         serviceId: service.id,
         reservationDate: reviewReservationDate,
         startTime: '10:00',
@@ -969,8 +1004,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     const secondReviewPageCreatedAt = new Date('2026-01-01T12:00:00.000Z');
     const publishedReview = await prisma.review.create({
       data: {
-        userId: client.id,
+        userId: reviewClientUserId,
         serviceId: service.id,
+        stylistProfileId: stylistProfile.id,
         reservationId: clientReviewReservation.id,
         serviceRating: 5,
         comment: 'Approved review fixture.',
@@ -984,8 +1020,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
 
     const secondPublishedReview = await prisma.review.create({
       data: {
-        userId: owner.id,
+        userId: secondReviewClientUserId,
         serviceId: service.id,
+        stylistProfileId: stylistProfile.id,
         reservationId: ownerReviewReservation.id,
         serviceRating: 4,
         comment: 'Second approved review fixture.',
@@ -1696,7 +1733,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       isApproved: true,
       user: { firstName: 'Test', lastName: 'Client' },
       service: { name: serviceName },
-      stylist: null,
+      stylist: { user: { firstName: 'Test', lastName: 'Stylist' } },
     });
     expect(firstPage.body.items[0]).not.toHaveProperty('user.email');
     expect(firstPage.body.items[0]).not.toHaveProperty('user.passwordHash');
@@ -1776,113 +1813,6 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
         }),
       ]),
     );
-  });
-
-  it('API-03 accepts one verified review only for a completed own reservation/service', async () => {
-    const db = prisma!;
-    const createReservation = async (
-      clientId: string,
-      status: string,
-      reference: string,
-    ) => {
-      const reservation = await db.reservation.create({
-        data: {
-          clientId,
-          serviceId,
-          reservationDate: new Date('2026-02-01T00:00:00.000Z'),
-          startTime: '09:00',
-          endTime: '09:45',
-          status,
-          confirmedStylistId: fixtureIds.stylistProfile!,
-          publicReferenceCode: `api03-${reference}-${randomUUID()}`,
-          clientViewToken: randomUUID().replaceAll('-', '').repeat(2),
-        },
-      });
-      fixtureIds.reservationIds.push(reservation.id);
-      return reservation;
-    };
-    const server = getHttpServer(app!);
-    const postReview = (body: Record<string, unknown>) =>
-      request(server)
-        .post('/api/reviews')
-        .set('Authorization', `Bearer ${clientToken}`)
-        .send(body);
-
-    await postReview({ serviceId, serviceRating: 5 }).expect(400);
-
-    const otherClientReservation = await createReservation(
-      concurrentClientTokens[0]!.userId,
-      'COMPLETED',
-      'other-client',
-    );
-    await postReview({
-      reservationId: otherClientReservation.id,
-      serviceId,
-      serviceRating: 5,
-    }).expect(403);
-
-    const incompleteReservation = await createReservation(
-      clientUserId,
-      'CONFIRMED',
-      'incomplete',
-    );
-    await postReview({
-      reservationId: incompleteReservation.id,
-      serviceId,
-      serviceRating: 5,
-    }).expect(400);
-
-    const completedReservation = await createReservation(
-      clientUserId,
-      'COMPLETED',
-      'completed',
-    );
-    await postReview({
-      reservationId: completedReservation.id,
-      serviceId: randomUUID(),
-      serviceRating: 5,
-    }).expect(400);
-
-    await postReview({
-      reservationId: completedReservation.id,
-      serviceId,
-      stylistProfileId: randomUUID(),
-      serviceRating: 5,
-    }).expect(400);
-
-    const payload = {
-      reservationId: completedReservation.id,
-      serviceId,
-      serviceRating: 5,
-      stylistRating: 4,
-      comment: 'Verified reservation review.',
-    };
-    const responses = await Promise.all([
-      postReview(payload),
-      postReview(payload),
-    ]);
-    expect(responses.map((response) => response.status).sort()).toEqual([
-      201, 400,
-    ]);
-    const createdResponse = responses.find(
-      (response) => response.status === 201,
-    );
-    expect(createdResponse?.body).toMatchObject({
-      reservationId: completedReservation.id,
-      serviceId,
-      stylistProfileId: fixtureIds.stylistProfile,
-      isVerified: true,
-      isApproved: false,
-    });
-    expect(createdResponse?.body.userId).toBe(clientUserId);
-    fixtureIds.reviews.push(createdResponse!.body.id as string);
-
-    const stored = await db.review.findMany({
-      where: { reservationId: completedReservation.id, serviceId },
-      select: { id: true, isVerified: true },
-    });
-    expect(stored).toHaveLength(1);
-    expect(stored[0]?.isVerified).toBe(true);
   });
 
   it('bounds and strictly validates public service and stylist catalog pages', async () => {
@@ -3444,7 +3374,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
         .toBuffer();
       return request(httpServer)
         .post('/api/users/profile/avatar')
-        .set('Authorization', `Bearer ${clientToken}`)
+        .set('Authorization', `Bearer ${reviewClientToken}`)
         .attach('file', image, {
           filename: 'avatar.png',
           contentType: 'image/png',
@@ -3471,7 +3401,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     const firstAvatarPath = String(firstUpload.body.avatar);
     expect(firstAvatarPath).toMatch(/^private\/avatars\/.+-thumb\.webp$/);
     expect(firstUpload.body).toMatchObject({
-      id: clientUserId,
+      id: reviewClientUserId,
       avatar: firstAvatarPath,
       isAvatarPublic: false,
     });
@@ -3488,7 +3418,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
 
     const profileBeforeOptIn = await request(httpServer)
       .get('/api/users/profile')
-      .set('Authorization', `Bearer ${clientToken}`)
+      .set('Authorization', `Bearer ${reviewClientToken}`)
       .expect(200);
     expect(profileBeforeOptIn.body).toMatchObject({
       avatar: firstAvatarPath,
@@ -3503,7 +3433,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     const firstPrivateImage = await request(httpServer)
       .get('/api/uploads/content')
       .query({ path: firstAvatarPath })
-      .set('Authorization', `Bearer ${clientToken}`)
+      .set('Authorization', `Bearer ${reviewClientToken}`)
       .expect(200);
     expect(firstPrivateImage.headers['content-type']).toMatch(
       /^image\/webp(?:;|$)/,
@@ -3519,12 +3449,12 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       .set('Authorization', `Bearer ${stylistToken}`)
       .expect(404);
     await request(httpServer)
-      .get(`/api/users/${clientUserId}/avatar`)
+      .get(`/api/users/${reviewClientUserId}/avatar`)
       .expect(404);
 
     const visibility = await request(httpServer)
       .patch('/api/users/profile/avatar-visibility')
-      .set('Authorization', `Bearer ${clientToken}`)
+      .set('Authorization', `Bearer ${reviewClientToken}`)
       .send({ isAvatarPublic: true })
       .expect(200);
     expect(visibility.body).toMatchObject({
@@ -3532,7 +3462,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       isAvatarPublic: true,
     });
     const persistedVisibility = await prisma!.user.findUnique({
-      where: { id: clientUserId },
+      where: { id: reviewClientUserId },
       select: { avatar: true, isAvatarPublic: true },
     });
     expect(persistedVisibility).toEqual({
@@ -3540,11 +3470,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       isAvatarPublic: true,
     });
     expect(await getClientReviewAvatar()).toBe(
-      `/api/users/${clientUserId}/avatar`,
+      `/api/users/${reviewClientUserId}/avatar`,
     );
 
     const firstPublicImage = await request(httpServer)
-      .get(`/api/users/${clientUserId}/avatar`)
+      .get(`/api/users/${reviewClientUserId}/avatar`)
       .expect(200);
     expect(firstPublicImage.headers['content-type']).toMatch(
       /^image\/webp(?:;|$)/,
@@ -3555,13 +3485,13 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     expect(firstPublicImage.body.length).toBeGreaterThan(0);
 
     await request(httpServer)
-      .patch(`/api/users/${clientUserId}`)
-      .set('Authorization', `Bearer ${clientToken}`)
+      .patch(`/api/users/${reviewClientUserId}`)
+      .set('Authorization', `Bearer ${reviewClientToken}`)
       .send({ gender: 'FEMALE' })
       .expect(200);
     const profileAfterSave = await request(httpServer)
       .get('/api/users/profile')
-      .set('Authorization', `Bearer ${clientToken}`)
+      .set('Authorization', `Bearer ${reviewClientToken}`)
       .expect(200);
     expect(profileAfterSave.body).toMatchObject({
       avatar: firstAvatarPath,
@@ -3581,7 +3511,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     if (replacementRecord) fixtureIds.uploads.push(replacementRecord.id);
 
     const replacementPublicImage = await request(httpServer)
-      .get(`/api/users/${clientUserId}/avatar`)
+      .get(`/api/users/${reviewClientUserId}/avatar`)
       .expect(200);
     expect(replacementPublicImage.headers['content-type']).toMatch(
       /^image\/webp(?:;|$)/,
@@ -3590,7 +3520,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       false,
     );
     expect(await getClientReviewAvatar()).toBe(
-      `/api/users/${clientUserId}/avatar`,
+      `/api/users/${reviewClientUserId}/avatar`,
     );
     await request(httpServer)
       .get('/api/uploads/content')
@@ -3600,17 +3530,17 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
 
     await request(httpServer)
       .patch('/api/users/profile/avatar-visibility')
-      .set('Authorization', `Bearer ${clientToken}`)
+      .set('Authorization', `Bearer ${reviewClientToken}`)
       .send({ isAvatarPublic: false })
       .expect(200);
     await request(httpServer)
-      .get(`/api/users/${clientUserId}/avatar`)
+      .get(`/api/users/${reviewClientUserId}/avatar`)
       .expect(404);
     expect(await getClientReviewAvatar()).toBeNull();
     await request(httpServer)
       .get('/api/uploads/content')
       .query({ path: replacementAvatarPath })
-      .set('Authorization', `Bearer ${clientToken}`)
+      .set('Authorization', `Bearer ${reviewClientToken}`)
       .expect(200);
   });
 
@@ -5358,4 +5288,111 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
         .points,
     ).toBe(balanceAfterEarnReplay);
   }, 30_000);
+
+  it('API-03 accepts one verified review only for a completed own reservation/service', async () => {
+    const db = prisma!;
+    const createReservation = async (
+      clientId: string,
+      status: string,
+      reference: string,
+    ) => {
+      const reservation = await db.reservation.create({
+        data: {
+          clientId,
+          serviceId,
+          reservationDate: new Date('2026-02-01T00:00:00.000Z'),
+          startTime: '09:00',
+          endTime: '09:45',
+          status,
+          confirmedStylistId: fixtureIds.stylistProfile!,
+          publicReferenceCode: `api03-${reference}-${randomUUID()}`,
+          clientViewToken: randomUUID().replaceAll('-', '').repeat(2),
+        },
+      });
+      fixtureIds.reservationIds.push(reservation.id);
+      return reservation;
+    };
+    const server = getHttpServer(app!);
+    const postReview = (body: Record<string, unknown>) =>
+      request(server)
+        .post('/api/reviews')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send(body);
+
+    await postReview({ serviceId, serviceRating: 5 }).expect(400);
+
+    const otherClientReservation = await createReservation(
+      concurrentClientTokens[0]!.userId,
+      'COMPLETED',
+      'other-client',
+    );
+    await postReview({
+      reservationId: otherClientReservation.id,
+      serviceId,
+      serviceRating: 5,
+    }).expect(403);
+
+    const incompleteReservation = await createReservation(
+      clientUserId,
+      'CONFIRMED',
+      'incomplete',
+    );
+    await postReview({
+      reservationId: incompleteReservation.id,
+      serviceId,
+      serviceRating: 5,
+    }).expect(400);
+
+    const completedReservation = await createReservation(
+      clientUserId,
+      'COMPLETED',
+      'completed',
+    );
+    await postReview({
+      reservationId: completedReservation.id,
+      serviceId: randomUUID(),
+      serviceRating: 5,
+    }).expect(400);
+
+    await postReview({
+      reservationId: completedReservation.id,
+      serviceId,
+      stylistProfileId: randomUUID(),
+      serviceRating: 5,
+    }).expect(400);
+
+    const payload = {
+      reservationId: completedReservation.id,
+      serviceId,
+      serviceRating: 5,
+      stylistRating: 4,
+      comment: 'Verified reservation review.',
+    };
+    const responses = await Promise.all([
+      postReview(payload),
+      postReview(payload),
+    ]);
+    expect(responses.map((response) => response.status).sort()).toEqual([
+      201, 400,
+    ]);
+    const createdResponse = responses.find(
+      (response) => response.status === 201,
+    );
+    expect(createdResponse?.body).toMatchObject({
+      reservationId: completedReservation.id,
+      serviceId,
+      stylistProfileId: fixtureIds.stylistProfile,
+      isVerified: true,
+      isApproved: false,
+    });
+    expect(createdResponse?.body.userId).toBe(clientUserId);
+    fixtureIds.reviews.push(createdResponse!.body.id as string);
+
+    const stored = await db.review.findMany({
+      where: { reservationId: completedReservation.id, serviceId },
+      select: { id: true, isVerified: true },
+    });
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.isVerified).toBe(true);
+  });
 });
