@@ -3546,7 +3546,8 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
 
   it('SEC-04 serializes upload deletion against a concurrent FK-backed gallery attach', async () => {
     const categoryId = fixtureIds.galleryCategories[0];
-    if (!categoryId || !ownerUserId) {
+    const ownerId = fixtureIds.ownerUserId;
+    if (!categoryId || !ownerId) {
       throw new Error('Synthetic upload deletion fixture is incomplete.');
     }
     const upload = await prisma!.upload.create({
@@ -3555,7 +3556,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
         mimeType: 'image/png',
         sizeBytes: 1,
         pathOriginal: `private/sec04-race/${randomUUID()}.png`,
-        uploadedById: ownerUserId,
+        uploadedById: ownerId,
       },
     });
     fixtureIds.uploads.push(upload.id);
