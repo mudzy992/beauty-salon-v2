@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   getDateOnlyDayBounds,
@@ -61,6 +65,12 @@ export class ReservationListService {
     },
     user: CurrentUserPayload,
   ) {
+    const canListAllReservations =
+      user.roles.includes('SYSTEM_ADMIN') || user.roles.includes('OWNER');
+    if (!query.asClient && !query.asStylist && !canListAllReservations) {
+      throw new ForbiddenException('Nemate pristup listi svih rezervacija.');
+    }
+
     const where: {
       reservationDate?: { gte?: Date; lt?: Date };
       status?: string;
@@ -99,14 +109,23 @@ export class ReservationListService {
     }
     if (query.asClient) where.clientId = user.sub;
     if (query.asStylist) {
-      const stylistProfileId =
-        await this.shared.getStylistProfileIdByUserId(user.sub);
-      if (stylistProfileId) {
-        where.OR = [
-          { confirmedStylistId: stylistProfileId },
-          { stylistResponses: { some: { stylistProfileId } } },
-        ];
+      const canListAsStylist =
+        user.roles.includes('STYLIST') || canListAllReservations;
+      if (!canListAsStylist) {
+        throw new ForbiddenException('Nemate pristup rezervacijama stiliste.');
       }
+      const stylistProfileId = await this.shared.getStylistProfileIdByUserId(
+        user.sub,
+      );
+      if (!stylistProfileId) {
+        throw new ForbiddenException(
+          'Stilist profil nije dostupan za ovaj račun.',
+        );
+      }
+      where.OR = [
+        { confirmedStylistId: stylistProfileId },
+        { stylistResponses: { some: { stylistProfileId } } },
+      ];
     }
     const include = {
       service: {
@@ -160,12 +179,14 @@ export class ReservationListService {
       },
     } as const;
     const hours = await this.dates.getAttendanceConfirmDeadlineHours();
-    const attachDeadline = <T extends {
-      status: string;
-      attendancePolicy?: string | null;
-      reservationDate: Date;
-      startTime: string;
-    }>(
+    const attachDeadline = <
+      T extends {
+        status: string;
+        attendancePolicy?: string | null;
+        reservationDate: Date;
+        startTime: string;
+      },
+    >(
       rows: T[],
     ) =>
       rows.map((row) => ({
@@ -184,8 +205,9 @@ export class ReservationListService {
         orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
       });
       if (!query.asStylist) return attachDeadline(rows);
-      const stylistProfileId =
-        await this.shared.getStylistProfileIdByUserId(user.sub);
+      const stylistProfileId = await this.shared.getStylistProfileIdByUserId(
+        user.sub,
+      );
       if (!stylistProfileId) return attachDeadline(rows);
       return attachDeadline(
         hideOverlappingInboxWhileLocked(rows, stylistProfileId),

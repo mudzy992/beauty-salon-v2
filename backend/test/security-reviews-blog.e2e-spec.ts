@@ -187,7 +187,7 @@ const fixtureIds: FixtureIds = {
   reservationIds: [],
 };
 
-describe('DB-backed HTTP contracts for SEC-01, SEC-02, AUTH-01, SEC-04/PRIV-01, SEC-07, API-02, OPS-03, BIZ-01–BIZ-05, BIZ-07–BIZ-08', () => {
+describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-10, AUTH-01, SEC-04/PRIV-01, SEC-07, API-02, OPS-03, BIZ-01–BIZ-05, BIZ-07–BIZ-08', () => {
   let app: INestApplication | undefined;
   let prisma: PrismaService | undefined;
   let jwtService: JwtService;
@@ -2001,6 +2001,76 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, AUTH-01, SEC-04/PRIV-01, 
     await request(getHttpServer(app!))
       .get('/api/stylists?limit=50')
       .expect(400);
+  });
+
+  it('SEC-10 scopes reservation list access to the caller unless admin/owner', async () => {
+    const db = prisma!;
+    const otherClientId = concurrentClientTokens[0]!.userId;
+    const date = new Date('2026-01-15T00:00:00.000Z');
+    const ownReservation = await db.reservation.create({
+      data: {
+        clientId: clientUserId,
+        serviceId,
+        reservationDate: date,
+        startTime: '09:00',
+        endTime: '09:45',
+        status: 'CONFIRMED',
+        confirmedStylistId: fixtureIds.stylistProfile!,
+        publicReferenceCode: `sec10-own-${randomUUID()}`,
+        clientViewToken: randomUUID().replaceAll('-', '').repeat(2),
+      },
+    });
+    const otherReservation = await db.reservation.create({
+      data: {
+        clientId: otherClientId,
+        serviceId,
+        reservationDate: date,
+        startTime: '10:00',
+        endTime: '10:45',
+        status: 'CONFIRMED',
+        publicReferenceCode: `sec10-other-${randomUUID()}`,
+        clientViewToken: randomUUID().replaceAll('-', '').repeat(2),
+      },
+    });
+    fixtureIds.reservationIds.push(ownReservation.id, otherReservation.id);
+
+    const server = getHttpServer(app!);
+    await request(server).get('/api/reservations').expect(401);
+    await request(server)
+      .get('/api/reservations')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+    await request(server)
+      .get('/api/reservations?asStylist=true')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+
+    const clientList = await request(server)
+      .get('/api/reservations?asClient=true')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+    expect(clientList.body.map((row: { id: string }) => row.id)).toEqual([
+      ownReservation.id,
+    ]);
+
+    const stylistList = await request(server)
+      .get('/api/reservations?asStylist=true')
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(200);
+    expect(stylistList.body.map((row: { id: string }) => row.id)).toContain(
+      ownReservation.id,
+    );
+    expect(stylistList.body.map((row: { id: string }) => row.id)).not.toContain(
+      otherReservation.id,
+    );
+
+    const adminList = await request(server)
+      .get('/api/reservations')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(adminList.body.map((row: { id: string }) => row.id)).toEqual(
+      expect.arrayContaining([ownReservation.id, otherReservation.id]),
+    );
   });
 
   it('strictly bounds admin, client and stylist analytics date inputs', async () => {
