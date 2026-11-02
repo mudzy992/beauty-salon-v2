@@ -514,6 +514,7 @@ export const bs = {
       dispositionReorderSuccessTitle: 'Termin pomjeren',
       dispositionReorderSuccessMessage: 'Novi datum i vrijeme su odmah primijenjeni. Klijent je obaviješten i ne mora potvrđivati.',
       dispositionReorderSuccessOk: 'U redu',
+      dispositionErrorFallback: 'Akciju nije moguće potvrditi. Vratite se na listu i provjerite status zapisa prije novog pokušaja.',
       manualEntryType: '· Ručno',
       reservationEntryType: '· Rezervacija',
       statusCompleted: 'Završeno',

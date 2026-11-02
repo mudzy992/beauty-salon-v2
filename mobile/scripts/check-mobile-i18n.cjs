@@ -17,6 +17,7 @@ const GUARDED_FILES = [
   'src/screens/client/ContactScreen.tsx',
   'src/screens/client/EditProfileScreen.tsx',
   'src/screens/stylist/DailyLogNewEntryScreen.tsx',
+  'src/screens/stylist/DailyLogDispositionPanel.tsx',
   'src/screens/stylist/ReschedulePreviewScreen.tsx',
   'src/screens/stylist/DailyLogEntryPricingBlock.tsx',
   'app/stylist/(tabs)/daily-log/debts.tsx',
