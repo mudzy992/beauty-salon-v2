@@ -158,6 +158,7 @@ type FixtureIds = {
   incomeManualEntries: string[];
   incomeBookId?: string;
   incomeBookCreatedByTest?: string;
+  financeRoleIncomeBookId?: string;
   financeRaceIncomeBookId?: string;
   financeRaceExpenseBookId?: string;
   financeRaceExpenseTemplateId?: string;
@@ -1226,6 +1227,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       if (fixtureIds.financeRaceIncomeBookId) {
         await prisma.incomeBook.deleteMany({
           where: { id: fixtureIds.financeRaceIncomeBookId },
+        });
+      }
+      if (fixtureIds.financeRoleIncomeBookId) {
+        await prisma.incomeBook.deleteMany({
+          where: { id: fixtureIds.financeRoleIncomeBookId },
         });
       }
       if (fixtureIds.incomeBookId) {
@@ -2828,6 +2834,41 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
         email: clientEmail,
       });
     }
+  });
+
+  it('rejects non-CLIENT IDs on the manual-income HTTP write path', async () => {
+    const db = prisma!;
+    const suffix = randomUUID().replaceAll('-', '');
+    const year = 2100 + Math.floor(Math.random() * 900);
+    const month = 1 + Math.floor(Math.random() * 12);
+    const date = `${year}-${String(month).padStart(2, '0')}-15`;
+    const book = await db.incomeBook.create({ data: { year, month } });
+    fixtureIds.financeRoleIncomeBookId = book.id;
+
+    const writeManualEntry = (clientId: string, notes: string) =>
+      request(getHttpServer(app!))
+        .post(`/api/income-books/${book.id}/manual-entries`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ date, serviceId, clientId, paidAmount: 25, notes });
+
+    const validNotes = `phase1-client-role-valid-${suffix}`;
+    const valid = await writeManualEntry(clientUserId, validNotes).expect(201);
+    expect(valid.body).toHaveProperty('id');
+    fixtureIds.incomeManualEntries.push(valid.body.id);
+
+    const persisted = await db.incomeBookManualEntry.findUnique({
+      where: { id: valid.body.id },
+      select: { clientId: true, notes: true },
+    });
+    expect(persisted).toEqual({ clientId: clientUserId, notes: validNotes });
+
+    const invalidNotes = `phase1-client-role-invalid-${suffix}`;
+    await writeManualEntry(mixedRoleClientId, invalidNotes).expect(400);
+    expect(
+      await db.incomeBookManualEntry.count({
+        where: { bookId: book.id, notes: invalidNotes },
+      }),
+    ).toBe(0);
   });
 
   it('serializes concurrent debt repayments, replays the recorded payment, and rolls back failed KIF writes', async () => {
