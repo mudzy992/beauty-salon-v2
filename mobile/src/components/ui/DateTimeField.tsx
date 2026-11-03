@@ -55,7 +55,8 @@ export const DateTimeField = ({ label, mode, value, onChange }: Props) => {
             mode,
             value,
             t(mode === 'date' ? 'common.selectDate' : 'common.selectTime'),
-            (day, month, year) => t('common.dateDisplay', { day, month, year }),
+            (day: string, month: string, year: string) =>
+              t('common.dateDisplay', { day, month, year }),
           )}
         </Text>
       </Pressable>
