@@ -212,11 +212,11 @@ Faze su zavisne; ne treba preskakati policy gate. Svaki source slice treba zaseb
 
 ### Faza 1 — API-R1 finance client search + server-side role validation
 
-**Rad:** prebaciti finance lookup na paginirani CLIENT picker, držati minimalnu projekciju; dodati server-side role check za `clientId` u manual KIF/debt path ako D-01 potvrdi; dodati service/controller/source contract tests i finance UI search states.
+**Status — source implementacija završena na ovoj grani; CI `41736972799` green (4/4 jobs, 2026-11-03):** finance lookup koristi postojeći bounded `GET /api/users/clients` ugovor sa `q`, `page=0`, `pageSize=20` i parsira samo `{items}`; više ne poziva generic `/api/users` niti šalje nevažeće `search/role/limit` parametre. Ručni income create i update provjeravaju finalni non-null `clientId` unutar iste Prisma transakcije: mora imati CLIENT i ne smije imati SYSTEM_ADMIN/STYLIST/OWNER role. U suprotnom vraća generički Bad Request prije insert/update/debt sync. Nevalidni/role-promijenjeni ID se ne prepisuje; postojeća istorija nije migrirana. Nije dodana schema/migration izmjena.
 
-**Redoslijed:** prvo backend reject test i frontend endpoint contract test (može biti jedan atomic source slice); ako DB migration nije potrebna, no schema work. Ne miješati UI localization promjene u isti commit; ako se copy mijenja, zaseban i18n commit.
+**Acceptance evidence:** backend service tests pokrivaju create/update reject i precizan role predicate; DB-backed HTTP test kreira entry za čist CLIENT (201), odbija CLIENT+STYLIST nalog (400) i potvrđuje da odbijeni entry nije upisan. Frontend source contract test i production TypeScript/build prolaze u CI; DB suite se izvršava isključivo na disposable CI PostgreSQL-u.
 
-**Done when:** non-CLIENT ID ne može uvesti client debt/entry pod odobrenim pravilom; CLIENT lookup radi paginated; query nikad ne skida full user directory; finance form tests + backend unit/DB E2E green.
+**Preostalo izvan Faze 1:** dashboard još koristi nepaginated `/api/users`; web/mobile daily-log i svi `/api/reservations` list consumer-i su Faza 2. Ova Faza 1 ne mijenja `GET /api/users/for-daily-log`, response contracts drugih ruta, legacy role/account data ili production DB. Finance UX loading/error copy nije mijenjan; nema i18n/resource promjena.
 
 ### Faza 2 — API-R2/R3/R4 bounded lists i validirani pagination
 
