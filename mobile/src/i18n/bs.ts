@@ -23,6 +23,8 @@ export const bs = {
     selectDate: 'Odaberite datum',
     selectTime: 'Odaberite vrijeme',
     dateDisplay: '{{day}}.{{month}}.{{year}}',
+    dateFieldHint: 'Dodirnite da otvorite izbor datuma.',
+    timeFieldHint: 'Dodirnite da otvorite izbor vremena.',
   },
   auth: {
     login: 'Prijava',

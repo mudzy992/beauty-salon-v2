@@ -26,6 +26,16 @@ export const DateTimeField = ({ label, mode, value, onChange }: Props) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const pickerDate = useMemo(() => parseDateTimeFieldValue(mode, value), [mode, value]);
+  const displayedValue = displayDateTimeFieldValue(
+    mode,
+    value,
+    t(mode === 'date' ? 'common.selectDate' : 'common.selectTime'),
+    (day: string, month: string, year: string) =>
+      t('common.dateDisplay', { day, month, year }),
+  );
+  const accessibilityHint = t(
+    mode === 'date' ? 'common.dateFieldHint' : 'common.timeFieldHint',
+  );
 
   const handleChange = (event: DateTimePickerEvent, selected?: Date) => {
     if (Platform.OS === 'android') setOpen(false);
@@ -42,6 +52,8 @@ export const DateTimeField = ({ label, mode, value, onChange }: Props) => {
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={label}
+        accessibilityValue={{ text: displayedValue }}
+        accessibilityHint={accessibilityHint}
         style={[
           styles.field,
           {
@@ -50,15 +62,7 @@ export const DateTimeField = ({ label, mode, value, onChange }: Props) => {
           },
         ]}
       >
-        <Text style={{ color: colors.inputText }}>
-          {displayDateTimeFieldValue(
-            mode,
-            value,
-            t(mode === 'date' ? 'common.selectDate' : 'common.selectTime'),
-            (day: string, month: string, year: string) =>
-              t('common.dateDisplay', { day, month, year }),
-          )}
-        </Text>
+        <Text style={{ color: colors.inputText }}>{displayedValue}</Text>
       </Pressable>
       {open ? (
         <DateTimePicker
