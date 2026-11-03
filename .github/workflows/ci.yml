@@ -146,6 +146,9 @@ jobs:
       - name: Test dynamic brand contrast colors
         working-directory: frontend
         run: npm run test:brand-colors
+      - name: Test uploaded brand logo security boundary
+        working-directory: frontend
+        run: npm run test:uploaded-brand-logo-security
       - name: Test localized registration errors
         working-directory: frontend
         run: npm run test:registration-errors
