@@ -7,6 +7,37 @@ export function escapeEmailHtml(value: string): string {
     .replaceAll("'", '&#39;');
 }
 
+export function buildPaymentReceiptBodyText(params: {
+  stylistName?: string;
+  publicReferenceCode: string;
+  completedLabel: string;
+  items: Array<{ name: string; unitPrice: number }>;
+  serviceAmount: number;
+  loyaltyDiscountAmount: number;
+  tipAmount: number;
+  actualPrice: number;
+}): string {
+  const lines = [
+    params.stylistName?.trim()
+      ? `Stilista: ${params.stylistName.trim()}`
+      : undefined,
+    `Referenca: ${params.publicReferenceCode} · Datum: ${params.completedLabel}`,
+    ...params.items.map(
+      (item) => `${item.name} — ${item.unitPrice.toFixed(2)} KM`,
+    ),
+    `Usluge: ${params.serviceAmount.toFixed(2)} KM`,
+    params.loyaltyDiscountAmount > 0
+      ? `Loyalty popust: −${params.loyaltyDiscountAmount.toFixed(2)} KM`
+      : undefined,
+    `Napojnica: ${params.tipAmount.toFixed(2)} KM`,
+    `Ukupno naplaćeno: ${params.actualPrice.toFixed(2)} KM`,
+    '',
+    'Hvala vam na povjerenju. Radujemo se sljedećem susretu!',
+  ];
+
+  return lines.filter((line): line is string => line !== undefined).join('\n');
+}
+
 export function resolveSafeEmailHref(value: string | undefined): string | null {
   const trimmed = value?.trim();
   if (!trimmed || trimmed.length > 2048) return null;
@@ -35,6 +66,7 @@ export function buildDefaultEmailTemplateHtml(params: {
   codeBlock?: string;
   signature?: string;
 }): string {
+  const safeBody = escapeEmailHtml(params.body).replace(/\r\n?|\n/g, '<br>');
   const safeCtaUrl = resolveSafeEmailHref(params.ctaUrl);
   const ctaSection =
     params.ctaLabel && safeCtaUrl
@@ -52,7 +84,7 @@ export function buildDefaultEmailTemplateHtml(params: {
 </div>
 <div style="padding:30px 32px">
 <p style="margin:0 0 12px;font-size:16px">${escapeEmailHtml(params.intro)}</p>
-<p style="margin:0 0 12px;font-size:15px;color:#4b3a35">${escapeEmailHtml(params.body)}</p>
+<p style="margin:0 0 12px;font-size:15px;color:#4b3a35">${safeBody}</p>
 ${codeSection}
 ${ctaSection}
 <div style="margin-top:28px;padding-top:16px;border-top:1px solid #f2e7e2;color:#7e675f;font-size:12px">

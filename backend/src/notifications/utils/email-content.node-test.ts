@@ -7,6 +7,7 @@ import {
 } from './email-content';
 import {
   buildDefaultEmailTemplateHtml,
+  buildPaymentReceiptBodyText,
   escapeEmailHtml,
   resolveSafeEmailHref,
 } from './email-template';
@@ -48,6 +49,36 @@ void test('escapes every dynamic value in the default email template and drops u
     ctaUrl: 'javascript:alert(1)',
   });
   assert.doesNotMatch(unsafeCta, /href=/i);
+});
+
+void test('renders payment receipts as escaped plain text with preserved lines', () => {
+  const body = buildPaymentReceiptBodyText({
+    stylistName: '<img src=x onerror=alert(1)>',
+    publicReferenceCode: 'REF-42',
+    completedLabel: '03.11.2026',
+    items: [
+      { name: '<svg onload=alert(1)>', unitPrice: 25 },
+      { name: 'Trim', unitPrice: 15 },
+    ],
+    serviceAmount: 40,
+    loyaltyDiscountAmount: 5,
+    tipAmount: 2,
+    actualPrice: 37,
+  });
+  const html = buildDefaultEmailTemplateHtml({
+    title: 'Receipt',
+    intro: 'Hello',
+    body,
+  });
+
+  assert.match(html, /Stilista: &lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.match(
+    html,
+    /&lt;svg onload=alert\(1\)&gt; — 25\.00 KM<br>Trim — 15\.00 KM/,
+  );
+  assert.match(html, /Referenca: REF-42 · Datum: 03\.11\.2026/);
+  assert.match(html, /Loyalty popust: −5\.00 KM<br>Napojnica: 2\.00 KM/);
+  assert.doesNotMatch(html, /<(?:img|svg)\b/i);
 });
 
 void test('allows only safe absolute action URL protocols without credentials', () => {

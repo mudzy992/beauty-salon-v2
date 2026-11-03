@@ -15,6 +15,7 @@ import { SettingsService } from '../settings/settings.service';
 import { NotificationsRepository } from './notifications.repository';
 import {
   buildDefaultEmailTemplateHtml,
+  buildPaymentReceiptBodyText,
   escapeEmailHtml,
 } from './utils/email-template';
 
@@ -616,32 +617,16 @@ export class NotificationsService {
       month: '2-digit',
       year: 'numeric',
     });
-    const rowsHtml = params.items
-      .map(
-        (item) =>
-          `<tr><td style="padding:8px 0;border-bottom:1px solid #f2e7e2">${item.name}</td>` +
-          `<td style="padding:8px 0;border-bottom:1px solid #f2e7e2;text-align:right">${item.unitPrice.toFixed(2)} KM</td></tr>`,
-      )
-      .join('');
-    const loyaltyLine =
-      params.loyaltyDiscountAmount > 0
-        ? `<p style="margin:8px 0 0;font-size:14px;color:#4b3a35">Loyalty popust: −${params.loyaltyDiscountAmount.toFixed(2)} KM</p>`
-        : '';
-    const stylistLine = params.stylistName?.trim()
-      ? `<p style="margin:0 0 12px;font-size:14px;color:#4b3a35">Stilista: ${params.stylistName.trim()}</p>`
-      : '';
-    const receiptBody =
-      `${stylistLine}` +
-      `<p style="margin:0 0 12px;font-size:14px;color:#4b3a35">Referenca: ${params.publicReferenceCode} · Datum: ${completedLabel}</p>` +
-      `<table style="width:100%;border-collapse:collapse;font-size:14px;color:#2d1f1c;margin:0 0 12px">` +
-      `<thead><tr><th style="text-align:left;padding:8px 0;border-bottom:2px solid #e8d9d2">Usluga</th>` +
-      `<th style="text-align:right;padding:8px 0;border-bottom:2px solid #e8d9d2">Iznos</th></tr></thead>` +
-      `<tbody>${rowsHtml}</tbody></table>` +
-      `<p style="margin:0;font-size:15px;color:#2d1f1c"><strong>Usluge:</strong> ${params.serviceAmount.toFixed(2)} KM</p>` +
-      `${loyaltyLine}` +
-      `<p style="margin:8px 0 0;font-size:15px;color:#2d1f1c"><strong>Napojnica:</strong> ${params.tipAmount.toFixed(2)} KM</p>` +
-      `<p style="margin:12px 0 0;font-size:17px;color:#2d1f1c"><strong>Ukupno naplaćeno:</strong> ${params.actualPrice.toFixed(2)} KM</p>` +
-      `<p style="margin:16px 0 0;font-size:15px;color:#4b3a35">Hvala vam na povjerenju. Radujemo se sljedećem susretu!</p>`;
+    const receiptBody = buildPaymentReceiptBodyText({
+      stylistName: params.stylistName,
+      publicReferenceCode: params.publicReferenceCode,
+      completedLabel,
+      items: params.items,
+      serviceAmount: params.serviceAmount,
+      loyaltyDiscountAmount: params.loyaltyDiscountAmount,
+      tipAmount: params.tipAmount,
+      actualPrice: params.actualPrice,
+    });
     const subject = template.subject || 'Potvrda uplate — Beauty Salon Nejra';
     const plainText =
       template.plainText ||
