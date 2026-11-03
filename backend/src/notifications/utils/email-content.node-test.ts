@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  buildDefaultEmailTemplateHtml,
-  escapeEmailHtml,
   renderCampaignEmailHtml,
-  resolveSafeEmailHref,
   sanitizeCampaignEmailHtml,
 } from './email-content';
+import {
+  buildDefaultEmailTemplateHtml,
+  escapeEmailHtml,
+  resolveSafeEmailHref,
+} from './email-template';
 
 void test('escapes admin-template text before placing it in HTML contexts', () => {
   assert.equal(

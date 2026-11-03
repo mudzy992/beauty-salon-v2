@@ -16,8 +16,7 @@ import { NotificationsRepository } from './notifications.repository';
 import {
   buildDefaultEmailTemplateHtml,
   escapeEmailHtml,
-  renderCampaignEmailHtml,
-} from './utils/email-content';
+} from './utils/email-template';
 
 export type NotificationChannel = 'PUSH' | 'EMAIL' | 'BOTH';
 export type NotificationType =
@@ -334,6 +333,7 @@ export class NotificationsService {
     }
     const transporter = this.createSmtpTransporter(mailConfig);
     const appUrl = await this.resolveAppBaseUrl();
+    const { renderCampaignEmailHtml } = await import('./utils/email-content');
     const subject =
       dto.subjectOverride?.trim() ||
       dto.campaignName?.trim() ||
