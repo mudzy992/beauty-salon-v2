@@ -59,6 +59,9 @@ export function Button({
     <Pressable
       onPress={onPress}
       disabled={inactive}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityState={{ disabled: inactive, busy: loading }}
       style={({ pressed }) => [
         styles.base,
         {
