@@ -731,6 +731,9 @@ jobs:
       - name: Test mobile date and time field accessibility
         working-directory: mobile
         run: npm run test:date-time-field-accessibility
+      - name: Test mobile shared input accessibility
+        working-directory: mobile
+        run: npm run test:input-accessibility
       - name: Guard and bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npm run build:ios -- --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"

@@ -48,6 +48,8 @@ export function Input({ label, labelStyle, error, leftIcon, isPassword, style, o
         )}
         <TextInput
           {...props}
+          accessibilityLabel={props.accessibilityLabel ?? label}
+          accessibilityHint={props.accessibilityHint ?? error}
           style={[
             styles.input,
             { color: colors.inputText },
@@ -83,7 +85,12 @@ export function Input({ label, labelStyle, error, leftIcon, isPassword, style, o
         )}
       </View>
       {error && (
-        <Text style={[styles.error, { color: colors.error }]} selectable>
+        <Text
+          style={[styles.error, { color: colors.error }]}
+          selectable
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+        >
           {error}
         </Text>
       )}
