@@ -2839,11 +2839,23 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
   it('rejects non-CLIENT IDs on the manual-income HTTP write path', async () => {
     const db = prisma!;
     const suffix = randomUUID().replaceAll('-', '');
-    const year = 2100 + Math.floor(Math.random() * 900);
-    const month = 1 + Math.floor(Math.random() * 12);
-    const date = `${year}-${String(month).padStart(2, '0')}-15`;
-    const book = await db.incomeBook.create({ data: { year, month } });
-    fixtureIds.financeRoleIncomeBookId = book.id;
+    const currentYear = new Date().getFullYear();
+    let book: Awaited<ReturnType<typeof db.incomeBook.create>> | undefined;
+    let date = '';
+    for (let year = currentYear - 1; year >= currentYear - 10 && !book; year--) {
+      for (let month = 1; month <= 12; month++) {
+        const existing = await db.incomeBook.findUnique({
+          where: { year_month: { year, month } },
+          select: { id: true },
+        });
+        if (existing) continue;
+        book = await db.incomeBook.create({ data: { year, month } });
+        fixtureIds.financeRoleIncomeBookId = book.id;
+        date = `${year}-${String(month).padStart(2, '0')}-15`;
+        break;
+      }
+    }
+    if (!book) throw new Error('No unused past income-book period for test.');
 
     const writeManualEntry = (clientId: string, notes: string) =>
       request(getHttpServer(app!))
