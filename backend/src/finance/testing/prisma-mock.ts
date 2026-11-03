@@ -21,6 +21,7 @@ export const createFinancePrismaMock = () => {
     $transaction: jest.fn(),
     $queryRaw: jest.fn().mockResolvedValue([]),
     service: model(),
+    user: model(),
     incomeBook: model(),
     incomeBookEntry: model(),
     incomeBookManualEntry: model(),

@@ -263,6 +263,9 @@ jobs:
       - name: Test localized finance manual-income dialog
         working-directory: frontend
         run: npm run test:finance-manual-entry-i18n
+      - name: Test finance client picker API contract
+        working-directory: frontend
+        run: npm run test:finance-client-picker-contract
       - name: Test localized finance expense form
         working-directory: frontend
         run: npm run test:finance-expense-form-i18n

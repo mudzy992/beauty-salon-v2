@@ -65,6 +65,7 @@ export class IncomeManualEntriesService {
         tx,
       )
       ensureDateMatchesPeriod(date, book.year, book.month)
+      if (dto.clientId) await this.assertClientRole(dto.clientId, tx)
       const servicePrice = await this.getServicePrice(dto.serviceId, tx)
       const amounts = splitPaidAmount(dto.paidAmount, servicePrice)
       const debtIntent = this.resolveDebtIntent({
@@ -148,6 +149,7 @@ export class IncomeManualEntriesService {
         dto.stylistProfileId !== undefined
           ? dto.stylistProfileId
           : existing.stylistProfileId
+      if (clientId) await this.assertClientRole(clientId, tx)
       const debtIntent = this.resolveDebtIntent({
         debtHandling: dto.debtHandling,
         debtAmount: amounts.debtAmount,
@@ -265,6 +267,25 @@ export class IncomeManualEntriesService {
     })
     await this.repository.recalculateTotals(params.bookId, tx)
     return entry
+  }
+
+  private async assertClientRole(
+    clientId: string,
+    tx: Prisma.TransactionClient,
+  ) {
+    const client = await tx.user.findFirst({
+      where: {
+        id: clientId,
+        userRoles: {
+          some: { role: { name: 'CLIENT' } },
+          none: {
+            role: { name: { in: ['SYSTEM_ADMIN', 'STYLIST', 'OWNER'] } },
+          },
+        },
+      },
+      select: { id: true },
+    })
+    if (!client) throw new BadRequestException('Odabrani korisnik nije klijent.')
   }
 
   private async getServicePrice(

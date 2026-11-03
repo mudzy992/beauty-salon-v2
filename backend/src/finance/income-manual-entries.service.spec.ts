@@ -45,6 +45,7 @@ describe('IncomeManualEntriesService', () => {
     service = module.get(IncomeManualEntriesService);
 
     prisma.incomeBook.findUnique.mockResolvedValue(openBook);
+    prisma.user.findFirst.mockResolvedValue({ id: 'c1' });
     prisma.service.findUnique.mockResolvedValue({ price: dec(100) });
     prisma.incomeBookEntry.aggregate.mockResolvedValue({ _sum: {} });
     prisma.incomeBookManualEntry.aggregate.mockResolvedValue({ _sum: {} });
@@ -68,8 +69,31 @@ describe('IncomeManualEntriesService', () => {
       expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
         prisma.incomeBookManualEntry.create.mock.invocationCallOrder[0],
       );
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'c1',
+          userRoles: {
+            some: { role: { name: 'CLIENT' } },
+            none: {
+              role: { name: { in: ['SYSTEM_ADMIN', 'STYLIST', 'OWNER'] } },
+            },
+          },
+        },
+        select: { id: true },
+      });
       expect(data.amount).toBe(100);
       expect(data.tipAmount).toBe(30);
+    });
+
+    it('odbija ručni prihod za ID koji nije čist CLIENT račun', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.create('b1', { ...baseDto, paidAmount: 100 }, 'u1'),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(prisma.incomeBookManualEntry.create).not.toHaveBeenCalled();
+      expect(prisma.clientDebt.create).not.toHaveBeenCalled();
     });
 
     it('kreira dug za nenaplaćeni dio kada je traženo', async () => {
@@ -153,6 +177,17 @@ describe('IncomeManualEntriesService', () => {
           data: expect.objectContaining({ amount: 30 }),
         }),
       );
+    });
+
+    it('odbija izmjenu ručnog prihoda ako postojeći clientId više nije CLIENT', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.update('b1', 'e1', { paidAmount: 90 }, 'u1'),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(prisma.incomeBookManualEntry.update).not.toHaveBeenCalled();
+      expect(prisma.clientDebt.update).not.toHaveBeenCalled();
     });
 
     it('briše dug kada naplata pokrije punu cijenu', async () => {

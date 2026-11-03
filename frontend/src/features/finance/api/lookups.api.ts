@@ -23,11 +23,10 @@ export const fetchServicesForStylist = async (
 };
 
 export const searchClients = async (query: string): Promise<ClientOption[]> => {
-  const { data } = await api.get<ClientOption[] | { items?: ClientOption[] }>(
-    "/api/users",
-    { params: { search: query, role: "CLIENT", limit: 20 } },
+  const { data } = await api.get<{ items?: ClientOption[] }>(
+    "/api/users/clients",
+    { params: { page: 0, pageSize: 20, q: query.trim() || undefined } },
   );
-  if (Array.isArray(data)) return data;
   return Array.isArray(data?.items) ? data.items : [];
 };
 
