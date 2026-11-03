@@ -15,6 +15,12 @@ test('date/time picker exposes its role, label, selected value, and mode-specifi
   assert.match(component, /<Text style=\{\{ color: colors\.inputText \}\}>\{displayedValue\}<\/Text>/);
 });
 
+test('date/time picker uses the non-deprecated value and dismissal callbacks', () => {
+  assert.match(component, /onValueChange=\{handleValueChange\}/);
+  assert.match(component, /onDismiss=\{handleDismiss\}/);
+  assert.doesNotMatch(component, /\bonChange=\{handleChange\}/);
+});
+
 test('date/time picker action hints are localized in the mobile Bosnian resources', () => {
   assert.ok(common, 'Missing common mobile resources');
   assert.ok(common.includes("dateFieldHint: 'Dodirnite da otvorite izbor datuma.'"));

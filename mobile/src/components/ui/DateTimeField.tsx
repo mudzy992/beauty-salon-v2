@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker, {
-  type DateTimePickerEvent,
+  type DateTimePickerChangeEvent,
 } from '@react-native-community/datetimepicker';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
@@ -37,13 +37,12 @@ export const DateTimeField = ({ label, mode, value, onChange }: Props) => {
     mode === 'date' ? 'common.dateFieldHint' : 'common.timeFieldHint',
   );
 
-  const handleChange = (event: DateTimePickerEvent, selected?: Date) => {
-    if (Platform.OS === 'android') setOpen(false);
-    if (event.type === 'dismissed') return;
-    if (!selected) return;
+  const handleValueChange = (_event: DateTimePickerChangeEvent, selected: Date) => {
     onChange(formatDateTimeFieldValue(mode, selected));
-    if (Platform.OS === 'ios') setOpen(false);
+    setOpen(false);
   };
+
+  const handleDismiss = () => setOpen(false);
 
   return (
     <View style={styles.container}>
@@ -70,7 +69,8 @@ export const DateTimeField = ({ label, mode, value, onChange }: Props) => {
           mode={mode}
           is24Hour
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handleChange}
+          onValueChange={handleValueChange}
+          onDismiss={handleDismiss}
         />
       ) : null}
     </View>
