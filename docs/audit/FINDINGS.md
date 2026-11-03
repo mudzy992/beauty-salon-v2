@@ -184,6 +184,8 @@ Review-list baseline is separately contained under SEC-01: public `GET /api/revi
 
 ### SEC-08 — Stored HTML XSS na javnom blogu i inline SVG (source mitigations; runtime/deployment unverified)
 
+**Status:** Owner-reported complete (2026-11-03). The agent has not independently repeated production/browser/email-client checks.
+
 **Baseline evidence:** blog admin editor prihvata `HTML/Tekst`, backend je ranije čuvao sadržaj bez sanitizacije, a public page ga je ubacivao preko `dangerouslySetInnerHTML` ([`PublicBlogPost.tsx`](../../frontend/src/pages/public/PublicBlogPost.tsx), editor [`blog-post-form-dialog.tsx`](../../frontend/src/features/blog/blog-post-form-dialog.tsx)). Fetched SVG logo se regex-transformisao i ubacivao inline preko drugog `dangerouslySetInnerHTML` sink-a ([baseline source path](../../frontend/src/components/brand/uploaded-brand-logo.tsx)); regex obrada nije bila parser-based allowlist. Ovo su source-path nalazi, ne reprodukovani browser exploits.
 
 **Mitigation in this branch:**
@@ -202,9 +204,11 @@ Review-list baseline is separately contained under SEC-01: public `GET /api/revi
 
 **UploadedBrandLogo regression guard (2026-11-03):** Commit `22ff680` adds two frontend source-contract tests requiring SVG logos to stay encoded external CSS mask images (not HTML insertion/fetch sinks) and the shared upload URL helper to pass through only absolute HTTP(S) schemes. Both tests pass locally (2/2); the frontend build could not run locally because `tsc` is absent. CI run `41659533449` passed all four jobs, including the new logo security test, frontend TypeScript/build, backend, mobile and repository checks. The earlier run `41659232645` was canceled by the subsequent documentation push. These checks protect source shape only and do not execute a browser or prove runtime CSS/SVG behavior.
 
-**Owner-reported runtime follow-up (2026-11-03):** Vlasnik potvrđuje da je redeploy prošao, da se admin može prijaviti i da SMTP prolazi. To je owner-reported acceptance za deployed admin login i SMTP transport; agent nije pristupio deploymentu, runtime logovima, sand-box email inboxu ili produkciji i ne tvrdi nezavisnu provjeru. Ovo ne potvrđuje da su sve pojedinačne poruke (reset, verification, payment receipt, campaign) vizuelno ispravne u email klijentima niti da malicious payload ne izvršava u browseru.
+**Owner-reported runtime follow-up (2026-11-03):** Vlasnik potvrđuje da je redeploy prošao, da se admin može prijaviti i da SMTP prolazi. To je owner-reported acceptance za deployed admin login i SMTP transport; agent nije pristupio deploymentu, runtime logovima, inboxu ili produkciji i ne tvrdi nezavisnu provjeru.
 
-**Residual/owner actions:** source changes reduce the reviewed sinks, but are not fully browser/deployed security proof. Keep `PublicBlogPost` connected only to the sanitized slug route; add a browser-level malicious-content test and consider defense-in-depth frontend sanitization/CSP. SMTP connection/delivery is owner-reported as passing; client-rendering acceptance for representative templates still remains, ideally in an approved test inbox. Confirm external logo URL policy and monitor the remaining dependency advisories. Do not claim exploitation or production exposure without logs/runtime evidence.
+**Owner-reported SEC-08 completion (2026-11-03):** Vlasnik izričito navodi da je SEC-08 završen. Evidentira se kao završen prema vlasničkoj potvrdi, a ne prema samom source/CI rezultatu. Nisu dostavljeni detalji o konkretnim browser payloadima, email predlošcima ili email klijentima, te ih agent nije nezavisno ponovio. Ovo ne predstavlja nezavisnu potvrdu produkcijske implementacije. Odvojeno ostaju opcionalna defense-in-depth odluka (npr. CSP) i potvrda vanjske logo URL politike; one nisu razlog da se vlasnički SEC-08 close izvještaj odbaci.
+
+**Preostale nezavisne granice:** Keep `PublicBlogPost` connected only to the sanitized slug route. Agent nije samostalno izvršio browser/deployed security proof ili email-client rendering. Pratiti preostale dependency advisories; ne tvrditi eksploataciju ili produkcijsku izloženost bez log/runtime dokaza.
 
 ### API-01 — Public stylist/service catalog defaultira na inactive records i vraća PII
 
