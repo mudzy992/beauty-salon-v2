@@ -17,6 +17,7 @@
     "eas-build-post-install": "npm run check:i18n",
     "check:i18n": "node scripts/check-mobile-i18n.cjs",
     "test:mobile-i18n-guard": "node --test scripts/check-mobile-i18n.test.cjs",
+    "test:date-time-field-value": "node --test src/components/ui/date-time-field-value.test.mjs",
     "test:client-profile-contract": "node --test src/screens/client/profile-contract.test.mjs src/screens/client/profile-api-errors.test.mjs",
     "test:profile-read-recovery-copy": "node --test src/screens/client/profile-read-recovery-copy.test.mjs",
     "test:profile-read-recovery": "node --test src/screens/client/profile-read-recovery.test.mjs",

@@ -725,6 +725,9 @@ jobs:
       - name: Test mobile daily-log entry form copy resources
         working-directory: mobile
         run: npm run test:stylist-daily-log-entry-form-copy-i18n
+      - name: Test mobile date and time field values
+        working-directory: mobile
+        run: npm run test:date-time-field-value
       - name: Guard and bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npm run build:ios -- --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"
