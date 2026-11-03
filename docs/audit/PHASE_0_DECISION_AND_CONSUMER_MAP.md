@@ -4,7 +4,7 @@
 
 **Pregledani commit:** `3a98b1b3115fb83a59c0ae7cbd4e90dbc93c388f` (aktivna grana i `origin/master` su bili poravnati)
 
-**Status:** inventar i predloženi ugovori su spremni za owner odluku; D-01–D-07 nisu proglašeni zatvorenim. Nema izmjena aplikacijskog koda.
+**Status:** consumer inventar i owner odgovori su zabilježeni. D-01–D-06 imaju odluku; D-07 je izričito odgođen dok privacy/legal ne odobri tekst/verziju. Nema izmjena aplikacijskog koda.
 
 Ovaj dokument završava tehnički dio Faze 0 za client pickere, user/dashboard liste i sve pronađene direktne `GET /api/reservations` pozive. Policy/deployment odluke koje zahtijevaju owner nisu pretpostavljene. Faza 1 i druge policy-sensitive izmjene ostaju blokirane dok se ne zabilježe odgovori.
 
@@ -19,7 +19,7 @@ Ovaj dokument završava tehnički dio Faze 0 za client pickere, user/dashboard l
 
 **Predloženi ugovor (nije usvojen bez potvrde):** ručni prihod/dug i dnevni-log izbor klijenta prikazuju samo role CLIENT, a server-side zapis odbija ID koji nije klijent. Odvojiti dashboard aggregate/count od user-directory rute. Finance koristi već postojeći `/api/users/clients` sa minimalnom projekcijom i page/search; daily-log dobije isti ili ekvivalentan bounded contract uz provjeru postojećeg poslovnog toka. Provjeriti da se anonimizirani/obrisani klijent i historical ledger zapisi ne mijenjaju retroaktivno.
 
-**Otvoreno:** potvrditi da se CLIENT-only pravilo odnosi i na daily-log, ne samo finance. Dok odgovor ne stigne, nema backend role enforcement izmjene.
+**Owner odluka (2026-11-03):** CLIENT-only pravilo važi i za daily-log i za manual finance izbor/upis; backend treba odbiti clientId koji nije CLIENT. Pri implementaciji ipak testirati postojeći ledger/historical data ponašanja i reservation-derived scenarije. D-01 je zatvoren za Fazu 1.
 
 ## 2. D-05 — user-list response shape i kompatibilnost
 
@@ -31,7 +31,7 @@ Ovaj dokument završava tehnički dio Faze 0 za client pickere, user/dashboard l
 | `GET /api/users/for-daily-log` | Nepaginirani array. | Web daily-log (dva data hooka); mobile DailyLogNewEntry. | Treba bounded replacement/compatibility rollout; ne mijenjati response iznenada. |
 | `GET /api/users/system-admins`, `GET /api/users/stylists` | Nepaginirani array; endpointi nemaju list DTO. | Admin Users strana (`frontend/src/pages/Users.tsx`). | Definisati da li su male administrativne role-liste izuzete s hard cap-om ili prelaze na envelope. |
 
-**Prijedlog kompatibilnosti:** prvo migrirati svaki poznati consumer na dogovoreni novi bounded response; zadržati trenutni array oblik samo u jasno imenovanom privremenom compatibility prozoru ili zasebnoj legacy ruti. Ne stavljati tih default cap na postojeći endpoint koji korisnik trenutno očekuje da vrati sve. Za system-admins/stylists odlučiti eksplicitni cap/pagination umjesto pretpostavke da liste ostaju male.
+**Owner odluka (2026-11-03):** poznate web/mobile consumere migrirati na dogovoreni bounded response; legacy array response ostaje samo tokom jednog uspješnog release ciklusa nakon što su svi poznati consumer-i migrirani. Prije uvođenja envelope/defaulta ne stavljati tihi cap na staru rutu. Za `system-admins`/`stylists` tokom migracije dodati eksplicitni pagination/cap ugovor i UI obradu; compatibility period ne ukida boundedness acceptance.
 
 ## 3. D-05 — svi pronađeni direktni `GET /api/reservations` consumer-i
 
@@ -65,34 +65,32 @@ Controller `ReservationsController.findAll` prihvata `fromDate`, `toDate`, `stat
 
 **Source stanje:** preferences endpoint sprema `type`, `pushEnabled`, `emailEnabled`; default `emailEnabled` je `true`. Campaign UI šalje role listu, `onlyActive`, `onlyEmailVerified`, `includeUserIds`/`excludeUserIds` mogu biti direktno zadani API fields; audience resolver i send path ne pokazuju u ovom source pregledanom dijelu consent predicate. Campaign send radi redom u istom requestu preko SMTP-a, bez kampanjskog queue/job state-a. Recipient ID array DTO nema `ArrayMaxSize`.
 
-**Sigurnosna privremena granica:** ne slati kampanje stvarnim korisnicima niti dodavati consent pretpostavku dok privacy/product owner ne odobri semantics i recipient caps. Admin `emailEnabled` za general notifications nije automatski dokaz marketing opt-in-a.
-
-**Traži owner odgovor:** (a) odvojena marketing opt-in/unsubscribe ili formalno usvojena semantika postojećeg `GENERAL.emailEnabled`; (b) verified email obavezno ili izuzeci; (c) maksimalni batch size i send rate/SMTP concurrency; (d) policy za ručno include ID-jeve i suppression/opt-out. Do odgovora preporuka je odvojen explicit consent + verified only + server caps, ali to nije implementacijski nalog.
+**Owner odluke (2026-11-03):** marketing zahtijeva odvojeni eksplicitni opt-in/unsubscribe; `GENERAL.emailEnabled` nije marketing saglasnost. Dozvoljeni su samo verificirani emailovi. Max 100 primatelja po kampanji, globalno najviše 1 email/sekundu i SMTP concurrency 1. Ovo su owner-odobreni implementacijski limiti, ne testirana tvrdnja o SMTP provider kvoti. Policy za ručno `includeUserIds`, opt-out/suppression i evidence/withdrawal audit treba implementirati tako da direktni ID ne može zaobići consent; ne slati realnu kampanju u CI.
 
 ## 5. D-04 — worker/scheduler topology
 
 Source sadrži cronove i outbox tokove, ali repo kod ne dokazuje koliko produkcijskih backend replica/worker procesa radi. Scheduler koji je process-local može se izvršiti više puta uz više replica; outbox failure recovery i SMTP poslije slanja imaju at-least-once/duplicate caveat.
 
-**Traži deploy owner odgovor:** produkcijski broj backend replica; scheduler/worker procesi i ko ih pokreće; timezone/leader/lease infrastruktura; način observability/alert/runbook. Bez tog odgovora ne pretpostavljati single instance niti dodavati Redis dependency za finansijski period.
+**Owner report (2026-11-03):** jedna backend replika. Za planiranje tretirati scheduler/outbox poller kao single-instance process-local work; ne dodavati Redis dependency. Agent nije nezavisno provjerio produkcijsku topologiju, proces restart ponašanje, worker izdvajanje, timezone/monitoring ili runbook; te stavke ostaju deployment acceptance gates. Outbox lease/retry treba i dalje tolerisati crash/restart.
 
 ## 6. D-06 / D-07 — jezik i media-consent tekst
 
 Source inventory navodi jedan mobilni jezik (`mobile/src/i18n/bs.ts`); web BS/EN parity guard sam po sebi ne određuje mobile product scope.
 
-- **D-06:** potvrditi treba li mobile dobiti EN locale ili ostaje Bosnian-only. Agentova komunikacija na bosanskom nije product-locale odluka.
-- **D-07:** EN media-consent tekst i policy version moraju biti vlasnički/privacy/legal odobreni. Bez teksta/verzije ne prevoditi niti mijenjati legal copy; odgovor “još nije odobreno” ostavlja D-07 otvorenim, bez blokiranja nepovezanog API rada.
+- **D-06 owner odluka (2026-11-03):** mobile ostaje Bosnian-only; ne dodavati EN locale u ovaj slice.
+- **D-07 owner status (2026-11-03):** media-consent EN tekst/policy version još nije odobren. Ne prevoditi niti mijenjati legal copy dok owner/privacy/legal ne dostavi tačan tekst i verziju. D-07 ostaje gated; ne blokira nepovezani API-R1 rad.
 
 ## 7. Faza 0 status i izlazni gate
 
 | ID | Status poslije pregleda | Potreban za zatvaranje |
 |---|---|---|
-| D-01 | OPEN — predložen CLIENT-only, nije usvojen | Owner potvrdi daily-log i manual-income role scope. |
-| D-02 | OPEN — nema consent pretpostavke | Privacy/product policy za marketing opt-in i unsubscribe. |
-| D-03 | OPEN — nema recipient/rate limita potvrđenog | Verified eligibility, max batch i rate/concurrency. |
-| D-04 | OPEN — topology nije izvorno dokaziva | Deploy owner potvrdi replike, worker i scheduler ownership. |
-| D-05 users | INVENTORY COMPLETE; rollout policy OPEN | Owner/API UI odluči legacy array window i role-list caps. |
-| D-05 reservations | 13 consumer-a mapirano; rollout policy OPEN | Owner/API UI odobri response compat, bounded windows i migration sequence. |
-| D-06 | OPEN | Product potvrdi mobile locale scope. |
-| D-07 | OPEN | Owner dostavi/odobri tačan legal text + version ili potvrdi da je pending. |
+| D-01 | CLOSED FOR IMPLEMENTATION | Owner potvrdio CLIENT-only za daily-log i manual finance; server-side odbijanje non-CLIENT ID-a. |
+| D-02 | CLOSED FOR IMPLEMENTATION | Odvojeni explicit marketing opt-in/unsubscribe; GENERAL.emailEnabled nije consent. |
+| D-03 | CLOSED FOR IMPLEMENTATION | Samo verified email; max 100/campaign; 1 email/s; concurrency 1. Real SMTP quota nije testirana. |
+| D-04 | OWNER-REPORTED | Jedna backend replika; deployment/runtime ponašanje i runbook nezavisno nisu provjereni. |
+| D-05 users | DIRECTION APPROVED | Poznati consumer-i migriraju na bounded responses; legacy array jedan release ciklus nakon svih migracija. |
+| D-05 reservations | INVENTORY COMPLETE; DIRECTION APPROVED | 13 consumer-a mapirano; isti migration/one-release window; tačan bounded UI behavior po consumer-u provodi se u implementacijskom slice-u. |
+| D-06 | CLOSED FOR CURRENT SCOPE | Mobile ostaje BS-only. |
+| D-07 | GATED — LEGAL COPY PENDING | Nema odobrenog teksta/verzije; ne prevoditi ili mijenjati media-consent copy. Ne blokira API-R1. |
 
-**Faza 0 exit:** consumer inventory je spreman, ali Faza 0 nije zatvorena dok se odluke koje utiču na source contract ne potvrde. Naredni source slice ne treba započeti na osnovu samih prijedloga ovog dokumenta.
+**Faza 0 exit:** product/policy smjernice su zabilježene za implementacijski rad i consumer inventory je gotov. D-04 je owner-reported, a ne agentom nezavisno potvrđen. D-07 ostaje izričito gated: bez odobrenog legal teksta ne mijenjati media-consent copy. API-R1 može krenuti prema D-01; kampanja se može izvorno implementirati tek uz consent/suppression safeguards i odobrene cap-ove iz D-02/D-03. Nema deployment/real SMTP acceptance tvrdnje.

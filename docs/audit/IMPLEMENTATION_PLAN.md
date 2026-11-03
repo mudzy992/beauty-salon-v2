@@ -2,7 +2,7 @@
 
 **Aktuelni preostali API/OPS/SEC/AUTH/UX nalaz i detaljna implementacijska mapa (2026-11-03):** [REMAINING_AUDIT_AND_IMPLEMENTATION_PLAN.md](REMAINING_AUDIT_AND_IMPLEMENTATION_PLAN.md). Ovo je dodatak sa trenutnim source review-om, policy gate-ovima i predloženim redoslijedom; ne označava repo-wide audit niti produkcijske gate-ove završenim.
 
-**Faza 0 decision/consumer map (2026-11-03):** [PHASE_0_DECISION_AND_CONSUMER_MAP.md](PHASE_0_DECISION_AND_CONSUMER_MAP.md). Inventarizira user/picker i svih 13 direktnih reservations-list consumer-a; owner politike D-01–D-07 ostaju otvorene dok se ne potvrde.
+**Faza 0 decision/consumer map (2026-11-03):** [PHASE_0_DECISION_AND_CONSUMER_MAP.md](PHASE_0_DECISION_AND_CONSUMER_MAP.md). Inventarizira user/picker i svih 13 direktnih reservations-list consumer-a; D-01–D-06 policy smjernice su zabilježene po owner odgovoru, D-04 je owner-reported bez nezavisne runtime provjere, a D-07 legal copy ostaje gated.
 
 **Datum izrade:** 2026-10-21 (UTC)<br>
 **Ulaz:** [FINDINGS.md](FINDINGS.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [TEST_WORKFLOW.md](TEST_WORKFLOW.md)<br>

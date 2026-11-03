@@ -206,9 +206,9 @@ Faze su zavisne; ne treba preskakati policy gate. Svaki source slice treba zaseb
 
 ### Faza 0 — Odluke i ugovor (bez source izmjene)
 
-**Rad:** zatvoriti D-01–D-07. Napraviti endpoint/consumer map, posebno `finance searchClients`, dashboard counts, daily log client pickers i sve `/api/reservations` list calls. Dogovoriti expected public response shape/legacy window, campaign eligibility/consent semantics, runner topology i mobile language scope.
+**Rad / izlaz (owner odgovori zabilježeni 2026-11-03):** endpoint/consumer map nalazi se u [PHASE_0_DECISION_AND_CONSUMER_MAP.md](PHASE_0_DECISION_AND_CONSUMER_MAP.md), uključujući 13 direktnih reservations-list consumer-a. D-01 CLIENT-only za daily-log/manual finance, D-02 odvojeni explicit marketing opt-in/unsubscribe, D-03 verified-only + max 100/campaign + 1 email/s + concurrency 1, D-04 jedna backend replika (owner report), D-05 migracija svih poznatih consumer-a uz legacy array najduže jedan release ciklus poslije migracije i D-06 mobile BS-only su zabilježeni. D-07 legal/media-consent tekst i policy version nisu odobreni; tekst ne prevoditi/mijenjati, ali to ne blokira nepovezani API-R1.
 
-**Done when:** svaka policy-sensitive implementacija ima odobren acceptance criteria; nema “pretpostavljenog” consent-a ili CLIENT role policy-ja.
+**Done when:** policy-sensitive acceptance criteria su odobreni ili izričito gated; no assumed consent/role policy. Faza 1 API-R1 je policy-unblocked prema D-01, uz D-04 deployment acceptance i D-07 legal copy i dalje odvojeno otvorene/gated stavke.
 
 ### Faza 1 — API-R1 finance client search + server-side role validation
 
