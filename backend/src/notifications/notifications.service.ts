@@ -333,7 +333,8 @@ export class NotificationsService {
     }
     const transporter = this.createSmtpTransporter(mailConfig);
     const appUrl = await this.resolveAppBaseUrl();
-    const { renderCampaignEmailHtml } = await import('./utils/email-content');
+    const { renderCampaignEmailHtml } =
+      await import('./utils/email-content.js');
     const subject =
       dto.subjectOverride?.trim() ||
       dto.campaignName?.trim() ||
