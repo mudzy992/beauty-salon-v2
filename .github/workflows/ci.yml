@@ -103,6 +103,9 @@ jobs:
       - name: Run blog sanitizer regression tests
         working-directory: backend
         run: npm run test:blog-sanitizer
+      - name: Run email HTML security regression tests
+        working-directory: backend
+        run: npm run test:email-content
       - name: Run DB-backed security HTTP tests
         id: backend-e2e
         continue-on-error: true

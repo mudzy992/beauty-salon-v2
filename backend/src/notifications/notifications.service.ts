@@ -13,6 +13,11 @@ import { CampaignAudienceDto } from './dto/campaign-audience.dto';
 import { SendCampaignDto } from './dto/send-campaign.dto';
 import { SettingsService } from '../settings/settings.service';
 import { NotificationsRepository } from './notifications.repository';
+import {
+  buildDefaultEmailTemplateHtml,
+  escapeEmailHtml,
+  renderCampaignEmailHtml,
+} from './utils/email-content';
 
 export type NotificationChannel = 'PUSH' | 'EMAIL' | 'BOTH';
 export type NotificationType =
@@ -341,16 +346,13 @@ export class NotificationsService {
         skipped += 1;
         continue;
       }
-      const personalizedHtml = this.applyCampaignVariables(
-        selectedTemplate.html,
-        {
-          firstName: user.firstName || '',
-          lastName: user.lastName || '',
-          username: user.username,
-          email: user.email,
-          appUrl,
-        },
-      );
+      const personalizedHtml = renderCampaignEmailHtml(selectedTemplate.html, {
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        username: user.username,
+        email: user.email,
+        appUrl,
+      });
       await transporter.sendMail({
         from: `"${mailConfig.fromName}" <${mailConfig.fromEmail}>`,
         to: user.email,
@@ -537,7 +539,7 @@ export class NotificationsService {
       `Otvorite ovaj link u roku od 7 dana: ${resetUrl}\n` +
       `Link ističe: ${expiryLabel} (Europe/Sarajevo).\n\n` +
       'Ako niste očekivali ovu poruku, obratite se salonu.';
-    const html = `<div style="font-family:Arial,sans-serif;color:#2d1f1c;max-width:640px;margin:24px auto;padding:24px;border:1px solid #eee;border-radius:12px"><h1 style="font-size:22px">Sigurna promjena lozinke</h1><p>Poštovani ${this.escapeHtml(greeting)},</p><p>Administrator je zatražio postavljanje nove lozinke za vaš nalog. Stara privremena lozinka više ne važi.</p><p><a href="${this.escapeHtml(resetUrl)}" rel="noreferrer" style="display:inline-block;padding:12px 18px;background:#2d1f1c;color:#fff;text-decoration:none;border-radius:8px">Postavi novu lozinku</a></p><p>Link važi 7 dana i ističe ${this.escapeHtml(expiryLabel)} (Europe/Sarajevo).</p><p>Ako niste očekivali ovu poruku, obratite se salonu.</p><hr/><p>${this.escapeHtml(mailConfig.signature)}</p></div>`;
+    const html = `<div style="font-family:Arial,sans-serif;color:#2d1f1c;max-width:640px;margin:24px auto;padding:24px;border:1px solid #eee;border-radius:12px"><h1 style="font-size:22px">Sigurna promjena lozinke</h1><p>Poštovani ${escapeEmailHtml(greeting)},</p><p>Administrator je zatražio postavljanje nove lozinke za vaš nalog. Stara privremena lozinka više ne važi.</p><p><a href="${escapeEmailHtml(resetUrl)}" rel="noreferrer" style="display:inline-block;padding:12px 18px;background:#2d1f1c;color:#fff;text-decoration:none;border-radius:8px">Postavi novu lozinku</a></p><p>Link važi 7 dana i ističe ${escapeEmailHtml(expiryLabel)} (Europe/Sarajevo).</p><p>Ako niste očekivali ovu poruku, obratite se salonu.</p><hr/><p>${escapeEmailHtml(mailConfig.signature)}</p></div>`;
     const transporter = this.createSmtpTransporter(mailConfig);
     await transporter.sendMail({
       from: `"${mailConfig.fromName}" <${mailConfig.fromEmail}>`,
@@ -836,30 +838,7 @@ export class NotificationsService {
     codeBlock?: string;
     signature?: string;
   }) {
-    const ctaSection =
-      params.ctaLabel && params.ctaUrl
-        ? `<p style="margin:24px 0 0"><a href="${params.ctaUrl}" style="display:inline-block;padding:10px 16px;background:#111827;color:#fff;text-decoration:none;border-radius:8px">${params.ctaLabel}</a></p>`
-        : '';
-    const codeSection = params.codeBlock
-      ? `<div style="display:inline-block;padding:12px 18px;border-radius:8px;background:#f3f4f6;font-size:24px;letter-spacing:4px;font-weight:700;margin:12px 0">${params.codeBlock}</div>`
-      : '';
-    return `<div style="margin:0;padding:24px;background:#f9f3f0;font-family:Arial,sans-serif;color:#2d1f1c">
-<div style="max-width:680px;margin:0 auto;background:#fff;border:1px solid #f2e7e2;border-radius:18px;overflow:hidden;box-shadow:0 12px 32px rgba(45,31,28,0.08)">
-<div style="padding:28px 32px;background:linear-gradient(135deg,#2d1f1c 0%,#7b4b3a 55%,#d4b098 100%);color:#fff">
-<div style="font-size:12px;letter-spacing:2px;text-transform:uppercase;opacity:.92">Beauty Salon Premium</div>
-<h2 style="margin:10px 0 0;font-size:28px;line-height:1.2;font-weight:700">${params.title}</h2>
-</div>
-<div style="padding:30px 32px">
-<p style="margin:0 0 12px;font-size:16px">${params.intro}</p>
-<p style="margin:0 0 12px;font-size:15px;color:#4b3a35">${params.body}</p>
-${codeSection}
-${ctaSection}
-<div style="margin-top:28px;padding-top:16px;border-top:1px solid #f2e7e2;color:#7e675f;font-size:12px">
-${params.signature || 'Beauty Salon Nejra'}
-</div>
-</div>
-</div>
-</div>`;
+    return buildDefaultEmailTemplateHtml(params);
   }
 
   private async getEmailTemplateConfig(
@@ -875,15 +854,6 @@ ${params.signature || 'Beauty Salon Nejra'}
     }
   }
 
-  private escapeHtml(value: string): string {
-    return value
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
-
   private convertHtmlToText(html: string): string {
     return html
       .replace(/<style[\s\S]*?<\/style>/gi, ' ')
@@ -891,24 +861,6 @@ ${params.signature || 'Beauty Salon Nejra'}
       .replace(/<[^>]+>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-  }
-
-  private applyCampaignVariables(
-    html: string,
-    data: {
-      firstName: string;
-      lastName: string;
-      username: string;
-      email: string;
-      appUrl: string;
-    },
-  ): string {
-    return html
-      .replace(/\{\{\s*firstName\s*\}\}/g, data.firstName)
-      .replace(/\{\{\s*lastName\s*\}\}/g, data.lastName)
-      .replace(/\{\{\s*username\s*\}\}/g, data.username)
-      .replace(/\{\{\s*email\s*\}\}/g, data.email)
-      .replace(/\{\{\s*appUrl\s*\}\}/g, data.appUrl);
   }
 
   private async getCampaignTemplates(): Promise<CampaignTemplateDefinition[]> {
