@@ -20,7 +20,8 @@ import { MediaBackdrop } from '../../components/MediaImage';
 import { Badge, getStatusVariant } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
-import api, { getUploadUrl } from '../../services/api';
+import { getUploadUrl } from '../../services/api';
+import { fetchAllReservationPages } from '../../services/reservation-list';
 import { spacing } from '../../theme';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatTime, getDateRange, getDateOnlyWeekday, getSalonDateOnly, salonWallTimeToInstant } from '../../utils/date';
@@ -91,12 +92,10 @@ export function StylistScheduleScreen({ navigation }: Props) {
     try {
       // Fokus: od današnjeg salonskog datuma nadalje.
       const { fromDate, toDate } = getDateRange(30);
-      const { data } = await api.get<unknown>('/api/reservations', {
-        params: {
-          asStylist: true,
-          fromDate,
-          toDate,
-        },
+      const data = await fetchAllReservationPages<unknown>({
+        asStylist: true,
+        fromDate,
+        toDate,
       });
       if (generation !== requestGeneration.current) return;
       const rows = normalizeReservations(data);

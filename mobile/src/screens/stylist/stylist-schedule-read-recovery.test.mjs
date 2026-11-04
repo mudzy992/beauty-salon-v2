@@ -4,9 +4,11 @@ import test from 'node:test';
 
 const screen = readFileSync(new URL('./StylistScheduleScreen.tsx', import.meta.url), 'utf8');
 const translations = readFileSync(new URL('../../i18n/bs.ts', import.meta.url), 'utf8');
+const pagination = readFileSync(new URL('../../services/reservation-list.ts', import.meta.url), 'utf8');
 
-test('stylist schedule validates reservation data and ignores stale profile requests', () => {
-  assert.match(screen, /api\.get<unknown>\('\/api\/reservations'/);
+test('stylist schedule uses bounded pages and ignores stale profile requests', () => {
+  assert.match(screen, /fetchAllReservationPages<unknown>\(\{/);
+  assert.match(screen, /asStylist: true[\s\S]*?fromDate,[\s\S]*?toDate,/);
   assert.match(screen, /const rows = normalizeReservations\(data\)/);
   assert.match(screen, /if \(!rows\)/);
   assert.match(screen, /generation !== requestGeneration\.current/);
@@ -14,7 +16,16 @@ test('stylist schedule validates reservation data and ignores stale profile requ
   assert.match(screen, /requestOwnerId\.current !== profileId/);
   assert.match(screen, /reservationsOwnerId === profileId \? reservations : EMPTY_RESERVATIONS/);
   assert.match(screen, /catch \{\s*if \(generation === requestGeneration\.current\) setLoadError\(true\)/);
-  assert.doesNotMatch(screen, /catch \{\s*setReservations\(\[\]\)/);
+  assert.doesNotMatch(screen, /api\.get<unknown>\('\/api\/reservations'/);
+});
+
+test('reservation pagination enforces the shared API bounds and rejects oversized pages', () => {
+  assert.match(pagination, /const PAGE_SIZE = 50/);
+  assert.match(pagination, /const MAX_OFFSET = 1000/);
+  assert.match(pagination, /\.items\.length > PAGE_SIZE/);
+  assert.match(pagination, /params:\s*\{\s*\.\.\.filters,\s*page,\s*pageSize:\s*PAGE_SIZE\s*\}/);
+  assert.match(pagination, /items\.length < total/);
+  assert.match(pagination, /Reservation list exceeds the safe loading limit/);
 });
 
 test('schedule distinguishes initial errors from stale data and offers retry without dropping content', () => {
