@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   Injectable,
@@ -334,6 +335,13 @@ export class NotificationsService {
   }
 
   async sendCampaign(dto: SendCampaignDto, requestedByUserId: string) {
+    const idempotencyKey = dto.idempotencyKey || randomUUID();
+    const existing = await this.repo.findCampaignJobByRequest(
+      requestedByUserId,
+      idempotencyKey,
+    );
+    if (existing) return this.campaignEnqueueResult(existing, true);
+
     const campaignTemplates = await this.getCampaignTemplates();
     const selectedTemplate = campaignTemplates.find(
       (template) => template.id === dto.templateId,
@@ -350,8 +358,10 @@ export class NotificationsService {
     if (recipients.length === 0) {
       return {
         ok: true,
+        queued: false,
         delivered: 0,
         skipped: 0,
+        totalTargeted: 0,
         message: 'Nema korisnika koji odgovaraju odabranoj publici.',
       };
     }
@@ -361,62 +371,148 @@ export class NotificationsService {
         'Email postavke nisu konfigurirane. Unesite SMTP podatke u admin panelu.',
       );
     }
-    const transporter = this.createSmtpTransporter(mailConfig);
     const appUrl = await this.resolveAppBaseUrl();
-    const { renderCampaignEmailHtml } =
-      await import('./utils/email-content.js');
     const subject =
       dto.subjectOverride?.trim() ||
       dto.campaignName?.trim() ||
       selectedTemplate.name ||
       'Nova kampanja';
-    let delivered = 0;
-    let skipped = 0;
-    for (const user of recipients) {
-      if (!user.email) {
-        skipped += 1;
-        continue;
-      }
-      const personalizedHtml = renderCampaignEmailHtml(selectedTemplate.html, {
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        username: user.username,
-        email: user.email,
-        appUrl,
+    const campaignName =
+      dto.campaignName?.trim() || selectedTemplate.name || 'Nova kampanja';
+    const jobData: Prisma.CampaignJobUncheckedCreateInput = {
+      templateId: dto.templateId,
+      templateName: selectedTemplate.name,
+      subject,
+      templateHtml: selectedTemplate.html,
+      appUrl,
+      campaignName,
+      tags: (dto.tags || []) as Prisma.InputJsonValue,
+      createInAppNotification: dto.createInAppNotification ?? true,
+      requestedByUserId,
+      idempotencyKey,
+      status: 'QUEUED',
+      totalRecipients: recipients.length,
+    };
+    const recipientData = recipients.flatMap((user) => {
+      if (!user.email || !user.campaignEmailConsent?.consentedAt) return [];
+      return [
+        {
+          userId: user.id,
+          email: user.email,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          consentId: user.campaignEmailConsent.id,
+          consentedAt: user.campaignEmailConsent.consentedAt,
+          status: 'PENDING',
+        },
+      ];
+    });
+
+    let job;
+    try {
+      job = await this.repo.createCampaignJob(jobData, recipientData);
+    } catch (error) {
+      const duplicate = await this.repo.findCampaignJobByRequest(
+        requestedByUserId,
+        idempotencyKey,
+      );
+      if (duplicate) return this.campaignEnqueueResult(duplicate, true);
+      throw error;
+    }
+    return this.campaignEnqueueResult(job, false);
+  }
+
+  async deliverCampaignRecipient(
+    job: Pick<
+      Prisma.CampaignJob,
+      | 'id'
+      | 'subject'
+      | 'templateHtml'
+      | 'appUrl'
+      | 'campaignName'
+      | 'tags'
+      | 'createInAppNotification'
+      | 'requestedByUserId'
+      | 'templateId'
+    >,
+    recipient: Pick<
+      Prisma.CampaignRecipient,
+      'id' | 'userId' | 'email' | 'username' | 'firstName' | 'lastName'
+    >,
+  ): Promise<void> {
+    const mailConfig = await this.resolveMailConfig();
+    if (!mailConfig) {
+      throw new ServiceUnavailableException(
+        'SMTP campaign transport is unavailable.',
+      );
+    }
+    const transporter = this.createSmtpTransporter(mailConfig);
+    try {
+      const { renderCampaignEmailHtml } =
+        await import('./utils/email-content.js');
+      const personalizedHtml = renderCampaignEmailHtml(job.templateHtml, {
+        firstName: recipient.firstName || '',
+        lastName: recipient.lastName || '',
+        username: recipient.username,
+        email: recipient.email,
+        appUrl: job.appUrl,
       });
       await transporter.sendMail({
         from: `"${mailConfig.fromName}" <${mailConfig.fromEmail}>`,
-        to: user.email,
-        subject,
+        to: recipient.email,
+        subject: job.subject,
         text: this.convertHtmlToText(personalizedHtml),
         html: personalizedHtml,
         ...(mailConfig.replyTo ? { replyTo: mailConfig.replyTo } : {}),
       });
-      delivered += 1;
-      if (dto.createInAppNotification ?? true) {
-        await this.repo.createNotification({
+    } finally {
+      transporter.close();
+    }
+
+    if (job.createInAppNotification) {
+      try {
+        await this.repo.createNotificationForEvent({
+          eventId: `campaign:${job.id}:${recipient.id}`,
+          userId: recipient.userId,
           data: {
-            userId: user.id,
-            title: subject,
-            body: dto.campaignName?.trim() || 'Nova email kampanja.',
+            userId: recipient.userId,
+            title: job.subject,
+            body: job.campaignName || 'Nova email kampanja.',
             type: 'general',
             data: {
-              campaignTemplateId: dto.templateId,
-              tags: dto.tags || [],
+              campaignTemplateId: job.templateId,
+              tags: job.tags as Prisma.InputJsonValue,
               source: 'email_campaign',
-              requestedByUserId,
-            },
+              requestedByUserId: job.requestedByUserId,
+              campaignJobId: job.id,
+            } as Prisma.InputJsonValue,
             channel: 'EMAIL',
             isRead: false,
           },
         });
+      } catch (error) {
+        const errorType = error instanceof Error ? error.name : 'Error';
+        this.logger.warn(
+          `Campaign in-app notification failed for recipient ${recipient.id} (${errorType}).`,
+        );
       }
     }
+  }
+
+  private campaignEnqueueResult(
+    job: Pick<Prisma.CampaignJob, 'id' | 'status' | 'totalRecipients'>,
+    duplicate: boolean,
+  ) {
     return {
       ok: true,
-      delivered,
-      skipped,
-      totalTargeted: recipients.length,
+      queued: true,
+      jobId: job.id,
+      status: job.status,
+      totalTargeted: job.totalRecipients,
+      delivered: 0,
+      skipped: 0,
+      duplicate,
     };
   }
 
@@ -900,7 +996,9 @@ export class NotificationsService {
     const where: Prisma.UserWhereInput = {
       isEmailVerified: true,
       email: { not: null },
-      campaignEmailConsent: { is: { optedIn: true } },
+      campaignEmailConsent: {
+        is: { optedIn: true, consentedAt: { not: null } },
+      },
       ...((audience.onlyActive ?? true) ? { isActive: true } : {}),
       ...(audience.includeUserIds?.length || audience.excludeUserIds?.length
         ? {
@@ -932,6 +1030,9 @@ export class NotificationsService {
         firstName: true,
         lastName: true,
         createdAt: true,
+        campaignEmailConsent: {
+          select: { id: true, consentedAt: true },
+        },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
       take: MAX_CAMPAIGN_RECIPIENTS + 1,

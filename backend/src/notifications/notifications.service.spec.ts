@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import nodemailer from 'nodemailer';
 import { NotificationsService } from './notifications.service';
 import { CampaignAudienceDto } from './dto/campaign-audience.dto';
 import { SendCampaignDto } from './dto/send-campaign.dto';
@@ -7,6 +8,8 @@ describe('NotificationsService campaign audience policy', () => {
   const repo = {
     findCampaignEmailConsent: jest.fn(),
     setCampaignEmailConsent: jest.fn(),
+    findCampaignJobByRequest: jest.fn(),
+    createCampaignJob: jest.fn(),
     findUsers: jest.fn(),
     createNotification: jest.fn(),
   };
@@ -16,9 +19,14 @@ describe('NotificationsService campaign audience policy', () => {
 
   let service: NotificationsService;
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     repo.findUsers.mockResolvedValue([]);
+    repo.findCampaignJobByRequest.mockResolvedValue(null);
     repo.findCampaignEmailConsent.mockResolvedValue(null);
     repo.setCampaignEmailConsent.mockResolvedValue({
       optedIn: false,
@@ -100,7 +108,9 @@ describe('NotificationsService campaign audience policy', () => {
       where: {
         isEmailVerified: true,
         email: { not: null },
-        campaignEmailConsent: { is: { optedIn: true } },
+        campaignEmailConsent: {
+          is: { optedIn: true, consentedAt: { not: null } },
+        },
         isActive: true,
         id: { in: ['included-user'], notIn: ['excluded-user'] },
         userRoles: { some: { role: { name: { in: ['CLIENT'] } } } },
@@ -112,10 +122,153 @@ describe('NotificationsService campaign audience policy', () => {
         firstName: true,
         lastName: true,
         createdAt: true,
+        campaignEmailConsent: {
+          select: { id: true, consentedAt: true },
+        },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
       take: 101,
     });
+  });
+
+  it('creates one persistent job with a consent and recipient snapshot', async () => {
+    const consentedAt = new Date('2026-11-04T12:00:00.000Z');
+    repo.findUsers.mockResolvedValue([
+      {
+        id: 'eligible-user',
+        username: 'eligible',
+        email: 'eligible@example.test',
+        firstName: 'Eligible',
+        lastName: 'User',
+        createdAt: consentedAt,
+        campaignEmailConsent: { id: 'consent-1', consentedAt },
+      },
+    ]);
+    settings.getValue.mockImplementation(async (key: string) => {
+      if (key === 'system_email_campaign_templates') {
+        return JSON.stringify([
+          { id: 'newsletter', name: 'Newsletter', html: '<p>Hello</p>' },
+        ]);
+      }
+      if (key === 'system_email_host') return 'smtp.example.test';
+      if (key === 'system_notif_email_from') return 'campaign@example.test';
+      return null;
+    });
+    const createdJob = {
+      id: 'job-1',
+      status: 'QUEUED',
+      totalRecipients: 1,
+    };
+    repo.createCampaignJob.mockResolvedValue(createdJob);
+
+    await expect(
+      service.sendCampaign(
+        {
+          idempotencyKey: 'a5bc3179-06f7-4ec0-97aa-9d6720d54388',
+          templateId: 'newsletter',
+          audience: {},
+        },
+        'admin-1',
+      ),
+    ).resolves.toMatchObject({
+      ok: true,
+      queued: true,
+      jobId: 'job-1',
+      status: 'QUEUED',
+      totalTargeted: 1,
+      duplicate: false,
+    });
+    expect(repo.createCampaignJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        templateId: 'newsletter',
+        templateHtml: '<p>Hello</p>',
+        requestedByUserId: 'admin-1',
+        idempotencyKey: 'a5bc3179-06f7-4ec0-97aa-9d6720d54388',
+        totalRecipients: 1,
+      }),
+      [
+        expect.objectContaining({
+          userId: 'eligible-user',
+          email: 'eligible@example.test',
+          consentId: 'consent-1',
+          consentedAt,
+          status: 'PENDING',
+        }),
+      ],
+    );
+  });
+
+  it('returns the existing job for a repeated idempotency key', async () => {
+    repo.findCampaignJobByRequest.mockResolvedValue({
+      id: 'job-existing',
+      status: 'RUNNING',
+      totalRecipients: 3,
+    });
+
+    await expect(
+      service.sendCampaign(
+        {
+          idempotencyKey: 'f53a0cf4-f2f7-47a4-b997-bf61e51bf082',
+          templateId: 'template-no-longer-configured',
+          audience: {},
+        },
+        'admin-1',
+      ),
+    ).resolves.toMatchObject({
+      jobId: 'job-existing',
+      status: 'RUNNING',
+      totalTargeted: 3,
+      duplicate: true,
+    });
+    expect(repo.findUsers).not.toHaveBeenCalled();
+    expect(repo.createCampaignJob).not.toHaveBeenCalled();
+  });
+
+  it('delivers through a fake SMTP transport using the persisted template snapshot', async () => {
+    settings.getValue.mockImplementation(async (key: string) => {
+      if (key === 'system_email_host') return 'smtp.fake.test';
+      if (key === 'system_notif_email_from') return 'campaign@example.test';
+      return null;
+    });
+    const fakeTransport = {
+      sendMail: jest.fn().mockResolvedValue({ messageId: 'fake-message' }),
+      close: jest.fn(),
+    };
+    const createTransport = jest
+      .spyOn(nodemailer, 'createTransport')
+      .mockReturnValue(fakeTransport as never);
+
+    await service.deliverCampaignRecipient(
+      {
+        id: 'job-1',
+        templateId: 'template-1',
+        subject: 'Snapshot subject',
+        templateHtml: '<p>Hello {{firstName}}</p>',
+        appUrl: 'https://example.test',
+        campaignName: 'Snapshot campaign',
+        tags: ['marketing'],
+        createInAppNotification: false,
+        requestedByUserId: 'admin-1',
+      },
+      {
+        id: 'recipient-1',
+        userId: 'user-1',
+        email: 'user@example.test',
+        username: 'user',
+        firstName: 'Sample',
+        lastName: 'User',
+      },
+    );
+
+    expect(createTransport).toHaveBeenCalledTimes(1);
+    expect(fakeTransport.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'user@example.test',
+        subject: 'Snapshot subject',
+        html: expect.stringContaining('Sample'),
+      }),
+    );
+    expect(fakeTransport.close).toHaveBeenCalledTimes(1);
   });
 
   it('reports a bounded over-limit preview and refuses to send it', async () => {

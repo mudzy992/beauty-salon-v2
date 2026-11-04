@@ -51,6 +51,25 @@ export class NotificationsRepository {
     return this.prisma.notificationPreference.upsert(params)
   }
 
+  createCampaignJob(
+    data: Prisma.CampaignJobUncheckedCreateInput,
+    recipients: Array<Omit<Prisma.CampaignRecipientUncheckedCreateInput, 'jobId'>>,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const job = await tx.campaignJob.create({ data })
+      await tx.campaignRecipient.createMany({
+        data: recipients.map((recipient) => ({ ...recipient, jobId: job.id })),
+      })
+      return job
+    })
+  }
+
+  findCampaignJobByRequest(requestedByUserId: string, idempotencyKey: string) {
+    return this.prisma.campaignJob.findUnique({
+      where: { requestedByUserId_idempotencyKey: { requestedByUserId, idempotencyKey } },
+    })
+  }
+
   findCampaignEmailConsent(userId: string) {
     return this.prisma.campaignEmailConsent.findUnique({
       where: { userId },

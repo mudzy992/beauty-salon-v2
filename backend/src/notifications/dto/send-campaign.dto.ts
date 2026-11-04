@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
@@ -11,6 +12,10 @@ import { Type } from 'class-transformer';
 import { CampaignAudienceDto } from './campaign-audience.dto';
 
 export class SendCampaignDto {
+  @IsOptional()
+  @IsUUID('4')
+  idempotencyKey?: string;
+
   @IsString()
   templateId!: string;
 

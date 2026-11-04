@@ -21,12 +21,17 @@ import { TestSmtpConnectionDto } from './dto/test-smtp-connection.dto';
 import { CampaignAudienceDto } from './dto/campaign-audience.dto';
 import { SendCampaignDto } from './dto/send-campaign.dto';
 import { SetCampaignEmailConsentDto } from './dto/set-campaign-email-consent.dto';
+import { RetryCampaignJobDto } from './dto/retry-campaign-job.dto';
+import { CampaignQueueService } from './campaign-queue.service';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 
 @Controller('api/notifications')
 export class NotificationsController {
-  constructor(private readonly notifications: NotificationsService) {}
+  constructor(
+    private readonly notifications: NotificationsService,
+    private readonly campaignQueue: CampaignQueueService,
+  ) {}
 
   @Post('push-token')
   registerPushToken(
@@ -134,5 +139,30 @@ export class NotificationsController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.notifications.sendCampaign(dto, user.sub);
+  }
+
+  @Get('campaigns/:jobId')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getCampaignJob(@Param('jobId') jobId: string) {
+    return this.campaignQueue.getJob(jobId);
+  }
+
+  @Post('campaigns/:jobId/cancel')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  cancelCampaignJob(@Param('jobId') jobId: string) {
+    return this.campaignQueue.cancelJob(jobId);
+  }
+
+  @Post('campaigns/:jobId/retry')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  retryCampaignJob(
+    @Param('jobId') jobId: string,
+    @Body() dto: RetryCampaignJobDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.campaignQueue.retryFailedRecipients(jobId, user.sub, dto);
   }
 }

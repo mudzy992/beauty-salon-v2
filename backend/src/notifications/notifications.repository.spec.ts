@@ -11,6 +11,8 @@ describe('NotificationsRepository campaign email consent', () => {
     updatedAt: new Date('2026-11-04T12:00:00.000Z'),
   };
   const tx = {
+    campaignJob: { create: jest.fn() },
+    campaignRecipient: { createMany: jest.fn() },
     campaignEmailConsent: {
       upsert: jest.fn(),
       updateMany: jest.fn(),
@@ -28,10 +30,44 @@ describe('NotificationsRepository campaign email consent', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    tx.campaignJob.create.mockResolvedValue({ id: 'job-1' });
+    tx.campaignRecipient.createMany.mockResolvedValue({ count: 1 });
     tx.campaignEmailConsent.upsert.mockResolvedValue(consent);
     tx.campaignEmailConsent.updateMany.mockResolvedValue({ count: 1 });
     tx.campaignEmailConsent.findUniqueOrThrow.mockResolvedValue(consent);
     tx.campaignEmailConsentEvent.create.mockResolvedValue({ id: 'event-1' });
+  });
+
+  it('persists the campaign job and bounded recipient snapshot atomically', async () => {
+    await expect(
+      repository.createCampaignJob(
+        { requestedByUserId: 'admin-1' } as never,
+        [
+          {
+            userId: 'user-1',
+            email: 'user@example.test',
+            username: 'user',
+            consentId: 'consent-1',
+            consentedAt: consent.consentedAt,
+          },
+        ] as never,
+      ),
+    ).resolves.toEqual({ id: 'job-1' });
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.campaignJob.create).toHaveBeenCalledWith({
+      data: { requestedByUserId: 'admin-1' },
+    });
+    expect(tx.campaignRecipient.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          jobId: 'job-1',
+          userId: 'user-1',
+          email: 'user@example.test',
+          consentId: 'consent-1',
+        }),
+      ],
+    });
   });
 
   it('audits a consent transition in the same transaction as the state update', async () => {

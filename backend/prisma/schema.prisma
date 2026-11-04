@@ -1013,13 +1013,13 @@ model NotificationPreference {
 }
 
 model CampaignEmailConsent {
-  id          String   @id @default(uuid())
-  userId      String   @unique @map("user_id")
-  optedIn     Boolean  @default(false) @map("opted_in")
+  id          String    @id @default(uuid())
+  userId      String    @unique @map("user_id")
+  optedIn     Boolean   @default(false) @map("opted_in")
   consentedAt DateTime? @map("consented_at")
   withdrawnAt DateTime? @map("withdrawn_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   user   User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
   events CampaignEmailConsentEvent[]
@@ -1042,6 +1042,83 @@ model CampaignEmailConsentEvent {
   @@index([consentId])
   @@index([userId, occurredAt])
   @@map("campaign_email_consent_events")
+}
+
+model CampaignJob {
+  id                      String    @id @default(uuid())
+  templateId              String    @map("template_id")
+  templateName            String    @map("template_name")
+  subject                 String
+  templateHtml            String    @map("template_html") @db.Text
+  appUrl                  String    @map("app_url")
+  campaignName            String?   @map("campaign_name")
+  tags                    Json
+  createInAppNotification Boolean   @default(true) @map("create_in_app_notification")
+  requestedByUserId       String    @map("requested_by_user_id")
+  idempotencyKey          String    @map("idempotency_key")
+  status                  String    @default("QUEUED")
+  totalRecipients         Int       @map("total_recipients")
+  startedAt               DateTime? @map("started_at")
+  completedAt             DateTime? @map("completed_at")
+  cancelledAt             DateTime? @map("cancelled_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  recipients CampaignRecipient[]
+  retryAudits CampaignJobRetryAudit[]
+
+  @@unique([requestedByUserId, idempotencyKey])
+  @@index([status, createdAt])
+  @@map("campaign_jobs")
+}
+
+model CampaignRecipient {
+  id          String    @id @default(uuid())
+  jobId       String    @map("job_id")
+  userId      String    @map("user_id")
+  email       String
+  username    String
+  firstName   String?   @map("first_name")
+  lastName    String?   @map("last_name")
+  consentId   String    @map("consent_id")
+  consentedAt DateTime  @map("consented_at")
+  status      String    @default("PENDING")
+  attempts    Int       @default(0)
+  attemptedAt DateTime? @map("attempted_at")
+  deliveredAt DateTime? @map("delivered_at")
+  lastError   String?   @map("last_error")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  job CampaignJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, userId])
+  @@index([jobId, status, createdAt])
+  @@map("campaign_recipients")
+}
+
+model CampaignJobRetryAudit {
+  id                      String   @id @default(uuid())
+  jobId                   String   @map("job_id")
+  requestedByUserId       String   @map("requested_by_user_id")
+  requestId               String   @map("request_id")
+  confirmedAtLeastOnce     Boolean  @map("confirmed_at_least_once")
+  affectedRecipients       Int      @map("affected_recipients")
+  requestedAt             DateTime @default(now()) @map("requested_at")
+
+  job CampaignJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, requestId])
+  @@index([requestedByUserId, requestedAt])
+  @@map("campaign_job_retry_audits")
+}
+
+model CampaignWorkerLock {
+  id          String   @id
+  lockedBy    String?  @map("locked_by")
+  lockedUntil DateTime @map("locked_until")
+
+  @@map("campaign_worker_locks")
 }
 
 model PushToken {

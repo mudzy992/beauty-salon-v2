@@ -3,6 +3,7 @@ import { DailyLogCompletionOutboxService } from '../daily-log/daily-log-completi
 import { ReservationOutboxService } from '../reservations/reservation-outbox.service';
 import { IncomeCronService } from '../finance/income-cron.service';
 import { ReservationDelayCron } from '../reservations/reservation-delay.cron';
+import { CampaignQueueService } from '../notifications/campaign-queue.service';
 
 jest.mock('../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -46,6 +47,7 @@ describe('scheduled job overlap policy', () => {
     [ReservationDelayCron.prototype, 'tick'],
     [DailyLogCompletionOutboxService.prototype, 'retryPending'],
     [ReservationOutboxService.prototype, 'retryPending'],
+    [CampaignQueueService.prototype, 'processQueueTick'],
     [IncomeCronService.prototype, 'handleIncomeBookCatchUp'],
     [IncomeCronService.prototype, 'handleExpenseBookRollover'],
   ])('%s.%s skips overlapping executions', (prototype, method) => {

@@ -82,6 +82,7 @@ import type { CancelReservationDto } from '../src/reservations/dto/cancel-reserv
 import type { UpdateReservationDto } from '../src/reservations/dto/update-reservation.dto';
 import { LoyaltyService } from '../src/loyalty/loyalty.service';
 import { LoyaltyController } from '../src/loyalty/loyalty.controller';
+import { CampaignQueueService } from '../src/notifications/campaign-queue.service';
 import { NotificationsRepository } from '../src/notifications/notifications.repository';
 import { NotificationsService } from '../src/notifications/notifications.service';
 import { AnalyticsController } from '../src/analytics/analytics.controller';
@@ -4257,6 +4258,86 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       );
     } finally {
       await db.user.deleteMany({ where: { id: { in: userIds } } });
+    }
+  }, 30_000);
+
+  it('persists campaign recipient snapshots and processes at most one per tick', async () => {
+    const db = prisma!;
+    const suffix = randomUUID();
+    const users = await Promise.all(
+      [1, 2].map((index) =>
+        db.user.create({
+          data: {
+            username: `campaign-queue-${index}-${suffix}`,
+            email: `campaign-queue-${index}-${suffix}@example.test`,
+            firstName: 'Queue',
+            lastName: `Recipient ${index}`,
+            isEmailVerified: true,
+          },
+        }),
+      ),
+    );
+    const repository = new NotificationsRepository(
+      db as unknown as PrismaService,
+    );
+    const consentRows = await Promise.all(
+      users.map((user) => repository.setCampaignEmailConsent(user.id, true)),
+    );
+    const job = await db.campaignJob.create({
+      data: {
+        templateId: 'queue-template',
+        templateName: 'Queue test',
+        subject: 'Synthetic queue test',
+        templateHtml: '<p>Hello {{firstName}}</p>',
+        appUrl: 'https://example.test',
+        campaignName: 'Synthetic queue test',
+        tags: ['marketing', 'campaign'],
+        createInAppNotification: false,
+        requestedByUserId: 'synthetic-admin',
+        idempotencyKey: suffix,
+        status: 'QUEUED',
+        totalRecipients: users.length,
+      },
+    });
+
+    try {
+      await db.campaignRecipient.createMany({
+        data: users.map((user, index) => ({
+          jobId: job.id,
+          userId: user.id,
+          email: user.email!,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          consentId: consentRows[index]!.id,
+          consentedAt: consentRows[index]!.consentedAt!,
+        })),
+      });
+      const fakeSmtpDelivery = jest.fn().mockResolvedValue(undefined);
+      const queue = new CampaignQueueService(
+        db as unknown as PrismaService,
+        { deliverCampaignRecipient: fakeSmtpDelivery } as never,
+      );
+
+      await queue.processQueueTick();
+
+      const persisted = await db.campaignJob.findUniqueOrThrow({
+        where: { id: job.id },
+        include: { recipients: { orderBy: { createdAt: 'asc' } } },
+      });
+      expect(persisted.status).toBe('RUNNING');
+      expect(
+        persisted.recipients.filter((item) => item.status === 'DELIVERED'),
+      ).toHaveLength(1);
+      expect(
+        persisted.recipients.filter((item) => item.status === 'PENDING'),
+      ).toHaveLength(1);
+      expect(fakeSmtpDelivery).toHaveBeenCalledTimes(1);
+    } finally {
+      await db.campaignJob.delete({ where: { id: job.id } });
+      await db.user.deleteMany({
+        where: { id: { in: users.map(({ id }) => id) } },
+      });
     }
   }, 30_000);
 
