@@ -37,7 +37,7 @@ Ovaj dokument završava tehnički dio Faze 0 za client pickere, user/dashboard l
 
 Controller `ReservationsController.findAll` prihvata `fromDate`, `toDate`, `status`, `clientSearch`, `asClient`, `asStylist`, `page`, `pageSize`. **Baseline u trenutku inventara:** array se vraćao ako nedostaje bilo koji od `page`/`pageSize`, bez server-side result cap-a; DTO nije imao gornje granice. **Ažuriranje nakon `10a0b8d`:** oba parametra su obavezna kao par; `pageSize` je najviše 50, `page` i izračunati offset najviše 1000, uz stabilan `id` tie-break. Queryless pozivi i dalje vraćaju legacy array bez server-side cap-a do D-05 compatibility window-a.
 
-**Consumer rollout status nakon `bc03e85` (CI `41790691429` green):** admin list je već koristio bounded pages; admin calendar je sada migriran na page size 50, zadržava vidljivi date range, fetch-a stranice do `total` i poštuje offset cap 1000. Pri grešci čuva postojeće podatke, prikazuje poruku i retry kontrolu; kompatibilni legacy array prihvata samo do 1.050 stavki. Od 13 mapiranih consumer grupa, admin list, admin calendar, stylist portal i mobile stylist schedule sada koriste bounded pagination (4/13); preostalih 9 ostaje za migraciju prije početka jednog uspješnog release ciklusa legacy array-a.
+**Consumer rollout status nakon `bc03e85` (CI `41790691429` green):** admin list je već koristio bounded pages; admin calendar je sada migriran na page size 50, zadržava vidljivi date range, fetch-a stranice do `total` i poštuje offset cap 1000. Pri grešci čuva postojeće podatke, prikazuje poruku i retry kontrolu; kompatibilni legacy array prihvata samo do 1.050 stavki. Od 13 mapiranih consumer grupa, admin list, admin calendar, stylist portal, mobile stylist schedule i mobile stylist stats sada koriste bounded pagination (5/13); preostalih 8 ostaje za migraciju prije početka jednog uspješnog release ciklusa legacy array-a.
 
 | Consumer | Parametri/oblik koji koristi | Trenutni adapter/ograničenje |
 |---|---|---|
@@ -51,7 +51,7 @@ Controller `ReservationsController.findAll` prihvata `fromDate`, `toDate`, `stat
 | `mobile/src/screens/client/MyReservationsScreen.tsx` (client) | `asClient: true`, bez pagination | Normalizuje cijelu listu za screen. |
 | `mobile/src/screens/stylist/StylistInboxScreen.tsx` (stylist) | `asStylist: true`, bez date/page | Normalizuje cijeli inbox; lock/hide business logic ostaje backend-owned. |
 | `mobile/src/screens/stylist/StylistScheduleScreen.tsx` (stylist) | `asStylist: true`, 30-dnevni date window + page loop | Migriran u `e3bb420` na mobile bounded helper (`pageSize=50`, max offset 1000); payload normalizacija, stale-data i retry UI ostaju. Preko 1.050 rezultata vraća error state umjesto djelimičnog rasporeda. |
-| `mobile/src/screens/stylist/StylistStatsScreen.tsx` (stylist) | `asStylist: true`, tekući kalendarski mjesec, bez page | Provjerava da je normalizovani niz dužine kao raw array. |
+| `mobile/src/screens/stylist/StylistStatsScreen.tsx` (stylist) | `asStylist: true`, tekući kalendarski mjesec + page loop | Migriran u `39fb164` na bounded helper; normalizacija, nezavisni load/error stanja i stale-data/retry za reservations i daily-log ostaju. |
 | `mobile/src/screens/stylist/reservation-detail/hooks/use-reservation-detail-status.ts` | `asStylist: true`, jedan datum, bez page | Učitava dnevne reservation-e za početak naloga. |
 | `mobile/src/screens/stylist` direct list consumer-i u datotekama iznad | Nema drugih pronađenih literalnih `GET '/api/reservations'` u `frontend/src`, `mobile/src` ili `mobile/app` nakon isključenja testova. | ID-detail, availability i mutation rute nisu list consumer-i. |
 
@@ -59,7 +59,7 @@ Controller `ReservationsController.findAll` prihvata `fromDate`, `toDate`, `stat
 
 1. Admin Reservations list već koristi pagination envelope; zadržati ga i dodati DTO `Max`/partial-parameter validation bez tihe promjene.
 2. Admin calendar sada koristi capped page path za vidljivi date range i eksplicitno obrađuje grešku/retry; dashboard reservation reads i dalje trebaju bounded ponašanje i aggregate count gdje su primjereni, bez oslanjanja na download svih matching reservations.
-3. Stylist portal inbox/schedule/stats/detail koristi shared bounded helper; mobile stylist schedule sada koristi isti limit za svoj 30-dnevni prozor. Postojeći React Query i mobile stale-data/error/retry ugovori ostaju. Preostali client history i mobile client/inbox/stats/detail prikazi još trebaju bounded pages ili server-bounded windows, uz očuvanje UX-a i array normalizacije prije envelope defaulta.
+3. Stylist portal inbox/schedule/stats/detail koristi shared bounded helper; mobile stylist schedule i stats sada koriste isti page/offset limit za svoj date-window. Postojeći React Query i mobile stale-data/error/retry ugovori ostaju. Preostali client history i mobile client/inbox/detail prikazi još trebaju bounded pages ili server-bounded windows, uz očuvanje UX-a i array normalizacije prije envelope defaulta.
 4. Tek nakon consumer testova promijeniti ponašanje bez `page/pageSize`. Privremeni legacy array window treba imati vlasnika, datum isteka i metriku/telemetriju ako runtime podržava; ne zaključiti da se svi callers nalaze samo iz source string search-a.
 5. Tests: DTO rejects negative/partial/oversized values; each web/mobile parser handles agreed shape; page-boundary totals stable; synthetic high-cardinality DB proves bounded result; existing role scoping and date semantics preserved.
 
@@ -91,7 +91,7 @@ Source inventory navodi jedan mobilni jezik (`mobile/src/i18n/bs.ts`); web BS/EN
 | D-03 | CLOSED FOR IMPLEMENTATION | Samo verified email; max 100/campaign; 1 email/s; concurrency 1. Real SMTP quota nije testirana. |
 | D-04 | OWNER-REPORTED | Jedna backend replika; deployment/runtime ponašanje i runbook nezavisno nisu provjereni. |
 | D-05 users | DIRECTION APPROVED | Poznati consumer-i migriraju na bounded responses; legacy array jedan release ciklus nakon svih migracija. |
-| D-05 reservations | INVENTORY COMPLETE; MIGRATION IN PROGRESS | 13 consumer grupa mapirano; admin list, admin calendar (`bc03e85`), stylist portal (`93d6252`) i mobile stylist schedule (`e3bb420`) su bounded (4/13); preostalih 9 zahtijeva migraciju. Legacy array window od jednog uspješnog release ciklusa počinje tek nakon svih migracija. |
+| D-05 reservations | INVENTORY COMPLETE; MIGRATION IN PROGRESS | 13 consumer grupa mapirano; admin list, admin calendar (`bc03e85`), stylist portal (`93d6252`), mobile stylist schedule (`e3bb420`) i stats (`39fb164`) su bounded (5/13); preostalih 8 zahtijeva migraciju. Legacy array window od jednog uspješnog release ciklusa počinje tek nakon svih migracija. |
 | D-06 | CLOSED FOR CURRENT SCOPE | Mobile ostaje BS-only. |
 | D-07 | GATED — LEGAL COPY PENDING | Nema odobrenog teksta/verzije; ne prevoditi ili mijenjati media-consent copy. Ne blokira API-R1. |
 
