@@ -2,10 +2,11 @@
 
 ## Scope and guarantees
 
-Ovaj runbook pokriva `reservation.created` outbox worker, read-only dijagnostiku i audited admin replay.
+Ovaj runbook pokriva `reservation.created`, `reservation.appointment_reminder`, `reservation.daily_log_pending_reminder` i `reservation.delay_warning` evente, read-only dijagnostiku, retry/DLQ i audited admin replay.
 
-- Booking transakcija upisuje outbox događaj samo u bazu; notification/push/socket I/O radi poslije commita.
-- Worker obrađuje najviše 25 due događaja po minuti. Istekli `PROCESSING` lease (stariji od 5 minuta) vraća se za retry; backoff je eksponencijalan do 1 sata; nakon 10 pokušaja događaj prelazi u `DEAD_LETTER`.
+- Booking/reminder producer transakcije prvo upisuju durable outbox evente; notification/push/socket I/O radi nakon DB commita.
+- Worker obrađuje najviše 25 due događaja po pollu. Istekli `PROCESSING` lease (stariji od 5 minuta) vraća se za retry; backoff je eksponencijalan do 1 sata; nakon 10 pokušaja događaj prelazi u `DEAD_LETTER`.
+- Appointment reminders revalidiraju reservation status/datum/vrijeme i koriste vlasnički potvrđen salonski wall-clock broj sati. Pending daily-log reminder provjerava PENDING/undeleted/awaiting state i starost unosa kao proteklo vrijeme. Delay-warning payload snapshotuje primaoca i sadržaj pri threshold-crossingu; prag je proteklo vrijeme od lokalno razriješenog scheduled end-a.
 - Notification DB upsert je idempotentan po izvornom događaju/korisniku. Push/email provider side-effect ostaje **at-least-once**: ako provider prihvati dostavu, a proces ili marker-upis zakaže, retry može ponoviti vanjsku dostavu. Exactly-once nije obećan.
 - Dijagnostika ne vraća payload ni aggregate ID; nepoznat tekst greške se rediguje. To nije zamjena za providerov dashboard/logove.
 
@@ -39,6 +40,16 @@ Response sadrži:
 
 Zabilježi vrijeme, deployed revision i vrijednosti brojača. Poredi snapshot-e; jedan uzorak ne dokazuje da cron radi.
 
+## Controlled staging smoke (nikad produkcija)
+
+Prije testa potvrdi da je `API_BASE` staging/izolovani API, da su testni nalozi/rezervacije synthetic ili odobreni, i da push/email vode na sandbox provider ili namjenski test recipient. Push/email su at-least-once pa i staging smoke može duplirati notifikaciju. Ne koristi realne klijente i ne kopiraj event IDs, payload, recipient ili credentials u izvještaj.
+
+- Testiraj `appointment_reminder` samo s budućom, potvrđenom staging rezervacijom koja prolazi reminder window; promijeni ili otkaži test reservation prije worker delivery radi stale-suppression smoke-a.
+- Testiraj `daily_log_pending_reminder` samo s test entryjem koji je PENDING, nije obrisan i čija parent reservation čeka daily log; zasebno potvrdi da completed/deleted test entry ne šalje.
+- Testiraj `delay_warning` s test IN_PROGRESS reservation i najmanje tri kasnija staging termina; provjeri da snapshot recipient count ostaje isti kroz retry/failure test. Ne pokreći stvarni provider failure bez sandbox/fake providera.
+- Počni read-only outbox snapshotom; pokreni jedan kontrolisani producer/worker tick kroz staging UI/API workflow; nakon poll intervala provjeri `counts`, `duePending`, `staleProcessing` i test sink/provider dashboard. Zabilježi samo redigovane counts, HTTP status, deployed revision i vrijeme. Ne radi ručni SQL event insert/status edit.
+- Smoke nije audited replay test. Dead-letter replay radi se samo nakon root-cause popravke, eksplicitnog at-least-once odobrenja i provjere da provider nije već prihvatio prethodni pokušaj.
+
 ## Triage
 
 1. **Readiness nije 200:** provjeri da li API i migration job koriste istu namjensku bazu. Za Compose setup, read-only status provjera je `docker compose --profile migrations run --rm migrate ./node_modules/.bin/prisma migrate status`. Ne ponavljaj migraciju naslijepo; prije `migrate deploy` provjeri tačan target, release i odobreni backup/rollback postupak.
@@ -61,8 +72,8 @@ Manual replay nije uobičajeni smoke test ni prvi korak incidenta. Koristi ga sa
 Ovaj dokument ne postavlja organizacione politike niti potvrđuje live deployment. Prije zatvaranja OPS-R2 potrebno je evidentirati:
 
 - API origin i uspješan vanjski `/health/ready` JSON probe;
-- read-only outbox snapshot poslije redeploya; controlled worker delivery smoke samo u stagingu/izolovanom test setupu s nedostavljajućim providerom;
-- broj backend replika i kako su cron polleri raspoređeni; DB claim je atomski, ali `waitForCompletion` je process-local;
+- read-only outbox snapshot poslije redeploya (barem dva uzorka razmaknuta jednim poll intervalom); controlled worker delivery smoke samo u stagingu/izolovanom test setupu s nedostavljajućim providerom;
+- broj backend replika i kako su cron polleri raspoređeni; DB claim je atomski, ali `waitForCompletion` je process-local. **Vlasnik je 2026-11-04 prijavio jednu backend instancu s reminder cron/outbox workerom u istom procesu; to je owner-reported, nije nezavisno provjereno za deployed revision/staging.**
 - imenovanog alert/on-call vlasnika, kanal i odobrene pragove za due/stale/dead-letter stanje;
 - ko odobrava ručni replay i recovery/incident komunikaciju.
 
