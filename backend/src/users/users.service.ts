@@ -6,6 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import type { Prisma } from '@prisma/client';
 import { randomBytes } from 'node:crypto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -23,6 +24,10 @@ import {
   uploadPathsInReferences,
 } from '../uploads/upload-reference-lock';
 import { EventsGateway } from '../events/events.gateway';
+import {
+  MAX_API_PAGE_LIMIT,
+  MAX_API_PAGE_OFFSET,
+} from '../common/pagination.constants';
 
 const AVATAR_SOURCE_MIMES = new Set([
   'image/jpeg',
@@ -154,57 +159,32 @@ export class UsersService {
     pagination?: { page?: number; pageSize?: number },
   ) {
     this.requireAdminOrOwner(roles);
-    const where = {};
-    const hasPagination =
-      pagination?.page != null && pagination?.pageSize != null;
-    if (!hasPagination) {
-      return this.repo.user.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        select: ADMIN_USER_LIST_SELECT,
-      });
-    }
-    const page = Math.max(0, pagination?.page ?? 0);
-    const pageSize = Math.min(100, Math.max(1, pagination?.pageSize ?? 10));
-    const [items, total] = await Promise.all([
-      this.repo.user.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        select: ADMIN_USER_LIST_SELECT,
-        skip: page * pageSize,
-        take: pageSize,
-      }),
-      this.repo.user.count({ where }),
-    ]);
-    return {
-      items,
-      total,
-      page,
-      pageSize,
-    };
+    return this.findAdminUserList({}, pagination);
   }
 
-  async findSystemAdmins(roles: string[]) {
+  async findSystemAdmins(
+    roles: string[],
+    pagination?: { page?: number; pageSize?: number },
+  ) {
     this.requireAdminOrOwner(roles);
-    return this.repo.user.findMany({
-      where: {
-        userRoles: { some: { role: { name: 'SYSTEM_ADMIN' } } },
-      },
-      orderBy: [{ createdAt: 'desc' }],
-      select: ADMIN_USER_LIST_SELECT,
-    });
+    return this.findAdminUserList(
+      { userRoles: { some: { role: { name: 'SYSTEM_ADMIN' } } } },
+      pagination,
+    );
   }
 
-  async findStylists(roles: string[]) {
+  async findStylists(
+    roles: string[],
+    pagination?: { page?: number; pageSize?: number },
+  ) {
     this.requireAdminOrOwner(roles);
-    return this.repo.user.findMany({
-      where: {
+    return this.findAdminUserList(
+      {
         userRoles: { some: { role: { name: 'STYLIST' } } },
         NOT: { userRoles: { some: { role: { name: 'SYSTEM_ADMIN' } } } },
       },
-      orderBy: [{ createdAt: 'desc' }],
-      select: ADMIN_USER_LIST_SELECT,
-    });
+      pagination,
+    );
   }
 
   async findInitialPasswordResetCandidateIds(roles: string[]) {
@@ -277,6 +257,65 @@ export class UsersService {
           }
         : {}),
     };
+  }
+
+  private async findAdminUserList(
+    where: Prisma.UserWhereInput,
+    pagination?: { page?: number; pageSize?: number },
+  ) {
+    const normalizedPagination =
+      this.normalizeAdminUserListPagination(pagination);
+    const baseQuery = {
+      where,
+      orderBy: { createdAt: 'desc' as const },
+      select: ADMIN_USER_LIST_SELECT,
+    };
+
+    if (!normalizedPagination) {
+      return this.repo.user.findMany({
+        ...baseQuery,
+        take: MAX_API_PAGE_LIMIT,
+      });
+    }
+
+    const { page, pageSize } = normalizedPagination;
+    const [items, total] = await Promise.all([
+      this.repo.user.findMany({
+        ...baseQuery,
+        skip: page * pageSize,
+        take: pageSize,
+      }),
+      this.repo.user.count({ where }),
+    ]);
+    return { items, total, page, pageSize };
+  }
+
+  private normalizeAdminUserListPagination(pagination?: {
+    page?: number;
+    pageSize?: number;
+  }) {
+    const hasPage = pagination?.page !== undefined;
+    const hasPageSize = pagination?.pageSize !== undefined;
+    if (hasPage !== hasPageSize) {
+      throw new BadRequestException(
+        'page i pageSize moraju biti navedeni zajedno.',
+      );
+    }
+    if (!hasPage) return null;
+
+    const page = pagination!.page!;
+    const pageSize = pagination!.pageSize!;
+    if (
+      !Number.isSafeInteger(page) ||
+      page < 0 ||
+      page > MAX_API_PAGE_OFFSET ||
+      !Number.isSafeInteger(pageSize) ||
+      pageSize < 1 ||
+      pageSize > MAX_API_PAGE_LIMIT
+    ) {
+      throw new BadRequestException('Parametri paginacije nisu validni.');
+    }
+    return { page, pageSize };
   }
 
   private normalizeClientPagination(pagination?: {

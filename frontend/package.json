@@ -57,6 +57,7 @@
     "test:admin-gallery-i18n": "node --test src/features/gallery/admin-gallery-i18n.test.mjs",
     "test:finance-manual-entry-i18n": "node --test src/features/finance/income/manual-entry-i18n.test.mjs",
     "test:finance-client-picker-contract": "node --test src/features/finance/api/client-picker-contract.test.mjs",
+    "test:admin-user-list-contract": "node --test src/api/admin-user-list-contract.test.mjs",
     "test:finance-expense-form-i18n": "node --test src/features/finance/expense/expense-form-i18n.test.mjs",
     "test:finance-expense-list-i18n": "node --test src/features/finance/expense/expense-list-i18n.test.mjs",
     "test:finance-income-list-i18n": "node --test src/features/finance/income/income-list-i18n.test.mjs",

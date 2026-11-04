@@ -70,6 +70,10 @@ export const fetchAllPublicStylists = <T>(
 export const fetchAllAdminStylists = <T>() =>
   fetchAllPages<T>("/api/stylists/admin");
 
+export const fetchAllAdminUserRoleList = <T>(
+  path: "/api/users/system-admins" | "/api/users/stylists",
+) => fetchAllPages<T>(path);
+
 export const fetchAllAdminServiceCategories = <T>() =>
   fetchAllPages<T>("/api/services/admin/categories");
 

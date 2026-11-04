@@ -15,7 +15,10 @@ import {
 } from 'lucide-react'
 
 import api from '../api/client'
-import { fetchAllAdminStylists } from '../api/catalog'
+import {
+  fetchAllAdminStylists,
+  fetchAllAdminUserRoleList,
+} from '../api/catalog'
 import { getErrorMessage } from '../api/error'
 import { resolveAdminApiErrorKey } from '../features/admin/admin-api-error.mjs'
 import { formatLocalizedAmount } from '../i18n/locale-utils.mjs'
@@ -235,22 +238,22 @@ export default function Users() {
   const loadData = useCallback(() => {
     setLoading(true)
     Promise.all([
-      api.get<UserRow[]>('/api/users/system-admins'),
-      api.get<UserRow[]>('/api/users/stylists'),
+      fetchAllAdminUserRoleList<UserRow>('/api/users/system-admins'),
+      fetchAllAdminUserRoleList<UserRow>('/api/users/stylists'),
       api.get<PaginatedResponse<UserRow>>('/api/users/clients/admin', {
         params: { page, pageSize, q: debouncedClientsSearch.trim() || undefined },
       }),
       api.get<Array<{ id: string }>>('/api/users/password-reset-candidates'),
     ])
-      .then(([adminsRes, stylistsRes, clientsRes, resetCandidatesRes]) => {
+      .then(([admins, stylists, clientsRes, resetCandidatesRes]) => {
         const resetCandidateIds = new Set(resetCandidatesRes.data.map(({ id }) => id))
         const withResetStatus = (users: UserRow[]) =>
           users.map((user) => ({
             ...user,
             mustChangePassword: resetCandidateIds.has(user.id),
           }))
-        setAdmins(withResetStatus(Array.isArray(adminsRes.data) ? adminsRes.data : []))
-        setStylists(withResetStatus(Array.isArray(stylistsRes.data) ? stylistsRes.data : []))
+        setAdmins(withResetStatus(admins))
+        setStylists(withResetStatus(stylists))
         setClients(withResetStatus(Array.isArray(clientsRes.data.items) ? clientsRes.data.items : []))
         setTotal(clientsRes.data.total ?? 0)
       })

@@ -2742,17 +2742,41 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     const staffLists = await Promise.all([
       request(getHttpServer(app!))
         .get('/api/users/system-admins')
+        .query({ page: 0, pageSize: 50 })
         .set('Authorization', `Bearer ${ownerToken}`)
         .expect(200),
       request(getHttpServer(app!))
         .get('/api/users/stylists')
+        .query({ page: 0, pageSize: 50 })
         .set('Authorization', `Bearer ${ownerToken}`)
         .expect(200),
     ]);
-    const adminRow = staffLists[0].body.find((row: { username: string }) =>
+    for (const list of staffLists) {
+      expect(list.body).toMatchObject({ page: 0, pageSize: 50 });
+      expect(list.body.items).toEqual(expect.any(Array));
+      expect(list.body.total).toEqual(expect.any(Number));
+    }
+    const legacyStaffList = await request(getHttpServer(app!))
+      .get('/api/users/system-admins')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(Array.isArray(legacyStaffList.body)).toBe(true);
+    expect(legacyStaffList.body.length).toBeLessThanOrEqual(50);
+    await request(getHttpServer(app!))
+      .get('/api/users/system-admins')
+      .query({ page: 0 })
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(400);
+    await request(getHttpServer(app!))
+      .get('/api/users')
+      .query({ page: 'invalid', pageSize: 50 })
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(400);
+
+    const adminRow = staffLists[0].body.items.find((row: { username: string }) =>
       row.username.startsWith('sec-admin-'),
     );
-    const stylistRow = staffLists[1].body.find((row: { username: string }) =>
+    const stylistRow = staffLists[1].body.items.find((row: { username: string }) =>
       row.username.startsWith('sec-stylist-'),
     );
     for (const row of [adminRow, stylistRow]) {
@@ -2792,9 +2816,11 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
 
     const dashboardUsers = await request(getHttpServer(app!))
       .get('/api/users')
+      .query({ page: 0, pageSize: 50 })
       .set('Authorization', `Bearer ${ownerToken}`)
       .expect(200);
-    const allUsersClientRow = dashboardUsers.body.find(
+    expect(dashboardUsers.body).toMatchObject({ page: 0, pageSize: 50 });
+    const allUsersClientRow = dashboardUsers.body.items.find(
       (row: { id: string }) => row.id === clientUserId,
     );
     expect(allUsersClientRow).toMatchObject({

@@ -21,6 +21,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { RemoveStylistRoleDto } from './dto/remove-stylist-role.dto';
 import { ClientListQueryDto } from './dto/client-list-query.dto';
+import { OptionalPagePaginationQueryDto } from './dto/optional-page-pagination-query.dto';
 import { AnalyticsDateRangeQueryDto } from '../analytics/dto/analytics-date-range-query.dto';
 import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
 import {
@@ -52,15 +53,21 @@ export class UsersController {
   @Get('system-admins')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  findSystemAdmins(@CurrentUser() user: CurrentUserPayload) {
-    return this.usersService.findSystemAdmins(user.roles);
+  findSystemAdmins(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: OptionalPagePaginationQueryDto,
+  ) {
+    return this.usersService.findSystemAdmins(user.roles, query);
   }
 
   @Get('stylists')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  findStylists(@CurrentUser() user: CurrentUserPayload) {
-    return this.usersService.findStylists(user.roles);
+  findStylists(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: OptionalPagePaginationQueryDto,
+  ) {
+    return this.usersService.findStylists(user.roles, query);
   }
 
   @Get('password-reset-candidates')
@@ -97,13 +104,9 @@ export class UsersController {
   @Roles('SYSTEM_ADMIN', 'OWNER')
   findAll(
     @CurrentUser() user: CurrentUserPayload,
-    @Query('page') page?: string,
-    @Query('pageSize') pageSize?: string,
+    @Query() query: OptionalPagePaginationQueryDto,
   ) {
-    return this.usersService.findAll(user.roles, {
-      page: page != null ? parseInt(page, 10) : undefined,
-      pageSize: pageSize != null ? parseInt(pageSize, 10) : undefined,
-    });
+    return this.usersService.findAll(user.roles, query);
   }
 
   @Get('dashboard-count')

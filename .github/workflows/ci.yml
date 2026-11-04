@@ -269,6 +269,9 @@ jobs:
       - name: Test finance client picker API contract
         working-directory: frontend
         run: npm run test:finance-client-picker-contract
+      - name: Test bounded admin user-list API contract
+        working-directory: frontend
+        run: npm run test:admin-user-list-contract
       - name: Test localized finance expense form
         working-directory: frontend
         run: npm run test:finance-expense-form-i18n

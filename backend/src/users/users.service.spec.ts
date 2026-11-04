@@ -559,6 +559,35 @@ describe('UsersService', () => {
     );
   });
 
+  it('bounds legacy admin user lists and validates paired page parameters', async () => {
+    mockRepo.user.findMany.mockResolvedValue([]);
+    mockRepo.user.count.mockResolvedValue(3);
+
+    await service.findSystemAdmins(['OWNER']);
+    expect(mockRepo.user.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({ take: 50 }),
+    );
+
+    await expect(
+      service.findStylists(['OWNER'], { page: 1, pageSize: 10 }),
+    ).resolves.toMatchObject({
+      items: [],
+      total: 3,
+      page: 1,
+      pageSize: 10,
+    });
+    expect(mockRepo.user.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({ skip: 10, take: 10 }),
+    );
+
+    await expect(
+      service.findAll(['OWNER'], { page: 1 }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.findAll(['OWNER'], { page: 0, pageSize: 51 }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('selects allowlisted fields for admin user lists instead of returning User scalars', async () => {
     mockRepo.user.findMany.mockResolvedValue([]);
     mockRepo.user.count.mockResolvedValue(0);
