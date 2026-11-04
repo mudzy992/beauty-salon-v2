@@ -14,6 +14,10 @@ import { ReservationDateService } from './reservation-date.service';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { hideOverlappingInboxWhileLocked } from './utils/inbox-lock-filter';
 import { resolveAttendanceClientDeadlineAt } from './utils/attendance-client-deadline';
+import {
+  MAX_API_PAGE_LIMIT,
+  MAX_API_PAGE_OFFSET,
+} from '../common/pagination.constants';
 
 @Injectable()
 export class ReservationListService {
@@ -197,8 +201,19 @@ export class ReservationListService {
           (date, time) => this.dates.combineDateAndTime(date, time),
         ),
       }));
-    const hasPagination = query.page != null && query.pageSize != null;
-    if (!hasPagination) {
+    const hasPage = query.page != null;
+    const hasPageSize = query.pageSize != null;
+    if (hasPage !== hasPageSize) {
+      throw new BadRequestException(
+        'page i pageSize moraju biti navedeni zajedno.',
+      );
+    }
+    const orderBy = [
+      { reservationDate: 'asc' as const },
+      { startTime: 'asc' as const },
+      { id: 'asc' as const },
+    ];
+    if (!hasPage) {
       const rows = await this.prisma.reservation.findMany({
         where,
         omit: {
@@ -207,7 +222,7 @@ export class ReservationListService {
           idempotencyRequestHash: true,
         },
         include,
-        orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
+        orderBy,
       });
       if (!query.asStylist) return attachDeadline(rows);
       const stylistProfileId = await this.shared.getStylistProfileIdByUserId(
@@ -218,8 +233,22 @@ export class ReservationListService {
         hideOverlappingInboxWhileLocked(rows, stylistProfileId),
       );
     }
-    const page = Math.max(0, query.page ?? 0);
-    const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 10));
+
+    const page = query.page!;
+    const pageSize = query.pageSize!;
+    const offset = page * pageSize;
+    if (
+      !Number.isSafeInteger(page) ||
+      !Number.isSafeInteger(pageSize) ||
+      page < 0 ||
+      page > MAX_API_PAGE_OFFSET ||
+      pageSize < 1 ||
+      pageSize > MAX_API_PAGE_LIMIT ||
+      !Number.isSafeInteger(offset) ||
+      offset > MAX_API_PAGE_OFFSET
+    ) {
+      throw new BadRequestException('Parametri paginacije nisu validni.');
+    }
     const [items, total] = await Promise.all([
       this.prisma.reservation.findMany({
         where,
@@ -229,8 +258,8 @@ export class ReservationListService {
           idempotencyRequestHash: true,
         },
         include,
-        orderBy: [{ reservationDate: 'asc' }, { startTime: 'asc' }],
-        skip: page * pageSize,
+        orderBy,
+        skip: offset,
         take: pageSize,
       }),
       this.prisma.reservation.count({ where }),

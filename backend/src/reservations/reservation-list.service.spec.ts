@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { ReservationListService } from './reservation-list.service';
 
@@ -101,6 +101,35 @@ describe('ReservationListService access scopes', () => {
             { stylistResponses: { some: { stylistProfileId: 'profile-1' } } },
           ],
         },
+      }),
+    );
+  });
+
+  it('requires paired bounded reservation pagination with a safe computed offset', async () => {
+    await expect(
+      service.findAll({ asClient: true, page: 0 }, client),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.findAll({ asClient: true, page: 21, pageSize: 50 }, client),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.findAll({ asClient: true, page: 0, pageSize: 51 }, client),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.reservation.findMany).not.toHaveBeenCalled();
+
+    await service.findAll(
+      { asClient: true, page: 20, pageSize: 50 },
+      client,
+    );
+    expect(prisma.reservation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 1000,
+        take: 50,
+        orderBy: [
+          { reservationDate: 'asc' },
+          { startTime: 'asc' },
+          { id: 'asc' },
+        ],
       }),
     );
   });

@@ -2209,6 +2209,32 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       ownReservation.id,
     ]);
 
+    const clientPage = await request(server)
+      .get('/api/reservations')
+      .query({ asClient: true, page: 0, pageSize: 50 })
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(200);
+    expect(clientPage.body).toMatchObject({ page: 0, pageSize: 50, total: 1 });
+    expect(clientPage.body.items.map((row: { id: string }) => row.id)).toEqual([
+      ownReservation.id,
+    ]);
+
+    await request(server)
+      .get('/api/reservations')
+      .query({ asClient: true, page: 0 })
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(400);
+    await request(server)
+      .get('/api/reservations')
+      .query({ asClient: true, page: 0, pageSize: 51 })
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(400);
+    await request(server)
+      .get('/api/reservations')
+      .query({ asClient: true, page: 21, pageSize: 50 })
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(400);
+
     const stylistList = await request(server)
       .get('/api/reservations?asStylist=true')
       .set('Authorization', `Bearer ${stylistToken}`)

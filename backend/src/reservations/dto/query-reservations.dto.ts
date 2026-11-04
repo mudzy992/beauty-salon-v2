@@ -5,10 +5,15 @@ import {
   IsBoolean,
   IsInt,
   IsString,
+  Max,
   MaxLength,
   Min,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
+import {
+  MAX_API_PAGE_LIMIT,
+  MAX_API_PAGE_OFFSET,
+} from '../../common/pagination.constants';
 
 export class QueryReservationsDto {
   @IsOptional()
@@ -54,11 +59,13 @@ export class QueryReservationsDto {
   @Transform(({ value }) => (value != null ? Number(value) : undefined))
   @IsInt()
   @Min(0)
+  @Max(MAX_API_PAGE_OFFSET)
   page?: number;
 
   @IsOptional()
   @Transform(({ value }) => (value != null ? Number(value) : undefined))
   @IsInt()
   @Min(1)
+  @Max(MAX_API_PAGE_LIMIT)
   pageSize?: number;
 }
