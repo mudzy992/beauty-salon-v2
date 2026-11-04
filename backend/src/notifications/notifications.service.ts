@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Prisma } from '@prisma/client';
 import nodemailer from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { EventsGateway } from '../events/events.gateway';
@@ -77,6 +79,8 @@ interface CampaignTemplateDefinition {
   name: string;
   html: string;
 }
+
+const MAX_CAMPAIGN_RECIPIENTS = 100;
 
 @Injectable()
 export class NotificationsService {
@@ -295,10 +299,30 @@ export class NotificationsService {
     return { ok: true, message: 'SMTP konekcija je uspješna.' };
   }
 
+  async getCampaignEmailConsent(userId: string) {
+    const consent = await this.repo.findCampaignEmailConsent(userId);
+    return {
+      optedIn: consent?.optedIn ?? false,
+      consentedAt: consent?.consentedAt ?? null,
+      withdrawnAt: consent?.withdrawnAt ?? null,
+    };
+  }
+
+  async setCampaignEmailConsent(userId: string, optedIn: boolean) {
+    const consent = await this.repo.setCampaignEmailConsent(userId, optedIn);
+    return {
+      optedIn: consent.optedIn,
+      consentedAt: consent.consentedAt,
+      withdrawnAt: consent.withdrawnAt,
+    };
+  }
+
   async getCampaignAudienceSummary(audience: CampaignAudienceDto) {
     const users = await this.resolveCampaignAudienceUsers(audience);
     return {
       total: users.length,
+      maxRecipients: MAX_CAMPAIGN_RECIPIENTS,
+      exceedsLimit: users.length > MAX_CAMPAIGN_RECIPIENTS,
       sample: users.slice(0, 10).map((user) => ({
         id: user.id,
         username: user.username,
@@ -318,6 +342,11 @@ export class NotificationsService {
       throw new NotFoundException('Kampanjski template nije pronađen.');
     }
     const recipients = await this.resolveCampaignAudienceUsers(dto.audience);
+    if (recipients.length > MAX_CAMPAIGN_RECIPIENTS) {
+      throw new BadRequestException(
+        `Kampanja ne može imati više od ${MAX_CAMPAIGN_RECIPIENTS} primalaca.`,
+      );
+    }
     if (recipients.length === 0) {
       return {
         ok: true,
@@ -868,39 +897,39 @@ export class NotificationsService {
   }
 
   private async resolveCampaignAudienceUsers(audience: CampaignAudienceDto) {
-    const users = await this.repo.findUsers({
-      where: {
-        ...((audience.onlyActive ?? true) ? { isActive: true } : {}),
-        ...((audience.onlyEmailVerified ?? false)
-          ? { isEmailVerified: true }
-          : {}),
-        ...(audience.includeUserIds?.length
-          ? { id: { in: audience.includeUserIds } }
-          : {}),
+    const where: Prisma.UserWhereInput = {
+      isEmailVerified: true,
+      email: { not: null },
+      campaignEmailConsent: { is: { optedIn: true } },
+      ...((audience.onlyActive ?? true) ? { isActive: true } : {}),
+      ...(audience.includeUserIds?.length
+        ? { id: { in: audience.includeUserIds } }
+        : {}),
+      ...(audience.excludeUserIds?.length
+        ? { id: { notIn: audience.excludeUserIds } }
+        : {}),
+      ...(audience.roles?.length
+        ? {
+            userRoles: {
+              some: { role: { name: { in: audience.roles } } },
+            },
+          }
+        : {}),
+    };
+
+    return this.repo.findUsers({
+      where,
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        createdAt: true,
       },
-      include: {
-        userRoles: {
-          include: { role: true },
-        },
-      },
-      orderBy: [{ createdAt: 'desc' }],
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      take: MAX_CAMPAIGN_RECIPIENTS + 1,
     });
-    const roleFiltered = audience.roles?.length
-      ? users.filter((user) =>
-          user.userRoles.some((userRole) =>
-            audience.roles?.includes(
-              userRole.role.name as
-                'SYSTEM_ADMIN' | 'OWNER' | 'STYLIST' | 'CLIENT',
-            ),
-          ),
-        )
-      : users;
-    const excluded = audience.excludeUserIds?.length
-      ? roleFiltered.filter(
-          (user) => !audience.excludeUserIds?.includes(user.id),
-        )
-      : roleFiltered;
-    return excluded;
   }
 
   private async resolveAppBaseUrl(): Promise<string> {

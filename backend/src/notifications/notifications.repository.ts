@@ -51,6 +51,50 @@ export class NotificationsRepository {
     return this.prisma.notificationPreference.upsert(params)
   }
 
+  findCampaignEmailConsent(userId: string) {
+    return this.prisma.campaignEmailConsent.findUnique({
+      where: { userId },
+      select: { optedIn: true, consentedAt: true, withdrawnAt: true },
+    })
+  }
+
+  setCampaignEmailConsent(userId: string, optedIn: boolean) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.campaignEmailConsent.upsert({
+        where: { userId },
+        create: { userId, optedIn: false },
+        update: {},
+      })
+
+      const occurredAt = new Date()
+      const changed = await tx.campaignEmailConsent.updateMany({
+        where: { userId, optedIn: { not: optedIn } },
+        data: {
+          optedIn,
+          ...(optedIn
+            ? { consentedAt: occurredAt, withdrawnAt: null }
+            : { withdrawnAt: occurredAt }),
+        },
+      })
+      const consent = await tx.campaignEmailConsent.findUniqueOrThrow({
+        where: { userId },
+      })
+
+      if (changed.count === 1) {
+        await tx.campaignEmailConsentEvent.create({
+          data: {
+            consentId: consent.id,
+            userId,
+            action: optedIn ? 'OPT_IN' : 'OPT_OUT',
+            source: 'ACCOUNT_SETTINGS',
+            occurredAt,
+          },
+        })
+      }
+      return consent
+    })
+  }
+
   upsertPushToken(params: Prisma.PushTokenUpsertArgs) {
     return this.prisma.pushToken.upsert(params)
   }

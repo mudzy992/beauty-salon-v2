@@ -82,6 +82,7 @@ import type { CancelReservationDto } from '../src/reservations/dto/cancel-reserv
 import type { UpdateReservationDto } from '../src/reservations/dto/update-reservation.dto';
 import { LoyaltyService } from '../src/loyalty/loyalty.service';
 import { LoyaltyController } from '../src/loyalty/loyalty.controller';
+import { NotificationsRepository } from '../src/notifications/notifications.repository';
 import { NotificationsService } from '../src/notifications/notifications.service';
 import { AnalyticsController } from '../src/analytics/analytics.controller';
 import { AnalyticsService } from '../src/analytics/analytics.service';
@@ -4177,6 +4178,86 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     expect(outboxEvents).toEqual([
       { eventType: 'reservation.created', status: 'DELIVERED' },
     ]);
+  }, 30_000);
+
+  it('requires explicit marketing consent and a verified email in campaign audiences', async () => {
+    const db = prisma!;
+    const suffix = randomUUID();
+    const clientRole = await db.role.findUniqueOrThrow({
+      where: { name: 'CLIENT' },
+      select: { id: true },
+    });
+    const cases = [
+      { name: 'consented', isEmailVerified: true, consent: 'in' },
+      { name: 'no-consent', isEmailVerified: true, consent: 'none' },
+      { name: 'unverified', isEmailVerified: false, consent: 'in' },
+      { name: 'withdrawn', isEmailVerified: true, consent: 'out' },
+    ] as const;
+    const users = await Promise.all(
+      cases.map((item) =>
+        db.user.create({
+          data: {
+            username: `campaign-${item.name}-${suffix}`,
+            email: `campaign-${item.name}-${suffix}@example.test`,
+            firstName: 'Campaign',
+            lastName: item.name,
+            isEmailVerified: item.isEmailVerified,
+          },
+        }),
+      ),
+    );
+    const userIds = users.map(({ id }) => id);
+    const repository = new NotificationsRepository(db as unknown as PrismaService);
+    const notifications = new NotificationsService(
+      repository,
+      { get: jest.fn() } as never,
+      {} as never,
+      { getValue: jest.fn() } as never,
+    );
+
+    try {
+      await db.userRole.createMany({
+        data: userIds.map((userId) => ({ userId, roleId: clientRole.id })),
+      });
+      await repository.setCampaignEmailConsent(users[0]!.id, true);
+      await repository.setCampaignEmailConsent(users[2]!.id, true);
+      await repository.setCampaignEmailConsent(users[3]!.id, true);
+      await repository.setCampaignEmailConsent(users[3]!.id, false);
+
+      const audience = {
+        includeUserIds: userIds,
+        roles: ['CLIENT'],
+        onlyActive: true,
+        onlyEmailVerified: false,
+      };
+      await expect(
+        notifications.getCampaignAudienceSummary(audience),
+      ).resolves.toMatchObject({
+        total: 1,
+        maxRecipients: 100,
+        exceedsLimit: false,
+        sample: [{ id: users[0]!.id }],
+      });
+
+      await repository.setCampaignEmailConsent(users[0]!.id, false);
+      await expect(
+        notifications.getCampaignAudienceSummary(audience),
+      ).resolves.toMatchObject({ total: 0, sample: [] });
+      await expect(
+        db.campaignEmailConsentEvent.findMany({
+          where: { userId: users[0]!.id },
+          select: { action: true, source: true },
+          orderBy: { occurredAt: 'asc' },
+        }),
+      ).resolves.toEqual(
+        expect.arrayContaining([
+          { action: 'OPT_IN', source: 'ACCOUNT_SETTINGS' },
+          { action: 'OPT_OUT', source: 'ACCOUNT_SETTINGS' },
+        ]),
+      );
+    } finally {
+      await db.user.deleteMany({ where: { id: { in: userIds } } });
+    }
   }, 30_000);
 
   it('queues one appointment reminder outbox event across concurrent cron scans', async () => {

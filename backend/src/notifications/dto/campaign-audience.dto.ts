@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   ArrayUnique,
   IsArray,
   IsBoolean,
@@ -12,18 +13,21 @@ const ROLE_VALUES = ['SYSTEM_ADMIN', 'OWNER', 'STYLIST', 'CLIENT'] as const;
 export class CampaignAudienceDto {
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(100)
   @ArrayUnique()
   @IsString({ each: true })
   includeUserIds?: string[];
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(100)
   @ArrayUnique()
   @IsString({ each: true })
   excludeUserIds?: string[];
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(ROLE_VALUES.length)
   @ArrayUnique()
   @IsIn(ROLE_VALUES, { each: true })
   roles?: Array<(typeof ROLE_VALUES)[number]>;

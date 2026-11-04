@@ -90,6 +90,8 @@ model User {
   pushTokens                   PushToken[]
   notificationPreferences      NotificationPreference[]
   notifications                Notification[]
+  campaignEmailConsent         CampaignEmailConsent?
+  campaignEmailConsentEvents   CampaignEmailConsentEvent[]
   loyaltyAccount               LoyaltyAccount?
   uploads                      Upload[]                     @relation("UploadedBy")
   expenseCreatedBy             Expense[]                    @relation("ExpenseCreatedBy")
@@ -1008,6 +1010,38 @@ model NotificationPreference {
 
   @@unique([userId, type])
   @@map("notification_preferences")
+}
+
+model CampaignEmailConsent {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  optedIn     Boolean  @default(false) @map("opted_in")
+  consentedAt DateTime? @map("consented_at")
+  withdrawnAt DateTime? @map("withdrawn_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user   User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events CampaignEmailConsentEvent[]
+
+  @@index([optedIn, updatedAt])
+  @@map("campaign_email_consents")
+}
+
+model CampaignEmailConsentEvent {
+  id         String   @id @default(uuid())
+  consentId  String   @map("consent_id")
+  userId     String   @map("user_id")
+  action     String // OPT_IN | OPT_OUT
+  source     String // ACCOUNT_SETTINGS | EMAIL_UNSUBSCRIBE
+  occurredAt DateTime @default(now()) @map("occurred_at")
+
+  consent CampaignEmailConsent @relation(fields: [consentId], references: [id], onDelete: Cascade)
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([consentId])
+  @@index([userId, occurredAt])
+  @@map("campaign_email_consent_events")
 }
 
 model PushToken {

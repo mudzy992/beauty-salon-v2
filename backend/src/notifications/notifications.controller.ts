@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -19,6 +20,7 @@ import { SendTestEmailDto } from './dto/send-test-email.dto';
 import { TestSmtpConnectionDto } from './dto/test-smtp-connection.dto';
 import { CampaignAudienceDto } from './dto/campaign-audience.dto';
 import { SendCampaignDto } from './dto/send-campaign.dto';
+import { SetCampaignEmailConsentDto } from './dto/set-campaign-email-consent.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 
@@ -75,6 +77,19 @@ export class NotificationsController {
       dto.pushEnabled,
       dto.emailEnabled,
     );
+  }
+
+  @Get('campaigns/consent')
+  getCampaignEmailConsent(@CurrentUser() user: CurrentUserPayload) {
+    return this.notifications.getCampaignEmailConsent(user.sub);
+  }
+
+  @Put('campaigns/consent')
+  setCampaignEmailConsent(
+    @Body() dto: SetCampaignEmailConsentDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.notifications.setCampaignEmailConsent(user.sub, dto.optedIn);
   }
 
   @Post('test-email')
