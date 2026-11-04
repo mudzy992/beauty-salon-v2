@@ -2422,6 +2422,20 @@
       "retryLoad": "Try again"
     }
   },
+  "campaignUnsubscribe": {
+    "title": "Unsubscribe from promotional emails",
+    "description": "Confirm that you no longer want to receive marketing email campaigns.",
+    "confirm": "Unsubscribe me",
+    "submitting": "Processing unsubscribe…",
+    "successTitle": "You are unsubscribed",
+    "successDescription": "You will no longer receive promotional campaigns at this email address.",
+    "invalidTitle": "This unsubscribe link is not valid",
+    "invalidDescription": "The link is invalid or expired. You can also change your consent in notification settings.",
+    "failureTitle": "We could not complete the unsubscribe right now",
+    "failureDescription": "Check your internet connection and try again.",
+    "retry": "Try again",
+    "home": "Back to home"
+  },
   "blog": {
     "newPost": "New post",
     "editPost": "Edit post",

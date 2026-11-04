@@ -2419,6 +2419,20 @@
       "retryLoad": "Pokušaj ponovo"
     }
   },
+  "campaignUnsubscribe": {
+    "title": "Odjava s promotivnih emailova",
+    "description": "Potvrdite da više ne želite primati marketinške email kampanje.",
+    "confirm": "Odjavi me",
+    "submitting": "Obrađujem odjavu…",
+    "successTitle": "Odjava je završena",
+    "successDescription": "Nećete više primati promotivne kampanje na ovu email adresu.",
+    "invalidTitle": "Link za odjavu nije važeći",
+    "invalidDescription": "Link je nevažeći ili je istekao. Ako želite, saglasnost možete promijeniti u postavkama obavijesti.",
+    "failureTitle": "Odjavu trenutno nije moguće završiti",
+    "failureDescription": "Provjerite internet konekciju i pokušajte ponovo.",
+    "retry": "Pokušaj ponovo",
+    "home": "Povratak na početnu"
+  },
   "blog": {
     "newPost": "Novi Članak",
     "editPost": "Uredi Članak",
