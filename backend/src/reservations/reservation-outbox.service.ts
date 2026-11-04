@@ -1,10 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { ReservationQueriesService } from './reservation-queries.service';
+import { DEFAULT_SALON_TIMEZONE } from '../common/utils/zoned-time';
+
+const BATCH_SIZE = 25;
+const DELIVERY_LEASE_MS = 5 * 60 * 1000;
+const MAX_ATTEMPTS = 10;
+const MAX_RETRY_DELAY_MS = 60 * 60 * 1000;
 
 type ReservationCreatedPayload = {
   reservationId: string;
@@ -32,11 +39,13 @@ export class ReservationOutboxService {
 
   /**
    * Delivers one committed outbox event after the booking transaction has
-   * finished. Failed delivery leaves a durable PENDING row for a future worker
-   * or an idempotent HTTP replay; external I/O is never run in the booking tx.
+   * finished. Failed delivery is retried by the bounded worker; external I/O is
+   * never run in the booking transaction. Push/email remain at-least-once if a
+   * process crashes after provider acceptance but before marking the event.
    */
   async dispatchAfterCommit(eventId: string): Promise<void> {
     let claimed = false;
+    let attempts = 0;
     try {
       const claim = await this.prisma.outboxEvent.updateMany({
         where: {
@@ -52,11 +61,13 @@ export class ReservationOutboxService {
       });
       if (claim.count !== 1) return;
       claimed = true;
+      attempts = 1;
 
       const event = await this.prisma.outboxEvent.findUnique({
         where: { id: eventId },
       });
       if (!event) return;
+      attempts = event.attempts;
       if (event.eventType !== 'reservation.created') {
         throw new Error(`Nepoznat outbox event type: ${event.eventType}`);
       }
@@ -109,32 +120,88 @@ export class ReservationOutboxService {
         },
       });
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Greška pri isporuci outbox događaja.';
-      this.logger.warn(`Outbox event ${eventId} nije isporučen: ${message}`);
-      if (claimed) {
-        try {
-          await this.prisma.outboxEvent.updateMany({
-            where: { id: eventId, status: 'PROCESSING' },
-            data: {
-              status: 'PENDING',
-              nextAttemptAt: new Date(),
-              lockedAt: null,
-              lastError: message.slice(0, 2000),
-            },
-          });
-        } catch (updateError) {
-          const updateMessage =
-            updateError instanceof Error
-              ? updateError.message
-              : 'Nepoznata greška pri vraćanju outbox događaja u red.';
-          this.logger.error(
-            `Outbox event ${eventId} ostao je u nepoznatom stanju: ${updateMessage}`,
-          );
-        }
+      const errorType = error instanceof Error ? error.name : 'Error';
+      this.logger.warn(
+        `Reservation outbox ${eventId} delivery failed (${errorType}, attempt ${attempts}/${MAX_ATTEMPTS}).`,
+      );
+      if (!claimed) return;
+
+      const retryDelay = Math.min(
+        MAX_RETRY_DELAY_MS,
+        1000 * 2 ** Math.min(Math.max(attempts, 1), 12),
+      );
+      const terminal = attempts >= MAX_ATTEMPTS;
+      try {
+        await this.prisma.outboxEvent.updateMany({
+          where: { id: eventId, status: 'PROCESSING' },
+          data: {
+            status: terminal ? 'DEAD_LETTER' : 'PENDING',
+            nextAttemptAt: new Date(Date.now() + retryDelay),
+            lockedAt: null,
+            lastError: `Delivery failed (${errorType}).`,
+          },
+        });
+      } catch (updateError) {
+        const updateType =
+          updateError instanceof Error ? updateError.name : 'Error';
+        this.logger.error(
+          `Reservation outbox ${eventId} could not be requeued (${updateType}).`,
+        );
       }
+    }
+  }
+
+  @Cron('*/1 * * * *', {
+    timeZone: DEFAULT_SALON_TIMEZONE,
+    waitForCompletion: true,
+  })
+  async retryPending(): Promise<void> {
+    const now = new Date();
+    const expiredBefore = new Date(now.getTime() - DELIVERY_LEASE_MS);
+    try {
+      await this.prisma.outboxEvent.updateMany({
+        where: {
+          eventType: 'reservation.created',
+          status: 'PROCESSING',
+          lockedAt: { lt: expiredBefore },
+          attempts: { lt: MAX_ATTEMPTS },
+        },
+        data: {
+          status: 'PENDING',
+          nextAttemptAt: now,
+          lockedAt: null,
+          lastError: 'Expired delivery lease recovered.',
+        },
+      });
+      await this.prisma.outboxEvent.updateMany({
+        where: {
+          eventType: 'reservation.created',
+          status: 'PROCESSING',
+          lockedAt: { lt: expiredBefore },
+          attempts: { gte: MAX_ATTEMPTS },
+        },
+        data: {
+          status: 'DEAD_LETTER',
+          lockedAt: null,
+          lastError: 'Expired delivery lease reached the attempt limit.',
+        },
+      });
+      const pending = await this.prisma.outboxEvent.findMany({
+        where: {
+          eventType: 'reservation.created',
+          status: 'PENDING',
+          nextAttemptAt: { lte: now },
+        },
+        orderBy: [{ nextAttemptAt: 'asc' }, { createdAt: 'asc' }],
+        take: BATCH_SIZE,
+        select: { id: true },
+      });
+      for (const event of pending) {
+        await this.dispatchAfterCommit(event.id);
+      }
+    } catch (error) {
+      const errorType = error instanceof Error ? error.name : 'Error';
+      this.logger.warn(`Reservation outbox retry scan failed (${errorType}).`);
     }
   }
 }

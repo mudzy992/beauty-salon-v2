@@ -8,6 +8,7 @@ describe('ReservationOutboxService', () => {
   const event = {
     id: 'event-1',
     eventType: 'reservation.created',
+    attempts: 1,
     payload: {
       reservationId: 'reservation-1',
       actor: {
@@ -30,6 +31,7 @@ describe('ReservationOutboxService', () => {
     outboxEvent: {
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       findUnique: jest.fn().mockResolvedValue(event),
+      findMany: jest.fn().mockResolvedValue([]),
     },
   };
   const notifications = { sendToMany: jest.fn().mockResolvedValue(undefined) };
@@ -47,6 +49,7 @@ describe('ReservationOutboxService', () => {
     jest.clearAllMocks();
     prisma.outboxEvent.updateMany.mockResolvedValue({ count: 1 });
     prisma.outboxEvent.findUnique.mockResolvedValue(event);
+    prisma.outboxEvent.findMany.mockResolvedValue([]);
     notifications.sendToMany.mockResolvedValue(undefined);
     queries.findOne.mockResolvedValue({ id: 'reservation-1' });
     service = new ReservationOutboxService(
@@ -93,9 +96,9 @@ describe('ReservationOutboxService', () => {
     );
   });
 
-  it('ostavlja neuspjeli događaj u durable PENDING stanju i ne baca grešku', async () => {
+  it('backs off failed delivery and stores only a sanitized error type', async () => {
     notifications.sendToMany.mockRejectedValueOnce(
-      new Error('SMTP unavailable'),
+      new Error('sensitive SMTP transport detail'),
     );
 
     await expect(
@@ -107,10 +110,80 @@ describe('ReservationOutboxService', () => {
         where: { id: 'event-1', status: 'PROCESSING' },
         data: expect.objectContaining({
           status: 'PENDING',
-          lastError: 'SMTP unavailable',
+          nextAttemptAt: expect.any(Date),
+          lastError: 'Delivery failed (Error).',
+          lockedAt: null,
         }),
       }),
     );
+    const requeueCall = prisma.outboxEvent.updateMany.mock.calls[1][0];
+    expect(requeueCall.data.nextAttemptAt.getTime()).toBeGreaterThan(Date.now());
+    expect(requeueCall.data.lastError).not.toContain(
+      'sensitive SMTP transport detail',
+    );
     expect(events.emitToAdmins).not.toHaveBeenCalled();
+  });
+
+  it('moves an event to terminal dead-letter state after the max attempts', async () => {
+    prisma.outboxEvent.findUnique.mockResolvedValueOnce({
+      ...event,
+      attempts: 10,
+    });
+    notifications.sendToMany.mockRejectedValueOnce(new Error('provider failure'));
+
+    await service.dispatchAfterCommit('event-1');
+
+    expect(prisma.outboxEvent.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: { id: 'event-1', status: 'PROCESSING' },
+        data: expect.objectContaining({
+          status: 'DEAD_LETTER',
+          lastError: 'Delivery failed (Error).',
+          lockedAt: null,
+        }),
+      }),
+    );
+  });
+
+  it('recovers expired leases and scans only a bounded retry batch', async () => {
+    prisma.outboxEvent.findMany.mockResolvedValueOnce([{ id: 'event-1' }]);
+    prisma.outboxEvent.updateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
+
+    await service.retryPending();
+
+    expect(prisma.outboxEvent.updateMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          eventType: 'reservation.created',
+          status: 'PROCESSING',
+          lockedAt: expect.objectContaining({ lt: expect.any(Date) }),
+          attempts: { lt: 10 },
+        }),
+        data: expect.objectContaining({ status: 'PENDING' }),
+      }),
+    );
+    expect(prisma.outboxEvent.updateMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({ attempts: { gte: 10 } }),
+        data: expect.objectContaining({ status: 'DEAD_LETTER' }),
+      }),
+    );
+    expect(prisma.outboxEvent.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          eventType: 'reservation.created',
+          status: 'PENDING',
+        }),
+        take: 25,
+        select: { id: true },
+      }),
+    );
+    expect(notifications.sendToMany).toHaveBeenCalledTimes(1);
   });
 });

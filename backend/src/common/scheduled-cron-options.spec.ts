@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { DailyLogCompletionOutboxService } from '../daily-log/daily-log-completion-outbox.service';
+import { ReservationOutboxService } from '../reservations/reservation-outbox.service';
 import { IncomeCronService } from '../finance/income-cron.service';
 import { ReservationDelayCron } from '../reservations/reservation-delay.cron';
 
@@ -11,6 +12,9 @@ jest.mock('../notifications/notifications.service', () => ({
 }));
 jest.mock('../reservations/reservations.service', () => ({
   ReservationsService: class ReservationsService {},
+}));
+jest.mock('../reservations/reservation-queries.service', () => ({
+  ReservationQueriesService: class ReservationQueriesService {},
 }));
 jest.mock('../reservations/reservation-appointment-reminder.service', () => ({
   ReservationAppointmentReminderService: class ReservationAppointmentReminderService {},
@@ -41,6 +45,7 @@ describe('scheduled job overlap policy', () => {
   it.each([
     [ReservationDelayCron.prototype, 'tick'],
     [DailyLogCompletionOutboxService.prototype, 'retryPending'],
+    [ReservationOutboxService.prototype, 'retryPending'],
     [IncomeCronService.prototype, 'handleIncomeBookCatchUp'],
     [IncomeCronService.prototype, 'handleExpenseBookRollover'],
   ])('%s.%s skips overlapping executions', (prototype, method) => {
