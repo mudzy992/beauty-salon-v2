@@ -26,6 +26,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
+import { fetchAllReservationPages } from '../../services/reservation-list';
 import { spacing, borderRadius } from '../../theme';
 import { formatDate, formatTime, isUpcoming, salonWallTimeToInstant } from '../../utils/date';
 import { getReservationServices } from '../../utils/reservationServices';
@@ -195,9 +196,7 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
       return;
     }
     try {
-      const { data } = await api.get<unknown>('/api/reservations', {
-        params: { asClient: true },
-      });
+      const data = await fetchAllReservationPages<unknown>({ asClient: true });
       if (!isCurrentRequest()) return;
       const rows = normalizeReservations(data);
       if (!rows) setLoadError(true);

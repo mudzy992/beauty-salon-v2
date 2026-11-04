@@ -8,7 +8,8 @@ const dailyLogDetail = readFileSync(new URL('../screens/stylist/DailyLogDetailSc
 const translations = readFileSync(new URL('../i18n/bs.ts', import.meta.url), 'utf8');
 
 test('private reservation and stylist inbox reads validate payloads and ignore stale requests', () => {
-  assert.match(reservations, /api\.get<unknown>\('\/api\/reservations'/);
+  assert.match(reservations, /fetchAllReservationPages<unknown>\(\{ asClient: true \}\)/);
+  assert.doesNotMatch(reservations, /api\.get<unknown>\('\/api\/reservations'/);
   assert.match(reservations, /const rows = normalizeReservations\(data\)/);
   assert.match(reservations, /if \(!rows\) setLoadError\(true\)/);
   assert.match(reservations, /generation === requestGeneration\.current &&\s*useAuthStore\.getState\(\)\.user\?\.id === userId/);
