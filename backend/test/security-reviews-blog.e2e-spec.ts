@@ -4289,6 +4289,120 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   }, 30_000);
 
+  it('recovers expired outbox leases and dead-letters rows at the attempt limit in PostgreSQL', async () => {
+    const db = prisma!;
+    const retryEventId = randomUUID();
+    const deadEventId = randomUUID();
+    const reservationId = randomUUID();
+    const serviceId = randomUUID();
+    const now = Date.now();
+    const staleLock = new Date(now - 6 * 60 * 1000);
+    const futureRetry = new Date(now + 60 * 60 * 1000);
+    const payload = {
+      reservationId,
+      actor: {
+        sub: clientUserId,
+        username: 'outbox-test-client',
+        email: 'outbox-test@example.invalid',
+        roles: ['CLIENT'],
+      },
+      notifyUserIds: [clientUserId],
+      notificationTitle: 'Test',
+      notificationBody: 'Test',
+      serviceId,
+      serviceIds: [serviceId],
+      reservationDate: '2030-01-02',
+      emitToAdmins: false,
+      emitToStylists: false,
+    };
+
+    await db.outboxEvent.createMany({
+      data: [
+        {
+          id: retryEventId,
+          eventType: 'reservation.created',
+          aggregateId: reservationId,
+          dedupeKey: `outbox-expired-lease-retry:${retryEventId}`,
+          payload,
+          status: 'PROCESSING',
+          attempts: 2,
+          lockedAt: staleLock,
+          nextAttemptAt: futureRetry,
+        },
+        {
+          id: deadEventId,
+          eventType: 'reservation.created',
+          aggregateId: randomUUID(),
+          dedupeKey: `outbox-expired-lease-dead:${deadEventId}`,
+          payload,
+          status: 'PROCESSING',
+          attempts: 10,
+          lockedAt: staleLock,
+          nextAttemptAt: futureRetry,
+        },
+      ],
+    });
+
+    const notifications = { sendToMany: jest.fn().mockResolvedValue(undefined) };
+    const queries = { findOne: jest.fn().mockResolvedValue({ id: reservationId }) };
+    const events = {
+      emitToAdmins: jest.fn(),
+      emitToStylists: jest.fn(),
+      emitToAll: jest.fn(),
+    };
+    const worker = new ReservationOutboxService(
+      db as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      events as unknown as EventsGateway,
+      queries as unknown as ReservationQueriesService,
+    );
+
+    try {
+      await worker.retryPending();
+
+      expect(notifications.sendToMany).toHaveBeenCalledTimes(1);
+      expect(queries.findOne).toHaveBeenCalledTimes(1);
+      expect(events.emitToAll).toHaveBeenCalledTimes(1);
+      const recovered = await db.outboxEvent.findUniqueOrThrow({
+        where: { id: retryEventId },
+        select: {
+          status: true,
+          attempts: true,
+          lockedAt: true,
+          deliveredAt: true,
+          lastError: true,
+        },
+      });
+      expect(recovered).toMatchObject({
+        status: 'DELIVERED',
+        attempts: 3,
+        lockedAt: null,
+        lastError: null,
+      });
+      expect(recovered.deliveredAt).toBeInstanceOf(Date);
+
+      const deadLetter = await db.outboxEvent.findUniqueOrThrow({
+        where: { id: deadEventId },
+        select: {
+          status: true,
+          attempts: true,
+          lockedAt: true,
+          lastError: true,
+        },
+      });
+      expect(deadLetter).toEqual({
+        status: 'DEAD_LETTER',
+        attempts: 10,
+        lockedAt: null,
+        lastError: 'Expired delivery lease reached the attempt limit.',
+      });
+    } finally {
+      await db.outboxEvent.deleteMany({
+        where: { id: { in: [retryEventId, deadEventId] } },
+      });
+    }
+  }, 30_000);
+
   it('requeues in PostgreSQL when the delivered marker write fails after side effects', async () => {
     const db = prisma!;
     const eventId = randomUUID();
