@@ -902,11 +902,17 @@ export class NotificationsService {
       email: { not: null },
       campaignEmailConsent: { is: { optedIn: true } },
       ...((audience.onlyActive ?? true) ? { isActive: true } : {}),
-      ...(audience.includeUserIds?.length
-        ? { id: { in: audience.includeUserIds } }
-        : {}),
-      ...(audience.excludeUserIds?.length
-        ? { id: { notIn: audience.excludeUserIds } }
+      ...(audience.includeUserIds?.length || audience.excludeUserIds?.length
+        ? {
+            id: {
+              ...(audience.includeUserIds?.length
+                ? { in: audience.includeUserIds }
+                : {}),
+              ...(audience.excludeUserIds?.length
+                ? { notIn: audience.excludeUserIds }
+                : {}),
+            },
+          }
         : {}),
       ...(audience.roles?.length
         ? {
