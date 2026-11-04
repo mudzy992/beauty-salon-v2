@@ -12,6 +12,7 @@ import { useAppToast } from '../lib/toast/useAppToast'
 import { ReservationScheduler } from '../features/reservations/components/ReservationScheduler'
 import type { Reservation, StylistProfile } from '../features/reservations/types'
 import { useReservationSocketRefresh } from '../features/reservations/use-reservation-socket-refresh'
+import { fetchAllReservationPages } from '../features/reservations/reservation-list.api'
 import {
   addDateOnlyDays,
   formatDateOnlyParts,
@@ -37,6 +38,7 @@ export default function ReservationsCalendar() {
 
   const [loading, setLoading] = useState(true)
   const [reservations, setReservations] = useState<Reservation[]>([])
+  const [reservationLoadError, setReservationLoadError] = useState(false)
   const [stylists, setStylists] = useState<StylistProfile[]>([])
   const [selectedStylistIds, setSelectedStylistIds] = useState<string[]>([])
 
@@ -71,16 +73,17 @@ export default function ReservationsCalendar() {
   const loadReservations = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = opts?.silent === true
     if (!silent) setLoading(true)
+    setReservationLoadError(false)
     try {
-      const { data } = await api.get<Reservation[] | { items: Reservation[] }>('/api/reservations', { params: range })
-      const items = Array.isArray(data) ? data : Array.isArray(data.items) ? data.items : []
+      const items = await fetchAllReservationPages<Reservation>(range)
       setReservations(items)
-    } catch {
-      setReservations([])
+    } catch (err) {
+      setReservationLoadError(true)
+      toast.error(getErrorMessage(err, t('common.error')))
     } finally {
       if (!silent) setLoading(false)
     }
-  }, [range])
+  }, [range, t, toast])
 
   const loadStylists = useCallback(async () => {
     try {
@@ -175,6 +178,15 @@ export default function ReservationsCalendar() {
               {t('reservations.calendar.workspace')}
             </p>
           </div>
+          {reservationLoadError ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void loadReservations()}
+            >
+              {t('common.retry')}
+            </Button>
+          ) : null}
           <Button type="button" variant="outline" onClick={() => navigate('/admin/reservations')}>
             <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
             {t('reservations.calendar.back')}
