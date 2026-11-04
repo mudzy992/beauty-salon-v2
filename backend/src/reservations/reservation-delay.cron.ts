@@ -1,37 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { PrismaService } from '../prisma/prisma.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
-import { buildDelayWarningCopy } from '../notifications/utils/reservation-push-copy';
-import { RESERVATION_STATUS } from './constants';
-import { timeToMinutes } from './utils/time-slot.utils';
 import { ReservationsService } from './reservations.service';
 import { ReservationAppointmentReminderService } from './reservation-appointment-reminder.service';
-import { ReservationDateService } from './reservation-date.service';
+import { ReservationDelayReminderService } from './reservation-delay-reminder.service';
 import { DEFAULT_SALON_TIMEZONE } from '../common/utils/zoned-time';
-import { getDateOnlyDayBounds } from '../common/utils/date-only';
 
 @Injectable()
 export class ReservationDelayCron {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly notifications: NotificationsService,
     private readonly reservations: ReservationsService,
     private readonly appointmentReminders: ReservationAppointmentReminderService,
-    private readonly dates: ReservationDateService,
+    private readonly delayReminders: ReservationDelayReminderService,
   ) {}
 
   /**
-   * Svake minute provjerava IN_PROGRESS rezervacije i,
-   * kad probiju prag (pauseBetweenServices/2), obavijesti buduće klijente tog dana (jednom).
+   * Svake minute pokreće reservation maintenance i queue work;
+   * slanje reminder notifikacija obavlja durable outbox worker.
    */
   @Cron('*/1 * * * *', {
     timeZone: DEFAULT_SALON_TIMEZONE,
     waitForCompletion: true,
   })
   async tick() {
-    // 1) Timeout za pending potvrde nakon rekalkulacije/reorder zahtjeva
     await this.reservations.processPendingRescheduleTimeouts();
     const attendanceResult = await this.reservations.processAttendanceDeadlines();
     if ((attendanceResult?.cancelledCount ?? 0) > 0) {
@@ -42,87 +32,6 @@ export class ReservationDelayCron {
     await this.appointmentReminders.processAppointmentReminders();
     await this.reservations.processExpiredLocks();
     await this.reservations.processInboxTimeouts();
-
-    const salon = await this.prisma.salonSettings.findFirst();
-    if (!salon) return;
-    const pause = salon.pauseBetweenServices ?? 0;
-    const threshold = Math.floor(pause / 2);
-    if (threshold <= 0) return;
-
-    const now = new Date();
-    const { gte: todayStart, lt: tomorrowStart } = getDateOnlyDayBounds(
-      this.dates.toSalonDateOnlyString(now),
-    );
-    const nowMinutes = timeToMinutes(this.dates.toSalonTimeString(now));
-
-    const running = await this.prisma.reservation.findMany({
-      where: {
-        status: RESERVATION_STATUS.IN_PROGRESS,
-        reservationDate: { gte: todayStart, lt: tomorrowStart },
-        delayNotifiedAt: null,
-        confirmedStylistId: { not: null },
-      },
-      select: {
-        id: true,
-        clientId: true,
-        serviceId: true,
-        reservationDate: true,
-        startTime: true,
-        endTime: true,
-        confirmedStylistId: true,
-        useBreakAfterOverrun: true,
-        service: { select: { name: true } },
-      },
-    });
-
-    for (const r of running) {
-      const endMin = timeToMinutes(r.endTime);
-      const delay = nowMinutes - endMin;
-      if (delay < threshold) continue;
-      if (r.useBreakAfterOverrun === true) {
-        // Stilist je označio da koristi pauzu — ne šaljemo automatska upozorenja.
-        await this.prisma.reservation.update({
-          where: { id: r.id },
-          data: { delayNotifiedAt: new Date() },
-        });
-        continue;
-      }
-
-      // Nađi buduće rezervacije istog stiliste taj dan (poslije ove)
-      const future = await this.prisma.reservation.findMany({
-        where: {
-          confirmedStylistId: r.confirmedStylistId!,
-          reservationDate: { gte: todayStart, lt: tomorrowStart },
-          startTime: { gt: r.startTime },
-          status: { in: [RESERVATION_STATUS.CONFIRMED, RESERVATION_STATUS.ATTENDANCE_CONFIRMED] as any },
-        },
-        select: { id: true, clientId: true, startTime: true },
-        orderBy: { startTime: 'asc' },
-      });
-
-      // First next client is excluded on purpose: stylist overrun flow targets them
-      // via reschedule/reorder; delay_warning is for the rest of the day's queue.
-      const warningTargets = future.slice(1);
-      if (warningTargets.length > 0) {
-        for (const f of warningTargets) {
-          const ctx = await resolvePushContext(this.prisma, f.id);
-          const copy = buildDelayWarningCopy(ctx);
-          await this.notifications.send({
-            userId: f.clientId,
-            title: copy.title,
-            body: copy.body,
-            type: 'reservation_reminder',
-            data: { kind: 'delay_warning', reservationId: f.id },
-            channel: 'PUSH',
-          });
-        }
-      }
-
-      await this.prisma.reservation.update({
-        where: { id: r.id },
-        data: { delayNotifiedAt: new Date() },
-      });
-    }
+    await this.delayReminders.processReservationDelayReminders();
   }
 }
-

@@ -110,25 +110,26 @@ Postojeći [`API-02`](FINDINGS.md#api-02--public-api-bounds-analytics-ranges-and
 
 ### OPS-R2 — Cron `waitForCompletion` nije distribuirani lock; sent-markeri su poslije external side-effecta
 
-Repozitorijski source inventory nalazi četiri aktivna `@Cron` entrypointa:
+Repozitorijski source inventory nalazi pet aktivnih `@Cron` entrypointa:
 
-1. [`ReservationDelayCron.tick`](../../backend/src/reservations/reservation-delay.cron.ts#L29-L45) svake minute poziva timeout/attendance/reorder/daily-log seed/reminder/appointment reminder/expired-lock/inbox timeout work i zatim delay notifications.
-2. [`DailyLogCompletionOutboxService.retryPending`](../../backend/src/daily-log/daily-log-completion-outbox.service.ts#L166-L203) svake minute skenira batch od 25 i koristi DB claim/lease recovery.
-3. [`IncomeCronService.handleIncomeBookCatchUp`](../../backend/src/finance/income-cron.service.ts#L17-L27) dnevno radi KIF catch-up.
-4. [`IncomeCronService.handleExpenseBookRollover`](../../backend/src/finance/income-cron.service.ts#L29-L55) mjesečno osigurava KUF knjigu.
+1. [`ReservationDelayCron.tick`](../../backend/src/reservations/reservation-delay.cron.ts#L20-L36) svake minute poziva reservation maintenance i reminder queue producers.
+2. [`ReservationOutboxService.retryPending`](../../backend/src/reservations/reservation-outbox.service.ts#L326-L365) skenira bounded batch, oporavlja istekle leaseove i claimuje podržane reservation/reminder evente.
+3. [`DailyLogCompletionOutboxService.retryPending`](../../backend/src/daily-log/daily-log-completion-outbox.service.ts#L166-L203) svake minute skenira batch od 25 i koristi DB claim/lease recovery.
+4. [`IncomeCronService.handleIncomeBookCatchUp`](../../backend/src/finance/income-cron.service.ts#L17-L27) dnevno radi KIF catch-up.
+5. [`IncomeCronService.handleExpenseBookRollover`](../../backend/src/finance/income-cron.service.ts#L29-L55) mjesečno osigurava KUF knjigu.
 
-Sve imaju `waitForCompletion`; to sprečava overlap samo unutar istog Nest scheduler procesa. Ne sprečava drugi backend replica da pokrene isti Cron.
+`waitForCompletion` sprečava overlap samo unutar istog Nest scheduler procesa; drugi backend replica i dalje može pokrenuti isti Cron. Tri reminder producera sada koriste DB dedupe/CAS i durable outbox, a oba outbox workera claimuju preko baze. KIF/KUF rollover i ostali reservation maintenance poslovi zahtijevaju zasebnu duplicate-safety provjeru.
 
 **Source detalji i razlika po jobu:**
 
-- Delay reminders uzimaju `delayNotifiedAt: null`, šalju notification za buduće klijente, pa tek zatim upisuju marker ([`reservation-delay.cron.ts`](../../backend/src/reservations/reservation-delay.cron.ts#L58-L76), [#L103-L124](../../backend/src/reservations/reservation-delay.cron.ts#L103-L124)). Crash poslije send-a, a prije marker-a može ponoviti poruku; dvije instance mogu obje pročitati null.
-- Appointment reminders isto šalju `NotificationsService.send` prije `reminderSentAt` update-a ([`reservation-appointment-reminder.service.ts`](../../backend/src/reservations/reservation-appointment-reminder.service.ts#L28-L68)).
-- Pending daily-log reminders šalju prije `pendingReminderSentAt` marker-a ([`reservation-direct-daily-log-cron.service.ts`](../../backend/src/reservations/reservation-direct-daily-log-cron.service.ts#L67-L110)).
-- Direct-booking SERVICE daily-log seed ima zasebnu djelimičnu unique zaštitu i conditional seed; taj duplicate-row problem ne treba ponovo rješavati neovisno.
-- Inbox timeouts/expired lock/attendance/reschedule putanje imaju conditional `updateMany`/status checks; one ne znače da su notification deliveries tačno jednom.
-- Daily-log completion outbox claimuje `PENDING -> PROCESSING`, otključava istekle leaseove i uzima `take=25`; eksterni receipt/push/socket i dalje je deklarisan at-least-once.
+- Delay reminder producer [`ReservationDelayReminderService.processReservationDelayReminders`](../../backend/src/reservations/reservation-delay-reminder.service.ts#L30-L106) snapshotuje primaoce/sadržaj i u jednoj DB transakciji claimuje `delayNotifiedAt` te kreira per-recipient outbox evente ([claim/queue](../../backend/src/reservations/reservation-delay-reminder.service.ts#L125-L147)). Isporuka je nakon transakcije; push ostaje at-least-once.
+- Appointment reminder producer kreira jedinstven event po rezervaciji i rasporedu; worker ponovo provjerava status, datum/vrijeme i reminder window te stale event označi obrađenim bez slanja ([queue](../../backend/src/reservations/reservation-appointment-reminder.service.ts#L32-L83), [delivery](../../backend/src/reservations/reservation-appointment-reminder.service.ts#L85-L167)).
+- Pending daily-log reminder producer deduplicira event po entryju; worker ponovo provjerava PENDING/deleted/reservation state i cutoff te stale event obrađuje bez slanja ([queue](../../backend/src/reservations/reservation-direct-daily-log-cron.service.ts#L79-L126), [delivery](../../backend/src/reservations/reservation-direct-daily-log-cron.service.ts#L127-L188)).
+- Direct-booking SERVICE daily-log seed zadržava postojeću djelimičnu unique zaštitu i conditional seed; taj duplicate-row problem se ne rješava ponovo ovdje.
+- Inbox timeouts/expired lock/attendance/reschedule putanje imaju conditional `updateMany`/status checks; to samo po sebi ne daje exactly-once notification delivery.
+- Daily-log completion outbox claimuje `PENDING -> PROCESSING`, otključava istekle leaseove i uzima `take=25`; eksterni receipt/push/socket je at-least-once.
 
-**Preostali konkretan outbox gap:** [`ReservationOutboxService.dispatchAfterCommit`](../../backend/src/reservations/reservation-outbox.service.ts#L38-L139) atomarno claimuje `PENDING` i vraća grešku u `PENDING`, a booking replay može dispatchati još jednom ako pronađe PENDING događaj ([`reservation-create.service.ts`](../../backend/src/reservations/reservation-create.service.ts#L86-L110), [#L259-L265](../../backend/src/reservations/reservation-create.service.ts#L259-L265)). Pretraženi backend nema drugi `reservation.created` polling Cron/worker: nema lease expiry recovery za worker koji se ugasi dok status ostane `PROCESSING`, nema scheduled retry kada se booking HTTP replay ne desi, i nema next-attempt backoff / terminal failure policy. DB notification upsert unique po `(sourceEventId,userId)` štiti notification row, ali `NotificationsService.send` nakon upsert-a i dalje šalje push/email na svaki dispatch pokušaj; external channel replay može biti duplikatan.
+**Faza 3 worker gap zatvoren u source/CI:** [`ReservationOutboxService.retryPending`](../../backend/src/reservations/reservation-outbox.service.ts#L326-L365) sada daje lease recovery, backoff, bounded retries i DEAD_LETTER za podržane evente; HTTP `dispatchAfterCommit` i Cron worker se međusobno isključuju DB CAS claimom. `NotificationsService.send` koristi source-event notification upsert, ali nakon provider acceptance i marker-write failure push/email se može ponoviti. Zato provider kanali i dalje imaju at-least-once semantiku, ne exactly-once.
 
 **Predložena implementacija:** prvo definirati failure semantics po eventu; zatim DB lease/CAS claim + scheduled bounded worker, stale PROCESSING lease recovery, exponential backoff/max attempts/DLQ/operativni pregled. Za push/email koristiti zaseban per-recipient/per-channel delivery status/idempotency where provider supports it; ne obećavati exactly-once za SMTP/FCM. Za websocket invalidation dovoljna je retryable best-effort invalidacija ako HTTP refetch ostane source-of-truth. Dodati failure-injection tests za crash između send i delivered, dva paralelna worker-a, lease expiry i replay.
 

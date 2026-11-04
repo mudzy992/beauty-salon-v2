@@ -14,12 +14,14 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 import { ReservationQueriesService } from './reservation-queries.service';
 import { ReservationAppointmentReminderService } from './reservation-appointment-reminder.service';
 import { ReservationDirectDailyLogCronService } from './reservation-direct-daily-log-cron.service';
+import { ReservationDelayReminderService } from './reservation-delay-reminder.service';
 import { DEFAULT_SALON_TIMEZONE } from '../common/utils/zoned-time';
 
 const SUPPORTED_EVENT_TYPES = [
   'reservation.created',
   'reservation.appointment_reminder',
   'reservation.daily_log_pending_reminder',
+  'reservation.delay_warning',
 ] as const;
 const BATCH_SIZE = 25;
 const DELIVERY_LEASE_MS = 5 * 60 * 1000;
@@ -53,6 +55,8 @@ export class ReservationOutboxService {
     private readonly appointmentReminders?: ReservationAppointmentReminderService,
     @Optional()
     private readonly dailyLogReminders?: ReservationDirectDailyLogCronService,
+    @Optional()
+    private readonly delayReminders?: ReservationDelayReminderService,
   ) {}
 
   /**
@@ -139,6 +143,11 @@ export class ReservationOutboxService {
           event.id,
           event.payload,
         );
+      } else if (event.eventType === 'reservation.delay_warning') {
+        if (!this.delayReminders) {
+          throw new Error('Delay-warning outbox handler nije dostupan.');
+        }
+        await this.delayReminders.deliverOutboxEvent(event.id, event.payload);
       } else {
         throw new Error(`Nepoznat outbox event type: ${event.eventType}`);
       }

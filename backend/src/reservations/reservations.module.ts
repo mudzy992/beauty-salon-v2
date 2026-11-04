@@ -32,6 +32,7 @@ import { LoyaltyModule } from '../loyalty/loyalty.module';
 import { SettingsModule } from '../settings/settings.module';
 import { ReservationInboxCronService } from './reservation-inbox-cron.service';
 import { ReservationDelayCron } from './reservation-delay.cron';
+import { ReservationDelayReminderService } from './reservation-delay-reminder.service';
 import { ReservationDateService } from './reservation-date.service';
 import { DailyLogModule } from '../daily-log/daily-log.module';
 import { ReservationDirectDailyLogCronService } from './reservation-direct-daily-log-cron.service';
@@ -76,6 +77,7 @@ import { ReservationOutboxService } from './reservation-outbox.service';
     AvailabilitySlotsService,
     AvailabilityDebugService,
     ReservationDelayCron,
+    ReservationDelayReminderService,
     ReservationDateService,
     ReservationAppointmentReminderService,
     ReservationOutboxService,

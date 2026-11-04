@@ -65,6 +65,7 @@ import { ReservationClientActionsService } from '../src/reservations/reservation
 import { ReservationDateService } from '../src/reservations/reservation-date.service';
 import { ReservationAppointmentReminderService } from '../src/reservations/reservation-appointment-reminder.service';
 import { ReservationDirectDailyLogCronService } from '../src/reservations/reservation-direct-daily-log-cron.service';
+import { ReservationDelayReminderService } from '../src/reservations/reservation-delay-reminder.service';
 import { ReservationNotifyService } from '../src/reservations/reservation-notify.service';
 import { ReservationOutboxService } from '../src/reservations/reservation-outbox.service';
 import { ReservationQueriesService } from '../src/reservations/reservation-queries.service';
@@ -4296,6 +4297,81 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       await db.outboxEvent.deleteMany({ where: { aggregateId: dailyLogEntryId } });
       await db.dailyLogEntry.deleteMany({ where: { id: dailyLogEntryId } });
       await db.reservation.deleteMany({ where: { id: reservationId } });
+    }
+  }, 30_000);
+
+  it('atomically snapshots delay-warning recipients across concurrent cron instances', async () => {
+    const db = prisma!;
+    const reservationDate = new Date('2040-01-02T00:00:00.000Z');
+    const sourceId = randomUUID();
+    const targetIds = [randomUUID(), randomUUID(), randomUUID()];
+    const reservationIds = [sourceId, ...targetIds];
+    const makeReservation = (id: string, status: string, startTime: string) => ({
+      id,
+      clientId: clientUserId,
+      serviceId,
+      reservationDate,
+      startTime,
+      endTime: status === 'IN_PROGRESS' ? '09:00' : '11:30',
+      status,
+      confirmedStylistId: fixtureIds.stylistProfile!,
+      publicReferenceCode: `DELAY-${randomUUID()}`,
+      clientViewToken: randomUUID(),
+    });
+    await db.reservation.createMany({
+      data: [
+        makeReservation(sourceId, 'IN_PROGRESS', '08:00'),
+        makeReservation(targetIds[0], 'CONFIRMED', '09:30'),
+        makeReservation(targetIds[1], 'CONFIRMED', '10:30'),
+        makeReservation(targetIds[2], 'CONFIRMED', '11:00'),
+      ],
+    });
+
+    const delayPrisma = new Proxy(db, {
+      get(target, property, receiver) {
+        if (property === 'salonSettings') {
+          return { findFirst: jest.fn().mockResolvedValue({ pauseBetweenServices: 20 }) };
+        }
+        if (property === '$transaction') {
+          return target.$transaction.bind(target);
+        }
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const dates = {
+      toSalonDateOnlyString: jest.fn().mockReturnValue('2040-01-02'),
+      toSalonTimeString: jest.fn().mockReturnValue('12:00'),
+    };
+    const makeCron = () =>
+      new ReservationDelayReminderService(
+        delayPrisma as unknown as PrismaService,
+        { send: jest.fn() } as unknown as NotificationsService,
+        dates as unknown as ReservationDateService,
+      );
+
+    try {
+      const results = await Promise.all([
+        makeCron().processReservationDelayReminders(),
+        makeCron().processReservationDelayReminders(),
+      ]);
+      expect(results.reduce((sum, result) => sum + result.queuedCount, 0)).toBe(2);
+      const queued = await db.outboxEvent.findMany({
+        where: { eventType: 'reservation.delay_warning', aggregateId: sourceId },
+        select: { payload: true },
+        orderBy: { dedupeKey: 'asc' },
+      });
+      expect(queued).toHaveLength(2);
+      expect(queued.map(({ payload }) => (payload as { reservationId: string }).reservationId).sort()).toEqual(
+        targetIds.slice(1).sort(),
+      );
+      const source = await db.reservation.findUniqueOrThrow({
+        where: { id: sourceId },
+        select: { delayNotifiedAt: true },
+      });
+      expect(source.delayNotifiedAt).toBeInstanceOf(Date);
+    } finally {
+      await db.outboxEvent.deleteMany({ where: { aggregateId: sourceId } });
+      await db.reservation.deleteMany({ where: { id: { in: reservationIds } } });
     }
   }, 30_000);
 

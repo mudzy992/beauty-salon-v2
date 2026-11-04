@@ -47,6 +47,7 @@ describe('ReservationOutboxService', () => {
   };
   const appointmentReminders = { deliverOutboxEvent: jest.fn() };
   const dailyLogReminders = { deliverPendingDailyLogReminder: jest.fn() };
+  const delayReminders = { deliverOutboxEvent: jest.fn() };
   let service: ReservationOutboxService;
 
   beforeEach(() => {
@@ -58,6 +59,7 @@ describe('ReservationOutboxService', () => {
     queries.findOne.mockResolvedValue({ id: 'reservation-1' });
     appointmentReminders.deliverOutboxEvent.mockResolvedValue(undefined);
     dailyLogReminders.deliverPendingDailyLogReminder.mockResolvedValue(undefined);
+    delayReminders.deliverOutboxEvent.mockResolvedValue(undefined);
     service = new ReservationOutboxService(
       prisma as unknown as PrismaService,
       notifications as unknown as NotificationsService,
@@ -65,6 +67,7 @@ describe('ReservationOutboxService', () => {
       queries as unknown as ReservationQueriesService,
       appointmentReminders as never,
       dailyLogReminders as never,
+      delayReminders as never,
     );
   });
 
@@ -143,6 +146,30 @@ describe('ReservationOutboxService', () => {
     expect(dailyLogReminders.deliverPendingDailyLogReminder).toHaveBeenCalledWith(
       'event-1',
       { dailyLogEntryId: 'entry-1', reservationId: 'reservation-1' },
+    );
+    expect(queries.findOne).not.toHaveBeenCalled();
+    expect(notifications.sendToMany).not.toHaveBeenCalled();
+  });
+
+  it('routes delay-warning events through the snapshot delivery handler', async () => {
+    const payload = {
+      sourceReservationId: 'running-reservation',
+      reservationId: 'future-reservation',
+      clientId: 'client-1',
+      title: 'Kašnjenje termina',
+      body: 'Termin kasni.',
+    };
+    prisma.outboxEvent.findUnique.mockResolvedValueOnce({
+      ...event,
+      eventType: 'reservation.delay_warning',
+      payload,
+    });
+
+    await service.dispatchAfterCommit('event-1');
+
+    expect(delayReminders.deliverOutboxEvent).toHaveBeenCalledWith(
+      'event-1',
+      payload,
     );
     expect(queries.findOne).not.toHaveBeenCalled();
     expect(notifications.sendToMany).not.toHaveBeenCalled();
@@ -284,7 +311,7 @@ describe('ReservationOutboxService', () => {
       1,
       expect.objectContaining({
         where: expect.objectContaining({
-          eventType: { in: ['reservation.created', 'reservation.appointment_reminder', 'reservation.daily_log_pending_reminder'] },
+          eventType: { in: ['reservation.created', 'reservation.appointment_reminder', 'reservation.daily_log_pending_reminder', 'reservation.delay_warning'] },
           status: 'PROCESSING',
           lockedAt: expect.objectContaining({ lt: expect.any(Date) }),
           attempts: { lt: 10 },
@@ -302,7 +329,7 @@ describe('ReservationOutboxService', () => {
     expect(prisma.outboxEvent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          eventType: { in: ['reservation.created', 'reservation.appointment_reminder', 'reservation.daily_log_pending_reminder'] },
+          eventType: { in: ['reservation.created', 'reservation.appointment_reminder', 'reservation.daily_log_pending_reminder', 'reservation.delay_warning'] },
           status: 'PENDING',
         }),
         take: 25,
