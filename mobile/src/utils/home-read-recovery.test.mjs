@@ -24,7 +24,8 @@ test('optional home debts, reservation, gallery and featured review failures rem
   assert.match(screen, /normalizeDebtAmounts\(debtsRes\.data\)/);
   assert.match(screen, /normalizeBeforeAfterPage\(data\)/);
   assert.match(screen, /normalizeFeaturedReview\(data\)/);
-  assert.match(screen, /normalizeReservations\(data\)/);
+  assert.match(screen, /fetchAllReservationPages<unknown>\(\{ asClient: true \}\)[\s\S]*?normalizeReservations\(data\)/);
+  assert.doesNotMatch(screen, /api\.get<unknown>\('\/api\/reservations'/);
   assert.match(screen, /onPress=\{\(\) => void fetchUpcomingReservation\(\)\}/);
   assert.match(screen, /onPress=\{\(\) => void fetchData\(\)\}/);
 });

@@ -27,6 +27,7 @@ import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import api, { getImageUrl, getUploadUrl } from '../../services/api';
+import { fetchAllReservationPages } from '../../services/reservation-list';
 import { fetchPublicSettings } from '../../services/publicSettings';
 import {
   fetchAllPublicServiceCategories,
@@ -362,7 +363,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
       return;
     }
     try {
-      const { data } = await api.get<unknown>('/api/reservations', { params: { asClient: true } });
+      const data = await fetchAllReservationPages<unknown>({ asClient: true });
       if (generation !== reservationRequestGeneration.current) return;
       const rows = normalizeReservations(data);
       if (!rows) {
