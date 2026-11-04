@@ -15,6 +15,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import api, { getImageUrl } from '../../services/api';
+import { fetchAllReservationPages } from '../../services/reservation-list';
 import {
   fetchAllPublicServiceCategories,
   fetchAllPublicServices,
@@ -69,7 +70,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
     setReservationsError(false);
     setReservationsRetrying(true);
     try {
-      const { data } = await api.get<unknown>('/api/reservations', { params: { asClient: true } });
+      const data = await fetchAllReservationPages<unknown>({ asClient: true });
       const normalized = normalizeReservations(data);
       if (!normalized) throw new Error();
       if (generation === reservationsRequestGeneration.current) setReservations(normalized);
