@@ -45,6 +45,7 @@ describe('ReservationOutboxService', () => {
   const queries = {
     findOne: jest.fn().mockResolvedValue({ id: 'reservation-1' }),
   };
+  const appointmentReminders = { deliverOutboxEvent: jest.fn() };
   let service: ReservationOutboxService;
 
   beforeEach(() => {
@@ -54,11 +55,13 @@ describe('ReservationOutboxService', () => {
     prisma.outboxEvent.findMany.mockResolvedValue([]);
     notifications.sendToMany.mockResolvedValue(undefined);
     queries.findOne.mockResolvedValue({ id: 'reservation-1' });
+    appointmentReminders.deliverOutboxEvent.mockResolvedValue(undefined);
     service = new ReservationOutboxService(
       prisma as unknown as PrismaService,
       notifications as unknown as NotificationsService,
       events as unknown as EventsGateway,
       queries as unknown as ReservationQueriesService,
+      appointmentReminders as never,
     );
   });
 
@@ -96,6 +99,33 @@ describe('ReservationOutboxService', () => {
         data: expect.objectContaining({ status: 'DELIVERED' }),
       }),
     );
+  });
+
+  it('routes appointment reminder events through the stale-aware reminder handler', async () => {
+    prisma.outboxEvent.findUnique.mockResolvedValueOnce({
+      ...event,
+      eventType: 'reservation.appointment_reminder',
+      payload: {
+        reservationId: 'reservation-1',
+        clientId: 'client-1',
+        reservationDate: '2030-01-02',
+        startTime: '10:00',
+      },
+    });
+
+    await service.dispatchAfterCommit('event-1');
+
+    expect(appointmentReminders.deliverOutboxEvent).toHaveBeenCalledWith(
+      'event-1',
+      {
+        reservationId: 'reservation-1',
+        clientId: 'client-1',
+        reservationDate: '2030-01-02',
+        startTime: '10:00',
+      },
+    );
+    expect(queries.findOne).not.toHaveBeenCalled();
+    expect(notifications.sendToMany).not.toHaveBeenCalled();
   });
 
   it('requeues after an external send succeeds but the delivered marker write fails', async () => {
@@ -183,6 +213,7 @@ describe('ReservationOutboxService', () => {
     prisma.outboxEvent.findMany.mockResolvedValueOnce([
       {
         id: 'event-secret-id',
+        eventType: 'reservation.appointment_reminder',
         status: 'DEAD_LETTER',
         attempts: 10,
         nextAttemptAt: createdAt,
@@ -201,6 +232,7 @@ describe('ReservationOutboxService', () => {
     expect(result.recentEvents).toEqual([
       {
         id: 'event-secret-id',
+        eventType: 'reservation.appointment_reminder',
         status: 'DEAD_LETTER',
         attempts: 10,
         nextAttemptAt: createdAt,
@@ -232,7 +264,7 @@ describe('ReservationOutboxService', () => {
       1,
       expect.objectContaining({
         where: expect.objectContaining({
-          eventType: 'reservation.created',
+          eventType: { in: ['reservation.created', 'reservation.appointment_reminder'] },
           status: 'PROCESSING',
           lockedAt: expect.objectContaining({ lt: expect.any(Date) }),
           attempts: { lt: 10 },
@@ -250,7 +282,7 @@ describe('ReservationOutboxService', () => {
     expect(prisma.outboxEvent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          eventType: 'reservation.created',
+          eventType: { in: ['reservation.created', 'reservation.appointment_reminder'] },
           status: 'PENDING',
         }),
         take: 25,

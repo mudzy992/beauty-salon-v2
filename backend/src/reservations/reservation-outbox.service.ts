@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,8 +12,13 @@ import { EventsGateway } from '../events/events.gateway';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { ReservationQueriesService } from './reservation-queries.service';
+import { ReservationAppointmentReminderService } from './reservation-appointment-reminder.service';
 import { DEFAULT_SALON_TIMEZONE } from '../common/utils/zoned-time';
 
+const SUPPORTED_EVENT_TYPES = [
+  'reservation.created',
+  'reservation.appointment_reminder',
+] as const;
 const BATCH_SIZE = 25;
 const DELIVERY_LEASE_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 10;
@@ -41,13 +47,14 @@ export class ReservationOutboxService {
     private readonly notifications: NotificationsService,
     private readonly events: EventsGateway,
     private readonly queries: ReservationQueriesService,
+    @Optional()
+    private readonly appointmentReminders?: ReservationAppointmentReminderService,
   ) {}
 
   /**
-   * Delivers one committed outbox event after the booking transaction has
-   * finished. Failed delivery is retried by the bounded worker; external I/O is
-   * never run in the booking transaction. Push/email remain at-least-once if a
-   * process crashes after provider acceptance but before marking the event.
+   * Delivers one claimed, committed outbox event. External I/O is never run in
+   * the producer transaction. Push/email remain at-least-once if a process
+   * crashes after provider acceptance but before marking the event delivered.
    */
   async dispatchAfterCommit(eventId: string): Promise<void> {
     let claimed = false;
@@ -74,47 +81,55 @@ export class ReservationOutboxService {
       });
       if (!event) return;
       attempts = event.attempts;
-      if (event.eventType !== 'reservation.created') {
+      if (event.eventType === 'reservation.created') {
+        const payload = event.payload as unknown as ReservationCreatedPayload;
+        const reservation = await this.queries.findOne(
+          payload.reservationId,
+          payload.actor,
+        );
+
+        if (payload.notifyUserIds.length > 0) {
+          await this.notifications.sendToMany(
+            payload.notifyUserIds,
+            payload.notificationTitle,
+            payload.notificationBody,
+            'reservation_new',
+            {
+              reservationId: payload.reservationId,
+              kind: 'reservation_new',
+            },
+            event.id,
+          );
+        }
+
+        if (payload.emitToAdmins) {
+          this.events.emitToAdmins(
+            SOCKET_EVENTS.RESERVATION_CREATED,
+            reservation,
+          );
+        }
+        if (payload.emitToStylists) {
+          this.events.emitToStylists(
+            SOCKET_EVENTS.RESERVATION_CREATED,
+            reservation,
+          );
+        }
+        this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
+          serviceId: payload.serviceId,
+          serviceIds: payload.serviceIds,
+          date: payload.reservationDate,
+        });
+      } else if (event.eventType === 'reservation.appointment_reminder') {
+        if (!this.appointmentReminders) {
+          throw new Error('Appointment reminder outbox handler nije dostupan.');
+        }
+        await this.appointmentReminders.deliverOutboxEvent(
+          event.id,
+          event.payload,
+        );
+      } else {
         throw new Error(`Nepoznat outbox event type: ${event.eventType}`);
       }
-
-      const payload = event.payload as unknown as ReservationCreatedPayload;
-      const reservation = await this.queries.findOne(
-        payload.reservationId,
-        payload.actor,
-      );
-
-      if (payload.notifyUserIds.length > 0) {
-        await this.notifications.sendToMany(
-          payload.notifyUserIds,
-          payload.notificationTitle,
-          payload.notificationBody,
-          'reservation_new',
-          {
-            reservationId: payload.reservationId,
-            kind: 'reservation_new',
-          },
-          event.id,
-        );
-      }
-
-      if (payload.emitToAdmins) {
-        this.events.emitToAdmins(
-          SOCKET_EVENTS.RESERVATION_CREATED,
-          reservation,
-        );
-      }
-      if (payload.emitToStylists) {
-        this.events.emitToStylists(
-          SOCKET_EVENTS.RESERVATION_CREATED,
-          reservation,
-        );
-      }
-      this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
-        serviceId: payload.serviceId,
-        serviceIds: payload.serviceIds,
-        date: payload.reservationDate,
-      });
 
       await this.prisma.outboxEvent.updateMany({
         where: { id: event.id, status: 'PROCESSING' },
@@ -164,7 +179,10 @@ export class ReservationOutboxService {
         where: { id: eventId },
         select: { id: true, eventType: true, status: true, attempts: true },
       });
-      if (!event || event.eventType !== 'reservation.created') {
+      if (
+        !event ||
+        !SUPPORTED_EVENT_TYPES.some((eventType) => eventType === event.eventType)
+      ) {
         throw new NotFoundException('Outbox događaj nije pronađen.');
       }
       if (event.status !== 'DEAD_LETTER') {
@@ -176,7 +194,7 @@ export class ReservationOutboxService {
       const requeued = await tx.outboxEvent.updateMany({
         where: {
           id: event.id,
-          eventType: 'reservation.created',
+          eventType: { in: [...SUPPORTED_EVENT_TYPES] },
           status: 'DEAD_LETTER',
         },
         data: {
@@ -219,32 +237,33 @@ export class ReservationOutboxService {
       await Promise.all([
         this.prisma.outboxEvent.groupBy({
           by: ['status'],
-          where: { eventType: 'reservation.created' },
+          where: { eventType: { in: [...SUPPORTED_EVENT_TYPES] } },
           _count: { _all: true },
         }),
         this.prisma.outboxEvent.count({
           where: {
-            eventType: 'reservation.created',
+            eventType: { in: [...SUPPORTED_EVENT_TYPES] },
             status: 'PENDING',
             nextAttemptAt: { lte: now },
           },
         }),
         this.prisma.outboxEvent.count({
           where: {
-            eventType: 'reservation.created',
+            eventType: { in: [...SUPPORTED_EVENT_TYPES] },
             status: 'PROCESSING',
             lockedAt: { lt: staleBefore },
           },
         }),
         this.prisma.outboxEvent.findMany({
           where: {
-            eventType: 'reservation.created',
+            eventType: { in: [...SUPPORTED_EVENT_TYPES] },
             status: { in: ['PENDING', 'PROCESSING', 'DEAD_LETTER'] },
           },
           orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
           take: DIAGNOSTICS_EVENT_LIMIT,
           select: {
             id: true,
+            eventType: true,
             status: true,
             attempts: true,
             nextAttemptAt: true,
@@ -293,7 +312,7 @@ export class ReservationOutboxService {
     try {
       await this.prisma.outboxEvent.updateMany({
         where: {
-          eventType: 'reservation.created',
+          eventType: { in: [...SUPPORTED_EVENT_TYPES] },
           status: 'PROCESSING',
           lockedAt: { lt: expiredBefore },
           attempts: { lt: MAX_ATTEMPTS },
@@ -307,7 +326,7 @@ export class ReservationOutboxService {
       });
       await this.prisma.outboxEvent.updateMany({
         where: {
-          eventType: 'reservation.created',
+          eventType: { in: [...SUPPORTED_EVENT_TYPES] },
           status: 'PROCESSING',
           lockedAt: { lt: expiredBefore },
           attempts: { gte: MAX_ATTEMPTS },
@@ -320,7 +339,7 @@ export class ReservationOutboxService {
       });
       const pending = await this.prisma.outboxEvent.findMany({
         where: {
-          eventType: 'reservation.created',
+          eventType: { in: [...SUPPORTED_EVENT_TYPES] },
           status: 'PENDING',
           nextAttemptAt: { lte: now },
         },

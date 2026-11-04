@@ -19,6 +19,7 @@ type OutboxStatus = 'PENDING' | 'PROCESSING' | 'DELIVERED' | 'DEAD_LETTER'
 
 type OutboxDiagnosticEvent = {
   id: string
+  eventType: string
   status: string
   attempts: number
   nextAttemptAt: string
@@ -222,8 +223,11 @@ export const DashboardOutboxDiagnostics = () => {
                           key={event.id}
                           className="border-b border-slate-100 dark:border-slate-900"
                         >
-                          <td className="whitespace-nowrap py-2 pr-3 font-mono text-xs">
-                            #{event.id.slice(0, 8)}
+                          <td className="py-2 pr-3 font-mono text-xs">
+                            <span className="block whitespace-nowrap">{event.eventType}</span>
+                            <span className="block whitespace-nowrap text-slate-500">
+                              #{event.id.slice(0, 8)}
+                            </span>
                           </td>
                           <td className="py-2 pr-3">
                             <span

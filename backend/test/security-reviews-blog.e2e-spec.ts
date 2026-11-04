@@ -63,6 +63,7 @@ import { ReservationCreateService } from '../src/reservations/reservation-create
 import { ReservationDirectCreateService } from '../src/reservations/reservation-direct-create.service';
 import { ReservationClientActionsService } from '../src/reservations/reservation-client-actions.service';
 import { ReservationDateService } from '../src/reservations/reservation-date.service';
+import { ReservationAppointmentReminderService } from '../src/reservations/reservation-appointment-reminder.service';
 import { ReservationNotifyService } from '../src/reservations/reservation-notify.service';
 import { ReservationOutboxService } from '../src/reservations/reservation-outbox.service';
 import { ReservationQueriesService } from '../src/reservations/reservation-queries.service';
@@ -4176,6 +4177,66 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     ]);
   }, 30_000);
 
+  it('queues one appointment reminder outbox event across concurrent cron scans', async () => {
+    const db = prisma!;
+    const reservationId = randomUUID();
+    const reservationDate = new Date();
+    reservationDate.setUTCDate(reservationDate.getUTCDate() + 1);
+    reservationDate.setUTCHours(0, 0, 0, 0);
+    const reservationDateString = reservationDate.toISOString().slice(0, 10);
+    const dueStart = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await db.reservation.create({
+      data: {
+        id: reservationId,
+        clientId: clientUserId,
+        serviceId,
+        reservationDate,
+        startTime: '10:00',
+        endTime: '10:45',
+        status: 'CONFIRMED',
+        publicReferenceCode: `REM-${randomUUID()}`,
+        clientViewToken: randomUUID(),
+      },
+    });
+
+    const dates = {
+      refreshTimezone: jest.fn().mockResolvedValue(undefined),
+      combineDateAndTime: jest.fn((date: Date, time: string) =>
+        date.toISOString().slice(0, 10) === reservationDateString &&
+        time === '10:00'
+          ? dueStart
+          : new Date(Date.now() + 72 * 60 * 60 * 1000),
+      ),
+      toDateOnlyString: jest.fn((date: Date) => date.toISOString().slice(0, 10)),
+    };
+    const settings = { getNumber: jest.fn().mockResolvedValue(24) };
+    const reminders = new ReservationAppointmentReminderService(
+      db as unknown as PrismaService,
+      settings as unknown as SettingsService,
+      dates as unknown as ReservationDateService,
+      { send: jest.fn() } as unknown as NotificationsService,
+    );
+
+    try {
+      const results = await Promise.all([
+        reminders.processAppointmentReminders(),
+        reminders.processAppointmentReminders(),
+      ]);
+      expect(results.reduce((sum, result) => sum + result.queuedCount, 0)).toBe(1);
+      await expect(
+        db.outboxEvent.count({
+          where: {
+            eventType: 'reservation.appointment_reminder',
+            aggregateId: reservationId,
+          },
+        }),
+      ).resolves.toBe(1);
+    } finally {
+      await db.outboxEvent.deleteMany({ where: { aggregateId: reservationId } });
+      await db.reservation.deleteMany({ where: { id: reservationId } });
+    }
+  }, 30_000);
+
   it('allows only one concurrent reservation outbox worker to claim an event', async () => {
     const db = prisma!;
     const eventId = randomUUID();
@@ -4719,6 +4780,48 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
         requestedByUserId: fixtureIds.ownerUserId,
         attemptsAtRequest: 10,
         requestedAt: expect.any(Date),
+      });
+      await expect(
+        db.reservationOutboxReplayAudit.count({ where: { outboxEventId: eventId } }),
+      ).resolves.toBe(1);
+    } finally {
+      await db.reservationOutboxReplayAudit.deleteMany({
+        where: { outboxEventId: eventId },
+      });
+      await db.outboxEvent.deleteMany({ where: { id: eventId } });
+    }
+  }, 30_000);
+
+  it('audits explicit dead-letter replay for appointment reminder events', async () => {
+    const db = prisma!;
+    const eventId = randomUUID();
+    await db.outboxEvent.create({
+      data: {
+        id: eventId,
+        eventType: 'reservation.appointment_reminder',
+        aggregateId: randomUUID(),
+        dedupeKey: `appointment-reminder-replay:${eventId}`,
+        payload: {
+          reservationId: randomUUID(),
+          clientId: clientUserId,
+          reservationDate: '2030-01-02',
+          startTime: '10:00',
+        },
+        status: 'DEAD_LETTER',
+        attempts: 10,
+      },
+    });
+
+    try {
+      const response = await request(getHttpServer(app!))
+        .post(`/api/reservations/ops/outbox/${eventId}/replay`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ confirmAtLeastOnce: true })
+        .expect(201);
+      expect(response.body).toMatchObject({
+        eventId,
+        status: 'PENDING',
+        attempts: 10,
       });
       await expect(
         db.reservationOutboxReplayAudit.count({ where: { outboxEventId: eventId } }),
