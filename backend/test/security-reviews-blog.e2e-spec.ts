@@ -4289,6 +4289,84 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   }, 30_000);
 
+  it('persists DEAD_LETTER after the final provider delivery attempt in PostgreSQL', async () => {
+    const db = prisma!;
+    const eventId = randomUUID();
+    const aggregateId = randomUUID();
+    await db.outboxEvent.create({
+      data: {
+        id: eventId,
+        eventType: 'reservation.created',
+        aggregateId,
+        dedupeKey: `outbox-final-provider-failure:${eventId}`,
+        nextAttemptAt: new Date(Date.now() - 1000),
+        attempts: 9,
+        payload: {
+          reservationId: aggregateId,
+          actor: {
+            sub: clientUserId,
+            username: 'outbox-test-client',
+            email: 'outbox-test@example.invalid',
+            roles: ['CLIENT'],
+          },
+          notifyUserIds: [clientUserId],
+          notificationTitle: 'Test',
+          notificationBody: 'Test',
+          serviceId: randomUUID(),
+          serviceIds: [randomUUID()],
+          reservationDate: '2030-01-02',
+          emitToAdmins: false,
+          emitToStylists: false,
+        },
+      },
+    });
+
+    const notifications = {
+      sendToMany: jest
+        .fn()
+        .mockRejectedValueOnce(new Error('provider secret must not be stored')),
+    };
+    const queries = { findOne: jest.fn().mockResolvedValue({ id: aggregateId }) };
+    const events = {
+      emitToAdmins: jest.fn(),
+      emitToStylists: jest.fn(),
+      emitToAll: jest.fn(),
+    };
+    const worker = new ReservationOutboxService(
+      db as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      events as unknown as EventsGateway,
+      queries as unknown as ReservationQueriesService,
+    );
+
+    try {
+      await worker.dispatchAfterCommit(eventId);
+
+      expect(notifications.sendToMany).toHaveBeenCalledTimes(1);
+      expect(events.emitToAll).not.toHaveBeenCalled();
+      const persisted = await db.outboxEvent.findUniqueOrThrow({
+        where: { id: eventId },
+        select: {
+          status: true,
+          attempts: true,
+          lockedAt: true,
+          nextAttemptAt: true,
+          lastError: true,
+        },
+      });
+      expect(persisted).toMatchObject({
+        status: 'DEAD_LETTER',
+        attempts: 10,
+        lockedAt: null,
+        lastError: 'Delivery failed (Error).',
+      });
+      expect(persisted.nextAttemptAt.getTime()).toBeGreaterThan(Date.now());
+      expect(persisted.lastError).not.toContain('provider secret');
+    } finally {
+      await db.outboxEvent.deleteMany({ where: { id: eventId } });
+    }
+  }, 30_000);
+
   it('recovers expired outbox leases and dead-letters rows at the attempt limit in PostgreSQL', async () => {
     const db = prisma!;
     const retryEventId = randomUUID();
