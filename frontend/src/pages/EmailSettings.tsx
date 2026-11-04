@@ -1,4 +1,4 @@
-import { DragEvent, useEffect, useMemo, useState } from 'react'
+import { DragEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedNumber } from '../i18n/locale-utils.mjs'
@@ -61,12 +61,37 @@ interface CampaignTemplate {
 
 interface CampaignAudienceSummary {
   total: number;
+  maxRecipients: number;
+  exceedsLimit: boolean;
   sample: Array<{
     id: string;
     username: string;
     email: string | null;
     firstName: string | null;
     lastName: string | null;
+  }>;
+}
+
+interface CampaignJobSummary {
+  id: string;
+  status: string;
+  totalRecipients: number;
+  counts: {
+    pending: number;
+    processing: number;
+    delivered: number;
+    skipped: number;
+    failed: number;
+    cancelled: number;
+  };
+  recipients: Array<{
+    id: string;
+    userId: string;
+    username: string;
+    status: string;
+    attempts: number;
+    lastError: string | null;
+    deliveredAt: string | null;
   }>;
 }
 
@@ -284,9 +309,13 @@ export default function EmailSettings() {
   const [campaignName, setCampaignName] = useState('');
   const [campaignRoles, setCampaignRoles] = useState<string[]>(['CLIENT']);
   const [onlyActiveAudience, setOnlyActiveAudience] = useState(true);
-  const [onlyVerifiedAudience, setOnlyVerifiedAudience] = useState(true);
   const [createInAppNotification, setCreateInAppNotification] = useState(true);
   const [audienceSummary, setAudienceSummary] = useState<CampaignAudienceSummary | null>(null);
+  const [campaignJobId, setCampaignJobId] = useState<string | null>(null);
+  const [campaignJob, setCampaignJob] = useState<CampaignJobSummary | null>(null);
+  const [campaignJobLoadFailed, setCampaignJobLoadFailed] = useState(false);
+  const [campaignJobActionBusy, setCampaignJobActionBusy] = useState(false);
+  const campaignRequestId = useRef<{ key: string; fingerprint: string } | null>(null);
 
   const isCustomLike = useMemo(
     () => provider === 'custom' || provider === 'exchange',
@@ -390,6 +419,36 @@ export default function EmailSettings() {
     };
     loadTemplateByType();
   }, [existingTemplateType]);
+
+  useEffect(() => {
+    if (!campaignJobId) return
+    let active = true
+    let timeout: ReturnType<typeof setTimeout> | undefined
+
+    const refresh = async () => {
+      try {
+        const { data } = await api.get<CampaignJobSummary>(
+          `/api/notifications/campaigns/${campaignJobId}`,
+        )
+        if (!active) return
+        setCampaignJob(data)
+        setCampaignJobLoadFailed(false)
+        if (data.status === 'QUEUED' || data.status === 'RUNNING') {
+          timeout = setTimeout(refresh, 2000)
+        }
+      } catch {
+        if (!active) return
+        setCampaignJobLoadFailed(true)
+        timeout = setTimeout(refresh, 5000)
+      }
+    }
+
+    void refresh()
+    return () => {
+      active = false
+      if (timeout) clearTimeout(timeout)
+    }
+  }, [campaignJobId]);
 
   const handleProviderChange = (next: ProviderType) => {
     setProvider(next);
@@ -579,15 +638,16 @@ export default function EmailSettings() {
     setCampaignRoles((prev) =>
       prev.includes(role) ? prev.filter((item) => item !== role) : [...prev, role],
     );
+    setAudienceSummary(null);
   };
 
   const getAudiencePayload = () => ({
     roles: campaignRoles,
     onlyActive: onlyActiveAudience,
-    onlyEmailVerified: onlyVerifiedAudience,
   });
 
   const handleLoadAudiencePreview = async () => {
+    setAudienceSummary(null)
     setLoadingAudience(true);
     try {
       const { data } = await api.post<CampaignAudienceSummary>(
@@ -615,21 +675,41 @@ export default function EmailSettings() {
       warning(t('emailSettings.campaigns.emptyAudienceWarning'))
       return
     }
+    if (audienceSummary?.exceedsLimit) {
+      warning(t('emailSettings.campaigns.audienceLimitReached'))
+      return
+    }
     setSendingCampaign(true);
     try {
-      const { data } = await api.post('/api/notifications/campaigns/send', {
+      const requestPayload = {
         templateId: selectedCampaign.id,
         subjectOverride: campaignSubject.trim() || undefined,
         campaignName: campaignName.trim() || selectedCampaign.name,
         createInAppNotification,
         tags: ['marketing', 'campaign'],
         audience: getAudiencePayload(),
+      }
+      const fingerprint = JSON.stringify(requestPayload)
+      const requestId = campaignRequestId.current?.fingerprint === fingerprint
+        ? campaignRequestId.current.key
+        : crypto.randomUUID()
+      campaignRequestId.current = { key: requestId, fingerprint }
+      const { data } = await api.post<{
+        queued: boolean;
+        jobId: string;
+        totalTargeted: number;
+      }>('/api/notifications/campaigns/send', {
+        ...requestPayload,
+        idempotencyKey: requestId,
       });
+      campaignRequestId.current = null
+      setCampaignJob(null)
+      setCampaignJobLoadFailed(false)
+      setCampaignJobId(data.jobId)
       success(
-        t('emailSettings.campaigns.sent'),
-        t('emailSettings.campaigns.sendDetails', {
-          delivered: formatLocalizedNumber(data?.delivered ?? 0, i18n.language),
-          skipped: formatLocalizedNumber(data?.skipped ?? 0, i18n.language),
+        t('emailSettings.campaigns.queued'),
+        t('emailSettings.campaigns.enqueueDetails', {
+          total: formatLocalizedNumber(data.totalTargeted, i18n.language),
         }),
       )
     } catch (err: unknown) {
@@ -640,6 +720,39 @@ export default function EmailSettings() {
       toastError(msg || t('emailSettings.campaigns.sendFailed'))
     } finally {
       setSendingCampaign(false);
+    }
+  };
+
+  const handleCancelCampaign = async () => {
+    if (!campaignJobId) return
+    setCampaignJobActionBusy(true)
+    try {
+      const { data } = await api.post<{ ok: boolean } & CampaignJobSummary>(
+        `/api/notifications/campaigns/${campaignJobId}/cancel`,
+      )
+      setCampaignJob(data)
+      setCampaignJobLoadFailed(false)
+    } catch {
+      toastError(t('emailSettings.campaigns.cancelFailed'))
+    } finally {
+      setCampaignJobActionBusy(false)
+    }
+  };
+
+  const handleRetryFailedCampaign = async () => {
+    if (!campaignJobId || !window.confirm(t('emailSettings.campaigns.retryConfirmAtLeastOnce'))) return
+    setCampaignJobActionBusy(true)
+    try {
+      const { data } = await api.post<{ ok: boolean } & CampaignJobSummary>(
+        `/api/notifications/campaigns/${campaignJobId}/retry`,
+        { confirmAtLeastOnce: true, requestId: crypto.randomUUID() },
+      )
+      setCampaignJob(data)
+      setCampaignJobLoadFailed(false)
+    } catch {
+      toastError(t('emailSettings.campaigns.retryFailedMessage'))
+    } finally {
+      setCampaignJobActionBusy(false)
     }
   };
 
@@ -1242,11 +1355,13 @@ export default function EmailSettings() {
                     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
                       <div className="flex items-center justify-between gap-3">
                         <Label className="mb-0">{t('emailSettings.campaigns.onlyActiveUsers')}</Label>
-                        <Switch checked={onlyActiveAudience} onCheckedChange={setOnlyActiveAudience} />
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <Label className="mb-0">{t('emailSettings.campaigns.onlyVerifiedUsers')}</Label>
-                        <Switch checked={onlyVerifiedAudience} onCheckedChange={setOnlyVerifiedAudience} />
+                        <Switch
+                          checked={onlyActiveAudience}
+                          onCheckedChange={(checked) => {
+                            setOnlyActiveAudience(checked)
+                            setAudienceSummary(null)
+                          }}
+                        />
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <Label className="mb-0">{t('emailSettings.campaigns.createInAppNotification')}</Label>
@@ -1256,6 +1371,9 @@ export default function EmailSettings() {
                         />
                       </div>
                     </div>
+                    <p className="text-xs text-slate-500">
+                      {t('emailSettings.campaigns.verifiedConsentOnly')}
+                    </p>
 
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -1271,7 +1389,7 @@ export default function EmailSettings() {
                         type="button"
                         variant="secondary"
                         onClick={() => void handleSendCampaign()}
-                        disabled={sendingCampaign}
+                        disabled={sendingCampaign || loadingAudience || !audienceSummary || audienceSummary.exceedsLimit}
                       >
                         {sendingCampaign ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                         {t('emailSettings.campaigns.sendCampaign')}
@@ -1282,16 +1400,108 @@ export default function EmailSettings() {
                       <div className="space-y-2">
                         <Badge variant="brand" className="w-fit px-3 py-1">
                           {t('emailSettings.campaigns.totalRecipients', {
-                            total: formatLocalizedNumber(audienceSummary.total, i18n.language),
+                            total: formatLocalizedNumber(
+                              audienceSummary.exceedsLimit
+                                ? audienceSummary.maxRecipients + 1
+                                : audienceSummary.total,
+                              i18n.language,
+                            ) + (audienceSummary.exceedsLimit ? '+' : ''),
                           })}
                         </Badge>
-                        <p className="text-sm text-slate-600 dark:text-slate-300">
-                          {t('emailSettings.campaigns.sampleFirstTen', {
-                            names: audienceSummary.sample.map((item) => item.username).join(', ') || '-',
-                          })}
-                        </p>
+                        {audienceSummary.exceedsLimit ? (
+                          <p role="alert" className="text-sm font-medium text-rose-600 dark:text-rose-400">
+                            {t('emailSettings.campaigns.audienceLimitReached')}
+                          </p>
+                        ) : null}
+                        {audienceSummary.total === 0 ? (
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            {t('emailSettings.campaigns.audienceEmpty')}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            {t('emailSettings.campaigns.sampleFirstTen', {
+                              names: audienceSummary.sample.map((item) => item.username).join(', ') || '-',
+                            })}
+                          </p>
+                        )}
                       </div>
                     ) : null}
+
+                    {campaignJob ? (() => {
+                      const counts = campaignJob.counts
+                      const settled = counts.delivered + counts.skipped + counts.failed + counts.cancelled
+                      const percent = campaignJob.totalRecipients > 0
+                        ? Math.min(100, Math.round((settled / campaignJob.totalRecipients) * 100))
+                        : 100
+                      const active = campaignJob.status === 'QUEUED' || campaignJob.status === 'RUNNING'
+                      const failedRecipients = campaignJob.recipients
+                        .filter((recipient) => recipient.status === 'FAILED')
+                        .slice(0, 10)
+                      return (
+                        <Card className="space-y-3 p-4" aria-live="polite">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <h3 className="font-semibold text-slate-900 dark:text-slate-50">
+                              {t('emailSettings.campaigns.progressHeading')}
+                            </h3>
+                            <Badge variant={active ? 'brand' : 'outline'}>
+                              {t(`emailSettings.campaigns.jobStatuses.${campaignJob.status}`, { defaultValue: campaignJob.status })}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            {t('emailSettings.campaigns.counts', {
+                              pending: formatLocalizedNumber(counts.pending, i18n.language),
+                              processing: formatLocalizedNumber(counts.processing, i18n.language),
+                              delivered: formatLocalizedNumber(counts.delivered, i18n.language),
+                              skipped: formatLocalizedNumber(counts.skipped, i18n.language),
+                              failed: formatLocalizedNumber(counts.failed, i18n.language),
+                              cancelled: formatLocalizedNumber(counts.cancelled, i18n.language),
+                            })}
+                          </p>
+                          <div
+                            role="progressbar"
+                            aria-label={t('emailSettings.campaigns.progressHeading')}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-valuenow={percent}
+                            className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+                          >
+                            <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${percent}%` }} />
+                          </div>
+                          {campaignJobLoadFailed ? (
+                            <p role="alert" className="text-sm text-rose-600 dark:text-rose-400">
+                              {t('emailSettings.campaigns.progressLoadFailed')}
+                            </p>
+                          ) : null}
+                          {failedRecipients.length > 0 ? (
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">{t('emailSettings.campaigns.recipientListHeading')}</p>
+                              <ul className="space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                                {failedRecipients.map((recipient) => (
+                                  <li key={recipient.id} className="flex justify-between gap-3">
+                                    <span>{recipient.username}</span>
+                                    <span>{t(`emailSettings.campaigns.recipientStatuses.${recipient.status}`, { defaultValue: recipient.status })}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null}
+                          <div className="flex flex-wrap gap-2">
+                            {active ? (
+                              <Button type="button" variant="outline" onClick={() => void handleCancelCampaign()} disabled={campaignJobActionBusy}>
+                                {campaignJobActionBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                {t('emailSettings.campaigns.cancelRemaining')}
+                              </Button>
+                            ) : null}
+                            {!active && counts.failed > 0 ? (
+                              <Button type="button" variant="outline" onClick={() => void handleRetryFailedCampaign()} disabled={campaignJobActionBusy}>
+                                {campaignJobActionBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                {t('emailSettings.campaigns.retryFailed')}
+                              </Button>
+                            ) : null}
+                          </div>
+                        </Card>
+                      )
+                    })() : null}
 
                     <p className="text-xs text-slate-500">
                       {t('emailSettings.campaigns.dynamicVariables')}{' '}

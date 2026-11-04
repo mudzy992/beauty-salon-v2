@@ -30,6 +30,12 @@ interface NotifPreference {
   emailEnabled: boolean
 }
 
+interface CampaignEmailConsent {
+  optedIn: boolean
+  consentedAt: string | null
+  withdrawnAt: string | null
+}
+
 const channelBadgeVariant = (channel: string): 'secondary' | 'brand' | 'outline' => {
   if (channel === 'PUSH') return 'secondary'
   if (channel === 'EMAIL') return 'brand'
@@ -47,6 +53,10 @@ export default function Notifications() {
   const [preferences, setPreferences] = useState<NotifPreference[]>([])
   const [prefLoading, setPrefLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [campaignConsent, setCampaignConsent] = useState<CampaignEmailConsent | null>(null)
+  const [campaignConsentLoading, setCampaignConsentLoading] = useState(true)
+  const [campaignConsentLoadFailed, setCampaignConsentLoadFailed] = useState(false)
+  const [savingCampaignConsent, setSavingCampaignConsent] = useState(false)
 
   const loadNotifications = useCallback(() => {
     setLoading(true)
@@ -68,12 +78,29 @@ export default function Notifications() {
       .finally(() => setPrefLoading(false))
   }, [])
 
+  const loadCampaignConsent = useCallback(() => {
+    setCampaignConsentLoading(true)
+    api
+      .get<CampaignEmailConsent>('/api/notifications/campaigns/consent')
+      .then((r) => {
+        setCampaignConsent(r.data)
+        setCampaignConsentLoadFailed(false)
+      })
+      .catch(() => {
+        setCampaignConsentLoadFailed(true)
+      })
+      .finally(() => setCampaignConsentLoading(false))
+  }, [])
+
   useEffect(() => {
     loadNotifications()
   }, [loadNotifications])
   useEffect(() => {
     loadPreferences()
   }, [loadPreferences])
+  useEffect(() => {
+    loadCampaignConsent()
+  }, [loadCampaignConsent])
 
   useSocketEvent('notification:new', useCallback(() => loadNotifications(), [loadNotifications]))
 
@@ -96,6 +123,23 @@ export default function Notifications() {
       error(t('notifications.preferencesSaveFailed'))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const saveCampaignConsent = async (optedIn: boolean) => {
+    setSavingCampaignConsent(true)
+    try {
+      const { data } = await api.put<CampaignEmailConsent>(
+        '/api/notifications/campaigns/consent',
+        { optedIn },
+      )
+      setCampaignConsent(data)
+      setCampaignConsentLoadFailed(false)
+      success(t('notifications.campaignConsent.saved'))
+    } catch {
+      error(t('notifications.campaignConsent.saveFailed'))
+    } finally {
+      setSavingCampaignConsent(false)
     }
   }
 
@@ -238,6 +282,44 @@ export default function Notifications() {
           <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
             {t('notifications.preferencesDescription')}
           </p>
+          <Card className="mb-4 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-2xl space-y-1">
+                <h2 className="font-semibold text-slate-900 dark:text-slate-50">
+                  {t('notifications.campaignConsent.title')}
+                </h2>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  {t('notifications.campaignConsent.description')}
+                </p>
+                {campaignConsent ? (
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    {campaignConsent.optedIn
+                      ? t('notifications.campaignConsent.enabled')
+                      : t('notifications.campaignConsent.disabled')}
+                  </p>
+                ) : null}
+              </div>
+              {campaignConsentLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-slate-500" aria-label={t('common.loading')} />
+              ) : campaignConsentLoadFailed ? (
+                <Button type="button" variant="outline" onClick={loadCampaignConsent}>
+                  {t('notifications.campaignConsent.retryLoad')}
+                </Button>
+              ) : (
+                <Switch
+                  checked={campaignConsent?.optedIn ?? false}
+                  onCheckedChange={(checked) => void saveCampaignConsent(checked)}
+                  disabled={savingCampaignConsent || !campaignConsent}
+                  aria-label={t('notifications.campaignConsent.optIn')}
+                />
+              )}
+            </div>
+            {campaignConsentLoadFailed ? (
+              <p role="alert" className="mt-2 text-sm text-rose-600 dark:text-rose-400">
+                {t('notifications.campaignConsent.loadFailed')}
+              </p>
+            ) : null}
+          </Card>
           {prefLoading ? (
             <div className="flex justify-center py-8 text-slate-500">
               <Loader2 className="h-8 w-8 animate-spin" aria-label={t('common.loading')} />

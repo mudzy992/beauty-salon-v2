@@ -24,7 +24,6 @@ test('campaign controls, audience feedback, and editor labels use matching local
     'emailSettings.campaigns.sendCampaign',
     'emailSettings.campaigns.saveTemplates',
     'emailSettings.campaigns.noTemplates',
-    'emailSettings.campaigns.sendDetails',
   ]) {
     assert.ok(literalTranslationKeys.has(key), `Missing source translation reference: ${key}`)
   }
@@ -43,8 +42,15 @@ test('campaign controls, audience feedback, and editor labels use matching local
 
 test('campaign UI localization preserves audience and send API contracts', () => {
   assert.match(source, /api\.post<CampaignAudienceSummary>\(\s*'\/api\/notifications\/campaigns\/audience',\s*getAudiencePayload\(\)/)
-  assert.match(source, /const getAudiencePayload = \(\) => \(\{\s*roles: campaignRoles,\s*onlyActive: onlyActiveAudience,\s*onlyEmailVerified: onlyVerifiedAudience,\s*\}\)/)
-  assert.match(source, /api\.post\('\/api\/notifications\/campaigns\/send',\s*\{[\s\S]*?templateId: selectedCampaign\.id,[\s\S]*?createInAppNotification,[\s\S]*?tags: \['marketing', 'campaign'\],[\s\S]*?audience: getAudiencePayload\(\)/)
+  assert.match(source, /const getAudiencePayload = \(\) => \(\{\s*roles: campaignRoles,\s*onlyActive: onlyActiveAudience,\s*\}\)/)
+  assert.match(source, /const requestPayload = \{[\s\S]*?templateId: selectedCampaign\.id,[\s\S]*?createInAppNotification,[\s\S]*?tags: \['marketing', 'campaign'\],[\s\S]*?audience: getAudiencePayload\(\)/)
+  assert.match(source, /api\.post<\{\s*queued: boolean;[\s\S]*?totalTargeted: number;\s*\}>/)
+  assert.match(source, /'\/api\/notifications\/campaigns\/send'/)
+  assert.match(source, /\.\.\.requestPayload,\s*idempotencyKey: requestId/)
+  assert.match(source, /campaignRequestId\.current\?\.fingerprint === fingerprint[\s\S]*?crypto\.randomUUID\(\)/)
+  assert.match(source, /idempotencyKey: requestId/)
+  assert.match(source, /api\.get<CampaignJobSummary>\(\s*`\/api\/notifications\/campaigns\/\$\{campaignJobId\}`/)
+  assert.match(source, /confirmAtLeastOnce: true, requestId: crypto\.randomUUID\(\)/)
   assert.match(source, /CAMPAIGN_KEY = 'system_email_campaign_templates'/)
   assert.match(source, /JSON\.stringify\(normalized\)/)
 })
@@ -79,6 +85,9 @@ test('campaign default content and interpolation tokens remain template data', (
   for (const token of ['firstName', 'lastName', 'username', 'email', 'appUrl']) {
     assert.ok(source.includes(`'{{${token}}}'`), `Missing campaign interpolation token: ${token}`)
   }
-  assert.match(source, /formatLocalizedNumber\(audienceSummary\.total, i18n\.language\)/)
-  assert.match(source, /formatLocalizedNumber\(data\?\.delivered \?\? 0, i18n\.language\)/)
+  assert.match(source, /audienceSummary\.maxRecipients \+ 1/)
+  assert.match(source, /formatLocalizedNumber\([\s\S]*?audienceSummary\.total,[\s\S]*?i18n\.language/)
+  assert.match(source, /audienceSummary\.exceedsLimit \? '\+' : ''/)
+  assert.match(source, /formatLocalizedNumber\(data\.totalTargeted, i18n\.language\)/)
+  assert.match(source, /formatLocalizedNumber\(counts\.delivered, i18n\.language\)/)
 })
