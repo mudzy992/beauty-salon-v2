@@ -179,7 +179,7 @@ void test('delivers only to a local fake SMTP sink and includes a signed unsubsc
       consentedAt,
     },
   );
-  assert.match(smtp.messages[0], /Unsubscribe \/ Odjada/i);
+  assert.match(smtp.messages[0], /Unsubscribe \/ Odjava/i);
 });
 
 void test('models the SMTP-accepted / lost-ack crash window and permits an explicit retry', async (t) => {
