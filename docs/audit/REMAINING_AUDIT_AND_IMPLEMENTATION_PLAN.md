@@ -256,6 +256,8 @@ Faze su zavisne; ne treba preskakati policy gate. Svaki source slice treba zaseb
 
 **Final provider-attempt PostgreSQL acceptance `3ca2afb` (CI `41836191875` green):** an event starting at nine attempts fails through a fake provider on its tenth claim. PostgreSQL confirms terminal `DEAD_LETTER`, attempt 10, released lease, future retry timestamp, and sanitized error; no real provider is used.
 
+**Final provider-attempt PostgreSQL acceptance `3ca2afb` (CI `41836191875` green):** an event starting at nine attempts fails through a fake provider on its tenth claim. PostgreSQL confirms terminal `DEAD_LETTER`, attempt 10, released lease, future retry timestamp, and sanitized error; no real provider is used.
+
 **Final provider-attempt PostgreSQL acceptance `3ca2afb` (CI `41836191875` green):** an event starting at nine attempts fails through a fake provider on its tenth claim. PostgreSQL confirms the terminal `DEAD_LETTER` status, incremented attempt count, released lease, future retry timestamp, and sanitized error; no real provider is used.
 
 **Deployment evidence (owner-reported, 2026-11-04):** `prisma migrate deploy` applied `20261104120000_reservation_outbox_replay_audit`, and `docker inspect` showed the backend's internal `/health/ready` Docker healthcheck as `healthy`. The supplied public-domain `curl /health/ready` returned the frontend SPA HTML, so it does not verify API-domain routing/readiness. **Still open:** read-only outbox diagnostics and a controlled worker delivery smoke; API-domain probe; replica/scheduler topology; alert ownership and recovery runbook. No live replay or production reservation was initiated by the agent.
