@@ -41,6 +41,7 @@ const {
   normalizeClientDebts,
   normalizeClientSearchResults,
   normalizeDailyLogClients,
+  normalizeDailyLogClientPage,
   normalizeDailyLogEditorEntry,
   normalizeDailyLogEntries,
   parseCreatedDailyLogEntryId,
@@ -279,6 +280,18 @@ test('daily-log client picker parser validates every client row and gender value
   assert.deepEqual(normalizeDailyLogClients(clients), clients);
   assert.deepEqual(normalizeDailyLogClients([]), []);
   assert.equal(normalizeDailyLogClients({ items: clients }), null);
+  assert.deepEqual(
+    normalizeDailyLogClientPage({ items: clients, total: 2, page: 0, pageSize: 50 }),
+    { items: clients, total: 2, page: 0, pageSize: 50 },
+  );
+  assert.equal(
+    normalizeDailyLogClientPage({ items: clients, total: -1, page: 0, pageSize: 50 }),
+    null,
+  );
+  assert.equal(
+    normalizeDailyLogClientPage({ items: clients, total: 2, page: 0, pageSize: 1 }),
+    null,
+  );
   assert.equal(normalizeDailyLogClients([{ ...clients[0], gender: 'OTHER' }]), null);
   assert.equal(normalizeDailyLogClients([{ ...clients[0], username: null }]), null);
 });

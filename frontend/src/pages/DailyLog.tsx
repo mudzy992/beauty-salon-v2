@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus } from 'lucide-react'
 import { useAppToast } from '../lib/toast/useAppToast'
@@ -29,6 +29,32 @@ export default function DailyLog() {
     toast,
   })
   const [detailEntry, setDetailEntry] = useState<DailyLogEntry | null>(null)
+  const editClient = useMemo(
+    () =>
+      form.editId
+        ? data.entries.find((entry) => entry.id === form.editId)?.client
+        : null,
+    [data.entries, form.editId],
+  )
+  const selectedClient = useMemo(
+    () =>
+      editClient
+        ? {
+            id: editClient.id,
+            username: editClient.username ?? editClient.user?.username ?? '',
+            firstName: editClient.firstName,
+            lastName: editClient.lastName,
+            gender: editClient.gender ?? null,
+          }
+        : null,
+    [editClient],
+  )
+  const handleClientSearch = useCallback(
+    (query: string, clientId?: string) => {
+      void data.loadClients(query, clientId)
+    },
+    [data.loadClients],
+  )
 
   return (
     <div>
@@ -83,6 +109,8 @@ export default function DailyLog() {
         stylists={data.stylists}
         services={data.services}
         clients={data.clients}
+        selectedClient={selectedClient}
+        onSearchClients={handleClientSearch}
         paidAmount={form.paidAmount}
         setPaidAmount={form.setPaidAmount}
         chargeAmount={form.chargeAmount}

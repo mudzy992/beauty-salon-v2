@@ -22,6 +22,7 @@ import { AssignRoleDto } from './dto/assign-role.dto';
 import { RemoveStylistRoleDto } from './dto/remove-stylist-role.dto';
 import { ClientListQueryDto } from './dto/client-list-query.dto';
 import { OptionalPagePaginationQueryDto } from './dto/optional-page-pagination-query.dto';
+import { DailyLogClientListQueryDto } from './dto/daily-log-client-list-query.dto';
 import { AnalyticsDateRangeQueryDto } from '../analytics/dto/analytics-date-range-query.dto';
 import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
 import {
@@ -119,8 +120,11 @@ export class UsersController {
   @Get('for-daily-log')
   @UseGuards(RolesGuard)
   @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')
-  findForDailyLog(@CurrentUser() user: CurrentUserPayload) {
-    return this.usersService.findForDailyLog(user.roles);
+  findForDailyLog(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: DailyLogClientListQueryDto,
+  ) {
+    return this.usersService.findForDailyLog(user.roles, query, query.q);
   }
 
   @Get('profile')

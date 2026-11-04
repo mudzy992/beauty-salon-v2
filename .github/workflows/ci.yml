@@ -272,6 +272,9 @@ jobs:
       - name: Test bounded admin user-list API contract
         working-directory: frontend
         run: npm run test:admin-user-list-contract
+      - name: Test bounded daily-log client picker contract
+        working-directory: frontend
+        run: npm run test:daily-log-client-picker-contract
       - name: Test localized finance expense form
         working-directory: frontend
         run: npm run test:finance-expense-form-i18n

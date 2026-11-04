@@ -27,7 +27,7 @@ import { getSalonDateOnly } from '../../utils/date';
 import { getApiErrorMessage } from '../../utils/apiError';
 import {
   normalizeClientDebts,
-  normalizeDailyLogClients,
+  normalizeDailyLogClientPage,
   normalizeDailyLogEditorEntry,
   normalizeLoyaltyPreview,
   parseCreatedDailyLogEntryId,
@@ -170,7 +170,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     }
   }, []);
 
-  const loadClients = useCallback(async () => {
+  const loadClients = useCallback(async (query = '', clientId?: string) => {
     const generation = ++clientLoadGeneration.current;
     const requestUserId = userId;
     if (!requestUserId) {
@@ -182,14 +182,23 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     setClientsLoading(true);
     setClientsLoadError(false);
     try {
-      const { data } = await api.get<unknown>('/api/users/for-daily-log');
-      const normalized = normalizeDailyLogClients(data);
+      const { data } = await api.get<unknown>('/api/users/for-daily-log', {
+        params: clientId
+          ? { clientId }
+          : { page: 0, pageSize: 50, q: query.trim() || undefined },
+      });
+      const normalized = normalizeDailyLogClientPage(data);
       if (!normalized) throw new Error();
       if (
         clientLoadGeneration.current === generation &&
         useAuthStore.getState().user?.id === requestUserId
       ) {
-        setClients(normalized);
+        setClients((current) => {
+          const merged = clientId ? [...normalized.items, ...current] : normalized.items;
+          const byId = new Map<string, ClientOption>();
+          merged.forEach((client) => byId.set(client.id, client));
+          return [...byId.values()];
+        });
       }
     } catch {
       if (
@@ -216,6 +225,12 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
       clientLoadGeneration.current += 1;
     };
   }, [loadServices, loadClients]);
+
+  useEffect(() => {
+    if (!showClientPicker) return;
+    const timer = setTimeout(() => void loadClients(clientSearch), 250);
+    return () => clearTimeout(timer);
+  }, [showClientPicker, clientSearch, loadClients]);
 
   useEffect(() => {
     if (!editEntryId) return;
@@ -245,7 +260,9 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
           prices[it.serviceId] = it.unitPrice ?? 0;
         });
         setUnitPrices(prices);
-        setClientId(entry.clientId ?? entry.client?.id ?? '');
+        const selectedClientId = entry.clientId ?? entry.client?.id ?? '';
+        setClientId(selectedClientId);
+        if (selectedClientId) void loadClients('', selectedClientId);
         setPaidTouched(true);
         const servicesPortion = entry.actualPrice;
         const debtPaymentEntries = entry.debtPaymentEntries;
@@ -265,7 +282,7 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
     return () => {
       mounted = false;
     };
-  }, [editEntryId, navigation, t, userId]);
+  }, [editEntryId, loadClients, navigation, t, userId]);
 
   const selectedClient = clients.find((c) => c.id === clientId);
   const selectedServices = useMemo(
@@ -786,7 +803,14 @@ export function DailyLogNewEntryScreen({ route, navigation }: Props) {
         <View style={styles.modalOverlay}>
           <Card style={{ ...styles.pickerModal, backgroundColor: colors.surface }}>
             <Text style={[styles.pickerModalTitle, { color: colors.text }]}>{t('stylist.dailyLogDetail.clientPlaceholder')}</Text>
-            <Input placeholder={t('common.search')} value={clientSearch} onChangeText={setClientSearch} />
+            <Input
+              placeholder={t('common.search')}
+              value={clientSearch}
+              onChangeText={(value) => {
+                setClientSearch(value);
+                setClientId('');
+              }}
+            />
             {clientsLoading && clients.length === 0 ? (
               <ActivityIndicator size="small" color={colors.primary} style={styles.recoveryNotice} />
             ) : null}

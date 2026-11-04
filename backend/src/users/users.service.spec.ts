@@ -559,6 +559,52 @@ describe('UsersService', () => {
     );
   });
 
+  it('bounds daily-log clients to active CLIENT accounts and supports server search', async () => {
+    mockRepo.user.findMany.mockResolvedValue([
+      {
+        id: 'client-1',
+        username: 'client.one',
+        firstName: 'Aida',
+        lastName: 'One',
+        gender: 'FEMALE',
+      },
+    ]);
+    mockRepo.user.count.mockResolvedValue(1);
+
+    await expect(
+      service.findForDailyLog(['STYLIST'], { page: 0, pageSize: 20 }, ' Aida '),
+    ).resolves.toMatchObject({
+      items: [{ id: 'client-1' }],
+      total: 1,
+      page: 0,
+      pageSize: 20,
+    });
+    expect(mockRepo.user.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isActive: true,
+          userRoles: {
+            some: { role: { name: 'CLIENT' } },
+            none: { role: { name: { in: ['SYSTEM_ADMIN', 'STYLIST', 'OWNER'] } } },
+          },
+          OR: expect.arrayContaining([
+            { firstName: { contains: 'Aida', mode: 'insensitive' } },
+          ]),
+        }),
+        skip: 0,
+        take: 20,
+      }),
+    );
+
+    await service.findForDailyLog(['STYLIST']);
+    expect(mockRepo.user.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({ take: 50 }),
+    );
+    await expect(
+      service.findForDailyLog(['STYLIST'], { page: 0 }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('bounds legacy admin user lists and validates paired page parameters', async () => {
     mockRepo.user.findMany.mockResolvedValue([]);
     mockRepo.user.count.mockResolvedValue(3);

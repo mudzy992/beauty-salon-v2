@@ -28,6 +28,8 @@ type Props = {
   stylists: StylistOption[]
   services: ServiceOption[]
   clients: ClientOption[]
+  selectedClient: ClientOption | null
+  onSearchClients: (query: string, clientId?: string) => void
   paidAmount: string
   setPaidAmount: (v: string) => void
   chargeAmount: number
@@ -64,6 +66,8 @@ export const DailyLogEntryFormDialog = (props: Props) => {
     stylists,
     services,
     clients,
+    selectedClient: selectedClientFromEntry,
+    onSearchClients,
     paidAmount,
     setPaidAmount,
     chargeAmount,
@@ -93,12 +97,28 @@ export const DailyLogEntryFormDialog = (props: Props) => {
   const [clientSearch, setClientSearch] = useState('')
   const [showServiceDropdown, setShowServiceDropdown] = useState(false)
   const [showClientDropdown, setShowClientDropdown] = useState(false)
+  const clientsRef = useRef(clients)
+  clientsRef.current = clients
+  const formClientIdRef = useRef(form.clientId)
+  formClientIdRef.current = form.clientId
   const serviceDropdownRef = useRef<HTMLDivElement>(null)
   const clientDropdownRef = useRef<HTMLDivElement>(null)
 
+  const selectedClient =
+    clients.find((client) => client.id === form.clientId) ??
+    (selectedClientFromEntry?.id === form.clientId
+      ? selectedClientFromEntry
+      : null)
   useEffect(() => {
     if (!open) return
-    const client = clients.find((c) => c.id === form.clientId)
+    const clientId = formClientIdRef.current
+    const listedClient = clientsRef.current.find(
+      (client) => client.id === clientId,
+    )
+    const client =
+      listedClient ??
+      (selectedClientFromEntry?.id === clientId ? selectedClientFromEntry : null)
+    if (clientId && !listedClient) onSearchClients('', clientId)
     setClientSearch(
       client
         ? [client.firstName, client.lastName].filter(Boolean).join(' ') ||
@@ -106,7 +126,13 @@ export const DailyLogEntryFormDialog = (props: Props) => {
         : '',
     )
     setServiceSearch('')
-  }, [open, editId, form.clientId, clients])
+  }, [open, editId, selectedClientFromEntry, onSearchClients])
+
+  useEffect(() => {
+    if (!open) return
+    const timer = setTimeout(() => onSearchClients(clientSearch), 250)
+    return () => clearTimeout(timer)
+  }, [open, clientSearch, onSearchClients])
 
   useEffect(() => {
     const onMouseDown = (e: MouseEvent) => {
@@ -133,14 +159,13 @@ export const DailyLogEntryFormDialog = (props: Props) => {
   }, [showServiceDropdown, showClientDropdown])
 
   const filteredServices = useMemo(() => {
-    const selectedClient = clients.find((c) => c.id === form.clientId)
     const base = selectedClient?.gender
       ? services.filter((s) => s.gender === selectedClient.gender)
       : services
     if (!serviceSearch) return base
     const q = serviceSearch.toLowerCase()
     return base.filter((s) => s.name.toLowerCase().includes(q))
-  }, [clients, form.clientId, services, serviceSearch])
+  }, [selectedClient?.gender, services, serviceSearch])
 
   const filteredClients = useMemo(() => {
     if (!clientSearch) return clients.slice(0, 40)

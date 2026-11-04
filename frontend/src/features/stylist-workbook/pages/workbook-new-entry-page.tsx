@@ -65,6 +65,7 @@ export const WorkbookNewEntryForm = ({
   const [showClientDropdown, setShowClientDropdown] = useState(false)
   const serviceDropdownRef = useRef<HTMLDivElement | null>(null)
   const clientDropdownRef = useRef<HTMLDivElement | null>(null)
+  const clientLoadGeneration = useRef(0)
 
   useEffect(() => {
     const onMouseDown = (e: MouseEvent) => {
@@ -103,21 +104,37 @@ export const WorkbookNewEntryForm = ({
   useEffect(() => {
     let mounted = true
     setLoading(true)
-    Promise.all([fetchActiveServices(), fetchClientsForDailyLog()])
-      .then(([svc, cli]) => {
-        if (!mounted) return
-        setServices(svc)
-        setClients(cli)
+    fetchActiveServices()
+      .then((svc) => {
+        if (mounted) setServices(svc)
       })
       .catch(() => {})
       .finally(() => {
-        if (!mounted) return
-        setLoading(false)
+        if (mounted) setLoading(false)
       })
     return () => {
       mounted = false
     }
   }, [])
+
+  useEffect(() => {
+    let active = true
+    const timer = setTimeout(() => {
+      const generation = ++clientLoadGeneration.current
+      fetchClientsForDailyLog(clientSearch)
+        .then((items) => {
+          if (active && clientLoadGeneration.current === generation) {
+            setClients(items)
+          }
+        })
+        .catch(() => {})
+    }, clientSearch.trim() ? 250 : 0)
+    return () => {
+      active = false
+      clearTimeout(timer)
+      clientLoadGeneration.current += 1
+    }
+  }, [clientSearch])
 
   const selectedServices = useMemo(
     () => serviceIds.map((id) => services.find((s) => s.id === id)).filter(Boolean) as ServiceOption[],

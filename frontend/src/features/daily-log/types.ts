@@ -44,8 +44,10 @@ export interface DailyLogEntry {
   }>
   client?: {
     id: string
+    username?: string
     firstName: string | null
     lastName: string | null
+    gender?: 'MALE' | 'FEMALE' | null
     user?: { username: string }
   }
   reservation?: {
@@ -78,7 +80,7 @@ export interface ClientOption {
   username: string
   firstName: string | null
   lastName: string | null
-  gender?: 'MALE' | 'FEMALE'
+  gender?: 'MALE' | 'FEMALE' | null
 }
 
 export type ClientDebtOption = {

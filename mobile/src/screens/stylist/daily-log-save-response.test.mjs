@@ -29,7 +29,7 @@ function loadTypeScriptModule(relativePath) {
 }
 
 const {
-  normalizeDailyLogClients,
+  normalizeDailyLogClientPage,
   normalizeDailyLogEditorEntry,
   parseCreatedDailyLogEntryId,
 } = loadTypeScriptModule('../../utils/apiPayload.ts')
@@ -45,7 +45,7 @@ test('daily-log create response parser accepts only a non-empty string ID', () =
 })
 
 test('daily-log editor validates client lists and edit responses before state updates', () => {
-  assert.match(screen, /normalizeDailyLogClients\(data\)/)
+  assert.match(screen, /normalizeDailyLogClientPage\(data\)/)
   assert.match(screen, /api\.get<unknown>\(`\/api\/daily-log\/\$\{editEntryId\}`\)/)
   assert.match(screen, /normalizeDailyLogEditorEntry\(data, editEntryId\)/)
   assert.match(screen, /if \(!entry\) throw new Error\(\)/)

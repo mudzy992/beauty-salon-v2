@@ -208,6 +208,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
   let pickerQueryPrefix: string;
   let pickerClientIds: string[];
   let mixedRoleClientId: string;
+  let inactivePickerClientId: string;
   let serviceId: string;
   let serviceName: string;
   let publishedReviewId: string;
@@ -786,6 +787,21 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
         { userId: mixedRoleClient.id, roleId: clientRole.id },
         { userId: mixedRoleClient.id, roleId: stylistRole.id },
       ],
+    });
+
+    const inactivePickerClient = await prisma.user.create({
+      data: {
+        username: `sec-inactive-picker-${suffix}`,
+        email: `sec-inactive-picker-${suffix}@example.test`,
+        firstName: 'Inactive',
+        lastName: 'Picker',
+        isActive: false,
+      },
+    });
+    inactivePickerClientId = inactivePickerClient.id;
+    fixtureIds.users.push(inactivePickerClient.id);
+    await prisma.userRole.create({
+      data: { userId: inactivePickerClient.id, roleId: clientRole.id },
     });
 
     const category = await prisma.serviceCategory.create({
@@ -2684,6 +2700,65 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     await request(getHttpServer(app!))
       .get('/api/users/clients')
       .query({ pageSize: 101 })
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(400);
+  });
+
+  it('returns bounded active CLIENT-only daily-log picker pages with a capped legacy array', async () => {
+    const httpServer = getHttpServer(app!);
+    const response = await request(httpServer)
+      .get('/api/users/for-daily-log')
+      .query({ q: pickerQueryPrefix, page: 0, pageSize: 50 })
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(200);
+
+    expect(response.body).toMatchObject({ total: 2, page: 0, pageSize: 50 });
+    expect(response.body.items.map((user: { id: string }) => user.id)).toEqual(
+      expect.arrayContaining(pickerClientIds),
+    );
+    expect(response.body.items.map((user: { id: string }) => user.id)).not.toContain(
+      mixedRoleClientId,
+    );
+    expect(response.body.items[0]).toEqual(
+      expect.objectContaining({
+        id: expect.any(String),
+        username: expect.any(String),
+        firstName: expect.any(String),
+        lastName: expect.any(String),
+      }),
+    );
+    expect(response.body.items[0]).not.toHaveProperty('email');
+
+    const inactiveClient = await request(httpServer)
+      .get('/api/users/for-daily-log')
+      .query({ clientId: inactivePickerClientId })
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(200);
+    expect(inactiveClient.body).toEqual({
+      items: [],
+      total: 0,
+      page: 0,
+      pageSize: 1,
+    });
+
+    const legacy = await request(httpServer)
+      .get('/api/users/for-daily-log')
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(200);
+    expect(Array.isArray(legacy.body)).toBe(true);
+    expect(legacy.body.length).toBeLessThanOrEqual(50);
+    expect(legacy.body.map((user: { id: string }) => user.id)).not.toContain(
+      inactivePickerClientId,
+    );
+
+    await request(httpServer)
+      .get('/api/users/for-daily-log')
+      .query({ q: 'picker', page: 0 })
+      .set('Authorization', `Bearer ${stylistToken}`)
+      .expect(400);
+    await request(httpServer)
+      .get('/api/users/for-daily-log')
+      .query({ page: 0, pageSize: 51 })
       .set('Authorization', `Bearer ${stylistToken}`)
       .expect(400);
   });

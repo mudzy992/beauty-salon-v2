@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import api from '../../api/client'
+import { fetchDailyLogClients } from '../../api/daily-log-clients'
 import { fetchAllPublicServices, fetchAllPublicStylists } from '../../api/catalog'
 import { useReservationSocketRefresh } from '../reservations/use-reservation-socket-refresh'
 import { useSocketEvent } from '../../context/SocketContext'
@@ -18,6 +19,28 @@ export const useDailyLogData = () => {
   const [stylists, setStylists] = useState<StylistOption[]>([])
   const [services, setServices] = useState<ServiceOption[]>([])
   const [clients, setClients] = useState<ClientOption[]>([])
+  const clientLoadGeneration = useRef(0)
+
+  const loadClients = useCallback(async (q = '', clientId?: string) => {
+    const generation = ++clientLoadGeneration.current
+    try {
+      const page = await fetchDailyLogClients({
+        q,
+        page: 0,
+        pageSize: 50,
+        ...(clientId ? { clientId } : {}),
+      })
+      if (clientLoadGeneration.current !== generation) return
+      setClients((current) => {
+        const merged = clientId ? [...page.items, ...current] : page.items
+        const byId = new Map<string, ClientOption>()
+        merged.forEach((client) => byId.set(client.id, client))
+        return [...byId.values()]
+      })
+    } catch {
+      // Preserve the latest results; callers can retry by changing the search.
+    }
+  }, [])
 
   const loadData = useCallback(() => {
     setLoading(true)
@@ -47,11 +70,8 @@ export const useDailyLogData = () => {
     fetchAllPublicServices<ServiceOption>({ activeOnly: true })
       .then(setServices)
       .catch(() => {})
-    api
-      .get<ClientOption[]>('/api/users/for-daily-log')
-      .then((r) => setClients(Array.isArray(r.data) ? r.data : []))
-      .catch(() => {})
-  }, [])
+    void loadClients()
+  }, [loadClients])
 
   const handleResetFilters = () => {
     const next = resetDailyLogFilters()
@@ -75,6 +95,7 @@ export const useDailyLogData = () => {
     stylists,
     services,
     clients,
+    loadClients,
     loadData,
     handleResetFilters,
   }

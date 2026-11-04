@@ -657,6 +657,32 @@ export function normalizeDailyLogClients(payload: unknown): DailyLogClientOption
   return clients;
 }
 
+export function normalizeDailyLogClientPage(payload: unknown): {
+  items: DailyLogClientOption[];
+  total: number;
+  page: number;
+  pageSize: number;
+} | null {
+  if (Array.isArray(payload)) {
+    const items = normalizeDailyLogClients(payload);
+    return items ? { items, total: items.length, page: 0, pageSize: items.length } : null;
+  }
+  if (
+    !isRecord(payload) ||
+    !Number.isSafeInteger(payload.total) || (payload.total as number) < 0 ||
+    !Number.isSafeInteger(payload.page) || (payload.page as number) < 0 ||
+    !Number.isSafeInteger(payload.pageSize) || (payload.pageSize as number) < 1
+  ) return null;
+  const items = normalizeDailyLogClients(payload.items);
+  if (!items || items.length > (payload.pageSize as number)) return null;
+  return {
+    items,
+    total: payload.total as number,
+    page: payload.page as number,
+    pageSize: payload.pageSize as number,
+  };
+}
+
 export interface DailyLogEditorEntryPayload {
   id: string;
   status: 'PENDING' | 'COMPLETED';

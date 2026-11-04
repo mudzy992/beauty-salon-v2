@@ -131,22 +131,81 @@ export class UsersService {
     private readonly events: EventsGateway,
   ) {}
 
-  /** Lista korisnika za odabir klijenta u dnevnoj knjizi (stilist ili admin). */
-  async findForDailyLog(roles: string[]) {
+  /** CLIENT-only picker for daily-log forms, retaining a bounded legacy array. */
+  async findForDailyLog(
+    roles: string[],
+    pagination?: {
+      page?: number;
+      pageSize?: number;
+      clientId?: string;
+    },
+    q?: string,
+  ) {
     if (!this.isAdminOrOwner(roles) && !roles.includes('STYLIST')) {
       throw new ForbiddenException('Nemate dozvolu.');
     }
-    return this.repo.user.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        username: true,
-        firstName: true,
-        lastName: true,
-        gender: true,
-      },
-      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+
+    const where = this.strictClientWhere(q, false, {
+      activeOnly: true,
+      caseInsensitiveSearch: true,
     });
+    if (pagination?.clientId !== undefined) {
+      if (
+        pagination.page !== undefined ||
+        pagination.pageSize !== undefined ||
+        q !== undefined
+      ) {
+        throw new BadRequestException(
+          'clientId se mora koristiti odvojeno od pretrage i paginacije.',
+        );
+      }
+      const items = await this.repo.user.findMany({
+        where: { ...where, id: pagination.clientId },
+        select: CLIENT_PICKER_SELECT,
+        take: 1,
+      });
+      return {
+        items,
+        total: items.length,
+        page: 0,
+        pageSize: 1,
+      };
+    }
+
+    const normalizedPagination =
+      this.normalizeAdminUserListPagination(pagination);
+    if (!normalizedPagination) {
+      return this.repo.user.findMany({
+        where,
+        select: CLIENT_PICKER_SELECT,
+        orderBy: [
+          { firstName: 'asc' },
+          { lastName: 'asc' },
+          { id: 'asc' },
+        ],
+        take: MAX_API_PAGE_LIMIT,
+      });
+    }
+
+    const { pageSize } = normalizedPagination;
+    const total = await this.repo.user.count({ where });
+    const page = this.pageWithinResults(
+      normalizedPagination.page,
+      pageSize,
+      total,
+    );
+    const items = await this.repo.user.findMany({
+      where,
+      select: CLIENT_PICKER_SELECT,
+      orderBy: [
+        { firstName: 'asc' },
+        { lastName: 'asc' },
+        { id: 'asc' },
+      ],
+      skip: page * pageSize,
+      take: pageSize,
+    });
+    return { items, total, page, pageSize };
   }
 
   async getDashboardUserCount(roles: string[]) {
@@ -239,9 +298,17 @@ export class UsersService {
     return { items, total, page, pageSize };
   }
 
-  private strictClientWhere(q?: string, includeEmail = false) {
+  private strictClientWhere(
+    q?: string,
+    includeEmail = false,
+    options?: { activeOnly?: boolean; caseInsensitiveSearch?: boolean },
+  ): Prisma.UserWhereInput {
     const trimmed = (q ?? '').trim();
+    const contains = options?.caseInsensitiveSearch
+      ? { contains: trimmed, mode: 'insensitive' as const }
+      : { contains: trimmed };
     return {
+      ...(options?.activeOnly ? { isActive: true } : {}),
       userRoles: {
         some: { role: { name: 'CLIENT' } },
         none: { role: { name: { in: ['SYSTEM_ADMIN', 'STYLIST', 'OWNER'] } } },
@@ -249,10 +316,10 @@ export class UsersService {
       ...(trimmed
         ? {
             OR: [
-              { username: { contains: trimmed } },
-              ...(includeEmail ? [{ email: { contains: trimmed } }] : []),
-              { firstName: { contains: trimmed } },
-              { lastName: { contains: trimmed } },
+              { username: contains },
+              ...(includeEmail ? [{ email: contains }] : []),
+              { firstName: contains },
+              { lastName: contains },
             ],
           }
         : {}),
