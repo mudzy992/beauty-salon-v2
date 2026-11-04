@@ -43,6 +43,60 @@ describe('ReservationDirectDailyLogCronService', () => {
     service = module.get(ReservationDirectDailyLogCronService);
   });
 
+  afterEach(() => jest.useRealTimers());
+
+  it.each([
+    {
+      name: 'spring-forward',
+      now: '2026-03-29T01:10:00.000Z',
+      cutoff: '2026-03-28T13:10:00.000Z',
+    },
+    {
+      name: 'fall-back',
+      now: '2026-10-25T01:30:00.000Z',
+      cutoff: '2026-10-24T13:30:00.000Z',
+    },
+  ])('uses elapsed reminder age across Sarajevo $name', async ({ now, cutoff }) => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(now));
+    const cutoffDate = new Date(cutoff);
+    mockPrisma.dailyLogEntry.findMany.mockResolvedValue([
+      { id: 'dk-dst', reservationId: 'res-dst' },
+    ]);
+    mockPrisma.dailyLogEntry.findUnique.mockResolvedValue({
+      id: 'dk-dst',
+      reservationId: 'res-dst',
+      status: 'PENDING',
+      deletedAt: null,
+      pendingReminderSentAt: null,
+      createdAt: cutoffDate,
+      stylistProfile: { userId: 'stylist-dst' },
+      reservation: {
+        status: 'AWAITING_DAILY_LOG',
+        publicReferenceCode: 'RZ-DST',
+      },
+    });
+
+    await expect(service.processPendingDailyLogReminders()).resolves.toEqual({
+      queuedCount: 1,
+    });
+    expect(mockPrisma.dailyLogEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ createdAt: { lte: cutoffDate } }),
+      }),
+    );
+    await service.deliverPendingDailyLogReminder('event-dst', {
+      dailyLogEntryId: 'dk-dst',
+      reservationId: 'res-dst',
+    });
+    expect(mockNotify.notifyStylistPendingDailyLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stylistUserId: 'stylist-dst',
+        sourceEventId: 'event-dst',
+      }),
+    );
+  });
+
   it('filtrira sedmodnevni seed lookback po salonskim kalendarskim datumima', async () => {
     mockPrisma.reservation.findMany.mockResolvedValue([]);
 
