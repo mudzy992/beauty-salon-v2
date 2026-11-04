@@ -16,6 +16,7 @@ import { CampaignAudienceDto } from './dto/campaign-audience.dto';
 import { SendCampaignDto } from './dto/send-campaign.dto';
 import { SettingsService } from '../settings/settings.service';
 import { NotificationsRepository } from './notifications.repository';
+import { renderCampaignEmailHtml } from './utils/email-content';
 import {
   buildDefaultEmailTemplateHtml,
   buildPaymentReceiptBodyText,
@@ -449,8 +450,6 @@ export class NotificationsService {
     }
     const transporter = this.createSmtpTransporter(mailConfig);
     try {
-      const { renderCampaignEmailHtml } =
-        await import('./utils/email-content.js');
       const personalizedHtml = renderCampaignEmailHtml(job.templateHtml, {
         firstName: recipient.firstName || '',
         lastName: recipient.lastName || '',

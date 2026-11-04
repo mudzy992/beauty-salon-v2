@@ -85,6 +85,7 @@ describe('CampaignQueueService', () => {
     prisma.campaignJob.updateMany.mockResolvedValue({ count: 1 });
     prisma.campaignRecipient.findFirst.mockResolvedValue(recipient);
     prisma.campaignRecipient.updateMany
+      .mockResolvedValueOnce({ count: 0 })
       .mockResolvedValueOnce({ count: 1 })
       .mockResolvedValueOnce({ count: 1 });
     prisma.campaignRecipient.groupBy.mockResolvedValue([
@@ -101,7 +102,7 @@ describe('CampaignQueueService', () => {
 
     expect(notifications.deliverCampaignRecipient).toHaveBeenCalledTimes(1);
     expect(prisma.campaignRecipient.updateMany).toHaveBeenNthCalledWith(
-      1,
+      2,
       expect.objectContaining({
         where: { id: recipient.id, status: 'PENDING' },
         data: expect.objectContaining({
