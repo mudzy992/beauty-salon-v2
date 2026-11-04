@@ -4,10 +4,15 @@ import test from 'node:test'
 
 const hook = readFileSync(new URL('./reservation-detail/hooks/use-reservation-detail-status.ts', import.meta.url), 'utf8')
 const actions = readFileSync(new URL('./reservation-detail/reservation-detail-actions.tsx', import.meta.url), 'utf8')
+const pagination = readFileSync(new URL('../../services/reservation-list.ts', import.meta.url), 'utf8')
 
 test('start-order helper rejects malformed reservation lists and keeps start blocked on read failures', () => {
-  assert.match(hook, /api\.get<unknown>\('\/api\/reservations'/)
+  assert.match(hook, /fetchAllReservationPages<unknown>\(\{/)
+  assert.match(hook, /asStylist: true[\s\S]*?fromDate: day,\s*toDate: day/)
+  assert.doesNotMatch(hook, /api\.get<unknown>\('\/api\/reservations'/)
   assert.match(hook, /const list = normalizeReservations\(data\)/)
+  assert.match(pagination, /const PAGE_SIZE = 50/)
+  assert.match(pagination, /const MAX_OFFSET = 1000/)
   assert.match(hook, /!Array\.isArray\(data\) \|\| !list \|\| list\.length !== data\.length/)
   assert.match(hook, /setCheckState\(t\('stylist\.reservationDetail\.actions\.startOrderCheckError'\), true\)/)
   assert.match(hook, /catch \{\s*setCheckState\(t\('stylist\.reservationDetail\.actions\.startOrderCheckError'\), true\);\s*\}/)

@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { useIsFocused } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import api from '../../../../services/api';
+import { fetchAllReservationPages } from '../../../../services/reservation-list';
 import { formatTime } from '../../../../utils/date';
 import { normalizeReservations } from '../../../../utils/apiPayload';
 import type { Reservation } from '../../../../types';
@@ -123,8 +123,10 @@ export const useReservationDetailStatus = ({
       setCheckState(t('stylist.reservationDetail.actions.startOrderCheckPending'), false, true);
       try {
         const day = reservation.reservationDate.slice(0, 10);
-        const { data } = await api.get<unknown>('/api/reservations', {
-          params: { asStylist: true, fromDate: day, toDate: day },
+        const data = await fetchAllReservationPages<unknown>({
+          asStylist: true,
+          fromDate: day,
+          toDate: day,
         });
         const list = normalizeReservations(data);
         if (!Array.isArray(data) || !list || list.length !== data.length) {
