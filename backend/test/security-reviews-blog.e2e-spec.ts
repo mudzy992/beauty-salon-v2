@@ -4425,6 +4425,109 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   }, 30_000);
 
+  it('retries queuing a pending daily-log reminder after outbox insertion fails', async () => {
+    const db = prisma!;
+    const reservationId = randomUUID();
+    const dailyLogEntryId = randomUUID();
+    const suffix = randomUUID().replace(/-/g, '');
+    const functionName = `e2e_daily_log_queue_rollback_${suffix}`;
+    const triggerName = `e2e_daily_log_queue_rollback_${suffix}`;
+    const oldCreatedAt = new Date(Date.now() - 13 * 60 * 60 * 1000);
+    const reminders = new ReservationDirectDailyLogCronService(
+      db as unknown as PrismaService,
+      { getDailyLogReminderHours: jest.fn().mockResolvedValue(12) } as never,
+      { seedPendingFromDirectReservation: jest.fn() } as never,
+      { notifyStylistPendingDailyLog: jest.fn() } as never,
+    );
+
+    try {
+      await db.reservation.create({
+        data: {
+          id: reservationId,
+          clientId: clientUserId,
+          serviceId,
+          reservationDate: new Date('2040-01-02T00:00:00.000Z'),
+          startTime: '10:00',
+          endTime: '10:45',
+          status: 'AWAITING_DAILY_LOG',
+          publicReferenceCode: `DLOG-QUEUE-RETRY-${randomUUID()}`,
+          clientViewToken: randomUUID(),
+        },
+      });
+      await db.dailyLogEntry.create({
+        data: {
+          id: dailyLogEntryId,
+          stylistProfileId: fixtureIds.stylistProfile!,
+          reservationId,
+          serviceId,
+          clientId: clientUserId,
+          date: new Date('2040-01-02T00:00:00.000Z'),
+          actualPrice: 25,
+          publicReferenceCode: `DLOG-QUEUE-RETRY-ENTRY-${randomUUID()}`,
+          status: 'PENDING',
+          createdAt: oldCreatedAt,
+        },
+      });
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${functionName}"() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          IF NEW."aggregate_id" = '${dailyLogEntryId}' AND NEW."event_type" = 'reservation.daily_log_pending_reminder' THEN
+            RAISE EXCEPTION 'synthetic daily-log reminder outbox insert failure';
+          END IF;
+          RETURN NEW;
+        END;
+        $$;
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE INSERT ON "outbox_events"
+        FOR EACH ROW EXECUTE FUNCTION "${functionName}"();
+      `);
+
+      await expect(reminders.processPendingDailyLogReminders()).resolves.toEqual({
+        queuedCount: 0,
+      });
+      await expect(
+        db.outboxEvent.count({
+          where: {
+            eventType: 'reservation.daily_log_pending_reminder',
+            aggregateId: dailyLogEntryId,
+          },
+        }),
+      ).resolves.toBe(0);
+      await expect(
+        db.dailyLogEntry.findUniqueOrThrow({
+          where: { id: dailyLogEntryId },
+          select: { pendingReminderSentAt: true },
+        }),
+      ).resolves.toEqual({ pendingReminderSentAt: null });
+
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "outbox_events"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+      await expect(reminders.processPendingDailyLogReminders()).resolves.toEqual({
+        queuedCount: 1,
+      });
+      await expect(
+        db.outboxEvent.count({
+          where: {
+            eventType: 'reservation.daily_log_pending_reminder',
+            aggregateId: dailyLogEntryId,
+          },
+        }),
+      ).resolves.toBe(1);
+    } finally {
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "outbox_events"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+      await db.outboxEvent.deleteMany({ where: { aggregateId: dailyLogEntryId } });
+      await db.dailyLogEntry.deleteMany({ where: { id: dailyLogEntryId } });
+      await db.reservation.deleteMany({ where: { id: reservationId } });
+    }
+  }, 30_000);
+
   it('retries a pending daily-log reminder after its sent-marker write fails', async () => {
     const db = prisma!;
     const reservationId = randomUUID();
