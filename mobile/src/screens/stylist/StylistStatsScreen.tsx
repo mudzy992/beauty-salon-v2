@@ -7,6 +7,7 @@ import { useStylistProfile } from '../../hooks/useStylistProfile';
 import { Card } from '../../components/ui/Card';
 import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
+import { fetchAllReservationPages } from '../../services/reservation-list';
 import { spacing } from '../../theme';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
 import type { DailyLogEntry, Reservation } from '../../types';
@@ -46,8 +47,10 @@ export function StylistStatsScreen() {
     const { fromDate, toDate } = getCalendarMonthRange(new Date());
     const loadReservations = async () => {
       try {
-        const { data } = await api.get<unknown>('/api/reservations', {
-          params: { asStylist: true, fromDate, toDate },
+        const data = await fetchAllReservationPages<unknown>({
+          asStylist: true,
+          fromDate,
+          toDate,
         });
         const parsed = normalizeReservations(data);
         if (!Array.isArray(data) || !parsed || parsed.length !== data.length) {
