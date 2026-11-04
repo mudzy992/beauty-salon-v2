@@ -7,7 +7,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Prisma } from '@prisma/client';
+import type { CampaignJob, CampaignRecipient, Prisma } from '@prisma/client';
 import nodemailer from 'nodemailer';
 import SMTPTransport from 'nodemailer/lib/smtp-transport';
 import { EventsGateway } from '../events/events.gateway';
@@ -425,7 +425,7 @@ export class NotificationsService {
 
   async deliverCampaignRecipient(
     job: Pick<
-      Prisma.CampaignJob,
+      CampaignJob,
       | 'id'
       | 'subject'
       | 'templateHtml'
@@ -437,7 +437,7 @@ export class NotificationsService {
       | 'templateId'
     >,
     recipient: Pick<
-      Prisma.CampaignRecipient,
+      CampaignRecipient,
       'id' | 'userId' | 'email' | 'username' | 'firstName' | 'lastName'
     >,
   ): Promise<void> {
@@ -501,7 +501,7 @@ export class NotificationsService {
   }
 
   private campaignEnqueueResult(
-    job: Pick<Prisma.CampaignJob, 'id' | 'status' | 'totalRecipients'>,
+    job: Pick<CampaignJob, 'id' | 'status' | 'totalRecipients'>,
     duplicate: boolean,
   ) {
     return {

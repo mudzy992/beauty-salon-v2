@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import type { Prisma } from '@prisma/client';
+import type { CampaignJob } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from './notifications.service';
 import { RetryCampaignJobDto } from './dto/retry-campaign-job.dto';
@@ -15,8 +15,6 @@ const WORKER_LOCK_ID = 'global-campaign-email-sender';
 const WORKER_LEASE_MS = 10 * 60 * 1000;
 const AMBIGUOUS_DELIVERY_ERROR =
   'Delivery outcome unknown after worker lease expired; explicit retry confirmation required.';
-
-type CampaignJob = Prisma.CampaignJob;
 
 @Injectable()
 export class CampaignQueueService {
