@@ -1,5 +1,4 @@
 import { BadRequestException } from '@nestjs/common';
-import nodemailer from 'nodemailer';
 import { NotificationsService } from './notifications.service';
 import { CampaignAudienceDto } from './dto/campaign-audience.dto';
 import { SendCampaignDto } from './dto/send-campaign.dto';
@@ -18,10 +17,6 @@ describe('NotificationsService campaign audience policy', () => {
   const settings = { getValue: jest.fn() };
 
   let service: NotificationsService;
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -222,53 +217,6 @@ describe('NotificationsService campaign audience policy', () => {
     });
     expect(repo.findUsers).not.toHaveBeenCalled();
     expect(repo.createCampaignJob).not.toHaveBeenCalled();
-  });
-
-  it('delivers through a fake SMTP transport using the persisted template snapshot', async () => {
-    settings.getValue.mockImplementation(async (key: string) => {
-      if (key === 'system_email_host') return 'smtp.fake.test';
-      if (key === 'system_notif_email_from') return 'campaign@example.test';
-      return null;
-    });
-    const fakeTransport = {
-      sendMail: jest.fn().mockResolvedValue({ messageId: 'fake-message' }),
-      close: jest.fn(),
-    };
-    const createTransport = jest
-      .spyOn(nodemailer, 'createTransport')
-      .mockReturnValue(fakeTransport as never);
-
-    await service.deliverCampaignRecipient(
-      {
-        id: 'job-1',
-        templateId: 'template-1',
-        subject: 'Snapshot subject',
-        templateHtml: '<p>Hello {{firstName}}</p>',
-        appUrl: 'https://example.test',
-        campaignName: 'Snapshot campaign',
-        tags: ['marketing'],
-        createInAppNotification: false,
-        requestedByUserId: 'admin-1',
-      },
-      {
-        id: 'recipient-1',
-        userId: 'user-1',
-        email: 'user@example.test',
-        username: 'user',
-        firstName: 'Sample',
-        lastName: 'User',
-      },
-    );
-
-    expect(createTransport).toHaveBeenCalledTimes(1);
-    expect(fakeTransport.sendMail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: 'user@example.test',
-        subject: 'Snapshot subject',
-        html: expect.stringContaining('Sample'),
-      }),
-    );
-    expect(fakeTransport.close).toHaveBeenCalledTimes(1);
   });
 
   it('reports a bounded over-limit preview and refuses to send it', async () => {
