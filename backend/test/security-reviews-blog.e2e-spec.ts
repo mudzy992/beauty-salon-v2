@@ -4146,6 +4146,73 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     ]);
   }, 30_000);
 
+  it('allows only one concurrent reservation outbox worker to claim an event', async () => {
+    const db = prisma!;
+    const eventId = randomUUID();
+    const aggregateId = randomUUID();
+    await db.outboxEvent.create({
+      data: {
+        id: eventId,
+        eventType: 'reservation.created',
+        aggregateId,
+        dedupeKey: `concurrent-outbox-claim:${eventId}`,
+        nextAttemptAt: new Date(Date.now() - 1000),
+        payload: {
+          reservationId: aggregateId,
+          actor: {
+            sub: clientUserId,
+            username: 'outbox-test-client',
+            email: 'outbox-test@example.invalid',
+            roles: ['CLIENT'],
+          },
+          notifyUserIds: [],
+          notificationTitle: 'Test',
+          notificationBody: 'Test',
+          serviceId: randomUUID(),
+          serviceIds: [randomUUID()],
+          reservationDate: '2030-01-02',
+          emitToAdmins: true,
+          emitToStylists: true,
+        },
+      },
+    });
+
+    const queries = { findOne: jest.fn().mockResolvedValue({ id: aggregateId }) };
+    const notifications = { sendToMany: jest.fn().mockResolvedValue(undefined) };
+    const events = {
+      emitToAdmins: jest.fn(),
+      emitToStylists: jest.fn(),
+      emitToAll: jest.fn(),
+    };
+    const makeWorker = () =>
+      new ReservationOutboxService(
+        db as unknown as PrismaService,
+        notifications as unknown as NotificationsService,
+        events as unknown as EventsGateway,
+        queries as unknown as ReservationQueriesService,
+      );
+
+    try {
+      await Promise.all([
+        makeWorker().dispatchAfterCommit(eventId),
+        makeWorker().dispatchAfterCommit(eventId),
+      ]);
+
+      expect(queries.findOne).toHaveBeenCalledTimes(1);
+      expect(events.emitToAdmins).toHaveBeenCalledTimes(1);
+      expect(events.emitToStylists).toHaveBeenCalledTimes(1);
+      expect(events.emitToAll).toHaveBeenCalledTimes(1);
+      await expect(
+        db.outboxEvent.findUnique({
+          where: { id: eventId },
+          select: { status: true, attempts: true },
+        }),
+      ).resolves.toEqual({ status: 'DELIVERED', attempts: 1 });
+    } finally {
+      await db.outboxEvent.deleteMany({ where: { id: eventId } });
+    }
+  }, 30_000);
+
   it('serializes concurrent client creates so one stylist has only one booking for a one-capacity slot', async () => {
     const db = prisma!;
     const date = addWeeks(availabilityDate, 2);
