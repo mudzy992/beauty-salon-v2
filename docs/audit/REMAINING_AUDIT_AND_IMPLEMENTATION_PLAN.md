@@ -232,6 +232,8 @@ Faze su zavisne; ne treba preskakati policy gate. Svaki source slice treba zaseb
 
 **Rad:** dodati bounded poller/worker za `reservation.created` događaje, lease timeout recovery, retry/backoff/max attempts/terminal status, metrics/admin diagnosis. Aparteksi event type/recipient/channel idempotency; duplicate-side-effect design mora razlikovati notification DB upsert od push/email provider side-effecta. Zadržati booking transaction only DB; external I/O poslije commit-a.
 
+**Initial recovery slice `3935b00` (CI `41808937161` green):** minute cron sequentially retries do 25 due `reservation.created` events; PROCESSING leases older than 5 minutes are recovered, attempts use exponential backoff capped at one hour, and 10 failed attempts move an event to `DEAD_LETTER`. Existing DB status string supports this without schema migration. Tests cover successful delivery, sanitized error classification, retry timing, terminal transition, bounded scan, stale-lease recovery, and no-overlap cron metadata. The immediate post-commit attempt remains; provider push/email delivery is at-least-once across crash windows, not exactly-once. **Still open:** admin diagnosis/metrics/manual replay, concurrent two-worker DB-backed claim test, and operational/deployment verification.
+
 **Done when:** concurrent two-worker claim yields one active worker; expired PROCESSING leases recover; failure at each boundary persists retryable result; duplicate delivery behavior documented at-least-once; dead-letter/alerting and manual replay tested on disposable PostgreSQL/fake transport; no effect on reservation create idempotency.
 
 ### Faza 4 — OPS-R2 process-local cron work and marker idempotency
