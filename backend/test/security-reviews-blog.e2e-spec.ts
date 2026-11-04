@@ -4243,6 +4243,107 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   }, 30_000);
 
+  it('retries queuing an appointment reminder after outbox insertion fails', async () => {
+    const db = prisma!;
+    const reservationId = randomUUID();
+    const reservationDate = new Date('2040-01-02T00:00:00.000Z');
+    const reservationDateString = '2040-01-02';
+    const suffix = randomUUID().replace(/-/g, '');
+    const functionName = `e2e_appointment_queue_rollback_${suffix}`;
+    const triggerName = `e2e_appointment_queue_rollback_${suffix}`;
+    const reminders = new ReservationAppointmentReminderService(
+      db as unknown as PrismaService,
+      { getNumber: jest.fn().mockResolvedValue(24) } as unknown as SettingsService,
+      {
+        refreshTimezone: jest.fn().mockResolvedValue(undefined),
+        addSalonWallClockHours: jest.fn(
+          (date: Date, hours: number) =>
+            new Date(date.getTime() + hours * 60 * 60 * 1000),
+        ),
+        combineDateAndTime: jest.fn((date: Date, time: string) =>
+          date.toISOString().slice(0, 10) === reservationDateString &&
+          time === '10:00'
+            ? new Date(Date.now() + 24 * 60 * 60 * 1000)
+            : new Date(Date.now() + 72 * 60 * 60 * 1000),
+        ),
+        toDateOnlyString: jest.fn((date: Date) =>
+          date.toISOString().slice(0, 10),
+        ),
+      } as unknown as ReservationDateService,
+      { send: jest.fn() } as unknown as NotificationsService,
+    );
+
+    try {
+      await db.reservation.create({
+        data: {
+          id: reservationId,
+          clientId: clientUserId,
+          serviceId,
+          reservationDate,
+          startTime: '10:00',
+          endTime: '10:45',
+          status: 'CONFIRMED',
+          publicReferenceCode: `APPT-QUEUE-RETRY-${randomUUID()}`,
+          clientViewToken: randomUUID(),
+        },
+      });
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${functionName}"() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          IF NEW."aggregate_id" = '${reservationId}' AND NEW."event_type" = 'reservation.appointment_reminder' THEN
+            RAISE EXCEPTION 'synthetic appointment reminder outbox insert failure';
+          END IF;
+          RETURN NEW;
+        END;
+        $$;
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE INSERT ON "outbox_events"
+        FOR EACH ROW EXECUTE FUNCTION "${functionName}"();
+      `);
+
+      await expect(reminders.processAppointmentReminders()).rejects.toThrow();
+      await expect(
+        db.outboxEvent.count({
+          where: {
+            eventType: 'reservation.appointment_reminder',
+            aggregateId: reservationId,
+          },
+        }),
+      ).resolves.toBe(0);
+      await expect(
+        db.reservation.findUniqueOrThrow({
+          where: { id: reservationId },
+          select: { reminderSentAt: true },
+        }),
+      ).resolves.toEqual({ reminderSentAt: null });
+
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "outbox_events"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+      await expect(reminders.processAppointmentReminders()).resolves.toEqual({
+        queuedCount: 1,
+      });
+      await expect(
+        db.outboxEvent.count({
+          where: {
+            eventType: 'reservation.appointment_reminder',
+            aggregateId: reservationId,
+          },
+        }),
+      ).resolves.toBe(1);
+    } finally {
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "outbox_events"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+      await db.outboxEvent.deleteMany({ where: { aggregateId: reservationId } });
+      await db.reservation.deleteMany({ where: { id: reservationId } });
+    }
+  }, 30_000);
+
   it('retries an appointment reminder after its delivered marker write fails, preserving at-least-once semantics', async () => {
     const db = prisma!;
     const reservationId = randomUUID();
