@@ -256,12 +256,6 @@ Faze su zavisne; ne treba preskakati policy gate. Svaki source slice treba zaseb
 
 **Final provider-attempt PostgreSQL acceptance `3ca2afb` (CI `41836191875` green):** an event starting at nine attempts fails through a fake provider on its tenth claim. PostgreSQL confirms terminal `DEAD_LETTER`, attempt 10, released lease, future retry timestamp, and sanitized error; no real provider is used.
 
-**Final provider-attempt PostgreSQL acceptance `3ca2afb` (CI `41836191875` green):** an event starting at nine attempts fails through a fake provider on its tenth claim. PostgreSQL confirms terminal `DEAD_LETTER`, attempt 10, released lease, future retry timestamp, and sanitized error; no real provider is used.
-
-**Final provider-attempt PostgreSQL acceptance `3ca2afb` (CI `41836191875` green):** an event starting at nine attempts fails through a fake provider on its tenth claim. PostgreSQL confirms terminal `DEAD_LETTER`, attempt 10, released lease, future retry timestamp, and sanitized error; no real provider is used.
-
-**Final provider-attempt PostgreSQL acceptance `3ca2afb` (CI `41836191875` green):** an event starting at nine attempts fails through a fake provider on its tenth claim. PostgreSQL confirms the terminal `DEAD_LETTER` status, incremented attempt count, released lease, future retry timestamp, and sanitized error; no real provider is used.
-
 **Deployment evidence (owner-reported, 2026-11-04):** `prisma migrate deploy` applied `20261104120000_reservation_outbox_replay_audit`, and `docker inspect` showed the backend's internal `/health/ready` Docker healthcheck as `healthy`. The supplied public-domain `curl /health/ready` returned the frontend SPA HTML, so it does not verify API-domain routing/readiness. **Still open:** read-only outbox diagnostics and a controlled worker delivery smoke; API-domain probe; replica/scheduler topology; alert ownership and recovery runbook. No live replay or production reservation was initiated by the agent. [Operator runbook draft](RESERVATION-OUTBOX-RUNBOOK.md) records safe readiness, diagnostics, triage and audited replay steps; deployment-specific owners/thresholds remain unconfirmed.
 
 **Done when:** concurrent two-worker claim yields one active worker; expired PROCESSING leases recover; failure at each boundary persists retryable result; duplicate delivery behavior documented at-least-once; dead-letter/alerting and manual replay tested on disposable PostgreSQL/fake transport; no effect on reservation create idempotency.
@@ -269,6 +263,8 @@ Faze su zavisne; ne treba preskakati policy gate. Svaki source slice treba zaseb
 ### Faza 4 — OPS-R2 process-local cron work and marker idempotency
 
 **Rad:** reservation delay, appointment reminder and pending daily-log reminder become atomic DB claims/outbox events before external send; scheduled trigger is singleton/DB-lease or duplicate-safe. Keep direct seed unique index and existing conditional FSM updates. KIF/KUF rollover separately prove DB idempotency; avoid making financial period state dependent on Redis.
+
+**Owner-approved delivery decisions (2026-11-04):** appointment and pending-daily-log reminders must revalidate eligibility at delivery and be suppressed as handled when stale; delay-warning recipients are snapshotted when the threshold is crossed and retries target that same set; DEAD_LETTER reminder events may use audited admin replay with explicit at-least-once confirmation and persistent actor/time/event audit. These decisions preserve at-least-once push/email semantics and do not promise exactly-once provider delivery.
 
 **Done when:** two concurrent scheduler instances process each reminder candidate once at DB-claim level; external channels are documented at-least-once; crash injection tests prove no silent lost notification or infinite duplicate; timezone boundary tests use Europe/Sarajevo; owner confirms runtime replica topology.
 
