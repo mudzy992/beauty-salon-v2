@@ -4745,6 +4745,121 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   }, 30_000);
 
+  it('rolls back the delay claim when outbox insertion fails, then retries safely', async () => {
+    const db = prisma!;
+    const reservationDate = new Date('2040-01-02T00:00:00.000Z');
+    const sourceId = randomUUID();
+    const targetIds = [randomUUID(), randomUUID(), randomUUID()];
+    const reservationIds = [sourceId, ...targetIds];
+    const suffix = randomUUID().replace(/-/g, '');
+    const functionName = `e2e_delay_queue_rollback_${suffix}`;
+    const triggerName = `e2e_delay_queue_rollback_${suffix}`;
+    const makeReservation = (id: string, status: string, startTime: string) => ({
+      id,
+      clientId: clientUserId,
+      serviceId,
+      reservationDate,
+      startTime,
+      endTime: status === 'IN_PROGRESS' ? '09:00' : '11:30',
+      status,
+      confirmedStylistId: fixtureIds.stylistProfile!,
+      publicReferenceCode: `DELAY-ROLLBACK-${randomUUID()}`,
+      clientViewToken: randomUUID(),
+    });
+    await db.reservation.createMany({
+      data: [
+        makeReservation(sourceId, 'IN_PROGRESS', '08:00'),
+        makeReservation(targetIds[0], 'CONFIRMED', '09:30'),
+        makeReservation(targetIds[1], 'CONFIRMED', '10:30'),
+        makeReservation(targetIds[2], 'CONFIRMED', '11:00'),
+      ],
+    });
+
+    const delayPrisma = new Proxy(db, {
+      get(target, property, receiver) {
+        if (property === 'salonSettings') {
+          return { findFirst: jest.fn().mockResolvedValue({ pauseBetweenServices: 20 }) };
+        }
+        if (property === '$transaction') return target.$transaction.bind(target);
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const dates = {
+      toSalonDateOnlyString: jest.fn().mockReturnValue('2040-01-02'),
+      combineDateAndTime: jest.fn(
+        () => new Date(Date.now() - 11 * 60 * 1000),
+      ),
+    };
+    const makeCron = () =>
+      new ReservationDelayReminderService(
+        delayPrisma as unknown as PrismaService,
+        { send: jest.fn() } as unknown as NotificationsService,
+        dates as unknown as ReservationDateService,
+      );
+
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${functionName}"() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          IF NEW."aggregate_id" = '${sourceId}' AND NEW."event_type" = 'reservation.delay_warning' THEN
+            RAISE EXCEPTION 'synthetic delay-warning outbox insert failure';
+          END IF;
+          RETURN NEW;
+        END;
+        $$;
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE INSERT ON "outbox_events"
+        FOR EACH ROW EXECUTE FUNCTION "${functionName}"();
+      `);
+
+      await expect(makeCron().processReservationDelayReminders()).rejects.toThrow();
+      await expect(
+        db.reservation.findUniqueOrThrow({
+          where: { id: sourceId },
+          select: { delayNotifiedAt: true },
+        }),
+      ).resolves.toEqual({ delayNotifiedAt: null });
+      await expect(
+        db.outboxEvent.count({
+          where: {
+            eventType: 'reservation.delay_warning',
+            aggregateId: sourceId,
+          },
+        }),
+      ).resolves.toBe(0);
+
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "outbox_events"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+      await expect(makeCron().processReservationDelayReminders()).resolves.toEqual({
+        queuedCount: 2,
+      });
+      const recoveredSource = await db.reservation.findUniqueOrThrow({
+        where: { id: sourceId },
+        select: { delayNotifiedAt: true },
+      });
+      expect(recoveredSource.delayNotifiedAt).toBeInstanceOf(Date);
+      await expect(
+        db.outboxEvent.count({
+          where: {
+            eventType: 'reservation.delay_warning',
+            aggregateId: sourceId,
+          },
+        }),
+      ).resolves.toBe(2);
+    } finally {
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "outbox_events"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+      await db.outboxEvent.deleteMany({ where: { aggregateId: sourceId } });
+      await db.reservation.deleteMany({ where: { id: { in: reservationIds } } });
+    }
+  }, 30_000);
+
   it('allows only one concurrent reservation outbox worker to claim an event', async () => {
     const db = prisma!;
     const eventId = randomUUID();
