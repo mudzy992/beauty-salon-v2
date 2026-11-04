@@ -735,7 +735,38 @@
       "saveFailed": "Could not save campaign templates.",
       "sent": "Campaign sent.",
       "sendDetails": "Delivered: {{delivered}}, skipped: {{skipped}}.",
-      "sendFailed": "Campaign could not be sent."
+      "sendFailed": "Campaign could not be sent.",
+      "verifiedConsentOnly": "Only users with a verified email address and active marketing consent are included.",
+      "audienceLimitReached": "A campaign can have at most 100 recipients. Narrow the audience before sending.",
+      "queued": "Campaign queued for delivery.",
+      "enqueueDetails": "{{total}} recipients are queued. Delivery is processed in order, at no more than one email per second.",
+      "progressHeading": "Campaign progress",
+      "statusLabel": "Status: {{status}}",
+      "counts": "Pending: {{pending}} · processing: {{processing}} · delivered: {{delivered}} · skipped: {{skipped}} · failed: {{failed}} · cancelled: {{cancelled}}",
+      "jobStatuses": {
+        "QUEUED": "Queued",
+        "RUNNING": "Running",
+        "COMPLETED": "Completed",
+        "PARTIAL": "Partially completed",
+        "FAILED": "Failed",
+        "CANCELLED": "Cancelled"
+      },
+      "recipientStatuses": {
+        "PENDING": "Pending",
+        "PROCESSING": "Processing",
+        "DELIVERED": "Delivered",
+        "SKIPPED": "Skipped",
+        "FAILED": "Failed",
+        "CANCELLED": "Cancelled"
+      },
+      "cancelRemaining": "Cancel remaining emails",
+      "cancelFailed": "Could not cancel the campaign.",
+      "retryFailed": "Retry failed deliveries",
+      "retryConfirmAtLeastOnce": "The previous SMTP outcome may be uncertain; retrying could send an email again. Do you want to continue?",
+      "retryFailedMessage": "Could not retry failed deliveries.",
+      "progressLoadFailed": "Could not load campaign progress.",
+      "audienceEmpty": "No recipients match the eligibility rules.",
+      "recipientListHeading": "Recipient statuses"
     }
   },
   "adminAnalytics": {
@@ -2378,6 +2409,17 @@
       "paymentReceipt": "Payment receipt",
       "reviewNew": "New review",
       "general": "General notification"
+    },
+    "campaignConsent": {
+      "title": "Marketing email campaigns",
+      "description": "This is separate consent for promotional campaigns. A verified email address is required for delivery. You can withdraw consent at any time; this does not change other email notifications.",
+      "optIn": "I want to receive promotional campaigns by email",
+      "enabled": "Consent is enabled",
+      "disabled": "Consent is disabled",
+      "saved": "Marketing email consent saved.",
+      "loadFailed": "Could not load marketing email consent.",
+      "saveFailed": "Could not save marketing email consent.",
+      "retryLoad": "Try again"
     }
   },
   "blog": {

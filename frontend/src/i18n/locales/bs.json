@@ -732,7 +732,38 @@
       "saveFailed": "Greška pri čuvanju predložaka kampanja.",
       "sent": "Kampanja je poslana.",
       "sendDetails": "Isporučeno: {{delivered}}, preskočeno: {{skipped}}.",
-      "sendFailed": "Slanje kampanje nije uspjelo."
+      "sendFailed": "Slanje kampanje nije uspjelo.",
+      "verifiedConsentOnly": "U publiku ulaze samo korisnici s potvrđenom email adresom i aktivnom marketinškom saglasnošću.",
+      "audienceLimitReached": "Maksimalno 100 primalaca po kampanji. Suzi publiku prije slanja.",
+      "queued": "Kampanja je stavljena u red za slanje.",
+      "enqueueDetails": "U redu je {{total}} primalaca. Isporuka se obrađuje redom, najviše jedan email u sekundi.",
+      "progressHeading": "Napredak kampanje",
+      "statusLabel": "Status: {{status}}",
+      "counts": "Čeka: {{pending}} · obrada: {{processing}} · isporučeno: {{delivered}} · preskočeno: {{skipped}} · neuspjelo: {{failed}} · otkazano: {{cancelled}}",
+      "jobStatuses": {
+        "QUEUED": "Na čekanju",
+        "RUNNING": "U toku",
+        "COMPLETED": "Završena",
+        "PARTIAL": "Djelimično završena",
+        "FAILED": "Neuspjela",
+        "CANCELLED": "Otkazana"
+      },
+      "recipientStatuses": {
+        "PENDING": "Na čekanju",
+        "PROCESSING": "U obradi",
+        "DELIVERED": "Isporučeno",
+        "SKIPPED": "Preskočeno",
+        "FAILED": "Neuspjelo",
+        "CANCELLED": "Otkazano"
+      },
+      "cancelRemaining": "Otkaži preostale emailove",
+      "cancelFailed": "Nije moguće otkazati kampanju.",
+      "retryFailed": "Ponovi neuspjele isporuke",
+      "retryConfirmAtLeastOnce": "Prethodni SMTP ishod može biti neizvjestan; ponovni pokušaj može poslati email ponovo. Da li želiš nastaviti?",
+      "retryFailedMessage": "Ponovni pokušaj neuspjelih isporuka nije uspio.",
+      "progressLoadFailed": "Nije moguće učitati napredak kampanje.",
+      "audienceEmpty": "Nema primalaca koji ispunjavaju uslove.",
+      "recipientListHeading": "Status primalaca"
     }
   },
   "adminAnalytics": {
@@ -2375,6 +2406,17 @@
       "paymentReceipt": "Potvrda o uplati",
       "reviewNew": "Nova recenzija",
       "general": "Opća obavijest"
+    },
+    "campaignConsent": {
+      "title": "Marketinške email kampanje",
+      "description": "Ovo je odvojena saglasnost za promotivne kampanje. Za slanje je potrebna potvrđena email adresa. Saglasnost možete povući kad god želite; ovo ne mijenja ostale email obavijesti.",
+      "optIn": "Želim primati promotivne kampanje emailom",
+      "enabled": "Saglasnost je uključena",
+      "disabled": "Saglasnost je isključena",
+      "saved": "Saglasnost za marketinške emailove je sačuvana.",
+      "loadFailed": "Nije moguće učitati saglasnost za marketinške emailove.",
+      "saveFailed": "Nije moguće sačuvati saglasnost za marketinške emailove.",
+      "retryLoad": "Pokušaj ponovo"
     }
   },
   "blog": {

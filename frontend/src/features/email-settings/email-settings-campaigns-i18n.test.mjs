@@ -49,6 +49,28 @@ test('campaign UI localization preserves audience and send API contracts', () =>
   assert.match(source, /JSON\.stringify\(normalized\)/)
 })
 
+test('campaign consent and queue feedback copy exists in both locales', () => {
+  for (const resource of locales) {
+    for (const key of [
+      'verifiedConsentOnly',
+      'queued',
+      'enqueueDetails',
+      'progressHeading',
+      'statusLabel',
+      'counts',
+      'cancelRemaining',
+      'retryFailed',
+      'retryConfirmAtLeastOnce',
+      'progressLoadFailed',
+    ]) {
+      assert.ok(resource.emailSettings.campaigns[key], `Missing campaign key: ${key}`)
+    }
+    for (const key of ['title', 'description', 'optIn', 'saved', 'loadFailed', 'saveFailed']) {
+      assert.ok(resource.notifications.campaignConsent[key], `Missing consent key: ${key}`)
+    }
+  }
+})
+
 test('campaign default content and interpolation tokens remain template data', () => {
   assert.match(source, /\? 'Naslov kampanje'/)
   assert.match(source, /\? 'Ovdje unesite opis kampanje\.'/)
