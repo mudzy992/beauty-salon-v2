@@ -4244,19 +4244,29 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       },
     });
 
-    const notifications = app!.get(NotificationsService);
-    const queries = app!.get(ReservationQueriesService);
-    const sendSpy = jest
-      .spyOn(notifications, 'sendToMany')
-      .mockRejectedValueOnce(new Error('provider secret must not be stored'));
-    const querySpy = jest
-      .spyOn(queries, 'findOne')
-      .mockResolvedValueOnce({ id: aggregateId } as never);
+    const notifications = {
+      sendToMany: jest
+        .fn()
+        .mockRejectedValueOnce(new Error('provider secret must not be stored')),
+    };
+    const queries = { findOne: jest.fn().mockResolvedValue({ id: aggregateId }) };
+    const events = {
+      emitToAdmins: jest.fn(),
+      emitToStylists: jest.fn(),
+      emitToAll: jest.fn(),
+    };
+    const worker = new ReservationOutboxService(
+      db as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      events as unknown as EventsGateway,
+      queries as unknown as ReservationQueriesService,
+    );
 
     try {
-      await app!.get(ReservationOutboxService).dispatchAfterCommit(eventId);
+      await worker.dispatchAfterCommit(eventId);
 
-      expect(sendSpy).toHaveBeenCalledTimes(1);
+      expect(queries.findOne).toHaveBeenCalledTimes(1);
+      expect(notifications.sendToMany).toHaveBeenCalledTimes(1);
       const persisted = await db.outboxEvent.findUniqueOrThrow({
         where: { id: eventId },
         select: {
@@ -4275,8 +4285,6 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       });
       expect(persisted.nextAttemptAt.getTime()).toBeGreaterThan(Date.now());
     } finally {
-      sendSpy.mockRestore();
-      querySpy.mockRestore();
       await db.outboxEvent.deleteMany({ where: { id: eventId } });
     }
   }, 30_000);
