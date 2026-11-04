@@ -134,6 +134,56 @@ describe('ReservationListService access scopes', () => {
     );
   });
 
+  it('returns only aggregate counts and a bounded recent reservation sample for admin dashboard', async () => {
+    prisma.reservation.count
+      .mockResolvedValueOnce(42)
+      .mockResolvedValueOnce(9)
+      .mockResolvedValueOnce(7);
+    prisma.reservation.findMany.mockResolvedValueOnce([{ id: 'recent-1' }]);
+
+    await expect(
+      service.getDashboardSummary(
+        { fromDate: '2026-11-01', toDate: '2026-11-30' },
+        owner,
+      ),
+    ).resolves.toEqual({
+      reservationsThisMonth: 42,
+      completedReservations: 9,
+      pendingReservations: 7,
+      recentReservations: [{ id: 'recent-1' }],
+    });
+    expect(prisma.reservation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: 8,
+        select: expect.objectContaining({
+          client: expect.any(Object),
+          service: { select: { name: true } },
+        }),
+      }),
+    );
+  });
+
+  it('rejects dashboard summary requests without admin scope or a valid date range', async () => {
+    await expect(
+      service.getDashboardSummary(
+        { fromDate: '2026-11-01', toDate: '2026-11-30' },
+        client,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.getDashboardSummary({ fromDate: '2026-11-01' }, owner),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      service.getDashboardSummary(
+        { fromDate: '2026-11-31', toDate: '2026-12-01' },
+        owner,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.reservation.count).not.toHaveBeenCalled();
+    expect(prisma.reservation.findMany).not.toHaveBeenCalled();
+  });
+
   it('preserves unscoped admin/owner access', async () => {
     await service.findAll({}, owner);
 

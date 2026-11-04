@@ -56,6 +56,74 @@ export class ReservationListService {
     return clauses;
   }
 
+  async getDashboardSummary(
+    query: { fromDate?: string; toDate?: string },
+    user: CurrentUserPayload,
+  ) {
+    if (
+      !user.roles.includes('SYSTEM_ADMIN') &&
+      !user.roles.includes('OWNER')
+    ) {
+      throw new ForbiddenException(
+        'Samo admin ili vlasnik mogu pristupiti sažetku rezervacija.',
+      );
+    }
+    if (!query.fromDate || !query.toDate) {
+      throw new BadRequestException('fromDate i toDate su obavezni.');
+    }
+
+    let reservationDate: { gte: Date; lt: Date };
+    try {
+      reservationDate = getDateOnlyRangeBounds(query.fromDate, query.toDate);
+    } catch {
+      throw new BadRequestException(
+        'fromDate i toDate moraju biti važeći datumi u formatu YYYY-MM-DD.',
+      );
+    }
+
+    const monthlyWhere = { reservationDate };
+    const [
+      reservationsThisMonth,
+      completedReservations,
+      pendingReservations,
+      recentReservations,
+    ] = await Promise.all([
+      this.prisma.reservation.count({ where: monthlyWhere }),
+      this.prisma.reservation.count({
+        where: { ...monthlyWhere, status: 'COMPLETED' },
+      }),
+      this.prisma.reservation.count({ where: { status: 'PENDING' } }),
+      this.prisma.reservation.findMany({
+        where: monthlyWhere,
+        select: {
+          id: true,
+          reservationDate: true,
+          startTime: true,
+          status: true,
+          createdAt: true,
+          client: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              username: true,
+            },
+          },
+          service: { select: { name: true } },
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: 8,
+      }),
+    ]);
+
+    return {
+      reservationsThisMonth,
+      completedReservations,
+      pendingReservations,
+      recentReservations,
+    };
+  }
+
   async findAll(
     query: {
       fromDate?: string;

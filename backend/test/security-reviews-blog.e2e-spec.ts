@@ -386,6 +386,10 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
             listSvc: ReservationListService,
             queriesSvc: ReservationQueriesService,
           ) => ({
+            getDashboardSummary: (
+              query: Parameters<ReservationListService['getDashboardSummary']>[0],
+              user: Parameters<ReservationListService['getDashboardSummary']>[1],
+            ) => listSvc.getDashboardSummary(query, user),
             findAll: (
               query: Parameters<ReservationListService['findAll']>[0],
               user: Parameters<ReservationListService['findAll']>[1],
@@ -2672,6 +2676,42 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       .set('Authorization', `Bearer ${systemAdminToken}`)
       .expect(200);
     expect(adminResponse.body).toEqual({ total });
+  });
+
+  it('returns bounded admin-only reservation dashboard aggregates', async () => {
+    const httpServer = getHttpServer(app!);
+    await request(httpServer)
+      .get('/api/reservations/dashboard-summary')
+      .expect(401);
+    await request(httpServer)
+      .get('/api/reservations/dashboard-summary')
+      .query({ fromDate: '2026-01-01', toDate: '2026-12-31' })
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+    await request(httpServer)
+      .get('/api/reservations/dashboard-summary')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(400);
+
+    const response = await request(httpServer)
+      .get('/api/reservations/dashboard-summary')
+      .query({ fromDate: '2026-01-01', toDate: '2026-12-31' })
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(response.body).toEqual(
+      expect.objectContaining({
+        reservationsThisMonth: expect.any(Number),
+        completedReservations: expect.any(Number),
+        pendingReservations: await prisma!.reservation.count({
+          where: { status: 'PENDING' },
+        }),
+        recentReservations: expect.any(Array),
+      }),
+    );
+    expect(response.body.recentReservations.length).toBeLessThanOrEqual(8);
+    expect(response.body.recentReservations).not.toContainEqual(
+      expect.objectContaining({ clientViewToken: expect.anything() }),
+    );
   });
 
   it('returns a minimal picker projection and clamps validated pagination', async () => {

@@ -36,9 +36,15 @@ export const useDashboardData = () => {
       api.get('/api/stylists', { params: { page: 0, pageSize: 1 } }).catch(() => ({ data: [] })),
       api.get('/api/services', { params: { page: 0, pageSize: 1 } }).catch(() => ({ data: [] })),
       api
-        .get('/api/reservations', { params: { fromDate: firstDay, toDate: lastDay } })
-        .catch(() => ({ data: [] })),
-      api.get('/api/reservations', { params: { status: 'PENDING' } }).catch(() => ({ data: [] })),
+        .get<{
+          reservationsThisMonth?: number
+          completedReservations?: number
+          pendingReservations?: number
+          recentReservations?: RecentReservation[]
+        }>('/api/reservations/dashboard-summary', {
+          params: { fromDate: firstDay, toDate: lastDay },
+        })
+        .catch(() => ({ data: null })),
       api.get(`/api/income-books/month/${year}/${month}`).catch(() => ({ data: null })),
       api
         .get<{ expenses?: { totalAmount: string | number }[] }>(
@@ -53,14 +59,17 @@ export const useDashboardData = () => {
           usersCountRes,
           stylistsRes,
           servicesRes,
-          resThisMonth,
-          pendingRes,
+          reservationSummaryRes,
           incomeRes,
           expenseBookRes,
           reviewsRes,
           blogRes,
         ]) => {
-          const allReservations = asArray<RecentReservation>(resThisMonth.data)
+          const reservationSummary = reservationSummaryRes.data
+          const summaryCount = (value: unknown) =>
+            typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+              ? value
+              : 0
           const bookExpenses = asArray<{ totalAmount: string | number }>(
             expenseBookRes.data?.expenses,
           )
@@ -79,10 +88,9 @@ export const useDashboardData = () => {
               : 0,
             stylistsCount: catalogCount(stylistsRes.data),
             servicesCount: catalogCount(servicesRes.data),
-            reservationsThisMonth: allReservations.length,
-            pendingReservations: asArray(pendingRes.data).length,
-            completedReservations: allReservations.filter((r) => r.status === 'COMPLETED')
-              .length,
+            reservationsThisMonth: summaryCount(reservationSummary?.reservationsThisMonth),
+            pendingReservations: summaryCount(reservationSummary?.pendingReservations),
+            completedReservations: summaryCount(reservationSummary?.completedReservations),
             servicesRevenueThisMonth: Number(incomeBook?.totalRevenue || 0),
             tipsThisMonth: Number(incomeBook?.totalTips || 0),
             expensesThisMonth: monthExpenses,
@@ -91,13 +99,7 @@ export const useDashboardData = () => {
           })
 
           setRecentReservations(
-            [...allReservations]
-              .sort(
-                (a, b) =>
-                  new Date(b.createdAt ?? b.reservationDate).getTime() -
-                  new Date(a.createdAt ?? a.reservationDate).getTime(),
-              )
-              .slice(0, 8),
+            asArray<RecentReservation>(reservationSummary?.recentReservations).slice(0, 8),
           )
         },
       )

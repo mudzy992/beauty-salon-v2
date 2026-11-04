@@ -88,6 +88,17 @@ export class ReservationsController {
     );
   }
 
+  @Get('dashboard-summary')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getDashboardSummary(
+    @Query('fromDate') fromDate: string | undefined,
+    @Query('toDate') toDate: string | undefined,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.reservations.getDashboardSummary({ fromDate, toDate }, user);
+  }
+
   @Get('availability/debug')
   @UseGuards(RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')

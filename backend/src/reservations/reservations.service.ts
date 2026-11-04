@@ -61,6 +61,13 @@ export class ReservationsService {
     return this.queriesSvc.findPublicByViewToken(token);
   }
 
+  getDashboardSummary(
+    query: { fromDate?: string; toDate?: string },
+    user: CurrentUserPayload,
+  ) {
+    return this.listSvc.getDashboardSummary(query, user);
+  }
+
   findAll(
     query: {
       fromDate?: string;
