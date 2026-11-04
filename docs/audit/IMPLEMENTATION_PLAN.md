@@ -1,10 +1,12 @@
 # Fazni implementacijski plan
 
-**Aktuelni preostali API/OPS/SEC/AUTH/UX nalaz i detaljna implementacijska mapa (2026-11-03):** [REMAINING_AUDIT_AND_IMPLEMENTATION_PLAN.md](REMAINING_AUDIT_AND_IMPLEMENTATION_PLAN.md). Ovo je dodatak sa trenutnim source review-om, policy gate-ovima i predloženim redoslijedom; ne označava repo-wide audit niti produkcijske gate-ove završenim.
+**Aktuelni preostali API/OPS/SEC/AUTH/UX nalaz i detaljna implementacijska mapa (ažurirano 2026-11-04):** [REMAINING_AUDIT_AND_IMPLEMENTATION_PLAN.md](REMAINING_AUDIT_AND_IMPLEMENTATION_PLAN.md). Ovo je dodatak sa source review-om, policy gate-ovima i redoslijedom; ne označava repo-wide audit niti produkcijske gate-ove završenim.
 
 **Faza 0 decision/consumer map (2026-11-03):** [PHASE_0_DECISION_AND_CONSUMER_MAP.md](PHASE_0_DECISION_AND_CONSUMER_MAP.md). Inventarizira user/picker i svih 13 direktnih reservations-list consumer-a; D-01–D-06 policy smjernice su zabilježene po owner odgovoru, D-04 je owner-reported bez nezavisne runtime provjere, a D-07 legal copy ostaje gated.
 
-**Faza 1 API-R1 (2026-11-03):** finance client search i manual-entry CLIENT role enforcement implementirani su u `7edafe1`, DB-backed HTTP acceptance test je u `d4401c2`; CI `41736972799` prošao je sva 4 posla. Nema production/shared DB ili deployment provjere; Faza 2 bounded lists ostaje naredna.
+**Faza 1 API-R1 (2026-11-03):** finance client search i manual-entry CLIENT role enforcement implementirani su u `7edafe1`, DB-backed HTTP acceptance test je u `d4401c2`; CI `41736972799` prošao je sva 4 posla. Nema production/shared DB ili deployment provjere.
+
+**Faza 2 API-R2 (2026-11-04, u toku):** dashboard aggregate count je implementiran u `fc45b97` (CI `41779416929` green); `/api/users`, `system-admins` i `stylists` sada imaju bounded paginated ugovor uz limitirani legacy array rollout u `ee3f835` (CI `41780354779` green). CLIENT-only daily-log picker i `/api/reservations` list consumers ostaju naredni.
 
 **Datum izrade:** 2026-10-21 (UTC)<br>
 **Ulaz:** [FINDINGS.md](FINDINGS.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [TEST_WORKFLOW.md](TEST_WORKFLOW.md)<br>

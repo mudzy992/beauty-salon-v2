@@ -1,8 +1,8 @@
 # Preostali nalazi audita i fazni plan implementacije
 
-**Datum:** 2026-11-03
+**Datum:** 2026-11-04
 
-**Stanje:** detaljan source-review dodatak; nema izmjena aplikacijskog koda u ovom slice-u.
+**Stanje:** detaljan source-review dodatak i Phase 2 progress log; audit findings iz prvobitnog review-a ostaju razdvojeni od naknadnih implementacija i runtime/deployment evidence.
 
 **Grana:** `arena/657dba19-beauty-salon-v2`
 **Baza za ovaj pregled:** nakon sigurnog fast-forwarda na `origin/master` commit `44a0b1f` (`Update app.config.js`).
@@ -221,9 +221,9 @@ Faze su zavisne; ne treba preskakati policy gate. Svaki source slice treba zaseb
 ### Faza 2 — API-R2/R3/R4 bounded lists i validirani pagination
 
 **Rad:**
-1. Ukloniti `/api/users` iz finance lookup-a; dashboardu izložiti bounded aggregate counts umjesto full directory download-a.
-2. CLIENT-only daily-log pickers prebaciti na shared bounded client endpoint (ili dodati novu paginarnu rutu s kompatibilnim rollout-om).
-3. Za `/api/users`, `system-admins`, `stylists` definisati pagination defaults/maxima ili eksplicitnu capped compatibility response; validirati `page`, `pageSize` i partial-param behavior.
+1. Ukloniti `/api/users` iz finance lookup-a; dashboardu izložiti bounded aggregate counts umjesto full directory download-a. **Završeno:** finance lookup je prebačen u Fazi 1; dashboard koristi `GET /api/users/dashboard-count` u `fc45b97` (CI `41779416929`, sva 4 posla green).
+2. CLIENT-only daily-log pickers prebaciti na shared bounded client endpoint (ili dodati novu paginarnu rutu s kompatibilnim rollout-om). **Preostalo:** web, mobile i stylist-workbook još koriste `/api/users/for-daily-log`; treba server-side pretraga/straničenje kako korisnici izvan prve stranice ostanu dostupni.
+3. Za `/api/users`, `system-admins`, `stylists` definisati pagination defaults/maxima ili eksplicitnu capped compatibility response; validirati `page`, `pageSize` i partial-param behavior. **Završeno u `ee3f835`:** paginated callers šalju oba parametra (`page` 0–1000, `pageSize` 1–50) i dobijaju `{items,total,page,pageSize}`; djelimični/invalid parametri se odbijaju. Bez parametara ostaje legacy array, ali sa `take: 50` tokom dogovorene compatibility window. `Users.tsx` sistemskih administratora i stilista čita kroz bounded stranice (postojeći client-side maksimum 1,050 redova). DB-backed HTTP i service testovi pokrivaju envelope, capped legacy shape i partial/invalid query; CI `41780354779` prošao je sva 4 posla.
 4. Za `/api/reservations` odrediti page/default/date windows prema consumers; DTO max/safe offset; ažurirati frontend/mobile parser-e i stale/empty/retry UX.
 
 **Done when:** consumer contract inventory nema nepoznatih callers; source/HTTP tests pokrivaju page boundaries i legacy/current response; query max rows je bounded za high-cardinality view; CI DB-backed synthetic tests green. Ne raditi broad query rewrite preko svih 141 `findMany`; klasifikovati svaki po route/expected cardinality.
