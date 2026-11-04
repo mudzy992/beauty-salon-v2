@@ -4708,6 +4708,9 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     const dates = {
       toSalonDateOnlyString: jest.fn().mockReturnValue('2040-01-02'),
       toSalonTimeString: jest.fn().mockReturnValue('12:00'),
+      combineDateAndTime: jest.fn(
+        () => new Date(Date.now() - 11 * 60 * 1000),
+      ),
     };
     const makeCron = () =>
       new ReservationDelayReminderService(

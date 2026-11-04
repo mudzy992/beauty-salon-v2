@@ -5,7 +5,6 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
 import { buildDelayWarningCopy } from '../notifications/utils/reservation-push-copy';
 import { RESERVATION_STATUS } from './constants';
-import { timeToMinutes } from './utils/time-slot.utils';
 import { ReservationDateService } from './reservation-date.service';
 import { getDateOnlyDayBounds } from '../common/utils/date-only';
 
@@ -38,7 +37,6 @@ export class ReservationDelayReminderService {
     const { gte: todayStart, lt: tomorrowStart } = getDateOnlyDayBounds(
       this.dates.toSalonDateOnlyString(now),
     );
-    const nowMinutes = timeToMinutes(this.dates.toSalonTimeString(now));
     const running = await this.prisma.reservation.findMany({
       where: {
         status: RESERVATION_STATUS.IN_PROGRESS,
@@ -48,6 +46,7 @@ export class ReservationDelayReminderService {
       },
       select: {
         id: true,
+        reservationDate: true,
         startTime: true,
         endTime: true,
         confirmedStylistId: true,
@@ -57,8 +56,13 @@ export class ReservationDelayReminderService {
 
     let queuedCount = 0;
     for (const reservation of running) {
-      const endMinutes = timeToMinutes(reservation.endTime);
-      if (nowMinutes - endMinutes < threshold) continue;
+      const scheduledEnd = this.dates.combineDateAndTime(
+        reservation.reservationDate,
+        reservation.endTime,
+      );
+      const elapsedMinutes =
+        (now.getTime() - scheduledEnd.getTime()) / (60 * 1000);
+      if (elapsedMinutes < threshold) continue;
 
       if (reservation.useBreakAfterOverrun === true) {
         await this.claimAndQueue(reservation.id, []);
