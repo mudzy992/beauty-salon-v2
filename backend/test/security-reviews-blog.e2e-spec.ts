@@ -4203,6 +4203,10 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
 
     const dates = {
       refreshTimezone: jest.fn().mockResolvedValue(undefined),
+      addSalonWallClockHours: jest.fn(
+        (date: Date, hours: number) =>
+          new Date(date.getTime() + hours * 60 * 60 * 1000),
+      ),
       combineDateAndTime: jest.fn((date: Date, time: string) =>
         date.toISOString().slice(0, 10) === reservationDateString &&
         time === '10:00'
@@ -4250,6 +4254,10 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     const notifications = { send: jest.fn().mockResolvedValue(undefined) };
     const dates = {
       refreshTimezone: jest.fn().mockResolvedValue(undefined),
+      addSalonWallClockHours: jest.fn(
+        (date: Date, hours: number) =>
+          new Date(date.getTime() + hours * 60 * 60 * 1000),
+      ),
       toDateOnlyString: jest.fn().mockReturnValue('2040-01-02'),
       combineDateAndTime: jest.fn(
         () => new Date(Date.now() + 24 * 60 * 60 * 1000),
