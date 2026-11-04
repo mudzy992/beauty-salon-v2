@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -12,6 +13,7 @@ import {
 import { ReservationsService } from './reservations.service';
 import { AvailabilityService } from './availability.service';
 import { ReservationOutboxService } from './reservation-outbox.service';
+import { ReplayReservationOutboxDto } from './dto/replay-reservation-outbox.dto';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
 import { StylistDirectCreateReservationDto } from './dto/stylist-direct-create-reservation.dto';
@@ -106,6 +108,20 @@ export class ReservationsController {
   @Roles('SYSTEM_ADMIN', 'OWNER')
   getOutboxDiagnostics() {
     return this.outbox.getDiagnostics();
+  }
+
+  @Post('ops/outbox/:id/replay')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  replayOutboxDeadLetter(
+    @Param('id') id: string,
+    @Body() dto: ReplayReservationOutboxDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    if (dto.confirmAtLeastOnce !== true) {
+      throw new BadRequestException('Potrebna je potvrda at-least-once isporuke.');
+    }
+    return this.outbox.requestManualReplay(id, user.sub);
   }
 
   @Get('availability/debug')

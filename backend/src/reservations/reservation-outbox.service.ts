@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -150,6 +155,61 @@ export class ReservationOutboxService {
         );
       }
     }
+  }
+
+  async requestManualReplay(eventId: string, requestedByUserId: string) {
+    const requestedAt = new Date();
+    return this.prisma.$transaction(async (tx) => {
+      const event = await tx.outboxEvent.findUnique({
+        where: { id: eventId },
+        select: { id: true, eventType: true, status: true, attempts: true },
+      });
+      if (!event || event.eventType !== 'reservation.created') {
+        throw new NotFoundException('Outbox događaj nije pronađen.');
+      }
+      if (event.status !== 'DEAD_LETTER') {
+        throw new ConflictException(
+          'Ručni replay je dozvoljen samo za DEAD_LETTER događaj.',
+        );
+      }
+
+      const requeued = await tx.outboxEvent.updateMany({
+        where: {
+          id: event.id,
+          eventType: 'reservation.created',
+          status: 'DEAD_LETTER',
+        },
+        data: {
+          status: 'PENDING',
+          nextAttemptAt: requestedAt,
+          lockedAt: null,
+          deliveredAt: null,
+        },
+      });
+      if (requeued.count !== 1) {
+        throw new ConflictException(
+          'Outbox događaj je promijenjen; osvježite dijagnostiku.',
+        );
+      }
+
+      const audit = await tx.reservationOutboxReplayAudit.create({
+        data: {
+          outboxEventId: event.id,
+          requestedByUserId,
+          attemptsAtRequest: event.attempts,
+          requestedAt,
+        },
+        select: { id: true },
+      });
+
+      return {
+        eventId: event.id,
+        replayAuditId: audit.id,
+        status: 'PENDING',
+        attempts: event.attempts,
+        nextAttemptAt: requestedAt,
+      };
+    });
   }
 
   async getDiagnostics() {

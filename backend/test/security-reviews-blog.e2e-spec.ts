@@ -4289,6 +4289,96 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   }, 30_000);
 
+  it('requires explicit at-least-once acknowledgment and audits dead-letter replay', async () => {
+    const db = prisma!;
+    const eventId = randomUUID();
+    await db.outboxEvent.create({
+      data: {
+        id: eventId,
+        eventType: 'reservation.created',
+        aggregateId: randomUUID(),
+        dedupeKey: `outbox-manual-replay:${eventId}`,
+        payload: { privatePayload: 'never returned' },
+        status: 'DEAD_LETTER',
+        attempts: 10,
+        lastError: 'Delivery failed (Error).',
+      },
+    });
+
+    const route = `/api/reservations/ops/outbox/${eventId}/replay`;
+    try {
+      await request(getHttpServer(app!))
+        .post(route)
+        .send({ confirmAtLeastOnce: true })
+        .expect(401);
+      await request(getHttpServer(app!))
+        .post(route)
+        .set('Authorization', `Bearer ${clientToken}`)
+        .send({ confirmAtLeastOnce: true })
+        .expect(403);
+      await request(getHttpServer(app!))
+        .post(route)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ confirmAtLeastOnce: false })
+        .expect(400);
+
+      const replayResults = await Promise.all([
+        request(getHttpServer(app!))
+          .post(route)
+          .set('Authorization', `Bearer ${ownerToken}`)
+          .send({ confirmAtLeastOnce: true }),
+        request(getHttpServer(app!))
+          .post(route)
+          .set('Authorization', `Bearer ${ownerToken}`)
+          .send({ confirmAtLeastOnce: true }),
+      ]);
+      expect(replayResults.map((result) => result.status).sort()).toEqual([201, 409]);
+      const response = replayResults.find((result) => result.status === 201)!;
+      expect(response.body).toMatchObject({
+        eventId,
+        replayAuditId: expect.any(String),
+        status: 'PENDING',
+        attempts: 10,
+      });
+      expect(JSON.stringify(response.body)).not.toContain('never returned');
+      const replayedEvent = await db.outboxEvent.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { status: true, attempts: true, lockedAt: true, nextAttemptAt: true },
+      });
+      expect(replayedEvent).toMatchObject({
+        status: 'PENDING',
+        attempts: 10,
+        lockedAt: null,
+      });
+      expect(replayedEvent.nextAttemptAt.getTime()).toBeLessThanOrEqual(Date.now());
+
+      const auditRows = await db.reservationOutboxReplayAudit.findMany({
+        where: { outboxEventId: eventId },
+        select: {
+          id: true,
+          requestedByUserId: true,
+          attemptsAtRequest: true,
+          requestedAt: true,
+        },
+      });
+      expect(auditRows).toHaveLength(1);
+      expect(auditRows[0]).toMatchObject({
+        id: response.body.replayAuditId,
+        requestedByUserId: fixtureIds.ownerUserId,
+        attemptsAtRequest: 10,
+        requestedAt: expect.any(Date),
+      });
+      await expect(
+        db.reservationOutboxReplayAudit.count({ where: { outboxEventId: eventId } }),
+      ).resolves.toBe(1);
+    } finally {
+      await db.reservationOutboxReplayAudit.deleteMany({
+        where: { outboxEventId: eventId },
+      });
+      await db.outboxEvent.deleteMany({ where: { id: eventId } });
+    }
+  }, 30_000);
+
   it('exposes bounded redacted outbox diagnostics only to admins', async () => {
     const db = prisma!;
     const eventId = randomUUID();

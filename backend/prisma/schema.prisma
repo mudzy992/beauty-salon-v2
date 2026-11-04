@@ -441,6 +441,18 @@ model OutboxEvent {
   @@map("outbox_events")
 }
 
+model ReservationOutboxReplayAudit {
+  id                String   @id @default(uuid())
+  outboxEventId     String   @map("outbox_event_id")
+  requestedByUserId String   @map("requested_by_user_id")
+  attemptsAtRequest Int      @map("attempts_at_request")
+  requestedAt       DateTime @default(now()) @map("requested_at")
+
+  @@index([outboxEventId, requestedAt], map: "reservation_outbox_replay_audits_event_requested_idx")
+  @@index([requestedByUserId, requestedAt], map: "reservation_outbox_replay_audits_actor_requested_idx")
+  @@map("reservation_outbox_replay_audits")
+}
+
 // ============ DAILY LOG ============
 
 model DailyLogEntry {
