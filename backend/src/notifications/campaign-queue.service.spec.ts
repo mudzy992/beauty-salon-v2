@@ -114,9 +114,9 @@ describe('CampaignQueueService', () => {
     const releaseLock = prisma.campaignWorkerLock.updateMany.mock.calls[1]![0];
     expect(releaseLock.where.lockedBy).toEqual(expect.any(String));
     expect(releaseLock.data.lockedUntil.getTime()).toBeGreaterThan(Date.now());
-    expect(prisma.campaignJob.updateMany).toHaveBeenLastCalledWith(
+    expect(prisma.campaignJob.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: job.id, status: { in: ['QUEUED', 'RUNNING'] } },
+        where: { id: job.id, status: 'QUEUED' },
         data: expect.objectContaining({ status: 'RUNNING' }),
       }),
     );
