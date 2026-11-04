@@ -31,7 +31,8 @@
     "db:format": "prisma format",
     "media:storage:migrate": "node dist/src/uploads/media-storage-migration-runner.js",
     "test:blog-sanitizer": "node --import tsx --test src/blog/utils/sanitize-blog-content.node-test.ts",
-    "test:email-content": "node --import tsx --test src/notifications/utils/email-content.node-test.ts"
+    "test:email-content": "node --import tsx --test src/notifications/utils/email-content.node-test.ts",
+    "test:campaign-smtp": "node --import tsx --test src/notifications/campaign-delivery.smtp.node-test.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

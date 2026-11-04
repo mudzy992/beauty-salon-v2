@@ -106,6 +106,9 @@ jobs:
       - name: Run email HTML security regression tests
         working-directory: backend
         run: npm run test:email-content
+      - name: Run campaign delivery against fake SMTP
+        working-directory: backend
+        run: npm run test:campaign-smtp
       - name: Run DB-backed security HTTP tests
         id: backend-e2e
         continue-on-error: true
