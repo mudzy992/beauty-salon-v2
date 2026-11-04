@@ -38,12 +38,14 @@ test('admin dashboard uses keys present in both locales', () => {
   }
 })
 
-test('reservation outbox diagnostics are admin-gated, localized, and read-only', () => {
+test('reservation outbox diagnostics gate and confirm audited at-least-once replay', () => {
   const component = sources[4]
   const dashboard = sources[0]
   assert.match(component, /\/api\/reservations\/ops\/outbox/)
+  assert.match(component, /confirmAtLeastOnce: true/)
+  assert.match(component, /replayAcknowledged/)
+  assert.match(component, /event\.status === 'DEAD_LETTER'/)
   assert.match(dashboard, /role === 'SYSTEM_ADMIN' \|\| role === 'OWNER'/)
-  assert.doesNotMatch(component, /\.post\(|\.patch\(|\.delete\(/)
 
   for (const status of ['PENDING', 'PROCESSING', 'DELIVERED', 'DEAD_LETTER']) {
     const key = `dashboard.outbox.status.${status}`

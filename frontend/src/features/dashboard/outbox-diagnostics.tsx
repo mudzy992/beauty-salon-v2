@@ -4,6 +4,14 @@ import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { Alert, AlertDescription } from '../../components/ui/alert'
 import { Button } from '../../components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog'
 import { Card, CardContent } from '../../components/ui/card'
 import { formatLocalizedDateTime, formatLocalizedNumber } from '../../i18n/locale-utils.mjs'
 
@@ -41,6 +49,11 @@ export const DashboardOutboxDiagnostics = () => {
   const [diagnostics, setDiagnostics] = useState<OutboxDiagnostics | null>(null)
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
+  const [replayTarget, setReplayTarget] = useState<OutboxDiagnosticEvent | null>(null)
+  const [replayAcknowledged, setReplayAcknowledged] = useState(false)
+  const [replayLoading, setReplayLoading] = useState(false)
+  const [replayFailed, setReplayFailed] = useState(false)
+  const [replaySucceeded, setReplaySucceeded] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
@@ -68,6 +81,27 @@ export const DashboardOutboxDiagnostics = () => {
       })
     return () => controller.abort()
   }, [refreshKey])
+
+  const submitReplay = async () => {
+    if (!replayTarget || !replayAcknowledged || replayLoading) return
+    setReplayLoading(true)
+    setReplayFailed(false)
+    setReplaySucceeded(false)
+    try {
+      await api.post(
+        `/api/reservations/ops/outbox/${encodeURIComponent(replayTarget.id)}/replay`,
+        { confirmAtLeastOnce: true },
+      )
+      setReplayTarget(null)
+      setReplayAcknowledged(false)
+      setReplaySucceeded(true)
+      setRefreshKey((key) => key + 1)
+    } catch {
+      setReplayFailed(true)
+    } finally {
+      setReplayLoading(false)
+    }
+  }
 
   const number = (value: unknown) =>
     formatLocalizedNumber(
@@ -102,6 +136,16 @@ export const DashboardOutboxDiagnostics = () => {
         {failed ? (
           <Alert variant="destructive">
             <AlertDescription>{t('dashboard.outbox.loadFailed')}</AlertDescription>
+          </Alert>
+        ) : null}
+        {replaySucceeded ? (
+          <Alert variant="success">
+            <AlertDescription>{t('dashboard.outbox.replayQueued')}</AlertDescription>
+          </Alert>
+        ) : null}
+        {replayFailed ? (
+          <Alert variant="destructive">
+            <AlertDescription>{t('dashboard.outbox.replayFailed')}</AlertDescription>
           </Alert>
         ) : null}
 
@@ -150,20 +194,21 @@ export const DashboardOutboxDiagnostics = () => {
             </p>
 
             <div className="overflow-x-auto">
-              <table className="app-table w-full min-w-[620px] text-sm">
+              <table className="app-table w-full min-w-[720px] text-sm">
                 <thead className="text-left text-xs text-slate-500">
                   <tr className="border-b border-slate-200 dark:border-slate-800">
                     <th className="py-2 pr-3 font-medium">{t('dashboard.outbox.event')}</th>
                     <th className="py-2 pr-3 font-medium">{t('common.status')}</th>
                     <th className="py-2 pr-3 font-medium">{t('dashboard.outbox.attempts')}</th>
                     <th className="py-2 pr-3 font-medium">{t('dashboard.outbox.lastUpdated')}</th>
-                    <th className="py-2 font-medium">{t('dashboard.outbox.lastError')}</th>
+                    <th className="py-2 pr-3 font-medium">{t('dashboard.outbox.lastError')}</th>
+                    <th className="py-2 font-medium">{t('dashboard.outbox.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {events.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-4 text-slate-500">
+                      <td colSpan={6} className="py-4 text-slate-500">
                         {t('dashboard.outbox.noEvents')}
                       </td>
                     </tr>
@@ -197,8 +242,25 @@ export const DashboardOutboxDiagnostics = () => {
                           <td className="whitespace-nowrap py-2 pr-3">
                             {formatLocalizedDateTime(event.updatedAt, i18n.language)}
                           </td>
-                          <td className="max-w-xs py-2 text-xs text-slate-600 dark:text-slate-300">
+                          <td className="max-w-xs py-2 pr-3 text-xs text-slate-600 dark:text-slate-300">
                             {event.lastError ?? t('dashboard.outbox.noError')}
+                          </td>
+                          <td className="whitespace-nowrap py-2">
+                            {event.status === 'DEAD_LETTER' ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setReplayTarget(event)
+                                  setReplayAcknowledged(false)
+                                  setReplayFailed(false)
+                                  setReplaySucceeded(false)
+                                }}
+                              >
+                                {t('dashboard.outbox.replay')}
+                              </Button>
+                            ) : null}
                           </td>
                         </tr>
                       )
@@ -210,6 +272,68 @@ export const DashboardOutboxDiagnostics = () => {
           </>
         ) : null}
       </CardContent>
+      <Dialog
+        open={Boolean(replayTarget)}
+        onOpenChange={(open) => {
+          if (open || replayLoading) return
+          setReplayTarget(null)
+          setReplayAcknowledged(false)
+          setReplayFailed(false)
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('dashboard.outbox.replayDialogTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('dashboard.outbox.replayDialogDescription', {
+                eventId: replayTarget?.id.slice(0, 8) ?? '',
+                attempts: number(replayTarget?.attempts),
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <Alert variant="warning">
+            <AlertDescription>{t('dashboard.outbox.replayWarning')}</AlertDescription>
+          </Alert>
+          <label className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-200">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 accent-red-600"
+              checked={replayAcknowledged}
+              onChange={(event) => setReplayAcknowledged(event.target.checked)}
+            />
+            <span>{t('dashboard.outbox.replayAcknowledgment')}</span>
+          </label>
+          {replayFailed ? (
+            <Alert variant="destructive">
+              <AlertDescription>{t('dashboard.outbox.replayFailed')}</AlertDescription>
+            </Alert>
+          ) : null}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={replayLoading}
+              onClick={() => {
+                setReplayTarget(null)
+                setReplayAcknowledged(false)
+                setReplayFailed(false)
+              }}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={!replayAcknowledged || replayLoading}
+              onClick={() => void submitReplay()}
+            >
+              {replayLoading
+                ? t('dashboard.outbox.replaying')
+                : t('dashboard.outbox.confirmReplay')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
