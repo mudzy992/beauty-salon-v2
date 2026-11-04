@@ -4558,6 +4558,115 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   }, 30_000);
 
+  it('retries a delay-warning delivery after its delivered marker write fails', async () => {
+    const db = prisma!;
+    const sourceReservationId = randomUUID();
+    const reservationId = randomUUID();
+    const eventId = randomUUID();
+    const suffix = randomUUID().replace(/-/g, '');
+    const functionName = `e2e_delay_warning_marker_${suffix}`;
+    const triggerName = `e2e_delay_warning_marker_${suffix}`;
+    const notifications = { send: jest.fn().mockResolvedValue(undefined) };
+    const delayReminders = new ReservationDelayReminderService(
+      db as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      {} as ReservationDateService,
+    );
+    const worker = new ReservationOutboxService(
+      db as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      {
+        emitToAdmins: jest.fn(),
+        emitToStylists: jest.fn(),
+        emitToAll: jest.fn(),
+      } as unknown as EventsGateway,
+      { findOne: jest.fn() } as unknown as ReservationQueriesService,
+      undefined,
+      undefined,
+      delayReminders,
+    );
+    const payload = {
+      sourceReservationId,
+      reservationId,
+      clientId: clientUserId,
+      title: 'Rezervacija kasni',
+      body: 'Vaš termin može kasniti.',
+    };
+
+    try {
+      await db.outboxEvent.create({
+        data: {
+          id: eventId,
+          eventType: 'reservation.delay_warning',
+          aggregateId: sourceReservationId,
+          dedupeKey: `delay-warning-marker-failure:${eventId}`,
+          payload,
+          nextAttemptAt: new Date(Date.now() - 1000),
+        },
+      });
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${functionName}"() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          IF NEW."id" = '${eventId}' AND NEW."status" = 'DELIVERED' THEN
+            RAISE EXCEPTION 'synthetic delay-warning delivered marker failure';
+          END IF;
+          RETURN NEW;
+        END;
+        $$;
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE UPDATE ON "outbox_events"
+        FOR EACH ROW EXECUTE FUNCTION "${functionName}"();
+      `);
+
+      await worker.dispatchAfterCommit(eventId);
+      const retryable = await db.outboxEvent.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { status: true, attempts: true, lockedAt: true },
+      });
+      expect(retryable).toEqual({ status: 'PENDING', attempts: 1, lockedAt: null });
+      expect(notifications.send).toHaveBeenCalledTimes(1);
+
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "outbox_events"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+      await db.outboxEvent.update({
+        where: { id: eventId },
+        data: { nextAttemptAt: new Date(Date.now() - 1000) },
+      });
+      await worker.dispatchAfterCommit(eventId);
+
+      const delivered = await db.outboxEvent.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { status: true, attempts: true },
+      });
+      expect(delivered).toEqual({ status: 'DELIVERED', attempts: 2 });
+      expect(notifications.send).toHaveBeenCalledTimes(2);
+      expect(
+        notifications.send.mock.calls.map(([call]) => ({
+          userId: call.userId,
+          title: call.title,
+          body: call.body,
+          sourceEventId: call.sourceEventId,
+        })),
+      ).toEqual([
+        { userId: clientUserId, title: payload.title, body: payload.body, sourceEventId: eventId },
+        { userId: clientUserId, title: payload.title, body: payload.body, sourceEventId: eventId },
+      ]);
+    } finally {
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "outbox_events"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+      await db.reservationOutboxReplayAudit.deleteMany({
+        where: { outboxEventId: eventId },
+      });
+      await db.outboxEvent.deleteMany({ where: { id: eventId } });
+    }
+  }, 30_000);
+
   it('atomically snapshots delay-warning recipients across concurrent cron instances', async () => {
     const db = prisma!;
     const reservationDate = new Date('2040-01-02T00:00:00.000Z');
@@ -5222,6 +5331,80 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       await expect(
         db.reservationOutboxReplayAudit.count({ where: { outboxEventId: eventId } }),
       ).resolves.toBe(1);
+    } finally {
+      await db.reservationOutboxReplayAudit.deleteMany({
+        where: { outboxEventId: eventId },
+      });
+      await db.outboxEvent.deleteMany({ where: { id: eventId } });
+    }
+  }, 30_000);
+
+  it.each([
+    {
+      key: 'daily-log',
+      eventType: 'reservation.daily_log_pending_reminder',
+      payload: {
+        dailyLogEntryId: randomUUID(),
+        reservationId: randomUUID(),
+      },
+    },
+    {
+      key: 'delay-warning',
+      eventType: 'reservation.delay_warning',
+      payload: {
+        sourceReservationId: randomUUID(),
+        reservationId: randomUUID(),
+        clientId: randomUUID(),
+        title: 'Rezervacija kasni',
+        body: 'Vaš termin može kasniti.',
+      },
+    },
+  ])('audits explicit dead-letter replay for $key reminders', async ({
+    key,
+    eventType,
+    payload,
+  }) => {
+    const db = prisma!;
+    const eventId = randomUUID();
+    await db.outboxEvent.create({
+      data: {
+        id: eventId,
+        eventType,
+        aggregateId: randomUUID(),
+        dedupeKey: `phase4-reminder-replay:${key}:${eventId}`,
+        payload,
+        status: 'DEAD_LETTER',
+        attempts: 10,
+      },
+    });
+
+    try {
+      const response = await request(getHttpServer(app!))
+        .post(`/api/reservations/ops/outbox/${eventId}/replay`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ confirmAtLeastOnce: true })
+        .expect(201);
+      expect(response.body).toMatchObject({
+        eventId,
+        replayAuditId: expect.any(String),
+        status: 'PENDING',
+        attempts: 10,
+      });
+      const audit = await db.reservationOutboxReplayAudit.findUniqueOrThrow({
+        where: { id: response.body.replayAuditId },
+        select: {
+          outboxEventId: true,
+          requestedByUserId: true,
+          attemptsAtRequest: true,
+          requestedAt: true,
+        },
+      });
+      expect(audit).toEqual({
+        outboxEventId: eventId,
+        requestedByUserId: fixtureIds.ownerUserId,
+        attemptsAtRequest: 10,
+        requestedAt: expect.any(Date),
+      });
     } finally {
       await db.reservationOutboxReplayAudit.deleteMany({
         where: { outboxEventId: eventId },
