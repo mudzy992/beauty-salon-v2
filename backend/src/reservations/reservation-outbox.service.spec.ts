@@ -98,6 +98,29 @@ describe('ReservationOutboxService', () => {
     );
   });
 
+  it('requeues after an external send succeeds but the delivered marker write fails', async () => {
+    prisma.outboxEvent.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockRejectedValueOnce(new Error('database write failed'))
+      .mockResolvedValueOnce({ count: 1 });
+
+    await service.dispatchAfterCommit('event-1');
+
+    expect(notifications.sendToMany).toHaveBeenCalledTimes(1);
+    expect(events.emitToAdmins).toHaveBeenCalledTimes(1);
+    expect(prisma.outboxEvent.updateMany).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        where: { id: 'event-1', status: 'PROCESSING' },
+        data: expect.objectContaining({
+          status: 'PENDING',
+          lastError: 'Delivery failed (Error).',
+          lockedAt: null,
+        }),
+      }),
+    );
+  });
+
   it('backs off failed delivery and stores only a sanitized error type', async () => {
     notifications.sendToMany.mockRejectedValueOnce(
       new Error('sensitive SMTP transport detail'),
