@@ -3289,9 +3289,39 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       return closeIsBlocked;
     };
     const suffix = randomUUID().replaceAll('-', '');
-    const year =
-      2000 + Math.floor(Math.random() * (new Date().getFullYear() - 2000));
-    const month = 1 + Math.floor(Math.random() * 12);
+    let year = 0;
+    let month = 0;
+    for (
+      let candidateYear = 2000;
+      candidateYear < new Date().getFullYear() && year === 0;
+      candidateYear++
+    ) {
+      for (let candidateMonth = 1; candidateMonth <= 12; candidateMonth++) {
+        const [existingIncomeBook, existingExpenseBook] = await Promise.all([
+          db.incomeBook.findUnique({
+            where: {
+              year_month: { year: candidateYear, month: candidateMonth },
+            },
+            select: { id: true },
+          }),
+          db.expenseBook.findUnique({
+            where: {
+              year_month: { year: candidateYear, month: candidateMonth },
+            },
+            select: { id: true },
+          }),
+        ]);
+        if (existingIncomeBook || existingExpenseBook) continue;
+        year = candidateYear;
+        month = candidateMonth;
+        break;
+      }
+    }
+    if (year === 0) {
+      throw new Error(
+        'No unused income/expense book period for BIZ-08 race test.',
+      );
+    }
 
     const incomeBook = await db.incomeBook.create({ data: { year, month } });
     fixtureIds.financeRaceIncomeBookId = incomeBook.id;
