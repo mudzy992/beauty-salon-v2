@@ -4239,6 +4239,123 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   }, 30_000);
 
+  it('retries an appointment reminder after its delivered marker write fails, preserving at-least-once semantics', async () => {
+    const db = prisma!;
+    const reservationId = randomUUID();
+    const eventId = randomUUID();
+    const suffix = randomUUID().replace(/-/g, '');
+    const functionName = `e2e_appointment_marker_failure_${suffix}`;
+    const triggerName = `e2e_appointment_marker_failure_${suffix}`;
+    const reservationDate = new Date('2040-01-02T00:00:00.000Z');
+    const notifications = { send: jest.fn().mockResolvedValue(undefined) };
+    const dates = {
+      refreshTimezone: jest.fn().mockResolvedValue(undefined),
+      toDateOnlyString: jest.fn().mockReturnValue('2040-01-02'),
+      combineDateAndTime: jest.fn(
+        () => new Date(Date.now() + 24 * 60 * 60 * 1000),
+      ),
+    };
+    const appointmentReminders = new ReservationAppointmentReminderService(
+      db as unknown as PrismaService,
+      { getNumber: jest.fn().mockResolvedValue(24) } as unknown as SettingsService,
+      dates as unknown as ReservationDateService,
+      notifications as unknown as NotificationsService,
+    );
+    const worker = new ReservationOutboxService(
+      db as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      {
+        emitToAdmins: jest.fn(),
+        emitToStylists: jest.fn(),
+        emitToAll: jest.fn(),
+      } as unknown as EventsGateway,
+      { findOne: jest.fn() } as unknown as ReservationQueriesService,
+      appointmentReminders,
+    );
+
+    try {
+      await db.reservation.create({
+        data: {
+          id: reservationId,
+          clientId: clientUserId,
+          serviceId,
+          reservationDate,
+          startTime: '10:00',
+          endTime: '10:45',
+          status: 'CONFIRMED',
+          publicReferenceCode: `APPT-${randomUUID()}`,
+          clientViewToken: randomUUID(),
+        },
+      });
+      await db.outboxEvent.create({
+        data: {
+          id: eventId,
+          eventType: 'reservation.appointment_reminder',
+          aggregateId: reservationId,
+          dedupeKey: `appointment-marker-failure:${eventId}`,
+          payload: {
+            reservationId,
+            clientId: clientUserId,
+            reservationDate: '2040-01-02',
+            startTime: '10:00',
+          },
+        },
+      });
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${functionName}"() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          IF NEW."id" = '${reservationId}' AND NEW."reminder_sent_at" IS NOT NULL THEN
+            RAISE EXCEPTION 'synthetic appointment reminder marker failure';
+          END IF;
+          RETURN NEW;
+        END;
+        $$;
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE UPDATE ON "reservations"
+        FOR EACH ROW EXECUTE FUNCTION "${functionName}"();
+      `);
+
+      await worker.dispatchAfterCommit(eventId);
+      const retryable = await db.outboxEvent.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { status: true, attempts: true, lockedAt: true },
+      });
+      expect(retryable).toEqual({ status: 'PENDING', attempts: 1, lockedAt: null });
+      expect(notifications.send).toHaveBeenCalledTimes(1);
+
+      await db.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${triggerName}" ON "reservations"`);
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+      await db.outboxEvent.update({
+        where: { id: eventId },
+        data: { nextAttemptAt: new Date(Date.now() - 1000) },
+      });
+      await worker.dispatchAfterCommit(eventId);
+
+      const delivered = await db.outboxEvent.findUniqueOrThrow({
+        where: { id: eventId },
+        select: { status: true, attempts: true },
+      });
+      expect(delivered).toEqual({ status: 'DELIVERED', attempts: 2 });
+      expect(notifications.send).toHaveBeenCalledTimes(2);
+      expect(notifications.send.mock.calls.map(([call]) => call.sourceEventId)).toEqual([
+        eventId,
+        eventId,
+      ]);
+      const markedReservation = await db.reservation.findUniqueOrThrow({
+        where: { id: reservationId },
+        select: { reminderSentAt: true },
+      });
+      expect(markedReservation.reminderSentAt).toBeInstanceOf(Date);
+    } finally {
+      await db.$executeRawUnsafe(`DROP TRIGGER IF EXISTS "${triggerName}" ON "reservations"`);
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+      await db.outboxEvent.deleteMany({ where: { id: eventId } });
+      await db.reservation.deleteMany({ where: { id: reservationId } });
+    }
+  }, 30_000);
+
   it('queues one pending daily-log reminder across concurrent cron scans', async () => {
     const db = prisma!;
     const reservationId = randomUUID();
