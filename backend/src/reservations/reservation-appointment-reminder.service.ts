@@ -36,7 +36,6 @@ export class ReservationAppointmentReminderService {
     const hours = await this.settings.getNumber('system_notif_reminder_hours')
     const now = Date.now()
     const windowMs = WINDOW_MINUTES * 60 * 1000
-    const target = now + hours * 60 * 60 * 1000
     const rows = await this.prisma.reservation.findMany({
       where: {
         reminderSentAt: null,
@@ -52,8 +51,14 @@ export class ReservationAppointmentReminderService {
 
     let queuedCount = 0
     for (const row of rows) {
-      const start = this.dates.combineDateAndTime(row.reservationDate, row.startTime).getTime()
-      if (start < target - windowMs || start > target + windowMs) continue
+      const start = this.dates.combineDateAndTime(
+        row.reservationDate,
+        row.startTime,
+      )
+      const reminderAt = this.dates
+        .addSalonWallClockHours(start, -hours)
+        .getTime()
+      if (reminderAt < now - windowMs || reminderAt > now + windowMs) continue
 
       const reservationDate = this.dates.toDateOnlyString(row.reservationDate)
       const payload: AppointmentReminderPayload = {
@@ -108,10 +113,13 @@ export class ReservationAppointmentReminderService {
     const start = this.dates.combineDateAndTime(
       reservation.reservationDate,
       reservation.startTime,
-    ).getTime()
-    const target = Date.now() + hours * 60 * 60 * 1000
+    )
+    const reminderAt = this.dates
+      .addSalonWallClockHours(start, -hours)
+      .getTime()
+    const now = Date.now()
     const windowMs = WINDOW_MINUTES * 60 * 1000
-    if (start < target - windowMs || start > target + windowMs) return
+    if (reminderAt < now - windowMs || reminderAt > now + windowMs) return
 
     const loaded = await loadReservationPushContext(this.prisma, reservation.id)
     const copy = buildAppointmentReminderCopy({

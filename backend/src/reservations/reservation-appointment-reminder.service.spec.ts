@@ -1,4 +1,5 @@
 import { ReservationAppointmentReminderService } from './reservation-appointment-reminder.service'
+import { ReservationDateService } from './reservation-date.service'
 import { RESERVATION_STATUS } from './constants'
 
 jest.mock('../notifications/utils/load-reservation-push-context', () => ({
@@ -23,6 +24,7 @@ describe('ReservationAppointmentReminderService', () => {
   const dates = {
     refreshTimezone: jest.fn(),
     combineDateAndTime: jest.fn(),
+    addSalonWallClockHours: jest.fn(),
     toDateOnlyString: jest.fn(),
   }
   const notifications = { send: jest.fn() }
@@ -37,12 +39,96 @@ describe('ReservationAppointmentReminderService', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     dates.refreshTimezone.mockResolvedValue(undefined)
+    dates.addSalonWallClockHours.mockImplementation(
+      (date: Date, hours: number) =>
+        new Date(date.getTime() + hours * 60 * 60 * 1000),
+    )
     settings.getNumber.mockResolvedValue(24)
     dates.toDateOnlyString.mockReturnValue('2026-08-15')
     prisma.outboxEvent.createMany.mockResolvedValue({ count: 1 })
     prisma.reservation.updateMany.mockResolvedValue({ count: 1 })
     notifications.send.mockResolvedValue(undefined)
   })
+
+  afterEach(() => jest.useRealTimers())
+
+  it.each([
+    {
+      name: 'spring-forward',
+      now: '2026-03-28T09:00:00.000Z',
+      date: '2026-03-29',
+      start: '2026-03-29T08:00:00.000Z',
+      reminderAt: '2026-03-28T09:00:00.000Z',
+      elapsedHours: 23,
+    },
+    {
+      name: 'fall-back',
+      now: '2026-10-24T08:00:00.000Z',
+      date: '2026-10-25',
+      start: '2026-10-25T09:00:00.000Z',
+      reminderAt: '2026-10-24T08:00:00.000Z',
+      elapsedHours: 25,
+    },
+  ])(
+    'uses salon wall-clock hours for $name reminders',
+    async ({
+      now,
+      date,
+      start: expectedStart,
+      reminderAt: expectedReminderAt,
+      elapsedHours,
+    }) => {
+      jest.useFakeTimers()
+      jest.setSystemTime(new Date(now))
+      const reminderSettings = {
+        getNumber: jest.fn().mockResolvedValue(24),
+        getString: jest.fn().mockResolvedValue('Europe/Sarajevo'),
+      }
+      const localDates = new ReservationDateService(reminderSettings as never)
+      const reservationDate = new Date(`${date}T00:00:00.000Z`)
+      const start = localDates.combineDateAndTime(reservationDate, '10:00')
+      const reminderAt = localDates.addSalonWallClockHours(start, -24)
+      expect(start.toISOString()).toBe(expectedStart)
+      expect(reminderAt.toISOString()).toBe(expectedReminderAt)
+      expect((start.getTime() - reminderAt.getTime()) / (60 * 60 * 1000)).toBe(
+        elapsedHours,
+      )
+
+      const reservation = {
+        id: 'r-dst',
+        clientId: 'c1',
+        reservationDate,
+        startTime: '10:00',
+      }
+      prisma.reservation.findMany.mockResolvedValueOnce([reservation])
+      prisma.reservation.findUnique.mockResolvedValueOnce({
+        ...reservation,
+        reminderSentAt: null,
+        status: RESERVATION_STATUS.CONFIRMED,
+      })
+      const reminderService = new ReservationAppointmentReminderService(
+        prisma as never,
+        reminderSettings as never,
+        localDates,
+        notifications as never,
+      )
+
+      await expect(
+        reminderService.processAppointmentReminders(),
+      ).resolves.toEqual({
+        queuedCount: 1,
+      })
+      await reminderService.deliverOutboxEvent('event-dst', {
+        reservationId: 'r-dst',
+        clientId: 'c1',
+        reservationDate: date,
+        startTime: '10:00',
+      })
+      expect(notifications.send).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceEventId: 'event-dst', userId: 'c1' }),
+      )
+    },
+  )
 
   it('queues a reminder event with a stable per-schedule dedupe key', async () => {
     const start = new Date(Date.now() + 24 * 60 * 60 * 1000)

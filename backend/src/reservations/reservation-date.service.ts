@@ -121,6 +121,27 @@ export class ReservationDateService implements OnModuleInit {
     )
   }
 
+  /** Shift an instant by wall-clock hours in the salon timezone, not elapsed hours. */
+  addSalonWallClockHours(date: Date, hours: number): Date {
+    if (!Number.isFinite(hours)) throw new RangeError('hours must be finite.')
+    const minutes = Math.round(hours * 60)
+    if (!Number.isSafeInteger(minutes))
+      throw new RangeError('hours is out of range.')
+
+    const parts = getZonedDateParts(date, this.tz)
+    const wallDate = new Date(0)
+    wallDate.setUTCFullYear(parts.year, parts.month - 1, parts.day)
+    wallDate.setUTCHours(parts.hour, parts.minute + minutes, 0, 0)
+    return zonedWallTimeToUtc(
+      wallDate.getUTCFullYear(),
+      wallDate.getUTCMonth(),
+      wallDate.getUTCDate(),
+      wallDate.getUTCHours(),
+      wallDate.getUTCMinutes(),
+      this.tz,
+    )
+  }
+
   getDayStartEnd(date: Date) {
     const parts = getZonedDateParts(date, this.tz)
     const start = zonedWallTimeToUtc(
