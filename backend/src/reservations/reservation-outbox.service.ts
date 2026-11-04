@@ -12,6 +12,7 @@ const BATCH_SIZE = 25;
 const DELIVERY_LEASE_MS = 5 * 60 * 1000;
 const MAX_ATTEMPTS = 10;
 const MAX_RETRY_DELAY_MS = 60 * 60 * 1000;
+const DIAGNOSTICS_EVENT_LIMIT = 50;
 
 type ReservationCreatedPayload = {
   reservationId: string;
@@ -149,6 +150,77 @@ export class ReservationOutboxService {
         );
       }
     }
+  }
+
+  async getDiagnostics() {
+    const now = new Date();
+    const staleBefore = new Date(now.getTime() - DELIVERY_LEASE_MS);
+    const [statusGroups, duePending, staleProcessing, recentEvents] =
+      await Promise.all([
+        this.prisma.outboxEvent.groupBy({
+          by: ['status'],
+          where: { eventType: 'reservation.created' },
+          _count: { _all: true },
+        }),
+        this.prisma.outboxEvent.count({
+          where: {
+            eventType: 'reservation.created',
+            status: 'PENDING',
+            nextAttemptAt: { lte: now },
+          },
+        }),
+        this.prisma.outboxEvent.count({
+          where: {
+            eventType: 'reservation.created',
+            status: 'PROCESSING',
+            lockedAt: { lt: staleBefore },
+          },
+        }),
+        this.prisma.outboxEvent.findMany({
+          where: {
+            eventType: 'reservation.created',
+            status: { in: ['PENDING', 'PROCESSING', 'DEAD_LETTER'] },
+          },
+          orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+          take: DIAGNOSTICS_EVENT_LIMIT,
+          select: {
+            id: true,
+            status: true,
+            attempts: true,
+            nextAttemptAt: true,
+            lockedAt: true,
+            lastError: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+      ]);
+
+    return {
+      generatedAt: now,
+      counts: Object.fromEntries(
+        statusGroups.map(({ status, _count }) => [status, _count._all]),
+      ),
+      duePending,
+      staleProcessing,
+      recentEvents: recentEvents.map((event) => ({
+        ...event,
+        lastError: this.sanitizeDiagnosticError(event.lastError),
+      })),
+    };
+  }
+
+  private sanitizeDiagnosticError(error: string | null): string | null {
+    if (!error) return null;
+    if (error === 'Expired delivery lease recovered.') return error;
+    if (error === 'Expired delivery lease reached the attempt limit.') {
+      return error;
+    }
+    const safeDeliveryError = error.match(
+      /^Delivery failed \(([A-Za-z][A-Za-z0-9_]{0,63})\)\.$/,
+    );
+    if (safeDeliveryError) return `Delivery failed (${safeDeliveryError[1]}).`;
+    return 'Previous error detail redacted.';
   }
 
   @Cron('*/1 * * * *', {

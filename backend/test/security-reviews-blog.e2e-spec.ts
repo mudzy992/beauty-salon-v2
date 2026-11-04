@@ -4213,6 +4213,60 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   }, 30_000);
 
+  it('exposes bounded redacted outbox diagnostics only to admins', async () => {
+    const db = prisma!;
+    const eventId = randomUUID();
+    const aggregateId = randomUUID();
+    const rawError = 'SMTP password=private-e2e-value';
+    await db.outboxEvent.create({
+      data: {
+        id: eventId,
+        eventType: 'reservation.created',
+        aggregateId,
+        dedupeKey: `outbox-diagnostics:${eventId}`,
+        payload: { privatePayloadValue: 'must-not-be-returned' },
+        status: 'DEAD_LETTER',
+        attempts: 10,
+        lastError: rawError,
+      },
+    });
+
+    try {
+      await request(getHttpServer(app!))
+        .get('/api/reservations/ops/outbox')
+        .expect(401);
+      await request(getHttpServer(app!))
+        .get('/api/reservations/ops/outbox')
+        .set('Authorization', `Bearer ${clientToken}`)
+        .expect(403);
+
+      const response = await request(getHttpServer(app!))
+        .get('/api/reservations/ops/outbox')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .expect(200);
+      const event = response.body.recentEvents.find(
+        (candidate: { id: string }) => candidate.id === eventId,
+      );
+      expect(response.body).toMatchObject({
+        counts: expect.objectContaining({ DEAD_LETTER: expect.any(Number) }),
+        duePending: expect.any(Number),
+        staleProcessing: expect.any(Number),
+      });
+      expect(event).toMatchObject({
+        id: eventId,
+        status: 'DEAD_LETTER',
+        attempts: 10,
+        lastError: 'Previous error detail redacted.',
+      });
+      expect(JSON.stringify(response.body)).not.toContain(rawError);
+      expect(JSON.stringify(response.body)).not.toContain(aggregateId);
+      expect(JSON.stringify(response.body)).not.toContain('must-not-be-returned');
+      expect(response.body.recentEvents.length).toBeLessThanOrEqual(50);
+    } finally {
+      await db.outboxEvent.deleteMany({ where: { id: eventId } });
+    }
+  }, 30_000);
+
   it('serializes concurrent client creates so one stylist has only one booking for a one-capacity slot', async () => {
     const db = prisma!;
     const date = addWeeks(availabilityDate, 2);

@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ReservationsService } from './reservations.service';
 import { AvailabilityService } from './availability.service';
+import { ReservationOutboxService } from './reservation-outbox.service';
 import { CreateReservationDto } from './dto/create-reservation.dto';
 import { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
 import { StylistDirectCreateReservationDto } from './dto/stylist-direct-create-reservation.dto';
@@ -37,6 +38,7 @@ export class ReservationsController {
   constructor(
     private readonly reservations: ReservationsService,
     private readonly availability: AvailabilityService,
+    private readonly outbox: ReservationOutboxService,
   ) {}
 
   @Post()
@@ -97,6 +99,13 @@ export class ReservationsController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.reservations.getDashboardSummary({ fromDate, toDate }, user);
+  }
+
+  @Get('ops/outbox')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getOutboxDiagnostics() {
+    return this.outbox.getDiagnostics();
   }
 
   @Get('availability/debug')

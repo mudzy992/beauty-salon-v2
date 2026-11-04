@@ -32,6 +32,8 @@ describe('ReservationOutboxService', () => {
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       findUnique: jest.fn().mockResolvedValue(event),
       findMany: jest.fn().mockResolvedValue([]),
+      groupBy: jest.fn().mockResolvedValue([]),
+      count: jest.fn().mockResolvedValue(0),
     },
   };
   const notifications = { sendToMany: jest.fn().mockResolvedValue(undefined) };
@@ -141,6 +143,54 @@ describe('ReservationOutboxService', () => {
           lastError: 'Delivery failed (Error).',
           lockedAt: null,
         }),
+      }),
+    );
+  });
+
+  it('returns bounded outbox diagnostics and redacts stored error details', async () => {
+    const createdAt = new Date('2030-01-01T00:00:00.000Z');
+    const updatedAt = new Date('2030-01-01T00:01:00.000Z');
+    prisma.outboxEvent.groupBy.mockResolvedValueOnce([
+      { status: 'PENDING', _count: { _all: 2 } },
+      { status: 'DEAD_LETTER', _count: { _all: 1 } },
+    ]);
+    prisma.outboxEvent.count
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(3);
+    prisma.outboxEvent.findMany.mockResolvedValueOnce([
+      {
+        id: 'event-secret-id',
+        status: 'DEAD_LETTER',
+        attempts: 10,
+        nextAttemptAt: createdAt,
+        lockedAt: null,
+        lastError: 'SMTP failed with password=private-value',
+        createdAt,
+        updatedAt,
+      },
+    ]);
+
+    const result = await service.getDiagnostics();
+
+    expect(result.counts).toEqual({ PENDING: 2, DEAD_LETTER: 1 });
+    expect(result.duePending).toBe(1);
+    expect(result.staleProcessing).toBe(3);
+    expect(result.recentEvents).toEqual([
+      {
+        id: 'event-secret-id',
+        status: 'DEAD_LETTER',
+        attempts: 10,
+        nextAttemptAt: createdAt,
+        lockedAt: null,
+        lastError: 'Previous error detail redacted.',
+        createdAt,
+        updatedAt,
+      },
+    ]);
+    expect(prisma.outboxEvent.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 50,
+        select: expect.not.objectContaining({ payload: true }),
       }),
     );
   });
