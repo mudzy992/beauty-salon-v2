@@ -4213,6 +4213,74 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   }, 30_000);
 
+  it('persists a retryable outbox state in PostgreSQL after provider delivery fails', async () => {
+    const db = prisma!;
+    const eventId = randomUUID();
+    const aggregateId = randomUUID();
+    await db.outboxEvent.create({
+      data: {
+        id: eventId,
+        eventType: 'reservation.created',
+        aggregateId,
+        dedupeKey: `outbox-provider-failure:${eventId}`,
+        nextAttemptAt: new Date(Date.now() - 1000),
+        payload: {
+          reservationId: aggregateId,
+          actor: {
+            sub: clientUserId,
+            username: 'outbox-test-client',
+            email: 'outbox-test@example.invalid',
+            roles: ['CLIENT'],
+          },
+          notifyUserIds: [clientUserId],
+          notificationTitle: 'Test',
+          notificationBody: 'Test',
+          serviceId: randomUUID(),
+          serviceIds: [randomUUID()],
+          reservationDate: '2030-01-02',
+          emitToAdmins: false,
+          emitToStylists: false,
+        },
+      },
+    });
+
+    const notifications = app!.get(NotificationsService);
+    const queries = app!.get(ReservationQueriesService);
+    const sendSpy = jest
+      .spyOn(notifications, 'sendToMany')
+      .mockRejectedValueOnce(new Error('provider secret must not be stored'));
+    const querySpy = jest
+      .spyOn(queries, 'findOne')
+      .mockResolvedValueOnce({ id: aggregateId } as never);
+
+    try {
+      await app!.get(ReservationOutboxService).dispatchAfterCommit(eventId);
+
+      expect(sendSpy).toHaveBeenCalledTimes(1);
+      const persisted = await db.outboxEvent.findUniqueOrThrow({
+        where: { id: eventId },
+        select: {
+          status: true,
+          attempts: true,
+          lockedAt: true,
+          nextAttemptAt: true,
+          lastError: true,
+        },
+      });
+      expect(persisted).toMatchObject({
+        status: 'PENDING',
+        attempts: 1,
+        lockedAt: null,
+        lastError: 'Delivery failed (Error).',
+      });
+      expect(persisted.nextAttemptAt.getTime()).toBeGreaterThan(Date.now());
+    } finally {
+      sendSpy.mockRestore();
+      querySpy.mockRestore();
+      await db.outboxEvent.deleteMany({ where: { id: eventId } });
+    }
+  }, 30_000);
+
   it('exposes bounded redacted outbox diagnostics only to admins', async () => {
     const db = prisma!;
     const eventId = randomUUID();
