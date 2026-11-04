@@ -30,7 +30,9 @@ export const useDashboardData = () => {
     setLoading(true)
     const { year, month, firstDay, lastDay } = currentMonthBounds()
     Promise.all([
-      api.get('/api/users').catch(() => ({ data: [] })),
+      api
+        .get<{ total?: number }>('/api/users/dashboard-count')
+        .catch(() => ({ data: { total: 0 } })),
       api.get('/api/stylists', { params: { page: 0, pageSize: 1 } }).catch(() => ({ data: [] })),
       api.get('/api/services', { params: { page: 0, pageSize: 1 } }).catch(() => ({ data: [] })),
       api
@@ -48,7 +50,7 @@ export const useDashboardData = () => {
     ])
       .then(
         ([
-          usersRes,
+          usersCountRes,
           stylistsRes,
           servicesRes,
           resThisMonth,
@@ -72,7 +74,9 @@ export const useDashboardData = () => {
           } | null
 
           setStats({
-            usersCount: asArray(usersRes.data).length,
+            usersCount: Number.isFinite(usersCountRes.data?.total)
+              ? Number(usersCountRes.data.total)
+              : 0,
             stylistsCount: catalogCount(stylistsRes.data),
             servicesCount: catalogCount(servicesRes.data),
             reservationsThisMonth: allReservations.length,

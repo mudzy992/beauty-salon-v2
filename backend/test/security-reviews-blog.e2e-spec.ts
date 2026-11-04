@@ -2610,6 +2610,28 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     expect(systemAdminDetail.body).not.toHaveProperty('passwordHash');
   });
 
+  it('returns only an admin-authorized aggregate user count for the dashboard', async () => {
+    const httpServer = getHttpServer(app!);
+    await request(httpServer).get('/api/users/dashboard-count').expect(401);
+    await request(httpServer)
+      .get('/api/users/dashboard-count')
+      .set('Authorization', `Bearer ${clientToken}`)
+      .expect(403);
+
+    const total = await prisma!.user.count();
+    const ownerResponse = await request(httpServer)
+      .get('/api/users/dashboard-count')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(ownerResponse.body).toEqual({ total });
+
+    const adminResponse = await request(httpServer)
+      .get('/api/users/dashboard-count')
+      .set('Authorization', `Bearer ${systemAdminToken}`)
+      .expect(200);
+    expect(adminResponse.body).toEqual({ total });
+  });
+
   it('returns a minimal picker projection and clamps validated pagination', async () => {
     const response = await request(getHttpServer(app!))
       .get('/api/users/clients')

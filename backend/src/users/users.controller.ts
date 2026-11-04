@@ -106,6 +106,13 @@ export class UsersController {
     });
   }
 
+  @Get('dashboard-count')
+  @UseGuards(RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getDashboardUserCount(@CurrentUser() user: CurrentUserPayload) {
+    return this.usersService.getDashboardUserCount(user.roles);
+  }
+
   @Get('for-daily-log')
   @UseGuards(RolesGuard)
   @Roles('STYLIST', 'SYSTEM_ADMIN', 'OWNER')

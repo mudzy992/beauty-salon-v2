@@ -144,6 +144,11 @@ export class UsersService {
     });
   }
 
+  async getDashboardUserCount(roles: string[]) {
+    this.requireAdminOrOwner(roles)
+    return { total: await this.repo.user.count() }
+  }
+
   async findAll(
     roles: string[],
     pagination?: { page?: number; pageSize?: number },

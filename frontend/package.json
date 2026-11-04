@@ -42,6 +42,7 @@
     "test:stylist-reservation-reorder-dialog-i18n": "node --test src/features/stylist-portal/stylist-reservation-reorder-dialog-i18n.test.mjs",
     "test:app-releases-i18n": "node --test src/features/app-releases/app-releases-i18n.test.mjs",
     "test:dashboard-i18n": "node --test src/features/dashboard/dashboard-i18n.test.mjs",
+    "test:dashboard-count-contract": "node --test src/features/dashboard/dashboard-count-contract.test.mjs",
     "test:debtors-i18n": "node --test src/features/debtors/debtors-i18n.test.mjs",
     "test:stylist-analytics-i18n": "node --test src/features/stylist-analytics/stylist-analytics-i18n.test.mjs",
     "test:email-settings-smtp-i18n": "node --test src/features/email-settings/email-settings-smtp-i18n.test.mjs",

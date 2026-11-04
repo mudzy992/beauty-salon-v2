@@ -248,6 +248,9 @@ jobs:
       - name: Test localized admin dashboard
         working-directory: frontend
         run: npm run test:dashboard-i18n
+      - name: Test dashboard aggregate-count contract
+        working-directory: frontend
+        run: npm run test:dashboard-count-contract
       - name: Test localized admin debtors page
         working-directory: frontend
         run: npm run test:debtors-i18n

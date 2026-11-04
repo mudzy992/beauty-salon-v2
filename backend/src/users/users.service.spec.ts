@@ -100,6 +100,21 @@ describe('UsersService', () => {
     service = module.get<UsersService>(UsersService);
   });
 
+  it('returns only the aggregate dashboard count to admin roles', async () => {
+    mockRepo.user.count.mockResolvedValue(17)
+
+    await expect(service.getDashboardUserCount(['STYLIST'])).rejects.toThrow(
+      ForbiddenException,
+    )
+    expect(mockRepo.user.count).not.toHaveBeenCalled()
+
+    await expect(service.getDashboardUserCount(['OWNER'])).resolves.toEqual({
+      total: 17,
+    })
+    expect(mockRepo.user.count).toHaveBeenCalledTimes(1)
+    expect(mockRepo.user.findMany).not.toHaveBeenCalled()
+  })
+
   it('client picker is paginated and returns only booking display fields', async () => {
     const client = {
       id: 'client-1',
