@@ -6,7 +6,7 @@ Ovaj runbook pokriva `reservation.created`, `reservation.appointment_reminder`, 
 
 - Booking/reminder producer transakcije prvo upisuju durable outbox evente; notification/push/socket I/O radi nakon DB commita.
 - Worker obrađuje najviše 25 due događaja po pollu. Istekli `PROCESSING` lease (stariji od 5 minuta) vraća se za retry; backoff je eksponencijalan do 1 sata; nakon 10 pokušaja događaj prelazi u `DEAD_LETTER`.
-- Appointment reminders revalidiraju reservation status/datum/vrijeme i koriste vlasnički potvrđen salonski wall-clock broj sati. Pending daily-log reminder provjerava PENDING/undeleted/awaiting state i starost unosa kao proteklo vrijeme. Delay-warning payload snapshotuje primaoca i sadržaj pri threshold-crossingu; prag je proteklo vrijeme od lokalno razriješenog scheduled end-a.
+- Appointment reminders revalidiraju reservation status/datum/vrijeme i koriste vlasnički potvrđen salonski wall-clock broj sati. Pending daily-log reminder provjerava PENDING/undeleted/awaiting state i starost unosa kao proteklo vrijeme. Delay-warning payload snapshotuje primaoca i sadržaj pri threshold-crossingu; prag je proteklo vrijeme od lokalno razriješenog scheduled end-a. CAS marker `delayNotifiedAt` i per-recipient outbox inserti su jedna DB transakcija; insert failure rollbacka claim pa naredni cron pass može ponoviti queueing.
 - Notification DB upsert je idempotentan po izvornom događaju/korisniku. Push/email provider side-effect ostaje **at-least-once**: ako provider prihvati dostavu, a proces ili marker-upis zakaže, retry može ponoviti vanjsku dostavu. Exactly-once nije obećan.
 - Dijagnostika ne vraća payload ni aggregate ID; nepoznat tekst greške se rediguje. To nije zamjena za providerov dashboard/logove.
 
