@@ -238,7 +238,9 @@ Faze su zavisne; ne treba preskakati policy gate. Svaki source slice treba zaseb
 
 **Admin diagnostics API `470be93` (CI `41812539924` green):** `GET /api/reservations/ops/outbox` is restricted to `SYSTEM_ADMIN`/`OWNER` and returns per-status counts, due-pending/stale-lease counts, and at most 50 recent nonterminal/dead-letter rows. It omits payload and aggregate IDs and redacts unrecognized stored error text.
 
-**Dashboard diagnostics UI `16387be` (CI `41815032214` green):** the admin dashboard now shows a localized Bosnian/English outbox panel for `SYSTEM_ADMIN`/`OWNER`, with state counts, due/stale counts, up to 10 recent rows, a manual refresh control, and the at-least-once delivery warning. It displays the backend's redacted error summary and has no replay/mutation action. **Still open:** controlled manual replay, failure-boundary acceptance and operational/deployment verification.
+**Dashboard diagnostics UI `16387be` (CI `41815032214` green):** the admin dashboard now shows a localized Bosnian/English outbox panel for `SYSTEM_ADMIN`/`OWNER`, with state counts, due/stale counts, up to 10 recent rows, a manual refresh control, and the at-least-once delivery warning. It displays the backend's redacted error summary and has no replay/mutation action.
+
+**Delivery-marker failure regression `1c4e517` (CI `41816122326` green):** a unit test simulates successful notification/socket side effects followed by failure to persist `DELIVERED`, and asserts the event returns to `PENDING`. This codifies the external side-effect duplicate window and does not simulate a real database crash or provider acceptance. **Still open:** DB-backed failure-boundary/crash injection, controlled manual replay, and operational/deployment verification.
 
 **Done when:** concurrent two-worker claim yields one active worker; expired PROCESSING leases recover; failure at each boundary persists retryable result; duplicate delivery behavior documented at-least-once; dead-letter/alerting and manual replay tested on disposable PostgreSQL/fake transport; no effect on reservation create idempotency.
 
