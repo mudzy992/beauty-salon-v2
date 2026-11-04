@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { DailyLogSeedFromDirectService } from '../daily-log/daily-log-seed-from-direct.service';
 import { ReservationDateService } from './reservation-date.service';
@@ -12,6 +13,13 @@ import {
   RESERVATION_ATTENDANCE_POLICY,
   RESERVATION_STATUS,
 } from './constants';
+
+const PENDING_DAILY_LOG_REMINDER_EVENT = 'reservation.daily_log_pending_reminder';
+
+type PendingDailyLogReminderPayload = {
+  dailyLogEntryId: string;
+  reservationId: string;
+};
 
 @Injectable()
 export class ReservationDirectDailyLogCronService {
@@ -68,7 +76,7 @@ export class ReservationDirectDailyLogCronService {
     return { seededCount };
   }
 
-  async processPendingDailyLogReminders(): Promise<{ remindedCount: number }> {
+  async processPendingDailyLogReminders(): Promise<{ queuedCount: number }> {
     const hours = await this.dates.getDailyLogReminderHours();
     const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
     const stale = await this.prisma.dailyLogEntry.findMany({
@@ -83,33 +91,107 @@ export class ReservationDirectDailyLogCronService {
       select: {
         id: true,
         reservationId: true,
-        stylistProfile: { select: { userId: true } },
-        reservation: { select: { publicReferenceCode: true } },
       },
     });
-    let remindedCount = 0;
+    let queuedCount = 0;
     for (const entry of stale) {
-      if (!entry.reservationId || !entry.stylistProfile.userId) continue;
+      if (!entry.reservationId) continue;
       try {
-        await this.notify.notifyStylistPendingDailyLog({
-          stylistUserId: entry.stylistProfile.userId,
-          reservationId: entry.reservationId,
+        const payload: PendingDailyLogReminderPayload = {
           dailyLogEntryId: entry.id,
-          publicReferenceCode: entry.reservation?.publicReferenceCode,
+          reservationId: entry.reservationId,
+        };
+        const inserted = await this.prisma.outboxEvent.createMany({
+          data: [
+            {
+              eventType: PENDING_DAILY_LOG_REMINDER_EVENT,
+              aggregateId: entry.id,
+              dedupeKey: `daily-log-entry:${entry.id}:pending-reminder`,
+              payload: payload as unknown as Prisma.InputJsonValue,
+            },
+          ],
+          skipDuplicates: true,
         });
-        await this.prisma.dailyLogEntry.update({
-          where: { id: entry.id },
-          data: { pendingReminderSentAt: new Date() },
-        });
-        remindedCount += 1;
+        queuedCount += inserted.count;
       } catch (err) {
         this.logger.error(
-          `Failed daily-log reminder for entry ${entry.id}: ${
+          `Failed to queue daily-log reminder for entry ${entry.id}: ${
             err instanceof Error ? err.message : String(err)
           }`,
         );
       }
     }
-    return { remindedCount };
+    return { queuedCount };
+  }
+
+  async deliverPendingDailyLogReminder(
+    eventId: string,
+    rawPayload: unknown,
+  ): Promise<void> {
+    const payload = this.parsePendingReminderPayload(rawPayload);
+    const entry = await this.prisma.dailyLogEntry.findUnique({
+      where: { id: payload.dailyLogEntryId },
+      select: {
+        id: true,
+        reservationId: true,
+        status: true,
+        deletedAt: true,
+        pendingReminderSentAt: true,
+        createdAt: true,
+        stylistProfile: { select: { userId: true } },
+        reservation: {
+          select: { status: true, publicReferenceCode: true },
+        },
+      },
+    });
+
+    if (
+      !entry ||
+      entry.reservationId !== payload.reservationId ||
+      entry.status !== 'PENDING' ||
+      entry.deletedAt !== null ||
+      entry.pendingReminderSentAt !== null ||
+      !entry.reservation ||
+      entry.reservation.status !== RESERVATION_STATUS.AWAITING_DAILY_LOG ||
+      !entry.stylistProfile.userId
+    ) {
+      return;
+    }
+
+    const hours = await this.dates.getDailyLogReminderHours();
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+    if (entry.createdAt.getTime() > cutoff.getTime()) return;
+
+    await this.notify.notifyStylistPendingDailyLog({
+      stylistUserId: entry.stylistProfile.userId,
+      reservationId: payload.reservationId,
+      dailyLogEntryId: entry.id,
+      publicReferenceCode: entry.reservation.publicReferenceCode,
+      sourceEventId: eventId,
+    });
+    await this.prisma.dailyLogEntry.updateMany({
+      where: {
+        id: entry.id,
+        reservationId: payload.reservationId,
+        status: 'PENDING',
+        deletedAt: null,
+        pendingReminderSentAt: null,
+      },
+      data: { pendingReminderSentAt: new Date() },
+    });
+  }
+
+  private parsePendingReminderPayload(rawPayload: unknown): PendingDailyLogReminderPayload {
+    if (
+      !rawPayload ||
+      typeof rawPayload !== 'object' ||
+      !('dailyLogEntryId' in rawPayload) ||
+      typeof rawPayload.dailyLogEntryId !== 'string' ||
+      !('reservationId' in rawPayload) ||
+      typeof rawPayload.reservationId !== 'string'
+    ) {
+      throw new Error('Neispravan pending daily-log reminder payload.');
+    }
+    return rawPayload as PendingDailyLogReminderPayload;
   }
 }

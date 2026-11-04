@@ -68,6 +68,7 @@ export class ReservationNotifyService {
     reservationId: string;
     dailyLogEntryId: string;
     publicReferenceCode?: string | null;
+    sourceEventId?: string;
   }): Promise<void> {
     const loaded = await loadReservationPushContext(
       this.prisma,
@@ -88,6 +89,7 @@ export class ReservationNotifyService {
         publicReferenceCode: params.publicReferenceCode,
       },
       channel: 'PUSH',
+      sourceEventId: params.sourceEventId,
     });
   }
 

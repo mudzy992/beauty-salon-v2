@@ -13,11 +13,13 @@ import { SOCKET_EVENTS } from '../events/socket-events';
 import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { ReservationAppointmentReminderService } from './reservation-appointment-reminder.service';
+import { ReservationDirectDailyLogCronService } from './reservation-direct-daily-log-cron.service';
 import { DEFAULT_SALON_TIMEZONE } from '../common/utils/zoned-time';
 
 const SUPPORTED_EVENT_TYPES = [
   'reservation.created',
   'reservation.appointment_reminder',
+  'reservation.daily_log_pending_reminder',
 ] as const;
 const BATCH_SIZE = 25;
 const DELIVERY_LEASE_MS = 5 * 60 * 1000;
@@ -49,6 +51,8 @@ export class ReservationOutboxService {
     private readonly queries: ReservationQueriesService,
     @Optional()
     private readonly appointmentReminders?: ReservationAppointmentReminderService,
+    @Optional()
+    private readonly dailyLogReminders?: ReservationDirectDailyLogCronService,
   ) {}
 
   /**
@@ -124,6 +128,14 @@ export class ReservationOutboxService {
           throw new Error('Appointment reminder outbox handler nije dostupan.');
         }
         await this.appointmentReminders.deliverOutboxEvent(
+          event.id,
+          event.payload,
+        );
+      } else if (event.eventType === 'reservation.daily_log_pending_reminder') {
+        if (!this.dailyLogReminders) {
+          throw new Error('Daily-log reminder outbox handler nije dostupan.');
+        }
+        await this.dailyLogReminders.deliverPendingDailyLogReminder(
           event.id,
           event.payload,
         );

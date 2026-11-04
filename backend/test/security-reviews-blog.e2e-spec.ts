@@ -64,6 +64,7 @@ import { ReservationDirectCreateService } from '../src/reservations/reservation-
 import { ReservationClientActionsService } from '../src/reservations/reservation-client-actions.service';
 import { ReservationDateService } from '../src/reservations/reservation-date.service';
 import { ReservationAppointmentReminderService } from '../src/reservations/reservation-appointment-reminder.service';
+import { ReservationDirectDailyLogCronService } from '../src/reservations/reservation-direct-daily-log-cron.service';
 import { ReservationNotifyService } from '../src/reservations/reservation-notify.service';
 import { ReservationOutboxService } from '../src/reservations/reservation-outbox.service';
 import { ReservationQueriesService } from '../src/reservations/reservation-queries.service';
@@ -4233,6 +4234,67 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       ).resolves.toBe(1);
     } finally {
       await db.outboxEvent.deleteMany({ where: { aggregateId: reservationId } });
+      await db.reservation.deleteMany({ where: { id: reservationId } });
+    }
+  }, 30_000);
+
+  it('queues one pending daily-log reminder across concurrent cron scans', async () => {
+    const db = prisma!;
+    const reservationId = randomUUID();
+    const dailyLogEntryId = randomUUID();
+    const oldCreatedAt = new Date(Date.now() - 13 * 60 * 60 * 1000);
+    await db.reservation.create({
+      data: {
+        id: reservationId,
+        clientId: clientUserId,
+        serviceId,
+        reservationDate: new Date('2040-01-02T00:00:00.000Z'),
+        startTime: '10:00',
+        endTime: '10:45',
+        status: 'AWAITING_DAILY_LOG',
+        publicReferenceCode: `DLOG-${randomUUID()}`,
+        clientViewToken: randomUUID(),
+      },
+    });
+    await db.dailyLogEntry.create({
+      data: {
+        id: dailyLogEntryId,
+        stylistProfileId: fixtureIds.stylistProfile!,
+        reservationId,
+        serviceId,
+        clientId: clientUserId,
+        date: new Date('2040-01-02T00:00:00.000Z'),
+        actualPrice: 25,
+        publicReferenceCode: `DLOG-ENTRY-${randomUUID()}`,
+        status: 'PENDING',
+        createdAt: oldCreatedAt,
+      },
+    });
+
+    const reminders = new ReservationDirectDailyLogCronService(
+      db as unknown as PrismaService,
+      { getDailyLogReminderHours: jest.fn().mockResolvedValue(12) } as never,
+      { seedPendingFromDirectReservation: jest.fn() } as never,
+      { notifyStylistPendingDailyLog: jest.fn() } as never,
+    );
+
+    try {
+      const results = await Promise.all([
+        reminders.processPendingDailyLogReminders(),
+        reminders.processPendingDailyLogReminders(),
+      ]);
+      expect(results.reduce((sum, result) => sum + result.queuedCount, 0)).toBe(1);
+      await expect(
+        db.outboxEvent.count({
+          where: {
+            eventType: 'reservation.daily_log_pending_reminder',
+            aggregateId: dailyLogEntryId,
+          },
+        }),
+      ).resolves.toBe(1);
+    } finally {
+      await db.outboxEvent.deleteMany({ where: { aggregateId: dailyLogEntryId } });
+      await db.dailyLogEntry.deleteMany({ where: { id: dailyLogEntryId } });
       await db.reservation.deleteMany({ where: { id: reservationId } });
     }
   }, 30_000);

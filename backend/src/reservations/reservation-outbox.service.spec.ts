@@ -46,6 +46,7 @@ describe('ReservationOutboxService', () => {
     findOne: jest.fn().mockResolvedValue({ id: 'reservation-1' }),
   };
   const appointmentReminders = { deliverOutboxEvent: jest.fn() };
+  const dailyLogReminders = { deliverPendingDailyLogReminder: jest.fn() };
   let service: ReservationOutboxService;
 
   beforeEach(() => {
@@ -56,12 +57,14 @@ describe('ReservationOutboxService', () => {
     notifications.sendToMany.mockResolvedValue(undefined);
     queries.findOne.mockResolvedValue({ id: 'reservation-1' });
     appointmentReminders.deliverOutboxEvent.mockResolvedValue(undefined);
+    dailyLogReminders.deliverPendingDailyLogReminder.mockResolvedValue(undefined);
     service = new ReservationOutboxService(
       prisma as unknown as PrismaService,
       notifications as unknown as NotificationsService,
       events as unknown as EventsGateway,
       queries as unknown as ReservationQueriesService,
       appointmentReminders as never,
+      dailyLogReminders as never,
     );
   });
 
@@ -123,6 +126,23 @@ describe('ReservationOutboxService', () => {
         reservationDate: '2030-01-02',
         startTime: '10:00',
       },
+    );
+    expect(queries.findOne).not.toHaveBeenCalled();
+    expect(notifications.sendToMany).not.toHaveBeenCalled();
+  });
+
+  it('routes pending daily-log reminder events through the eligibility handler', async () => {
+    prisma.outboxEvent.findUnique.mockResolvedValueOnce({
+      ...event,
+      eventType: 'reservation.daily_log_pending_reminder',
+      payload: { dailyLogEntryId: 'entry-1', reservationId: 'reservation-1' },
+    });
+
+    await service.dispatchAfterCommit('event-1');
+
+    expect(dailyLogReminders.deliverPendingDailyLogReminder).toHaveBeenCalledWith(
+      'event-1',
+      { dailyLogEntryId: 'entry-1', reservationId: 'reservation-1' },
     );
     expect(queries.findOne).not.toHaveBeenCalled();
     expect(notifications.sendToMany).not.toHaveBeenCalled();
@@ -264,7 +284,7 @@ describe('ReservationOutboxService', () => {
       1,
       expect.objectContaining({
         where: expect.objectContaining({
-          eventType: { in: ['reservation.created', 'reservation.appointment_reminder'] },
+          eventType: { in: ['reservation.created', 'reservation.appointment_reminder', 'reservation.daily_log_pending_reminder'] },
           status: 'PROCESSING',
           lockedAt: expect.objectContaining({ lt: expect.any(Date) }),
           attempts: { lt: 10 },
@@ -282,7 +302,7 @@ describe('ReservationOutboxService', () => {
     expect(prisma.outboxEvent.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          eventType: { in: ['reservation.created', 'reservation.appointment_reminder'] },
+          eventType: { in: ['reservation.created', 'reservation.appointment_reminder', 'reservation.daily_log_pending_reminder'] },
           status: 'PENDING',
         }),
         take: 25,
