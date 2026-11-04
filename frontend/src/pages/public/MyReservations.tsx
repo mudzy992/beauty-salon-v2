@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import api from '../../api/client'
+import { fetchAllReservationPages } from '../../features/reservations/reservation-list.api'
 import { Button } from '../../components/ui/button'
 import { useAuth } from '../../context/AuthContext'
 import { CancelReservationDialog } from '../../features/client-reservations/cancel-reservation-dialog'
@@ -49,10 +50,8 @@ export default function MyReservations() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const { data } = await api.get<Reservation[]>('/api/reservations', {
-        params: { asClient: true },
-      })
-      setItems(Array.isArray(data) ? data : [])
+      const data = await fetchAllReservationPages<Reservation>({ asClient: 'true' })
+      setItems(data)
     } catch (err) {
       toast.error(localizeActionError(err))
       setItems([])
