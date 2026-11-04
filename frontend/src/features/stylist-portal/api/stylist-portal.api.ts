@@ -1,4 +1,5 @@
 import api from '../../../api/client'
+import { fetchAllReservationPages } from '../../reservations/reservation-list.api'
 
 import type { ClientDebt, DailyLogEntry, Reservation } from '../types'
 
@@ -6,10 +7,10 @@ export const fetchStylistReservations = async (params?: {
   fromDate?: string
   toDate?: string
 }): Promise<Reservation[]> => {
-  const { data } = await api.get<Reservation[]>('/api/reservations', {
-    params: { asStylist: true, ...params },
+  return fetchAllReservationPages<Reservation>({
+    asStylist: 'true',
+    ...params,
   })
-  return Array.isArray(data) ? data : []
 }
 
 export const fetchReservationById = async (reservationId: string): Promise<Reservation> => {

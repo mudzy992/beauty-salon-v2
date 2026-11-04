@@ -7,6 +7,8 @@ import path from 'node:path'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const apiSource = readFileSync(path.join(here, 'reservation-list.api.ts'), 'utf8')
 const calendarSource = readFileSync(path.join(here, '../../pages/ReservationsCalendar.tsx'), 'utf8')
+const stylistApiSource = readFileSync(path.join(here, '../stylist-portal/api/stylist-portal.api.ts'), 'utf8')
+const stylistHookSource = readFileSync(path.join(here, '../stylist-portal/hooks/useStylistReservations.ts'), 'utf8')
 
 test('admin reservation calendar loads bounded pages for its visible date range', () => {
   assert.match(apiSource, /const PAGE_SIZE = 50/)
@@ -19,4 +21,13 @@ test('admin reservation calendar loads bounded pages for its visible date range'
   assert.match(calendarSource, /setReservationLoadError\(true\)/)
   assert.match(calendarSource, /onClick=\{\(\) => void loadReservations\(\)\}/)
   assert.doesNotMatch(calendarSource, /api\.get<Reservation\[\].*'\/api\/reservations'/)
+})
+
+test('stylist portal reservation reads use bounded pagination and retain query retry state', () => {
+  assert.match(stylistApiSource, /fetchAllReservationPages<Reservation>\(\{/)
+  assert.match(stylistApiSource, /asStylist: 'true'/)
+  assert.match(stylistApiSource, /\.\.\.params/)
+  assert.doesNotMatch(stylistApiSource, /api\.get<Reservation\[\]>\('\/api\/reservations'/)
+  assert.match(stylistHookSource, /error:\s*listQuery\.error/)
+  assert.match(stylistHookSource, /refetch:\s*listQuery\.refetch/)
 })
