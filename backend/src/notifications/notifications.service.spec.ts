@@ -2,17 +2,19 @@ import { BadRequestException } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { CampaignAudienceDto } from './dto/campaign-audience.dto';
 import { SendCampaignDto } from './dto/send-campaign.dto';
+import { createCampaignUnsubscribeToken } from './utils/campaign-unsubscribe-token';
 
 describe('NotificationsService campaign audience policy', () => {
   const repo = {
     findCampaignEmailConsent: jest.fn(),
     setCampaignEmailConsent: jest.fn(),
+    unsubscribeCampaignEmailConsent: jest.fn(),
     findCampaignJobByRequest: jest.fn(),
     createCampaignJob: jest.fn(),
     findUsers: jest.fn(),
     createNotification: jest.fn(),
   };
-  const config = { get: jest.fn() };
+  const config = { get: jest.fn(), getOrThrow: jest.fn() };
   const events = { emitToUser: jest.fn() };
   const settings = { getValue: jest.fn() };
 
@@ -23,6 +25,10 @@ describe('NotificationsService campaign audience policy', () => {
     repo.findUsers.mockResolvedValue([]);
     repo.findCampaignJobByRequest.mockResolvedValue(null);
     repo.findCampaignEmailConsent.mockResolvedValue(null);
+    repo.unsubscribeCampaignEmailConsent.mockResolvedValue(true);
+    config.getOrThrow.mockReturnValue(
+      'service-test-secret-with-at-least-32-bytes',
+    );
     repo.setCampaignEmailConsent.mockResolvedValue({
       optedIn: false,
       consentedAt: null,
@@ -63,6 +69,41 @@ describe('NotificationsService campaign audience policy', () => {
       withdrawnAt: null,
     });
     expect(repo.setCampaignEmailConsent).toHaveBeenCalledWith('own-user', true);
+  });
+
+  it('verifies a campaign unsubscribe token and records an idempotent withdrawal', async () => {
+    const consentedAt = new Date('2026-11-04T12:00:00.000Z');
+    const token = createCampaignUnsubscribeToken(
+      { consentId: 'f9b53da9-9bf3-4d02-a03e-18fd97ee8c10', consentedAt },
+      'service-test-secret-with-at-least-32-bytes',
+    );
+
+    await expect(service.unsubscribeCampaignEmail(token)).resolves.toEqual({
+      ok: true,
+      unsubscribed: true,
+    });
+    expect(repo.unsubscribeCampaignEmailConsent).toHaveBeenCalledWith(
+      'f9b53da9-9bf3-4d02-a03e-18fd97ee8c10',
+      consentedAt,
+    );
+  });
+
+  it('rejects invalid and superseded campaign unsubscribe tokens', async () => {
+    await expect(
+      service.unsubscribeCampaignEmail('forged-token'),
+    ).rejects.toThrow(BadRequestException);
+
+    const token = createCampaignUnsubscribeToken(
+      {
+        consentId: 'f9b53da9-9bf3-4d02-a03e-18fd97ee8c10',
+        consentedAt: new Date('2026-11-04T12:00:00.000Z'),
+      },
+      'service-test-secret-with-at-least-32-bytes',
+    );
+    repo.unsubscribeCampaignEmailConsent.mockResolvedValue(false);
+    await expect(service.unsubscribeCampaignEmail(token)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('enforces verified email and explicit marketing consent in the bounded database query', async () => {

@@ -22,6 +22,8 @@ import { CampaignAudienceDto } from './dto/campaign-audience.dto';
 import { SendCampaignDto } from './dto/send-campaign.dto';
 import { SetCampaignEmailConsentDto } from './dto/set-campaign-email-consent.dto';
 import { RetryCampaignJobDto } from './dto/retry-campaign-job.dto';
+import { CampaignUnsubscribeDto } from './dto/campaign-unsubscribe.dto';
+import { Public } from '../common/decorators/public.decorator';
 import { CampaignQueueService } from './campaign-queue.service';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -95,6 +97,12 @@ export class NotificationsController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.notifications.setCampaignEmailConsent(user.sub, dto.optedIn);
+  }
+
+  @Public()
+  @Post('campaigns/unsubscribe')
+  unsubscribeCampaignEmail(@Body() dto: CampaignUnsubscribeDto) {
+    return this.notifications.unsubscribeCampaignEmail(dto.token);
   }
 
   @Post('test-email')

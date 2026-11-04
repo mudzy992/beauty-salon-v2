@@ -77,6 +77,51 @@ export class NotificationsRepository {
     })
   }
 
+  unsubscribeCampaignEmailConsent(consentId: string, consentedAt: Date) {
+    return this.prisma.$transaction(async (tx) => {
+      const consent = await tx.campaignEmailConsent.findUnique({
+        where: { id: consentId },
+        select: { id: true, userId: true, optedIn: true, consentedAt: true },
+      })
+      if (
+        !consent ||
+        !consent.consentedAt ||
+        consent.consentedAt.getTime() !== consentedAt.getTime()
+      ) {
+        return false
+      }
+      if (!consent.optedIn) return true
+
+      const occurredAt = new Date()
+      const changed = await tx.campaignEmailConsent.updateMany({
+        where: { id: consentId, optedIn: true, consentedAt },
+        data: { optedIn: false, withdrawnAt: occurredAt },
+      })
+      if (changed.count !== 1) {
+        const latest = await tx.campaignEmailConsent.findUnique({
+          where: { id: consentId },
+          select: { optedIn: true, consentedAt: true },
+        })
+        return Boolean(
+          latest &&
+            !latest.optedIn &&
+            latest.consentedAt?.getTime() === consentedAt.getTime(),
+        )
+      }
+
+      await tx.campaignEmailConsentEvent.create({
+        data: {
+          consentId,
+          userId: consent.userId,
+          action: 'OPT_OUT',
+          source: 'EMAIL_UNSUBSCRIBE',
+          occurredAt,
+        },
+      })
+      return true
+    })
+  }
+
   setCampaignEmailConsent(userId: string, optedIn: boolean) {
     return this.prisma.$transaction(async (tx) => {
       await tx.campaignEmailConsent.upsert({

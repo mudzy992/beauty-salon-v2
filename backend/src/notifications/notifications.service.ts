@@ -21,6 +21,10 @@ import {
   buildPaymentReceiptBodyText,
   escapeEmailHtml,
 } from './utils/email-template';
+import {
+  createCampaignUnsubscribeToken,
+  verifyCampaignUnsubscribeToken,
+} from './utils/campaign-unsubscribe-token';
 
 export type NotificationChannel = 'PUSH' | 'EMAIL' | 'BOTH';
 export type NotificationType =
@@ -318,6 +322,28 @@ export class NotificationsService {
     };
   }
 
+  async unsubscribeCampaignEmail(token: string) {
+    const payload = verifyCampaignUnsubscribeToken(
+      token,
+      this.config.getOrThrow<string>('JWT_SECRET'),
+    );
+    if (!payload) {
+      throw new BadRequestException(
+        'Campaign unsubscribe link is invalid or expired.',
+      );
+    }
+    const unsubscribed = await this.repo.unsubscribeCampaignEmailConsent(
+      payload.consentId,
+      payload.consentedAt,
+    );
+    if (!unsubscribed) {
+      throw new BadRequestException(
+        'Campaign unsubscribe link is invalid or expired.',
+      );
+    }
+    return { ok: true, unsubscribed: true };
+  }
+
   async getCampaignAudienceSummary(audience: CampaignAudienceDto) {
     const users = await this.resolveCampaignAudienceUsers(audience);
     return {
@@ -438,7 +464,14 @@ export class NotificationsService {
     >,
     recipient: Pick<
       CampaignRecipient,
-      'id' | 'userId' | 'email' | 'username' | 'firstName' | 'lastName'
+      | 'id'
+      | 'userId'
+      | 'email'
+      | 'username'
+      | 'firstName'
+      | 'lastName'
+      | 'consentId'
+      | 'consentedAt'
     >,
   ): Promise<void> {
     const mailConfig = await this.resolveMailConfig();
@@ -451,13 +484,20 @@ export class NotificationsService {
     try {
       const { renderCampaignEmailHtml } =
         await import('./utils/email-content.js');
-      const personalizedHtml = renderCampaignEmailHtml(job.templateHtml, {
+      const unsubscribeToken = createCampaignUnsubscribeToken(
+        { consentId: recipient.consentId, consentedAt: recipient.consentedAt },
+        this.config.getOrThrow<string>('JWT_SECRET'),
+      );
+      const unsubscribeUrl = new URL('/unsubscribe', job.appUrl);
+      unsubscribeUrl.searchParams.set('token', unsubscribeToken);
+      const campaignHtml = renderCampaignEmailHtml(job.templateHtml, {
         firstName: recipient.firstName || '',
         lastName: recipient.lastName || '',
         username: recipient.username,
         email: recipient.email,
         appUrl: job.appUrl,
       });
+      const personalizedHtml = `${campaignHtml}\n<p><a href="${escapeEmailHtml(unsubscribeUrl.toString())}">Unsubscribe / Odjava</a></p>`;
       await transporter.sendMail({
         from: `"${mailConfig.fromName}" <${mailConfig.fromEmail}>`,
         to: recipient.email,

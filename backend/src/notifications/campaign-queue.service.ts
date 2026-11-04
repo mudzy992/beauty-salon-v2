@@ -257,7 +257,11 @@ export class CampaignQueueService {
           email: recipient.email,
           isEmailVerified: true,
           campaignEmailConsent: {
-            is: { optedIn: true, consentedAt: { not: null } },
+            is: {
+              id: recipient.consentId,
+              optedIn: true,
+              consentedAt: recipient.consentedAt,
+            },
           },
         },
         select: { id: true },

@@ -16,6 +16,7 @@ describe('NotificationsRepository campaign email consent', () => {
     campaignEmailConsent: {
       upsert: jest.fn(),
       updateMany: jest.fn(),
+      findUnique: jest.fn(),
       findUniqueOrThrow: jest.fn(),
     },
     campaignEmailConsentEvent: { create: jest.fn() },
@@ -125,6 +126,68 @@ describe('NotificationsRepository campaign email consent', () => {
         occurredAt: expect.any(Date),
       },
     });
+  });
+
+  it('records email unsubscribe in the same transaction and binds it to the consent snapshot', async () => {
+    const consentedAt = consent.consentedAt;
+    tx.campaignEmailConsent.findUnique.mockResolvedValue(consent);
+    tx.campaignEmailConsent.updateMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      repository.unsubscribeCampaignEmailConsent('consent-1', consentedAt),
+    ).resolves.toBe(true);
+
+    expect(tx.campaignEmailConsent.updateMany).toHaveBeenCalledWith({
+      where: { id: 'consent-1', optedIn: true, consentedAt },
+      data: { optedIn: false, withdrawnAt: expect.any(Date) },
+    });
+    expect(tx.campaignEmailConsentEvent.create).toHaveBeenCalledWith({
+      data: {
+        consentId: 'consent-1',
+        userId: 'user-1',
+        action: 'OPT_OUT',
+        source: 'EMAIL_UNSUBSCRIBE',
+        occurredAt: expect.any(Date),
+      },
+    });
+  });
+
+  it('does not apply an old unsubscribe link to a later opt-in', async () => {
+    tx.campaignEmailConsent.findUnique.mockResolvedValue({
+      ...consent,
+      consentedAt: new Date('2026-11-05T12:00:00.000Z'),
+    });
+
+    await expect(
+      repository.unsubscribeCampaignEmailConsent('consent-1', consent.consentedAt),
+    ).resolves.toBe(false);
+
+    expect(tx.campaignEmailConsent.updateMany).not.toHaveBeenCalled();
+    expect(tx.campaignEmailConsentEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('treats repeat unsubscribe requests as successful without duplicate audit events', async () => {
+    tx.campaignEmailConsent.findUnique.mockResolvedValue({ ...consent, optedIn: false });
+
+    await expect(
+      repository.unsubscribeCampaignEmailConsent('consent-1', consent.consentedAt),
+    ).resolves.toBe(true);
+
+    expect(tx.campaignEmailConsent.updateMany).not.toHaveBeenCalled();
+    expect(tx.campaignEmailConsentEvent.create).not.toHaveBeenCalled();
+  });
+
+  it('recognizes a concurrent unsubscribe after its conditional update loses the race', async () => {
+    tx.campaignEmailConsent.findUnique
+      .mockResolvedValueOnce(consent)
+      .mockResolvedValueOnce({ optedIn: false, consentedAt: consent.consentedAt });
+    tx.campaignEmailConsent.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      repository.unsubscribeCampaignEmailConsent('consent-1', consent.consentedAt),
+    ).resolves.toBe(true);
+
+    expect(tx.campaignEmailConsentEvent.create).not.toHaveBeenCalled();
   });
 
   it('does not create duplicate events for idempotent repeats', async () => {

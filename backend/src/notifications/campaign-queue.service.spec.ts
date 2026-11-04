@@ -242,6 +242,21 @@ describe('CampaignQueueService', () => {
     await service.processQueueTick();
 
     expect(notifications.deliverCampaignRecipient).not.toHaveBeenCalled();
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: recipient.userId,
+        email: recipient.email,
+        isEmailVerified: true,
+        campaignEmailConsent: {
+          is: {
+            id: recipient.consentId,
+            optedIn: true,
+            consentedAt: recipient.consentedAt,
+          },
+        },
+      },
+      select: { id: true },
+    });
     expect(prisma.campaignRecipient.updateMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
         where: { id: recipient.id, status: 'PROCESSING' },

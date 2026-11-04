@@ -15,6 +15,7 @@ import MyReservations from '../../pages/public/MyReservations'
 import MyReservationDetail from '../../pages/public/MyReservationDetail'
 import { PublicFeatureGate } from '../../features/shell/public/public-feature-gate'
 import PublicSatisfiedClients from '../../pages/public/PublicSatisfiedClients'
+import CampaignUnsubscribe from '../../pages/public/CampaignUnsubscribe'
 
 export const publicRoutes: RouteObject[] = [
   {
@@ -32,6 +33,7 @@ export const publicRoutes: RouteObject[] = [
       { path: 'moje-rezervacije', element: <MyReservations /> },
       { path: 'moje-rezervacije/:id', element: <MyReservationDetail /> },
       { path: 'moj-termin/:token', element: <PublicReservationView /> },
+      { path: 'unsubscribe', element: <CampaignUnsubscribe /> },
       { path: 'profil', element: <Profile /> },
       { path: 'zadovoljni-klijenti', element: <PublicFeatureGate flag="public_feature_reviews"><PublicSatisfiedClients /></PublicFeatureGate> },
     ],
