@@ -4289,6 +4289,109 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   }, 30_000);
 
+  it('requeues in PostgreSQL when the delivered marker write fails after side effects', async () => {
+    const db = prisma!;
+    const eventId = randomUUID();
+    const suffix = randomUUID().replace(/-/g, '');
+    const functionName = `e2e_outbox_marker_failure_${suffix}`;
+    const triggerName = functionName;
+    const aggregateId = randomUUID();
+    const dedupeKey = `outbox-marker-write-failure:${eventId}`;
+    await db.outboxEvent.create({
+      data: {
+        id: eventId,
+        eventType: 'reservation.created',
+        aggregateId,
+        dedupeKey,
+        nextAttemptAt: new Date(Date.now() - 1000),
+        payload: {
+          reservationId: aggregateId,
+          actor: {
+            sub: clientUserId,
+            username: 'outbox-test-client',
+            email: 'outbox-test@example.invalid',
+            roles: ['CLIENT'],
+          },
+          notifyUserIds: [clientUserId],
+          notificationTitle: 'Test',
+          notificationBody: 'Test',
+          serviceId: randomUUID(),
+          serviceIds: [randomUUID()],
+          reservationDate: '2030-01-02',
+          emitToAdmins: false,
+          emitToStylists: false,
+        },
+      },
+    });
+
+    const notifications = { sendToMany: jest.fn().mockResolvedValue(undefined) };
+    const queries = { findOne: jest.fn().mockResolvedValue({ id: aggregateId }) };
+    const events = {
+      emitToAdmins: jest.fn(),
+      emitToStylists: jest.fn(),
+      emitToAll: jest.fn(),
+    };
+    const worker = new ReservationOutboxService(
+      db as unknown as PrismaService,
+      notifications as unknown as NotificationsService,
+      events as unknown as EventsGateway,
+      queries as unknown as ReservationQueriesService,
+    );
+
+    try {
+      await db.$executeRawUnsafe(`
+        CREATE FUNCTION "${functionName}"()
+        RETURNS trigger
+        LANGUAGE plpgsql
+        AS $test$
+        BEGIN
+          IF NEW."dedupe_key" LIKE 'outbox-marker-write-failure:%'
+            AND NEW."status" = 'DELIVERED' THEN
+            RAISE EXCEPTION 'synthetic outbox delivered marker failure';
+          END IF;
+          RETURN NEW;
+        END;
+        $test$;
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE TRIGGER "${triggerName}"
+        BEFORE UPDATE ON "outbox_events"
+        FOR EACH ROW
+        EXECUTE FUNCTION "${functionName}"();
+      `);
+
+      await worker.dispatchAfterCommit(eventId);
+
+      expect(queries.findOne).toHaveBeenCalledTimes(1);
+      expect(notifications.sendToMany).toHaveBeenCalledTimes(1);
+      expect(events.emitToAll).toHaveBeenCalledTimes(1);
+      const persisted = await db.outboxEvent.findUniqueOrThrow({
+        where: { id: eventId },
+        select: {
+          status: true,
+          attempts: true,
+          lockedAt: true,
+          nextAttemptAt: true,
+          lastError: true,
+        },
+      });
+      expect(persisted).toMatchObject({
+        status: 'PENDING',
+        attempts: 1,
+        lockedAt: null,
+      });
+      expect(persisted.nextAttemptAt.getTime()).toBeGreaterThan(Date.now());
+      expect(persisted.lastError).toMatch(/^Delivery failed \([A-Za-z][A-Za-z0-9_]*\)\.$/);
+      expect(persisted.lastError).not.toContain('synthetic outbox');
+    } finally {
+      await db.$executeRawUnsafe(
+        `DROP TRIGGER IF EXISTS "${triggerName}" ON "outbox_events"`,
+      );
+      await db.$executeRawUnsafe(`DROP FUNCTION IF EXISTS "${functionName}"()`);
+      await db.outboxEvent.deleteMany({ where: { id: eventId } });
+    }
+  }, 30_000);
+
   it('requires explicit at-least-once acknowledgment and audits dead-letter replay', async () => {
     const db = prisma!;
     const eventId = randomUUID();
