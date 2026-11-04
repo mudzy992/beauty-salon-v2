@@ -22,6 +22,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import api from '../../services/api';
+import { fetchAllReservationPages } from '../../services/reservation-list';
 import { spacing } from '../../theme';
 import { formatDate, formatTime, getSalonDateOnly } from '../../utils/date';
 import { getReservationServicesLabel } from '../../utils/reservationServices';
@@ -136,9 +137,7 @@ export function StylistInboxScreen() {
       return;
     }
     try {
-      const { data } = await api.get<unknown>('/api/reservations', {
-        params: { asStylist: true },
-      });
+      const data = await fetchAllReservationPages<unknown>({ asStylist: true });
       if (!isCurrentRequest()) return;
       const rows = normalizeReservations(data);
       if (!rows) setLoadError(true);

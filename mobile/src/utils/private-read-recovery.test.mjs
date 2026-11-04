@@ -19,7 +19,8 @@ test('private reservation and stylist inbox reads validate payloads and ignore s
   assert.match(reservations, /reservationsOwnerId === userId \? reservations : \[\]/);
   assert.match(reservations, /requestOwnerId\.current !== userId/);
 
-  assert.match(inbox, /api\.get<unknown>\('\/api\/reservations'/);
+  assert.match(inbox, /fetchAllReservationPages<unknown>\(\{ asStylist: true \}\)/);
+  assert.doesNotMatch(inbox, /api\.get<unknown>\('\/api\/reservations'/);
   assert.match(inbox, /const rows = normalizeReservations\(data\)/);
   assert.match(inbox, /if \(!rows\) setLoadError\(true\)/);
   assert.match(inbox, /generation === requestGeneration\.current/);
