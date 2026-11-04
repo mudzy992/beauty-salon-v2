@@ -4403,7 +4403,7 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
     }
   }, 30_000);
 
-  it('requeues in PostgreSQL when the delivered marker write fails after side effects', async () => {
+  it('requeues and may redeliver after a PostgreSQL delivered-marker write failure', async () => {
     const db = prisma!;
     const eventId = randomUUID();
     const suffix = randomUUID().replace(/-/g, '');
@@ -4460,7 +4460,8 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
         AS $test$
         BEGIN
           IF NEW."dedupe_key" LIKE 'outbox-marker-write-failure:%'
-            AND NEW."status" = 'DELIVERED' THEN
+            AND NEW."status" = 'DELIVERED'
+            AND NEW."attempts" = 1 THEN
             RAISE EXCEPTION 'synthetic outbox delivered marker failure';
           END IF;
           RETURN NEW;
@@ -4497,6 +4498,32 @@ describe('DB-backed HTTP contracts for SEC-01, SEC-02, SEC-03, SEC-10, AUTH-01, 
       expect(persisted.nextAttemptAt.getTime()).toBeGreaterThan(Date.now());
       expect(persisted.lastError).toMatch(/^Delivery failed \([A-Za-z][A-Za-z0-9_]*\)\.$/);
       expect(persisted.lastError).not.toContain('synthetic outbox');
+
+      await db.outboxEvent.update({
+        where: { id: eventId },
+        data: { nextAttemptAt: new Date(Date.now() - 1000) },
+      });
+      await worker.retryPending();
+
+      expect(queries.findOne).toHaveBeenCalledTimes(2);
+      expect(notifications.sendToMany).toHaveBeenCalledTimes(2);
+      expect(events.emitToAll).toHaveBeenCalledTimes(2);
+      await expect(
+        db.outboxEvent.findUnique({
+          where: { id: eventId },
+          select: {
+            status: true,
+            attempts: true,
+            lockedAt: true,
+            lastError: true,
+          },
+        }),
+      ).resolves.toEqual({
+        status: 'DELIVERED',
+        attempts: 2,
+        lockedAt: null,
+        lastError: null,
+      });
     } finally {
       await db.$executeRawUnsafe(
         `DROP TRIGGER IF EXISTS "${triggerName}" ON "outbox_events"`,
