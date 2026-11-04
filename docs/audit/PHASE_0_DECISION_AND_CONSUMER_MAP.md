@@ -37,14 +37,14 @@ Ovaj dokument završava tehnički dio Faze 0 za client pickere, user/dashboard l
 
 Controller `ReservationsController.findAll` prihvata `fromDate`, `toDate`, `status`, `clientSearch`, `asClient`, `asStylist`, `page`, `pageSize`. **Baseline u trenutku inventara:** array se vraćao ako nedostaje bilo koji od `page`/`pageSize`, bez server-side result cap-a; DTO nije imao gornje granice. **Ažuriranje nakon `10a0b8d`:** oba parametra su obavezna kao par; `pageSize` je najviše 50, `page` i izračunati offset najviše 1000, uz stabilan `id` tie-break. Queryless pozivi i dalje vraćaju legacy array bez server-side cap-a do D-05 compatibility window-a.
 
-**Consumer rollout status nakon `bc03e85` (CI `41790691429` green):** admin list je već koristio bounded pages; admin calendar je sada migriran na page size 50, zadržava vidljivi date range, fetch-a stranice do `total` i poštuje offset cap 1000. Pri grešci čuva postojeće podatke, prikazuje poruku i retry kontrolu; kompatibilni legacy array prihvata samo do 1.050 stavki. Od 13 mapiranih consumer-a, ta dva sada koriste bounded pagination; ostalih 11 ostaje za migraciju prije početka jednog uspješnog release ciklusa legacy array-a.
+**Consumer rollout status nakon `bc03e85` (CI `41790691429` green):** admin list je već koristio bounded pages; admin calendar je sada migriran na page size 50, zadržava vidljivi date range, fetch-a stranice do `total` i poštuje offset cap 1000. Pri grešci čuva postojeće podatke, prikazuje poruku i retry kontrolu; kompatibilni legacy array prihvata samo do 1.050 stavki. Od 13 mapiranih consumer grupa, admin list, admin calendar i stylist portal sada koriste bounded pagination (3/13); preostalih 10 ostaje za migraciju prije početka jednog uspješnog release ciklusa legacy array-a.
 
 | Consumer | Parametri/oblik koji koristi | Trenutni adapter/ograničenje |
 |---|---|---|
 | `frontend/src/pages/Reservations.tsx` (admin list) | `fromDate`, `toDate`, `status`, `clientSearch`, `page`, `pageSize` | Parsira array ili envelope; koristi total. |
 | `frontend/src/pages/ReservationsCalendar.tsx` (admin calendar) | vidljivi date range + `page=0..20`, `pageSize=50` | Migriran u `bc03e85`: učitava envelope stranice do `total` i offset 1000; greška čuva postojeće stavke i nudi retry. Legacy array fallback je klijentski ograničen na 1.050 stavki; server-side legacy cap ostaje D-05 završni korak. |
 | `frontend/src/pages/public/MyReservations.tsx` (client) | `asClient: true`, bez pagination | Očekuje array. |
-| `frontend/src/features/stylist-portal/api/stylist-portal.api.ts` (stylist portal) | `asStylist: true`, mogući `fromDate/toDate`, bez pagination | Očekuje array. |
+| `frontend/src/features/stylist-portal/api/stylist-portal.api.ts` (stylist portal: inbox, schedule, stats, detail check) | `asStylist: true`, mogući `fromDate/toDate` | Migriran u `93d6252` na shared bounded page helper (`pageSize=50`, max offset 1000, ukupno do 1.050 stavki); React Query zadržava data/error i izlaže retry. Preko limita se prikazuje query greška umjesto nepotpune liste. |
 | `frontend/src/features/dashboard/use-dashboard-data.ts` (dashboard) | trenutni mjesec `fromDate/toDate`; drugi poziv `status=PENDING`; oba bez pagination | Pomoćni `asArray`; oba query-ja mogu doseći sve odgovarajuće redove u periodu. |
 | `mobile/src/screens/client/ServicesScreen.tsx` (client) | `asClient: true`, bez pagination | Normalizuje reservations; nema server pagination loop-a. |
 | `mobile/src/screens/client/HomeScreen.tsx` (client) | `asClient: true`, bez pagination | Normalizuje reservations radi upcoming summary. |
@@ -59,7 +59,7 @@ Controller `ReservationsController.findAll` prihvata `fromDate`, `toDate`, `stat
 
 1. Admin Reservations list već koristi pagination envelope; zadržati ga i dodati DTO `Max`/partial-parameter validation bez tihe promjene.
 2. Admin calendar sada koristi capped page path za vidljivi date range i eksplicitno obrađuje grešku/retry; dashboard reservation reads i dalje trebaju bounded ponašanje i aggregate count gdje su primjereni, bez oslanjanja na download svih matching reservations.
-3. Za client history, stylist inbox, schedule i stats dogovoriti da li UX treba sve (infinite/load-more/fetch-all bounded pages) ili samo server-bounded windows; mobilni normalizer trenutno očekuje niz i mora se migrirati prije envelope defaulta.
+3. Stylist portal inbox/schedule/stats/detail koristi shared bounded page helper; postojeći React Query stale-data/error/retry ugovor ostaje. Preostali client history i mobile client/stylist prikazi još trebaju bounded pages ili server-bounded windows, uz očuvanje UX-a i array normalizacije prije envelope defaulta.
 4. Tek nakon consumer testova promijeniti ponašanje bez `page/pageSize`. Privremeni legacy array window treba imati vlasnika, datum isteka i metriku/telemetriju ako runtime podržava; ne zaključiti da se svi callers nalaze samo iz source string search-a.
 5. Tests: DTO rejects negative/partial/oversized values; each web/mobile parser handles agreed shape; page-boundary totals stable; synthetic high-cardinality DB proves bounded result; existing role scoping and date semantics preserved.
 
@@ -91,7 +91,7 @@ Source inventory navodi jedan mobilni jezik (`mobile/src/i18n/bs.ts`); web BS/EN
 | D-03 | CLOSED FOR IMPLEMENTATION | Samo verified email; max 100/campaign; 1 email/s; concurrency 1. Real SMTP quota nije testirana. |
 | D-04 | OWNER-REPORTED | Jedna backend replika; deployment/runtime ponašanje i runbook nezavisno nisu provjereni. |
 | D-05 users | DIRECTION APPROVED | Poznati consumer-i migriraju na bounded responses; legacy array jedan release ciklus nakon svih migracija. |
-| D-05 reservations | INVENTORY COMPLETE; MIGRATION IN PROGRESS | 13 consumer-a mapirano; admin list je bio bounded, a admin calendar je migriran u `bc03e85` (2/13 bounded); preostalih 11 zahtijeva migraciju. Legacy array window od jednog uspješnog release ciklusa počinje tek nakon svih migracija. |
+| D-05 reservations | INVENTORY COMPLETE; MIGRATION IN PROGRESS | 13 consumer grupa mapirano; admin list, admin calendar (`bc03e85`) i stylist portal (`93d6252`) su bounded (3/13); preostalih 10 zahtijeva migraciju. Legacy array window od jednog uspješnog release ciklusa počinje tek nakon svih migracija. |
 | D-06 | CLOSED FOR CURRENT SCOPE | Mobile ostaje BS-only. |
 | D-07 | GATED — LEGAL COPY PENDING | Nema odobrenog teksta/verzije; ne prevoditi ili mijenjati media-consent copy. Ne blokira API-R1. |
 
