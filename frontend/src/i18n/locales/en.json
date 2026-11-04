@@ -549,7 +549,30 @@
     "reservationsThisMonth": "Reservations (this month)",
     "reservationCounts": "{{completed}} completed · {{pending}} pending",
     "userCounts": "{{stylists}} stylists · {{services}} services",
-    "noReservations": "No reservations."
+    "noReservations": "No reservations.",
+    "outbox": {
+      "title": "Reservation event delivery",
+      "description": "Review delivery attempts, waiting events, and items that need attention.",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "asOf": "Data as of {{time}}",
+      "loadFailed": "Diagnostics could not be loaded. Please try again.",
+      "duePending": "Pending events due",
+      "staleProcessing": "Expired worker leases",
+      "deliverySemantics": "Push and email delivery is at-least-once; a retry can repeat an external side-effect.",
+      "event": "Event",
+      "attempts": "Attempts",
+      "lastUpdated": "Last updated",
+      "lastError": "Last error",
+      "noError": "No recorded error.",
+      "noEvents": "No events need attention.",
+      "status": {
+        "PENDING": "Pending",
+        "PROCESSING": "Processing",
+        "DELIVERED": "Delivered",
+        "DEAD_LETTER": "Dead letter"
+      }
+    }
   },
   "debtors": {
     "title": "Debtors",

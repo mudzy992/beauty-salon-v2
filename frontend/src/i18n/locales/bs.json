@@ -546,7 +546,30 @@
     "reservationsThisMonth": "Rezervacije (ovaj mjesec)",
     "reservationCounts": "{{completed}} završenih · {{pending}} na čekanju",
     "userCounts": "{{stylists}} stilista · {{services}} servisa",
-    "noReservations": "Nema rezervacija."
+    "noReservations": "Nema rezervacija.",
+    "outbox": {
+      "title": "Isporuka rezervacijskih događaja",
+      "description": "Pregled pokušaja, čekanja i događaja koji zahtijevaju provjeru.",
+      "refresh": "Osvježi",
+      "refreshing": "Osvježavam…",
+      "asOf": "Podaci na dan: {{time}}",
+      "loadFailed": "Dijagnostiku nije moguće učitati. Pokušajte ponovo.",
+      "duePending": "Dospjeli događaji na čekanju",
+      "staleProcessing": "Istekli worker lease-ovi",
+      "deliverySemantics": "Push i email isporuka je at-least-once; ponovljeni pokušaj može ponoviti vanjski side-effect.",
+      "event": "Događaj",
+      "attempts": "Pokušaji",
+      "lastUpdated": "Zadnja izmjena",
+      "lastError": "Zadnja greška",
+      "noError": "Nema evidentirane greške.",
+      "noEvents": "Nema događaja za provjeru.",
+      "status": {
+        "PENDING": "Na čekanju",
+        "PROCESSING": "U obradi",
+        "DELIVERED": "Isporučeno",
+        "DEAD_LETTER": "Trajna greška"
+      }
+    }
   },
   "debtors": {
     "title": "Dužnici",

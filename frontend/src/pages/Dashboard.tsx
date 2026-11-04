@@ -4,11 +4,15 @@ import { useDashboardData } from '../features/dashboard/use-dashboard-data'
 import { DashboardFinanceStats } from '../features/dashboard/finance-stats'
 import { DashboardOpsStats } from '../features/dashboard/ops-stats'
 import { DashboardRecentReservations } from '../features/dashboard/recent-reservations'
+import { DashboardOutboxDiagnostics } from '../features/dashboard/outbox-diagnostics'
 
 export default function Dashboard() {
   const { t } = useTranslation()
   const { user } = useAuth()
   const { stats, recentReservations, loading } = useDashboardData()
+  const canViewOutboxDiagnostics = (user?.roles ?? []).some(
+    (role) => role === 'SYSTEM_ADMIN' || role === 'OWNER',
+  )
 
   if (loading || !stats) {
     return (
@@ -28,6 +32,7 @@ export default function Dashboard() {
       </div>
       <DashboardFinanceStats stats={stats} />
       <DashboardOpsStats stats={stats} />
+      {canViewOutboxDiagnostics ? <DashboardOutboxDiagnostics /> : null}
       <DashboardRecentReservations reservations={recentReservations} />
     </div>
   )

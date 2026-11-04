@@ -12,6 +12,7 @@ const sources = [
   './finance-stats.tsx',
   './ops-stats.tsx',
   './recent-reservations.tsx',
+  './outbox-diagnostics.tsx',
 ].map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'))
 const keys = new Set(
   sources.flatMap((source) => [...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)),
@@ -32,6 +33,21 @@ test('admin dashboard uses keys present in both locales', () => {
 
   for (const resource of locales) {
     for (const key of keys) {
+      assert.ok(hasLocaleKey(resource, key), `Missing locale key: ${key}`)
+    }
+  }
+})
+
+test('reservation outbox diagnostics are admin-gated, localized, and read-only', () => {
+  const component = sources[4]
+  const dashboard = sources[0]
+  assert.match(component, /\/api\/reservations\/ops\/outbox/)
+  assert.match(dashboard, /role === 'SYSTEM_ADMIN' \|\| role === 'OWNER'/)
+  assert.doesNotMatch(component, /\.post\(|\.patch\(|\.delete\(/)
+
+  for (const status of ['PENDING', 'PROCESSING', 'DELIVERED', 'DEAD_LETTER']) {
+    const key = `dashboard.outbox.status.${status}`
+    for (const resource of locales) {
       assert.ok(hasLocaleKey(resource, key), `Missing locale key: ${key}`)
     }
   }
