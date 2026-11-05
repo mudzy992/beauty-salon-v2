@@ -16,9 +16,25 @@ const SITE_GROUP_COPY_KEYS = {
     label: 'adminSettings.site.groups.contact',
     description: 'adminSettings.site.groupDescriptions.contact',
   },
-  public_pages_: {
-    label: 'adminSettings.site.groups.pages',
-    description: 'adminSettings.site.groupDescriptions.pages',
+  public_reserve_: {
+    label: 'adminSettings.site.groups.reservation',
+    description: 'adminSettings.site.groupDescriptions.reservation',
+  },
+  services_page_: {
+    label: 'adminSettings.site.groups.services',
+    description: 'adminSettings.site.groupDescriptions.services',
+  },
+  public_gallery_: {
+    label: 'adminSettings.site.groups.gallery',
+    description: 'adminSettings.site.groupDescriptions.gallery',
+  },
+  public_blog_: {
+    label: 'adminSettings.site.groups.blog',
+    description: 'adminSettings.site.groupDescriptions.blog',
+  },
+  public_auth_: {
+    label: 'adminSettings.site.groups.signIn',
+    description: 'adminSettings.site.groupDescriptions.signIn',
   },
   public_feature_: {
     label: 'adminSettings.site.groups.publicModules',

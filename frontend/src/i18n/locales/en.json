@@ -144,16 +144,41 @@
   },
 
   "adminSettings": {
+    "workspace": "System settings",
+    "navigationLabel": "Settings categories",
     "nav": {
       "site": "Site",
       "operations": "Operations",
       "appearance": "Appearance",
       "seo": "SEO"
     },
+    "navDescriptions": {
+      "site": "Public website and mobile app content.",
+      "operations": "Reservation deadlines and reminders.",
+      "appearance": "Logo, name and colors.",
+      "seo": "Public page titles and descriptions."
+    },
+    "search": {
+      "label": "Search settings",
+      "placeholder": "Search by name or description…",
+      "clear": "Clear search",
+      "results": "Results: {{count}}",
+      "noResultsTitle": "No results",
+      "noResultsDescription": "Try another setting name or description."
+    },
+    "sections": {
+      "settingsCount": "Settings: {{count}}",
+      "customizedCount": "Customized: {{count}}",
+      "expand": "Expand section",
+      "collapse": "Collapse section"
+    },
     "editor": {
       "configured": "Configured",
       "customized": "Customized",
       "usingDefault": "Using default",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "editSetting": "Edit: {{label}}",
       "notConfigured": "Not configured",
       "configure": "Set up",
       "upload": "Upload",
@@ -165,7 +190,12 @@
       "uploadFailed": "Could not upload the file.",
       "saveSuccess": "Setting saved.",
       "saveFailed": "Could not save the setting.",
-      "invalidHex": "Enter a valid HEX color, e.g. #D4A843."
+      "invalidHex": "Enter a valid HEX color, e.g. #D4A843.",
+      "invalidNumber": "Enter a valid number.",
+      "invalidEmail": "Enter a valid email address.",
+      "invalidSelection": "Choose one of the available options.",
+      "invalidUrl": "Enter a valid URL starting with http:// or https://.",
+      "numberRange": "Value must be between {{min}} and {{max}}."
     },
     "seo": {
       "title": "Settings — SEO",
@@ -199,7 +229,11 @@
         "maintenance": "Maintenance mode",
         "home": "Homepage sections",
         "contact": "Contact and social media",
-        "pages": "Pages and sign-in",
+        "reservation": "Reservation page",
+        "services": "Public services page",
+        "gallery": "Gallery",
+        "blog": "Blog",
+        "signIn": "Sign-in and registration",
         "publicModules": "Public modules",
         "blogComments": "Blog comments"
       },
@@ -207,7 +241,11 @@
         "maintenance": "Visitors to the public website and mobile home see the maintenance message. Admin and sign-in remain available.",
         "home": "Hero section (the website CTA is separate from mobile), about content, highlights and the bottom CTA block.",
         "contact": "Business hours are configured under Salon settings, not here.",
-        "pages": "Services content (including promotional sections), gallery, blog and reservation pages, plus sign-in and registration visuals.",
+        "reservation": "Title, subtitle and hero image for the reservation page.",
+        "services": "Prices, hero content, service catalogue and promotional sections.",
+        "gallery": "Title, subtitle and background image for the public gallery.",
+        "blog": "Title, subtitle and background image for the public blog.",
+        "signIn": "Images, titles and subtitles for public sign-in and registration screens.",
         "publicModules": "Hide the blog, gallery or reviews on the website and mobile app.",
         "blogComments": "Automatic approval, prohibited words and blocked users."
       },

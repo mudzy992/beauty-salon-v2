@@ -37,6 +37,7 @@ export interface SettingDef {
   label?: string
   type: SettingType
   placeholder?: string
+  helpText?: string
   min?: number
   max?: number
   suffix?: string

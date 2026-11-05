@@ -1,4 +1,4 @@
-import { AtSign, Eye, Lock, MessageCircle, Star, ToggleLeft } from 'lucide-react'
+import { AtSign, Calendar, Eye, Lock, MessageCircle, Sparkles, Star, ToggleLeft } from 'lucide-react'
 import type { SettingGroup } from './types'
 
 export const SITE_GROUPS: SettingGroup[] = [
@@ -62,15 +62,24 @@ export const SITE_GROUPS: SettingGroup[] = [
     ],
   },
   {
-    label: 'Stranice i prijava',
-    prefix: 'public_pages_',
-    description: 'Hero usluge/galerija/blog/rezervacija i vizuali prijave.',
-    icon: Eye,
+    label: 'Rezervacija',
+    prefix: 'public_reserve_',
+    description: 'Naslov, podnaslov i glavna slika stranice rezervacije.',
+    icon: Calendar,
     color: 'blue',
     defaults: [
       { key: 'public_reserve_title', desc: 'Rezervacija — naslov', type: 'text' },
       { key: 'public_reserve_subtitle', desc: 'Rezervacija — podnaslov', type: 'text' },
       { key: 'public_reserve_bg', desc: 'Rezervacija — pozadina', type: 'image' },
+    ],
+  },
+  {
+    label: 'Javna stranica usluga',
+    prefix: 'services_page_',
+    description: 'Cijene, hero sadržaj, katalog usluga i promotivni blokovi.',
+    icon: Sparkles,
+    color: 'purple',
+    defaults: [
       { key: 'public_service_prices_enabled', desc: 'Usluge — prikaži cijene na javnim stranicama', type: 'boolean' },
       { key: 'public_services_bg', desc: 'Usluge — glavna slika', type: 'image' },
       { key: 'public_services_title', desc: 'Usluge — naslov', type: 'text' },
@@ -96,12 +105,39 @@ export const SITE_GROUPS: SettingGroup[] = [
       { key: 'public_services_cta_heading', desc: 'Usluge — naslov donjeg CTA bloka', type: 'text' },
       { key: 'public_services_cta_description', desc: 'Usluge — opis donjeg CTA bloka', type: 'textarea' },
       { key: 'public_services_cta_button', desc: 'Usluge — tekst donjeg CTA dugmeta', type: 'text' },
+    ],
+  },
+  {
+    label: 'Galerija',
+    prefix: 'public_gallery_',
+    description: 'Naslov, podnaslov i pozadinska slika javne galerije.',
+    icon: Eye,
+    color: 'green',
+    defaults: [
       { key: 'public_gallery_bg', desc: 'Galerija — pozadina', type: 'image' },
       { key: 'public_gallery_title', desc: 'Galerija — naslov', type: 'text' },
       { key: 'public_gallery_subtitle', desc: 'Galerija — podnaslov', type: 'text' },
+    ],
+  },
+  {
+    label: 'Blog',
+    prefix: 'public_blog_',
+    description: 'Naslov, podnaslov i pozadinska slika javnog bloga.',
+    icon: MessageCircle,
+    color: 'cyan',
+    defaults: [
       { key: 'public_blog_bg', desc: 'Blog — pozadina', type: 'image' },
       { key: 'public_blog_title', desc: 'Blog — naslov', type: 'text' },
       { key: 'public_blog_subtitle', desc: 'Blog — podnaslov', type: 'text' },
+    ],
+  },
+  {
+    label: 'Prijava i registracija',
+    prefix: 'public_auth_',
+    description: 'Slike, naslovi i podnaslovi za javne ekrane prijave i registracije.',
+    icon: Lock,
+    color: 'blue',
+    defaults: [
       { key: 'public_login_image', desc: 'Prijava — slika', type: 'image' },
       { key: 'public_login_title', desc: 'Prijava — naslov', type: 'text' },
       { key: 'public_login_subtitle', desc: 'Prijava — podnaslov', type: 'text' },

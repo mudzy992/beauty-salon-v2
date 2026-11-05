@@ -141,16 +141,41 @@
   },
 
   "adminSettings": {
+    "workspace": "Upravljanje sistemom",
+    "navigationLabel": "Kategorije postavki",
     "nav": {
       "site": "Sajt",
       "operations": "Operacije",
       "appearance": "Izgled",
       "seo": "SEO"
     },
+    "navDescriptions": {
+      "site": "Sadržaj javnog sajta i mobilne aplikacije.",
+      "operations": "Rokovi rezervacija i podsjetnici.",
+      "appearance": "Logo, naziv i boje.",
+      "seo": "Naslovi i opisi javnih stranica."
+    },
+    "search": {
+      "label": "Pretraži postavke",
+      "placeholder": "Pretraži po nazivu ili opisu…",
+      "clear": "Očisti pretragu",
+      "results": "Broj rezultata: {{count}}",
+      "noResultsTitle": "Nema rezultata",
+      "noResultsDescription": "Pokušajte drugi naziv ili opis postavke."
+    },
+    "sections": {
+      "settingsCount": "Broj postavki: {{count}}",
+      "customizedCount": "Prilagođeno: {{count}}",
+      "expand": "Otvori sekciju",
+      "collapse": "Zatvori sekciju"
+    },
     "editor": {
       "configured": "Postavljeno",
       "customized": "Prilagođeno",
       "usingDefault": "Koristi zadanu vrijednost",
+      "enabled": "Uključeno",
+      "disabled": "Isključeno",
+      "editSetting": "Uredi: {{label}}",
       "notConfigured": "Nije postavljeno",
       "configure": "Postavi",
       "upload": "Prenesi",
@@ -162,7 +187,12 @@
       "uploadFailed": "Datoteku nije bilo moguće učitati.",
       "saveSuccess": "Postavka je sačuvana.",
       "saveFailed": "Postavku nije bilo moguće sačuvati.",
-      "invalidHex": "Unesite ispravnu HEX boju, npr. #D4A843."
+      "invalidHex": "Unesite ispravnu HEX boju, npr. #D4A843.",
+      "invalidNumber": "Unesite ispravan broj.",
+      "invalidEmail": "Unesite ispravnu email adresu.",
+      "invalidSelection": "Odaberite jednu od dostupnih opcija.",
+      "invalidUrl": "Unesite ispravan URL koji počinje sa http:// ili https://.",
+      "numberRange": "Vrijednost mora biti između {{min}} i {{max}}."
     },
     "seo": {
       "title": "Postavke — SEO",
@@ -196,7 +226,11 @@
         "maintenance": "Režim održavanja",
         "home": "Sekcije na početnoj",
         "contact": "Kontakt i društvene mreže",
-        "pages": "Stranice i prijava",
+        "reservation": "Rezervacija",
+        "services": "Javna stranica usluga",
+        "gallery": "Galerija",
+        "blog": "Blog",
+        "signIn": "Prijava i registracija",
         "publicModules": "Javni moduli",
         "blogComments": "Komentari (blog)"
       },
@@ -204,7 +238,11 @@
         "maintenance": "Posjetioci javnog sajta i mobilne početne vide poruku o održavanju. Administracija i prijava ostaju dostupne.",
         "home": "Hero sekcija (web CTA je odvojen od mobilnog), o nama, istaknuti sadržaj i donji CTA blok.",
         "contact": "Radno vrijeme se podešava u odjeljku Salon, ne ovdje.",
-        "pages": "Sadržaj usluga (uključujući promotivne blokove), galerije, bloga i rezervacije te vizuali za prijavu i registraciju.",
+        "reservation": "Naslov, podnaslov i glavna slika stranice rezervacije.",
+        "services": "Cijene, hero sadržaj, katalog usluga i promotivni blokovi.",
+        "gallery": "Naslov, podnaslov i pozadinska slika javne galerije.",
+        "blog": "Naslov, podnaslov i pozadinska slika javnog bloga.",
+        "signIn": "Slike, naslovi i podnaslovi za javne ekrane prijave i registracije.",
         "publicModules": "Sakrijte blog, galeriju ili recenzije na webu i u mobilnoj aplikaciji.",
         "blogComments": "Automatsko odobravanje, zabranjene riječi i blokirani korisnici."
       },

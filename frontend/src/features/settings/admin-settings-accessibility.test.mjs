@@ -28,12 +28,12 @@ test('settings form controls are associated with localized labels', () => {
   for (const type of ['Textarea', 'select', 'type="number"', 'type="url"', "def.type === 'email'"]) {
     assert.ok(form.includes(type), `Expected settings control branch for ${type}`)
   }
-  assert.match(form, /<Textarea id=\{inputId\}/)
+  assert.match(form, /<Textarea\s+id=\{inputId\}/)
   assert.match(form, /<select\s+id=\{inputId\}/)
-  assert.match(form, /<Input id=\{inputId\} type="number"/)
-  assert.match(form, /<Input id=\{inputId\} type="url"/)
-  assert.match(form, /<Input id=\{inputId\} type=\{def\.type === 'email' \? 'email' : 'text'\}/)
-  assert.match(form, /<Label htmlFor=\{fileInputId\}>\{t\('adminSettings\.editor\.chooseImage'\)\}<\/Label>/)
+  assert.match(form, /<Input\s+id=\{inputId\}\s+type="number"/)
+  assert.match(form, /<Input\s+id=\{inputId\}\s+type="url"/)
+  assert.match(form, /<Input\s+id=\{inputId\}\s+type=\{def\.type === 'email' \? 'email' : 'text'\}/)
+  assert.match(form, /<Label htmlFor=\{fileInputId\}[^>]*>\s*\{t\('adminSettings\.editor\.chooseImage'\)\}/)
   assert.match(form, /<Input\s+type="color"\s+aria-label=\{t\('adminSettings\.editor\.colorPicker', \{ label: displayLabel \}\)\}/)
   assert.match(form, /<Input id=\{inputId\} value=\{value\}/)
 })

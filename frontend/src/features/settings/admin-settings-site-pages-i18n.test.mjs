@@ -15,6 +15,7 @@ const pageFieldKeys = [
   'public_reserve_title',
   'public_reserve_subtitle',
   'public_reserve_bg',
+  'public_service_prices_enabled',
   'public_services_bg',
   'public_services_title',
   'public_services_subtitle',
@@ -71,7 +72,10 @@ test('public-page and sign-in settings have matching Bosnian/English copy', () =
     leafPaths(locales[0].adminSettings, 'adminSettings').sort(),
     leafPaths(locales[1].adminSettings, 'adminSettings').sort(),
   )
-  assert.match(page, /public_pages_:\s*\{/)
+  for (const prefix of ['public_reserve_', 'services_page_', 'public_gallery_', 'public_blog_', 'public_auth_']) {
+    assert.ok(page.includes(`${prefix}: {`) || page.includes(`'${prefix}': {`), `Missing page group mapping: ${prefix}`)
+    assert.ok(groupDefinitions.includes(`prefix: '${prefix}'`), `Missing page group definition: ${prefix}`)
+  }
   for (const key of pageFieldKeys) {
     assert.ok(
       page.includes(`'${key}': 'adminSettings.site.fields.`) || page.includes(`${key}: 'adminSettings.site.fields.`),
