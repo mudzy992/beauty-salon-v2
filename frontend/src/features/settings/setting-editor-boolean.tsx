@@ -2,21 +2,23 @@ import { useId, useState } from 'react'
 import { Card } from '../../components/ui/card'
 import { Label } from '../../components/ui/label'
 import { Switch } from '../../components/ui/switch'
-import type { AppSetting, SettingDef } from './types'
+import type { AppSetting, RegistryItem, SettingDef } from './types'
 
 export function SettingEditorBoolean({
   def,
   setting,
+  registry,
   onSave,
 }: {
   def: SettingDef
   setting: AppSetting | undefined
+  registry?: RegistryItem
   onSave: (key: string, value: string, desc: string) => Promise<void>
 }) {
   const [saving, setSaving] = useState(false)
   const displayLabel = def.label ?? def.desc
   const switchId = useId()
-  const isOn = (setting?.value ?? 'false').toLowerCase() === 'true'
+  const isOn = (setting?.value ?? registry?.defaultValue ?? 'false').toLowerCase() === 'true'
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between gap-3">

@@ -36,7 +36,13 @@ export function SettingGroupPanel({
       <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">{group.description}</p>
       <div className="space-y-3">
         {group.defaults.map((def) => (
-          <SettingEditor key={def.key} def={def} setting={getByKey(def.key)} onSave={onSave} />
+          <SettingEditor
+            key={def.key}
+            def={def}
+            setting={getByKey(def.key)}
+            registry={registryMap.get(def.key)}
+            onSave={onSave}
+          />
         ))}
       </div>
     </div>

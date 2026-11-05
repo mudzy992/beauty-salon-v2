@@ -149,6 +149,8 @@
     },
     "editor": {
       "configured": "Postavljeno",
+      "customized": "Prilagođeno",
+      "usingDefault": "Koristi zadanu vrijednost",
       "notConfigured": "Nije postavljeno",
       "configure": "Postavi",
       "upload": "Prenesi",

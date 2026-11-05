@@ -152,6 +152,8 @@
     },
     "editor": {
       "configured": "Configured",
+      "customized": "Customized",
+      "usingDefault": "Using default",
       "notConfigured": "Not configured",
       "configure": "Set up",
       "upload": "Upload",

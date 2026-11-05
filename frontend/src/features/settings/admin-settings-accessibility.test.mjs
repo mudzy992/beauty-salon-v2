@@ -9,6 +9,10 @@ const page = readFileSync(new URL('./settings-module-page.tsx', import.meta.url)
 const hook = readFileSync(new URL('./use-admin-settings.ts', import.meta.url), 'utf8')
 const form = readFileSync(new URL('./setting-editor-form.tsx', import.meta.url), 'utf8')
 const booleanEditor = readFileSync(new URL('./setting-editor-boolean.tsx', import.meta.url), 'utf8')
+const displayEditor = readFileSync(new URL('./setting-editor-display.tsx', import.meta.url), 'utf8')
+const settingEditor = readFileSync(new URL('./setting-editor.tsx', import.meta.url), 'utf8')
+const groupPanel = readFileSync(new URL('./setting-group-panel.tsx', import.meta.url), 'utf8')
+const configuredHelper = readFileSync(new URL('./is-configured.ts', import.meta.url), 'utf8')
 
 test('settings load state is announced and failures offer a localized retry', () => {
   assert.match(page, /role="status" aria-live="polite"/)
@@ -42,6 +46,20 @@ test('boolean settings switches are associated with their translated setting lab
 test('settings save rejection is contained after the hook reports its localized error', () => {
   assert.match(form, /await onSave\(def\.key, value, def\.desc\)[\s\S]*?catch \{[\s\S]*?settings hook already reports a localized save error[\s\S]*?finally/)
   assert.match(booleanEditor, /await onSave\(def\.key, checked \? 'true' : 'false', def\.desc\)[\s\S]*?catch \{[\s\S]*?settings hook already reports a localized save error[\s\S]*?finally/)
+})
+
+test('settings editors reflect registry defaults when no explicit value has been saved', () => {
+  assert.match(booleanEditor, /setting\?\.value \?\? registry\?\.defaultValue \?\? 'false'/)
+  assert.match(displayEditor, /getEffectiveSettingValue\(setting, registry\)/)
+  assert.match(configuredHelper, /return row\?\.value \?\? reg\?\.defaultValue \?\? ''/)
+  assert.match(configuredHelper, /String\(row\.value \?\? ''\) !== String\(reg\.defaultValue \?\? ''\)/)
+  assert.match(settingEditor, /registry\?\.defaultValue/)
+  assert.match(groupPanel, /registry=\{registryMap\.get\(def\.key\)\}/)
+  assert.match(form, /useState\(setting\?\.value \?\? defaultValue\)/)
+  for (const locale of locales) {
+    assert.equal(typeof locale.adminSettings.editor.customized, 'string')
+    assert.equal(typeof locale.adminSettings.editor.usingDefault, 'string')
+  }
 })
 
 test('new settings recovery and input labels exist in Bosnian and English', () => {

@@ -16,11 +16,13 @@ import type { AppSetting, SettingDef } from './types'
 export function SettingEditorForm({
   def,
   setting,
+  defaultValue = '',
   onSave,
   onCancel,
 }: {
   def: SettingDef
   setting: AppSetting | undefined
+  defaultValue?: string
   onSave: (key: string, value: string, desc: string) => Promise<void>
   onCancel: () => void
 }) {
@@ -29,14 +31,14 @@ export function SettingEditorForm({
   const fileInputId = `${inputId}-file`
   const displayLabel = def.label ?? def.desc
   const { success, error } = useAppToast()
-  const [value, setValue] = useState(setting?.value ?? '')
+  const [value, setValue] = useState(setting?.value ?? defaultValue)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   useEffect(() => {
-    setValue(setting?.value ?? '')
+    setValue(setting?.value ?? defaultValue)
     setFile(null)
-  }, [setting])
+  }, [setting?.key, setting?.value, defaultValue])
   const save = async () => {
     if (
       ['theme_primary', 'theme_accent'].includes(def.key) &&
