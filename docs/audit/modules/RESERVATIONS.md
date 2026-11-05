@@ -1,23 +1,23 @@
 # Reservations module audit
 
-**Status:** source review complete; RES-01 code remediation is implemented and awaiting CI verification.
+**Status:** source review complete; RES-01 remediation is implemented and verified in CI.
 **Review date:** 2026-11-05  
 **Scope:** NestJS reservation API and lifecycle/availability services; web and mobile reservation list, create, cancellation, attendance, and reschedule consumers; current backend tests.  
 **Verification boundary:** source inspection and the listed tests only. No production database, production query plan, browser, physical-device, or load testing was performed.
 
 ## Summary
 
-The module has several strong controls already in place: creation is transactional and can use an idempotency key; slot allocation uses a date advisory lock and rechecks capacity at write time; the public view token is 32 random bytes; reservation list pages have a bounded size and offset; and current web/mobile create flows send idempotency keys. The current source still contains non-atomic read/validate/write lifecycle paths and an intentionally unbounded queryless list compatibility path.
+The module has several strong controls already in place: creation is transactional and can use an idempotency key; slot allocation uses a date advisory lock and rechecks capacity at write time; the public view token is 32 random bytes; reservation list pages have a bounded size and offset; and current web/mobile create flows send idempotency keys. The current source retains an intentionally unbounded queryless list compatibility path, and multi-service request limits still need an owner-approved ceiling.
 
 ## Findings
 
-### RES-01 — Lifecycle transitions can race after validation (P2, code implemented; extended guard awaiting CI verification)
+### RES-01 — Lifecycle transitions can race after validation (P2, remediated in source and CI-verified)
 
 **Evidence:** `backend/src/reservations/reservation-client-actions.service.ts` reads a reservation, checks its status, then updates using only the reservation ID in client cancellation and attendance confirmation. Client cancellation increments the cancellation/penalty counter after that update in a separate operation. Admin cancellation follows the same read-then-update pattern. `reservation-reschedule-client.service.ts` similarly reads a pending decline request and then updates by ID. In contrast, reschedule acceptance and admin update already use conditional `updateMany` checks.
 
 **Impact:** overlapping requests can both pass the stale status check and produce duplicate side effects; in cancellation this can double-increment the client penalty count. Competing lifecycle actions can overwrite a transition that became invalid after the initial read. The risk is concurrency-dependent and has not been reproduced against a live database.
 
-**Remediation:** implemented compare-and-set predicates using the observed status/request state for client/admin cancellation, client attendance confirmation, and client reschedule decline. A zero-row update now returns a conflict. Client cancellation and its penalty-counter update now share one transaction. Reschedule acceptance now requires a confirmed reservation and guards the observed status in its update, preventing acceptance after a concurrent cancellation. Focused tests cover guarded cancellation, stale-write behavior, and rejection of acceptance for an already-cancelled reservation. The initial CI run passed for the first transition slice; the extended acceptance guard is awaiting CI verification.
+**Remediation:** implemented compare-and-set predicates using the observed status/request state for client/admin cancellation, client attendance confirmation, and client reschedule decline. A zero-row update now returns a conflict. Client cancellation and its penalty-counter update now share one transaction. Reschedule acceptance now requires a confirmed reservation and guards the observed status in its update, preventing acceptance after a concurrent cancellation. Focused tests cover guarded cancellation, stale-write behavior, and rejection of acceptance for an already-cancelled reservation. The complete slice passed backend build/unit tests and the repository CI checks in run `42107410391`.
 
 ### RES-02 — Queryless reservation listing remains unbounded (P2, compatibility decision)
 
@@ -40,14 +40,14 @@ The module has several strong controls already in place: creation is transaction
 ### Phase 0 — Lifecycle integrity
 - [x] RES-01: guarded client/admin cancellation, client attendance confirmation, and client reschedule-decline transitions; client cancellation and counter update are atomic.
 - [x] Added an eligibility/status guard for reschedule acceptance and focused tests for compare-and-set, stale writes, and cancelled-reservation rejection.
-- [x] First transition slice passed CI run `42106710296`; the additional acceptance guard still needs CI verification. Local full reservation tests are blocked until the Prisma client is generated.
+- [x] Full Phase 0 slice passed backend build/unit tests and the repository CI checks in run `42107410391`. Local full reservation tests are blocked until the Prisma client is generated.
 
 ### Phase 1 — Compatibility and request bounds
 - [ ] RES-02: confirm end of the legacy queryless-list compatibility window; then deprecate/remove or explicitly cap the old contract without silent truncation.
 - [ ] RES-03: record the product-approved service-item ceiling, then enforce it across all reservation/availability entry points.
 
 ### Phase 2 — Integration and operational verification
-- [ ] Run backend generation/build/tests and schema/migration checks in CI; record the exact run.
+- [x] Backend generation/build/tests and schema/migration checks passed in CI run `42107410391` (migration checks used disposable CI PostgreSQL only).
 - [ ] Exercise competing reservation actions and list bounds against disposable PostgreSQL.
 - [ ] Separately schedule production query-plan/load checks and user browser/device checks. These are not evidenced by source tests or CI alone.
 
@@ -55,4 +55,5 @@ The module has several strong controls already in place: creation is transaction
 
 - 2026-11-05 — Source review covered reservation create, availability, list, public-token lookup, cancellation, attendance, rescheduling, and identified web/mobile callers.
 - 2026-11-05 — `cd backend && npm test -- --runInBand reservations`: 11 suites passed; 18 suites could not load because the generated Prisma client is absent (`Cannot find module '.prisma/client/default'`). This is an environment/setup failure, not a Reservations test failure. No local Prisma generation was retried because the recorded environment cannot fetch Prisma's schema engine.
-- Production, browser, physical-device, and load verification: **not performed**.
+- 2026-11-05 — CI run `42107410391` passed: Prisma generation/schema validation, migration deployment to disposable CI PostgreSQL, backend build/unit tests, frontend production build, mobile checks, and repository hygiene checks.
+- Production, browser, physical-device, live concurrency, and load verification: **not performed**.
