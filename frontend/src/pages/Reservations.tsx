@@ -356,16 +356,17 @@ export default function Reservations() {
 
             <div className="hidden app-table-wrap lg:block">
               <table className="app-table w-full border-collapse">
+                <caption className="sr-only">{t('nav.reservations')}</caption>
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                    <th className="p-3 font-medium">{t('reservations.adminList.date')}</th>
-                    <th className="p-3 font-medium">{t('reservations.adminList.time')}</th>
-                    <th className="p-3 font-medium">{t('reservations.adminList.client')}</th>
-                    <th className="p-3 font-medium">{t('reservations.adminList.service')}</th>
-                    <th className="p-3 font-medium text-right">{t('reservations.adminList.priceLoyalty')}</th>
-                    <th className="p-3 font-medium">{t('reservations.adminList.stylist')}</th>
-                    <th className="p-3 font-medium">{t('reservations.adminList.status')}</th>
-                    <th className="p-3 font-medium text-right">{t('reservations.adminList.actions')}</th>
+                    <th scope="col" className="p-3 font-medium">{t('reservations.adminList.date')}</th>
+                    <th scope="col" className="p-3 font-medium">{t('reservations.adminList.time')}</th>
+                    <th scope="col" className="p-3 font-medium">{t('reservations.adminList.client')}</th>
+                    <th scope="col" className="p-3 font-medium">{t('reservations.adminList.service')}</th>
+                    <th scope="col" className="p-3 font-medium text-right">{t('reservations.adminList.priceLoyalty')}</th>
+                    <th scope="col" className="p-3 font-medium">{t('reservations.adminList.stylist')}</th>
+                    <th scope="col" className="p-3 font-medium">{t('reservations.adminList.status')}</th>
+                    <th scope="col" className="p-3 font-medium text-right">{t('reservations.adminList.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>

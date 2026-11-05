@@ -77,7 +77,7 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 
 **Initial subflow audit — `/admin/finance` manual income:** source review found the client label remained associated with `manual-client` after the input was replaced by a selected-client display. The label is now conditional on the input, while the selected value is exposed as a named group and its remove action remains individually labelled. Two focused source-contract tests run in frontend CI. Browser rendering, keyboard/focus behavior, and the client-search interaction are not verified by these tests.
 
-**Initial subflow audit — `/admin/reservations`:** a failed list request previously cleared rows and total, making a network/API failure look like a valid empty result. The page now distinguishes failure, announces loading/error states, provides localized retry, and hides stale pagination during loading/error. Focused source-contract tests cover these branches. They do not verify actual screen-reader announcements or browser layout.
+**Initial subflow audit — `/admin/reservations`:** a failed list request previously cleared rows and total, making a network/API failure look like a valid empty result. The page now distinguishes failure, announces loading/error states, provides localized retry, and hides stale pagination during loading/error. The desktop table also has a localized screen-reader caption and explicit column scopes. Focused source-contract tests cover these branches/semantics; they do not verify actual screen-reader announcements or browser layout.
 
 ### Stylist web shell
 

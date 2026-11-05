@@ -16,6 +16,16 @@ test('reservation-list fetch errors remain distinct from a valid empty result', 
   assert.match(source, /items\.length === 0[\s\S]*?t\('common\.noData'\)/)
 })
 
+test('desktop reservation table has a caption and scoped column headers', () => {
+  const tableStart = source.indexOf('<table className="app-table w-full border-collapse">')
+  const tableEnd = source.indexOf('</table>', tableStart)
+  assert.notEqual(tableStart, -1)
+  assert.notEqual(tableEnd, -1)
+  const table = source.slice(tableStart, tableEnd)
+  assert.match(table, /<caption className="sr-only">\{t\('nav\.reservations'\)\}<\/caption>/)
+  assert.equal([...table.matchAll(/<th\b[^>]*\bscope="col"/g)].length, 8)
+})
+
 test('loading and error states are announced and offer a retry action', () => {
   assert.match(source, /<div role="status"[\s\S]*?t\('common\.loading'\)/)
   assert.match(source, /<p role="alert"[\s\S]*?t\('reservations\.adminList\.loadError'\)/)
