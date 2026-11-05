@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 
 import api from '../api/client'
+import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -23,6 +24,14 @@ type DebtRow = {
   manualEntry?: { id: string; date: string } | null
 }
 
+type DebtPageData = {
+  items: DebtRow[]
+  total: number
+  totalAmount: number | string
+  page: number
+  pageSize: number
+}
+
 type Props = {
   /** When rendered inside Finance tabs, hide page title. */
   embedded?: boolean
@@ -40,34 +49,38 @@ export default function Debtors({ embedded = false }: Props) {
     }
   }
   const [q, setQ] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState('')
+  const [page, setPage] = useState(0)
+  const pageSize = 20
+
+  useEffect(() => {
+    setPage(0)
+    const timer = setTimeout(() => setDebouncedQ(q.trim()), 350)
+    return () => clearTimeout(timer)
+  }, [q])
+
   const query = useQuery({
-    queryKey: ['debts', 'all', 'OPEN'],
+    queryKey: ['debts', 'all', 'OPEN', debouncedQ, page, pageSize],
     queryFn: async () => {
-      const { data } = await api.get<DebtRow[]>('/api/client-debts/all', { params: { status: 'OPEN' } })
-      return Array.isArray(data) ? data : []
+      const { data } = await api.get<DebtPageData>('/api/client-debts/all', {
+        params: {
+          status: 'OPEN',
+          page,
+          pageSize,
+          q: debouncedQ || undefined,
+        },
+      })
+      return data
     },
   })
 
-  const rows = query.data ?? []
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase()
-    if (!term) return rows
-    return rows.filter((d) => {
-      const clientName = `${d.client.firstName ?? ''} ${d.client.lastName ?? ''}`.trim().toLowerCase()
-      const stylistName = d.stylistProfile?.user
-        ? `${d.stylistProfile.user.firstName ?? ''} ${d.stylistProfile.user.lastName ?? ''}`.trim().toLowerCase()
-        : ''
-      return (
-        d.client.username.toLowerCase().includes(term) ||
-        clientName.includes(term) ||
-        stylistName.includes(term) ||
-        (d.service?.name ?? '').toLowerCase().includes(term) ||
-        (d.reservation?.publicReferenceCode ?? '').toLowerCase().includes(term)
-      )
-    })
-  }, [rows, q])
-
-  const total = filtered.reduce((acc, d) => acc + (Number(d.amount) || 0), 0)
+  const rows = query.data?.items ?? []
+  const total = query.data?.totalAmount ?? 0
+  const totalPages = Math.max(
+    1,
+    Math.ceil((query.data?.total ?? 0) / (query.data?.pageSize ?? pageSize)),
+  )
+  const currentPage = query.data?.page ?? page
 
   return (
     <div className="space-y-4">
@@ -96,6 +109,7 @@ export default function Debtors({ embedded = false }: Props) {
         <Label htmlFor="q">{t('common.search')}</Label>
         <Input
           id="q"
+          maxLength={100}
           className="mt-2 max-w-md"
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -108,11 +122,11 @@ export default function Debtors({ embedded = false }: Props) {
           <div role="status" className="text-sm text-slate-500">{t('common.loading')}</div>
         ) : query.isError ? (
           <ErrorState onRetry={() => void query.refetch()} />
-        ) : filtered.length === 0 ? (
+        ) : rows.length === 0 ? (
           <div className="text-sm text-slate-500">{t('debtors.noOpenDebts')}</div>
         ) : (
           <div className="grid gap-2">
-            {filtered.map((d) => {
+            {rows.map((d) => {
               const clientName = `${d.client.firstName ?? ''} ${d.client.lastName ?? ''}`.trim() || d.client.username
               const stylistName = d.stylistProfile?.user
                 ? `${d.stylistProfile.user.firstName ?? ''} ${d.stylistProfile.user.lastName ?? ''}`.trim() || d.stylistProfile.user.username
@@ -152,6 +166,34 @@ export default function Debtors({ embedded = false }: Props) {
           </div>
         )}
       </Card>
+
+      {!query.isLoading && !query.isError && (query.data?.total ?? 0) > pageSize ? (
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={currentPage <= 0 || query.isFetching}
+              onClick={() => setPage(Math.max(0, currentPage - 1))}
+            >
+              {t('common.previous')}
+            </Button>
+            <span className="text-sm text-slate-600 dark:text-slate-300">
+              {currentPage + 1} / {totalPages}
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={currentPage >= totalPages - 1 || query.isFetching}
+              onClick={() => setPage(currentPage + 1)}
+            >
+              {t('common.next')}
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

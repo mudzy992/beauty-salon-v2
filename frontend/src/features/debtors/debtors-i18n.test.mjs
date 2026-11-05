@@ -33,8 +33,11 @@ test('admin debtors UI uses keys present in both locales', () => {
 test('debt totals, dates, references, and existing API query remain dynamic', () => {
   assert.match(source, /formatLocalizedAmount\(Number\(d\.amount\), i18n\.language\)/)
   assert.match(source, /formatDateOnlyLocale/)
-  assert.match(source, /queryKey: \['debts', 'all', 'OPEN'\]/)
+  assert.match(source, /queryKey: \['debts', 'all', 'OPEN', debouncedQ, page, pageSize\]/)
   assert.match(source, /status: 'OPEN'/)
+  assert.match(source, /pageSize,\s*q: debouncedQ \|\| undefined/)
+  assert.match(source, /totalAmount/)
+  assert.match(source, /setTimeout\(\(\) => setDebouncedQ\(q\.trim\(\)\), 350\)/)
   assert.match(source, /d\.service\?\.name/)
   assert.doesNotMatch(
     source,

@@ -833,6 +833,7 @@ model ClientDebt {
 
   @@index([clientId, status])
   @@index([stylistProfileId, status])
+  @@index([status, createdAt, id], map: "client_debts_status_created_at_id_idx")
   @@index([createdById, status])
   @@index([dailyLogEntryId])
   @@index([manualEntryId, status])

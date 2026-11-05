@@ -8,7 +8,7 @@ test('debt list distinguishes fetch failure from an empty result and supports re
   const page = await source('../../pages/Debtors.tsx')
   assert.match(page, /query\.isError\s*\?\s*\(/)
   assert.match(page, /<ErrorState onRetry=\{\(\) => void query\.refetch\(\)\}/)
-  assert.match(page, /: filtered\.length === 0 \? \(/)
+  assert.match(page, /: rows\.length === 0 \? \(/)
 })
 
 test('income integrity panel renders a recoverable error instead of an endless skeleton', async () => {

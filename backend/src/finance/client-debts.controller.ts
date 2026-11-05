@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -7,6 +16,7 @@ import type { CurrentUserPayload } from '../common/decorators/current-user.decor
 import { ClientDebtsService } from './client-debts.service';
 import { SettleClientDebtDto } from './dto/settle-client-debt.dto';
 import { RepayClientDebtDto } from './dto/repay-client-debt.dto';
+import { ClientDebtListQueryDto } from './dto/client-debt-list-query.dto';
 
 @Controller('api/client-debts')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -22,7 +32,10 @@ export class ClientDebtsController {
 
   @Get()
   @Roles('SYSTEM_ADMIN', 'OWNER', 'STYLIST', 'CLIENT')
-  listForClient(@Query('clientId') clientId: string, @CurrentUser() user: CurrentUserPayload) {
+  listForClient(
+    @Query('clientId') clientId: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.debts.listForClient(clientId, user);
   }
 
@@ -33,28 +46,27 @@ export class ClientDebtsController {
 
   @Get('all')
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  listAll(
-    @Query('status') status: string,
-    @Query('stylistProfileId') stylistProfileId: string,
-    @Query('clientId') clientId: string,
-  ) {
-    return this.debts.listAll({
-      status,
-      stylistProfileId,
-      clientId,
-    });
+  listAll(@Query() query: ClientDebtListQueryDto) {
+    return this.debts.listAll(query);
   }
 
   /** Otpis duga (bez knjiženja prihoda). Za naplatu koristiti `:id/repay`. */
   @Patch(':id/write-off')
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  writeOff(@Param('id') id: string, @Body() dto: SettleClientDebtDto, @CurrentUser() user: CurrentUserPayload) {
+  writeOff(
+    @Param('id') id: string,
+    @Body() dto: SettleClientDebtDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.debts.writeOff(id, dto, user);
   }
 
   @Post(':id/repay')
-  repay(@Param('id') id: string, @Body() dto: RepayClientDebtDto, @CurrentUser() user: CurrentUserPayload) {
+  repay(
+    @Param('id') id: string,
+    @Body() dto: RepayClientDebtDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
     return this.debts.repayDebt(id, dto, user);
   }
 }
-

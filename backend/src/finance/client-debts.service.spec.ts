@@ -53,6 +53,10 @@ describe('ClientDebtsService', () => {
 
     prisma.incomeBookEntry.aggregate.mockResolvedValue({ _sum: {} });
     prisma.incomeBookManualEntry.aggregate.mockResolvedValue({ _sum: {} });
+    prisma.clientDebt.aggregate.mockResolvedValue({
+      _count: { _all: 0 },
+      _sum: { amount: null },
+    });
     prisma.clientDebt.update.mockResolvedValue(openDebt);
     prisma.clientDebt.updateMany.mockResolvedValue({ count: 1 });
     prisma.dailyLogEntry.create.mockResolvedValue({ id: 'dl1' });
@@ -104,9 +108,9 @@ describe('ClientDebtsService', () => {
 
   describe('writeOff', () => {
     it('zahtijeva razlog otpisa', async () => {
-      await expect(
-        service.writeOff('d1', { note: '' }, owner),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.writeOff('d1', { note: '' }, owner)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('zabranjuje stilisti otpis duga', async () => {
@@ -256,9 +260,9 @@ describe('ClientDebtsService', () => {
       prisma.clientDebt.findUnique.mockResolvedValue(openDebt);
       prisma.stylistProfile.findUnique.mockResolvedValue({ id: 'drugi' });
 
-      await expect(
-        service.repayDebt('d1', {}, stylist),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.repayDebt('d1', {}, stylist)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -269,14 +273,115 @@ describe('ClientDebtsService', () => {
       );
     });
 
-    it('podrazumijevano filtrira otvorene dugove', async () => {
+    it('podrazumijevano filtrira otvorene dugove i vraća ograničenu prvu stranicu', async () => {
       prisma.clientDebt.findMany.mockResolvedValue([]);
-      await service.listAll({});
+      const result = await service.listAll({});
+      expect(prisma.clientDebt.aggregate).toHaveBeenCalledWith({
+        where: { status: 'OPEN' },
+        _count: { _all: true },
+        _sum: { amount: true },
+      });
       expect(prisma.clientDebt.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ status: 'OPEN' }),
+          where: { status: 'OPEN' },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          skip: 0,
+          take: 20,
         }),
       );
+      expect(result).toEqual({
+        items: [],
+        total: 0,
+        totalAmount: 0,
+        page: 0,
+        pageSize: 20,
+      });
+    });
+
+    it('pretražuje povezane podatke i vraća filtrirani zbir uz traženu stranicu', async () => {
+      prisma.clientDebt.aggregate.mockResolvedValue({
+        _count: { _all: 21 },
+        _sum: { amount: new Prisma.Decimal(315) },
+      });
+      prisma.clientDebt.findMany.mockResolvedValue([openDebt]);
+
+      const result = await service.listAll({
+        status: 'OPEN',
+        q: ' Aida K ',
+        page: 1,
+        pageSize: 10,
+      });
+
+      const where = expect.objectContaining({
+        status: 'OPEN',
+        OR: expect.arrayContaining([
+          expect.objectContaining({
+            client: {
+              is: {
+                OR: expect.arrayContaining([
+                  { username: { contains: 'Aida K', mode: 'insensitive' } },
+                  {
+                    AND: [
+                      {
+                        OR: [
+                          { firstName: { contains: 'Aida', mode: 'insensitive' } },
+                          { lastName: { contains: 'Aida', mode: 'insensitive' } },
+                        ],
+                      },
+                      {
+                        OR: [
+                          { firstName: { contains: 'K', mode: 'insensitive' } },
+                          { lastName: { contains: 'K', mode: 'insensitive' } },
+                        ],
+                      },
+                    ],
+                  },
+                ]),
+              },
+            },
+          }),
+          expect.objectContaining({
+            service: {
+              is: { name: { contains: 'Aida K', mode: 'insensitive' } },
+            },
+          }),
+        ]),
+      });
+      expect(prisma.clientDebt.aggregate).toHaveBeenCalledWith(
+        expect.objectContaining({ where }),
+      );
+      expect(prisma.clientDebt.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where, skip: 10, take: 10 }),
+      );
+      expect(result).toEqual({
+        items: [openDebt],
+        total: 21,
+        totalAmount: new Prisma.Decimal(315),
+        page: 1,
+        pageSize: 10,
+      });
+    });
+
+    it('clamps an out-of-range page to the final available page', async () => {
+      prisma.clientDebt.aggregate.mockResolvedValue({
+        _count: { _all: 21 },
+        _sum: { amount: null },
+      });
+      prisma.clientDebt.findMany.mockResolvedValue([]);
+
+      const result = await service.listAll({ page: 99, pageSize: 10 });
+
+      expect(prisma.clientDebt.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 20, take: 10 }),
+      );
+      expect(result.page).toBe(2);
+    });
+
+    it('odbija nevalidne granice paginacije', async () => {
+      await expect(service.listAll({ page: 0, pageSize: 51 })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(prisma.clientDebt.aggregate).not.toHaveBeenCalled();
     });
   });
 });

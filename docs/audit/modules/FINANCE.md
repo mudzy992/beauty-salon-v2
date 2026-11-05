@@ -37,10 +37,10 @@ Findings below are **source-inspection findings**. No production data, productio
 ### FIN-03 — Admin open-debts endpoint and screen retrieve an unbounded result set
 
 - **Priority:** P2 — performance/availability
-- **Status:** Open
-- **Evidence:** `backend/src/finance/client-debts.controller.ts`, `GET /api/client-debts/all` is limited to `SYSTEM_ADMIN`/`OWNER`, but `backend/src/finance/client-debts.service.ts` `listAll()` performs an unpaginated `findMany`. `frontend/src/pages/Debtors.tsx` downloads that complete set and applies search/filtering in the browser.
-- **Impact:** Response size and database work grow with historical/open debt volume; the admin list can become slow or memory-heavy. No production volume/load test was run.
-- **Remediation:** Add stable server pagination and bounded search/filter parameters, a suitable index after query-plan review, and a paginated client contract. Preserve the existing authorization and verify totals/count semantics.
+- **Status:** Bounded source implementation and migration added; database application and query-plan/load verification pending
+- **Evidence:** At the audited revision, `backend/src/finance/client-debts.controller.ts`, `GET /api/client-debts/all` was limited to `SYSTEM_ADMIN`/`OWNER`, but `backend/src/finance/client-debts.service.ts` `listAll()` performed an unpaginated `findMany`. `frontend/src/pages/Debtors.tsx` downloaded that complete set and applied search/filtering in the browser.
+- **Impact:** Response size and database work grew with historical/open debt volume; the admin list could become slow or memory-heavy. No production volume/load test was run.
+- **Remediation:** Added bounded page/pageSize validation, case-insensitive server search across client, stylist, service, and reservation reference, stable createdAt/id ordering, and a paginated response with matching filtered count and amount sum. The current frontend consumer now sends bounded page/search requests and preserves the overall amount total. Added a status/order index migration; existing endpoint role restrictions are unchanged. Apply the migration and inspect actual query plans/volume before claiming production performance verification.
 
 ### FIN-04 — Debt-query failures can be presented as a genuine empty debt list
 
@@ -70,15 +70,17 @@ Findings below are **source-inspection findings**. No production data, productio
 
 1. **Export safety (FIN-01, FIN-02) — complete in source:** added shared, unit-tested HTML and CSV serializers, wired focused tests into frontend CI, and verified with focused tests plus frontend typecheck/production build. Browser exploit and spreadsheet-app verification remain unperformed.
 2. **Read-state correctness (FIN-04, FIN-05, FIN-06) — complete in source:** separated loading/error/empty/data states, added retry, and added source-contract regression tests. Existing generic Finance state copy was reused; no translation changes were needed.
-3. **Bounded debt listing (FIN-03) — open:** implement paginated backend query/contract and frontend pagination/search together; add service/controller/API-contract tests and review database indexes. Verify existing authorization remains intact.
-4. **Cross-module closeout:** rerun relevant Finance tests, frontend build, backend tests affected by the endpoint contract, inspect final diff, update statuses/evidence in this report, then proceed to the next module only after the Finance slices are committed and pushed.
+3. **Bounded debt listing (FIN-03) — source implementation complete:** paginated backend query/contract, bounded client pagination/search, service/DTO tests, and a status/order index migration are in place. Existing authorization is retained. Database migration application, service tests/build, and real query-plan/load verification remain pending.
+4. **Cross-module closeout — open:** rerun affected backend tests/build when Prisma Client generation is available, apply/review the new migration in a disposable database, inspect the final diff, update verification here, and proceed to the next module only after the remaining Finance verification and slices are committed/pushed.
 
 ## Verification log
 
 - Initial static source review against the audited revision identified FIN-01 through FIN-06 above.
 - `npm run test:finance-export-safety` — passed (4 focused regression tests).
 - `npm run test:finance-read-recovery` — passed (4 source-contract recovery tests).
-- Relevant existing Finance/UI contracts passed: `test:debtors-i18n`, `test:finance-income-detail-i18n`, `test:finance-expense-detail-i18n`, and `test:admin-user-list-contract`.
-- `npm run build` in `frontend/` — passed, including TypeScript project build and Vite production build. Vite emitted the existing large-chunk advisory (>500 kB).
-- Targeted ESLint was not completed: the frontend install did not provide the configured ESLint binary, and `npx` selected ESLint 10, which cannot consume this repository's legacy config. No source lint result is claimed.
-- No browser, production, load, spreadsheet application, or device verification has been performed.
+- Relevant existing frontend contracts passed: `test:debtors-i18n`, `test:finance-income-detail-i18n`, `test:finance-expense-detail-i18n`, and `test:admin-user-list-contract`.
+- `npm run build` in `frontend/` — passed, including TypeScript project build and Vite production build. Vite emitted its >500 kB chunk advisory.
+- `npm test -- --runInBand src/finance/dto/client-debt-list-query.dto.spec.ts` — passed (2 tests); targeted ESLint passed for the debt-list DTO/spec and controller.
+- Backend service test/build could not be verified locally: Prisma Client generation attempted to fetch `schema-engine` from `binaries.prisma.sh` and failed because the host is unreachable in this environment. The focused service spec then could not resolve `.prisma/client/default`; the backend build emitted generated-client missing errors. No backend pass is claimed. The service spec has been extended for bounded pagination, relation search, filtered amount/count, page clamping, and invalid bounds for CI after generation succeeds.
+- Targeted ESLint for backend service/spec was also blocked by the absent generated Prisma types; the resulting unresolved-type diagnostics are not treated as a source lint result.
+- No browser, production, database migration application, query-plan, load, spreadsheet application, or device verification has been performed.

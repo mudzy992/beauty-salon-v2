@@ -6,7 +6,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ClientDebtStatus } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  DEFAULT_API_PAGE,
+  DEFAULT_API_PAGE_LIMIT,
+  MAX_API_PAGE_LIMIT,
+  MAX_API_PAGE_OFFSET,
+} from '../common/pagination.constants';
 import { IncomeSyncService } from './income-sync.service';
 import { IncomeManualEntriesService } from './income-manual-entries.service';
 import { parseAndNormalizeDate } from '../common/utils/book-period';
@@ -106,7 +113,14 @@ export class ClientDebtsService {
     });
   }
 
-  async listAll(filters: { status?: string; stylistProfileId?: string; clientId?: string }) {
+  async listAll(filters: {
+    status?: string;
+    stylistProfileId?: string;
+    clientId?: string;
+    q?: string;
+    page?: number;
+    pageSize?: number;
+  }) {
     const raw = (filters.status ?? ClientDebtStatus.OPEN).toUpperCase();
     if (!(raw in ClientDebtStatus)) {
       throw new BadRequestException('status nije validan.');
@@ -114,14 +128,86 @@ export class ClientDebtsService {
     const status = raw as ClientDebtStatus;
     const stylistProfileId = filters.stylistProfileId?.trim() || undefined;
     const clientId = filters.clientId?.trim() || undefined;
+    const search = filters.q?.trim() || undefined;
+    const page = filters.page ?? DEFAULT_API_PAGE;
+    const pageSize = filters.pageSize ?? DEFAULT_API_PAGE_LIMIT;
+    if (
+      !Number.isSafeInteger(page) ||
+      page < 0 ||
+      page > MAX_API_PAGE_OFFSET ||
+      !Number.isSafeInteger(pageSize) ||
+      pageSize < 1 ||
+      pageSize > MAX_API_PAGE_LIMIT
+    ) {
+      throw new BadRequestException('Parametri paginacije nisu validni.');
+    }
+    if (search && search.length > 100) {
+      throw new BadRequestException('Pretraga je preduga.');
+    }
 
-    return this.prisma.clientDebt.findMany({
-      where: {
-        status,
-        ...(stylistProfileId ? { stylistProfileId } : {}),
-        ...(clientId ? { clientId } : {}),
-      },
-      orderBy: { createdAt: 'desc' },
+    const contains = (value: string) => ({
+      contains: value,
+      mode: 'insensitive' as const,
+    });
+    const personSearch = (value: string) => {
+      const terms = value.split(/\s+/).filter(Boolean);
+      return {
+        OR: [
+          { username: contains(value) },
+          { firstName: contains(value) },
+          { lastName: contains(value) },
+          ...(terms.length > 1
+            ? [
+                {
+                  AND: terms.map((term) => ({
+                    OR: [
+                      { firstName: contains(term) },
+                      { lastName: contains(term) },
+                    ],
+                  })),
+                },
+              ]
+            : []),
+        ],
+      };
+    };
+    const where: Prisma.ClientDebtWhereInput = {
+      status,
+      ...(stylistProfileId ? { stylistProfileId } : {}),
+      ...(clientId ? { clientId } : {}),
+      ...(search
+        ? {
+            OR: [
+              { client: { is: personSearch(search) } },
+              {
+                stylistProfile: {
+                  is: { user: { is: personSearch(search) } },
+                },
+              },
+              { service: { is: { name: contains(search) } } },
+              {
+                reservation: {
+                  is: { publicReferenceCode: contains(search) },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const aggregate = await this.prisma.clientDebt.aggregate({
+      where,
+      _count: { _all: true },
+      _sum: { amount: true },
+    });
+    const total = aggregate._count._all;
+    const lastPage = Math.max(0, Math.ceil(total / pageSize) - 1);
+    const currentPage = Math.min(page, lastPage);
+    const items = await this.prisma.clientDebt.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: currentPage * pageSize,
+      take: pageSize,
       include: {
         service: { select: { id: true, name: true } },
         reservation: { select: { id: true, reservationDate: true, startTime: true, endTime: true, publicReferenceCode: true } },
@@ -133,6 +219,13 @@ export class ClientDebtsService {
         settledBy: { select: { id: true, username: true } },
       },
     });
+    return {
+      items,
+      total,
+      totalAmount: aggregate._sum.amount ?? 0,
+      page: currentPage,
+      pageSize,
+    };
   }
 
   /**
