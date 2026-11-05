@@ -1,0 +1,135 @@
+# UX/UI/A11Y/I18N route inventory — source pass 1
+
+**Snapshot:** 2026-11-05, branch source at the time of inventory. This is a source-derived route/component inventory, not visual, browser, screen-reader, or physical-device acceptance.
+
+## Scope and evidence boundaries
+
+- Web route declarations: [`AppRouter`](../../frontend/src/app/router.tsx), [`publicRoutes`](../../frontend/src/app/routes/public.routes.tsx), and [`adminRoutes`](../../frontend/src/app/routes/admin.routes.tsx).
+- Mobile route declarations: Expo Router files under [`mobile/app`](../../mobile/app); screen implementations under [`mobile/src/screens`](../../mobile/src/screens).
+- Shared mobile controls: [`mobile/src/components`](../../mobile/src/components).
+- Route names and ownership below are derived from source. “Source tests exist” is intentionally not inferred per route from a filename alone; the current guard/test coverage is selective and must be mapped as each route family is audited.
+- This inventory does not claim that visible copy, runtime API errors, focus order, semantics, contrast on rendered content, reflow, or accessibility announcements have been verified.
+
+## Web route inventory
+
+### Public shell and client-facing routes
+
+| Route | Page/source | Persona / note |
+|---|---|---|
+| `/` | `PublicHome` | Guest/public |
+| `/usluge` | `PublicServices` | Guest/public |
+| `/usluge/:serviceId` | `PublicServiceDetail` | Guest/public |
+| `/blog` | `PublicBlogList` | Public feature-gated |
+| `/blog/:slug` | `PublicBlogPost` | Public feature-gated |
+| `/galerija` | `PublicGallery` | Public feature-gated |
+| `/kontakt` | `PublicContact` | Guest/public |
+| `/rezervacija` | `PublicReserve` | Public booking flow |
+| `/moje-rezervacije` | `MyReservations` | Client/account flow; page-level auth and empty/error states need route review |
+| `/moje-rezervacije/:id` | `MyReservationDetail` | Client/account flow; route identity and action states need route review |
+| `/moj-termin/:token` | `PublicReservationView` | Token-based reservation access |
+| `/unsubscribe` | `CampaignUnsubscribe` | Public confirmation flow |
+| `/profil` | `Profile` | Account/profile flow |
+| `/zadovoljni-klijenti` | `PublicSatisfiedClients` | Public feature-gated |
+
+### Authentication, onboarding, and exceptional routes
+
+| Route | Page/source | Persona / note |
+|---|---|---|
+| `/login` | `Login` | Signed-out |
+| `/register` | `Register` | Signed-out |
+| `/reset-password` | `ResetPassword` | Password recovery |
+| `/force-change-password` | `ForceChangePassword` | Authenticated forced-change gate |
+| `/onboarding/gender` | `OnboardingGender` | Authenticated onboarding |
+| `/onboarding/email` | `OnboardingEmail` | Authenticated onboarding |
+| `/admin/reservations/calendar` | `ReservationsCalendar` | Protected admin calendar; declared separately from the admin child route table |
+| `*` | `NotFound` | Unknown route / recovery navigation |
+
+### Admin shell
+
+All routes below are nested under `/admin` and `ProtectedRoute`; the audit still needs to verify actual role-specific navigation, headings, and async states.
+
+| Route | Page/source |
+|---|---|
+| `/admin` | `Dashboard` |
+| `/admin/users` | `Users` |
+| `/admin/salon` | `Salon` |
+| `/admin/services` | `Services` |
+| `/admin/services/:serviceId/work-gallery` | `ServiceWorkGallery` |
+| `/admin/stylists` | `Stylists` |
+| `/admin/reservations` | `Reservations` |
+| `/admin/daily-log` | `DailyLog` |
+| `/admin/finance` | `Finance` |
+| `/admin/debtors` | Redirect to `/admin/finance?tab=debtors` |
+| `/admin/blog` | `Blog` |
+| `/admin/gallery` | `Gallery` |
+| `/admin/reviews` | `Reviews` |
+| `/admin/settings` | `Settings` |
+| `/admin/settings/operations` | `SettingsOperations` |
+| `/admin/settings/appearance` | `SettingsAppearance` |
+| `/admin/settings/seo` | `SettingsSeo` |
+| `/admin/app-releases` | `AppReleases` |
+| `/admin/notifications` | `Notifications` |
+| `/admin/email-settings` | `EmailSettings` |
+| `/admin/client-analytics` | `ClientAnalytics` |
+| `/admin/stylist-analytics` | `StylistAnalytics` |
+| `/admin/analytics` | `Analytics` |
+| `/admin/loyalty` | `Loyalty` |
+
+### Stylist web shell
+
+All routes are nested under the stylist guard/layout. `/stylist/profile` redirects to `/profil` rather than rendering a separate stylist page.
+
+| Route | Page/source |
+|---|---|
+| `/stylist` | Redirect to `/stylist/inbox` |
+| `/stylist/inbox` | `StylistInboxPage` |
+| `/stylist/workbook` | `WorkbookListPage` |
+| `/stylist/workbook/new` | `WorkbookNewEntryPage` |
+| `/stylist/workbook/reschedule-preview/:reservationId` | `WorkbookReschedulePreviewPage` |
+| `/stylist/workbook/:entryId` | `WorkbookDetailPage` |
+| `/stylist/schedule` | `StylistSchedulePage` |
+| `/stylist/schedule/new` | `StylistDirectBookingPage` |
+| `/stylist/schedule/:reservationId` | `StylistReservationDetailPage` |
+| `/stylist/debts` | `StylistDebtsPage` |
+| `/stylist/stats` | `StylistStatsPage` |
+| `/stylist/profile` | Redirect to `/profil` |
+
+## Mobile Expo Router inventory
+
+The app currently has 50 non-test `.tsx` files under `mobile/app` (route screens, layouts, and the React Navigation wrapper), 56 non-test source files under `mobile/src/screens`, and 13 non-test source files under `mobile/src/components`. Counts describe source files, not unique visual screens. Route families:
+
+| Route family | Concrete route patterns | Persona |
+|---|---|---|
+| Root/session gate | `/` | Routes signed-out users to login; routes authenticated users through role and onboarding gates |
+| Auth | `/login`, `/register` | Signed-out |
+| Onboarding | `/onboarding/change-password`, `/onboarding/email`, `/onboarding/gender`, `/onboarding/phone` | Authenticated setup |
+| Client — home/content | `/home`, `/home/blog-list`, `/home/blog-post/:slug`, `/home/satisfied-clients` | Client; public content rendered within the signed-in app |
+| Client — services/booking | `/services`, `/services/service-detail`, `/services/service-single-detail`, `/services/service-work-gallery`, `/services/reservation` | Client |
+| Client — reservations | `/reservations`, `/reservations/:reservationId`, `/reservations/write-review` | Client |
+| Client — profile | `/profile`, `/profile/edit`, `/profile/change-password`, `/profile/notifications`, `/profile/contact` | Client |
+| Stylist — inbox | `/stylist/inbox` | Stylist |
+| Stylist — daily log | `/stylist/daily-log`, `/stylist/daily-log/debts`, `/stylist/daily-log/detail/:entryId`, `/stylist/daily-log/new-entry`, `/stylist/daily-log/reschedule-preview/:reservationId` | Stylist |
+| Stylist — schedule | `/stylist/schedule`, `/stylist/schedule/direct-booking`, `/stylist/schedule/reservation-detail/:reservationId` | Stylist |
+| Stylist — statistics/profile | `/stylist/stats`, `/stylist/profile` | Stylist |
+
+Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible URL patterns. Dynamic route params are shown with `:` for readability; source uses Expo Router bracket syntax.
+
+## Shared component inventory — first-pass focus
+
+| Component | Source | Existing evidence / next audit question |
+|---|---|---|
+| `Button` | `mobile/src/components/ui/Button.tsx` | Source-contract accessibility checks exist; verify loading/disabled visual and screen-reader behavior on device. |
+| `Input` | `mobile/src/components/ui/Input.tsx` | Source-contract checks exist; verify label/error announcement order, field traversal, and text scaling. |
+| `DateTimeField` | `mobile/src/components/ui/DateTimeField.tsx` | Source-contract checks and owner-reported device retest exist; physical acceptance remains owner evidence, not agent verification. |
+| `EmptyState` | `mobile/src/components/ui/EmptyState.tsx` | No dedicated accessibility contract test identified in the current inventory pass; inspect decorative icon and heading semantics next. |
+| `LoadingScreen`, `Card`, `Badge` | `mobile/src/components/ui/` | Review accessible announcements, decorative content, and state contrast where consumed. |
+| `MediaImage`, `BeforeAfterSlider` | `mobile/src/components/` | Review image alt/accessibility labels, slider controls, loading/error fallback, and touch/keyboard-equivalent behavior. |
+| Session/onboarding notices and shell | `mobile/src/components/` | Review announcement behavior, focus/reading order, and long-copy reflow. |
+
+## Current acceptance boundary and next slices
+
+- This document establishes the source route surface only. Per-route loading/empty/error/stale/success/disabled states, static versus server-provided copy, form labels/errors, focus behavior, contrast, and locale/date/number formatting remain to be recorded during implementation slices.
+- Mobile resources remain Bosnian-only; English mobile scope is still an owner decision. Do not translate legal/media-consent text without approved wording/version.
+- Current repo checks include selected source-contract and i18n guards, not mounted React Native/web browser coverage. No axe/Playwright browser acceptance is claimed here.
+- Physical-device review remains with the owner. Existing owner-reported Android checks are preserved in the audit record and are not represented as independently reproduced.
+- Immediate next source slice: add a focused accessibility contract for the shared `EmptyState` (decorative icon and title semantics) if the source review confirms the gap, then continue through the common controls and route families. Keep manual/browser/device checks explicitly pending until their respective reviewer supplies evidence.

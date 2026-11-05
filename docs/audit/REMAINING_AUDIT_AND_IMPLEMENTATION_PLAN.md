@@ -182,7 +182,7 @@ Source ima admin/owner-only pojedinačni issuance, `mustChangePassword=true`, ve
 - U pretraženim frontend/mobile dependency i CI manifests nema `axe-core` ni Playwright. Zato nema browser computed style, full keyboard, axe, focus-order, hover/disabled state, zoom/reflow ili VoiceOver/TalkBack uređaj acceptance. Izvorni props test ne dokazuje da se poruka čitača ekrana čuje u ispravnom redoslijedu.
 - Nedostaje globalni audit svakog route-a u dark/light, loading/empty/error/success/disabled/focus modal/drawer, responsive widths, 200% font scaling, contrast on images/gradients, keyboard/touch target, semantic headings/labels/table status and announcements.
 
-**Predloženi UX audit instrument:** po route-u zabilježiti persona/role, initial/loading/empty/error/stale/success states, keyboard/touch route, labels/hints/errors, focus management, locale behavior, responsive breakpoints, source test and manual owner result. Ne mijenjati boje ili layout globalno na osnovu samo 44 para.
+**Predloženi UX audit instrument:** početni source-derived web/mobile route i shared-component spisak je u [`UX_UI_ROUTE_INVENTORY.md`](UX_UI_ROUTE_INVENTORY.md); on nije per-route audit ni acceptance. Za svaki route zabilježiti persona/role, initial/loading/empty/error/stale/success states, keyboard/touch route, labels/hints/errors, focus management, locale behavior, responsive breakpoints, source test and manual owner result. Ne mijenjati boje ili layout globalno na osnovu samo 44 para.
 
 ## 7. Owner decisions / release gates
 
@@ -295,7 +295,7 @@ Faze su zavisne; ne treba preskakati policy gate. Svaki source slice treba zaseb
 
 ### Faza 7 — UX/UI/A11Y/I18N complete route inventory and remediation
 
-**First pass:** enumerate all routes/screens and common components by persona and states; record copy source, API fallback, labels/roles/hints/errors, keyboard order/focus, contrast, font scaling/reflow, dark/light and dynamic data. Expand the mobile guard along with each screen slice; decide mobile EN. Do not claim full repo localization from web key parity.
+**First pass:** source route/component enumeration is started in [`UX_UI_ROUTE_INVENTORY.md`](UX_UI_ROUTE_INVENTORY.md) for all declared web/mobile route families and shared mobile controls. Still enumerate/record route-specific states, copy source/API fallback, labels/roles/hints/errors, keyboard order/focus, contrast, font scaling/reflow, dark/light and dynamic data. Expand the mobile guard along with each screen slice; decide mobile EN. Do not claim full repo localization from web key parity.
 
 **Web:** begin with finance manual income and reservation list (because Faza 1/2 changes them), then public reservation/profile, admin settings/finance, stylist portal, public content, shared dialogs. Add component/rendered tests only after choosing a supported browser harness; `axe`/Playwright dependencies are not currently an existing gate.
 
