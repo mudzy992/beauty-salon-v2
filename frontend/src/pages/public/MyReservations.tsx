@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -25,6 +25,8 @@ export default function MyReservations() {
   const toast = useAppToast()
   const [items, setItems] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const requestIdRef = useRef(0)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null)
   const [cancelReason, setCancelReason] = useState('')
@@ -48,21 +50,25 @@ export default function MyReservations() {
   )
 
   const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
+    setLoadError(false)
     try {
       const data = await fetchAllReservationPages<Reservation>({ asClient: 'true' })
-      setItems(data)
-    } catch (err) {
-      toast.error(localizeActionError(err))
-      setItems([])
+      if (requestId === requestIdRef.current) setItems(data)
+    } catch {
+      if (requestId === requestIdRef.current) setLoadError(true)
     } finally {
-      setLoading(false)
+      if (requestId === requestIdRef.current) setLoading(false)
     }
-  }, [localizeActionError, toast])
+  }, [])
 
   useEffect(() => {
     if (!token) return
     void load()
+    return () => {
+      requestIdRef.current += 1
+    }
   }, [token, load])
 
   useReservationSocketRefresh(load)
@@ -169,7 +175,16 @@ export default function MyReservations() {
         </div>
 
         {loading ? (
-          <p className="text-center text-slate-600">{t('common.loading')}</p>
+          <p role="status" aria-live="polite" className="text-center text-slate-600">
+            {t('common.loading')}
+          </p>
+        ) : loadError ? (
+          <div role="alert" className="flex flex-col items-center gap-3 text-center">
+            <p className="text-sm text-rose-600">{t('public.myReservations.loadFailed')}</p>
+            <Button type="button" variant="outline" onClick={() => void load()}>
+              {t('common.retry')}
+            </Button>
+          </div>
         ) : (
           <>
             <section className="space-y-4">

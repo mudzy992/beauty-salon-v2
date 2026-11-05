@@ -2643,6 +2643,7 @@
       "past": "Past",
       "noUpcoming": "You have no upcoming reservations.",
       "noPast": "You have no past reservations.",
+      "loadFailed": "Could not load your reservations. Please try again.",
       "cancelTitle": "Cancel reservation",
       "cancelConfirm": "Are you sure you want to cancel this reservation?",
       "cancelReservation": "Cancel reservation",
