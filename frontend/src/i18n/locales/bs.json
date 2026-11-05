@@ -1353,7 +1353,8 @@
       "next": "Sljedeća",
       "unconfirmedStylist": "Nije potvrđen",
       "stylistFallback": "Stilista",
-      "serviceFallback": "Servis"
+      "serviceFallback": "Servis",
+      "loadError": "Rezervacije se ne mogu učitati. Pokušaj ponovo."
     },
     "adminDetail": {
       "title": "Detalji rezervacije",

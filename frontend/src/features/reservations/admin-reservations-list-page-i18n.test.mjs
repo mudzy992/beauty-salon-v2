@@ -54,6 +54,12 @@ test('admin reservation table and pagination copy has matching BS/EN translation
   assert.match(pageSource, /onClick=\{\(\) => setPage\(\(p\) => Math\.max\(0, p - 1\)\)\}/)
 })
 
+test('reservation-list load failure copy is present in Bosnian and English', () => {
+  const messages = locales.map((resource) => resource.reservations.adminList.loadError)
+  assert.ok(messages.every((message) => typeof message === 'string' && message.trim().length > 0))
+  assert.notEqual(messages[0], messages[1])
+})
+
 test('reservation-list statuses use locale resources while retaining fallback and values', () => {
   const values = [...statusSource.matchAll(/\{ value: '([^']*)', label: '([^']*)' \}/g)]
     .map(([, value]) => value)

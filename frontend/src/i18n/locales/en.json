@@ -1356,7 +1356,8 @@
       "next": "Next",
       "unconfirmedStylist": "Unconfirmed",
       "stylistFallback": "Stylist",
-      "serviceFallback": "Service"
+      "serviceFallback": "Service",
+      "loadError": "Could not load reservations. Try again."
     },
     "adminDetail": {
       "title": "Reservation details",
