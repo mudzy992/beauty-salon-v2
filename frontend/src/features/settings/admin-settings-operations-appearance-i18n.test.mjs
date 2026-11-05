@@ -70,7 +70,7 @@ test('translated display labels do not change persisted setting descriptions or 
   assert.match(files.operationsPage, /\.\.\.def,\s*label: t\(/)
   assert.match(files.appearancePage, /\.\.\.def,\s*label: t\(/)
   assert.match(files.booleanEditor, /const displayLabel = def\.label \?\? def\.desc/)
-  assert.match(files.booleanEditor, /<p[^>]*>\{displayLabel\}<\/p>/)
+  assert.match(files.booleanEditor, /<Label htmlFor=\{switchId\}[^>]*>[\s\S]*?\{displayLabel\}/)
   assert.match(files.booleanEditor, /onSave\(def\.key, checked \? 'true' : 'false', def\.desc\)/)
   assert.match(files.formEditor, /await onSave\(def\.key, value, def\.desc\)/)
   assert.match(files.settingsHook, /api\.put\(`\/api\/settings\/\$\{key\}`, \{ value, description: desc \}\)/)

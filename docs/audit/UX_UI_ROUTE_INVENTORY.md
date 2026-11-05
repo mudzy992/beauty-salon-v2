@@ -63,10 +63,10 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 | `/admin/blog` | `Blog` |
 | `/admin/gallery` | `Gallery` |
 | `/admin/reviews` | `Reviews` |
-| `/admin/settings` | `Settings` |
-| `/admin/settings/operations` | `SettingsOperations` |
-| `/admin/settings/appearance` | `SettingsAppearance` |
-| `/admin/settings/seo` | `SettingsSeo` |
+| `/admin/settings` | `Settings` | Shared editor now labels typed controls and exposes request-load errors with retry; source/CI only |
+| `/admin/settings/operations` | `SettingsOperations` | Uses shared settings editor/loading/error recovery |
+| `/admin/settings/appearance` | `SettingsAppearance` | Uses shared settings editor/loading/error recovery |
+| `/admin/settings/seo` | `SettingsSeo` | Uses shared settings editor/loading/error recovery |
 | `/admin/app-releases` | `AppReleases` |
 | `/admin/notifications` | `Notifications` |
 | `/admin/email-settings` | `EmailSettings` | Shared safe modular editor and live sample preview for existing and campaign templates; raw HTML campaign mode remains; source/build evidence only, real email-client rendering remains unverified |

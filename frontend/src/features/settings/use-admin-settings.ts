@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import api from '../../api/client'
 import { useSettings } from '../../context/SettingsContext'
@@ -13,29 +13,42 @@ export function useAdminSettings() {
   const [settingsList, setSettingsList] = useState<AppSetting[]>([])
   const [registry, setRegistry] = useState<RegistryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const loadRequestId = useRef(0)
 
-  const loadData = useCallback(() => {
+  const loadData = useCallback(async () => {
+    const requestId = ++loadRequestId.current
     setLoading(true)
-    Promise.all([api.get<AppSetting[]>('/api/settings'), api.get<RegistryItem[]>('/api/settings/registry')])
-      .then(([settingsRes, registryRes]) => {
-        setSettingsList(Array.isArray(settingsRes.data) ? settingsRes.data : [])
-        setRegistry(Array.isArray(registryRes.data) ? registryRes.data : [])
-      })
-      .catch(() => {
-        setSettingsList([])
-        setRegistry([])
-      })
-      .finally(() => setLoading(false))
+    setLoadError(false)
+    try {
+      const [settingsRes, registryRes] = await Promise.all([
+        api.get<AppSetting[]>('/api/settings'),
+        api.get<RegistryItem[]>('/api/settings/registry'),
+      ])
+      if (requestId !== loadRequestId.current) return
+      if (!Array.isArray(settingsRes.data) || !Array.isArray(registryRes.data)) {
+        throw new Error('Invalid admin settings response')
+      }
+      setSettingsList(settingsRes.data)
+      setRegistry(registryRes.data)
+    } catch {
+      if (requestId === loadRequestId.current) setLoadError(true)
+    } finally {
+      if (requestId === loadRequestId.current) setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
-    loadData()
+    void loadData()
+    return () => {
+      loadRequestId.current += 1
+    }
   }, [loadData])
 
   useSocketEvent(
     'settings:updated',
     useCallback(() => {
-      loadData()
+      void loadData()
       void refreshSettings()
     }, [loadData, refreshSettings]),
   )
@@ -44,7 +57,7 @@ export function useAdminSettings() {
     try {
       await api.put(`/api/settings/${key}`, { value, description: desc })
       success(t('adminSettings.editor.saveSuccess'))
-      loadData()
+      void loadData()
       void refreshSettings()
     } catch {
       error(t('adminSettings.editor.saveFailed'))
@@ -54,5 +67,5 @@ export function useAdminSettings() {
 
   const registryMap = useMemo(() => new Map(registry.map((r) => [r.key, r])), [registry])
 
-  return { settingsList, registry, registryMap, loading, handleSave, loadData }
+  return { settingsList, registry, registryMap, loading, loadError, handleSave, loadData }
 }
