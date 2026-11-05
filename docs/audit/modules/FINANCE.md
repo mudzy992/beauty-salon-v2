@@ -2,7 +2,7 @@
 
 - **Audit date:** 2026-11-05
 - **Audited revision:** `57f6a80219c4f9a8aa1046b645a5e38637970c53` (synchronized with `origin/master` before this audit)
-- **Status:** source review complete for the listed flows; remediation is phased and ongoing
+- **Status:** source review complete for the listed flows; export-safety fixes are implemented, remaining phases are open
 
 ## Scope and evidence
 
@@ -21,18 +21,18 @@ Findings below are **source-inspection findings**. No production data, productio
 ### FIN-01 — Unescaped report data is written into a print document
 
 - **Priority:** P1 — security
-- **Status:** Open; first remediation slice planned
-- **Evidence:** `frontend/src/features/finance/export.utils.ts`, `printReport()` inserts the title, subtitle, headers, table cells, summary labels, and summary values directly into a string passed to `window.open()`'s document via `document.write()`.
+- **Status:** Fixed in source; focused regression coverage added
+- **Evidence:** At the audited revision, `frontend/src/features/finance/export.utils.ts`, `printReport()` inserted the title, subtitle, headers, table cells, summary labels, and summary values directly into a string passed to `window.open()`'s document via `document.write()`.
 - **Impact:** Expense titles/categories/notes and income service, stylist, or client names can contain user-controlled content. If a stored value contains markup/script, opening the generated report may interpret it as HTML in the print window. This is a stored HTML-injection/XSS risk by source inspection; an exploit was not run.
-- **Remediation:** Centralize HTML text escaping for every dynamic text position; keep `lang` constrained to its current allowlist; detach the child window from `opener` where supported; add regression tests with markup payloads in each dynamic field.
+- **Remediation:** Implemented shared HTML text escaping for every dynamic text position, retained the `lang` allowlist, detached the child window from `opener`, and added regression tests with markup payloads in each dynamic field.
 
 ### FIN-02 — CSV export does not defend against spreadsheet formulas or carriage-return cells
 
 - **Priority:** P1 — security/data handling
-- **Status:** Open; first remediation slice planned
-- **Evidence:** `frontend/src/features/finance/export.utils.ts`, `escapeCsvCell()` quotes only double quotes, semicolons, and LF. It does not neutralize formula prefixes (`=`, `+`, `-`, `@`, including prefixes after whitespace/control characters) and does not quote CR.
+- **Status:** Fixed in source; focused regression coverage added
+- **Evidence:** At the audited revision, `frontend/src/features/finance/export.utils.ts`, `escapeCsvCell()` quoted only double quotes, semicolons, and LF. It did not neutralize formula prefixes (`=`, `+`, `-`, `@`, including prefixes after whitespace/control characters) and did not quote CR.
 - **Impact:** User-controlled report text may be interpreted as a spreadsheet formula when a CSV is opened in compatible spreadsheet software. An embedded CR can also break expected row structure. No spreadsheet application test was run.
-- **Remediation:** Add a tested CSV-cell serializer that neutralizes formula-like strings before quoting and quotes both CR and LF, while preserving numeric values as numeric cells. Cover formula prefixes, whitespace/control prefixes, quotes, separators, CR/LF, and ordinary text.
+- **Remediation:** Implemented a tested CSV-cell serializer that neutralizes formula-like strings before quoting and quotes both CR and LF, while preserving numeric values as numeric cells. Coverage includes formula prefixes, whitespace/control prefixes, quotes, separators, CR/LF, and ordinary text.
 
 ### FIN-03 — Admin open-debts endpoint and screen retrieve an unbounded result set
 
@@ -68,12 +68,15 @@ Findings below are **source-inspection findings**. No production data, productio
 
 ## Remediation phases
 
-1. **Export safety (FIN-01, FIN-02):** add shared, unit-tested HTML and CSV serializers; wire focused tests into frontend CI; verify with focused tests and frontend typecheck/build. Do not claim browser exploit or spreadsheet-app verification unless those checks are separately performed.
-2. **Read-state correctness (FIN-04, FIN-05, FIN-06):** separate loading/error/empty/data states and add retry; add targeted component/source-contract tests. Keep translation changes isolated in a dedicated i18n commit if required.
+1. **Export safety (FIN-01, FIN-02) — complete in source:** added shared, unit-tested HTML and CSV serializers, wired focused tests into frontend CI, and verified with focused tests plus frontend typecheck/production build. Browser exploit and spreadsheet-app verification remain unperformed.
+2. **Read-state correctness (FIN-04, FIN-05, FIN-06) — open:** separate loading/error/empty/data states and add retry; add targeted component/source-contract tests. Keep translation changes isolated in a dedicated i18n commit if required.
 3. **Bounded debt listing (FIN-03):** implement paginated backend query/contract and frontend pagination/search together; add service/controller/API-contract tests and review database indexes. Verify existing authorization remains intact.
 4. **Cross-module closeout:** rerun relevant Finance tests, frontend build, backend tests affected by the endpoint contract, inspect final diff, update statuses/evidence in this report, then proceed to the next module only after the Finance slices are committed and pushed.
 
 ## Verification log
 
 - Initial static source review against the audited revision identified FIN-01 through FIN-06 above.
+- `npm run test:finance-export-safety` — passed (4 focused regression tests).
+- `npm run build` in `frontend/` — passed, including TypeScript project build and Vite production build. Vite emitted the existing large-chunk advisory (>500 kB).
+- Targeted ESLint was not completed: the frontend install did not provide the configured ESLint binary, and `npx` selected ESLint 10, which cannot consume this repository's legacy config. No source lint result is claimed.
 - No browser, production, load, spreadsheet application, or device verification has been performed.

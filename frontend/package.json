@@ -71,6 +71,7 @@
     "test:finance-manual-entry-i18n": "node --test src/features/finance/income/manual-entry-i18n.test.mjs",
     "test:finance-manual-entry-accessibility": "node --test src/features/finance/income/manual-entry-accessibility.test.mjs",
     "test:finance-data-state-accessibility": "node --test src/features/finance/components/data-state-accessibility.test.mjs",
+    "test:finance-export-safety": "node --test src/features/finance/export-safety.test.mjs",
     "test:finance-client-picker-contract": "node --test src/features/finance/api/client-picker-contract.test.mjs",
     "test:admin-user-list-contract": "node --test src/api/admin-user-list-contract.test.mjs",
     "test:daily-log-client-picker-contract": "node --test src/features/daily-log/daily-log-client-picker-contract.test.mjs",
