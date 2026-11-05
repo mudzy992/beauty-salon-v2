@@ -118,6 +118,7 @@ export default function Reservations() {
 
   const [items, setItems] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [page, setPage] = useState(0)
   const [pageSize] = useState(20)
   const [total, setTotal] = useState(0)
@@ -142,6 +143,7 @@ export default function Reservations() {
 
   const loadData = useCallback(() => {
     setLoading(true)
+    setLoadError(false)
     const params: Record<string, string> = {}
     if (fromDate) params.fromDate = fromDate
     if (toDate) params.toDate = toDate
@@ -161,8 +163,7 @@ export default function Reservations() {
         setTotal(r.data.total ?? 0)
       })
       .catch(() => {
-        setItems([])
-        setTotal(0)
+        setLoadError(true)
       })
       .finally(() => setLoading(false))
   }, [fromDate, toDate, statusFilter, debouncedClientSearch, page, pageSize])
@@ -309,8 +310,18 @@ export default function Reservations() {
 
       <Card className="overflow-hidden">
         {loading ? (
-          <div className="flex justify-center p-10 text-slate-500">
+          <div role="status" className="flex justify-center p-10 text-slate-500">
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+            <span className="sr-only">{t('common.loading')}</span>
+          </div>
+        ) : loadError ? (
+          <div className="flex flex-col items-center gap-3 p-10 text-center">
+            <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">
+              {t('reservations.adminList.loadError')}
+            </p>
+            <Button type="button" variant="outline" onClick={() => loadData()}>
+              {t('common.retry')}
+            </Button>
           </div>
         ) : (
           <>
@@ -421,26 +432,28 @@ export default function Reservations() {
         )}
       </Card>
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">{t('reservations.adminList.total', { total })}</p>
-        <div className="flex items-center gap-2">
-          <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-            {t('reservations.adminList.previous')}
-          </Button>
-          <span className="text-sm text-slate-600 dark:text-slate-300">
-            {page + 1} / {totalPages}
-          </span>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            {t('reservations.adminList.next')}
-          </Button>
+      {!loading && !loadError ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-slate-500">{t('reservations.adminList.total', { total })}</p>
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+              {t('reservations.adminList.previous')}
+            </Button>
+            <span className="text-sm text-slate-600 dark:text-slate-300">
+              {page + 1} / {totalPages}
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              {t('reservations.adminList.next')}
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-4xl">
