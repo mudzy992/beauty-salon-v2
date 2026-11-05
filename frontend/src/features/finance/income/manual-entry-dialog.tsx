@@ -115,21 +115,33 @@ export function ManualEntryDialog({
         </div>
 
         <div className="grid gap-1">
-          <Label htmlFor="manual-client">{t('finance.manualEntry.client')}</Label>
           {f.selectedClient ? (
-            <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 dark:border-slate-800">
-              <span className="text-sm">{getPersonName(f.selectedClient)}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={t('finance.manualEntry.removeClient')}
-                onClick={() => f.selectClient(null)}
+            <>
+              <span
+                id="manual-client-selected-label"
+                className="text-sm font-medium text-slate-700 dark:text-slate-200"
               >
-                <X className="h-3.5 w-3.5" aria-hidden="true" />
-              </Button>
-            </div>
+                {t('finance.manualEntry.client')}
+              </span>
+              <div
+                role="group"
+                aria-labelledby="manual-client-selected-label"
+                className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2 dark:border-slate-800"
+              >
+                <span className="text-sm">{getPersonName(f.selectedClient)}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t('finance.manualEntry.removeClient')}
+                  onClick={() => f.selectClient(null)}
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                </Button>
+              </div>
+            </>
           ) : (
             <>
+              <Label htmlFor="manual-client">{t('finance.manualEntry.client')}</Label>
               <Input
                 id="manual-client"
                 value={f.clientQuery}

@@ -75,6 +75,8 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 | `/admin/analytics` | `Analytics` |
 | `/admin/loyalty` | `Loyalty` |
 
+**Initial subflow audit — `/admin/finance` manual income:** source review found the client label remained associated with `manual-client` after the input was replaced by a selected-client display. The label is now conditional on the input, while the selected value is exposed as a named group and its remove action remains individually labelled. Two focused source-contract tests run in frontend CI. Browser rendering, keyboard/focus behavior, and the client-search interaction are not verified by these tests.
+
 ### Stylist web shell
 
 All routes are nested under the stylist guard/layout. `/stylist/profile` redirects to `/profil` rather than rendering a separate stylist page.
