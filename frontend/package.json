@@ -39,6 +39,7 @@
     "test:stylist-schedule-i18n": "node --test src/features/stylist-portal/stylist-schedule-i18n.test.mjs",
     "test:stylist-direct-booking-i18n": "node --test src/features/stylist-portal/stylist-direct-booking-i18n.test.mjs",
     "test:stylist-direct-booking-accessibility": "node --test src/features/stylist-portal/stylist-direct-booking-accessibility.test.mjs",
+    "test:stylist-direct-booking-recovery": "node --test src/features/stylist-portal/stylist-direct-booking-recovery.test.mjs",
     "test:stylist-reservation-detail-i18n": "node --test src/features/stylist-portal/stylist-reservation-detail-i18n.test.mjs",
     "test:stylist-reservation-reason-dialogs-i18n": "node --test src/features/stylist-portal/stylist-reservation-reason-dialogs-i18n.test.mjs",
     "test:stylist-reservation-complete-dialog-i18n": "node --test src/features/stylist-portal/stylist-reservation-complete-dialog-i18n.test.mjs",

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -45,37 +45,90 @@ export const StylistDirectBookingPage = () => {
   const [endTime, setEndTime] = useState('10:00')
   const [clientNotes, setClientNotes] = useState('')
   const [saving, setSaving] = useState(false)
+  const [loadingServices, setLoadingServices] = useState(true)
+  const [servicesLoadError, setServicesLoadError] = useState(false)
+  const [loadingClients, setLoadingClients] = useState(false)
+  const [clientSearchError, setClientSearchError] = useState(false)
+  const servicesRequestIdRef = useRef(0)
+  const clientSearchRequestIdRef = useRef(0)
 
-  useEffect(() => {
-    fetchAllPublicServices<ServiceOption>({ activeOnly: 'true' })
-      .then(setServices)
-      .catch(() => setServices([]))
+  const loadServices = useCallback(async () => {
+    const requestId = ++servicesRequestIdRef.current
+    setLoadingServices(true)
+    setServicesLoadError(false)
+    try {
+      const result = await fetchAllPublicServices<ServiceOption>({ activeOnly: 'true' })
+      if (!Array.isArray(result)) throw new Error('Invalid services response')
+      if (requestId === servicesRequestIdRef.current) setServices(result)
+    } catch {
+      if (requestId === servicesRequestIdRef.current) {
+        setServices([])
+        setServicesLoadError(true)
+      }
+    } finally {
+      if (requestId === servicesRequestIdRef.current) setLoadingServices(false)
+    }
+  }, [])
+
+  const searchClients = useCallback(async (query: string) => {
+    const requestId = ++clientSearchRequestIdRef.current
+    setLoadingClients(true)
+    setClientSearchError(false)
+    setClients([])
+    try {
+      const { data } = await api.get<{ items: ClientOption[] }>('/api/users/clients', {
+        params: { page: 0, pageSize: 10, q: query },
+      })
+      if (!Array.isArray(data?.items)) throw new Error('Invalid clients response')
+      if (requestId === clientSearchRequestIdRef.current) setClients(data.items)
+    } catch {
+      if (requestId === clientSearchRequestIdRef.current) {
+        setClients([])
+        setClientSearchError(true)
+      }
+    } finally {
+      if (requestId === clientSearchRequestIdRef.current) setLoadingClients(false)
+    }
   }, [])
 
   useEffect(() => {
-    const handle = window.setTimeout(() => {
-      const q = clientSearch.trim()
-      if (!q) {
-        setClients([])
-        return
-      }
-      const selectedLabel = selectedClient
-        ? [selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ').trim() ||
-          selectedClient.username
-        : ''
-      if (selectedClient && q === selectedLabel) {
-        setClients([selectedClient])
-        return
-      }
-      api
-        .get<{ items: ClientOption[] }>('/api/users/clients', {
-          params: { page: 0, pageSize: 10, q },
-        })
-        .then(({ data }) => setClients(Array.isArray(data.items) ? data.items : []))
-        .catch(() => setClients([]))
-    }, 250)
-    return () => window.clearTimeout(handle)
-  }, [clientSearch, selectedClient])
+    void loadServices()
+    return () => {
+      servicesRequestIdRef.current += 1
+    }
+  }, [loadServices])
+
+  useEffect(() => {
+    const query = clientSearch.trim()
+    if (!query) {
+      clientSearchRequestIdRef.current += 1
+      setClients([])
+      setLoadingClients(false)
+      setClientSearchError(false)
+      return
+    }
+
+    const selectedLabel = selectedClient
+      ? [selectedClient.firstName, selectedClient.lastName].filter(Boolean).join(' ').trim() ||
+        selectedClient.username
+      : ''
+    if (selectedClient && query === selectedLabel) {
+      clientSearchRequestIdRef.current += 1
+      setClients([selectedClient])
+      setLoadingClients(false)
+      setClientSearchError(false)
+      return
+    }
+
+    setClients([])
+    setLoadingClients(true)
+    setClientSearchError(false)
+    const handle = window.setTimeout(() => void searchClients(query), 250)
+    return () => {
+      window.clearTimeout(handle)
+      clientSearchRequestIdRef.current += 1
+    }
+  }, [clientSearch, selectedClient, searchClients])
 
   const filteredServices = useMemo(() => {
     const gender = selectedClient?.gender
@@ -176,6 +229,22 @@ export const StylistDirectBookingPage = () => {
             }}
             placeholder={t('stylistPortal.directBooking.searchClient')}
           />
+          {loadingClients ? (
+            <p role="status" aria-live="polite" className="text-sm text-slate-500">
+              {t('common.loading')}
+            </p>
+          ) : null}
+          {clientSearchError ? (
+            <div role="alert" className="flex items-center justify-between gap-3 text-sm text-rose-600">
+              <span>{t('stylistPortal.directBooking.clientSearchFailed')}</span>
+              <Button type="button" variant="outline" size="sm" onClick={() => void searchClients(clientSearch.trim())}>
+                {t('common.retry')}
+              </Button>
+            </div>
+          ) : null}
+          {!loadingClients && !clientSearchError && clientSearch.trim() && clients.length === 0 ? (
+            <p className="text-sm text-slate-500">{t('stylistPortal.directBooking.noClients')}</p>
+          ) : null}
           {clients.length > 0 ? (
             <div className="grid gap-2">
               {clients.map((client) => {
@@ -213,10 +282,21 @@ export const StylistDirectBookingPage = () => {
           <legend className="text-sm font-medium text-slate-700 dark:text-slate-200">
             {t('stylistPortal.directBooking.services')}
           </legend>
-          {!selectedClient ? (
+          {servicesLoadError ? (
+            <div role="alert" className="flex items-center justify-between gap-3 text-sm text-rose-600">
+              <span>{t('stylistPortal.directBooking.serviceLoadFailed')}</span>
+              <Button type="button" variant="outline" size="sm" onClick={() => void loadServices()}>
+                {t('common.retry')}
+              </Button>
+            </div>
+          ) : !selectedClient ? (
             <p className="text-sm text-slate-500">{t('stylistPortal.directBooking.chooseClientForServices')}</p>
           ) : !selectedClient.gender ? (
             <p className="text-sm text-amber-600">{t('stylistPortal.directBooking.genderMissing')}</p>
+          ) : loadingServices ? (
+            <p role="status" aria-live="polite" className="text-sm text-slate-500">
+              {t('common.loading')}
+            </p>
           ) : filteredServices.length === 0 ? (
             <p className="text-sm text-slate-500">{t('stylistPortal.directBooking.noServices')}</p>
           ) : (
