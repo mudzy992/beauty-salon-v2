@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -11,10 +12,7 @@ import { ReservationDateService } from './reservation-date.service';
 import { ReservationSharedService } from './reservation-shared.service';
 import { ReservationQueriesService } from './reservation-queries.service';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
-import {
-  ATTENDANCE_CONFIRMED_BY,
-  RESERVATION_STATUS,
-} from './constants';
+import { ATTENDANCE_CONFIRMED_BY, RESERVATION_STATUS } from './constants';
 import { SOCKET_EVENTS } from '../events/socket-events';
 import { NotificationsService } from '../notifications/notifications.service';
 import { resolvePushContext } from '../notifications/utils/load-reservation-push-context';
@@ -40,9 +38,7 @@ export class ReservationClientActionsService {
     const r = await this.prisma.reservation.findUnique({ where: { id } });
     if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
     if (r.clientId !== clientId)
-      throw new ForbiddenException(
-        'Samo klijent može otkazati rezervaciju.',
-      );
+      throw new ForbiddenException('Samo klijent može otkazati rezervaciju.');
     const cancellableStatuses: string[] = [
       RESERVATION_STATUS.PENDING,
       RESERVATION_STATUS.STYLIST_REVIEW,
@@ -50,9 +46,7 @@ export class ReservationClientActionsService {
       RESERVATION_STATUS.ATTENDANCE_CONFIRMED,
     ];
     if (!cancellableStatuses.includes(r.status))
-      throw new BadRequestException(
-        'Rezervacija se više ne može otkazati.',
-      );
+      throw new BadRequestException('Rezervacija se više ne može otkazati.');
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
     const reservationStartAt = this.dates.combineDateAndTime(
@@ -65,32 +59,37 @@ export class ReservationClientActionsService {
     );
     if (new Date() > deadline)
       throw new BadRequestException('Rok za otkazivanje je istekao.');
-    await this.prisma.reservation.update({
-      where: { id },
-      data: {
-        status: this.shared.transitionTo(
-          r.status,
-          RESERVATION_STATUS.CANCELLED_BY_CLIENT,
-        ),
-        cancelledAt: new Date(),
-        cancelReason: dto?.cancelReason,
-      },
+    await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.reservation.updateMany({
+        where: { id, clientId, status: r.status },
+        data: {
+          status: this.shared.transitionTo(
+            r.status,
+            RESERVATION_STATUS.CANCELLED_BY_CLIENT,
+          ),
+          cancelledAt: new Date(),
+          cancelReason: dto?.cancelReason,
+        },
+      });
+      if (updated.count !== 1) {
+        throw new ConflictException(
+          'Rezervacija je istovremeno promijenjena. Osvježite podatke i pokušajte ponovo.',
+        );
+      }
+      await this.shared.incrementCancellationCountInTransaction(
+        clientId,
+        salon,
+        tx,
+      );
     });
-    await this.shared.incrementCancellationCount(clientId, salon);
     const cancelled = await this.queries.findOne(id, {
       sub: clientId,
       roles: ['CLIENT'],
       username: '',
       email: '',
     });
-    this.events.emitToAdmins(
-      SOCKET_EVENTS.RESERVATION_CANCELLED,
-      cancelled,
-    );
-    this.events.emitToStylists(
-      SOCKET_EVENTS.RESERVATION_CANCELLED,
-      cancelled,
-    );
+    this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CANCELLED, cancelled);
+    this.events.emitToStylists(SOCKET_EVENTS.RESERVATION_CANCELLED, cancelled);
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
       serviceId: r.serviceId,
       date: toDateOnlyString(r.reservationDate),
@@ -101,7 +100,11 @@ export class ReservationClientActionsService {
         select: { userId: true },
       });
       if (stylist?.userId) {
-        const ctx = await resolvePushContext(this.prisma, id, r.publicReferenceCode);
+        const ctx = await resolvePushContext(
+          this.prisma,
+          id,
+          r.publicReferenceCode,
+        );
         const copy = buildCancelledCopy({
           ctx,
           title: 'Rezervacija otkazana',
@@ -127,38 +130,43 @@ export class ReservationClientActionsService {
       r.status,
       RESERVATION_STATUS.CANCELLED_BY_STYLISTS,
     );
-    await this.prisma.reservation.update({
-      where: { id },
+    const updated = await this.prisma.reservation.updateMany({
+      where: { id, status: r.status },
       data: {
         status: nextStatus,
         cancelledAt: new Date(),
         cancelReason: dto?.cancelReason,
       },
     });
+    if (updated.count !== 1) {
+      throw new ConflictException(
+        'Rezervacija je istovremeno promijenjena. Osvježite podatke i pokušajte ponovo.',
+      );
+    }
     const cancelled = await this.queries.findOne(id, {
       sub: '',
       roles: ['SYSTEM_ADMIN'],
       username: '',
       email: '',
     });
-    this.events.emitToAdmins(
-      SOCKET_EVENTS.RESERVATION_CANCELLED,
-      cancelled,
-    );
-    this.events.emitToStylists(
-      SOCKET_EVENTS.RESERVATION_CANCELLED,
-      cancelled,
-    );
+    this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_CANCELLED, cancelled);
+    this.events.emitToStylists(SOCKET_EVENTS.RESERVATION_CANCELLED, cancelled);
     this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
       serviceId: r.serviceId,
       date: toDateOnlyString(r.reservationDate),
     });
     if (r.clientId) {
-      const ctx = await resolvePushContext(this.prisma, id, r.publicReferenceCode);
+      const ctx = await resolvePushContext(
+        this.prisma,
+        id,
+        r.publicReferenceCode,
+      );
       const copy = buildCancelledCopy({
         ctx,
         title: 'Rezervacija otkazana',
-        reason: dto?.cancelReason?.trim() || 'Rezervacija je otkazana od strane salona.',
+        reason:
+          dto?.cancelReason?.trim() ||
+          'Rezervacija je otkazana od strane salona.',
       });
       await this.notifications.send({
         userId: r.clientId,
@@ -181,9 +189,7 @@ export class ReservationClientActionsService {
     const r = await this.prisma.reservation.findUnique({ where: { id } });
     if (!r) throw new NotFoundException('Rezervacija nije pronađena.');
     if (r.clientId !== clientId)
-      throw new ForbiddenException(
-        'Samo klijent može potvrditi dolazak.',
-      );
+      throw new ForbiddenException('Samo klijent može potvrditi dolazak.');
     if (!canConfirmAttendance(r)) {
       throw new BadRequestException(
         'Rezervacija mora biti potvrđena od strane stilista.',
@@ -205,8 +211,8 @@ export class ReservationClientActionsService {
         `Rok za potvrdu dolaska je istekao (najkasnije ${deadlineHours}h prije termina).`,
       );
     }
-    await this.prisma.reservation.update({
-      where: { id },
+    const updated = await this.prisma.reservation.updateMany({
+      where: { id, clientId, status: r.status },
       data: {
         status: this.shared.transitionTo(
           r.status,
@@ -216,16 +222,18 @@ export class ReservationClientActionsService {
         attendanceConfirmedBy: ATTENDANCE_CONFIRMED_BY.CLIENT,
       },
     });
+    if (updated.count !== 1) {
+      throw new ConflictException(
+        'Rezervacija je istovremeno promijenjena. Osvježite podatke i pokušajte ponovo.',
+      );
+    }
     const confirmed = await this.queries.findOne(id, {
       sub: clientId,
       roles: ['CLIENT'],
       username: '',
       email: '',
     });
-    this.events.emitToAdmins(
-      SOCKET_EVENTS.RESERVATION_UPDATED,
-      confirmed,
-    );
+    this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_UPDATED, confirmed);
     return confirmed;
   }
 }

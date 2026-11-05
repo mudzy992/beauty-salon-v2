@@ -157,8 +157,13 @@ export class ReservationRescheduleClientService {
           RESERVATION_STATUS.CANCELLED_BY_CLIENT,
         )
       : null;
-    await this.prisma.reservation.update({
-      where: { id: reservationId },
+    const updatedCount = await this.prisma.reservation.updateMany({
+      where: {
+        id: reservationId,
+        clientId: userId,
+        status: r.status,
+        rescheduleStatus: 'PENDING',
+      },
       data: isReorder
         ? {
             rescheduleStatus: 'DECLINED',
@@ -174,6 +179,11 @@ export class ReservationRescheduleClientService {
             rescheduleProposedEndTime: null,
           },
     });
+    if (updatedCount.count !== 1) {
+      throw new ConflictException(
+        'Zahtjev za promjenu termina je već obrađen. Osvježite rezervaciju.',
+      );
+    }
     const updated = await this.queries.findOne(reservationId, {
       sub: userId,
       roles: ['CLIENT'],

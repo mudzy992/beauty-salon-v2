@@ -27,9 +27,7 @@ export class ReservationSharedService {
     return to;
   }
 
-  async getStylistProfileIdByUserId(
-    userId: string,
-  ): Promise<string | null> {
+  async getStylistProfileIdByUserId(userId: string): Promise<string | null> {
     const p = await this.prisma.stylistProfile.findUnique({
       where: { userId },
       select: { id: true },
@@ -38,7 +36,9 @@ export class ReservationSharedService {
   }
 
   private buildPublicReferenceCodeForDate(reservationDate: Date): string {
-    const date = this.dates.toDateOnlyString(reservationDate).replaceAll('-', '');
+    const date = this.dates
+      .toDateOnlyString(reservationDate)
+      .replaceAll('-', '');
     const suffix = randomBytes(3).toString('hex').toUpperCase();
     return `RZ-${date}-${suffix}`;
   }
@@ -119,23 +119,34 @@ export class ReservationSharedService {
       penaltyDurationDays: number;
     },
   ) {
-    await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.clientCancellationCount.upsert({
-        where: { userId: clientId },
-        create: { userId: clientId, cancellationCount: 1 },
-        update: { cancellationCount: { increment: 1 } },
-      });
-      let penaltyUntil: Date | null = null;
-      if (updated.cancellationCount >= salon.maxCancellationsBeforePenalty) {
-        penaltyUntil = this.dates.addSalonCalendarDays(
-          new Date(),
-          salon.penaltyDurationDays,
-        );
-      }
-      await tx.clientCancellationCount.update({
-        where: { userId: clientId },
-        data: { penaltyUntil },
-      });
+    await this.prisma.$transaction((tx) =>
+      this.incrementCancellationCountInTransaction(clientId, salon, tx),
+    );
+  }
+
+  async incrementCancellationCountInTransaction(
+    clientId: string,
+    salon: {
+      maxCancellationsBeforePenalty: number;
+      penaltyDurationDays: number;
+    },
+    tx: Pick<Prisma.TransactionClient, 'clientCancellationCount'>,
+  ) {
+    const updated = await tx.clientCancellationCount.upsert({
+      where: { userId: clientId },
+      create: { userId: clientId, cancellationCount: 1 },
+      update: { cancellationCount: { increment: 1 } },
+    });
+    let penaltyUntil: Date | null = null;
+    if (updated.cancellationCount >= salon.maxCancellationsBeforePenalty) {
+      penaltyUntil = this.dates.addSalonCalendarDays(
+        new Date(),
+        salon.penaltyDurationDays,
+      );
+    }
+    await tx.clientCancellationCount.update({
+      where: { userId: clientId },
+      data: { penaltyUntil },
     });
   }
 
@@ -169,9 +180,7 @@ export class ReservationSharedService {
     );
     const minutesUntil = Math.max(
       1,
-      Math.floor(
-        (proposedStart.getTime() - sentAt.getTime()) / 60000,
-      ),
+      Math.floor((proposedStart.getTime() - sentAt.getTime()) / 60000),
     );
     return Math.max(1, Math.min(30, Math.floor(minutesUntil * 0.5)));
   }

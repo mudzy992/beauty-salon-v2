@@ -1,6 +1,6 @@
 # Reservations module audit
 
-**Status:** source review in progress; remediation phases are tracked below.  
+**Status:** source review complete; RES-01 code remediation is implemented and awaiting CI verification.
 **Review date:** 2026-11-05  
 **Scope:** NestJS reservation API and lifecycle/availability services; web and mobile reservation list, create, cancellation, attendance, and reschedule consumers; current backend tests.  
 **Verification boundary:** source inspection and the listed tests only. No production database, production query plan, browser, physical-device, or load testing was performed.
@@ -17,7 +17,7 @@ The module has several strong controls already in place: creation is transaction
 
 **Impact:** overlapping requests can both pass the stale status check and produce duplicate side effects; in cancellation this can double-increment the client penalty count. Competing lifecycle actions can overwrite a transition that became invalid after the initial read. The risk is concurrency-dependent and has not been reproduced against a live database.
 
-**Remediation:** use compare-and-set predicates that include the observed status/request state, reject a zero-row update as a conflict, and commit client cancellation plus its penalty-counter update in one transaction. Extend the same pattern to the remaining lifecycle mutations and add focused concurrency-oriented tests.
+**Remediation:** implemented compare-and-set predicates using the observed status/request state for client/admin cancellation, client attendance confirmation, and client reschedule decline. A zero-row update now returns a conflict. Client cancellation and its penalty-counter update now share one transaction. Focused tests cover the guarded cancellation and ensure a losing concurrent action does not increment the counter or emit side effects. Backend CI verification is pending.
 
 ### RES-02 — Queryless reservation listing remains unbounded (P2, compatibility decision)
 
@@ -38,8 +38,9 @@ The module has several strong controls already in place: creation is transaction
 ## Phased remediation and verification
 
 ### Phase 0 — Lifecycle integrity
-- [ ] RES-01: make client/admin cancellation, attendance confirmation, and reschedule decline conditional and atomic where they have associated side effects.
-- [ ] Add focused unit tests for stale/conflicting lifecycle actions and the cancellation counter.
+- [x] RES-01: guarded the identified client/admin cancellation, client attendance confirmation, and client reschedule-decline transitions; client cancellation and counter update are atomic.
+- [x] Added focused unit tests for the client-cancellation compare-and-set and stale-write outcome.
+- [ ] Verify the slice in backend CI; local full reservation tests are blocked until the Prisma client is generated.
 
 ### Phase 1 — Compatibility and request bounds
 - [ ] RES-02: confirm end of the legacy queryless-list compatibility window; then deprecate/remove or explicitly cap the old contract without silent truncation.
