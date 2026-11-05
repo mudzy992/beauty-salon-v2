@@ -268,9 +268,9 @@ export default function Profile() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-10 space-y-6">
-      <div className="text-2xl font-semibold tracking-tight text-slate-950">
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
         {t('profile.title')}
-      </div>
+      </h1>
 
       {loading ? (
         <div className="text-slate-600">{t('common.loading')}</div>
@@ -519,6 +519,7 @@ export default function Profile() {
                             : t('profile.email.sendCode')}
                         </Button>
                         <Input
+                          aria-label={t('profile.email.codePlaceholder')}
                           value={verifyToken}
                           onChange={(e) => setVerifyToken(e.target.value)}
                           placeholder={t('profile.email.codePlaceholder')}

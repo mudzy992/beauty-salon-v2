@@ -191,6 +191,9 @@ jobs:
       - name: Test localized profile API errors
         working-directory: frontend
         run: npm run test:profile-api-errors
+      - name: Test profile accessibility semantics
+        working-directory: frontend
+        run: npm run test:profile-accessibility
       - name: Test localized public catalog UI
         working-directory: frontend
         run: npm run test:public-catalog-i18n

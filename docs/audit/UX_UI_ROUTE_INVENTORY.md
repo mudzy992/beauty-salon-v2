@@ -28,7 +28,7 @@
 | `/moje-rezervacije/:id` | `MyReservationDetail` | Client/account flow; route identity and action states need route review |
 | `/moj-termin/:token` | `PublicReservationView` | Token-based reservation access |
 | `/unsubscribe` | `CampaignUnsubscribe` | Public confirmation flow |
-| `/profil` | `Profile` | Account/profile flow |
+| `/profil` | `Profile` | Account/profile flow; source checks cover semantic page heading and localized accessible name for the email-verification code; rendered navigation/announcement behavior remains unverified |
 | `/zadovoljni-klijenti` | `PublicSatisfiedClients` | Public feature-gated |
 
 ### Authentication, onboarding, and exceptional routes
@@ -136,4 +136,4 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 - Mobile resources remain Bosnian-only; English mobile scope is still an owner decision. Do not translate legal/media-consent text without approved wording/version.
 - Current repo checks include selected source-contract and i18n guards, not mounted React Native/web browser coverage. No axe/Playwright browser acceptance is claimed here.
 - Physical-device review remains with the owner. Existing owner-reported Android checks are preserved in the audit record and are not represented as independently reproduced.
-- First shared-control source slice adds a focused `EmptyState` contract for decorative icon and title semantics. The public booking source slice adds focused form-label, fieldset-legend, calendar-name, and selected-state contracts; it does not establish rendered focus order, keyboard interaction, screen-reader announcement quality, or physical-device acceptance. Continue through the remaining shared controls and route families; keep manual/browser/device checks explicitly pending until their respective reviewer supplies evidence.
+- First shared-control source slice adds a focused `EmptyState` contract for decorative icon and title semantics. The public booking source slice adds focused form-label, fieldset-legend, calendar-name, and selected-state contracts; the profile slice covers its page heading and localized verification-code accessible name. These do not establish rendered focus order, keyboard interaction, screen-reader announcement quality, or physical-device acceptance. Continue through the remaining shared controls and route families; keep manual/browser/device checks explicitly pending until their respective reviewer supplies evidence.
