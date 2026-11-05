@@ -21,7 +21,7 @@ test('public service catalogue, detail, and not-found UI keys exist in both loca
 
   for (const sourcePath of uiSources) {
     const source = readFileSync(sourcePath, 'utf8')
-    for (const [, key] of source.matchAll(/\bt\('([^']+)'/g)) keys.add(key)
+    for (const [, key] of source.matchAll(/\bt\([\"']([^\"']+)[\"']\)/g)) keys.add(key)
   }
 
   assert.ok(keys.has('public.servicesPage.loadFailed'))
