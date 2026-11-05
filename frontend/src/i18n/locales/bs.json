@@ -2805,6 +2805,8 @@
       "stylistsAvailable": "Dostupno stilista: {{count}}",
       "bannerTitle": "Rezervišite Vaš Termin",
       "bannerSubtitle": "Osigurajte svoje vrijeme za savršenu frizuru u nekoliko jednostavnih koraka.",
+      "progress": "Napredak rezervacije",
+      "progressStep": "Korak {{current}} od {{total}}",
       "profileRequired": "Prije rezervacije morate ažurirati profil i verifikovati email.",
       "errorServiceRequired": "Odaberite najmanje jednu uslugu.",
       "errorServiceGenderMismatch": "Odabrana usluga nije dostupna za vaš profil.",

@@ -801,7 +801,15 @@ export default function PublicReserve() {
               </div>
             </div>
 
-            <div className="flex items-center justify-center mt-8">
+            <div
+              role="progressbar"
+              aria-label={t('public.reserve.progress')}
+              aria-valuemin={1}
+              aria-valuemax={4}
+              aria-valuenow={step}
+              aria-valuetext={t('public.reserve.progressStep', { current: step, total: 4 })}
+              className="flex items-center justify-center mt-8"
+            >
               {[1, 2, 3, 4].map((s) => (
                 <div key={s} className="flex items-center">
                   <div

@@ -2810,6 +2810,8 @@
       "stylistsAvailable": "Available stylists: {{count}}",
       "bannerTitle": "Book your appointment",
       "bannerSubtitle": "Secure your time for a perfect style in a few simple steps.",
+      "progress": "Reservation progress",
+      "progressStep": "Step {{current}} of {{total}}",
       "profileRequired": "Before booking, update your profile and verify your email.",
       "errorServiceRequired": "Select at least one service.",
       "errorServiceGenderMismatch": "The selected service is not available for your profile.",

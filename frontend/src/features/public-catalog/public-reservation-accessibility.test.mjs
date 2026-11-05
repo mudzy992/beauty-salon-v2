@@ -32,6 +32,17 @@ test('calendar navigation and selectable dates expose names and selected states'
   assert.match(calendar, /aria-pressed=\{isSelected\}/)
 })
 
+test('reservation progress exposes the current step with localized text', () => {
+  assert.match(
+    source,
+    /role="progressbar"[\s\S]*?aria-label=\{t\('public\.reserve\.progress'\)\}[\s\S]*?aria-valuemin=\{1\}[\s\S]*?aria-valuemax=\{4\}[\s\S]*?aria-valuenow=\{step\}[\s\S]*?aria-valuetext=\{t\('public\.reserve\.progressStep', \{ current: step, total: 4 \}\)\}/,
+  )
+  assert.ok(bsLocale.public.reserve.progress.length > 0)
+  assert.ok(enLocale.public.reserve.progress.length > 0)
+  assert.ok(bsLocale.public.reserve.progressStep.includes('{{current}}'))
+  assert.ok(enLocale.public.reserve.progressStep.includes('{{total}}'))
+})
+
 test('service, date, and slot request failures remain distinct from valid empty results and offer retry', () => {
   assert.match(source, /setServicesLoadError\(true\)/)
   assert.match(source, /servicesLoadError \? \([\s\S]*?public\.reserve\.servicesLoadFailed[\s\S]*?void loadServices\(\)/)
