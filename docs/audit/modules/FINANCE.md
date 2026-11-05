@@ -37,10 +37,10 @@ Findings below are **source-inspection findings**. No production data, productio
 ### FIN-03 — Admin open-debts endpoint and screen retrieve an unbounded result set
 
 - **Priority:** P2 — performance/availability
-- **Status:** Bounded source implementation and migration added; database application and query-plan/load verification pending
+- **Status:** Source implementation and CI migration/test verification complete; production query-plan/load verification pending
 - **Evidence:** At the audited revision, `backend/src/finance/client-debts.controller.ts`, `GET /api/client-debts/all` was limited to `SYSTEM_ADMIN`/`OWNER`, but `backend/src/finance/client-debts.service.ts` `listAll()` performed an unpaginated `findMany`. `frontend/src/pages/Debtors.tsx` downloaded that complete set and applied search/filtering in the browser.
 - **Impact:** Response size and database work grew with historical/open debt volume; the admin list could become slow or memory-heavy. No production volume/load test was run.
-- **Remediation:** Added bounded page/pageSize validation, case-insensitive server search across client, stylist, service, and reservation reference, stable createdAt/id ordering, and a paginated response with matching filtered count and amount sum. The current frontend consumer now sends bounded page/search requests and preserves the overall amount total. Added a status/order index migration; existing endpoint role restrictions are unchanged. Apply the migration and inspect actual query plans/volume before claiming production performance verification.
+- **Remediation:** Added bounded page/pageSize validation, case-insensitive server search across client, stylist, service, and reservation reference, stable createdAt/id ordering, and a paginated response with matching filtered count and amount sum. The current frontend consumer now sends bounded page/search requests and preserves the overall amount total. Added a status/order index migration; existing endpoint role restrictions are unchanged. Backend unit/build and schema/migration checks passed in CI, including applying the migration to disposable PostgreSQL. Production query plans and volume/load have not been checked.
 
 ### FIN-04 — Debt-query failures can be presented as a genuine empty debt list
 
@@ -70,8 +70,8 @@ Findings below are **source-inspection findings**. No production data, productio
 
 1. **Export safety (FIN-01, FIN-02) — complete in source:** added shared, unit-tested HTML and CSV serializers, wired focused tests into frontend CI, and verified with focused tests plus frontend typecheck/production build. Browser exploit and spreadsheet-app verification remain unperformed.
 2. **Read-state correctness (FIN-04, FIN-05, FIN-06) — complete in source:** separated loading/error/empty/data states, added retry, and added source-contract regression tests. Existing generic Finance state copy was reused; no translation changes were needed.
-3. **Bounded debt listing (FIN-03) — source implementation complete:** paginated backend query/contract, bounded client pagination/search, service/DTO tests, and a status/order index migration are in place. Existing authorization is retained. Database migration application, service tests/build, and real query-plan/load verification remain pending.
-4. **Cross-module closeout — open:** rerun affected backend tests/build when Prisma Client generation is available, apply/review the new migration in a disposable database, inspect the final diff, update verification here, and proceed to the next module only after the remaining Finance verification and slices are committed/pushed.
+3. **Bounded debt listing (FIN-03) — implementation and CI verification complete:** paginated backend query/contract, bounded client pagination/search, service/DTO tests, and a status/order index migration are in place. Existing authorization is retained. GitHub Actions generated Prisma Client, built/tested the backend, validated the schema, and applied migrations to disposable PostgreSQL successfully. Production query-plan/load verification remains pending.
+4. **Cross-module closeout — complete for source and CI:** targeted Finance regression tests and frontend build passed; the latest CI run passed all jobs. All audited source findings have remediation in this branch. No production, browser exploit, spreadsheet-app, production database, or load verification is claimed; those remain separate if needed.
 
 ## Verification log
 
@@ -81,6 +81,6 @@ Findings below are **source-inspection findings**. No production data, productio
 - Relevant existing frontend contracts passed: `test:debtors-i18n`, `test:finance-income-detail-i18n`, `test:finance-expense-detail-i18n`, and `test:admin-user-list-contract`.
 - `npm run build` in `frontend/` — passed, including TypeScript project build and Vite production build. Vite emitted its >500 kB chunk advisory.
 - `npm test -- --runInBand src/finance/dto/client-debt-list-query.dto.spec.ts` — passed (2 tests); targeted ESLint passed for the debt-list DTO/spec and controller.
-- Backend service test/build could not be verified locally: Prisma Client generation attempted to fetch `schema-engine` from `binaries.prisma.sh` and failed because the host is unreachable in this environment. The focused service spec then could not resolve `.prisma/client/default`; the backend build emitted generated-client missing errors. No backend pass is claimed. The service spec has been extended for bounded pagination, relation search, filtered amount/count, page clamping, and invalid bounds for CI after generation succeeds.
-- Targeted ESLint for backend service/spec was also blocked by the absent generated Prisma types; the resulting unresolved-type diagnostics are not treated as a source lint result.
-- No browser, production, database migration application, query-plan, load, spreadsheet application, or device verification has been performed.
+- Local backend service test/build was blocked because Prisma Client generation tried to fetch `schema-engine` from `binaries.prisma.sh`, which is unreachable in this environment. Local targeted service lint was likewise inconclusive without generated Prisma types.
+- GitHub Actions run `42102071223` completed successfully: repository hygiene, mobile TypeScript, frontend typecheck/build and tests, backend schema validation, disposable PostgreSQL migration deployment, backend build, and backend tests all passed. This CI run includes the new bounded-debt service and DTO specs.
+- No browser, production database migration, production query-plan/load, spreadsheet application, or device verification has been performed.
