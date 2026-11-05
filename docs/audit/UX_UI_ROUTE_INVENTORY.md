@@ -26,7 +26,7 @@
 | `/rezervacija` | `PublicReserve` | Public booking flow; source checks cover form names, progress-step semantics, date/time legends, calendar states, distinct service/date/slot load failures with retry, and stale-response guards; rendered keyboard and assistive-technology behavior remains unverified |
 | `/moje-rezervacije` | `MyReservations` | Client/account flow; source checks cover distinct loading/error/retry versus successful empty history and stale-request guards; auth/layout and rendered behavior remain open |
 | `/moje-rezervacije/:id` | `MyReservationDetail` | Client/account flow; source checks cover loading, transient-error retry, 403/404 unavailability, response identity, and stale-request guards; rendered behavior remains open |
-| `/moj-termin/:token` | `PublicReservationView` | Token-based reservation access |
+| `/moj-termin/:token` | `PublicReservationView` | Token-based reservation access; source checks cover payload validation, unavailable-link versus transient read failure, loading announcement/retry, and stale-request guards; rendered behavior remains open |
 | `/unsubscribe` | `CampaignUnsubscribe` | Public confirmation flow |
 | `/profil` | `Profile` | Account/profile flow; source checks cover semantic page heading, localized email-verification code name, and polite status roles for profile loading/username availability; rendered navigation/announcement behavior remains unverified |
 | `/zadovoljni-klijenti` | `PublicSatisfiedClients` | Public feature-gated |
@@ -82,6 +82,8 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 **Initial subflow audit — `/moje-rezervacije`:** the client history read previously converted request failures into an empty list after only a toast. It now retains stored rows, presents a localized inline alert/retry instead of empty-history copy when the latest read fails, announces loading, and ignores superseded/unmounted request completions. Targeted source-contract tests are in CI; authenticated browser behavior, keyboard use, and actual announcements remain unverified.
 
 **Initial subflow audit — `/moje-rezervacije/:id`:** the detail page previously used “not found” for every failed read. It now distinguishes 403/404 unavailability from other read failures, offers localized inline retry for transient failures, validates the returned reservation ID against the route ID, announces loading, and ignores superseded/unmounted responses. Focused source-contract tests are registered; mounted authenticated behavior and actual announcements remain unverified.
+
+**Initial subflow audit — `/moj-termin/:token`:** the token view previously represented every API rejection as a missing/expired link. It now validates required response fields, keeps invalid/missing tokens and 404/410 responses distinct from retryable read failures, announces loading/errors, and ignores responses superseded by a token change or unmount. Targeted source-contract tests are registered; real emailed-link/browser behavior remains unverified.
 
 ### Stylist web shell
 

@@ -2702,6 +2702,7 @@
       "subtitle": "View your reservation using the secure link sent by email.",
       "invalidLink": "This link is invalid.",
       "notFound": "The appointment was not found, or its link has expired or is invalid.",
+      "loadFailed": "Could not load this appointment. Please try again.",
       "newReservation": "New reservation",
       "referenceNumber": "Appointment number",
       "service": "Service",

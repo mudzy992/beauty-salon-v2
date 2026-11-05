@@ -2699,6 +2699,7 @@
       "subtitle": "Pregled vaše rezervacije putem sigurnog linka iz emaila.",
       "invalidLink": "Nevažeći link.",
       "notFound": "Termin nije pronađen ili je link istekao / nevažeći.",
+      "loadFailed": "Učitavanje termina nije uspjelo. Pokušajte ponovo.",
       "newReservation": "Nova rezervacija",
       "referenceNumber": "Broj termina",
       "service": "Usluga",

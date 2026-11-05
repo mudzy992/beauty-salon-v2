@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 
@@ -26,40 +26,85 @@ export interface PublicReservationPayload {
   rescheduleProposedEndTime: string | null
 }
 
+const isPublicReservationPayload = (value: unknown): value is PublicReservationPayload => {
+  if (typeof value !== 'object' || value === null) return false
+  const payload = value as Record<string, unknown>
+  const stringFields = [
+    'publicReferenceCode',
+    'reservationDate',
+    'startTime',
+    'endTime',
+    'status',
+    'serviceName',
+  ]
+  const nullableStringFields = [
+    'stylistName',
+    'clientNotes',
+    'cancelReason',
+    'cancelledAt',
+    'rescheduleStatus',
+    'rescheduleProposedStartTime',
+    'rescheduleProposedEndTime',
+  ]
+  return (
+    stringFields.every((field) => typeof payload[field] === 'string') &&
+    nullableStringFields.every((field) => payload[field] === null || typeof payload[field] === 'string')
+  )
+}
+
 export default function PublicReservationView() {
   const { token } = useParams<{ token: string }>()
   const { token: authToken } = useAuth()
   const { t, i18n } = useTranslation()
   const locale = getIntlLocale(i18n.language)
   const [data, setData] = useState<PublicReservationPayload | null>(null)
-  const [error, setError] = useState<'invalidLink' | 'notFound' | null>(null)
+  const [error, setError] = useState<'invalidLink' | 'notFound' | 'loadFailed' | null>(null)
   const [loading, setLoading] = useState(true)
+  const requestIdRef = useRef(0)
 
-  useEffect(() => {
-    const t = token?.trim()
-    if (!t) {
+  const load = useCallback(async () => {
+    const cleanToken = token?.trim()
+    if (!cleanToken) {
+      setData(null)
       setError('invalidLink')
       setLoading(false)
       return
     }
-    let cancelled = false
+    const requestId = ++requestIdRef.current
     setLoading(true)
     setError(null)
-    api
-      .get<PublicReservationPayload>(`/api/public/reservations/by-token/${encodeURIComponent(t)}`)
-      .then((res) => {
-        if (!cancelled) setData(res.data)
-      })
-      .catch(() => {
-        if (!cancelled) setError('notFound')
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
+    try {
+      const response = await api.get<PublicReservationPayload>(
+        `/api/public/reservations/by-token/${encodeURIComponent(cleanToken)}`,
+      )
+      if (!isPublicReservationPayload(response.data)) {
+        throw new Error('Invalid public reservation response')
+      }
+      if (requestId === requestIdRef.current) setData(response.data)
+    } catch (error) {
+      if (requestId === requestIdRef.current) {
+        const responseError =
+          typeof error === 'object' && error !== null && 'response' in error
+            ? error.response
+            : null
+        const status =
+          typeof responseError === 'object' && responseError !== null && 'status' in responseError
+            ? responseError.status
+            : undefined
+        setData(null)
+        setError(status === 404 || status === 410 ? 'notFound' : 'loadFailed')
+      }
+    } finally {
+      if (requestId === requestIdRef.current) setLoading(false)
     }
   }, [token])
+
+  useEffect(() => {
+    void load()
+    return () => {
+      requestIdRef.current += 1
+    }
+  }, [load])
 
   const statusKey = data
     ? getClientReservationStatusKey(data.status, data.cancelReason)
@@ -78,11 +123,18 @@ export default function PublicReservationView() {
 
       <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loading ? (
-          <p className="text-center text-slate-600">{t('common.loading')}</p>
+          <p role="status" aria-live="polite" className="text-center text-slate-600">
+            {t('common.loading')}
+          </p>
         ) : error ? (
           <Card className="mx-auto max-w-lg rounded-2xl border-slate-200/80 shadow-soft">
             <CardContent className="p-8 text-center space-y-4">
-              <p className="text-slate-700">{t(`public.reservationView.${error}`)}</p>
+              <p role="alert" className="text-slate-700">{t(`public.reservationView.${error}`)}</p>
+              {error === 'loadFailed' ? (
+                <Button type="button" variant="outline" className="rounded-full" onClick={() => void load()}>
+                  {t('common.retry')}
+                </Button>
+              ) : null}
               <Button asChild variant="outline" className="rounded-full">
                 <Link to="/rezervacija">{t('public.reservationView.newReservation')}</Link>
               </Button>
