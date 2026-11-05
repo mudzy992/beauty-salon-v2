@@ -242,7 +242,7 @@ export default function PublicServices() {
                 style={heroBackgroundImage ? { backgroundImage: heroBackgroundImage } : undefined}
               />
               <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#241814]/75 via-[#241814]/5 to-[#241814]/5" />
-              <div className="relative flex min-h-[22rem] flex-col justify-between p-5 sm:min-h-[28rem] sm:p-7 lg:min-h-[34rem]">
+              <div className="relative flex min-h-[22rem] flex-col justify-between p-5 pb-24 sm:min-h-[28rem] sm:p-7 sm:pb-28 lg:min-h-[34rem]">
                 <div className="flex items-start justify-between gap-4">
                   {editorial('image_badge') ? (
                     <span className="rounded-full border border-white/40 bg-white/85 px-4 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#554038] shadow-sm backdrop-blur">
@@ -264,7 +264,7 @@ export default function PublicServices() {
                 </div>
               </div>
             </div>
-            <div className="mx-4 mt-4 inline-flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-[#e8ddd3] bg-white px-4 py-3 shadow-xl shadow-[#574237]/10 sm:mx-8 sm:max-w-[calc(100%-4rem)] sm:px-5 sm:py-4">
+            <div className="absolute -bottom-5 right-4 z-10 inline-flex max-w-[calc(100%-2rem)] items-center gap-3 rounded-2xl border border-[#e8ddd3] bg-white px-4 py-3 shadow-xl shadow-[#574237]/10 sm:right-8 sm:max-w-[calc(100%-4rem)] sm:px-5 sm:py-4">
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f2e6de] text-[#8d554d]">
                 <Sparkles className="h-4 w-4" aria-hidden="true" />
               </span>
