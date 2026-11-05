@@ -694,6 +694,12 @@
   "previewSampleNote": "This preview uses sample data. Real values are inserted when the message is sent.",
   "addDivider": "Divider",
   "addHighlight": "Highlighted message",
+  "blockPlaceholders": {
+    "title": "Message heading",
+    "text": "Enter the message text here.",
+    "button": "Book an appointment",
+    "highlight": "Featured offer or important information."
+  },
   "saveExisting": "Save existing template",
       "templateSaved": "Template saved.",
       "templateSaveFailed": "Could not save the template."

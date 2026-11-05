@@ -691,6 +691,12 @@
     "previewSampleNote": "Prikaz koristi ogledne podatke. Stvarne vrijednosti se umeću pri slanju.",
     "addDivider": "Razdjelnik",
     "addHighlight": "Istaknuta poruka",
+    "blockPlaceholders": {
+      "title": "Naslov poruke",
+      "text": "Ovdje unesite tekst poruke.",
+      "button": "Rezervišite termin",
+      "highlight": "Istaknuta ponuda ili važna informacija."
+    },
     "saveExisting": "Sačuvaj postojeći template",
       "templateSaved": "Template je sačuvan.",
       "templateSaveFailed": "Greška pri čuvanju template-a."
