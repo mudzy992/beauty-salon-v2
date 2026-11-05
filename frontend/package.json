@@ -21,6 +21,7 @@
     "test:admin-reservation-details-i18n": "node --test src/features/reservations/admin-reservation-details-i18n.test.mjs",
     "test:client-reservation-errors": "node --test src/features/client-reservations/client-reservation-error.test.mjs",
     "test:my-reservations-recovery": "node --test src/features/client-reservations/my-reservations-recovery.test.mjs",
+    "test:my-reservation-detail-recovery": "node --test src/features/client-reservations/my-reservation-detail-recovery.test.mjs",
     "test:admin-api-errors": "node --test src/features/admin/admin-api-error.test.mjs",
     "test:profile-api-errors": "node --test src/features/profile/profile-api-error.test.mjs",
     "test:profile-accessibility": "node --test src/features/profile/profile-accessibility.test.mjs",

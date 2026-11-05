@@ -2663,6 +2663,7 @@
       "toastCancelled": "The reservation has been cancelled.",
       "detailTitle": "Reservation details",
       "detailSubtitle": "Review your appointment and recorded payment details.",
+      "detailLoadFailed": "Could not load this reservation. Please try again.",
       "backToList": "← Back to reservations",
       "notFound": "Reservation not found.",
       "paymentUnavailable": "Payment details are not available yet.",

@@ -2660,6 +2660,7 @@
       "toastCancelled": "Rezervacija je otkazana.",
       "detailTitle": "Detalji rezervacije",
       "detailSubtitle": "Pregled termina i evidentirane uplate.",
+      "detailLoadFailed": "Učitavanje rezervacije nije uspjelo. Pokušajte ponovo.",
       "backToList": "← Nazad na listu",
       "notFound": "Rezervacija nije pronađena.",
       "paymentUnavailable": "Detalji uplate još nisu dostupni.",

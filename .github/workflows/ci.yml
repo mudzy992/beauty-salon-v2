@@ -188,6 +188,9 @@ jobs:
       - name: Test My Reservations loading and error recovery
         working-directory: frontend
         run: npm run test:my-reservations-recovery
+      - name: Test My Reservation detail loading and error recovery
+        working-directory: frontend
+        run: npm run test:my-reservation-detail-recovery
       - name: Test localized admin API errors
         working-directory: frontend
         run: npm run test:admin-api-errors

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -16,7 +16,6 @@ import {
 } from '../../features/client-reservations/labels'
 import type { Reservation, ReservationPaymentSummary } from '../../features/reservations/types'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
-import { useAppToast } from '../../lib/toast/useAppToast'
 
 type ReservationDetail = Reservation & {
   paymentSummary?: ReservationPaymentSummary | null
@@ -28,9 +27,11 @@ export default function MyReservationDetail() {
   const locale = getIntlLocale(i18n.language)
   const { token, isReady, user } = useAuth()
   const navigate = useNavigate()
-  const toast = useAppToast()
   const [reservation, setReservation] = useState<ReservationDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [notFound, setNotFound] = useState(false)
+  const requestIdRef = useRef(0)
 
   useEffect(() => {
     if (!isReady) return
@@ -41,21 +42,40 @@ export default function MyReservationDetail() {
 
   const load = useCallback(async () => {
     if (!id) return
+    const requestId = ++requestIdRef.current
     setLoading(true)
+    setLoadError(false)
+    setNotFound(false)
     try {
       const { data } = await api.get<ReservationDetail>(`/api/reservations/${id}`)
-      setReservation(data)
-    } catch {
-      toast.error(t('common.error'))
-      setReservation(null)
+      if (!data || data.id !== id) throw new Error('Reservation response did not match the requested id')
+      if (requestId === requestIdRef.current) setReservation(data)
+    } catch (error) {
+      if (requestId === requestIdRef.current) {
+        const response =
+          typeof error === 'object' && error !== null && 'response' in error
+            ? error.response
+            : null
+        const status =
+          typeof response === 'object' && response !== null && 'status' in response
+            ? response.status
+            : undefined
+        const unavailable = status === 403 || status === 404
+        setReservation(null)
+        setNotFound(unavailable)
+        setLoadError(!unavailable)
+      }
     } finally {
-      setLoading(false)
+      if (requestId === requestIdRef.current) setLoading(false)
     }
-  }, [id, t, toast])
+  }, [id])
 
   useEffect(() => {
     if (!token || !id) return
     void load()
+    return () => {
+      requestIdRef.current += 1
+    }
   }, [token, id, load])
 
   if (!user) return null
@@ -85,8 +105,17 @@ export default function MyReservationDetail() {
         </Button>
 
         {loading ? (
-          <p className="text-center text-slate-600">{t('common.loading')}</p>
-        ) : !reservation ? (
+          <p role="status" aria-live="polite" className="text-center text-slate-600">
+            {t('common.loading')}
+          </p>
+        ) : loadError ? (
+          <div role="alert" className="flex flex-col items-center gap-3 text-center">
+            <p className="text-sm text-rose-600">{t('public.myReservations.detailLoadFailed')}</p>
+            <Button type="button" variant="outline" onClick={() => void load()}>
+              {t('common.retry')}
+            </Button>
+          </div>
+        ) : !reservation || notFound ? (
           <p className="text-center text-slate-600">{t('public.myReservations.notFound')}</p>
         ) : (
           <Card className="rounded-2xl border-slate-200/80 shadow-soft">
