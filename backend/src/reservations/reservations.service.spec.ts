@@ -681,6 +681,7 @@ describe('ReservationsService', () => {
         clientId: 'client-1',
         serviceId: 'svc-1',
         reservationDate: new Date('2026-03-25'),
+        status: 'CONFIRMED',
         rescheduleStatus: 'PENDING',
       });
       mockPrisma.reservation.findUnique.mockResolvedValueOnce({
