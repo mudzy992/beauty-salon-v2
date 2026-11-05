@@ -17,7 +17,7 @@
 | Route | Page/source | Persona / note |
 |---|---|---|
 | `/` | `PublicHome` | Guest/public |
-| `/usluge` | `PublicServices` | Guest/public |
+| `/usluge` | `PublicServices` | Guest/public; source checks cover loading announcements, response collection validation, retry, and stale-request guards; rendered behavior remains open |
 | `/usluge/:serviceId` | `PublicServiceDetail` | Guest/public |
 | `/blog` | `PublicBlogList` | Public feature-gated |
 | `/blog/:slug` | `PublicBlogPost` | Public feature-gated |
@@ -84,6 +84,8 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 **Initial subflow audit — `/moje-rezervacije/:id`:** the detail page previously used “not found” for every failed read. It now distinguishes 403/404 unavailability from other read failures, offers localized inline retry for transient failures, validates the returned reservation ID against the route ID, announces loading, and ignores superseded/unmounted responses. Focused source-contract tests are registered; mounted authenticated behavior and actual announcements remain unverified.
 
 **Initial subflow audit — `/moj-termin/:token`:** the token view previously represented every API rejection as a missing/expired link. It now validates required response fields, keeps invalid/missing tokens and 404/410 responses distinct from retryable read failures, announces loading/errors, and ignores responses superseded by a token change or unmount. Targeted source-contract tests are registered; real emailed-link/browser behavior remains unverified.
+
+**Initial subflow audit — `/usluge`:** the service catalogue already had separate load-error and empty states, but loading text was not announced and overlapping retry requests could overwrite newer results. It now exposes a polite loading status, validates the three response collections, and ignores stale/unmounted requests while preserving the current snapshot on a read failure. Focused source-contract tests are registered; rendered announcements and network behavior remain unverified.
 
 ### Stylist web shell
 

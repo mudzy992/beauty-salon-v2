@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
@@ -54,8 +54,10 @@ export default function PublicServices() {
   const [categories, setCategories] = useState<ServiceCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const requestIdRef = useRef(0)
 
   const loadCategories = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     setLoadError(false)
     try {
@@ -64,6 +66,9 @@ export default function PublicServices() {
         fetchAllPublicServiceSubcategories<ServiceSubcategory>({ activeOnly: true }),
         fetchAllPublicServices<CatalogService>({ activeOnly: true }),
       ])
+      if (!Array.isArray(categoryList) || !Array.isArray(subcategoryList) || !Array.isArray(serviceList)) {
+        throw new Error('Invalid public service catalogue response')
+      }
       const servicesBySubcategory = new Map<string, ServiceOption[]>();
       serviceList.forEach((service) => {
         const services = servicesBySubcategory.get(service.subcategoryId) ?? [];
@@ -77,22 +82,26 @@ export default function PublicServices() {
         subcategories.push(subcategory);
         subcategoriesByCategory.set(subcategory.categoryId, subcategories);
       });
-      setCategories(
-        categoryList.map((category) => ({
-          ...category,
-          subcategories: subcategoriesByCategory.get(category.id) ?? [],
-        })),
-      )
+      if (requestId === requestIdRef.current) {
+        setCategories(
+          categoryList.map((category) => ({
+            ...category,
+            subcategories: subcategoriesByCategory.get(category.id) ?? [],
+          })),
+        )
+      }
     } catch {
-      setCategories([])
-      setLoadError(true)
+      if (requestId === requestIdRef.current) setLoadError(true)
     } finally {
-      setLoading(false)
+      if (requestId === requestIdRef.current) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     void loadCategories()
+    return () => {
+      requestIdRef.current += 1
+    }
   }, [loadCategories])
 
   const servicesHeroBg = getSetting('public_services_bg', '')
@@ -120,7 +129,9 @@ export default function PublicServices() {
 
       <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loading ? (
-          <div className="py-20 text-center text-slate-600">{t('public.servicesPage.loading')}</div>
+          <div role="status" aria-live="polite" className="py-20 text-center text-slate-600">
+            {t('public.servicesPage.loading')}
+          </div>
         ) : loadError ? (
           <div className="py-14 text-center" role="alert">
             <p className="text-slate-600">{t('public.servicesPage.loadFailed')}</p>
@@ -133,7 +144,7 @@ export default function PublicServices() {
             </button>
           </div>
         ) : categories.length === 0 ? (
-          <div className="text-center text-slate-500 text-lg">{t('common.noData')}</div>
+          <div role="status" className="text-center text-slate-500 text-lg">{t('common.noData')}</div>
         ) : (
           <MotionDiv variants={containerVariants} initial="hidden" animate="visible">
             {categories.map((cat) => (
