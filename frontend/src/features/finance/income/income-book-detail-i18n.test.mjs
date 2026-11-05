@@ -27,6 +27,7 @@ const sourceFiles = [
   '../components/summary-cards.tsx',
   '../finance.utils.ts',
   '../export.utils.ts',
+  '../export-safety.mjs',
 ]
 const sources = Object.fromEntries(
   sourceFiles.map((file) => [
@@ -162,8 +163,10 @@ test('KIF export and print text localize while preserving report data contracts'
     detail,
     /mutations\.removeManualEntry\.mutateAsync\(pendingDelete\.id\)/,
   )
+  const printSafety = sources['../export-safety.mjs']
   assert.match(report, /language\?: 'bs' \| 'en'/)
-  assert.match(report, /params\.language === 'en' \? 'en' : 'bs'/)
+  assert.match(report, /buildPrintReportHtml\(params\)/)
+  assert.match(printSafety, /params\.language === 'en' \? 'en' : 'bs'/)
 })
 
 test('shared KIF controls retain reason and locked-book guards with localized labels', () => {
