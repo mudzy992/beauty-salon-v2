@@ -18,7 +18,7 @@
 |---|---|---|
 | `/` | `PublicHome` | Guest/public |
 | `/usluge` | `PublicServices` | Guest/public; source checks cover loading announcements, response collection validation, retry, and stale-request guards; rendered behavior remains open |
-| `/usluge/:serviceId` | `PublicServiceDetail` | Guest/public |
+| `/usluge/:serviceId` | `PublicServiceDetail` | Guest/public; source checks cover service identity/gallery payload validation, load announcements, empty/error states, and stale-response guards; rendered behavior remains open |
 | `/blog` | `PublicBlogList` | Public feature-gated |
 | `/blog/:slug` | `PublicBlogPost` | Public feature-gated |
 | `/galerija` | `PublicGallery` | Public feature-gated |
@@ -86,6 +86,8 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 **Initial subflow audit — `/moj-termin/:token`:** the token view previously represented every API rejection as a missing/expired link. It now validates required response fields, keeps invalid/missing tokens and 404/410 responses distinct from retryable read failures, announces loading/errors, and ignores responses superseded by a token change or unmount. Targeted source-contract tests are registered; real emailed-link/browser behavior remains unverified.
 
 **Initial subflow audit — `/usluge`:** the service catalogue already had separate load-error and empty states, but loading text was not announced and overlapping retry requests could overwrite newer results. It now exposes a polite loading status, validates the three response collections, and ignores stale/unmounted requests while preserving the current snapshot on a read failure. Focused source-contract tests are registered; rendered announcements and network behavior remain unverified.
+
+**Initial subflow audit — `/usluge/:serviceId`:** the detail page already offered retry for service/gallery failures, but loading text was not announced, and requests could update the page after a service-route change. It now validates the service ID and gallery item/page metadata, announces loading states, hides the decorative empty-state icon from assistive technology, and guards service/gallery responses against superseded or unmounted requests. Source-contract tests are registered; browser layout, focus, and screen-reader behavior remain unverified.
 
 ### Stylist web shell
 

@@ -31,6 +31,34 @@ type BeforeAfterPair = {
 
 const PAGE_SIZE = 12
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const isOptionalString = (value: unknown) =>
+  value === undefined || value === null || typeof value === 'string'
+
+const isServiceResponse = (value: unknown, expectedId: string): value is Service =>
+  isRecord(value) &&
+  value.id === expectedId &&
+  typeof value.name === 'string' &&
+  typeof value.durationMinutes === 'number' &&
+  isOptionalString(value.shortDescription) &&
+  isOptionalString(value.heroImage)
+
+const isImageAsset = (
+  value: unknown,
+): value is { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null } =>
+  isRecord(value) &&
+  typeof value.pathOriginal === 'string' &&
+  isOptionalString(value.pathMedium) &&
+  isOptionalString(value.pathThumb)
+
+const isBeforeAfterPair = (value: unknown): value is BeforeAfterPair =>
+  isRecord(value) &&
+  typeof value.id === 'string' &&
+  isImageAsset(value.before) &&
+  isImageAsset(value.after)
+
 export default function PublicServiceDetail() {
   const { serviceId } = useParams()
   const { t } = useTranslation()
@@ -44,33 +72,41 @@ export default function PublicServiceDetail() {
   const [pairsLoadError, setPairsLoadError] = useState(false)
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
+  const serviceRequestIdRef = useRef(0)
+  const galleryRequestIdRef = useRef(0)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   const id = useMemo(() => (serviceId ?? '').trim(), [serviceId])
 
   const loadService = useCallback(async () => {
     if (!id) {
+      serviceRequestIdRef.current += 1
       setService(null)
       setServiceLoadError(false)
       setLoadingService(false)
       return
     }
+    const requestId = ++serviceRequestIdRef.current
     setLoadingService(true)
     setServiceLoadError(false)
     try {
-      const { data } = await api.get<Service>(`/api/services/${id}`)
-      setService(data)
+      const { data } = await api.get<Service>(`/api/services/${encodeURIComponent(id)}`)
+      if (!isServiceResponse(data, id)) throw new Error('Invalid public service response')
+      if (requestId === serviceRequestIdRef.current) setService(data)
     } catch (error) {
-      setService(null)
-      setServiceLoadError(!(axios.isAxiosError(error) && error.response?.status === 404))
+      if (requestId === serviceRequestIdRef.current) {
+        setService(null)
+        setServiceLoadError(!(axios.isAxiosError(error) && error.response?.status === 404))
+      }
     } finally {
-      setLoadingService(false)
+      if (requestId === serviceRequestIdRef.current) setLoadingService(false)
     }
   }, [id])
 
   const loadPage = useCallback(
     async (nextOffset: number, append: boolean) => {
       if (!id) return
+      const requestId = ++galleryRequestIdRef.current
       if (nextOffset === 0) setLoadingPairs(true)
       else setLoadingMore(true)
       setPairsLoadError(false)
@@ -82,16 +118,38 @@ export default function PublicServiceDetail() {
         }>('/api/daily-log/before-after', {
           params: { serviceId: id, limit: PAGE_SIZE, offset: nextOffset },
         })
-        const list = Array.isArray(data?.items) ? data.items : []
-        setItems((prev) => (append ? [...prev, ...list] : list))
-        setHasMore(data?.hasMore ?? false)
-        setOffset(data?.nextOffset ?? nextOffset + list.length)
+        if (
+          !Array.isArray(data?.items) ||
+          !data.items.every(isBeforeAfterPair) ||
+          (data.hasMore != null && typeof data.hasMore !== 'boolean') ||
+          (data.nextOffset != null &&
+            (typeof data.nextOffset !== 'number' ||
+              !Number.isSafeInteger(data.nextOffset) ||
+              data.nextOffset < 0))
+        ) {
+          throw new Error('Invalid before-and-after response')
+        }
+        const list = data.items
+        const nextPageHasMore = data.hasMore ?? false
+        const nextPageOffset = data.nextOffset ?? nextOffset + list.length
+        if (nextPageHasMore && nextPageOffset <= nextOffset) {
+          throw new Error('Invalid before-and-after pagination offset')
+        }
+        if (requestId === galleryRequestIdRef.current) {
+          setItems((prev) => (append ? [...prev, ...list] : list))
+          setHasMore(nextPageHasMore)
+          setOffset(nextPageOffset)
+        }
       } catch {
-        setHasMore(false)
-        setPairsLoadError(true)
+        if (requestId === galleryRequestIdRef.current) {
+          setHasMore(false)
+          setPairsLoadError(true)
+        }
       } finally {
-        setLoadingPairs(false)
-        setLoadingMore(false)
+        if (requestId === galleryRequestIdRef.current) {
+          setLoadingPairs(false)
+          setLoadingMore(false)
+        }
       }
     },
     [id],
@@ -99,13 +157,20 @@ export default function PublicServiceDetail() {
 
   useEffect(() => {
     void loadService()
+    return () => {
+      serviceRequestIdRef.current += 1
+    }
   }, [loadService])
 
   useEffect(() => {
     setItems([])
     setOffset(0)
     setHasMore(true)
+    setPairsLoadError(false)
     if (id) void loadPage(0, false)
+    return () => {
+      galleryRequestIdRef.current += 1
+    }
   }, [id, loadPage])
 
   useEffect(() => {
@@ -124,7 +189,9 @@ export default function PublicServiceDetail() {
 
   if (loadingService) {
     return (
-      <div className="py-16 text-center text-slate-600">{t('public.serviceDetail.loading')}</div>
+      <div role="status" aria-live="polite" className="py-16 text-center text-slate-600">
+        {t('public.serviceDetail.loading')}
+      </div>
     )
   }
 
@@ -263,7 +330,9 @@ export default function PublicServiceDetail() {
 
       <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loadingPairs && items.length === 0 ? (
-          <div className="py-14 text-center text-slate-600">{t('public.serviceDetail.loadingGallery')}</div>
+          <div role="status" aria-live="polite" className="py-14 text-center text-slate-600">
+            {t('public.serviceDetail.loadingGallery')}
+          </div>
         ) : pairsLoadError && items.length === 0 ? (
           <div className="py-14 text-center" role="alert">
             <p className="text-slate-600">{t('public.serviceDetail.galleryLoadFailed')}</p>
@@ -275,9 +344,9 @@ export default function PublicServiceDetail() {
           <Card className="rounded-2xl border-slate-200/80 shadow-soft">
             <CardContent className="py-14 md:py-20 flex flex-col items-center justify-center">
               <div className="h-14 w-14 rounded-full flex items-center justify-center bg-slate-100 border border-slate-200/80 mb-4">
-                <Info className="h-6 w-6 text-slate-600" />
+                <Info className="h-6 w-6 text-slate-600" aria-hidden="true" />
               </div>
-              <div className="text-slate-600 text-center max-w-lg px-6 leading-relaxed">
+              <div role="status" className="text-slate-600 text-center max-w-lg px-6 leading-relaxed">
                 {t('public.serviceDetail.noGalleryItems')}
               </div>
             </CardContent>
@@ -314,7 +383,9 @@ export default function PublicServiceDetail() {
             ) : null}
             <div ref={sentinelRef} className="h-4 mt-8" />
             {loadingMore ? (
-              <div className="py-8 text-center text-slate-600">{t('public.serviceDetail.loadingGallery')}</div>
+              <div role="status" aria-live="polite" className="py-8 text-center text-slate-600">
+                {t('public.serviceDetail.loadingGallery')}
+              </div>
             ) : null}
           </>
         )}
