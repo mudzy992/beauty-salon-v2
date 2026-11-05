@@ -668,13 +668,14 @@ describe('ReservationsService', () => {
         clientId: 'client-1',
         serviceId: 'svc-1',
         reservationDate: new Date('2026-03-25'),
+        status: 'CONFIRMED',
         rescheduleStatus: 'PENDING',
       });
       mockPrisma.notification.findFirst.mockResolvedValue({
         type: 'reservation_reminder',
         data: { kind: 'reservation_reorder', reservationId: 'res-1' },
       });
-      mockPrisma.reservation.update.mockResolvedValue({});
+      mockPrisma.reservation.updateMany.mockResolvedValueOnce({ count: 1 });
       mockPrisma.reservation.findUnique.mockResolvedValueOnce({
         id: 'res-1',
         clientId: 'client-1',
@@ -692,8 +693,14 @@ describe('ReservationsService', () => {
         confirmedStylist: null,
       });
       await service.declineReschedule('res-1', 'client-1');
-      expect(mockPrisma.reservation.update).toHaveBeenCalledWith(
+      expect(mockPrisma.reservation.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          where: {
+            id: 'res-1',
+            clientId: 'client-1',
+            status: 'CONFIRMED',
+            rescheduleStatus: 'PENDING',
+          },
           data: expect.objectContaining({
             rescheduleStatus: 'DECLINED',
           }),
@@ -1023,11 +1030,12 @@ describe('ReservationsService', () => {
       mockPrisma.salonSettings.findFirst.mockResolvedValue({
         cancellationDeadlineHours: 24,
       });
-      mockPrisma.reservation.update.mockResolvedValue({});
+      mockPrisma.reservation.updateMany.mockResolvedValueOnce({ count: 1 });
       const result = await service.confirmAttendance('res-1', 'client-1');
       expect(result).toMatchObject({ id: 'res-1' });
-      expect(mockPrisma.reservation.update).toHaveBeenCalledWith(
+      expect(mockPrisma.reservation.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
+          where: { id: 'res-1', clientId: 'client-1', status: 'CONFIRMED' },
           data: expect.objectContaining({ status: 'ATTENDANCE_CONFIRMED' }),
         }),
       );
