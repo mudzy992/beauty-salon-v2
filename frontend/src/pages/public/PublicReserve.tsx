@@ -795,21 +795,20 @@ export default function PublicReserve() {
                   animate={{ opacity: 1, height: 'auto' }}
                   transition={{ duration: 0.3 }}
                 >
-                  <fieldset
-                    ref={dateSectionRef}
-                    className="min-w-0 space-y-2 border-0 p-0"
-                  >
-                    <legend className="text-slate-700 font-semibold">
-                      {t('public.reserve.selectDate')}
-                    </legend>
-                    <ReservationCalendar
-                      availableDates={availableDatesMap}
-                      selectedDate={selectedDate}
-                      onSelectDate={(d) => setSelectedDate(d)}
-                      loading={loadingDates}
-                      disabled={selectedServices.length === 0}
-                    />
-                  </fieldset>
+                  <div ref={dateSectionRef}>
+                    <fieldset className="min-w-0 space-y-2 border-0 p-0">
+                      <legend className="text-slate-700 font-semibold">
+                        {t('public.reserve.selectDate')}
+                      </legend>
+                      <ReservationCalendar
+                        availableDates={availableDatesMap}
+                        selectedDate={selectedDate}
+                        onSelectDate={(d) => setSelectedDate(d)}
+                        loading={loadingDates}
+                        disabled={selectedServices.length === 0}
+                      />
+                    </fieldset>
+                  </div>
                 </MotionDiv>
               ) : null}
 
