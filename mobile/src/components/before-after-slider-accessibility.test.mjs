@@ -13,6 +13,12 @@ test('before-after slider exposes an adjustable accessible value and localized i
   assert.match(component, /accessibilityPercent = Math\.round\(position \* 100\)/);
 });
 
+test('comparison images are decorative children of the single adjustable control', () => {
+  const mediaImages = [...component.matchAll(/<MediaImage\b[\s\S]*?\/>/g)];
+  assert.equal(mediaImages.length, 2);
+  assert.ok(mediaImages.every(([image]) => /accessible=\{false\}/.test(image)));
+});
+
 test('slider exposes accessible increment/decrement actions and clamps the comparison position', () => {
   assert.match(component, /name: 'increment', label: t\('home\.beforeAfterSliderIncrease'\)/);
   assert.match(component, /name: 'decrement', label: t\('home\.beforeAfterSliderDecrease'\)/);

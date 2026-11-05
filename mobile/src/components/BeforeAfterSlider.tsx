@@ -74,11 +74,12 @@ export function BeforeAfterSlider({
       }}
       {...panResponder.panHandlers}
     >
-      <MediaImage uri={beforeSrc} style={styles.beforeImage} />
+      <MediaImage uri={beforeSrc} style={styles.beforeImage} accessible={false} />
       <View style={[styles.afterClip, { width: width * position }]}>
         <MediaImage
           uri={afterSrc}
           style={[styles.afterImage, { width }]}
+          accessible={false}
         />
       </View>
       <View style={[styles.handleLine, { left: width * position - 2, backgroundColor: lineColor }]}>
