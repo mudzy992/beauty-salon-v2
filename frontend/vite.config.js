@@ -7,6 +7,7 @@ export default defineConfig({
     plugins: [react()],
     server: {
         port: 10000,
+        allowedHosts: ['.e2b.app'],
         fs: { allow: [repositoryRoot] },
         proxy: {
             '/api': {

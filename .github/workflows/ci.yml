@@ -209,6 +209,9 @@ jobs:
       - name: Test public services recovery and loading semantics
         working-directory: frontend
         run: npm run test:public-services-recovery
+      - name: Test redesigned public services catalogue
+        working-directory: frontend
+        run: npm run test:public-services-redesign
       - name: Test public service detail recovery and accessibility semantics
         working-directory: frontend
         run: npm run test:public-service-detail-recovery

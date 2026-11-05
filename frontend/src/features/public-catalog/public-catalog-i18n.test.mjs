@@ -30,7 +30,10 @@ test('public service catalogue, detail, and not-found UI keys exist in both loca
 
   for (const resource of locales) {
     for (const key of keys) {
-      assert.ok(hasLocaleKey(resource, key), `Missing locale key: ${key}`)
+      const isPluralized =
+        key === 'public.servicesPage.serviceCount' &&
+        ['one', 'few', 'other'].some((suffix) => hasLocaleKey(resource, `${key}_${suffix}`))
+      assert.ok(isPluralized || hasLocaleKey(resource, key), `Missing locale key: ${key}`)
     }
   }
 })

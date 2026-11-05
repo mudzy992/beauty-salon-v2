@@ -17,7 +17,7 @@
 | Route | Page/source | Persona / note |
 |---|---|---|
 | `/` | `PublicHome` | Guest/public |
-| `/usluge` | `PublicServices` | Guest/public; source checks cover loading announcements, response collection validation, retry, and stale-request guards; rendered behavior remains open |
+| `/usluge` | `PublicServices` | Guest/public; redesigned editorial catalogue with search/category filters, keyboard-operable selected states, responsive service cards, localized counts, and salon-managed copy/background; source checks cover loading/recovery too, while rendered behavior remains open |
 | `/usluge/:serviceId` | `PublicServiceDetail` | Guest/public; source checks cover service identity/gallery payload validation, load announcements, empty/error states, and stale-response guards; rendered behavior remains open |
 | `/blog` | `PublicBlogList` | Public feature-gated |
 | `/blog/:slug` | `PublicBlogPost` | Public feature-gated |
@@ -86,6 +86,8 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 **Initial subflow audit — `/moj-termin/:token`:** the token view previously represented every API rejection as a missing/expired link. It now validates required response fields, keeps invalid/missing tokens and 404/410 responses distinct from retryable read failures, announces loading/errors, and ignores responses superseded by a token change or unmount. Targeted source-contract tests are registered; real emailed-link/browser behavior remains unverified.
 
 **Initial subflow audit — `/usluge`:** the service catalogue already had separate load-error and empty states, but loading text was not announced and overlapping retry requests could overwrite newer results. It now exposes a polite loading status, validates the three response collections, and ignores stale/unmounted requests while preserving the current snapshot on a read failure. Focused source-contract tests are registered; rendered announcements and network behavior remain unverified.
+
+**Owner-requested visual redesign — `/usluge`:** replaced the simple text-and-list page with a premium editorial hero, generated salon-interior photography (admin-configured background still takes precedence), booking/exploration CTAs, a three-step discovery strip, searchable and filterable localized service cards, count/empty/no-result feedback, and a final booking CTA. Admin-managed page title/subtitle and existing detail/booking routes are preserved. Source contracts, locale checks, and build do not substitute for the requested visual review in a real browser/device.
 
 **Initial subflow audit — `/usluge/:serviceId`:** the detail page already offered retry for service/gallery failures, but loading text was not announced, and requests could update the page after a service-route change. It now validates the service ID and gallery item/page metadata, announces loading states, hides the decorative empty-state icon from assistive technology, and guards service/gallery responses against superseded or unmounted requests. Source-contract tests are registered; browser layout, focus, and screen-reader behavior remain unverified.
 

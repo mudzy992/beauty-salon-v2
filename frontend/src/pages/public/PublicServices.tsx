@@ -1,59 +1,62 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { motion } from 'framer-motion'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowDown, ArrowRight, ArrowUpRight, Clock3, Search, Sparkles, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import {
   fetchAllPublicServiceCategories,
   fetchAllPublicServices,
   fetchAllPublicServiceSubcategories,
 } from '../../api/catalog'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
 import { useSettings } from '../../context/SettingsContext'
 import { cssBackgroundImage } from '../../constants/media-fallback'
-import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 
 interface ServiceOption {
-  id: string;
-  subcategoryId: string;
-  name: string;
-  durationMinutes: number;
+  id: string
+  subcategoryId: string
+  name: string
+  durationMinutes: number
 }
 
 interface ServiceSubcategory {
-  id: string;
-  categoryId: string;
-  name: string;
-  services?: ServiceOption[];
+  id: string
+  categoryId: string
+  name: string
+  services?: ServiceOption[]
 }
 
 interface ServiceCategory {
-  id: string;
-  name: string;
-  subcategories?: ServiceSubcategory[];
+  id: string
+  name: string
+  subcategories?: ServiceSubcategory[]
 }
 
 interface CatalogService extends ServiceOption {
-  subcategory?: { categoryId: string };
+  subcategory?: { categoryId: string }
 }
 
-const MotionDiv = motion.div;
+const ALL_CATEGORIES = 'all'
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-};
+const categoryTones = [
+  { icon: 'bg-[#f1e3dc] text-[#8d554d]', glow: 'bg-[#f1e3dc]/70' },
+  { icon: 'bg-[#e8e9df] text-[#68704d]', glow: 'bg-[#e8e9df]/70' },
+  { icon: 'bg-[#eee4d7] text-[#94754e]', glow: 'bg-[#eee4d7]/70' },
+  { icon: 'bg-[#eee0e7] text-[#8f5974]', glow: 'bg-[#eee0e7]/70' },
+]
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
+const getServiceCount = (category: ServiceCategory) =>
+  (category.subcategories ?? []).reduce((total, subcategory) => total + (subcategory.services?.length ?? 0), 0)
 
 export default function PublicServices() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { getSetting } = useSettings()
   const [categories, setCategories] = useState<ServiceCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [query, setQuery] = useState('')
+  const [activeCategoryId, setActiveCategoryId] = useState(ALL_CATEGORIES)
   const requestIdRef = useRef(0)
 
   const loadCategories = useCallback(async () => {
@@ -69,19 +72,21 @@ export default function PublicServices() {
       if (!Array.isArray(categoryList) || !Array.isArray(subcategoryList) || !Array.isArray(serviceList)) {
         throw new Error('Invalid public service catalogue response')
       }
-      const servicesBySubcategory = new Map<string, ServiceOption[]>();
+      const servicesBySubcategory = new Map<string, ServiceOption[]>()
       serviceList.forEach((service) => {
-        const services = servicesBySubcategory.get(service.subcategoryId) ?? [];
-        services.push(service);
-        servicesBySubcategory.set(service.subcategoryId, services);
-      });
-      const subcategoriesByCategory = new Map<string, ServiceSubcategory[]>();
+        const services = servicesBySubcategory.get(service.subcategoryId) ?? []
+        services.push(service)
+        servicesBySubcategory.set(service.subcategoryId, services)
+      })
+      const subcategoriesByCategory = new Map<string, ServiceSubcategory[]>()
       subcategoryList.forEach((subcategory) => {
-        subcategory.services = servicesBySubcategory.get(subcategory.id) ?? [];
-        const subcategories = subcategoriesByCategory.get(subcategory.categoryId) ?? [];
-        subcategories.push(subcategory);
-        subcategoriesByCategory.set(subcategory.categoryId, subcategories);
-      });
+        const subcategories = subcategoriesByCategory.get(subcategory.categoryId) ?? []
+        subcategories.push({
+          ...subcategory,
+          services: servicesBySubcategory.get(subcategory.id) ?? [],
+        })
+        subcategoriesByCategory.set(subcategory.categoryId, subcategories)
+      })
       if (requestId === requestIdRef.current) {
         setCategories(
           categoryList.map((category) => ({
@@ -104,99 +109,402 @@ export default function PublicServices() {
     }
   }, [loadCategories])
 
-  const servicesHeroBg = getSetting('public_services_bg', '')
+  const filteredCategories = useMemo(() => {
+    const cleanQuery = query.trim().toLocaleLowerCase(i18n.resolvedLanguage || i18n.language)
+    return categories
+      .filter((category) => activeCategoryId === ALL_CATEGORIES || category.id === activeCategoryId)
+      .map((category) => ({
+        ...category,
+        subcategories: (category.subcategories ?? [])
+          .map((subcategory) => ({
+            ...subcategory,
+            services: (subcategory.services ?? []).filter((service) => {
+              if (!cleanQuery) return true
+              return [service.name, subcategory.name, category.name].some((value) =>
+                value.toLocaleLowerCase(i18n.resolvedLanguage || i18n.language).includes(cleanQuery),
+              )
+            }),
+          }))
+          .filter((subcategory) => !cleanQuery || (subcategory.services?.length ?? 0) > 0),
+      }))
+      .filter((category) => !cleanQuery || (category.subcategories?.length ?? 0) > 0)
+  }, [activeCategoryId, categories, i18n.language, i18n.resolvedLanguage, query])
+
+  const totalServiceCount = useMemo(
+    () => categories.reduce((total, category) => total + getServiceCount(category), 0),
+    [categories],
+  )
+  const visibleServiceCount = useMemo(
+    () => filteredCategories.reduce((total, category) => total + getServiceCount(category), 0),
+    [filteredCategories],
+  )
+  const hasFilters = query.trim().length > 0 || activeCategoryId !== ALL_CATEGORIES
+  const servicesHeroBg = getSetting('public_services_bg', '').trim()
+  const heroBackgroundImage = servicesHeroBg
+    ? cssBackgroundImage(servicesHeroBg)
+    : "url('/images/services-editorial-hero.jpg')"
+
+  const clearFilters = () => {
+    setQuery('')
+    setActiveCategoryId(ALL_CATEGORIES)
+  }
 
   return (
-    <div className="bg-white min-h-screen pb-20">
-      <div className={`${publicPageHero.section} relative overflow-hidden`}>
-        <div
-          className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.08]"
-          style={{ backgroundImage: cssBackgroundImage(servicesHeroBg) }}
-        />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/95 via-white/85 to-white" />
-        <div className={`${publicPageHero.innerNarrow} text-center relative z-[1]`}>
-          <h1 className={publicHeader.title}>
-            {getSetting('public_services_title', t('public.servicesPage.titleFallback'))}
-          </h1>
-          <p className={`${publicHeader.subtitle} mt-4 max-w-2xl mx-auto`}>
-            {getSetting(
-              'public_services_subtitle',
-              t('public.servicesPage.subtitleFallback'),
-            )}
-          </p>
-        </div>
-      </div>
+    <main className="min-h-screen overflow-hidden bg-[#fbf8f4] pb-20 text-[#352925]">
+      <section className="relative isolate overflow-hidden border-b border-[#e8ddd3] bg-[#f4eee7]">
+        <div aria-hidden="true" className="pointer-events-none absolute -left-40 -top-44 h-[34rem] w-[34rem] rounded-full border border-[#d5c1b0]/30" />
+        <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-28 h-[26rem] w-[26rem] rounded-full border border-[#d5c1b0]/25" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1fr_0.92fr] lg:gap-14 lg:px-8 lg:pb-24 lg:pt-20">
+          <div className="relative z-10 max-w-2xl">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d7c3b3] bg-white/70 px-4 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[#80624f] shadow-sm shadow-[#6a4b3c]/5">
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{t('public.servicesPage.kicker')}</span>
+            </div>
+            <h1 className="max-w-xl text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#382a25] sm:text-6xl lg:text-[4.5rem]">
+              {getSetting('public_services_title', t('public.servicesPage.titleFallback'))}
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-7 text-[#75645a] sm:text-lg sm:leading-8">
+              {getSetting('public_services_subtitle', t('public.servicesPage.subtitleFallback'))}
+            </p>
+            <p className="mt-4 max-w-lg text-sm leading-6 text-[#75645a]">
+              {t('public.servicesPage.heroNote')}
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <a
+                href="#service-catalog"
+                className="inline-flex h-12 items-center gap-3 rounded-full bg-[#49332d] px-6 text-sm font-semibold text-white shadow-lg shadow-[#49332d]/15 transition hover:-translate-y-0.5 hover:bg-[#382722] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#805b4c] focus-visible:ring-offset-2"
+              >
+                {t('public.servicesPage.exploreServices')}
+                <ArrowDown className="h-4 w-4" aria-hidden="true" />
+              </a>
+              <Button
+                asChild
+                variant="outline"
+                className="h-12 border-[#d5c4b8] bg-white/60 px-6 text-[#49332d] hover:bg-white"
+              >
+                <Link to="/rezervacija">{t('public.servicesPage.bookAppointment')}</Link>
+              </Button>
+            </div>
+            <div className="mt-10 flex items-center gap-3 text-xs font-medium tracking-wide text-[#75645a]">
+              <span className="h-px w-10 bg-[#b89b86]" />
+              <span>{t('public.servicesPage.heroFootnote')}</span>
+            </div>
+          </div>
 
-      <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
+          <div className="relative mx-auto w-full max-w-[36rem] lg:ml-auto lg:max-w-none">
+            <div aria-hidden="true" className="absolute -right-4 -top-4 h-28 w-28 rounded-full border border-[#bd9c83]/60 sm:-right-7 sm:-top-7 sm:h-40 sm:w-40" />
+            <div className="relative min-h-[22rem] overflow-hidden rounded-[1.75rem] border border-white/70 bg-[#dfd1c2] shadow-[0_28px_80px_-35px_rgba(63,42,32,0.5)] sm:min-h-[28rem] lg:min-h-[34rem]">
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: heroBackgroundImage }}
+              />
+              <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#241814]/75 via-[#241814]/5 to-[#241814]/5" />
+              <div className="relative flex min-h-[22rem] flex-col justify-between p-5 sm:min-h-[28rem] sm:p-7 lg:min-h-[34rem]">
+                <div className="flex items-start justify-between gap-4">
+                  <span className="rounded-full border border-white/40 bg-white/85 px-4 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#554038] shadow-sm backdrop-blur">
+                    {t('public.servicesPage.imageBadge')}
+                  </span>
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-white/25 text-white backdrop-blur-md">
+                    <Sparkles className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                </div>
+                <div className="max-w-sm text-white">
+                  <div className="mb-3 h-px w-12 bg-white/70" />
+                  <p className="text-2xl font-medium leading-tight tracking-[-0.03em] sm:text-3xl">
+                    {t('public.servicesPage.imageCaption')}
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-white/80">
+                    {t('public.servicesPage.imageSubcaption')}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="absolute -bottom-5 left-4 flex items-center gap-3 rounded-2xl border border-[#e8ddd3] bg-white px-4 py-3 shadow-xl shadow-[#574237]/10 sm:left-8 sm:px-5 sm:py-4">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f2e6de] text-[#8d554d]">
+                <Sparkles className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span>
+                <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#75645a]">
+                  {t('public.servicesPage.catalogSizeLabel')}
+                </span>
+                <span className="mt-0.5 block text-sm font-semibold text-[#49332d]">
+                  {t('public.servicesPage.serviceCount', { count: totalServiceCount })}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative z-10 mx-auto -mt-1 max-w-7xl px-4 pt-12 sm:px-6 sm:pt-16 lg:px-8">
+        <div className="grid overflow-hidden rounded-[1.5rem] border border-[#e7ddd4] bg-white shadow-[0_16px_50px_-32px_rgba(70,46,35,0.38)] sm:grid-cols-3">
+          {(['stepDiscover', 'stepChoose', 'stepBook'] as const).map((key, index) => (
+            <div
+              key={key}
+              className={`flex items-start gap-4 px-5 py-5 sm:px-6 sm:py-6 ${index < 2 ? 'border-b border-[#eee7e0] sm:border-b-0 sm:border-r' : ''}`}
+            >
+              <span className="mt-0.5 text-xs font-semibold tracking-[0.18em] text-[#80553e]">
+                0{index + 1}
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-[#49332d]">
+                  {t(`public.servicesPage.${key}Title`)}
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-[#75645a]">
+                  {t(`public.servicesPage.${key}Description`)}
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section id="service-catalog" className="mx-auto max-w-7xl scroll-mt-8 px-4 pt-20 sm:px-6 sm:pt-24 lg:px-8">
+        <div className="mb-9 flex flex-col justify-between gap-5 md:flex-row md:items-end">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#80553e]">
+              {t('public.servicesPage.catalogEyebrow')}
+            </p>
+            <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-[#382a25] sm:text-4xl">
+              {t('public.servicesPage.catalogTitle')}
+            </h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-[#79695e] sm:text-base">
+              {t('public.servicesPage.catalogDescription')}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-3 text-sm text-[#79695e]">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e3d7cd] bg-white text-[#855c4c]">
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+            </span>
+            <span>{t('public.servicesPage.serviceCount', { count: visibleServiceCount })}</span>
+          </div>
+        </div>
+
         {loading ? (
-          <div role="status" aria-live="polite" className="py-20 text-center text-slate-600">
-            {t('public.servicesPage.loading')}
+          <div role="status" aria-live="polite" className="space-y-5">
+            <p className="text-sm text-[#79695e]">{t('public.servicesPage.loading')}</p>
+            <div className="grid gap-5 xl:grid-cols-2">
+              {[0, 1].map((item) => (
+                <div key={item} aria-hidden="true" className="h-72 animate-pulse rounded-[1.5rem] border border-[#eee5dd] bg-white" />
+              ))}
+            </div>
           </div>
         ) : loadError ? (
-          <div className="py-14 text-center" role="alert">
-            <p className="text-slate-600">{t('public.servicesPage.loadFailed')}</p>
-            <button
+          <div role="alert" className="rounded-[1.5rem] border border-[#ead7d0] bg-white px-6 py-12 text-center shadow-sm">
+            <p className="text-[#65524a]">{t('public.servicesPage.loadFailed')}</p>
+            <Button
               type="button"
-              className="mt-4 font-medium text-slate-900 underline underline-offset-4"
+              variant="outline"
+              className="mt-5 border-[#d5c4b8] text-[#49332d]"
               onClick={() => void loadCategories()}
             >
               {t('public.servicesPage.retry')}
-            </button>
+            </Button>
           </div>
         ) : categories.length === 0 ? (
-          <div role="status" className="text-center text-slate-500 text-lg">{t('common.noData')}</div>
+          <div role="status" className="rounded-[1.5rem] border border-[#e9dfd6] bg-white px-6 py-14 text-center text-[#79695e]">
+            {t('public.servicesPage.emptyCatalog')}
+          </div>
         ) : (
-          <MotionDiv variants={containerVariants} initial="hidden" animate="visible">
-            {categories.map((cat) => (
-              <div key={cat.id} className="mb-16">
-                <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-950 mb-8 pb-3 border-b border-slate-200/80">
-                  {cat.name}
-                </h2>
-
-                {cat.subcategories?.length ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {cat.subcategories.map((sub) => (
-                      <MotionDiv
-                        key={sub.id}
-                        variants={itemVariants}
-                        className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 transition-shadow hover:shadow-md"
+          <>
+            <div className="mb-7 rounded-[1.5rem] border border-[#e8ddd3] bg-white p-4 shadow-[0_12px_36px_-30px_rgba(70,46,35,0.45)] sm:p-5">
+              <div className="grid gap-5 lg:grid-cols-[minmax(16rem,0.8fr)_1.2fr] lg:items-end">
+                <div>
+                  <label htmlFor="public-services-search" className="mb-2 block text-xs font-semibold uppercase tracking-[0.15em] text-[#7d6658]">
+                    {t('public.servicesPage.searchLabel')}
+                  </label>
+                  <div className="relative">
+                    <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#806b5d]" aria-hidden="true" />
+                    <Input
+                      id="public-services-search"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder={t('public.servicesPage.searchPlaceholder')}
+                      className="h-12 rounded-full border-[#e6dcd3] bg-[#fcfaf7] pl-11 pr-12 text-[#49332d] placeholder:text-[#75645a] focus-visible:ring-[#9d735d]"
+                    />
+                    {query ? (
+                      <button
+                        type="button"
+                        aria-label={t('public.servicesPage.clearSearch')}
+                        onClick={() => setQuery('')}
+                        className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#806b5d] transition hover:bg-[#efe7e0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d]"
                       >
-                        <div className="text-lg font-semibold text-slate-800 mb-6">
-                          {sub.name}
-                        </div>
-                        {sub.services?.length ? (
-                          <ul className="m-0 p-0 list-none">
-                            {sub.services.map((s) => (
-                              <li
-                                key={s.id}
-                                className="flex items-center justify-between py-3 border-b border-slate-100 last:border-b-0 last:pb-0"
-                              >
-                                <Link
-                                  to={`/usluge/${s.id}`}
-                                  className="font-medium text-slate-900 hover:text-slate-600 transition-colors"
-                                >
-                                  {s.name}
-                                </Link>
-                                <span className="inline-flex items-center rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-                                  {s.durationMinutes} min
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <div className="text-slate-400 text-sm">{t('common.noData')}</div>
-                        )}
-                      </MotionDiv>
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+                <fieldset className="min-w-0">
+                  <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-[#7d6658]">
+                    {t('public.servicesPage.categoryFilter')}
+                  </legend>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    <button
+                      type="button"
+                      aria-pressed={activeCategoryId === ALL_CATEGORIES}
+                      onClick={() => setActiveCategoryId(ALL_CATEGORIES)}
+                      className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2 ${activeCategoryId === ALL_CATEGORIES ? 'border-[#49332d] bg-[#49332d] text-white' : 'border-[#e6dcd3] bg-white text-[#715d51] hover:border-[#bea998] hover:bg-[#fcfaf7]'}`}
+                    >
+                      {t('public.servicesPage.allCategories')}
+                    </button>
+                    {categories.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        aria-pressed={activeCategoryId === category.id}
+                        onClick={() => setActiveCategoryId(category.id)}
+                        className={`shrink-0 rounded-full border px-4 py-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2 ${activeCategoryId === category.id ? 'border-[#49332d] bg-[#49332d] text-white' : 'border-[#e6dcd3] bg-white text-[#715d51] hover:border-[#bea998] hover:bg-[#fcfaf7]'}`}
+                      >
+                        {category.name}
+                      </button>
                     ))}
                   </div>
-                ) : (
-                  <div className="text-slate-500">{t('common.noData')}</div>
-                )}
+                </fieldset>
               </div>
-            ))}
-          </MotionDiv>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[#f0e9e2] pt-4 text-xs text-[#75645a]">
+                <span aria-live="polite" aria-atomic="true">
+                  {t('public.servicesPage.serviceCount', { count: visibleServiceCount })}
+                </span>
+                {hasFilters ? (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="inline-flex items-center gap-1.5 font-semibold text-[#79553f] underline decoration-[#c5a88f] underline-offset-4 hover:text-[#49332d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d]"
+                  >
+                    {t('public.servicesPage.clearFilters')}
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            {filteredCategories.length === 0 ? (
+              <div role="status" className="rounded-[1.5rem] border border-[#e9dfd6] bg-white px-6 py-14 text-center">
+                <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#f3e8e0] text-[#8d554d]">
+                  <Search className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <h3 className="mt-4 text-lg font-semibold text-[#49332d]">
+                  {t('public.servicesPage.noResultsTitle')}
+                </h3>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#75645a]">
+                  {t('public.servicesPage.noResultsDescription')}
+                </p>
+                <Button type="button" variant="outline" className="mt-5 border-[#d5c4b8] text-[#49332d]" onClick={clearFilters}>
+                  {t('public.servicesPage.clearFilters')}
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-5 xl:grid-cols-2">
+                {filteredCategories.map((category, categoryIndex) => {
+                  const tone = categoryTones[categoryIndex % categoryTones.length]
+                  const categoryServiceCount = getServiceCount(category)
+                  return (
+                    <article
+                      key={category.id}
+                      className="group relative isolate overflow-hidden rounded-[1.5rem] border border-[#e8ddd3] bg-white p-5 shadow-[0_18px_50px_-38px_rgba(70,46,35,0.46)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_55px_-38px_rgba(70,46,35,0.55)] sm:p-7"
+                    >
+                      <div aria-hidden="true" className={`pointer-events-none absolute -right-14 -top-16 -z-10 h-48 w-48 rounded-full blur-2xl ${tone.glow}`} />
+                      <header className="flex items-start justify-between gap-4 border-b border-[#eee7e0] pb-5">
+                        <div className="flex min-w-0 items-center gap-4">
+                          <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${tone.icon}`}>
+                            <Sparkles className="h-5 w-5" aria-hidden="true" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-[#7d6658]">
+                              {t('public.servicesPage.categoryLabel', { number: String(categoryIndex + 1).padStart(2, '0') })}
+                            </span>
+                            <h3 className="mt-1 truncate text-xl font-semibold tracking-[-0.03em] text-[#49332d] sm:text-2xl">
+                              {category.name}
+                            </h3>
+                          </span>
+                        </div>
+                        <span className="shrink-0 pt-1 text-right text-[0.68rem] font-medium text-[#75645a]">
+                          {t('public.servicesPage.serviceCount', { count: categoryServiceCount })}
+                        </span>
+                      </header>
+
+                      <div className="mt-5 space-y-6">
+                        {category.subcategories?.length ? (
+                          category.subcategories.map((subcategory) => (
+                            <section key={subcategory.id} aria-label={subcategory.name}>
+                              <h4 className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#7d6658]">
+                                {subcategory.name}
+                              </h4>
+                              {subcategory.services?.length ? (
+                                <ul className="divide-y divide-[#f0e9e2]">
+                                  {subcategory.services.map((service) => (
+                                    <li key={service.id}>
+                                      <Link
+                                        to={`/usluge/${service.id}`}
+                                        aria-label={t('public.servicesPage.viewService', { service: service.name })}
+                                        className="group/service flex min-h-[4.25rem] items-center gap-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9d735d] focus-visible:ring-offset-2"
+                                      >
+                                        <span className="min-w-0 flex-1">
+                                          <span className="block font-medium text-[#4b3830] transition group-hover/service:text-[#9a6255]">
+                                            {service.name}
+                                          </span>
+                                          <span className="mt-1 inline-flex items-center gap-1.5 text-xs text-[#75645a]">
+                                            <Clock3 className="h-3.5 w-3.5" aria-hidden="true" />
+                                            {t('public.servicesPage.duration', { minutes: service.durationMinutes })}
+                                          </span>
+                                        </span>
+                                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e9ded5] text-[#8d6d59] transition group-hover/service:border-[#b5937b] group-hover/service:bg-[#f8f2ed]">
+                                          <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                                        </span>
+                                      </Link>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <p className="rounded-xl bg-[#fcfaf7] px-3 py-3 text-sm text-[#75645a]">
+                                  {t('common.noData')}
+                                </p>
+                              )}
+                            </section>
+                          ))
+                        ) : (
+                          <p role="status" className="rounded-xl bg-[#fcfaf7] px-3 py-4 text-sm text-[#75645a]">
+                            {t('common.noData')}
+                          </p>
+                        )}
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </>
         )}
-      </div>
-    </div>
+      </section>
+
+      {!loading && !loadError ? (
+        <section className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 sm:pt-20 lg:px-8">
+          <div className="relative isolate overflow-hidden rounded-[1.75rem] bg-[#49332d] px-6 py-10 text-white sm:px-10 sm:py-12 lg:px-14">
+            <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-24 -z-10 h-80 w-80 rounded-full border border-white/15" />
+            <div aria-hidden="true" className="pointer-events-none absolute -right-2 -top-14 -z-10 h-60 w-60 rounded-full border border-white/10" />
+            <div className="flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
+              <div className="max-w-2xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#dfbca6]">
+                  {t('public.servicesPage.ctaEyebrow')}
+                </p>
+                <h2 className="mt-3 text-2xl font-medium leading-tight tracking-[-0.035em] sm:text-3xl">
+                  {t('public.servicesPage.ctaTitle')}
+                </h2>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-white/75">
+                  {t('public.servicesPage.ctaDescription')}
+                </p>
+              </div>
+              <Button asChild variant="onDark" size="lg" className="shrink-0 gap-2 px-6">
+                <Link to="/rezervacija">
+                  {t('public.servicesPage.bookAppointment')}
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      ) : null}
+    </main>
   )
 }
