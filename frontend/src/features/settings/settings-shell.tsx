@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink } from 'react-router-dom'
-import { Globe, Palette, Search, Settings2, SlidersHorizontal } from 'lucide-react'
+import { Globe, Palette, Search, SlidersHorizontal } from 'lucide-react'
 
 const links = [
   { to: '/admin/settings', key: 'site', icon: Globe },
@@ -22,22 +22,10 @@ export function SettingsShell({
   const { t } = useTranslation()
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 pb-12">
-      <header className="relative isolate overflow-hidden rounded-2xl border border-[#eadfd5] bg-gradient-to-br from-white via-[#fffaf5] to-[#f7eee7] px-5 py-6 shadow-sm sm:px-8 sm:py-8">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-20 -z-10 h-64 w-64 rounded-full border border-[#e6d5c7]/70" />
-        <div aria-hidden="true" className="pointer-events-none absolute -right-2 -top-12 -z-10 h-48 w-48 rounded-full border border-[#e6d5c7]/50" />
-        <div className="flex items-start gap-4">
-          <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#49332d] text-white shadow-sm">
-            <Settings2 className="h-5 w-5" aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#8a624e]">
-              {t('adminSettings.workspace')}
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[#382a25] sm:text-3xl">{title}</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#75645a] sm:text-base">{description}</p>
-          </div>
-        </div>
+    <div className="w-full space-y-6 pb-10">
+      <header>
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{title}</h1>
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{description}</p>
       </header>
 
       <nav aria-label={t('adminSettings.navigationLabel')} className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">

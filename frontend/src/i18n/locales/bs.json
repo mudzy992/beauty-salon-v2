@@ -141,7 +141,6 @@
   },
 
   "adminSettings": {
-    "workspace": "Upravljanje sistemom",
     "navigationLabel": "Kategorije postavki",
     "nav": {
       "site": "Sajt",

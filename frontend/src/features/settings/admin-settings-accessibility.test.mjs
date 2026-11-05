@@ -12,6 +12,7 @@ const booleanEditor = readFileSync(new URL('./setting-editor-boolean.tsx', impor
 const displayEditor = readFileSync(new URL('./setting-editor-display.tsx', import.meta.url), 'utf8')
 const settingEditor = readFileSync(new URL('./setting-editor.tsx', import.meta.url), 'utf8')
 const groupPanel = readFileSync(new URL('./setting-group-panel.tsx', import.meta.url), 'utf8')
+const settingsShell = readFileSync(new URL('./settings-shell.tsx', import.meta.url), 'utf8')
 const configuredHelper = readFileSync(new URL('./is-configured.ts', import.meta.url), 'utf8')
 
 test('settings load state is announced and failures offer a localized retry', () => {
@@ -21,6 +22,12 @@ test('settings load state is announced and failures offer a localized retry', ()
   assert.match(hook, /if \(requestId === loadRequestId\.current\) setLoadError\(true\)/)
   assert.match(hook, /if \(requestId !== loadRequestId\.current\) return/)
   assert.doesNotMatch(hook, /catch \(\) => \{\s*setSettingsList\(\[\]\)/)
+})
+
+test('settings header and content width match the shared admin page layout', () => {
+  assert.match(settingsShell, /<div className="w-full space-y-6 pb-10">/)
+  assert.match(settingsShell, /<h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">/)
+  assert.doesNotMatch(settingsShell, /max-w-6xl|bg-gradient-to-br|border border-\[#eadfd5\]/)
 })
 
 test('settings form controls are associated with localized labels', () => {

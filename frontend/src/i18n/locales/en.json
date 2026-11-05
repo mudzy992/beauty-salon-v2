@@ -144,7 +144,6 @@
   },
 
   "adminSettings": {
-    "workspace": "System settings",
     "navigationLabel": "Settings categories",
     "nav": {
       "site": "Site",
