@@ -155,8 +155,11 @@ export const StylistDirectBookingPage = () => {
 
       <Card className="space-y-4 p-4">
         <div className="space-y-2">
-          <Label>{t('stylistPortal.directBooking.client')}</Label>
+          <Label htmlFor="stylist-direct-booking-client">
+            {t('stylistPortal.directBooking.client')}
+          </Label>
           <Input
+            id="stylist-direct-booking-client"
             value={clientSearch}
             onChange={(e) => {
               const value = e.target.value
@@ -183,6 +186,7 @@ export const StylistDirectBookingPage = () => {
                   <button
                     key={client.id}
                     type="button"
+                    aria-pressed={selected}
                     className={
                       selected
                         ? 'rounded-lg border border-brand-gold-ring bg-brand-champagne/20 px-3 py-2 text-left text-sm'
@@ -205,8 +209,10 @@ export const StylistDirectBookingPage = () => {
           ) : null}
         </div>
 
-        <div className="space-y-2">
-          <Label>{t('stylistPortal.directBooking.services')}</Label>
+        <fieldset className="space-y-2 border-0 p-0">
+          <legend className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            {t('stylistPortal.directBooking.services')}
+          </legend>
           {!selectedClient ? (
             <p className="text-sm text-slate-500">{t('stylistPortal.directBooking.chooseClientForServices')}</p>
           ) : !selectedClient.gender ? (
@@ -219,6 +225,7 @@ export const StylistDirectBookingPage = () => {
                 <button
                   key={service.id}
                   type="button"
+                  aria-pressed={serviceIds.includes(service.id)}
                   className={
                     serviceIds.includes(service.id)
                       ? 'rounded-lg border border-brand-gold-ring bg-brand-champagne/20 px-3 py-2 text-left text-sm'
@@ -232,26 +239,26 @@ export const StylistDirectBookingPage = () => {
               ))}
             </div>
           )}
-        </div>
+        </fieldset>
 
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="space-y-2">
-            <Label>{t('stylistPortal.directBooking.date')}</Label>
-            <Input type="date" value={reservationDate} onChange={(e) => setReservationDate(e.target.value)} />
+            <Label htmlFor="stylist-direct-booking-date">{t('stylistPortal.directBooking.date')}</Label>
+            <Input id="stylist-direct-booking-date" type="date" value={reservationDate} onChange={(e) => setReservationDate(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>{t('stylistPortal.directBooking.startTime')}</Label>
-            <Input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+            <Label htmlFor="stylist-direct-booking-start">{t('stylistPortal.directBooking.startTime')}</Label>
+            <Input id="stylist-direct-booking-start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>{t('stylistPortal.directBooking.endTime')}</Label>
-            <Input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+            <Label htmlFor="stylist-direct-booking-end">{t('stylistPortal.directBooking.endTime')}</Label>
+            <Input id="stylist-direct-booking-end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label>{t('stylistPortal.directBooking.note')}</Label>
-          <Textarea rows={4} value={clientNotes} onChange={(e) => setClientNotes(e.target.value)} />
+          <Label htmlFor="stylist-direct-booking-note">{t('stylistPortal.directBooking.note')}</Label>
+          <Textarea id="stylist-direct-booking-note" rows={4} value={clientNotes} onChange={(e) => setClientNotes(e.target.value)} />
         </div>
 
         <div className="flex justify-end gap-2">

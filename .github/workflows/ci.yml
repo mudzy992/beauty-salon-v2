@@ -239,6 +239,9 @@ jobs:
       - name: Test localized stylist direct-booking UI
         working-directory: frontend
         run: npm run test:stylist-direct-booking-i18n
+      - name: Test stylist direct-booking accessibility
+        working-directory: frontend
+        run: npm run test:stylist-direct-booking-accessibility
       - name: Test localized stylist reservation detail UI
         working-directory: frontend
         run: npm run test:stylist-reservation-detail-i18n

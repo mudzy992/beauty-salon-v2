@@ -92,7 +92,7 @@ All routes are nested under the stylist guard/layout. `/stylist/profile` redirec
 | `/stylist/workbook/reschedule-preview/:reservationId` | `WorkbookReschedulePreviewPage` |
 | `/stylist/workbook/:entryId` | `WorkbookDetailPage` |
 | `/stylist/schedule` | `StylistSchedulePage` |
-| `/stylist/schedule/new` | `StylistDirectBookingPage` |
+| `/stylist/schedule/new` | `StylistDirectBookingPage` | Source checks cover client/date/time/note labels, service-group legend, and pressed state for client/service choices; rendered interactions remain unverified |
 | `/stylist/schedule/:reservationId` | `StylistReservationDetailPage` |
 | `/stylist/debts` | `StylistDebtsPage` |
 | `/stylist/stats` | `StylistStatsPage` |
