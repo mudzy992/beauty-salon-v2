@@ -75,11 +75,13 @@ const ServiceAutocomplete = ({
   loading,
   selected,
   onSelect,
+  loadError = false,
 }: {
   services: ServiceOption[]
   loading: boolean
   selected: ServiceOption[]
   onSelect: (next: ServiceOption[]) => void
+  loadError?: boolean
 }) => {
   const { t } = useTranslation()
   const [query, setQuery] = useState('')
@@ -202,7 +204,7 @@ const ServiceAutocomplete = ({
                 </div>
               ) : null}
             </div>
-            {open && !loading ? (
+            {open && !loading && !loadError ? (
               <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
                 <div className="max-h-[280px] overflow-auto">
                   {filtered.length === 0 ? (
@@ -262,7 +264,7 @@ const ServiceAutocomplete = ({
           </div>
         ) : null}
       </div>
-      {open && !loading ? (
+      {open && !loading && !loadError ? (
         <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
           <div className="max-h-[280px] overflow-auto">
             {filtered.length === 0 ? (
@@ -374,7 +376,7 @@ const ReservationCalendar = ({
 
   if (loading) {
     return (
-      <div className="h-[200px] flex items-center justify-center text-slate-600">
+      <div role="status" aria-live="polite" className="h-[200px] flex items-center justify-center text-slate-600">
         {t('common.loading')}
       </div>
     )
@@ -498,8 +500,11 @@ export default function PublicReserve() {
   const [selectedSlot, setSelectedSlot] = useState<{ start: string; end: string } | null>(null)
   const [notes, setNotes] = useState('')
   const [loadingServices, setLoadingServices] = useState(true)
+  const [servicesLoadError, setServicesLoadError] = useState(false)
   const [loadingDates, setLoadingDates] = useState(false)
+  const [datesLoadError, setDatesLoadError] = useState(false)
   const [loadingSlots, setLoadingSlots] = useState(false)
+  const [slotsLoadError, setSlotsLoadError] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [step, setStep] = useState(1)
   const [loyaltyInfo, setLoyaltyInfo] = useState<LoyaltyInfo | null>(null)
@@ -508,6 +513,21 @@ export default function PublicReserve() {
   const [openDebtsTotal, setOpenDebtsTotal] = useState(0)
   const dateSectionRef = useRef<HTMLDivElement | null>(null)
   const bookingAttemptRef = useRef<PendingIdempotentRequest>(null)
+  const datesRequestIdRef = useRef(0)
+  const slotsRequestIdRef = useRef(0)
+
+  const loadServices = useCallback(async () => {
+    setLoadingServices(true)
+    setServicesLoadError(false)
+    try {
+      setServices(await fetchAllPublicServices<ServiceOption>({ activeOnly: 'true' }))
+    } catch {
+      setServices([])
+      setServicesLoadError(true)
+    } finally {
+      setLoadingServices(false)
+    }
+  }, [])
 
   const servicesForGender = useMemo(() => {
     if (!user?.gender) return []
@@ -532,11 +552,8 @@ export default function PublicReserve() {
       navigate('/profil', { replace: true })
       return
     }
-    fetchAllPublicServices<ServiceOption>({ activeOnly: 'true' })
-      .then(setServices)
-      .catch(() => setServices([]))
-      .finally(() => setLoadingServices(false))
-  }, [isReady, token, navigate, user])
+    void loadServices()
+  }, [isReady, token, navigate, user, loadServices])
 
   useEffect(() => {
     if (loadingServices) return
@@ -554,7 +571,9 @@ export default function PublicReserve() {
   }, [loadingServices, searchParams, servicesForGender, selectedServices.length, user?.gender])
 
   const loadAvailability = useCallback((serviceIds: string[]) => {
+    const requestId = ++datesRequestIdRef.current
     setLoadingDates(true)
+    setDatesLoadError(false)
     const fromDate = getSalonDateOnly()
     const toDate = addDateOnlyDays(fromDate, 60)
     api
@@ -566,20 +585,53 @@ export default function PublicReserve() {
         },
       })
       .then((r) => {
+        if (requestId !== datesRequestIdRef.current) return
+        if (!Array.isArray(r.data)) throw new Error('Invalid date availability response')
         const map = new Map<string, boolean>()
-        if (Array.isArray(r.data)) {
-          r.data.forEach((d) => map.set(d.date, d.available))
-        }
+        r.data.forEach((date) => map.set(date.date, date.available))
         setAvailableDatesMap(map)
       })
-      .catch(() => setAvailableDatesMap(new Map()))
-      .finally(() => setLoadingDates(false))
+      .catch(() => {
+        if (requestId !== datesRequestIdRef.current) return
+        setAvailableDatesMap(new Map())
+        setDatesLoadError(true)
+      })
+      .finally(() => {
+        if (requestId === datesRequestIdRef.current) setLoadingDates(false)
+      })
   }, [])
 
   const selectedServiceIds = useMemo(() => selectedServices.map((s) => s.id), [selectedServices])
 
+  const loadSlots = useCallback((serviceIds: string[], date: string) => {
+    const requestId = ++slotsRequestIdRef.current
+    setLoadingSlots(true)
+    setSlotsLoadError(false)
+    setSelectedSlot(null)
+    api
+      .get<SlotOption[]>('/api/reservations/availability/slots', {
+        params: { serviceIds: serviceIds.join(','), date },
+      })
+      .then((r) => {
+        if (requestId !== slotsRequestIdRef.current) return
+        if (!Array.isArray(r.data)) throw new Error('Invalid slot availability response')
+        setSlots(r.data)
+      })
+      .catch(() => {
+        if (requestId !== slotsRequestIdRef.current) return
+        setSlots([])
+        setSlotsLoadError(true)
+      })
+      .finally(() => {
+        if (requestId === slotsRequestIdRef.current) setLoadingSlots(false)
+      })
+  }, [])
+
   useEffect(() => {
     if (selectedServiceIds.length === 0) {
+      datesRequestIdRef.current += 1
+      setLoadingDates(false)
+      setDatesLoadError(false)
       setAvailableDatesMap(new Map())
       setSelectedDate('')
       setSlots([])
@@ -592,29 +644,28 @@ export default function PublicReserve() {
     setSelectedDate('')
     setSlots([])
     setSelectedSlot(null)
+    return () => {
+      datesRequestIdRef.current += 1
+    }
   }, [selectedServiceIds, loadAvailability])
 
   useEffect(() => {
     if (selectedServiceIds.length === 0 || !selectedDate) {
+      slotsRequestIdRef.current += 1
+      setLoadingSlots(false)
+      setSlotsLoadError(false)
       setSlots([])
       setSelectedSlot(null)
       setLoyaltyInfo(null)
       setDesiredLoyaltyPercent(0)
       return
     }
-    setLoadingSlots(true)
     setStep(3)
-    api
-      .get<SlotOption[]>('/api/reservations/availability/slots', {
-        params: { serviceIds: selectedServiceIds.join(','), date: selectedDate },
-      })
-      .then((r) => setSlots(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setSlots([]))
-      .finally(() => {
-        setLoadingSlots(false)
-        setSelectedSlot(null)
-      })
-  }, [selectedServiceIds, selectedDate])
+    loadSlots(selectedServiceIds, selectedDate)
+    return () => {
+      slotsRequestIdRef.current += 1
+    }
+  }, [selectedServiceIds, selectedDate, loadSlots])
 
   useSocketEvent(
     'availability:changed',
@@ -631,16 +682,11 @@ export default function PublicReserve() {
         if (intersects) {
           loadAvailability(selectedServiceIds)
           if (selectedDate === d.date) {
-            api
-              .get<SlotOption[]>('/api/reservations/availability/slots', {
-                params: { serviceIds: selectedServiceIds.join(','), date: selectedDate },
-              })
-              .then((r) => setSlots(Array.isArray(r.data) ? r.data : []))
-              .catch(() => {})
+            loadSlots(selectedServiceIds, selectedDate)
           }
         }
       },
-      [selectedServiceIds, selectedDate, loadAvailability],
+      [selectedServiceIds, selectedDate, loadAvailability, loadSlots],
     ),
   )
 
@@ -786,7 +832,22 @@ export default function PublicReserve() {
                   loading={loadingServices}
                   selected={selectedServices}
                   onSelect={setSelectedServices}
+                  loadError={servicesLoadError}
                 />
+                {servicesLoadError ? (
+                  <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+                    <span>{t('public.reserve.servicesLoadFailed')}</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={loadingServices}
+                      onClick={() => void loadServices()}
+                    >
+                      {t('common.retry')}
+                    </Button>
+                  </div>
+                ) : null}
               </div>
 
               {selectedServices.length > 0 ? (
@@ -800,13 +861,28 @@ export default function PublicReserve() {
                       <legend className="text-slate-700 font-semibold">
                         {t('public.reserve.selectDate')}
                       </legend>
-                      <ReservationCalendar
-                        availableDates={availableDatesMap}
-                        selectedDate={selectedDate}
-                        onSelectDate={(d) => setSelectedDate(d)}
-                        loading={loadingDates}
-                        disabled={selectedServices.length === 0}
-                      />
+                      {datesLoadError ? (
+                        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+                          <span>{t('public.reserve.datesLoadFailed')}</span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={loadingDates}
+                            onClick={() => loadAvailability(selectedServiceIds)}
+                          >
+                            {t('common.retry')}
+                          </Button>
+                        </div>
+                      ) : (
+                        <ReservationCalendar
+                          availableDates={availableDatesMap}
+                          selectedDate={selectedDate}
+                          onSelectDate={(date) => setSelectedDate(date)}
+                          loading={loadingDates}
+                          disabled={selectedServices.length === 0}
+                        />
+                      )}
                     </fieldset>
                   </div>
                 </MotionDiv>
@@ -832,8 +908,23 @@ export default function PublicReserve() {
                       </span>
                     </legend>
 
-                    {loadingSlots ? (
-                      <div className="py-4 text-center text-slate-600">{t('common.loading')}</div>
+                    {slotsLoadError ? (
+                      <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
+                        <span>{t('public.reserve.slotsLoadFailed')}</span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={loadingSlots}
+                          onClick={() => loadSlots(selectedServiceIds, selectedDate)}
+                        >
+                          {t('common.retry')}
+                        </Button>
+                      </div>
+                    ) : loadingSlots ? (
+                      <div role="status" aria-live="polite" className="py-4 text-center text-slate-600">
+                        {t('common.loading')}
+                      </div>
                     ) : slots.length === 0 ? (
                       <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 text-center text-sm text-orange-800">
                         {t('public.reserve.noSlots')} {t('public.reserve.tryAnotherDate')}

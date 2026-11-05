@@ -23,7 +23,7 @@
 | `/blog/:slug` | `PublicBlogPost` | Public feature-gated |
 | `/galerija` | `PublicGallery` | Public feature-gated |
 | `/kontakt` | `PublicContact` | Guest/public |
-| `/rezervacija` | `PublicReserve` | Public booking flow; source checks now cover associated service/notes/loyalty labels, date/time legends, and labeled calendar navigation/date states; rendered keyboard and assistive-technology behavior remains unverified |
+| `/rezervacija` | `PublicReserve` | Public booking flow; source checks cover form names, date/time legends, calendar states, distinct service/date/slot load failures with retry, and stale-response guards; rendered keyboard and assistive-technology behavior remains unverified |
 | `/moje-rezervacije` | `MyReservations` | Client/account flow; page-level auth and empty/error states need route review |
 | `/moje-rezervacije/:id` | `MyReservationDetail` | Client/account flow; route identity and action states need route review |
 | `/moj-termin/:token` | `PublicReservationView` | Token-based reservation access |
