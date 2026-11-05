@@ -4,7 +4,7 @@ export const AppToaster = () => {
   return (
     <Toaster
       richColors
-      position="top-right"
+      position="bottom-right"
       closeButton
       toastOptions={{
         classNames: {
