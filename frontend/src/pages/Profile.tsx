@@ -273,7 +273,9 @@ export default function Profile() {
       </h1>
 
       {loading ? (
-        <div className="text-slate-600">{t('common.loading')}</div>
+        <div role="status" aria-live="polite" className="text-slate-600">
+          {t('common.loading')}
+        </div>
       ) : profile ? (
         <div className="space-y-5">
           <Card>
@@ -378,7 +380,7 @@ export default function Profile() {
                     />
 
                     {usernameStatus.loading ? (
-                      <div className="text-xs text-slate-500">
+                      <div role="status" aria-live="polite" className="text-xs text-slate-500">
                         {t('profile.username.checking')}
                       </div>
                     ) : null}
@@ -387,7 +389,7 @@ export default function Profile() {
                     usernameStatus.available === true &&
                     (usernameStatus.isCurrentUsername ||
                       username.trim() === initialUsername.trim()) ? (
-                      <div className="text-xs text-blue-700">
+                      <div role="status" aria-live="polite" className="text-xs text-blue-700">
                         {t('profile.username.current')}
                       </div>
                     ) : null}
@@ -396,13 +398,13 @@ export default function Profile() {
                     usernameStatus.available === true &&
                     !usernameStatus.isCurrentUsername &&
                     username.trim() !== initialUsername.trim() ? (
-                      <div className="text-xs text-emerald-700">
+                      <div role="status" aria-live="polite" className="text-xs text-emerald-700">
                         {t('profile.username.available')}
                       </div>
                     ) : null}
 
                     {!usernameStatus.loading && usernameStatus.available === false ? (
-                      <div className="text-xs text-rose-700">
+                      <div role="status" aria-live="polite" className="text-xs text-rose-700">
                         {t('profile.username.unavailable')}
                       </div>
                     ) : null}

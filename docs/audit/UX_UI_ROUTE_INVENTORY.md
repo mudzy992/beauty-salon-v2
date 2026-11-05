@@ -28,7 +28,7 @@
 | `/moje-rezervacije/:id` | `MyReservationDetail` | Client/account flow; route identity and action states need route review |
 | `/moj-termin/:token` | `PublicReservationView` | Token-based reservation access |
 | `/unsubscribe` | `CampaignUnsubscribe` | Public confirmation flow |
-| `/profil` | `Profile` | Account/profile flow; source checks cover semantic page heading and localized accessible name for the email-verification code; rendered navigation/announcement behavior remains unverified |
+| `/profil` | `Profile` | Account/profile flow; source checks cover semantic page heading, localized email-verification code name, and polite status roles for profile loading/username availability; rendered navigation/announcement behavior remains unverified |
 | `/zadovoljni-klijenti` | `PublicSatisfiedClients` | Public feature-gated |
 
 ### Authentication, onboarding, and exceptional routes
