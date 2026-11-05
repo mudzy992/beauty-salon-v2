@@ -13,21 +13,20 @@ export function TableSkeleton({
 }) {
   const { t } = useTranslation()
   return (
-    <div
-      className="space-y-2"
-      aria-busy="true"
-      aria-label={t('finance.states.loading')}
-    >
-      {Array.from({ length: rows }).map((_, rowIndex) => (
-        <div key={rowIndex} className="flex gap-3">
-          {Array.from({ length: columns }).map((_, colIndex) => (
-            <div
-              key={colIndex}
-              className="h-9 flex-1 animate-pulse rounded-md bg-slate-100 dark:bg-slate-800"
-            />
-          ))}
-        </div>
-      ))}
+    <div role="status" aria-live="polite" className="space-y-2">
+      <span className="sr-only">{t('finance.states.loading')}</span>
+      <div aria-hidden="true" className="space-y-2">
+        {Array.from({ length: rows }).map((_, rowIndex) => (
+          <div key={rowIndex} className="flex gap-3">
+            {Array.from({ length: columns }).map((_, colIndex) => (
+              <div
+                key={colIndex}
+                className="h-9 flex-1 animate-pulse rounded-md bg-slate-100 dark:bg-slate-800"
+              />
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

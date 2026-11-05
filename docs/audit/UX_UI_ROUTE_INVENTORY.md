@@ -58,7 +58,7 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 | `/admin/stylists` | `Stylists` |
 | `/admin/reservations` | `Reservations` |
 | `/admin/daily-log` | `DailyLog` |
-| `/admin/finance` | `Finance` |
+| `/admin/finance` | `Finance` | Source checks cover manual-income client labeling and shared table-loading status/error semantics; rendered finance flows remain unverified |
 | `/admin/debtors` | Redirect to `/admin/finance?tab=debtors` |
 | `/admin/blog` | `Blog` |
 | `/admin/gallery` | `Gallery` |
