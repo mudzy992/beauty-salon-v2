@@ -1024,6 +1024,7 @@ export class NotificationsService {
     ctaUrl?: string;
     codeBlock?: string;
     signature?: string;
+    blocks?: EmailContentBlock[];
   }) {
     return buildDefaultEmailTemplateHtml(params);
   }
