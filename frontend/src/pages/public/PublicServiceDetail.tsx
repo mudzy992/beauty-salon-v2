@@ -17,6 +17,7 @@ import { getUploadUrl } from "../../utils/uploadUrl";
 import { BeforeAfterSpotlight } from "../../features/shell/public/before-after-spotlight";
 import { Button } from "../../components/ui/button";
 import { useSettings } from "../../context/SettingsContext";
+import { useAuth } from "../../context/AuthContext";
 import { Seo } from "../../seo/Seo";
 import { getIntlLocale } from "../../i18n/locale-utils.mjs";
 
@@ -27,6 +28,7 @@ type Service = {
   heroImage?: string | null;
   durationMinutes: number;
   price: number | string;
+  gender?: "MALE" | "FEMALE" | null;
   subcategory?: {
     name?: string;
     category?: { name?: string };
@@ -97,6 +99,7 @@ export default function PublicServiceDetail() {
   const { serviceId } = useParams();
   const { t, i18n } = useTranslation();
   const { getSetting } = useSettings();
+  const { user } = useAuth();
   const [service, setService] = useState<Service | null>(null);
   const [salon, setSalon] = useState<PublicSalonIdentity | null>(null);
   const [loadingService, setLoadingService] = useState(true);
@@ -312,6 +315,7 @@ export default function PublicServiceDetail() {
       ).format(numericPrice)
     : String(service.price);
   const showServicePrices = getSetting("public_service_prices_enabled", "true").toLowerCase() !== "false";
+  const canBookService = !(user?.roles.includes("CLIENT") && user.gender === "MALE" && service.gender === "FEMALE");
   const categoryName =
     service.subcategory?.category?.name || service.subcategory?.name || "";
   const salonName = salon?.name?.trim() || "";
@@ -437,14 +441,16 @@ export default function PublicServiceDetail() {
                   ) : null}
                 </div>
                 <div className="mt-8 flex flex-wrap items-center gap-3">
-                  <Link
-                    to={`/rezervacija?serviceId=${encodeURIComponent(service.id)}`}
-                  >
-                    <Button className="h-12 gap-2 rounded-full bg-[#49332d] px-6 text-white hover:bg-[#382722]">
-                      {t("public.serviceDetail.book")}
-                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  </Link>
+                  {canBookService ? (
+                    <Link
+                      to={`/rezervacija?serviceId=${encodeURIComponent(service.id)}`}
+                    >
+                      <Button className="h-12 gap-2 rounded-full bg-[#49332d] px-6 text-white hover:bg-[#382722]">
+                        {t("public.serviceDetail.book")}
+                        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    </Link>
+                  ) : null}
                   {salonPhone ? (
                     <a
                       href={`tel:${salonPhone}`}
