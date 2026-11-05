@@ -16,6 +16,14 @@ test('reservation-list fetch errors remain distinct from a valid empty result', 
   assert.match(source, /items\.length === 0[\s\S]*?t\('common\.noData'\)/)
 })
 
+test('only the latest reservation-list request can publish data or end loading', () => {
+  const loadData = source.slice(source.indexOf('const loadData = useCallback'), source.indexOf('const openDetail'))
+  assert.match(loadData, /const requestSequence = \+\+requestSequenceRef\.current/)
+  assert.match(loadData, /if \(requestSequence !== requestSequenceRef\.current\) return/)
+  assert.match(loadData, /if \(requestSequence === requestSequenceRef\.current\) setLoading\(false\)/)
+  assert.match(source, /return \(\) => \{\s*requestSequenceRef\.current \+= 1/)
+})
+
 test('desktop reservation table has a caption and scoped column headers', () => {
   const tableStart = source.indexOf('<table className="app-table w-full border-collapse">')
   const tableEnd = source.indexOf('</table>', tableStart)

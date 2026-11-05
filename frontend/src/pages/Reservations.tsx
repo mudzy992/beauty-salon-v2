@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CalendarDays, Eye, Loader2 } from 'lucide-react'
@@ -119,6 +119,7 @@ export default function Reservations() {
   const [items, setItems] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const requestSequenceRef = useRef(0)
   const [page, setPage] = useState(0)
   const [pageSize] = useState(20)
   const [total, setTotal] = useState(0)
@@ -142,6 +143,7 @@ export default function Reservations() {
   }, [clientSearch])
 
   const loadData = useCallback(() => {
+    const requestSequence = ++requestSequenceRef.current
     setLoading(true)
     setLoadError(false)
     const params: Record<string, string> = {}
@@ -154,6 +156,7 @@ export default function Reservations() {
     api
       .get<Reservation[] | PaginatedResponse<Reservation>>('/api/reservations', { params })
       .then((r) => {
+        if (requestSequence !== requestSequenceRef.current) return
         if (Array.isArray(r.data)) {
           setItems(r.data)
           setTotal(r.data.length)
@@ -163,13 +166,19 @@ export default function Reservations() {
         setTotal(r.data.total ?? 0)
       })
       .catch(() => {
+        if (requestSequence !== requestSequenceRef.current) return
         setLoadError(true)
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (requestSequence === requestSequenceRef.current) setLoading(false)
+      })
   }, [fromDate, toDate, statusFilter, debouncedClientSearch, page, pageSize])
 
   useEffect(() => {
     loadData()
+    return () => {
+      requestSequenceRef.current += 1
+    }
   }, [loadData])
 
   useEffect(() => {
