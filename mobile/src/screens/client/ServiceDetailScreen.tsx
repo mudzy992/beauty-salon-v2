@@ -168,6 +168,8 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
                       }
                       size="sm"
                       variant="outline"
+                      style={styles.bookButtonOnImage}
+                      textStyle={styles.bookButtonOnImageText}
                     />
                   ) : null}
                 </View>
@@ -217,4 +219,9 @@ const styles = StyleSheet.create({
   serviceNameOverlay: { color: '#fff', textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
   serviceDescOverlay: { color: 'rgba(255,255,255,0.9)', marginTop: 2 },
   metaTextOverlay: { fontSize: 13, color: 'rgba(255,255,255,0.95)' },
+  bookButtonOnImage: {
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderColor: '#fff',
+  },
+  bookButtonOnImageText: { color: '#49332d' },
 });
