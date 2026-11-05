@@ -9,19 +9,26 @@ const locales = ['bs', 'en'].map((language) =>
 const hasKey = (resource, key) => key.split('.').reduce((value, part) => value?.[part], resource) !== undefined
 
 const copyKeys = [
-  'kicker', 'heroNote', 'exploreServices', 'bookAppointment', 'heroFootnote', 'imageBadge',
-  'imageCaption', 'imageSubcaption', 'catalogSizeLabel', 'stepDiscoverTitle',
-  'stepDiscoverDescription', 'stepChooseTitle', 'stepChooseDescription', 'stepBookTitle',
-  'stepBookDescription', 'catalogEyebrow', 'catalogTitle', 'catalogDescription',
+  'loading', 'loadFailed', 'retry', 'exploreServices', 'bookAppointment',
   'searchLabel', 'searchPlaceholder', 'clearSearch', 'categoryFilter', 'allCategories',
   'clearFilters', 'emptyCatalog', 'noResultsTitle', 'noResultsDescription', 'viewService',
-  'duration', 'ctaEyebrow', 'ctaTitle', 'ctaDescription',
+  'duration',
 ]
 
-test('redesigned services page keeps salon-managed copy, catalogue content, and booking routes', () => {
-  assert.match(source, /getSetting\('public_services_title'/)
-  assert.match(source, /getSetting\('public_services_subtitle'/)
-  assert.match(source, /services-editorial-hero\.jpg/)
+test('services editorial content, salon identity and contacts are supplied by admin/public salon settings', () => {
+  const settings = [
+    'title', 'subtitle', 'hero_note', 'hero_explore_cta', 'hero_book_cta', 'hero_footnote',
+    'image_badge', 'image_caption', 'image_subcaption', 'catalog_size_label',
+    'catalog_eyebrow', 'catalog_heading', 'catalog_description', 'cta_eyebrow', 'cta_heading', 'cta_description', 'cta_button',
+  ]
+  for (const key of settings) assert.ok(source.includes(`editorial('${key}')`), `Missing admin copy setting ${key}`)
+  assert.match(source, /editorial\(`step_\$\{number\}_title`\)/)
+  assert.match(source, /editorial\(`step_\$\{number\}_description`\)/)
+  assert.match(source, /api\.get<PublicSalonIdentity \| null>\('\/api\/salon'\)/)
+  assert.match(source, /public_contact_address/)
+  assert.match(source, /public_contact_phone/)
+  assert.match(source, /public_contact_email/)
+  assert.doesNotMatch(source, /services-editorial-hero\.jpg|Beauty Salon Nejra|Sarajevo/)
   assert.match(source, /href="#service-catalog"/)
   assert.match(source, /Link to="\/rezervacija"/)
   assert.match(source, /to=\{`\/usluge\/\$\{service\.id\}`\}/)

@@ -3,6 +3,8 @@ import { ArrowDown, ArrowRight, ArrowUpRight, Clock3, Search, Sparkles, X } from
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
+import api from '../../api/client'
+
 import {
   fetchAllPublicServiceCategories,
   fetchAllPublicServices,
@@ -37,6 +39,13 @@ interface CatalogService extends ServiceOption {
   subcategory?: { categoryId: string }
 }
 
+interface PublicSalonIdentity {
+  name?: string | null
+  address?: string | null
+  phone?: string | null
+  email?: string | null
+}
+
 const ALL_CATEGORIES = 'all'
 
 const categoryTones = [
@@ -53,6 +62,7 @@ export default function PublicServices() {
   const { t, i18n } = useTranslation()
   const { getSetting } = useSettings()
   const [categories, setCategories] = useState<ServiceCategory[]>([])
+  const [salon, setSalon] = useState<PublicSalonIdentity | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [query, setQuery] = useState('')
@@ -109,6 +119,20 @@ export default function PublicServices() {
     }
   }, [loadCategories])
 
+  useEffect(() => {
+    let active = true
+    api.get<PublicSalonIdentity | null>('/api/salon')
+      .then(({ data }) => {
+        if (active) setSalon(data)
+      })
+      .catch(() => {
+        if (active) setSalon(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
   const filteredCategories = useMemo(() => {
     const cleanQuery = query.trim().toLocaleLowerCase(i18n.resolvedLanguage || i18n.language)
     return categories
@@ -140,9 +164,23 @@ export default function PublicServices() {
   )
   const hasFilters = query.trim().length > 0 || activeCategoryId !== ALL_CATEGORIES
   const servicesHeroBg = getSetting('public_services_bg', '').trim()
-  const heroBackgroundImage = servicesHeroBg
-    ? cssBackgroundImage(servicesHeroBg)
-    : "url('/images/services-editorial-hero.jpg')"
+  const heroBackgroundImage = servicesHeroBg ? cssBackgroundImage(servicesHeroBg) : undefined
+  const salonName = salon?.name?.trim() || ''
+  const salonAddress = getSetting('public_contact_address', '').trim() || salon?.address?.trim() || ''
+  const salonPhone = getSetting('public_contact_phone', '').trim() || salon?.phone?.trim() || ''
+  const salonEmail = getSetting('public_contact_email', '').trim() || salon?.email?.trim() || ''
+  const salonIdentity = [salonName, salonAddress].filter(Boolean).join(' · ')
+  const editorial = (key: string) => getSetting(`public_services_${key}`, '').trim()
+  const serviceTitle = editorial('title') || salonName || t('public.nav.services')
+  const serviceSubtitle = editorial('subtitle')
+  const serviceSteps = [1, 2, 3].map((number) => ({
+    number,
+    title: editorial(`step_${number}_title`),
+    description: editorial(`step_${number}_description`),
+  })).filter((step) => step.title || step.description)
+  const hasCtaContent = Boolean(
+    editorial('cta_eyebrow') || editorial('cta_heading') || editorial('cta_description') || editorial('cta_button'),
+  )
 
   const clearFilters = () => {
     setQuery('')
@@ -156,25 +194,27 @@ export default function PublicServices() {
         <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-28 h-[26rem] w-[26rem] rounded-full border border-[#d5c1b0]/25" />
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1fr_0.92fr] lg:gap-14 lg:px-8 lg:pb-24 lg:pt-20">
           <div className="relative z-10 max-w-2xl">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d7c3b3] bg-white/70 px-4 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[#80624f] shadow-sm shadow-[#6a4b3c]/5">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>{t('public.servicesPage.kicker')}</span>
-            </div>
+            {salonIdentity ? (
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d7c3b3] bg-white/70 px-4 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-[#80624f] shadow-sm shadow-[#6a4b3c]/5">
+                <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>{salonIdentity}</span>
+              </div>
+            ) : null}
             <h1 className="max-w-xl text-5xl font-medium leading-[0.98] tracking-[-0.055em] text-[#382a25] sm:text-6xl lg:text-[4.5rem]">
-              {getSetting('public_services_title', t('public.servicesPage.titleFallback'))}
+              {serviceTitle}
             </h1>
-            <p className="mt-6 max-w-xl text-base leading-7 text-[#75645a] sm:text-lg sm:leading-8">
-              {getSetting('public_services_subtitle', t('public.servicesPage.subtitleFallback'))}
-            </p>
-            <p className="mt-4 max-w-lg text-sm leading-6 text-[#75645a]">
-              {t('public.servicesPage.heroNote')}
-            </p>
+            {serviceSubtitle ? (
+              <p className="mt-6 max-w-xl text-base leading-7 text-[#75645a] sm:text-lg sm:leading-8">{serviceSubtitle}</p>
+            ) : null}
+            {editorial('hero_note') ? (
+              <p className="mt-4 max-w-lg text-sm leading-6 text-[#75645a]">{editorial('hero_note')}</p>
+            ) : null}
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <a
                 href="#service-catalog"
                 className="inline-flex h-12 items-center gap-3 rounded-full bg-[#49332d] px-6 text-sm font-semibold text-white shadow-lg shadow-[#49332d]/15 transition hover:-translate-y-0.5 hover:bg-[#382722] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#805b4c] focus-visible:ring-offset-2"
               >
-                {t('public.servicesPage.exploreServices')}
+                {editorial('hero_explore_cta') || t('public.servicesPage.exploreServices')}
                 <ArrowDown className="h-4 w-4" aria-hidden="true" />
               </a>
               <Button
@@ -182,13 +222,15 @@ export default function PublicServices() {
                 variant="outline"
                 className="h-12 border-[#d5c4b8] bg-white/60 px-6 text-[#49332d] hover:bg-white"
               >
-                <Link to="/rezervacija">{t('public.servicesPage.bookAppointment')}</Link>
+                <Link to="/rezervacija">{editorial('hero_book_cta') || t('public.servicesPage.bookAppointment')}</Link>
               </Button>
             </div>
-            <div className="mt-10 flex items-center gap-3 text-xs font-medium tracking-wide text-[#75645a]">
-              <span className="h-px w-10 bg-[#b89b86]" />
-              <span>{t('public.servicesPage.heroFootnote')}</span>
-            </div>
+            {editorial('hero_footnote') ? (
+              <div className="mt-10 flex items-center gap-3 text-xs font-medium tracking-wide text-[#75645a]">
+                <span className="h-px w-10 bg-[#b89b86]" />
+                <span>{editorial('hero_footnote')}</span>
+              </div>
+            ) : null}
           </div>
 
           <div className="relative mx-auto w-full max-w-[36rem] lg:ml-auto lg:max-w-none">
@@ -196,27 +238,29 @@ export default function PublicServices() {
             <div className="relative min-h-[22rem] overflow-hidden rounded-[1.75rem] border border-white/70 bg-[#dfd1c2] shadow-[0_28px_80px_-35px_rgba(63,42,32,0.5)] sm:min-h-[28rem] lg:min-h-[34rem]">
               <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: heroBackgroundImage }}
+                className={`absolute inset-0 bg-cover bg-center ${heroBackgroundImage ? '' : 'bg-gradient-to-br from-[#c6aa96] via-[#e6d8ca] to-[#8e7060]'}`}
+                style={heroBackgroundImage ? { backgroundImage: heroBackgroundImage } : undefined}
               />
               <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[#241814]/75 via-[#241814]/5 to-[#241814]/5" />
               <div className="relative flex min-h-[22rem] flex-col justify-between p-5 sm:min-h-[28rem] sm:p-7 lg:min-h-[34rem]">
                 <div className="flex items-start justify-between gap-4">
-                  <span className="rounded-full border border-white/40 bg-white/85 px-4 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#554038] shadow-sm backdrop-blur">
-                    {t('public.servicesPage.imageBadge')}
-                  </span>
+                  {editorial('image_badge') ? (
+                    <span className="rounded-full border border-white/40 bg-white/85 px-4 py-2 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-[#554038] shadow-sm backdrop-blur">
+                      {editorial('image_badge')}
+                    </span>
+                  ) : <span />}
                   <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-white/25 text-white backdrop-blur-md">
                     <Sparkles className="h-5 w-5" aria-hidden="true" />
                   </span>
                 </div>
                 <div className="max-w-sm text-white">
                   <div className="mb-3 h-px w-12 bg-white/70" />
-                  <p className="text-2xl font-medium leading-tight tracking-[-0.03em] sm:text-3xl">
-                    {t('public.servicesPage.imageCaption')}
-                  </p>
-                  <p className="mt-3 text-sm leading-6 text-white/80">
-                    {t('public.servicesPage.imageSubcaption')}
-                  </p>
+                  {editorial('image_caption') ? (
+                    <p className="text-2xl font-medium leading-tight tracking-[-0.03em] sm:text-3xl">{editorial('image_caption')}</p>
+                  ) : null}
+                  {editorial('image_subcaption') ? (
+                    <p className="mt-3 text-sm leading-6 text-white/80">{editorial('image_subcaption')}</p>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -225,9 +269,11 @@ export default function PublicServices() {
                 <Sparkles className="h-4 w-4" aria-hidden="true" />
               </span>
               <span>
-                <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#75645a]">
-                  {t('public.servicesPage.catalogSizeLabel')}
-                </span>
+                {editorial('catalog_size_label') ? (
+                  <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#75645a]">
+                    {editorial('catalog_size_label')}
+                  </span>
+                ) : null}
                 <span className="mt-0.5 block text-sm font-semibold text-[#49332d]">
                   {t('public.servicesPage.serviceCount', { count: totalServiceCount })}
                 </span>
@@ -237,41 +283,28 @@ export default function PublicServices() {
         </div>
       </section>
 
-      <section className="relative z-10 mx-auto -mt-1 max-w-7xl px-4 pt-12 sm:px-6 sm:pt-16 lg:px-8">
-        <div className="grid overflow-hidden rounded-[1.5rem] border border-[#e7ddd4] bg-white shadow-[0_16px_50px_-32px_rgba(70,46,35,0.38)] sm:grid-cols-3">
-          {(['stepDiscover', 'stepChoose', 'stepBook'] as const).map((key, index) => (
-            <div
-              key={key}
-              className={`flex items-start gap-4 px-5 py-5 sm:px-6 sm:py-6 ${index < 2 ? 'border-b border-[#eee7e0] sm:border-b-0 sm:border-r' : ''}`}
-            >
-              <span className="mt-0.5 text-xs font-semibold tracking-[0.18em] text-[#80553e]">
-                0{index + 1}
-              </span>
-              <span>
-                <span className="block text-sm font-semibold text-[#49332d]">
-                  {t(`public.servicesPage.${key}Title`)}
+      {serviceSteps.length > 0 ? (
+        <section className="relative z-10 mx-auto -mt-1 max-w-7xl px-4 pt-12 sm:px-6 sm:pt-16 lg:px-8">
+          <div className="grid overflow-hidden rounded-[1.5rem] border border-[#e7ddd4] bg-white shadow-[0_16px_50px_-32px_rgba(70,46,35,0.38)] sm:grid-cols-3">
+            {serviceSteps.map((step, index) => (
+              <div key={step.number} className={`flex items-start gap-4 px-5 py-5 sm:px-6 sm:py-6 ${index < serviceSteps.length - 1 ? 'border-b border-[#eee7e0] sm:border-b-0 sm:border-r' : ''}`}>
+                <span className="mt-0.5 text-xs font-semibold tracking-[0.18em] text-[#80553e]">0{step.number}</span>
+                <span>
+                  {step.title ? <span className="block text-sm font-semibold text-[#49332d]">{step.title}</span> : null}
+                  {step.description ? <span className="mt-1 block text-xs leading-5 text-[#75645a]">{step.description}</span> : null}
                 </span>
-                <span className="mt-1 block text-xs leading-5 text-[#75645a]">
-                  {t(`public.servicesPage.${key}Description`)}
-                </span>
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section id="service-catalog" className="mx-auto max-w-7xl scroll-mt-8 px-4 pt-20 sm:px-6 sm:pt-24 lg:px-8">
         <div className="mb-9 flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#80553e]">
-              {t('public.servicesPage.catalogEyebrow')}
-            </p>
-            <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-[#382a25] sm:text-4xl">
-              {t('public.servicesPage.catalogTitle')}
-            </h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-[#79695e] sm:text-base">
-              {t('public.servicesPage.catalogDescription')}
-            </p>
+            {editorial('catalog_eyebrow') ? <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#80553e]">{editorial('catalog_eyebrow')}</p> : null}
+            {editorial('catalog_heading') ? <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-[#382a25] sm:text-4xl">{editorial('catalog_heading')}</h2> : null}
+            {editorial('catalog_description') ? <p className="mt-3 max-w-xl text-sm leading-6 text-[#79695e] sm:text-base">{editorial('catalog_description')}</p> : null}
           </div>
           <div className="flex shrink-0 items-center gap-3 text-sm text-[#79695e]">
             <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e3d7cd] bg-white text-[#855c4c]">
@@ -478,26 +511,27 @@ export default function PublicServices() {
         )}
       </section>
 
-      {!loading && !loadError ? (
+      {!loading && !loadError && (hasCtaContent || salonAddress || salonPhone || salonEmail) ? (
         <section className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 sm:pt-20 lg:px-8">
           <div className="relative isolate overflow-hidden rounded-[1.75rem] bg-[#49332d] px-6 py-10 text-white sm:px-10 sm:py-12 lg:px-14">
             <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-24 -z-10 h-80 w-80 rounded-full border border-white/15" />
             <div aria-hidden="true" className="pointer-events-none absolute -right-2 -top-14 -z-10 h-60 w-60 rounded-full border border-white/10" />
             <div className="flex flex-col gap-7 md:flex-row md:items-center md:justify-between">
               <div className="max-w-2xl">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#dfbca6]">
-                  {t('public.servicesPage.ctaEyebrow')}
-                </p>
-                <h2 className="mt-3 text-2xl font-medium leading-tight tracking-[-0.035em] sm:text-3xl">
-                  {t('public.servicesPage.ctaTitle')}
-                </h2>
-                <p className="mt-3 max-w-xl text-sm leading-6 text-white/75">
-                  {t('public.servicesPage.ctaDescription')}
-                </p>
+                {editorial('cta_eyebrow') ? <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#dfbca6]">{editorial('cta_eyebrow')}</p> : null}
+                {editorial('cta_heading') ? <h2 className="mt-3 text-2xl font-medium leading-tight tracking-[-0.035em] sm:text-3xl">{editorial('cta_heading')}</h2> : null}
+                {editorial('cta_description') ? <p className="mt-3 max-w-xl text-sm leading-6 text-white/75">{editorial('cta_description')}</p> : null}
+                {(salonAddress || salonPhone || salonEmail) ? (
+                  <address className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs not-italic text-white/75">
+                    {salonAddress ? <span>{salonAddress}</span> : null}
+                    {salonPhone ? <a className="underline underline-offset-4" href={`tel:${salonPhone}`}>{salonPhone}</a> : null}
+                    {salonEmail ? <a className="underline underline-offset-4" href={`mailto:${salonEmail}`}>{salonEmail}</a> : null}
+                  </address>
+                ) : null}
               </div>
               <Button asChild variant="onDark" size="lg" className="shrink-0 gap-2 px-6">
                 <Link to="/rezervacija">
-                  {t('public.servicesPage.bookAppointment')}
+                  {editorial('cta_button') || editorial('hero_book_cta') || t('public.servicesPage.bookAppointment')}
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
               </Button>

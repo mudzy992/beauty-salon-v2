@@ -9,6 +9,7 @@ const page = readFileSync(new URL('../../pages/Settings.tsx', import.meta.url), 
 const groupDefinitions = readFileSync(new URL('./groups-site.ts', import.meta.url), 'utf8')
 const formEditor = readFileSync(new URL('./setting-editor-form.tsx', import.meta.url), 'utf8')
 const settingsHook = readFileSync(new URL('./use-admin-settings.ts', import.meta.url), 'utf8')
+const registry = readFileSync(new URL('../../../../backend/src/settings/settings-registry.ts', import.meta.url), 'utf8')
 const pageCopyKeys = [...page.matchAll(/'adminSettings\.[^']+'/g)].map(([key]) => key.slice(1, -1))
 const pageFieldKeys = [
   'public_reserve_title',
@@ -17,6 +18,27 @@ const pageFieldKeys = [
   'public_services_bg',
   'public_services_title',
   'public_services_subtitle',
+  'public_services_hero_note',
+  'public_services_hero_explore_cta',
+  'public_services_hero_book_cta',
+  'public_services_hero_footnote',
+  'public_services_image_badge',
+  'public_services_image_caption',
+  'public_services_image_subcaption',
+  'public_services_catalog_size_label',
+  'public_services_step_1_title',
+  'public_services_step_1_description',
+  'public_services_step_2_title',
+  'public_services_step_2_description',
+  'public_services_step_3_title',
+  'public_services_step_3_description',
+  'public_services_catalog_eyebrow',
+  'public_services_catalog_heading',
+  'public_services_catalog_description',
+  'public_services_cta_eyebrow',
+  'public_services_cta_heading',
+  'public_services_cta_description',
+  'public_services_cta_button',
   'public_gallery_bg',
   'public_gallery_title',
   'public_gallery_subtitle',
@@ -56,6 +78,7 @@ test('public-page and sign-in settings have matching Bosnian/English copy', () =
       `Missing page-setting mapping: ${key}`,
     )
     assert.ok(groupDefinitions.includes(`key: '${key}'`), `Missing setting definition: ${key}`)
+    assert.ok(registry.includes(`key: '${key}'`), `Missing registered public setting: ${key}`)
   }
 })
 
