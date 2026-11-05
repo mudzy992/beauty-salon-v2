@@ -185,6 +185,7 @@ const ServiceAutocomplete = ({
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
+                id="public-service-search"
                 ref={inputRef}
                 placeholder={t('public.reserve.searchServices')}
                 value={query}
@@ -244,6 +245,7 @@ const ServiceAutocomplete = ({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
         <Input
+          id="public-service-search"
           ref={inputRef}
           placeholder={t('public.reserve.searchServices')}
           value={query}
@@ -385,6 +387,7 @@ const ReservationCalendar = ({
           type="button"
           size="sm"
           variant="ghost"
+          aria-label={t('common.previous')}
           disabled={!canGoPrev || disabled}
           onClick={() =>
             setCurrentMonth((prev) =>
@@ -392,7 +395,7 @@ const ReservationCalendar = ({
             )
           }
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </Button>
         <div className="font-semibold text-slate-900">
           {monthLabel} {currentMonth.year}
@@ -401,6 +404,7 @@ const ReservationCalendar = ({
           type="button"
           size="sm"
           variant="ghost"
+          aria-label={t('common.next')}
           disabled={disabled}
           onClick={() =>
             setCurrentMonth((prev) =>
@@ -408,7 +412,7 @@ const ReservationCalendar = ({
             )
           }
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
 
@@ -437,6 +441,13 @@ const ReservationCalendar = ({
               key={dateStr}
               type="button"
               title={title}
+              aria-label={`${formatDateOnlyLocale(dateStr, locale, {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}, ${title}`}
+              aria-pressed={isSelected}
               disabled={disabledCell}
               className={[
                 'h-10 w-full rounded-md text-sm transition',
@@ -764,7 +775,10 @@ export default function PublicReserve() {
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-6">
               <div className="space-y-2">
-                <Label className="text-slate-700 font-semibold">
+                <Label
+                  htmlFor="public-service-search"
+                  className="text-slate-700 font-semibold"
+                >
                   {t('public.reserve.selectService')}
                 </Label>
                 <ServiceAutocomplete
@@ -781,10 +795,13 @@ export default function PublicReserve() {
                   animate={{ opacity: 1, height: 'auto' }}
                   transition={{ duration: 0.3 }}
                 >
-                  <div className="space-y-2" ref={dateSectionRef}>
-                    <Label className="text-slate-700 font-semibold">
+                  <fieldset
+                    ref={dateSectionRef}
+                    className="min-w-0 space-y-2 border-0 p-0"
+                  >
+                    <legend className="text-slate-700 font-semibold">
                       {t('public.reserve.selectDate')}
-                    </Label>
+                    </legend>
                     <ReservationCalendar
                       availableDates={availableDatesMap}
                       selectedDate={selectedDate}
@@ -792,7 +809,7 @@ export default function PublicReserve() {
                       loading={loadingDates}
                       disabled={selectedServices.length === 0}
                     />
-                  </div>
+                  </fieldset>
                 </MotionDiv>
               ) : null}
 
@@ -802,8 +819,8 @@ export default function PublicReserve() {
                   animate={{ opacity: 1, height: 'auto' }}
                   transition={{ duration: 0.3 }}
                 >
-                  <div className="space-y-2">
-                    <Label className="text-slate-700 font-semibold">
+                  <fieldset className="min-w-0 space-y-2 border-0 p-0">
+                    <legend className="text-slate-700 font-semibold">
                       {t('public.reserve.selectTime')}{' '}
                       <span className="font-normal text-slate-500 text-sm ml-2">
                         (
@@ -814,7 +831,7 @@ export default function PublicReserve() {
                         })}
                         )
                       </span>
-                    </Label>
+                    </legend>
 
                     {loadingSlots ? (
                       <div className="py-4 text-center text-slate-600">{t('common.loading')}</div>
@@ -838,6 +855,7 @@ export default function PublicReserve() {
                             <button
                               key={`${slot.startTime}-${slot.endTime}`}
                               type="button"
+                              aria-pressed={isSelected}
                               disabled={isDisabled}
                               className={[
                                 'rounded-md border px-3 py-2 text-left transition',
@@ -886,7 +904,7 @@ export default function PublicReserve() {
                         })}
                       </div>
                     )}
-                  </div>
+                  </fieldset>
                 </MotionDiv>
               ) : null}
 
@@ -897,10 +915,14 @@ export default function PublicReserve() {
                   transition={{ duration: 0.3 }}
                 >
                   <div className="space-y-2">
-                    <Label className="text-slate-700 font-semibold">
+                    <Label
+                      htmlFor="reservation-notes"
+                      className="text-slate-700 font-semibold"
+                    >
                       {t('public.reserve.notes')}
                     </Label>
                     <Textarea
+                      id="reservation-notes"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows={3}
@@ -951,10 +973,14 @@ export default function PublicReserve() {
                       </div>
                       <div className="mt-3 flex items-end gap-3">
                         <div className="flex-1 space-y-2">
-                          <Label className="text-purple-900 font-semibold">
+                          <Label
+                            htmlFor="loyalty-discount-percent"
+                            className="text-purple-900 font-semibold"
+                          >
                             {t('public.reserve.redeemQuestion')}
                           </Label>
                           <Input
+                            id="loyalty-discount-percent"
                             type="number"
                             min={0}
                             max={loyaltyInfo.service.maxDiscountPercent}
