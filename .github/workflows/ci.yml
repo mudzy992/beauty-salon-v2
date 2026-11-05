@@ -758,6 +758,9 @@ jobs:
       - name: Test mobile shared button accessibility
         working-directory: mobile
         run: npm run test:button-accessibility
+      - name: Test mobile shared empty-state accessibility
+        working-directory: mobile
+        run: npm run test:empty-state-accessibility
       - name: Guard and bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npm run build:ios -- --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"

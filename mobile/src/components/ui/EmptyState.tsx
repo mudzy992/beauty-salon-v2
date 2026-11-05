@@ -26,9 +26,9 @@ export function EmptyState({ icon = 'albums-outline', title, message, actionLabe
           subtleShadow(),
         ]}
       >
-        <Ionicons name={icon} size={40} color={colors.primary} />
+        <Ionicons name={icon} size={40} color={colors.primary} accessible={false} />
       </View>
-      <Text style={[styles.title, { color: colors.text }]} selectable>
+      <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]} selectable>
         {title}
       </Text>
       {message && (

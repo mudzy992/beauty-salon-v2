@@ -121,7 +121,7 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 | `Button` | `mobile/src/components/ui/Button.tsx` | Source-contract accessibility checks exist; verify loading/disabled visual and screen-reader behavior on device. |
 | `Input` | `mobile/src/components/ui/Input.tsx` | Source-contract checks exist; verify label/error announcement order, field traversal, and text scaling. |
 | `DateTimeField` | `mobile/src/components/ui/DateTimeField.tsx` | Source-contract checks and owner-reported device retest exist; physical acceptance remains owner evidence, not agent verification. |
-| `EmptyState` | `mobile/src/components/ui/EmptyState.tsx` | No dedicated accessibility contract test identified in the current inventory pass; inspect decorative icon and heading semantics next. |
+| `EmptyState` | `mobile/src/components/ui/EmptyState.tsx` | Decorative icon is hidden from assistive technology and the title is exposed as a heading; focused source-contract test registered in mobile CI. Device announcement/reading order remains unverified. |
 | `LoadingScreen`, `Card`, `Badge` | `mobile/src/components/ui/` | Review accessible announcements, decorative content, and state contrast where consumed. |
 | `MediaImage`, `BeforeAfterSlider` | `mobile/src/components/` | Review image alt/accessibility labels, slider controls, loading/error fallback, and touch/keyboard-equivalent behavior. |
 | Session/onboarding notices and shell | `mobile/src/components/` | Review announcement behavior, focus/reading order, and long-copy reflow. |
@@ -132,4 +132,4 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 - Mobile resources remain Bosnian-only; English mobile scope is still an owner decision. Do not translate legal/media-consent text without approved wording/version.
 - Current repo checks include selected source-contract and i18n guards, not mounted React Native/web browser coverage. No axe/Playwright browser acceptance is claimed here.
 - Physical-device review remains with the owner. Existing owner-reported Android checks are preserved in the audit record and are not represented as independently reproduced.
-- Immediate next source slice: add a focused accessibility contract for the shared `EmptyState` (decorative icon and title semantics) if the source review confirms the gap, then continue through the common controls and route families. Keep manual/browser/device checks explicitly pending until their respective reviewer supplies evidence.
+- First shared-control source slice adds a focused `EmptyState` contract for decorative icon and title semantics. Continue through the remaining shared controls and route families; keep manual/browser/device checks explicitly pending until their respective reviewer supplies evidence.
