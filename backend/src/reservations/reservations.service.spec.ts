@@ -901,6 +901,22 @@ describe('ReservationsService', () => {
   });
 
   describe('acceptReschedule', () => {
+    it('odbija prihvatanje ako je rezervacija već otkazana', async () => {
+      mockPrisma.reservation.findUnique.mockResolvedValue({
+        id: 'res-1',
+        clientId: 'client-1',
+        status: 'CANCELLED_BY_CLIENT',
+        rescheduleStatus: 'PENDING',
+        rescheduleProposedStartTime: '11:30',
+        rescheduleProposedEndTime: '12:00',
+      });
+
+      await expect(
+        service.acceptReschedule('res-1', 'client-1'),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
     it('baca grešku ako postoji konflikt sa drugim terminom', async () => {
       const reservationDate = new Date('2026-03-25T00:00:00.000Z');
       const dayOfWeek = reservationDate.getUTCDay();
@@ -913,6 +929,7 @@ describe('ReservationsService', () => {
         reservationDate,
         startTime: '11:00',
         endTime: '11:30',
+        status: 'CONFIRMED',
         rescheduleStatus: 'PENDING',
         rescheduleProposedStartTime: '11:30',
         rescheduleProposedEndTime: '12:00',

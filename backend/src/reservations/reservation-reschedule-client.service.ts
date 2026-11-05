@@ -38,6 +38,14 @@ export class ReservationRescheduleClientService {
     if (!snapshot) throw new NotFoundException('Rezervacija nije pronađena.');
     if (snapshot.clientId !== userId)
       throw new ForbiddenException('Nemate pristup ovoj rezervaciji.');
+    if (
+      snapshot.status !== RESERVATION_STATUS.CONFIRMED &&
+      snapshot.status !== RESERVATION_STATUS.ATTENDANCE_CONFIRMED
+    ) {
+      throw new BadRequestException(
+        'Samo potvrđena rezervacija može prihvatiti promjenu termina.',
+      );
+    }
     if (snapshot.rescheduleStatus !== 'PENDING')
       throw new BadRequestException(
         'Nema aktivnog zahtjeva za potvrdu termina.',
@@ -60,6 +68,19 @@ export class ReservationRescheduleClientService {
       if (!current) throw new NotFoundException('Rezervacija nije pronađena.');
       if (current.clientId !== userId)
         throw new ForbiddenException('Nemate pristup ovoj rezervaciji.');
+      if (current.status !== snapshot.status) {
+        throw new ConflictException(
+          'Status rezervacije je istovremeno promijenjen. Osvježite podatke i pokušajte ponovo.',
+        );
+      }
+      if (
+        current.status !== RESERVATION_STATUS.CONFIRMED &&
+        current.status !== RESERVATION_STATUS.ATTENDANCE_CONFIRMED
+      ) {
+        throw new BadRequestException(
+          'Samo potvrđena rezervacija može prihvatiti promjenu termina.',
+        );
+      }
       if (
         current.reservationDate.getTime() !== snapshot.reservationDate.getTime()
       ) {
@@ -106,6 +127,7 @@ export class ReservationRescheduleClientService {
         where: {
           id: current.id,
           clientId: userId,
+          status: current.status,
           rescheduleStatus: 'PENDING',
           rescheduleProposedStartTime: nextStart,
           rescheduleProposedEndTime: nextEnd,

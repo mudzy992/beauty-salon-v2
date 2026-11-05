@@ -11,13 +11,13 @@ The module has several strong controls already in place: creation is transaction
 
 ## Findings
 
-### RES-01 — Lifecycle transitions can race after validation (P1, implementation in progress)
+### RES-01 — Lifecycle transitions can race after validation (P2, code implemented; extended guard awaiting CI verification)
 
 **Evidence:** `backend/src/reservations/reservation-client-actions.service.ts` reads a reservation, checks its status, then updates using only the reservation ID in client cancellation and attendance confirmation. Client cancellation increments the cancellation/penalty counter after that update in a separate operation. Admin cancellation follows the same read-then-update pattern. `reservation-reschedule-client.service.ts` similarly reads a pending decline request and then updates by ID. In contrast, reschedule acceptance and admin update already use conditional `updateMany` checks.
 
 **Impact:** overlapping requests can both pass the stale status check and produce duplicate side effects; in cancellation this can double-increment the client penalty count. Competing lifecycle actions can overwrite a transition that became invalid after the initial read. The risk is concurrency-dependent and has not been reproduced against a live database.
 
-**Remediation:** implemented compare-and-set predicates using the observed status/request state for client/admin cancellation, client attendance confirmation, and client reschedule decline. A zero-row update now returns a conflict. Client cancellation and its penalty-counter update now share one transaction. Focused tests cover the guarded cancellation and ensure a losing concurrent action does not increment the counter or emit side effects. Backend CI verification is pending.
+**Remediation:** implemented compare-and-set predicates using the observed status/request state for client/admin cancellation, client attendance confirmation, and client reschedule decline. A zero-row update now returns a conflict. Client cancellation and its penalty-counter update now share one transaction. Reschedule acceptance now requires a confirmed reservation and guards the observed status in its update, preventing acceptance after a concurrent cancellation. Focused tests cover guarded cancellation, stale-write behavior, and rejection of acceptance for an already-cancelled reservation. The initial CI run passed for the first transition slice; the extended acceptance guard is awaiting CI verification.
 
 ### RES-02 — Queryless reservation listing remains unbounded (P2, compatibility decision)
 
@@ -38,9 +38,9 @@ The module has several strong controls already in place: creation is transaction
 ## Phased remediation and verification
 
 ### Phase 0 — Lifecycle integrity
-- [x] RES-01: guarded the identified client/admin cancellation, client attendance confirmation, and client reschedule-decline transitions; client cancellation and counter update are atomic.
-- [x] Added focused unit tests for the client-cancellation compare-and-set and stale-write outcome.
-- [ ] Verify the slice in backend CI; local full reservation tests are blocked until the Prisma client is generated.
+- [x] RES-01: guarded client/admin cancellation, client attendance confirmation, and client reschedule-decline transitions; client cancellation and counter update are atomic.
+- [x] Added an eligibility/status guard for reschedule acceptance and focused tests for compare-and-set, stale writes, and cancelled-reservation rejection.
+- [x] First transition slice passed CI run `42106710296`; the additional acceptance guard still needs CI verification. Local full reservation tests are blocked until the Prisma client is generated.
 
 ### Phase 1 — Compatibility and request bounds
 - [ ] RES-02: confirm end of the legacy queryless-list compatibility window; then deprecate/remove or explicitly cap the old contract without silent truncation.
