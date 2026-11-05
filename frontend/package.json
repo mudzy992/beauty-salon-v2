@@ -55,6 +55,7 @@
     "preview": "vite preview --port 10000 --config vite.config.ts",
     "lint": "eslint . --ext ts,tsx",
     "test:email-settings-campaigns-i18n": "node --test src/features/email-settings/email-settings-campaigns-i18n.test.mjs",
+    "test:email-visual-editor": "node --test src/features/email-settings/email-visual-editor.test.mjs",
     "test:notifications-campaign-consent": "node --test src/features/notifications/notifications-campaign-consent.test.mjs",
     "test:admin-analytics-i18n": "node --test src/features/analytics/admin-analytics-i18n.test.mjs",
     "test:client-analytics-i18n": "node --test src/features/client-analytics/client-analytics-i18n.test.mjs",

@@ -69,7 +69,7 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 | `/admin/settings/seo` | `SettingsSeo` |
 | `/admin/app-releases` | `AppReleases` |
 | `/admin/notifications` | `Notifications` |
-| `/admin/email-settings` | `EmailSettings` |
+| `/admin/email-settings` | `EmailSettings` | Shared safe modular editor and live sample preview for existing and campaign templates; raw HTML campaign mode remains; source/build evidence only, real email-client rendering remains unverified |
 | `/admin/client-analytics` | `ClientAnalytics` |
 | `/admin/stylist-analytics` | `StylistAnalytics` |
 | `/admin/analytics` | `Analytics` |

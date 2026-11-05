@@ -20,6 +20,8 @@ import {
   buildDefaultEmailTemplateHtml,
   buildPaymentReceiptBodyText,
   escapeEmailHtml,
+  normalizeEmailContentBlocks,
+  type EmailContentBlock,
 } from './utils/email-template';
 import {
   createCampaignUnsubscribeToken,
@@ -77,6 +79,7 @@ interface EmailTemplateConfig {
   ctaLabel?: string;
   ctaUrl?: string;
   plainText?: string;
+  blocks?: EmailContentBlock[];
 }
 
 interface CampaignTemplateDefinition {
@@ -654,25 +657,38 @@ export class NotificationsService {
     const greetingName = params.firstName?.trim() || 'korisniče';
     const subject = 'Verifikacija email adrese';
     const template = await this.getEmailTemplateConfig('verification');
-    const plainText =
-      template.plainText ||
-      `Poštovani ${greetingName}, vaš verifikacijski kod je ${params.code}. Kod važi 15 minuta.`;
     const appUrl = await this.resolveAppBaseUrl();
+    const placeholderVars = {
+      firstName: greetingName,
+      appUrl,
+      verificationCode: params.code,
+    };
+    const ph = (value: string) =>
+      this.applyNotificationEmailPlaceholders(value, placeholderVars);
+    const plainText = template.plainText
+      ? ph(template.plainText)
+      : `Poštovani ${greetingName}, vaš verifikacijski kod je ${params.code}. Kod važi 15 minuta.`;
     const html = this.buildDefaultEmailTemplate({
-      title: template.title || 'Verifikacija email adrese',
-      intro: template.intro || `Poštovani ${greetingName},`,
-      body:
+      title: ph(template.title || 'Verifikacija email adrese'),
+      intro: ph(template.intro || `Poštovani ${greetingName},`),
+      body: ph(
         template.body ||
-        `Vaš verifikacijski kod je ${params.code}. Kod važi 15 minuta.`,
-      ctaLabel: template.ctaLabel || 'Otvori aplikaciju',
-      ctaUrl: appUrl,
+          `Vaš verifikacijski kod je ${params.code}. Kod važi 15 minuta.`,
+      ),
+      ctaLabel: ph(template.ctaLabel || 'Otvori aplikaciju'),
+      ctaUrl: ph(template.ctaUrl || appUrl),
       codeBlock: params.code,
+      blocks: template.blocks?.map((block) => ({
+        ...block,
+        content: ph(block.content),
+        ...(block.secondary ? { secondary: ph(block.secondary) } : {}),
+      })),
       signature: mailConfig.signature,
     });
     await transporter.sendMail({
       from: `"${mailConfig.fromName}" <${mailConfig.fromEmail}>`,
       to: params.to,
-      subject: template.subject || subject,
+      subject: ph(template.subject || subject),
       text: plainText,
       html,
       ...(mailConfig.replyTo ? { replyTo: mailConfig.replyTo } : {}),
@@ -809,6 +825,21 @@ export class NotificationsService {
             reservationId: params.reservationId ?? '',
           })
         : ctaUrl,
+      blocks: template.blocks?.map((block) => ({
+        ...block,
+        content: this.applyNotificationEmailPlaceholders(block.content, {
+          appUrl,
+          reservationId: params.reservationId ?? '',
+        }),
+        ...(block.secondary
+          ? {
+              secondary: this.applyNotificationEmailPlaceholders(block.secondary, {
+                appUrl,
+                reservationId: params.reservationId ?? '',
+              }),
+            }
+          : {}),
+      })),
       signature: mailConfig.signature,
     });
     await transporter.sendMail({
@@ -971,6 +1002,11 @@ export class NotificationsService {
       body: template.body ? ph(template.body) : defaultBody,
       ctaLabel: selectedCta.label,
       ctaUrl: selectedCta.url,
+      blocks: template.blocks?.map((block) => ({
+        ...block,
+        content: ph(block.content),
+        ...(block.secondary ? { secondary: ph(block.secondary) } : {}),
+      })),
       signature: params.signature,
     });
     return {
@@ -999,7 +1035,10 @@ export class NotificationsService {
     if (!raw) return {};
     try {
       const parsed = JSON.parse(raw) as EmailTemplateConfig;
-      return parsed && typeof parsed === 'object' ? parsed : {};
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+      if (parsed.blocks === undefined) return parsed;
+      const blocks = normalizeEmailContentBlocks(parsed.blocks);
+      return blocks ? { ...parsed, blocks } : { ...parsed, blocks: undefined };
     } catch {
       return {};
     }

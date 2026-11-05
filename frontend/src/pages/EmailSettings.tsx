@@ -1,5 +1,5 @@
-import { DragEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, Loader2, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Loader2, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedNumber } from '../i18n/locale-utils.mjs'
 import api from '../api/client'
@@ -13,6 +13,11 @@ import { Separator } from '../components/ui/separator'
 import { Switch } from '../components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Textarea } from '../components/ui/textarea'
+import {
+  EmailVisualEditor,
+  type EmailContentBlock,
+  type EmailContentBlockType,
+} from '../features/email-settings/email-visual-editor'
 
 type ProviderType = 'google' | 'office365' | 'exchange' | 'custom';
 
@@ -41,16 +46,11 @@ interface ExistingTemplateConfig {
   ctaLabel: string;
   ctaUrl: string;
   plainText: string;
+  blocks?: EmailContentBlock[];
 }
 
-type CampaignBlockType = 'title' | 'text' | 'button' | 'spacer';
-
-interface CampaignTemplateBlock {
-  id: string;
-  type: CampaignBlockType;
-  content: string;
-  secondary?: string;
-}
+type CampaignBlockType = EmailContentBlockType;
+type CampaignTemplateBlock = EmailContentBlock
 
 interface CampaignTemplate {
   id: string;
@@ -234,31 +234,50 @@ const getExistingTemplateDefaults = (type: ExistingTemplateType): ExistingTempla
   };
 };
 
+const normalizeExistingTemplate = (
+  config: ExistingTemplateConfig,
+): ExistingTemplateConfig => {
+  if (Array.isArray(config.blocks)) return config
+  const blocks: EmailContentBlock[] = []
+  const add = (id: string, type: EmailContentBlockType, content: string, secondary?: string) => {
+    if (!content.trim() && !secondary?.trim()) return
+    blocks.push({ id, type, content, ...(secondary ? { secondary } : {}) })
+  }
+  add('legacy-title', 'title', config.title || '')
+  add('legacy-intro', 'text', config.intro || '')
+  add('legacy-body', 'text', config.body || '')
+  add('legacy-button', 'button', config.ctaLabel || '', config.ctaUrl || '')
+  return { ...config, blocks }
+}
+
 const CAMPAIGN_KEY = 'system_email_campaign_templates';
 
-const createBlock = (type: CampaignBlockType): CampaignTemplateBlock => ({
-  id: `${type}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-  type,
-  content:
-    type === 'title'
-      ? 'Naslov kampanje'
-      : type === 'text'
-        ? 'Ovdje unesite opis kampanje.'
-        : type === 'button'
-          ? 'Rezerviši termin'
-          : '',
-  secondary: type === 'button' ? 'https://vas-domen.ba/rezervacija' : undefined,
-});
+const escapeEmailText = (value: string) =>
+  value.replace(/[&<>"']/g, (character) => {
+    const entities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    }
+    return entities[character] ?? character
+  })
 
 const renderCampaignHtml = (blocks: CampaignTemplateBlock[]): string => {
   const parts = blocks.map((block) => {
-    if (block.type === 'title') return `<h2 style="margin:0 0 16px;color:#2d1f1c">${block.content}</h2>`;
-    if (block.type === 'text') return `<p style="margin:0 0 14px;color:#4b3a35;line-height:1.6">${block.content}</p>`;
+    const content = escapeEmailText(block.content).replace(/\r\n?|\n/g, '<br>')
+    if (block.type === 'title') return `<h2 style="margin:0 0 16px;color:#2d1f1c">${content}</h2>`
+    if (block.type === 'text') return `<p style="margin:0 0 14px;color:#4b3a35;line-height:1.6">${content}</p>`
+    if (block.type === 'highlight')
+      return `<div style="margin:18px 0;padding:16px 18px;border-left:4px solid #b7825f;border-radius:8px;background-color:#fbf5f1;color:#4b3a35;line-height:1.6">${content}</div>`
+    if (block.type === 'divider')
+      return '<hr style="margin:22px 0;border:0;border-top:1px solid #eaded8">'
     if (block.type === 'button')
-      return `<p style="margin:12px 0 18px"><a href="${block.secondary || '#'}" style="display:inline-block;padding:12px 18px;border-radius:10px;background:#7b4b3a;color:#fff;text-decoration:none">${block.content}</a></p>`;
-    return '<div style="height:16px"></div>';
-  });
-  return `<div style="margin:0;padding:24px;background:#f9f3f0"><div style="max-width:680px;margin:0 auto;background:#fff;border:1px solid #f2e7e2;border-radius:18px;padding:30px">${parts.join('')}</div></div>`;
+      return `<p style="margin:12px 0 18px;text-align:center"><a href="${escapeEmailText(block.secondary || '#')}" rel="noreferrer noopener" style="display:inline-block;padding:12px 18px;border-radius:10px;background-color:#7b4b3a;color:#fff;text-decoration:none">${content}</a></p>`
+    return '<div style="height:24px;line-height:24px">&nbsp;</div>'
+  })
+  return `<div style="margin:0;padding:24px;background-color:#f9f3f0;font-family:Arial,sans-serif;color:#2d1f1c"><div style="max-width:680px;margin:0 auto;overflow:hidden;background-color:#fff;border:1px solid #f2e7e2;border-radius:18px"><div style="padding:24px 30px;background-color:#7b4b3a;color:#fff;font-size:12px;font-weight:700;letter-spacing:2px">BEAUTY SALON PREMIUM</div><div style="padding:30px">${parts.join('')}<div style="margin-top:28px;padding-top:16px;border-top:1px solid #f2e7e2;color:#7e675f;font-size:12px">Beauty Salon Nejra</div></div></div></div>`
 };
 
 export default function EmailSettings() {
@@ -299,8 +318,9 @@ export default function EmailSettings() {
 
   const [existingTemplateType, setExistingTemplateType] =
     useState<ExistingTemplateType>('verification');
-  const [existingTemplate, setExistingTemplate] =
-    useState<ExistingTemplateConfig>(TEMPLATE_DEFAULTS);
+  const [existingTemplate, setExistingTemplate] = useState<ExistingTemplateConfig>(() =>
+    normalizeExistingTemplate(TEMPLATE_DEFAULTS),
+  );
 
   const [campaignTemplates, setCampaignTemplates] = useState<CampaignTemplate[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
@@ -374,14 +394,13 @@ export default function EmailSettings() {
         list,
         `system_email_template_${existingTemplateType}`,
       );
-      setExistingTemplate(
-        selectedTemplateRaw
-          ? {
-              ...getExistingTemplateDefaults(existingTemplateType),
-              ...(JSON.parse(selectedTemplateRaw) as Partial<ExistingTemplateConfig>),
-            }
-          : getExistingTemplateDefaults(existingTemplateType),
-      );
+      const loadedTemplate = selectedTemplateRaw
+        ? {
+            ...getExistingTemplateDefaults(existingTemplateType),
+            ...(JSON.parse(selectedTemplateRaw) as Partial<ExistingTemplateConfig>),
+          }
+        : getExistingTemplateDefaults(existingTemplateType);
+      setExistingTemplate(normalizeExistingTemplate(loadedTemplate));
       const campaignRaw = setValueFromSettings(list, CAMPAIGN_KEY);
       const parsedCampaigns = campaignRaw
         ? (JSON.parse(campaignRaw) as CampaignTemplate[])
@@ -405,16 +424,15 @@ export default function EmailSettings() {
         const { data } = await api.get<AppSetting[]>('/api/settings');
         const list = Array.isArray(data) ? data : [];
         const raw = setValueFromSettings(list, `system_email_template_${existingTemplateType}`);
-        setExistingTemplate(
-          raw
-            ? {
-                ...getExistingTemplateDefaults(existingTemplateType),
-                ...(JSON.parse(raw) as Partial<ExistingTemplateConfig>),
-              }
-            : getExistingTemplateDefaults(existingTemplateType),
-        );
+        const loadedTemplate = raw
+          ? {
+              ...getExistingTemplateDefaults(existingTemplateType),
+              ...(JSON.parse(raw) as Partial<ExistingTemplateConfig>),
+            }
+          : getExistingTemplateDefaults(existingTemplateType);
+        setExistingTemplate(normalizeExistingTemplate(loadedTemplate));
       } catch {
-        setExistingTemplate(getExistingTemplateDefaults(existingTemplateType));
+        setExistingTemplate(normalizeExistingTemplate(getExistingTemplateDefaults(existingTemplateType)));
       }
     };
     loadTemplateByType();
@@ -575,12 +593,22 @@ export default function EmailSettings() {
 
   const selectedCampaign = campaignTemplates.find((item) => item.id === selectedCampaignId) || null;
 
+  const createCampaignBlock = (type: CampaignBlockType): CampaignTemplateBlock => ({
+    id: `${type}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    type,
+    content:
+      type === 'spacer' || type === 'divider'
+        ? ''
+        : t(`emailSettings.templates.blockPlaceholders.${type}`),
+    ...(type === 'button' ? { secondary: '{{appUrl}}/rezervacija' } : {}),
+  });
+
   const handleCreateCampaign = () => {
     const next: CampaignTemplate = {
       id: `campaign_${Date.now()}`,
       name: `Nova kampanja ${campaignTemplates.length + 1}`,
       html: '',
-      blocks: [createBlock('title'), createBlock('text'), createBlock('button')],
+      blocks: [createCampaignBlock('title'), createCampaignBlock('text'), createCampaignBlock('button')],
     };
     const nextList = [next, ...campaignTemplates];
     setCampaignTemplates(nextList);
@@ -595,31 +623,17 @@ export default function EmailSettings() {
     setCampaignTemplates(nextList);
   };
 
-  const handleCampaignDrop = (event: DragEvent<HTMLDivElement>, targetId: string) => {
-    event.preventDefault();
-    if (!selectedCampaign) return;
-    const sourceId = event.dataTransfer.getData('text/plain');
-    if (!sourceId || sourceId === targetId) return;
-    const blocks = [...selectedCampaign.blocks];
-    const sourceIndex = blocks.findIndex((block) => block.id === sourceId);
-    const targetIndex = blocks.findIndex((block) => block.id === targetId);
-    if (sourceIndex < 0 || targetIndex < 0) return;
-    const [moved] = blocks.splice(sourceIndex, 1);
-    blocks.splice(targetIndex, 0, moved);
-    updateSelectedCampaign((current) => ({
-      ...current,
-      blocks,
-      html: renderCampaignHtml(blocks),
-    }));
-  };
-
   const handleSaveCampaignTemplates = async () => {
     setSavingCampaigns(true);
     try {
-      const normalized = campaignTemplates.map((item) => ({
-        ...item,
-        html: campaignMode === 'builder' ? renderCampaignHtml(item.blocks) : item.html,
-      }));
+      const normalized = campaignTemplates.map((item) => {
+        const blocks = Array.isArray(item.blocks) ? item.blocks : []
+        return {
+          ...item,
+          blocks,
+          html: campaignMode === 'builder' ? renderCampaignHtml(blocks) : item.html,
+        }
+      });
       setCampaignTemplates(normalized);
       await upsertSetting(
         CAMPAIGN_KEY,
@@ -1020,63 +1034,39 @@ export default function EmailSettings() {
                 </Badge>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <Label>{t('emailSettings.templates.subject')}</Label>
-                  <Input
-                    className="mt-1"
-                    value={existingTemplate.subject}
-                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, subject: event.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>{t('emailSettings.templates.title')}</Label>
-                  <Input
-                    className="mt-1"
-                    value={existingTemplate.title}
-                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, title: event.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>{t('emailSettings.templates.intro')}</Label>
-                  <Input
-                    className="mt-1"
-                    value={existingTemplate.intro}
-                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, intro: event.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>{t('emailSettings.templates.ctaLabel')}</Label>
-                  <Input
-                    className="mt-1"
-                    value={existingTemplate.ctaLabel}
-                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, ctaLabel: event.target.value }))}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <Label>{t('emailSettings.templates.body')}</Label>
-                  <Textarea
-                    className="mt-1 min-h-[120px]"
-                    value={existingTemplate.body}
-                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, body: event.target.value }))}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <Label>{t('emailSettings.templates.ctaUrl')}</Label>
-                  <Input
-                    className="mt-1"
-                    value={existingTemplate.ctaUrl}
-                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, ctaUrl: event.target.value }))}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <Label>{t('emailSettings.templates.plainTextFallback')}</Label>
-                  <Textarea
-                    className="mt-1 min-h-[120px]"
-                    value={existingTemplate.plainText}
-                    onChange={(event) => setExistingTemplate((prev) => ({ ...prev, plainText: event.target.value }))}
-                  />
-                </div>
+              <div className="max-w-3xl space-y-2">
+                <Label htmlFor="existing-email-subject">
+                  {t('emailSettings.templates.subject')}
+                </Label>
+                <Input
+                  id="existing-email-subject"
+                  value={existingTemplate.subject}
+                  onChange={(event) =>
+                    setExistingTemplate((prev) => ({ ...prev, subject: event.target.value }))
+                  }
+                />
+              </div>
+
+              <EmailVisualEditor
+                blocks={existingTemplate.blocks ?? []}
+                showVerificationCode={existingTemplateType === 'verification'}
+                onChange={(blocks) =>
+                  setExistingTemplate((prev) => ({ ...prev, blocks }))
+                }
+              />
+
+              <div className="space-y-2">
+                <Label htmlFor="existing-email-plain-text">
+                  {t('emailSettings.templates.plainTextFallback')}
+                </Label>
+                <Textarea
+                  id="existing-email-plain-text"
+                  className="min-h-[120px]"
+                  value={existingTemplate.plainText}
+                  onChange={(event) =>
+                    setExistingTemplate((prev) => ({ ...prev, plainText: event.target.value }))
+                  }
+                />
               </div>
 
               <Button type="button" onClick={() => void handleSaveExistingTemplate()} disabled={savingTemplate}>
@@ -1152,164 +1142,16 @@ export default function EmailSettings() {
                   </div>
 
                   {campaignMode === 'builder' ? (
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            updateSelectedCampaign((current) => {
-                              const nextBlocks = [...current.blocks, createBlock('title')]
-                              return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                            })
-                          }
-                        >
-                          + {t('emailSettings.campaigns.addTitle')}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            updateSelectedCampaign((current) => {
-                              const nextBlocks = [...current.blocks, createBlock('text')]
-                              return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                            })
-                          }
-                        >
-                          + {t('emailSettings.campaigns.addText')}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            updateSelectedCampaign((current) => {
-                              const nextBlocks = [...current.blocks, createBlock('button')]
-                              return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                            })
-                          }
-                        >
-                          + {t('emailSettings.campaigns.addButton')}
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            updateSelectedCampaign((current) => {
-                              const nextBlocks = [...current.blocks, createBlock('spacer')]
-                              return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                            })
-                          }
-                        >
-                          + {t('emailSettings.campaigns.addSpacer')}
-                        </Button>
-                      </div>
-
-                      <div className="space-y-3">
-                        {selectedCampaign.blocks.map((block, index) => (
-                          <Card
-                            key={block.id}
-                            className="border border-slate-200 p-4 dark:border-slate-800"
-                            draggable
-                            onDragStart={(event) => event.dataTransfer.setData('text/plain', block.id)}
-                            onDragOver={(event) => event.preventDefault()}
-                            onDrop={(event) => handleCampaignDrop(event, block.id)}
-                          >
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between gap-2">
-                                <Badge variant="secondary" className="text-[10px]">
-                                  {t(`emailSettings.campaigns.blockTypes.${block.type}`)}
-                                </Badge>
-                                <div className="flex items-center gap-1">
-                                  <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8"
-                                    aria-label={t('emailSettings.campaigns.moveUp')}
-                                    onClick={() =>
-                                      updateSelectedCampaign((current) => {
-                                        if (index === 0) return current
-                                        const nextBlocks = [...current.blocks]
-                                        const temp = nextBlocks[index - 1]
-                                        nextBlocks[index - 1] = nextBlocks[index]
-                                        nextBlocks[index] = temp
-                                        return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                                      })
-                                    }
-                                  >
-                                    <ArrowUp className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8"
-                                    aria-label={t('emailSettings.campaigns.moveDown')}
-                                    onClick={() =>
-                                      updateSelectedCampaign((current) => {
-                                        if (index === current.blocks.length - 1) return current
-                                        const nextBlocks = [...current.blocks]
-                                        const temp = nextBlocks[index + 1]
-                                        nextBlocks[index + 1] = nextBlocks[index]
-                                        nextBlocks[index] = temp
-                                        return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                                      })
-                                    }
-                                  >
-                                    <ArrowDown className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 text-rose-600"
-                                    aria-label={t('emailSettings.campaigns.deleteBlock')}
-                                    onClick={() =>
-                                      updateSelectedCampaign((current) => {
-                                        const nextBlocks = current.blocks.filter((item) => item.id !== block.id)
-                                        return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                                      })
-                                    }
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-
-                              <Input
-                                value={block.content}
-                                onChange={(event) =>
-                                  updateSelectedCampaign((current) => {
-                                    const nextBlocks = current.blocks.map((item) =>
-                                      item.id === block.id ? { ...item, content: event.target.value } : item,
-                                    )
-                                    return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                                  })
-                                }
-                              />
-                              {block.type === 'button' ? (
-                                <Input
-                                  placeholder={t('emailSettings.campaigns.buttonUrl')}
-                                  value={block.secondary || ''}
-                                  onChange={(event) =>
-                                    updateSelectedCampaign((current) => {
-                                      const nextBlocks = current.blocks.map((item) =>
-                                        item.id === block.id ? { ...item, secondary: event.target.value } : item,
-                                      )
-                                      return { ...current, blocks: nextBlocks, html: renderCampaignHtml(nextBlocks) }
-                                    })
-                                  }
-                                />
-                              ) : null}
-                            </div>
-                          </Card>
-                        ))}
-                      </div>
-                    </div>
+                    <EmailVisualEditor
+                      blocks={selectedCampaign.blocks ?? []}
+                      onChange={(blocks) =>
+                        updateSelectedCampaign((current) => ({
+                          ...current,
+                          blocks,
+                          html: renderCampaignHtml(blocks),
+                        }))
+                      }
+                    />
                   ) : (
                     <div>
                       <Label>{t('emailSettings.campaigns.htmlLabel')}</Label>
@@ -1327,7 +1169,7 @@ export default function EmailSettings() {
                     <Label>{t('emailSettings.campaigns.htmlPreviewSource')}</Label>
                     <pre className="mt-1 max-h-[280px] overflow-auto rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-100">
                       {(campaignMode === 'builder'
-                        ? renderCampaignHtml(selectedCampaign.blocks)
+                        ? renderCampaignHtml(selectedCampaign.blocks ?? [])
                         : selectedCampaign.html
                       ).slice(0, 1200)}
                     </pre>

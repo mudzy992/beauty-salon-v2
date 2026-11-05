@@ -383,6 +383,9 @@ jobs:
       - name: Test localized email campaigns
         working-directory: frontend
         run: npm run test:email-settings-campaigns-i18n
+      - name: Test safe shared email visual editor
+        working-directory: frontend
+        run: npm run test:email-visual-editor
       - name: Test marketing email consent controls
         working-directory: frontend
         run: npm run test:notifications-campaign-consent

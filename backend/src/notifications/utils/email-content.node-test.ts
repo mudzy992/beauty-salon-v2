@@ -9,6 +9,7 @@ import {
   buildDefaultEmailTemplateHtml,
   buildPaymentReceiptBodyText,
   escapeEmailHtml,
+  normalizeEmailContentBlocks,
   resolveSafeEmailHref,
 } from './email-template';
 
@@ -133,4 +134,59 @@ void test('campaign styling is limited to a harmless inline CSS allowlist', () =
 
   assert.match(sanitized, /color:#2d1f1c/i);
   assert.doesNotMatch(sanitized, /background-image|position:fixed|url\(/i);
+});
+
+void test('renders structured transactional email blocks with escaped content and safe action URLs', () => {
+  const html = buildDefaultEmailTemplateHtml({
+    title: '',
+    intro: '',
+    body: '',
+    signature: 'Beauty Salon Nejra',
+    codeBlock: '123456',
+    blocks: [
+      { id: 'title-1', type: 'title', content: '<img src=x onerror="alert(1)">' },
+      { id: 'text-1', type: 'text', content: 'Line one\n<script>alert(1)</script>' },
+      { id: 'highlight-1', type: 'highlight', content: 'Special <strong>offer</strong>' },
+      { id: 'button-1', type: 'button', content: 'Book <now>', secondary: 'https://salon.example/book' },
+      { id: 'unsafe-button', type: 'button', content: 'Unsafe', secondary: 'javascript:alert(1)' },
+      { id: 'divider-1', type: 'divider', content: '' },
+      { id: 'spacer-1', type: 'spacer', content: '' },
+    ],
+  });
+
+  assert.match(html, /&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt;/);
+  assert.match(html, /Line one<br>&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+  assert.match(html, /Special &lt;strong&gt;offer&lt;\/strong&gt;/);
+  assert.match(html, /href="https:\/\/salon\.example\/book"[^>]*>Book &lt;now&gt;/);
+  assert.match(html, /<p[^>]*>Unsafe<\/p>/);
+  assert.match(html, /123456/);
+  assert.doesNotMatch(html, /<img|<script|<strong|javascript:/i);
+});
+
+void test('accepts only bounded known email block shapes', () => {
+  const valid = [{ id: 'title-1', type: 'title', content: 'Hello' }];
+  assert.deepEqual(normalizeEmailContentBlocks(valid), valid);
+  assert.deepEqual(normalizeEmailContentBlocks([]), []);
+  assert.equal(normalizeEmailContentBlocks({}), null);
+  assert.equal(
+    normalizeEmailContentBlocks([{ id: 'x', type: 'rawHtml', content: '<script>' }]),
+    null,
+  );
+  assert.equal(
+    normalizeEmailContentBlocks([{ id: 'x', type: 'text', content: 'x'.repeat(5001) }]),
+    null,
+  );
+  assert.equal(
+    normalizeEmailContentBlocks([
+      { id: 'duplicate', type: 'text', content: 'First' },
+      { id: 'duplicate', type: 'text', content: 'Second' },
+    ]),
+    null,
+  );
+  assert.equal(
+    normalizeEmailContentBlocks(
+      Array.from({ length: 31 }, (_, index) => ({ id: `b-${index}`, type: 'spacer', content: '' })),
+    ),
+    null,
+  );
 });

@@ -53,6 +53,35 @@ export class SettingsService {
     return String(clamped);
   }
 
+  private hasValidEmailContentBlocks(value: unknown): boolean {
+    if (!Array.isArray(value) || value.length > 30) return false
+    const allowedTypes = new Set(['title', 'text', 'button', 'spacer', 'highlight', 'divider'])
+    const ids = new Set<string>()
+    let totalCharacters = 0
+    return value.every((candidate) => {
+      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return false
+      const block = candidate as Record<string, unknown>
+      if (
+        typeof block.id !== 'string' ||
+        block.id.length === 0 ||
+        block.id.length > 80 ||
+        typeof block.type !== 'string' ||
+        !allowedTypes.has(block.type) ||
+        typeof block.content !== 'string' ||
+        block.content.length > 5000 ||
+        (block.secondary !== undefined &&
+          (typeof block.secondary !== 'string' || block.secondary.length > 2048))
+      ) {
+        return false
+      }
+      if (ids.has(block.id)) return false
+      ids.add(block.id)
+      totalCharacters += block.content.length
+      if (typeof block.secondary === 'string') totalCharacters += block.secondary.length
+      return totalCharacters <= 30000
+    })
+  }
+
   private normalizeJson(value: string, key: string): string {
     let parsed: unknown;
     try {
@@ -89,11 +118,32 @@ export class SettingsService {
     if (key === 'system_email_campaign_templates') {
       if (!Array.isArray(parsed))
         throw new BadRequestException('Kampanje moraju biti JSON lista.')
+      if (value.length > 1000000)
+        throw new BadRequestException('Postavka kampanja je prevelika.')
+      for (const candidate of parsed) {
+        if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) continue
+        const template = candidate as Record<string, unknown>
+        if (
+          template.blocks !== undefined &&
+          !this.hasValidEmailContentBlocks(template.blocks)
+        ) {
+          throw new BadRequestException('Kampanja sadrži neispravne ili prevelike blokove.')
+        }
+      }
     }
 
     if (key.startsWith('system_email_template_')) {
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
         throw new BadRequestException('Email template mora biti JSON objekat.')
+      if (value.length > 50000)
+        throw new BadRequestException('Email template je prevelik.')
+      const template = parsed as Record<string, unknown>
+      if (
+        template.blocks !== undefined &&
+        !this.hasValidEmailContentBlocks(template.blocks)
+      ) {
+        throw new BadRequestException('Email template sadrži neispravan ili prevelik blok.')
+      }
     }
 
     return JSON.stringify(parsed);

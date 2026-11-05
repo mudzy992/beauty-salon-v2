@@ -8,7 +8,9 @@ const locales = ['bs', 'en'].map((language) =>
   ),
 )
 const source = readFileSync(new URL('../../pages/EmailSettings.tsx', import.meta.url), 'utf8')
-const keys = new Set([...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key))
+const editor = readFileSync(new URL('./email-visual-editor.tsx', import.meta.url), 'utf8')
+const allSource = `${source}\n${editor}`
+const keys = new Set([...allSource.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key))
 const hasLocaleKey = (resource, key) =>
   key.split('.').reduce((value, part) => value?.[part], resource) !== undefined
 const getLeafPaths = (value, prefix) =>
@@ -22,6 +24,17 @@ test('existing email-template UI uses keys present in both locales', () => {
   assert.ok(keys.has('emailSettings.templates.selectorLabel'))
   assert.ok(keys.has('emailSettings.templates.saveExisting'))
   assert.match(source, /t\(`emailSettings\.templates\.types\.\$\{item\.id\}`\)/)
+  assert.match(editor, /t\(`emailSettings\.templates\.blockPlaceholders\.\$\{block\.type\}`\)/)
+  for (const key of [
+    'emailSettings.templates.visualEditorHeading',
+    'emailSettings.templates.visualEditorDescription',
+    'emailSettings.templates.previewHeading',
+    'emailSettings.templates.previewSampleNote',
+    'emailSettings.templates.addHighlight',
+    'emailSettings.templates.addDivider',
+  ]) {
+    for (const resource of locales) assert.ok(hasLocaleKey(resource, key), `Missing locale key: ${key}`)
+  }
 
   for (const resource of locales) {
     for (const key of keys) {

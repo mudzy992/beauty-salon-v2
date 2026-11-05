@@ -89,6 +89,63 @@ describe('SettingsService', () => {
       )
     })
 
+    it('accepts bounded structured email-template blocks', async () => {
+      const key = 'system_email_template_general'
+      const value = JSON.stringify({
+        subject: 'Notice',
+        blocks: [
+          { id: 'title-1', type: 'title', content: 'Hello' },
+          { id: 'button-1', type: 'button', content: 'Open', secondary: '{{appUrl}}' },
+        ],
+      })
+      mockRepo.upsertByKey.mockResolvedValueOnce({ key, value })
+
+      await service.set(key, { value }, 'u1')
+
+      expect(mockRepo.upsertByKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ value }),
+          update: expect.objectContaining({ value }),
+        }),
+      )
+    })
+
+    it('rejects unknown and oversized structured email-template blocks', async () => {
+      const key = 'system_email_template_general'
+      const invalidValues = [
+        JSON.stringify({ blocks: [{ id: 'x', type: 'rawHtml', content: '<script>' }] }),
+        JSON.stringify({ blocks: [{ id: 'x', type: 'text', content: 'x'.repeat(5001) }] }),
+        JSON.stringify({
+          blocks: [
+            { id: 'duplicate', type: 'text', content: 'First' },
+            { id: 'duplicate', type: 'text', content: 'Second' },
+          ],
+        }),
+        JSON.stringify({ blocks: Array.from({ length: 31 }, (_, index) => ({ id: `b-${index}`, type: 'spacer', content: '' })) }),
+      ]
+
+      for (const value of invalidValues) {
+        await expect(service.set(key, { value }, 'u1')).rejects.toThrow(BadRequestException)
+      }
+      expect(mockRepo.upsertByKey).not.toHaveBeenCalled()
+    })
+
+    it('rejects unsafe or oversized campaign block definitions while retaining the campaign list shape', async () => {
+      const invalidValue = JSON.stringify([
+        {
+          id: 'campaign-1',
+          name: 'Campaign',
+          html: '',
+          blocks: [{ id: 'raw-1', type: 'rawHtml', content: '<script>alert(1)</script>' }],
+        },
+      ])
+
+      await expect(
+        service.set('system_email_campaign_templates', { value: invalidValue }, 'u1'),
+      ).rejects.toThrow(BadRequestException)
+      expect(mockRepo.upsertByKey).not.toHaveBeenCalled()
+    })
+
     it('normalizuje boolean vrijednosti', async () => {
       mockRepo.upsertByKey.mockResolvedValueOnce({ key: 'system_maintenance_mode', value: 'true' })
       await service.set('system_maintenance_mode', { value: 'TRUE' }, 'u1')

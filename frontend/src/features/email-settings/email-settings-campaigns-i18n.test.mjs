@@ -8,7 +8,8 @@ const locales = ['bs', 'en'].map((language) =>
   ),
 )
 const source = readFileSync(new URL('../../pages/EmailSettings.tsx', import.meta.url), 'utf8')
-const literalTranslationKeys = new Set([...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key))
+const editor = readFileSync(new URL('./email-visual-editor.tsx', import.meta.url), 'utf8')
+const literalTranslationKeys = new Set([...`${source}\n${editor}`.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key))
 const getLeafPaths = (value, prefix) =>
   Object.entries(value).flatMap(([key, child]) =>
     typeof child === 'object' && child !== null
@@ -27,7 +28,7 @@ test('campaign controls, audience feedback, and editor labels use matching local
   ]) {
     assert.ok(literalTranslationKeys.has(key), `Missing source translation reference: ${key}`)
   }
-  assert.match(source, /t\(`emailSettings\.campaigns\.blockTypes\.\$\{block\.type\}`\)/)
+  assert.match(editor, /t\(`emailSettings\.campaigns\.blockTypes\.\$\{block\.type\}`\)/)
   assert.match(source, /t\(`users\.roleNames\.\$\{role\}`\)/)
 
   const [bosnian, english] = locales.map((resource) => {
@@ -77,10 +78,8 @@ test('campaign consent and queue feedback copy exists in both locales', () => {
   }
 })
 
-test('campaign default content and interpolation tokens remain template data', () => {
-  assert.match(source, /\? 'Naslov kampanje'/)
-  assert.match(source, /\? 'Ovdje unesite opis kampanje\.'/)
-  assert.match(source, /\? 'Rezerviši termin'/)
+test('campaign default content uses localized examples and interpolation tokens remain template data', () => {
+  assert.match(source, /content:\s*type === 'spacer' \|\| type === 'divider'[\s\S]*?t\(`emailSettings\.templates\.blockPlaceholders\.\$\{type\}`\)/)
   assert.match(source, /name: `Nova kampanja \$\{campaignTemplates\.length \+ 1\}`/)
   for (const token of ['firstName', 'lastName', 'username', 'email', 'appUrl']) {
     assert.ok(source.includes(`'{{${token}}}'`), `Missing campaign interpolation token: ${token}`)
