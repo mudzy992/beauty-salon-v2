@@ -684,16 +684,22 @@ export class ServicesService {
     const affectedDailyLogIds = [
       ...new Set([...dailyLogIds, ...debtPaymentLogs.map((row) => row.id)]),
     ];
-    const [dailyLogImages, pendingOutboxEvents] = await Promise.all([
-      affectedDailyLogIds.length
-        ? db.dailyLogImage.findMany({
-            where: { dailyLogEntryId: { in: affectedDailyLogIds } },
-            select: { id: true },
-            orderBy: { id: 'asc' },
-          })
-        : Promise.resolve([]),
+    const dailyLogImages = affectedDailyLogIds.length
+      ? await db.dailyLogImage.findMany({
+          where: { dailyLogEntryId: { in: affectedDailyLogIds } },
+          select: { id: true },
+          orderBy: { id: 'asc' },
+        })
+      : [];
+    const pendingOutboxEvents: {
+      id: string;
+      eventType: string;
+      aggregateId: string;
+      status: string;
+      payload: Prisma.JsonValue;
+    }[] =
       outboxReservationIds.length || affectedDailyLogIds.length
-        ? db.outboxEvent.findMany({
+        ? await db.outboxEvent.findMany({
             where: {
               aggregateId: {
                 in: [...outboxReservationIds, ...affectedDailyLogIds],
@@ -709,8 +715,7 @@ export class ServicesService {
             },
             orderBy: { id: 'asc' },
           })
-        : Promise.resolve([]),
-    ]);
+        : [];
     const consentRecordsRetained = dailyLogImages.length
       ? await db.dailyLogImageConsent.count({
           where: {
