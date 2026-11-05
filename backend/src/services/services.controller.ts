@@ -23,6 +23,9 @@ import { Public } from '../common/decorators/public.decorator';
 import { PublicServiceListQueryDto } from './dto/public-service-list-query.dto';
 import { PublicServiceCategoryListQueryDto } from './dto/public-service-category-list-query.dto';
 import { PublicServiceSubcategoryListQueryDto } from './dto/public-service-subcategory-list-query.dto';
+import { DeleteServiceDto } from './dto/delete-service.dto';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { CurrentUserPayload } from '../common/decorators/current-user.decorator';
 import { PagePaginationQueryDto } from '../common/dto/page-pagination-query.dto';
 import { HttpRateLimit } from '../common/rate-limiting/http-rate-limit.decorator';
 import {
@@ -85,6 +88,16 @@ export class ServicesController {
   @Roles('SYSTEM_ADMIN', 'OWNER')
   findOneAdminService(@Param('id') id: string) {
     return this.servicesService.findOneService(id);
+  }
+
+  @Get('admin/services/:id/deletion-impact')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SYSTEM_ADMIN', 'OWNER')
+  getServiceDeletionImpact(
+    @Param('id') id: string,
+    @Query('targetServiceId') targetServiceId?: string,
+  ) {
+    return this.servicesService.getServiceDeletionImpact(id, targetServiceId);
   }
 
   @Get('home-stats')
@@ -254,7 +267,11 @@ export class ServicesController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SYSTEM_ADMIN', 'OWNER')
-  removeService(@Param('id') id: string) {
-    return this.servicesService.removeService(id);
+  removeService(
+    @Param('id') id: string,
+    @Body() dto: DeleteServiceDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.servicesService.removeService(id, dto, user.sub);
   }
 }

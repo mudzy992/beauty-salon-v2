@@ -320,6 +320,24 @@ model StylistService {
   @@map("stylist_services")
 }
 
+/// Immutable record of an administrator's service merge or linked-record deletion.
+/// Service IDs/names are snapshots, intentionally not foreign keys because the source is deleted.
+model ServiceMutationAudit {
+  id                 String   @id @default(uuid())
+  action             String
+  sourceServiceId    String   @map("source_service_id")
+  sourceServiceName  String   @map("source_service_name")
+  targetServiceId    String?  @map("target_service_id")
+  targetServiceName  String?  @map("target_service_name")
+  actorUserId        String   @map("actor_user_id")
+  impact             Json
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@index([sourceServiceId, createdAt], map: "service_mutation_audits_source_created_idx")
+  @@index([actorUserId, createdAt], map: "service_mutation_audits_actor_created_idx")
+  @@map("service_mutation_audits")
+}
+
 // ============ RESERVATIONS ============
 
 model Reservation {

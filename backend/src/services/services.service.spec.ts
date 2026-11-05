@@ -2,7 +2,10 @@ jest.mock('../prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));
 jest.mock('@prisma/client', () => ({
-  Prisma: { Decimal: class Decimal {} },
+  Prisma: {
+    Decimal: class Decimal {},
+    TransactionIsolationLevel: { Serializable: 'Serializable' },
+  },
 }));
 
 import type { PrismaService } from '../prisma/prisma.service';
@@ -25,8 +28,24 @@ describe('ServicesService public catalog pagination', () => {
     service: {
       findMany: jest.fn(),
       findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      delete: jest.fn(),
       count: jest.fn(),
     },
+    reservation: { findMany: jest.fn(), deleteMany: jest.fn() },
+    reservationServiceItem: { findMany: jest.fn(), deleteMany: jest.fn() },
+    dailyLogEntry: { findMany: jest.fn(), deleteMany: jest.fn() },
+    dailyLogEntryServiceItem: { findMany: jest.fn(), deleteMany: jest.fn() },
+    incomeBookManualEntry: { findMany: jest.fn(), deleteMany: jest.fn() },
+    incomeBookEntry: { aggregate: jest.fn(), findMany: jest.fn() },
+    clientDebt: { findMany: jest.fn(), deleteMany: jest.fn() },
+    dailyLogImage: { findMany: jest.fn() },
+    dailyLogImageConsent: { count: jest.fn() },
+    outboxEvent: { findMany: jest.fn(), updateMany: jest.fn() },
+    review: { findMany: jest.fn(), deleteMany: jest.fn() },
+    stylistService: { findMany: jest.fn(), deleteMany: jest.fn() },
+    serviceMutationAudit: { create: jest.fn() },
+    $transaction: jest.fn(),
   };
   let service: ServicesService;
 
@@ -296,5 +315,79 @@ describe('ServicesService public catalog pagination', () => {
     ).rejects.toThrow('Raspon kataloga servisa prelazi dozvoljeni limit.');
     expect(mockPrisma.service.findMany).not.toHaveBeenCalled();
     expect(mockPrisma.service.count).not.toHaveBeenCalled();
+  });
+
+  it('previews and cancels queued reservation outbox events during linked-record deletion', async () => {
+    const source = {
+      id: 'service-source',
+      name: 'Facial',
+      updatedAt: new Date('2026-11-05T10:00:00Z'),
+      heroImage: '/uploads/service/facial.jpg',
+    };
+    const queuedEvent = {
+      id: 'outbox-1',
+      eventType: 'reservation.created',
+      aggregateId: 'reservation-1',
+      status: 'PENDING',
+      payload: { reservationId: 'reservation-1' },
+    };
+    mockPrisma.service.findUnique.mockResolvedValue(source);
+    mockPrisma.reservation.findMany.mockResolvedValue([
+      { id: 'reservation-1' },
+    ]);
+    mockPrisma.reservationServiceItem.findMany.mockResolvedValue([]);
+    mockPrisma.dailyLogEntry.findMany.mockResolvedValue([]);
+    mockPrisma.dailyLogEntryServiceItem.findMany.mockResolvedValue([]);
+    mockPrisma.incomeBookManualEntry.findMany.mockResolvedValue([]);
+    mockPrisma.review.findMany.mockResolvedValue([]);
+    mockPrisma.stylistService.findMany.mockResolvedValue([]);
+    mockPrisma.clientDebt.findMany.mockResolvedValue([]);
+    mockPrisma.dailyLogImage.findMany.mockResolvedValue([]);
+    mockPrisma.outboxEvent.findMany.mockResolvedValue([queuedEvent]);
+    mockPrisma.outboxEvent.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
+        callback(mockPrisma),
+    );
+
+    const impact = await service.getServiceDeletionImpact('service-source');
+    expect(impact).toEqual(
+      expect.objectContaining({
+        service: { id: 'service-source', name: 'Facial', imageRetained: true },
+        pendingOutboxEvents: 1,
+        images: { dailyLogImages: 0, consentRecordsRetained: 0 },
+      }),
+    );
+
+    await service.removeService(
+      'service-source',
+      {
+        action: 'DELETE_LINKED_RECORDS',
+        confirmationName: 'Facial',
+        impactToken: impact.impactToken,
+      },
+      'admin-1',
+    );
+
+    expect(mockPrisma.outboxEvent.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ['outbox-1'] },
+        status: 'PENDING',
+      },
+      data: {
+        status: 'CANCELLED',
+        lockedAt: null,
+        lastError: 'Cancelled because the linked service records were deleted.',
+      },
+    });
+    expect(mockPrisma.service.delete).toHaveBeenCalledWith({
+      where: { id: 'service-source' },
+    });
+    const auditCall = mockPrisma.serviceMutationAudit.create.mock
+      .calls[0]?.[0] as unknown as {
+      data: { action: string; actorUserId: string };
+    };
+    expect(auditCall.data.action).toBe('DELETE_LINKED_RECORDS');
+    expect(auditCall.data.actorUserId).toBe('admin-1');
   });
 });
