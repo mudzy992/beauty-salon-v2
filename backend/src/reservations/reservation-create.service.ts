@@ -19,6 +19,7 @@ import { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
 import { RESERVATION_STATUS } from './constants';
 import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking';
 import { buildBookableServiceWhere } from './utils/service-eligibility';
+import { assertReservationServiceItemLimit } from './utils/reservation-service-limits';
 import {
   acquireReservationDayLock,
   acquireReservationIdempotencyLock,
@@ -72,6 +73,7 @@ export class ReservationCreateService {
         : dto.serviceId
           ? [dto.serviceId]
           : [];
+    assertReservationServiceItemLimit(serviceIdsRaw);
     const serviceIds = [
       ...new Set(serviceIdsRaw.map((x) => x.trim()).filter(Boolean)),
     ];

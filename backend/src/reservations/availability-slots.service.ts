@@ -15,6 +15,7 @@ import { SLOT_HOLD_INBOX_STATUSES, SLOT_OCCUPYING_STATUSES } from './constants';
 import { computeSlotCapacity } from './utils/slot-hold.utils';
 import { buildBookableServiceWhere } from './utils/service-eligibility';
 import type { AvailableSlotDto } from './availability.types';
+import { normalizeReservationServiceIds } from './utils/reservation-service-limits';
 
 type AvailabilityReader = Pick<
   Prisma.TransactionClient,
@@ -39,13 +40,10 @@ export class AvailabilitySlotsService {
     dateStr: string,
     db: AvailabilityReader = this.prisma,
   ): Promise<AvailableSlotDto[]> {
-    const serviceIds = Array.isArray(serviceIdsInput)
-      ? serviceIdsInput
-      : [serviceIdsInput];
+    const normalized = normalizeReservationServiceIds(serviceIdsInput);
     const salon = await db.salonSettings.findFirst();
     if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
 
-    const normalized = [...new Set(serviceIds.map((x) => x.trim()).filter(Boolean))];
     if (normalized.length === 0)
       throw new NotFoundException('Servis nije pronađen.');
     const services = await db.service.findMany({

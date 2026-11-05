@@ -1,4 +1,5 @@
 import {
+  ArrayMaxSize,
   IsArray,
   IsDateString,
   IsIn,
@@ -9,6 +10,7 @@ import {
   Validate,
 } from 'class-validator';
 import { RequireServiceSelectionConstraint } from './require-service-selection.validator';
+import { MAX_RESERVATION_SERVICE_ITEMS } from '../utils/reservation-service-limits';
 
 export class AdminCreateReservationDto {
   @IsUUID()
@@ -31,6 +33,9 @@ export class AdminCreateReservationDto {
   /** Multi-service reservation. */
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(MAX_RESERVATION_SERVICE_ITEMS, {
+    message: `Rezervacija može sadržavati najviše ${MAX_RESERVATION_SERVICE_ITEMS} usluga.`,
+  })
   @IsUUID(undefined, { each: true })
   serviceIds?: string[];
 
@@ -48,4 +53,3 @@ export class AdminCreateReservationDto {
   @MaxLength(2000)
   clientNotes?: string;
 }
-

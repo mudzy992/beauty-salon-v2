@@ -25,6 +25,7 @@ import { assertClientDayBookingAllowed } from './utils/assert-client-day-booking
 import { buildBookableServiceWhere } from './utils/service-eligibility';
 import { acquireReservationDayLock } from './utils/booking-advisory-lock';
 import { assertStylistSlotCapacity } from './utils/assert-stylist-slot-capacity';
+import { assertReservationServiceItemLimit } from './utils/reservation-service-limits';
 
 @Injectable()
 export class ReservationDirectCreateService {
@@ -91,6 +92,7 @@ export class ReservationDirectCreateService {
         : dto.serviceId
           ? [dto.serviceId]
           : [];
+    assertReservationServiceItemLimit(serviceIdsRaw);
     const serviceIds = [
       ...new Set(serviceIdsRaw.map((value) => value.trim()).filter(Boolean)),
     ];

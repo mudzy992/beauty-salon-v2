@@ -15,6 +15,7 @@ import {
 import { getStylistIdsForServices } from './utils/availability-helpers';
 import { buildBookableServiceWhere } from './utils/service-eligibility';
 import { AvailabilitySlotsService } from './availability-slots.service';
+import { normalizeReservationServiceIds } from './utils/reservation-service-limits';
 import type { AvailableDateDto } from './availability.types';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -41,15 +42,9 @@ export class AvailabilityDatesService {
       : addDateOnlyDays(fromDate, 30);
     this.validateDateRange(fromDate, toDate);
 
-    const serviceIds = Array.isArray(serviceIdsInput)
-      ? serviceIdsInput
-      : [serviceIdsInput];
+    const normalized = normalizeReservationServiceIds(serviceIdsInput);
     const salon = await this.prisma.salonSettings.findFirst();
     if (!salon) throw new NotFoundException('Salon nije konfigurisan.');
-
-    const normalized = [
-      ...new Set(serviceIds.map((x) => x.trim()).filter(Boolean)),
-    ];
     if (normalized.length === 0)
       throw new NotFoundException('Servis nije pronađen.');
     const services = await this.prisma.service.findMany({

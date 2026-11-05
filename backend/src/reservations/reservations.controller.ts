@@ -18,6 +18,7 @@ import { CreateReservationDto } from './dto/create-reservation.dto';
 import { AdminCreateReservationDto } from './dto/admin-create-reservation.dto';
 import { StylistDirectCreateReservationDto } from './dto/stylist-direct-create-reservation.dto';
 import { CancelReservationDto } from './dto/cancel-reservation.dto';
+import { parseAvailabilityServiceIds } from './utils/reservation-service-limits';
 import { StylistRejectDto } from './dto/stylist-respond.dto';
 import { QueryReservationsDto } from './dto/query-reservations.dto';
 import { StylistNoShowDto } from './dto/stylist-no-show.dto';
@@ -144,15 +145,8 @@ export class ReservationsController {
     @Query('fromDate') fromDate: string,
     @Query('toDate') toDate?: string,
   ) {
-    const ids = (serviceIds ?? '')
-      .split(',')
-      .map((x) => x.trim())
-      .filter(Boolean);
-    return this.availability.getAvailableDates(
-      ids.length > 0 ? ids : (serviceId ?? ''),
-      fromDate,
-      toDate,
-    );
+    const ids = parseAvailabilityServiceIds(serviceIds, serviceId);
+    return this.availability.getAvailableDates(ids, fromDate, toDate);
   }
 
   @Get('availability/slots')
@@ -167,14 +161,8 @@ export class ReservationsController {
     @Query('serviceIds') serviceIds: string | undefined,
     @Query('date') date: string,
   ) {
-    const ids = (serviceIds ?? '')
-      .split(',')
-      .map((x) => x.trim())
-      .filter(Boolean);
-    return this.availability.getAvailableSlots(
-      ids.length > 0 ? ids : (serviceId ?? ''),
-      date,
-    );
+    const ids = parseAvailabilityServiceIds(serviceIds, serviceId);
+    return this.availability.getAvailableSlots(ids, date);
   }
 
   @Get(':id')
