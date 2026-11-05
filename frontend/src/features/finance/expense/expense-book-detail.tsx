@@ -296,6 +296,14 @@ export function ExpenseBookDetail({
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3">
+          {categoriesQuery.isLoading ? (
+            <p role="status" className="text-xs text-slate-500">
+              {t('finance.states.loading')}
+            </p>
+          ) : null}
+          {categoriesQuery.isError ? (
+            <ErrorState onRetry={() => void categoriesQuery.refetch()} />
+          ) : null}
           <ExpenseFiltersBar
             filters={filters}
             categories={categoriesQuery.data ?? []}
@@ -337,6 +345,9 @@ export function ExpenseBookDetail({
         bookId={bookId}
         editing={editing}
         categories={categoriesQuery.data ?? []}
+        categoriesLoading={categoriesQuery.isLoading}
+        categoriesError={categoriesQuery.isError}
+        onRetryCategories={() => void categoriesQuery.refetch()}
         isSaving={mutations.saveExpense.isPending}
         onSubmit={(payload) => void handleSave(payload)}
       />

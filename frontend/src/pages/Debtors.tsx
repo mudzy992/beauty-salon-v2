@@ -8,6 +8,7 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { formatLocalizedAmount, getIntlLocale } from '../i18n/locale-utils.mjs'
 import { formatDateOnlyLocale } from '../../../shared/business-date.mjs'
+import { ErrorState } from '../features/finance/components/data-state'
 
 type DebtRow = {
   id: string
@@ -86,7 +87,7 @@ export default function Debtors({ embedded = false }: Props) {
         <div className="text-right">
           <div className="text-xs text-slate-500">{t('common.total')}</div>
           <div className="text-lg font-semibold text-slate-900 dark:text-slate-50">
-            {formatLocalizedAmount(total, i18n.language)}
+            {query.isLoading || query.isError ? '—' : formatLocalizedAmount(total, i18n.language)}
           </div>
         </div>
       </div>
@@ -104,7 +105,9 @@ export default function Debtors({ embedded = false }: Props) {
 
       <Card className="p-4">
         {query.isLoading ? (
-          <div className="text-sm text-slate-500">{t('common.loading')}</div>
+          <div role="status" className="text-sm text-slate-500">{t('common.loading')}</div>
+        ) : query.isError ? (
+          <ErrorState onRetry={() => void query.refetch()} />
         ) : filtered.length === 0 ? (
           <div className="text-sm text-slate-500">{t('debtors.noOpenDebts')}</div>
         ) : (

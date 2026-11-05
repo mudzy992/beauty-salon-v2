@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -158,8 +159,6 @@ export default function Users() {
 
   const [saving, setSaving] = useState(false)
   const [resetLinkSendingId, setResetLinkSendingId] = useState<string | null>(null)
-  const [clientDebts, setClientDebts] = useState<ClientDebtRow[]>([])
-  const [clientDebtsLoading, setClientDebtsLoading] = useState(false)
   const [debtToWriteOff, setDebtToWriteOff] = useState<string | null>(null)
   const [writeOffPending, setWriteOffPending] = useState(false)
   const [page, setPage] = useState(0)
@@ -173,6 +172,20 @@ export default function Users() {
   const [credentialsOpen, setCredentialsOpen] = useState(false)
 
   const [editUser, setEditUser] = useState<UserRow | null>(null)
+  const queryClient = useQueryClient()
+  const clientDebtsQuery = useQuery({
+    queryKey: ['client-debts', editUser?.id ?? ''],
+    enabled: Boolean(
+      editOpen && editUser?.userRoles?.some((userRole) => userRole.role.name === 'CLIENT'),
+    ),
+    queryFn: async (): Promise<ClientDebtRow[]> => {
+      if (!editUser) return []
+      const { data } = await api.get('/api/client-debts', {
+        params: { clientId: editUser.id },
+      })
+      return Array.isArray(data) ? data : []
+    },
+  })
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -279,29 +292,15 @@ export default function Users() {
 
   const getUserRoles = useCallback((u: UserRow): string[] => u.userRoles?.map((r) => r.role.name) ?? [], [])
 
-  useEffect(() => {
-    if (!editOpen || !editUser) return
-    const roles = getUserRoles(editUser)
-    if (!roles.includes('CLIENT')) {
-      setClientDebts([])
-      return
-    }
-    setClientDebtsLoading(true)
-    api
-      .get('/api/client-debts', { params: { clientId: editUser.id } })
-      .then((r) => setClientDebts(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setClientDebts([]))
-      .finally(() => setClientDebtsLoading(false))
-  }, [editOpen, editUser, getUserRoles])
-
   const handleWriteOffClientDebt = async (reason: string) => {
     if (!editUser || !debtToWriteOff) return
     setWriteOffPending(true)
     try {
       await api.patch(`/api/client-debts/${debtToWriteOff}/write-off`, { note: reason })
       success(t('users.toast.debtWrittenOff'))
-      const { data } = await api.get('/api/client-debts', { params: { clientId: editUser.id } })
-      setClientDebts(Array.isArray(data) ? data : [])
+      await queryClient.invalidateQueries({
+        queryKey: ['client-debts', editUser.id],
+      })
       setDebtToWriteOff(null)
     } catch (err) {
       showApiError(err, 'users.errors.writeOffFailed')
@@ -1273,16 +1272,35 @@ export default function Users() {
               <div className="space-y-2 md:col-span-2">
                 <div className="flex items-center justify-between gap-3">
                   <Label className="mb-0">{t('users.debts.title')}</Label>
-                  {clientDebtsLoading ? <span className="text-xs text-slate-500">{t('users.debts.loading')}</span> : null}
+                  {clientDebtsQuery.isLoading ? (
+                    <span role="status" className="text-xs text-slate-500">
+                      {t('users.debts.loading')}
+                    </span>
+                  ) : null}
                 </div>
 
-                {clientDebts.length === 0 ? (
+                {clientDebtsQuery.isLoading ? null : clientDebtsQuery.isError ? (
+                  <div
+                    role="alert"
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200"
+                  >
+                    <span>{t('finance.states.errorTitle')}</span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void clientDebtsQuery.refetch()}
+                    >
+                      {t('finance.states.retry')}
+                    </Button>
+                  </div>
+                ) : (clientDebtsQuery.data ?? []).length === 0 ? (
                   <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-200">
                     {t('users.debts.none')}
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {clientDebts.map((d) => (
+                    {(clientDebtsQuery.data ?? []).map((d) => (
                       <div
                         key={d.id}
                         className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-white p-3 text-sm dark:border-slate-800 dark:bg-slate-950"

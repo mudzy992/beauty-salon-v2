@@ -321,7 +321,9 @@ export function IncomeBookDetail({
       <IntegrityPanel
         report={integrityQuery.data}
         isLoading={integrityQuery.isLoading}
+        isError={integrityQuery.isError}
         isResyncing={mutations.resync.isPending}
+        onRetry={() => void integrityQuery.refetch()}
         onResync={() => void handleResync()}
       />
 

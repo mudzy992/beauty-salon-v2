@@ -7,13 +7,16 @@ import {
 import { formatDateOnlyLocale } from '../../../../../shared/business-date.mjs'
 
 import { Button } from '../../../components/ui/button'
+import { ErrorState } from '../components/data-state'
 import { getPersonName } from '../finance.utils'
 import type { IncomeBookIntegrity } from '../finance.types'
 
 type IntegrityPanelProps = {
   report: IncomeBookIntegrity | undefined
   isLoading: boolean
+  isError: boolean
   isResyncing: boolean
+  onRetry: () => void
   onResync: () => void
 }
 
@@ -31,14 +34,19 @@ const formatIntegrityDate = (value: string, language: string): string => {
 export function IntegrityPanel({
   report,
   isLoading,
+  isError,
   isResyncing,
+  onRetry,
   onResync,
 }: IntegrityPanelProps) {
   const { t, i18n } = useTranslation()
-  if (isLoading || !report) {
+  if (isLoading) {
     return (
-      <div className="h-16 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
+      <div role="status" className="h-16 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />
     )
+  }
+  if (isError || !report) {
+    return <ErrorState onRetry={onRetry} />
   }
 
   if (report.isHealthy) {

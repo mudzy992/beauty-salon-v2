@@ -45,38 +45,40 @@ Findings below are **source-inspection findings**. No production data, productio
 ### FIN-04 — Debt-query failures can be presented as a genuine empty debt list
 
 - **Priority:** P2 — correctness/recovery UX
-- **Status:** Open
-- **Evidence:** `frontend/src/pages/Debtors.tsx` uses the fetched rows for local filtering but has no explicit `query.isError` branch, so the empty filtered result can be rendered as “no open debts” after a failed read. `frontend/src/pages/Users.tsx` also catches client-debt read failures by setting `clientDebts` to `[]` in the edit-user view.
-- **Impact:** A transient API/network failure is indistinguishable from a verified zero-debt result, weakening financial decision-making and recovery.
-- **Remediation:** Add explicit error state and retry in both views; keep loading, error, empty, and data states distinct. Prevent responses for a previously selected client from overwriting the current client's debt state.
+- **Status:** Fixed in source; source-contract regression coverage added
+- **Evidence:** At the audited revision, `frontend/src/pages/Debtors.tsx` used the fetched rows for local filtering but had no explicit `query.isError` branch, so the empty filtered result could be rendered as “no open debts” after a failed read. `frontend/src/pages/Users.tsx` also caught client-debt read failures by setting `clientDebts` to `[]` in the edit-user view.
+- **Impact:** A transient API/network failure was indistinguishable from a verified zero-debt result, weakening financial decision-making and recovery.
+- **Remediation:** Added explicit error/retry state to both views and kept loading, error, empty, and data states distinct. The user editor now uses a client-scoped query key, preventing a previous client's response from replacing current-client state; failed/loading totals are not shown as zero.
 
 ### FIN-05 — Income-book integrity failure can leave a permanent loading skeleton
 
 - **Priority:** P2 — correctness/recovery UX
-- **Status:** Open
-- **Evidence:** `frontend/src/features/finance/income/income-book-detail.tsx` passes the integrity result, `isLoading`, and resync state to `frontend/src/features/finance/income/integrity-panel.tsx`, but not the integrity query's error/retry state. The panel renders a loading skeleton when no report exists.
-- **Impact:** After the integrity request fails with no cached report, the integrity section can continue to look as if it is loading and offers no retry/error explanation. No browser/network-failure simulation was run.
-- **Remediation:** Pass `isError` and `refetch` into the panel and render an accessible localized error/retry state distinct from loading and a valid empty report.
+- **Status:** Fixed in source; source-contract regression coverage added
+- **Evidence:** At the audited revision, `frontend/src/features/finance/income/income-book-detail.tsx` passed the integrity result, `isLoading`, and resync state to `frontend/src/features/finance/income/integrity-panel.tsx`, but not the integrity query's error/retry state. The panel rendered a loading skeleton when no report existed.
+- **Impact:** After the integrity request failed with no cached report, the integrity section could continue to look as if it was loading and offer no retry/error explanation. No browser/network-failure simulation was run.
+- **Remediation:** The detail now passes `isError` and `refetch` into the panel. The panel renders an accessible shared error/retry state distinct from loading and a valid report.
 
 ### FIN-06 — Expense-category lookup errors are collapsed into an empty category list in book detail
 
 - **Priority:** P3 — correctness/recovery UX
-- **Status:** Open
-- **Evidence:** `frontend/src/features/finance/expense/expense-book-detail.tsx` passes `categoriesQuery.data ?? []` to the detail filters and expense form without exposing the category query's loading/error state. The category management tab itself does have an error/retry state.
-- **Impact:** A failed lookup can make category-dependent filters or the add/edit form appear to have no categories rather than communicating a read failure; validation/submission behavior may then be confusing. Exact user-visible effect should be confirmed when the state handling is exercised.
-- **Remediation:** Propagate category query loading/error/retry state into the detail/form as appropriate; do not block unrelated expense viewing if only the category lookup fails.
+- **Status:** Fixed in source; source-contract regression coverage added
+- **Evidence:** At the audited revision, `frontend/src/features/finance/expense/expense-book-detail.tsx` passed `categoriesQuery.data ?? []` to detail filters and the expense form without exposing the category query's loading/error state. The category management tab itself already had an error/retry state.
+- **Impact:** A failed lookup could make category-dependent filters or the add/edit form appear to have no categories rather than communicating a read failure; validation/submission behavior could then be confusing.
+- **Remediation:** The detail now exposes category loading/error/retry while leaving the expense table visible. The form reports and retries lookup errors and disables submission only when no category data is available.
 
 ## Remediation phases
 
 1. **Export safety (FIN-01, FIN-02) — complete in source:** added shared, unit-tested HTML and CSV serializers, wired focused tests into frontend CI, and verified with focused tests plus frontend typecheck/production build. Browser exploit and spreadsheet-app verification remain unperformed.
-2. **Read-state correctness (FIN-04, FIN-05, FIN-06) — open:** separate loading/error/empty/data states and add retry; add targeted component/source-contract tests. Keep translation changes isolated in a dedicated i18n commit if required.
-3. **Bounded debt listing (FIN-03):** implement paginated backend query/contract and frontend pagination/search together; add service/controller/API-contract tests and review database indexes. Verify existing authorization remains intact.
+2. **Read-state correctness (FIN-04, FIN-05, FIN-06) — complete in source:** separated loading/error/empty/data states, added retry, and added source-contract regression tests. Existing generic Finance state copy was reused; no translation changes were needed.
+3. **Bounded debt listing (FIN-03) — open:** implement paginated backend query/contract and frontend pagination/search together; add service/controller/API-contract tests and review database indexes. Verify existing authorization remains intact.
 4. **Cross-module closeout:** rerun relevant Finance tests, frontend build, backend tests affected by the endpoint contract, inspect final diff, update statuses/evidence in this report, then proceed to the next module only after the Finance slices are committed and pushed.
 
 ## Verification log
 
 - Initial static source review against the audited revision identified FIN-01 through FIN-06 above.
 - `npm run test:finance-export-safety` — passed (4 focused regression tests).
+- `npm run test:finance-read-recovery` — passed (4 source-contract recovery tests).
+- Relevant existing Finance/UI contracts passed: `test:debtors-i18n`, `test:finance-income-detail-i18n`, `test:finance-expense-detail-i18n`, and `test:admin-user-list-contract`.
 - `npm run build` in `frontend/` — passed, including TypeScript project build and Vite production build. Vite emitted the existing large-chunk advisory (>500 kB).
 - Targeted ESLint was not completed: the frontend install did not provide the configured ESLint binary, and `npx` selected ESLint 10, which cannot consume this repository's legacy config. No source lint result is claimed.
 - No browser, production, load, spreadsheet application, or device verification has been performed.

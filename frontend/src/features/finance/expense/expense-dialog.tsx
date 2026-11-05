@@ -21,6 +21,9 @@ type Props = {
   bookId: string
   editing: Expense | null
   categories: ExpenseCategory[]
+  categoriesLoading: boolean
+  categoriesError: boolean
+  onRetryCategories: () => void
   isSaving: boolean
   onSubmit: (payload: ExpensePayload) => void
 }
@@ -31,6 +34,9 @@ export function ExpenseDialog({
   bookId,
   editing,
   categories,
+  categoriesLoading,
+  categoriesError,
+  onRetryCategories,
   isSaving,
   onSubmit,
 }: Props) {
@@ -47,6 +53,8 @@ export function ExpenseDialog({
     onLineAttachments: (lineAttachments) => f.update({ lineAttachments }),
     onError: toastApiError,
   })
+  const categoriesUnavailable =
+    categories.length === 0 && (categoriesLoading || categoriesError)
 
   const handleOpenChange = (next: boolean) => {
     if (!next) uploads.resetPending()
@@ -70,7 +78,12 @@ export function ExpenseDialog({
           </Button>
           <Button
             onClick={() => onSubmit(f.toPayload(uploads.pendingUploads.map((u) => u.id)))}
-            disabled={isSaving || uploads.isUploading || Boolean(f.validationError)}
+            disabled={
+              isSaving ||
+              uploads.isUploading ||
+              categoriesUnavailable ||
+              Boolean(f.validationError)
+            }
           >
             {isSaving ? (
               <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -81,6 +94,22 @@ export function ExpenseDialog({
       }
     >
       <div className="grid gap-4">
+        {categoriesLoading && categories.length === 0 ? (
+          <p role="status" className="text-xs text-slate-500">
+            {t('finance.states.loading')}
+          </p>
+        ) : null}
+        {categoriesError ? (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200"
+          >
+            <span>{t('finance.states.errorTitle')}</span>
+            <Button type="button" variant="outline" size="sm" onClick={onRetryCategories}>
+              {t('finance.states.retry')}
+            </Button>
+          </div>
+        ) : null}
         <div className="grid gap-1">
           <Label htmlFor="expense-cat">{t('finance.expenseForm.category')}</Label>
           <select

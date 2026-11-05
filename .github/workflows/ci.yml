@@ -311,6 +311,9 @@ jobs:
       - name: Test finance CSV and print-export safety
         working-directory: frontend
         run: npm run test:finance-export-safety
+      - name: Test finance read failure and retry states
+        working-directory: frontend
+        run: npm run test:finance-read-recovery
       - name: Test finance client picker API contract
         working-directory: frontend
         run: npm run test:finance-client-picker-contract
