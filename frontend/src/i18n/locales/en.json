@@ -246,6 +246,7 @@
         "reservationSubtitle": "Reservation — subtitle",
         "reservationBackground": "Reservation — background",
         "servicesBackground": "Services — background",
+        "servicesShowPrices": "Show service prices on public pages",
         "servicesTitle": "Services — title",
         "servicesSubtitle": "Services — subtitle",
         "servicesHeroNote": "Services — introductory text",

@@ -71,6 +71,7 @@ export const SITE_GROUPS: SettingGroup[] = [
       { key: 'public_reserve_title', desc: 'Rezervacija — naslov', type: 'text' },
       { key: 'public_reserve_subtitle', desc: 'Rezervacija — podnaslov', type: 'text' },
       { key: 'public_reserve_bg', desc: 'Rezervacija — pozadina', type: 'image' },
+      { key: 'public_service_prices_enabled', desc: 'Usluge — prikaži cijene na javnim stranicama', type: 'boolean' },
       { key: 'public_services_bg', desc: 'Usluge — glavna slika', type: 'image' },
       { key: 'public_services_title', desc: 'Usluge — naslov', type: 'text' },
       { key: 'public_services_subtitle', desc: 'Usluge — podnaslov', type: 'textarea' },

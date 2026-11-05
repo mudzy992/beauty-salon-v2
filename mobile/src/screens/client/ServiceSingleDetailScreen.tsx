@@ -19,6 +19,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import api, { getUploadUrl } from '../../services/api';
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider';
 import { spacing } from '../../theme';
+import { usePublicServicePricesEnabled } from '../../hooks/usePublicServicePricesEnabled';
 import {
   normalizeBeforeAfterPage,
   normalizePublicReviewPage,
@@ -42,8 +43,9 @@ export function ServiceSingleDetailScreen({
   navigation,
 }: ServicesScreenProps<'ServiceSingleDetail'>) {
   const { serviceId, serviceName } = route.params;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors } = useTheme();
+  const showServicePrices = usePublicServicePricesEnabled();
   const user = useAuthStore((state) => state.user);
   const tabBarBottom = useFloatingTabBarTotalHeight();
   const { width } = useWindowDimensions();
@@ -216,6 +218,10 @@ export function ServiceSingleDetailScreen({
   const sliderSize = Math.max(220, width - spacing.md * 2);
   const canBook =
     !user?.gender || service.gender === user.gender;
+  const formattedPrice = new Intl.NumberFormat(i18n.resolvedLanguage || i18n.language, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(service.price);
 
   return (
     <ScrollView
@@ -251,6 +257,12 @@ export function ServiceSingleDetailScreen({
               <View style={styles.heroMeta}>
                 <Ionicons name="time-outline" size={16} color="#fff" />
                 <Text style={styles.heroMetaText}>{service.durationMinutes} min</Text>
+                {showServicePrices ? (
+                  <>
+                    <Ionicons name="pricetag-outline" size={16} color="#fff" />
+                    <Text style={styles.heroMetaText}>{formattedPrice} KM</Text>
+                  </>
+                ) : null}
               </View>
             </View>
           </MediaBackdrop>

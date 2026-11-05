@@ -420,6 +420,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const heroImageUrl = resolveHeroImageUrl(getSettingValue(settings, 'public_hero_image', ''));
   const heroSubtitle = getSettingValue(settings, 'public_hero_subtitle', t('home.heroSubtitle'));
   const heroCtaText = getSettingValue(settings, 'public_hero_cta_text', t('home.bookNow'));
+  const showServicePrices = getSettingValue(settings, 'public_service_prices_enabled', 'true').toLowerCase() !== 'false';
 
   const upcomingServiceName = (() => {
     if (!upcomingReservation) return 'Rezervacija';
@@ -723,7 +724,9 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                           </Text>
                           <View style={styles.serviceInfo}>
                             <Text style={styles.serviceMeta}>{service.durationMinutes} min</Text>
-                            <Text style={styles.servicePrice}>{formatServicePrice(service.price)}</Text>
+                            {showServicePrices ? (
+                              <Text style={styles.servicePrice}>{formatServicePrice(service.price)}</Text>
+                            ) : null}
                           </View>
                         </View>
                       </View>

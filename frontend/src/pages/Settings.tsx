@@ -66,6 +66,7 @@ const SITE_FIELD_COPY_KEYS = {
   public_reserve_title: 'adminSettings.site.fields.reservationTitle',
   public_reserve_subtitle: 'adminSettings.site.fields.reservationSubtitle',
   public_reserve_bg: 'adminSettings.site.fields.reservationBackground',
+  public_service_prices_enabled: 'adminSettings.site.fields.servicesShowPrices',
   public_services_bg: 'adminSettings.site.fields.servicesBackground',
   public_services_title: 'adminSettings.site.fields.servicesTitle',
   public_services_subtitle: 'adminSettings.site.fields.servicesSubtitle',

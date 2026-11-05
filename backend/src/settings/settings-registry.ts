@@ -59,6 +59,7 @@ export const SETTINGS_REGISTRY: readonly SettingRegistryItem[] = [
   { key: 'public_register_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_register_subtitle', scope: 'PUBLIC', type: 'string', defaultValue: '' },
 
+  { key: 'public_service_prices_enabled', scope: 'PUBLIC', type: 'boolean', defaultValue: 'true' },
   { key: 'public_services_bg', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_services_title', scope: 'PUBLIC', type: 'string', defaultValue: '' },
   { key: 'public_services_subtitle', scope: 'PUBLIC', type: 'string', defaultValue: '' },

@@ -311,6 +311,7 @@ export default function PublicServiceDetail() {
         },
       ).format(numericPrice)
     : String(service.price);
+  const showServicePrices = getSetting("public_service_prices_enabled", "true").toLowerCase() !== "false";
   const categoryName =
     service.subcategory?.category?.name || service.subcategory?.name || "";
   const salonName = salon?.name?.trim() || "";
@@ -343,12 +344,16 @@ export default function PublicServiceDetail() {
         ? ogImage
         : `${baseUrl}${ogImage}`
       : undefined,
-    offers: {
-      "@type": "Offer",
-      price: numericPrice,
-      priceCurrency: "BAM",
-      url: `${baseUrl}/rezervacija?serviceId=${encodeURIComponent(service.id)}`,
-    },
+    ...(showServicePrices
+      ? {
+          offers: {
+            "@type": "Offer",
+            price: numericPrice,
+            priceCurrency: "BAM",
+            url: `${baseUrl}/rezervacija?serviceId=${encodeURIComponent(service.id)}`,
+          },
+        }
+      : {}),
   };
 
   return (
@@ -397,14 +402,16 @@ export default function PublicServiceDetail() {
                   </p>
                 ) : null}
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <div className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-white/80 px-4 py-3 shadow-sm">
-                    <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#806b5d]">
-                      {t("public.serviceDetail.priceLabel")}
-                    </span>
-                    <span className="mt-1 block text-lg font-semibold text-[#49332d]">
-                      {formattedPrice} KM
-                    </span>
-                  </div>
+                  {showServicePrices ? (
+                    <div className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-white/80 px-4 py-3 shadow-sm">
+                      <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#806b5d]">
+                        {t("public.serviceDetail.priceLabel")}
+                      </span>
+                      <span className="mt-1 block text-lg font-semibold text-[#49332d]">
+                        {formattedPrice} KM
+                      </span>
+                    </div>
+                  ) : null}
                   <div className="min-w-[9rem] rounded-2xl border border-[#e3d7cd] bg-white/80 px-4 py-3 shadow-sm">
                     <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-[#806b5d]">
                       {t("public.serviceDetail.durationLabel")}
