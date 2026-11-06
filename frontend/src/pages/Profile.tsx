@@ -39,6 +39,7 @@ export default function Profile() {
   const { user, refreshProfile } = useAuth()
   const toast = useAppToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const usernameAvailabilityGeneration = useRef(0)
   const showApiError = (error: unknown, fallbackKey: string) => {
     const message = getErrorMessage(error, '')
     toast.error(t(resolveProfileApiErrorKey(message, fallbackKey)))
@@ -63,7 +64,14 @@ export default function Profile() {
     available: boolean | null
     isCurrentUsername: boolean
     suggestions: string[]
-  }>({ loading: false, available: null, isCurrentUsername: false, suggestions: [] })
+    error: boolean
+  }>({
+    loading: false,
+    available: null,
+    isCurrentUsername: false,
+    suggestions: [],
+    error: false,
+  })
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -103,37 +111,61 @@ export default function Profile() {
   }, [])
 
   useEffect(() => {
-    if (!username.trim()) {
+    const generation = ++usernameAvailabilityGeneration.current
+    const normalizedUsername = username.trim()
+    if (!normalizedUsername) {
       setUsernameStatus({
         loading: false,
         available: null,
         isCurrentUsername: false,
         suggestions: [],
+        error: false,
       })
       return
     }
+
+    setUsernameStatus({
+      loading: true,
+      available: null,
+      isCurrentUsername: false,
+      suggestions: [],
+      error: false,
+    })
     const timeout = window.setTimeout(async () => {
-      setUsernameStatus((prev) => ({ ...prev, loading: true }))
       try {
         const { data } = await api.get('/api/users/profile/username-availability', {
-          params: { username },
+          params: { username: normalizedUsername },
         })
+        if (generation !== usernameAvailabilityGeneration.current) return
+        const hasAvailability = typeof data?.available === 'boolean'
         setUsernameStatus({
           loading: false,
-          available: !!data.available,
-          isCurrentUsername: !!data.isCurrentUsername,
-          suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
+          available: hasAvailability ? data.available : null,
+          isCurrentUsername: data?.isCurrentUsername === true,
+          suggestions: Array.isArray(data?.suggestions)
+            ? data.suggestions.filter((suggestion: unknown): suggestion is string =>
+                typeof suggestion === 'string',
+              )
+            : [],
+          error: !hasAvailability,
         })
       } catch {
+        if (generation !== usernameAvailabilityGeneration.current) return
         setUsernameStatus({
           loading: false,
           available: null,
           isCurrentUsername: false,
           suggestions: [],
+          error: true,
         })
       }
     }, 300)
-    return () => window.clearTimeout(timeout)
+    return () => {
+      window.clearTimeout(timeout)
+      if (generation === usernameAvailabilityGeneration.current) {
+        usernameAvailabilityGeneration.current += 1
+      }
+    }
   }, [username])
 
   const handleUploadAvatar = async (file: File) => {
@@ -409,6 +441,12 @@ export default function Profile() {
                       </div>
                     ) : null}
 
+                    {usernameStatus.error ? (
+                      <div role="alert" className="text-xs text-amber-800">
+                        {t('profile.username.checkFailed')}
+                      </div>
+                    ) : null}
+
                     {usernameStatus.suggestions.length > 0 &&
                     usernameStatus.available === false ? (
                       <div className="flex flex-wrap gap-2 pt-1">
@@ -542,7 +580,14 @@ export default function Profile() {
                   ) : null}
                 </div>
 
-                <Button type="submit" disabled={saving || usernameStatus.available === false}>
+                <Button
+                  type="submit"
+                  disabled={
+                    saving ||
+                    usernameStatus.loading ||
+                    usernameStatus.available === false
+                  }
+                >
                   {saving ? t('common.saving') : t('profile.saveChanges')}
                 </Button>
               </form>
