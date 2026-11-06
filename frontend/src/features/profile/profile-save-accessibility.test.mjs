@@ -13,7 +13,7 @@ test('profile save form exposes busy feedback and disables its submit action', (
 test('profile save blocks duplicate submits and suppresses stale UI results', () => {
   assert.match(source, /const profileSaveGeneration = useRef\(0\)/)
   assert.match(source, /const profileSaveInFlight = useRef\(false\)/)
-  assert.match(source, /if \(\s*profileSaveInFlight\.current \|\|\s*avatarPrivacyInFlight\.current \|\|\s*emailVerificationInFlight\.current \|\|\s*!user\?\.sub\s*\) return/)
+  assert.match(source, /if \(\s*profileSaveInFlight\.current \|\|\s*avatarPrivacyInFlight\.current \|\|\s*emailVerificationInFlight\.current \|\|\s*avatarUploadInFlight\.current \|\|\s*!user\?\.sub\s*\) return/)
   assert.match(source, /profileSaveGeneration\.current \+= 1/)
   assert.match(source, /if \(generation !== profileSaveGeneration\.current\) return/)
   assert.match(source, /if \(generation === profileSaveGeneration\.current\) \{\s*profileSaveInFlight\.current = false\s*setSaving\(false\)/)

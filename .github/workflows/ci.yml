@@ -224,6 +224,9 @@ jobs:
       - name: Test profile email verification actions
         working-directory: frontend
         run: npm run test:profile-email-verification
+      - name: Test profile avatar uploads
+        working-directory: frontend
+        run: npm run test:profile-avatar-upload
       - name: Test localized public catalog UI
         working-directory: frontend
         run: npm run test:public-catalog-i18n

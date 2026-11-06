@@ -33,6 +33,7 @@
     "test:profile-save-accessibility": "node --test src/features/profile/profile-save-accessibility.test.mjs",
     "test:profile-avatar-privacy": "node --test src/features/profile/profile-avatar-privacy.test.mjs",
     "test:profile-email-verification": "node --test src/features/profile/profile-email-verification.test.mjs",
+    "test:profile-avatar-upload": "node --test src/features/profile/profile-avatar-upload.test.mjs",
     "test:public-catalog-i18n": "node --test src/features/public-catalog/public-catalog-i18n.test.mjs",
     "test:public-services-recovery": "node --test src/features/public-catalog/public-services-recovery.test.mjs",
     "test:public-services-redesign": "node --test src/features/public-catalog/public-services-redesign.test.mjs",

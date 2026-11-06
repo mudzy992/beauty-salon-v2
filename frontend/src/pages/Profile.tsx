@@ -46,6 +46,8 @@ export default function Profile() {
   const avatarPrivacyInFlight = useRef(false)
   const emailVerificationGeneration = useRef(0)
   const emailVerificationInFlight = useRef(false)
+  const avatarUploadGeneration = useRef(0)
+  const avatarUploadInFlight = useRef(false)
   const showApiError = (error: unknown, fallbackKey: string) => {
     const message = getErrorMessage(error, '')
     toast.error(t(resolveProfileApiErrorKey(message, fallbackKey)))
@@ -123,6 +125,8 @@ export default function Profile() {
     avatarPrivacyInFlight.current = false
     emailVerificationGeneration.current += 1
     emailVerificationInFlight.current = false
+    avatarUploadGeneration.current += 1
+    avatarUploadInFlight.current = false
   }, [])
 
   useEffect(() => {
@@ -184,57 +188,103 @@ export default function Profile() {
   }, [username])
 
   const handleUploadAvatar = async (file: File) => {
+    if (
+      avatarUploadInFlight.current ||
+      profileSaveInFlight.current ||
+      avatarPrivacyInFlight.current ||
+      emailVerificationInFlight.current
+    ) return
     if (!file.type.startsWith('image/')) {
       toast.error(t('profile.errors.imageRequired'))
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
+    const generation = ++avatarUploadGeneration.current
+    avatarUploadInFlight.current = true
     setUploadingAvatar(true)
     try {
       const fd = new FormData()
       fd.append('file', file)
-      const { data } = await api.post<{
-        avatar: string
-        isAvatarPublic: boolean
-      }>('/api/users/profile/avatar', fd, {
+      const { data } = await api.post<unknown>('/api/users/profile/avatar', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      setAvatar(data.avatar)
-      setIsAvatarPublic(Boolean(data.isAvatarPublic))
-      await refreshProfile()
-      toast.success(t('profile.toast.avatarUploaded'))
+      const payload = data as { avatar?: unknown; isAvatarPublic?: unknown } | null
+      if (typeof payload?.avatar !== 'string' || !payload.avatar.trim()) {
+        throw new Error('Invalid avatar upload response')
+      }
+      const avatarPath = payload.avatar.trim()
+      const isPublic =
+        typeof payload.isAvatarPublic === 'boolean' ? payload.isAvatarPublic : false
+      if (generation === avatarUploadGeneration.current) {
+        setAvatar(avatarPath)
+        setIsAvatarPublic(isPublic)
+        setProfile((current) =>
+          current ? { ...current, avatar: avatarPath, isAvatarPublic: isPublic } : current,
+        )
+        toast.success(t('profile.toast.avatarUploaded'))
+      }
+      try {
+        await refreshProfile()
+      } catch (error) {
+        if (generation === avatarUploadGeneration.current) {
+          showApiError(error, 'profile.errors.loadFailed')
+        }
+      }
     } catch (error) {
-      showApiError(error, 'profile.errors.avatarUploadFailed')
+      if (generation === avatarUploadGeneration.current) {
+        showApiError(error, 'profile.errors.avatarUploadFailed')
+      }
     } finally {
-      setUploadingAvatar(false)
+      if (generation === avatarUploadGeneration.current) {
+        avatarUploadInFlight.current = false
+        setUploadingAvatar(false)
+      }
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
   const handleAvatarVisibilityChange = async (nextValue: boolean) => {
-    if (avatarPrivacyInFlight.current || profileSaveInFlight.current) return
+    if (
+      avatarPrivacyInFlight.current ||
+      profileSaveInFlight.current ||
+      emailVerificationInFlight.current ||
+      avatarUploadInFlight.current
+    ) return
     const generation = ++avatarPrivacyGeneration.current
     const previousValue = isAvatarPublic
     avatarPrivacyInFlight.current = true
     setIsAvatarPublic(nextValue)
     setAvatarPrivacySaving(true)
     try {
-      const { data } = await api.patch<{ isAvatarPublic: boolean }>(
-        '/api/users/profile/avatar-visibility',
-        { isAvatarPublic: nextValue },
-      )
-      const confirmedValue =
-        typeof data?.isAvatarPublic === 'boolean' ? data.isAvatarPublic : nextValue
-      await refreshProfile()
-      if (generation !== avatarPrivacyGeneration.current) return
-      setIsAvatarPublic(confirmedValue)
-      setProfile((current) =>
-        current ? { ...current, isAvatarPublic: confirmedValue } : current,
-      )
-      toast.success(t(confirmedValue ? 'profile.toast.avatarMadePublic' : 'profile.toast.avatarMadePrivate'))
-    } catch (error: any) {
+      let confirmedValue = nextValue
+      try {
+        const { data } = await api.patch<{ isAvatarPublic: boolean }>(
+          '/api/users/profile/avatar-visibility',
+          { isAvatarPublic: nextValue },
+        )
+        confirmedValue =
+          typeof data?.isAvatarPublic === 'boolean' ? data.isAvatarPublic : nextValue
+      } catch (error: unknown) {
+        if (generation === avatarPrivacyGeneration.current) {
+          setIsAvatarPublic(previousValue)
+          showApiError(error, 'profile.errors.avatarVisibilityFailed')
+        }
+        return
+      }
+
       if (generation === avatarPrivacyGeneration.current) {
-        setIsAvatarPublic(previousValue)
-        showApiError(error, 'profile.errors.avatarVisibilityFailed')
+        setIsAvatarPublic(confirmedValue)
+        setProfile((current) =>
+          current ? { ...current, isAvatarPublic: confirmedValue } : current,
+        )
+        toast.success(t(confirmedValue ? 'profile.toast.avatarMadePublic' : 'profile.toast.avatarMadePrivate'))
+      }
+      try {
+        await refreshProfile()
+      } catch (error) {
+        if (generation === avatarPrivacyGeneration.current) {
+          showApiError(error, 'profile.errors.loadFailed')
+        }
       }
     } finally {
       if (generation === avatarPrivacyGeneration.current) {
@@ -250,6 +300,7 @@ export default function Profile() {
       profileSaveInFlight.current ||
       avatarPrivacyInFlight.current ||
       emailVerificationInFlight.current ||
+      avatarUploadInFlight.current ||
       !user?.sub
     ) return
 
@@ -318,6 +369,8 @@ export default function Profile() {
     if (
       emailVerificationInFlight.current ||
       profileSaveInFlight.current ||
+      avatarPrivacyInFlight.current ||
+      avatarUploadInFlight.current ||
       !email.trim()
     ) return
     const generation = ++emailVerificationGeneration.current
@@ -342,7 +395,9 @@ export default function Profile() {
   const handleVerify = async () => {
     if (
       emailVerificationInFlight.current ||
-      profileSaveInFlight.current
+      profileSaveInFlight.current ||
+      avatarPrivacyInFlight.current ||
+      avatarUploadInFlight.current
     ) return
     const token = verifyToken.trim()
     if (!/^\d{6}$/.test(token)) {
@@ -432,6 +487,13 @@ export default function Profile() {
                     type="file"
                     accept="image/*"
                     ref={fileInputRef}
+                    disabled={
+                      uploadingAvatar ||
+                      saving ||
+                      avatarPrivacySaving ||
+                      sendingCode ||
+                      verifying
+                    }
                     className="hidden"
                     onChange={(e) =>
                       e.target.files?.[0] && void handleUploadAvatar(e.target.files[0])
@@ -442,7 +504,14 @@ export default function Profile() {
                     size="sm"
                     variant="outline"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingAvatar}
+                    disabled={
+                      uploadingAvatar ||
+                      saving ||
+                      avatarPrivacySaving ||
+                      sendingCode ||
+                      verifying
+                    }
+                    aria-busy={uploadingAvatar}
                   >
                     {uploadingAvatar
                       ? t('profile.avatar.uploading')
@@ -450,11 +519,23 @@ export default function Profile() {
                         ? t('profile.avatar.change')
                         : t('profile.avatar.add')}
                   </Button>
+                  {uploadingAvatar ? (
+                    <span role="status" aria-live="polite" className="sr-only">
+                      {t('profile.avatar.uploading')}
+                    </span>
+                  ) : null}
                   <label className="mt-2 flex items-center gap-2 text-sm text-slate-800">
                     <input
                       type="checkbox"
                       checked={isAvatarPublic}
-                      disabled={!avatar || avatarPrivacySaving || saving}
+                      disabled={
+                        !avatar ||
+                        avatarPrivacySaving ||
+                        saving ||
+                        uploadingAvatar ||
+                        sendingCode ||
+                        verifying
+                      }
                       onChange={(event) =>
                         void handleAvatarVisibilityChange(event.target.checked)
                       }
@@ -650,7 +731,14 @@ export default function Profile() {
                           variant="outline"
                           size="sm"
                           onClick={handleSendCode}
-                          disabled={sendingCode || verifying || saving || !email.trim()}
+                          disabled={
+                            sendingCode ||
+                            verifying ||
+                            saving ||
+                            avatarPrivacySaving ||
+                            uploadingAvatar ||
+                            !email.trim()
+                          }
                         >
                           {sendingCode
                             ? t('profile.email.sendingCode')
@@ -665,7 +753,13 @@ export default function Profile() {
                           autoComplete="one-time-code"
                           maxLength={6}
                           pattern="[0-9]{6}"
-                          disabled={sendingCode || verifying || saving}
+                          disabled={
+                            sendingCode ||
+                            verifying ||
+                            saving ||
+                            avatarPrivacySaving ||
+                            uploadingAvatar
+                          }
                           className="sm:max-w-[220px]"
                         />
                         <Button
@@ -676,6 +770,8 @@ export default function Profile() {
                             sendingCode ||
                             verifying ||
                             saving ||
+                            avatarPrivacySaving ||
+                            uploadingAvatar ||
                             !/^\d{6}$/.test(verifyToken.trim())
                           }
                         >
@@ -700,6 +796,7 @@ export default function Profile() {
                     avatarPrivacySaving ||
                     sendingCode ||
                     verifying ||
+                    uploadingAvatar ||
                     usernameStatus.loading ||
                     usernameStatus.available === false
                   }

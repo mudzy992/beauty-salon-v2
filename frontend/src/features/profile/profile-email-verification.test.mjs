@@ -6,7 +6,7 @@ const source = readFileSync(new URL('../../pages/Profile.tsx', import.meta.url),
 
 test('email verification code input exposes suitable mobile and autofill semantics', () => {
   assert.match(source, /<Input\s+aria-label=\{t\('profile\.email\.codePlaceholder'\)\}[\s\S]*?inputMode="numeric"[\s\S]*?autoComplete="one-time-code"[\s\S]*?maxLength=\{6\}[\s\S]*?pattern="\[0-9\]\{6\}"/)
-  assert.match(source, /disabled=\{sendingCode \|\| verifying \|\| saving\}/)
+  assert.match(source, /disabled=\{\s*sendingCode \|\|\s*verifying \|\|\s*saving \|\|\s*avatarPrivacySaving \|\|\s*uploadingAvatar\s*\}/)
   assert.ok(source.includes('!/^\\d{6}$/.test(verifyToken.trim())'))
 })
 
@@ -36,7 +36,7 @@ test('verification sends only a trimmed six-digit token and refreshes account an
 })
 
 test('email send and verification requests announce progress and expose disabled actions', () => {
-  assert.match(source, /disabled=\{sendingCode \|\| verifying \|\| saving \|\| !email\.trim\(\)\}/)
+  assert.match(source, /disabled=\{\s*sendingCode \|\|\s*verifying \|\|\s*saving \|\|\s*avatarPrivacySaving \|\|\s*uploadingAvatar \|\|\s*!email\.trim\(\)\s*\}/)
   assert.match(source, /role="status" aria-live="polite" className="sr-only">\s*\{t\(sendingCode \? 'profile\.email\.sendingCode' : 'profile\.email\.verifying'\)\}/)
   assert.match(source, /showApiError\(error, 'profile\.errors\.sendCodeFailed'\)/)
   assert.match(source, /showApiError\(error, 'profile\.errors\.verifyFailed'\)/)
