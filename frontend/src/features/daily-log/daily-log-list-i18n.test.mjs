@@ -15,6 +15,7 @@ const locales = ['bs', 'en'].map((language) =>
 const files = [
   'entry-filters.tsx',
   'entry-stats.tsx',
+  'use-daily-log-data.ts',
   '../../pages/DailyLog.tsx',
 ]
 const sources = Object.fromEntries(
@@ -78,6 +79,10 @@ test('daily-log filters, summary cards and create action follow the selected lan
   assert.equal(instance.t('dailyLog.list.allStylists'), 'Svi stilisti')
   assert.equal(instance.t('dailyLog.list.serviceRevenue'), 'Prihod od servisa')
   assert.equal(instance.t('dailyLog.list.completed'), 'Kompletirano')
+  assert.equal(
+    instance.t('dailyLog.list.boundedRangeError'),
+    'Nije moguće učitati dnevnu knjigu. Provjerite oba datuma, opseg od najviše 62 dana i 500 zapisa.',
+  )
   assert.equal(formatLocalizedAmount(1234.5, 'bs'), '1.234,50 KM')
 
   await instance.changeLanguage('en')
@@ -86,12 +91,17 @@ test('daily-log filters, summary cards and create action follow the selected lan
   assert.equal(instance.t('dailyLog.list.allStylists'), 'All stylists')
   assert.equal(instance.t('dailyLog.list.serviceRevenue'), 'Service revenue')
   assert.equal(instance.t('dailyLog.list.completed'), 'Completed')
+  assert.equal(
+    instance.t('dailyLog.list.boundedRangeError'),
+    'Could not load the daily log. Check that both dates are set and the range has no more than 62 days and 500 entries.',
+  )
   assert.equal(formatLocalizedAmount(1234.5, 'en'), '1,234.50 KM')
 })
 
 test('filter values, reset defaults, callbacks and summary calculations remain intact', () => {
   const filters = sources['entry-filters.tsx']
   const stats = sources['entry-stats.tsx']
+  const dataHook = sources['use-daily-log-data.ts']
   const page = sources['../../pages/DailyLog.tsx']
 
   assert.match(
@@ -115,6 +125,8 @@ test('filter values, reset defaults, callbacks and summary calculations remain i
   assert.match(filters, /onClick=\{onReset\}/)
 
   assert.match(page, /onReset=\{data\.handleResetFilters\}/)
+  assert.match(dataHook, /setLoadError\(true\)/)
+  assert.match(page, /data\.loadError[\s\S]*dailyLog\.list\.boundedRangeError/)
   assert.match(page, /onFromDateChange=\{data\.setFromDate\}/)
   assert.match(page, /onStylistFilterChange=\{data\.setStylistFilter\}/)
   assert.match(page, /onIncludeDeletedChange=\{data\.setIncludeDeleted\}/)

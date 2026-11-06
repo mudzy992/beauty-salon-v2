@@ -1994,7 +1994,8 @@
       "includeDeleted": "Prikaži obrisane",
       "resetFilters": "Resetuj",
       "serviceRevenue": "Prihod od servisa",
-      "completed": "Kompletirano"
+      "completed": "Kompletirano",
+      "boundedRangeError": "Nije moguće učitati dnevnu knjigu. Provjerite oba datuma, opseg od najviše 62 dana i 500 zapisa."
     },
     "table": {
       "columns": {

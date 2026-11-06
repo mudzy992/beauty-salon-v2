@@ -80,6 +80,17 @@ export default function DailyLog() {
         onIncludeDeletedChange={data.setIncludeDeleted}
         onReset={data.handleResetFilters}
       />
+      {data.loadError ? (
+        <div
+          className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+          role="alert"
+        >
+          <span>{t('dailyLog.list.boundedRangeError')}</span>
+          <Button type="button" variant="outline" size="sm" onClick={data.loadData}>
+            {t('common.retry')}
+          </Button>
+        </div>
+      ) : null}
       <DailyLogEntryTable
         entries={data.entries}
         loading={data.loading}

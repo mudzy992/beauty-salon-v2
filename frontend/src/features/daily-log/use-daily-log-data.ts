@@ -12,6 +12,7 @@ export const useDailyLogData = () => {
   const initial = getCurrentMonthRange()
   const [entries, setEntries] = useState<DailyLogEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [fromDate, setFromDate] = useState(initial.fromDate)
   const [toDate, setToDate] = useState(initial.toDate)
   const [stylistFilter, setStylistFilter] = useState('')
@@ -44,6 +45,7 @@ export const useDailyLogData = () => {
 
   const loadData = useCallback(() => {
     setLoading(true)
+    setLoadError(false)
     const params: Record<string, string> = {}
     if (fromDate) params.fromDate = fromDate
     if (toDate) params.toDate = toDate
@@ -51,8 +53,14 @@ export const useDailyLogData = () => {
     if (includeDeleted) params.includeDeleted = '1'
     api
       .get<DailyLogEntry[]>('/api/daily-log', { params })
-      .then((r) => setEntries(Array.isArray(r.data) ? r.data : []))
-      .catch(() => setEntries([]))
+      .then((r) => {
+        setEntries(Array.isArray(r.data) ? r.data : [])
+        setLoadError(false)
+      })
+      .catch(() => {
+        setEntries([])
+        setLoadError(true)
+      })
       .finally(() => setLoading(false))
   }, [fromDate, toDate, stylistFilter, includeDeleted])
 
@@ -84,6 +92,7 @@ export const useDailyLogData = () => {
   return {
     entries,
     loading,
+    loadError,
     fromDate,
     setFromDate,
     toDate,

@@ -35,6 +35,9 @@ import { allocateDailyLogReferenceCode } from './daily-log.reference';
 import { DailyLogCompletionOutboxService } from './daily-log-completion-outbox.service';
 import { claimOpenClientDebt } from '../finance/utils/claim-open-client-debt';
 
+const DAILY_LOG_LIST_MAX_RANGE_DAYS = 62;
+const DAILY_LOG_LIST_MAX_RESULTS = 500;
+
 const parseDateOnlyInput = (value: string): Date => {
   try {
     return parseDateOnlyString(value);
@@ -678,24 +681,24 @@ export class DailyLogService {
       // standalone manual DEBT_PAYMENT rows appear as their own list items.
       OR: [{ kind: { not: 'DEBT_PAYMENT' } }, { sourceEntryId: null }],
     };
-    if (query.fromDate && query.toDate) {
-      try {
-        where.date = {
-          ...where.date,
-          ...getDateOnlyRangeBounds(query.fromDate, query.toDate),
-        };
-      } catch {
-        throw new BadRequestException('Datumski opseg nije validan.');
+    if (!query.fromDate || !query.toDate) {
+      throw new BadRequestException(
+        `Unesite početni i završni datum; opseg ne smije biti duži od ${DAILY_LOG_LIST_MAX_RANGE_DAYS} dana.`,
+      );
+    }
+    try {
+      const dateBounds = getDateOnlyRangeBounds(query.fromDate, query.toDate);
+      const rangeDays =
+        (dateBounds.lt.getTime() - dateBounds.gte.getTime()) / 86_400_000;
+      if (rangeDays > DAILY_LOG_LIST_MAX_RANGE_DAYS) {
+        throw new BadRequestException(
+          `Datumski opseg ne smije biti duži od ${DAILY_LOG_LIST_MAX_RANGE_DAYS} dana.`,
+        );
       }
-    } else if (query.fromDate) {
-      where.date = { ...where.date, gte: parseDateOnlyInput(query.fromDate) };
-    } else if (query.toDate) {
-      try {
-        const { lt } = getDateOnlyDayBounds(query.toDate);
-        where.date = { ...where.date, lt };
-      } catch {
-        throw new BadRequestException('Datum nije validan.');
-      }
+      where.date = dateBounds;
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException('Datumski opseg nije validan.');
     }
     if (query.stylistProfileId) {
       await this.ensureStylistOrAdmin(query.stylistProfileId, user);
@@ -705,11 +708,18 @@ export class DailyLogService {
     if (!includeDeleted) {
       where.deletedAt = null;
     }
-    return this.prisma.dailyLogEntry.findMany({
+    const entries = await this.prisma.dailyLogEntry.findMany({
       where,
       include: this.entryInclude(),
       orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+      take: DAILY_LOG_LIST_MAX_RESULTS + 1,
     });
+    if (entries.length > DAILY_LOG_LIST_MAX_RESULTS) {
+      throw new BadRequestException(
+        `Opseg sadrži više od ${DAILY_LOG_LIST_MAX_RESULTS} zapisa. Smanjite datumski opseg.`,
+      );
+    }
+    return entries;
   }
 
   async findOne(
