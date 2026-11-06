@@ -65,6 +65,7 @@
     "test:stylist-stats-i18n": "node --test src/features/stylist-portal/stylist-stats-i18n.test.mjs",
     "test:stylist-inbox-i18n": "node --test src/features/stylist-portal/stylist-inbox-i18n.test.mjs",
     "test:stylist-schedule-i18n": "node --test src/features/stylist-portal/stylist-schedule-i18n.test.mjs",
+    "test:stylist-schedule-accessibility": "node --test src/features/stylist-portal/stylist-schedule-accessibility.test.mjs",
     "test:stylist-direct-booking-i18n": "node --test src/features/stylist-portal/stylist-direct-booking-i18n.test.mjs",
     "test:stylist-direct-booking-accessibility": "node --test src/features/stylist-portal/stylist-direct-booking-accessibility.test.mjs",
     "test:stylist-direct-booking-recovery": "node --test src/features/stylist-portal/stylist-direct-booking-recovery.test.mjs",

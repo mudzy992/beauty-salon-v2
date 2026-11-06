@@ -320,6 +320,9 @@ jobs:
       - name: Test localized stylist schedule UI
         working-directory: frontend
         run: npm run test:stylist-schedule-i18n
+      - name: Test stylist schedule loading accessibility
+        working-directory: frontend
+        run: npm run test:stylist-schedule-accessibility
       - name: Test localized stylist direct-booking UI
         working-directory: frontend
         run: npm run test:stylist-direct-booking-i18n

@@ -122,13 +122,25 @@ export const StylistSchedulePage = () => {
             {t('stylistPortal.schedule.range', { from: formatDate(scheduleWindow.fromDate, locale), to: formatDate(scheduleWindow.toDate, locale) })}
           </p>
         </div>
-        <Button type="button" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          aria-busy={isFetching}
+        >
           {t('stylistPortal.schedule.refresh')}
         </Button>
         <Link to="/stylist/schedule/new">
           <Button type="button">{t('stylistPortal.schedule.directBooking')}</Button>
         </Link>
       </div>
+
+      {isFetching ? (
+        <p role="status" aria-live="polite" className="text-sm text-slate-500">
+          {t('common.loading')}
+        </p>
+      ) : null}
 
       {error ? (
         <Card className="flex flex-wrap items-center justify-between gap-2 p-4" role="alert">
