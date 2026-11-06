@@ -95,6 +95,8 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 
 **Initial subflow audit — `/usluge/:serviceId`:** the detail page already offered retry for service/gallery failures, but loading text was not announced, and requests could update the page after a service-route change. It now validates the service ID and gallery item/page metadata, announces loading states, hides the decorative empty-state icon from assistive technology, and guards service/gallery responses against superseded or unmounted requests. Source-contract tests are registered; browser layout, focus, and screen-reader behavior remain unverified.
 
+**Initial subflow audit — public blog comments (2026-11-06):** the comments section used a generic `div` rather than a heading, the comment textarea relied on placeholder text without an associated visible label, and initial/next-page loading text was not exposed as a status announcement. It now uses an `h2`, a visible localized label linked to the textarea, and polite status regions for both loading states. Three focused source-contract tests run in frontend CI; no mounted screen-reader/browser acceptance is claimed.
+
 ### Stylist web shell
 
 All routes are nested under the stylist guard/layout. `/stylist/profile` redirects to `/profil` rather than rendering a separate stylist page.

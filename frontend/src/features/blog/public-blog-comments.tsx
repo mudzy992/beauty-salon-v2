@@ -3,6 +3,7 @@ import { MessageCircle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../components/ui/button'
+import { Label } from '../../components/ui/label'
 import { Textarea } from '../../components/ui/textarea'
 
 type Comment = {
@@ -50,14 +51,17 @@ export function PublicBlogComments({
   return (
     <>
       <div className="my-10 h-px bg-slate-200" />
-      <div className="mb-6 flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-950">
+      <h2 className="mb-6 flex items-center gap-2 text-xl font-semibold tracking-tight text-slate-950">
         <MessageCircle className="h-5 w-5 text-slate-500" aria-hidden />
         {t('public.blogComments.title')} {total > 0 && `(${total})`}
-      </div>
+      </h2>
       {user ? (
         <div className="mb-8 space-y-4">
+          <Label htmlFor="public-blog-comment">
+            {t('public.blogComments.placeholder')}
+          </Label>
           <Textarea
-            placeholder={t('public.blogComments.placeholder')}
+            id="public-blog-comment"
             value={newComment}
             onChange={(e) => onChange(e.target.value)}
             rows={4}
@@ -78,7 +82,7 @@ export function PublicBlogComments({
         </div>
       )}
       {loading ? (
-        <div className="py-8 text-center text-slate-600">{t('common.loading')}</div>
+        <div role="status" aria-live="polite" className="py-8 text-center text-slate-600">{t('common.loading')}</div>
       ) : loadError && comments.length === 0 ? (
         <div role="alert" className="text-slate-600">
           <p>{t('public.blogComments.loadFailed')}</p>
@@ -123,6 +127,11 @@ export function PublicBlogComments({
               ? t('public.blogComments.loadingMore')
               : t('public.blogComments.loadMore')}
           </Button>
+          {loadingMore ? (
+            <span role="status" aria-live="polite" className="sr-only">
+              {t('public.blogComments.loadingMore')}
+            </span>
+          ) : null}
         </div>
       ) : null}
     </>
