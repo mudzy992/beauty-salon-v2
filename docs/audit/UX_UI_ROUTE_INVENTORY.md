@@ -58,7 +58,7 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 | `/admin/stylists` | `Stylists` |
 | `/admin/reservations` | `Reservations` |
 | `/admin/daily-log` | `DailyLog` |
-| `/admin/finance` | `Finance` | Source checks cover manual-income client labeling, shared table-loading status/error semantics, expense-upload recovery, KIF resync progress, and KIF/KUF book-opening progress; rendered finance flows remain unverified |
+| `/admin/finance` | `Finance` | Source checks cover manual-income client labeling, shared table-loading status/error semantics, expense-upload recovery, KIF resync progress, KIF/KUF book-opening progress, and KIF/KUF sort-direction semantics; rendered finance flows remain unverified |
 | `/admin/debtors` | Redirect to `/admin/finance?tab=debtors` |
 | `/admin/blog` | `Blog` |
 | `/admin/gallery` | `Gallery` |
@@ -86,6 +86,8 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 **KIF integrity resynchronization (2026-11-06):** the mutation disabled and animated the sync button but exposed no progress status. The panel now marks the action busy and announces localized progress separately from the integrity read's own retryable error. Two source-contract tests cover that distinction; the actual live reconciliation, rendered announcement, and screen-reader behavior remain unverified.
 
 **KIF/KUF month opening (2026-11-06):** while opening a book, the period button was disabled but the month/year selectors remained editable, so the visible period could diverge from the in-flight request. The shared picker now disables both selectors while pending, marks the open action busy, and announces loading. Two source-contract tests cover the pending state; server behavior, browser interaction, and actual announcements remain unverified.
+
+**KIF/KUF sortable tables (2026-11-06):** clickable sort headers showed a directional icon visually but did not expose the active direction to assistive technology. Each sortable column now sets `aria-sort` to the active ascending/descending direction, leaving inactive columns unset. Two source-contract checks cover both tables; actual screen-reader and browser behavior remain unverified.
 
 **Initial subflow audit — `/admin/reservations`:** a failed list request previously cleared rows and total, making a network/API failure look like a valid empty result. The page now distinguishes failure, announces loading/error states, provides localized retry, hides stale pagination during loading/error, and ignores out-of-order request completions including after effect cleanup. The desktop table also has a localized screen-reader caption and explicit column scopes. Focused source-contract tests cover these branches/semantics; they do not verify actual screen-reader announcements or browser layout.
 

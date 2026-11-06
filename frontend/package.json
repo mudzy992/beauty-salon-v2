@@ -99,6 +99,7 @@
     "test:finance-read-recovery": "node --test src/features/finance/read-recovery.test.mjs",
     "test:finance-integrity-resync-accessibility": "node --test src/features/finance/income/integrity-resync-accessibility.test.mjs",
     "test:finance-book-period-picker-accessibility": "node --test src/features/finance/components/book-period-picker-accessibility.test.mjs",
+    "test:finance-table-sort-accessibility": "node --test src/features/finance/table-sort-accessibility.test.mjs",
     "test:finance-client-picker-contract": "node --test src/features/finance/api/client-picker-contract.test.mjs",
     "test:admin-user-list-contract": "node --test src/api/admin-user-list-contract.test.mjs",
     "test:daily-log-client-picker-contract": "node --test src/features/daily-log/daily-log-client-picker-contract.test.mjs",

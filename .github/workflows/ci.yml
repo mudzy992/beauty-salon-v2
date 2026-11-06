@@ -383,6 +383,12 @@ jobs:
       - name: Test finance read failure and retry states
         working-directory: frontend
         run: npm run test:finance-read-recovery
+      - name: Test finance expense upload recovery
+        working-directory: frontend
+        run: npm run test:finance-expense-upload-recovery
+      - name: Test finance integrity resync accessibility
+        working-directory: frontend
+        run: npm run test:finance-integrity-resync-accessibility
       - name: Test finance client picker API contract
         working-directory: frontend
         run: npm run test:finance-client-picker-contract
@@ -410,6 +416,12 @@ jobs:
       - name: Test localized finance book navigation
         working-directory: frontend
         run: npm run test:finance-book-navigation-i18n
+      - name: Test finance book-period picker accessibility
+        working-directory: frontend
+        run: npm run test:finance-book-period-picker-accessibility
+      - name: Test finance sortable-table accessibility
+        working-directory: frontend
+        run: npm run test:finance-table-sort-accessibility
       - name: Test localized expense categories
         working-directory: frontend
         run: npm run test:finance-expense-categories-i18n

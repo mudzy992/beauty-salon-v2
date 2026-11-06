@@ -68,6 +68,13 @@ export function ExpenseTable({
                 <th
                   key={column.field}
                   scope="col"
+                  aria-sort={
+                    sortField === column.field
+                      ? sortDirection === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : undefined
+                  }
                   className={`py-2 pr-3 font-medium ${column.numeric ? 'text-right' : ''}`}
                 >
                   <button
