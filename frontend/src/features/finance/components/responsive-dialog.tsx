@@ -40,13 +40,13 @@ export function ResponsiveDialog({
           className="flex h-full w-full max-w-full flex-col gap-0 p-0"
         >
           <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
-            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">
+            <DialogTitle className="text-base font-semibold text-slate-900 dark:text-slate-50">
               {title}
-            </h2>
+            </DialogTitle>
             {description ? (
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <DialogDescription className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {description}
-              </p>
+              </DialogDescription>
             ) : null}
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-4">{children}</div>

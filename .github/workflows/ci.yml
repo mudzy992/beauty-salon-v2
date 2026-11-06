@@ -308,6 +308,9 @@ jobs:
       - name: Test finance data-state accessibility
         working-directory: frontend
         run: npm run test:finance-data-state-accessibility
+      - name: Test finance responsive-dialog accessibility
+        working-directory: frontend
+        run: npm run test:finance-responsive-dialog-accessibility
       - name: Test finance CSV and print-export safety
         working-directory: frontend
         run: npm run test:finance-export-safety
