@@ -8,59 +8,71 @@ import { getUploadUrl } from '../../utils/uploadUrl'
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider'
 import { Button } from '../../components/ui/button'
 import { publicHeader, publicPage } from '../../features/shell/public/public-ui'
+import {
+  parsePublicSatisfiedClientsPage,
+  type PublicSatisfiedClientsPair,
+} from '../../features/public-catalog/public-satisfied-clients-data.mjs'
 
 const MotionDiv = motion.div
 const PAGE_SIZE = 12
 
-interface BeforeAfterPair {
-  id: string
-  before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }
-  after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }
-}
-
 export default function PublicSatisfiedClients() {
   const { t } = useTranslation()
-  const [items, setItems] = useState<BeforeAfterPair[]>([])
+  const [items, setItems] = useState<PublicSatisfiedClientsPair[]>([])
   const [loadError, setLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [offset, setOffset] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const requestGeneration = useRef(0)
+  const requestInFlight = useRef(false)
+  const isMounted = useRef(false)
 
   const loadPage = useCallback(async (nextOffset: number, append: boolean) => {
+    if (!isMounted.current || requestInFlight.current) return
+    const generation = ++requestGeneration.current
+    requestInFlight.current = true
     setLoadError(false)
     if (nextOffset === 0) setLoading(true)
     else setLoadingMore(true)
     try {
-      const { data } = await api.get<{
-        items: BeforeAfterPair[]
-        hasMore: boolean
-        nextOffset: number
-      }>('/api/daily-log/before-after', {
+      const { data } = await api.get<unknown>('/api/daily-log/before-after', {
         params: { limit: PAGE_SIZE, offset: nextOffset },
       })
-      const list = Array.isArray(data?.items) ? data.items : []
-      setItems((prev) => (append ? [...prev, ...list] : list))
-      setHasMore(data?.hasMore ?? false)
-      setOffset(data?.nextOffset ?? nextOffset + list.length)
+      const page = parsePublicSatisfiedClientsPage(data, PAGE_SIZE, nextOffset)
+      if (generation !== requestGeneration.current) return
+      if (!page) throw new Error('Invalid public satisfied-clients response')
+      setItems((prev) => (append ? [...prev, ...page.items] : page.items))
+      setHasMore(page.hasMore)
+      setOffset(page.nextOffset)
     } catch {
+      if (generation !== requestGeneration.current) return
       setLoadError(true)
       setHasMore(false)
     } finally {
-      setLoading(false)
-      setLoadingMore(false)
+      if (generation === requestGeneration.current) {
+        requestInFlight.current = false
+        setLoading(false)
+        setLoadingMore(false)
+      }
     }
   }, [])
 
   useEffect(() => {
+    isMounted.current = true
     void loadPage(0, false)
+    return () => {
+      isMounted.current = false
+      requestGeneration.current += 1
+      requestInFlight.current = false
+    }
   }, [loadPage])
 
   useEffect(() => {
-    if (!hasMore || loadingMore) return
+    if (!hasMore || loading || loadingMore || loadError) return
     const el = sentinelRef.current
-    if (!el) return
+    if (!el || typeof IntersectionObserver === 'undefined') return
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) void loadPage(offset, true)
@@ -69,7 +81,7 @@ export default function PublicSatisfiedClients() {
     )
     observer.observe(el)
     return () => observer.disconnect()
-  }, [hasMore, loadingMore, offset, loadPage])
+  }, [hasMore, loading, loadingMore, loadError, offset, loadPage])
 
   return (
     <div className="py-12 sm:py-16 bg-white min-h-[60vh]">
@@ -83,7 +95,7 @@ export default function PublicSatisfiedClients() {
         </div>
 
         {loading && items.length === 0 ? (
-          <div className="py-16 text-center text-slate-600">
+          <div role="status" aria-live="polite" className="py-16 text-center text-slate-600">
             {t('public.satisfiedClients.loading')}
           </div>
         ) : items.length === 0 ? (
@@ -133,31 +145,42 @@ export default function PublicSatisfiedClients() {
                 </MotionDiv>
               ))}
             </div>
-            <div ref={sentinelRef} className="h-4 mt-8" />
             {loadError ? (
               <div className="py-4 text-center" role="alert">
                 <p className="text-slate-600">{t('public.satisfiedClients.loadFailed')}</p>
                 <Button
                   variant="outline"
                   className="mt-3"
-                  onClick={() => void loadPage(offset, true)}
+                  onClick={() => void loadPage(offset, items.length > 0)}
                 >
                   {t('public.satisfiedClients.retry')}
                 </Button>
               </div>
             ) : null}
             {loadingMore ? (
-              <div className="py-8 text-center text-slate-600">
+              <div role="status" aria-live="polite" className="sr-only">
                 {t('public.satisfiedClients.loadingMore')}
+              </div>
+            ) : null}
+            {hasMore ? (
+              <div className="mt-8 flex flex-col items-center gap-2">
+                <Button
+                  variant="outline"
+                  disabled={loadingMore}
+                  onClick={() => void loadPage(offset, true)}
+                >
+                  {t('public.satisfiedClients.loadMore')}
+                </Button>
+                <div ref={sentinelRef} aria-hidden="true" className="h-4 w-full" />
               </div>
             ) : null}
           </>
         )}
 
         <div className="text-center mt-10">
-          <Link to="/">
-            <Button variant="outline">{t('public.satisfiedClients.backHome')}</Button>
-          </Link>
+          <Button asChild variant="outline">
+            <Link to="/">{t('public.satisfiedClients.backHome')}</Link>
+          </Button>
         </div>
       </div>
     </div>

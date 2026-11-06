@@ -227,6 +227,9 @@ jobs:
       - name: Test public homepage featured review recovery
         working-directory: frontend
         run: npm run test:public-home-featured-review-recovery
+      - name: Test satisfied clients pagination and accessibility recovery
+        working-directory: frontend
+        run: npm run test:satisfied-clients-read-recovery
       - name: Test public gallery accessibility
         working-directory: frontend
         run: npm run test:public-gallery-accessibility
