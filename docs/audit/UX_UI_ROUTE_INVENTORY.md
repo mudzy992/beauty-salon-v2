@@ -58,7 +58,7 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 | `/admin/stylists` | `Stylists` |
 | `/admin/reservations` | `Reservations` |
 | `/admin/daily-log` | `DailyLog` |
-| `/admin/finance` | `Finance` | Source checks cover manual-income client labeling, shared table-loading status/error semantics, expense-upload recovery, and KIF resync progress; rendered finance flows remain unverified |
+| `/admin/finance` | `Finance` | Source checks cover manual-income client labeling, shared table-loading status/error semantics, expense-upload recovery, KIF resync progress, and KIF/KUF book-opening progress; rendered finance flows remain unverified |
 | `/admin/debtors` | Redirect to `/admin/finance?tab=debtors` |
 | `/admin/blog` | `Blog` |
 | `/admin/gallery` | `Gallery` |
@@ -84,6 +84,8 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 **Finance expense-attachment upload recovery (2026-11-06):** bulk selection used `Promise.all`, so a single rejected file made successful sibling uploads disappear from the pending list; overlapping uploads also shared a boolean busy flag that could report idle too early. Uploads now retain successful files while reporting a failed sibling, track concurrent upload count, invalidate stale UI completions when the expense dialog resets/closes, and announce upload progress. Three source-contract tests cover these branches. These checks do not verify live upload persistence or cleanup of server-side files whose results are intentionally ignored after dialog reset; no live upload/browser test was performed.
 
 **KIF integrity resynchronization (2026-11-06):** the mutation disabled and animated the sync button but exposed no progress status. The panel now marks the action busy and announces localized progress separately from the integrity read's own retryable error. Two source-contract tests cover that distinction; the actual live reconciliation, rendered announcement, and screen-reader behavior remain unverified.
+
+**KIF/KUF month opening (2026-11-06):** while opening a book, the period button was disabled but the month/year selectors remained editable, so the visible period could diverge from the in-flight request. The shared picker now disables both selectors while pending, marks the open action busy, and announces loading. Two source-contract tests cover the pending state; server behavior, browser interaction, and actual announcements remain unverified.
 
 **Initial subflow audit — `/admin/reservations`:** a failed list request previously cleared rows and total, making a network/API failure look like a valid empty result. The page now distinguishes failure, announces loading/error states, provides localized retry, hides stale pagination during loading/error, and ignores out-of-order request completions including after effect cleanup. The desktop table also has a localized screen-reader caption and explicit column scopes. Focused source-contract tests cover these branches/semantics; they do not verify actual screen-reader announcements or browser layout.
 

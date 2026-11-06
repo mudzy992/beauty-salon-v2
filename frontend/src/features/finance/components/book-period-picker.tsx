@@ -45,6 +45,7 @@ export function BookPeriodPicker({
           id="period-month"
           className={selectClass}
           value={month}
+          disabled={isPending}
           onChange={(event) => onMonthChange(Number(event.target.value))}
         >
           {Array.from({ length: 12 }, (_, index) => {
@@ -66,6 +67,7 @@ export function BookPeriodPicker({
           id="period-year"
           className={selectClass}
           value={year}
+          disabled={isPending}
           onChange={(event) => onYearChange(Number(event.target.value))}
         >
           {years.map((value) => (
@@ -75,9 +77,14 @@ export function BookPeriodPicker({
           ))}
         </select>
       </div>
-      <Button onClick={onOpen} disabled={isPending || isFuture}>
+      <Button onClick={onOpen} disabled={isPending || isFuture} aria-busy={isPending}>
         {openLabel}
       </Button>
+      {isPending ? (
+        <p role="status" aria-live="polite" className="text-xs text-slate-500">
+          {t('finance.states.loading')}
+        </p>
+      ) : null}
       {isFuture ? (
         <p className="text-xs text-amber-600 dark:text-amber-400">
           {t('finance.book.futureMonthCannotOpen')}
