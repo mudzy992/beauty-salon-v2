@@ -3,7 +3,7 @@
 **Status:** source review complete; RES-01 and RES-03 are implemented and CI-verified. RES-02 is deferred until the D-05 release-cycle gate passes.
 **Review date:** 2026-11-05  
 **Scope:** NestJS reservation API and lifecycle/availability services; web and mobile reservation list, create, cancellation, attendance, and reschedule consumers; current backend tests.  
-**Verification boundary:** source inspection and the listed tests only. No production database, production query plan, browser, physical-device, or load testing was performed.
+**Verification boundary:** source inspection and the listed tests only. The user reported on 2026-11-06 that the post-audit redeploy succeeded and the production app is working; this report was not independently verified. No production database/query-plan, browser, physical-device, live concurrency, or load testing was performed.
 
 ## Summary
 
@@ -25,7 +25,7 @@ The module has several strong controls already in place: creation is transaction
 
 **Impact:** any authenticated, authorized caller that uses the compatibility form can cause a complete matching result set (and its nested service/client/stylist data) to be loaded and returned. This is not a finding that current first-party clients are using that path.
 
-**Remediation / decision:** the repository's D-05 owner decision requires keeping the legacy array fallback for one full successful release cycle after consumer migration. Historical source map records 13/13 known consumers migrated; the owner reported a redeploy on 2026-11-04. On 2026-11-05 the user chose to respect this gate, so no silent cap or breaking response change is being made. Revisit only after the full cycle is confirmed; then remove the legacy array contract or introduce explicit continuation without silent truncation.
+**Remediation / decision:** the repository's D-05 owner decision requires keeping the legacy array fallback for one full successful release cycle after consumer migration. Historical source map records 13/13 known consumers migrated; the owner reported the redeploy on 2026-11-04 and confirmed on 2026-11-06 that it succeeded and the production app is working. On 2026-11-05 the user chose to respect the full-cycle gate, so no silent cap or breaking response change is being made. The latest confirmation verifies redeploy/app health by owner report, but does not establish that a full release cycle has elapsed. Revisit only after that full cycle is explicitly confirmed; then remove the legacy array contract or introduce explicit continuation without silent truncation.
 
 ### RES-03 — Multi-service selection limit was missing (P2, fixed with owner-approved cap of 10)
 
@@ -58,4 +58,5 @@ The module has several strong controls already in place: creation is transaction
 - 2026-11-05 — User decision: enforce a maximum of 10 services per reservation and keep RES-02's legacy array until the full D-05 release-cycle gate is confirmed.
 - 2026-11-05 — Focused backend command `npm test -- --runInBand reservation-service-limits availability.service`: 2 suites/22 tests passed. ESLint passed on the limit utility, its tests, and all three create DTOs.
 - 2026-11-05 — CI run `42110794961` passed: Prisma generation/schema validation, migration deployment to disposable CI PostgreSQL, backend build/unit tests, frontend production build, mobile checks, and repository hygiene checks.
-- Production, browser, physical-device, live concurrency, and load verification: **not performed**.
+- 2026-11-06 — User reports the post-audit redeploy succeeded and the production app is working. This is an owner report, not independently verified; it does not by itself confirm that one full D-05 release cycle has elapsed.
+- Production database/query-plan, browser, physical-device, live concurrency, and load verification: **not performed**.
