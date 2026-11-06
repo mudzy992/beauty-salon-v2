@@ -16,6 +16,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
 import { cssBackgroundImage, resolveRemoteMediaUrl } from '../../constants/media-fallback'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { parsePublicHomeBeforeAfter } from '../../features/public-catalog/public-home-before-after-data.mjs'
+import {
+  parsePublicHomeFeaturedReview,
+  type PublicHomeFeaturedReview,
+} from '../../features/public-catalog/public-home-featured-review-data.mjs'
 
 const MotionDiv = motion.div
 
@@ -23,15 +27,6 @@ interface BeforeAfterPair {
   id: string
   before: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }
   after: { pathOriginal: string; pathMedium?: string | null; pathThumb?: string | null }
-}
-
-interface FeaturedReview {
-  id: string
-  serviceRating: number
-  stylistRating: number | null
-  comment: string | null
-  user?: { firstName: string | null; lastName: string | null; avatar?: string | null }
-  service?: { name: string }
 }
 
 const getImageUrl = (path: string): string =>
@@ -50,10 +45,12 @@ const staggerContainer = {
 export default function PublicHome() {
   const { t } = useTranslation()
   const { getSetting } = useSettings()
+  const reviewsOn = isPublicFeatureOn(getSetting, 'public_feature_reviews')
   const [beforeAfterPairs, setBeforeAfterPairs] = useState<BeforeAfterPair[]>([])
   const [beforeAfterLoading, setBeforeAfterLoading] = useState(true)
   const [beforeAfterLoadError, setBeforeAfterLoadError] = useState(false)
-  const [featuredReview, setFeaturedReview] = useState<FeaturedReview | null>(null)
+  const [featuredReview, setFeaturedReview] = useState<PublicHomeFeaturedReview | null>(null)
+  const [featuredReviewLoading, setFeaturedReviewLoading] = useState(true)
   const [featuredReviewLoadError, setFeaturedReviewLoadError] = useState(false)
 
   const beforeAfterRequestGeneration = useRef(0)
@@ -87,20 +84,34 @@ export default function PublicHome() {
     }
   }, [loadBeforeAfter])
 
+  const featuredReviewRequestGeneration = useRef(0)
   const loadFeaturedReview = useCallback(async () => {
+    const generation = ++featuredReviewRequestGeneration.current
+    setFeaturedReviewLoading(true)
     setFeaturedReviewLoadError(false)
     try {
-      const { data } = await api.get<FeaturedReview | null>('/api/reviews/featured/random')
-      setFeaturedReview(data ?? null)
+      const { data } = await api.get<unknown>('/api/reviews/featured/random')
+      const review = parsePublicHomeFeaturedReview(data)
+      if (generation !== featuredReviewRequestGeneration.current) return
+      if (review === undefined) throw new Error('Invalid featured review response')
+      setFeaturedReview(review)
     } catch {
-      setFeaturedReview(null)
+      if (generation !== featuredReviewRequestGeneration.current) return
       setFeaturedReviewLoadError(true)
+    } finally {
+      if (generation === featuredReviewRequestGeneration.current) {
+        setFeaturedReviewLoading(false)
+      }
     }
   }, [])
 
   useEffect(() => {
+    if (!reviewsOn) return
     void loadFeaturedReview()
-  }, [loadFeaturedReview])
+    return () => {
+      featuredReviewRequestGeneration.current += 1
+    }
+  }, [loadFeaturedReview, reviewsOn])
 
   const heroImage = getSetting('public_hero_image', '')
   const heroTitle = getSetting('public_hero_title', t('public.home.heroTitleFallback'))
@@ -109,7 +120,6 @@ export default function PublicHome() {
     t('public.home.heroSubtitleFallback'),
   )
 
-  const reviewsOn = isPublicFeatureOn(getSetting, 'public_feature_reviews')
   const aboutImage = getSetting('public_about_image', '')
   const aboutTitle = getSetting('public_about_title', t('public.home.aboutTitleFallback'))
   const aboutText = getSetting('public_about_text', t('public.home.aboutTextFallback'))
@@ -290,57 +300,72 @@ export default function PublicHome() {
             />
           ) : null}
 
-          {reviewsOn && featuredReviewLoadError ? (
-            <div className="mt-8 text-center" role="alert">
-              <p className="text-slate-600">{t('public.home.featuredReviewLoadFailed')}</p>
-              <Button
-                variant="outline"
-                className="mt-3"
-                onClick={() => void loadFeaturedReview()}
-              >
-                {t('public.home.retry')}
-              </Button>
-            </div>
-          ) : null}
 
-          {reviewsOn && featuredReview ? (
-            <div className="mt-12 md:mt-16 max-w-2xl mx-auto">
-              <Card className="border-slate-200/80 shadow-soft rounded-2xl">
-                <CardContent className="p-6 sm:p-8">
-                  <div className="text-xs font-medium text-slate-500">
-                    {t('public.home.featuredReviewLabel')}
-                  </div>
-                  <div className="mt-2 text-lg font-semibold tracking-tight text-slate-950">
-                    {featuredReview.service?.name ?? t('public.home.serviceFallback')}
-                  </div>
-                  <div className="mt-3 text-slate-600 leading-relaxed whitespace-pre-wrap">
-                    {featuredReview.comment ?? ''}
-                  </div>
-                  {featuredReview.user ? (
-                    <div className="mt-4 flex items-center gap-3 text-sm text-slate-500">
-                      {featuredReview.user.avatar ? (
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage
-                            src={getImageUrl(featuredReview.user.avatar)}
-                            alt=""
-                          />
-                          <AvatarFallback>
-                            {`${featuredReview.user.firstName?.[0] ?? ''}${featuredReview.user.lastName?.[0] ?? ''}`}
-                          </AvatarFallback>
-                        </Avatar>
-                      ) : null}
-                      <span>
-                        {`${featuredReview.user.firstName ?? ''} ${featuredReview.user.lastName ?? ''}`.trim()}
-                      </span>
-                    </div>
-                  ) : null}
-                </CardContent>
-              </Card>
-            </div>
-          ) : null}
         </div>
       </section>
       )}
+
+      {reviewsOn && (featuredReviewLoading || featuredReviewLoadError || featuredReview) ? (
+        <section aria-labelledby="homepage-featured-review-heading" className="bg-white py-12 sm:py-16">
+          <div className={`${publicPage.container}`}>
+            <h2 id="homepage-featured-review-heading" className="sr-only">
+              {t('public.home.featuredReviewLabel')}
+            </h2>
+            {featuredReviewLoading ? (
+              <div role="status" aria-live="polite" className="mb-6 text-center text-slate-600">
+                {t('common.loading')}
+              </div>
+            ) : null}
+            {featuredReviewLoadError ? (
+              <div className="mb-6 text-center" role="alert">
+                <p className="text-slate-600">{t('public.home.featuredReviewLoadFailed')}</p>
+                <Button
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => void loadFeaturedReview()}
+                >
+                  {t('public.home.retry')}
+                </Button>
+              </div>
+            ) : null}
+            {featuredReview ? (
+              <div className="max-w-2xl mx-auto">
+                <Card className="border-slate-200/80 shadow-soft rounded-2xl">
+                  <CardContent className="p-6 sm:p-8">
+                    <div className="text-xs font-medium text-slate-500">
+                      {t('public.home.featuredReviewLabel')}
+                    </div>
+                    <div className="mt-2 text-lg font-semibold tracking-tight text-slate-950">
+                      {featuredReview.service?.name ?? t('public.home.serviceFallback')}
+                    </div>
+                    <div className="mt-3 text-slate-600 leading-relaxed whitespace-pre-wrap">
+                      {featuredReview.comment ?? ''}
+                    </div>
+                    {featuredReview.user ? (
+                      <div className="mt-4 flex items-center gap-3 text-sm text-slate-500">
+                        {featuredReview.user.avatar ? (
+                          <Avatar className="h-9 w-9">
+                            <AvatarImage
+                              src={getImageUrl(featuredReview.user.avatar)}
+                              alt=""
+                            />
+                            <AvatarFallback>
+                              {`${featuredReview.user.firstName?.[0] ?? ''}${featuredReview.user.lastName?.[0] ?? ''}`}
+                            </AvatarFallback>
+                          </Avatar>
+                        ) : null}
+                        <span>
+                          {`${featuredReview.user.firstName ?? ''} ${featuredReview.user.lastName ?? ''}`.trim()}
+                        </span>
+                      </div>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       <section className="relative overflow-hidden py-16 border-t border-slate-200/80 bg-slate-50/80">
         <Calendar

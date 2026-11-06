@@ -42,6 +42,7 @@
     "test:public-blog-share-accessibility": "node --test src/features/blog/public-blog-share-accessibility.test.mjs",
     "test:public-home-accessibility": "node --test src/features/public-catalog/public-home-accessibility.test.mjs",
     "test:public-home-before-after-recovery": "node --test src/features/public-catalog/public-home-before-after-data.test.mjs src/features/public-catalog/public-home-before-after-read-recovery.test.mjs",
+    "test:public-home-featured-review-recovery": "node --test src/features/public-catalog/public-home-featured-review-data.test.mjs src/features/public-catalog/public-home-featured-review-read-recovery.test.mjs",
     "test:public-blog-comments-accessibility": "node --test src/features/blog/public-blog-comments-accessibility.test.mjs",
     "test:public-blog-comments-read-recovery": "node --test src/features/blog/public-blog-comments-data.test.mjs src/features/blog/public-blog-comments-read-recovery.test.mjs",
     "test:public-blog-comments-submit": "node --test src/features/blog/public-blog-comments-submit.test.mjs",
