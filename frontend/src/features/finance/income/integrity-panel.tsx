@@ -84,7 +84,12 @@ export function IntegrityPanel({
           </div>
         </div>
         {report.missingCount > 0 && !report.isLocked ? (
-          <Button size="sm" onClick={onResync} disabled={isResyncing}>
+          <Button
+            size="sm"
+            onClick={onResync}
+            disabled={isResyncing}
+            aria-busy={isResyncing}
+          >
             <RefreshCw
               className={`mr-2 h-3.5 w-3.5 ${isResyncing ? 'animate-spin' : ''}`}
               aria-hidden="true"
@@ -93,6 +98,12 @@ export function IntegrityPanel({
           </Button>
         ) : null}
       </div>
+
+      {isResyncing ? (
+        <p role="status" aria-live="polite" className="mt-2 text-xs text-amber-800 dark:text-amber-300">
+          {t('finance.states.loading')}
+        </p>
+      ) : null}
 
       {report.missing.length > 0 ? (
         <ul className="mt-3 grid gap-1 text-xs text-amber-900 dark:text-amber-200">

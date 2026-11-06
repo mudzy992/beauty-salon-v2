@@ -97,6 +97,7 @@
     "test:finance-responsive-dialog-accessibility": "node --test src/features/finance/components/responsive-dialog-accessibility.test.mjs",
     "test:finance-export-safety": "node --test src/features/finance/export-safety.test.mjs",
     "test:finance-read-recovery": "node --test src/features/finance/read-recovery.test.mjs",
+    "test:finance-integrity-resync-accessibility": "node --test src/features/finance/income/integrity-resync-accessibility.test.mjs",
     "test:finance-client-picker-contract": "node --test src/features/finance/api/client-picker-contract.test.mjs",
     "test:admin-user-list-contract": "node --test src/api/admin-user-list-contract.test.mjs",
     "test:daily-log-client-picker-contract": "node --test src/features/daily-log/daily-log-client-picker-contract.test.mjs",
