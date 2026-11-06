@@ -182,6 +182,9 @@ jobs:
       - name: Test localized admin reservation calendar page
         working-directory: frontend
         run: npm run test:admin-reservations-calendar-i18n
+      - name: Test admin reservation drawer accessibility
+        working-directory: frontend
+        run: npm run test:admin-calendar-drawer-accessibility
       - name: Test localized admin reservation list filters
         working-directory: frontend
         run: npm run test:admin-reservations-list-filters-i18n

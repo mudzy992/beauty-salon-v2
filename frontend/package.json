@@ -20,6 +20,7 @@
     "test:public-reservation-accessibility": "node --test src/features/public-catalog/public-reservation-accessibility.test.mjs",
     "test:public-reservation-view-recovery": "node --test src/features/public-catalog/public-reservation-view-recovery.test.mjs",
     "test:admin-reservations-calendar-i18n": "node --test src/features/reservations/admin-reservations-calendar-i18n.test.mjs",
+    "test:admin-calendar-drawer-accessibility": "node --test src/features/reservations/admin-calendar-drawer-accessibility.test.mjs",
     "test:admin-reservations-list-filters-i18n": "node --test src/features/reservations/admin-reservations-list-filters-i18n.test.mjs",
     "test:admin-reservations-list-page-i18n": "node --test src/features/reservations/admin-reservations-list-page-i18n.test.mjs",
     "test:admin-reservation-details-i18n": "node --test src/features/reservations/admin-reservation-details-i18n.test.mjs",

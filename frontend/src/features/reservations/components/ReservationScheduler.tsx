@@ -21,6 +21,7 @@ import { fetchAllPublicServices } from '../../../api/catalog'
 import { getErrorMessage } from '../../../api/error'
 import { Button } from '../../../components/ui/button'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
+import { DialogDescription, DialogTitle } from '../../../components/ui/dialog'
 import { Input } from '../../../components/ui/input'
 import { Label } from '../../../components/ui/label'
 import { Textarea } from '../../../components/ui/textarea'
@@ -679,6 +680,16 @@ export const ReservationScheduler = (props: Props) => {
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DrawerContent side="right" className="flex flex-col">
           <div className="h-full overflow-y-auto p-5">
+            <DialogTitle className="mb-1 text-lg font-semibold text-slate-900 dark:text-slate-50">
+              {drawerMode === 'create'
+                ? t('reservations.calendar.create.title')
+                : activeReservation?.service?.name ?? t('reservations.calendar.details.appointment')}
+            </DialogTitle>
+            {drawerMode === 'create' ? (
+              <DialogDescription className="mb-4 text-xs text-slate-500">
+                {t('reservations.calendar.create.subtitle')}
+              </DialogDescription>
+            ) : null}
             {drawerMode === 'details' && activeReservation ? (
               <div className="space-y-4">
               <div>
@@ -917,13 +928,6 @@ export const ReservationScheduler = (props: Props) => {
 
             {drawerMode === 'create' ? (
               <div className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('reservations.calendar.create.title')}</p>
-                  <p className="text-xs text-slate-500">{t('reservations.calendar.create.subtitle')}</p>
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <Label>{t('reservations.calendar.create.bookingMode')}</Label>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">

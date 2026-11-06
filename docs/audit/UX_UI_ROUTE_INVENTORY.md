@@ -56,7 +56,7 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 | `/admin/services` | `Services` |
 | `/admin/services/:serviceId/work-gallery` | `ServiceWorkGallery` |
 | `/admin/stylists` | `Stylists` |
-| `/admin/reservations` | `Reservations` |
+| `/admin/reservations` | `Reservations` | Source check confirms calendar details/create drawer titles and create description are associated with their Radix dialog semantics; rendered behavior remains unverified |
 | `/admin/daily-log` | `DailyLog` |
 | `/admin/finance` | `Finance` | Source checks cover manual-income client labeling, shared table-loading status/error semantics, expense-upload recovery, KIF resync progress, KIF/KUF book-opening progress, and KIF/KUF sort-direction semantics; rendered finance flows remain unverified |
 | `/admin/debtors` | Redirect to `/admin/finance?tab=debtors` |
@@ -82,6 +82,8 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 **Finance confirmation dialogs (2026-11-06):** the confirm action could be activated repeatedly before React reflected the pending mutation, and pending feedback had no live status. `ConfirmDialog` now synchronously guards repeat activation until the controlled dialog closes, exposes pending busy state and a polite loading status, and retains the existing cancel/validation behavior. Two source-contract tests are registered in frontend CI; dialog focus and mounted mutation behavior remain unverified.
 
 **Daily-log mobile drawers (2026-11-06):** detail and create/edit drawers displayed headings as plain `h2` elements instead of the Radix `DialogTitle` primitive, leaving the dialog unnamed to assistive technology. Both now use `DialogTitle` for the visible title while desktop dialog semantics remain intact. Two source-contract tests are registered in frontend CI; focus, rendered naming, and screen-reader behavior remain unverified.
+
+**Admin reservation calendar drawer (2026-11-06):** its details/create drawer content had no Radix title association; create's visible title and subtitle were plain paragraphs. The drawer now exposes a dynamic `DialogTitle` for reservation details or creation and a `DialogDescription` for the create subtitle. Two source-contract tests are registered in frontend CI; browser focus and assistive-technology behavior remain unverified.
 
 **Finance expense-category fields audit (2026-11-06):** the category-field editor's new-field, field-type, line-role, and default-value labels were not programmatically associated with their controls. The section's decorative `Label` was also not connected to a control, so it is now a semantic heading. Controls now have `useId`-scoped IDs referenced by their labels; three source-contract tests are registered in frontend CI. The required checkbox already used a wrapping native label. No browser or assistive-technology verification was performed.
 
