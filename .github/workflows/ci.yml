@@ -239,6 +239,9 @@ jobs:
       - name: Test localized public blog post UI
         working-directory: frontend
         run: npm run test:public-blog-post-i18n
+      - name: Test public blog post response validation and recovery
+        working-directory: frontend
+        run: npm run test:public-blog-post-read-recovery
       - name: Test public blog comments accessibility
         working-directory: frontend
         run: npm run test:public-blog-comments-accessibility

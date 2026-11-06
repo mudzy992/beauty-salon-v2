@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Calendar } from 'lucide-react'
 
@@ -15,21 +15,10 @@ import { site } from '../../seo/site'
 import { PublicBlogComments } from '../../features/blog/public-blog-comments'
 import { buildPublicBlogPostSeo } from '../../features/blog/public-blog-post-seo'
 import { PublicBlogShare } from '../../features/blog/public-blog-share'
-
-interface BlogPost {
-  id: string
-  title: string
-  slug: string
-  content: string
-  excerpt?: string | null
-  seoTitle?: string | null
-  seoDescription?: string | null
-  heroImage?: string | null
-  ogImage?: string | null
-  noIndex?: boolean
-  publishedAt: string | null
-  updatedAt?: string | null
-}
+import {
+  parsePublicBlogPost,
+  type PublicBlogPost,
+} from '../../features/blog/public-blog-post-data.mjs'
 
 interface BlogComment {
   id: string
@@ -54,7 +43,7 @@ export default function PublicBlogPost() {
   const toast = useAppToast()
   const { user } = useAuth()
   const { t, i18n } = useTranslation()
-  const [post, setPost] = useState<BlogPost | null>(null)
+  const [post, setPost] = useState<PublicBlogPost | null>(null)
   const [loadError, setLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [comments, setComments] = useState<BlogComment[]>([])
@@ -68,18 +57,27 @@ export default function PublicBlogPost() {
   const [submitting, setSubmitting] = useState(false)
   const [shareCopied, setShareCopied] = useState(false)
 
-  const loadPost = useCallback(() => {
+  const postRequestGeneration = useRef(0)
+  const loadPost = useCallback(async () => {
     if (!slug) return
+    const generation = ++postRequestGeneration.current
     setLoading(true)
     setLoadError(false)
-    api
-      .get<BlogPost>(`/api/blog/slug/${slug}`)
-      .then((r) => setPost(r.data))
-      .catch(() => {
-        setPost(null)
-        setLoadError(true)
-      })
-      .finally(() => setLoading(false))
+    try {
+      const { data } = await api.get<unknown>(
+        `/api/blog/slug/${encodeURIComponent(slug)}`,
+      )
+      const validatedPost = parsePublicBlogPost(data, slug)
+      if (generation !== postRequestGeneration.current) return
+      if (!validatedPost) throw new Error('Invalid public blog post response')
+      setPost(validatedPost)
+    } catch {
+      if (generation !== postRequestGeneration.current) return
+      setPost(null)
+      setLoadError(true)
+    } finally {
+      if (generation === postRequestGeneration.current) setLoading(false)
+    }
   }, [slug])
 
   const loadComments = useCallback(async (offset = 0, append = false) => {
@@ -116,7 +114,12 @@ export default function PublicBlogPost() {
     }
   }, [post?.id])
 
-  useEffect(() => { loadPost() }, [loadPost])
+  useEffect(() => {
+    void loadPost()
+    return () => {
+      postRequestGeneration.current += 1
+    }
+  }, [loadPost])
   useEffect(() => { if (post?.id) loadComments() }, [post?.id, loadComments])
 
   const handleSubmitComment = async () => {
@@ -135,7 +138,11 @@ export default function PublicBlogPost() {
   }
 
   if (loading) {
-    return <div className="py-20 text-center text-slate-600">{t('common.loading')}</div>
+    return (
+      <div role="status" aria-live="polite" className="py-20 text-center text-slate-600">
+        {t('common.loading')}
+      </div>
+    )
   }
   if (!post) {
     return (
