@@ -1,8 +1,8 @@
 # Daily Log module audit
 
 - **Review date:** 2026-11-06
-- **Audited revision:** source inventory at `845f1b347a2afb155d2f811c0a0fe224c3f75f55`; remediation status recorded through `114013495c14eb6599373f67a7c0ae3f3788b9bf`.
-- **Status:** source review complete for the scoped API and current web/mobile consumers; DL-01–DL-04 are fixed in source and CI-verified; DL-05 remains open.
+- **Audited revision:** source inventory at `845f1b347a2afb155d2f811c0a0fe224c3f75f55`; remediation status recorded through `2bbb37ef3144b9badeec266bb1059a424f0ed233`.
+- **Status:** source review complete for the scoped API and current web/mobile consumers; DL-01–DL-05 are fixed in source and CI-verified.
 - **Scope:** `backend/src/daily-log/` controllers, DTOs, services and focused tests; directly connected upload access checks; web `features/daily-log` and `features/stylist-workbook` callers; mobile stylist daily-log list, create, detail, disposition and statistics callers.
 - **Verification boundary:** source inspection, focused DTO validation tests/lint, and the repository CI run listed below only. No production/shared database, live API, browser, physical-device, concurrency or load verification was performed.
 
@@ -10,7 +10,7 @@
 
 Several safeguards are present: a stylist can read/mutate only entries belonging to their own stylist profile; completion locks and re-reads the entry and commits its status, KIF entry, loyalty earning and durable completion outbox event together; debt settlement uses conditional debt claims and a transaction; a partial unique index prevents multiple SERVICE entries for one reservation; and the public before/after gallery requires active, purpose- and policy-version-matched consent before returning consent-file routes. Private upload reads separately enforce uploader/record relationship or privileged access.
 
-The source review also found missing class-validator metadata on request fields that current first-party clients send. That made manual entry creation and the disposition route reject otherwise valid requests under the global strict whitelist. The input-validation defect, split-write creation flow and future-restore scheduling/atomicity are fixed in source. The disposition partial-write window and future-restore scheduling/atomicity are fixed in source. The unbounded list read remains open.
+The source review also found missing class-validator metadata on request fields that current first-party clients send. That made manual entry creation and the disposition route reject otherwise valid requests under the global strict whitelist. The input-validation defect, split-write creation flow, disposition partial-write window, future-restore atomicity and unbounded list read are fixed in source.
 
 ## Findings
 
@@ -44,18 +44,22 @@ The source review also found missing class-validator metadata on request fields 
 - **Regression coverage:** `daily-log-restore.service.spec.ts` covers the transaction path and both service-item/link writes, failure before Daily Log relinking, and a concurrent restore that finds the source entry already restored. CI run `42183179155` passed all four jobs, including generated Prisma Client, backend build/unit and DB-backed HTTP suites. The failure-injection test is unit-level; no concurrent restore-vs-create test on disposable PostgreSQL was performed.
 - **Verification boundary:** source and unit/CI verification only. No production database or live concurrency test was performed.
 
-### DL-05 — Authenticated Daily Log list endpoint has no result bound (P2, open)
+### DL-05 — Authenticated Daily Log list endpoint had no result bound (P2, fixed in source and CI-verified)
 
-- **Evidence:** `DailyLogService.findAll()` in `backend/src/daily-log/daily-log.service.ts` applies optional date/stylist/deleted filters and calls `dailyLogEntry.findMany()` with no `take`, page contract or maximum date range. The relation include contains entry items, debt payments, client/stylist/reservation, images and upload metadata. Current web, mobile and workbook list/statistics callers generally send date windows, but the API permits both dates to be omitted; the web date filters can also be cleared.
-- **Impact:** an authorized caller can request an arbitrarily large matching history and its nested relations, growing database work, response size and client memory with retained history. First-party default date windows reduce routine exposure but do not bound the API contract. No production-volume or load test was performed.
-- **Acceptance direction:** inventory all array-response consumers and choose a compatible pagination or bounded-window rollout. If introducing a paginated envelope, migrate and test web/mobile/workbook/statistics consumers first; do not silently truncate the existing array response.
+- **Evidence before remediation:** `DailyLogService.findAll()` applied optional date/stylist/deleted filters and called `dailyLogEntry.findMany()` without `take` or a maximum date range. Its relation include contains service items, debt payments, client/stylist/reservation, images and upload metadata. The web admin filters can be cleared; mobile and workbook/statistics callers already pass bounded date windows.
+- **Impact:** an authorized caller could request an arbitrarily large matching history and its nested relations, growing database work, response size and client memory with retained history. This was a source-level risk; no production-volume or load test was performed.
+- **Fix:** commit `2bbb37e` uses the bounded-window rollout while preserving the existing array response for all current clients. Both `fromDate` and `toDate` are required, the inclusive range is capped at 62 days, and the query reads at most 501 rows for a 500-entry maximum. If a request exceeds either limit, the API returns a validation error rather than silently truncating results. The web admin displays a localized error and retry action; mobile/workbook/statistics consumers already send date windows within the bound.
+- **Regression coverage:** `daily-log-list-bounds.spec.ts` covers required bounds, the 62-day boundary, overlong ranges and rejection above 500 entries. The frontend list contract test checks localized failure copy and UI recovery. CI run `42189541594` passed all four jobs, including backend build/unit/DB-backed HTTP, frontend typecheck/build, mobile checks and repository checks.
+- **Verification boundary:** repository CI and source-level tests only. No production database, live API or load test was performed.
 
 ## Verification and remaining gates
 
 - 2026-11-06 — Confirmed before implementation that local branch, `origin/master`, and `origin/arena/657dba19-beauty-salon-v2` were aligned at `845f1b3`; no uncommitted changes existed.
+- 2026-11-06 — Before the DL-05 bounded-window slice, fetched `origin/master` and the active feature branch; both and local HEAD were aligned at `78949db`, with a clean worktree.
 - 2026-11-06 — DTO remediation committed/pushed as `9ae383b`; focused Jest (3/3), targeted ESLint and diff check passed; CI `42177289515` passed all four jobs.
 - 2026-11-06 — Atomic creation remediation committed/pushed as `3983336`; Prettier and diff checks passed. Local service Jest execution was blocked because the generated Prisma Client is absent (`.prisma/client/default`); CI generated Prisma Client and run `42181025320` passed all four jobs. No standalone DB rollback test was added for this slice.
 - 2026-11-06 — Future-restore atomicity remediation committed/pushed as `7421e55`, with a TypeScript nullability correction in `1140134`; Prettier and diff checks passed. The first CI build exposed the narrowing issue; final CI run `42183179155` passed all four jobs, including backend build/unit and DB-backed HTTP suites. Local Prisma Client generation was blocked by unavailable access to the Prisma binary host, so generated-client build/test verification was performed in CI.
 - 2026-11-06 — Disposition atomicity remediation committed/pushed as `8cafbea`; focused Prettier and diff checks passed; CI `42184689501` passed all four jobs, including backend build/unit and DB-backed HTTP suites. The remediation also aligned future restore lock ordering. No live concurrency test was performed.
+- 2026-11-06 — DL-05 bounded-window remediation committed/pushed as `2bbb37e`; backend Prettier, diff check and local locale JSON/key-parity checks passed. Local frontend test execution could not load the uninstalled `i18next` package; CI run `42189541594` passed all four jobs, including frontend daily-log i18n test, backend list-bound tests and builds. No load test was performed.
 - No production/shared database access, live HTTP, browser, physical-device, runtime concurrency or load verification was performed.
 - **Separate carried gate:** RES-02 in [`RESERVATIONS.md`](RESERVATIONS.md) remains intentionally deferred until one full successful release cycle after the owner-reported 2026-11-04 redeploy is confirmed. This Daily Log review did not alter the Reservations compatibility decision.
