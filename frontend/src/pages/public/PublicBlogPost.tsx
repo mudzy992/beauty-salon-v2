@@ -224,14 +224,14 @@ export default function PublicBlogPost() {
         jsonLd={seo.jsonLd}
       />
       <div className={publicPage.containerNarrow}>
-        <Link to="/blog" className="mb-6 inline-flex pt-8">
-          <Button variant="ghost" className="-ml-2">
+        <Button asChild variant="ghost" className="-ml-2 mb-6 pt-8">
+          <Link to="/blog">
             <span className="inline-flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" aria-hidden />
               {t('public.blogPost.backToBlog')}
             </span>
-          </Button>
-        </Link>
+          </Link>
+        </Button>
         <div className="relative min-h-[220px] overflow-hidden rounded-2xl border border-slate-200/80 shadow-soft md:min-h-[300px]">
           <MediaImage
             src={post.heroImage ? getUploadUrl(post.heroImage) : ''}

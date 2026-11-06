@@ -25,3 +25,9 @@ test('cancelling native share does not unexpectedly copy the link', () => {
   assert.match(postSource, /catch \(error\) \{\s*if \(error instanceof Error && error\.name === 'AbortError'\) return\s*\}/)
   assert.match(postSource, /await navigator\.share\([\s\S]*?\n    \}\n    await copyShareUrl\(\)/)
 })
+
+test('blog post back navigation renders a single anchor rather than a nested button', () => {
+  assert.match(postSource, /<Button asChild variant="ghost"[^>]*>\s*<Link to="\/blog">/)
+  assert.doesNotMatch(postSource, /<Link to="\/blog"[^>]*>\s*<Button/)
+  assert.match(postSource, /public\.blogPost\.backToBlog/)
+})
