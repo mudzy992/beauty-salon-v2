@@ -42,6 +42,8 @@ export default function Profile() {
   const usernameAvailabilityGeneration = useRef(0)
   const profileSaveGeneration = useRef(0)
   const profileSaveInFlight = useRef(false)
+  const avatarPrivacyGeneration = useRef(0)
+  const avatarPrivacyInFlight = useRef(false)
   const showApiError = (error: unknown, fallbackKey: string) => {
     const message = getErrorMessage(error, '')
     toast.error(t(resolveProfileApiErrorKey(message, fallbackKey)))
@@ -115,6 +117,8 @@ export default function Profile() {
   useEffect(() => () => {
     profileSaveGeneration.current += 1
     profileSaveInFlight.current = false
+    avatarPrivacyGeneration.current += 1
+    avatarPrivacyInFlight.current = false
   }, [])
 
   useEffect(() => {
@@ -203,7 +207,10 @@ export default function Profile() {
   }
 
   const handleAvatarVisibilityChange = async (nextValue: boolean) => {
+    if (avatarPrivacyInFlight.current || profileSaveInFlight.current) return
+    const generation = ++avatarPrivacyGeneration.current
     const previousValue = isAvatarPublic
+    avatarPrivacyInFlight.current = true
     setIsAvatarPublic(nextValue)
     setAvatarPrivacySaving(true)
     try {
@@ -211,23 +218,35 @@ export default function Profile() {
         '/api/users/profile/avatar-visibility',
         { isAvatarPublic: nextValue },
       )
-      setIsAvatarPublic(Boolean(data.isAvatarPublic))
-      setProfile((current) =>
-        current ? { ...current, isAvatarPublic: Boolean(data.isAvatarPublic) } : current,
-      )
+      const confirmedValue =
+        typeof data?.isAvatarPublic === 'boolean' ? data.isAvatarPublic : nextValue
       await refreshProfile()
-      toast.success(t(nextValue ? 'profile.toast.avatarMadePublic' : 'profile.toast.avatarMadePrivate'))
+      if (generation !== avatarPrivacyGeneration.current) return
+      setIsAvatarPublic(confirmedValue)
+      setProfile((current) =>
+        current ? { ...current, isAvatarPublic: confirmedValue } : current,
+      )
+      toast.success(t(confirmedValue ? 'profile.toast.avatarMadePublic' : 'profile.toast.avatarMadePrivate'))
     } catch (error: any) {
-      setIsAvatarPublic(previousValue)
-      showApiError(error, 'profile.errors.avatarVisibilityFailed')
+      if (generation === avatarPrivacyGeneration.current) {
+        setIsAvatarPublic(previousValue)
+        showApiError(error, 'profile.errors.avatarVisibilityFailed')
+      }
     } finally {
-      setAvatarPrivacySaving(false)
+      if (generation === avatarPrivacyGeneration.current) {
+        avatarPrivacyInFlight.current = false
+        setAvatarPrivacySaving(false)
+      }
     }
   }
 
   const handleSave = async (event: FormEvent) => {
     event.preventDefault()
-    if (profileSaveInFlight.current || !user?.sub) return
+    if (
+      profileSaveInFlight.current ||
+      avatarPrivacyInFlight.current ||
+      !user?.sub
+    ) return
 
     const isClient = (profile?.roles ?? []).includes('CLIENT')
     if (isClient && !gender) {
@@ -389,7 +408,7 @@ export default function Profile() {
                     <input
                       type="checkbox"
                       checked={isAvatarPublic}
-                      disabled={!avatar || avatarPrivacySaving}
+                      disabled={!avatar || avatarPrivacySaving || saving}
                       onChange={(event) =>
                         void handleAvatarVisibilityChange(event.target.checked)
                       }
@@ -401,6 +420,11 @@ export default function Profile() {
                         : t('profile.avatar.public')}
                     </span>
                   </label>
+                  {avatarPrivacySaving ? (
+                    <span role="status" aria-live="polite" className="sr-only">
+                      {t('common.saving')}
+                    </span>
+                  ) : null}
                   <p className="max-w-xs text-right text-xs leading-5 text-slate-500">
                     {t('profile.avatar.privacyDescription')}
                   </p>
@@ -612,6 +636,7 @@ export default function Profile() {
                   type="submit"
                   disabled={
                     saving ||
+                    avatarPrivacySaving ||
                     usernameStatus.loading ||
                     usernameStatus.available === false
                   }

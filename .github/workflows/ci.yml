@@ -218,6 +218,9 @@ jobs:
       - name: Test profile save accessibility and submission states
         working-directory: frontend
         run: npm run test:profile-save-accessibility
+      - name: Test profile avatar privacy mutation states
+        working-directory: frontend
+        run: npm run test:profile-avatar-privacy
       - name: Test localized public catalog UI
         working-directory: frontend
         run: npm run test:public-catalog-i18n
