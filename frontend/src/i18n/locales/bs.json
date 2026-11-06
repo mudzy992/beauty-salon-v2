@@ -494,7 +494,8 @@
       "checking": "Provjera korisničkog imena…",
       "current": "Ovo je vaše trenutno korisničko ime.",
       "available": "Korisničko ime je dostupno.",
-      "unavailable": "Korisničko ime nije dostupno."
+      "unavailable": "Korisničko ime nije dostupno.",
+      "checkFailed": "Nije moguće provjeriti dostupnost. Možete sačuvati profil; server će ponovo provjeriti korisničko ime."
     },
     "email": {
       "verified": "Verifikovan",

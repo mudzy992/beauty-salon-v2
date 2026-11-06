@@ -497,7 +497,8 @@
       "checking": "Checking username…",
       "current": "This is your current username.",
       "available": "Username is available.",
-      "unavailable": "Username is unavailable."
+      "unavailable": "Username is unavailable.",
+      "checkFailed": "Availability could not be checked. You can save your profile; the server will validate the username again."
     },
     "email": {
       "verified": "Verified",

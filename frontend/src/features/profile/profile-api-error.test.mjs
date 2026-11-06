@@ -56,6 +56,7 @@ test('profile, media-consent, error, and fallback keys exist in both web locales
     'users.validation.genderRequiredForClients',
     'users.errors.permissionDenied',
     'profile.errors.emailRequired',
+    'profile.username.checkFailed',
     'profile.errors.emailAlreadyVerified',
     'profile.errors.invalidVerificationCode',
     'profile.errors.avatarRequiredForPublic',
