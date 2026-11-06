@@ -248,6 +248,9 @@ jobs:
       - name: Test public blog comments response validation and recovery
         working-directory: frontend
         run: npm run test:public-blog-comments-read-recovery
+      - name: Test public blog comment submission accessibility and stale-request handling
+        working-directory: frontend
+        run: npm run test:public-blog-comments-submit
       - name: Test localized admin blog UI
         working-directory: frontend
         run: npm run test:admin-blog-i18n

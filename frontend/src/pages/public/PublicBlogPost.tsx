@@ -48,9 +48,14 @@ export default function PublicBlogPost() {
   const [shareCopied, setShareCopied] = useState(false)
 
   const postRequestGeneration = useRef(0)
+  const commentSubmissionGeneration = useRef(0)
+  const commentSubmissionInFlight = useRef(false)
   const loadPost = useCallback(async () => {
     if (!slug) return
     const generation = ++postRequestGeneration.current
+    commentSubmissionGeneration.current += 1
+    commentSubmissionInFlight.current = false
+    setSubmitting(false)
     setLoading(true)
     setLoadError(false)
     try {
@@ -117,8 +122,13 @@ export default function PublicBlogPost() {
     void loadPost()
     return () => {
       postRequestGeneration.current += 1
+      commentSubmissionGeneration.current += 1
+      commentSubmissionInFlight.current = false
     }
   }, [loadPost])
+  useEffect(() => {
+    setNewComment('')
+  }, [slug])
   useEffect(() => {
     if (!post?.id) return
     void loadComments()
@@ -128,17 +138,26 @@ export default function PublicBlogPost() {
   }, [post?.id, loadComments])
 
   const handleSubmitComment = async () => {
-    if (!post?.id || !newComment.trim()) return
+    const content = newComment.trim()
+    if (!post?.id || !content || commentSubmissionInFlight.current) return
+    const submittedPostId = post.id
+    const generation = ++commentSubmissionGeneration.current
+    commentSubmissionInFlight.current = true
     setSubmitting(true)
     try {
-      await api.post(`/api/blog/${post.id}/comments`, { content: newComment.trim() })
+      await api.post(`/api/blog/${submittedPostId}/comments`, { content })
+      if (generation !== commentSubmissionGeneration.current) return
       setNewComment('')
       void loadComments(0, false)
       toast.success(t('public.blogPost.commentSubmitted'))
     } catch {
+      if (generation !== commentSubmissionGeneration.current) return
       toast.error(t('public.blogPost.commentSubmitFailed'))
     } finally {
-      setSubmitting(false)
+      if (generation === commentSubmissionGeneration.current) {
+        commentSubmissionInFlight.current = false
+        setSubmitting(false)
+      }
     }
   }
 

@@ -68,9 +68,18 @@ export function PublicBlogComments({
             maxLength={2000}
             className="resize-y"
           />
-          <Button onClick={onSubmit} disabled={submitting || !newComment.trim()}>
+          <Button
+            onClick={onSubmit}
+            disabled={submitting || !newComment.trim()}
+            aria-busy={submitting}
+          >
             {submitting ? t('public.blogComments.submitting') : t('public.blogComments.submit')}
           </Button>
+          {submitting ? (
+            <span role="status" aria-live="polite" className="sr-only">
+              {t('public.blogComments.submitting')}
+            </span>
+          ) : null}
         </div>
       ) : (
         <div className="py-4 text-slate-600">
