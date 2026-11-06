@@ -1,8 +1,8 @@
 # Daily Log module audit
 
 - **Review date:** 2026-11-06
-- **Audited revision:** `9ae383baaa3fb6911b4d375b4961a08a6d0f32b1` for the DTO remediation; adjacent write/read-flow evidence was inspected at this revision.
-- **Status:** source review complete for the scoped API and current web/mobile consumers; DL-01 is fixed in source and CI-verified; DL-02–DL-05 remain open.
+- **Audited revision:** source inventory at `845f1b347a2afb155d2f811c0a0fe224c3f75f55`; remediation status recorded through `39833360d36505c0836c6e6b9a92907fac1bc64d`.
+- **Status:** source review complete for the scoped API and current web/mobile consumers; DL-01 and DL-02 are fixed in source and CI-verified; DL-03–DL-05 remain open.
 - **Scope:** `backend/src/daily-log/` controllers, DTOs, services and focused tests; directly connected upload access checks; web `features/daily-log` and `features/stylist-workbook` callers; mobile stylist daily-log list, create, detail, disposition and statistics callers.
 - **Verification boundary:** source inspection, focused DTO validation tests/lint, and the repository CI run listed below only. No production/shared database, live API, browser, physical-device, concurrency or load verification was performed.
 
@@ -10,7 +10,7 @@
 
 Several safeguards are present: a stylist can read/mutate only entries belonging to their own stylist profile; completion locks and re-reads the entry and commits its status, KIF entry, loyalty earning and durable completion outbox event together; debt settlement uses conditional debt claims and a transaction; a partial unique index prevents multiple SERVICE entries for one reservation; and the public before/after gallery requires active, purpose- and policy-version-matched consent before returning consent-file routes. Private upload reads separately enforce uploader/record relationship or privileged access.
 
-The source review also found missing class-validator metadata on request fields that current first-party clients send. That made manual entry creation and the disposition route reject otherwise valid requests under the global strict whitelist. This input-validation defect is fixed. The remaining findings concern partial writes, future restore scheduling, and unbounded list reads; they have not been changed in this slice.
+The source review also found missing class-validator metadata on request fields that current first-party clients send. That made manual entry creation and the disposition route reject otherwise valid requests under the global strict whitelist. The input-validation defect and the split-write creation flow are fixed in source. The remaining findings concern disposition atomicity, future restore scheduling, and unbounded list reads; they remain open.
 
 ## Findings
 
@@ -21,11 +21,12 @@ The source review also found missing class-validator metadata on request fields 
 - **Fix:** commit `9ae383b` adds `@IsOptional()` plus `@IsBoolean()` for `isManual` and `applyPenalty`, and `@IsInt()` plus `@Min(0)` for `sortOrder`. `backend/src/daily-log/dto/daily-log-input-validation.dto.spec.ts` exercises these bodies with the same strict whitelist/forbid settings, including invalid negative/fractional image ordering.
 - **Verification:** focused Jest suite passed (1 suite, 3 tests); targeted ESLint and `git diff --check` passed. CI run `42177289515` passed all four jobs, including generated Prisma/schema/migration checks on disposable CI PostgreSQL, backend build/unit/HTTP tests, frontend, mobile and repository checks.
 
-### DL-02 — Daily Log creation is split across independent writes (P2, open)
+### DL-02 — Daily Log creation was split across independent writes (P2, fixed in source and CI-verified)
 
-- **Evidence:** `DailyLogService.create()` creates the entry at `backend/src/daily-log/daily-log.service.ts` before separately creating service items, redeeming loyalty, recalculating the tip, optionally creating a debt, and settling selected debts. `createFromReservation()` similarly creates the entry, service-item rows, and optional debt in separate calls. The entire orchestration is not enclosed in one transaction; the selected-debt settlement has its own later transaction.
-- **Impact:** a later database/service failure can return an error after the parent entry (or some related records) has already committed. For reservation-linked creation, a retry can then be stopped by the one-SERVICE-per-reservation unique constraint, without resuming any missing child/side-effect writes. For manual creation, retry behavior is not protected by an idempotency key and could create another entry. These are failure-mode risks identified from source, not observed corrupt records or incidents.
-- **Acceptance direction:** add failure-injection tests proving rollback across parent/item/debt/KIF/loyalty state for both create paths, and make external notifications occur only after commit through a durable mechanism. Preserve the existing debt-claim and unique-index safeguards; do not treat a frontend retry alone as idempotency.
+- **Evidence before remediation:** `DailyLogService.create()` and `createFromReservation()` created the entry before separately writing service items, optional loyalty/debt effects, and selected-debt settlement.
+- **Fix:** commit `3983336` now runs both creation workflows in a single Prisma transaction. The entry, service-item rows, loyalty redemption, tip adjustment, debt creation, debt claims, debt-payment entries and KIF manual entries are all written using the same transaction client. `settleDebtsAndCreateLedgerEntries()` accepts an existing transaction client instead of opening a nested transaction. Debt notifications are sent only after commit.
+- **Regression coverage:** two focused service tests inject a child-item/debt failure and assert that creation and related writes use the transaction client and no debt notification is sent before a successful commit. CI run `42181025320` passed all four jobs, including generated Prisma Client, backend build/full unit and DB-backed HTTP suites, frontend, mobile and repository checks. These focused tests are unit/failure-injection tests; no dedicated disposable-PostgreSQL rollback scenario for these create paths was run.
+- **Residual:** manual creation still has no request idempotency key, so this change prevents partial database state but does not eliminate duplicate entries after an ambiguous network retry. Debt notifications are sent after commit but are not tied to a durable outbox event, so a process failure in the post-commit gap could omit the notification. No production incident/data corruption was observed or checked.
 
 ### DL-03 — Disposition soft-deletes the Daily Log entry separately from its reservation transition (P2, open)
 
@@ -49,5 +50,6 @@ The source review also found missing class-validator metadata on request fields 
 
 - 2026-11-06 — Confirmed before implementation that local branch, `origin/master`, and `origin/arena/657dba19-beauty-salon-v2` were aligned at `845f1b3`; no uncommitted changes existed.
 - 2026-11-06 — DTO remediation committed/pushed as `9ae383b`; focused Jest (3/3), targeted ESLint and diff check passed; CI `42177289515` passed all four jobs.
+- 2026-11-06 — Atomic creation remediation committed/pushed as `3983336`; Prettier and diff checks passed. Local service Jest execution was blocked because the generated Prisma Client is absent (`.prisma/client/default`); CI generated Prisma Client and run `42181025320` passed all four jobs. No standalone DB rollback test was added for this slice.
 - No production/shared database access, live HTTP, browser, physical-device, runtime concurrency or load verification was performed.
 - **Separate carried gate:** RES-02 in [`RESERVATIONS.md`](RESERVATIONS.md) remains intentionally deferred until one full successful release cycle after the owner-reported 2026-11-04 redeploy is confirmed. This Daily Log review did not alter the Reservations compatibility decision.
