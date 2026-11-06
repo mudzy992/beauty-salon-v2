@@ -643,8 +643,12 @@ export const WorkbookNewEntryDrawer = ({
       <DrawerContent side="right" className="flex flex-col">
         <div className="h-full overflow-y-auto p-5">
           <div className="mb-3">
-            <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistWorkbook.newEntry.title')}</p>
-            <p className="text-xs text-slate-500">{t('stylistWorkbook.newEntry.drawerDescription')}</p>
+            <DialogTitle className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+              {t('stylistWorkbook.newEntry.title')}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              {t('stylistWorkbook.newEntry.drawerDescription')}
+            </DialogDescription>
           </div>
           <WorkbookNewEntryForm mode="drawer" onClose={() => onOpenChange(false)} />
         </div>

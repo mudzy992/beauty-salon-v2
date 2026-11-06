@@ -156,7 +156,7 @@ All routes are nested under the stylist guard/layout. `/stylist/profile` redirec
 | `/stylist` | Redirect to `/stylist/inbox` |
 | `/stylist/inbox` | `StylistInboxPage` | Source check covers announced profile/list loading, busy refresh, and distinct retryable error/empty states; rendered behavior remains unverified |
 | `/stylist/workbook` | `WorkbookListPage` | Source checks cover announced profile/entry loading, busy refresh/retry, and retryable errors; rendered behavior remains unverified |
-| `/stylist/workbook/new` | `WorkbookNewEntryPage` |
+| `/stylist/workbook/new` | `WorkbookNewEntryPage` | Source checks cover keyboard-operable choices, labels, and the drawer's Radix title/description semantics; rendered behavior remains unverified |
 | `/stylist/workbook/reschedule-preview/:reservationId` | `WorkbookReschedulePreviewPage` | Stylist overrun now navigates directly to the route's single proposal read; focused source contract checks prevent duplicate requests; preview loading is announced with an accessible retry error; runtime proposal behavior remains unverified |
 | `/stylist/workbook/:entryId` | `WorkbookDetailPage` | Source checks cover announced loading and busy refresh; not-found/transient-error recovery remains source-only |
 | `/stylist/schedule` | `StylistSchedulePage` | Source check covers announced initial/refresh loading, distinct retryable error and empty states; rendered behavior remains unverified |
@@ -167,6 +167,8 @@ All routes are nested under the stylist guard/layout. `/stylist/profile` redirec
 | `/stylist/profile` | Redirect to `/profil` |
 
 **Initial subflow audit — `/stylist/workbook/new` (2026-11-06):** source review found that client/service suggestions were pointer-only clickable list items, form labels were not connected to the search/date/payment/notes/discount controls, and repeated service-removal buttons had no service-specific accessible name. Suggestions are now buttons usable by keyboard, service choices expose `aria-pressed`, labels target `useId`-scoped controls, and removal button names include the selected service. Three source-contract tests are registered in frontend CI; no mounted browser, keyboard flow, or assistive-technology acceptance is claimed.
+
+**Stylist workbook new-entry drawer (2026-11-06):** the drawer used visible title/description paragraphs without associating them with the Radix dialog primitive. The same visible copy now uses `DialogTitle`/`DialogDescription`, with two focused source-contract assertions added to frontend CI. Focus and screen-reader behavior remain unverified.
 
 **Stylist schedule load/refresh states (2026-11-06):** reservation loading after the stylist profile was resolved did not render an announced progress status and could look like an empty region. The schedule now announces the list request while independently preserving retryable errors and the valid empty state; its refresh action exposes `aria-busy`. Two source-contract tests are registered in frontend CI. No rendered, mounted-network, or screen-reader verification was performed.
 

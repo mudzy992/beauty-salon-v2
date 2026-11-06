@@ -64,6 +64,7 @@
     "test:stylist-workbook-reschedule-accessibility": "node --test src/features/stylist-workbook/workbook-reschedule-accessibility.test.mjs",
     "test:stylist-workbook-new-entry-i18n": "node --test src/features/stylist-workbook/workbook-new-entry-i18n.test.mjs",
     "test:stylist-workbook-new-entry-accessibility": "node --test src/features/stylist-workbook/workbook-new-entry-accessibility.test.mjs",
+    "test:stylist-workbook-new-entry-drawer-accessibility": "node --test src/features/stylist-workbook/workbook-new-entry-drawer-accessibility.test.mjs",
     "test:stylist-debts-i18n": "node --test src/features/stylist-portal/stylist-debts-i18n.test.mjs",
     "test:stylist-debts-accessibility": "node --test src/features/stylist-portal/stylist-debts-accessibility.test.mjs",
     "test:stylist-stats-i18n": "node --test src/features/stylist-portal/stylist-stats-i18n.test.mjs",
