@@ -73,7 +73,7 @@ export const AdminLayout = () => {
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <Drawer open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <DrawerContent className="p-5">
+              <DrawerContent id="admin-mobile-navigation" className="p-5">
                 <DialogTitle className="sr-only">{t('shell.adminMenu')}</DialogTitle>
                 <div className="flex h-full flex-col overflow-hidden">
                   <div className="flex items-center gap-2">
@@ -144,6 +144,7 @@ export const AdminLayout = () => {
             avatarSrc={adminAvatarSrc}
             initials={adminInitials}
             logout={logout}
+            mobileNavOpen={sidebarOpen}
             onOpenMobileNav={() => setSidebarOpen(true)}
           />
         </div>

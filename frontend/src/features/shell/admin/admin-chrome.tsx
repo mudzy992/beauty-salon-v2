@@ -58,6 +58,7 @@ type UserMenuProps = {
   avatarSrc: string
   initials: string
   logout: () => void
+  mobileNavOpen: boolean
   onOpenMobileNav: () => void
 }
 
@@ -67,6 +68,7 @@ export const AdminUserMenu = ({
   avatarSrc,
   initials,
   logout,
+  mobileNavOpen,
   onOpenMobileNav,
 }: UserMenuProps) => {
   const { t } = useTranslation()
@@ -76,6 +78,8 @@ export const AdminUserMenu = ({
       <button
         type="button"
         aria-label={t('shell.adminMenu')}
+        aria-expanded={mobileNavOpen}
+        aria-controls="admin-mobile-navigation"
         className="inline-flex items-center gap-2 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring lg:hidden"
         onClick={onOpenMobileNav}
       >

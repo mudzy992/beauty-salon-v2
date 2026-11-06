@@ -275,6 +275,8 @@ export const PublicLayout = () => {
             <Button
               type="button"
               aria-label={t('shell.mobileMenu')}
+              aria-expanded={mobileOpen}
+              aria-controls="public-mobile-navigation"
               variant="outline"
               size="icon"
               className="lg:hidden bg-white/80"
@@ -282,7 +284,7 @@ export const PublicLayout = () => {
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <DrawerContent className="p-5">
+            <DrawerContent id="public-mobile-navigation" className="p-5">
               <DialogTitle className="sr-only">{t('shell.mobileMenu')}</DialogTitle>
               <div className="h-full flex flex-col overflow-hidden">
                 <div className="flex items-center gap-2">
