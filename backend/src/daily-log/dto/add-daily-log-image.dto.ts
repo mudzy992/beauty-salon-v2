@@ -1,9 +1,11 @@
 import {
   IsBoolean,
+  IsInt,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
+  Min,
 } from 'class-validator';
 
 export class AddDailyLogImageDto {
@@ -24,5 +26,7 @@ export class AddDailyLogImageDto {
   description?: string;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
   sortOrder?: number;
 }

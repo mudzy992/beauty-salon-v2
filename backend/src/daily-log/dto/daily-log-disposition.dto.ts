@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsIn,
   IsOptional,
   IsString,
@@ -39,5 +40,6 @@ export class DailyLogDispositionDto {
   targetDate?: string;
 
   @IsOptional()
+  @IsBoolean()
   applyPenalty?: boolean;
 }

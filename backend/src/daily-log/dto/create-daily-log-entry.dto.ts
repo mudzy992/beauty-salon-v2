@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsDateString,
   IsIn,
   IsInt,
@@ -85,5 +86,6 @@ export class CreateDailyLogEntryDto {
   desiredLoyaltyPercent?: number;
 
   @IsOptional()
+  @IsBoolean()
   isManual?: boolean;
 }
