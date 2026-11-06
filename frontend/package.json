@@ -11,6 +11,7 @@
     "test:brand-colors": "node --test src/utils/brand-colors.test.mjs",
     "test:uploaded-brand-logo-security": "node --test src/components/brand/uploaded-brand-logo-security.test.mjs",
     "test:registration-errors": "node --test src/features/auth/registration-error.test.mjs",
+    "test:registration-accessibility": "node --test src/features/auth/registration-accessibility.test.mjs",
     "test:login-i18n": "node --test src/features/auth/login-i18n.test.mjs",
     "test:login-accessibility": "node --test src/features/auth/login-accessibility.test.mjs",
     "test:locale-formatting": "node --test src/i18n/locale-utils.test.mjs",

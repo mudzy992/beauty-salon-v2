@@ -1,4 +1,4 @@
-import { useState, useRef, FormEvent } from 'react'
+import { useEffect, useRef, useState, FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
@@ -30,12 +30,30 @@ export default function Register() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
+  const avatarPreviewUrl = useRef<string | null>(null)
+  const registrationRequestGeneration = useRef(0)
+  const registrationRequestInFlight = useRef(false)
+
+  useEffect(() => () => {
+    registrationRequestGeneration.current += 1
+    registrationRequestInFlight.current = false
+    if (avatarPreviewUrl.current) {
+      URL.revokeObjectURL(avatarPreviewUrl.current)
+    }
+  }, [])
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    e.currentTarget.value = ''
+    if (avatarPreviewUrl.current) {
+      URL.revokeObjectURL(avatarPreviewUrl.current)
+      avatarPreviewUrl.current = null
+    }
     if (file && file.type.startsWith('image/')) {
+      const previewUrl = URL.createObjectURL(file)
+      avatarPreviewUrl.current = previewUrl
       setAvatarFile(file)
-      setAvatarPreview(URL.createObjectURL(file))
+      setAvatarPreview(previewUrl)
     } else {
       setAvatarFile(null)
       setAvatarPreview(null)
@@ -45,6 +63,9 @@ export default function Register() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    if (registrationRequestInFlight.current) return
+    const generation = ++registrationRequestGeneration.current
+    registrationRequestInFlight.current = true
     setLoading(true)
     try {
       const formData = new FormData()
@@ -58,9 +79,11 @@ export default function Register() {
       await api.post('/auth/register', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      if (generation !== registrationRequestGeneration.current) return
       toast.success(t('public.registerSuccess'))
       navigate('/login', { replace: true })
     } catch (err: unknown) {
+      if (generation !== registrationRequestGeneration.current) return
       const response =
         err && typeof err === 'object' && 'response' in err
           ? (err as { response?: { data?: { message?: unknown } } }).response
@@ -69,7 +92,10 @@ export default function Register() {
         typeof response?.data?.message === 'string' ? response.data.message : null
       toast.error(t(getRegistrationErrorKey(responseMessage)))
     } finally {
-      setLoading(false)
+      if (generation === registrationRequestGeneration.current) {
+        registrationRequestInFlight.current = false
+        setLoading(false)
+      }
     }
   };
 
@@ -102,24 +128,30 @@ export default function Register() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-xl"
         >
-          <Link to="/" className="inline-flex mb-6">
-            <Button variant="ghost">{t('auth.backHome')}</Button>
-          </Link>
+          <Button asChild variant="ghost" className="mb-6">
+            <Link to="/">{t('auth.backHome')}</Link>
+          </Button>
 
           <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8">
-            <div className="text-2xl font-semibold text-slate-900">
+            <h1 className="text-2xl font-semibold text-slate-900">
               {t('auth.registerTitle')}
-            </div>
+            </h1>
             <div className="text-slate-500 mt-2 mb-8">
               {t('auth.registerPrompt')}
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-5"
+              aria-busy={loading}
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">{t('auth.firstName')}</Label>
                   <Input
                     id="firstName"
+                    autoComplete="given-name"
+                    required
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                   />
@@ -128,6 +160,8 @@ export default function Register() {
                   <Label htmlFor="lastName">{t('auth.lastName')}</Label>
                   <Input
                     id="lastName"
+                    autoComplete="family-name"
+                    required
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                   />
@@ -139,6 +173,7 @@ export default function Register() {
                 <Input
                   id="email"
                   type="email"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
@@ -150,6 +185,7 @@ export default function Register() {
                   <Label htmlFor="username">{t('auth.username')}</Label>
                   <Input
                     id="username"
+                    required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username"
@@ -160,6 +196,7 @@ export default function Register() {
                   <Input
                     id="phone"
                     type="tel"
+                    autoComplete="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                   />
@@ -171,14 +208,18 @@ export default function Register() {
                 <Input
                   id="password"
                   type="password"
+                  required
+                  minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="new-password"
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>{t('auth.avatarOptional')}</Label>
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium">
+                  {t('auth.avatarOptional')}
+                </legend>
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
@@ -215,11 +256,21 @@ export default function Register() {
                     ) : null}
                   </div>
                 </div>
-              </div>
+              </fieldset>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+                aria-busy={loading}
+              >
                 {loading ? t('common.loading') : t('auth.createAccount')}
               </Button>
+              {loading ? (
+                <span role="status" aria-live="polite" className="sr-only">
+                  {t('common.loading')}
+                </span>
+              ) : null}
             </form>
 
             <div className="mt-6 text-center text-slate-600">
