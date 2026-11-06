@@ -47,3 +47,11 @@ test('redesigned detail page retains admin-owned service imagery and locale-safe
   assert.match(source, /getIntlLocale\(i18n\.resolvedLanguage \|\| i18n\.language\)/)
   assert.match(source, /public\.serviceDetail\.galleryEyebrow/)
 })
+
+test('service detail links use a single interactive anchor and the unavailable page has a heading', () => {
+  assert.match(source, /<Button\s+asChild[\s\S]*?<Link\s+to=\{`\/rezervacija\?serviceId=/)
+  assert.match(source, /<Button asChild variant="outline">\s*<Link to="\/usluge">/)
+  assert.doesNotMatch(source, /<Link\s+to="\/usluge">\s*<Button/)
+  assert.doesNotMatch(source, /<Link\s+to=\{`\/rezervacija\?serviceId=\$\{encodeURIComponent\(service\.id\)\}`\}\s*>\s*<Button/)
+  assert.match(source, /<h1 className="text-2xl font-semibold text-slate-900 mb-2">\s*\{t\("public\.serviceDetail\.notFound"\)\}\s*<\/h1>/)
+})

@@ -276,17 +276,17 @@ export default function PublicServiceDetail() {
     return (
       <div className="py-16">
         <div className="mx-auto max-w-4xl px-4">
-          <div className="text-2xl font-semibold text-slate-900 mb-2">
+          <h1 className="text-2xl font-semibold text-slate-900 mb-2">
             {t("public.serviceDetail.notFound")}
-          </div>
-          <div className="text-slate-600 mb-6">
+          </h1>
+          <p className="text-slate-600 mb-6">
             {t("public.serviceDetail.notFoundHint")}
-          </div>
-          <Link to="/usluge">
-            <Button variant="outline">
+          </p>
+          <Button asChild variant="outline">
+            <Link to="/usluge">
               {t("public.serviceDetail.backToServices")}
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       </div>
     );
@@ -442,14 +442,17 @@ export default function PublicServiceDetail() {
                 </div>
                 <div className="mt-8 flex flex-wrap items-center gap-3">
                   {canBookService ? (
-                    <Link
-                      to={`/rezervacija?serviceId=${encodeURIComponent(service.id)}`}
+                    <Button
+                      asChild
+                      className="h-12 gap-2 rounded-full bg-[#49332d] px-6 text-white hover:bg-[#382722]"
                     >
-                      <Button className="h-12 gap-2 rounded-full bg-[#49332d] px-6 text-white hover:bg-[#382722]">
+                      <Link
+                        to={`/rezervacija?serviceId=${encodeURIComponent(service.id)}`}
+                      >
                         {t("public.serviceDetail.book")}
                         <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                   ) : null}
                   {salonPhone ? (
                     <a
