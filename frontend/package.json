@@ -62,6 +62,7 @@
     "test:stylist-workbook-new-entry-i18n": "node --test src/features/stylist-workbook/workbook-new-entry-i18n.test.mjs",
     "test:stylist-workbook-new-entry-accessibility": "node --test src/features/stylist-workbook/workbook-new-entry-accessibility.test.mjs",
     "test:stylist-debts-i18n": "node --test src/features/stylist-portal/stylist-debts-i18n.test.mjs",
+    "test:stylist-debts-accessibility": "node --test src/features/stylist-portal/stylist-debts-accessibility.test.mjs",
     "test:stylist-stats-i18n": "node --test src/features/stylist-portal/stylist-stats-i18n.test.mjs",
     "test:stylist-inbox-i18n": "node --test src/features/stylist-portal/stylist-inbox-i18n.test.mjs",
     "test:stylist-schedule-i18n": "node --test src/features/stylist-portal/stylist-schedule-i18n.test.mjs",

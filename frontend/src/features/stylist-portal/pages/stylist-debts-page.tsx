@@ -113,7 +113,9 @@ export const StylistDebtsPage = () => {
 
       <Card className="p-4">
         {query.isLoading ? (
-          <div className="text-sm text-slate-500">{t('common.loading')}</div>
+          <div role="status" aria-live="polite" className="text-sm text-slate-500">
+            {t('common.loading')}
+          </div>
         ) : query.isError ? (
           <div className="flex flex-wrap items-center justify-between gap-2" role="alert">
             <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.debts.loadFailed')}</p>
@@ -176,11 +178,16 @@ export const StylistDebtsPage = () => {
               <Input id="repayNote" value={repayNote} onChange={(e) => setRepayNote(e.target.value)} />
             </div>
           </div>
+          {repaying ? (
+            <p role="status" aria-live="polite" className="text-sm text-slate-500">
+              {t('common.loading')}
+            </p>
+          ) : null}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setRepayOpen(false)} disabled={repaying}>
               {t('common.cancel')}
             </Button>
-            <Button type="button" onClick={submitRepay} disabled={repaying}>
+            <Button type="button" onClick={submitRepay} disabled={repaying} aria-busy={repaying}>
               {t('stylistPortal.debts.confirmRepayment')}
             </Button>
           </DialogFooter>

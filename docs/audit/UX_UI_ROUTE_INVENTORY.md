@@ -156,13 +156,15 @@ All routes are nested under the stylist guard/layout. `/stylist/profile` redirec
 | `/stylist/schedule` | `StylistSchedulePage` | Source check covers announced initial/refresh loading, distinct retryable error and empty states; rendered behavior remains unverified |
 | `/stylist/schedule/new` | `StylistDirectBookingPage` | Source checks cover client/date/time/note labels, service-group legend, and pressed state for client/service choices; rendered interactions remain unverified |
 | `/stylist/schedule/:reservationId` | `StylistReservationDetailPage` |
-| `/stylist/debts` | `StylistDebtsPage` |
+| `/stylist/debts` | `StylistDebtsPage` | Source check covers announced read/repayment progress with distinct retryable failures and empty results; rendered behavior remains unverified |
 | `/stylist/stats` | `StylistStatsPage` |
 | `/stylist/profile` | Redirect to `/profil` |
 
 **Initial subflow audit — `/stylist/workbook/new` (2026-11-06):** source review found that client/service suggestions were pointer-only clickable list items, form labels were not connected to the search/date/payment/notes/discount controls, and repeated service-removal buttons had no service-specific accessible name. Suggestions are now buttons usable by keyboard, service choices expose `aria-pressed`, labels target `useId`-scoped controls, and removal button names include the selected service. Three source-contract tests are registered in frontend CI; no mounted browser, keyboard flow, or assistive-technology acceptance is claimed.
 
 **Stylist schedule load/refresh states (2026-11-06):** reservation loading after the stylist profile was resolved did not render an announced progress status and could look like an empty region. The schedule now announces the list request while independently preserving retryable errors and the valid empty state; its refresh action exposes `aria-busy`. Two source-contract tests are registered in frontend CI. No rendered, mounted-network, or screen-reader verification was performed.
+
+**Stylist debts read/repayment states (2026-11-06):** the initial query and repayment mutation showed plain text/button disabling without a live progress announcement. Both now expose polite status feedback, the repayment action declares `aria-busy`, and the existing retryable error and empty/search-empty states remain separate. Two source-contract tests are registered in frontend CI; no live debt API or rendered assistive-technology behavior was verified.
 
 ## Mobile Expo Router inventory
 
