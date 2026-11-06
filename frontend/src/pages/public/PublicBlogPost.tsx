@@ -19,22 +19,12 @@ import {
   parsePublicBlogPost,
   type PublicBlogPost,
 } from '../../features/blog/public-blog-post-data.mjs'
+import {
+  parsePublicBlogComments,
+  type PublicBlogComment,
+} from '../../features/blog/public-blog-comments-data.mjs'
 
-interface BlogComment {
-  id: string
-  content: string
-  createdAt: string
-  user: { firstName: string; lastName: string }
-}
-
-interface BlogCommentPage {
-  items: BlogComment[]
-  total: number
-  limit: number
-  offset: number
-  hasMore: boolean
-  nextOffset: number
-}
+type BlogComment = PublicBlogComment
 
 const COMMENT_PAGE_SIZE = 20
 
@@ -80,39 +70,48 @@ export default function PublicBlogPost() {
     }
   }, [slug])
 
+  const commentsRequestGeneration = useRef(0)
+  const commentsRetryRef = useRef({ offset: 0, append: false })
   const loadComments = useCallback(async (offset = 0, append = false) => {
     if (!post?.id) return
+    const generation = ++commentsRequestGeneration.current
+    commentsRetryRef.current = { offset, append }
     setCommentsLoadError(false)
     if (append) setCommentsLoadingMore(true)
     else setCommentsLoading(true)
     try {
-      const { data } = await api.get<BlogCommentPage | BlogComment[]>(
+      const { data } = await api.get<unknown>(
         `/api/blog/${post.id}/comments`,
         { params: { limit: COMMENT_PAGE_SIZE, offset } },
       )
-      const items = Array.isArray(data) ? data : data.items
-      setComments((current) => (append ? [...current, ...items] : items))
-      if (Array.isArray(data)) {
-        setCommentsTotal(items.length)
-        setCommentsHasMore(false)
-        setCommentsNextOffset(offset + items.length)
-      } else {
-        setCommentsTotal(data.total)
-        setCommentsHasMore(data.hasMore)
-        setCommentsNextOffset(data.nextOffset)
-      }
+      const page = parsePublicBlogComments(data, COMMENT_PAGE_SIZE, offset)
+      if (generation !== commentsRequestGeneration.current) return
+      if (!page) throw new Error('Invalid public blog comments response')
+      setComments((current) => (append ? [...current, ...page.items] : page.items))
+      setCommentsTotal(page.total)
+      setCommentsHasMore(page.hasMore)
+      setCommentsNextOffset(page.nextOffset)
     } catch {
+      if (generation !== commentsRequestGeneration.current) return
       setCommentsLoadError(true)
       if (!append) {
         setComments([])
         setCommentsTotal(0)
         setCommentsHasMore(false)
+        setCommentsNextOffset(0)
       }
     } finally {
-      setCommentsLoading(false)
-      setCommentsLoadingMore(false)
+      if (generation === commentsRequestGeneration.current) {
+        setCommentsLoading(false)
+        setCommentsLoadingMore(false)
+      }
     }
   }, [post?.id])
+
+  const retryComments = useCallback(() => {
+    const { offset, append } = commentsRetryRef.current
+    void loadComments(offset, append)
+  }, [loadComments])
 
   useEffect(() => {
     void loadPost()
@@ -120,7 +119,13 @@ export default function PublicBlogPost() {
       postRequestGeneration.current += 1
     }
   }, [loadPost])
-  useEffect(() => { if (post?.id) loadComments() }, [post?.id, loadComments])
+  useEffect(() => {
+    if (!post?.id) return
+    void loadComments()
+    return () => {
+      commentsRequestGeneration.current += 1
+    }
+  }, [post?.id, loadComments])
 
   const handleSubmitComment = async () => {
     if (!post?.id || !newComment.trim()) return
@@ -253,7 +258,7 @@ export default function PublicBlogPost() {
             submitting={submitting}
             onChange={setNewComment}
             onSubmit={() => void handleSubmitComment()}
-            onRetryComments={() => void loadComments()}
+            onRetryComments={retryComments}
             onLoadMore={() => void loadComments(commentsNextOffset, true)}
           />
         </div>
