@@ -73,6 +73,7 @@
     "test:stylist-direct-booking-recovery": "node --test src/features/stylist-portal/stylist-direct-booking-recovery.test.mjs",
     "test:stylist-reservation-detail-i18n": "node --test src/features/stylist-portal/stylist-reservation-detail-i18n.test.mjs",
     "test:stylist-reservation-detail-recovery": "node --test src/features/stylist-portal/stylist-reservation-detail-recovery.test.mjs",
+    "test:stylist-overrun-navigation": "node --test src/features/stylist-portal/stylist-overrun-navigation.test.mjs",
     "test:stylist-reservation-reason-dialogs-i18n": "node --test src/features/stylist-portal/stylist-reservation-reason-dialogs-i18n.test.mjs",
     "test:stylist-reservation-complete-dialog-i18n": "node --test src/features/stylist-portal/stylist-reservation-complete-dialog-i18n.test.mjs",
     "test:stylist-reservation-overrun-dialog-i18n": "node --test src/features/stylist-portal/stylist-reservation-overrun-dialog-i18n.test.mjs",

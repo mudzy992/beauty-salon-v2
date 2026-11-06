@@ -344,6 +344,9 @@ jobs:
       - name: Test stylist reservation detail read recovery
         working-directory: frontend
         run: npm run test:stylist-reservation-detail-recovery
+      - name: Test stylist overrun preview navigation
+        working-directory: frontend
+        run: npm run test:stylist-overrun-navigation
       - name: Test localized stylist reservation reason dialogs
         working-directory: frontend
         run: npm run test:stylist-reservation-reason-dialogs-i18n

@@ -4,7 +4,6 @@ import { formatLocalizedAmount } from '../../../i18n/locale-utils.mjs'
 import type { NavigateFunction } from 'react-router-dom'
 
 import { getErrorMessage } from '../../../api/error'
-import { proposeReschedule } from '../../stylist-workbook/api/stylist-workbook.api'
 import type { RescheduleMode } from '../../stylist-workbook/types'
 import type { CompleteReservationPayload } from '../components/complete-reservation-dialog'
 import type { Reservation } from '../types'
@@ -151,16 +150,6 @@ export const useReservationDetailActions = ({
   const handleOverrun = async (mode: RescheduleMode, manualShiftMinutes?: number) => {
     if (!reservation) return
     setOverrunOpen(false)
-    try {
-      await proposeReschedule({
-        reservationId: reservation.id,
-        includeBreaks: false,
-        mode,
-        manualShiftMinutes,
-      })
-    } catch (error) {
-      void error
-    }
     const params = new URLSearchParams({ mode, includeBreaks: '0' })
     if (typeof manualShiftMinutes === 'number') {
       params.set('manualShiftMinutes', String(manualShiftMinutes))
