@@ -139,12 +139,14 @@ export class DailyLogRestoreService {
       ? entry.items.map((i: { serviceId: string }) => i.serviceId)
       : [entry.serviceId].filter((s): s is string => !!s);
 
-    if (!entry.clientId) {
+    const clientId = entry.clientId;
+    if (!clientId) {
       throw new BadRequestException(
         'Zapis nema klijenta, nije moguće kreirati rezervaciju.',
       );
     }
-    if (!res.confirmedStylistId) {
+    const confirmedStylistId = res.confirmedStylistId;
+    if (!confirmedStylistId) {
       throw new BadRequestException(
         'Zapis nema stilista, nije moguće kreirati rezervaciju.',
       );
@@ -167,14 +169,14 @@ export class DailyLogRestoreService {
       await acquireReservationDayLock(tx, targetDate);
       await this.assertNoStylistConflict(
         tx,
-        res.confirmedStylistId!,
+        confirmedStylistId,
         targetDate,
         res.startTime,
         res.endTime,
       );
       await assertClientDayBookingAllowed({
         prisma: tx,
-        clientId: entry.clientId!,
+        clientId,
         reservationDate: targetDate,
         startTime: res.startTime,
         endTime: res.endTime,
@@ -190,7 +192,7 @@ export class DailyLogRestoreService {
 
       const newReservation = await tx.reservation.create({
         data: {
-          clientId: entry.clientId,
+          clientId,
           serviceId: serviceIds[0]!,
           reservationDate: targetDate,
           startTime: res.startTime,
@@ -200,7 +202,7 @@ export class DailyLogRestoreService {
           acceptanceMode: res.acceptanceMode as any,
           attendancePolicy: res.attendancePolicy as any,
           createdByUserId: user.sub,
-          confirmedStylistId: isDirect ? res.confirmedStylistId : null,
+          confirmedStylistId: isDirect ? confirmedStylistId : null,
           ...(isDirect && {
             attendanceWaivedAt: new Date(),
             attendanceWaivedByUserId: user.sub,
