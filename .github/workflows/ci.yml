@@ -221,6 +221,9 @@ jobs:
       - name: Test public homepage accessibility semantics
         working-directory: frontend
         run: npm run test:public-home-accessibility
+      - name: Test public homepage before/after recovery
+        working-directory: frontend
+        run: npm run test:public-home-before-after-recovery
       - name: Test public gallery accessibility
         working-directory: frontend
         run: npm run test:public-gallery-accessibility

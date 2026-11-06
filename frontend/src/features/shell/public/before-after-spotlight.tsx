@@ -176,7 +176,7 @@ export const BeforeAfterSpotlight = ({
 
   if (loading) {
     return (
-      <div className="py-12 text-center text-slate-600">
+      <div role="status" aria-live="polite" className="py-12 text-center text-slate-600">
         {loadingLabel ?? t('public.beforeAfter.loading')}
       </div>
     )

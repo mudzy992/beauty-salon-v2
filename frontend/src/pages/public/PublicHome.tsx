@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, Calendar, CheckCircle2, Clock, Star } from 'lucide-react'
@@ -15,6 +15,7 @@ import { MediaImage } from '../../components/media-image'
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
 import { cssBackgroundImage, resolveRemoteMediaUrl } from '../../constants/media-fallback'
 import { getUploadUrl } from '../../utils/uploadUrl'
+import { parsePublicHomeBeforeAfter } from '../../features/public-catalog/public-home-before-after-data.mjs'
 
 const MotionDiv = motion.div
 
@@ -55,25 +56,35 @@ export default function PublicHome() {
   const [featuredReview, setFeaturedReview] = useState<FeaturedReview | null>(null)
   const [featuredReviewLoadError, setFeaturedReviewLoadError] = useState(false)
 
+  const beforeAfterRequestGeneration = useRef(0)
   const loadBeforeAfter = useCallback(async () => {
+    const generation = ++beforeAfterRequestGeneration.current
     setBeforeAfterLoading(true)
     setBeforeAfterLoadError(false)
     try {
-      const { data } = await api.get<{ items: BeforeAfterPair[] }>(
+      const { data } = await api.get<unknown>(
         '/api/daily-log/before-after',
         { params: { limit: 6, random: 1 } },
       )
-      setBeforeAfterPairs(Array.isArray(data?.items) ? data.items : [])
+      const items = parsePublicHomeBeforeAfter(data)
+      if (generation !== beforeAfterRequestGeneration.current) return
+      if (!items) throw new Error('Invalid public before/after response')
+      setBeforeAfterPairs(items)
     } catch {
-      setBeforeAfterPairs([])
+      if (generation !== beforeAfterRequestGeneration.current) return
       setBeforeAfterLoadError(true)
     } finally {
-      setBeforeAfterLoading(false)
+      if (generation === beforeAfterRequestGeneration.current) {
+        setBeforeAfterLoading(false)
+      }
     }
   }, [])
 
   useEffect(() => {
     void loadBeforeAfter()
+    return () => {
+      beforeAfterRequestGeneration.current += 1
+    }
   }, [loadBeforeAfter])
 
   const loadFeaturedReview = useCallback(async () => {
@@ -263,7 +274,8 @@ export default function PublicHome() {
                 {t('public.home.retry')}
               </Button>
             </div>
-          ) : (
+          ) : null}
+          {!beforeAfterLoadError || beforeAfterPairs.length > 0 ? (
             <BeforeAfterSpotlight
               pairs={beforeAfterPairs}
               loading={beforeAfterLoading}
@@ -276,7 +288,7 @@ export default function PublicHome() {
                 getImageUrl(p.after.pathMedium ?? p.after.pathThumb ?? p.after.pathOriginal)
               }
             />
-          )}
+          ) : null}
 
           {reviewsOn && featuredReviewLoadError ? (
             <div className="mt-8 text-center" role="alert">
