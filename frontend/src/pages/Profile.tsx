@@ -40,6 +40,8 @@ export default function Profile() {
   const toast = useAppToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const usernameAvailabilityGeneration = useRef(0)
+  const profileSaveGeneration = useRef(0)
+  const profileSaveInFlight = useRef(false)
   const showApiError = (error: unknown, fallbackKey: string) => {
     const message = getErrorMessage(error, '')
     toast.error(t(resolveProfileApiErrorKey(message, fallbackKey)))
@@ -108,6 +110,11 @@ export default function Profile() {
 
   useEffect(() => {
     void loadProfile()
+  }, [])
+
+  useEffect(() => () => {
+    profileSaveGeneration.current += 1
+    profileSaveInFlight.current = false
   }, [])
 
   useEffect(() => {
@@ -220,7 +227,7 @@ export default function Profile() {
 
   const handleSave = async (event: FormEvent) => {
     event.preventDefault()
-    if (!user?.sub) return
+    if (profileSaveInFlight.current || !user?.sub) return
 
     const isClient = (profile?.roles ?? []).includes('CLIENT')
     if (isClient && !gender) {
@@ -231,11 +238,14 @@ export default function Profile() {
       toast.warning(t('users.validation.usernameRequired'))
       return
     }
+    if (usernameStatus.loading) return
     if (usernameStatus.available === false) {
       toast.warning(t('profile.username.unavailable'))
       return
     }
 
+    const generation = ++profileSaveGeneration.current
+    profileSaveInFlight.current = true
     setSaving(true)
     try {
       const hasEmailChanged = email.trim() !== initialEmail
@@ -248,26 +258,35 @@ export default function Profile() {
         gender: gender || null,
       })
       await refreshProfile()
-      await loadProfile()
-
+      let verificationCodeSent = false
       if (hasEmailChanged) {
         try {
           await api.post('/auth/send-verification-email')
-          toast.success(
-            t('profile.toast.updatedVerificationSent'),
-          )
+          verificationCodeSent = true
         } catch {
-          toast.warning(
-            t('profile.toast.updatedVerificationPending'),
-          )
+          verificationCodeSent = false
         }
+      }
+      if (generation !== profileSaveGeneration.current) return
+      await loadProfile()
+      if (generation !== profileSaveGeneration.current) return
+
+      if (hasEmailChanged && verificationCodeSent) {
+        toast.success(t('profile.toast.updatedVerificationSent'))
+      } else if (hasEmailChanged) {
+        toast.warning(t('profile.toast.updatedVerificationPending'))
       } else {
         toast.success(t('profile.toast.updated'))
       }
     } catch (error: any) {
-      showApiError(error, 'profile.errors.updateFailed')
+      if (generation === profileSaveGeneration.current) {
+        showApiError(error, 'profile.errors.updateFailed')
+      }
     } finally {
-      setSaving(false)
+      if (generation === profileSaveGeneration.current) {
+        profileSaveInFlight.current = false
+        setSaving(false)
+      }
     }
   }
 
@@ -401,7 +420,16 @@ export default function Profile() {
 
           <Card>
             <CardContent className="p-6">
-              <form onSubmit={handleSave} className="space-y-4">
+              {saving ? (
+                <span role="status" aria-live="polite" className="sr-only">
+                  {t('common.saving')}
+                </span>
+              ) : null}
+              <form
+                onSubmit={handleSave}
+                className="space-y-4"
+                aria-busy={saving}
+              >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="username">{t('users.username')}</Label>
@@ -587,6 +615,7 @@ export default function Profile() {
                     usernameStatus.loading ||
                     usernameStatus.available === false
                   }
+                  aria-busy={saving}
                 >
                   {saving ? t('common.saving') : t('profile.saveChanges')}
                 </Button>
