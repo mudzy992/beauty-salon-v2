@@ -151,7 +151,7 @@ All routes are nested under the stylist guard/layout. `/stylist/profile` redirec
 | `/stylist/inbox` | `StylistInboxPage` | Source check covers announced profile/list loading, busy refresh, and distinct retryable error/empty states; rendered behavior remains unverified |
 | `/stylist/workbook` | `WorkbookListPage` |
 | `/stylist/workbook/new` | `WorkbookNewEntryPage` |
-| `/stylist/workbook/reschedule-preview/:reservationId` | `WorkbookReschedulePreviewPage` | Stylist overrun now navigates directly to the route's single proposal read; focused source contract checks prevent duplicate requests; runtime proposal behavior remains unverified |
+| `/stylist/workbook/reschedule-preview/:reservationId` | `WorkbookReschedulePreviewPage` | Stylist overrun now navigates directly to the route's single proposal read; focused source contract checks prevent duplicate requests; preview loading is announced with an accessible retry error; runtime proposal behavior remains unverified |
 | `/stylist/workbook/:entryId` | `WorkbookDetailPage` |
 | `/stylist/schedule` | `StylistSchedulePage` | Source check covers announced initial/refresh loading, distinct retryable error and empty states; rendered behavior remains unverified |
 | `/stylist/schedule/new` | `StylistDirectBookingPage` | Source checks cover client/date/time/note labels, service-group legend, and pressed state for client/service choices; rendered interactions remain unverified |
@@ -171,6 +171,8 @@ All routes are nested under the stylist guard/layout. `/stylist/profile` redirec
 **Stylist reservation detail read recovery (2026-11-06):** a failed reservation GET was rendered as “not found” for every status, and initial detail loading was not announced. The route now announces loading, preserves 403/404 as unavailable, exposes retry/back for transient errors, and keeps previously loaded data visible if a later refresh fails. Two source-contract tests are registered in frontend CI; authenticated runtime behavior remains unverified.
 
 **Stylist overrun preview navigation (2026-11-06):** the detail action made and awaited a `POST /reschedule/propose`, discarded any error, then navigated to the preview route which made the same proposal call again. The detail action now navigates immediately; the preview route remains the single owner of proposal loading, visible failure, and retry. Two source-contract tests are registered in frontend CI; no live reschedule proposal/commit was tested.
+
+**Stylist reschedule preview loading (2026-11-06):** the preview's initial/retry calculation showed only a decorative spinner. It now exposes a polite live status with localized loading text, preserving the existing retry/back failure view. Two source-contract tests are registered in frontend CI; mounted behavior and real assistive-technology announcements remain unverified.
 
 ## Mobile Expo Router inventory
 
