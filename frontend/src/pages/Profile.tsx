@@ -87,6 +87,7 @@ export default function Profile() {
   const [sendingCode, setSendingCode] = useState(false)
   const [verifying, setVerifying] = useState(false)
   const [initialEmail, setInitialEmail] = useState('')
+  const emailHasUnsavedChanges = email.trim() !== initialEmail.trim()
 
   const loadProfile = async () => {
     setLoading(true)
@@ -117,6 +118,10 @@ export default function Profile() {
   useEffect(() => {
     void loadProfile()
   }, [])
+
+  useEffect(() => {
+    if (emailHasUnsavedChanges) setVerifyToken('')
+  }, [emailHasUnsavedChanges])
 
   useEffect(() => () => {
     profileSaveGeneration.current += 1
@@ -371,6 +376,7 @@ export default function Profile() {
       profileSaveInFlight.current ||
       avatarPrivacyInFlight.current ||
       avatarUploadInFlight.current ||
+      emailHasUnsavedChanges ||
       !email.trim()
     ) return
     const generation = ++emailVerificationGeneration.current
@@ -397,7 +403,9 @@ export default function Profile() {
       emailVerificationInFlight.current ||
       profileSaveInFlight.current ||
       avatarPrivacyInFlight.current ||
-      avatarUploadInFlight.current
+      avatarUploadInFlight.current ||
+      emailHasUnsavedChanges ||
+      !email.trim()
     ) return
     const token = verifyToken.trim()
     if (!/^\d{6}$/.test(token)) {
@@ -737,6 +745,7 @@ export default function Profile() {
                             saving ||
                             avatarPrivacySaving ||
                             uploadingAvatar ||
+                            emailHasUnsavedChanges ||
                             !email.trim()
                           }
                         >
@@ -758,7 +767,9 @@ export default function Profile() {
                             verifying ||
                             saving ||
                             avatarPrivacySaving ||
-                            uploadingAvatar
+                            uploadingAvatar ||
+                            emailHasUnsavedChanges ||
+                            !email.trim()
                           }
                           className="sm:max-w-[220px]"
                         />
@@ -772,6 +783,8 @@ export default function Profile() {
                             saving ||
                             avatarPrivacySaving ||
                             uploadingAvatar ||
+                            emailHasUnsavedChanges ||
+                            !email.trim() ||
                             !/^\d{6}$/.test(verifyToken.trim())
                           }
                         >

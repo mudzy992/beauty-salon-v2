@@ -6,11 +6,11 @@ const source = readFileSync(new URL('../../pages/Profile.tsx', import.meta.url),
 
 test('email verification code input exposes suitable mobile and autofill semantics', () => {
   assert.match(source, /<Input\s+aria-label=\{t\('profile\.email\.codePlaceholder'\)\}[\s\S]*?inputMode="numeric"[\s\S]*?autoComplete="one-time-code"[\s\S]*?maxLength=\{6\}[\s\S]*?pattern="\[0-9\]\{6\}"/)
-  assert.match(source, /disabled=\{\s*sendingCode \|\|\s*verifying \|\|\s*saving \|\|\s*avatarPrivacySaving \|\|\s*uploadingAvatar\s*\}/)
+  assert.match(source, /disabled=\{\s*sendingCode \|\|\s*verifying \|\|\s*saving \|\|\s*avatarPrivacySaving \|\|\s*uploadingAvatar \|\|\s*emailHasUnsavedChanges \|\|\s*!email\.trim\(\)\s*\}/)
   assert.ok(source.includes('!/^\\d{6}$/.test(verifyToken.trim())'))
 })
 
-test('email verification actions prevent duplicates, stale UI completion, and profile-save overlap', () => {
+test('email verification actions prevent duplicates, stale UI completion, and overlapping profile mutations', () => {
   assert.match(source, /const emailVerificationGeneration = useRef\(0\)/)
   assert.match(source, /const emailVerificationInFlight = useRef\(false\)/)
   assert.match(source, /emailVerificationGeneration\.current \+= 1[\s\S]*?emailVerificationInFlight\.current = false/)
@@ -35,9 +35,17 @@ test('verification sends only a trimmed six-digit token and refreshes account an
   assert.ok(mutationError > verifyRequest && refreshError > mutationError && refreshErrorFeedback > refreshError)
 })
 
-test('email send and verification requests announce progress and expose disabled actions', () => {
-  assert.match(source, /disabled=\{\s*sendingCode \|\|\s*verifying \|\|\s*saving \|\|\s*avatarPrivacySaving \|\|\s*uploadingAvatar \|\|\s*!email\.trim\(\)\s*\}/)
+test('email send and verification requests announce progress and disable actions while busy', () => {
+  assert.match(source, /disabled=\{\s*sendingCode \|\|\s*verifying \|\|\s*saving \|\|\s*avatarPrivacySaving \|\|\s*uploadingAvatar \|\|\s*emailHasUnsavedChanges \|\|\s*!email\.trim\(\)\s*\}/)
   assert.match(source, /role="status" aria-live="polite" className="sr-only">\s*\{t\(sendingCode \? 'profile\.email\.sendingCode' : 'profile\.email\.verifying'\)\}/)
   assert.match(source, /showApiError\(error, 'profile\.errors\.sendCodeFailed'\)/)
   assert.match(source, /showApiError\(error, 'profile\.errors\.verifyFailed'\)/)
+})
+
+test('verification is tied to the saved email address and clears codes for an unsaved address change', () => {
+  assert.match(source, /const emailHasUnsavedChanges = email\.trim\(\) !== initialEmail\.trim\(\)/)
+  assert.match(source, /if \(emailHasUnsavedChanges\) setVerifyToken\(''\)/)
+  assert.ok((source.match(/emailHasUnsavedChanges \|\|\s*!email\.trim\(\)/g) ?? []).length >= 2)
+  assert.match(source, /emailHasUnsavedChanges \|\|\s*!email\.trim\(\) \|\|/)
+  assert.match(source, /avatarPrivacySaving \|\|\s*uploadingAvatar \|\|\s*emailHasUnsavedChanges \|\|\s*!email\.trim\(\)/)
 })
