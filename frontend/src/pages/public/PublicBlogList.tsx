@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
@@ -10,26 +10,10 @@ import { cssBackgroundImage } from '../../constants/media-fallback'
 import { publicHeader, publicPage, publicPageHero } from '../../features/shell/public/public-ui'
 import { MediaImage } from '../../components/media-image'
 import { getUploadUrl } from '../../utils/uploadUrl'
-
-interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt?: string | null;
-  isPublished: boolean;
-  publishedAt: string | null;
-  createdAt: string;
-  heroImage?: string | null;
-}
-
-interface PublicBlogPage {
-  items: BlogPost[];
-  total: number;
-  limit: number;
-  offset: number;
-  hasMore: boolean;
-  nextOffset: number;
-}
+import {
+  parsePublicBlogListPage,
+  type PublicBlogListPost,
+} from '../../features/blog/public-blog-list-data.mjs'
 
 const PAGE_SIZE = 20
 const MotionDiv = motion.div
@@ -47,42 +31,47 @@ const fadeUp = {
 export default function PublicBlogList() {
   const { t, i18n } = useTranslation()
   const { getSetting } = useSettings()
-  const [posts, setPosts] = useState<BlogPost[]>([])
+  const [posts, setPosts] = useState<PublicBlogListPost[]>([])
   const [loadError, setLoadError] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [nextOffset, setNextOffset] = useState(0)
+  const requestGeneration = useRef(0)
 
   const loadPage = useCallback(async (offset: number, append: boolean) => {
+    const generation = ++requestGeneration.current
     setLoadError(false)
     if (append) setLoadingMore(true)
     else setLoading(true)
     try {
-      const { data } = await api.get<PublicBlogPage | BlogPost[]>('/api/blog', {
+      const { data } = await api.get<unknown>('/api/blog', {
         params: { limit: PAGE_SIZE, offset },
       })
-      const items = Array.isArray(data) ? data : data.items
-      setPosts((current) => (append ? [...current, ...items] : items))
-      if (Array.isArray(data)) {
-        setHasMore(false)
-        setNextOffset(offset + items.length)
-      } else {
-        setHasMore(data.hasMore)
-        setNextOffset(data.nextOffset)
-      }
+      const page = parsePublicBlogListPage(data, PAGE_SIZE, offset)
+      if (generation !== requestGeneration.current) return
+      if (!page) throw new Error('Invalid public blog list response')
+      setPosts((current) => (append ? [...current, ...page.items] : page.items))
+      setHasMore(page.hasMore)
+      setNextOffset(page.nextOffset)
     } catch {
+      if (generation !== requestGeneration.current) return
       if (!append) setPosts([])
       setLoadError(true)
       setHasMore(false)
     } finally {
-      setLoading(false)
-      setLoadingMore(false)
+      if (generation === requestGeneration.current) {
+        setLoading(false)
+        setLoadingMore(false)
+      }
     }
   }, [])
 
   useEffect(() => {
     void loadPage(0, false)
+    return () => {
+      requestGeneration.current += 1
+    }
   }, [loadPage])
 
   const blogBg = getSetting('public_blog_bg', '')
@@ -105,9 +94,12 @@ export default function PublicBlogList() {
         </div>
       </div>
 
-      <div className={`${publicPage.containerNarrow} ${publicPage.contentAfterHero}`}>
+      <div
+        className={`${publicPage.containerNarrow} ${publicPage.contentAfterHero}`}
+        aria-busy={loading || loadingMore}
+      >
         {loading ? (
-          <div className="py-20 text-center text-slate-600">
+          <div role="status" aria-live="polite" className="py-20 text-center text-slate-600">
             {t('public.blogList.loading')}
           </div>
         ) : posts.length === 0 ? (
@@ -147,16 +139,16 @@ export default function PublicBlogList() {
                       </div>
                       <div className="p-6">
                         <div className="flex items-center gap-2 text-slate-500 text-sm mb-3">
-                          <Calendar className="h-4 w-4" />
+                          <Calendar className="h-4 w-4" aria-hidden="true" />
                           <div>
                             {p.publishedAt
                               ? new Intl.DateTimeFormat(i18n.language).format(new Date(p.publishedAt))
                               : ''}
                           </div>
                         </div>
-                        <div className={`text-lg font-semibold text-slate-900 leading-snug ${p.excerpt ? 'mb-2' : 'mb-4'}`}>
+                        <h2 className={`text-lg font-semibold text-slate-900 leading-snug ${p.excerpt ? 'mb-2' : 'mb-4'}`}>
                           {p.title}
-                        </div>
+                        </h2>
                         {p.excerpt ? (
                           <p className="text-sm text-slate-600 mb-4 line-clamp-3">{p.excerpt}</p>
                         ) : null}
@@ -191,6 +183,11 @@ export default function PublicBlogList() {
                 >
                   {loadingMore ? t('public.blogList.loadingMore') : t('public.blogList.loadMore')}
                 </button>
+                {loadingMore ? (
+                  <span role="status" aria-live="polite" className="sr-only">
+                    {t('public.blogList.loadingMore')}
+                  </span>
+                ) : null}
               </div>
             ) : null}
           </>
