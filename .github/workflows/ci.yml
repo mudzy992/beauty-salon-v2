@@ -242,6 +242,9 @@ jobs:
       - name: Test localized stylist workbook new-entry UI
         working-directory: frontend
         run: npm run test:stylist-workbook-new-entry-i18n
+      - name: Test stylist workbook new-entry accessibility
+        working-directory: frontend
+        run: npm run test:stylist-workbook-new-entry-accessibility
       - name: Test localized stylist debt UI
         working-directory: frontend
         run: npm run test:stylist-debts-i18n

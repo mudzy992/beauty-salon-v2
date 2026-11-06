@@ -114,6 +114,8 @@ All routes are nested under the stylist guard/layout. `/stylist/profile` redirec
 | `/stylist/stats` | `StylistStatsPage` |
 | `/stylist/profile` | Redirect to `/profil` |
 
+**Initial subflow audit — `/stylist/workbook/new` (2026-11-06):** source review found that client/service suggestions were pointer-only clickable list items, form labels were not connected to the search/date/payment/notes/discount controls, and repeated service-removal buttons had no service-specific accessible name. Suggestions are now buttons usable by keyboard, service choices expose `aria-pressed`, labels target `useId`-scoped controls, and removal button names include the selected service. Three source-contract tests are registered in frontend CI; no mounted browser, keyboard flow, or assistive-technology acceptance is claimed.
+
 ## Mobile Expo Router inventory
 
 The app currently has 50 non-test `.tsx` files under `mobile/app` (route screens, layouts, and the React Navigation wrapper), 56 non-test source files under `mobile/src/screens`, and 13 non-test source files under `mobile/src/components`. Counts describe source files, not unique visual screens. Route families:

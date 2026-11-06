@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Loader2, Search } from 'lucide-react'
@@ -35,6 +35,13 @@ export const WorkbookNewEntryForm = ({
   onClose?: () => void
 }) => {
   const { t, i18n } = useTranslation()
+  const formId = useId()
+  const clientSearchId = `${formId}-client-search`
+  const serviceSearchId = `${formId}-service-search`
+  const dateId = `${formId}-date`
+  const paidAmountId = `${formId}-paid-amount`
+  const notesId = `${formId}-notes`
+  const discountPercentId = `${formId}-discount-percent`
   const locale = getIntlLocale(i18n.language)
   const navigate = useNavigate()
   const { warning, success, toastApiError } = useAppToast()
@@ -318,10 +325,11 @@ export const WorkbookNewEntryForm = ({
 
       <div className="space-y-4">
         <Card className="p-4">
-          <Label>{t('stylistWorkbook.newEntry.client')}</Label>
+          <Label htmlFor={clientSearchId}>{t('stylistWorkbook.newEntry.client')}</Label>
           <div ref={clientDropdownRef} className="relative mt-2">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
             <Input
+              id={clientSearchId}
               value={clientSearch}
               placeholder={t('stylistWorkbook.newEntry.searchClient')}
               className="pl-9"
@@ -335,14 +343,16 @@ export const WorkbookNewEntryForm = ({
             {showClientDropdown && filteredClients.length > 0 ? (
               <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
                 {filteredClients.map((c) => (
-                  <li
-                    key={c.id}
-                    className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
-                    onMouseDown={(ev) => ev.preventDefault()}
-                    onClick={() => handleSelectClient(c)}
-                  >
-                    <p className="text-sm">{[c.firstName, c.lastName].filter(Boolean).join(' ') || c.username}</p>
-                    <p className="text-xs text-slate-500">{c.username}</p>
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      className="w-full px-3 py-2 text-left hover:bg-brand-champagne/20"
+                      onMouseDown={(ev) => ev.preventDefault()}
+                      onClick={() => handleSelectClient(c)}
+                    >
+                      <p className="text-sm">{[c.firstName, c.lastName].filter(Boolean).join(' ') || c.username}</p>
+                      <p className="text-xs text-slate-500">{c.username}</p>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -356,7 +366,7 @@ export const WorkbookNewEntryForm = ({
         </Card>
 
         <Card className="p-4">
-          <Label>{t('stylistWorkbook.newEntry.service')}</Label>
+          <Label htmlFor={serviceSearchId}>{t('stylistWorkbook.newEntry.service')}</Label>
           {!selectedClient ? (
             <p className="mt-1 text-xs text-slate-500">{t('stylistWorkbook.newEntry.selectClientForServices')}</p>
           ) : !selectedClient.gender ? (
@@ -365,6 +375,7 @@ export const WorkbookNewEntryForm = ({
           <div ref={serviceDropdownRef} className="relative mt-2">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
             <Input
+              id={serviceSearchId}
               value={serviceSearch}
               disabled={!selectedClient || !selectedClient.gender}
               placeholder={!selectedClient ? t('stylistWorkbook.newEntry.selectClient') : t('stylistWorkbook.newEntry.searchService')}
@@ -378,16 +389,19 @@ export const WorkbookNewEntryForm = ({
             {showServiceDropdown && filteredServices.length > 0 ? (
               <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
                 {filteredServices.map((svc) => (
-                  <li
-                    key={svc.id}
-                    className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
-                    onMouseDown={(ev) => ev.preventDefault()}
-                    onClick={() => toggleService(svc)}
-                  >
-                    <div className="flex justify-between gap-2 text-sm">
-                      <span>{svc.name}</span>
-                      <span className="text-slate-500">{formatKm(Number(svc.price), locale)}</span>
-                    </div>
+                  <li key={svc.id}>
+                    <button
+                      type="button"
+                      className="w-full px-3 py-2 text-left hover:bg-brand-champagne/20"
+                      onMouseDown={(ev) => ev.preventDefault()}
+                      onClick={() => toggleService(svc)}
+                      aria-pressed={serviceIds.includes(svc.id)}
+                    >
+                      <span className="flex justify-between gap-2 text-sm">
+                        <span>{svc.name}</span>
+                        <span className="text-slate-500">{formatKm(Number(svc.price), locale)}</span>
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -404,7 +418,13 @@ export const WorkbookNewEntryForm = ({
                     <div className="font-semibold text-slate-900 dark:text-slate-50">{s.name}</div>
                     <div className="text-xs text-slate-500">{formatKm(Number(s.price), locale)}</div>
                   </div>
-                  <Button type="button" variant="outline" size="sm" onClick={() => toggleService(s)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleService(s)}
+                    aria-label={`${t('common.delete')}: ${s.name}`}
+                  >
                     {t('common.delete')}
                   </Button>
                 </div>
@@ -415,13 +435,14 @@ export const WorkbookNewEntryForm = ({
 
         <Card className="p-4 space-y-3">
           <div>
-            <Label>{t('stylistWorkbook.newEntry.date')}</Label>
-            <Input type="date" className="mt-2 max-w-[220px]" value={date} onChange={(e) => setDate(e.target.value)} />
+            <Label htmlFor={dateId}>{t('stylistWorkbook.newEntry.date')}</Label>
+            <Input id={dateId} type="date" className="mt-2 max-w-[220px]" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
 
           <div>
-            <Label>{t('stylistWorkbook.newEntry.paidAmount')}</Label>
+            <Label htmlFor={paidAmountId}>{t('stylistWorkbook.newEntry.paidAmount')}</Label>
             <Input
+              id={paidAmountId}
               className="mt-2 max-w-[220px]"
               value={paidAmount}
               placeholder={formatLocalizedNumber(chargeAmount, locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -437,8 +458,8 @@ export const WorkbookNewEntryForm = ({
           </div>
 
           <div>
-            <Label>{t('stylistWorkbook.newEntry.notesOptional')}</Label>
-            <Textarea className="mt-2" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+            <Label htmlFor={notesId}>{t('stylistWorkbook.newEntry.notesOptional')}</Label>
+            <Textarea id={notesId} className="mt-2" value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
           </div>
         </Card>
 
@@ -459,8 +480,9 @@ export const WorkbookNewEntryForm = ({
 
           {loyaltyInfo?.enabled && loyaltyInfo?.hasAccount && loyaltyInfo?.redeemEnabled && loyaltyInfo?.service ? (
             <div className="mt-3">
-              <Label>{t('stylistWorkbook.newEntry.discountPercent')}</Label>
+              <Label htmlFor={discountPercentId}>{t('stylistWorkbook.newEntry.discountPercent')}</Label>
               <Input
+                id={discountPercentId}
                 type="number"
                 className="mt-2 max-w-[140px]"
                 min={0}
