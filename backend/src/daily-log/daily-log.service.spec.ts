@@ -15,7 +15,8 @@ const mockPrisma = {
   $transaction: jest.fn(),
   $queryRaw: jest.fn().mockResolvedValue([]),
   outboxEvent: { upsert: jest.fn() },
-  clientDebt: { findMany: jest.fn(), updateMany: jest.fn() },
+  clientDebt: { findMany: jest.fn(), updateMany: jest.fn(), create: jest.fn() },
+  dailyLogEntryServiceItem: { createMany: jest.fn() },
   dailyLogEntry: {
     create: jest.fn(),
     findUnique: jest.fn(),
@@ -24,7 +25,8 @@ const mockPrisma = {
     update: jest.fn(),
   },
   incomeBookManualEntry: { create: jest.fn() },
-  service: { findUnique: jest.fn() },
+  service: { findMany: jest.fn(), findUnique: jest.fn() },
+  user: { findUnique: jest.fn() },
   stylistProfile: { findUnique: jest.fn() },
   reservation: { findUnique: jest.fn(), update: jest.fn() },
 };
@@ -37,7 +39,10 @@ const mockIncomeSync = {
 
 const mockLoyalty = {
   earnFromDailyLog: jest.fn(),
+  redeemForDailyLog: jest.fn(),
 };
+
+const mockNotifications = { send: jest.fn() };
 
 const mockCompletionOutbox = {
   dispatchAfterCommit: jest.fn(),
@@ -56,10 +61,18 @@ describe('DailyLogService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     mockPrisma.$transaction.mockImplementation(
-      async (callback: (tx: typeof mockPrisma) => unknown) =>
-        callback(mockPrisma),
+      (callback: (tx: typeof mockPrisma) => unknown) =>
+        Promise.resolve(callback(mockPrisma)),
     );
     mockPrisma.dailyLogEntry.findFirst.mockResolvedValue(null);
+    mockPrisma.dailyLogEntryServiceItem.createMany.mockResolvedValue({
+      count: 1,
+    });
+    mockPrisma.clientDebt.create.mockResolvedValue({ id: 'debt-1' });
+    mockPrisma.service.findMany.mockResolvedValue([]);
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+    mockNotifications.send.mockResolvedValue(undefined);
+    mockLoyalty.redeemForDailyLog.mockResolvedValue(null);
     mockPrisma.outboxEvent.upsert.mockResolvedValue({ id: 'outbox-1' });
     mockCompletionOutbox.dispatchAfterCommit.mockResolvedValue(undefined);
     mockLoyalty.earnFromDailyLog.mockResolvedValue(null);
@@ -75,7 +88,7 @@ describe('DailyLogService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: IncomeSyncService, useValue: mockIncomeSync },
         { provide: LoyaltyService, useValue: mockLoyalty },
-        { provide: NotificationsService, useValue: { send: jest.fn() } },
+        { provide: NotificationsService, useValue: mockNotifications },
         {
           provide: DailyLogCompletionOutboxService,
           useValue: mockCompletionOutbox,
@@ -100,6 +113,113 @@ describe('DailyLogService', () => {
         user as any,
       ),
     ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('keeps manual entry and service items inside one transaction', async () => {
+    const tx = {
+      ...mockPrisma,
+      dailyLogEntry: {
+        ...mockPrisma.dailyLogEntry,
+        create: jest.fn().mockResolvedValue({
+          id: 'manual-entry',
+          clientId: null,
+        }),
+      },
+      dailyLogEntryServiceItem: {
+        createMany: jest
+          .fn()
+          .mockRejectedValue(new Error('synthetic item failure')),
+      },
+    };
+    mockPrisma.$transaction.mockImplementation(
+      (callback: (transaction: typeof mockPrisma) => unknown) =>
+        Promise.resolve(callback(tx)),
+    );
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      userId: 'user-1',
+    });
+
+    await expect(
+      service.create(
+        {
+          stylistProfileId: 'sp-1',
+          items: [
+            {
+              serviceId: 'service-1',
+              unitPrice: 100,
+            },
+          ],
+          date: '2026-11-06',
+          paidAmount: 50,
+          actualPrice: 50,
+          isManual: true,
+        } as any,
+        user as any,
+      ),
+    ).rejects.toThrow('synthetic item failure');
+
+    expect(mockPrisma.$transaction).toHaveBeenCalled();
+    expect(tx.dailyLogEntry.create).toHaveBeenCalled();
+    expect(tx.dailyLogEntryServiceItem.createMany).toHaveBeenCalled();
+    expect(mockPrisma.dailyLogEntry.create).not.toHaveBeenCalled();
+    expect(mockNotifications.send).not.toHaveBeenCalled();
+  });
+
+  it('keeps reservation-linked entry, items and debt creation inside one transaction', async () => {
+    const tx = {
+      ...mockPrisma,
+      dailyLogEntry: {
+        ...mockPrisma.dailyLogEntry,
+        create: jest.fn().mockResolvedValue({ id: 'created-entry' }),
+      },
+      dailyLogEntryServiceItem: {
+        createMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      clientDebt: {
+        ...mockPrisma.clientDebt,
+        create: jest
+          .fn()
+          .mockRejectedValue(new Error('synthetic debt failure')),
+      },
+    };
+    mockPrisma.$transaction.mockImplementation(
+      (callback: (transaction: typeof mockPrisma) => unknown) =>
+        Promise.resolve(callback(tx)),
+    );
+    mockPrisma.reservation.findUnique.mockResolvedValue({
+      id: 'reservation-1',
+      status: 'COMPLETED',
+      confirmedStylistId: 'sp-1',
+      clientId: 'client-1',
+      reservationDate: new Date('2026-11-06T12:00:00.000Z'),
+      serviceId: 'service-1',
+      items: [],
+      service: { id: 'service-1', price: 100 },
+      confirmedStylist: {},
+    });
+    mockPrisma.stylistProfile.findUnique.mockResolvedValue({
+      userId: 'user-1',
+    });
+
+    await expect(
+      service.createFromReservation(
+        'reservation-1',
+        { paidAmount: 50, debtHandling: 'CREATE_DEBT' } as any,
+        0,
+        undefined,
+        user as any,
+      ),
+    ).rejects.toThrow('synthetic debt failure');
+
+    expect(mockPrisma.$transaction).toHaveBeenCalled();
+    expect(tx.dailyLogEntry.create).toHaveBeenCalled();
+    expect(tx.dailyLogEntryServiceItem.createMany).toHaveBeenCalled();
+    expect(tx.clientDebt.create).toHaveBeenCalled();
+    expect(mockPrisma.dailyLogEntry.create).not.toHaveBeenCalled();
+    expect(
+      mockPrisma.dailyLogEntryServiceItem.createMany,
+    ).not.toHaveBeenCalled();
+    expect(mockNotifications.send).not.toHaveBeenCalled();
   });
 
   it('completes state, KIF, loyalty and outbox work on one transaction client', async () => {
@@ -306,7 +426,10 @@ describe('DailyLogService', () => {
   });
 
   it('does not misclassify unrelated unique errors as duplicate reservation logs', async () => {
-    const error = { code: 'P2002', meta: { target: ['public_reference_code'] } };
+    const error = {
+      code: 'P2002',
+      meta: { target: ['public_reference_code'] },
+    };
     mockPrisma.dailyLogEntry.findFirst.mockResolvedValue(null);
 
     await expect(

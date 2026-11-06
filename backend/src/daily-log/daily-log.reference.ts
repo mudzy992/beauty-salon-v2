@@ -1,6 +1,6 @@
 import { randomBytes } from 'crypto';
 import { BadRequestException } from '@nestjs/common';
-import type { PrismaService } from '../prisma/prisma.service';
+import type { Prisma } from '@prisma/client';
 import { toDateOnlyString } from '../common/utils/date-only';
 
 export const buildDailyLogReferenceCode = (date: Date): string => {
@@ -10,7 +10,7 @@ export const buildDailyLogReferenceCode = (date: Date): string => {
 };
 
 export const allocateDailyLogReferenceCode = async (
-  prisma: Pick<PrismaService, 'dailyLogEntry'>,
+  prisma: Pick<Prisma.TransactionClient, 'dailyLogEntry'>,
   date: Date,
 ): Promise<string> => {
   for (let i = 0; i < 8; i += 1) {
