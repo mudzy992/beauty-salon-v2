@@ -242,6 +242,9 @@ jobs:
       - name: Test public blog post response validation and recovery
         working-directory: frontend
         run: npm run test:public-blog-post-read-recovery
+      - name: Test public blog share accessibility and cancellation behavior
+        working-directory: frontend
+        run: npm run test:public-blog-share-accessibility
       - name: Test public blog comments accessibility
         working-directory: frontend
         run: npm run test:public-blog-comments-accessibility

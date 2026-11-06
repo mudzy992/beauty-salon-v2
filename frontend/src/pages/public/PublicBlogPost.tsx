@@ -201,13 +201,13 @@ export default function PublicBlogPost() {
   }
 
   const handleShare = async () => {
-    try {
-      if (typeof navigator !== 'undefined' && 'share' in navigator) {
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      try {
         await navigator.share({ title: post.title, text: post.title, url: shareUrl })
         return
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') return
       }
-    } catch {
-      // fallthrough
     }
     await copyShareUrl()
   }

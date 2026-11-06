@@ -32,14 +32,13 @@ export function PublicBlogShare({ title, shareUrl, copied, onShare, onCopy }: Pr
         {copied ? t('public.blogShare.copied') : t('public.blogShare.copyLink')}
       </Button>
       {links.map((link) => (
-        <a key={link.label} href={link.href} target="_blank" rel="noreferrer">
-          <Button type="button" variant="ghost" size="sm">
-            {link.label !== 'Viber' && link.label !== 'WhatsApp' ? (
-              <ExternalLink className="mr-2 h-4 w-4 opacity-70" aria-hidden />
-            ) : null}
+        <Button key={link.label} asChild variant="ghost" size="sm">
+          <a href={link.href} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="mr-2 h-4 w-4 opacity-70" aria-hidden="true" />
             {link.label}
-          </Button>
-        </a>
+            <span className="sr-only">{t('public.blogShare.opensInNewTab')}</span>
+          </a>
+        </Button>
       ))}
     </div>
   )

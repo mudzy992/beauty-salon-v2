@@ -39,6 +39,7 @@
     "test:public-blog-list-accessibility": "node --test src/features/blog/public-blog-list-accessibility.test.mjs",
     "test:public-blog-post-i18n": "node --test src/features/blog/public-blog-post-i18n.test.mjs",
     "test:public-blog-post-read-recovery": "node --test src/features/blog/public-blog-post-data.test.mjs src/features/blog/public-blog-post-read-recovery.test.mjs",
+    "test:public-blog-share-accessibility": "node --test src/features/blog/public-blog-share-accessibility.test.mjs",
     "test:public-blog-comments-accessibility": "node --test src/features/blog/public-blog-comments-accessibility.test.mjs",
     "test:public-blog-comments-read-recovery": "node --test src/features/blog/public-blog-comments-data.test.mjs src/features/blog/public-blog-comments-read-recovery.test.mjs",
     "test:public-blog-comments-submit": "node --test src/features/blog/public-blog-comments-submit.test.mjs",
