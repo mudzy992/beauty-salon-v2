@@ -90,7 +90,7 @@ test("email unsubscribe requires an explicit POST confirmation and is reachable 
   assert.match(unsubscribeSource, /useSearchParams\(\)/);
   assert.match(
     unsubscribeSource,
-    /api\.post<\{ ok: boolean; unsubscribed: boolean \}>\(\s*["']\/api\/notifications\/campaigns\/unsubscribe["']/,
+    /api\.post<unknown>\(\s*["']\/api\/notifications\/campaigns\/unsubscribe["']/,
   );
   assert.match(
     unsubscribeSource,
