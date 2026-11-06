@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { DailyLogService } from './daily-log.service';
 import { IncomeSyncService } from '../finance/income-sync.service';
@@ -12,8 +13,6 @@ import { ReservationDateService } from '../reservations/reservation-date.service
 import {
   ATTENDANCE_CONFIRMED_BY,
   RESERVATION_ACCEPTANCE_MODE,
-  RESERVATION_ATTENDANCE_POLICY,
-  RESERVATION_BOOKING_ORIGIN,
   RESERVATION_STATUS,
   SLOT_OCCUPYING_STATUSES,
 } from '../reservations/constants';
@@ -23,6 +22,8 @@ import {
   getDateOnlyDayBounds,
   toDateOnlyString,
 } from '../common/utils/date-only';
+import { assertClientDayBookingAllowed } from '../reservations/utils/assert-client-day-booking';
+import { acquireReservationDayLock } from '../reservations/utils/booking-advisory-lock';
 
 interface EntryReservationSnapshot {
   id: string;
@@ -66,7 +67,7 @@ export class DailyLogRestoreService {
     if (!this.dailyLog.isAdminOrOwner(user)) {
       throw new ForbiddenException('Nemate dozvolu.');
     }
-    const entry = await this.prisma.dailyLogEntry.findUnique({
+    const entry = (await this.prisma.dailyLogEntry.findUnique({
       where: { id },
       select: {
         id: true,
@@ -91,7 +92,7 @@ export class DailyLogRestoreService {
           },
         },
       },
-    }) as EntryForRestore | null;
+    })) as EntryForRestore | null;
     if (!entry) throw new NotFoundException('Zapis nije pronađen.');
     if (!entry.deletedAt) throw new BadRequestException('Zapis nije obrisan.');
 
@@ -149,76 +150,102 @@ export class DailyLogRestoreService {
       );
     }
 
-    await this.assertNoStylistConflict(
-      res.confirmedStylistId,
-      targetDate,
-      res.startTime,
-      res.endTime,
-    );
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT id FROM "daily_log_entries" WHERE id = ${entry.id} FOR UPDATE`,
+      );
+      const current = await tx.dailyLogEntry.findUnique({
+        where: { id: entry.id },
+        select: { id: true, deletedAt: true },
+      });
+      if (!current?.deletedAt) {
+        throw new BadRequestException('Zapis više nije obrisan.');
+      }
 
-    const { publicReferenceCode, clientViewToken } =
-      await this.shared.allocateReservationPublicCodes(targetDate);
-
-    const newStatus = isDirect
-      ? RESERVATION_STATUS.CONFIRMED
-      : RESERVATION_STATUS.PENDING;
-
-    const newReservation = await this.prisma.reservation.create({
-      data: {
-        clientId: entry.clientId,
-        serviceId: serviceIds[0]!,
+      // Coordinate with normal reservation creation and recheck availability
+      // after taking the same salon-day transaction lock.
+      await acquireReservationDayLock(tx, targetDate);
+      await this.assertNoStylistConflict(
+        tx,
+        res.confirmedStylistId!,
+        targetDate,
+        res.startTime,
+        res.endTime,
+      );
+      await assertClientDayBookingAllowed({
+        prisma: tx,
+        clientId: entry.clientId!,
         reservationDate: targetDate,
         startTime: res.startTime,
         endTime: res.endTime,
-        status: newStatus,
-        bookingOrigin: res.bookingOrigin as any,
-        acceptanceMode: res.acceptanceMode as any,
-        attendancePolicy: res.attendancePolicy as any,
-        createdByUserId: user.sub,
-        confirmedStylistId: isDirect ? res.confirmedStylistId : null,
-        ...(isDirect && {
-          attendanceWaivedAt: new Date(),
-          attendanceWaivedByUserId: user.sub,
-          attendanceConfirmedBy: ATTENDANCE_CONFIRMED_BY.STAFF,
-        }),
-        publicReferenceCode,
-        clientViewToken,
-      },
-    });
-
-    if (serviceIds.length > 1) {
-      await this.prisma.reservationServiceItem.createMany({
-        data: serviceIds.map((sid: string, idx: number) => ({
-          reservationId: newReservation.id,
-          serviceId: sid,
-          sortOrder: idx,
-        })),
+        serviceIds,
       });
-    }
 
-    return this.prisma.dailyLogEntry.update({
-      where: { id: entry.id },
-      data: {
-        deletedAt: null,
-        deletedById: null,
-        deleteReason: null,
-        status: 'PENDING',
-        completedAt: null,
-        date: targetDate,
-        reservationId: newReservation.id,
-      },
-      include: this.dailyLog.entryInclude(),
+      const { publicReferenceCode, clientViewToken } =
+        await this.shared.allocateReservationPublicCodes(targetDate, tx);
+
+      const newStatus = isDirect
+        ? RESERVATION_STATUS.CONFIRMED
+        : RESERVATION_STATUS.PENDING;
+
+      const newReservation = await tx.reservation.create({
+        data: {
+          clientId: entry.clientId,
+          serviceId: serviceIds[0]!,
+          reservationDate: targetDate,
+          startTime: res.startTime,
+          endTime: res.endTime,
+          status: newStatus,
+          bookingOrigin: res.bookingOrigin as any,
+          acceptanceMode: res.acceptanceMode as any,
+          attendancePolicy: res.attendancePolicy as any,
+          createdByUserId: user.sub,
+          confirmedStylistId: isDirect ? res.confirmedStylistId : null,
+          ...(isDirect && {
+            attendanceWaivedAt: new Date(),
+            attendanceWaivedByUserId: user.sub,
+            attendanceConfirmedBy: ATTENDANCE_CONFIRMED_BY.STAFF,
+          }),
+          publicReferenceCode,
+          clientViewToken,
+        },
+      });
+
+      if (serviceIds.length > 1) {
+        await tx.reservationServiceItem.createMany({
+          data: serviceIds.map((sid: string, idx: number) => ({
+            reservationId: newReservation.id,
+            serviceId: sid,
+            sortOrder: idx,
+          })),
+        });
+      }
+
+      return tx.dailyLogEntry.update({
+        where: { id: entry.id },
+        data: {
+          deletedAt: null,
+          deletedById: null,
+          deleteReason: null,
+          status: 'PENDING',
+          completedAt: null,
+          date: targetDate,
+          reservationId: newReservation.id,
+        },
+        include: this.dailyLog.entryInclude(),
+      });
     });
   }
 
   private async assertNoStylistConflict(
+    db: Pick<Prisma.TransactionClient, 'reservation'>,
     stylistProfileId: string,
     date: Date,
     startTime: string,
     endTime: string,
   ) {
     const { gte, lt } = getDateOnlyDayBounds(toDateOnlyString(date));
-    const conflict = await this.prisma.reservation.findFirst({
+    const conflict = await db.reservation.findFirst({
       where: {
         confirmedStylistId: stylistProfileId,
         reservationDate: { gte, lt },
