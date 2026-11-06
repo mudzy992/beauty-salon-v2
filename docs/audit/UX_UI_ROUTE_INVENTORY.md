@@ -157,12 +157,14 @@ All routes are nested under the stylist guard/layout. `/stylist/profile` redirec
 | `/stylist/schedule/new` | `StylistDirectBookingPage` | Source checks cover client/date/time/note labels, service-group legend, and pressed state for client/service choices; rendered interactions remain unverified |
 | `/stylist/schedule/:reservationId` | `StylistReservationDetailPage` | Source check distinguishes retryable transient read failures from 403/404 unavailability and announces loading; rendered behavior remains unverified |
 | `/stylist/debts` | `StylistDebtsPage` | Source check covers announced read/repayment progress with distinct retryable failures and empty results; rendered behavior remains unverified |
-| `/stylist/stats` | `StylistStatsPage` |
+| `/stylist/stats` | `StylistStatsPage` | Source check covers profile and multi-query loading announcements, with retryable errors distinct from metrics; rendered behavior remains unverified |
 | `/stylist/profile` | Redirect to `/profil` |
 
 **Initial subflow audit — `/stylist/workbook/new` (2026-11-06):** source review found that client/service suggestions were pointer-only clickable list items, form labels were not connected to the search/date/payment/notes/discount controls, and repeated service-removal buttons had no service-specific accessible name. Suggestions are now buttons usable by keyboard, service choices expose `aria-pressed`, labels target `useId`-scoped controls, and removal button names include the selected service. Three source-contract tests are registered in frontend CI; no mounted browser, keyboard flow, or assistive-technology acceptance is claimed.
 
 **Stylist schedule load/refresh states (2026-11-06):** reservation loading after the stylist profile was resolved did not render an announced progress status and could look like an empty region. The schedule now announces the list request while independently preserving retryable errors and the valid empty state; its refresh action exposes `aria-busy`. Two source-contract tests are registered in frontend CI. No rendered, mounted-network, or screen-reader verification was performed.
+
+**Stylist statistics aggregate reads (2026-11-06):** the route rendered zero-valued metrics while reservation and workbook queries were still loading, and the profile-loading text was not announced. Both profile/aggregate loading are now exposed as polite statuses, while the combined retry action is disabled and marked busy during either query; errors remain separate from valid zero metrics. Two source-contract tests are registered in frontend CI; no live API/rendered verification was performed.
 
 **Stylist debts read/repayment states (2026-11-06):** the initial query and repayment mutation showed plain text/button disabling without a live progress announcement. Both now expose polite status feedback, the repayment action declares `aria-busy`, and the existing retryable error and empty/search-empty states remain separate. Two source-contract tests are registered in frontend CI; no live debt API or rendered assistive-technology behavior was verified.
 

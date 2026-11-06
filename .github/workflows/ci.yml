@@ -320,6 +320,9 @@ jobs:
       - name: Test localized stylist statistics UI
         working-directory: frontend
         run: npm run test:stylist-stats-i18n
+      - name: Test stylist statistics loading accessibility
+        working-directory: frontend
+        run: npm run test:stylist-stats-accessibility
       - name: Test localized stylist reservation inbox UI
         working-directory: frontend
         run: npm run test:stylist-inbox-i18n

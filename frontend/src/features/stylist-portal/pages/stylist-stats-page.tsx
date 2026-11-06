@@ -39,11 +39,14 @@ export const StylistStatsPage = () => {
     },
     enabled: !!profileId,
   })
+  const statsFetching = reservationsQuery.isFetching || dailyLogQuery.isFetching
 
   if (profileLoading || (reservationsQuery.isLoading && !profileId)) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-sm text-slate-500">{t('common.loading')}</div>
+        <div role="status" aria-live="polite" className="text-sm text-slate-500">
+          {t('common.loading')}
+        </div>
       </div>
     )
   }
@@ -76,6 +79,12 @@ export const StylistStatsPage = () => {
         <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.stats.monthRange', { from: formatDateOnly(fromDate, locale), to: formatDateOnly(toDate, locale) })}</p>
       </div>
 
+      {statsFetching ? (
+        <p role="status" aria-live="polite" className="text-sm text-slate-500">
+          {t('common.loading')}
+        </p>
+      ) : null}
+
       {reservationsQuery.isError || dailyLogQuery.isError ? (
         <Card className="flex flex-wrap items-center justify-between gap-2 p-4" role="alert">
           <p className="text-sm text-slate-600 dark:text-slate-300">{t('stylistPortal.stats.loadFailed')}</p>
@@ -87,6 +96,8 @@ export const StylistStatsPage = () => {
               void reservationsQuery.refetch()
               void dailyLogQuery.refetch()
             }}
+            disabled={statsFetching}
+            aria-busy={statsFetching}
           >
             {t('common.retry')}
           </Button>
