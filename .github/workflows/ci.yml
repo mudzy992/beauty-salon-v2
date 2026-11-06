@@ -428,6 +428,9 @@ jobs:
       - name: Test localized forced password-change onboarding
         working-directory: frontend
         run: npm run test:force-change-password-i18n
+      - name: Test forced password-change accessibility and submission states
+        working-directory: frontend
+        run: npm run test:force-change-password-accessibility
       - name: Test localized gender onboarding
         working-directory: frontend
         run: npm run test:onboarding-gender-i18n
