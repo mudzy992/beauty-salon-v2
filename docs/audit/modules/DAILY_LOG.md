@@ -1,8 +1,8 @@
 # Daily Log module audit
 
 - **Review date:** 2026-11-06
-- **Audited revision:** source inventory at `845f1b347a2afb155d2f811c0a0fe224c3f75f55`; remediation status recorded through `39833360d36505c0836c6e6b9a92907fac1bc64d`.
-- **Status:** source review complete for the scoped API and current web/mobile consumers; DL-01 and DL-02 are fixed in source and CI-verified; DL-03–DL-05 remain open.
+- **Audited revision:** source inventory at `845f1b347a2afb155d2f811c0a0fe224c3f75f55`; remediation status recorded through `114013495c14eb6599373f67a7c0ae3f3788b9bf`.
+- **Status:** source review complete for the scoped API and current web/mobile consumers; DL-01, DL-02 and DL-04 are fixed in source and CI-verified; DL-03 and DL-05 remain open.
 - **Scope:** `backend/src/daily-log/` controllers, DTOs, services and focused tests; directly connected upload access checks; web `features/daily-log` and `features/stylist-workbook` callers; mobile stylist daily-log list, create, detail, disposition and statistics callers.
 - **Verification boundary:** source inspection, focused DTO validation tests/lint, and the repository CI run listed below only. No production/shared database, live API, browser, physical-device, concurrency or load verification was performed.
 
@@ -10,7 +10,7 @@
 
 Several safeguards are present: a stylist can read/mutate only entries belonging to their own stylist profile; completion locks and re-reads the entry and commits its status, KIF entry, loyalty earning and durable completion outbox event together; debt settlement uses conditional debt claims and a transaction; a partial unique index prevents multiple SERVICE entries for one reservation; and the public before/after gallery requires active, purpose- and policy-version-matched consent before returning consent-file routes. Private upload reads separately enforce uploader/record relationship or privileged access.
 
-The source review also found missing class-validator metadata on request fields that current first-party clients send. That made manual entry creation and the disposition route reject otherwise valid requests under the global strict whitelist. The input-validation defect and the split-write creation flow are fixed in source. The remaining findings concern disposition atomicity, future restore scheduling, and unbounded list reads; they remain open.
+The source review also found missing class-validator metadata on request fields that current first-party clients send. That made manual entry creation and the disposition route reject otherwise valid requests under the global strict whitelist. The input-validation defect, split-write creation flow and future-restore scheduling/atomicity are fixed in source. Disposition atomicity and unbounded list reads remain open.
 
 ## Findings
 
@@ -34,11 +34,13 @@ The source review also found missing class-validator metadata on request fields 
 - **Impact:** if a later operation fails, the request may leave the entry deleted while the reservation remains in `AWAITING_DAILY_LOG`, or may commit the reservation transition while a later penalty/notification operation fails. This is a source-level partial-failure window; no incident was reproduced.
 - **Acceptance direction:** make the entry and reservation state changes plus any database penalty-counter update atomic, and dispatch external notifications only after commit. Add rollback/failure-injection tests for each disposition family; retain the existing role/status checks and reorder conflict checks.
 
-### DL-04 — Future restore creates a reservation outside the normal booking coordination transaction (P2, open)
+### DL-04 — Future restore could orphan the reservation or race a competing booking (P2, fixed in source and CI-verified)
 
-- **Evidence:** `DailyLogRestoreService.restoreAsReservation()` checks stylist conflict in `assertNoStylistConflict()`, then separately creates a reservation, optionally creates service-item rows, and updates the daily-log entry to link the new reservation. These operations are not in one transaction and this path does not use the reservation create service's date coordination/advisory-lock workflow.
-- **Impact:** concurrent booking/restore attempts can both pass the preflight conflict read before either commits; an intermediate failure can also leave a reservation without the restored entry linked to it (or leave the entry deleted). This is a code-path risk, not a reproduced race or observed orphan.
-- **Acceptance direction:** route the restoration through shared reservation write coordination (or an equivalent transaction-scoped lock and final conflict/capacity recheck), and atomically create the reservation/service items/linkage. Test competing restore-vs-create on disposable PostgreSQL and injected failures; separately confirm any client-day booking policy expected for restored reservations.
+- **Evidence before remediation:** `DailyLogRestoreService.restoreAsReservation()` checked stylist conflicts and then separately created a reservation, optional service-item rows, and the Daily Log link. It did not use the normal reservation date coordination lock or a client-day booking policy check.
+- **Impact:** concurrent booking/restore attempts could both pass the preflight conflict read, and an intermediate write failure could leave a reservation without its restored Daily Log link. This was a code-path risk, not a reproduced race or observed orphan.
+- **Fix:** commits `7421e55` and `1140134` put the future-restore flow in one Prisma transaction. It row-locks and rechecks that the Daily Log entry is still deleted, acquires the same transaction-scoped salon-day advisory lock as reservation creation, rechecks stylist conflicts and client-day booking policy on the transaction client, and performs code allocation, reservation creation, service-item writes and Daily Log relinking atomically.
+- **Regression coverage:** `daily-log-restore.service.spec.ts` covers the transaction path and both service-item/link writes, failure before Daily Log relinking, and a concurrent restore that finds the source entry already restored. CI run `42183179155` passed all four jobs, including generated Prisma Client, backend build/unit and DB-backed HTTP suites. The failure-injection test is unit-level; no concurrent restore-vs-create test on disposable PostgreSQL was performed.
+- **Verification boundary:** source and unit/CI verification only. No production database or live concurrency test was performed.
 
 ### DL-05 — Authenticated Daily Log list endpoint has no result bound (P2, open)
 
@@ -51,5 +53,6 @@ The source review also found missing class-validator metadata on request fields 
 - 2026-11-06 — Confirmed before implementation that local branch, `origin/master`, and `origin/arena/657dba19-beauty-salon-v2` were aligned at `845f1b3`; no uncommitted changes existed.
 - 2026-11-06 — DTO remediation committed/pushed as `9ae383b`; focused Jest (3/3), targeted ESLint and diff check passed; CI `42177289515` passed all four jobs.
 - 2026-11-06 — Atomic creation remediation committed/pushed as `3983336`; Prettier and diff checks passed. Local service Jest execution was blocked because the generated Prisma Client is absent (`.prisma/client/default`); CI generated Prisma Client and run `42181025320` passed all four jobs. No standalone DB rollback test was added for this slice.
+- 2026-11-06 — Future-restore atomicity remediation committed/pushed as `7421e55`, with a TypeScript nullability correction in `1140134`; Prettier and diff checks passed. The first CI build exposed the narrowing issue; final CI run `42183179155` passed all four jobs, including backend build/unit and DB-backed HTTP suites. Local Prisma Client generation was blocked by unavailable access to the Prisma binary host, so generated-client build/test verification was performed in CI.
 - No production/shared database access, live HTTP, browser, physical-device, runtime concurrency or load verification was performed.
 - **Separate carried gate:** RES-02 in [`RESERVATIONS.md`](RESERVATIONS.md) remains intentionally deferred until one full successful release cycle after the owner-reported 2026-11-04 redeploy is confirmed. This Daily Log review did not alter the Reservations compatibility decision.
