@@ -12,7 +12,6 @@ type PendingUpload = { id: string; name: string }
 type Props = {
   existing: ExpenseAttachment[]
   pending: PendingUpload[]
-  isUploading: boolean
   fileInputRef: Ref<HTMLInputElement>
   onFiles: (files: FileList | null) => void
   onRemovePending: (id: string) => void
@@ -21,7 +20,6 @@ type Props = {
 export function ExpenseAttachmentFields({
   existing,
   pending,
-  isUploading,
   fileInputRef,
   onFiles,
   onRemovePending,
@@ -49,9 +47,6 @@ export function ExpenseAttachmentFields({
           onFiles(event.target.files)
         }
       />
-      {isUploading ? (
-        <p className="text-xs text-slate-500">{t('finance.expenseForm.uploadingAttachments')}</p>
-      ) : null}
       {pending.length > 0 ? (
         <ul className="grid gap-1">
           {pending.map((upload) => (

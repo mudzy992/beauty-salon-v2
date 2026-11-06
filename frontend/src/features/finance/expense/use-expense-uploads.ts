@@ -17,8 +17,20 @@ type Params = {
 export const useExpenseUploads = (params: Params) => {
   const { t } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const activeUploadsRef = useRef(0)
+  const pendingGenerationRef = useRef(0)
   const [pendingUploads, setPendingUploads] = useState<{ id: string; name: string }[]>([])
   const [isUploading, setIsUploading] = useState(false)
+
+  const beginUpload = () => {
+    activeUploadsRef.current += 1
+    setIsUploading(true)
+  }
+
+  const endUpload = () => {
+    activeUploadsRef.current = Math.max(0, activeUploadsRef.current - 1)
+    setIsUploading(activeUploadsRef.current > 0)
+  }
 
   const uploadOne = async (file: File) => {
     const id = await uploadExpenseFile(file)
@@ -27,49 +39,73 @@ export const useExpenseUploads = (params: Params) => {
 
   const handleBulkFiles = async (files: FileList | null) => {
     if (!files?.length) return
-    setIsUploading(true)
+    const generation = pendingGenerationRef.current
+    beginUpload()
     try {
-      const uploaded = await Promise.all(Array.from(files).map((file) => uploadOne(file)))
-      setPendingUploads((prev) => [...prev, ...uploaded])
+      const results = await Promise.allSettled(Array.from(files).map((file) => uploadOne(file)))
+      if (generation !== pendingGenerationRef.current) return
+
+      const uploaded = results.flatMap((result) =>
+        result.status === 'fulfilled' ? [result.value] : [],
+      )
+      if (uploaded.length) setPendingUploads((prev) => [...prev, ...uploaded])
+
+      const failed = results.find((result) => result.status === 'rejected')
+      if (failed?.status === 'rejected') {
+        params.onError(failed.reason, t('finance.expenseForm.uploadFailed'))
+      }
     } catch (err) {
-      params.onError(err, t('finance.expenseForm.uploadFailed'))
+      if (generation === pendingGenerationRef.current) {
+        params.onError(err, t('finance.expenseForm.uploadFailed'))
+      }
     } finally {
-      setIsUploading(false)
+      endUpload()
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
   const handleFieldUpload = async (fieldId: string, fieldName: string, file: File) => {
-    setIsUploading(true)
+    const generation = pendingGenerationRef.current
+    beginUpload()
     try {
       const uploaded = await uploadOne(renameFileForLabel(file, fieldName))
+      if (generation !== pendingGenerationRef.current) return
       params.onFieldAttachments({
         ...params.fieldAttachments,
         [fieldId]: { uploadId: uploaded.id, name: uploaded.name },
       })
     } catch (err) {
-      params.onError(err, t('finance.expenseForm.uploadFailed'))
+      if (generation === pendingGenerationRef.current) {
+        params.onError(err, t('finance.expenseForm.uploadFailed'))
+      }
     } finally {
-      setIsUploading(false)
+      endUpload()
     }
   }
 
   const handleLineUpload = async (index: number, name: string, file: File) => {
-    setIsUploading(true)
+    const generation = pendingGenerationRef.current
+    beginUpload()
     try {
       const uploaded = await uploadOne(renameFileForLabel(file, name))
+      if (generation !== pendingGenerationRef.current) return
       const next = [...params.lineAttachments]
       while (next.length < params.lineItemsLength) next.push(null)
       next[index] = { uploadId: uploaded.id, name: uploaded.name }
       params.onLineAttachments(next)
     } catch (err) {
-      params.onError(err, t('finance.expenseForm.uploadFailed'))
+      if (generation === pendingGenerationRef.current) {
+        params.onError(err, t('finance.expenseForm.uploadFailed'))
+      }
     } finally {
-      setIsUploading(false)
+      endUpload()
     }
   }
 
-  const resetPending = () => setPendingUploads([])
+  const resetPending = () => {
+    pendingGenerationRef.current += 1
+    setPendingUploads([])
+  }
 
   return {
     fileInputRef,

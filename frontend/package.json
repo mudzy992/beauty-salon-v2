@@ -103,6 +103,7 @@
     "test:reservation-list-api-contract": "node --test src/features/reservations/reservation-list-api-contract.test.mjs",
     "test:reservation-list-accessibility": "node --test src/features/reservations/reservation-list-accessibility.test.mjs",
     "test:finance-expense-form-i18n": "node --test src/features/finance/expense/expense-form-i18n.test.mjs",
+    "test:finance-expense-upload-recovery": "node --test src/features/finance/expense/upload-recovery.test.mjs",
     "test:finance-expense-list-i18n": "node --test src/features/finance/expense/expense-list-i18n.test.mjs",
     "test:finance-income-list-i18n": "node --test src/features/finance/income/income-list-i18n.test.mjs",
     "test:finance-income-detail-i18n": "node --test src/features/finance/income/income-book-detail-i18n.test.mjs",

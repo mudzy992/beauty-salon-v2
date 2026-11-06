@@ -58,7 +58,7 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 | `/admin/stylists` | `Stylists` |
 | `/admin/reservations` | `Reservations` |
 | `/admin/daily-log` | `DailyLog` |
-| `/admin/finance` | `Finance` | Source checks cover manual-income client labeling and shared table-loading status/error semantics; rendered finance flows remain unverified |
+| `/admin/finance` | `Finance` | Source checks cover manual-income client labeling, shared table-loading status/error semantics, and expense-upload recovery; rendered finance flows remain unverified |
 | `/admin/debtors` | Redirect to `/admin/finance?tab=debtors` |
 | `/admin/blog` | `Blog` |
 | `/admin/gallery` | `Gallery` |
@@ -80,6 +80,8 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 **Initial shared-dialog audit — responsive Finance dialogs (2026-11-06):** `ResponsiveDialog` rendered a plain heading and paragraph inside the mobile Radix drawer, so the visible title/description were not associated with the dialog primitive's accessible name/description. The mobile branch now uses the same Radix `DialogTitle`/`DialogDescription` semantics as desktop while preserving its existing visual styling. Three focused source-contract tests are registered in frontend CI; no mounted browser, keyboard, focus-return, or assistive-technology behavior is verified.
 
 **Finance expense-category fields audit (2026-11-06):** the category-field editor's new-field, field-type, line-role, and default-value labels were not programmatically associated with their controls. The section's decorative `Label` was also not connected to a control, so it is now a semantic heading. Controls now have `useId`-scoped IDs referenced by their labels; three source-contract tests are registered in frontend CI. The required checkbox already used a wrapping native label. No browser or assistive-technology verification was performed.
+
+**Finance expense-attachment upload recovery (2026-11-06):** bulk selection used `Promise.all`, so a single rejected file made successful sibling uploads disappear from the pending list; overlapping uploads also shared a boolean busy flag that could report idle too early. Uploads now retain successful files while reporting a failed sibling, track concurrent upload count, invalidate stale UI completions when the expense dialog resets/closes, and announce upload progress. Three source-contract tests cover these branches. These checks do not verify live upload persistence or cleanup of server-side files whose results are intentionally ignored after dialog reset; no live upload/browser test was performed.
 
 **Initial subflow audit — `/admin/reservations`:** a failed list request previously cleared rows and total, making a network/API failure look like a valid empty result. The page now distinguishes failure, announces loading/error states, provides localized retry, hides stale pagination during loading/error, and ignores out-of-order request completions including after effect cleanup. The desktop table also has a localized screen-reader caption and explicit column scopes. Focused source-contract tests cover these branches/semantics; they do not verify actual screen-reader announcements or browser layout.
 
