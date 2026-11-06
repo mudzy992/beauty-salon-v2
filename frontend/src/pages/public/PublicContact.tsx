@@ -130,9 +130,9 @@ export default function PublicContact() {
           >
             <Card className="rounded-2xl border-slate-200/80 shadow-soft">
               <CardContent className="p-8">
-                <div className="text-lg font-semibold tracking-tight text-slate-950 mb-6">
+                <h2 className="text-lg font-semibold tracking-tight text-slate-950 mb-6">
                   {t('public.contact.formTitle')}
-                </div>
+                </h2>
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="fullName">{t('public.contact.name')}</Label>
@@ -177,44 +177,50 @@ export default function PublicContact() {
             <div className="space-y-8">
               <Card className="rounded-2xl border-slate-200/80 shadow-soft">
                 <CardContent className="p-8">
-                  <div className="text-base font-semibold tracking-tight text-slate-950 mb-4">
+                  <h2 className="text-base font-semibold tracking-tight text-slate-950 mb-4">
                     {t('public.contact.info')}
-                  </div>
+                  </h2>
                   <div className="space-y-4 text-slate-600">
                     <div>
-                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                         {t('public.contact.address')}
-                      </div>
+                      </h3>
                       <div>
                         {address}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                         {t('public.contact.phone')}
-                      </div>
+                      </h3>
                       <div>
                         {phone}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                         {t('public.contact.email')}
-                      </div>
+                      </h3>
                       <div>
                         {contactEmail}
                       </div>
                     </div>
                     <div>
-                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                      <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                         {t('public.contact.hours')}
-                      </div>
+                      </h3>
                       <div className="whitespace-pre-line">
-                        {hoursLoadError
-                          ? t('public.contact.hoursLoadFailed')
-                          : hoursLoading
-                            ? t('public.contact.hoursLoading')
-                            : hoursText || '—'}
+                        {hoursLoadError ? (
+                          <span role="alert">
+                            {t('public.contact.hoursLoadFailed')}
+                          </span>
+                        ) : hoursLoading ? (
+                          <span role="status" aria-live="polite">
+                            {t('public.contact.hoursLoading')}
+                          </span>
+                        ) : (
+                          hoursText || '—'
+                        )}
                       </div>
                       {hoursLoadError ? (
                         <Button
@@ -228,9 +234,9 @@ export default function PublicContact() {
                     </div>
                     {facebook || instagram || tiktok ? (
                       <div>
-                        <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                        <h3 className="text-xs font-medium text-slate-500 uppercase tracking-wide">
                           {t('public.contact.social')}
-                        </div>
+                        </h3>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {facebook ? (
                             <a href={facebook} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">

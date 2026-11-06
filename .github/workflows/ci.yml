@@ -224,6 +224,9 @@ jobs:
       - name: Test localized public contact UI
         working-directory: frontend
         run: npm run test:public-contact-i18n
+      - name: Test public contact accessibility
+        working-directory: frontend
+        run: npm run test:public-contact-accessibility
       - name: Test localized public blog list UI
         working-directory: frontend
         run: npm run test:public-blog-list-i18n
