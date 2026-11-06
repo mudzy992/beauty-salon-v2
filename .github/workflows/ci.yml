@@ -158,6 +158,9 @@ jobs:
       - name: Test localized login placeholder
         working-directory: frontend
         run: npm run test:login-i18n
+      - name: Test login accessibility and submission states
+        working-directory: frontend
+        run: npm run test:login-accessibility
       - name: Test locale-aware date and amount formatting
         working-directory: frontend
         run: npm run test:locale-formatting

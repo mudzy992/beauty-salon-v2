@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
@@ -28,6 +28,8 @@ export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const loginRequestGeneration = useRef(0)
+  const loginRequestInFlight = useRef(false)
 
   const fallbackRedirect = useMemo(() => getPostAuthRedirectPath(user), [user])
 
@@ -37,6 +39,11 @@ export default function Login() {
     if (!user) return
     navigate(fallbackRedirect, { replace: true })
   }, [isReady, token, user, navigate, fallbackRedirect])
+
+  useEffect(() => () => {
+    loginRequestGeneration.current += 1
+    loginRequestInFlight.current = false
+  }, [])
 
   const resolveFrom = (fromState: unknown): string | null => {
     if (typeof fromState === 'string') {
@@ -55,32 +62,37 @@ export default function Login() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    if (loginRequestInFlight.current) return
+    const generation = ++loginRequestGeneration.current
+    loginRequestInFlight.current = true
     setLoading(true)
 
-    let loggedInUser;
     try {
-      loggedInUser = await login(username, password)
-    } catch {
-      toast.error(t('auth.loginError'))
-      setLoading(false)
-      return
-    }
+      const loggedInUser = await login(username, password)
+      if (generation !== loginRequestGeneration.current) return
+      toast.success(t('auth.loginSuccess'))
+      const nextPath = getPostAuthRedirectPath(loggedInUser)
+      if (getClientMandatoryOnboardingPath(loggedInUser) !== null) {
+        navigate(nextPath, { replace: true })
+        return
+      }
 
-    setLoading(false)
-    toast.success(t('auth.loginSuccess'))
-    const nextPath = getPostAuthRedirectPath(loggedInUser)
-    if (getClientMandatoryOnboardingPath(loggedInUser) !== null) {
+      const from = (location.state as { from?: unknown } | null)?.from
+      const resolvedFrom = resolveFrom(from)
+      if (resolvedFrom && !shouldIgnoreStaleAuthRedirect(resolvedFrom, loggedInUser)) {
+        navigate(resolvedFrom, { replace: true })
+        return
+      }
       navigate(nextPath, { replace: true })
-      return
+    } catch {
+      if (generation !== loginRequestGeneration.current) return
+      toast.error(t('auth.loginError'))
+    } finally {
+      if (generation === loginRequestGeneration.current) {
+        loginRequestInFlight.current = false
+        setLoading(false)
+      }
     }
-
-    const from = (location.state as { from?: unknown } | null)?.from
-    const resolvedFrom = resolveFrom(from)
-    if (resolvedFrom && !shouldIgnoreStaleAuthRedirect(resolvedFrom, loggedInUser)) {
-      navigate(resolvedFrom, { replace: true })
-      return
-    }
-    navigate(nextPath, { replace: true })
   }
 
   return (
@@ -112,19 +124,19 @@ export default function Login() {
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          <Link to="/" className="inline-flex mb-8">
-            <Button variant="ghost">{t('auth.backHome')}</Button>
-          </Link>
+          <Button asChild variant="ghost" className="mb-8">
+            <Link to="/">{t('auth.backHome')}</Link>
+          </Button>
 
           <div className="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-2xl p-8">
-            <div className="text-2xl font-semibold text-slate-900">
+            <h1 className="text-2xl font-semibold text-slate-900">
               {t('auth.login')}
-            </div>
+            </h1>
             <div className="text-slate-500 mt-2 mb-8">
               {t('auth.loginPrompt')}
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5" aria-busy={loading}>
               <div className="space-y-2">
                 <Label htmlFor="usernameOrEmail">{t('auth.usernameOrEmail')}</Label>
                 <Input
@@ -146,9 +158,19 @@ export default function Login() {
                   autoComplete="current-password"
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+                aria-busy={loading}
+              >
                 {loading ? t('common.loading') : t('auth.login')}
               </Button>
+              {loading ? (
+                <span role="status" aria-live="polite" className="sr-only">
+                  {t('common.loading')}
+                </span>
+              ) : null}
             </form>
 
             <div className="mt-6 text-center text-slate-600">
