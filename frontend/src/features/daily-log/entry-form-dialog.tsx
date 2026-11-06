@@ -276,9 +276,9 @@ export const DailyLogEntryFormDialog = (props: Props) => {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent side="right" className="max-w-lg overflow-y-auto p-4">
-          <h2 className="mb-4 text-lg font-semibold">
+          <DialogTitle className="mb-4 text-lg font-semibold">
             {editId ? t('dailyLog.editEntry') : t('dailyLog.newEntry')}
-          </h2>
+          </DialogTitle>
           {fields}
         </DrawerContent>
       </Drawer>

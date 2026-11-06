@@ -208,7 +208,7 @@ export const DailyLogEntryDetailDialog = ({
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent side="right" className="max-w-lg overflow-y-auto p-4">
-          <h2 className="mb-4 text-lg font-semibold">{title}</h2>
+          <DialogTitle className="mb-4 text-lg font-semibold">{title}</DialogTitle>
           {body}
         </DrawerContent>
       </Drawer>

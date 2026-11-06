@@ -125,6 +125,7 @@
     "test:finance-category-fields-accessibility": "node --test src/features/finance/catalog/category-fields-accessibility.test.mjs",
     "test:daily-log-list-i18n": "node --test src/features/daily-log/daily-log-list-i18n.test.mjs",
     "test:daily-log-table-i18n": "node --test src/features/daily-log/daily-log-table-i18n.test.mjs",
+    "test:daily-log-dialog-accessibility": "node --test src/features/daily-log/daily-log-dialog-accessibility.test.mjs",
     "test:daily-log-detail-i18n": "node --test src/features/daily-log/daily-log-detail-i18n.test.mjs",
     "test:daily-log-restore-delete-i18n": "node --test src/features/daily-log/daily-log-restore-delete-i18n.test.mjs",
     "test:daily-log-form-i18n": "node --test src/features/daily-log/daily-log-form-i18n.test.mjs",
