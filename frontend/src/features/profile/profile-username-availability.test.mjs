@@ -9,7 +9,7 @@ test('username availability debounces normalized values and clears stale feedbac
   assert.match(source, /setUsernameStatus\(\{\s*loading: true,\s*available: null,\s*isCurrentUsername: false,\s*suggestions: \[\],\s*error: false,\s*\}\)/)
   assert.match(source, /params: \{ username: normalizedUsername \}/)
   assert.match(source, /\}, 300\)/)
-  assert.match(source, /disabled=\{\s*saving \|\|\s*avatarPrivacySaving \|\|\s*usernameStatus\.loading \|\|\s*usernameStatus\.available === false\s*\}/)
+  assert.match(source, /disabled=\{\s*saving \|\|\s*avatarPrivacySaving \|\|\s*sendingCode \|\|\s*verifying \|\|\s*usernameStatus\.loading \|\|\s*usernameStatus\.available === false\s*\}/)
   assert.match(source, /usernameStatus\.error \? \([\s\S]*?role="alert"[\s\S]*?\{t\('profile\.username\.checkFailed'\)\}/)
 })
 

@@ -44,6 +44,8 @@ export default function Profile() {
   const profileSaveInFlight = useRef(false)
   const avatarPrivacyGeneration = useRef(0)
   const avatarPrivacyInFlight = useRef(false)
+  const emailVerificationGeneration = useRef(0)
+  const emailVerificationInFlight = useRef(false)
   const showApiError = (error: unknown, fallbackKey: string) => {
     const message = getErrorMessage(error, '')
     toast.error(t(resolveProfileApiErrorKey(message, fallbackKey)))
@@ -119,6 +121,8 @@ export default function Profile() {
     profileSaveInFlight.current = false
     avatarPrivacyGeneration.current += 1
     avatarPrivacyInFlight.current = false
+    emailVerificationGeneration.current += 1
+    emailVerificationInFlight.current = false
   }, [])
 
   useEffect(() => {
@@ -245,6 +249,7 @@ export default function Profile() {
     if (
       profileSaveInFlight.current ||
       avatarPrivacyInFlight.current ||
+      emailVerificationInFlight.current ||
       !user?.sub
     ) return
 
@@ -310,29 +315,70 @@ export default function Profile() {
   }
 
   const handleSendCode = async () => {
+    if (
+      emailVerificationInFlight.current ||
+      profileSaveInFlight.current ||
+      !email.trim()
+    ) return
+    const generation = ++emailVerificationGeneration.current
+    emailVerificationInFlight.current = true
     setSendingCode(true)
     try {
       await api.post('/auth/send-verification-email')
+      if (generation !== emailVerificationGeneration.current) return
       toast.success(t('profile.toast.verificationCodeSent'))
-    } catch (error: any) {
-      showApiError(error, 'profile.errors.sendCodeFailed')
+    } catch (error: unknown) {
+      if (generation === emailVerificationGeneration.current) {
+        showApiError(error, 'profile.errors.sendCodeFailed')
+      }
     } finally {
-      setSendingCode(false)
+      if (generation === emailVerificationGeneration.current) {
+        emailVerificationInFlight.current = false
+        setSendingCode(false)
+      }
     }
   }
 
   const handleVerify = async () => {
+    if (
+      emailVerificationInFlight.current ||
+      profileSaveInFlight.current
+    ) return
+    const token = verifyToken.trim()
+    if (!/^\d{6}$/.test(token)) {
+      toast.error(t('profile.errors.invalidVerificationCode'))
+      return
+    }
+    const generation = ++emailVerificationGeneration.current
+    emailVerificationInFlight.current = true
     setVerifying(true)
     try {
-      await api.post('/auth/verify-email', { token: verifyToken })
-      await refreshProfile()
+      try {
+        await api.post('/auth/verify-email', { token })
+      } catch (error: unknown) {
+        if (generation === emailVerificationGeneration.current) {
+          showApiError(error, 'profile.errors.verifyFailed')
+        }
+        return
+      }
+
+      let refreshError: unknown = null
+      try {
+        await refreshProfile()
+      } catch (error: unknown) {
+        refreshError = error
+      }
+      if (generation !== emailVerificationGeneration.current) return
       await loadProfile()
+      if (generation !== emailVerificationGeneration.current) return
       setVerifyToken('')
       toast.success(t('profile.toast.emailVerified'))
-    } catch (error: any) {
-      showApiError(error, 'profile.errors.verifyFailed')
+      if (refreshError) showApiError(refreshError, 'profile.errors.loadFailed')
     } finally {
-      setVerifying(false)
+      if (generation === emailVerificationGeneration.current) {
+        emailVerificationInFlight.current = false
+        setVerifying(false)
+      }
     }
   }
 
@@ -604,7 +650,7 @@ export default function Profile() {
                           variant="outline"
                           size="sm"
                           onClick={handleSendCode}
-                          disabled={sendingCode}
+                          disabled={sendingCode || verifying || saving || !email.trim()}
                         >
                           {sendingCode
                             ? t('profile.email.sendingCode')
@@ -615,19 +661,34 @@ export default function Profile() {
                           value={verifyToken}
                           onChange={(e) => setVerifyToken(e.target.value)}
                           placeholder={t('profile.email.codePlaceholder')}
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          maxLength={6}
+                          pattern="[0-9]{6}"
+                          disabled={sendingCode || verifying || saving}
                           className="sm:max-w-[220px]"
                         />
                         <Button
                           type="button"
                           size="sm"
                           onClick={handleVerify}
-                          disabled={verifying}
+                          disabled={
+                            sendingCode ||
+                            verifying ||
+                            saving ||
+                            !/^\d{6}$/.test(verifyToken.trim())
+                          }
                         >
                           {verifying
                             ? t('profile.email.verifying')
                             : t('profile.email.confirmCode')}
                         </Button>
                       </div>
+                      {sendingCode || verifying ? (
+                        <span role="status" aria-live="polite" className="sr-only">
+                          {t(sendingCode ? 'profile.email.sendingCode' : 'profile.email.verifying')}
+                        </span>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>
@@ -637,6 +698,8 @@ export default function Profile() {
                   disabled={
                     saving ||
                     avatarPrivacySaving ||
+                    sendingCode ||
+                    verifying ||
                     usernameStatus.loading ||
                     usernameStatus.available === false
                   }

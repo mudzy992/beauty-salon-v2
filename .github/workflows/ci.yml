@@ -221,6 +221,9 @@ jobs:
       - name: Test profile avatar privacy mutation states
         working-directory: frontend
         run: npm run test:profile-avatar-privacy
+      - name: Test profile email verification actions
+        working-directory: frontend
+        run: npm run test:profile-email-verification
       - name: Test localized public catalog UI
         working-directory: frontend
         run: npm run test:public-catalog-i18n
