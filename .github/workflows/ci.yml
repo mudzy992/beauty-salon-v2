@@ -341,6 +341,9 @@ jobs:
       - name: Test localized stylist reservation detail UI
         working-directory: frontend
         run: npm run test:stylist-reservation-detail-i18n
+      - name: Test stylist reservation detail read recovery
+        working-directory: frontend
+        run: npm run test:stylist-reservation-detail-recovery
       - name: Test localized stylist reservation reason dialogs
         working-directory: frontend
         run: npm run test:stylist-reservation-reason-dialogs-i18n

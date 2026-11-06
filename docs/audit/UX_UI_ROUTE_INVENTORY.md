@@ -155,7 +155,7 @@ All routes are nested under the stylist guard/layout. `/stylist/profile` redirec
 | `/stylist/workbook/:entryId` | `WorkbookDetailPage` |
 | `/stylist/schedule` | `StylistSchedulePage` | Source check covers announced initial/refresh loading, distinct retryable error and empty states; rendered behavior remains unverified |
 | `/stylist/schedule/new` | `StylistDirectBookingPage` | Source checks cover client/date/time/note labels, service-group legend, and pressed state for client/service choices; rendered interactions remain unverified |
-| `/stylist/schedule/:reservationId` | `StylistReservationDetailPage` |
+| `/stylist/schedule/:reservationId` | `StylistReservationDetailPage` | Source check distinguishes retryable transient read failures from 403/404 unavailability and announces loading; rendered behavior remains unverified |
 | `/stylist/debts` | `StylistDebtsPage` | Source check covers announced read/repayment progress with distinct retryable failures and empty results; rendered behavior remains unverified |
 | `/stylist/stats` | `StylistStatsPage` |
 | `/stylist/profile` | Redirect to `/profil` |
@@ -167,6 +167,8 @@ All routes are nested under the stylist guard/layout. `/stylist/profile` redirec
 **Stylist debts read/repayment states (2026-11-06):** the initial query and repayment mutation showed plain text/button disabling without a live progress announcement. Both now expose polite status feedback, the repayment action declares `aria-busy`, and the existing retryable error and empty/search-empty states remain separate. Two source-contract tests are registered in frontend CI; no live debt API or rendered assistive-technology behavior was verified.
 
 **Stylist inbox list reads (2026-11-06):** profile loading and reservations loading had no polite status announcement; refresh only disabled its button. The route now announces both profile and list reads, exposes refresh busy state, and keeps retryable failure separate from a valid empty inbox. Two source-contract tests are registered in frontend CI; actual browser and screen-reader behavior remain unverified.
+
+**Stylist reservation detail read recovery (2026-11-06):** a failed reservation GET was rendered as “not found” for every status, and initial detail loading was not announced. The route now announces loading, preserves 403/404 as unavailable, exposes retry/back for transient errors, and keeps previously loaded data visible if a later refresh fails. Two source-contract tests are registered in frontend CI; authenticated runtime behavior remains unverified.
 
 ## Mobile Expo Router inventory
 

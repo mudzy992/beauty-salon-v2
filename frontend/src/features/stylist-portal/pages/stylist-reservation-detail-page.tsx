@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { isAxiosError } from 'axios'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 
@@ -30,7 +31,7 @@ export const StylistReservationDetailPage = () => {
   const id = String(reservationId ?? '')
 
   const { profileId, isLoading: profileLoading } = useStylistProfileMe()
-  const { reservation, isLoading, isFetching, refetch } = useStylistReservationDetail({ reservationId: id })
+  const { reservation, isLoading, isFetching, error, refetch } = useStylistReservationDetail({ reservationId: id })
   const actions = useReservationActions()
   const debtsQuery = useClientDebts({ clientId: reservation?.clientId ?? null })
   const status = useReservationDetailStatus({ reservation, profileId, warning })
@@ -71,8 +72,29 @@ export const StylistReservationDetailPage = () => {
   if (profileLoading || (isLoading && !reservation)) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-sm text-slate-500">{t('stylistPortal.reservationDetail.loading')}</div>
+        <div role="status" aria-live="polite" className="text-sm text-slate-500">
+          {t('stylistPortal.reservationDetail.loading')}
+        </div>
       </div>
+    )
+  }
+
+  const errorStatus = isAxiosError(error) ? error.response?.status : undefined
+  const isUnavailable = errorStatus === 403 || errorStatus === 404
+
+  if (error && !reservation && !isUnavailable) {
+    return (
+      <Card className="p-6" role="alert">
+        <p className="text-slate-900 dark:text-slate-50">{t('common.error')}</p>
+        <div className="mt-3 flex gap-2">
+          <Button type="button" variant="outline" onClick={() => void refetch()} disabled={isFetching}>
+            {t('common.retry')}
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
+            {t('common.back')}
+          </Button>
+        </div>
+      </Card>
     )
   }
 
