@@ -249,24 +249,47 @@ export const StylistInboxPage = () => {
                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 line-clamp-2">{r.clientNotes}</p>
               ) : null}
 
+              {acting ? (
+                <p role="status" aria-live="polite" className="mt-2 text-xs text-slate-500">
+                  {t('common.loading')}
+                </p>
+              ) : null}
+
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {lockedByOther ? (
                   <p className="text-sm text-slate-500">{t('stylistPortal.inbox.lockedByOther')}</p>
                 ) : null}
                 {canLock ? (
-                  <Button type="button" variant="outline" onClick={() => handleLock(r.id)} disabled={acting}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleLock(r.id)}
+                    disabled={acting}
+                    aria-busy={acting}
+                  >
                     {t('stylistPortal.inbox.lock')}
                   </Button>
                 ) : null}
 
                 {canAccept ? (
-                  <Button type="button" onClick={() => handleAccept(r)} disabled={acting}>
+                  <Button
+                    type="button"
+                    onClick={() => handleAccept(r)}
+                    disabled={acting}
+                    aria-busy={acting}
+                  >
                     {t('stylistPortal.inbox.accept')}
                   </Button>
                 ) : null}
 
                 {isLockedByMe ? (
-                  <Button type="button" variant="outline" onClick={() => handleUnlock(r.id)} disabled={acting}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleUnlock(r.id)}
+                    disabled={acting}
+                    aria-busy={acting}
+                  >
                     {t('stylistPortal.inbox.unlock')}
                   </Button>
                 ) : null}
@@ -277,6 +300,7 @@ export const StylistInboxPage = () => {
                     variant="ghost"
                     onClick={() => setRejectId(r.id)}
                     disabled={acting}
+                    aria-busy={acting}
                   >
                     {t('stylistPortal.inbox.reject')}
                   </Button>

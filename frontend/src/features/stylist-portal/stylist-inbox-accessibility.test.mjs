@@ -14,3 +14,8 @@ test('inbox refresh exposes busy state while retaining a separate retryable erro
   assert.match(source, /onClick=\{\(\) => refetch\(\)\}[\s\S]*?disabled=\{isFetching\}[\s\S]*?aria-busy=\{isFetching\}/)
   assert.match(source, /error \? \([\s\S]*?role="alert"[\s\S]*?void refetch\(\)/)
 })
+
+test('inbox reservation actions announce pending work and expose busy state', () => {
+  assert.match(source, /acting \? \([\s\S]*?role="status" aria-live="polite"[\s\S]*?t\('common\.loading'\)/)
+  assert.equal((source.match(/aria-busy=\{acting\}/g) ?? []).length, 4)
+})
