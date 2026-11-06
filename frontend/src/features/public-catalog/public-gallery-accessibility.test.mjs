@@ -19,3 +19,10 @@ test('gallery image controls expose a category-specific name and open the select
   assert.match(source, /setLightbox\(\{\s*src: originalUrl,\s*categoryName: cat\.name,\s*\}\)/)
   assert.match(source, /aria-label=\{`\$\{t\('public\.gallery\.openImage'\)\}: \$\{cat\.name\}`\}/)
 })
+
+test('gallery image controls use native button keyboard semantics and visible focus', () => {
+  assert.match(source, /const MotionButton = motion\.button/)
+  assert.match(source, /<MotionButton\s+key=\{img\.id\}\s+type="button"[\s\S]*?disabled=\{!originalUrl\}[\s\S]*?focus-visible:ring-2/)
+  assert.match(source, /<MotionButton[\s\S]*?onClick=\{\(\) => \{[\s\S]*?setLightbox\(\{[\s\S]*?\}\)[\s\S]*?\}\}[\s\S]*?<\/MotionButton>/)
+  assert.doesNotMatch(source, /role="button"|tabIndex=\{0\}|onKeyDown=\{\(e\)/)
+})

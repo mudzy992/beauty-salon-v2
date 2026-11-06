@@ -40,6 +40,7 @@ interface ConsentedBeforeAfterPair {
 }
 
 const MotionDiv = motion.div
+const MotionButton = motion.button
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -264,29 +265,18 @@ export default function PublicGallery() {
                               ? getUploadUrl(img.upload.pathOriginal)
                               : ''
                             return (
-                              <MotionDiv
+                              <MotionButton
                                 key={img.id}
+                                type="button"
                                 variants={fadeScale}
-                                className="group relative aspect-square cursor-pointer overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100 shadow-sm"
+                                disabled={!originalUrl}
+                                className="group relative aspect-square w-full appearance-none overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100 p-0 text-left shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed"
                                 onClick={() => {
                                   if (originalUrl) {
                                     setLightbox({
                                       src: originalUrl,
                                       categoryName: cat.name,
                                     })
-                                  }
-                                }}
-                                role="button"
-                                tabIndex={0}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault()
-                                    if (originalUrl) {
-                                      setLightbox({
-                                        src: originalUrl,
-                                        categoryName: cat.name,
-                                      })
-                                    }
                                   }
                                 }}
                                 aria-label={`${t('public.gallery.openImage')}: ${cat.name}`}
@@ -297,7 +287,7 @@ export default function PublicGallery() {
                                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                              </MotionDiv>
+                              </MotionButton>
                             )
                           })}
                       </div>
