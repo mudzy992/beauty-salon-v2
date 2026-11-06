@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '../../../components/ui/button'
@@ -34,12 +34,29 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const { t } = useTranslation()
   const [reason, setReason] = useState('')
+  const confirmInFlightRef = useRef(false)
   const requiresReason = Boolean(reasonLabel)
   const isReasonValid =
     !requiresReason || reason.trim().length >= minReasonLength
 
+  useEffect(() => {
+    if (!open) {
+      confirmInFlightRef.current = false
+      setReason('')
+    }
+  }, [open])
+
+  const handleConfirm = () => {
+    if (isPending || !isReasonValid || confirmInFlightRef.current) return
+    confirmInFlightRef.current = true
+    onConfirm(reason.trim())
+  }
+
   const handleOpenChange = (next: boolean) => {
-    if (!next) setReason('')
+    if (!next) {
+      confirmInFlightRef.current = false
+      setReason('')
+    }
     onOpenChange(next)
   }
 
@@ -52,7 +69,13 @@ export function ConfirmDialog({
       className="max-w-md"
       footer={
         <div className="mt-4 flex justify-end gap-2">
+          {isPending ? (
+            <p role="status" aria-live="polite" className="sr-only">
+              {t('common.loading')}
+            </p>
+          ) : null}
           <Button
+            type="button"
             variant="outline"
             onClick={() => handleOpenChange(false)}
             disabled={isPending}
@@ -60,9 +83,11 @@ export function ConfirmDialog({
             {t('finance.confirm.cancel')}
           </Button>
           <Button
+            type="button"
             variant={isDestructive ? 'destructive' : 'default'}
-            onClick={() => onConfirm(reason.trim())}
-            disabled={isPending || !isReasonValid}
+            onClick={handleConfirm}
+            disabled={isPending || !isReasonValid || confirmInFlightRef.current}
+            aria-busy={isPending}
           >
             {isPending
               ? t('finance.confirm.processing')

@@ -401,6 +401,9 @@ jobs:
       - name: Test finance responsive-dialog accessibility
         working-directory: frontend
         run: npm run test:finance-responsive-dialog-accessibility
+      - name: Test finance confirmation-dialog accessibility
+        working-directory: frontend
+        run: npm run test:finance-confirm-dialog-accessibility
       - name: Test finance CSV and print-export safety
         working-directory: frontend
         run: npm run test:finance-export-safety
