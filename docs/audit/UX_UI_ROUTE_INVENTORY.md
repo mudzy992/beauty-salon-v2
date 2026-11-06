@@ -148,7 +148,7 @@ All routes are nested under the stylist guard/layout. `/stylist/profile` redirec
 | Route | Page/source |
 |---|---|
 | `/stylist` | Redirect to `/stylist/inbox` |
-| `/stylist/inbox` | `StylistInboxPage` |
+| `/stylist/inbox` | `StylistInboxPage` | Source check covers announced profile/list loading, busy refresh, and distinct retryable error/empty states; rendered behavior remains unverified |
 | `/stylist/workbook` | `WorkbookListPage` |
 | `/stylist/workbook/new` | `WorkbookNewEntryPage` |
 | `/stylist/workbook/reschedule-preview/:reservationId` | `WorkbookReschedulePreviewPage` |
@@ -165,6 +165,8 @@ All routes are nested under the stylist guard/layout. `/stylist/profile` redirec
 **Stylist schedule load/refresh states (2026-11-06):** reservation loading after the stylist profile was resolved did not render an announced progress status and could look like an empty region. The schedule now announces the list request while independently preserving retryable errors and the valid empty state; its refresh action exposes `aria-busy`. Two source-contract tests are registered in frontend CI. No rendered, mounted-network, or screen-reader verification was performed.
 
 **Stylist debts read/repayment states (2026-11-06):** the initial query and repayment mutation showed plain text/button disabling without a live progress announcement. Both now expose polite status feedback, the repayment action declares `aria-busy`, and the existing retryable error and empty/search-empty states remain separate. Two source-contract tests are registered in frontend CI; no live debt API or rendered assistive-technology behavior was verified.
+
+**Stylist inbox list reads (2026-11-06):** profile loading and reservations loading had no polite status announcement; refresh only disabled its button. The route now announces both profile and list reads, exposes refresh busy state, and keeps retryable failure separate from a valid empty inbox. Two source-contract tests are registered in frontend CI; actual browser and screen-reader behavior remain unverified.
 
 ## Mobile Expo Router inventory
 

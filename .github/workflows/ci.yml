@@ -320,6 +320,9 @@ jobs:
       - name: Test localized stylist reservation inbox UI
         working-directory: frontend
         run: npm run test:stylist-inbox-i18n
+      - name: Test stylist inbox loading accessibility
+        working-directory: frontend
+        run: npm run test:stylist-inbox-accessibility
       - name: Test localized stylist schedule UI
         working-directory: frontend
         run: npm run test:stylist-schedule-i18n

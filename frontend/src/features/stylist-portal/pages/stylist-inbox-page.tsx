@@ -53,7 +53,9 @@ export const StylistInboxPage = () => {
   if (profileLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-sm text-slate-500">{t('common.loading')}</div>
+        <div role="status" aria-live="polite" className="text-sm text-slate-500">
+          {t('common.loading')}
+        </div>
       </div>
     )
   }
@@ -156,10 +158,22 @@ export const StylistInboxPage = () => {
             {t('stylistPortal.inbox.description')}
           </p>
         </div>
-        <Button type="button" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => refetch()}
+          disabled={isFetching}
+          aria-busy={isFetching}
+        >
           {t('stylistPortal.inbox.refresh')}
         </Button>
       </div>
+
+      {isFetching ? (
+        <p role="status" aria-live="polite" className="text-sm text-slate-500">
+          {t('common.loading')}
+        </p>
+      ) : null}
 
       {error ? (
         <Card className="flex flex-wrap items-center justify-between gap-2 p-4" role="alert">
