@@ -299,6 +299,9 @@ jobs:
       - name: Test localized stylist workbook detail UI
         working-directory: frontend
         run: npm run test:stylist-workbook-detail-i18n
+      - name: Test stylist workbook read accessibility
+        working-directory: frontend
+        run: npm run test:stylist-workbook-read-accessibility
       - name: Test localized stylist workbook reschedule UI
         working-directory: frontend
         run: npm run test:stylist-workbook-reschedule-i18n

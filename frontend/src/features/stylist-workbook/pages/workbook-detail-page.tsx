@@ -133,8 +133,9 @@ export const WorkbookDetailPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div role="status" aria-live="polite" className="flex items-center justify-center gap-2 py-20">
         <Loader2 className="h-6 w-6 animate-spin text-slate-400" aria-hidden="true" />
+        <span className="text-sm text-slate-500">{t('common.loading')}</span>
       </div>
     )
   }
@@ -180,7 +181,13 @@ export const WorkbookDetailPage = () => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => void refetch()} disabled={isFetching}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-busy={isFetching}
+          >
             {isFetching
               ? t('stylistWorkbook.refreshing')
               : t('stylistWorkbook.refresh')}

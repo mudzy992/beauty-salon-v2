@@ -50,7 +50,9 @@ export const WorkbookListPage = () => {
   if (profileLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-sm text-slate-500">{t('common.loading')}</div>
+        <div role="status" aria-live="polite" className="text-sm text-slate-500">
+          {t('common.loading')}
+        </div>
       </div>
     )
   }
@@ -96,7 +98,13 @@ export const WorkbookListPage = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => void refetch()} disabled={isFetching}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-busy={isFetching}
+          >
             {isFetching ? t('stylistWorkbook.refreshing') : t('stylistWorkbook.refresh')}
           </Button>
           <Button type="button" className="gap-2" onClick={() => setNewOpen(true)}>
@@ -110,12 +118,21 @@ export const WorkbookListPage = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="text-sm text-slate-500">{t('common.loading')}</div>
+          <div role="status" aria-live="polite" className="text-sm text-slate-500">
+            {t('common.loading')}
+          </div>
         </div>
       ) : entriesError ? (
         <Card className="p-6 text-center" role="alert">
           <p className="text-slate-600 dark:text-slate-300">{t('stylistWorkbook.entriesLoadFailed')}</p>
-          <Button type="button" variant="outline" className="mt-3" onClick={() => void refetch()}>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-3"
+            onClick={() => void refetch()}
+            disabled={isFetching}
+            aria-busy={isFetching}
+          >
             {t('common.retry')}
           </Button>
         </Card>
