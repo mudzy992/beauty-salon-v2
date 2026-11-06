@@ -2739,6 +2739,7 @@
       "loadFailed": "Transformations couldn’t be loaded right now.",
       "retry": "Try again",
       "loadingMore": "Loading…",
+      "loadMore": "Load more transformations",
       "backHome": "Back to home"
     },
     "gallery": {

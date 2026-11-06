@@ -2736,6 +2736,7 @@
       "loadFailed": "Transformacije trenutno nije moguće učitati.",
       "retry": "Pokušaj ponovo",
       "loadingMore": "Učitavanje…",
+      "loadMore": "Učitaj još transformacija",
       "backHome": "Nazad na početnu"
     },
     "gallery": {
