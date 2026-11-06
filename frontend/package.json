@@ -14,6 +14,7 @@
     "test:registration-accessibility": "node --test src/features/auth/registration-accessibility.test.mjs",
     "test:login-i18n": "node --test src/features/auth/login-i18n.test.mjs",
     "test:login-accessibility": "node --test src/features/auth/login-accessibility.test.mjs",
+    "test:reset-password-accessibility": "node --test src/features/auth/reset-password-accessibility.test.mjs",
     "test:locale-formatting": "node --test src/i18n/locale-utils.test.mjs",
     "test:reservation-errors": "node --test src/features/reservations/public-reservation-error.test.mjs",
     "test:public-reservation-accessibility": "node --test src/features/public-catalog/public-reservation-accessibility.test.mjs",

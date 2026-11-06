@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -11,14 +11,36 @@ import { Label } from '../components/ui/label'
 export default function ResetPassword() {
   const { t } = useTranslation()
   const location = useLocation()
-  const [token] = useState(
+  const token = useMemo(
     () => new URLSearchParams(location.search).get('token') ?? '',
+    [location.search],
   )
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const requestGeneration = useRef(0)
+  const requestInFlight = useRef(false)
+  const previousToken = useRef(token)
+
+  useEffect(() => {
+    if (previousToken.current !== token) {
+      requestGeneration.current += 1
+      requestInFlight.current = false
+      setLoading(false)
+      setCompleted(false)
+      setErrorMessage('')
+      setNewPassword('')
+      setConfirmPassword('')
+      previousToken.current = token
+    }
+  }, [token])
+
+  useEffect(() => () => {
+    requestGeneration.current += 1
+    requestInFlight.current = false
+  }, [])
 
   useEffect(() => {
     if (token) {
@@ -26,8 +48,12 @@ export default function ResetPassword() {
     }
   }, [location.pathname, token])
 
+  const isCurrentRequest = (generation: number) =>
+    generation === requestGeneration.current
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (requestInFlight.current) return
     setErrorMessage('')
     if (!token) {
       setErrorMessage(t('auth.resetPassword.invalidLink'))
@@ -42,18 +68,26 @@ export default function ResetPassword() {
       return
     }
 
+    const generation = ++requestGeneration.current
+    requestInFlight.current = true
     setLoading(true)
     try {
       await api.post('/auth/reset-password', { token, newPassword })
+      if (!isCurrentRequest(generation)) return
       setNewPassword('')
       setConfirmPassword('')
       setCompleted(true)
     } catch (error: any) {
-      setErrorMessage(
-        error?.response?.data?.message || t('auth.resetPassword.failed'),
-      )
+      if (isCurrentRequest(generation)) {
+        setErrorMessage(
+          error?.response?.data?.message || t('auth.resetPassword.failed'),
+        )
+      }
     } finally {
-      setLoading(false)
+      if (isCurrentRequest(generation)) {
+        requestInFlight.current = false
+        setLoading(false)
+      }
     }
   }
 
@@ -64,12 +98,22 @@ export default function ResetPassword() {
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
             {t('auth.resetPassword.title')}
           </h1>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
+          <p
+            className="text-sm text-slate-600 dark:text-slate-300"
+            role={completed ? 'status' : undefined}
+            aria-live={completed ? 'polite' : undefined}
+          >
             {completed
               ? t('auth.resetPassword.success')
               : t('auth.resetPassword.intro')}
           </p>
         </div>
+
+        {loading ? (
+          <span role="status" aria-live="polite" className="sr-only">
+            {t('common.loading')}
+          </span>
+        ) : null}
 
         {errorMessage ? (
           <p
@@ -81,7 +125,11 @@ export default function ResetPassword() {
         ) : null}
 
         {!completed && token ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            aria-busy={loading}
+          >
             <div className="space-y-2">
               <Label htmlFor="reset-new-password">
                 {t('auth.resetPassword.newPassword')}
@@ -110,7 +158,12 @@ export default function ResetPassword() {
                 minLength={6}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading}
+              aria-busy={loading}
+            >
               {loading ? t('common.loading') : t('auth.resetPassword.submit')}
             </Button>
           </form>
