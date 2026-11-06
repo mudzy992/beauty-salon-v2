@@ -2871,7 +2871,8 @@
     "blogShare": {
       "share": "Share",
       "copied": "Copied",
-      "copyLink": "Copy link"
+      "copyLink": "Copy link",
+      "opensInNewTab": "Opens in a new tab"
     },
     "blogComments": {
       "title": "Comments",

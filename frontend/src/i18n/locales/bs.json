@@ -2868,7 +2868,8 @@
     "blogShare": {
       "share": "Podijeli",
       "copied": "Kopirano",
-      "copyLink": "Kopiraj link"
+      "copyLink": "Kopiraj link",
+      "opensInNewTab": "Otvara se u novoj kartici"
     },
     "blogComments": {
       "title": "Komentari",
