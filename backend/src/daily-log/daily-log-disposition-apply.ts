@@ -1,7 +1,5 @@
-import {
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { ReservationSharedService } from '../reservations/reservation-shared.service';
 import type { ReservationDateService } from '../reservations/reservation-date.service';
@@ -25,10 +23,19 @@ type ReservationRow = {
   status: string;
 };
 
+type DispositionDb = Pick<
+  Prisma.TransactionClient,
+  'reservation' | 'salonSettings' | 'clientCancellationCount'
+>;
+
 type Deps = {
-  prisma: PrismaService;
+  prisma: DispositionDb;
   shared: ReservationSharedService;
   dates: ReservationDateService;
+};
+
+type NotificationDeps = {
+  prisma: PrismaService;
   notifications: NotificationsService;
 };
 
@@ -74,10 +81,7 @@ export const assertReorderSlotFree = async (
 
 export const applyDirectReorder = async (
   deps: Pick<Deps, 'prisma' | 'shared' | 'dates'>,
-  reservation: Pick<
-    ReservationRow,
-    'id' | 'reservationDate' | 'status'
-  >,
+  reservation: Pick<ReservationRow, 'id' | 'reservationDate' | 'status'>,
   opts: {
     targetDate?: string;
     targetStartTime: string;
@@ -105,7 +109,7 @@ export const applyDirectReorder = async (
 };
 
 export const notifyClientCancelled = async (
-  deps: Pick<Deps, 'prisma' | 'notifications'>,
+  deps: NotificationDeps,
   reservationId: string,
   clientId: string,
   reason: string,
@@ -142,6 +146,28 @@ export const notifyClientCancelled = async (
   });
 };
 
+export const notifyClientNoShow = async (
+  deps: NotificationDeps,
+  reservationId: string,
+  clientId: string,
+): Promise<void> => {
+  const ctx = await resolvePushContext(deps.prisma, reservationId);
+  const copy = buildCancelledCopy({
+    ctx,
+    title: 'Niste došli',
+    reason:
+      'Rezervacija je označena kao da se klijent nije pojavio. Ako je greška, kontaktirajte salon.',
+  });
+  await deps.notifications.send({
+    userId: clientId,
+    title: copy.title,
+    body: copy.body,
+    type: 'reservation_cancelled',
+    data: { reservationId, kind: 'reservation_cancelled' },
+    channel: 'PUSH',
+  });
+};
+
 export const applyStylistCancel = async (
   deps: Deps,
   reservationId: string,
@@ -162,7 +188,6 @@ export const applyStylistCancel = async (
       cancelReason: reason,
     },
   });
-  await notifyClientCancelled(deps, reservationId, r.clientId, reason);
 };
 
 export const applyClientCancel = async (
@@ -187,12 +212,15 @@ export const applyClientCancel = async (
   });
   const salon = await deps.prisma.salonSettings.findFirst();
   if (salon) {
-    await deps.shared.incrementCancellationCount(r.clientId, {
-      maxCancellationsBeforePenalty: salon.maxCancellationsBeforePenalty,
-      penaltyDurationDays: salon.penaltyDurationDays,
-    });
+    await deps.shared.incrementCancellationCountInTransaction(
+      r.clientId,
+      {
+        maxCancellationsBeforePenalty: salon.maxCancellationsBeforePenalty,
+        penaltyDurationDays: salon.penaltyDurationDays,
+      },
+      deps.prisma,
+    );
   }
-  await notifyClientCancelled(deps, reservationId, r.clientId, reason);
 };
 
 export const applyNoShow = async (
@@ -219,25 +247,14 @@ export const applyNoShow = async (
   if (applyPenalty) {
     const salon = await deps.prisma.salonSettings.findFirst();
     if (salon) {
-      await deps.shared.incrementCancellationCount(r.clientId, {
-        maxCancellationsBeforePenalty: salon.maxCancellationsBeforePenalty,
-        penaltyDurationDays: salon.penaltyDurationDays,
-      });
+      await deps.shared.incrementCancellationCountInTransaction(
+        r.clientId,
+        {
+          maxCancellationsBeforePenalty: salon.maxCancellationsBeforePenalty,
+          penaltyDurationDays: salon.penaltyDurationDays,
+        },
+        deps.prisma,
+      );
     }
   }
-  const ctx = await resolvePushContext(deps.prisma, reservationId);
-  const copy = buildCancelledCopy({
-    ctx,
-    title: 'Niste došli',
-    reason:
-      'Rezervacija je označena kao da se klijent nije pojavio. Ako je greška, kontaktirajte salon.',
-  });
-  await deps.notifications.send({
-    userId: r.clientId,
-    title: copy.title,
-    body: copy.body,
-    type: 'reservation_cancelled',
-    data: { reservationId, kind: 'reservation_cancelled' },
-    channel: 'PUSH',
-  });
 };

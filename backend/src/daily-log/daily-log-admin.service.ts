@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { DailyLogService } from './daily-log.service';
 import { DailyLogReversalService } from './daily-log-reversal.service';
@@ -95,6 +96,74 @@ export class DailyLogAdminService {
         data: { status: 'PENDING', completedAt: null },
         include: this.dailyLog.entryInclude(),
       });
+    });
+  }
+
+  async softDeletePendingInTransaction(
+    id: string,
+    reason: string,
+    user: CurrentUserPayload,
+    tx: Prisma.TransactionClient,
+  ) {
+    await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM "daily_log_entries" WHERE id = ${id} FOR UPDATE`,
+    );
+    const entry = await tx.dailyLogEntry.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        status: true,
+        deletedAt: true,
+        date: true,
+        kind: true,
+        debtId: true,
+      },
+    });
+    if (!entry) throw new NotFoundException('Zapis nije pronađen.');
+    if (entry.deletedAt || entry.status !== 'PENDING') {
+      throw new BadRequestException('Zapis više nije PENDING.');
+    }
+
+    if (entry.kind === 'DEBT_PAYMENT' && entry.debtId) {
+      await this.incomeSync.assertBookOpenForDate(entry.date, tx);
+      const manuals = await tx.incomeBookManualEntry.findMany({
+        where: { dailyLogEntryId: id },
+        select: { bookId: true },
+      });
+      const bookIds = [
+        ...new Set(manuals.map((manual) => manual.bookId)),
+      ].sort();
+      await this.incomeSync.assertBooksOpenForDateAndIds(
+        entry.date,
+        bookIds,
+        tx,
+      );
+      await tx.incomeBookManualEntry.deleteMany({
+        where: { dailyLogEntryId: id },
+      });
+      for (const bookId of bookIds) {
+        await this.reversal.recalcInTx(tx, bookId);
+      }
+      await tx.clientDebt.update({
+        where: { id: entry.debtId },
+        data: { status: 'OPEN', settledAt: null, settledById: null },
+      });
+    } else {
+      await this.reversal.assertOpenBooksForEntry(entry, tx);
+      await this.reversal.reverseLinkedDebtPayments(tx, id);
+      await tx.clientDebt.deleteMany({
+        where: { dailyLogEntryId: id, status: 'OPEN' },
+      });
+    }
+
+    return tx.dailyLogEntry.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        deletedById: user.sub,
+        deleteReason: reason,
+      },
+      include: this.dailyLog.entryInclude(),
     });
   }
 

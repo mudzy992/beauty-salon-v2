@@ -153,6 +153,8 @@ export class DailyLogRestoreService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      // Keep the shared reservation-day lock order ahead of Daily Log row locks.
+      await acquireReservationDayLock(tx, targetDate);
       await tx.$queryRaw(
         Prisma.sql`SELECT id FROM "daily_log_entries" WHERE id = ${entry.id} FOR UPDATE`,
       );
@@ -164,9 +166,7 @@ export class DailyLogRestoreService {
         throw new BadRequestException('Zapis više nije obrisan.');
       }
 
-      // Coordinate with normal reservation creation and recheck availability
-      // after taking the same salon-day transaction lock.
-      await acquireReservationDayLock(tx, targetDate);
+      // Recheck availability after taking the shared salon-day lock.
       await this.assertNoStylistConflict(
         tx,
         confirmedStylistId,

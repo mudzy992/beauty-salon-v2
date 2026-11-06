@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { toDateOnlyString } from '../common/utils/date-only';
 import { EventsGateway } from '../events/events.gateway';
@@ -25,8 +26,11 @@ import {
   applyNoShow,
   applyStylistCancel,
   assertReorderSlotFree,
+  notifyClientCancelled,
+  notifyClientNoShow,
 } from './daily-log-disposition-apply';
 import { assertClientDayBookingAllowed } from '../reservations/utils/assert-client-day-booking';
+import { acquireReservationDayLocks } from '../reservations/utils/booking-advisory-lock';
 
 @Injectable()
 export class DailyLogDispositionService {
@@ -42,15 +46,6 @@ export class DailyLogDispositionService {
     private readonly reservationNotify: ReservationNotifyService,
   ) {}
 
-  private get applyDeps() {
-    return {
-      prisma: this.prisma,
-      shared: this.shared,
-      dates: this.dates,
-      notifications: this.notifications,
-    };
-  }
-
   async dispose(
     entryId: string,
     dto: DailyLogDispositionDto,
@@ -60,7 +55,9 @@ export class DailyLogDispositionService {
       includeDeleted: false,
     });
     if (entry.status !== 'PENDING') {
-      throw new BadRequestException('Disposition je moguć samo za PENDING zapise.');
+      throw new BadRequestException(
+        'Disposition je moguć samo za PENDING zapise.',
+      );
     }
     if (!entry.reservationId) {
       throw new BadRequestException('Zapis nije vezan za rezervaciju.');
@@ -85,9 +82,11 @@ export class DailyLogDispositionService {
     }
 
     const isAdmin = this.dailyLog.isAdminOrOwner(user);
+    let stylistProfileId: string | null = null;
     if (!isAdmin) {
-      const stylistProfileId =
-        await this.shared.getStylistProfileIdByUserId(user.sub);
+      stylistProfileId = await this.shared.getStylistProfileIdByUserId(
+        user.sub,
+      );
       if (
         !stylistProfileId ||
         stylistProfileId !== reservation.confirmedStylistId
@@ -109,77 +108,195 @@ export class DailyLogDispositionService {
           'Vrijeme završetka mora biti nakon početka.',
         );
       }
-      await assertReorderSlotFree(this.applyDeps, reservation, {
-        targetDate: dto.targetDate,
-        targetStartTime: dto.targetStartTime,
-        targetEndTime: dto.targetEndTime,
-      });
-      const serviceIds =
-        reservation.items.length > 0
-          ? reservation.items.map((item) => item.serviceId)
-          : [reservation.serviceId];
-      await assertClientDayBookingAllowed({
-        prisma: this.prisma,
-        clientId: reservation.clientId,
-        reservationDate: dto.targetDate ?? reservation.reservationDate,
-        startTime: dto.targetStartTime,
-        endTime: dto.targetEndTime,
-        serviceIds,
-        excludeReservationId: reservation.id,
-      });
     }
 
-    await this.dailyLogAdmin.softDelete(entryId, { reason }, user);
+    const reorderTargetDate =
+      dto.action === 'reorder'
+        ? dto.targetDate
+          ? this.dates.parseDateOnly(dto.targetDate)
+          : new Date(reservation.reservationDate)
+        : null;
 
-    switch (dto.action) {
-      case 'discard':
-      case 'cancel_as_stylist':
-        await applyStylistCancel(this.applyDeps, reservation.id, reason);
-        break;
-      case 'cancel_as_client':
-        await applyClientCancel(this.applyDeps, reservation.id, reason);
-        break;
-      case 'no_show':
-        await applyNoShow(
-          this.applyDeps,
-          reservation.id,
-          reason,
-          dto.applyPenalty !== false,
+    const lockedReservation = await this.prisma.$transaction(async (tx) => {
+      // Match reservation reschedule flows' lock order: calendar-day locks
+      // precede row locks, avoiding a lock-order cycle with concurrent updates.
+      await acquireReservationDayLocks(
+        tx,
+        reorderTargetDate
+          ? [reservation.reservationDate, reorderTargetDate]
+          : [reservation.reservationDate],
+      );
+      await tx.$queryRaw(
+        Prisma.sql`SELECT id FROM "daily_log_entries" WHERE id = ${entryId} FOR UPDATE`,
+      );
+      await tx.$queryRaw(
+        Prisma.sql`SELECT id FROM "reservations" WHERE id = ${entry.reservationId} FOR UPDATE`,
+      );
+
+      const currentEntry = await tx.dailyLogEntry.findUnique({
+        where: { id: entryId },
+        select: {
+          id: true,
+          status: true,
+          deletedAt: true,
+          reservationId: true,
+        },
+      });
+      if (
+        !currentEntry ||
+        currentEntry.deletedAt ||
+        currentEntry.status !== 'PENDING' ||
+        currentEntry.reservationId !== entry.reservationId
+      ) {
+        throw new BadRequestException(
+          'Daily Log zapis je promijenjen; osvježite stranicu.',
         );
-        break;
-      case 'reorder':
-        await applyDirectReorder(this.applyDeps, reservation, {
+      }
+
+      const currentReservation = await tx.reservation.findUnique({
+        where: { id: entry.reservationId! },
+        include: { items: { select: { serviceId: true } } },
+      });
+      if (!currentReservation) {
+        throw new NotFoundException('Rezervacija nije pronađena.');
+      }
+      if (currentReservation.status !== RESERVATION_STATUS.AWAITING_DAILY_LOG) {
+        throw new BadRequestException(
+          'Disposition je moguć samo za direktne rezervacije u statusu AWAITING_DAILY_LOG.',
+        );
+      }
+      if (
+        reorderTargetDate &&
+        (currentReservation.reservationDate.getTime() !==
+          reservation.reservationDate.getTime() ||
+          currentReservation.startTime !== reservation.startTime ||
+          currentReservation.endTime !== reservation.endTime ||
+          currentReservation.confirmedStylistId !==
+            reservation.confirmedStylistId)
+      ) {
+        throw new BadRequestException(
+          'Termin je istovremeno promijenjen; osvježite stranicu i pokušajte ponovo.',
+        );
+      }
+      if (
+        !isAdmin &&
+        (!stylistProfileId ||
+          stylistProfileId !== currentReservation.confirmedStylistId)
+      ) {
+        throw new ForbiddenException('Nemate dozvolu za ovu akciju.');
+      }
+
+      const applyDeps = {
+        prisma: tx,
+        shared: this.shared,
+        dates: this.dates,
+      };
+
+      if (dto.action === 'reorder') {
+        const targetDate = reorderTargetDate!;
+        await assertReorderSlotFree(applyDeps, currentReservation, {
           targetDate: dto.targetDate,
           targetStartTime: dto.targetStartTime!,
           targetEndTime: dto.targetEndTime!,
         });
-        await this.reservationNotify.notifyClientTimeChanged({
-          clientId: reservation.clientId,
-          reservationId: reservation.id,
-          date:
-            dto.targetDate ??
-            this.dates.toDateOnlyString(reservation.reservationDate),
+        const serviceIds =
+          currentReservation.items.length > 0
+            ? currentReservation.items.map((item) => item.serviceId)
+            : [currentReservation.serviceId];
+        await assertClientDayBookingAllowed({
+          prisma: tx,
+          clientId: currentReservation.clientId,
+          reservationDate: targetDate,
           startTime: dto.targetStartTime!,
           endTime: dto.targetEndTime!,
-          publicReferenceCode: reservation.publicReferenceCode,
-          clientViewToken: reservation.clientViewToken,
+          serviceIds,
+          excludeReservationId: currentReservation.id,
         });
-        break;
+      }
+
+      await this.dailyLogAdmin.softDeletePendingInTransaction(
+        entryId,
+        reason,
+        user,
+        tx,
+      );
+
+      switch (dto.action) {
+        case 'discard':
+        case 'cancel_as_stylist':
+          await applyStylistCancel(applyDeps, currentReservation.id, reason);
+          break;
+        case 'cancel_as_client':
+          await applyClientCancel(applyDeps, currentReservation.id, reason);
+          break;
+        case 'no_show':
+          await applyNoShow(
+            applyDeps,
+            currentReservation.id,
+            reason,
+            dto.applyPenalty !== false,
+          );
+          break;
+        case 'reorder':
+          await applyDirectReorder(applyDeps, currentReservation, {
+            targetDate: dto.targetDate,
+            targetStartTime: dto.targetStartTime!,
+            targetEndTime: dto.targetEndTime!,
+          });
+          break;
+      }
+      return currentReservation;
+    });
+
+    if (dto.action === 'discard' || dto.action === 'cancel_as_stylist') {
+      await notifyClientCancelled(
+        { prisma: this.prisma, notifications: this.notifications },
+        lockedReservation.id,
+        lockedReservation.clientId,
+        reason,
+      );
+    } else if (dto.action === 'cancel_as_client') {
+      await notifyClientCancelled(
+        { prisma: this.prisma, notifications: this.notifications },
+        lockedReservation.id,
+        lockedReservation.clientId,
+        reason,
+      );
+    } else if (dto.action === 'no_show') {
+      await notifyClientNoShow(
+        { prisma: this.prisma, notifications: this.notifications },
+        lockedReservation.id,
+        lockedReservation.clientId,
+      );
+    } else if (dto.action === 'reorder') {
+      await this.reservationNotify.notifyClientTimeChanged({
+        clientId: lockedReservation.clientId,
+        reservationId: lockedReservation.id,
+        date:
+          dto.targetDate ??
+          this.dates.toDateOnlyString(lockedReservation.reservationDate),
+        startTime: dto.targetStartTime!,
+        endTime: dto.targetEndTime!,
+        publicReferenceCode: lockedReservation.publicReferenceCode,
+        clientViewToken: lockedReservation.clientViewToken,
+      });
     }
 
-    const updated = reservation.id
-      ? await this.queries.findOne(reservation.id, user).catch(() => null)
-      : null;
+    const updated = await this.queries
+      .findOne(lockedReservation.id, user)
+      .catch(() => null);
     if (updated) {
       this.events.emitToAdmins(SOCKET_EVENTS.RESERVATION_UPDATED, updated);
       this.events.emitToUser(
-        reservation.clientId,
+        lockedReservation.clientId,
         SOCKET_EVENTS.RESERVATION_UPDATED,
         updated,
       );
       this.events.emitToAll(SOCKET_EVENTS.AVAILABILITY_CHANGED, {
-        serviceId: reservation.serviceId,
-        date: toDateOnlyString(updated.reservationDate ?? reservation.reservationDate),
+        serviceId: lockedReservation.serviceId,
+        date: toDateOnlyString(
+          updated.reservationDate ?? lockedReservation.reservationDate,
+        ),
       });
     }
     return { ok: true, reservation: updated };

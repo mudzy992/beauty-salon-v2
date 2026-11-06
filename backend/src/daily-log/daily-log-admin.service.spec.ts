@@ -30,6 +30,7 @@ describe('DailyLogAdminService', () => {
     assertClientServiceGenderMatch: jest.fn(),
   };
   const mockPrisma: Record<string, any> = {
+    $queryRaw: jest.fn().mockResolvedValue([]),
     dailyLogEntry: {
       update: jest.fn(),
       findUnique: jest.fn(),
@@ -49,7 +50,7 @@ describe('DailyLogAdminService', () => {
       findMany: jest.fn().mockResolvedValue([]),
       deleteMany: jest.fn(),
     },
-    clientDebt: { update: jest.fn() },
+    clientDebt: { update: jest.fn(), deleteMany: jest.fn() },
   };
   const mockIncomeSync = {
     assertBookOpenForDate: jest.fn(),
@@ -100,9 +101,55 @@ describe('DailyLogAdminService', () => {
       kind: 'SERVICE',
       date: new Date(),
     });
-    await expect(
-      service.softDelete('e1', {}, admin as any),
-    ).rejects.toThrow(BadRequestException);
+    await expect(service.softDelete('e1', {}, admin as any)).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('soft-deletes a pending entry and reverses its linked effects on the supplied transaction', async () => {
+    const date = new Date('2026-10-15T00:00:00.000Z');
+    const entry = {
+      id: 'entry-1',
+      status: 'PENDING',
+      deletedAt: null,
+      date,
+      kind: 'SERVICE',
+      debtId: null,
+    };
+    mockPrisma.dailyLogEntry.findUnique.mockResolvedValue(entry);
+    mockPrisma.dailyLogEntry.update.mockResolvedValue({
+      ...entry,
+      deletedAt: new Date(),
+    });
+
+    await service.softDeletePendingInTransaction(
+      'entry-1',
+      'Disposition',
+      admin as any,
+      mockPrisma as any,
+    );
+
+    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(mockReversal.assertOpenBooksForEntry).toHaveBeenCalledWith(
+      entry,
+      mockPrisma,
+    );
+    expect(mockReversal.reverseLinkedDebtPayments).toHaveBeenCalledWith(
+      mockPrisma,
+      'entry-1',
+    );
+    expect(mockPrisma.clientDebt.deleteMany).toHaveBeenCalledWith({
+      where: { dailyLogEntryId: 'entry-1', status: 'OPEN' },
+    });
+    expect(mockPrisma.dailyLogEntry.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'entry-1' },
+        data: expect.objectContaining({
+          deletedById: 'admin-1',
+          deleteReason: 'Disposition',
+        }),
+      }),
+    );
   });
 
   it('softDelete reverses completed effects for admin', async () => {
@@ -180,9 +227,9 @@ describe('DailyLogAdminService', () => {
       kind: 'SERVICE',
       date: new Date(),
     });
-    await expect(
-      service.softDelete('e1', {}, stylist as any),
-    ).rejects.toThrow(BadRequestException);
+    await expect(service.softDelete('e1', {}, stylist as any)).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('stylist cannot delete COMPLETED entry', async () => {
@@ -266,7 +313,11 @@ describe('DailyLogAdminService', () => {
       status: 'COMPLETED',
     });
     await expect(
-      service.addImage('e1', { uploadId: 'u1', isBefore: true }, stylist as any),
+      service.addImage(
+        'e1',
+        { uploadId: 'u1', isBefore: true },
+        stylist as any,
+      ),
     ).rejects.toThrow(BadRequestException);
   });
 
