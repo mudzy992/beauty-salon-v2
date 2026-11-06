@@ -141,7 +141,7 @@ export default function PublicHome() {
               </div>
             </MotionDiv>
             <MotionDiv variants={fadeUp}>
-              <div className="text-4xl sm:text-5xl md:text-6xl font-light leading-[1.1] whitespace-pre-line">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-light leading-[1.1] whitespace-pre-line">
                 {titleRest ? (
                   <>
                     {titleFirst}
@@ -151,7 +151,7 @@ export default function PublicHome() {
                 ) : (
                   heroTitle
                 )}
-              </div>
+              </h1>
             </MotionDiv>
             <MotionDiv variants={fadeUp}>
               <div className="text-lg md:text-xl text-slate-200 mt-6 mb-10 max-w-2xl mx-auto">
@@ -193,10 +193,10 @@ export default function PublicHome() {
                   variants={fadeUp}
                   className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-all text-center border border-slate-200"
                 >
-                  <Icon className="h-10 w-10 text-brand-gold-text mx-auto mb-4" />
-                  <div className="text-lg font-semibold text-slate-900 mb-2">
+                  <Icon className="h-10 w-10 text-brand-gold-text mx-auto mb-4" aria-hidden="true" />
+                  <h2 className="text-lg font-semibold text-slate-900 mb-2">
                     {item.title}
-                  </div>
+                  </h2>
                   <div className="text-slate-600">{item.text}</div>
                 </MotionDiv>
               )
@@ -215,9 +215,9 @@ export default function PublicHome() {
               <div className="text-brand-gold-text font-semibold uppercase tracking-widest text-sm">
                 {t('public.home.aboutKicker')}
               </div>
-              <div className="text-3xl md:text-4xl font-semibold text-slate-900 mt-2">
+              <h2 className="text-3xl md:text-4xl font-semibold text-slate-900 mt-2">
                 {aboutTitle}
-              </div>
+              </h2>
               <div className="text-slate-600 mt-4 leading-relaxed max-w-xl">
                 {aboutText}
               </div>
@@ -338,9 +338,9 @@ export default function PublicHome() {
         />
         <div className="relative z-[1] mx-auto max-w-6xl px-4 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="text-center md:text-left">
-            <div className="text-2xl font-semibold tracking-tight text-slate-950">
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-950">
               {getSetting('public_cta_title', t('public.home.ctaTitleFallback'))}
-            </div>
+            </h2>
             <div className="text-slate-600 mt-2 max-w-xl">
               {getSetting('public_cta_subtitle', t('public.home.ctaSubtitleFallback'))}
             </div>
