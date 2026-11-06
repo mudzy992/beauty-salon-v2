@@ -95,12 +95,14 @@ export default function OnboardingShell({
         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
           {MainDeco ? (
             <MainDeco
+            aria-hidden="true"
             className="absolute right-[-28px] bottom-[12%] text-brand-gold-text opacity-10"
             style={{ width: decoSize, height: decoSize }}
             />
           ) : null}
           {AccentDeco ? (
             <AccentDeco
+            aria-hidden="true"
             className="absolute right-[32px] top-[18%] text-brand-gold-text opacity-15"
             style={{
               width: decoSize * deco.accentScale,
@@ -131,13 +133,13 @@ export default function OnboardingShell({
             <div className="flex items-start gap-3">
               {HeaderIcon ? (
                 <div className="shrink-0 h-11 w-11 rounded-2xl bg-brand-champagne/40 flex items-center justify-center">
-                  <HeaderIcon className="h-5 w-5 text-brand-gold-text" />
+                  <HeaderIcon aria-hidden="true" className="h-5 w-5 text-brand-gold-text" />
                 </div>
               ) : null}
               <div>
-                <div className="text-2xl md:text-3xl font-extrabold leading-tight text-slate-900">
+                <h1 className="text-2xl md:text-3xl font-extrabold leading-tight text-slate-900">
                   {title}
-                </div>
+                </h1>
                 <div className="mt-2 text-slate-600 text-base leading-relaxed">
                   {subtitle}
                 </div>
@@ -146,7 +148,7 @@ export default function OnboardingShell({
 
             {tip ? (
               <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <FiInfo className="h-5 w-5 text-brand-gold-text mt-0.5" />
+                <FiInfo aria-hidden="true" className="h-5 w-5 text-brand-gold-text mt-0.5" />
                 <div className="text-sm leading-relaxed text-slate-700">{tip}</div>
               </div>
             ) : null}
