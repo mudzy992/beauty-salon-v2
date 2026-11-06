@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2 } from 'lucide-react'
 
@@ -58,6 +58,11 @@ export function CategoryFieldsEditor({
   onRemoveSaved,
 }: Props) {
   const { t } = useTranslation()
+  const id = useId()
+  const fieldNameId = `${id}-new-field`
+  const fieldTypeId = `${id}-field-type`
+  const lineRoleId = `${id}-line-role`
+  const defaultValueId = `${id}-default-value`
   const fieldTypeLabel = (fieldType: string) => {
     const key = FIELD_TYPE_KEYS[fieldType as TemplateFieldPayload['fieldType']]
     return key ? t(key) : fieldType
@@ -104,13 +109,13 @@ export function CategoryFieldsEditor({
   return (
     <div className="grid gap-3">
       <div>
-        <Label className="text-sm">
+        <h3 className="text-sm font-medium">
           {t(
             isFixed
               ? 'finance.expenseCategories.fixedFieldsList'
               : 'finance.expenseCategories.rowColumns',
           )}
-        </Label>
+        </h3>
         <p className="text-xs text-slate-500">
           {t(
             isFixed
@@ -209,10 +214,11 @@ export function CategoryFieldsEditor({
 
       <div className="grid items-end gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_auto_auto_auto_auto_auto]">
         <div className="grid gap-1">
-          <Label className="text-xs">
+          <Label htmlFor={fieldNameId} className="text-xs">
             {t('finance.expenseCategories.newField')}
           </Label>
           <Input
+            id={fieldNameId}
             value={fieldName}
             onChange={(e) => setFieldName(e.target.value)}
             placeholder={t(
@@ -223,10 +229,11 @@ export function CategoryFieldsEditor({
           />
         </div>
         <div className="grid gap-1">
-          <Label className="text-xs">
+          <Label htmlFor={fieldTypeId} className="text-xs">
             {t('finance.expenseCategories.fieldType')}
           </Label>
           <select
+            id={fieldTypeId}
             className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-800 dark:bg-slate-950"
             value={fieldType}
             onChange={(e) =>
@@ -242,10 +249,11 @@ export function CategoryFieldsEditor({
         </div>
         {!isFixed ? (
           <div className="grid gap-1">
-            <Label className="text-xs">
+            <Label htmlFor={lineRoleId} className="text-xs">
               {t('finance.expenseCategories.lineRole')}
             </Label>
             <select
+              id={lineRoleId}
               className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-800 dark:bg-slate-950"
               value={lineRole}
               onChange={(e) => setLineRole(e.target.value as ExpenseLineRole)}
@@ -259,10 +267,11 @@ export function CategoryFieldsEditor({
           </div>
         ) : (
           <div className="grid gap-1">
-            <Label className="text-xs">
+            <Label htmlFor={defaultValueId} className="text-xs">
               {t('finance.expenseCategories.defaultValue')}
             </Label>
             <Input
+              id={defaultValueId}
               value={defaultValue}
               onChange={(e) => setDefaultValue(e.target.value)}
               placeholder="121"

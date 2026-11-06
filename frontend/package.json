@@ -86,6 +86,7 @@
     "test:finance-expense-detail-i18n": "node --test src/features/finance/expense/expense-book-detail-i18n.test.mjs",
     "test:finance-book-navigation-i18n": "node --test src/features/finance/finance-book-navigation-i18n.test.mjs",
     "test:finance-expense-categories-i18n": "node --test src/features/finance/catalog/expense-categories-i18n.test.mjs",
+    "test:finance-category-fields-accessibility": "node --test src/features/finance/catalog/category-fields-accessibility.test.mjs",
     "test:daily-log-list-i18n": "node --test src/features/daily-log/daily-log-list-i18n.test.mjs",
     "test:daily-log-table-i18n": "node --test src/features/daily-log/daily-log-table-i18n.test.mjs",
     "test:daily-log-detail-i18n": "node --test src/features/daily-log/daily-log-detail-i18n.test.mjs",
