@@ -6,6 +6,7 @@ import { ExternalLink, Menu } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar'
 import { Button } from '../../../components/ui/button'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
+import { DialogTitle } from '../../../components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -282,6 +283,7 @@ export const PublicLayout = () => {
               <Menu className="h-5 w-5" />
             </Button>
             <DrawerContent className="p-5">
+              <DialogTitle className="sr-only">{t('shell.mobileMenu')}</DialogTitle>
               <div className="h-full flex flex-col overflow-hidden">
                 <div className="flex items-center gap-2">
                   {hasLogo ? (

@@ -5,6 +5,7 @@ import { ExternalLink, LogOut } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
+import { DialogTitle } from '../../../components/ui/dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar'
 import { useAuth } from '../../../context/AuthContext'
 import { useSettings } from '../../../context/SettingsContext'
@@ -73,6 +74,7 @@ export const AdminLayout = () => {
           <div className="flex min-w-0 items-center gap-3">
             <Drawer open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <DrawerContent className="p-5">
+                <DialogTitle className="sr-only">{t('shell.adminMenu')}</DialogTitle>
                 <div className="flex h-full flex-col overflow-hidden">
                   <div className="flex items-center gap-2">
                     <AdminBrand {...brand} />
