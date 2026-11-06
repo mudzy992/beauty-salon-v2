@@ -218,6 +218,9 @@ jobs:
       - name: Test localized public home and before-and-after UI
         working-directory: frontend
         run: npm run test:before-after-i18n
+      - name: Test public gallery accessibility
+        working-directory: frontend
+        run: npm run test:public-gallery-accessibility
       - name: Test localized public contact UI
         working-directory: frontend
         run: npm run test:public-contact-i18n

@@ -97,6 +97,8 @@ All routes below are nested under `/admin` and `ProtectedRoute`; the audit still
 
 **Initial subflow audit — public blog comments (2026-11-06):** the comments section used a generic `div` rather than a heading, the comment textarea relied on placeholder text without an associated visible label, and initial/next-page loading text was not exposed as a status announcement. It now uses an `h2`, a visible localized label linked to the textarea, and polite status regions for both loading states. Three focused source-contract tests run in frontend CI; no mounted screen-reader/browser acceptance is claimed.
 
+**Initial subflow audit — `/galerija` (2026-11-06):** initial gallery loading was not a live status, and the custom lightbox had no accessible name or dialog focus/keyboard management. Loading now uses a polite status; the lightbox uses the shared Radix dialog, a visually hidden localized title with category context, and the selected category as image alternative text. Gallery-open controls also include that category in their accessible name. Three focused source-contract tests are registered; browser, keyboard, focus-return, and assistive-technology behavior remain unverified.
+
 ### Stylist web shell
 
 All routes are nested under the stylist guard/layout. `/stylist/profile` redirects to `/profil` rather than rendering a separate stylist page.

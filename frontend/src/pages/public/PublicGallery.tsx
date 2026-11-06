@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ExternalLink, X } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 
@@ -11,6 +11,11 @@ import { MediaImage } from '../../components/media-image'
 import { BeforeAfterSlider } from '../../components/BeforeAfterSlider'
 import { getUploadUrl } from '../../utils/uploadUrl'
 import { Button } from '../../components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '../../components/ui/dialog'
 
 interface GalleryImage {
   id: string
@@ -54,7 +59,10 @@ export default function PublicGallery() {
   const [loading, setLoading] = useState(true)
   const [categoryLoadError, setCategoryLoadError] = useState(false)
   const [pairsLoadError, setPairsLoadError] = useState(false)
-  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+  const [lightbox, setLightbox] = useState<{
+    src: string
+    categoryName: string
+  } | null>(null)
 
   const loadCategories = useCallback(async () => {
     setCategoryLoadError(false)
@@ -103,7 +111,7 @@ export default function PublicGallery() {
     [categories],
   )
 
-  const handleClose = () => setLightboxSrc(null)
+  const handleClose = () => setLightbox(null)
 
   const galleryBg = getSetting('public_gallery_bg', '')
 
@@ -130,7 +138,7 @@ export default function PublicGallery() {
 
       <div className={`${publicPage.container} ${publicPage.contentAfterHero}`}>
         {loading ? (
-          <div className="py-20 text-center text-slate-600">{t('public.gallery.loading')}</div>
+          <div role="status" aria-live="polite" className="py-20 text-center text-slate-600">{t('public.gallery.loading')}</div>
         ) : (
           <div>
             {categoryLoadError ? (
@@ -261,17 +269,27 @@ export default function PublicGallery() {
                                 variants={fadeScale}
                                 className="group relative aspect-square cursor-pointer overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100 shadow-sm"
                                 onClick={() => {
-                                  if (originalUrl) setLightboxSrc(originalUrl)
+                                  if (originalUrl) {
+                                    setLightbox({
+                                      src: originalUrl,
+                                      categoryName: cat.name,
+                                    })
+                                  }
                                 }}
                                 role="button"
                                 tabIndex={0}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter' || e.key === ' ') {
                                     e.preventDefault()
-                                    if (originalUrl) setLightboxSrc(originalUrl)
+                                    if (originalUrl) {
+                                      setLightbox({
+                                        src: originalUrl,
+                                        categoryName: cat.name,
+                                      })
+                                    }
                                   }
                                 }}
-                                aria-label={t('public.gallery.openImage')}
+                                aria-label={`${t('public.gallery.openImage')}: ${cat.name}`}
                               >
                                 <MediaImage
                                   src={thumbUrl}
@@ -294,46 +312,43 @@ export default function PublicGallery() {
         )}
       </div>
 
-      {lightboxSrc ? (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={handleClose}
-        >
-          <div className="relative max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="absolute -top-12 right-0 inline-flex items-center justify-center rounded-md border border-white/20 bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20"
-              onClick={handleClose}
-              aria-label={t('public.gallery.closeImage')}
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <MediaImage
-              src={lightboxSrc}
-              alt=""
-              className="max-w-[90vw] max-h-[80vh] object-contain"
-            />
-            <div className="mt-3 flex justify-center">
-              <a
-                href={lightboxSrc}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-white text-sm hover:underline inline-flex items-center gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                {t('public.gallery.openOriginal')}
-              </a>
+      <Dialog
+        open={Boolean(lightbox)}
+        onOpenChange={(open) => {
+          if (!open) handleClose()
+        }}
+      >
+        {lightbox ? (
+          <DialogContent className="max-h-[90vh] max-w-[90vw] overflow-visible border-0 bg-black/90 p-4 text-white shadow-none sm:rounded-2xl">
+            <DialogTitle className="sr-only">
+              {t('public.gallery.openImage')}: {lightbox.categoryName}
+            </DialogTitle>
+            <div className="relative">
+              <MediaImage
+                src={lightbox.src}
+                alt={lightbox.categoryName}
+                className="max-h-[75vh] max-w-[85vw] object-contain"
+              />
+              <div className="mt-3 flex justify-center">
+                <a
+                  href={lightbox.src}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-white hover:underline"
+                >
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                  {t('public.gallery.openOriginal')}
+                </a>
+              </div>
+              <div className="mt-4 flex justify-center">
+                <Button variant="onDarkOutline" onClick={handleClose}>
+                  {t('public.gallery.close')}
+                </Button>
+              </div>
             </div>
-            <div className="mt-4 flex justify-center">
-              <Button variant="onDarkOutline" onClick={handleClose}>
-                {t('public.gallery.close')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+          </DialogContent>
+        ) : null}
+      </Dialog>
     </div>
   )
 }
