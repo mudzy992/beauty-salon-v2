@@ -232,6 +232,8 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 
 **Mobile profile avatar actions (2026-11-07):** the avatar touch targets on Profile and Edit Profile had no programmatic action name or hint, despite a visible change-photo prompt on the edit screen. Both controls now expose localized button names and destination/action hints. A focused source-contract test is registered in mobile CI; actual screen-reader announcements and touch behavior remain unverified.
 
+**Stylist daily-log list header actions (2026-11-07):** the debts and new-entry header icons were touchable but had no accessible names or hints. Both now expose localized button semantics describing their destinations; a focused source-contract test is registered in mobile CI. Native navigation and screen-reader announcements remain unverified.
+
 ## Current acceptance boundary and next slices
 
 - This document establishes the source route surface only. Per-route loading/empty/error/stale/success/disabled states, static versus server-provided copy, form labels/errors, focus behavior, contrast, and locale/date/number formatting remain to be recorded during implementation slices.

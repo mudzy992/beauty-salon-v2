@@ -106,12 +106,18 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginRight: spacing.sm }}>
           <TouchableOpacity
             onPress={() => router.push('/stylist/daily-log/debts')}
+            accessibilityRole="button"
+            accessibilityLabel={t('stylist.dailyLogList.debtsAction')}
+            accessibilityHint={t('stylist.dailyLogList.debtsActionHint')}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="cash-outline" size={24} color={colors.headerText} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => navigation.navigate('DailyLogNewEntry')}
+            accessibilityRole="button"
+            accessibilityLabel={t('stylist.dailyLogList.newEntryAction')}
+            accessibilityHint={t('stylist.dailyLogList.newEntryActionHint')}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="add-circle-outline" size={26} color={colors.headerText} />
@@ -119,7 +125,7 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
         </View>
       ),
     });
-  }, [navigation, colors.headerText]);
+  }, [navigation, colors.headerText, t]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
