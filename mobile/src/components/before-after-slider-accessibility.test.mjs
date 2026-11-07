@@ -32,3 +32,10 @@ test('slider exposes accessible increment/decrement actions and clamps the compa
     assert.match(translations, new RegExp(`home:[\\s\\S]*?${key}:`));
   }
 });
+
+test('slider drag maps component-local coordinates and tracks its latest responsive width', () => {
+  assert.match(component, /const widthRef = useRef\(width\);\s*widthRef\.current = width;/);
+  assert.match(component, /onPanResponderGrant: \(event\) => \{\s*const x = Math\.max\(0, Math\.min\(1, event\.nativeEvent\.locationX \/ widthRef\.current\)\)/);
+  assert.match(component, /onPanResponderMove: \(event\) => \{\s*const x = Math\.max\(0, Math\.min\(1, event\.nativeEvent\.locationX \/ widthRef\.current\)\)/);
+  assert.doesNotMatch(component, /g\.x0|g\.dx/);
+});

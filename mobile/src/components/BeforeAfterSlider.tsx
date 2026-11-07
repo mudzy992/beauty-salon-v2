@@ -25,6 +25,8 @@ export function BeforeAfterSlider({
   const { t } = useTranslation();
   const width = widthProp ?? winW * 0.85;
   const height = heightProp ?? width;
+  const widthRef = useRef(width);
+  widthRef.current = width;
 
   const [position, setPosition] = useState(0.5);
 
@@ -32,13 +34,12 @@ export function BeforeAfterSlider({
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (_, g) => {
-        const x = Math.max(0, Math.min(1, g.x0 / width));
+      onPanResponderGrant: (event) => {
+        const x = Math.max(0, Math.min(1, event.nativeEvent.locationX / widthRef.current));
         setPosition(x);
       },
-      onPanResponderMove: (_, g) => {
-        const currentX = g.x0 + g.dx;
-        const x = Math.max(0, Math.min(1, currentX / width));
+      onPanResponderMove: (event) => {
+        const x = Math.max(0, Math.min(1, event.nativeEvent.locationX / widthRef.current));
         setPosition(x);
       },
     }),
