@@ -230,6 +230,8 @@ The app currently has 50 non-test `.tsx` files under `mobile/app` (route screens
 
 **Mobile client reservation step progress (2026-11-07):** the four-step visual indicator exposed numbers and dots without progress semantics. It now announces a localized progressbar label and current step out of four, with numeric accessibility values; visual layout and step flow are unchanged. A focused source-contract test is registered in mobile CI; native announcement remains unverified.
 
+**Mobile client reservation service choices (2026-11-07):** selectable service cards exposed checkbox/checked semantics but no explicit service name or selection hint. They now announce the service name and duration, retain the checked state, and explain that activating the card selects or removes the service. A focused source-contract test is registered in mobile CI; native announcements remain unverified.
+
 Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible URL patterns. Dynamic route params are shown with `:` for readability; source uses Expo Router bracket syntax.
 
 ## Shared component inventory — first-pass focus

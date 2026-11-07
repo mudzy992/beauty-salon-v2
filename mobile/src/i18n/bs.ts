@@ -192,6 +192,8 @@ export const bs = {
     progressLabel: 'Napredak rezervacije',
     title: 'Rezervacija',
     selectService: 'Odaberite uslugu',
+    serviceSelectionAccessibilityLabel: '{{service}}, {{duration}} min.',
+    serviceSelectionAccessibilityHint: 'Odaberite ili uklonite ovu uslugu iz rezervacije.',
     selectDate: 'Odaberite datum',
     selectTime: 'Odaberite termin',
     addNotes: 'Napomena (opciono)',

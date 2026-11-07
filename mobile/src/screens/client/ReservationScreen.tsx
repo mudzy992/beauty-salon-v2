@@ -697,6 +697,11 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
               return (
                 <Card
                   accessibilityRole="checkbox"
+                  accessibilityLabel={t('reservation.serviceSelectionAccessibilityLabel', {
+                    service: item.name,
+                    duration: item.durationMinutes,
+                  })}
+                  accessibilityHint={t('reservation.serviceSelectionAccessibilityHint')}
                   accessibilityState={{ checked: isSelected }}
                   onPress={() => handleToggleService(item)}
                   style={[styles.serviceItem, styles.serviceItemBackdrop]}
