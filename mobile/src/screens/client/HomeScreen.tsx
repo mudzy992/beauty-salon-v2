@@ -744,7 +744,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                         {isFeatured ? (
                           <View style={styles.serviceFeaturedBadge}>
                             <Ionicons name="sparkles-outline" size={11} color="#fff" />
-                            <Text style={styles.serviceFeaturedBadgeText}>Istaknuto</Text>
+                            <Text style={styles.serviceFeaturedBadgeText}>{t('home.featuredServiceBadge')}</Text>
                           </View>
                         ) : null}
                         <View style={styles.serviceLabels}>
