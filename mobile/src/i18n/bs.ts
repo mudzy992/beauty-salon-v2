@@ -74,6 +74,8 @@ export const bs = {
   },
   home: {
     welcome: 'Dobrodošli',
+    maintenanceTitle: 'Privremeno nedostupno',
+    maintenanceMessageFallback: 'Radimo na poboljšanjima. Molimo pokušajte kasnije.',
     featuredServices: 'Popularne usluge',
     featuredServiceBadge: 'Istaknuto',
     latestBlog: 'Najnovije iz bloga',

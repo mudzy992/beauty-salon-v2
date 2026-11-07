@@ -728,6 +728,9 @@ jobs:
       - name: Test mobile featured-service badge copy
         working-directory: mobile
         run: npm run test:home-featured-service-copy
+      - name: Test mobile home maintenance copy resources
+        working-directory: mobile
+        run: npm run test:home-maintenance-copy
       - name: Test mobile home service tile accessibility
         working-directory: mobile
         run: npm run test:home-service-tile-accessibility
