@@ -41,6 +41,7 @@
     "test:public-service-consumers": "node --test src/services/public-service-consumers.test.mjs",
     "test:notification-fetch-state": "node --test src/screens/client/notification-fetch-state.test.mjs",
     "test:services-fetch-state": "node --test src/screens/client/services-fetch-state.test.mjs",
+    "test:services-screen-i18n": "node --test src/screens/client/services-screen-i18n.test.mjs",
     "test:services-optional-recovery-copy": "node --test src/screens/client/services-optional-read-recovery-copy.test.mjs",
     "test:services-optional-recovery": "node --test src/screens/client/services-optional-read-recovery.test.mjs",
     "test:android-release-payload": "node --test src/features/app-update/release-payload.test.mjs",

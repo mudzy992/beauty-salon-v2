@@ -209,10 +209,14 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                   <Ionicons name="diamond-outline" size={54} color={colors.primary} style={styles.heroWatermarkMain} />
                   <Ionicons name="sparkles-outline" size={24} color={colors.primary} style={styles.heroWatermarkAccent} />
                 </View>
-                <Text style={[styles.heroOverline, { color: colors.textSecondary }]}>PREMIUM KOLEKCIJA</Text>
-                <Text style={[styles.heroTitle, { color: colors.text }]}>Odaberi idealnu uslugu</Text>
+                <Text style={[styles.heroOverline, { color: colors.textSecondary }]}>
+                  {t('services.serviceDiscoveryEyebrow')}
+                </Text>
+                <Text style={[styles.heroTitle, { color: colors.text }]}>
+                  {t('services.serviceDiscoveryTitle')}
+                </Text>
                 <Text style={[styles.heroSubtitle, { color: colors.textSecondary }]}>
-                  Muškarci i žene kategorije su brzo dostupne ispod, uz preporuke po tvojoj historiji.
+                  {t('services.serviceDiscoveryDescription')}
                 </Text>
               </Card>
             </View>
@@ -236,7 +240,9 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
             {featuredService ? (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Najpopularniji servis</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    {t('services.popularServiceHeading')}
+                  </Text>
                 </View>
                 <Card
                   style={styles.featuredCard}
@@ -259,9 +265,11 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                   <View style={styles.featuredLabel}>
                     <Text style={styles.featuredName}>{featuredService.name}</Text>
                     <Text style={styles.featuredMeta}>
-                      {featuredService.durationMinutes} min
+                      {t('services.duration', { minutes: featuredService.durationMinutes })}
                       {popularService?.reservationsCount
-                        ? `  ·  ${popularService.reservationsCount} rezervacija`
+                        ? `  ·  ${t('services.reservationsCount', {
+                            count: popularService.reservationsCount,
+                          })}`
                         : ''}
                     </Text>
                   </View>
@@ -288,7 +296,9 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
             {lastUsedService ? (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>Tvoj zadnji servis</Text>
+                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                    {t('services.lastUsedServiceHeading')}
+                  </Text>
                 </View>
                 <Card style={styles.lastUsedCard}>
                   <View style={[styles.iconContainer, { backgroundColor: colors.accent }]}>
@@ -297,11 +307,11 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                   <View style={styles.cardText}>
                     <Text style={[styles.categoryName, { color: colors.text }]}>{lastUsedService.name}</Text>
                     <Text style={[styles.categoryDesc, { color: colors.textSecondary }]}>
-                      Rezerviši ponovo u samo jednom koraku.
+                      {t('services.lastUsedServiceDescription')}
                     </Text>
                   </View>
                   <Button
-                    title="Ponovi"
+                    title={t('services.repeatLastUsedService')}
                     size="sm"
                     onPress={() =>
                       navigation.navigate('ServiceSingleDetail', {
@@ -316,7 +326,9 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
 
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Kategorije</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  {t('services.categories')}
+                </Text>
               </View>
               <View style={styles.categoriesRow}>
                 {normalizedCategories.map((item, index) => (
@@ -341,7 +353,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                       </View>
                       <Text style={[styles.categoryName, { color: colors.text }]}>{item.name}</Text>
                       <Text style={[styles.categoryDesc, { color: colors.textSecondary }]} numberOfLines={2}>
-                        {item.description || 'Pogledaj dostupne usluge i rezerviši termin.'}
+                        {item.description || t('services.categoryFallbackDescription')}
                       </Text>
                     </Card>
                 ))}

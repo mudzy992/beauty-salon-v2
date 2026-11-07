@@ -198,13 +198,15 @@ The app currently has 50 non-test `.tsx` files under `mobile/app` (route screens
 | Auth | `/login`, `/register` | Signed-out |
 | Onboarding | `/onboarding/change-password`, `/onboarding/email`, `/onboarding/gender`, `/onboarding/phone` | Authenticated setup |
 | Client — home/content | `/home`, `/home/blog-list`, `/home/blog-post/:slug`, `/home/satisfied-clients` | Client; public content rendered within the signed-in app |
-| Client — services/booking | `/services`, `/services/service-detail`, `/services/service-single-detail`, `/services/service-work-gallery`, `/services/reservation` | Client |
+| Client — services/booking | `/services`, `/services/service-detail`, `/services/service-single-detail`, `/services/service-work-gallery`, `/services/reservation` | Client; `/services` copy source test covers service-discovery hero, popular/last-used sections, reservation counts and category fallback |
 | Client — reservations | `/reservations`, `/reservations/:reservationId`, `/reservations/write-review` | Client |
 | Client — profile | `/profile`, `/profile/edit`, `/profile/change-password`, `/profile/notifications`, `/profile/contact` | Client |
 | Stylist — inbox | `/stylist/inbox` | Stylist |
 | Stylist — daily log | `/stylist/daily-log`, `/stylist/daily-log/debts`, `/stylist/daily-log/detail/:entryId`, `/stylist/daily-log/new-entry`, `/stylist/daily-log/reschedule-preview/:reservationId` | Stylist |
 | Stylist — schedule | `/stylist/schedule`, `/stylist/schedule/direct-booking`, `/stylist/schedule/reservation-detail/:reservationId` | Stylist |
 | Stylist — statistics/profile | `/stylist/stats`, `/stylist/profile` | Stylist |
+
+**Mobile client services discovery copy (2026-11-07):** the `/services` screen had several untranslated Bosnian strings in the promotional hero, popular/last-used service sections, reservation count, and category-description fallback. Static copy now comes from existing/new `bs.ts` resources; server-provided category and service names remain dynamic. A focused source-contract test is registered in mobile CI. This does not verify rendered layout or physical-device accessibility.
 
 Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible URL patterns. Dynamic route params are shown with `:` for readability; source uses Expo Router bracket syntax.
 

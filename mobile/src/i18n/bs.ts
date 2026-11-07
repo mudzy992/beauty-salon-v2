@@ -98,7 +98,16 @@ export const bs = {
     lastUsedServiceLoadError: 'Ranije rezervisane usluge trenutno nije moguće učitati.',
     detailLoadErrorTitle: 'Detalji usluge nisu dostupni',
     detailLoadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
-    galleryLoadError: 'Galeriju nije moguće učitati. Pokušajte ponovo.'
+    galleryLoadError: 'Galeriju nije moguće učitati. Pokušajte ponovo.',
+    serviceDiscoveryEyebrow: 'Kolekcija salonskih usluga',
+    serviceDiscoveryTitle: 'Odaberite uslugu za sebe',
+    serviceDiscoveryDescription: 'Pregledajte kategorije u nastavku i pronađite usluge prilagođene svojim potrebama.',
+    popularServiceHeading: 'Najpopularnija usluga',
+    reservationsCount: 'Rezervacije: {{count}}',
+    lastUsedServiceHeading: 'Vaša posljednja usluga',
+    lastUsedServiceDescription: 'Rezervišite ovu uslugu ponovo u samo jednom koraku.',
+    repeatLastUsedService: 'Ponovi',
+    categoryFallbackDescription: 'Pregledajte dostupne usluge i rezervišite termin.'
   },
   beforeAfterGallery: {
     title: 'Galerija',
