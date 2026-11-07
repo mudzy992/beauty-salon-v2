@@ -17,7 +17,7 @@ test('auth, onboarding, password, and reservation-detail errors use the bounded 
     assert.match(source, /getApiErrorMessage/, path)
     assert.doesNotMatch(source, /response\??\.data\??\.message|response\?:\s*\{\s*data\?:\s*\{\s*message/, path)
   }
-  assert.match(sources[0][1], /getApiErrorMessage\(error, 'Greška pri registraciji'\)/)
+  assert.match(sources[0][1], /getApiErrorMessage\(error, t\('auth\.registerError'\)\)/)
   assert.match(sources[1][1], /getApiErrorMessage\(err, t\('common\.error'\)\)/)
   assert.match(sources[2][1], /getApiErrorMessage = getSafeApiErrorMessage/)
   assert.match(sources[3][1], /getApiErrorMessage\(error, ''\)/)
