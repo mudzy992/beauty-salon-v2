@@ -91,6 +91,7 @@ export const bs = {
     upcomingReservationHint: 'Otvara detalje rezervacije.',
     serviceTileAccessibilityLabel: '{{service}}, {{duration}} min.',
     serviceTileAccessibilityLabelWithPrice: '{{service}}, {{duration}} min, {{price}}.',
+    featuredServiceTileAccessibilityLabel: 'Istaknuto: {{details}}',
     openServiceDetailsHint: 'Otvara detalje usluge.',
     beforeAfterLoadError: 'Galeriju trenutno nije moguće učitati.',
     beforeAfterSliderLabel: 'Poređenje fotografija prije i poslije',

@@ -7,5 +7,6 @@ const resources = readFileSync(new URL('../../i18n/bs.ts', import.meta.url), 'ut
 test('service tile accessibility copy covers service, duration, optional price, and navigation', () => {
   assert.match(resources, /serviceTileAccessibilityLabel: '\{\{service\}\}, \{\{duration\}\} min\.'/)
   assert.match(resources, /serviceTileAccessibilityLabelWithPrice: '\{\{service\}\}, \{\{duration\}\} min, \{\{price\}\}\.'/)
+  assert.match(resources, /featuredServiceTileAccessibilityLabel: 'Istaknuto: \{\{details\}\}'/)
   assert.match(resources, /openServiceDetailsHint: 'Otvara detalje usluge\.'/)
 })
