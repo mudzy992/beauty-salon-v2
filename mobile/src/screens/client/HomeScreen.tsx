@@ -593,6 +593,13 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         {/* Kartica sljedećeg termina — prikazuje se samo ako postoji */}
         {upcomingReservation ? (
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('home.upcomingReservationAccessibilityLabel', {
+              service: upcomingServiceName,
+              date: formatReservationDate(upcomingReservation.reservationDate, upcomingReservation.startTime),
+              status: getStatusLabel(upcomingReservation.status),
+            })}
+            accessibilityHint={t('home.upcomingReservationHint')}
             onPress={() =>
               navigation.getParent()?.navigate('ReservationsTab', {
                 screen: 'ReservationDetail',
@@ -609,7 +616,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               <View style={styles.upcomingLeft}>
                 <View style={[styles.upcomingDot, { backgroundColor: getStatusColor(upcomingReservation.status) }]} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.upcomingLabel, { color: colors.textSecondary }]}>Sljedeći termin</Text>
+                  <Text style={[styles.upcomingLabel, { color: colors.textSecondary }]}>{t('home.upcomingReservationTitle')}</Text>
                   <Text
                     style={[styles.upcomingService, { color: colors.text }]}
                     numberOfLines={1}
