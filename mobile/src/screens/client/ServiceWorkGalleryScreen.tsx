@@ -175,6 +175,16 @@ export function ServiceWorkGalleryScreen({
             <View style={styles.footer}>
               <ActivityIndicator size="small" color={colors.primary} />
             </View>
+          ) : hasMore && items.length > 0 && !loadError ? (
+            <View style={styles.footer}>
+              <Button
+                title={t('beforeAfterGallery.loadMore')}
+                accessibilityHint={t('beforeAfterGallery.loadMoreHint')}
+                onPress={onEndReached}
+                size="sm"
+                variant="ghost"
+              />
+            </View>
           ) : null
         }
       />

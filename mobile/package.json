@@ -46,6 +46,7 @@
     "test:public-service-picker-recovery": "node --test src/hooks/public-service-picker-recovery.test.mjs",
     "test:before-after-gallery-recovery-copy": "node --test src/screens/client/before-after-gallery-recovery-copy.test.mjs",
     "test:before-after-gallery-recovery": "node --test src/screens/client/before-after-gallery-read-recovery.test.mjs",
+    "test:service-work-gallery-pagination-accessibility": "node --test src/screens/client/service-work-gallery-pagination-accessibility.test.mjs",
     "test:contact-read-recovery-copy": "node --test src/screens/client/contact-read-recovery-copy.test.mjs",
     "test:contact-read-recovery": "node --test src/screens/client/contact-read-recovery.test.mjs",
     "test:api-payload": "node --test src/utils/apiPayload.test.mjs",

@@ -182,6 +182,8 @@ export const bs = {
     emptyMessage: 'Kada budu dostupne, pojavit će se ovdje.',
     loadError: 'Galeriju trenutno nije moguće učitati.',
     loadMoreError: 'Dodatne fotografije nije moguće učitati. Pokušajte ponovo.',
+    loadMore: 'Učitaj još transformacija',
+    loadMoreHint: 'Učitava dodatne fotografije prije i poslije.',
   },
   reservation: {
     listLoadErrorTitle: 'Rezervacije nisu dostupne',

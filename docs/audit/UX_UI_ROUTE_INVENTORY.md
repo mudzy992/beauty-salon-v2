@@ -226,6 +226,8 @@ The app currently has 50 non-test `.tsx` files under `mobile/app` (route screens
 
 **Mobile client single-service review ratings (2026-11-07):** five star icons were exposed without a concise accessible score. Each review's stars are now grouped into one image role with a localized “service rating: X of 5 stars” name, reusing existing review resources. A focused source-contract test is registered in mobile CI; VoiceOver/TalkBack grouping remains unverified.
 
+**Mobile client service work gallery pagination (2026-11-07):** the gallery relied exclusively on automatic end-of-list pagination. It now also exposes a visible localized “load more” button while more items are available, preserving automatic loading and suppressing the button during errors or active loads. A focused source-contract test is registered in mobile CI; rendered keyboard and screen-reader operation remains unverified.
+
 Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible URL patterns. Dynamic route params are shown with `:` for readability; source uses Expo Router bracket syntax.
 
 ## Shared component inventory — first-pass focus
