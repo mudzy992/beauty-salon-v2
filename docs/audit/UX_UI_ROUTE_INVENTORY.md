@@ -220,6 +220,8 @@ The app currently has 50 non-test `.tsx` files under `mobile/app` (route screens
 
 **Mobile client single-service detail copy (2026-11-07):** the before/after section heading, “view all” action, and empty-gallery message were hard-coded. They now use Bosnian resources, and `ServiceSingleDetailScreen` is included in the mobile hard-coded-copy guard. No layout or navigation changes; rendered copy remains unverified.
 
+**Mobile client single-service detail headings (2026-11-07):** the service name and description, reviews, and before/after section titles were ordinary text. They now expose native heading semantics without changing visible content or layout. A focused source-contract test is registered in mobile CI; native heading traversal remains unverified.
+
 Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible URL patterns. Dynamic route params are shown with `:` for readability; source uses Expo Router bracket syntax.
 
 ## Shared component inventory — first-pass focus

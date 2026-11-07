@@ -253,7 +253,7 @@ export function ServiceSingleDetailScreen({
           >
             <View style={[styles.heroOverlay, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
             <View style={styles.heroContent}>
-              <Text style={styles.heroTitle}>{service.name}</Text>
+              <Text accessibilityRole="header" style={styles.heroTitle}>{service.name}</Text>
               <View style={styles.heroMeta}>
                 <Ionicons name="time-outline" size={16} color="#fff" />
                 <Text style={styles.heroMetaText}>{service.durationMinutes} min</Text>
@@ -271,7 +271,7 @@ export function ServiceSingleDetailScreen({
       {/* Description */}
       {service.shortDescription ? (
         <Card style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('services.description')}</Text>
+          <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.text }]}>{t('services.description')}</Text>
           <Text style={[styles.bodyText, { color: colors.textSecondary }]}>
             {service.shortDescription}
           </Text>
@@ -280,7 +280,7 @@ export function ServiceSingleDetailScreen({
 
       {/* Reviews */}
       <Card style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.text }]}>
           {t('reviews.title')} ({reviewsTotal})
         </Text>
         {reviewsLoadError ? (
@@ -338,7 +338,7 @@ export function ServiceSingleDetailScreen({
       {/* Before / After (work gallery) */}
       <Card style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+          <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.text }]}>
             {t('services.beforeAfterSectionTitle')}
           </Text>
           <Button

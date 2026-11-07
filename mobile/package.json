@@ -57,6 +57,7 @@
     "test:services-category-card-accessibility": "node --test src/screens/client/services-category-card-accessibility.test.mjs",
     "test:services-headings-accessibility": "node --test src/screens/client/services-headings-accessibility.test.mjs",
     "test:service-detail-card-accessibility": "node --test src/screens/client/service-detail-card-accessibility.test.mjs",
+    "test:service-single-detail-headings-accessibility": "node --test src/screens/client/service-single-detail-headings-accessibility.test.mjs",
     "test:services-optional-recovery-copy": "node --test src/screens/client/services-optional-read-recovery-copy.test.mjs",
     "test:services-optional-recovery": "node --test src/screens/client/services-optional-read-recovery.test.mjs",
     "test:android-release-payload": "node --test src/features/app-update/release-payload.test.mjs",
