@@ -32,6 +32,8 @@ export const bs = {
     logout: 'Odjava',
     email: 'Email',
     password: 'Lozinka',
+    showPassword: 'Prikaži lozinku',
+    hidePassword: 'Sakrij lozinku',
     username: 'Korisničko ime',
     firstName: 'Ime',
     lastName: 'Prezime',

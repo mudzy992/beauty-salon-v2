@@ -215,7 +215,7 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 | Component | Source | Existing evidence / next audit question |
 |---|---|---|
 | `Button` | `mobile/src/components/ui/Button.tsx` | Source-contract accessibility checks exist; verify loading/disabled visual and screen-reader behavior on device. |
-| `Input` | `mobile/src/components/ui/Input.tsx` | Source-contract checks exist; verify label/error announcement order, field traversal, and text scaling. |
+| `Input` | `mobile/src/components/ui/Input.tsx` | Source-contract checks exist; password visibility control now has a localized action name; verify label/error announcement order, field traversal, and text scaling. |
 | `DateTimeField` | `mobile/src/components/ui/DateTimeField.tsx` | Source-contract checks and owner-reported device retest exist; physical acceptance remains owner evidence, not agent verification. |
 | `EmptyState` | `mobile/src/components/ui/EmptyState.tsx` | Decorative icon is hidden from assistive technology and the title is exposed as a heading; focused source-contract test registered in mobile CI. Device announcement/reading order remains unverified. |
 | `LoadingScreen` | `mobile/src/components/ui/LoadingScreen.tsx` | Localized busy progress-indicator semantics are covered by a focused mobile source test; device announcements remain unverified. |
@@ -253,6 +253,8 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 **Mobile registration copy (2026-11-07):** the confirmation-password label, validation errors, and generic registration failure fallback were hard-coded in the screen. They now use Bosnian resources, and the registration screen is included in the mobile hard-coded-copy guard. This is a focused localization slice separate from the auth autofill changes; the visible Bosnian wording is retained.
 
 **Mobile login copy (2026-11-07):** the required-field and network/credential/server fallback messages were hard-coded; the network message also exposed development-only `.env` setup and an example IP. These messages now use Bosnian resources, with a user-facing network recovery suggestion replacing the implementation details. The login screen joins registration in the mobile hard-coded-copy guard, and a focused source-contract test checks the status-to-copy mapping; returned server-provided text behavior is unchanged. Live login/network errors remain unverified.
+
+**Shared mobile password-visibility action (2026-11-07):** the shared input exposed “Prikaži/Sakrij lozinku” as hard-coded screen-reader labels. These now come from Bosnian resources and the existing action label continues to track whether the password is visible. The shared input is included in the mobile copy guard; the focused source-contract test checks the role, localized state-dependent label, and secure-text toggle. Native announcement/interaction behavior remains unverified.
 
 ## Current acceptance boundary and next slices
 

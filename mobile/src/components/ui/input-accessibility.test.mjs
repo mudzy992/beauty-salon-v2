@@ -14,3 +14,9 @@ test('validation messages use alert semantics and a polite live region', () => {
   assert.match(component, /accessibilityRole="alert"/);
   assert.match(component, /accessibilityLiveRegion="polite"/);
 });
+
+test('password visibility control uses a localized name that follows its current action', () => {
+  assert.match(component, /accessibilityRole="button"/);
+  assert.match(component, /accessibilityLabel=\{showPassword \? t\('auth\.hidePassword'\) : t\('auth\.showPassword'\)\}/);
+  assert.match(component, /secureTextEntry=\{isPassword && !showPassword\}/);
+});
