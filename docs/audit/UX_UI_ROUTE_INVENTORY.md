@@ -208,6 +208,8 @@ The app currently has 50 non-test `.tsx` files under `mobile/app` (route screens
 
 **Mobile client services discovery copy (2026-11-07):** the `/services` screen had several untranslated Bosnian strings in the promotional hero, popular/last-used service sections, reservation count, and category-description fallback. Static copy now comes from existing/new `bs.ts` resources; server-provided category and service names remain dynamic. A focused source-contract test is registered in mobile CI. This does not verify rendered layout or physical-device accessibility.
 
+**Mobile client popular-service card (2026-11-07):** the featured service card is actionable but had no explicit accessibility name or hint. It now exposes a localized button name containing the service and duration, plus the reservation count when available, and identifies that it opens service details. The destination and visible content are unchanged. A focused source-contract test is registered in mobile CI; native announcement behavior remains unverified.
+
 Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible URL patterns. Dynamic route params are shown with `:` for readability; source uses Expo Router bracket syntax.
 
 ## Shared component inventory — first-pass focus

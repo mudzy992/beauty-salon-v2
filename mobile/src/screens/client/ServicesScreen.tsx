@@ -246,6 +246,18 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                 </View>
                 <Card
                   style={styles.featuredCard}
+                  accessibilityRole="button"
+                  accessibilityLabel={popularService?.reservationsCount
+                    ? t('services.popularServiceAccessibilityLabelWithReservations', {
+                        service: featuredService.name,
+                        duration: featuredService.durationMinutes,
+                        count: popularService.reservationsCount,
+                      })
+                    : t('services.popularServiceAccessibilityLabel', {
+                        service: featuredService.name,
+                        duration: featuredService.durationMinutes,
+                      })}
+                  accessibilityHint={t('services.popularServiceHint')}
                   onPress={() =>
                     navigation.navigate('ServiceSingleDetail', {
                       serviceId: featuredService.id,
