@@ -92,6 +92,8 @@ export const bs = {
     debtLoadError: 'Dugovanja trenutno nisu dostupna.',
     openDebtTitle: 'Otvoreno dugovanje',
     openDebtSummary: 'Otvorena dugovanja: {{count}} · {{amount}} KM — pogledajte profil.',
+    openDebtAccessibilityLabel: 'Otvorena dugovanja: {{count}}. Ukupno {{amount}} KM.',
+    openDebtHint: 'Otvara profil i detalje dugovanja.',
     reservationLoadError: 'Sljedeći termin trenutno nije dostupan.',
     upcomingReservationTitle: 'Sljedeći termin',
     upcomingReservationAccessibilityLabel: 'Sljedeći termin: {{service}}, {{date}}, {{status}}.',

@@ -69,6 +69,7 @@
     "test:home-maintenance-copy": "node --test src/screens/client/home-maintenance-copy.test.mjs",
     "test:home-maintenance-accessibility": "node --test src/screens/client/home-maintenance-accessibility.test.mjs",
     "test:home-section-actions-accessibility": "node --test src/screens/client/home-section-actions-accessibility.test.mjs",
+    "test:home-open-debt-accessibility": "node --test src/screens/client/home-open-debt-accessibility.test.mjs",
     "test:home-service-tile-accessibility": "node --test src/screens/client/home-service-tile-accessibility.test.mjs",
     "test:home-satisfied-clients-copy": "node --test src/screens/client/home-satisfied-clients-copy.test.mjs",
     "test:home-blog-card-copy": "node --test src/screens/client/home-blog-card-copy.test.mjs",

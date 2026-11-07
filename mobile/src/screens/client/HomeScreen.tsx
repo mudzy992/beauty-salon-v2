@@ -557,6 +557,12 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         ) : null}
         {user && openDebtsCount > 0 ? (
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('home.openDebtAccessibilityLabel', {
+              count: openDebtsCount,
+              amount: openDebtsTotal.toFixed(2),
+            })}
+            accessibilityHint={t('home.openDebtHint')}
             onPress={() =>
               (navigation.getParent() as { navigate: (name: string) => void } | undefined)?.navigate(
                 'ProfileTab',

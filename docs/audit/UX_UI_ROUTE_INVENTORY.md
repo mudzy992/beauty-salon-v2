@@ -269,6 +269,8 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 
 **Mobile home section actions (2026-11-07):** category “see all” and blog-list actions lacked explicit roles, contextual accessible names, and action hints. They now expose localized button semantics while keeping the visible “Vidi sve” copy and existing destinations unchanged. A focused source-contract test is registered in mobile CI; rendered announcements and navigation remain unverified.
 
+**Mobile home open-debt action (2026-11-07):** the tappable debt summary had no explicit button role, accessible name, or action hint. It now announces the number and amount with localized copy and identifies that it opens profile debt details; navigation and displayed amount remain unchanged. A focused source-contract test is registered in mobile CI; native announcement and profile navigation remain unverified.
+
 **Mobile home maintenance state (2026-11-07):** its fallback title used a plain `Text` element without heading semantics. The visible title now exposes the native `header` accessibility role, with copy and maintenance behavior unchanged. A focused source-contract test is registered in mobile CI; actual native heading navigation and announcement remain unverified.
 
 ## Current acceptance boundary and next slices
