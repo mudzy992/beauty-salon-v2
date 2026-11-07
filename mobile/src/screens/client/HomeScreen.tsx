@@ -923,13 +923,16 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           return (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Kontakt</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.contactSectionTitle')}</Text>
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={t('home.contactDetailsLabel')}
+                  accessibilityHint={t('home.contactDetailsHint')}
                   onPress={() =>
                     navigation.getParent()?.navigate('ProfileTab', { screen: 'Contact' } as any)
                   }
                 >
-                  <Text style={[styles.seeAll, { color: colors.primary }]}>Detalji</Text>
+                  <Text style={[styles.seeAll, { color: colors.primary }]}>{t('home.contactDetailsAction')}</Text>
                 </TouchableOpacity>
               </View>
               <Card style={styles.satisfiedCard}>
@@ -941,6 +944,9 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 ) : null}
                 {phone ? (
                   <TouchableOpacity
+                    accessibilityRole="link"
+                    accessibilityLabel={t('home.phoneContactLabel', { phone })}
+                    accessibilityHint={t('home.phoneContactHint')}
                     onPress={() => void openExternal(`tel:${phone}`, ['tel'])}
                     activeOpacity={0.75}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 8 }}
@@ -951,6 +957,9 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 ) : null}
                 {email ? (
                   <TouchableOpacity
+                    accessibilityRole="link"
+                    accessibilityLabel={t('home.emailContactLabel', { email })}
+                    accessibilityHint={t('home.emailContactHint')}
                     onPress={() => void openExternal(`mailto:${email}`, ['mailto'])}
                     activeOpacity={0.75}
                     style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: 8 }}
@@ -964,6 +973,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm }}>
                     {facebook ? (
                       <TouchableOpacity
+                        accessibilityRole="link"
+                        accessibilityHint={t('home.socialContactHint', { network: 'Facebook' })}
                         onPress={() => void openExternal(facebook, ['https', 'http'])}
                         activeOpacity={0.75}
                         style={{
@@ -984,6 +995,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     ) : null}
                     {instagram ? (
                       <TouchableOpacity
+                        accessibilityRole="link"
+                        accessibilityHint={t('home.socialContactHint', { network: 'Instagram' })}
                         onPress={() => void openExternal(instagram, ['https', 'http'])}
                         activeOpacity={0.75}
                         style={{
@@ -1004,6 +1017,8 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     ) : null}
                     {tiktok ? (
                       <TouchableOpacity
+                        accessibilityRole="link"
+                        accessibilityHint={t('home.socialContactHint', { network: 'TikTok' })}
                         onPress={() => void openExternal(tiktok, ['https', 'http'])}
                         activeOpacity={0.75}
                         style={{
