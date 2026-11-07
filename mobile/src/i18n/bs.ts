@@ -432,6 +432,11 @@ export const bs = {
       loadErrorTitle: 'Dnevnik trenutno nije dostupan',
       loadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
       staleMessage: 'Prikazujemo ranije učitane zapise; osvježavanje nije uspjelo.',
+      statusCompleted: 'Završeno',
+      statusPending: 'Na čekanju',
+      beforeAfterLabel: 'Prije i poslije',
+      emptyTitle: 'Nema zapisa',
+      emptyMessage: 'Zapisi iz rezervacija ili ručno dodani pojavit će se ovdje. Završite zapis i dodajte fotografije prije i poslije.',
     },
     dailyLogDebts: {
       title: 'Dužnici',

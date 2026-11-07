@@ -239,8 +239,8 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
       ) : (
         <EmptyState
           icon="document-text-outline"
-          title="Nema zapisa"
-          message="Zapisi iz rezervacija ili ručno dodani pojavit će se ovdje. Završite zapis i dodajte before/after slike."
+          title={t('stylist.dailyLogList.emptyTitle')}
+          message={t('stylist.dailyLogList.emptyMessage')}
         />
       )}
       renderSectionHeader={({ section }) => (
@@ -262,11 +262,15 @@ export function DailyLogListScreen({ navigation }: DailyLogListScreenProps) {
                   const afterCount = item.images?.filter((i) => i.isAfter).length ?? 0;
                   const hasBA = beforeCount > 0 && afterCount > 0;
                   return hasBA ? (
-                    <Badge label="B/A" variant="info" />
+                    <Badge label={t('stylist.dailyLogList.beforeAfterLabel')} variant="info" />
                   ) : null;
                 })()}
                 <Badge
-                  label={item.status === 'COMPLETED' ? 'Završeno' : 'Na čekanju'}
+                  label={
+                    item.status === 'COMPLETED'
+                      ? t('stylist.dailyLogList.statusCompleted')
+                      : t('stylist.dailyLogList.statusPending')
+                  }
                   variant={item.status === 'COMPLETED' ? 'success' : 'warning'}
                 />
               </View>

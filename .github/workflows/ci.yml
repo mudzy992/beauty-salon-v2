@@ -905,6 +905,9 @@ jobs:
       - name: Test localized mobile daily-log header
         working-directory: mobile
         run: npm run test:stylist-daily-log-header-i18n
+      - name: Test localized mobile daily-log list badge labels
+        working-directory: mobile
+        run: npm run test:stylist-daily-log-list-badges-i18n
       - name: Test localized stylist daily-log debt list copy
         working-directory: mobile
         run: npm run test:stylist-debts-i18n
