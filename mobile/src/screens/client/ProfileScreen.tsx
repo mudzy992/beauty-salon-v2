@@ -417,6 +417,9 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
         >
           <TouchableOpacity
             onPress={() => navigation.navigate('EditProfile')}
+            accessibilityRole="button"
+            accessibilityLabel={t('profile.avatarEditAction')}
+            accessibilityHint={t('profile.avatarEditHint')}
             style={[styles.avatarWrap, { backgroundColor: colors.accent }]}
             activeOpacity={0.85}
           >

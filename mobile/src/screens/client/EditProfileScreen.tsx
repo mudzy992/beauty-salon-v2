@@ -248,6 +248,9 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
       <Card style={[styles.avatarCard, { backgroundColor: colors.surface }]}>
         <TouchableOpacity
           onPress={pickAndUploadAvatar}
+          accessibilityRole="button"
+          accessibilityLabel={t('profile.avatarChange')}
+          accessibilityHint={t('profile.avatarChangeHint')}
           disabled={avatarLoading}
           style={[styles.avatarWrap, { backgroundColor: colors.accent }]}
         >

@@ -599,6 +599,9 @@ jobs:
       - name: Test client profile API contract and malformed-response handling
         working-directory: mobile
         run: npm run test:client-profile-contract
+      - name: Test mobile profile avatar accessibility
+        working-directory: mobile
+        run: npm run test:profile-avatar-accessibility
       - name: Test Bosnian copy for profile read recovery
         working-directory: mobile
         run: npm run test:profile-read-recovery-copy
