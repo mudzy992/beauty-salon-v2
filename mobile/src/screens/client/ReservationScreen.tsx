@@ -1105,6 +1105,8 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             ]}
             placeholder={t('reservation.notesPlaceholder')}
             placeholderTextColor={colors.inputPlaceholder}
+            accessibilityLabel={t('reservation.addNotes')}
+            accessibilityHint={t('reservation.notesAccessibilityHint')}
             value={notes}
             onChangeText={setNotes}
             multiline

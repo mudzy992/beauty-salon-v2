@@ -205,6 +205,7 @@ export const bs = {
     unavailableDateAccessibilityLabel: 'Nije dostupno za rezervaciju.',
     addNotes: 'Napomena (opciono)',
     notesPlaceholder: 'Dodajte napomenu za frizera...',
+    notesAccessibilityHint: 'Unesite dodatnu informaciju za frizera koja će biti dodana uz rezervaciju.',
     review: 'Pregled rezervacije',
     submit: 'Pošalji rezervaciju',
     service: 'Usluga',
