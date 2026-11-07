@@ -684,7 +684,13 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
               const heroUri = item.heroImage ? getUploadUrl(item.heroImage) : null;
               const isSelected = selectedServiceIds.includes(item.id);
               return (
-                <Card onPress={() => handleToggleService(item)} style={[styles.serviceItem, styles.serviceItemBackdrop]} padded={false}>
+                <Card
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: isSelected }}
+                  onPress={() => handleToggleService(item)}
+                  style={[styles.serviceItem, styles.serviceItemBackdrop]}
+                  padded={false}
+                >
                     <MediaBackdrop
                       uri={heroUri}
                       style={styles.serviceItemBackdropImage}

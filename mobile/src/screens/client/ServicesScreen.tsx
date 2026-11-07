@@ -290,15 +290,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                 <View style={styles.sectionHeader}>
                   <Text style={[styles.sectionTitle, { color: colors.text }]}>Tvoj zadnji servis</Text>
                 </View>
-                <Card
-                  style={styles.lastUsedCard}
-                  onPress={() =>
-                    navigation.navigate('ServiceSingleDetail', {
-                      serviceId: lastUsedService.id,
-                      serviceName: lastUsedService.name,
-                    })
-                  }
-                >
+                <Card style={styles.lastUsedCard}>
                   <View style={[styles.iconContainer, { backgroundColor: colors.accent }]}>
                     <Ionicons name="time-outline" size={22} color={colors.primary} />
                   </View>

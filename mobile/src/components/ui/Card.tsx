@@ -1,5 +1,13 @@
 import React from 'react';
-import { View, StyleSheet, Pressable, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Pressable,
+  type AccessibilityRole,
+  type AccessibilityState,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { borderRadius, spacing } from '../../theme';
 import { cardElevationStyle } from '../../theme/shadows';
@@ -8,10 +16,23 @@ interface CardProps {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+  accessibilityRole?: AccessibilityRole;
+  accessibilityState?: AccessibilityState;
   padded?: boolean;
 }
 
-export function Card({ children, style, onPress, padded = true }: CardProps) {
+export function Card({
+  children,
+  style,
+  onPress,
+  accessibilityLabel,
+  accessibilityHint,
+  accessibilityRole = 'button',
+  accessibilityState,
+  padded = true,
+}: CardProps) {
   const { colors, isDark } = useTheme();
 
   const cardStyle: ViewStyle = {
@@ -26,7 +47,10 @@ export function Card({ children, style, onPress, padded = true }: CardProps) {
   if (onPress) {
     return (
       <Pressable
-        accessibilityRole="button"
+        accessibilityRole={accessibilityRole}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        accessibilityState={accessibilityState}
         onPress={onPress}
         style={({ pressed }) => [cardStyle, padded && styles.padded, style, pressed && styles.pressed]}
       >

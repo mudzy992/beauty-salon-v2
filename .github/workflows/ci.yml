@@ -950,6 +950,9 @@ jobs:
       - name: Test mobile shared loading-screen accessibility
         working-directory: mobile
         run: npm run test:loading-screen-accessibility
+      - name: Test mobile shared card accessibility
+        working-directory: mobile
+        run: npm run test:card-accessibility
       - name: Guard and bundle Expo SDK57 iOS JavaScript
         working-directory: mobile
         run: npm run build:ios -- --output-dir "$RUNNER_TEMP/expo-sdk57-router-smoke"

@@ -216,11 +216,15 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 | `Input` | `mobile/src/components/ui/Input.tsx` | Source-contract checks exist; verify label/error announcement order, field traversal, and text scaling. |
 | `DateTimeField` | `mobile/src/components/ui/DateTimeField.tsx` | Source-contract checks and owner-reported device retest exist; physical acceptance remains owner evidence, not agent verification. |
 | `EmptyState` | `mobile/src/components/ui/EmptyState.tsx` | Decorative icon is hidden from assistive technology and the title is exposed as a heading; focused source-contract test registered in mobile CI. Device announcement/reading order remains unverified. |
-| `LoadingScreen`, `Card`, `Badge` | `mobile/src/components/ui/` | `LoadingScreen` now exposes a localized busy progress indicator in source tests; `Card` and `Badge` still need use-context review for accessible names, state contrast, and non-color status cues. Device announcement and rendered contrast remain unverified. |
+| `LoadingScreen` | `mobile/src/components/ui/LoadingScreen.tsx` | Localized busy progress-indicator semantics are covered by a focused mobile source test; device announcements remain unverified. |
+| `Card` | `mobile/src/components/ui/Card.tsx` | Interactive cards can now pass through accessible role/name/hint/state props; the service picker exposes checkbox state and its last-used service card has a single button target. Source tests only; rendered behavior remains unverified. |
+| `Badge` | `mobile/src/components/ui/Badge.tsx` | Continue use-context review for accessible state descriptions, contrast, and non-color status cues. |
 | `MediaImage`, `BeforeAfterSlider` | `mobile/src/components/` | Slider already exposes localized adjustable value/actions; its before/after image layers are now decorative children (focused source test). Other image instances still need per-use alt/decorative review; device announcement and touch behavior remain unverified. |
 | Session/onboarding notices and shell | `mobile/src/components/` | Review announcement behavior, focus/reading order, and long-copy reflow. |
 
 **Shared mobile loading screen (2026-11-07):** `LoadingScreen` showed an unlabeled spinner; its default root-route use supplied no visible message, leaving no localized progress name for assistive technology. The activity indicator now exposes a localized `progressbar` name, `busy` state, and polite live-region semantics while preserving any optional visible detail. Two source-contract tests are registered in mobile CI. TalkBack/VoiceOver announcement quality and actual device behavior remain unverified.
+
+**Shared mobile cards and client service selection (2026-11-07):** the last-used-service card wrapped a button inside an interactive card, creating nested press targets; multi-select reservation service cards exposed only a generic button role and did not announce selected state. The last-used card is now a static container with its existing single repeat button, while `Card` forwards optional accessible name/hint/role/state props and selected reservation services use checkbox/checked semantics. Three focused source-contract tests are registered in mobile CI. Touch/screen-reader behavior remains unverified.
 
 ## Current acceptance boundary and next slices
 
