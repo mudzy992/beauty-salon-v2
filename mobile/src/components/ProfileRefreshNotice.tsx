@@ -15,7 +15,11 @@ export function ProfileRefreshNotice({ loading, onRetry }: ProfileRefreshNoticeP
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text accessibilityRole="text" style={[styles.message, { color: colors.text }]}>
+      <Text
+        accessibilityRole="alert"
+        accessibilityLiveRegion="polite"
+        style={[styles.message, { color: colors.text }]}
+      >
         {t('auth.profileRefreshUnavailable')}
       </Text>
       <Button title={t('common.retry')} onPress={onRetry} loading={loading} variant="outline" size="sm" />

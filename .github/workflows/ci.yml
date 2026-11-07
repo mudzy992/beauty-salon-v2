@@ -608,6 +608,9 @@ jobs:
       - name: Test mobile onboarding progress accessibility
         working-directory: mobile
         run: npm run test:onboarding-shell-accessibility
+      - name: Test mobile session notice accessibility
+        working-directory: mobile
+        run: npm run test:session-notices-accessibility
       - name: Test Bosnian copy for profile read recovery
         working-directory: mobile
         run: npm run test:profile-read-recovery-copy
