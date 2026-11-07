@@ -605,6 +605,9 @@ jobs:
       - name: Test gender onboarding radio accessibility
         working-directory: mobile
         run: npm run test:onboarding-gender-radio-accessibility
+      - name: Test mobile onboarding progress accessibility
+        working-directory: mobile
+        run: npm run test:onboarding-shell-accessibility
       - name: Test Bosnian copy for profile read recovery
         working-directory: mobile
         run: npm run test:profile-read-recovery-copy

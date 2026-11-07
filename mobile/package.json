@@ -25,6 +25,7 @@
     "test:loading-screen-accessibility": "node --test src/components/ui/loading-screen-accessibility.test.mjs",
     "test:media-image-accessibility": "node --test src/components/media-image-accessibility.test.mjs",
     "test:media-photo-accessibility": "node --test src/components/media-photo-accessibility.test.mjs",
+    "test:onboarding-shell-accessibility": "node --test src/components/onboarding/onboarding-shell-accessibility.test.mjs",
     "test:card-accessibility": "node --test src/components/ui/card-accessibility.test.mjs",
     "test:client-profile-contract": "node --test src/screens/client/profile-contract.test.mjs src/screens/client/profile-api-errors.test.mjs",
     "test:profile-read-recovery-copy": "node --test src/screens/client/profile-read-recovery-copy.test.mjs",

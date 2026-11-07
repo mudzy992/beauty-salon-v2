@@ -342,6 +342,8 @@ export const bs = {
     },
   },
   onboarding: {
+    progressLabel: 'Napredak postavljanja profila',
+    stepProgress: 'Korak {{step}} od {{total}}',
     passwordTitle: 'Postavite novu lozinku',
     passwordSubtitle:
       'Sigurnosni korak: zamijenite inicijalnu lozinku koju vam je administrator proslijedio. Nakon toga nastavljamo s profilom.',

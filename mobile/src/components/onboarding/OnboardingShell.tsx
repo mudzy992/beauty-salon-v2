@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { spacing } from '../../theme';
@@ -27,6 +28,7 @@ export function OnboardingShell({
   heroDecoration = 'none',
 }: Props) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const decoSize = Math.min(220, width * 0.55);
@@ -73,7 +75,18 @@ export function OnboardingShell({
       ) : null}
 
       <View style={styles.foreground}>
-        <View style={styles.progressRow}>
+        <View
+          style={styles.progressRow}
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={t('onboarding.progressLabel')}
+          accessibilityValue={{
+            min: 1,
+            max: totalSteps,
+            now: step,
+            text: t('onboarding.stepProgress', { step, total: totalSteps }),
+          }}
+        >
           {Array.from({ length: totalSteps }, (_, i) => (
             <View
               key={i}
