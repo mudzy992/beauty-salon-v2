@@ -298,7 +298,16 @@ export function ServiceSingleDetailScreen({
                   <Text style={[styles.reviewAuthor, { color: colors.text }]}>
                     {r.user?.firstName} {r.user?.lastName}
                   </Text>
-                  <View style={styles.starsRow}>
+                  <View
+                    accessible
+                    accessibilityRole="image"
+                    accessibilityLabel={t('reviews.ratingOption', {
+                      category: t('reviews.serviceRating'),
+                      rating: r.serviceRating || 0,
+                      total: 5,
+                    })}
+                    style={styles.starsRow}
+                  >
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Ionicons
                         key={star}
