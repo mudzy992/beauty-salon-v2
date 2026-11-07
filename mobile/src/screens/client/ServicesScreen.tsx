@@ -344,7 +344,14 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
               </View>
               <View style={styles.categoriesRow}>
                 {normalizedCategories.map((item, index) => (
-                    <Card key={item.id} style={[styles.categoryCard, styles.categoryTile]} onPress={() => openCategory(item)}>
+                    <Card
+                      key={item.id}
+                      style={[styles.categoryCard, styles.categoryTile]}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('services.categoryCardAccessibilityLabel', { category: item.name })}
+                      accessibilityHint={t('services.categoryCardHint', { category: item.name })}
+                      onPress={() => openCategory(item)}
+                    >
                       <LinearGradient
                         colors={
                           index === 0

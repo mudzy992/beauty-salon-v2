@@ -662,6 +662,9 @@ jobs:
       - name: Test mobile popular-service card accessibility
         working-directory: mobile
         run: npm run test:services-popular-card-accessibility
+      - name: Test mobile service category card accessibility
+        working-directory: mobile
+        run: npm run test:services-category-card-accessibility
       - name: Test Bosnian copy for optional service read recovery
         working-directory: mobile
         run: npm run test:services-optional-recovery-copy

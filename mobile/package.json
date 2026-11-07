@@ -54,6 +54,7 @@
     "test:services-fetch-state": "node --test src/screens/client/services-fetch-state.test.mjs",
     "test:services-screen-i18n": "node --test src/screens/client/services-screen-i18n.test.mjs",
     "test:services-popular-card-accessibility": "node --test src/screens/client/services-popular-card-accessibility.test.mjs",
+    "test:services-category-card-accessibility": "node --test src/screens/client/services-category-card-accessibility.test.mjs",
     "test:services-optional-recovery-copy": "node --test src/screens/client/services-optional-read-recovery-copy.test.mjs",
     "test:services-optional-recovery": "node --test src/screens/client/services-optional-read-recovery.test.mjs",
     "test:android-release-payload": "node --test src/features/app-update/release-payload.test.mjs",
