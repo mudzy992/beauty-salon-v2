@@ -151,6 +151,8 @@ export const bs = {
     galleryLoadError: 'Galeriju nije moguće učitati. Pokušajte ponovo.',
     beforeAfterSectionTitle: 'Prije / Poslije',
     viewAllBeforeAfter: 'Vidi sve',
+    viewAllBeforeAfterAccessibilityLabel: 'Pogledaj sve fotografije prije i poslije za uslugu {{service}}',
+    viewAllBeforeAfterHint: 'Otvara galeriju radova ove usluge.',
     noBeforeAfterForService: 'Trenutno nema dostupnih transformacija za ovu uslugu.',
     serviceDiscoveryEyebrow: 'Kolekcija salonskih usluga',
     serviceDiscoveryTitle: 'Odaberite uslugu za sebe',

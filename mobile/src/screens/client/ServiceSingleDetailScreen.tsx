@@ -343,6 +343,10 @@ export function ServiceSingleDetailScreen({
           </Text>
           <Button
             title={t('services.viewAllBeforeAfter')}
+            accessibilityLabel={t('services.viewAllBeforeAfterAccessibilityLabel', {
+              service: service.name,
+            })}
+            accessibilityHint={t('services.viewAllBeforeAfterHint')}
             size="sm"
             variant="ghost"
             onPress={() =>
@@ -391,6 +395,8 @@ export function ServiceSingleDetailScreen({
       {canBook ? (
         <Button
           title={t('services.bookService')}
+          accessibilityLabel={t('services.bookServiceAccessibilityLabel', { service: service.name })}
+          accessibilityHint={t('services.bookServiceHint')}
           onPress={() =>
             navigation.navigate('Reservation', {
               serviceId: service.id,

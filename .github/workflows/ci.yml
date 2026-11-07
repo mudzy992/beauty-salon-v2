@@ -674,6 +674,9 @@ jobs:
       - name: Test mobile single-service detail headings
         working-directory: mobile
         run: npm run test:service-single-detail-headings-accessibility
+      - name: Test mobile single-service detail actions
+        working-directory: mobile
+        run: npm run test:service-single-detail-actions-accessibility
       - name: Test Bosnian copy for optional service read recovery
         working-directory: mobile
         run: npm run test:services-optional-recovery-copy
