@@ -852,10 +852,25 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 <Text style={[styles.seeAll, { color: colors.primary }]}>{t('common.seeAll')}</Text>
               </TouchableOpacity>
             </View>
-            {blogPosts.map((post) => (
+            {blogPosts.map((post) => {
+              const excerpt = getBlogExcerpt(post.excerpt ?? post.content ?? '');
+              const publishedDate = formatBlogDate(post.publishedAt);
+              const accessibilityLabel = publishedDate
+                ? t('home.blogPostCardAccessibilityLabelWithDate', {
+                    title: post.title,
+                    excerpt,
+                    date: publishedDate,
+                  })
+                : t('home.blogPostCardAccessibilityLabel', {
+                    title: post.title,
+                    excerpt,
+                  });
+              return (
               <View key={post.id}>
                 <Card
                   style={styles.blogCard}
+                  accessibilityLabel={accessibilityLabel}
+                  accessibilityHint={t('home.openBlogPostHint')}
                   onPress={() => navigation.navigate('BlogPost', { slug: post.slug })}
                 >
                   <View style={styles.blogCoverWrap}>
@@ -871,12 +886,12 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     />
                     <View style={styles.blogTag}>
                       <Ionicons name="newspaper-outline" size={12} color="#fff" />
-                      <Text style={styles.blogTagText}>Blog</Text>
+                      <Text style={styles.blogTagText}>{t('home.blogTag')}</Text>
                     </View>
                     {!!post.publishedAt && (
                       <View style={styles.blogDatePill}>
                         <Ionicons name="calendar-outline" size={11} color="#fff" />
-                        <Text style={styles.blogDatePillText}>{formatBlogDate(post.publishedAt)}</Text>
+                        <Text style={styles.blogDatePillText}>{publishedDate}</Text>
                       </View>
                     )}
                   </View>
@@ -884,14 +899,15 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     {post.title}
                   </Text>
                   <Text style={[styles.blogExcerpt, { color: colors.textSecondary }]} numberOfLines={2}>
-                    {getBlogExcerpt(post.excerpt ?? post.content ?? '')}
+                    {excerpt}
                   </Text>
                   <Text style={[styles.blogDate, { color: colors.textSecondary }]}>
-                    {formatBlogDate(post.publishedAt)}
+                    {publishedDate}
                   </Text>
                 </Card>
               </View>
-            ))}
+              );
+            })}
           </View>
         )}
         {/* Contact details */}

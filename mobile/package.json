@@ -68,6 +68,7 @@
     "test:home-service-tile-accessibility": "node --test src/screens/client/home-service-tile-accessibility.test.mjs",
     "test:home-satisfied-clients-copy": "node --test src/screens/client/home-satisfied-clients-copy.test.mjs",
     "test:home-blog-card-copy": "node --test src/screens/client/home-blog-card-copy.test.mjs",
+    "test:home-blog-card-accessibility": "node --test src/screens/client/home-blog-card-accessibility.test.mjs",
     "test:private-read-recovery": "node --test src/utils/private-read-recovery.test.mjs",
     "test:stylist-schedule-read-recovery": "node --test src/screens/stylist/stylist-schedule-read-recovery.test.mjs",
     "test:reservation-detail-read-recovery": "node --test src/screens/client/reservation-detail-read-recovery.test.mjs",

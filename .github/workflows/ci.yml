@@ -734,6 +734,9 @@ jobs:
       - name: Test mobile home blog-card copy
         working-directory: mobile
         run: npm run test:home-blog-card-copy
+      - name: Test mobile home blog-card accessibility
+        working-directory: mobile
+        run: npm run test:home-blog-card-accessibility
       - name: Test private reservation, inbox, and daily-log detail read recovery
         working-directory: mobile
         run: npm run test:private-read-recovery
