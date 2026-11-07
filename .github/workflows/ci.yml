@@ -602,6 +602,9 @@ jobs:
       - name: Test mobile profile avatar accessibility
         working-directory: mobile
         run: npm run test:profile-avatar-accessibility
+      - name: Test gender onboarding radio accessibility
+        working-directory: mobile
+        run: npm run test:onboarding-gender-radio-accessibility
       - name: Test Bosnian copy for profile read recovery
         working-directory: mobile
         run: npm run test:profile-read-recovery-copy

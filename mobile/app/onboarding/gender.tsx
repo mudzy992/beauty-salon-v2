@@ -97,6 +97,8 @@ export default function OnboardingGenderRoute() {
           <View style={styles.genderBtns}>
             <Pressable
               onPress={() => setGender('MALE')}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: gender === 'MALE' }}
               style={[
                 styles.genderChip,
                 {
@@ -109,6 +111,8 @@ export default function OnboardingGenderRoute() {
             </Pressable>
             <Pressable
               onPress={() => setGender('FEMALE')}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: gender === 'FEMALE' }}
               style={[
                 styles.genderChip,
                 {
