@@ -719,6 +719,9 @@ jobs:
       - name: Test before-after slider accessibility
         working-directory: mobile
         run: npm run test:before-after-slider-accessibility
+      - name: Test decorative mobile image semantics
+        working-directory: mobile
+        run: npm run test:media-image-accessibility
       - name: Test review rating accessibility
         working-directory: mobile
         run: npm run test:review-rating-accessibility

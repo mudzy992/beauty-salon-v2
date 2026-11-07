@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthStore } from '../../store/authStore';
 import { Card } from '../../components/ui/Card';
-import { MediaImage } from '../../components/MediaImage';
+import { DecorativeMediaImage } from '../../components/MediaImage';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import api, { getImageUrl } from '../../services/api';
@@ -254,7 +254,7 @@ export function EditProfileScreen(_props: ProfileScreenProps<'EditProfile'>) {
           disabled={avatarLoading}
           style={[styles.avatarWrap, { backgroundColor: colors.accent }]}
         >
-          <MediaImage uri={getImageUrl(user?.avatar)} style={styles.avatarImage} />
+          <DecorativeMediaImage uri={getImageUrl(user?.avatar)} style={styles.avatarImage} />
           {avatarLoading && (
             <View style={styles.avatarOverlay}>
               <ActivityIndicator size="small" color={colors.primary} />

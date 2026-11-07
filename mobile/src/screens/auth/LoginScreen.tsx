@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MediaImage } from '../../components/MediaImage';
+import { DecorativeMediaImage } from '../../components/MediaImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -138,7 +138,7 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
 
   return (
     <View style={styles.container}>
-      <MediaImage
+      <DecorativeMediaImage
         uri={settings !== null ? loginImageUrl : undefined}
         style={StyleSheet.absoluteFill}
       />

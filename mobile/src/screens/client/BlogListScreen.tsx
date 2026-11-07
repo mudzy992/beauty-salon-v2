@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
-import { MediaImage } from '../../components/MediaImage';
+import { DecorativeMediaImage } from '../../components/MediaImage';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { Card } from '../../components/ui/Card';
@@ -138,7 +138,7 @@ export function BlogListScreen({ navigation }: HomeScreenProps<'BlogList'>) {
             style={styles.card}
             padded={false}
           >
-            <MediaImage
+            <DecorativeMediaImage
               uri={getImageUrl(item.heroImage)}
               style={styles.heroImage}
             />

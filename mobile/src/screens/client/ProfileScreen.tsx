@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MediaImage } from '../../components/MediaImage';
+import { DecorativeMediaImage, MediaImage } from '../../components/MediaImage';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -423,7 +423,7 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
             style={[styles.avatarWrap, { backgroundColor: colors.accent }]}
             activeOpacity={0.85}
           >
-            <MediaImage uri={getImageUrl(user?.avatar)} style={styles.avatarImage} />
+            <DecorativeMediaImage uri={getImageUrl(user?.avatar)} style={styles.avatarImage} />
             <View
               style={[
                 styles.avatarEditBadge,

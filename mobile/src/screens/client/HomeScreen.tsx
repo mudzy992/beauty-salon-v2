@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MediaImage } from '../../components/MediaImage';
+import { DecorativeMediaImage } from '../../components/MediaImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -479,7 +479,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         <View style={styles.heroWrap}>
           <View style={[styles.heroShell, { backgroundColor: colors.background }]}>
           <View style={[styles.hero, { height: heroBlockHeight, borderCurve: 'continuous' }]}>
-            <MediaImage
+            <DecorativeMediaImage
               uri={heroImageUrl}
               style={StyleSheet.absoluteFill}
             />
@@ -702,7 +702,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                           { width: serviceCardWidth, height: cardHeight, borderRadius: borderRadius.xxl },
                         ]}
                       >
-                          <MediaImage
+                          <DecorativeMediaImage
                             uri={getImageUrl(service.heroImage)}
                             style={StyleSheet.absoluteFill}
                           />
@@ -830,7 +830,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                   onPress={() => navigation.navigate('BlogPost', { slug: post.slug })}
                 >
                   <View style={styles.blogCoverWrap}>
-                    <MediaImage
+                    <DecorativeMediaImage
                       uri={resolveBlogImageUrl(post.heroImage)}
                       style={styles.blogCover}
                       transition={120}

@@ -20,7 +20,7 @@ import {
   fetchAllPublicServiceCategories,
   fetchAllPublicServices,
 } from '../../services/catalog';
-import { MediaImage } from '../../components/MediaImage';
+import { DecorativeMediaImage } from '../../components/MediaImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { spacing, borderRadius } from '../../theme';
 import { useReservationSocketRefresh } from '../../hooks/useReservationSocketRefresh';
@@ -253,7 +253,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                     })
                   }
                 >
-                  <MediaImage
+                  <DecorativeMediaImage
                     uri={featuredService.heroImage ? getImageUrl(featuredService.heroImage) : undefined}
                     style={styles.featuredImage}
                   />

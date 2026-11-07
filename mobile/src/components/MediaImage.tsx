@@ -43,6 +43,11 @@ export const MediaImage = ({ uri, contentFit = 'cover', onError, ...props }: Med
   )
 }
 
+/** Use when nearby text or a parent control already conveys the image's meaning. */
+export const DecorativeMediaImage = (props: MediaImageProps) => (
+  <MediaImage {...props} accessible={false} accessibilityLabel="" />
+)
+
 type MediaBackdropProps = {
   uri?: string | null
   style?: StyleProp<ViewStyle>
@@ -52,7 +57,7 @@ type MediaBackdropProps = {
 
 export const MediaBackdrop = ({ uri, style, imageStyle, children }: MediaBackdropProps) => (
   <View style={[style, styles.backdrop]}>
-    <MediaImage uri={uri} style={[StyleSheet.absoluteFill, imageStyle]} />
+    <DecorativeMediaImage uri={uri} style={[StyleSheet.absoluteFill, imageStyle]} />
     {children}
   </View>
 )
