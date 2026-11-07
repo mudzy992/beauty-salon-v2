@@ -450,7 +450,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const maintenanceOn = getSettingValue(settings, 'system_maintenance_mode', 'false').toLowerCase() === 'true';
   const maintenanceMsg =
     getSettingValue(settings, 'public_maintenance_message', '').trim() ||
-    'Radimo na poboljšanjima. Molimo pokušajte kasnije.';
+    t('home.maintenanceMessageFallback');
 
   if (settings !== null && maintenanceOn) {
     return (
@@ -465,7 +465,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           },
         ]}
       >
-        <Text style={[styles.heroTitle, { textAlign: 'center', marginBottom: 16 }]}>Privremeno nedostupno</Text>
+        <Text style={[styles.heroTitle, { textAlign: 'center', marginBottom: 16 }]}>{t('home.maintenanceTitle')}</Text>
         <Text style={{ fontSize: 16, textAlign: 'center', color: colors.text, lineHeight: 22, opacity: 0.9 }}>
           {maintenanceMsg}
         </Text>
