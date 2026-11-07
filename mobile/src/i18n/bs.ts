@@ -100,6 +100,11 @@ export const bs = {
     beforeAfterSliderIncrease: 'Prikaži više fotografije poslije',
     beforeAfterSliderDecrease: 'Prikaži više fotografije prije',
     featuredReviewLoadError: 'Istaknutu recenziju trenutno nije moguće učitati.',
+    satisfiedClientsTitle: 'Zadovoljni klijenti',
+    featuredReviewFallback: 'Odličan servis i atmosfera, preporučujem!',
+    satisfiedClientFallback: 'Zadovoljni klijent',
+    satisfiedClientsEmptyHint: 'Naši klijenti dijele iskustva. Pogledajte transformacije i recenzije.',
+    viewAllTransformations: 'Pogledaj sve transformacije',
   },
   services: {
     title: 'Usluge',
