@@ -15,7 +15,7 @@ test('interactive shared cards forward accessible labels, roles, hints, and stat
 });
 
 test('multi-select reservation service cards expose checkbox checked state', () => {
-  assert.match(reservation, /<Card[\s\S]*?accessibilityRole="checkbox"\s+accessibilityState=\{\{ checked: isSelected \}\}[\s\S]*?onPress=\{\(\) => handleToggleService\(item\)\}/);
+  assert.match(reservation, /<Card[\s\S]*?accessibilityRole="checkbox"[\s\S]*?accessibilityState=\{\{ checked: isSelected \}\}[\s\S]*?onPress=\{\(\) => handleToggleService\(item\)\}/);
 });
 
 test('last-used service card contains one button action, not a nested card action', () => {
