@@ -160,6 +160,8 @@ export const bs = {
     lastUsedServiceHeading: 'Vaša posljednja usluga',
     lastUsedServiceDescription: 'Rezervišite ovu uslugu ponovo u samo jednom koraku.',
     repeatLastUsedService: 'Ponovi',
+    repeatLastUsedServiceAccessibilityLabel: 'Ponovi uslugu {{service}}',
+    repeatLastUsedServiceHint: 'Otvara detalje usluge prije rezervacije.',
     categoryFallbackDescription: 'Pregledajte dostupne usluge i rezervišite termin.',
     categoryCardAccessibilityLabel: 'Kategorija: {{category}}',
     categoryCardHint: 'Otvara usluge u kategoriji {{category}}.'

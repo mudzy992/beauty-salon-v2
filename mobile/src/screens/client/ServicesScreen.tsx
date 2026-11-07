@@ -324,6 +324,10 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                   </View>
                   <Button
                     title={t('services.repeatLastUsedService')}
+                    accessibilityLabel={t('services.repeatLastUsedServiceAccessibilityLabel', {
+                      service: lastUsedService.name,
+                    })}
+                    accessibilityHint={t('services.repeatLastUsedServiceHint')}
                     size="sm"
                     onPress={() =>
                       navigation.navigate('ServiceSingleDetail', {

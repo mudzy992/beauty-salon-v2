@@ -212,13 +212,15 @@ The app currently has 50 non-test `.tsx` files under `mobile/app` (route screens
 
 **Mobile client service category cards (2026-11-07):** category cards navigated to their service list without explicit button names or destination hints. Each now exposes a localized name and hint interpolated with its server-provided category name; navigation remains unchanged. A focused source-contract test is registered in mobile CI; rendered grouping and native announcements remain unverified.
 
+**Mobile client last-used service action (2026-11-07):** the repeated-service button's accessible name was only “Ponovi”, omitting the service context. The shared `Button` now supports optional accessible label/hint overrides while retaining its visible-title default; this action uses a localized service-specific label and explains that it opens details before booking. The existing shared-button and service-copy source tests cover the change; native screen-reader behavior remains unverified.
+
 Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible URL patterns. Dynamic route params are shown with `:` for readability; source uses Expo Router bracket syntax.
 
 ## Shared component inventory — first-pass focus
 
 | Component | Source | Existing evidence / next audit question |
 |---|---|---|
-| `Button` | `mobile/src/components/ui/Button.tsx` | Source-contract accessibility checks exist; verify loading/disabled visual and screen-reader behavior on device. |
+| `Button` | `mobile/src/components/ui/Button.tsx` | Source-contract accessibility checks exist; optional contextual accessible name/hint now fall back to the visible title by default; verify loading/disabled visual and screen-reader behavior on device. |
 | `Input` | `mobile/src/components/ui/Input.tsx` | Source-contract checks exist; password visibility control now has a localized action name; verify label/error announcement order, field traversal, and text scaling. |
 | `DateTimeField` | `mobile/src/components/ui/DateTimeField.tsx` | Source-contract checks and owner-reported device retest exist; physical acceptance remains owner evidence, not agent verification. |
 | `EmptyState` | `mobile/src/components/ui/EmptyState.tsx` | Decorative icon is hidden from assistive technology and the title is exposed as a heading; focused source-contract test registered in mobile CI. Device announcement/reading order remains unverified. |

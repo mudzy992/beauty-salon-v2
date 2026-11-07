@@ -21,6 +21,8 @@ interface ButtonProps {
   fullWidth?: boolean;
   style?: StyleProp<ViewStyle>;
   textStyle?: TextStyle;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
   icon?: React.ReactNode;
 }
 
@@ -34,6 +36,8 @@ export function Button({
   fullWidth = false,
   style,
   textStyle,
+  accessibilityLabel,
+  accessibilityHint,
   icon,
 }: ButtonProps) {
   const { colors } = useTheme();
@@ -60,7 +64,8 @@ export function Button({
       onPress={onPress}
       disabled={inactive}
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: inactive, busy: loading }}
       style={({ pressed }) => [
         styles.base,

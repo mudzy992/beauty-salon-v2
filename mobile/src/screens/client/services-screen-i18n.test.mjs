@@ -29,6 +29,15 @@ test('services discovery screen renders static copy from Bosnian resources', () 
   assert.ok(servicesTranslations.match(/reservationsCount:\s*'([^']+)'/)?.[1].includes('{{count}}'));
 });
 
+test('last-used service action exposes a localized service-specific name and hint', () => {
+  assert.ok(servicesTranslations.includes("repeatLastUsedServiceAccessibilityLabel: 'Ponovi uslugu {{service}}'"));
+  assert.ok(servicesTranslations.includes("repeatLastUsedServiceHint: 'Otvara detalje usluge prije rezervacije.'"));
+  assert.ok(screen.includes("accessibilityLabel={t('services.repeatLastUsedServiceAccessibilityLabel', {"));
+  assert.ok(screen.includes('service: lastUsedService.name,'));
+  assert.ok(screen.includes("accessibilityHint={t('services.repeatLastUsedServiceHint')}"));
+  assert.ok(screen.includes("title={t('services.repeatLastUsedService')}"));
+});
+
 test('services screen no longer ships the audited hard-coded promotional and fallback copy', () => {
   for (const copy of [
     'PREMIUM KOLEKCIJA',
