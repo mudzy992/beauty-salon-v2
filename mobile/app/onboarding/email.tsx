@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
-import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../src/hooks/useTheme';
 import { OnboardingShell } from '../../src/components/onboarding/OnboardingShell';
 import { useAuthStore } from '../../src/store/authStore';
 import { Button } from '../../src/components/ui/Button';
@@ -14,6 +15,7 @@ import { fontFamily } from '../../src/theme/fonts';
 
 export default function OnboardingEmailRoute() {
   const { t } = useTranslation();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { user, refreshProfile } = useAuthStore();
   const [email, setEmail] = useState(user?.email ?? '');
@@ -162,6 +164,13 @@ export default function OnboardingEmailRoute() {
 
           {codeSent ? (
             <View style={styles.codeBlock}>
+              <Text
+                accessibilityRole="text"
+                accessibilityLiveRegion="polite"
+                style={[styles.codeSentMessage, { color: colors.textSecondary }]}
+              >
+                {t('profile.verifyEmailCodeSent')}
+              </Text>
               <Input
                 label={t('profile.verifyEmailEnterCode')}
                 value={code}
@@ -196,6 +205,11 @@ const styles = StyleSheet.create({
   },
   codeBlock: {
     marginTop: spacing.md,
+  },
+  codeSentMessage: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: spacing.sm,
   },
   btn: {
     marginTop: spacing.sm,

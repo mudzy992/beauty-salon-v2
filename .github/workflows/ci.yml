@@ -605,6 +605,9 @@ jobs:
       - name: Test gender onboarding radio accessibility
         working-directory: mobile
         run: npm run test:onboarding-gender-radio-accessibility
+      - name: Test mobile email onboarding accessibility
+        working-directory: mobile
+        run: npm run test:onboarding-email-accessibility
       - name: Test mobile onboarding progress accessibility
         working-directory: mobile
         run: npm run test:onboarding-shell-accessibility
