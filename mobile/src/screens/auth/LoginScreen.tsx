@@ -63,18 +63,17 @@ function getSettingValue(settings: PublicSetting[] | null | undefined, key: stri
   return item?.value?.trim() || fallback;
 }
 
-function getLoginErrorMessage(error: unknown): string {
+function getLoginErrorMessage(
+  error: unknown,
+  copy: { network: string; invalidCredentials: string; server: string; fallback: string },
+): string {
   const axiosError = error as AxiosError<{ message?: string | string[] }>;
-  if (!axiosError.response) {
-    return (
-      'Nema konekcije s serverom. Na emulatoru/uređaju u .env postavite EXPO_PUBLIC_API_URL na IP računala (npr. http://192.168.1.100:3000).'
-    );
-  }
+  if (!axiosError.response) return copy.network;
   const serverMessage = getApiErrorMessage(error, '');
   if (serverMessage) return serverMessage;
-  if (axiosError.response.status === 401) return 'Pogrešno korisničko ime ili lozinka.';
-  if (axiosError.response.status >= 500) return 'Greška na serveru. Pokušajte ponovo.';
-  return 'Greška pri prijavi.';
+  if (axiosError.response.status === 401) return copy.invalidCredentials;
+  if (axiosError.response.status >= 500) return copy.server;
+  return copy.fallback;
 }
 
 export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
@@ -115,8 +114,8 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
 
   const validate = (): boolean => {
     const newErrors: typeof errors = {};
-    if (!loginValue.trim()) newErrors.login = 'Obavezno polje';
-    if (!password) newErrors.password = 'Obavezno polje';
+    if (!loginValue.trim()) newErrors.login = t('auth.requiredField');
+    if (!password) newErrors.password = t('auth.requiredField');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -127,7 +126,12 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
       await login(loginValue.trim(), password);
       router.replace('/');
     } catch (error) {
-      const message = getLoginErrorMessage(error);
+      const message = getLoginErrorMessage(error, {
+        network: t('auth.loginNetworkError'),
+        invalidCredentials: t('auth.loginInvalidCredentials'),
+        server: t('auth.loginServerError'),
+        fallback: t('auth.loginError'),
+      });
       Alert.alert(t('common.error'), message);
     }
   };

@@ -689,6 +689,9 @@ jobs:
       - name: Test login public-settings recovery and retry
         working-directory: mobile
         run: npm run test:login-public-settings-recovery
+      - name: Test mobile login error copy
+        working-directory: mobile
+        run: npm run test:login-error-copy
       - name: Test independent stylist picker loading, error, and retry states
         working-directory: mobile
         run: npm run test:stylist-picker-read-recovery
