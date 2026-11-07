@@ -19,6 +19,6 @@ test('multi-select reservation service cards expose checkbox checked state', () 
 });
 
 test('last-used service card contains one button action, not a nested card action', () => {
-  assert.match(services, /<Card style=\{styles\.lastUsedCard\}>[\s\S]*?<Button[\s\S]*?title="Ponovi"[\s\S]*?onPress=\{\(\) =>\s*navigation\.navigate\('ServiceSingleDetail'/);
+  assert.match(services, /<Card style=\{styles\.lastUsedCard\}>[\s\S]*?<Button[\s\S]*?title=\{t\('services\.repeatLastUsedService'\)\}[\s\S]*?onPress=\{\(\) =>\s*navigation\.navigate\('ServiceSingleDetail'/);
   assert.doesNotMatch(services, /<Card\s+style=\{styles\.lastUsedCard\}[\s\S]{0,80}onPress=/);
 });
