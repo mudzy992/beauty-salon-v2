@@ -743,6 +743,9 @@ jobs:
       - name: Test mobile home featured-review rating accessibility
         working-directory: mobile
         run: npm run test:home-featured-review-rating-accessibility
+      - name: Test mobile home read-error accessibility
+        working-directory: mobile
+        run: npm run test:home-read-error-accessibility
       - name: Test mobile home section heading accessibility
         working-directory: mobile
         run: npm run test:home-section-headings-accessibility

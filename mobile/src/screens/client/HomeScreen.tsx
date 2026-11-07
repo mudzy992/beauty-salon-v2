@@ -544,14 +544,14 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         <View style={{ backgroundColor: 'transparent', paddingBottom: spacing.xxl, paddingTop: spacing.sm }}>
         {homeLoadError ? (
           <Card style={{ marginHorizontal: spacing.md, marginBottom: spacing.md, borderColor: colors.border }}>
-            <Text style={{ color: colors.text, fontWeight: '700' }}>{t('home.loadErrorTitle')}</Text>
+            <Text accessibilityRole="alert" style={{ color: colors.text, fontWeight: '700' }}>{t('home.loadErrorTitle')}</Text>
             <Text style={{ color: colors.textSecondary, marginTop: spacing.xs }}>{t('home.staleMessage')}</Text>
             <Button title={t('common.retry')} onPress={() => void fetchData()} variant="outline" size="sm" style={{ marginTop: spacing.sm }} />
           </Card>
         ) : null}
         {user && debtsLoadError ? (
           <Card style={{ marginHorizontal: spacing.md, marginBottom: spacing.md, borderColor: colors.border }}>
-            <Text style={{ color: colors.textSecondary }}>{t('home.debtLoadError')}</Text>
+            <Text accessibilityRole="alert" style={{ color: colors.textSecondary }}>{t('home.debtLoadError')}</Text>
             <Button title={t('common.retry')} onPress={() => void fetchData()} variant="outline" size="sm" style={{ marginTop: spacing.sm }} />
           </Card>
         ) : null}
@@ -597,7 +597,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
 
         {upcomingReservationLoadError ? (
           <Card style={{ marginHorizontal: spacing.md, marginBottom: spacing.md, borderColor: colors.border }}>
-            <Text style={{ color: colors.textSecondary }}>{t('home.reservationLoadError')}</Text>
+            <Text accessibilityRole="alert" style={{ color: colors.textSecondary }}>{t('home.reservationLoadError')}</Text>
             <Button title={t('common.retry')} onPress={() => void fetchUpcomingReservation()} variant="outline" size="sm" style={{ marginTop: spacing.sm }} />
           </Card>
         ) : null}
@@ -789,7 +789,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           <Card style={[styles.satisfiedCard, { backgroundColor: colors.card || colors.background }]}>
             {beforeAfterLoadError ? (
               <View style={{ marginBottom: spacing.sm }}>
-                <Text style={[styles.beforeAfterHint, { color: colors.textSecondary }]}>
+                <Text accessibilityRole="alert" style={[styles.beforeAfterHint, { color: colors.textSecondary }]}>
                   {t('home.beforeAfterLoadError')}
                 </Text>
                 <Button title={t('common.retry')} onPress={() => void fetchData()} variant="outline" size="sm" style={{ marginTop: spacing.xs }} />
@@ -807,7 +807,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             )}
             {featuredReviewLoadError ? (
               <View>
-                <Text style={[styles.beforeAfterHint, { color: colors.textSecondary, marginTop: spacing.sm }]}>
+                <Text accessibilityRole="alert" style={[styles.beforeAfterHint, { color: colors.textSecondary, marginTop: spacing.sm }]}>
                   {t('home.featuredReviewLoadError')}
                 </Text>
                 <Button title={t('common.retry')} onPress={() => void fetchData()} variant="outline" size="sm" style={{ marginTop: spacing.xs }} />
