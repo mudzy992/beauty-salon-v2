@@ -416,6 +416,8 @@ export const bs = {
       statusReviewSelf: 'Na pregledu (vi)',
       statusReview: 'Na pregledu',
       statusPending: 'Na čekanju',
+      clientCancellationCount: 'Otkazivanja klijenta: {{count}}',
+      clientReservationLimitUntil: 'Ograničenje rezervacija klijenta do {{date}}',
     },
     dailyLogList: {
       loadErrorTitle: 'Dnevnik trenutno nije dostupan',

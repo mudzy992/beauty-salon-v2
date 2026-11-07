@@ -486,14 +486,16 @@ export function StylistInboxScreen() {
                     <>
                       {count > 0 ? (
                         <Badge
-                          label={`CXL: ${count}`}
+                          label={t('stylist.inbox.clientCancellationCount', { count })}
                           variant="warning"
                           status={'CANCELLED_BY_CLIENT' as any}
                         />
                       ) : null}
                       {isPenalized ? (
                         <Badge
-                          label={`PENAL do ${getSalonDateOnly(until!)}`}
+                          label={t('stylist.inbox.clientReservationLimitUntil', {
+                            date: getSalonDateOnly(until!),
+                          })}
                           variant="error"
                           status={'NO_SHOW' as any}
                         />

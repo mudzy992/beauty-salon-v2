@@ -24,3 +24,11 @@ test('reservation-status branches and badge variants remain unchanged', () => {
   assert.match(screen, /variant=\{item\.status === 'STYLIST_REVIEW' \? 'info' : 'warning'\}/)
   assert.match(screen, /status=\{item\.status\}/)
 })
+
+test('client cancellation and reservation-limit badges use descriptive Bosnian copy', () => {
+  assert.ok(inboxTranslations.includes("clientCancellationCount: 'Otkazivanja klijenta: {{count}}'"))
+  assert.ok(inboxTranslations.includes("clientReservationLimitUntil: 'Ograničenje rezervacija klijenta do {{date}}'"))
+  assert.match(screen, /label=\{t\('stylist\.inbox\.clientCancellationCount', \{ count \}\)\}/)
+  assert.match(screen, /label=\{t\('stylist\.inbox\.clientReservationLimitUntil', \{\s*date: getSalonDateOnly\(until!\),\s*\}\)\}/)
+  assert.doesNotMatch(screen, /`CXL: \$\{count\}`|`PENAL do \$\{getSalonDateOnly/)
+})
