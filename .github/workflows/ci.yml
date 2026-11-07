@@ -740,6 +740,9 @@ jobs:
       - name: Test mobile home open-debt action accessibility
         working-directory: mobile
         run: npm run test:home-open-debt-accessibility
+      - name: Test mobile home section heading accessibility
+        working-directory: mobile
+        run: npm run test:home-section-headings-accessibility
       - name: Test mobile home service tile accessibility
         working-directory: mobile
         run: npm run test:home-service-tile-accessibility

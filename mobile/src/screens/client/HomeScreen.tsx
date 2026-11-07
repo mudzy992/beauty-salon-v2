@@ -662,7 +662,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             style={[styles.section, sectionIndex === 0 && styles.sectionFirst]}
           >
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.text }]}>
                 {category.name}
               </Text>
               <TouchableOpacity
@@ -782,7 +782,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         {/* Zadovoljni klijenti – 1 featured recenzija + prije/poslije + CTA */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.text }]}>
               {t('home.satisfiedClientsTitle')}
             </Text>
           </View>
@@ -854,7 +854,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         {blogPosts.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.text }]}>
                 {t('home.latestBlog')}
               </Text>
               <TouchableOpacity
@@ -937,7 +937,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           return (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.contactSectionTitle')}</Text>
+                <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.text }]}>{t('home.contactSectionTitle')}</Text>
                 <TouchableOpacity
                   accessibilityRole="button"
                   accessibilityLabel={t('home.contactDetailsLabel')}

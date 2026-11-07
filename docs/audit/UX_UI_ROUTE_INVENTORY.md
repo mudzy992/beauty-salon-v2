@@ -271,6 +271,8 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 
 **Mobile home open-debt action (2026-11-07):** the tappable debt summary had no explicit button role, accessible name, or action hint. It now announces the number and amount with localized copy and identifies that it opens profile debt details; navigation and displayed amount remain unchanged. A focused source-contract test is registered in mobile CI; native announcement and profile navigation remain unverified.
 
+**Mobile home section headings (2026-11-07):** service-category, satisfied-clients, latest-blog, and contact section titles were rendered as ordinary text, so native heading navigation could not identify them as headings. They now expose the `header` accessibility role while retaining their visual styling and content. A focused source-contract test is registered in mobile CI; heading traversal and announcements remain unverified on device.
+
 **Mobile home maintenance state (2026-11-07):** its fallback title used a plain `Text` element without heading semantics. The visible title now exposes the native `header` accessibility role, with copy and maintenance behavior unchanged. A focused source-contract test is registered in mobile CI; actual native heading navigation and announcement remain unverified.
 
 ## Current acceptance boundary and next slices
