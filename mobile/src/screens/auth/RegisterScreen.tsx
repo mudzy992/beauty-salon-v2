@@ -42,15 +42,15 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (!form.firstName.trim()) e.firstName = 'Obavezno polje';
-    if (!form.lastName.trim()) e.lastName = 'Obavezno polje';
-    if (!form.username.trim()) e.username = 'Obavezno polje';
-    if (!form.email.trim()) e.email = 'Obavezno polje';
-    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = 'Nevažeći email';
-    if (!form.password) e.password = 'Obavezno polje';
-    else if (form.password.length < 6) e.password = 'Minimalno 6 karaktera';
+    if (!form.firstName.trim()) e.firstName = t('auth.requiredField');
+    if (!form.lastName.trim()) e.lastName = t('auth.requiredField');
+    if (!form.username.trim()) e.username = t('auth.requiredField');
+    if (!form.email.trim()) e.email = t('auth.requiredField');
+    else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = t('auth.invalidEmail');
+    if (!form.password) e.password = t('auth.requiredField');
+    else if (form.password.length < 6) e.password = t('auth.minPasswordLength');
     if (form.password !== form.confirmPassword)
-      e.confirmPassword = 'Lozinke se ne poklapaju';
+      e.confirmPassword = t('auth.passwordsMismatch');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -67,7 +67,7 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
         phone: form.phone.trim() || undefined,
       });
     } catch (error: unknown) {
-      Alert.alert(t('common.error'), getApiErrorMessage(error, 'Greška pri registraciji'));
+      Alert.alert(t('common.error'), getApiErrorMessage(error, t('auth.registerError')));
     }
   };
 
@@ -161,7 +161,7 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
           />
 
           <Input
-            label="Potvrdite lozinku"
+            label={t('auth.registerConfirmPassword')}
             value={form.confirmPassword}
             onChangeText={(v) => update('confirmPassword', v)}
             leftIcon="lock-closed-outline"
