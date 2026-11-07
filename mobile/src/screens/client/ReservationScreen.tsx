@@ -1043,6 +1043,10 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
                       },
                     ]}
                     keyboardType="number-pad"
+                    accessibilityLabel={t('reservation.loyaltyDiscountAccessibilityLabel')}
+                    accessibilityHint={t('reservation.loyaltyDiscountAccessibilityHint', {
+                      maxPercent: loyaltyInfo.service.maxDiscountPercent,
+                    })}
                     value={String(desiredLoyaltyPercent || 0)}
                     onChangeText={(text) => {
                       const n = parseInt(text.replace(/[^0-9]/g, ''), 10);

@@ -653,6 +653,9 @@ jobs:
       - name: Test mobile reservation debt-option accessibility
         working-directory: mobile
         run: npm run test:reservation-debt-option-accessibility
+      - name: Test mobile reservation loyalty-input accessibility
+        working-directory: mobile
+        run: npm run test:reservation-loyalty-input-accessibility
       - name: Test localized reservation benefit error copy
         working-directory: mobile
         run: npm run test:reservation-benefit-copy

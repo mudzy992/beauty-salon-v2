@@ -223,6 +223,8 @@ export const bs = {
     openDebtAmount: 'Otvoreno: {{amount}} KM',
     payDebtsAccessibilityLabel: 'Plaćam i dugovanje, {{amount}} KM',
     payDebtsAccessibilityHint: 'Uključite da uz rezervaciju zatražite naplatu postojećeg dugovanja.',
+    loyaltyDiscountAccessibilityLabel: 'Željeni procenat popusta po programu lojalnosti',
+    loyaltyDiscountAccessibilityHint: 'Unesite procenat popusta, najviše {{maxPercent}}% za ovu uslugu.',
     previewStale: 'Prikazani podaci možda nisu ažurirani.',
     noDates: 'Nema dostupnih datuma',
     step: 'Korak {{current}} od {{total}}',
