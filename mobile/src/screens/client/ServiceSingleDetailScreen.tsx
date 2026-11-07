@@ -338,9 +338,11 @@ export function ServiceSingleDetailScreen({
       {/* Before / After (work gallery) */}
       <Card style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Prije / Poslije</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            {t('services.beforeAfterSectionTitle')}
+          </Text>
           <Button
-            title="Vidi sve"
+            title={t('services.viewAllBeforeAfter')}
             size="sm"
             variant="ghost"
             onPress={() =>
@@ -368,7 +370,7 @@ export function ServiceSingleDetailScreen({
           </View>
         ) : pairs.length === 0 ? (
           <Text style={[styles.bodyText, { color: colors.textMuted }]}>
-            Trenutno nema dostupnih transformacija za ovaj servis.
+            {t('services.noBeforeAfterForService')}
           </Text>
         ) : (
           <View style={{ gap: spacing.md }}>
