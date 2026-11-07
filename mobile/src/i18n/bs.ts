@@ -164,7 +164,11 @@ export const bs = {
     repeatLastUsedServiceHint: 'Otvara detalje usluge prije rezervacije.',
     categoryFallbackDescription: 'Pregledajte dostupne usluge i rezervišite termin.',
     categoryCardAccessibilityLabel: 'Kategorija: {{category}}',
-    categoryCardHint: 'Otvara usluge u kategoriji {{category}}.'
+    categoryCardHint: 'Otvara usluge u kategoriji {{category}}.',
+    serviceDetailsAccessibilityLabel: 'Detalji: {{service}}, {{duration}} min.',
+    serviceDetailsHint: 'Otvara detalje usluge.',
+    bookServiceAccessibilityLabel: 'Rezerviši uslugu {{service}}',
+    bookServiceHint: 'Otvara izbor termina za ovu uslugu.'
   },
   beforeAfterGallery: {
     title: 'Galerija',

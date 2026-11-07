@@ -216,6 +216,8 @@ The app currently has 50 non-test `.tsx` files under `mobile/app` (route screens
 
 **Mobile client services headings (2026-11-07):** the discovery page title and popular, last-used, and category section labels were ordinary text. They now expose native heading semantics while retaining their visible copy and layout. A focused source-contract test is registered in mobile CI; native heading traversal remains unverified.
 
+**Mobile client category service cards (2026-11-07):** service-detail cards had separate service-details and booking controls without explicit localized context. The details action now announces its service and duration; the booking action names the selected service, and each has a localized destination hint. Navigation and visible copy are unchanged. A focused source-contract test is registered in mobile CI; native announcements remain unverified.
+
 Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible URL patterns. Dynamic route params are shown with `:` for readability; source uses Expo Router bracket syntax.
 
 ## Shared component inventory — first-pass focus

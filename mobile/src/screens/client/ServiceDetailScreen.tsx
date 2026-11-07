@@ -135,6 +135,12 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
                       })
                     }
                     activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('services.serviceDetailsAccessibilityLabel', {
+                      service: item.name,
+                      duration: item.durationMinutes,
+                    })}
+                    accessibilityHint={t('services.serviceDetailsHint')}
                   >
                     <Text style={[styles.serviceName, styles.serviceNameOverlay]}>
                       {item.name}
@@ -157,6 +163,8 @@ export function ServiceDetailScreen({ route, navigation }: ServicesScreenProps<'
                   {canBook ? (
                     <Button
                       title={t('services.bookService')}
+                      accessibilityLabel={t('services.bookServiceAccessibilityLabel', { service: item.name })}
+                      accessibilityHint={t('services.bookServiceHint')}
                       onPress={() =>
                         navigation.navigate('Reservation', {
                           serviceId: item.id,
