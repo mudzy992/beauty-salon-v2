@@ -573,6 +573,8 @@ export const bs = {
       photosSectionTitle: 'Prije i poslije',
       beforePhotosLabel: 'Prije',
       afterPhotosLabel: 'Poslije',
+      beforePhotoAccessibilityLabel: 'Fotografija prije tretmana',
+      afterPhotoAccessibilityLabel: 'Fotografija nakon tretmana',
       addPhotosHint: 'Dodajte prije/poslije fotografije preko menija akcija (⋯).',
       imagePermissionTitle: 'Dozvola',
       imagePermissionMessage: 'Potrebna je dozvola za pristup galeriji.',

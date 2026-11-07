@@ -519,16 +519,21 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
               <Text style={{ color: colors.text, fontWeight: '700' }}>{t('profile.mediaConsent.pendingTitle')}</Text>
               {visibleMediaConsent.pending.map((item) => {
                 const label = item.isBefore ? t('profile.mediaConsent.beforeTreatment') : t('profile.mediaConsent.afterTreatment');
+                const serviceName = item.serviceName || t('profile.serviceFallback');
+                const serviceDate = formatProfileDate(item.serviceDate, formatDate) || t('common.notAvailable');
+                const imageAccessibilityLabel = item.description || label;
                 const checked = Boolean(mediaConsentAccepted[item.imageId]);
                 return (
                   <View key={item.imageId} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.sm }}>
                     <MediaImage
                       uri={getImageUrl(item.previewUrl)}
                       style={{ width: '100%', height: 190, borderRadius: 8, backgroundColor: colors.accent }}
+                      accessible
+                      accessibilityLabel={imageAccessibilityLabel}
                     />
                     <Text style={{ color: colors.text, fontWeight: '700', marginTop: spacing.sm }}>{label}</Text>
                     <Text style={{ color: colors.textSecondary, fontSize: 13, marginTop: 2 }}>
-                      {item.serviceName || t('profile.serviceFallback')} · {formatProfileDate(item.serviceDate, formatDate) || t('common.notAvailable')}
+                      {serviceName} · {serviceDate}
                     </Text>
                     <TouchableOpacity
                       onPress={() => setMediaConsentAccepted((current) => ({ ...current, [item.imageId]: !checked }))}
@@ -554,36 +559,44 @@ export function ProfileScreen({ navigation }: ProfileScreenProps<'Profile'>) {
           {!mediaConsentLoading && visibleMediaConsent?.active.length ? (
             <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
               <Text style={{ color: colors.text, fontWeight: '700' }}>{t('profile.mediaConsent.activeHeading')}</Text>
-              {visibleMediaConsent.active.map((item) => (
-                <View key={item.imageId} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.sm }}>
-                  <MediaImage
-                    uri={getImageUrl(item.previewUrl)}
-                    style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: colors.accent }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: colors.text, fontWeight: '600' }} numberOfLines={2}>
-                      {item.isBefore ? t('profile.mediaConsent.beforeTreatment') : t('profile.mediaConsent.afterTreatment')} · {item.serviceName || t('profile.serviceFallback')}
-                    </Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                      {formatProfileDate(item.serviceDate, formatDate) || t('common.notAvailable')}
-                    </Text>
-                    <Text style={{ color: item.isPublished ? colors.success : colors.textSecondary, fontSize: 11, marginTop: 2 }}>
-                      {item.isPublished
-                        ? t('profile.mediaConsent.publishedCategories', { categories: item.publishedCategories.map((category) => category.name).join(', ') })
-                        : t('profile.mediaConsent.notPublished')}
-                    </Text>
+              {visibleMediaConsent.active.map((item) => {
+                const label = item.isBefore ? t('profile.mediaConsent.beforeTreatment') : t('profile.mediaConsent.afterTreatment');
+                const serviceName = item.serviceName || t('profile.serviceFallback');
+                const serviceDate = formatProfileDate(item.serviceDate, formatDate) || t('common.notAvailable');
+                const imageAccessibilityLabel = item.description || label;
+                return (
+                  <View key={item.imageId} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: spacing.sm }}>
+                    <MediaImage
+                      uri={getImageUrl(item.previewUrl)}
+                      style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: colors.accent }}
+                      accessible
+                      accessibilityLabel={imageAccessibilityLabel}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.text, fontWeight: '600' }} numberOfLines={2}>
+                        {label} · {serviceName}
+                      </Text>
+                      <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
+                        {serviceDate}
+                      </Text>
+                      <Text style={{ color: item.isPublished ? colors.success : colors.textSecondary, fontSize: 11, marginTop: 2 }}>
+                        {item.isPublished
+                          ? t('profile.mediaConsent.publishedCategories', { categories: item.publishedCategories.map((category) => category.name).join(', ') })
+                          : t('profile.mediaConsent.notPublished')}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => revokeMediaConsent(item)}
+                      disabled={mediaConsentSavingId === item.imageId}
+                      style={{ padding: spacing.xs }}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('profile.mediaConsent.revokeAction')}
+                    >
+                      <Ionicons name="close-circle-outline" size={24} color={colors.error} />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    onPress={() => revokeMediaConsent(item)}
-                    disabled={mediaConsentSavingId === item.imageId}
-                    style={{ padding: spacing.xs }}
-                    accessibilityRole="button"
-                    accessibilityLabel={t('profile.mediaConsent.revokeAction')}
-                  >
-                    <Ionicons name="close-circle-outline" size={24} color={colors.error} />
-                  </TouchableOpacity>
-                </View>
-              ))}
+                );
+              })}
             </View>
           ) : null}
           {!mediaConsentLoading && visibleMediaConsent && visibleMediaConsent.pending.length === 0 && visibleMediaConsent.active.length === 0 ? (

@@ -636,6 +636,11 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                       key={img.id}
                       uri={uri}
                       style={styles.thumb}
+                      accessible
+                      accessibilityLabel={
+                        img.description?.trim() ||
+                        t('stylist.dailyLogDetail.beforePhotoAccessibilityLabel')
+                      }
                     />
                   );
                 })}
@@ -657,6 +662,11 @@ export function DailyLogDetailScreen({ route, navigation }: DailyLogDetailScreen
                       key={img.id}
                       uri={uri}
                       style={styles.thumb}
+                      accessible
+                      accessibilityLabel={
+                        img.description?.trim() ||
+                        t('stylist.dailyLogDetail.afterPhotoAccessibilityLabel')
+                      }
                     />
                   );
                 })}

@@ -722,6 +722,9 @@ jobs:
       - name: Test decorative mobile image semantics
         working-directory: mobile
         run: npm run test:media-image-accessibility
+      - name: Test informative mobile photo descriptions
+        working-directory: mobile
+        run: npm run test:media-photo-accessibility
       - name: Test review rating accessibility
         working-directory: mobile
         run: npm run test:review-rating-accessibility

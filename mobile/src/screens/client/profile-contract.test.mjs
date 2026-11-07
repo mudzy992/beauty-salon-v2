@@ -113,6 +113,7 @@ const validConsentItem = (overrides = {}) => ({
   serviceDate: '2026-10-31',
   isBefore: true,
   isAfter: false,
+  description: '',
   previewUrl: '/api/uploads/content?path=private%2Fdaily-log%2Fbefore.webp',
   consentedAt: null,
   isPublished: false,
@@ -131,7 +132,7 @@ test('media-consent parser rejects incomplete envelopes, invalid rows, and unsaf
   const valid = profileData.normalizeConsentPayload({
     policyVersion: 'v1',
     consentText: 'Policy',
-    pending: [validConsentItem()],
+    pending: [validConsentItem({ description: 'Fotografija prije manikira.' })],
     active: [validConsentItem({
       imageId: 'active-1',
       isBefore: false,
@@ -141,7 +142,8 @@ test('media-consent parser rejects incomplete envelopes, invalid rows, and unsaf
       publishedCategories: [{ id: 'cat-1', name: 'Salon' }],
     })],
   });
-  assert.deepEqual(valid.pending, [validConsentItem()]);
+  assert.deepEqual(valid.pending, [validConsentItem({ description: 'Fotografija prije manikira.' })]);
+  assert.equal(valid.active[0].description, '');
   assert.equal(valid.active[0].isPublished, true);
   assert.deepEqual(valid.active[0].publishedCategories, [{ id: 'cat-1', name: 'Salon' }]);
 
@@ -149,6 +151,7 @@ test('media-consent parser rejects incomplete envelopes, invalid rows, and unsaf
     [null],
     [validConsentItem({ serviceDate: null })],
     [validConsentItem({ serviceDate: '' })],
+    [validConsentItem({ description: 42 })],
     [validConsentItem({ previewUrl: 'https://untrusted.example/image.png' })],
     [validConsentItem({ publishedCategories: [null] })],
   ]) {

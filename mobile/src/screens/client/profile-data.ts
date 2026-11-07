@@ -4,6 +4,7 @@ export interface ConsentItem {
   serviceDate: string;
   isBefore: boolean;
   isAfter: boolean;
+  description: string;
   previewUrl: string;
   consentedAt: string | null;
   isPublished: boolean;
@@ -46,6 +47,7 @@ function normalizeConsentItem(value: unknown): ConsentItem | null {
     !value.serviceDate.trim() ||
     typeof value.isBefore !== 'boolean' ||
     typeof value.isAfter !== 'boolean' ||
+    (value.description !== undefined && value.description !== null && typeof value.description !== 'string') ||
     typeof value.isPublished !== 'boolean' ||
     (value.consentedAt !== null && typeof value.consentedAt !== 'string') ||
     !Array.isArray(value.publishedCategories)
@@ -75,6 +77,7 @@ function normalizeConsentItem(value: unknown): ConsentItem | null {
     serviceDate: value.serviceDate,
     isBefore: value.isBefore,
     isAfter: value.isAfter,
+    description: typeof value.description === 'string' ? value.description.trim() : '',
     previewUrl,
     consentedAt: value.consentedAt,
     isPublished: value.isPublished,
