@@ -267,6 +267,8 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 
 **Mobile home contact actions (2026-11-07):** the contact title, details action, and call/email/social controls lacked localized action context. They now expose Bosnian section copy, explicit button/link roles, contextual labels for phone/email, and localized hints for destinations. External-link allowlists and navigation targets are unchanged. A focused source-contract test is registered in mobile CI; dialer, mail-app, external-app, and screen-reader behavior remain unverified.
 
+**Mobile home section actions (2026-11-07):** category “see all” and blog-list actions lacked explicit roles, contextual accessible names, and action hints. They now expose localized button semantics while keeping the visible “Vidi sve” copy and existing destinations unchanged. A focused source-contract test is registered in mobile CI; rendered announcements and navigation remain unverified.
+
 **Mobile home maintenance state (2026-11-07):** its fallback title used a plain `Text` element without heading semantics. The visible title now exposes the native `header` accessibility role, with copy and maintenance behavior unchanged. A focused source-contract test is registered in mobile CI; actual native heading navigation and announcement remain unverified.
 
 ## Current acceptance boundary and next slices

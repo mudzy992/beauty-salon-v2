@@ -660,6 +660,9 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                 {category.name}
               </Text>
               <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={t('home.viewAllServicesCategoryLabel', { category: category.name })}
+                accessibilityHint={t('home.viewAllServicesCategoryHint', { category: category.name })}
                 onPress={() =>
                   navigation.getParent()?.navigate('ServicesTab', {
                     screen: 'ServiceDetail',
@@ -848,7 +851,12 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
                 {t('home.latestBlog')}
               </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('BlogList')}>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={t('home.viewAllBlogPostsLabel')}
+                accessibilityHint={t('home.viewAllBlogPostsHint')}
+                onPress={() => navigation.navigate('BlogList')}
+              >
                 <Text style={[styles.seeAll, { color: colors.primary }]}>{t('common.seeAll')}</Text>
               </TouchableOpacity>
             </View>

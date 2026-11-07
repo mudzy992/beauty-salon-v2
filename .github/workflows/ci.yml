@@ -734,6 +734,9 @@ jobs:
       - name: Test mobile home maintenance heading semantics
         working-directory: mobile
         run: npm run test:home-maintenance-accessibility
+      - name: Test mobile home section action accessibility
+        working-directory: mobile
+        run: npm run test:home-section-actions-accessibility
       - name: Test mobile home service tile accessibility
         working-directory: mobile
         run: npm run test:home-service-tile-accessibility
