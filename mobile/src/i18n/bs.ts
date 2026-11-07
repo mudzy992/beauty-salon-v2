@@ -98,6 +98,7 @@ export const bs = {
     reservationLoadError: 'Sljedeći termin trenutno nije dostupan.',
     upcomingReservationTitle: 'Sljedeći termin',
     upcomingReservationServiceFallback: 'Rezervacija',
+    reservationDateTime: '{{date}} u {{time}}',
     upcomingReservationAccessibilityLabel: 'Sljedeći termin: {{service}}, {{date}}, {{status}}.',
     upcomingReservationHint: 'Otvara detalje rezervacije.',
     serviceTileAccessibilityLabel: '{{service}}, {{duration}} min.',

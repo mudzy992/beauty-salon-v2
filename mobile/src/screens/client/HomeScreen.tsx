@@ -141,9 +141,10 @@ function formatBlogDate(value?: string | null): string {
   });
 }
 
-function formatReservationDate(dateStr: string, timeStr: string): string {
+function formatReservationDate(dateStr: string, timeStr: string, t: TFunction): string {
   if (!dateStr) return '';
   const cleanDateStr = dateStr.includes('T') ? dateStr.slice(0, 10) : dateStr;
+  const time = timeStr.slice(0, 5);
   try {
     const datePart = formatDateOnlyLocale(cleanDateStr, 'bs-BA', {
       weekday: 'long',
@@ -151,9 +152,9 @@ function formatReservationDate(dateStr: string, timeStr: string): string {
       month: 'long',
     });
     const formattedDate = datePart.charAt(0).toUpperCase() + datePart.slice(1);
-    return `${formattedDate} u ${timeStr.slice(0, 5)}`;
+    return t('home.reservationDateTime', { date: formattedDate, time });
   } catch {
-    return `${cleanDateStr} u ${timeStr.slice(0, 5)}`;
+    return t('home.reservationDateTime', { date: cleanDateStr, time });
   }
 }
 
@@ -618,7 +619,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             accessibilityRole="button"
             accessibilityLabel={t('home.upcomingReservationAccessibilityLabel', {
               service: upcomingServiceName,
-              date: formatReservationDate(upcomingReservation.reservationDate, upcomingReservation.startTime),
+              date: formatReservationDate(upcomingReservation.reservationDate, upcomingReservation.startTime, t),
               status: getStatusLabel(upcomingReservation.status, t),
             })}
             accessibilityHint={t('home.upcomingReservationHint')}
@@ -647,7 +648,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                     {upcomingServiceName}
                     </Text>
                   <Text style={[styles.upcomingDate, { color: colors.textMuted }]}>
-                    {formatReservationDate(upcomingReservation.reservationDate, upcomingReservation.startTime)}
+                    {formatReservationDate(upcomingReservation.reservationDate, upcomingReservation.startTime, t)}
                   </Text>
                 </View>
               </View>
