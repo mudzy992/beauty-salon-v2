@@ -698,6 +698,8 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
               style={[styles.searchInput, { color: colors.inputText }]}
               placeholder={t('common.search')}
               placeholderTextColor={colors.inputPlaceholder}
+              accessibilityLabel={t('reservation.serviceSearchLabel')}
+              accessibilityHint={t('reservation.serviceSearchHint')}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />

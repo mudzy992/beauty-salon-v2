@@ -194,6 +194,8 @@ export const bs = {
     selectService: 'Odaberite uslugu',
     serviceSelectionAccessibilityLabel: '{{service}}, {{duration}} min.',
     serviceSelectionAccessibilityHint: 'Odaberite ili uklonite ovu uslugu iz rezervacije.',
+    serviceSearchLabel: 'Pretraga usluga',
+    serviceSearchHint: 'Unesite naziv ili opis da suzite listu usluga.',
     selectDate: 'Odaberite datum',
     selectTime: 'Odaberite termin',
     timeSlotAccessibilityLabel: 'Termin u {{time}}',
