@@ -725,6 +725,9 @@ jobs:
       - name: Test mobile home service tile accessibility copy
         working-directory: mobile
         run: npm run test:home-service-tile-copy
+      - name: Test mobile home service tile accessibility
+        working-directory: mobile
+        run: npm run test:home-service-tile-accessibility
       - name: Test private reservation, inbox, and daily-log detail read recovery
         working-directory: mobile
         run: npm run test:private-read-recovery

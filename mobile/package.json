@@ -65,6 +65,7 @@
     "test:home-upcoming-reservation-copy": "node --test src/screens/client/home-upcoming-reservation-copy.test.mjs",
     "test:home-upcoming-reservation-accessibility": "node --test src/screens/client/home-upcoming-reservation-accessibility.test.mjs",
     "test:home-service-tile-copy": "node --test src/screens/client/home-service-tile-copy.test.mjs",
+    "test:home-service-tile-accessibility": "node --test src/screens/client/home-service-tile-accessibility.test.mjs",
     "test:private-read-recovery": "node --test src/utils/private-read-recovery.test.mjs",
     "test:stylist-schedule-read-recovery": "node --test src/screens/stylist/stylist-schedule-read-recovery.test.mjs",
     "test:reservation-detail-read-recovery": "node --test src/screens/client/reservation-detail-read-recovery.test.mjs",

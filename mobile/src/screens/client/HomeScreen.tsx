@@ -191,15 +191,21 @@ function formatServicePrice(amount?: number): string {
 function ServiceTilePress({
   children,
   onPress,
+  accessibilityLabel,
+  accessibilityHint,
   style,
 }: {
   children: React.ReactNode;
   onPress: () => void;
+  accessibilityLabel: string;
+  accessibilityHint: string;
   style?: StyleProp<ViewStyle>;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
       onPress={onPress}
       style={({ pressed }) => [style, pressed && { opacity: 0.85 }]}
     >
@@ -690,9 +696,25 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                       const cardHeight = variant === 0 ? 182 : variant === 1 ? 158 : 170;
                       const verticalOffset = variant === 1 ? 14 : 0;
                       const isFeatured = variant === 0;
+                      const formattedPrice = formatServicePrice(service.price);
+                      const serviceTileDetails = showServicePrices && formattedPrice
+                        ? t('home.serviceTileAccessibilityLabelWithPrice', {
+                            service: service.name,
+                            duration: service.durationMinutes,
+                            price: formattedPrice,
+                          })
+                        : t('home.serviceTileAccessibilityLabel', {
+                            service: service.name,
+                            duration: service.durationMinutes,
+                          });
+                      const serviceTileLabel = isFeatured
+                        ? t('home.featuredServiceTileAccessibilityLabel', { details: serviceTileDetails })
+                        : serviceTileDetails;
                       return (
                     <ServiceTilePress
                       style={[styles.serviceCardWrap, { marginTop: verticalOffset }]}
+                      accessibilityLabel={serviceTileLabel}
+                      accessibilityHint={t('home.openServiceDetailsHint')}
                       onPress={() =>
                         navigation.getParent()?.navigate('ServicesTab', {
                           screen: 'ServiceSingleDetail',
