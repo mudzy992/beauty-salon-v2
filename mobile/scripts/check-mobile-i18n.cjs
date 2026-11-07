@@ -25,6 +25,7 @@ const GUARDED_FILES = [
   'app/onboarding/phone.tsx',
   'app/onboarding/gender.tsx',
   'src/components/ui/DateTimeField.tsx',
+  'src/components/ui/LoadingScreen.tsx',
   'src/components/SessionBootstrapNotice.tsx',
   'src/components/ProfileRefreshNotice.tsx',
 ];

@@ -171,7 +171,7 @@ Source ima admin/owner-only pojedinačni issuance, `mustChangePassword=true`, ve
 
 - Trenutni `python scripts/check_i18n.py --strict` rezultat: 2,340 BS i 2,340 EN leaf keys, bez missing/extra. To je web key parity, ne skeniranje svih UI stringova ni browser acceptance.
 - Frontend sadrži velik broj namjenskih Node source-contract/key-reference tests i CI koraka; oni ciljano čuvaju odabrane flow-ove, ne sve rute/komponente.
-- Mobile i18n guard trenutačno ima 19 eksplicitnih source fajlova; repo inventory ima 56 non-test fajlova u `mobile/src/screens` i 51 non-test TS/TSX fajl u `mobile/app`. Guard je namjerno inkrementalan, ne globalna pokrivenost. `mobile/src/i18n/bs.ts` je jedini mobilni jezik; da li se mobile treba prevesti na EN je vlasnička odluka.
+- Mobile i18n guard trenutačno ima 20 eksplicitnih source fajlova (uključujući zajednički `LoadingScreen`); repo inventory ima 56 non-test fajlova u `mobile/src/screens` i 51 non-test TS/TSX fajl u `mobile/app`. Guard je namjerno inkrementalan, ne globalna pokrivenost. `mobile/src/i18n/bs.ts` je jedini mobilni jezik; da li se mobile treba prevesti na EN je vlasnička odluka.
 - Potrebno je route/screen inventory za web i mobile: hard-coded tekst i API error fallback, i18n key usage, plural/date/number, dynamic user/content vs static UI copy, text expansion/diacritics, language persistence/reload i `html lang`. Media-consent policy body ostaje backend legal copy; prije EN prijevoda treba owner-approved tekst/version, ne samostalno prevođenje.
 - Historical implementation summaries sadrže ranije counts; ovaj dokument koristi aktuelni script output. `IMPLEMENTATION_PLAN.md` / `MOBILE_COMPLETE_AUDIT.md` treba kasnije uskladiti odvojeno, bez prepisivanja historijskih CI evidencija.
 
