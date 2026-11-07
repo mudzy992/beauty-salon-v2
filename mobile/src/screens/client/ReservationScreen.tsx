@@ -417,25 +417,41 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   }, [services, searchQuery, user?.gender]);
 
   const markedDates = useMemo(() => {
-    const marks: Record<string, { disabled?: boolean; disableTouchEvent?: boolean; selected?: boolean; selectedColor?: string; dotColor?: string; marked?: boolean }> = {};
+    const marks: Record<string, {
+      accessibilityLabel?: string;
+      disabled?: boolean;
+      disableTouchEvent?: boolean;
+      selected?: boolean;
+      selectedColor?: string;
+      dotColor?: string;
+      marked?: boolean;
+    }> = {};
     Object.entries(availableDates).forEach(([date, available]) => {
       if (available) {
+        const isSelected = date === selectedDate;
         marks[date] = {
+          accessibilityLabel: t(
+            isSelected
+              ? 'reservation.selectedAvailableDateAccessibilityLabel'
+              : 'reservation.availableDateAccessibilityLabel',
+          ),
           marked: true,
           dotColor: colors.primary,
-          ...(date === selectedDate
-            ? { selected: true, selectedColor: colors.primary }
-            : {}),
+          ...(isSelected ? { selected: true, selectedColor: colors.primary } : {}),
         };
       } else {
-        marks[date] = { disabled: true, disableTouchEvent: true };
+        marks[date] = {
+          accessibilityLabel: t('reservation.unavailableDateAccessibilityLabel'),
+          disabled: true,
+          disableTouchEvent: true,
+        };
       }
     });
-    if (selectedDate && marks[selectedDate]) {
+    if (selectedDate && availableDates[selectedDate] && marks[selectedDate]) {
       marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: colors.primary };
     }
     return marks;
-  }, [availableDates, selectedDate, colors]);
+  }, [availableDates, selectedDate, colors, t]);
 
   const handleToggleService = useCallback((service: Service) => {
     datesRequestIdRef.current += 1;

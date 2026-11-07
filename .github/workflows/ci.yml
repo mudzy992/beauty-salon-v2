@@ -641,6 +641,9 @@ jobs:
       - name: Test mobile reservation time-slot accessibility
         working-directory: mobile
         run: npm run test:reservation-time-slot-accessibility
+      - name: Test mobile reservation calendar accessibility
+        working-directory: mobile
+        run: npm run test:reservation-calendar-accessibility
       - name: Test localized reservation benefit error copy
         working-directory: mobile
         run: npm run test:reservation-benefit-copy
