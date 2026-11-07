@@ -465,7 +465,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
           },
         ]}
       >
-        <Text style={[styles.heroTitle, { textAlign: 'center', marginBottom: 16 }]}>{t('home.maintenanceTitle')}</Text>
+        <Text accessibilityRole="header" style={[styles.heroTitle, { textAlign: 'center', marginBottom: 16 }]}>{t('home.maintenanceTitle')}</Text>
         <Text style={{ fontSize: 16, textAlign: 'center', color: colors.text, lineHeight: 22, opacity: 0.9 }}>
           {maintenanceMsg}
         </Text>

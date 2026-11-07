@@ -67,6 +67,7 @@
     "test:home-service-tile-copy": "node --test src/screens/client/home-service-tile-copy.test.mjs",
     "test:home-featured-service-copy": "node --test src/screens/client/home-featured-service-copy.test.mjs",
     "test:home-maintenance-copy": "node --test src/screens/client/home-maintenance-copy.test.mjs",
+    "test:home-maintenance-accessibility": "node --test src/screens/client/home-maintenance-accessibility.test.mjs",
     "test:home-service-tile-accessibility": "node --test src/screens/client/home-service-tile-accessibility.test.mjs",
     "test:home-satisfied-clients-copy": "node --test src/screens/client/home-satisfied-clients-copy.test.mjs",
     "test:home-blog-card-copy": "node --test src/screens/client/home-blog-card-copy.test.mjs",
