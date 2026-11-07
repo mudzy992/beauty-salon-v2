@@ -109,6 +109,8 @@ export default function OnboardingPhoneRoute() {
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
+            autoComplete="tel"
+            textContentType="telephoneNumber"
             placeholder={t('onboarding.phonePlaceholder')}
           />
           <Button title={t('onboarding.savePhone')} onPress={handleSave} loading={loading} style={styles.btn} />

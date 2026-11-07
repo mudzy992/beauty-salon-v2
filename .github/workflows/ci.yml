@@ -608,6 +608,9 @@ jobs:
       - name: Test mobile email onboarding accessibility
         working-directory: mobile
         run: npm run test:onboarding-email-accessibility
+      - name: Test mobile phone onboarding accessibility
+        working-directory: mobile
+        run: npm run test:onboarding-phone-accessibility
       - name: Test mobile onboarding progress accessibility
         working-directory: mobile
         run: npm run test:onboarding-shell-accessibility
