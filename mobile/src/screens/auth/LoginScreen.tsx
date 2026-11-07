@@ -193,6 +193,8 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
                 leftIcon="mail-outline"
                 autoCapitalize="none"
                 keyboardType="email-address"
+                autoComplete="username"
+                textContentType="username"
                 error={errors.login}
                 labelStyle={styles.inputLabel}
               />
@@ -203,6 +205,8 @@ export function LoginScreen({ navigation }: AuthScreenProps<'Login'>) {
                 onChangeText={setPassword}
                 leftIcon="lock-closed-outline"
                 isPassword
+                autoComplete="current-password"
+                textContentType="password"
                 error={errors.password}
                 labelStyle={styles.inputLabel}
               />

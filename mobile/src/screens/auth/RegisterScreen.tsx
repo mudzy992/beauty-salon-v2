@@ -99,6 +99,8 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
                 value={form.firstName}
                 onChangeText={(v) => update('firstName', v)}
                 leftIcon="person-outline"
+                autoComplete="name-given"
+                textContentType="givenName"
                 error={errors.firstName}
               />
             </View>
@@ -107,6 +109,8 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
                 label={t('auth.lastName')}
                 value={form.lastName}
                 onChangeText={(v) => update('lastName', v)}
+                autoComplete="name-family"
+                textContentType="familyName"
                 error={errors.lastName}
               />
             </View>
@@ -118,6 +122,8 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
             onChangeText={(v) => update('username', v)}
             leftIcon="at-outline"
             autoCapitalize="none"
+            autoComplete="username"
+            textContentType="username"
             error={errors.username}
           />
 
@@ -128,6 +134,8 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
             leftIcon="mail-outline"
             autoCapitalize="none"
             keyboardType="email-address"
+            autoComplete="email"
+            textContentType="emailAddress"
             error={errors.email}
           />
 
@@ -137,6 +145,8 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
             onChangeText={(v) => update('phone', v)}
             leftIcon="call-outline"
             keyboardType="phone-pad"
+            autoComplete="tel"
+            textContentType="telephoneNumber"
           />
 
           <Input
@@ -145,6 +155,8 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
             onChangeText={(v) => update('password', v)}
             leftIcon="lock-closed-outline"
             isPassword
+            autoComplete="new-password"
+            textContentType="newPassword"
             error={errors.password}
           />
 
@@ -154,6 +166,8 @@ export function RegisterScreen({ navigation }: AuthScreenProps<'Register'>) {
             onChangeText={(v) => update('confirmPassword', v)}
             leftIcon="lock-closed-outline"
             isPassword
+            autoComplete="new-password"
+            textContentType="newPassword"
             error={errors.confirmPassword}
           />
 

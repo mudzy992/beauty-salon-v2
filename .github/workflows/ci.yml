@@ -614,6 +614,9 @@ jobs:
       - name: Test mobile change-password autofill accessibility
         working-directory: mobile
         run: npm run test:change-password-autofill-accessibility
+      - name: Test mobile auth-form autofill accessibility
+        working-directory: mobile
+        run: npm run test:auth-form-autofill-accessibility
       - name: Test mobile onboarding progress accessibility
         working-directory: mobile
         run: npm run test:onboarding-shell-accessibility
