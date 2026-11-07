@@ -774,7 +774,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Zadovoljni klijenti
+              {t('home.satisfiedClientsTitle')}
             </Text>
           </View>
           <Card style={[styles.satisfiedCard, { backgroundColor: colors.card || colors.background }]}>
@@ -816,23 +816,23 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
                   ))}
                 </View>
                 <Text style={[styles.reviewQuote, { color: colors.text }]} numberOfLines={3}>
-                  „{featuredReview.comment || 'Odličan servis i atmosfera, preporučujem!'}"
+                  „{featuredReview.comment || t('home.featuredReviewFallback')}"
                 </Text>
                 <Text style={[styles.reviewAuthor, { color: colors.primary }]}>
                   — {featuredReview.user?.firstName
                     ? `${featuredReview.user.firstName}${featuredReview.user.lastName ? ` ${featuredReview.user.lastName[0]}.` : ''}`
-                    : 'Zadovoljni klijent'}
+                    : t('home.satisfiedClientFallback')}
                   {featuredReview.service?.name ? ` (${featuredReview.service.name})` : ''}
                 </Text>
               </View>
             ) : (
               <Text style={[styles.beforeAfterHint, { color: colors.textSecondary, marginTop: spacing.sm }]}>
-                Naši klijenti dijele iskustva. Pogledajte transformacije i recenzije.
+                {t('home.satisfiedClientsEmptyHint')}
               </Text>
             )}
             <View style={styles.satisfiedCta}>
               <Button
-                title="Pogledaj sve transformacije"
+                title={t('home.viewAllTransformations')}
                 onPress={() => navigation.navigate('SatisfiedClients')}
                 variant="outline"
                 size="sm"
