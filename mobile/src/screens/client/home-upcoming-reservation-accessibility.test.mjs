@@ -11,7 +11,7 @@ test('upcoming reservation card is a named button with service, date, status, an
   assert.match(upcomingCard, /accessibilityLabel=\{t\('home\.upcomingReservationAccessibilityLabel', \{/)
   assert.match(upcomingCard, /service: upcomingServiceName/)
   assert.match(upcomingCard, /date: formatReservationDate\(upcomingReservation\.reservationDate, upcomingReservation\.startTime\)/)
-  assert.match(upcomingCard, /status: getStatusLabel\(upcomingReservation\.status\)/)
+  assert.match(upcomingCard, /status: getStatusLabel\(upcomingReservation\.status, t\)/)
   assert.match(upcomingCard, /accessibilityHint=\{t\('home\.upcomingReservationHint'\)\}/)
   assert.match(upcomingCard, /params: \{ reservationId: upcomingReservation\.id \}/)
   assert.match(screen, /t\('home\.upcomingReservationTitle'\)/)

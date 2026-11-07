@@ -19,6 +19,7 @@ import { DecorativeMediaImage } from '../../components/MediaImage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 import { usePublicContentSocketRefresh } from '../../hooks/usePublicContentSocketRefresh';
@@ -156,15 +157,24 @@ function formatReservationDate(dateStr: string, timeStr: string): string {
   }
 }
 
-function getStatusLabel(status: ReservationStatus): string {
-  const map: Partial<Record<ReservationStatus, string>> = {
-    PENDING: 'Na čekanju',
-    STYLIST_REVIEW: 'U pregledu',
-    CONFIRMED: 'Potvrđeno',
-    ATTENDANCE_CONFIRMED: 'Dolazak potvrđen',
-    IN_PROGRESS: 'U toku',
-  };
-  return map[status] ?? status;
+const RESERVATION_STATUS_TRANSLATION_KEYS: Record<
+  ReservationStatus,
+  `reservations.status.${ReservationStatus}`
+> = {
+  PENDING: 'reservations.status.PENDING',
+  STYLIST_REVIEW: 'reservations.status.STYLIST_REVIEW',
+  CONFIRMED: 'reservations.status.CONFIRMED',
+  ATTENDANCE_CONFIRMED: 'reservations.status.ATTENDANCE_CONFIRMED',
+  IN_PROGRESS: 'reservations.status.IN_PROGRESS',
+  AWAITING_DAILY_LOG: 'reservations.status.AWAITING_DAILY_LOG',
+  COMPLETED: 'reservations.status.COMPLETED',
+  CANCELLED_BY_CLIENT: 'reservations.status.CANCELLED_BY_CLIENT',
+  CANCELLED_BY_STYLISTS: 'reservations.status.CANCELLED_BY_STYLISTS',
+  NO_SHOW: 'reservations.status.NO_SHOW',
+};
+
+function getStatusLabel(status: ReservationStatus, t: TFunction): string {
+  return t(RESERVATION_STATUS_TRANSLATION_KEYS[status]);
 }
 
 function getStatusColor(status: ReservationStatus): string {
@@ -609,7 +619,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
             accessibilityLabel={t('home.upcomingReservationAccessibilityLabel', {
               service: upcomingServiceName,
               date: formatReservationDate(upcomingReservation.reservationDate, upcomingReservation.startTime),
-              status: getStatusLabel(upcomingReservation.status),
+              status: getStatusLabel(upcomingReservation.status, t),
             })}
             accessibilityHint={t('home.upcomingReservationHint')}
             onPress={() =>
@@ -643,7 +653,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               </View>
               <View style={[styles.upcomingBadge, { backgroundColor: getStatusColor(upcomingReservation.status) + '22' }]}>
                 <Text style={[styles.upcomingBadgeText, { color: getStatusColor(upcomingReservation.status) }]}>
-                  {getStatusLabel(upcomingReservation.status)}
+                  {getStatusLabel(upcomingReservation.status, t)}
                 </Text>
               </View>
             </View>
