@@ -83,6 +83,8 @@ export function ChangePasswordScreen({
         onChangeText={setCurrentPassword}
         secureTextEntry
         autoCapitalize="none"
+        autoComplete="current-password"
+        textContentType="password"
       />
       <Input
         label={t('profile.changePassword.newPassword')}
@@ -90,6 +92,8 @@ export function ChangePasswordScreen({
         onChangeText={setNewPassword}
         secureTextEntry
         autoCapitalize="none"
+        autoComplete="new-password"
+        textContentType="newPassword"
       />
       <Input
         label={t('profile.changePassword.confirmPassword')}
@@ -97,6 +101,8 @@ export function ChangePasswordScreen({
         onChangeText={setConfirmPassword}
         secureTextEntry
         autoCapitalize="none"
+        autoComplete="new-password"
+        textContentType="newPassword"
       />
       <Button
         title={t('profile.changePassword.submit')}

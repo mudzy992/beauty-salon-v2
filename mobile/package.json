@@ -34,6 +34,7 @@
     "test:onboarding-gender-radio-accessibility": "node --test src/screens/onboarding/gender-accessibility.test.mjs",
     "test:onboarding-email-accessibility": "node --test src/screens/onboarding/email-accessibility.test.mjs",
     "test:onboarding-phone-accessibility": "node --test src/screens/onboarding/phone-accessibility.test.mjs",
+    "test:change-password-autofill-accessibility": "node --test src/screens/client/change-password-autofill-accessibility.test.mjs",
     "test:profile-read-recovery": "node --test src/screens/client/profile-read-recovery.test.mjs",
     "test:reservation-availability": "node --test src/screens/client/reservation-availability.test.mjs",
     "test:reservation-benefit-copy": "node --test src/screens/client/reservation-benefit-error-copy.test.mjs",
