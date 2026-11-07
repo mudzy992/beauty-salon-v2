@@ -1064,6 +1064,12 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
           {openDebtsTotal !== null && openDebtsTotal > 0 ? (
             <TouchableOpacity
+              accessibilityRole="checkbox"
+              accessibilityLabel={t('reservation.payDebtsAccessibilityLabel', {
+                amount: openDebtsTotal.toFixed(2),
+              })}
+              accessibilityHint={t('reservation.payDebtsAccessibilityHint')}
+              accessibilityState={{ checked: payDebtsIntent }}
               onPress={() => setPayDebtsIntent((v) => !v)}
               style={{
                 flexDirection: 'row',
@@ -1083,9 +1089,11 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
                 color={colors.primary}
               />
               <View style={{ flex: 1 }}>
-                <Text style={{ color: colors.text, fontWeight: '700' }}>Plaćam i dugovanje</Text>
+                <Text style={{ color: colors.text, fontWeight: '700' }}>
+                  {t('reservation.payDebtsLabel')}
+                </Text>
                 <Text style={{ color: colors.textSecondary, marginTop: 2 }}>
-                  Otvoreno: {openDebtsTotal.toFixed(2)} KM
+                  {t('reservation.openDebtAmount', { amount: openDebtsTotal.toFixed(2) })}
                 </Text>
               </View>
             </TouchableOpacity>

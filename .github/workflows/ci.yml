@@ -650,6 +650,9 @@ jobs:
       - name: Test mobile reservation notes accessibility
         working-directory: mobile
         run: npm run test:reservation-notes-accessibility
+      - name: Test mobile reservation debt-option accessibility
+        working-directory: mobile
+        run: npm run test:reservation-debt-option-accessibility
       - name: Test localized reservation benefit error copy
         working-directory: mobile
         run: npm run test:reservation-benefit-copy
