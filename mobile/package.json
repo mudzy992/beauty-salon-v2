@@ -41,6 +41,7 @@
     "test:reservation-availability": "node --test src/screens/client/reservation-availability.test.mjs",
     "test:reservation-step-progress-accessibility": "node --test src/screens/client/reservation-step-progress-accessibility.test.mjs",
     "test:reservation-service-option-accessibility": "node --test src/screens/client/reservation-service-option-accessibility.test.mjs",
+    "test:reservation-time-slot-accessibility": "node --test src/screens/client/reservation-time-slot-accessibility.test.mjs",
     "test:reservation-benefit-copy": "node --test src/screens/client/reservation-benefit-error-copy.test.mjs",
     "test:my-reservations-copy-i18n": "node --test src/screens/client/my-reservations-copy-i18n.test.mjs",
     "test:my-reservations-identity": "node --test src/screens/client/my-reservations-identity.test.mjs",

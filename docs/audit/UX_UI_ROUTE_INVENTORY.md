@@ -198,7 +198,7 @@ The app currently has 50 non-test `.tsx` files under `mobile/app` (route screens
 | Auth | `/login`, `/register` | Signed-out |
 | Onboarding | `/onboarding/change-password`, `/onboarding/email`, `/onboarding/gender`, `/onboarding/phone` | Authenticated setup |
 | Client — home/content | `/home`, `/home/blog-list`, `/home/blog-post/:slug`, `/home/satisfied-clients` | Client; public content rendered within the signed-in app |
-| Client — services/booking | `/services`, `/services/service-detail`, `/services/service-single-detail`, `/services/service-work-gallery`, `/services/reservation` | Client; `/services` copy source test covers service-discovery hero, popular/last-used sections, reservation counts and category fallback; reservation step progress has native progressbar semantics |
+| Client — services/booking | `/services`, `/services/service-detail`, `/services/service-single-detail`, `/services/service-work-gallery`, `/services/reservation` | Client; `/services` copy source test covers service-discovery hero, popular/last-used sections, reservation counts and category fallback; reservation step progress and time-slot choices expose native accessibility semantics |
 | Client — reservations | `/reservations`, `/reservations/:reservationId`, `/reservations/write-review` | Client |
 | Client — profile | `/profile`, `/profile/edit`, `/profile/change-password`, `/profile/notifications`, `/profile/contact` | Client |
 | Stylist — inbox | `/stylist/inbox` | Stylist |
@@ -231,6 +231,8 @@ The app currently has 50 non-test `.tsx` files under `mobile/app` (route screens
 **Mobile client reservation step progress (2026-11-07):** the four-step visual indicator exposed numbers and dots without progress semantics. It now announces a localized progressbar label and current step out of four, with numeric accessibility values; visual layout and step flow are unchanged. A focused source-contract test is registered in mobile CI; native announcement remains unverified.
 
 **Mobile client reservation service choices (2026-11-07):** selectable service cards exposed checkbox/checked semantics but no explicit service name or selection hint. They now announce the service name and duration, retain the checked state, and explain that activating the card selects or removes the service. A focused source-contract test is registered in mobile CI; native announcements remain unverified.
+
+**Mobile client reservation time choices (2026-11-07):** time-slot chips were actionable but lacked radio, selected, disabled, and explicit time-name semantics. They now expose a localized radio name and selection hint plus selected/disabled state, matching the existing visual availability and selection behavior. A focused source-contract test is registered in mobile CI; native calendar/slot operation remains unverified.
 
 Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible URL patterns. Dynamic route params are shown with `:` for readability; source uses Expo Router bracket syntax.
 

@@ -196,6 +196,8 @@ export const bs = {
     serviceSelectionAccessibilityHint: 'Odaberite ili uklonite ovu uslugu iz rezervacije.',
     selectDate: 'Odaberite datum',
     selectTime: 'Odaberite termin',
+    timeSlotAccessibilityLabel: 'Termin u {{time}}',
+    timeSlotAccessibilityHint: 'Odaberite ovaj termin.',
     addNotes: 'Napomena (opciono)',
     notesPlaceholder: 'Dodajte napomenu za frizera...',
     review: 'Pregled rezervacije',

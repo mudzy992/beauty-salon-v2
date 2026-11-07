@@ -857,6 +857,12 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
                 return (
                   <TouchableOpacity
                     key={idx}
+                    accessibilityRole="radio"
+                    accessibilityLabel={t('reservation.timeSlotAccessibilityLabel', {
+                      time: formatTime(slot.startTime),
+                    })}
+                    accessibilityHint={t('reservation.timeSlotAccessibilityHint')}
+                    accessibilityState={{ selected: isSelected, disabled: isDisabled }}
                     onPress={() => !isDisabled && handleSelectSlot(slot)}
                     disabled={isDisabled}
                     style={[
