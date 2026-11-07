@@ -181,16 +181,14 @@ export default function PublicHome() {
             </MotionDiv>
             <MotionDiv variants={fadeUp}>
               <div className="flex items-center justify-center gap-4 flex-wrap">
-                <Link to="/rezervacija">
-                  <Button variant="onDark" size="lg" className="px-8">
+                <Button asChild variant="onDark" size="lg" className="px-8">
+                  <Link to="/rezervacija">
                     {getSetting('public_hero_cta_text_web', t('public.home.heroReserve'))}
-                  </Button>
-                </Link>
-                <Link to="/usluge">
-                  <Button variant="onDarkOutline" size="lg" className="px-8">
-                    {t('public.home.allServices')}
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
+                <Button asChild variant="onDarkOutline" size="lg" className="px-8">
+                  <Link to="/usluge">{t('public.home.allServices')}</Link>
+                </Button>
               </div>
             </MotionDiv>
           </MotionDiv>
@@ -243,12 +241,12 @@ export default function PublicHome() {
                 {aboutText}
               </div>
               <div className="mt-8 flex gap-3 flex-wrap">
-                <Link to="/usluge">
-                  <Button variant="outline">{t('public.home.viewServices')}</Button>
-                </Link>
-                <Link to="/kontakt">
-                  <Button>{t('public.nav.contact')}</Button>
-                </Link>
+                <Button asChild variant="outline">
+                  <Link to="/usluge">{t('public.home.viewServices')}</Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/kontakt">{t('public.nav.contact')}</Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -382,11 +380,9 @@ export default function PublicHome() {
               {getSetting('public_cta_subtitle', t('public.home.ctaSubtitleFallback'))}
             </div>
           </div>
-          <Link to="/rezervacija" className="shrink-0">
-            <Button size="lg" className="px-8">
-              {t('public.nav.reserve')}
-            </Button>
-          </Link>
+          <Button asChild size="lg" className="shrink-0 px-8">
+            <Link to="/rezervacija">{t('public.nav.reserve')}</Link>
+          </Button>
         </div>
       </section>
     </div>

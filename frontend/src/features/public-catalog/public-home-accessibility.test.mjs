@@ -18,3 +18,13 @@ test('homepage highlight and about titles are semantic section headings', () => 
 test('decorative homepage highlight icons are hidden from assistive technology', () => {
   assert.match(source, /<Icon className="h-10 w-10 text-brand-gold-text mx-auto mb-4" aria-hidden="true" \/>/)
 })
+
+test('homepage navigation CTAs use a single styled anchor control', () => {
+  assert.equal([...source.matchAll(/<Button\s+asChild/g)].length, 5)
+  assert.match(source, /<Button asChild variant="onDark" size="lg"[^>]*>\s*<Link to="\/rezervacija">/)
+  assert.match(source, /<Button asChild variant="onDarkOutline" size="lg"[^>]*>\s*<Link to="\/usluge">/)
+  assert.match(source, /<Button asChild variant="outline">\s*<Link to="\/usluge">/)
+  assert.match(source, /<Button asChild>\s*<Link to="\/kontakt">/)
+  assert.match(source, /<Button asChild size="lg"[^>]*>\s*<Link to="\/rezervacija">/)
+  assert.doesNotMatch(source, /<Link to="\/(?:rezervacija|usluge|kontakt)"[^>]*>\s*<Button/)
+})
