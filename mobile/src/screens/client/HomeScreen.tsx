@@ -814,7 +814,13 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               </View>
             ) : featuredReview ? (
               <View style={styles.satisfiedReview}>
-                <View style={styles.starRow}>
+                <View
+                  style={styles.starRow}
+                  accessible
+                  accessibilityLabel={t('home.featuredReviewRatingLabel', {
+                    rating: featuredReview.serviceRating,
+                  })}
+                >
                   {[1, 2, 3, 4, 5].map((i) => (
                     <Ionicons
                       key={i}

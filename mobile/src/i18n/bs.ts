@@ -113,6 +113,7 @@ export const bs = {
     beforeAfterSliderIncrease: 'Prikaži više fotografije poslije',
     beforeAfterSliderDecrease: 'Prikaži više fotografije prije',
     featuredReviewLoadError: 'Istaknutu recenziju trenutno nije moguće učitati.',
+    featuredReviewRatingLabel: 'Ocjena usluge: {{rating}} od 5 zvjezdica.',
     satisfiedClientsTitle: 'Zadovoljni klijenti',
     featuredReviewFallback: 'Odličan servis i atmosfera, preporučujem!',
     satisfiedClientFallback: 'Zadovoljni klijent',
