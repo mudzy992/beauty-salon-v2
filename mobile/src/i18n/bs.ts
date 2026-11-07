@@ -80,6 +80,7 @@ export const bs = {
     featuredServiceBadge: 'Istaknuto',
     latestBlog: 'Najnovije iz bloga',
     blogTag: 'Blog',
+    blogExcerptFallback: 'Savjeti i inspiracija iz svijeta njege i frizerskih trendova.',
     blogPostCardAccessibilityLabel: '{{title}}. {{excerpt}}',
     blogPostCardAccessibilityLabelWithDate: '{{title}}. {{excerpt}}. {{date}}.',
     openBlogPostHint: 'Otvara objavu na blogu.',

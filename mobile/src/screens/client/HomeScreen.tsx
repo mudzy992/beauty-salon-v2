@@ -174,12 +174,12 @@ function getStatusColor(status: ReservationStatus): string {
   return '#94a3b8';
 }
 
-function getBlogExcerpt(content: string, max = 110): string {
+function getBlogExcerpt(content: string, fallback: string, max = 110): string {
   const plain = (content || '')
     .replace(/<[^>]*>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-  if (!plain) return 'Savjeti i inspiracija iz svijeta njege i frizerskih trendova.';
+  if (!plain) return fallback;
   return plain.length > max ? `${plain.slice(0, max).trimEnd()}...` : plain;
 }
 
@@ -873,7 +873,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
               </TouchableOpacity>
             </View>
             {blogPosts.map((post) => {
-              const excerpt = getBlogExcerpt(post.excerpt ?? post.content ?? '');
+              const excerpt = getBlogExcerpt(post.excerpt ?? post.content ?? '', t('home.blogExcerptFallback'));
               const publishedDate = formatBlogDate(post.publishedAt);
               const accessibilityLabel = publishedDate
                 ? t('home.blogPostCardAccessibilityLabelWithDate', {
