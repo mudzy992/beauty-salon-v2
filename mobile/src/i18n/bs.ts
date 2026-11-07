@@ -75,6 +75,7 @@ export const bs = {
   home: {
     welcome: 'Dobrodošli',
     featuredServices: 'Popularne usluge',
+    featuredServiceBadge: 'Istaknuto',
     latestBlog: 'Najnovije iz bloga',
     blogTag: 'Blog',
     blogPostCardAccessibilityLabel: '{{title}}. {{excerpt}}',
