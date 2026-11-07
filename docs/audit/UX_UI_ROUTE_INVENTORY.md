@@ -214,6 +214,8 @@ The app currently has 50 non-test `.tsx` files under `mobile/app` (route screens
 
 **Mobile client last-used service action (2026-11-07):** the repeated-service button's accessible name was only “Ponovi”, omitting the service context. The shared `Button` now supports optional accessible label/hint overrides while retaining its visible-title default; this action uses a localized service-specific label and explains that it opens details before booking. The existing shared-button and service-copy source tests cover the change; native screen-reader behavior remains unverified.
 
+**Mobile client services headings (2026-11-07):** the discovery page title and popular, last-used, and category section labels were ordinary text. They now expose native heading semantics while retaining their visible copy and layout. A focused source-contract test is registered in mobile CI; native heading traversal remains unverified.
+
 Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible URL patterns. Dynamic route params are shown with `:` for readability; source uses Expo Router bracket syntax.
 
 ## Shared component inventory — first-pass focus

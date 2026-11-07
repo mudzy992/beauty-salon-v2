@@ -212,7 +212,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
                 <Text style={[styles.heroOverline, { color: colors.textSecondary }]}>
                   {t('services.serviceDiscoveryEyebrow')}
                 </Text>
-                <Text style={[styles.heroTitle, { color: colors.text }]}>
+                <Text accessibilityRole="header" style={[styles.heroTitle, { color: colors.text }]}>
                   {t('services.serviceDiscoveryTitle')}
                 </Text>
                 <Text style={[styles.heroSubtitle, { color: colors.textSecondary }]}>
@@ -240,7 +240,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
             {featuredService ? (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.text }]}>
                     {t('services.popularServiceHeading')}
                   </Text>
                 </View>
@@ -308,7 +308,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
             {lastUsedService ? (
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.text }]}>
                     {t('services.lastUsedServiceHeading')}
                   </Text>
                 </View>
@@ -342,7 +342,7 @@ export function ServicesScreen({ navigation }: ServicesScreenProps<'Services'>) 
 
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.text }]}>
                   {t('services.categories')}
                 </Text>
               </View>
