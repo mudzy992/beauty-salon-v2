@@ -189,6 +189,7 @@ export const bs = {
     listLoadErrorTitle: 'Rezervacije nisu dostupne',
     listLoadErrorMessage: 'Provjerite internet vezu i pokušajte ponovo.',
     staleListMessage: 'Prikazujemo ranije učitane rezervacije; osvježavanje nije uspjelo.',
+    progressLabel: 'Napredak rezervacije',
     title: 'Rezervacija',
     selectService: 'Odaberite uslugu',
     selectDate: 'Odaberite datum',

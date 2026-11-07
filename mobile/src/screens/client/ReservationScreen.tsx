@@ -614,7 +614,18 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   }
 
   const stepIndicator = (
-    <View style={styles.steps}>
+    <View
+      style={styles.steps}
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={t('reservation.progressLabel')}
+      accessibilityValue={{
+        min: 1,
+        max: 4,
+        now: step,
+        text: t('reservation.step', { current: step, total: 4 }),
+      }}
+    >
       {[1, 2, 3, 4].map((s) => (
         <View key={s} style={styles.stepRow}>
           <View
