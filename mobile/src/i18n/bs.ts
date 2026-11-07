@@ -96,6 +96,7 @@ export const bs = {
     openDebtHint: 'Otvara profil i detalje dugovanja.',
     reservationLoadError: 'Sljedeći termin trenutno nije dostupan.',
     upcomingReservationTitle: 'Sljedeći termin',
+    upcomingReservationServiceFallback: 'Rezervacija',
     upcomingReservationAccessibilityLabel: 'Sljedeći termin: {{service}}, {{date}}, {{status}}.',
     upcomingReservationHint: 'Otvara detalje rezervacije.',
     serviceTileAccessibilityLabel: '{{service}}, {{duration}} min.',

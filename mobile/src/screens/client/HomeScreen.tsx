@@ -429,7 +429,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
   const showServicePrices = getSettingValue(settings, 'public_service_prices_enabled', 'true').toLowerCase() !== 'false';
 
   const upcomingServiceName = (() => {
-    if (!upcomingReservation) return 'Rezervacija';
+    if (!upcomingReservation) return t('home.upcomingReservationServiceFallback');
 
     // 1. Ako imamo niz stavki (items) i u njima nazive servisa, spoji ih zarezom
     if (upcomingReservation.items && upcomingReservation.items.length > 0) {
@@ -441,7 +441,7 @@ export function HomeScreen({ navigation }: HomeScreenProps<'Home'>) {
     }
 
     // 2. Fallback na pojedinačni service objekt ako items ne postoje
-    return upcomingReservation.service?.name ?? 'Rezervacija';
+    return upcomingReservation.service?.name ?? t('home.upcomingReservationServiceFallback');
   })();
 
 
