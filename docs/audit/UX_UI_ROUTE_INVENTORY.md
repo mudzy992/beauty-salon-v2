@@ -216,9 +216,11 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 | `Input` | `mobile/src/components/ui/Input.tsx` | Source-contract checks exist; verify label/error announcement order, field traversal, and text scaling. |
 | `DateTimeField` | `mobile/src/components/ui/DateTimeField.tsx` | Source-contract checks and owner-reported device retest exist; physical acceptance remains owner evidence, not agent verification. |
 | `EmptyState` | `mobile/src/components/ui/EmptyState.tsx` | Decorative icon is hidden from assistive technology and the title is exposed as a heading; focused source-contract test registered in mobile CI. Device announcement/reading order remains unverified. |
-| `LoadingScreen`, `Card`, `Badge` | `mobile/src/components/ui/` | Review accessible announcements, decorative content, and state contrast where consumed. |
+| `LoadingScreen`, `Card`, `Badge` | `mobile/src/components/ui/` | `LoadingScreen` now exposes a localized busy progress indicator in source tests; `Card` and `Badge` still need use-context review for accessible names, state contrast, and non-color status cues. Device announcement and rendered contrast remain unverified. |
 | `MediaImage`, `BeforeAfterSlider` | `mobile/src/components/` | Slider already exposes localized adjustable value/actions; its before/after image layers are now decorative children (focused source test). Other image instances still need per-use alt/decorative review; device announcement and touch behavior remain unverified. |
 | Session/onboarding notices and shell | `mobile/src/components/` | Review announcement behavior, focus/reading order, and long-copy reflow. |
+
+**Shared mobile loading screen (2026-11-07):** `LoadingScreen` showed an unlabeled spinner; its default root-route use supplied no visible message, leaving no localized progress name for assistive technology. The activity indicator now exposes a localized `progressbar` name, `busy` state, and polite live-region semantics while preserving any optional visible detail. Two source-contract tests are registered in mobile CI. TalkBack/VoiceOver announcement quality and actual device behavior remain unverified.
 
 ## Current acceptance boundary and next slices
 

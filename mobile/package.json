@@ -22,6 +22,7 @@
     "test:input-accessibility": "node --test src/components/ui/input-accessibility.test.mjs",
     "test:button-accessibility": "node --test src/components/ui/button-accessibility.test.mjs",
     "test:empty-state-accessibility": "node --test src/components/ui/empty-state-accessibility.test.mjs",
+    "test:loading-screen-accessibility": "node --test src/components/ui/loading-screen-accessibility.test.mjs",
     "test:client-profile-contract": "node --test src/screens/client/profile-contract.test.mjs src/screens/client/profile-api-errors.test.mjs",
     "test:profile-read-recovery-copy": "node --test src/screens/client/profile-read-recovery-copy.test.mjs",
     "test:profile-read-recovery": "node --test src/screens/client/profile-read-recovery.test.mjs",

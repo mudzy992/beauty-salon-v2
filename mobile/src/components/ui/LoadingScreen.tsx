@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 
 interface LoadingScreenProps {
@@ -8,10 +9,19 @@ interface LoadingScreenProps {
 
 export function LoadingScreen({ message }: LoadingScreenProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ActivityIndicator size="large" color={colors.primary} />
+      <ActivityIndicator
+        size="large"
+        color={colors.primary}
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel={t('common.loading')}
+        accessibilityState={{ busy: true }}
+        accessibilityLiveRegion="polite"
+      />
       {message && (
         <Text style={[styles.message, { color: colors.textSecondary }]} selectable>
           {message}
