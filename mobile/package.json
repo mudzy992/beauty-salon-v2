@@ -203,7 +203,7 @@
     "axios": "^1.13.6",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "expo": "~57.0.31",
+    "expo": "~57.0.32",
     "expo-application": "~57.0.3",
     "expo-blur": "~57.0.3",
     "expo-build-properties": "~57.0.22",
@@ -263,6 +263,13 @@
     },
     "expo-router": {
       "query-string": "^9.5.1"
+    },
+    "@expo/fingerprint": {
+      "glob": "14.0.4",
+      "minimatch": "11.0.5"
+    },
+    "babel-plugin-module-resolver": {
+      "glob": "14.0.4"
     }
   }
 }
