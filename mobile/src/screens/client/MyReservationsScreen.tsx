@@ -584,7 +584,15 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
   if (loading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={t('myReservations.loadingReservations')}
+          accessibilityState={{ busy: true }}
+          accessibilityLiveRegion="polite"
+        />
       </View>
     );
   }

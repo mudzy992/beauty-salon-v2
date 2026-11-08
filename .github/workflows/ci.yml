@@ -683,6 +683,9 @@ jobs:
       - name: Test My Reservations card accessibility
         working-directory: mobile
         run: npm run test:my-reservations-card-accessibility
+      - name: Test My Reservations loading accessibility
+        working-directory: mobile
+        run: npm run test:my-reservations-loading-accessibility
       - name: Test reservation benefit read recovery
         working-directory: mobile
         run: npm run test:reservation-benefit-recovery
