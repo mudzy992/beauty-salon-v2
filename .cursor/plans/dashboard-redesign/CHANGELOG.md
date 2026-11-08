@@ -1104,3 +1104,62 @@ vlastiti guard*. Mjerenje je ponovljeno sa `strip_comments()` (blokovski `/* */`
 **Nije render-verificirano:** vizualni izgled `<select>`/`<input>` okvira nakon zamjene
 (potreban browser). Kontrast je izračunat iz hex vrijednosti tokena, a zamjene su
 strukturno identične (border → border), pa je rizik nizak.
+
+---
+
+## 2026-11-08 — FAZA 4, commit 2 (dopuna): osmi 1.4.11 prekršaj
+
+### Korekcija prethodnog unosa: bilo je 8 prekršaja, ne 7
+
+Prethodni commit (`2ba25dd`) je tvrdio **7** prekršaja WCAG 1.4.11. **Ta brojka je bila
+nepotpuna.** Naknadni sweep po **konstantama** klasa (ne samo inline `className="…"`) našao
+je i osmi:
+
+| fajl | ln | kontrola | bilo | kontrast |
+|---|---|---|---|---|
+| `income/manual-entry-dialog.tsx` | 24-25 | `selectClass` → 2× `<select>` (`manual-stylist`, `manual-service`) | slate-200 | 1.23 |
+
+**Zašto je promakao:** heuristički grep iz commita 2 tražio je `<select>`/`<input>` u
+kontekstu od ±4 linije **oko linije s `border-slate-200`**. Kod `selectClass` je deklaracija
+konstante na ln 24-25, a upotreba (`className={selectClass}`) na ln 79 i 99 — dakle **55+
+linija daleko**, izvan kontekstnog prozora. Isti uzrok kao i `selectClass` u
+`book-period-picker.tsx`, koji je nađen tek jer je enumeracija cijelih `className`
+vrijednosti slučajno uključila i konstante.
+
+**Ispravka metode:** sweep je ponovljen regexom po **konstantama** (`const \w*[Cc]lass\w* = '…'`)
+uz `strip_comments()`. Nađene su tačno 2 takve konstante:
+- `manual-entry-dialog.tsx` → `selectClass` — **stvarni prekršaj**, popravljen
+- `expense-attachments.tsx` → `actionClass` (`text-slate-600` 7.58 PASS, `hover:bg-slate-100`) —
+  **nije prekršaj**: dugme bez okvira, pa 1.4.11 za granice ne pripada
+
+Nakon popravke, ponovljeni sweep po svim `.tsx` fajlovima (kontrola u ±6 linija +
+`border-slate-200|300`) daje **0 preostalih kandidata**.
+
+### Ukupno u fazi 4: 8 prekršaja 1.4.11 + 5 prekršaja 1.4.3
+
+| kategorija | broj | prag | prije → poslije |
+|---|---|---|---|
+| granice form kontrola (1.4.11) | **8** | 3:1 | 1.23 / 1.48 → **4.24** |
+| tekst (1.4.3) | **5** | 4.5:1 | 2.56 / 3.19 → **5.61 / 8.34** |
+
+Sve zamjene su na `border-input-border` (→ `--control-border` unutar `.admin-shell`) odnosno
+`text-content-muted` / `text-warn-foreground`.
+
+### Verifikacija
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` skripte | **152/152 PASS**, 0 fail |
+| `npm run build` | **PASS**, **272.6 KiB gzip** (budžet 300) |
+| `check_i18n.py --strict` | **PASS** — 2622/2622 |
+| `check_ui_contrast.py` | **PASS** — 80/80 |
+| `check_repo_hygiene.py` | **PASS** — 1661 paths |
+| `check_doc_links.py` | **PASS** — 670 / 202 |
+| Sweep: form kontrole sa sirovim borderom | **0 preostalih** |
+| `finance.types.ts`, `api/*`, `hooks/*` | **bez diff-a** |
+| `MATRIX.md` | **netaknut** |
+
+**Preostalo u finance modulu (nije prekršaj):** ~110 light-mode sirovih paletnih klasa koje
+**prolaze** kontrast (`slate-900` 17.85, `slate-600` 7.58, `slate-500` 4.76, `slate-100`/`50`
+kao pozadine). Migracija na tokene je kozmetika dizajn sistema, ne usklađenost — namjerno
+nije rađena pod izgovorom a11y popravke.

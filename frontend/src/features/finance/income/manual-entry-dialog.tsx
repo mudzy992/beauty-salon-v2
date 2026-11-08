@@ -21,8 +21,10 @@ type ManualEntryDialogProps = {
   onSubmit: (payload: ManualEntryPayload) => void
 }
 
+// 1.4.11: okvir <select> mora imati 3:1 prema podlozi; border-slate-200
+// (#E2E8F0) je 1.23:1. input-border -> --control-border = 4.24:1.
 const selectClass =
-  'h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-800 dark:bg-slate-950'
+  'h-9 w-full rounded-md border border-input-border bg-surface px-2 text-sm'
 
 export function ManualEntryDialog({
   open,
