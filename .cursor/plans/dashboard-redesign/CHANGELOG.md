@@ -513,3 +513,72 @@ identičan. Migracija ovih primitiva je zaseban korak koji mora uključiti javni
 | `test:*` | **148/148 PASS** |
 | `test:admin-render-smoke` | **36/36** |
 | 4 python gate-a | **PASS** / **80/80** / **PASS** / **670-202** |
+
+---
+
+## Faza 2 — Rezervacije (commit 4: filteri + ispravka vlastitog audita)
+
+### Ispravka dvije tvrdnje iz mog ranijeg audita
+
+Audit u ovoj fazi je vođen iz izvora, a ne iz plana, i **dvije moje ranije tvrdnje su pale**:
+
+1. **„`eventPropGetter` je stvarni 1.4.1 prekršaj jer eventi renderuju samo `event.title`" — NETOČNO.**
+   `SchedulerEventContent` (ln 72-76) renderuje status **i kao tekst**:
+   `t(reservationStatusTranslationKey(event.status, …))`. Boja iz `eventPropGetter`
+   (ln 460-476) je dakle **redundantna potvrda**, ne jedini nosilac informacije.
+   **1.4.1 nije prekršen i taj „popravak" nije urađen.**
+
+2. **„`reservation-filters.tsx` ima 5 sirovih boja" — neprecizno.** Fajl ima **jedan**
+   `<select>` (ln 77) koji sadrži 5 paletnih tokena. `Label htmlFor` asocijacije
+   (`res-from`, `res-to`, `res-status`, `res-client`) su tamo već bile uredne.
+
+### Stvarni defekt koji je popravljen (1.4.11)
+
+`<select>` je koristio `border-slate-200`, dok njegovi **susedni** `<Input>` elementi
+koriste `border-input-border`. Razlika je odlučujuća:
+
+| Okvir | Boja | Kontrast na `#FFFFFF` | 1.4.11 (3:1) |
+|---|---|---|---|
+| `select` **prije** | `#E2E8F0` | **1.23:1** | **FAIL** |
+| `Input` van `.admin-shell` | `#E2E8F0` | 1.23:1 | FAIL |
+| `Input` **u** `.admin-shell` → `--control-border` | `#767B86` | **4.24:1** | **PASS** |
+
+`--input-border` je namjerno dvojak (`globals.css:45-49`): default ostaje slate-200 da javni
+sajt bude netaknut, a **unutar `.admin-shell` se prebacuje na `--control-border`** (`globals.css:218`).
+`<select>` je bio jedini koji tu popravku **nikad nije dobijao** — ostao je na 1.23:1
+upravo pored inputa koji imaju 4.24:1.
+
+Sigurno za javni sajt: `reservation-filters.tsx` ima **tačno jednog** koristnika —
+`pages/Reservations.tsx` (admin), provjereno grep-om.
+
+### Izmjene
+
+`reservation-filters.tsx` (−97 B): `border-slate-200` → `border-input-border`,
+`bg-white` → `bg-surface`, `text-slate-900` → `text-content`, uklonjene mrtve `dark:` varijante
+(tokeni su već tematski svjesni kroz `.dark` blok). Rezultat: **0** sirovih paletnih klasa u fajlu.
+
+### Odluka: razbijanje `ReservationScheduler.tsx` (1196 ln) NIJE urađeno
+
+Plan §4 traži razbijanje na 7 fajlova (`scheduler/*`). **Nije izvršeno**, namjerno:
+
+- Dva ugovorna testa čitaju fajl **po putanji**: `admin-calendar-drawer-accessibility.test.mjs:5`
+  i `admin-reservations-calendar-i18n.test.mjs:9` (`readFileSync(new URL('./components/ReservationScheduler.tsx', …))`).
+  Razbijanje ih lomi, a jedina mitigacija (`.join('\n')` više fajlova u isti slot) **slabi ugovor** —
+  test bi prolazio i kad se sadržaj premjesti između fajlova, što je upravo garancija koju
+  čitanje po putanji daje.
+- Razbijanje je **čisto strukturno**: ne donosi nijednu a11y ili funkcionalnu vrijednost.
+- Površina je **interaktivna i netestabilna ovdje** (drag&drop preko `withDragAndDrop`).
+  Već je dokumentovano da se DnD ne može provjeriti u ovom okruženju; premještanje koda
+  koji upravlja `onEventDrop`/`onEventResize` bez te provjere je neopravdan rizik po parity.
+
+Preporuka: razbijanje odraditi **uz** Playwright/axe harness (faza 13), kada se regresija
+može dokazati, a ne naslijepo.
+
+### Izmjereno
+
+| Provjera | Rezultat |
+|---|---|
+| `npm run build` | **PASS** — 272.4 KiB gzip (budget 300) |
+| `ReservationsCalendar` chunk | **95.2 KiB gzip** (budget 125) |
+| `test:*` | **148/148 PASS** |
+| 4 python gate-a | **PASS** / **80/80** / **PASS** / **670-202** |
