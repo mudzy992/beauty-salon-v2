@@ -1026,20 +1026,31 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             loyaltyInfo.service &&
             loyaltyInfo.service.maxDiscountPercent > 0 && (
               <Card style={{ marginBottom: spacing.md }}>
-                <Text style={[styles.selectedLabel, { color: colors.textSecondary }]}>
-                  Loyalty popust
+                <Text
+                  style={[styles.selectedLabel, { color: colors.textSecondary }]}
+                  accessibilityRole="header"
+                >
+                  {t('reservation.loyaltyCardHeading')}
                 </Text>
                 <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 4 }}>
-                  Status: {loyaltyInfo.tier ?? 'Nema nivoa'} · Bodovi: {loyaltyInfo.points ?? 0}
+                  {t('reservation.loyaltyStatus', {
+                    tier: loyaltyInfo.tier ?? t('reservation.loyaltyNoTier'),
+                    points: loyaltyInfo.points ?? 0,
+                  })}
                 </Text>
                 <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2 }}>
-                  Maks. popust za ovu uslugu: {loyaltyInfo.service.maxDiscountPercent}% (
-                  ≈ {loyaltyInfo.service.maxDiscountAmount.toFixed(2)} KM){' '}
-                  · Maks. bodova koje možete iskoristiti: {loyaltyInfo.service.maxUsablePoints}
+                  {t('reservation.loyaltyMaxDiscount', {
+                    percent: loyaltyInfo.service.maxDiscountPercent,
+                    amount: loyaltyInfo.service.maxDiscountAmount.toFixed(2),
+                  })}
+                </Text>
+                <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2 }}>
+                  {t('reservation.loyaltyMaxPoints', {
+                    points: loyaltyInfo.service.maxUsablePoints,
+                  })}
                 </Text>
                 <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
-                  (Stvarni limit zavisi i od globalnih postavki – backend će odbiti prevelik popust ili nedovoljan
-                  broj bodova.)
+                  {t('reservation.loyaltyPolicyHint')}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm }}>
                   <TextInput

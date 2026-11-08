@@ -659,6 +659,9 @@ jobs:
       - name: Test mobile reservation loyalty-input accessibility
         working-directory: mobile
         run: npm run test:reservation-loyalty-input-accessibility
+      - name: Test localized mobile reservation loyalty summary
+        working-directory: mobile
+        run: npm run test:reservation-loyalty-summary
       - name: Test localized reservation benefit error copy
         working-directory: mobile
         run: npm run test:reservation-benefit-copy
