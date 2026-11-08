@@ -652,6 +652,9 @@
     "reservationCounts": "{{completed}} završenih · {{pending}} na čekanju",
     "userCounts": "{{stylists}} stilista · {{services}} servisa",
     "noReservations": "Nema rezervacija.",
+    "netPositive": "Pozitivan rezultat",
+    "netNegative": "Negativan rezultat",
+    "pendingReviewsAttention": "Zahtijeva pregled",
     "outbox": {
       "title": "Isporuka rezervacijskih događaja",
       "description": "Pregled pokušaja, čekanja i događaja koji zahtijevaju provjeru.",
@@ -670,6 +673,7 @@
       "noEvents": "Nema događaja za provjeru.",
       "actions": "Akcije",
       "replay": "Ponovi isporuku",
+    "replayForEvent": "Ponovi isporuku za događaj {{eventId}}",
       "replayDialogTitle": "Potvrda ponovne isporuke",
       "replayDialogDescription": "Događaj #{{eventId}} ima {{attempts}} pokušaja. Bit će vraćen u red čekanja bez resetovanja broja pokušaja.",
       "replayWarning": "Push ili email može biti isporučen više puta ako je prethodni pokušaj već stigao do vanjskog providera. Ovo je at-least-once isporuka; ako novi pokušaj ne uspije, događaj ponovo završava u trajnoj grešci.",

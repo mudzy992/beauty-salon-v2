@@ -655,6 +655,9 @@
     "reservationCounts": "{{completed}} completed · {{pending}} pending",
     "userCounts": "{{stylists}} stylists · {{services}} services",
     "noReservations": "No reservations.",
+    "netPositive": "Positive result",
+    "netNegative": "Negative result",
+    "pendingReviewsAttention": "Needs review",
     "outbox": {
       "title": "Reservation event delivery",
       "description": "Review delivery attempts, waiting events, and items that need attention.",
@@ -673,6 +676,7 @@
       "noEvents": "No events need attention.",
       "actions": "Actions",
       "replay": "Replay delivery",
+    "replayForEvent": "Replay delivery for event {{eventId}}",
       "replayDialogTitle": "Confirm delivery replay",
       "replayDialogDescription": "Event #{{eventId}} has {{attempts}} attempts. It will be queued again without resetting the attempt count.",
       "replayWarning": "Push or email may be delivered more than once if a prior attempt already reached the external provider. Delivery is at-least-once; if this attempt fails, the event returns to dead letter.",

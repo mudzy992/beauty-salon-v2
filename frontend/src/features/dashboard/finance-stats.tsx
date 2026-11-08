@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
-import { Card, CardContent } from '../../components/ui/card'
 import { formatLocalizedAmount } from '../../i18n/locale-utils.mjs'
+import { StatGrid } from '../shell/admin/ui/stat-grid'
 import type { DashboardStats } from './types'
 
 type Props = {
@@ -20,59 +20,29 @@ export const DashboardFinanceStats = ({ stats }: Props) => {
   return (
     <section className="space-y-3">
       <div>
-        <h2 className="text-sm font-semibold text-slate-900">{t('dashboard.financeThisMonth')}</h2>
-        <p className="text-xs text-slate-500">
-          {t('dashboard.incomeSummary')}
-        </p>
+        <h2 className="text-sm font-semibold text-content">{t('dashboard.financeThisMonth')}</h2>
+        <p className="text-xs text-content-muted">{t('dashboard.incomeSummary')}</p>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Card className="border-emerald-200 bg-emerald-50/40 dark:border-emerald-900 dark:bg-emerald-950/20">
-          <CardContent className="p-4">
-            <p className="text-xs text-emerald-800 dark:text-emerald-300">{t('dashboard.totalIncome')}</p>
-            <p className="mt-1 text-2xl font-semibold text-emerald-800 dark:text-emerald-200">
-              {formatKm(total)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">{t('dashboard.serviceIncome')}</p>
-            <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
-              {formatKm(services)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">{t('dashboard.tips')}</p>
-            <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
-              {formatKm(tips)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-rose-700 dark:text-rose-300">{t('dashboard.expenses')}</p>
-            <p className="mt-1 text-xl font-semibold text-rose-700 dark:text-rose-300">
-              {formatKm(expenses)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">{t('dashboard.net')}</p>
-            <p
-              className={`mt-1 text-xl font-semibold ${
-                net >= 0
-                  ? 'text-slate-900 dark:text-slate-50'
-                  : 'text-rose-700 dark:text-rose-300'
-              }`}
-            >
-              {formatKm(net)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <StatGrid
+        label={t('dashboard.financeThisMonth')}
+        columns={5}
+        items={[
+          { label: t('dashboard.totalIncome'), value: formatKm(total), tone: 'ok' },
+          { label: t('dashboard.serviceIncome'), value: formatKm(services) },
+          { label: t('dashboard.tips'), value: formatKm(tips) },
+          { label: t('dashboard.expenses'), value: formatKm(expenses), tone: 'bad' },
+          {
+            label: t('dashboard.net'),
+            value: formatKm(net),
+            // WCAG 1.4.1 — predznak nije samo boja: ide strelica i tekstualna oznaka.
+            trend: {
+              direction: net > 0 ? 'up' : net < 0 ? 'down' : 'flat',
+              label: net < 0 ? t('dashboard.netNegative') : t('dashboard.netPositive'),
+            },
+            tone: net < 0 ? 'bad' : 'default',
+          },
+        ]}
+      />
     </section>
   )
 }

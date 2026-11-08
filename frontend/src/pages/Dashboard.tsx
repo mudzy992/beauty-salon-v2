@@ -5,6 +5,7 @@ import { DashboardFinanceStats } from '../features/dashboard/finance-stats'
 import { DashboardOpsStats } from '../features/dashboard/ops-stats'
 import { DashboardRecentReservations } from '../features/dashboard/recent-reservations'
 import { DashboardOutboxDiagnostics } from '../features/dashboard/outbox-diagnostics'
+import { PageHeader } from '../features/shell/admin/ui/page-header'
 
 export default function Dashboard() {
   const { t } = useTranslation()
@@ -15,21 +16,28 @@ export default function Dashboard() {
   )
 
   if (loading || !stats) {
+    // WCAG 4.1.3 — učitavanje je live regija, ne samo vizuelni tekst.
     return (
-      <div className="p-6 text-center">
-        <div className="text-sm text-slate-600">{t('common.loading')}</div>
+      <div role="status" aria-live="polite" className="space-y-3 p-6">
+        <span className="sr-only">{t('common.loading')}</span>
+        <div
+          aria-hidden
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5"
+        >
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="h-24 animate-pulse rounded-lg bg-surface-muted" />
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">
-          {t('dashboard.welcome')}, {user?.username}
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">{t('dashboard.stats')}</p>
-      </div>
+      <PageHeader
+        title={`${t('dashboard.welcome')}, ${user?.username ?? ''}`}
+        description={t('dashboard.stats')}
+      />
       <DashboardFinanceStats stats={stats} />
       <DashboardOpsStats stats={stats} />
       {canViewOutboxDiagnostics ? <DashboardOutboxDiagnostics /> : null}
