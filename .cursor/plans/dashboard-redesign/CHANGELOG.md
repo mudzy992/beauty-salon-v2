@@ -644,3 +644,72 @@ prije/poslije (0 → 0).
 | `test:*` | **148/148 PASS** |
 | `check_i18n` | **PASS** — 2617/2617 |
 | `check_ui_contrast` / `check_repo_hygiene` / `check_doc_links` | **80/80** / **PASS** / **670-202** |
+
+---
+
+## Faza 3 — Dnevna knjiga (commit 2: combobox pickeri)
+
+### Opseg
+
+`entry-form-fields.tsx` (+113/−6), novi `daily-log-form-a11y.test.mjs` (14 asertacija),
+`package.json` (+1 script), `.github/workflows/ci.yml` (+1 korak), daily-log `CHANGELOG.md`.
+
+### Nalaz: pickeri su bili nedostupni tastaturom
+
+Iz izvora: `<li>` opcije u **oba** pickera imale su `onClick` i `onMouseDown preventDefault`,
+ali **ni `tabIndex`, ni `role`, ni `onKeyDown`**. Tastaturni korisnik nije mogao izabrati
+klijenta ni servis — ovo je **2.1.1**, ne samo 4.1.2 iz plana §5.
+
+Za razliku od `react-big-calendar` slučaja iz faze 2, ovo je **naš kod** i izmjena je
+**čisto aditivna**: `onClick` i `onMouseDown` su ostali nepromijenjeni (test to asertuje).
+
+### Izmjene
+
+| WCAG | Izmjena |
+|---|---|
+| **2.1.1 / 4.1.2** | Oba pickera → combobox: input dobija `role="combobox"`, `aria-expanded`, `aria-controls`, `aria-autocomplete="list"`, `aria-activedescendant`; `<ul>` dobija `role="listbox"` + `id`; svaki `<li>` dobija `role="option"`, `id`, `aria-selected` |
+| **2.1.1** | `onKeyDown` s ArrowDown/ArrowUp/Home/End (kroz zajednički `stepIndex`), Enter (izbor) i Escape (zatvaranje). `e.preventDefault()` na svim granama — bez toga Enter submitira formu |
+| **4.1.2** | Service picker je `aria-multiselectable="true"` s `aria-selected={form.serviceIds.includes(svc.id)}` (odražava izbor, ne tastaturski fokus); client picker je jednostruki izbor |
+
+Stanje navigacije je **lokalno UI stanje** (`useState(-1)`) — ne dira poslovno stanje forme,
+koje i dalje dolazi isključivo iz props-a.
+
+### Novi test (§7) — i njegovo ograničenje
+
+`test:daily-log-form-a11y` (14 asertacija, **14/14 PASS**), uključen u `package.json` i CI.
+Suite je porastao **148 → 149**.
+
+Test namjerno provjerava **ožičenje**, ne samo prisustvo atributa: da prefiks u
+`aria-activedescendant` odgovara prefiksu u `id` opcije (ako se raziđu, čitač ekrana gubi
+aktivnu opciju), da broj `aria-selected` odgovara broju `role="option"`, da su sve tipke
+pokrivene, i da mouse ponašanje nije uklonjeno.
+
+**Iskreno: test NE renderuje komponentu.** Cijeli daily-log modul testira regex-čitanjem
+izvora, pa je i ovaj test takav. Tastatursko ponašanje comboboxa **nije verificirano
+izvršavanjem** — ostaje za Playwright/axe (faza 13). Build PASS dokazuje samo da TypeScript
+kompajlira.
+
+### `MATRIX.md` namjerno NIJE mijenjan
+
+DoD traži „`MATRIX.md` + `CHANGELOG.md` daily-log ažurirani", ali `MATRIX.md` dokumentuje
+**poslovnu logiku** (statusi, prelazi, dozvole, nuspojave). Ove izmjene su isključivo
+prezentacijske. Potvrda: **`amounts.ts` ima nula diff-a**, a `entry-status-label.ts`,
+`types.ts`, `use-daily-log-data.ts`, `use-daily-log-mutations.ts`, `form-helpers.ts` i
+`use-daily-log-form.ts` su netaknuti. Upisivanje a11y bilješki u poslovnu matricu bi je
+zagađivalo, pa je bilješka otišla u daily-log `CHANGELOG.md`.
+
+### Jedna greška koju je uhvatila asertcija
+
+Prvi pokušaj umetanja CI koraka je pao: moj regex je očekivao `run:` odmah nakon `- name:`,
+a stvarni koraci imaju `working-directory: frontend` između. Asertcija je to uhvatila,
+ništa nije zapisano; ispravljeno čitanjem stvarnog formata.
+
+### Izmjereno
+
+| Provjera | Rezultat |
+|---|---|
+| `npm run build` | **PASS** — 272.4 KiB gzip (budget 300) |
+| `test:*` | **149/149 PASS** (bio 148) |
+| `test:daily-log-form-a11y` | **14/14** |
+| `amounts.ts` diff | **prazan** |
+| `check_i18n` / `check_ui_contrast` / `check_repo_hygiene` / `check_doc_links` | **PASS** / **80/80** / **PASS** / **670-202** |

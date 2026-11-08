@@ -479,6 +479,9 @@ jobs:
       - name: Test localized daily-log create/edit form
         working-directory: frontend
         run: npm run test:daily-log-form-i18n
+      - name: Test daily-log form a11y
+        working-directory: frontend
+        run: npm run test:daily-log-form-a11y
       - name: Test localized admin loyalty page
         working-directory: frontend
         run: npm run test:admin-loyalty-i18n

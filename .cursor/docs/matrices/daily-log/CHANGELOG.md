@@ -1,5 +1,34 @@
 # Daily Log Matrix Changelog
 
+## 2026-11-08 (a11y i tokeni — bez promjene poslovne logike)
+
+**`MATRIX.md` namjerno NIJE mijenjan.** Ove izmjene su isključivo prezentacijske
+i pristupačne; nijedan status, prelaz, dozvola ni izračun iznosa nije dirnut.
+Potvrda: `features/daily-log/amounts.ts` ima **nula diff-a**, a `entry-status-label.ts`,
+`types.ts`, `use-daily-log-data.ts`, `use-daily-log-mutations.ts`, `form-helpers.ts`
+i `use-daily-log-form.ts` su netaknuti.
+
+- **Client i service picker postali combobox (WCAG 2.1.1).** Prije: `<li>` opcije su imale
+  `onClick` ali **ni `tabIndex`, ni `role`, ni `onKeyDown`** — tastaturni korisnik nije mogao
+  izabrati klijenta ni servis. Sada: `role="combobox"` + `aria-expanded` + `aria-controls` +
+  `aria-activedescendant` na inputu, `role="listbox"` + `role="option"` + `aria-selected` na
+  opcijama, i rukovanje strelicama/Home/End/Enter/Escape. Service picker je
+  `aria-multiselectable` s `aria-selected` iz `form.serviceIds`.
+  **Mouse ponašanje je nepromijenjeno** — `onClick` i `onMouseDown preventDefault` su ostali.
+- **12 `htmlFor` ↔ `id` parova** (bilo 4) + `role="group"`/`aria-labelledby` za grupu cijena
+  servisa i loyalty sekciju čiji je `Input` uslovan.
+- **Tabela**: `<caption className="sr-only">` (novi ključ `dailyLog.table.caption`) i
+  `scope="col"` na svih 12 `<th>` (bilo 0 i 0).
+- **1.4.11**: `text-slate-400` ikone → `text-content-muted` (2.56 → 5.61:1); `<select>` okviri
+  `border-slate-200` (1.23:1) → `border-input-border` (4.24:1 u `.admin-shell`).
+- **1.4.4**: 5× `text-[10px]` → `text-xs`. **1.4.3**: 48 zamjena sirovih paletnih klasa → tokeni.
+- Novi test `test:daily-log-form-a11y` (14 asertacija) + CI korak.
+
+**Neprovjereno izvršavanjem:** tastatursko ponašanje comboboxa. Test čita izvor i provjerava
+*ožičenje* (poklapanje `aria-activedescendant` prefiksa s `id` opcije, pokrivenost tipki,
+`preventDefault`), ali **ne renderuje** komponentu — cijeli modul testira regex-čitanjem.
+Prava potvrda dolazi s Playwright/axe u fazi 13.
+
 ## 2026-08-19 (smart restore)
 
 - Restore DELETED zapisa sada podržava odabir datuma (originalni ili novi) u dijalogu.

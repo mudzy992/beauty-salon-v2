@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Check, Loader2, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { formatLocalizedAmount, formatLocalizedNumber } from '../../i18n/locale-utils.mjs'
@@ -106,6 +107,17 @@ export const DailyLogEntryFormFields = ({
   saveLabel,
 }: Props) => {
   const { t, i18n } = useTranslation()
+  // Tastaturska navigacija kroz listbox (2.1.1): samo UI stanje, ne dira poslovno stanje.
+  const [clientActiveIdx, setClientActiveIdx] = useState(-1)
+  const [serviceActiveIdx, setServiceActiveIdx] = useState(-1)
+  const stepIndex = (current: number, count: number, key: string): number | null => {
+    if (count === 0) return null
+    if (key === 'ArrowDown') return (current + 1) % count
+    if (key === 'ArrowUp') return (current - 1 + count) % count
+    if (key === 'Home') return 0
+    if (key === 'End') return count - 1
+    return null
+  }
 
   return <div className="space-y-4">
     <div>
@@ -132,21 +144,66 @@ export const DailyLogEntryFormFields = ({
         <Input
           id="dailylog-client"
           className="pl-9"
+          role="combobox"
+          aria-expanded={showClientDropdown && filteredClients.length > 0}
+          aria-controls="dailylog-client-listbox"
+          aria-autocomplete="list"
+          autoComplete="off"
+          aria-activedescendant={
+            showClientDropdown && filteredClients.length > 0 && clientActiveIdx >= 0
+              ? `dailylog-client-opt-${filteredClients[clientActiveIdx].id}`
+              : undefined
+          }
           value={clientSearch}
           onChange={(e) => {
             setClientSearch(e.target.value)
             setShowClientDropdown(true)
+            setClientActiveIdx(-1)
             setForm((prev) => ({ ...prev, clientId: '' }))
           }}
           onFocus={() => setShowClientDropdown(true)}
+          onKeyDown={(e) => {
+            const open = showClientDropdown && filteredClients.length > 0
+            const next = stepIndex(clientActiveIdx, open ? filteredClients.length : 0, e.key)
+            if (next !== null) {
+              e.preventDefault()
+              if (!open) setShowClientDropdown(true)
+              setClientActiveIdx(next)
+              return
+            }
+            if (e.key === 'Enter' && open && clientActiveIdx >= 0) {
+              e.preventDefault()
+              onSelectClient(filteredClients[clientActiveIdx])
+              setShowClientDropdown(false)
+              setClientActiveIdx(-1)
+              return
+            }
+            if (e.key === 'Escape' && open) {
+              e.preventDefault()
+              setShowClientDropdown(false)
+              setClientActiveIdx(-1)
+            }
+          }}
           placeholder={t('dailyLog.form.searchClient')}
         />
         {showClientDropdown && filteredClients.length > 0 ? (
-          <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
-            {filteredClients.map((c) => (
+          <ul
+            id="dailylog-client-listbox"
+            role="listbox"
+            aria-label={t('dailyLog.form.client')}
+            className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg"
+          >
+            {filteredClients.map((c, idx) => (
               <li
                 key={c.id}
-                className="cursor-pointer px-3 py-2 text-sm hover:bg-brand-champagne/20"
+                id={`dailylog-client-opt-${c.id}`}
+                role="option"
+                aria-selected={idx === clientActiveIdx}
+                className={
+                  idx === clientActiveIdx
+                    ? 'cursor-pointer bg-brand-champagne/20 px-3 py-2 text-sm'
+                    : 'cursor-pointer px-3 py-2 text-sm hover:bg-brand-champagne/20'
+                }
                 onMouseDown={(ev) => ev.preventDefault()}
                 onClick={() => onSelectClient(c)}
               >
@@ -164,20 +221,64 @@ export const DailyLogEntryFormFields = ({
         <Input
           id="dailylog-services"
           className="pl-9"
+          role="combobox"
+          aria-expanded={showServiceDropdown && filteredServices.length > 0}
+          aria-controls="dailylog-service-listbox"
+          aria-autocomplete="list"
+          autoComplete="off"
+          aria-activedescendant={
+            showServiceDropdown && filteredServices.length > 0 && serviceActiveIdx >= 0
+              ? `dailylog-service-opt-${filteredServices[serviceActiveIdx].id}`
+              : undefined
+          }
           value={serviceSearch}
           onChange={(e) => {
             setServiceSearch(e.target.value)
             setShowServiceDropdown(true)
+            setServiceActiveIdx(-1)
           }}
           onFocus={() => setShowServiceDropdown(true)}
+          onKeyDown={(e) => {
+            const open = showServiceDropdown && filteredServices.length > 0
+            const next = stepIndex(serviceActiveIdx, open ? filteredServices.length : 0, e.key)
+            if (next !== null) {
+              e.preventDefault()
+              if (!open) setShowServiceDropdown(true)
+              setServiceActiveIdx(next)
+              return
+            }
+            if (e.key === 'Enter' && open && serviceActiveIdx >= 0) {
+              e.preventDefault()
+              onToggleService(filteredServices[serviceActiveIdx])
+              return
+            }
+            if (e.key === 'Escape' && open) {
+              e.preventDefault()
+              setShowServiceDropdown(false)
+              setServiceActiveIdx(-1)
+            }
+          }}
           placeholder={t('dailyLog.form.searchService')}
         />
         {showServiceDropdown && filteredServices.length > 0 ? (
-          <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
-            {filteredServices.map((svc) => (
+          <ul
+            id="dailylog-service-listbox"
+            role="listbox"
+            aria-multiselectable="true"
+            aria-label={t('dailyLog.form.services')}
+            className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg"
+          >
+            {filteredServices.map((svc, idx) => (
               <li
                 key={svc.id}
-                className="cursor-pointer px-3 py-2 hover:bg-brand-champagne/20"
+                id={`dailylog-service-opt-${svc.id}`}
+                role="option"
+                aria-selected={form.serviceIds.includes(svc.id)}
+                className={
+                  idx === serviceActiveIdx
+                    ? 'cursor-pointer bg-brand-champagne/20 px-3 py-2'
+                    : 'cursor-pointer px-3 py-2 hover:bg-brand-champagne/20'
+                }
                 onMouseDown={(ev) => ev.preventDefault()}
                 onClick={() => onToggleService(svc)}
               >
