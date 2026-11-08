@@ -47,6 +47,25 @@
     "notFound": "Stranica nije pronađena",
     "profile": "Profil"
   },
+  "table": {
+    "sortAscending": "Sortiraj uzlazno",
+    "sortDescending": "Sortiraj silazno",
+    "sortBy": "Sortiraj po koloni {{column}}",
+    "sortedAscending": "Sortirano uzlazno",
+    "sortedDescending": "Sortirano silazno",
+    "pageOf": "Stranica {{current}} od {{total}}",
+    "showingRange": "Prikazano {{from}}–{{to}} od {{total}}",
+    "showingAll": "Prikazano {{count}} zapisa",
+    "noResults": "Nema rezultata za zadate filtere.",
+    "actionsFor": "Akcije za {{item}}",
+    "loading": "Učitavanje podataka…",
+    "previous": "Prethodna stranica",
+    "next": "Sljedeća stranica",
+    "filterResults": "Filtriraj rezultate",
+    "clearFilters": "Poništi filtere",
+    "pagination": "Paginacija",
+    "optional": "opcionalno"
+  },
   "shell": {
     "languageNames": { "bs": "Bosanski", "en": "Engleski" },
     "switchLanguageTo": "Prebaci jezik na {{language}}",

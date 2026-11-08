@@ -20,8 +20,8 @@ const sourceFiles = [
   'income-book-detail.tsx',
   'integrity-panel.tsx',
   '../components/book-lock-controls.tsx',
-  '../components/confirm-dialog.tsx',
-  '../components/data-state.tsx',
+  '../../shell/admin/ui/confirm-dialog.tsx',
+  '../../shell/admin/ui/data-state.tsx',
   '../components/export-menu.tsx',
   '../components/history-panel.tsx',
   '../components/summary-cards.tsx',
@@ -171,9 +171,9 @@ test('KIF export and print text localize while preserving report data contracts'
 
 test('shared KIF controls retain reason and locked-book guards with localized labels', () => {
   const controls = sources['../components/book-lock-controls.tsx']
-  const confirm = sources['../components/confirm-dialog.tsx']
+  const confirm = sources['../../shell/admin/ui/confirm-dialog.tsx']
   const history = sources['../components/history-panel.tsx']
-  const states = sources['../components/data-state.tsx']
+  const states = sources['../../shell/admin/ui/data-state.tsx']
   const integrity = sources['integrity-panel.tsx']
   const summaries = sources['../components/summary-cards.tsx']
 

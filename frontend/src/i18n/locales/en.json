@@ -50,6 +50,25 @@
     "notFound": "Page not found",
     "profile": "Profile"
   },
+  "table": {
+    "sortAscending": "Sort ascending",
+    "sortDescending": "Sort descending",
+    "sortBy": "Sort by {{column}}",
+    "sortedAscending": "Sorted ascending",
+    "sortedDescending": "Sorted descending",
+    "pageOf": "Page {{current}} of {{total}}",
+    "showingRange": "Showing {{from}}–{{to}} of {{total}}",
+    "showingAll": "Showing {{count}} records",
+    "noResults": "No results for the current filters.",
+    "actionsFor": "Actions for {{item}}",
+    "loading": "Loading data…",
+    "previous": "Previous page",
+    "next": "Next page",
+    "filterResults": "Filter results",
+    "clearFilters": "Clear filters",
+    "pagination": "Pagination",
+    "optional": "optional"
+  },
   "shell": {
     "languageNames": { "bs": "Bosnian", "en": "English" },
     "switchLanguageTo": "Switch language to {{language}}",

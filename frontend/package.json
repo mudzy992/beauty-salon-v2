@@ -103,9 +103,9 @@
     "test:admin-gallery-i18n": "node --test src/features/gallery/admin-gallery-i18n.test.mjs",
     "test:finance-manual-entry-i18n": "node --test src/features/finance/income/manual-entry-i18n.test.mjs",
     "test:finance-manual-entry-accessibility": "node --test src/features/finance/income/manual-entry-accessibility.test.mjs",
-    "test:finance-data-state-accessibility": "node --test src/features/finance/components/data-state-accessibility.test.mjs",
-    "test:finance-responsive-dialog-accessibility": "node --test src/features/finance/components/responsive-dialog-accessibility.test.mjs",
-    "test:finance-confirm-dialog-accessibility": "node --test src/features/finance/components/confirm-dialog-accessibility.test.mjs",
+    "test:finance-data-state-accessibility": "node --test src/features/shell/admin/ui/data-state-accessibility.test.mjs",
+    "test:finance-responsive-dialog-accessibility": "node --test src/features/shell/admin/ui/responsive-dialog-accessibility.test.mjs",
+    "test:finance-confirm-dialog-accessibility": "node --test src/features/shell/admin/ui/confirm-dialog-accessibility.test.mjs",
     "test:finance-export-safety": "node --test src/features/finance/export-safety.test.mjs",
     "test:finance-read-recovery": "node --test src/features/finance/read-recovery.test.mjs",
     "test:finance-integrity-resync-accessibility": "node --test src/features/finance/income/integrity-resync-accessibility.test.mjs",
@@ -152,7 +152,8 @@
     "test:temporary-user-credentials": "node --test src/features/users/temporary-user-credentials.test.mjs",
     "test:route-guards-i18n": "node --test src/components/route-guards-i18n.test.mjs",
     "test:navigation-drawer-accessibility": "node --test src/features/shell/navigation-drawer-accessibility.test.mjs",
-    "test:shell-a11y": "node --test src/features/shell/shell-a11y.test.mjs"
+    "test:shell-a11y": "node --test src/features/shell/shell-a11y.test.mjs",
+    "test:admin-templates-a11y": "node --test src/features/shell/admin/ui/templates-a11y.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
