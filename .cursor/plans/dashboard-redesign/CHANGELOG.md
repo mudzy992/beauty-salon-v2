@@ -457,3 +457,59 @@ nema fokusabilan event, i tada riješiti ili custom `eventWrapper`-om ili vlasti
 | `test:*` skripte | **148/148 PASS** |
 | `test:admin-render-smoke` | **36/36** |
 | `check_i18n` / `check_ui_contrast` / `check_repo_hygiene` / `check_doc_links` | **PASS** / **80/80** / **PASS** / **670-202** |
+
+---
+
+## Faza 2 — Rezervacije (commit 3: drawer-i)
+
+### Opseg
+
+`frontend/src/features/reservations/components/ReservationScheduler.tsx` (+890 B).
+Ugovorni test `admin-calendar-drawer-accessibility` **2/2 PASS** bez izmjene.
+
+### Nalaz verificiran iz izvora
+
+Brojanje je ispravilo moju raniju procjenu: drawer ima **11 `<Label>`**, **11 `<Input>`**
+i **2 `<Textarea>`** (13 kontrola, ne 13 labela). Prije izmjene `htmlFor` se u fajlu
+pojavljivao **0 puta**, a `<Label>` i `<Input>` su bili **susedi unutar `<div className="space-y-2">`**,
+ne ugniježdeni — dakle nije postojala ni implicitna ni eksplicitna asocijacija.
+
+Prvo je provjereno da je izmjena izvediva bez diranja dijeljenih primitiva:
+`label.tsx` je Radix `LabelPrimitive.Root` sa `{...props}` (prosljeđuje `htmlFor`),
+`input.tsx` širi `{...props}` na `<input>` (prosljeđuje `id`).
+
+### Izmjene
+
+| WCAG | Izmjena |
+|---|---|
+| **1.3.1 / 4.1.2** | **9** parova `<Label htmlFor>` ↔ `<Input id>`: `res-details-date/-start/-end`, `res-create-client/-service/-date/-start/-end/-note` |
+| **1.3.1** | **2** labele koje opisuju **grupu dugmadi** (booking mode, stylist) dobile `id`, a kontejner `role="group"` + `aria-labelledby` — ranije su bile „viseće" labele bez ikakve veze s kontrolom |
+| **3.3.2** | `Textarea` za razlog otkazivanja imao je **samo placeholder** (placeholder nestaje pri kucanju i nije zamjena za labelu). Naslov `cancelTitle` je dobio `id="res-details-cancel-title"`, a Textarea `aria-labelledby` koji pokazuje na njega — ime postaje identično vidljivom tekstu (**2.5.3**) |
+
+Ukupno: **11/11 labela asocirano**, `htmlFor` 0 → **9**, `aria-labelledby` 0 → **3**.
+
+### Namjerno nepotpuno (dokumentovano)
+
+Grupa booking-mode i grupa stylist-a su **međusobno isključivi izbori**, pa bi semantički
+najtačniji bio `role="radiogroup"` + `role="radio"` + roving tabindex + navigacija strelicama.
+**Nije implementirano** jer se ne može interaktivno testirati u ovom okruženju, a nepotpun
+radiogroup je gori od `role="group"`. Dugmad su pravi `<button>` elementi i **sva su
+dostupna Tab-om**, pa 2.1.1 nije narušen. Ostaje za fazu 13.
+
+### Nije dirano
+
+`label.tsx` i `input.tsx` i dalje nose sirovu paletu (`text-slate-700 dark:text-slate-200`,
+`bg-white … dark:bg-slate-950`). **Namjerno**: oba su dijeljena s javnim sajtom
+(7 uvoznika za `Input`), a `02_design-system.md:69` zahtijeva da javni sajt ostane vizuelno
+identičan. Migracija ovih primitiva je zaseban korak koji mora uključiti javni sajt.
+
+### Izmjereno
+
+| Provjera | Rezultat |
+|---|---|
+| `test:admin-calendar-drawer-accessibility` | **2/2 PASS** (ugovor netaknut) |
+| `npm run build` | **PASS** — 272.3 KiB gzip (budget 300) |
+| `ReservationsCalendar` chunk | **95.2 KiB gzip** (budget 125) |
+| `test:*` | **148/148 PASS** |
+| `test:admin-render-smoke` | **36/36** |
+| 4 python gate-a | **PASS** / **80/80** / **PASS** / **670-202** |

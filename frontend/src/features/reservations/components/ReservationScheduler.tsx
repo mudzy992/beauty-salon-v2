@@ -777,8 +777,9 @@ export const ReservationScheduler = (props: Props) => {
                   </p>
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <div className="space-y-2">
-                      <Label>{t('reservations.calendar.details.date')}</Label>
+                      <Label htmlFor="res-details-date">{t('reservations.calendar.details.date')}</Label>
                       <Input
+                        id="res-details-date"
                         type="date"
                         value={editDraft.reservationDate}
                         onChange={(e) => setEditDraft((p) => ({ ...p, reservationDate: e.target.value }))}
@@ -786,8 +787,9 @@ export const ReservationScheduler = (props: Props) => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>{t('reservations.calendar.details.startTime')}</Label>
+                      <Label htmlFor="res-details-start">{t('reservations.calendar.details.startTime')}</Label>
                       <Input
+                        id="res-details-start"
                         type="time"
                         value={editDraft.startTime}
                         onChange={(e) => setEditDraft((p) => ({ ...p, startTime: e.target.value }))}
@@ -795,8 +797,9 @@ export const ReservationScheduler = (props: Props) => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>{t('reservations.calendar.details.endTime')}</Label>
+                      <Label htmlFor="res-details-end">{t('reservations.calendar.details.endTime')}</Label>
                       <Input
+                        id="res-details-end"
                         type="time"
                         value={editDraft.endTime}
                         onChange={(e) => setEditDraft((p) => ({ ...p, endTime: e.target.value }))}
@@ -886,10 +889,11 @@ export const ReservationScheduler = (props: Props) => {
 
                 {canAdminCancelReservation(activeReservation.status) ? (
                   <div className="rounded-lg border border-line p-3">
-                    <p className="text-sm font-semibold text-content">{t('reservations.calendar.details.cancelTitle')}</p>
+                    <p id="res-details-cancel-title" className="text-sm font-semibold text-content">{t('reservations.calendar.details.cancelTitle')}</p>
                     <p className="mt-1 text-xs text-content-muted">{t('reservations.calendar.details.cancelHelp')}</p>
                     <div className="mt-3 space-y-2">
                       <Textarea
+                        aria-labelledby="res-details-cancel-title"
                         placeholder={t('reservations.calendar.details.cancelReasonPlaceholder')}
                         value={cancelReason}
                         onChange={(e) => setCancelReason(e.target.value)}
@@ -935,8 +939,8 @@ export const ReservationScheduler = (props: Props) => {
             {drawerMode === 'create' ? (
               <div className="space-y-4">
               <div className="space-y-2">
-                <Label>{t('reservations.calendar.create.bookingMode')}</Label>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Label id="res-create-mode-label">{t('reservations.calendar.create.bookingMode')}</Label>
+                <div role="group" aria-labelledby="res-create-mode-label" className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <button
                     type="button"
                     className={
@@ -972,8 +976,8 @@ export const ReservationScheduler = (props: Props) => {
 
               {createDraft.bookingMode === 'STAFF_ADMIN_DIRECT' ? (
                 <div className="space-y-2">
-                  <Label>{t('reservations.calendar.create.stylist')}</Label>
-                  <div className="grid grid-cols-1 gap-2">
+                  <Label id="res-create-stylist-label">{t('reservations.calendar.create.stylist')}</Label>
+                  <div role="group" aria-labelledby="res-create-stylist-label" className="grid grid-cols-1 gap-2">
                     {props.stylists.map((stylist) => {
                       const label = stylistName(stylist, t('reservations.calendar.eventFallbacks.stylist'))
                       const active = createDraft.stylistProfileId === stylist.id
@@ -998,8 +1002,9 @@ export const ReservationScheduler = (props: Props) => {
               ) : null}
 
               <div className="space-y-2">
-                <Label>{t('reservations.calendar.create.client')}</Label>
+                <Label htmlFor="res-create-client">{t('reservations.calendar.create.client')}</Label>
                 <Input
+                  id="res-create-client"
                   placeholder={t('reservations.calendar.create.clientSearchPlaceholder')}
                   value={createDraft.clientSearch}
                   onChange={(e) => setCreateDraft((p) => ({ ...p, clientSearch: e.target.value, clientId: '' }))}
@@ -1052,13 +1057,14 @@ export const ReservationScheduler = (props: Props) => {
               </div>
 
               <div className="space-y-2">
-                <Label>{t('reservations.calendar.create.service')}</Label>
+                <Label htmlFor="res-create-service">{t('reservations.calendar.create.service')}</Label>
                 {!createDraft.clientId ? (
                   <p className="text-xs text-content-muted">{t('reservations.calendar.create.serviceGenderHint')}</p>
                 ) : null}
                 <div ref={serviceDropdownRef} className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
                   <Input
+                    id="res-create-service"
                     className="pl-9"
                     disabled={!createDraft.clientId}
                     placeholder={
@@ -1118,24 +1124,27 @@ export const ReservationScheduler = (props: Props) => {
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div className="space-y-2">
-                  <Label>{t('reservations.calendar.details.date')}</Label>
+                  <Label htmlFor="res-create-date">{t('reservations.calendar.details.date')}</Label>
                   <Input
+                    id="res-create-date"
                     type="date"
                     value={createDraft.reservationDate}
                     onChange={(e) => setCreateDraft((p) => ({ ...p, reservationDate: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('reservations.calendar.details.startTime')}</Label>
+                  <Label htmlFor="res-create-start">{t('reservations.calendar.details.startTime')}</Label>
                   <Input
+                    id="res-create-start"
                     type="time"
                     value={createDraft.startTime}
                     onChange={(e) => setCreateDraft((p) => ({ ...p, startTime: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>{t('reservations.calendar.details.endTime')}</Label>
+                  <Label htmlFor="res-create-end">{t('reservations.calendar.details.endTime')}</Label>
                   <Input
+                    id="res-create-end"
                     type="time"
                     value={createDraft.endTime}
                     onChange={(e) => setCreateDraft((p) => ({ ...p, endTime: e.target.value }))}
@@ -1144,8 +1153,9 @@ export const ReservationScheduler = (props: Props) => {
               </div>
 
               <div className="space-y-2">
-                <Label>{t('reservations.calendar.create.clientNote')}</Label>
+                <Label htmlFor="res-create-note">{t('reservations.calendar.create.clientNote')}</Label>
                 <Textarea
+                  id="res-create-note"
                   value={createDraft.clientNotes}
                   onChange={(e) => setCreateDraft((p) => ({ ...p, clientNotes: e.target.value }))}
                   rows={4}
