@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { HelpCircle } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar'
 import { Button } from '../components/ui/button'
@@ -14,7 +15,9 @@ import { useAuth } from '../context/AuthContext'
 import { normalizeRoles } from '../utils/clientOnboarding'
 import { getUploadUrl } from '../utils/uploadUrl'
 import { LanguageSwitcher } from '../components/i18n/language-switcher'
+import { useFocusOnNavigate } from '../hooks/use-focus-on-navigate'
 import { useStylistPortalSocketRefresh } from '../features/stylist-portal/hooks/use-stylist-portal-socket-refresh'
+import { SkipLink } from '../features/shell/admin/ui/skip-link'
 
 type NavItem = { path: string; labelKey: string }
 
@@ -25,6 +28,30 @@ const navItems: NavItem[] = [
   { path: '/stylist/debts', labelKey: 'shell.stylist.debts' },
   { path: '/stylist/stats', labelKey: 'shell.stylist.stats' },
 ]
+
+const isStylistNavItemActive = (pathname: string, path: string) =>
+  pathname === path || pathname.startsWith(`${path}/`)
+
+const stylistNavLinkClass = (active: boolean) =>
+  active
+    ? 'flex min-h-target shrink-0 items-center rounded-md bg-nav-active px-3 text-sm font-semibold text-brand-rose-text'
+    : 'flex min-h-target shrink-0 items-center rounded-md px-3 text-sm text-content hover:bg-surface-muted hover:text-brand-rose-text'
+
+const StylistNavLink = ({ item, pathname }: { item: NavItem; pathname: string }) => {
+  const { t } = useTranslation()
+  const active = isStylistNavItemActive(pathname, item.path)
+
+  return (
+    <Link
+      to={item.path}
+      className={stylistNavLinkClass(active)}
+      // WCAG 4.1.2 — trenutna stranica je označena programski, ne samo stilom.
+      aria-current={active ? 'page' : undefined}
+    >
+      {t(item.labelKey)}
+    </Link>
+  )
+}
 
 export default function StylistLayout() {
   const location = useLocation()
@@ -45,56 +72,38 @@ export default function StylistLayout() {
   const avatarSrc = user?.avatar ? getUploadUrl(user.avatar) : ''
 
   useStylistPortalSocketRefresh()
+  // WCAG 2.4.3 — fokus prati promjenu rute.
+  useFocusOnNavigate()
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90">
+    <div className="admin-shell min-h-screen bg-surface-sunken">
+      <SkipLink targetId="main" />
+      <header className="sticky top-0 z-20 border-b border-line bg-surface">
         <div className="mx-auto max-w-[1600px] px-4 py-3 flex items-center justify-between gap-3">
           <div className="min-w-0 flex items-center gap-4">
-            <Link to="/stylist/inbox" className="font-semibold text-slate-900 dark:text-slate-50">
+            <Link to="/stylist/inbox" className="font-semibold text-content">
               {t('shell.stylist.title')}
             </Link>
-            <nav className="sm:hidden -mx-1 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
-              {navItems.map((x) => {
-                const isActive =
-                  location.pathname === x.path || location.pathname.startsWith(x.path + '/')
-                return (
-                  <Link
-                    key={x.path}
-                    to={x.path}
-                    className={
-                      isActive
-                        ? 'shrink-0 rounded-md px-3 py-2 text-sm font-semibold text-brand-gold-text bg-brand-champagne/20'
-                        : 'shrink-0 rounded-md px-3 py-2 text-sm text-slate-700 hover:text-brand-gold-text hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900/40'
-                    }
-                  >
-                    {t(x.labelKey)}
-                  </Link>
-                )
-              })}
-            </nav>
-            <nav className="hidden sm:flex items-center gap-1">
-              {navItems.map((x) => {
-                const isActive =
-                  location.pathname === x.path || location.pathname.startsWith(x.path + '/')
-                return (
-                  <Link
-                    key={x.path}
-                    to={x.path}
-                    className={
-                      isActive
-                        ? 'rounded-md px-3 py-2 text-sm font-semibold text-brand-gold-text bg-brand-champagne/20'
-                        : 'rounded-md px-3 py-2 text-sm text-slate-700 hover:text-brand-gold-text hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-900/40'
-                    }
-                  >
-                    {t(x.labelKey)}
-                  </Link>
-                )
-              })}
+            {/* WCAG 1.3.1 — jedna navigacijska landmarka; responsivnost rješava CSS. */}
+            <nav
+              aria-label={t('shell.mainNavigation')}
+              className="-mx-1 flex items-center gap-1 overflow-x-auto whitespace-nowrap sm:mx-0 sm:overflow-visible sm:whitespace-normal"
+            >
+              {navItems.map((item) => (
+                <StylistNavLink key={item.path} item={item} pathname={location.pathname} />
+              ))}
             </nav>
           </div>
 
           <div className="flex items-center gap-2">
+            {/* WCAG 3.2.6 — pomoć je na istom mjestu kao u admin panelu. */}
+            <Link
+              to="/kontakt"
+              className="flex min-h-target min-w-target items-center justify-center rounded-md text-content-muted hover:bg-surface-muted hover:text-content"
+            >
+              <HelpCircle aria-hidden className="h-5 w-5" />
+              <span className="sr-only">{t('shell.help')}</span>
+            </Link>
             <LanguageSwitcher />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -104,7 +113,7 @@ export default function StylistLayout() {
                   size="icon"
                   aria-label={t('shell.userMenu')}
                 >
-                  <Avatar className="h-9 w-9 ring-1 ring-slate-200 dark:ring-slate-800">
+                  <Avatar className="h-9 w-9 ring-1 ring-line">
                     {avatarSrc ? (
                       <AvatarImage
                         src={avatarSrc}
@@ -153,10 +162,10 @@ export default function StylistLayout() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1600px] px-4 py-4">
+      {/* WCAG 2.4.1/2.4.3 — skip link cilja ovaj landmark. */}
+      <main id="main" tabIndex={-1} className="mx-auto max-w-[1600px] px-4 py-4 outline-none">
         <Outlet />
       </main>
     </div>
   )
 }
-

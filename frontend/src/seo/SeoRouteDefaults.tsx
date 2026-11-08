@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 
+import { dashboardTitleKey } from './dashboard-titles'
 import { Seo } from './Seo'
 import { useSeoSettings } from './use-seo-settings'
 
@@ -29,11 +31,17 @@ const fallbackTitle = (pathname: string): string | null => {
 
 export function SeoRouteDefaults() {
   const { pathname } = useLocation()
+  const { t } = useTranslation()
   const seo = useSeoSettings()
   const canonicalUrl = useMemo(() => trimSlash(pathname), [pathname])
   const noindex = useMemo(() => isNoIndexPath(pathname), [pathname])
   const page = seo.forPath(canonicalUrl)
-  const title = page.title || fallbackTitle(pathname)
+  // WCAG 2.4.2 — javne rute imaju hardcoded naslov, admin/stylist/onboarding idu kroz i18n.
+  const dashboardTitle = useMemo(
+    () => (isNoIndexPath(pathname) || pathname === '/profile' ? t(dashboardTitleKey(pathname)) : null),
+    [pathname, t],
+  )
+  const title = page.title || fallbackTitle(pathname) || dashboardTitle
   const description = page.description || (canonicalUrl === '/' ? seo.defaultDescription : null)
   return (
     <Seo

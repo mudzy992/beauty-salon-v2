@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ExternalLink, LogOut } from 'lucide-react'
+import { ExternalLink, HelpCircle, LogOut } from 'lucide-react'
 
 import { Button } from '../../../components/ui/button'
 import { Drawer, DrawerContent } from '../../../components/ui/drawer'
@@ -11,9 +11,11 @@ import { useAuth } from '../../../context/AuthContext'
 import { useSettings } from '../../../context/SettingsContext'
 import api from '../../../api/client'
 import { getUploadUrl } from '../../../utils/uploadUrl'
+import { useFocusOnNavigate } from '../../../hooks/use-focus-on-navigate'
 import { flatAdminNavItems } from './admin-nav'
 import { AdminNav } from './admin-nav-menu'
 import { AdminBrand, AdminUserMenu } from './admin-chrome'
+import { SkipLink } from './ui/skip-link'
 
 export const AdminLayout = () => {
   const { t } = useTranslation()
@@ -22,6 +24,9 @@ export const AdminLayout = () => {
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [pendingBlogComments, setPendingBlogComments] = useState(0)
+
+  // WCAG 2.4.3 — fokus prati promjenu rute umjesto da ostane na početku dokumenta.
+  useFocusOnNavigate()
 
   const brand = {
     hasLogo: !!getSetting('app_logo', '')?.trim(),
@@ -68,8 +73,9 @@ export const AdminLayout = () => {
   }, [])
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white">
+    <div className="admin-shell min-h-screen bg-surface-sunken">
+      <SkipLink targetId="main" />
+      <header className="sticky top-0 z-20 border-b border-line bg-surface">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <Drawer open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -80,7 +86,7 @@ export const AdminLayout = () => {
                     <AdminBrand {...brand} />
                   </div>
                   <div className="mt-4 flex min-w-0 items-center gap-3">
-                    <Avatar className="h-11 w-11 shrink-0 ring-1 ring-slate-200">
+                    <Avatar className="h-11 w-11 shrink-0 ring-1 ring-line">
                       {adminAvatarSrc ? (
                         <AvatarImage
                           src={adminAvatarSrc}
@@ -94,11 +100,11 @@ export const AdminLayout = () => {
                       <AvatarFallback className="font-semibold">{adminInitials}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-slate-900">
+                      <div className="truncate text-sm font-semibold text-content">
                         {user?.username ?? t('shell.adminName')}
                       </div>
                       {user?.email ? (
-                        <div className="truncate text-xs text-slate-500">{user.email}</div>
+                        <div className="truncate text-xs text-content-muted">{user.email}</div>
                       ) : null}
                     </div>
                   </div>
@@ -110,7 +116,7 @@ export const AdminLayout = () => {
                       compact
                     />
                   </div>
-                  <div className="mt-auto grid gap-1 border-t border-slate-200 pt-3">
+                  <div className="mt-auto grid gap-1 border-t border-line pt-3">
                     <Link to="/" onClick={() => setSidebarOpen(false)}>
                       <Button className="w-full" variant="outline" size="sm">
                         <ExternalLink className="mr-2 h-4 w-4" />
@@ -136,8 +142,16 @@ export const AdminLayout = () => {
             <Link to="/admin" className="flex min-w-0 items-center gap-2">
               <AdminBrand {...brand} />
             </Link>
-            <div className="hidden truncate text-sm text-slate-500 md:block">{currentLabel}</div>
+            <div className="hidden truncate text-sm text-content-muted md:block">{currentLabel}</div>
           </div>
+          {/* WCAG 3.2.6 — pomoć je na istom mjestu na svakom admin ekranu. */}
+          <Link
+            to="/kontakt"
+            className="flex min-h-target min-w-target items-center justify-center rounded-md text-content-muted hover:bg-surface-muted hover:text-content"
+          >
+            <HelpCircle aria-hidden className="h-5 w-5" />
+            <span className="sr-only">{t('shell.help')}</span>
+          </Link>
           <AdminUserMenu
             username={user?.username}
             email={user?.email}
@@ -152,11 +166,12 @@ export const AdminLayout = () => {
 
       <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[220px_1fr]">
         <aside className="hidden lg:block">
-          <div className="rounded-lg border border-slate-200 bg-white p-2">
+          <div className="rounded-lg border border-line bg-surface p-2">
             <AdminNav pathname={location.pathname} pendingBlogComments={pendingBlogComments} />
           </div>
         </aside>
-        <main className="min-w-0">
+        {/* WCAG 2.4.1/2.4.3 — skip link cilja ovaj landmark; tabIndex=-1 ga čini fokusabilnim. */}
+        <main id="main" tabIndex={-1} className="min-w-0 outline-none">
           <Outlet />
         </main>
       </div>

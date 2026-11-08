@@ -566,6 +566,9 @@ jobs:
       - name: Test navigation drawer accessibility
         working-directory: frontend
         run: npm run test:navigation-drawer-accessibility
+      - name: Test dashboard shell accessibility (skip link, landmarks, page titles)
+        working-directory: frontend
+        run: npm run test:shell-a11y
       - name: Build (includes TypeScript project check)
         working-directory: frontend
         run: npm run build
