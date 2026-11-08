@@ -43,6 +43,7 @@
     "test:reservation-service-option-accessibility": "node --test src/screens/client/reservation-service-option-accessibility.test.mjs",
     "test:reservation-service-continue-accessibility": "node --test src/screens/client/reservation-service-continue-accessibility.test.mjs",
     "test:reservation-review-accessibility": "node --test src/screens/client/reservation-review-accessibility.test.mjs",
+    "test:reservation-loading-accessibility": "node --test src/screens/client/reservation-loading-accessibility.test.mjs",
     "test:reservation-service-search-accessibility": "node --test src/screens/client/reservation-service-search-accessibility.test.mjs",
     "test:reservation-time-slot-accessibility": "node --test src/screens/client/reservation-time-slot-accessibility.test.mjs",
     "test:reservation-calendar-accessibility": "node --test src/screens/client/reservation-calendar-accessibility.test.mjs",

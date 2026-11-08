@@ -637,7 +637,15 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   if (previousUserId.current !== user?.id) {
     return (
       <View style={[styles.flex, { backgroundColor: colors.background, justifyContent: 'center' }]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator
+          size="large"
+          color={colors.primary}
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={t('common.loading')}
+          accessibilityState={{ busy: true }}
+          accessibilityLiveRegion="polite"
+        />
       </View>
     );
   }
@@ -685,10 +693,28 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
       {step === 1 && (
         <View style={styles.flex}>
           {serviceCatalog.loading && services.length === 0 ? (
-            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
+            <ActivityIndicator
+              size="large"
+              color={colors.primary}
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('reservation.loadingServices')}
+              accessibilityState={{ busy: true }}
+              accessibilityLiveRegion="polite"
+              style={{ marginTop: spacing.xl }}
+            />
           ) : null}
           {serviceCatalog.loading && services.length > 0 ? (
-            <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: spacing.xs }} />
+            <ActivityIndicator
+              size="small"
+              color={colors.primary}
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('reservation.loadingServices')}
+              accessibilityState={{ busy: true }}
+              accessibilityLiveRegion="polite"
+              style={{ marginTop: spacing.xs }}
+            />
           ) : null}
           {serviceCatalog.error ? (
             <Card style={{ marginHorizontal: spacing.md, marginTop: spacing.sm, borderColor: colors.error }}>
@@ -807,7 +833,16 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
           </Card>
 
           {datesLoading ? (
-            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
+            <ActivityIndicator
+              size="large"
+              color={colors.primary}
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('reservation.loadingDates')}
+              accessibilityState={{ busy: true }}
+              accessibilityLiveRegion="polite"
+              style={{ marginTop: spacing.xl }}
+            />
           ) : datesError ? (
             <View style={styles.availabilityError}>
               <Text style={[styles.noSlots, { color: colors.textSecondary }]}>
@@ -873,7 +908,16 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
           </Card>
 
           {slotsLoading ? (
-            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xl }} />
+            <ActivityIndicator
+              size="large"
+              color={colors.primary}
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('reservation.loadingSlots')}
+              accessibilityState={{ busy: true }}
+              accessibilityLiveRegion="polite"
+              style={{ marginTop: spacing.xl }}
+            />
           ) : slotsError ? (
             <View style={styles.availabilityError}>
               <Text style={[styles.noSlots, { color: colors.textSecondary }]}>
@@ -1007,7 +1051,16 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
           </Card>
 
           {loyaltyLoading && !loyaltyInfo ? (
-            <ActivityIndicator size="small" color={colors.primary} style={{ marginBottom: spacing.md }} />
+            <ActivityIndicator
+              size="small"
+              color={colors.primary}
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('reservation.loadingLoyaltyPreview')}
+              accessibilityState={{ busy: true }}
+              accessibilityLiveRegion="polite"
+              style={{ marginBottom: spacing.md }}
+            />
           ) : null}
           {loyaltyLoadError ? (
             <Card style={{ marginBottom: spacing.md, borderColor: colors.error }}>
@@ -1028,7 +1081,16 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
           ) : null}
 
           {debtsLoading && openDebtsTotal === null ? (
-            <ActivityIndicator size="small" color={colors.primary} style={{ marginBottom: spacing.md }} />
+            <ActivityIndicator
+              size="small"
+              color={colors.primary}
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={t('reservation.loadingDebtPreview')}
+              accessibilityState={{ busy: true }}
+              accessibilityLiveRegion="polite"
+              style={{ marginBottom: spacing.md }}
+            />
           ) : null}
           {debtsLoadError ? (
             <Card style={{ marginBottom: spacing.md, borderColor: colors.error }}>
