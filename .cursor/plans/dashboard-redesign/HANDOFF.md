@@ -1,6 +1,6 @@
 # HANDOFF — Dashboard redesign
 
-**Stanje:** ETAPA A odobrena 2026-11-08 (Q1–Q7 po preporuci agenta). **ETAPA B — faza 0 u toku.**
+**Stanje:** **FAZA 0 (Temelj) ZAVRŠENA** — 4 commita, sve verifikovano. **Čeka review prije faze 1.**
 **Grana:** `arena/d2af28f4-beauty-salon-v2` · **Bazni commit:** `9df498a`
 
 ---

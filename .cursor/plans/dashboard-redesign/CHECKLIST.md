@@ -18,7 +18,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 
 | Faza | Modul | Status | Kapija |
 |---|---|---|---|
-| 0 | Temelj (tokeni, shell, primitivi, šabloni) | `[~]` | **STOP poslije** |
+| 0 | Temelj (tokeni, shell, primitivi, šabloni) | `[x]` 4 commita | **STOP poslije — čeka review** |
 | 1 | Dashboard (pilot) | `[ ]` | **STOP poslije** |
 | 2 | Rezervacije (lista + kalendar) | `[ ]` | |
 | 3 | Dnevna knjiga | `[ ]` | |
