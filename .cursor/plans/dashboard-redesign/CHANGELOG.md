@@ -713,3 +713,52 @@ ništa nije zapisano; ispravljeno čitanjem stvarnog formata.
 | `test:daily-log-form-a11y` | **14/14** |
 | `amounts.ts` diff | **prazan** |
 | `check_i18n` / `check_ui_contrast` / `check_repo_hygiene` / `check_doc_links` | **PASS** / **80/80** / **PASS** / **670-202** |
+
+---
+
+## Faza 3 — Dnevna knjiga: nalaz koji **opovrgava** planiranu stavku 3.3.1
+
+Plan §5 navodi `3.3.1–3.3.4` kao WCAG stavke modula, a audit je našao **0 `aria-invalid`**,
+**0 `aria-describedby`** i **0 `role="alert"`** u `features/daily-log/`. Na prvi pogled to
+izgleda kao prekršaj 3.3.1. **Nije**, i zato `aria-invalid` / sažetak grešaka **nisu
+implementirani**.
+
+### Zašto
+
+Validacija u `use-daily-log-form.ts:197-210` javlja greške preko `warning(...)`, koji dolazi
+iz `useAppToast` → `toast.warning` iz biblioteke **sonner**. Prvi grep po našim fajlovima
+(`lib/toast/toaster.tsx`, `lib/toast/useAppToast.ts`) nije našao nijedan `aria-live`, ali to
+**nije dokaz** — ta dva fajla su samo omotači; markup renderuje sonner.
+
+Provjera `frontend/node_modules/sonner/dist/index.mjs` (verzija **2.0.8**):
+
+```
+aria-live": "polite"          (1 pojavljivanje)
+aria-atomic": "false"
+aria-relevant": "additions text"
+```
+
+Dakle toast **ima live region** i greška se **najavljuje** čitaču ekrana. Poruke
+(`dailyLog.form.validation.stylistAndServiceRequired`, `…paidAmountInvalid`,
+`…debtsAmountInsufficient`, `…clientRequiredForDebt`) **imenuju polje u grešci**, što je
+upravo ono što 3.3.1 traži („stavka u grešci je identifikovana i greška je opisana tekstom").
+
+### Metoda — greška koju je trebalo izbjeći
+
+Prvi grep je tražio literal `aria-live="polite"` s dvostrukim navodnicima. Minificirani React
+bundle postavlja atribute kao **svojstva objekta** (`"aria-live":"polite"`), pa taj obrazac
+**ne može** pogoditi. Prazan rezultat je bio artefakt obrasca, ne odsustvo atributa.
+Ponovljeni labaviji grep (`aria-live` bez navodnika) našao ga je odmah.
+
+**Pouka:** prije tvrdnje da atribut nedostaje, provjeriti i third-party izlaz, i koristiti
+labavi obrazac. Isti obrazac greške se već pojavio s `node_modules/react-big-calendar/lib/Event.js`
+(fajl ne postoji → grep prazan → pogrešan zaključak).
+
+### Šta **jeste** slabije (ali nije WCAG prekršaj)
+
+- Nema `aria-invalid` na polju, pa korisnik koji se kasnije vrati na polje ne saznaje da je u grešci
+- Nema `aria-describedby` koji veže poruku uz polje
+- Fokus se ne pomjera na polje u grešci
+
+Ovo su poboljšanja, ne usklađenost. Ostavljeno svjesno; ako se ikad radi, treba ići uz
+Playwright/axe (faza 13), ne naslijepo.
