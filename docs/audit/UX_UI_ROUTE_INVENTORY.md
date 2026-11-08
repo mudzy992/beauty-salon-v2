@@ -358,3 +358,7 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 3. **Web/mobile admin and stylist + cross-cutting closure — Pass 3 pending.** Check protected navigation, route-specific data states, dialogs/drawers, responsive layout, keyboard/focus, contrast, and localization; then reconcile the route/state matrix and list any acceptance blockers. Source/build checks do not substitute for browser or device review.
 
 Pass 1 currently has source/build evidence only. Do not mark rendered, browser, screen-reader, or physical-device criteria complete until an actual reviewer supplies that evidence.
+
+**Pass 2 checkpoint (2026-10-21):** 73 focused mobile client/profile/services/reservation/auth/onboarding source-test scripts passed, as did mobile TypeScript and i18n guards. Expo Web exported successfully (2,051 modules); the live Metro web shell on port 8081 returns HTTP 200. These verify dependency resolution and bundle generation, not rendered visual behavior, keyboard focus, or native screen-reader announcements. Pass 2 remains open for actual browser/device acceptance and any resulting fixes.
+
+**Browser-render review limitation (2026-10-21):** Vite and Expo web previews are live for reviewer inspection. A sandbox headless-Chromium attempt could not launch because the host lacks `libnspr4.so`; no DOM screenshot, axe scan, measured viewport overflow, or real Tab/focus traversal is claimed. Browser and native assistive-technology acceptance stays explicitly pending.
