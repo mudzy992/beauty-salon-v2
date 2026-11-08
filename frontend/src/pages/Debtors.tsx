@@ -125,7 +125,7 @@ export default function Debtors({ embedded = false }: Props) {
         ) : rows.length === 0 ? (
           <div className="text-sm text-slate-500">{t('debtors.noOpenDebts')}</div>
         ) : (
-          <div className="grid gap-2">
+          <ul className="grid gap-2">
             {rows.map((d) => {
               const clientName = `${d.client.firstName ?? ''} ${d.client.lastName ?? ''}`.trim() || d.client.username
               const stylistName = d.stylistProfile?.user
@@ -139,9 +139,9 @@ export default function Debtors({ embedded = false }: Props) {
                     ? t('debtors.manualEntryReference', { date: formatDate(d.manualEntry.date) })
                     : '—'
               return (
-                <div
+                <li
                   key={d.id}
-                  className="flex items-start justify-between gap-3 rounded-md border border-slate-200 p-3 dark:border-slate-800"
+                  className="flex items-start justify-between gap-3 rounded-md border border-line p-3"
                 >
                   <div className="min-w-0">
                     <div className="truncate font-semibold text-slate-900 dark:text-slate-50">
@@ -160,10 +160,10 @@ export default function Debtors({ embedded = false }: Props) {
                       {formatLocalizedAmount(Number(d.amount), i18n.language)}
                     </div>
                   </div>
-                </div>
+                </li>
               )
             })}
-          </div>
+          </ul>
         )}
       </Card>
 

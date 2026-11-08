@@ -1163,3 +1163,74 @@ Sve zamjene su na `border-input-border` (→ `--control-border` unutar `.admin-s
 **prolaze** kontrast (`slate-900` 17.85, `slate-600` 7.58, `slate-500` 4.76, `slate-100`/`50`
 kao pozadine). Migracija na tokene je kozmetika dizajn sistema, ne usklađenost — namjerno
 nije rađena pod izgovorom a11y popravke.
+
+---
+
+## 2026-11-08 — FAZA 4, commit 3: Debtors 1.3.1 + korekcija pogrešne tvrdnje
+
+### Korekcija: `pages/Debtors.tsx` NEMA tabelu
+
+Ranije u ovoj sesiji tvrdio sam da `pages/Debtors.tsx` sadrži `<table>` s `<thead>`, tri
+`<th>` i `<td colSpan={3}>`, i na osnovu toga zaključio da D6 (caption/scope) tamo pripada.
+**Ta tvrdnja je bila pogrešna.**
+
+Direktna provjera: `grep -c "table" pages/Debtors.tsx` → **0** (exit 1). Fajl ima 7547 B,
+200 linija; linije 1-45 su importi i hookovi (`const rows` je na **ln 77**), pa markup iz
+onog `sed -n '1,45p'` ispisa **nije mogao** biti iz ovog fajla — pogrešno sam ga pripisao.
+
+Stvarna struktura (ln 121-167): `Card` → ternarni lanac `isLoading` / `isError` /
+`rows.length === 0` / **`<div className="grid gap-2">`** s `<div>` karticama po dugu.
+**Nema tabele**, pa caption/`scope` ovdje ne pripada. Ispravka je bitna jer je pogrešna
+tvrdnja vodila ka pogrešnom zaključku o obimu D6.
+
+### Stvarni nalaz: 1.3.1 — lista dugovanja bez semantike liste
+
+`rows.map()` je renderovao `<div>` stavke unutar `<div className="grid gap-2">`. Vizualno su
+stavke grupisane (border + padding), ali **programski neodredljivo** — čitač ekrana dobije
+ravan niz teksta bez naznake da su to zasebni zapisi niti koliko ih ima.
+
+Popravka:
+- `<div className="grid gap-2">` → **`<ul className="grid gap-2">`**
+- `<div key={d.id} …>` → **`<li key={d.id} …>`**, uz odgovarajuća zatvaranja
+- usput `border-slate-200 dark:border-slate-800` → **`border-line`** (konzistentnost)
+
+Rezultat: `ul=1 /ul=1 li=1 /li=1` (jedan par, kako i treba za jednu listu).
+
+**Sigurnost izmjene:** `features/debtors/debtors-i18n.test.mjs` zaključava samo
+`formatLocalizedAmount(Number(d.amount), i18n.language)`, `formatDateOnlyLocale`,
+`queryKey: ['debts','all','OPEN',…]`, `status: 'OPEN'`, `totalAmount` i debounce od 350 ms —
+**ništa od div strukture**. Test i dalje PASS.
+
+### Stanje faze 4 nakon tri commita
+
+| kategorija | broj | prag | prije → poslije |
+|---|---|---|---|
+| granice form kontrola (1.4.11) | **8** | 3:1 | 1.23 / 1.48 → **4.24** |
+| tekst (1.4.3) | **5** | 4.5:1 | 2.56 / 3.19 → **5.61 / 8.34** |
+| semantika liste (1.3.1) | **1** | — | `div` grid → **`ul`/`li`** |
+
+**Plan stavke:** D2/D4/D6/D10 ✅ · D1 već gotov · D3/D7/D8 opovrgnuti · D5 zadovoljen ·
+D9 faza 11. Tabovi (4.1.2), 4.1.3 i 3.3.1–3.3.4 **nisu prekršaji** (Radix, `role="alert"`).
+2.4.7 zadovoljen (`outline-none` se u finance pojavljuje **0** puta + globalni `:focus-visible`
+na `globals.css:208`).
+
+### Otvoreno, nije verificirano
+
+`expense-filters.tsx:90` — `<label className="flex items-center gap-2 text-xs …">` oko
+checkboxa **nema visine**, pa je efektivni cilj ~16 px, ispod 24 px iz WCAG 2.5.8. Označeno
+kao **granično, ne potvrđen prekršaj**: 2.5.8 ima izuzetak za razmak, a bez browsera ne mogu
+izmjeriti stvarnu geometriju ni razmak do susjednih kontrola. Nije "popravljeno" nasumičnim
+povećanjem jer bi to promijenilo vizualni dizajn filtera.
+
+### Verifikacija
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` skripte | **152/152 PASS**, 0 fail |
+| `test:debtors-i18n` | **PASS** |
+| `npm run build` | **PASS**, **272.6 KiB gzip** (budžet 300) |
+| `check_i18n.py --strict` | **PASS** — 2622/2622 |
+| `check_ui_contrast.py` | **PASS** — 80/80 |
+| `check_doc_links.py` | **PASS** — 670 / 202 |
+| `finance.types.ts`, `api/*`, `hooks/*` | **bez diff-a** |
+| `MATRIX.md` | **netaknut** |
