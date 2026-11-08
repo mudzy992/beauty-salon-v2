@@ -946,7 +946,10 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
           contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.reviewTitle, { color: colors.text }]}>
+          <Text
+            style={[styles.reviewTitle, { color: colors.text }]}
+            accessibilityRole="header"
+          >
             {t('reservation.review')}
           </Text>
 
@@ -1148,6 +1151,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
 
           <Button
             title={t('reservation.submit')}
+            accessibilityHint={t('reservation.submitAccessibilityHint')}
             onPress={handleSubmit}
             loading={submitting}
             fullWidth

@@ -213,6 +213,7 @@ export const bs = {
     notesAccessibilityHint: 'Unesite dodatnu informaciju za frizera koja će biti dodana uz rezervaciju.',
     review: 'Pregled rezervacije',
     submit: 'Pošalji rezervaciju',
+    submitAccessibilityHint: 'Potvrdite slanje rezervacije za odabrani termin.',
     service: 'Usluga',
     date: 'Datum',
     time: 'Termin',
