@@ -638,6 +638,9 @@ jobs:
       - name: Test mobile reservation service-option accessibility
         working-directory: mobile
         run: npm run test:reservation-service-option-accessibility
+      - name: Test mobile reservation service continue accessibility
+        working-directory: mobile
+        run: npm run test:reservation-service-continue-accessibility
       - name: Test mobile reservation service-search accessibility
         working-directory: mobile
         run: npm run test:reservation-service-search-accessibility

@@ -752,7 +752,8 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
           />
           <View style={{ padding: spacing.md, paddingBottom: spacing.md + tabBarBottom }}>
             <Button
-              title={selectedServices.length > 0 ? 'Nastavi' : 'Odaberite servis'}
+              title={t(selectedServices.length > 0 ? 'reservation.continueToDate' : 'reservation.selectService')}
+              accessibilityHint={t('reservation.continueFromServicesHint')}
               onPress={handleContinueFromServices}
               disabled={selectedServices.length === 0}
             />

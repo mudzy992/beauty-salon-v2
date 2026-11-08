@@ -192,6 +192,8 @@ export const bs = {
     progressLabel: 'Napredak rezervacije',
     title: 'Rezervacija',
     selectService: 'Odaberite uslugu',
+    continueToDate: 'Nastavi na izbor datuma',
+    continueFromServicesHint: 'Izaberite jednu ili više usluga da nastavite na izbor datuma.',
     serviceSelectionAccessibilityLabel: '{{service}}, {{duration}} min.',
     serviceSelectionAccessibilityHint: 'Odaberite ili uklonite ovu uslugu iz rezervacije.',
     serviceSearchLabel: 'Pretraga usluga',
