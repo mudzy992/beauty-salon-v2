@@ -252,6 +252,8 @@ export const bs = {
   },
   myReservations: {
     title: 'Moje rezervacije',
+    reservationCardAccessibilityLabel: 'Rezervacija: {{services}}. {{date}}, {{time}}. Status: {{status}}.',
+    reservationCardAccessibilityHint: 'Otvara detalje ove rezervacije.',
     upcoming: 'Nadolazeće',
     past: 'Prošle',
     noReservations: 'Nemate rezervacija',

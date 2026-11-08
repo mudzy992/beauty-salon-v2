@@ -680,6 +680,9 @@ jobs:
       - name: Test My Reservations action identity guards
         working-directory: mobile
         run: npm run test:my-reservations-identity
+      - name: Test My Reservations card accessibility
+        working-directory: mobile
+        run: npm run test:my-reservations-card-accessibility
       - name: Test reservation benefit read recovery
         working-directory: mobile
         run: npm run test:reservation-benefit-recovery

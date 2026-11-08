@@ -436,7 +436,13 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
           activeOpacity={0.85}
           onPress={() => navigation.navigate('ReservationDetail', { reservationId: item.id })}
           accessibilityRole="button"
-          accessibilityLabel={t('reservationDetail.title')}
+          accessibilityLabel={t('myReservations.reservationCardAccessibilityLabel', {
+            services: services.map((service) => service.name).join(', ') || title,
+            date: formatDate(item.reservationDate),
+            time: `${formatTime(item.startTime)} - ${formatTime(item.endTime)}`,
+            status: statusLabel,
+          })}
+          accessibilityHint={t('myReservations.reservationCardAccessibilityHint')}
         >
         <View style={styles.cardHeader}>
           <Text style={[styles.serviceName, { color: colors.text }]}>
