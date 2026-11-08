@@ -21,6 +21,9 @@ import {
 } from '../features/reservations/status'
 
 import { Badge } from '../components/ui/badge'
+import { PageHeader } from '../features/shell/admin/ui/page-header'
+import { StatusBadge } from '../features/shell/admin/ui/status-badge'
+import { reservationStatusDescriptor } from '../features/reservations/reservation-status-view'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
@@ -81,15 +84,6 @@ interface PaginatedResponse<T> {
   pageSize: number
 }
 
-const getStatusBadgeVariant = (status: string) => {
-  if (status === 'COMPLETED') return 'success'
-  if (status === 'CONFIRMED' || status === 'ATTENDANCE_CONFIRMED') return 'brand'
-  if (status === 'IN_PROGRESS') return 'secondary'
-  if (status === 'PENDING' || status === 'STYLIST_REVIEW' || status === 'AWAITING_DAILY_LOG') return 'warning'
-  if (status === 'CANCELLED_BY_CLIENT' || status === 'CANCELLED_BY_STYLISTS' || status === 'NO_SHOW') return 'danger'
-  return 'secondary'
-}
-
 const getClientName = (c?: ReservationClient) => {
   if (!c) return '-'
   return (`${c.firstName ?? ''} ${c.lastName ?? ''}`.trim() || c.username || '-') as string
@@ -136,6 +130,8 @@ export default function Reservations() {
   const [cancelReason, setCancelReason] = useState('')
   const [cancelling, setCancelling] = useState(false)
   const [confirmingAttendance, setConfirmingAttendance] = useState(false)
+  /** WCAG 4.1.3 — realtime osvježavanje ne smije tiho zamijeniti podatke. */
+  const [refreshNotice, setRefreshNotice] = useState<string | null>(null)
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedClientSearch(clientSearch.trim()), 300)
@@ -185,7 +181,16 @@ export default function Reservations() {
     setPage(0)
   }, [fromDate, toDate, statusFilter, debouncedClientSearch])
 
-  useReservationSocketRefresh(loadData)
+  const handleSocketRefresh = useCallback(() => {
+    loadData()
+    setRefreshNotice(
+      t('reservations.adminList.autoRefreshed', {
+        time: new Date().toLocaleTimeString(i18n.language),
+      }),
+    )
+  }, [loadData, t, i18n.language])
+
+  useReservationSocketRefresh(handleSocketRefresh)
 
   const openDetail = async (r: Reservation) => {
     try {
@@ -265,29 +270,33 @@ export default function Reservations() {
       const final = base - amt
       return (
         <div className="text-right">
-          <p className="font-medium text-slate-900 dark:text-slate-50">{base.toFixed(2)} KM</p>
-          <p className="text-xs text-emerald-700 dark:text-emerald-300">
+          <p className="font-medium text-content">{base.toFixed(2)} KM</p>
+          <p className="text-xs text-ok-foreground">
             -{pct}% ({amt.toFixed(2)} KM) → <span className="font-semibold">{final.toFixed(2)} KM</span>
           </p>
         </div>
       )
     }
-    return <span className="font-medium text-slate-900 dark:text-slate-50">{base.toFixed(2)} KM</span>
+    return <span className="font-medium text-content">{base.toFixed(2)} KM</span>
   }
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">
-          {t('nav.reservations')}
-        </h1>
-        <Button asChild type="button" variant="outline">
-          <RouterLink to="/admin/reservations/calendar">
-            <CalendarDays className="mr-2 h-4 w-4" aria-hidden="true" />
-            {t('reservations.adminList.calendar')}
-          </RouterLink>
-        </Button>
-      </div>
+      <PageHeader
+        title={t('nav.reservations')}
+        actions={
+          <Button asChild type="button" variant="outline">
+            <RouterLink to="/admin/reservations/calendar">
+              <CalendarDays className="mr-2 h-4 w-4" aria-hidden="true" />
+              {t('reservations.adminList.calendar')}
+            </RouterLink>
+          </Button>
+        }
+      />
+
+      <p role="status" aria-live="polite" className="sr-only">
+        {refreshNotice}
+      </p>
 
       <Card className="mb-4">
         <div className="p-4">
@@ -319,13 +328,13 @@ export default function Reservations() {
 
       <Card className="overflow-hidden">
         {loading ? (
-          <div role="status" className="flex justify-center p-10 text-slate-500">
+          <div role="status" className="flex justify-center p-10 text-content-muted">
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
             <span className="sr-only">{t('common.loading')}</span>
           </div>
         ) : loadError ? (
           <div className="flex flex-col items-center gap-3 p-10 text-center">
-            <p role="alert" className="text-sm text-rose-700 dark:text-rose-300">
+            <p role="alert" className="text-sm text-bad-foreground">
               {t('reservations.adminList.loadError')}
             </p>
             <Button type="button" variant="outline" onClick={() => loadData()}>
@@ -336,28 +345,29 @@ export default function Reservations() {
           <>
             <div className="grid grid-cols-1 gap-3 p-3 lg:hidden">
               {items.length === 0 ? (
-                <p className="p-3 text-sm text-slate-500">{t('common.noData')}</p>
+                <p className="p-3 text-sm text-content-muted">{t('common.noData')}</p>
               ) : (
                 items.map((r) => (
                   <button
                     key={r.id}
                     type="button"
-                    className="w-full rounded-md border border-slate-200 bg-white p-3 text-left hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/40"
+                    className="w-full rounded-md border border-line bg-surface p-3 text-left hover:bg-surface-muted"
                     onClick={() => void openDetail(r)}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-50">{String(r.reservationDate).slice(0, 10)}</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                        <p className="font-medium text-content">{String(r.reservationDate).slice(0, 10)}</p>
+                        <p className="text-sm text-content-muted">
                           {r.startTime} - {r.endTime}
                         </p>
                       </div>
-                      <Badge variant={getStatusBadgeVariant(r.status)} className="text-[10px]">
-                        {getLocalizedReservationStatusLabel(r.status, r.cancelReason)}
-                      </Badge>
+                      <StatusBadge
+                        status={reservationStatusDescriptor(r.status, r.cancelReason)}
+                        label={getLocalizedReservationStatusLabel(r.status, r.cancelReason)}
+                      />
                     </div>
-                  <p className="mt-2 text-sm text-slate-900 dark:text-slate-50">{serviceSummary(r)}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-300">{getClientName(r.client)}</p>
+                  <p className="mt-2 text-sm text-content">{serviceSummary(r)}</p>
+                    <p className="text-sm text-content-muted">{getClientName(r.client)}</p>
                   </button>
                 ))
               )}
@@ -367,7 +377,7 @@ export default function Reservations() {
               <table className="app-table w-full border-collapse">
                 <caption className="sr-only">{t('nav.reservations')}</caption>
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
+                  <tr className="border-b border-line text-left text-xs uppercase text-content-muted">
                     <th scope="col" className="p-3 font-medium">{t('reservations.adminList.date')}</th>
                     <th scope="col" className="p-3 font-medium">{t('reservations.adminList.time')}</th>
                     <th scope="col" className="p-3 font-medium">{t('reservations.adminList.client')}</th>
@@ -381,7 +391,7 @@ export default function Reservations() {
                 <tbody>
                   {items.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-6 text-slate-500">
+                      <td colSpan={8} className="p-6 text-content-muted">
                         {t('common.noData')}
                       </td>
                     </tr>
@@ -389,7 +399,7 @@ export default function Reservations() {
                     items.map((r) => (
                       <tr
                         key={r.id}
-                        className="cursor-pointer border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-slate-900/40"
+                        className="cursor-pointer border-b border-line hover:bg-surface-muted"
                         onClick={() => void openDetail(r)}
                       >
                         <td className="p-3">{String(r.reservationDate).slice(0, 10)}</td>
@@ -423,13 +433,14 @@ export default function Reservations() {
                           )}
                         </td>
                         <td className="p-3">
-                          <Badge variant={getStatusBadgeVariant(r.status)} className="text-[10px]">
-                            {getLocalizedReservationStatusLabel(r.status, r.cancelReason)}
-                          </Badge>
+                          <StatusBadge
+                            status={reservationStatusDescriptor(r.status, r.cancelReason)}
+                            label={getLocalizedReservationStatusLabel(r.status, r.cancelReason)}
+                          />
                         </td>
                         <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
-                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('reservations.adminList.details')} onClick={() => void openDetail(r)}>
-                            <Eye className="h-4 w-4 text-blue-600" aria-hidden="true" />
+                          <Button type="button" size="icon" variant="ghost" aria-label={t('reservations.adminList.details')} onClick={() => void openDetail(r)}>
+                            <Eye className="h-4 w-4 text-info-foreground" aria-hidden="true" />
                           </Button>
                         </td>
                       </tr>
@@ -443,13 +454,16 @@ export default function Reservations() {
       </Card>
 
       {!loading && !loadError ? (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-slate-500">{t('reservations.adminList.total', { total })}</p>
+        <nav
+          aria-label={t('table.pagination')}
+          className="mt-4 flex flex-wrap items-center justify-between gap-3"
+        >
+          <p className="text-sm text-content-muted">{t('reservations.adminList.total', { total })}</p>
           <div className="flex items-center gap-2">
             <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
               {t('reservations.adminList.previous')}
             </Button>
-            <span className="text-sm text-slate-600 dark:text-slate-300">
+            <span role="status" aria-live="polite" className="text-sm text-content-muted tabular-nums">
               {page + 1} / {totalPages}
             </span>
             <Button
@@ -462,7 +476,7 @@ export default function Reservations() {
               {t('reservations.adminList.next')}
             </Button>
           </div>
-        </div>
+        </nav>
       ) : null}
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -474,67 +488,69 @@ export default function Reservations() {
           {detail ? (
             <div className="space-y-4 text-sm">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-medium text-slate-900 dark:text-slate-50">{t('reservations.adminDetail.status')}</p>
-                <Badge variant={getStatusBadgeVariant(detail.status)} className="px-3 py-1 text-sm">
-                  {getLocalizedReservationStatusLabel(detail.status, detail.cancelReason)}
-                </Badge>
+                <p className="font-medium text-content">{t('reservations.adminDetail.status')}</p>
+                <StatusBadge
+                  status={reservationStatusDescriptor(detail.status, detail.cancelReason)}
+                  label={getLocalizedReservationStatusLabel(detail.status, detail.cancelReason)}
+                  className="px-3 py-1 text-sm"
+                />
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div>
-                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.date')}</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-50">{String(detail.reservationDate).slice(0, 10)}</p>
+                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.date')}</p>
+                  <p className="font-medium text-content">{String(detail.reservationDate).slice(0, 10)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.time')}</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-50">
+                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.time')}</p>
+                  <p className="font-medium text-content">
                     {detail.startTime} – {detail.endTime}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.created')}</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-50">{formatLocalizedDateTime(detail.createdAt, i18n.language)}</p>
+                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.created')}</p>
+                  <p className="font-medium text-content">{formatLocalizedDateTime(detail.createdAt, i18n.language)}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
-                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.client')}</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-50">{getClientName(detail.client)}</p>
-                  {detail.client?.phone ? <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t('reservations.adminDetail.phone')}: {detail.client.phone}</p> : null}
+                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.client')}</p>
+                  <p className="font-medium text-content">{getClientName(detail.client)}</p>
+                  {detail.client?.phone ? <p className="mt-1 text-sm text-content-muted">{t('reservations.adminDetail.phone')}: {detail.client.phone}</p> : null}
                 </div>
                 <div>
-                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.confirmedStylist')}</p>
-                  <p className="font-medium text-slate-900 dark:text-slate-50">{getListStylistName(detail.confirmedStylist)}</p>
+                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.confirmedStylist')}</p>
+                  <p className="font-medium text-content">{getListStylistName(detail.confirmedStylist)}</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-xs text-slate-500">{t('reservations.adminDetail.service')}</p>
+                <p className="text-xs text-content-muted">{t('reservations.adminDetail.service')}</p>
                 {detail.items && detail.items.length > 0 ? (
                   <div className="mt-2 space-y-2">
                     {[...detail.items]
                       .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
                       .map((it) => (
-                        <div key={it.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900/30">
-                          <p className="font-medium text-slate-900 dark:text-slate-50">{it.service?.name ?? '-'}</p>
-                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                        <div key={it.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface-muted p-2">
+                          <p className="font-medium text-content">{it.service?.name ?? '-'}</p>
+                          <p className="text-sm text-content-muted">
                             {Number(it.service?.durationMinutes ?? 0)} {t('reservations.adminDetail.minuteUnit')} | {formatLocalizedAmount(Number(it.service?.price ?? 0), i18n.language)}
                           </p>
                         </div>
                       ))}
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-sm">
-                      <p className="font-medium text-slate-900 dark:text-slate-50">{t('reservations.adminDetail.total')}</p>
-                      <p className="text-slate-700 dark:text-slate-300">
+                      <p className="font-medium text-content">{t('reservations.adminDetail.total')}</p>
+                      <p className="text-content-strong">
                         {getServicesTotals(detail).totalMinutes} {t('reservations.adminDetail.minuteUnit')} | {formatLocalizedAmount(getServicesTotals(detail).totalPrice, i18n.language)}
                       </p>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <p className="font-medium text-slate-900 dark:text-slate-50">{detail.service?.name ?? '-'}</p>
+                    <p className="font-medium text-content">{detail.service?.name ?? '-'}</p>
                     {detail.service ? (
-                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      <p className="mt-1 text-sm text-content-muted">
                         {detail.service.durationMinutes} {t('reservations.adminDetail.minuteUnit')} | {formatLocalizedAmount(Number(detail.service.price), i18n.language)}
                       </p>
                     ) : null}
@@ -544,25 +560,25 @@ export default function Reservations() {
 
               {detail.clientNotes ? (
                 <div>
-                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.clientNotes')}</p>
-                  <p className="mt-1 whitespace-pre-wrap text-slate-900 dark:text-slate-50">{detail.clientNotes}</p>
+                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.clientNotes')}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-content">{detail.clientNotes}</p>
                 </div>
               ) : null}
 
               {detail.cancelReason ? (
                 <div>
-                  <p className="text-xs text-slate-500">{t('reservations.adminDetail.cancellationReason')}</p>
-                  <p className="mt-1 whitespace-pre-wrap text-rose-700 dark:text-rose-300">{detail.cancelReason}</p>
+                  <p className="text-xs text-content-muted">{t('reservations.adminDetail.cancellationReason')}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-bad-foreground">{detail.cancelReason}</p>
                 </div>
               ) : null}
 
               {detail.stylistResponses && detail.stylistResponses.length > 0 ? (
                 <div>
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('reservations.adminDetail.stylistResponses')}</p>
+                  <p className="text-sm font-medium text-content">{t('reservations.adminDetail.stylistResponses')}</p>
                   <div className="mt-2 space-y-2">
                     {detail.stylistResponses.map((sr) => (
-                      <div key={sr.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900/30">
-                        <p className="text-sm text-slate-900 dark:text-slate-50">{sr.stylistProfile?.user?.username ?? '-'}</p>
+                      <div key={sr.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface-muted p-2">
+                        <p className="text-sm text-content">{sr.stylistProfile?.user?.username ?? '-'}</p>
                         <Badge
                           variant={
                             sr.status === 'ACCEPTED'
@@ -573,11 +589,11 @@ export default function Reservations() {
                                   ? 'warning'
                                   : 'secondary'
                           }
-                          className="text-[10px]"
+                          className="text-xs"
                         >
                           {t(`reservations.adminDetail.responseStatuses.${sr.status}`, { defaultValue: sr.status })}
                         </Badge>
-                        {sr.rejectionReason ? <p className="text-xs text-slate-500">{sr.rejectionReason}</p> : null}
+                        {sr.rejectionReason ? <p className="text-xs text-content-muted">{sr.rejectionReason}</p> : null}
                       </div>
                     ))}
                   </div>
@@ -585,11 +601,11 @@ export default function Reservations() {
               ) : null}
 
               {detail.status === 'AWAITING_DAILY_LOG' ? (
-                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
+                <div className="rounded-md border border-line bg-warn p-3">
+                  <p className="text-sm font-medium text-content">
                     {t('reservations.adminDetail.dailyLogTitle')}
                   </p>
-                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                  <p className="mt-1 text-xs text-content-muted">
                     {t('reservations.adminDetail.dailyLogHelp')}
                   </p>
                   <div className="mt-3 flex justify-end">
@@ -601,11 +617,11 @@ export default function Reservations() {
               ) : null}
 
               {canAdminConfirmAttendance(detail) ? (
-                <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
+                <div className="rounded-md border border-line p-3">
+                  <p className="text-sm font-medium text-content">
                     {t('reservations.adminDetail.confirmAttendanceTitle')}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-content-muted">
                     {t('reservations.adminDetail.confirmAttendanceHelp')}
                   </p>
                   <div className="mt-3 flex justify-end">
@@ -621,9 +637,9 @@ export default function Reservations() {
               ) : null}
 
               {canAdminCancelReservation(detail.status) ? (
-                <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('reservations.adminDetail.cancelTitle')}</p>
-                  <p className="mt-1 text-xs text-slate-500">{t('reservations.adminDetail.cancelHelp')}</p>
+                <div className="rounded-md border border-line p-3">
+                  <p className="text-sm font-medium text-content">{t('reservations.adminDetail.cancelTitle')}</p>
+                  <p className="mt-1 text-xs text-content-muted">{t('reservations.adminDetail.cancelHelp')}</p>
                   <div className="mt-3 space-y-2">
                     <Textarea
                       placeholder={t('reservations.adminDetail.cancelReasonPlaceholder')}
@@ -634,8 +650,7 @@ export default function Reservations() {
                     <div className="flex justify-end">
                       <Button
                         type="button"
-                        variant="outline"
-                        className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-950/20"
+                        variant="danger"
                         onClick={() => void handleCancel()}
                         disabled={cancelling}
                       >

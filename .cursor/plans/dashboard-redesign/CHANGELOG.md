@@ -311,3 +311,80 @@ prošla s **147/147 zelenih** i 4/4 gateova, a dashboard je bio neupotrebljiv.
 Statički (regex) testovi dokazuju **prisustvo markupa**, ne **ispravnost izvršavanja**.
 Od faze 2 nadalje svaki modul koji uvodi nove komponente mora imati barem jedan
 render scenario u `render-smoke.test.mjs` — to je sada kapija, ne preporuka.
+
+---
+
+## Faza 2 — Rezervacije (commit 1: lista)
+
+### Opseg
+
+`frontend/src/pages/Reservations.tsx` (660 → 675 ln) + novi modul
+`frontend/src/features/reservations/reservation-status-view.ts` (40 ln).
+**Netaknuto (parity ugovor):** `status.ts`, `reservation-list.api.ts`, `types.ts`.
+
+### Audit koji je opovrgnuo plan
+
+Prije izmjena je proveden audit samog modula. **Dvije tvrdnje iz `05_phase-2-reservations.md`
+nisu tačne** i zato nisu implementirane:
+
+| Tvrdnja plana | Stvarno stanje (izmjereno) |
+|---|---|
+| D10: „`Search` ikona `text-slate-400`" u listi | `text-slate-400` postoji **samo** u `ReservationScheduler.tsx:1054`; u listi ga nema |
+| D3: tabeli treba dodati `caption` + `scope="col"` | Tabela liste **već ima** `<caption className="sr-only">` i tačno **8×** `scope="col"` |
+
+Radeni su samo defekti koji su **stvarno izmjereni** u izvornom kodu.
+
+### Izmjene
+
+| WCAG | Izmjena |
+|---|---|
+| **1.4.1** | `<Badge variant={getStatusBadgeVariant(...)}>` (boja-only, `text-[10px]`) → `<StatusBadge>` (ikona + tekst + ton) na **3** mjesta; `getStatusBadgeVariant` (13 ln duplirane logike) obrisan kao mrtav kod |
+| **1.4.3** | **55** zamjena cijelih `className` vrijednosti: `slate/emerald/rose/amber/blue-*` → `content/content-muted/content-strong/surface/surface-muted/line/ok-foreground/bad-foreground/info-foreground/warn/danger`. Rezultat: **0** sirovih paletnih klasa u fajlu |
+| **2.4.1** | Paginacija više nije anonimni `<div>` — sada `<nav aria-label={t('table.pagination')}>` |
+| **2.4.6** | Ručni `<h1>` blok → dijeljeni `PageHeader` (jedinstveni `h1` + actions slot) |
+| **2.5.5/2.5.8** | Dugme „Detalji" `h-8 w-8` (32 px) → primitiv `size="icon"` (40 px) |
+| **4.1.3** | Socket osvježavanje više nije tiho: `handleSocketRefresh` puni `role="status"` live region; indikator stranice `{page+1}/{totalPages}` dobio `role="status" aria-live="polite"` + `tabular-nums` |
+| **1.4.4** | `text-[10px]` (3×) → `text-xs` (12 px), minimum dizajn sistema |
+| — | Cancel dugme: hardkodirane `rose-*` klase → `variant="danger"` (5.22:1, verificirano u fazi 0) |
+
+### Novi i18n ključ
+
+`reservations.adminList.autoRefreshed` (BS + EN) — **2615 → 2616**.
+
+### Promjena testa (opravdanje)
+
+`admin-reservations-list-page-i18n.test.mjs` je rezao `listMarkup` od literala
+`<div className="mb-4 flex flex-wrap items-center justify-between gap-3">`. Taj `div` je
+zamijenjen `PageHeader`-om pa je `indexOf` vratio `-1`. **Anchor je repointan na `<PageHeader`,
+garantija je nepromijenjena** — i dalje se reže isključivo markup liste (od zaglavlja do
+detaljnog dijaloga), tako da se ključevi detaljnog dijaloga ne mogu prokrijumčariti u assertion.
+Nijedan assertion nije oslabljen.
+
+### Dokaz izvršavanja (nije samo regex)
+
+Po pravilu uvedenom nakon production pada, nova logika je **izvršena**, ne samo pregledana.
+Dodana su **4 render scenarija** u `render-smoke.test.mjs`:
+
+1. `reservationStatusDescriptor` za svih **11** statusa iz `status.ts`
+2. specijalni slučaj `CANCELLED_BY_CLIENT` + `'Nije potvrđen dolazak u roku'` → `CANCELLED_UNCONFIRMED_ATTENDANCE`
+3. nepoznat status ne pada (neutralni fallback)
+4. `effectiveReservationStatus` mapiranje (3 asertirane grane)
+
+Scenarij 2 je upravo onaj koji je u fazi 1 prošao neprimijećen: posebna logika labela koja se
+lako izgubi pri refaktoru. **`render-smoke`: 32 → 36/36.**
+
+> Usputna greška uhvaćena vlastitom kapijom: prvi pokušaj scenarija koristio je backtick
+> template-literal **unutar** `ENTRY` stringa (koji je sam backtick literal), što je prerano
+> zatvorilo string i dalo `SyntaxError`. Kapija je to uhvatila prije commit-a.
+
+### Izmjereno
+
+| Provjera | Rezultat |
+|---|---|
+| `npm run build` | **PASS** — 272.3 KiB gzip (budget 300) |
+| `ReservationsCalendar` chunk | **94.6 KiB gzip** (budget 125) — parity zadovoljen |
+| `test:*` skripte | **148/148 PASS** |
+| `test:admin-render-smoke` | **36/36** (bilo 32) |
+| `check_i18n --strict` | **PASS** — 2616/2616 |
+| `check_ui_contrast --strict` | **PASS** — 80/80 |
+| `check_repo_hygiene` / `check_doc_links` | **PASS** / **PASS** |

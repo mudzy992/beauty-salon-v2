@@ -1530,7 +1530,8 @@
       "unconfirmedStylist": "Nije potvrđen",
       "stylistFallback": "Stilista",
       "serviceFallback": "Servis",
-      "loadError": "Rezervacije se ne mogu učitati. Pokušaj ponovo."
+      "loadError": "Rezervacije se ne mogu učitati. Pokušaj ponovo.",
+      "autoRefreshed": "Spisak rezervacija je osvježen u {{time}}."
     },
     "adminDetail": {
       "title": "Detalji rezervacije",

@@ -28,8 +28,13 @@ const listKeys = [
 const hasLocaleKey = (resource, key) =>
   key.split('.').reduce((value, part) => value?.[part], resource) !== undefined
 
+// Anchor je `<PageHeader` (faza 2, D1): zaglavlje stranice je prešlo sa ručnog
+// `<div className="mb-4 flex flex-wrap items-center justify-between gap-3">` na
+// dijeljeni PageHeader template. Garantija je nepromijenjena — i dalje se reže
+// isključivo markup liste (od zaglavlja do detaljnog dijaloga), tako da se
+// ključevi detaljnog dijaloga ne mogu prokrijumčariti u ovaj assertion.
 const listMarkup = pageSource.slice(
-  pageSource.indexOf('<div className="mb-4 flex flex-wrap items-center justify-between gap-3">'),
+  pageSource.indexOf('<PageHeader'),
   pageSource.indexOf('<Dialog open={open}'),
 )
 

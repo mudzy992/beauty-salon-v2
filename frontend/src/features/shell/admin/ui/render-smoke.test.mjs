@@ -34,6 +34,10 @@ import { FilterBar } from './filter-bar'
 import { TablePagination } from './table-pagination'
 import { FormSection } from './form-section'
 import { StatusBadge, resolveReservationStatus, reservationStatusMap } from './status-badge'
+import {
+  effectiveReservationStatus,
+  reservationStatusDescriptor,
+} from '../../../reservations/reservation-status-view'
 import { EmptyState, ErrorState, TableSkeleton } from './data-state'
 import { DashboardFinanceStats } from '../../../dashboard/finance-stats'
 import { DashboardOpsStats } from '../../../dashboard/ops-stats'
@@ -187,6 +191,51 @@ export const scenarios = {
     renderToStaticMarkup(
       <StatusBadge status={resolveReservationStatus('NEKI_NOVI_STATUS')} label="NEKI_NOVI_STATUS" />,
     ),
+  // Faza 2 (D2, 1.4.1): rezervacijska lista vise ne prenosi status samo bojom.
+  // Ovi scenariji izvrsavaju reservationStatusDescriptor iz nove module.
+  'reservationStatusDescriptor svih 11 statusa iz status.ts': () =>
+    renderToStaticMarkup(
+      <>
+        {[
+          'PENDING',
+          'CONFIRMED',
+          'IN_PROGRESS',
+          'COMPLETED',
+          'ATTENDANCE_CONFIRMED',
+          'CANCELLED_BY_CLIENT',
+          'CANCELLED_BY_STYLISTS',
+          'NO_SHOW',
+          'STYLIST_REVIEW',
+          'AWAITING_DAILY_LOG',
+          'CANCELLED_UNCONFIRMED_ATTENDANCE',
+        ].map((status) => (
+          <StatusBadge key={status} status={reservationStatusDescriptor(status)} label={status} />
+        ))}
+      </>,
+    ),
+  'reservationStatusDescriptor specijalni slucaj CANCELLED_BY_CLIENT + razlog': () =>
+    renderToStaticMarkup(
+      <StatusBadge
+        status={reservationStatusDescriptor('CANCELLED_BY_CLIENT', 'Nije potvrđen dolazak u roku')}
+        label="otkazano (nepotvrdjen dolazak)"
+      />,
+    ),
+  'reservationStatusDescriptor nepoznat status ne pada': () =>
+    renderToStaticMarkup(
+      <StatusBadge
+        status={reservationStatusDescriptor('SASVIM_NOVI_STATUS', null)}
+        label="SASVIM_NOVI_STATUS"
+      />,
+    ),
+  'effectiveReservationStatus mapiranje': () => {
+    const special = effectiveReservationStatus('CANCELLED_BY_CLIENT', 'Nije potvrđen dolazak u roku')
+    const plain = effectiveReservationStatus('CANCELLED_BY_CLIENT', 'Klijent otkazao')
+    const passthrough = effectiveReservationStatus('CONFIRMED', null)
+    if (special !== 'CANCELLED_UNCONFIRMED_ATTENDANCE') throw new Error('specijalni slucaj: ' + special)
+    if (plain !== 'CANCELLED_BY_CLIENT') throw new Error('obicno otkazivanje: ' + plain)
+    if (passthrough !== 'CONFIRMED') throw new Error('prosljedjen status: ' + passthrough)
+    return '<ok />'
+  },
   'EmptyState / ErrorState / TableSkeleton': () =>
     renderToStaticMarkup(
       <>

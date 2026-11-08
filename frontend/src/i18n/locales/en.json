@@ -1533,7 +1533,8 @@
       "unconfirmedStylist": "Unconfirmed",
       "stylistFallback": "Stylist",
       "serviceFallback": "Service",
-      "loadError": "Could not load reservations. Try again."
+      "loadError": "Could not load reservations. Try again.",
+      "autoRefreshed": "The reservation list was refreshed at {{time}}."
     },
     "adminDetail": {
       "title": "Reservation details",
