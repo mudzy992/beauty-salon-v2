@@ -415,6 +415,10 @@
     }
   },
   "clientAnalyticsPage": {
+    "servicesCaption": "Spending by service: service name, visit count, and total amount.",
+    "reservationsCaption": "Client reservations: date, time, service, stylist, price, status, and details.",
+    "manualEntriesCaption": "Manual entries: date, service, stylist, price, tip, source, and note.",
+    "title": "Client analytics",
     "backToUsers": "Back to users",
     "loadError": "Could not load client analytics.",
     "fromDate": "From date",
@@ -900,6 +904,11 @@
     }
   },
   "adminAnalytics": {
+    "chartAriaLabel": "Bar chart of monthly revenue and expenses. Covers {{months}} months. Total revenue {{revenue}}, expenses {{expenses}}, tips {{tips}}. The same data is available as a table below the chart.",
+    "showDataTable": "Show chart data as a table",
+    "chartTableCaption": "Monthly revenue, expenses, tips, and net behind the chart.",
+    "month": "Month",
+    "net": "Net",
     "title": "Analytics",
     "description": "Income, expenses, stylist performance, and top services.",
     "loadFailed": "Analytics could not be loaded.",

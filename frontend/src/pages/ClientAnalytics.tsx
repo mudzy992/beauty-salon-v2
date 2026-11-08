@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { PageHeader } from '../features/shell/admin/ui/page-header'
 import {
   ArrowLeft,
   Eye,
@@ -263,6 +264,13 @@ export default function ClientAnalytics() {
         {t('clientAnalyticsPage.backToUsers')}
       </Button>
 
+      {/* 2.4.6: stranica mora imati <h1> u SVIM stanjima (loading/error/loaded),
+          pa je naslov staticki, a ime klijenta ide u opis kad je ucitano. */}
+      <PageHeader
+        title={t('clientAnalyticsPage.title')}
+        description={analytics?.user ? getUserName(analytics.user) : undefined}
+      />
+
       {loading ? (
         <div className="flex justify-center py-10 text-slate-500">
           <Loader2 className="h-10 w-10 animate-spin" aria-hidden="true" />
@@ -313,7 +321,7 @@ export default function ClientAnalytics() {
                     </Badge>
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-slate-400">{t('clientAnalyticsPage.registered')}: {formatInstantDate(analytics.user.createdAt)}</p>
+                <p className="mt-2 text-xs text-content-muted">{t('clientAnalyticsPage.registered')}: {formatInstantDate(analytics.user.createdAt)}</p>
               </div>
 
               {analytics.penalty.isPenalized ? (
@@ -377,7 +385,7 @@ export default function ClientAnalytics() {
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800">
                   <div
-                    className="h-full rounded-md bg-emerald-500"
+                    className="h-full rounded-md bg-ok-foreground"
                     style={{ width: `${(analytics.stats.completedReservations / analytics.stats.totalReservations) * 100}%` }}
                   />
                 </div>
@@ -389,20 +397,23 @@ export default function ClientAnalytics() {
             <Card className="p-5">
               <p className="mb-3 font-semibold text-slate-900 dark:text-slate-50">{t('clientAnalyticsPage.topServices')}</p>
               <div className="app-table-wrap">
-                <table className="app-table w-full border-collapse">
-                  <thead>
+                <table className="app-table data-table w-full border-collapse">
+                                    <caption className="sr-only">{t('clientAnalyticsPage.servicesCaption')}</caption>
+                                      <caption className="sr-only">{t('clientAnalyticsPage.reservationsCaption')}</caption>
+                                        <caption className="sr-only">{t('clientAnalyticsPage.manualEntriesCaption')}</caption>
+                    <thead>
                     <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                      <th className="py-2 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
-                      <th className="py-2 pr-3 text-right font-medium">{t('clientAnalyticsPage.visitCount')}</th>
-                      <th className="py-2 text-right font-medium">{t('clientAnalyticsPage.total')} (KM)</th>
+                      <th scope="col" className="py-2 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
+                      <th scope="col" className="py-2 pr-3 text-right font-medium">{t('clientAnalyticsPage.visitCount')}</th>
+                      <th scope="col" className="py-2 text-right font-medium">{t('clientAnalyticsPage.total')} (KM)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {analytics.topServices.map((s, i) => (
                       <tr key={`${s.name}-${i}`} className="border-b border-slate-100 dark:border-slate-800/80">
-                        <td className="py-2 pr-3 font-medium">{s.name}</td>
-                        <td className="py-2 pr-3 text-right tabular-nums">{s.count}</td>
-                        <td className="py-2 text-right tabular-nums">{formatLocalizedNumber(s.totalSpent, i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td data-label={t('clientAnalyticsPage.service')} className="py-2 pr-3 font-medium">{s.name}</td>
+                        <td data-label={t('clientAnalyticsPage.visitCount')} className="py-2 pr-3 text-right tabular-nums">{s.count}</td>
+                        <td data-label={t('clientAnalyticsPage.total')} className="py-2 text-right tabular-nums">{formatLocalizedNumber(s.totalSpent, i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -422,16 +433,16 @@ export default function ClientAnalytics() {
             <TabsContent value="reservations" className="mt-4">
               <Card className="overflow-hidden">
                 <div className="app-table-wrap">
-                  <table className="app-table w-full border-collapse">
+                  <table className="app-table data-table w-full border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                        <th className="py-3 pl-4 pr-3 font-medium">{t('clientAnalyticsPage.date')}</th>
-                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.time')}</th>
-                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
-                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.stylist')}</th>
-                        <th className="py-3 pr-3 text-right font-medium">{t('clientAnalyticsPage.price')}</th>
-                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.status')}</th>
-                        <th className="py-3 pr-4 text-right font-medium">{t('clientAnalyticsPage.details')}</th>
+                        <th scope="col" className="py-3 pl-4 pr-3 font-medium">{t('clientAnalyticsPage.date')}</th>
+                        <th scope="col" className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.time')}</th>
+                        <th scope="col" className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
+                        <th scope="col" className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.stylist')}</th>
+                        <th scope="col" className="py-3 pr-3 text-right font-medium">{t('clientAnalyticsPage.price')}</th>
+                        <th scope="col" className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.status')}</th>
+                        <th scope="col" className="py-3 pr-4 text-right font-medium">{t('clientAnalyticsPage.details')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -455,19 +466,19 @@ export default function ClientAnalytics() {
                             }}
                             tabIndex={0}
                           >
-                            <td className="py-3 pl-4 pr-3">{formatDateOnly(r.reservationDate)}</td>
-                            <td className="py-3 pr-3">
+                            <td data-label={t('clientAnalyticsPage.date')} className="py-3 pl-4 pr-3">{formatDateOnly(r.reservationDate)}</td>
+                            <td data-label={t('clientAnalyticsPage.time')} className="py-3 pr-3">
                               {r.startTime} - {r.endTime}
                             </td>
-                            <td className="py-3 pr-3">{r.service?.name ?? '-'}</td>
-                            <td className="py-3 pr-3">{getStylistName(r.confirmedStylist)}</td>
-                            <td className="py-3 pr-3 text-right tabular-nums">{formatLocalizedNumber(Number(r.service?.price ?? 0), i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td className="py-3 pr-3">
+                            <td data-label={t('clientAnalyticsPage.service')} className="py-3 pr-3">{r.service?.name ?? '-'}</td>
+                            <td data-label={t('clientAnalyticsPage.stylist')} className="py-3 pr-3">{getStylistName(r.confirmedStylist)}</td>
+                            <td data-label={t('clientAnalyticsPage.price')} className="py-3 pr-3 text-right tabular-nums">{formatLocalizedNumber(Number(r.service?.price ?? 0), i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td data-label={t('clientAnalyticsPage.status')} className="py-3 pr-3">
                               <Badge variant={statusBadgeVariant[r.status] ?? 'secondary'} className="text-[10px]">
                                 {getReservationStatusLabel(r.status)}
                               </Badge>
                             </td>
-                            <td className="py-3 pr-4 text-right">
+                            <td data-label={t('clientAnalyticsPage.details')} className="py-3 pr-4 text-right">
                               <Button type="button" size="icon" variant="ghost" aria-label={t('clientAnalyticsPage.details')} onClick={(e) => {
                                 e.stopPropagation()
                                 openReservationDetail(r)
@@ -488,16 +499,16 @@ export default function ClientAnalytics() {
             <TabsContent value="manual" className="mt-4">
               <Card className="overflow-hidden">
                 <div className="app-table-wrap">
-                  <table className="app-table w-full border-collapse">
+                  <table className="app-table data-table w-full border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                        <th className="py-3 pl-4 pr-3 font-medium">{t('clientAnalyticsPage.date')}</th>
-                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
-                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.stylist')}</th>
-                        <th className="py-3 pr-3 text-right font-medium">{t('clientAnalyticsPage.price')} (KM)</th>
-                        <th className="py-3 pr-3 text-right font-medium">{t('clientAnalyticsPage.tip')} (KM)</th>
-                        <th className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.source')}</th>
-                        <th className="py-3 pr-4 font-medium">{t('clientAnalyticsPage.note')}</th>
+                        <th scope="col" className="py-3 pl-4 pr-3 font-medium">{t('clientAnalyticsPage.date')}</th>
+                        <th scope="col" className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.service')}</th>
+                        <th scope="col" className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.stylist')}</th>
+                        <th scope="col" className="py-3 pr-3 text-right font-medium">{t('clientAnalyticsPage.price')} (KM)</th>
+                        <th scope="col" className="py-3 pr-3 text-right font-medium">{t('clientAnalyticsPage.tip')} (KM)</th>
+                        <th scope="col" className="py-3 pr-3 font-medium">{t('clientAnalyticsPage.source')}</th>
+                        <th scope="col" className="py-3 pr-4 font-medium">{t('clientAnalyticsPage.note')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -510,17 +521,17 @@ export default function ClientAnalytics() {
                       ) : (
                         analytics.manualEntries.map((e) => (
                           <tr key={e.id} className="border-b border-slate-100 dark:border-slate-800/80">
-                            <td className="py-3 pl-4 pr-3">{formatDateOnly(e.date)}</td>
-                            <td className="py-3 pr-3">{e.service?.name ?? '-'}</td>
-                            <td className="py-3 pr-3">{getStylistName(e.stylistProfile)}</td>
-                            <td className="py-3 pr-3 text-right font-medium tabular-nums">{formatLocalizedNumber(Number(e.actualPrice), i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td className="py-3 pr-3 text-right tabular-nums">{formatLocalizedNumber(Number(e.tipAmount), i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td className="py-3 pr-3">
+                            <td data-label={t('clientAnalyticsPage.date')} className="py-3 pl-4 pr-3">{formatDateOnly(e.date)}</td>
+                            <td data-label={t('clientAnalyticsPage.service')} className="py-3 pr-3">{e.service?.name ?? '-'}</td>
+                            <td data-label={t('clientAnalyticsPage.stylist')} className="py-3 pr-3">{getStylistName(e.stylistProfile)}</td>
+                            <td data-label={t('clientAnalyticsPage.price')} className="py-3 pr-3 text-right font-medium tabular-nums">{formatLocalizedNumber(Number(e.actualPrice), i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td data-label={t('clientAnalyticsPage.tip')} className="py-3 pr-3 text-right tabular-nums">{formatLocalizedNumber(Number(e.tipAmount), i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td data-label={t('clientAnalyticsPage.source')} className="py-3 pr-3">
                               <Badge variant={e.isManual ? 'brand' : 'secondary'} className="text-[10px]">
                                 {e.isManual ? t('clientAnalyticsPage.manual') : t('clientAnalyticsPage.reservation')}
                               </Badge>
                             </td>
-                            <td className="max-w-xs py-3 pr-4">
+                            <td data-label={t('clientAnalyticsPage.note')} className="max-w-xs py-3 pr-4">
                               <p className="truncate text-xs text-slate-600 dark:text-slate-300">{e.notes ?? '-'}</p>
                             </td>
                           </tr>
@@ -572,7 +583,7 @@ export default function ClientAnalytics() {
                             <p className="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">{r.comment}</p>
                           ) : null}
                         </div>
-                        <p className="shrink-0 text-xs text-slate-400">{formatInstantDate(r.createdAt)}</p>
+                        <p className="shrink-0 text-xs text-content-muted">{formatInstantDate(r.createdAt)}</p>
                       </div>
                     </Card>
                   ))}

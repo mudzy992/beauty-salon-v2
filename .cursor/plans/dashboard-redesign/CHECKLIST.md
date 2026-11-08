@@ -24,7 +24,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 3 | Dnevna knjiga | `[x]` 3 commita (`fdaa029`, `5bf5518`, `7eb3d61`) | prošla |
 | 4 | Finansije | `[x]` 4 commita (`d801dbb`, `2ba25dd`, `f1f7658`, `55c577d`) | prošla |
 | 5 | Lojalnost | `[x]` 1 commit | prošla |
-| 6 | Analitika (+ M1 ako odobren) | `[ ]` | |
+| 6 | Analitika (+ M1 ako odobren) | `[x]` 1 commit · **M1 nije odobren, preskočen** | prošla |
 | 7 | Korisnici | `[ ]` | |
 | 8 | Salon / Usluge / Frizeri | `[ ]` | |
 | 9 | Sadržaj (Blog, Galerija, Recenzije) | `[ ]` | |
@@ -58,6 +58,13 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > `htmlFor`**. Migracija na `DataTable` **nije** rađena (rizik za paritet podataka); umjesto
 > toga `data-table` klasa + `data-label`. Novi test `test:loyalty-a11y` (5 testova,
 > mutacijski verificirano).
+
+> **Faza 6 — napomene.** **M1 (objedinjavanje tri ekrana u tabove) NIJE rađen** — Q3 nije
+> odobren, pa tri rute ostaju odvojene. Planirana stavka **D6** (Filteri → FilterBar)
+> **opovrgnuta**: date inputi već imaju `<Label htmlFor>`. `text-amber-400` (1.67:1) i
+> `text-slate-200` (1.23:1) **nisu prekršaji** — oba su na `<Star aria-hidden="true">` uz
+> brojčani ekvivalent. Stvarni nalaz koji plan nije naveo: **1.4.11 progress bar**
+> `bg-emerald-500` 2.32:1. Novi test `test:analytics-a11y` (6 testova, mutacijski verificirano).
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 

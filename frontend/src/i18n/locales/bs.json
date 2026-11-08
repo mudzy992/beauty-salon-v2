@@ -412,6 +412,10 @@
     }
   },
   "clientAnalyticsPage": {
+    "servicesCaption": "Tabela potrosnje po uslugama: usluga, broj posjeta i ukupan iznos.",
+    "reservationsCaption": "Tabela rezervacija klijenta: datum, vrijeme, usluga, frizer, cijena, status i detalji.",
+    "manualEntriesCaption": "Tabela rucnih unosa: datum, usluga, frizer, cijena, napojnica, izvor i biljeska.",
+    "title": "Analitika klijenta",
     "backToUsers": "Nazad na korisnike",
     "loadError": "Greška pri učitavanju analitike",
     "fromDate": "Od datuma",
@@ -897,6 +901,11 @@
     }
   },
   "adminAnalytics": {
+    "chartAriaLabel": "Grafikon prihoda i rashoda po mjesecima. Obuhvata {{months}} mjeseci. Ukupni prihodi {{revenue}}, rashodi {{expenses}}, napojnice {{tips}}. Podaci su dostupni i kao tabela ispod grafa.",
+    "showDataTable": "Prikaži podatke grafa u tabeli",
+    "chartTableCaption": "Mjesečni prihodi, rashodi, napojnice i neto koji stoje iza grafa.",
+    "month": "Mjesec",
+    "net": "Neto",
     "title": "Analitika",
     "description": "Prihodi, rashodi, performanse stilista i najpopularnije usluge.",
     "loadFailed": "Analitiku trenutno nije moguće učitati.",

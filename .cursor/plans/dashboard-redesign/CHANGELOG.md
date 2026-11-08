@@ -1348,3 +1348,114 @@ Konačni diff: **1 umetanje / 0 brisanja** po fajlu, 4 razmaka uvlačenja.
 
 **Nije render-verificirano:** vizualni card-mode prikaz tabele ispod 640 px i izgled
 `PageHeader`-a (potreban browser).
+
+---
+
+## 2026-11-08 — FAZA 6: Analitika (`Analytics.tsx`, `ClientAnalytics.tsx`, `StylistAnalytics.tsx`)
+
+Modul: **1377 linija** (397 + 753 + 227). Plan je za `StylistAnalytics.tsx` tvrdio „~130" —
+stvarno je **227**.
+
+### Kritični nalaz: 1.1.1 — graf bez ijedne tekstualne alternative
+
+`Analytics.tsx:306-317` ima `<ResponsiveContainer>` → `<ComposedChart data={chartData}>` s tri
+`<Bar>` serije (income/expenses/tips). **Nije bilo** `role="img"`, `aria-label`, `<figure>`,
+`<figcaption>` ni tabele podataka. Čitač ekrana nije mogao dobiti **nijedan** podatak s grafa.
+
+Popravka:
+- `<figure className="m-0">` omotač
+- `role="img"` + `aria-label={t('adminAnalytics.chartAriaLabel', chartSummary)}` gdje
+  `chartSummary` (novi `useMemo`) **stvarno sabira** `income`/`expenses`/`tips` preko
+  `chartData` i formatira iznose — nije placeholder
+- `<details>` s `<summary>` i **tabelom podataka** (5 kolona: mjesec, prihodi, rashodi,
+  napojnice, neto), `<caption>`, `scope="col"`, `data-label`
+
+### Recon: dvije planirane stavke opovrgnute
+
+**D6 (filteri) — opovrgnuto za labele.** Plan traži „Filteri → FilterBar". Date inputi na
+`ClientAnalytics.tsx:279,285` **već imaju** `<Label htmlFor="client-from">` i
+`htmlFor="client-to"` — asocijacija je ispravna. `FilterBar` migracija je kozmetika.
+
+**`text-amber-400` (1.67:1) i `text-slate-200` (1.23:1) — nisu prekršaji.** Oba su na
+`<Star aria-hidden="true">` (ln 139), a brojčana vrijednost rejtinga je dati kao tekst
+(`{…}/5` na ln 714, 722). Dekorativna grafika s tekstualnim ekvivalentom ne podliježe 1.4.3.
+
+### Stvarni nalaz koji plan NIJE naveo: 1.4.11 progress bar
+
+`ClientAnalytics.tsx:380` — `bg-emerald-500` (#10B981) kao ispuna progress bara protiv
+`bg-slate-100` trake = **2.32:1**, protiv bijele **2.54:1**. Oba padaju ispod 3:1 za
+značajnu grafiku.
+
+Zamjena na `bg-ok-foreground` (`--ok-fg` = #166534): **6.51:1** protiv trake, **7.13:1**
+protiv bijele. Vrijednosti izračunate, ne pretpostavljene.
+
+### Implementirano
+
+| # | Izmjena | WCAG | prije → poslije |
+|---|---|---|---|
+| 1 | `figure` + `role="img"` + `aria-label` + tabela podataka | **1.1.1** | ništa → potpuna alternativa |
+| 2 | `bg-emerald-500` → `bg-ok-foreground` | 1.4.11 | 2.32 → **6.51** |
+| 3 | 2× `text-slate-400` → `text-content-muted` | 1.4.3 | 2.56 → **5.61** |
+| 4 | `PageHeader` u `ClientAnalytics.tsx` | 2.4.6 | 0 `<h1>` → **1** |
+| 5 | 17× `<th scope="col">` + 3× `<caption>` | 1.3.1 | 0 → 17 / 0 → 3 |
+| 6 | `data-table` + 17× `<td data-label>` | 1.4.10 | 0 → 17 |
+
+**D3 (2.4.6) detalj:** naslov je **statički** (`clientAnalyticsPage.title`), a ime klijenta ide
+u `description` kad je učitano — jer 2.4.6 traži zaglavlje u **svim** stanjima, uključujući
+loading i error. `StylistAnalytics.tsx` koristi dinamičko ime kao `<h1>` (ln 148), što nije
+uzeto kao uzor upravo iz tog razloga.
+
+Novi i18n ključevi (**9**): `clientAnalyticsPage.{title,servicesCaption,reservationsCaption,
+manualEntriesCaption}` + `adminAnalytics.{chartAriaLabel,showDataTable,chartTableCaption,
+month,net}`.
+
+### Novi test: `test:analytics-a11y` (6 testova)
+
+`frontend/src/features/analytics/analytics-a11y.test.mjs` zaključava: `role="img"` +
+`aria-label` s `chartSummary` + da `chartSummary` **stvarno sabira** sve tri serije,
+`<figure>`, `<details>` tabelu s 5 kolona i `scope`, `<h1>` preko `PageHeader`, 17 `<th>` sa
+`scope` + 3 `<caption>` + 17 `data-label` (od 19 `<td>`, 2 su `colSpan` empty-state),
+card-mode CSS, i da se `text-slate-400`/`bg-emerald-500` **ne vrate**.
+
+**Verifikacija mutacijom — svih 6 palo na predviđenom testu:**
+
+| mutacija | rezultat |
+|---|---|
+| `role="img"` → `data-x="img"` | `not ok 1` |
+| `aria-label` → `"x"` | `not ok 1` |
+| `<details>` → `<div>` | `not ok 2` |
+| `description` → `undefined` | `not ok 3` |
+| `text-content-muted` → `text-slate-400` | `not ok 6` |
+| `bg-ok-foreground` → `bg-emerald-500` | `not ok 6` |
+
+Registrovano u `frontend/package.json` (**160** skripti) i `.github/workflows/ci.yml`
+(korak „Test analytics chart and table accessibility", ln 392-394).
+
+### Greška uhvaćena build-om
+
+Prvi pokušaj je pao na `tsc`: `Analytics.tsx(154,24): error TS2304: Cannot find name
+'useMemo'`. Uslov za dodavanje importa je provjeravao `'useMemo' not in s.split('\n')[0]` —
+React import **jeste** na liniji 1, pa je uslov bio tačan, ali `replace` je tražio pattern
+`import { useEffect, useState }` dok stvarna linija glasi
+`import { useCallback, useEffect, useState }`. Zamjena je tiho prošla bez efekta. Ispravljeno
+na tačan string; build sada **273.2 KiB**.
+
+### Verifikacija
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` skripte | **154/154 PASS**, 0 fail (baseline 153) |
+| `test:analytics-a11y` | **6/6 PASS**, mutacijski verificirano |
+| `admin/client/stylist-analytics-i18n` | **PASS** |
+| `npm run build` | **PASS**, **273.2 KiB gzip** (budžet 300) |
+| `check_i18n.py --strict` | **PASS** — 2632/2632 (baseline 2623) |
+| `check_ui_contrast.py` | **PASS** — 80/80 |
+| `check_repo_hygiene.py` | **PASS** — 1662 paths |
+| `check_doc_links.py` | **PASS** — 670 / 202 |
+| `git diff --check` | čist |
+| locale fajlovi | **9/0** po fajlu — bez reformata |
+| API sloj | **bez diff-a** |
+| `MATRIX.md` | **netaknut** |
+
+**Nije render-verificirano:** vizualni izgled grafa unutar `<figure>`, `<details>` otvaranje,
+card-mode ispod 640 px. Kontrast je izračunat iz hex vrijednosti.

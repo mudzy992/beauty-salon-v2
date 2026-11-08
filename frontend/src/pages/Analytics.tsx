@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Bar,
   CartesianGrid,
@@ -149,6 +149,18 @@ export default function Analytics() {
     }).format(new Date(Date.UTC(m.year, m.month - 1, 1))),
     net: m.income - m.expenses,
   }))
+
+  // 1.1.1: graf mora imati tekstualnu alternativu s kljucnim brojevima.
+  const chartSummary = useMemo(() => {
+    const sum = (key: 'income' | 'expenses' | 'tips') =>
+      chartData.reduce((acc, row) => acc + Number(row[key] ?? 0), 0)
+    return {
+      months: chartData.length,
+      revenue: formatLocalizedAmount(sum('income'), i18n.language),
+      expenses: formatLocalizedAmount(sum('expenses'), i18n.language),
+      tips: formatLocalizedAmount(sum('tips'), i18n.language),
+    }
+  }, [chartData, i18n.language])
 
   const periodLabel =
     data.fromDate && data.toDate
@@ -302,7 +314,12 @@ export default function Analytics() {
               })
             : t('adminAnalytics.monthlyChartLast12')}
         </h2>
-        <div className="h-80 w-full">
+        <figure className="m-0">
+        <div
+          className="h-80 w-full"
+          role="img"
+          aria-label={t('adminAnalytics.chartAriaLabel', chartSummary)}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -316,6 +333,39 @@ export default function Analytics() {
             </ComposedChart>
           </ResponsiveContainer>
         </div>
+
+        {/* 1.1.1: ista informacija dostupna i kao tabela, ne samo kao graf */}
+        <details className="mt-4">
+          <summary className="cursor-pointer text-sm text-content-muted hover:text-content">
+            {t('adminAnalytics.showDataTable')}
+          </summary>
+          <div className="app-table-wrap mt-3">
+            <table className="app-table data-table w-full border-collapse">
+              <caption className="sr-only">{t('adminAnalytics.chartTableCaption')}</caption>
+              <thead>
+                <tr className="border-b border-line text-left text-xs uppercase text-content-muted">
+                  <th scope="col" className="py-2 pr-3 font-medium">{t('adminAnalytics.month')}</th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.revenue')}</th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.expenses')}</th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium">{t('adminAnalytics.tips')}</th>
+                  <th scope="col" className="py-2 text-right font-medium">{t('adminAnalytics.net')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {chartData.map((row) => (
+                  <tr key={`${row.year}-${row.month}`} className="border-b border-line">
+                    <td data-label={t('adminAnalytics.month')} className="py-2 pr-3 font-medium">{row.label}</td>
+                    <td data-label={t('adminAnalytics.revenue')} className="py-2 pr-3 text-right tabular-nums">{formatLocalizedAmount(Number(row.income ?? 0), i18n.language)}</td>
+                    <td data-label={t('adminAnalytics.expenses')} className="py-2 pr-3 text-right tabular-nums">{formatLocalizedAmount(Number(row.expenses ?? 0), i18n.language)}</td>
+                    <td data-label={t('adminAnalytics.tips')} className="py-2 pr-3 text-right tabular-nums">{formatLocalizedAmount(Number(row.tips ?? 0), i18n.language)}</td>
+                    <td data-label={t('adminAnalytics.net')} className="py-2 text-right tabular-nums">{formatLocalizedAmount(Number(row.net ?? 0), i18n.language)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+        </figure>
       </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
