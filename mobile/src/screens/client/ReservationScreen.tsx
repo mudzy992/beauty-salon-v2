@@ -12,7 +12,7 @@ import {
   BackHandler,
 } from 'react-native';
 import { useFloatingTabBarTotalHeight } from '../../navigation/FloatingTabBar';
-import { Calendar, DateData } from 'react-native-calendars';
+import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { router } from 'expo-router';
@@ -42,6 +42,19 @@ import {
   createIdempotencyKey,
   type PendingIdempotentRequest,
 } from '../../utils/idempotency-key';
+
+LocaleConfig.locales.bs = {
+  monthNames: [
+    'januar', 'februar', 'mart', 'april', 'maj', 'juni',
+    'juli', 'august', 'septembar', 'oktobar', 'novembar', 'decembar',
+  ],
+  monthNamesShort: ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'],
+  dayNames: ['nedjelja', 'ponedjeljak', 'utorak', 'srijeda', 'četvrtak', 'petak', 'subota'],
+  dayNamesShort: ['ned', 'pon', 'uto', 'sri', 'čet', 'pet', 'sub'],
+  today: 'Danas',
+  formatAccessibilityLabel: 'dddd d MMMM yyyy',
+};
+LocaleConfig.defaultLocale = 'bs';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -804,6 +817,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             </View>
           ) : (
             <Calendar
+              firstDay={1}
               onDayPress={handleSelectDate}
               markedDates={markedDates}
               minDate={getSalonDateOnly()}
