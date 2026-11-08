@@ -158,7 +158,7 @@ export function ManualEntryDialog({
                         onClick={() => f.selectClient(client)}
                       >
                         {getPersonName(client)}
-                        <Check className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                        <Check className="h-3.5 w-3.5 text-content-muted" aria-hidden="true" />
                       </button>
                     </li>
                   ))}
@@ -190,7 +190,7 @@ export function ManualEntryDialog({
             <div className="flex justify-between">
               <span className="text-slate-500">{t('finance.manualEntry.unpaid')}</span>
               <span
-                className={`tabular-nums ${f.debtAmount > 0 ? 'text-amber-600 dark:text-amber-400' : ''}`}
+                className={`tabular-nums ${f.debtAmount > 0 ? 'text-warn-foreground' : ''}`}
               >
                 {formatAmount(f.debtAmount)}
               </span>

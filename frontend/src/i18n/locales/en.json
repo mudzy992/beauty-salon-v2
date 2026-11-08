@@ -2177,6 +2177,7 @@
       "filtered": "Shown (filtered)"
     },
     "incomeList": {
+      "noActions": "No actions available.",
       "searchPlaceholder": "Service, client, note…",
       "stylistPlaceholder": "Stylist name",
       "kindFilterLabel": "Filter by entry type",
@@ -2344,6 +2345,7 @@
       }
     },
     "expenseList": {
+      "invoiceItemsCaption": "Invoice line items",
       "searchPlaceholder": "Name, category, note…",
       "allCategories": "All categories",
       "onlyWithAttachments": "Expenses with attachments only",
@@ -2375,6 +2377,7 @@
       "noInvoiceItems": "There are no individual line items."
     },
     "expenseForm": {
+      "noAttachments": "No attachments.",
       "createTitle": "New expense",
       "editTitle": "Edit expense",
       "fixedDescription": "Fixed items from the template, with values and attachments for each item.",

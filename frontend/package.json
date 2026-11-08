@@ -125,6 +125,8 @@
     "test:finance-book-navigation-i18n": "node --test src/features/finance/finance-book-navigation-i18n.test.mjs",
     "test:finance-expense-categories-i18n": "node --test src/features/finance/catalog/expense-categories-i18n.test.mjs",
     "test:finance-category-fields-accessibility": "node --test src/features/finance/catalog/category-fields-accessibility.test.mjs",
+    "test:finance-summary-parity": "node --test src/features/finance/finance-summary-parity.test.mjs",
+    "test:finance-table-a11y": "node --test src/features/finance/finance-table-a11y.test.mjs",
     "test:daily-log-list-i18n": "node --test src/features/daily-log/daily-log-list-i18n.test.mjs",
     "test:daily-log-table-i18n": "node --test src/features/daily-log/daily-log-table-i18n.test.mjs",
     "test:daily-log-dialog-accessibility": "node --test src/features/daily-log/daily-log-dialog-accessibility.test.mjs",

@@ -48,7 +48,9 @@ export function ExpenseAttachmentsList({ attachments, compact = false }: Props) 
   const { t } = useTranslation()
   if (attachments.length === 0) {
     return compact ? (
-      <span className="text-xs text-slate-400">—</span>
+      <span className="text-xs text-content-muted">
+        —<span className="sr-only">{t('finance.expenseForm.noAttachments')}</span>
+      </span>
     ) : null
   }
 

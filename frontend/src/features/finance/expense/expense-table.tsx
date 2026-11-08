@@ -60,7 +60,7 @@ export function ExpenseTable({
   return (
     <>
       <div className="app-table-wrap">
-        <table className="app-table w-full">
+        <table className="app-table data-table w-full">
           <caption className="sr-only">{t('finance.expenseList.caption')}</caption>
           <thead>
             <tr className="border-b border-slate-200 text-left dark:border-slate-800">
@@ -112,14 +112,14 @@ export function ExpenseTable({
                   key={expense.id}
                   className="border-b border-slate-100 last:border-0 dark:border-slate-900"
                 >
-                  <td className="whitespace-nowrap py-2 pr-3 align-top">
+                  <td data-label={t('finance.expenseList.columns.date')} className="whitespace-nowrap py-2 pr-3 align-top">
                     {formatInstantDateLocale(
                       expense.createdAt,
                       getIntlLocale(i18n.language),
                       { year: 'numeric', month: '2-digit', day: '2-digit' },
                     )}
                   </td>
-                  <td className="py-2 pr-3 align-top">
+                  <td data-label={t('finance.expenseList.columns.title')} className="py-2 pr-3 align-top">
                     <div className="font-medium text-slate-900 dark:text-slate-50">
                       {expense.title}
                     </div>
@@ -149,10 +149,10 @@ export function ExpenseTable({
                       </ul>
                     ) : null}
                   </td>
-                  <td className="py-2 pr-3 text-right tabular-nums align-top">
+                  <td data-label={t('finance.expenseList.columns.amount')} className="py-2 pr-3 text-right tabular-nums align-top">
                     {formatLocalizedAmount(expense.totalAmount, i18n.language)}
                   </td>
-                  <td className="py-2 pr-3 align-top">
+                  <td data-label={t('finance.expenseList.columns.category')} className="py-2 pr-3 align-top">
                     <div className="flex flex-wrap items-center gap-1">
                       <span>{expense.category?.name ?? '—'}</span>
                       {isFixed ? (
@@ -160,13 +160,13 @@ export function ExpenseTable({
                       ) : null}
                     </div>
                   </td>
-                  <td className="min-w-[160px] py-2 pr-3 align-top">
+                  <td data-label={t('finance.expenseList.columns.attachments')} className="min-w-[160px] py-2 pr-3 align-top">
                     <ExpenseAttachmentsList
                       attachments={expense.attachments ?? []}
                       compact
                     />
                   </td>
-                  <td className="py-2 text-right align-top">
+                  <td data-label={t('finance.expenseList.columns.actions')} className="py-2 text-right align-top">
                     <div className="flex justify-end gap-1">
                       {canPreview ? (
                         <Button

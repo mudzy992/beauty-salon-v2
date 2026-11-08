@@ -9,10 +9,10 @@ export type SummaryItem = {
 }
 
 const toneClass: Record<NonNullable<SummaryItem['tone']>, string> = {
-  default: 'text-slate-900 dark:text-slate-50',
-  positive: 'text-emerald-600 dark:text-emerald-400',
-  negative: 'text-rose-600 dark:text-rose-400',
-  muted: 'text-slate-600 dark:text-slate-300',
+  default: 'text-content',
+  positive: 'text-ok-foreground',
+  negative: 'text-bad-foreground',
+  muted: 'text-content-strong',
 }
 
 export function SummaryCards({ items }: { items: SummaryItem[] }) {
@@ -22,9 +22,9 @@ export function SummaryCards({ items }: { items: SummaryItem[] }) {
       {items.map((item) => (
         <div
           key={item.label}
-          className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950"
+          className="rounded-lg border border-line bg-surface p-3"
         >
-          <div className="text-xs text-slate-500 dark:text-slate-400">
+          <div className="text-xs text-content-muted">
             {item.label}
           </div>
           <div
@@ -35,7 +35,7 @@ export function SummaryCards({ items }: { items: SummaryItem[] }) {
             {formatLocalizedAmount(item.value, i18n.language)}
           </div>
           {item.hint ? (
-            <div className="mt-0.5 text-[11px] text-slate-400">{item.hint}</div>
+            <div className="mt-0.5 text-xs text-content-muted">{item.hint}</div>
           ) : null}
         </div>
       ))}

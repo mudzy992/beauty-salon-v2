@@ -97,7 +97,7 @@ export function IncomeEntriesTable({
 
   return (
     <div className="app-table-wrap">
-      <table className="app-table w-full">
+      <table className="app-table data-table w-full">
         <caption className="sr-only">{t('finance.incomeList.caption')}</caption>
         <thead>
           <tr className="border-b border-slate-200 text-left dark:border-slate-800">
@@ -151,10 +151,10 @@ export function IncomeEntriesTable({
                 key={`${row.kind}-${row.id}`}
                 className="border-b border-slate-100 last:border-0 dark:border-slate-900"
               >
-                <td className="py-2 pr-3 whitespace-nowrap">
+                <td data-label={t('finance.incomeList.columns.date')} className="py-2 pr-3 whitespace-nowrap">
                   {formatIncomeDate(row.date, i18n.language)}
                 </td>
-                <td className="py-2 pr-3 align-top" title={row.serviceName}>
+                <td data-label={t('finance.incomeList.columns.service')} className="py-2 pr-3 align-top" title={row.serviceName}>
                   {serviceNames.length === 0 ? (
                     '—'
                   ) : (
@@ -167,17 +167,17 @@ export function IncomeEntriesTable({
                     </ul>
                   )}
                 </td>
-                <td className="py-2 pr-3 text-right tabular-nums">
+                <td data-label={t('finance.incomeList.columns.revenue')} className="py-2 pr-3 text-right tabular-nums">
                   {formatLocalizedAmount(row.amount, i18n.language)}
                 </td>
-                <td className="py-2 pr-3 text-right tabular-nums text-slate-500">
+                <td data-label={t('finance.incomeList.columns.tips')} className="py-2 pr-3 text-right tabular-nums text-slate-500">
                   {row.tipAmount > 0
                     ? formatLocalizedAmount(row.tipAmount, i18n.language)
                     : '—'}
                 </td>
-                <td className="py-2 pr-3">{row.stylistName}</td>
-                <td className="py-2 pr-3">{row.clientName}</td>
-                <td className="py-2 pr-3">
+                <td data-label={t('finance.incomeList.columns.stylist')} className="py-2 pr-3">{row.stylistName}</td>
+                <td data-label={t('finance.incomeList.columns.client')} className="py-2 pr-3">{row.clientName}</td>
+                <td data-label={t('finance.incomeList.columns.kind')} className="py-2 pr-3">
                   <Badge
                     variant={row.kind === 'MANUAL' ? 'secondary' : 'outline'}
                   >
@@ -188,7 +188,7 @@ export function IncomeEntriesTable({
                     )}
                   </Badge>
                 </td>
-                <td className="py-2 text-right">
+                <td data-label={t('finance.incomeList.columns.actions')} className="py-2 text-right">
                   {row.manualEntry && !isLocked ? (
                     <div className="flex justify-end gap-1">
                       <Button
@@ -216,7 +216,10 @@ export function IncomeEntriesTable({
                       </Button>
                     </div>
                   ) : (
-                    <span className="text-xs text-slate-400">—</span>
+                    <span className="text-xs text-content-muted">
+                      —
+                      <span className="sr-only">{t('finance.incomeList.noActions')}</span>
+                    </span>
                   )}
                 </td>
               </tr>

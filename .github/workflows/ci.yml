@@ -461,6 +461,12 @@ jobs:
       - name: Test finance category-field accessibility
         working-directory: frontend
         run: npm run test:finance-category-fields-accessibility
+      - name: Test finance summary parity
+        working-directory: frontend
+        run: npm run test:finance-summary-parity
+      - name: Test finance table a11y
+        working-directory: frontend
+        run: npm run test:finance-table-a11y
       - name: Test localized daily-log list overview
         working-directory: frontend
         run: npm run test:daily-log-list-i18n

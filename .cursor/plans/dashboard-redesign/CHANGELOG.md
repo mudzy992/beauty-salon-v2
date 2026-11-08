@@ -896,3 +896,122 @@ Dodatno, test 7 tvrdi da se frontend i backend **razilaze** za `NaN` tip (backen
 postoji** — `package.json` ima pojedinačne `test:*` skripte bez agregatnog runnera. Pokretanje
 `npm run test:all` dalo je prazan log uz exit 1. Brojka se odnosi na **broj skripti**, a sve se
 moraju pokrenuti pojedinačno.
+
+---
+
+## 2026-11-08 — FAZA 4, commit 1: Finansije (D2/D4/D6/D10) + 2 nova testa
+
+### Recon: plan je izvor, ne lista defekata — 4 stavke opovrgnute
+
+Prije ijedne izmjene svaka D-stavka je provjerena u izvoru. Rezultat:
+
+| Stavka | Presuda | Dokaz |
+|---|---|---|
+| D1 (promovisati `data-state`/`confirm-dialog`/`responsive-dialog`) | **već gotovo** | sva tri fajla u `finance/components/` su 8-linijski **re-export shimovi** na `features/shell/admin/ui/` (faza 0) |
+| D2 (`SummaryCards` hint 2.56:1) | **tačno** | `summary-cards.tsx:38` `text-[11px] text-slate-400` |
+| D3 (ton mijenja samo boju → dodati ikonu) | **OPVRGNUTO** | pozivna mjesta: `totalExpenses`→negative, `revenue`→default, `tips`→muted, `totalCollected`→positive. Labela **već tekstualno nosi značenje**; boja je suvišan naglasak, ne jedini nosilac. WCAG 1.4.1 se ne primjenjuje. Dodavanje ✓/✗ bi impliciralo prolaz/pad koji ne postoji |
+| D4 (dije em-dash u `slate-400`) | **tačno** | `expense-attachments.tsx:51`, `income-entries-table.tsx:219` |
+| D5 (`aria-sort` proširiti) | **tačno, ali zaključano** | `table-sort-accessibility.test.mjs:10` asertuje tačan izraz → nije dirano |
+| D6 (caption/scope na sve tabele) | **preširoko** | `expense-table` 4/4 i `income-entries-table` 5/5 **već imaju** puno scope; zaostajala samo `expense-invoice-preview.tsx` (2 `<th>`, 0 scope, bez captiona) |
+| D7 (`export-menu` `role="menu"`) | **OPVRGNUTO** | `export-menu.tsx` su dva `<Button>` s vidljivim tekstom CSV/PDF i `aria-hidden` ikonama. Nema menija; `role="menu"` ne pripada. 2.5.3 zadovoljen |
+| D8 (`category-wizard-dialog` 3.3.7) | **OPVRGNUTO** | fajl (222 ln) nema nijedan `step` — jedan `ResponsiveDialog` s `onSubmit`, ne višekoračna forma |
+| D9 (Dužnici repay/write-off → `ConfirmDialog`) | **pogrešno smješteno** | `pages/Debtors.tsx` (199 ln) je **read-only** (samo paginacija, ln 173-190). Repay UI je u `features/stylist-portal/pages/stylist-debts-page.tsx` → **faza 11**. `lookups.api.ts` exporti nemaju pozivaoca u frontendu |
+| D10 (card prikaz ispod 640px) | **tačno, ali uzrok drugačiji** | vidi dolje |
+
+### D10 — ispravka vlastite tvrdnje, dva puta
+
+Prvo sam grepao **komponente** za `@media`/`data-label`, dobio prazno i zaključio „nema
+card-mode". **Pogrešno** — card-mode je globalan u `frontend/src/index.css:23-45`.
+
+Zatim sam grepao `className="data-table` i dobio **0 fajlova**, pa zaključio da je card-mode
+**mrtav CSS**. **Opet pogrešno** — obrazac je bio preuzak: `data-table.tsx:73` renderuje
+`<table className="app-table data-table w-full">`, a ln 117 postavlja `data-label={t(column.headerKey)}`.
+
+**Stvarno stanje:** card-mode je živ za šablon `DataTable`, ali finance tabele nose **samo**
+`app-table` i imaju **0 `data-label`** — pa za njih card-mode nije važio. Popravak: dodata
+`data-table` klasa + `data-label` na svaku tbody ćeliju (16 ukupno: expense-table 6,
+income-entries-table 8, expense-invoice-preview 2). `tfoot` ne treba `data-label` jer CSS
+cilja `tbody td::before`.
+
+### Kontrast: 232 sirove klase ≠ 232 prekršaja
+
+Izmjereno, ne pretpostavljeno. Od **232** pojavljivanja sirovih paletnih klasa (36 distinct),
+stvarni prekršaji u light modu su **5**:
+
+| fajl | ln | klasa | kontrast | prag | tip |
+|---|---|---|---|---|---|
+| `book-period-picker.tsx` | 89 | amber-600 | 3.19 | 4.5:1 | tekst 1.4.3 |
+| `expense-attachments.tsx` | 51 | slate-400 | 2.56 | 4.5:1 | tekst 1.4.3 |
+| `income-entries-table.tsx` | 219 | slate-400 | 2.56 | 4.5:1 | tekst 1.4.3 |
+| `manual-entry-dialog.tsx` | 193 | amber-600 | 3.19 | 4.5:1 | tekst 1.4.3 |
+| `manual-entry-dialog.tsx` | 161 | slate-400 | 2.56 | 3:1 | ikona (dekorativna) |
+| `summary-cards.tsx` | 38 | slate-400 | 2.56 | 4.5:1 | tekst 1.4.3 (D2) |
+
+**Tri korekcije vlastite brojke usput — sve tri u smjeru smanjenja:**
+
+1. **`text-rose-500` (3.67) — svih 5 su `Trash2` ikone** s `aria-hidden`. Prag za netekstualnu
+   grafiku je 1.4.11 = **3:1**, ne 4.5:1 → **svih 5 prolazi**. Prvobitno sam ih brojao kao FAIL.
+2. **`dark:` varijante nisu light-mode padovi.** `book-list.tsx:62` je `text-slate-500
+   dark:text-slate-400` → light klasa 4.76 **prolazi**; `history-panel.tsx:61` je
+   `text-slate-600 dark:text-slate-300` → 7.58 **prolazi**. Ukupno 41 `dark:text-*`
+   pojavljivanja je mrtav kod.
+3. **`manual-entry-dialog.tsx:161` nije tvrdi prekršaj.** `Check` ikona se renderuje
+   **bezuslovno za svaki red** u pickeru, ne samo za odabranog — dakle je dekoracija, a 1.4.11
+   se odnosi na grafiku *neophodnu za razumijevanje*. Token swap je ipak urađen (jeftin).
+
+`text-slate-500` (35×, **4.76**) i `text-rose-600` (3×, **4.70**) **prolaze** AA — nisu dirani
+kao prekršaji.
+
+### Izmjene
+
+- `summary-cards.tsx`: 7 zamjena → `text-content`/`text-ok-foreground` (7.13)/`text-bad-foreground`
+  (8.31)/`text-content-strong` (7.39)/`border-line`/`bg-surface`/`text-content-muted` (5.61);
+  `text-[11px]` → `text-xs`. **0 sirovih paletnih klasa, 0 `text-[NNpx]`**.
+- `book-period-picker.tsx`, `manual-entry-dialog.tsx` ×2: amber-600/slate-400 → tokeni
+- D4: obje em-dash ćelije dobile token **i** `sr-only` kontekst (sama „—" čitaču ekrana ne
+  znači ništa) — novi ključevi `finance.expenseForm.noAttachments`, `finance.incomeList.noActions`
+- D6: `expense-invoice-preview.tsx` — `<caption className="sr-only">` + 2× `scope="col"`,
+  novi ključ `finance.expenseList.invoiceItemsCaption`
+- D10: 3 tabele — `app-table data-table` + 16 `data-label`
+
+### Novi testovi (§7) — oba izvršavaju stvarni kod, oba mutacijski provjerena
+
+**`test:finance-summary-parity` (5 testova)** — esbuild bundle izvršava `summarizeIncomeRows`
+i `sumExpenses`, ništa nije reimplementirano. Zaključava `total === revenue + tips` (tri KIF
+kartice moraju izlaziti na isto), da su `revenue`/`tips` zbir svojih kolona, prazan skup →
+nule (ne NaN), i `sumExpenses` toleranciju na string/null/NaN.
+
+**`test:finance-table-a11y` (8 testova)** — po fajlu zaključava caption + `scope` + `data-table`
+klasu + tačan broj `data-label`, uz asertciju da `data-label` nije hardkodovan, i da
+`index.css` card-mode i dalje cilja `table.data-table tbody td::before`.
+
+**Mutacijska provjera (3/3 pala na predviđenom testu):**
+
+| mutacija | pao | ostalo |
+|---|---|---|
+| `total +1` u summary-parity | `not ok 1` | 4 pass |
+| `scope: 2→3` u table-a11y | `not ok 5` (invoice-preview) | 7 pass |
+| `td: 6→5` u table-a11y | `not ok 2` (expense-table data-label) | 7 pass |
+
+Usput: test 8 je pao jer sam napisao `../../../index.css` (→ `frontend/index.css`, ne postoji);
+ispravno je `../../index.css` (→ `src/index.css`), potvrđeno `os.path.normpath`.
+
+### Verifikacija
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` skripte | **152/152 PASS**, 0 fail |
+| `test:finance-summary-parity` | **5/5 PASS** |
+| `test:finance-table-a11y` | **8/8 PASS** |
+| `npm run build` | **PASS**, **272.6 KiB gzip** (budžet 300) |
+| `check_i18n.py --strict` | **PASS** — 2622/2622 |
+| `check_ui_contrast.py` | **PASS** — 80/80 |
+| `check_repo_hygiene.py` | **PASS** — 1659 paths |
+| `check_doc_links.py` | **PASS** — 670 linkova / 202 fajla |
+| `finance.types.ts`, `api/*`, `hooks/*` | **bez diff-a** |
+| `finance` / `client-debts` `MATRIX.md` | **netaknut** (prezentacijske izmjene) |
+| `package.json` | 158 skripti (+2) |
+| `ci.yml` | +2 koraka (ln 464-469) |
+
+**Nije render-verificirano:** vizualno ponašanje card-modea ispod 640px (CSS media query;
+potreban Playwright, faza 13). Strukturni uslovi su zaključani testom.

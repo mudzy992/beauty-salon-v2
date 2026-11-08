@@ -96,11 +96,16 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
           <p className="text-sm text-slate-500">{t('finance.expenseList.noInvoiceItems')}</p>
         ) : (
           <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
-            <table className="app-table w-full">
+            <table className="app-table data-table w-full">
+              {/* D6 (1.3.1): tabela bez captiona i bez scope nije bila
+                  programski citljiva; uzorak je vec koristen u expense-table.tsx. */}
+              <caption className="sr-only">
+                {t('finance.expenseList.invoiceItemsCaption')}
+              </caption>
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-                  <th className="px-3 py-2 font-medium">{t('finance.expenseList.columns.lineItem')}</th>
-                  <th className="px-3 py-2 text-right font-medium">{t('finance.expenseList.columns.amount')}</th>
+                  <th scope="col" className="px-3 py-2 font-medium">{t('finance.expenseList.columns.lineItem')}</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">{t('finance.expenseList.columns.amount')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -109,10 +114,10 @@ export function ExpenseInvoicePreview({ expense, open, onOpenChange }: Props) {
                     key={`${row.name}-${index}`}
                     className="border-b border-slate-100 last:border-0 dark:border-slate-900"
                   >
-                    <td className="px-3 py-2 font-medium text-slate-900 dark:text-slate-50">
+                    <td data-label={t('finance.expenseList.columns.lineItem')} className="px-3 py-2 font-medium text-slate-900 dark:text-slate-50">
                       {row.name}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums font-medium">
+                    <td data-label={t('finance.expenseList.columns.amount')} className="px-3 py-2 text-right tabular-nums font-medium">
                       {formatLocalizedAmount(row.total, i18n.language)}
                     </td>
                   </tr>

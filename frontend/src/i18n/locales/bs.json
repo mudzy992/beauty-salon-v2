@@ -2174,6 +2174,7 @@
       "filtered": "Prikazano (filter)"
     },
     "incomeList": {
+      "noActions": "Nema dostupnih akcija.",
       "searchPlaceholder": "Servis, klijent, napomena…",
       "stylistPlaceholder": "Ime stiliste",
       "kindFilterLabel": "Filtriraj po vrsti stavke",
@@ -2341,6 +2342,7 @@
       }
     },
     "expenseList": {
+      "invoiceItemsCaption": "Stavke fakture",
       "searchPlaceholder": "Naziv, kategorija, napomena…",
       "allCategories": "Sve kategorije",
       "onlyWithAttachments": "Samo rashodi sa prilogom",
@@ -2372,6 +2374,7 @@
       "noInvoiceItems": "Nema pojedinačnih stavki."
     },
     "expenseForm": {
+      "noAttachments": "Nema priloga.",
       "createTitle": "Novi rashod",
       "editTitle": "Uredi rashod",
       "fixedDescription": "Fiksne stavke iz predloška – vrijednosti i prilozi po stavci.",

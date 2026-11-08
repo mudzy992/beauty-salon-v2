@@ -86,7 +86,7 @@ export function BookPeriodPicker({
         </p>
       ) : null}
       {isFuture ? (
-        <p className="text-xs text-amber-600 dark:text-amber-400">
+        <p className="text-xs text-warn-foreground">
           {t('finance.book.futureMonthCannotOpen')}
         </p>
       ) : null}
