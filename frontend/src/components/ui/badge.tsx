@@ -17,6 +17,13 @@ const badgeVariants = cva(
         warning: 'border-amber-200 bg-amber-50 text-amber-800',
         danger: 'border-rose-200 bg-rose-50 text-rose-800',
         brand: 'border-brand-champagne bg-brand-champagne/20 text-slate-900',
+        /* Semantičke status varijante za dashboard (faza 0). Postojeće iznad se ne
+           diraju jer ih koristi javni sajt. Kontrasti su u check_ui_contrast.py:
+           info 7.13:1, neutral 8.23:1 (light). */
+        info: 'border-transparent bg-info text-info-foreground',
+        neutral: 'border-transparent bg-neutral text-neutral-foreground',
+        /* 1.4.11 — outline badge s okvirom koji sam po sebi prelazi 3:1. */
+        outlineStrong: 'border-control-border text-content',
       },
     },
     defaultVariants: {

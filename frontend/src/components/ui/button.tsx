@@ -23,6 +23,10 @@ const buttonVariants = cva(
           'border border-white/45 bg-white/12 text-white shadow-sm backdrop-blur-md hover:border-white/60 hover:bg-white/18 focus-visible:ring-white/90 focus-visible:ring-offset-2 focus-visible:ring-offset-black/50',
         destructive:
           'border border-transparent bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:ring-red-500 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950',
+        /* Admin dashboard: koristi semantičke tokene umjesto hardkodiranog red-600.
+           5.22:1 (light) / 6.29:1 (dark) — provjereno u check_ui_contrast.py. */
+        danger:
+          'border border-transparent bg-danger text-danger-foreground shadow-sm hover:opacity-90 focus-visible:ring-danger focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950',
       },
       size: {
         default: 'h-10 px-4 py-2',

@@ -46,6 +46,9 @@ export default {
         },
         line: 'hsl(var(--line))',
         'control-border': 'hsl(var(--control-border))',
+        /* Okvir inputa: default = današnji slate-200 (javni sajt netaknut),
+           unutar .admin-shell se prebacuje na --control-border (1.4.11). */
+        'input-border': 'hsl(var(--input-border))',
         'on-primary': 'hsl(var(--on-primary))',
         'nav-active': 'hsl(var(--nav-active-bg))',
         'focus-ring': 'var(--focus-ring, var(--brand-primary-ring, #632238))',

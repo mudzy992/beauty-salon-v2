@@ -44,6 +44,9 @@
     --text-muted-strong: 240 4% 34.7%; /* AAA 7.28:1 / surface */
     --line: 214.3 31.8% 91.4%; /* dekorativna linija, nije okvir kontrole */
     --control-border: 221.2 6.3% 49.4%; /* 1.4.11: 4.24:1 / surface */
+    /* Okvir inputa/textarea. Default je tačno današnji slate-200 da javni sajt
+       ostane vizuelno identičan; unutar .admin-shell se prebacuje na --control-border. */
+    --input-border: 214.3 31.8% 91.4%;
     --on-primary: 0 0% 100%; /* 11.56:1 / brand primary */
     --nav-active-bg: 38 67.2% 88%; /* brand champagne */
     --focus-ring: var(--brand-primary-ring); /* 11.56:1 / surface */
@@ -96,6 +99,7 @@
     --text-muted-strong: 214.6 21% 75.7%; /* AAA 9.19:1 / surface */
     --line: 240 3.9% 20%; /* dekorativna linija */
     --control-border: 220 8.9% 46.1%; /* 1.4.11: 3.48:1 / surface */
+    --input-border: 217.2 32.6% 17.5%; /* današnji dark slate-800 */
     --on-primary: 0 0% 10.2%; /* 9.58:1 / dark primary */
     --nav-active-bg: 336.8 36.5% 16.7%;
     --focus-ring: var(--brand-primary-ring); /* 9.28:1 / surface */
@@ -205,6 +209,13 @@
     outline: 3px solid var(--focus-ring, var(--brand-primary-ring, #632238));
     outline-offset: 2px;
     border-radius: 4px;
+  }
+
+  /* WCAG 1.4.11 — unutar dashboarda okvir kontrole prelazi na AA vrijednost.
+     `var(--control-border)` se rješava iz trenutne teme, pa dark radi automatski.
+     Javni sajt nema .admin-shell, pa mu okvir ostaje današnji slate-200. */
+  .admin-shell {
+    --input-border: var(--control-border);
   }
 
   /* WCAG 2.4.1 — skip link je vizuelno skriven dok ne dobije fokus. */

@@ -55,6 +55,9 @@ export const OtpInput = ({
           inputMode="numeric"
           pattern="\\d*"
           maxLength={1}
+          // WCAG 1.3.5 / 3.3.7 — preglednik i password manageri prepoznaju polje kao
+          // jednokratni kod. Samo na prvom polju: tu se lijepi cijeli kod.
+          autoComplete={i === 0 ? 'one-time-code' : 'off'}
           value={d}
           disabled={disabled}
           onPaste={handlePaste}
@@ -66,7 +69,7 @@ export const OtpInput = ({
             if (e.key === 'ArrowLeft' && i > 0) inputsRef.current[i - 1]?.focus()
             if (e.key === 'ArrowRight' && i < length - 1) inputsRef.current[i + 1]?.focus()
           }}
-          className="h-11 w-10 rounded-md border border-slate-200 bg-white text-center text-base font-semibold text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50"
+          className="h-11 w-10 rounded-md border border-input-border bg-white text-center text-base font-semibold text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold-ring focus-visible:ring-offset-2 dark:bg-slate-950 dark:text-slate-50"
           aria-label={`${t('common.digit')} ${i + 1}`}
         />
       ))}
