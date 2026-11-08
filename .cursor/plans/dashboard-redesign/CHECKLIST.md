@@ -20,9 +20,9 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 |---|---|---|---|
 | 0 | Temelj (tokeni, shell, primitivi, šabloni) | `[x]` 4 commita | **STOP poslije — čeka review** |
 | 1 | Dashboard (pilot) | `[x]` 2 commita | **STOP poslije — čeka review** |
-| 2 | Rezervacije (lista + kalendar) | `[ ]` | |
-| 3 | Dnevna knjiga | `[ ]` | |
-| 4 | Finansije | `[ ]` | |
+| 2 | Rezervacije (lista + kalendar) | `[x]` 4 commita (`9a154c6`, `a9d21a8`, `13d976c`, `1d2bfef`) | prošla |
+| 3 | Dnevna knjiga | `[x]` 3 commita (`fdaa029`, `5bf5518`, `7eb3d61`) | prošla |
+| 4 | Finansije | `[x]` 4 commita (`d801dbb`, `2ba25dd`, `f1f7658`, `55c577d`) | prošla |
 | 5 | Lojalnost | `[ ]` | |
 | 6 | Analitika (+ M1 ako odobren) | `[ ]` | |
 | 7 | Korisnici | `[ ]` | |
@@ -32,6 +32,23 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 11 | Stylist portal | `[ ]` | |
 | 12 | Onboarding / ForceChangePassword | `[ ]` | |
 | 13 | Zaključak (globalni prolaz, sweep, docs) | `[ ]` | |
+
+> **`019e58a`** (`fix(dashboard): D9 error stanja + test:daily-log-amount-parity`) nije
+> uračunat ni u jednu fazu iznad jer je preduslov koji je dotakao **dvije** faze: D9 u
+> `pages/Dashboard.tsx` (faza 1) i `daily-log-amount-parity.test.mjs` (faza 3).
+
+### Napomene uz fazu 4
+
+- **Razbijanje fajlova NIJE rađeno** — `income-book-detail.tsx` (409 ln),
+  `expense-book-detail.tsx` (369 ln) i `category-fields-editor.tsx` (298 ln) ostaju cijeli.
+  Odgođeno na **fazu 13** uz Playwright/axe, jer testovi čitaju te fajlove po putanji
+  (`income-book-detail-i18n.test.mjs`, `expense-book-detail-i18n.test.mjs`,
+  `category-fields-a11y.test.mjs`), a čisto strukturna izmjena nema a11y vrijednosti.
+- **`MATRIX.md` (finance, client-debts) netaknut** — sve izmjene su prezentacijske
+  (tokeni, `scope`, `caption`, `data-label`, semantika liste), a `MATRIX.md` dokumentuje
+  poslovnu logiku (statusi, prelazi, dozvole).
+- **Javni sajt nije diran** — nijedan od 16 izmijenjenih finance fajlova nije importovan
+  izvan `features/finance`, `features/shell`, `features/debtors` ili `pages/Debtors`.
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
