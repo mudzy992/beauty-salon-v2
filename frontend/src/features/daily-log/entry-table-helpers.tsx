@@ -66,7 +66,7 @@ export function LoyaltyDiscountLine({ entry }: { entry: DailyLogEntry }) {
   if (percent <= 0) return null
 
   return (
-    <p className="text-xs text-emerald-600 dark:text-emerald-400">
+    <p className="text-xs text-ok-foreground">
       {t('dailyLog.table.mobile.loyaltyDiscount', {
         percent,
         amount: formatLocalizedAmount(amount, i18n.language),

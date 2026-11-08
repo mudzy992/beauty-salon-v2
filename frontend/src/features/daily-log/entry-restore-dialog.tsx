@@ -117,8 +117,8 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
           {hasReservation && (
             <div className={`flex gap-2 rounded-lg border p-3 text-sm ${
               willCreateReservation
-                ? 'border-blue-200 bg-blue-50 text-blue-800'
-                : 'border-slate-200 bg-slate-50 text-slate-700'
+                ? 'border-line bg-info text-info-foreground'
+                : 'border-line bg-surface-muted text-content-strong'
             }`}>
               <Info className="mt-0.5 h-4 w-4 shrink-0" />
               <div className="space-y-1">
@@ -127,7 +127,7 @@ export const EntryRestoreDialog = ({ entry, onClose, onConfirm, loading }: Props
                 ) : (
                   <p>{t('dailyLog.restoreDialog.restoredPending')}</p>
                 )}
-                <p className="text-xs opacity-80">
+                <p className="text-xs">
                   {entry.reservation?.acceptanceMode === 'DIRECT_ASSIGN'
                     ? t('dailyLog.restoreDialog.directAssignPolicy')
                     : t('dailyLog.restoreDialog.standardPolicy')}

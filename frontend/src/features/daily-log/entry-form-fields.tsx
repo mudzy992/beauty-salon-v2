@@ -109,12 +109,13 @@ export const DailyLogEntryFormFields = ({
 
   return <div className="space-y-4">
     <div>
-      <Label>{t('dailyLog.form.stylist')}</Label>
+      <Label htmlFor="dailylog-stylist">{t('dailyLog.form.stylist')}</Label>
       <select
+        id="dailylog-stylist"
         required
         value={form.stylistProfileId}
         onChange={(e) => setForm({ ...form, stylistProfileId: e.target.value })}
-        className="mt-1 flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+        className="mt-1 flex h-10 w-full rounded-md border border-input-border bg-surface px-3 text-sm text-content"
       >
         <option value="">{t('dailyLog.form.chooseStylist')}</option>
         {stylists.map((s) => (
@@ -125,10 +126,11 @@ export const DailyLogEntryFormFields = ({
       </select>
     </div>
     <div>
-      <Label>{t('dailyLog.form.client')}</Label>
+      <Label htmlFor="dailylog-client">{t('dailyLog.form.client')}</Label>
       <div ref={clientDropdownRef} className="relative mt-1">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
         <Input
+          id="dailylog-client"
           className="pl-9"
           value={clientSearch}
           onChange={(e) => {
@@ -140,7 +142,7 @@ export const DailyLogEntryFormFields = ({
           placeholder={t('dailyLog.form.searchClient')}
         />
         {showClientDropdown && filteredClients.length > 0 ? (
-          <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
+          <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
             {filteredClients.map((c) => (
               <li
                 key={c.id}
@@ -156,10 +158,11 @@ export const DailyLogEntryFormFields = ({
       </div>
     </div>
     <div>
-      <Label>{t('dailyLog.form.services')}</Label>
+      <Label htmlFor="dailylog-services">{t('dailyLog.form.services')}</Label>
       <div ref={serviceDropdownRef} className="relative mt-1">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
         <Input
+          id="dailylog-services"
           className="pl-9"
           value={serviceSearch}
           onChange={(e) => {
@@ -170,7 +173,7 @@ export const DailyLogEntryFormFields = ({
           placeholder={t('dailyLog.form.searchService')}
         />
         {showServiceDropdown && filteredServices.length > 0 ? (
-          <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
+          <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
             {filteredServices.map((svc) => (
               <li
                 key={svc.id}
@@ -181,11 +184,11 @@ export const DailyLogEntryFormFields = ({
                 <div className="flex justify-between gap-2 text-sm">
                   <span className="flex items-center gap-2">
                     {form.serviceIds.includes(svc.id) ? (
-                      <Check className="h-4 w-4 text-emerald-600" />
+                      <Check className="h-4 w-4 text-ok-foreground" />
                     ) : null}
                     {svc.name}
                   </span>
-                  <span className="text-slate-500">{formatLocalizedAmount(svc.price, i18n.language)}</span>
+                  <span className="text-content-muted">{formatLocalizedAmount(svc.price, i18n.language)}</span>
                 </div>
               </li>
             ))}
@@ -203,8 +206,9 @@ export const DailyLogEntryFormFields = ({
       ) : null}
     </div>
     <div>
-      <Label>{t('dailyLog.form.date')}</Label>
+      <Label htmlFor="dailylog-date">{t('dailyLog.form.date')}</Label>
       <Input
+        id="dailylog-date"
         type="date"
         className="mt-1"
         value={form.date}
@@ -213,19 +217,20 @@ export const DailyLogEntryFormFields = ({
     </div>
     {editId ? (
       <div>
-        <Label>{t('dailyLog.form.status')}</Label>
+        <Label htmlFor="dailylog-status">{t('dailyLog.form.status')}</Label>
         <select
+          id="dailylog-status"
           value={form.status}
           onChange={(e) =>
             setForm({ ...form, status: e.target.value as 'PENDING' | 'COMPLETED' })
           }
-          className="mt-1 flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+          className="mt-1 flex h-10 w-full rounded-md border border-input-border bg-surface px-3 text-sm text-content"
         >
           <option value="PENDING">{t('dailyLog.form.pending')}</option>
           <option value="COMPLETED">{t('dailyLog.form.completed')}</option>
         </select>
         {form.status === 'PENDING' ? (
-          <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+          <p className="mt-1 text-xs text-warn-foreground">
             {t('dailyLog.form.pendingWarning')}
           </p>
         ) : null}
@@ -250,7 +255,7 @@ export const DailyLogEntryFormFields = ({
       onCreateDebtChange={setCreateDebt}
     />
     {loyaltyPercent > 0 ? (
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-content-muted">
         {t('dailyLog.form.loyaltyDiscount', {
           percent: loyaltyPercent,
           amount: formatLocalizedAmount(loyaltyDiscountAmount, i18n.language),
@@ -258,18 +263,19 @@ export const DailyLogEntryFormFields = ({
       </p>
     ) : null}
     <div>
-      <Label>{t('dailyLog.form.notes')}</Label>
+      <Label htmlFor="dailylog-notes">{t('dailyLog.form.notes')}</Label>
       <Textarea
+        id="dailylog-notes"
         className="mt-1"
         value={form.notes}
         onChange={(e) => setForm({ ...form, notes: e.target.value })}
         rows={2}
       />
     </div>
-    <div className="border-t border-slate-200 pt-3 dark:border-slate-800">
-      <Label className="mb-2 block">{t('dailyLog.form.loyaltyProgram')}</Label>
+    <div className="border-t border-line pt-3">
+      <Label id="dailylog-loyalty-label" className="mb-2 block">{t('dailyLog.form.loyaltyProgram')}</Label>
       {loadingLoyalty ? (
-        <Loader2 className="h-5 w-5 animate-spin text-slate-500" />
+        <Loader2 className="h-5 w-5 animate-spin text-content-muted" />
       ) : loyaltyInfo?.enabled &&
         loyaltyInfo?.hasAccount &&
         loyaltyInfo?.redeemEnabled &&
@@ -282,6 +288,8 @@ export const DailyLogEntryFormFields = ({
             })}
           </p>
           <Input
+            id="dailylog-loyalty-percent"
+            aria-labelledby="dailylog-loyalty-label"
             type="number"
             className="max-w-[140px]"
             min={0}
@@ -298,7 +306,7 @@ export const DailyLogEntryFormFields = ({
           />
         </div>
       ) : (
-        <p className="text-sm text-slate-600">{t('dailyLog.form.loyaltyUnavailable')}</p>
+        <p className="text-sm text-content-muted">{t('dailyLog.form.loyaltyUnavailable')}</p>
       )}
     </div>
     <div className="flex justify-end gap-2 pt-2">

@@ -50,9 +50,9 @@ export const DailyLogEntryFilters = ({
 }: Props) => {
   const { t } = useTranslation()
   return (
-    <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
+    <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-line bg-surface p-4 shadow-sm">
       <div>
-        <p className="mb-1 text-xs text-slate-500">
+        <p className="mb-1 text-xs text-content-muted">
           {t('dailyLog.list.fromDate')}
         </p>
         <Input
@@ -63,7 +63,7 @@ export const DailyLogEntryFilters = ({
         />
       </div>
       <div>
-        <p className="mb-1 text-xs text-slate-500">
+        <p className="mb-1 text-xs text-content-muted">
           {t('dailyLog.list.toDate')}
         </p>
         <Input
@@ -74,13 +74,13 @@ export const DailyLogEntryFilters = ({
         />
       </div>
       <div>
-        <p className="mb-1 text-xs text-slate-500">
+        <p className="mb-1 text-xs text-content-muted">
           {t('dailyLog.list.stylist')}
         </p>
         <select
           value={stylistFilter}
           onChange={(e) => onStylistFilterChange(e.target.value)}
-          className="flex h-9 w-[200px] rounded-md border border-slate-200 bg-white px-3 text-sm dark:border-slate-800 dark:bg-slate-950"
+          className="flex h-9 w-[200px] rounded-md border border-input-border bg-surface px-3 text-sm text-content"
         >
           <option value="">{t('dailyLog.list.allStylists')}</option>
           {stylists.map((s) => (

@@ -40,7 +40,7 @@ export const DailyLogDeleteDialog = ({
         <DialogHeader>
           <DialogTitle>{t('dailyLog.deleteDialog.title')}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+        <div className="space-y-2 text-sm text-content-muted">
           <p>{t('dailyLog.deleteDialog.description')}</p>
           {entry?.status === 'COMPLETED' ? (
             <p>{t('dailyLog.deleteDialog.completedWarning')}</p>
@@ -50,8 +50,9 @@ export const DailyLogDeleteDialog = ({
           ) : null}
         </div>
         <div>
-          <Label>{t('dailyLog.deleteDialog.reasonLabel')}</Label>
+          <Label htmlFor="dailylog-delete-reason">{t('dailyLog.deleteDialog.reasonLabel')}</Label>
           <Textarea
+            id="dailylog-delete-reason"
             className="mt-1"
             value={reason}
             onChange={(e) => onReasonChange(e.target.value)}

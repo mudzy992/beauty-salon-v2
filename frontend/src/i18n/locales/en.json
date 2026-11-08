@@ -2047,6 +2047,7 @@
       "boundedRangeError": "Could not load the daily log. Check that both dates are set and the range has no more than 62 days and 500 entries."
     },
     "table": {
+      "caption": "Daily log: service entries, revenue, debts and tips",
       "columns": {
         "reference": "Ref.",
         "stylist": "Stylist",

@@ -2044,6 +2044,7 @@
       "boundedRangeError": "Nije moguće učitati dnevnu knjigu. Provjerite oba datuma, opseg od najviše 62 dana i 500 zapisa."
     },
     "table": {
+      "caption": "Dnevna knjiga: unosi usluga, prihoda, dugova i bakšiša",
       "columns": {
         "reference": "Ref.",
         "stylist": "Stilista",

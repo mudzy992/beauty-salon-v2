@@ -75,7 +75,7 @@ export const DailyLogEntryActions = ({
           type="button"
           size="icon"
           variant="ghost"
-          className="h-8 w-8 text-emerald-600"
+          className="h-8 w-8 text-ok-foreground"
           aria-label={t('dailyLog.table.actions.complete')}
           onClick={() => onComplete(entry.id)}
         >
@@ -86,7 +86,7 @@ export const DailyLogEntryActions = ({
         type="button"
         size="icon"
         variant="ghost"
-        className="h-8 w-8 text-rose-600"
+        className="h-8 w-8 text-bad-foreground"
         aria-label={t('dailyLog.table.actions.delete')}
         onClick={() => onDelete(entry)}
       >

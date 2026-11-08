@@ -582,3 +582,65 @@ može dokazati, a ne naslijepo.
 | `ReservationsCalendar` chunk | **95.2 KiB gzip** (budget 125) |
 | `test:*` | **148/148 PASS** |
 | 4 python gate-a | **PASS** / **80/80** / **PASS** / **670-202** |
+
+---
+
+## Faza 3 — Dnevna knjiga (commit 1)
+
+### Opseg
+
+`frontend/src/features/daily-log/` — 10 produkcijskih `.tsx` fajlova (12 fajlova u diffu,
++113/−98) + 2 lokala (+1/+1). **Netaknuto:** `entry-status-label.ts`, `amounts.ts`,
+`date-range.ts`, `types.ts`, `use-daily-log-data.ts`, `use-daily-log-mutations.ts`,
+`form-helpers.ts`, `use-daily-log-form.ts` (logika).
+
+### Izmjene
+
+| WCAG | Izmjena |
+|---|---|
+| **1.3.1 / 4.1.2** | **12** `htmlFor` ↔ `id` parova u modulu (bilo 4). `entry-form-fields`: stylist, client, services, date, status, notes. `pricing-panel`: amountPaid. `entry-delete-dialog`: reason |
+| **1.3.1** | `pricing-panel` Label nad **grupom** servisa (`map`) dobio `id`, kontejner `role="group"` + `aria-labelledby` |
+| **1.3.1** | `entry-form-fields` loyalty Label (stoji nad **uslovnim** `Input`-om) dobio `id`, a Input `aria-labelledby` — radi i kad Input postoji i kad ne |
+| **1.3.1** | `entry-table`: dodan `<caption className="sr-only">` i `scope="col"` na **svih 12** `<th>` (bilo 0 i 0) |
+| **1.4.11** | 2× `text-slate-400` Search ikona → `text-content-muted` (2.56:1 → 5.61:1) |
+| **1.4.11** | 2× `<select>` u `entry-form-fields` i 1× u `entry-filters`: `border-slate-200` (1.23:1) → `border-input-border`, koji se u `.admin-shell` diže na `--control-border` (4.24:1) |
+| **1.4.4** | **5×** `text-[10px]` → `text-xs` (`entry-table` 3, `entry-detail-dialog` 2) |
+| **1.4.3** | **48** zamjena cijelih `className` vrijednosti (31 distinct) → semantički tokeni |
+
+**Rezultat: 0 sirovih paletnih klasa, 0 `text-[NNpx]`, 0 `text-slate-400` u cijelom modulu.**
+
+### Izmjereno, pa **namjerno nije mijenjano**
+
+| Mjesto | Solid | S `opacity` | Odluka |
+|---|---|---|---|
+| `entry-restore-dialog` info-kutija (info) | 8.01:1 | **5.01:1** | PASS |
+| `entry-restore-dialog` info-kutija (neutral) | 9.90:1 | **5.58:1** | PASS |
+| `entry-table` obrisani red `opacity-70` | — | **7.91:1** | PASS — **zadržano**, jer je vizuelni signal za soft-delete |
+
+`opacity-80` u restore kutiji je **prolazio**, pa njegovo uklanjanje nije WCAG popravak
+nego usklađivanje; `opacity-70` na obrisanom redu je ostao jer nosi značenje.
+
+### Dvije greške koje je uhvatila vlastita provjera
+
+1. **Broj `<th>` nije 13 nego 12.** Raniji `grep -c '<th'` brojao je i `</th>` linije.
+   Asertcija `n1 + n2 == 13` je pala (`NASAO 7+5`) i **fajl nije zapisan**.
+   Pouka: `grep -c` po linijama ≠ broj elemenata; koristiti `grep -o '<th ' | wc -l`.
+2. **Otvorio sam `<div role="group">` bez zatvarajućeg `</div>`** u `pricing-panel.tsx`.
+   Uhvaćeno provjerom div-balansa **prije** builda; ispravljeno na 9/9.
+
+Uz to, jedna skripta je pala na Python `SyntaxError` (backslash u f-string izrazu) —
+to je greška pri parsiranju, pa **ništa nije izvršeno**; potvrđeno provjerom stanja
+prije/poslije (0 → 0).
+
+### Novi i18n ključ
+
+`dailyLog.table.caption` (bs/en) — **2617/2617 PASS**.
+
+### Izmjereno
+
+| Provjera | Rezultat |
+|---|---|
+| `npm run build` | **PASS** — 272.4 KiB gzip (budget 300) |
+| `test:*` | **148/148 PASS** |
+| `check_i18n` | **PASS** — 2617/2617 |
+| `check_ui_contrast` / `check_repo_hygiene` / `check_doc_links` | **80/80** / **PASS** / **670-202** |

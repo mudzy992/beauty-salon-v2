@@ -58,13 +58,13 @@ export const DailyLogEntryDetailDialog = ({
       <div className="flex flex-wrap items-center gap-2">
         <Badge
           variant={getDailyLogStatusVariant(entry)}
-          className="text-[10px]"
+          className="text-xs"
         >
           {t(getDailyLogDetailStatusKey(entry))}
         </Badge>
         <Badge
           variant={entry.isManual ? 'warning' : 'secondary'}
-          className="text-[10px]"
+          className="text-xs"
         >
           {t(
             entry.isManual
@@ -75,50 +75,50 @@ export const DailyLogEntryDetailDialog = ({
       </div>
       <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <div>
-          <dt className="text-xs text-slate-500">{t('common.date')}</dt>
-          <dd className="font-medium text-slate-900 dark:text-slate-50">
+          <dt className="text-xs text-content-muted">{t('common.date')}</dt>
+          <dd className="font-medium text-content">
             {formatDailyLogDate(entry.date, i18n.language)}
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-slate-500">
+          <dt className="text-xs text-content-muted">
             {t('dailyLog.table.columns.stylist')}
           </dt>
-          <dd className="font-medium text-slate-900 dark:text-slate-50">
+          <dd className="font-medium text-content">
             {getStylistName(entry.stylistProfile)}
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-slate-500">
+          <dt className="text-xs text-content-muted">
             {t('dailyLog.table.columns.client')}
           </dt>
-          <dd className="font-medium text-slate-900 dark:text-slate-50">
+          <dd className="font-medium text-content">
             {clientLabel(entry)}
           </dd>
         </div>
         {entry.publicReferenceCode ? (
           <div>
-            <dt className="text-xs text-slate-500">
+            <dt className="text-xs text-content-muted">
               {t('dailyLog.table.columns.reference')}
             </dt>
-            <dd className="font-mono text-xs font-medium text-slate-900 dark:text-slate-50">
+            <dd className="font-mono text-xs font-medium text-content">
               {entry.publicReferenceCode}
             </dd>
           </div>
         ) : null}
       </dl>
       <div>
-        <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+        <p className="text-sm font-semibold text-content">
           {t('dailyLog.table.columns.services')}
         </p>
         {services.length === 0 ? (
-          <p className="mt-1 text-slate-500">—</p>
+          <p className="mt-1 text-content-muted">—</p>
         ) : (
           <ul className="mt-1 space-y-1">
             {services.map((row) => (
               <li
                 key={row.key}
-                className="flex justify-between gap-3 text-slate-700 dark:text-slate-200"
+                className="flex justify-between gap-3 text-content-strong"
               >
                 <span>{row.name}</span>
                 <span className="tabular-nums shrink-0">
@@ -132,14 +132,14 @@ export const DailyLogEntryDetailDialog = ({
       </div>
       {debts.length > 0 ? (
         <div>
-          <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+          <p className="text-sm font-semibold text-content">
             {t('dailyLog.detail.debtCollection')}
           </p>
           <ul className="mt-1 space-y-1">
             {debts.map((payment) => (
               <li
                 key={payment.id}
-                className="flex justify-between gap-3 text-slate-700 dark:text-slate-200"
+                className="flex justify-between gap-3 text-content-strong"
               >
                 <span>
                   {payment.debt?.service?.name ??
@@ -160,16 +160,16 @@ export const DailyLogEntryDetailDialog = ({
           </ul>
         </div>
       ) : null}
-      <div className="rounded-md border border-slate-200 p-3 dark:border-slate-800">
+      <div className="rounded-md border border-line p-3">
         <div className="flex justify-between tabular-nums">
-          <span className="text-slate-600 dark:text-slate-300">
+          <span className="text-content-muted">
             {t('dailyLog.table.columns.serviceRevenue')}
           </span>
           <span>{formatDetailKm(serviceAmt, i18n.language)}</span>
         </div>
         {debtsSum > 0 ? (
           <div className="mt-1 flex justify-between tabular-nums">
-            <span className="text-slate-600 dark:text-slate-300">
+            <span className="text-content-muted">
               {t('dailyLog.table.columns.debts')}
             </span>
             <span>{formatDetailKm(debtsSum, i18n.language)}</span>
@@ -177,27 +177,27 @@ export const DailyLogEntryDetailDialog = ({
         ) : null}
         {tip > 0 ? (
           <div className="mt-1 flex justify-between tabular-nums">
-            <span className="text-slate-600 dark:text-slate-300">
+            <span className="text-content-muted">
               {t('dailyLog.table.columns.tip')}
             </span>
             <span>{formatDetailKm(tip, i18n.language)}</span>
           </div>
         ) : null}
-        <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 font-semibold tabular-nums dark:border-slate-800">
+        <div className="mt-2 flex justify-between border-t border-line pt-2 font-semibold tabular-nums">
           <span>{t('common.total')}</span>
           <span>{formatDetailKm(total, i18n.language)}</span>
         </div>
       </div>
       {entry.notes ? (
         <div>
-          <p className="text-xs text-slate-500">{t('dailyLog.detail.notes')}</p>
-          <p className="mt-0.5 text-slate-900 dark:text-slate-50">
+          <p className="text-xs text-content-muted">{t('dailyLog.detail.notes')}</p>
+          <p className="mt-0.5 text-content">
             {entry.notes}
           </p>
         </div>
       ) : null}
       {entry.deletedAt && entry.deleteReason ? (
-        <p className="text-xs text-rose-600">
+        <p className="text-xs text-bad-foreground">
           {t('dailyLog.detail.deleteReason')}: {entry.deleteReason}
         </p>
       ) : null}

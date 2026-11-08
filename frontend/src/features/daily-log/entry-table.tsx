@@ -54,7 +54,7 @@ export const DailyLogEntryTable = ({
       <Card className="overflow-hidden">
         <div className="flex justify-center p-10">
           <Loader2
-            className="h-8 w-8 animate-spin text-slate-500"
+            className="h-8 w-8 animate-spin text-content-muted"
             aria-hidden="true"
           />
         </div>
@@ -71,33 +71,33 @@ export const DailyLogEntryTable = ({
     <Card className="overflow-hidden">
       <div className="space-y-3 p-3 lg:hidden">
         {entries.length === 0 ? (
-          <p className="text-slate-500">{noDataLabel}</p>
+          <p className="text-content-muted">{noDataLabel}</p>
         ) : (
           entries.map((e) => (
             <div
               key={e.id}
-              className={`rounded-md border border-slate-200 p-3 dark:border-slate-800 ${
+              className={`rounded-md border border-line p-3 ${
                 e.deletedAt ? 'opacity-60 line-through' : ''
               }`}
             >
               <div className="flex items-center justify-between">
-                <p className="font-medium text-slate-900 dark:text-slate-50">
+                <p className="font-medium text-content">
                   {e.publicReferenceCode ??
                     formatDailyLogDate(e.date, i18n.language)}
                 </p>
                 <Badge
                   variant={getDailyLogStatusVariant(e)}
-                  className="text-[10px]"
+                  className="text-xs"
                 >
                   {t(getDailyLogStatusKey(e))}
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-content-muted">
                 {formatDailyLogDate(e.date, i18n.language)}
               </p>
               <p className="text-sm">{getServicesLabel(e)}</p>
               {getSettledDebtsSum(e) > 0 ? (
-                <p className="text-xs text-slate-600 dark:text-slate-300">
+                <p className="text-xs text-content-muted">
                   {t('dailyLog.table.mobile.debtCollection', {
                     amount: formatLocalizedAmount(
                       getSettledDebtsSum(e),
@@ -106,11 +106,11 @@ export const DailyLogEntryTable = ({
                   })}
                 </p>
               ) : null}
-              <p className="text-sm text-slate-600 dark:text-slate-300">
+              <p className="text-sm text-content-muted">
                 {getStylistName(e.stylistProfile)}
               </p>
               {e.deletedAt && e.deleteReason ? (
-                <p className="mt-1 text-xs text-rose-600">
+                <p className="mt-1 text-xs text-bad-foreground">
                   {t('dailyLog.table.mobile.reason')}: {e.deleteReason}
                 </p>
               ) : null}
@@ -134,38 +134,39 @@ export const DailyLogEntryTable = ({
       </div>
       <div className="hidden app-table-wrap lg:block">
         <table className="app-table w-full border-collapse">
+          <caption className="sr-only">{t('dailyLog.table.caption')}</caption>
           <thead>
-            <tr className="border-b border-slate-200 text-left dark:border-slate-800">
-              <th className="p-3 font-medium">{t('common.date')}</th>
-              <th className="p-3 font-medium">
+            <tr className="border-b border-line text-left">
+              <th scope="col" className="p-3 font-medium">{t('common.date')}</th>
+              <th scope="col" className="p-3 font-medium">
                 {t('dailyLog.table.columns.reference')}
               </th>
-              <th className="p-3 font-medium">
+              <th scope="col" className="p-3 font-medium">
                 {t('dailyLog.table.columns.stylist')}
               </th>
-              <th className="p-3 font-medium">
+              <th scope="col" className="p-3 font-medium">
                 {t('dailyLog.table.columns.services')}
               </th>
-              <th className="p-3 font-medium">
+              <th scope="col" className="p-3 font-medium">
                 {t('dailyLog.table.columns.client')}
               </th>
-              <th className="p-3 text-right font-medium">
+              <th scope="col" className="p-3 text-right font-medium">
                 {t('dailyLog.table.columns.serviceRevenue')}
               </th>
-              <th className="p-3 text-right font-medium">
+              <th scope="col" className="p-3 text-right font-medium">
                 {t('dailyLog.table.columns.debts')}
               </th>
-              <th className="p-3 text-right font-medium">
+              <th scope="col" className="p-3 text-right font-medium">
                 {t('dailyLog.table.columns.tip')}
               </th>
-              <th className="p-3 text-right font-medium">
+              <th scope="col" className="p-3 text-right font-medium">
                 {t('common.total')}
               </th>
-              <th className="p-3 font-medium">
+              <th scope="col" className="p-3 font-medium">
                 {t('dailyLog.table.columns.source')}
               </th>
-              <th className="p-3 font-medium">{t('common.status')}</th>
-              <th className="p-3 text-right font-medium">
+              <th scope="col" className="p-3 font-medium">{t('common.status')}</th>
+              <th scope="col" className="p-3 text-right font-medium">
                 {t('common.actions')}
               </th>
             </tr>
@@ -173,7 +174,7 @@ export const DailyLogEntryTable = ({
           <tbody>
             {entries.length === 0 ? (
               <tr>
-                <td colSpan={12} className="p-6 text-slate-500">
+                <td colSpan={12} className="p-6 text-content-muted">
                   {noDataLabel}
                 </td>
               </tr>
@@ -181,9 +182,9 @@ export const DailyLogEntryTable = ({
               entries.map((e) => (
                 <tr
                   key={e.id}
-                  className={`border-b border-slate-100 dark:border-slate-800/80 ${
+                  className={`border-b border-line ${
                     e.deletedAt
-                      ? 'bg-slate-50 opacity-70 dark:bg-slate-900/40'
+                      ? 'bg-surface-muted opacity-70'
                       : ''
                   }`}
                   title={e.deleteReason ?? undefined}
@@ -217,7 +218,7 @@ export const DailyLogEntryTable = ({
                         {getServicesLabel(e)}
                       </span>
                       {getSettledDebtsSum(e) > 0 ? (
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-content-muted">
                           {t('dailyLog.table.mobile.debtCount', {
                             count: e.debtPaymentEntries?.length ?? 0,
                           })}
@@ -225,7 +226,7 @@ export const DailyLogEntryTable = ({
                       ) : null}
                       <LoyaltyDiscountLine entry={e} />
                       {e.deletedAt && e.deleteReason ? (
-                        <span className="text-xs text-rose-600">
+                        <span className="text-xs text-bad-foreground">
                           {t('dailyLog.table.mobile.reason')}: {e.deleteReason}
                         </span>
                       ) : null}
@@ -262,7 +263,7 @@ export const DailyLogEntryTable = ({
                   <td className="p-3">
                     <Badge
                       variant={e.isManual ? 'warning' : 'secondary'}
-                      className="text-[10px]"
+                      className="text-xs"
                     >
                       {t(
                         e.isManual
@@ -274,7 +275,7 @@ export const DailyLogEntryTable = ({
                   <td className="p-3">
                     <Badge
                       variant={getDailyLogStatusVariant(e)}
-                      className="text-[10px]"
+                      className="text-xs"
                     >
                       {t(getDailyLogStatusKey(e))}
                     </Badge>

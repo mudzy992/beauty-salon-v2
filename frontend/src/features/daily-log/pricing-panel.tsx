@@ -56,10 +56,11 @@ export const DailyLogPricingPanel = ({
 }: Props) => {
   const { t, i18n } = useTranslation()
 
-  return <div className="space-y-3 rounded-md border border-slate-200 p-3 dark:border-slate-800">
+  return <div className="space-y-3 rounded-md border border-line p-3">
     {selectedServices.length > 0 ? (
       <div className="space-y-2">
-        <Label>{t('dailyLog.form.servicePrices')}</Label>
+        <Label id="dailylog-service-prices">{t('dailyLog.form.servicePrices')}</Label>
+        <div role="group" aria-labelledby="dailylog-service-prices" className="space-y-2">
         {selectedServices.map((svc) => (
           <div key={svc.id} className="flex items-center gap-2">
             <span className="min-w-0 flex-1 truncate text-sm">{svc.name}</span>
@@ -74,14 +75,15 @@ export const DailyLogPricingPanel = ({
               }
               aria-label={t('dailyLog.form.priceForService', { service: svc.name })}
             />
-            <span className="text-xs text-slate-500">KM</span>
+            <span className="text-xs text-content-muted">KM</span>
           </div>
         ))}
+        </div>
       </div>
     ) : null}
     {openDebts.length > 0 ? (
-      <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-800">
-        <p className="text-sm text-amber-700 dark:text-amber-400">
+      <div className="space-y-2 border-t border-line pt-3">
+        <p className="text-sm text-warn-foreground">
           {t('dailyLog.form.openDebts', {
             items: formatLocalizedNumber(openDebts.length, i18n.language),
             amount: formatLocalizedAmount(openDebts.reduce((a, d) => a + Number(d.amount), 0), i18n.language),
@@ -99,7 +101,7 @@ export const DailyLogPricingPanel = ({
           ? openDebts.map((d) => (
               <label
                 key={d.id}
-                className="flex cursor-pointer items-start gap-2 rounded border border-slate-100 p-2 text-sm dark:border-slate-800"
+                className="flex cursor-pointer items-start gap-2 rounded border border-line p-2 text-sm"
               >
                 <input
                   type="checkbox"
@@ -120,30 +122,31 @@ export const DailyLogPricingPanel = ({
           : null}
       </div>
     ) : null}
-    <div className="border-t border-slate-200 pt-3 dark:border-slate-800">
+    <div className="border-t border-line pt-3">
       <p className="text-sm font-semibold">
         {t('dailyLog.form.amountToCollect', { amount: formatLocalizedAmount(chargeAmount, i18n.language) })}
         {debtsSum > 0 ? (
-          <span className="ml-1 text-xs font-normal text-slate-500">
+          <span className="ml-1 text-xs font-normal text-content-muted">
             {t('dailyLog.form.includingDebts', { amount: formatLocalizedAmount(debtsSum, i18n.language) })}
           </span>
         ) : null}
       </p>
-      <Label className="mt-2 block">{t('dailyLog.form.amountPaid')}</Label>
+      <Label htmlFor="dailylog-amount-paid" className="mt-2 block">{t('dailyLog.form.amountPaid')}</Label>
       <Input
+        id="dailylog-amount-paid"
         className="mt-1"
         value={paidAmount}
         onChange={(e) => onPaidAmountChange(e.target.value)}
         placeholder={chargeAmount > 0 ? chargeAmount.toFixed(2) : '0.00'}
       />
       {tipPreview > 0 ? (
-        <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">
+        <p className="mt-1 text-xs text-ok-foreground">
           {t('dailyLog.form.tip', { amount: formatLocalizedAmount(tipPreview, i18n.language) })}
         </p>
       ) : null}
       {shortfall > 0 ? (
         <div className="mt-2 space-y-2">
-          <p className="text-xs text-amber-700 dark:text-amber-400">
+          <p className="text-xs text-warn-foreground">
             {t('dailyLog.form.shortfall', { amount: formatLocalizedAmount(shortfall, i18n.language) })}
           </p>
           <div className="flex items-center gap-2">

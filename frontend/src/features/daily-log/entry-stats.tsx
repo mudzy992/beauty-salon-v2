@@ -10,8 +10,8 @@ import { sumEntryTotals } from './amounts'
 
 const StatMini = ({ title, value }: { title: string; value: string }) => (
   <Card className="p-4">
-    <p className="text-xs text-slate-500">{title}</p>
-    <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-50">
+    <p className="text-xs text-content-muted">{title}</p>
+    <p className="mt-1 text-xl font-semibold text-content">
       {value}
     </p>
   </Card>
