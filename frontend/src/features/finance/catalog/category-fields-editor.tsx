@@ -234,7 +234,7 @@ export function CategoryFieldsEditor({
           </Label>
           <select
             id={fieldTypeId}
-            className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-800 dark:bg-slate-950"
+            className="h-9 rounded-md border border-input-border bg-surface px-2 text-sm"
             value={fieldType}
             onChange={(e) =>
               setFieldType(e.target.value as TemplateFieldPayload['fieldType'])
@@ -254,7 +254,7 @@ export function CategoryFieldsEditor({
             </Label>
             <select
               id={lineRoleId}
-              className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-800 dark:bg-slate-950"
+              className="h-9 rounded-md border border-input-border bg-surface px-2 text-sm"
               value={lineRole}
               onChange={(e) => setLineRole(e.target.value as ExpenseLineRole)}
             >
@@ -282,7 +282,7 @@ export function CategoryFieldsEditor({
         <label className="flex h-9 items-center gap-2 text-xs">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-slate-300"
+            className="h-4 w-4 rounded border-input-border"
             checked={isRequired}
             onChange={(e) => setIsRequired(e.target.checked)}
           />

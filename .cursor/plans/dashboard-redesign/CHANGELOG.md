@@ -1015,3 +1015,92 @@ ispravno je `../../index.css` (→ `src/index.css`), potvrđeno `os.path.normpat
 
 **Nije render-verificirano:** vizualno ponašanje card-modea ispod 640px (CSS media query;
 potreban Playwright, faza 13). Strukturni uslovi su zaključani testom.
+
+---
+
+## 2026-11-08 — FAZA 4, commit 2: 1.4.11 okviri form kontrola + token migracija
+
+### Recon: tri područja za koja se ispostavilo da NISU prekršaji
+
+Prije commita 2 provjerena su preostala područja iz plana §5. Sva tri su **odbačena**,
+ne implementirana:
+
+**Tabovi (4.1.2) — nije prekršaj.** `finance-page.tsx` (61 ln) nema nijedan `role=`,
+`aria-selected`, `aria-controls`, `tabIndex` ni `onKeyDown`. Ali koristi **Radix** primitiv:
+`components/ui/tabs.tsx` je omotač nad `@radix-ui/react-tabs` (`TabsPrimitive.Root`/`.List`/
+`.Trigger`), koji daje `role="tablist"`/`"tab"`/`"tabpanel"`, `aria-selected`, `aria-controls`
+i tastaturnu navigaciju. **Prazan grep nije dokaz odsustva** — ista zamka kao sonner
+`aria-live` u fazi 3.
+
+**Statusne poruke (4.1.3) — već pokriveno.** `shell/admin/ui/data-state.tsx` ima
+`TableSkeleton` → `role="status" aria-live="polite"` (ln 16) i `ErrorState` → `role="alert"`
+(ln 71), a finance ih koristi. Uz to finance ima **10 vlastitih live regiona**:
+`expense-dialog.tsx:98,103,109,224`, `book-period-picker.tsx:84`, `integrity-panel.tsx:45,103`,
+`line-items-editor.tsx:61`, `expense-book-detail.tsx:300`, `category-wizard-dialog.tsx:215`.
+
+**Greške u formama (3.3.1–3.3.4) — nije prekršaj.** `aria-invalid`/`aria-describedby` nema,
+ali greške se **najavljuju** preko `role="alert"` (`expense-dialog.tsx:224`,
+`category-wizard-dialog.tsx:215`). Identičan nalaz kao daily-log u fazi 3, gdje je 3.3.1
+već bio zadovoljen live regionom. Neću implementirati popravku nepostojećeg defekta.
+
+### Stvarni nalaz: 7 prekršaja WCAG 1.4.11 (okviri form kontrola)
+
+Tražeći form kontrole sa sirovim slate okvirima — jer granica kontrole mora imati **3:1**
+prema podlozi — nađeno je **7** stvarnih prekršaja. `border-slate-200` (#E2E8F0) je
+**1.23:1**, `border-slate-300` (#CBD5E1) **1.48:1** na bijeloj.
+
+| fajl | ln | kontrola | bilo | kontrast |
+|---|---|---|---|---|
+| `book-period-picker.tsx` | 22 | `selectClass` → 2× `<select>` (period-month/year) | slate-200 | 1.23 |
+| `category-fields-editor.tsx` | 237 | `<select id={fieldTypeId}>` | slate-200 | 1.23 |
+| `category-fields-editor.tsx` | 257 | `<select id={lineRoleId}>` | slate-200 | 1.23 |
+| `category-fields-editor.tsx` | 285 | `<input type="checkbox">` (isRequired) | slate-300 | 1.48 |
+| `expense-dialog.tsx` | 122 | `<select id="expense-cat">` | slate-200 | 1.23 |
+| `expense-filters.tsx` | 51 | `<select id="expense-category">` | slate-200 | 1.23 |
+| `expense-filters.tsx` | 93 | `<input type="checkbox">` (onlyWithAttachments) | slate-300 | 1.48 |
+
+Svih 7 prebačeno na `border-input-border`, koji se unutar `.admin-shell` rezolvira na
+`--control-border` (#767B86) = **4.24:1 → PASS**. Svaka zamjena je potvrđena čitanjem
+konteksta (da je stvarno `<select>`/`<input>`, ne dekorativni `div`).
+
+**Kako je nađeno:** heuristički grep (kontrola u ±4 linije + `border-slate-200|300`) dao je
+6 kandidatata; svi su ručno potvrđeni. Sedmi (`selectClass`) je nađen jer je **konstanta**,
+ne inline `className` — pa ga enumeracija `className="…"` vrijednosti nije uhvatila.
+
+### Token migracija (konzistentnost, NIJE a11y popravka)
+
+Četiri fajla prebačena na semantičke tokene: `book-list.tsx`, `book-period-picker.tsx`,
+`history-panel.tsx`, `finance-page.tsx` — **10 zamjena**, sve na `text-content` /
+`text-content-muted` / `text-content-strong` / `border-line` / `bg-surface`.
+
+**Eksplicitno: ovo nije WCAG popravka.** Sve zamijenjene klase su **prolazile** kontrast
+(`slate-900` 17.85, `slate-600` 7.58, `slate-500` 4.76, `slate-200` kao *border* ne podliježe
+1.4.3). Vrijednost je jedan izvor istine za boje, ne usklađenost.
+
+**Metoda:** zamjena **cijelih** `className="…"` vrijednosti s asertacijom tačnog broja po
+fajlu — ne substring zamjena (substring zamke su u fazi 2 dale pogrešan broj 12 umjesto 16).
+
+### Greška uhvaćena vlastitom provjerom
+
+Nakon migracije, mjerenje je javilo „1 preostala light-mode klasa" u `book-period-picker.tsx`.
+Ispostavilo se da je to **moj vlastiti komentar** na ln 21 (`// 1.4.11: … border-slate-200`) —
+regex je pogodio naziv klase u tekstu komentara. Poznata zamka: *komentar može poraziti
+vlastiti guard*. Mjerenje je ponovljeno sa `strip_comments()` (blokovski `/* */` pa linijski
+`//`) i rezultat je **light=0, dark=0** za sva 4 fajla.
+
+### Verifikacija
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` skripte | **152/152 PASS**, 0 fail |
+| `npm run build` | **PASS**, **272.6 KiB gzip** (budžet 300) |
+| `check_i18n.py --strict` | **PASS** — 2622/2622 |
+| `check_ui_contrast.py` | **PASS** — 80/80 |
+| `check_repo_hygiene.py` | **PASS** — 1661 paths |
+| `check_doc_links.py` | **PASS** — 670 / 202 |
+| `finance.types.ts`, `api/*`, `hooks/*` | **bez diff-a** |
+| `MATRIX.md` (finance, client-debts) | **netaknut** |
+
+**Nije render-verificirano:** vizualni izgled `<select>`/`<input>` okvira nakon zamjene
+(potreban browser). Kontrast je izračunat iz hex vrijednosti tokena, a zamjene su
+strukturno identične (border → border), pa je rizik nizak.

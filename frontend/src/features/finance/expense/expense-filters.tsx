@@ -48,7 +48,7 @@ export function ExpenseFiltersBar({
           </Label>
           <select
             id="expense-category"
-            className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-800 dark:bg-slate-950"
+            className="h-9 rounded-md border border-input-border bg-surface px-2 text-sm"
             value={filters.categoryId}
             onChange={(event) => update({ categoryId: event.target.value })}
           >
@@ -90,7 +90,7 @@ export function ExpenseFiltersBar({
         <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-slate-300"
+            className="h-4 w-4 rounded border-input-border"
             checked={filters.onlyWithAttachments}
             onChange={(event) =>
               update({ onlyWithAttachments: event.target.checked })

@@ -32,7 +32,7 @@ export function HistoryPanel({
   const { t, i18n } = useTranslation()
   return (
     <section aria-label={title} className="grid gap-2">
-      <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+      <h3 className="text-sm font-semibold text-content">
         {title}
       </h3>
       {events.length === 0 ? (
@@ -42,7 +42,7 @@ export function HistoryPanel({
           {events.map((event) => (
             <li
               key={event.id}
-              className="rounded-md border border-slate-200 p-2 text-xs dark:border-slate-800"
+              className="rounded-md border border-line p-2 text-xs"
             >
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline">
@@ -50,15 +50,15 @@ export function HistoryPanel({
                     ? t(ACTION_KEYS[event.action])
                     : event.action}
                 </Badge>
-                <span className="text-slate-500">
+                <span className="text-content-muted">
                   {formatLocalizedDateTime(event.createdAt, i18n.language)}
                 </span>
-                <span className="text-slate-500">
+                <span className="text-content-muted">
                   {event.createdBy?.username ?? t('finance.history.system')}
                 </span>
               </div>
               {event.reason ? (
-                <p className="mt-1 text-slate-600 dark:text-slate-300">
+                <p className="mt-1 text-content-strong">
                   {event.reason}
                 </p>
               ) : null}

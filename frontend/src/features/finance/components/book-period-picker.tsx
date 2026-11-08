@@ -18,8 +18,11 @@ type BookPeriodPickerProps = {
   isPending?: boolean
 }
 
+// 1.4.11: okvir form kontrole mora imati 3:1 prema podlozi. `border-slate-200`
+// (#E2E8F0) je 1.23:1 na bijeloj -> FAIL. `input-border` se unutar .admin-shell
+// prebacuje na --control-border (#767B86) = 4.24:1 -> PASS.
 const selectClass =
-  'h-9 rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50'
+  'h-9 rounded-md border border-input-border bg-surface px-2 text-sm text-content'
 
 export function BookPeriodPicker({
   year,
@@ -81,7 +84,7 @@ export function BookPeriodPicker({
         {openLabel}
       </Button>
       {isPending ? (
-        <p role="status" aria-live="polite" className="text-xs text-slate-500">
+        <p role="status" aria-live="polite" className="text-xs text-content-muted">
           {t('finance.states.loading')}
         </p>
       ) : null}

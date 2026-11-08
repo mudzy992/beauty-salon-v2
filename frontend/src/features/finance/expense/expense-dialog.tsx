@@ -119,7 +119,7 @@ export function ExpenseDialog({
           <Label htmlFor="expense-cat">{t('finance.expenseForm.category')}</Label>
           <select
             id="expense-cat"
-            className="h-9 rounded-md border border-slate-200 bg-white px-2 text-sm dark:border-slate-800 dark:bg-slate-950"
+            className="h-9 rounded-md border border-input-border bg-surface px-2 text-sm"
             value={f.form.categoryId}
             onChange={(e) => f.selectCategory(e.target.value)}
             disabled={Boolean(editing)}

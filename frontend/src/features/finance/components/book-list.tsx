@@ -50,16 +50,16 @@ export function BookList({
         return (
           <li
             key={row.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3 dark:border-slate-800"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line p-3"
           >
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-slate-900 dark:text-slate-50">
+                <span className="font-semibold text-content">
                   {period}
                 </span>
                 <BookLockBadge isLocked={row.isLocked} />
               </div>
-              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              <div className="mt-1 text-xs text-content-muted">
                 {primaryLabel}:{' '}
                 {formatLocalizedAmount(row.primaryAmount, i18n.language)}
                 {secondaryLabel !== undefined &&
