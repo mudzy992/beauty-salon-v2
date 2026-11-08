@@ -350,3 +350,11 @@ Expo group names such as `(tabs)` and `(auth)` are omitted from the user-visible
 **Mobile My Reservations section headings (2026-11-08):** the active reservation label and upcoming/past list section labels were styled as titles but not exposed as headings. They now use heading semantics, with a focused source-contract test in mobile CI. Screen-reader navigation behavior on native devices remains unverified.
 
 **Mobile My Reservations cancellation dialog (2026-11-08):** the confirmation overlay did not explicitly mark itself as modal to VoiceOver and its title lacked heading semantics. The overlay now uses `accessibilityViewIsModal` and the title is exposed as a heading; a focused source-contract test is registered in mobile CI. Native focus order and announcement behavior remain unverified.
+
+## Three-pass execution for remaining UX/UI audit (2026-10-21)
+
+1. **Web public/client/auth/onboarding — Pass 1 underway.** Focused route tests for public content, services, booking, client reservations, profile, login/registration/reset, and onboarding: 43 scripts passed. Frontend TypeScript/production build passed; selected theme contrast check passed all 44 configured token pairs. A Vite preview is running on port 10000 and `/login` returns the SPA shell. This is not browser-rendered visual/keyboard acceptance: this environment has no installed browser or Playwright, so DOM focus order, reflow, and screen-reader behavior have not been observed.
+2. **Mobile client/auth/onboarding — Pass 2 pending.** Cover home, service discovery/details, reservation/review/history/detail, profile, authentication, and onboarding across loading/empty/error/stale/disabled/success states. Re-run focused tests and Expo bundle/type checks; physical-device TalkBack/VoiceOver and touch/keyboard review remain owner evidence.
+3. **Web/mobile admin and stylist + cross-cutting closure — Pass 3 pending.** Check protected navigation, route-specific data states, dialogs/drawers, responsive layout, keyboard/focus, contrast, and localization; then reconcile the route/state matrix and list any acceptance blockers. Source/build checks do not substitute for browser or device review.
+
+Pass 1 currently has source/build evidence only. Do not mark rendered, browser, screen-reader, or physical-device criteria complete until an actual reviewer supplies that evidence.
