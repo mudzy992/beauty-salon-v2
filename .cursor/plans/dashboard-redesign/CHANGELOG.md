@@ -388,3 +388,72 @@ lako izgubi pri refaktoru. **`render-smoke`: 32 → 36/36.**
 | `check_i18n --strict` | **PASS** — 2616/2616 |
 | `check_ui_contrast --strict` | **PASS** — 80/80 |
 | `check_repo_hygiene` / `check_doc_links` | **PASS** / **PASS** |
+
+---
+
+## Faza 2 — Rezervacije (commit 2: kalendar)
+
+### Opseg
+
+`frontend/src/features/reservations/components/ReservationScheduler.tsx`
+(1196 ln, +84/−78). **Netaknuto:** `status.ts`, `reservation-list.api.ts`, `types.ts`;
+potpisi `onMoveRequest` / `onResizeRequest` i redoslijed polja u payloadu nepromijenjeni.
+
+### Nalaz verificiran iz izvora biblioteke (`react-big-calendar` 1.20.0)
+
+Umjesto pretpostavki iz plana, pročitani su fajlovi biblioteke:
+
+| Prikaz | Fokusabilnost eventa | Izvor |
+|---|---|---|
+| `timeGridWeek` / `timeGridDay` | **DA** — `tabIndex: 0` | `TimeGridEvent.js:65` |
+| `dayGridMonth` | **NE** — `props` se širi bez `tabIndex` | `EventCell.js:75-93` |
+| `agenda` | **NE** — `<td onClick>` | `Agenda.js:65-72` |
+
+Oba fokusablena puta žicaju `onKeyDown → onKeyPress → onKeyPressEvent`
+(`EventCell.js:91`, `TimeGridEvent.js:69`), ali scheduler **nije prosljeđivao
+`onKeyPressEvent`** (`grep -c` = **0**). Znak/Enter na fokusiranom eventu nije radio ništa.
+
+### Izmjene
+
+| WCAG | Izmjena |
+|---|---|
+| **2.1.1** | Dodan `onKeyPressEvent`: Enter/Space na fokusiranom eventu otvara detalje. Time week/day prikaz postaje upotrebljiv tastaturom, a s njim i drawer s formom za pomjeranje |
+| **1.4.3** | Event tekst: uklonjen `opacity-80`. **Izmjereno:** amber event (PENDING) s `opacity-80` = **4.41:1 → FAIL**; bez njega **6.84:1 → PASS**. Ostali: emerald 7.29, rose 7.30, brand 8.15, slate 16.30 |
+| **1.4.4** | `text-[10px]` (3×) i `text-[11px]` (1×) → `text-xs` (12 px minimum) |
+| **1.4.11** | Status swatchevi u legendi: `bg-emerald-500` **2.54:1 FAIL** → `bg-ok-foreground` 7.13:1; `bg-amber-500` **2.15:1 FAIL** → `bg-warn-foreground` 8.34:1; `bg-rose-500` 3.67:1 → `bg-bad-foreground` 8.31:1 |
+| **1.4.3** | **79** zamjena className vrijednosti (59 literalnih + 20 u ternary izrazima): `slate/emerald/rose/amber-*` → semantički tokeni. Rezultat: **0** sirovih paletnih klasa u fajlu |
+
+### Namjerno NIJE dirano
+
+`opacity-80` na booking-mode dugmadima (linije ~952, ~966) je **izračunat i prolazi**:
+neizabrano `slate-700 @80%` na bijeloj = **5.74:1**, izabrano `white @80%` na `slate-900`
+= **11.67:1**. Nije defekt, pa nije mijenjan.
+
+### Ograničenje koje nije riješeno (iskreno)
+
+**Mjesečni (`dayGridMonth`) i agenda prikaz i dalje nisu dostupni tastaturom** —
+`EventCell.js` i `Agenda.js` ne postavljaju `tabIndex`, a to se ne može ubaciti kroz
+`eventPropGetter` (RBC iz njega čita samo `style` i `className`).
+
+Razmatrana je alternativa: učiniti `components.event` fokusabilnim `<button>`-om (radi u
+sva 4 prikaza). **Odbijeno** jer bi dugme progutalo `mousedown` koji `withDragAndDrop`
+koristi za inicijaciju prevlačenja, a drag&drop se u ovom okruženju ne može interaktivno
+testirati — rizik po parity „funkcionalnost ostaje identična" je prevelik.
+
+Praktična mitigacija koja **jeste** uspostavljena: week/day prikaz je sada puno dostupan
+tastaturom i vodi u isti drawer s istom formom (`reservationDate` / `startTime` / `endTime`
+→ `onMoveRequest`), pa tastaturska alternativa za 2.5.7 postoji i funkcionalna je.
+Dugme za prebacivanje prikaza je pravo `<button>`, dakle dostupno.
+
+**Ostaje otvoreno** za fazu 13 (Playwright/axe): treba potvrditi da mjesečni prikaz zaista
+nema fokusabilan event, i tada riješiti ili custom `eventWrapper`-om ili vlastitom listom.
+
+### Izmjereno
+
+| Provjera | Rezultat |
+|---|---|
+| `npm run build` | **PASS** — 272.4 KiB gzip (budget 300) |
+| `ReservationsCalendar` chunk | **95.0 KiB gzip** (budget 125) — parity zadovoljen |
+| `test:*` skripte | **148/148 PASS** |
+| `test:admin-render-smoke` | **36/36** |
+| `check_i18n` / `check_ui_contrast` / `check_repo_hygiene` / `check_doc_links` | **PASS** / **80/80** / **PASS** / **670-202** |

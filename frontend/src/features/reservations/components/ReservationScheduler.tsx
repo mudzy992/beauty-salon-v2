@@ -66,10 +66,10 @@ const SchedulerEventContent = ({ event }: { event: SchedulerEvent }) => {
   return (
     <div className="min-w-0">
       <div className="flex items-center justify-between gap-2">
-        <div className="truncate text-[11px] font-semibold">{event.title}</div>
-        <div className="shrink-0 text-[10px] font-semibold opacity-80">{timeLabel}</div>
+        <div className="truncate text-xs font-semibold">{event.title}</div>
+        <div className="shrink-0 text-xs font-semibold">{timeLabel}</div>
       </div>
-      <div className="mt-0.5 truncate text-[10px] opacity-80">
+      <div className="mt-0.5 truncate text-xs">
         {t(reservationStatusTranslationKey(event.status, event.reservation.cancelReason), {
           defaultValue: getReservationStatusLabel(event.status, event.reservation.cancelReason),
         })}
@@ -488,15 +488,15 @@ export const ReservationScheduler = (props: Props) => {
   const handleNext = () => shiftDate(1)
 
   return (
-    <div className="bg-white dark:bg-slate-950">
-      <div className="border-b border-slate-200 dark:border-slate-800 p-3">
+    <div className="bg-surface">
+      <div className="border-b border-line p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-slate-500" aria-hidden="true" />
-            <div className="font-semibold text-slate-900 dark:text-slate-50">
+            <CalendarDays className="h-5 w-5 text-content-muted" aria-hidden="true" />
+            <div className="font-semibold text-content">
               {t('reservations.calendar.toolbar.title')}
             </div>
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge variant="secondary" className="text-xs">
               {props.selectedStylistIds.length
                 ? t('reservations.calendar.toolbar.selectedStylistsCount', { count: props.selectedStylistIds.length })
                 : t('reservations.calendar.toolbar.allStylists')}
@@ -524,31 +524,31 @@ export const ReservationScheduler = (props: Props) => {
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
 
-            <div className="inline-flex rounded-md border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div className="inline-flex rounded-md border border-line overflow-hidden">
               <button
                 type="button"
-                className={props.view === 'dayGridMonth' ? 'px-3 py-2 text-sm font-semibold bg-slate-900 text-white' : 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}
+                className={props.view === 'dayGridMonth' ? 'px-3 py-2 text-sm font-semibold bg-content text-surface' : 'px-3 py-2 text-sm text-content-strong hover:bg-surface-muted'}
                 onClick={() => props.onViewChange('dayGridMonth')}
               >
                 {messages.month}
               </button>
               <button
                 type="button"
-                className={props.view === 'timeGridWeek' ? 'px-3 py-2 text-sm font-semibold bg-slate-900 text-white' : 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}
+                className={props.view === 'timeGridWeek' ? 'px-3 py-2 text-sm font-semibold bg-content text-surface' : 'px-3 py-2 text-sm text-content-strong hover:bg-surface-muted'}
                 onClick={() => props.onViewChange('timeGridWeek')}
               >
                 {messages.week}
               </button>
               <button
                 type="button"
-                className={props.view === 'timeGridDay' ? 'px-3 py-2 text-sm font-semibold bg-slate-900 text-white' : 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}
+                className={props.view === 'timeGridDay' ? 'px-3 py-2 text-sm font-semibold bg-content text-surface' : 'px-3 py-2 text-sm text-content-strong hover:bg-surface-muted'}
                 onClick={() => props.onViewChange('timeGridDay')}
               >
                 {messages.day}
               </button>
               <button
                 type="button"
-                className={props.view === 'agenda' ? 'px-3 py-2 text-sm font-semibold bg-slate-900 text-white' : 'px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900/40'}
+                className={props.view === 'agenda' ? 'px-3 py-2 text-sm font-semibold bg-content text-surface' : 'px-3 py-2 text-sm text-content-strong hover:bg-surface-muted'}
                 onClick={() => props.onViewChange('agenda')}
               >
                 {messages.agenda}
@@ -558,13 +558,13 @@ export const ReservationScheduler = (props: Props) => {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+          <div className="flex items-center gap-2 text-sm text-content-muted">
             <Filter className="h-4 w-4" aria-hidden="true" />
             <span>{t('reservations.calendar.toolbar.stylists')}</span>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                className={props.selectedStylistIds.length === 0 ? 'rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white' : 'rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-700 dark:border-slate-800 dark:text-slate-200'}
+                className={props.selectedStylistIds.length === 0 ? 'rounded-full bg-content px-3 py-1 text-xs font-semibold text-surface' : 'rounded-full border border-line px-3 py-1 text-xs text-content-strong'}
                 onClick={() => props.onSelectedStylistIdsChange([])}
               >
                 {t('reservations.calendar.toolbar.all')}
@@ -575,8 +575,8 @@ export const ReservationScheduler = (props: Props) => {
                   type="button"
                   className={
                     props.selectedStylistIds.includes(r.id)
-                      ? 'rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white'
-                      : 'rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-700 dark:border-slate-800 dark:text-slate-200'
+                      ? 'rounded-full bg-content px-3 py-1 text-xs font-semibold text-surface'
+                      : 'rounded-full border border-line px-3 py-1 text-xs text-content-strong'
                   }
                   onClick={() => {
                     if (props.selectedStylistIds.includes(r.id)) {
@@ -592,7 +592,7 @@ export const ReservationScheduler = (props: Props) => {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-300">
+          <div className="flex flex-wrap gap-2 text-xs text-content-muted">
             {[
               { status: 'CONFIRMED', label: t('reservations.statuses.CONFIRMED') },
               { status: 'PENDING', label: t('reservations.statuses.PENDING') },
@@ -600,15 +600,15 @@ export const ReservationScheduler = (props: Props) => {
               { status: 'CANCELLED_BY_CLIENT', label: t('reservations.statuses.CANCELLED_BY_CLIENT') },
               { status: 'COMPLETED', label: t('reservations.statuses.COMPLETED') },
             ].map((x) => (
-              <span key={x.status} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 dark:border-slate-800 dark:bg-slate-950">
+              <span key={x.status} className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1">
                 <span
                   className={
                     x.status === 'COMPLETED'
-                      ? 'h-2 w-2 rounded-full bg-emerald-500'
+                      ? 'h-2 w-2 rounded-full bg-ok-foreground'
                       : x.status === 'PENDING' || x.status === 'AWAITING_DAILY_LOG'
-                        ? 'h-2 w-2 rounded-full bg-amber-500'
+                        ? 'h-2 w-2 rounded-full bg-warn-foreground'
                         : x.status.startsWith('CANCELLED')
-                          ? 'h-2 w-2 rounded-full bg-rose-500'
+                          ? 'h-2 w-2 rounded-full bg-bad-foreground'
                           : 'h-2 w-2 rounded-full bg-brand-gold-ring'
                   }
                 />
@@ -620,7 +620,7 @@ export const ReservationScheduler = (props: Props) => {
       </div>
 
       <div className="p-3">
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <div className="rounded-xl border border-line overflow-hidden">
           <DragAndDropCalendar
             localizer={localizer}
             culture={localeKey}
@@ -650,6 +650,12 @@ export const ReservationScheduler = (props: Props) => {
             timeslots={4}
             onSelectSlot={(slot: SlotInfo) => openCreate(slot)}
             onSelectEvent={(e: SchedulerEvent) => openDetails(e.reservation)}
+            onKeyPressEvent={(e: SchedulerEvent, keyEvent: { key: string; preventDefault: () => void }) => {
+              if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+                keyEvent.preventDefault()
+                openDetails(e.reservation)
+              }
+            }}
             onEventDrop={async ({ event, start, end }: { event: SchedulerEvent; start: Date; end: Date }) => {
               const ev = event as SchedulerEvent
               await props.onMoveRequest({
@@ -680,21 +686,21 @@ export const ReservationScheduler = (props: Props) => {
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
         <DrawerContent side="right" className="flex flex-col">
           <div className="h-full overflow-y-auto p-5">
-            <DialogTitle className="mb-1 text-lg font-semibold text-slate-900 dark:text-slate-50">
+            <DialogTitle className="mb-1 text-lg font-semibold text-content">
               {drawerMode === 'create'
                 ? t('reservations.calendar.create.title')
                 : activeReservation?.service?.name ?? t('reservations.calendar.details.appointment')}
             </DialogTitle>
             {drawerMode === 'create' ? (
-              <DialogDescription className="mb-4 text-xs text-slate-500">
+              <DialogDescription className="mb-4 text-xs text-content-muted">
                 {t('reservations.calendar.create.subtitle')}
               </DialogDescription>
             ) : null}
             {drawerMode === 'details' && activeReservation ? (
               <div className="space-y-4">
               <div>
-                <p className="text-xs text-slate-500">{t('reservations.calendar.details.status')}</p>
-                <p className="mt-1 font-semibold text-slate-900 dark:text-slate-50">
+                <p className="text-xs text-content-muted">{t('reservations.calendar.details.status')}</p>
+                <p className="mt-1 font-semibold text-content">
                   {t(reservationStatusTranslationKey(activeReservation.status, activeReservation.cancelReason), {
                     defaultValue: getReservationStatusLabel(activeReservation.status, activeReservation.cancelReason),
                   })}
@@ -702,9 +708,9 @@ export const ReservationScheduler = (props: Props) => {
               </div>
 
               <div className="grid grid-cols-1 gap-3">
-                <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                  <p className="text-xs text-slate-500">{t('reservations.calendar.details.appointment')}</p>
-                  <p className="mt-1 font-semibold text-slate-900 dark:text-slate-50">
+                <div className="rounded-lg border border-line p-3">
+                  <p className="text-xs text-content-muted">{t('reservations.calendar.details.appointment')}</p>
+                  <p className="mt-1 font-semibold text-content">
                     {String(activeReservation.reservationDate).slice(0, 10)} • {activeReservation.startTime}–{activeReservation.endTime}
                   </p>
                   {activeReservation.items && activeReservation.items.length > 0 ? (
@@ -714,57 +720,57 @@ export const ReservationScheduler = (props: Props) => {
                         .map((it) => (
                           <div
                             key={it.id}
-                            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-slate-800 dark:bg-slate-900/30"
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-line bg-surface-muted p-2"
                           >
-                            <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{it.service?.name ?? '-'}</p>
-                            <p className="text-xs text-slate-600 dark:text-slate-300">
+                            <p className="text-sm font-medium text-content">{it.service?.name ?? '-'}</p>
+                            <p className="text-xs text-content-muted">
                               {Number(it.service?.durationMinutes ?? 0)} min | {Number(it.service?.price ?? 0).toFixed(2)} KM
                             </p>
                           </div>
                         ))}
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-sm">
-                        <p className="font-medium text-slate-900 dark:text-slate-50">{t('reservations.calendar.details.total')}</p>
-                        <p className="text-slate-700 dark:text-slate-300">
+                        <p className="font-medium text-content">{t('reservations.calendar.details.total')}</p>
+                        <p className="text-content-strong">
                           {reservationTotals(activeReservation).totalMinutes} min |{' '}
                           {reservationTotals(activeReservation).totalPrice.toFixed(2)} KM
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{activeReservation.service?.name ?? '-'}</p>
+                    <p className="mt-1 text-sm text-content-muted">{activeReservation.service?.name ?? '-'}</p>
                   )}
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <p className="text-sm text-content-muted">
                     {t('reservations.calendar.details.client')}:{' '}
                     {[activeReservation.client?.firstName, activeReservation.client?.lastName].filter(Boolean).join(' ').trim() ||
                       activeReservation.client?.username ||
                       '-'}
                   </p>
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                  <p className="text-sm text-content-muted">
                     {t('reservations.calendar.details.stylist')}: {activeReservation.confirmedStylist ? stylistName(activeReservation.confirmedStylist, t('reservations.calendar.eventFallbacks.stylist')) : t('reservations.calendar.details.unconfirmed')}
                   </p>
                 </div>
 
                 {activeReservation.clientNotes ? (
-                  <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                    <p className="text-xs text-slate-500">{t('reservations.calendar.details.clientNotes')}</p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-slate-900 dark:text-slate-50">
+                  <div className="rounded-lg border border-line p-3">
+                    <p className="text-xs text-content-muted">{t('reservations.calendar.details.clientNotes')}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-content">
                       {activeReservation.clientNotes}
                     </p>
                   </div>
                 ) : null}
 
                 {activeReservation.cancelReason ? (
-                  <div className="rounded-lg border border-rose-200 bg-rose-50 p-3 dark:border-rose-900/40 dark:bg-rose-950/20">
-                    <p className="text-xs text-rose-700 dark:text-rose-300">{t('reservations.calendar.details.cancelReason')}</p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-rose-900 dark:text-rose-200">
+                  <div className="rounded-lg border border-line bg-bad p-3">
+                    <p className="text-xs text-bad-foreground">{t('reservations.calendar.details.cancelReason')}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-bad-foreground">
                       {activeReservation.cancelReason}
                     </p>
                   </div>
                 ) : null}
 
-                <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('reservations.calendar.details.editAppointment')}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                <div className="rounded-lg border border-line p-3">
+                  <p className="text-sm font-semibold text-content">{t('reservations.calendar.details.editAppointment')}</p>
+                  <p className="mt-1 text-xs text-content-muted">
                     {activeReservation.status === 'AWAITING_DAILY_LOG'
                       ? t('reservations.calendar.details.dailyLogMoveHelp')
                       : t('reservations.calendar.details.editHelp')}
@@ -837,9 +843,9 @@ export const ReservationScheduler = (props: Props) => {
                 </div>
 
                 {activeReservation.status === 'AWAITING_DAILY_LOG' ? (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('reservations.calendar.details.dailyLogTitle')}</p>
-                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                  <div className="rounded-lg border border-line bg-warn p-3">
+                    <p className="text-sm font-semibold text-content">{t('reservations.calendar.details.dailyLogTitle')}</p>
+                    <p className="mt-1 text-xs text-content-muted">
                       {t('reservations.calendar.details.dailyLogHelp')}
                     </p>
                     <Button type="button" variant="outline" className="mt-3" asChild>
@@ -849,9 +855,9 @@ export const ReservationScheduler = (props: Props) => {
                 ) : null}
 
                 {canAdminConfirmAttendance(activeReservation) ? (
-                  <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('reservations.calendar.details.confirmAttendanceTitle')}</p>
-                    <p className="mt-1 text-xs text-slate-500">{t('reservations.calendar.details.confirmAttendanceHelp')}</p>
+                  <div className="rounded-lg border border-line p-3">
+                    <p className="text-sm font-semibold text-content">{t('reservations.calendar.details.confirmAttendanceTitle')}</p>
+                    <p className="mt-1 text-xs text-content-muted">{t('reservations.calendar.details.confirmAttendanceHelp')}</p>
                     <div className="mt-3 flex justify-end">
                       <Button
                         type="button"
@@ -879,9 +885,9 @@ export const ReservationScheduler = (props: Props) => {
                 ) : null}
 
                 {canAdminCancelReservation(activeReservation.status) ? (
-                  <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{t('reservations.calendar.details.cancelTitle')}</p>
-                    <p className="mt-1 text-xs text-slate-500">{t('reservations.calendar.details.cancelHelp')}</p>
+                  <div className="rounded-lg border border-line p-3">
+                    <p className="text-sm font-semibold text-content">{t('reservations.calendar.details.cancelTitle')}</p>
+                    <p className="mt-1 text-xs text-content-muted">{t('reservations.calendar.details.cancelHelp')}</p>
                     <div className="mt-3 space-y-2">
                       <Textarea
                         placeholder={t('reservations.calendar.details.cancelReasonPlaceholder')}
@@ -896,7 +902,7 @@ export const ReservationScheduler = (props: Props) => {
                         <Button
                           type="button"
                           variant="outline"
-                          className="border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900/40 dark:text-rose-300 dark:hover:bg-rose-950/20"
+                          className="border-bad text-bad-foreground hover:bg-bad"
                           disabled={cancelling}
                           onClick={async () => {
                             if (!activeReservation) return
@@ -935,8 +941,8 @@ export const ReservationScheduler = (props: Props) => {
                     type="button"
                     className={
                       createDraft.bookingMode === 'STANDARD'
-                        ? 'rounded-lg border border-slate-900 bg-slate-900 px-3 py-3 text-left text-sm text-white'
-                        : 'rounded-lg border border-slate-200 bg-white px-3 py-3 text-left text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200'
+                        ? 'rounded-lg border border-content bg-content px-3 py-3 text-left text-sm text-surface'
+                        : 'rounded-lg border border-line bg-surface px-3 py-3 text-left text-sm text-content-strong'
                     }
                     onClick={() =>
                       setCreateDraft((p) => ({ ...p, bookingMode: 'STANDARD', stylistProfileId: '' }))
@@ -951,8 +957,8 @@ export const ReservationScheduler = (props: Props) => {
                     type="button"
                     className={
                       createDraft.bookingMode === 'STAFF_ADMIN_DIRECT'
-                        ? 'rounded-lg border border-slate-900 bg-slate-900 px-3 py-3 text-left text-sm text-white'
-                        : 'rounded-lg border border-slate-200 bg-white px-3 py-3 text-left text-sm text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200'
+                        ? 'rounded-lg border border-content bg-content px-3 py-3 text-left text-sm text-surface'
+                        : 'rounded-lg border border-line bg-surface px-3 py-3 text-left text-sm text-content-strong'
                     }
                     onClick={() => setCreateDraft((p) => ({ ...p, bookingMode: 'STAFF_ADMIN_DIRECT' }))}
                   >
@@ -978,12 +984,12 @@ export const ReservationScheduler = (props: Props) => {
                           className={
                             active
                               ? 'rounded-lg border border-brand-gold-ring bg-brand-champagne/20 px-3 py-2 text-left text-sm'
-                              : 'rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-950 dark:hover:bg-slate-900/40'
+                              : 'rounded-lg border border-line bg-surface px-3 py-2 text-left text-sm hover:bg-surface-muted'
                           }
                           onClick={() => setCreateDraft((p) => ({ ...p, stylistProfileId: stylist.id }))}
                         >
-                          <div className="font-medium text-slate-900 dark:text-slate-50">{label}</div>
-                          <div className="text-xs text-slate-500">{stylist.id}</div>
+                          <div className="font-medium text-content">{label}</div>
+                          <div className="text-xs text-content-muted">{stylist.id}</div>
                         </button>
                       )
                     })}
@@ -998,14 +1004,14 @@ export const ReservationScheduler = (props: Props) => {
                   value={createDraft.clientSearch}
                   onChange={(e) => setCreateDraft((p) => ({ ...p, clientSearch: e.target.value, clientId: '' }))}
                 />
-                {clientsLoading ? <p className="text-xs text-slate-500">{t('reservations.calendar.create.loadingClients')}</p> : null}
+                {clientsLoading ? <p className="text-xs text-content-muted">{t('reservations.calendar.create.loadingClients')}</p> : null}
                 {createDraft.clientId ? (
-                  <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                  <p className="text-xs text-ok-foreground">
                     {t('reservations.calendar.create.selectedClient')}: <span className="font-semibold">{createDraft.clientId}</span>
                   </p>
                 ) : null}
                 {clients.length > 0 ? (
-                  <div className="max-h-[220px] overflow-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                  <div className="max-h-[220px] overflow-auto rounded-lg border border-line">
                     {clients.map((c) => {
                       const label =
                         [c.firstName, c.lastName].filter(Boolean).join(' ').trim() ||
@@ -1015,7 +1021,7 @@ export const ReservationScheduler = (props: Props) => {
                         <button
                           key={c.id}
                           type="button"
-                          className="w-full border-b border-slate-100 px-3 py-2 text-left text-sm hover:bg-slate-50 last:border-b-0 dark:border-slate-800 dark:hover:bg-slate-900/40"
+                          className="w-full border-b border-line px-3 py-2 text-left text-sm hover:bg-surface-muted last:border-b-0"
                         onClick={() =>
                           setCreateDraft((p) => {
                             const hasMismatch =
@@ -1036,8 +1042,8 @@ export const ReservationScheduler = (props: Props) => {
                           })
                         }
                         >
-                          <div className="font-medium text-slate-900 dark:text-slate-50">{label}</div>
-                          <div className="text-xs text-slate-500">{c.id}</div>
+                          <div className="font-medium text-content">{label}</div>
+                          <div className="text-xs text-content-muted">{c.id}</div>
                         </button>
                       )
                     })}
@@ -1048,10 +1054,10 @@ export const ReservationScheduler = (props: Props) => {
               <div className="space-y-2">
                 <Label>{t('reservations.calendar.create.service')}</Label>
                 {!createDraft.clientId ? (
-                  <p className="text-xs text-slate-500">{t('reservations.calendar.create.serviceGenderHint')}</p>
+                  <p className="text-xs text-content-muted">{t('reservations.calendar.create.serviceGenderHint')}</p>
                 ) : null}
                 <div ref={serviceDropdownRef} className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" />
                   <Input
                     className="pl-9"
                     disabled={!createDraft.clientId}
@@ -1069,7 +1075,7 @@ export const ReservationScheduler = (props: Props) => {
                     onFocus={() => setShowServiceDropdown(true)}
                   />
                   {showServiceDropdown && filteredServices.length > 0 ? (
-                    <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg dark:border-slate-800 dark:bg-slate-950">
+                    <ul className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-line bg-surface shadow-lg">
                       {filteredServices.map((svc) => (
                         <li
                           key={svc.id}
@@ -1079,10 +1085,10 @@ export const ReservationScheduler = (props: Props) => {
                         >
                           <div className="flex justify-between gap-2 text-sm">
                             <span className="flex items-center gap-2">
-                              {isServiceSelected(svc.id) ? <Check className="h-4 w-4 text-emerald-600" /> : null}
+                              {isServiceSelected(svc.id) ? <Check className="h-4 w-4 text-ok-foreground" /> : null}
                               {svc.name}
                             </span>
-                            <span className="text-slate-500">{Number(svc.price ?? 0).toFixed(2)} KM</span>
+                            <span className="text-content-muted">{Number(svc.price ?? 0).toFixed(2)} KM</span>
                           </div>
                         </li>
                       ))}
@@ -1095,11 +1101,11 @@ export const ReservationScheduler = (props: Props) => {
                     {selectedServices.map((s) => (
                       <div
                         key={s.id}
-                        className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-800 dark:bg-slate-950"
+                        className="flex items-center justify-between gap-3 rounded-md border border-line bg-surface px-3 py-2 text-sm"
                       >
                         <div className="min-w-0">
-                          <div className="font-semibold text-slate-900 dark:text-slate-50">{s.name}</div>
-                          <div className="text-xs text-slate-500">{Number(s.price ?? 0).toFixed(2)} KM</div>
+                          <div className="font-semibold text-content">{s.name}</div>
+                          <div className="text-xs text-content-muted">{Number(s.price ?? 0).toFixed(2)} KM</div>
                         </div>
                         <Button type="button" variant="outline" size="sm" onClick={() => toggleServiceId(s.id)}>
                           {t('reservations.calendar.create.removeService')}
