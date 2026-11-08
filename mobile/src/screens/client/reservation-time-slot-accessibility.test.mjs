@@ -6,14 +6,19 @@ const resources = readFileSync(new URL('../../i18n/bs.ts', import.meta.url), 'ut
 const screen = readFileSync(new URL('./ReservationScreen.tsx', import.meta.url), 'utf8')
 const timeSlot = screen.match(/<TouchableOpacity\s+key=\{idx\}([\s\S]*?)onPress=\{\(\) => !isDisabled && handleSelectSlot\(slot\)\}/)?.[1]
 
-test('reservation time slots expose localized radio identity, selected state, and availability', () => {
+test('reservation time slots expose localized radio identity and selected/disabled state', () => {
   assert.match(resources, /timeSlotAccessibilityLabel: 'Termin u \{\{time\}\}'/)
   assert.match(resources, /timeSlotAccessibilityHint: 'Odaberite ovaj termin\.'/)
+  assert.match(resources, /timeSlotPastAccessibilityHint: 'Ovaj termin je već prošao\.'/)
+  assert.match(resources, /timeSlotHeldAccessibilityHint: 'Termin je privremeno zauzet dok se obrađuje druga rezervacija\.'/)
+  assert.match(resources, /pendingTimeSlotLabel: 'Na čekanju'/)
   assert.ok(timeSlot, 'Reservation time-slot option should exist')
   assert.match(timeSlot, /accessibilityRole="radio"/)
   assert.match(timeSlot, /accessibilityLabel=\{t\('reservation\.timeSlotAccessibilityLabel'/)
   assert.match(timeSlot, /time: formatTime\(slot\.startTime\)/)
-  assert.match(timeSlot, /accessibilityHint=\{t\('reservation\.timeSlotAccessibilityHint'\)\}/)
+  assert.match(timeSlot, /isHeld\s*\? 'reservation\.timeSlotHeldAccessibilityHint'/)
+  assert.match(timeSlot, /isPastSlot\s*\? 'reservation\.timeSlotPastAccessibilityHint'/)
   assert.match(timeSlot, /accessibilityState=\{\{ selected: isSelected, disabled: isDisabled \}\}/)
   assert.match(screen, /disabled=\{isDisabled\}/)
+  assert.match(screen, /t\('reservation\.pendingTimeSlotLabel'\)/)
 })

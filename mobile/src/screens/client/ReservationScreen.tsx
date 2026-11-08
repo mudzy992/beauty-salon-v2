@@ -879,7 +879,13 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
                     accessibilityLabel={t('reservation.timeSlotAccessibilityLabel', {
                       time: formatTime(slot.startTime),
                     })}
-                    accessibilityHint={t('reservation.timeSlotAccessibilityHint')}
+                    accessibilityHint={t(
+                      isHeld
+                        ? 'reservation.timeSlotHeldAccessibilityHint'
+                        : isPastSlot
+                          ? 'reservation.timeSlotPastAccessibilityHint'
+                          : 'reservation.timeSlotAccessibilityHint',
+                    )}
                     accessibilityState={{ selected: isSelected, disabled: isDisabled }}
                     onPress={() => !isDisabled && handleSelectSlot(slot)}
                     disabled={isDisabled}
@@ -913,7 +919,9 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
                       {formatTime(slot.startTime)}
                     </Text>
                     {isHeld ? (
-                      <Text style={[styles.slotHint, { color: colors.textMuted }]}>uskoro?</Text>
+                      <Text style={[styles.slotHint, { color: colors.textMuted }]}>
+                        {t('reservation.pendingTimeSlotLabel')}
+                      </Text>
                     ) : null}
                   </TouchableOpacity>
                 );
