@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rezervacije – Admin | Beauty Salon Nejra (referentni primjer)</title>
+<!--
+  REFERENTNI PRIMJER ZA AGENTA (nije produkcijski kod).
+  Pokazuje ciljni izgled i a11y ugovor dashboarda: shell, tokeni, šabloni stranica, stanja, dijalog, toast.
+  Implementacija u repou ide kroz React + Tailwind + Radix (ne kopirati HTML doslovno):
+  - boje -> CSS varijable iz src/styles/globals.css + brand tokeni (ovdje samo ilustracija, vrijednosti su stvarne)
+  - dijalog -> Radix Dialog / postojeći ConfirmDialog; dugme "Meni" -> postojeći Drawer
+  - sve stringove u i18n (bs.json + en.json)
+  Dugme "Prikaži oznake WCAG" otkriva koji kriterij pokriva koji element (atribut data-sc).
+-->
+<style>
+:root{
+  /* Semantički tokeni – LIGHT (paleta zadržana: bordo #632238, zlato #D4A843, champagne #F5E6CC) */
+  --bg:#F8FAFC; --surface:#FFFFFF; --surface-2:#F4F4F6;
+  --text:#020817; --text-muted:#67676F;           /* 5.6:1 na bijeloj, 5.36:1 na --bg */
+  --line:#E2E8F0;                                  /* dekorativna linija (nije kontrola) */
+  --control-border:#767B86;                        /* 1.4.11: 4.24:1 na bijeloj */
+  --primary:#632238; --on-primary:#FFFFFF;         /* 11.56:1 */
+  --accent-text:#8A641E;                           /* gold-text: 5.35:1 na bijeloj */
+  --accent:#D4A843; --champagne:#F5E6CC;
+  --nav-active-bg:#F5E6CC; --nav-active-fg:#632238;/* 9.4:1 */
+  --focus:#632238;                                 /* prsten 11.56:1 */
+  --danger:#D81313; --on-danger:#FFFFFF;           /* 5.22:1 */
+  --ok-fg:#166534;--ok-bg:#DCFCE7; --warn-fg:#7A3E00;--warn-bg:#FEF3C7;
+  --bad-fg:#991B1B;--bad-bg:#FEE2E2; --info-fg:#1E40AF;--info-bg:#DBEAFE;
+  --neu-fg:#3F3F46;--neu-bg:#E4E4E7;
+  --radius:.5rem; --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.08);
+  --header-h:3.75rem;
+}
+:root[data-theme="dark"]{
+  --bg:#18181B; --surface:#1D1D20; --surface-2:#2C2C30;
+  --text:#F8FAFC; --text-muted:#94A3B8;           /* 6.56:1 na surface */
+  --line:#313135; --control-border:#6B7280;        /* 3.48:1 na surface */
+  --primary:#E0BB7B; --on-primary:#1A1A1A;         /* 9.58:1 */
+  --accent-text:#D4A843; --nav-active-bg:#3A1B27; --nav-active-fg:#E5B3C5; /* 8.48:1 */
+  --focus:#E0BB7B;
+  --danger:#F87171; --on-danger:#1A1A1A;
+  --ok-fg:#86EFAC;--ok-bg:#123A24; --warn-fg:#FCD34D;--warn-bg:#40300A;
+  --bad-fg:#FCA5A5;--bad-bg:#4A1818; --info-fg:#93C5FD;--info-bg:#142A55;
+  --neu-fg:#D4D4D8;--neu-bg:#3A3A40;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:calc(var(--header-h) + 1rem);scroll-padding-bottom:5rem} /* 2.4.11 */
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif}
+h1,h2,h3{line-height:1.25;margin:0}
+h1{font:600 1.75rem/1.2 "Playfair Display",Georgia,"Times New Roman",serif;letter-spacing:.01em}
+h2{font-size:1.125rem;font-weight:600}
+p{margin:0}
+.muted{color:var(--text-muted)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+svg.i{width:1.1em;height:1.1em;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* 2.4.7 / 2.4.13 – jedinstven, vidljiv fokus */
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
+:focus:not(:focus-visible){outline:none}
+
+/* 2.4.1 – skip link */
+.skip{position:absolute;left:.75rem;top:-4rem;z-index:100;background:var(--primary);color:var(--on-primary);padding:.75rem 1rem;border-radius:var(--radius);font-weight:600;text-decoration:none}
+.skip:focus{top:.75rem}
+
+/* Shell */
+.header{position:sticky;top:0;z-index:20;height:var(--header-h);display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0 1rem;background:var(--surface);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:.6rem;font:600 1.15rem Georgia,serif;color:var(--primary);text-decoration:none;letter-spacing:.14em}
+.header-actions{display:flex;align-items:center;gap:.5rem}
+.layout{display:grid;grid-template-columns:16.5rem minmax(0,1fr);max-width:1600px;margin:0 auto}
+.sidebar{padding:1rem .75rem;border-right:1px solid var(--line);background:var(--surface);min-height:calc(100vh - var(--header-h));position:sticky;top:var(--header-h);align-self:start;max-height:calc(100vh - var(--header-h));overflow:auto}
+.nav-group+.nav-group{margin-top:1.1rem}
+.nav-group h2{font-size:.8125rem;font-weight:600;color:var(--text-muted);padding:0 .75rem .35rem}
+.nav ul{list-style:none;margin:0;padding:0}
+.nav a{display:flex;align-items:center;gap:.65rem;min-height:2.75rem;padding:0 .75rem;border-radius:var(--radius);color:var(--text);text-decoration:none}
+.nav a:hover{background:var(--surface-2)}
+.nav a[aria-current="page"]{background:var(--nav-active-bg);color:var(--nav-active-fg);font-weight:600;box-shadow:inset 3px 0 0 var(--primary)} /* aktivno = boja + oblik + aria-current */
+.badge-count{margin-left:auto;min-width:1.5rem;padding:0 .4rem;text-align:center;border-radius:99px;background:var(--primary);color:var(--on-primary);font-size:.8125rem;font-weight:600}
+main{padding:1.5rem;display:grid;gap:1.25rem;min-width:0}
+.menu-btn{display:none}
+
+/* Buttons – cilj ≥ 44px (2.5.8 min 24, AAA 2.5.5 = 44) */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:2.75rem;min-width:2.75rem;padding:0 1rem;border-radius:var(--radius);border:1px solid var(--control-border);background:var(--surface);color:var(--text);font:inherit;font-weight:500;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn-primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.btn-primary:hover{background:var(--primary);filter:brightness(1.12)}
+.btn-danger{background:var(--danger);border-color:var(--danger);color:var(--on-danger)}
+.btn-ghost{border-color:transparent;background:transparent}
+.btn[aria-disabled="true"],.btn:disabled{opacity:1;color:var(--text-muted);border-style:dashed;cursor:not-allowed}
+
+/* Šablon: PageHeader */
+.page-header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:1rem}
+.page-header p{max-width:60ch;margin-top:.35rem}
+.crumbs{font-size:.875rem;color:var(--text-muted);margin-bottom:.35rem}
+.crumbs a{color:inherit}
+
+/* Šablon: StatCard */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:1rem;list-style:none;margin:0;padding:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.stat{padding:1rem 1.1rem;display:grid;gap:.25rem}
+.stat .label{color:var(--text-muted);font-size:.9375rem}
+.stat .value{font-size:1.6rem;font-weight:650;font-variant-numeric:tabular-nums}
+.stat .delta{font-size:.875rem;color:var(--text-muted)}
+
+/* Šablon: FilterBar */
+.filters{display:flex;flex-wrap:wrap;gap:.75rem 1rem;align-items:end;padding:1rem}
+.field{display:grid;gap:.3rem;min-width:11rem}
+.field label{font-size:.9375rem;font-weight:500}
+.input{min-height:2.75rem;padding:0 .75rem;border:1px solid var(--control-border);border-radius:var(--radius);background:var(--surface);color:var(--text);font:inherit}
+.input::placeholder{color:var(--text-muted);opacity:1}
+
+/* Šablon: DataTable */
+.table-card{overflow:hidden}
+.table-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem;padding:1rem 1rem .25rem}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.9375rem}
+caption{text-align:left;padding:0 1rem .5rem;color:var(--text-muted)}
+th,td{padding:.6rem 1rem;text-align:left;vertical-align:middle;border-top:1px solid var(--line)}
+th{font-weight:600;color:var(--text-muted);white-space:nowrap;background:var(--surface-2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.sort{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:.35rem;min-height:2.75rem;cursor:pointer;font-weight:600;color:var(--text)}
+.sort:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.row-actions{display:flex;gap:.25rem;justify-content:flex-end}
+.pager{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;padding:.75rem 1rem;border-top:1px solid var(--line)}
+.pager ul{display:flex;gap:.25rem;list-style:none;margin:0;padding:0}
+.pager a{display:inline-flex;align-items:center;justify-content:center;min-width:2.75rem;min-height:2.75rem;border-radius:var(--radius);color:var(--text);text-decoration:none;border:1px solid transparent}
+.pager a[aria-current="page"]{background:var(--primary);color:var(--on-primary)}
+
+/* StatusBadge: tekst + ikona + boja (1.4.1) */
+.status{display:inline-flex;align-items:center;gap:.35rem;padding:.15rem .6rem;border-radius:99px;font-size:.875rem;font-weight:600;border:1px solid currentColor}
+.s-ok{color:var(--ok-fg);background:var(--ok-bg)}.s-warn{color:var(--warn-fg);background:var(--warn-bg)}
+.s-bad{color:var(--bad-fg);background:var(--bad-bg)}.s-info{color:var(--info-fg);background:var(--info-bg)}.s-neu{color:var(--neu-fg);background:var(--neu-bg)}
+
+/* Stanja: empty / error */
+.states{display:grid;grid-template-columns:repeat(auto-fit,minmax(18rem,1fr));gap:1rem}
+.state{padding:1.5rem;display:grid;gap:.6rem;justify-items:start}
+.state .icon{width:2.5rem;height:2.5rem;border-radius:50%;display:grid;place-items:center;background:var(--champagne);color:var(--primary)}
+:root[data-theme="dark"] .state .icon{background:var(--nav-active-bg);color:var(--nav-active-fg)}
+.state.error .icon{background:var(--bad-bg);color:var(--bad-fg)}
+
+/* Dialog (potvrda – 3.3.4) */
+dialog{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);color:var(--text);padding:1.5rem;max-width:min(30rem,calc(100vw - 2rem));box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(2,8,23,.55)}
+dialog .actions{display:flex;gap:.5rem;justify-content:flex-end;margin-top:1.25rem;flex-wrap:wrap}
+
+/* Toast = 4.1.3, ne otima fokus */
+.toasts{position:fixed;right:1rem;bottom:1rem;z-index:50;display:grid;gap:.5rem;max-width:min(26rem,calc(100vw - 2rem))}
+.toast{background:var(--text);color:var(--bg);padding:.75rem 1rem;border-radius:var(--radius);box-shadow:var(--shadow)}
+
+/* Spec dio */
+.spec{padding:1.25rem;display:grid;gap:1rem}
+.spec table td,.spec table th{padding:.45rem .75rem}
+.swatch{display:inline-block;width:1rem;height:1rem;border-radius:3px;border:1px solid var(--control-border);vertical-align:-.15em;margin-right:.4rem}
+code{font:.875em ui-monospace,Menlo,Consolas,monospace;background:var(--surface-2);padding:.1rem .35rem;border-radius:4px}
+
+/* Oznake WCAG (po zahtjevu) */
+.show-sc [data-sc]{position:relative;outline:2px dashed var(--accent-text);outline-offset:3px}
+.show-sc [data-sc]::before{content:"SC " attr(data-sc);position:absolute;top:-.85rem;left:.25rem;z-index:30;background:var(--accent-text);color:var(--bg);font:600 .6875rem/1 ui-monospace,monospace;padding:.2rem .4rem;border-radius:3px;white-space:nowrap;pointer-events:none}
+
+/* 1.4.10 Reflow: ispod 900px sidebar postaje disclosure, ispod 640px tabela → kartice */
+@media (max-width:900px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .menu-btn{display:inline-flex}
+  .sidebar{position:static;max-height:none;min-height:0;border-right:0;border-bottom:1px solid var(--line)}
+  .sidebar[hidden]{display:none}
+  main{padding:1rem}
+}
+@media (max-width:640px){
+  .brand span.word{display:none}
+  table,thead,tbody,tr,td{display:block}
+  thead{position:absolute;left:-9999px}
+  tr{border-top:1px solid var(--line);padding:.5rem 0}
+  td{border:0;display:grid;grid-template-columns:8rem 1fr;gap:.5rem;padding:.3rem 1rem;text-align:left}
+  td.num{text-align:left}
+  td::before{content:attr(data-label);color:var(--text-muted);font-weight:600}
+  td.actions-cell::before{content:""}
+  .row-actions{justify-content:flex-start}
+}
+/* 2.3.3 / prefers-reduced-motion */
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media (prefers-reduced-motion:no-preference){.btn,.nav a{transition:background-color .15s}}
+/* Forced colors: granice ne smiju zavisiti od pozadine */
+@media (forced-colors:active){.status,.card,.btn,.input{border:1px solid CanvasText}.nav a[aria-current="page"]{outline:2px solid Highlight}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16 9.5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4m0 0h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19z"/><path d="M12 10v4M12 17h.01"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 13 6 5h12l2 8v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+</svg>
+
+<a class="skip" href="#main" data-sc="2.4.1">Preskoči na sadržaj</a>
+
+<header class="header" data-sc="1.3.1 landmark banner">
+  <div style="display:flex;align-items:center;gap:.75rem">
+    <button class="btn menu-btn" id="menuBtn" aria-expanded="false" aria-controls="sidebar" data-sc="4.1.2">
+      <svg class="i" aria-hidden="true"><use href="#i-menu"/></svg><span>Meni</span>
+    </button>
+    <a class="brand" href="#main" aria-label="Nejra – početna"><svg class="i" aria-hidden="true" style="width:1.6rem;height:1.6rem"><use href="#i-flag"/></svg><span class="word">NEJRA</span></a>
+  </div>
+  <div class="header-actions">
+    <div role="group" aria-label="Jezik" data-sc="3.1.1 / 3.2.3">
+      <button class="btn btn-ghost" lang="bs" aria-pressed="true">BS</button>
+      <button class="btn btn-ghost" lang="en" aria-pressed="false">EN</button>
+    </div>
+    <button class="btn" id="themeBtn" aria-pressed="false" data-sc="4.1.2">
+      <svg class="i" aria-hidden="true"><use href="#i-moon"/></svg><span>Tamna tema</span>
+    </button>
+    <a class="btn" href="#help" data-sc="3.2.6 Consistent help">Pomoć</a>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <nav class="nav" aria-label="Glavna navigacija" data-sc="1.3.1 / 2.4.5 / 3.2.3">
+      <div class="nav-group"><h2>Pregled</h2><ul>
+        <li><a href="#main">Početna</a></li><li><a href="#main">Analitika</a></li></ul></div>
+      <div class="nav-group"><h2>Operativa</h2><ul>
+        <li><a href="#main" aria-current="page">Rezervacije</a></li>
+        <li><a href="#main">Dnevna knjiga</a></li></ul></div>
+      <div class="nav-group"><h2>Salon</h2><ul>
+        <li><a href="#main">Usluge</a></li><li><a href="#main">Frizeri</a></li></ul></div>
+      <div class="nav-group"><h2>Finansije</h2><ul>
+        <li><a href="#main">Knjige i dužnici</a></li><li><a href="#main">Lojalnost</a></li></ul></div>
+      <div class="nav-group"><h2>Sadržaj</h2><ul>
+        <li><a href="#main">Blog <span class="badge-count" aria-label="3 komentara čeka odobrenje">3</span></a></li>
+        <li><a href="#main">Galerija</a></li><li><a href="#main">Recenzije</a></li></ul></div>
+      <div class="nav-group"><h2>Sistem</h2><ul>
+        <li><a href="#main">Postavke</a></li></ul></div>
+    </nav>
+  </aside>
+
+  <main id="main" tabindex="-1">
+    <!-- Šablon PageHeader: jedan h1, opis, primarna akcija; fokus ide na h1 nakon promjene rute (2.4.3) -->
+    <div class="page-header">
+      <div>
+        <p class="crumbs"><a href="#main">Operativa</a> / Rezervacije</p>
+        <h1 id="pageTitle" tabindex="-1" data-sc="2.4.2 / 2.4.6 / 1.3.1">Rezervacije</h1>
+        <p class="muted">Pregled termina, statusa i plaćanja. Podaci se osvježavaju automatski.</p>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <a class="btn" href="#main"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>Otvori kalendar</a>
+        <button class="btn btn-primary" id="newBtn">Nova rezervacija</button>
+      </div>
+    </div>
+
+    <!-- StatCard: vrijednost + oznaka u jednom čitljivom nizu, bez oslanjanja na boju -->
+    <ul class="stats" aria-label="Sažetak za danas" data-sc="1.3.1">
+      <li class="card stat"><span class="label">Termina danas</span><span class="value">14</span><span class="delta">3 čeka potvrdu</span></li>
+      <li class="card stat"><span class="label">Prihod danas</span><span class="value">420,00 KM</span><span class="delta">8 završenih termina</span></li>
+      <li class="card stat"><span class="label">Otvorena dugovanja</span><span class="value">185,50 KM</span><span class="delta">5 klijenata</span></li>
+      <li class="card stat"><span class="label">Popunjenost sedmice</span><span class="value">78 %</span><span class="delta">na dan 8. 11. 2026.</span></li>
+    </ul>
+
+    <!-- FilterBar: vidljive labele, role=search, rezultat se najavljuje (4.1.3) -->
+    <form class="card filters" role="search" aria-label="Filteri rezervacija" id="filterForm" data-sc="3.3.2 / 1.3.5">
+      <div class="field"><label for="q">Ime klijenta</label><input class="input" id="q" type="search" placeholder="npr. Amra" autocomplete="off"></div>
+      <div class="field"><label for="st">Status</label>
+        <select class="input" id="st"><option value="">Svi statusi</option><option value="Potvrđena">Potvrđena</option><option value="Na čekanju">Na čekanju</option><option value="Završena">Završena</option><option value="Otkazana">Otkazana</option></select></div>
+      <div class="field"><label for="from">Od datuma</label><input class="input" id="from" type="date" value="2026-11-08"></div>
+      <div class="field"><label for="to">Do datuma</label><input class="input" id="to" type="date" value="2026-11-15"></div>
+      <button class="btn" type="reset" id="resetBtn">Poništi filtere</button>
+    </form>
+
+    <!-- DataTable -->
+    <section class="card table-card" aria-labelledby="tblTitle">
+      <div class="table-head">
+        <h2 id="tblTitle">Termini</h2>
+        <p class="muted" id="count" role="status" aria-live="polite" data-sc="4.1.3">Prikazano 5 od 5 rezervacija</p>
+      </div>
+      <div class="table-wrap" tabindex="0" role="region" aria-label="Tabela termina, može se pomjerati vodoravno" data-sc="1.4.10 / 2.1.1">
+        <table id="tbl">
+          <caption>Rezervacije od 8. do 15. novembra 2026, sortirano po terminu.</caption>
+          <thead><tr>
+            <th scope="col" aria-sort="ascending"><button class="sort" data-key="time" type="button" data-sc="4.1.2 aria-sort">Termin <svg class="i" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14m0-14-5 5m5-5 5 5"/></svg></button></th>
+            <th scope="col" aria-sort="none"><button class="sort" data-key="client" type="button">Klijent</button></th>
+            <th scope="col">Usluga</th>
+            <th scope="col">Frizer</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="num" aria-sort="none"><button class="sort" data-key="price" type="button">Iznos</button></th>
+            <th scope="col"><span class="sr-only">Akcije</span></th>
+          </tr></thead>
+          <tbody>
+            <tr data-time="2026-11-08T09:00" data-client="Amra Hadžić" data-price="35" data-status="Završena">
+              <td data-label="Termin"><time datetime="2026-11-08T09:00">08. 11. 2026. 09:00</time></td><td data-label="Klijent">Amra Hadžić</td><td data-label="Usluga">Šišanje i feniranje</td><td data-label="Frizer">Nejra</td>
+              <td data-label="Status"><span class="status s-ok"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Završena</span></td><td class="num" data-label="Iznos">35,00 KM</td>
+              <td class="actions-cell"><div class="row-actions"><button class="btn btn-ghost" aria-label="Uredi rezervaciju: Amra Hadžić, 08. 11. u 09:00"><svg class="i" aria-hidden="true"><use href="#i-edit"/></svg></button><button class="btn btn-ghost del" data-name="Amra Hadžić" aria-label="Otkaži rezervaciju: Amra Hadžić, 08. 11. u 09:00"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg></button></div></td></tr>
+            <tr data-time="2026-11-08T10:30" data-client="Lejla Kovač" data-price="80" data-status="Potvrđena">
+              <td data-label="Termin"><time datetime="2026-11-08T10:30">08. 11. 2026. 10:30</time></td><td data-label="Klijent">Lejla Kovač</td><td data-label="Usluga">Farbanje korijena</td><td data-label="Frizer">Nejra</td>
+              <td data-label="Status"><span class="status s-info"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>Potvrđena</span></td><td class="num" data-label="Iznos">80,00 KM</td>
+              <td class="actions-cell"><div class="row-actions"><button class="btn btn-ghost" aria-label="Uredi rezervaciju: Lejla Kovač, 08. 11. u 10:30"><svg class="i" aria-hidden="true"><use href="#i-edit"/></svg></button><button class="btn btn-ghost del" data-name="Lejla Kovač" aria-label="Otkaži rezervaciju: Lejla Kovač, 08. 11. u 10:30"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg></button></div></td></tr>
+            <tr data-time="2026-11-09T12:00" data-client="Selma Begić" data-price="25" data-status="Na čekanju">
+              <td data-label="Termin"><time datetime="2026-11-09T12:00">09. 11. 2026. 12:00</time></td><td data-label="Klijent">Selma Begić</td><td data-label="Usluga">Manikir</td><td data-label="Frizer">Adna</td>
+              <td data-label="Status"><span class="status s-warn"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg>Na čekanju</span></td><td class="num" data-label="Iznos">25,00 KM</td>
+              <td class="actions-cell"><div class="row-actions"><button class="btn btn-ghost" aria-label="Uredi rezervaciju: Selma Begić, 09. 11. u 12:00"><svg class="i" aria-hidden="true"><use href="#i-edit"/></svg></button><button class="btn btn-ghost del" data-name="Selma Begić" aria-label="Otkaži rezervaciju: Selma Begić, 09. 11. u 12:00"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg></button></div></td></tr>
+            <tr data-time="2026-11-10T15:00" data-client="Emina Ždralović" data-price="45" data-status="Otkazana">
+              <td data-label="Termin"><time datetime="2026-11-10T15:00">10. 11. 2026. 15:00</time></td><td data-label="Klijent">Emina Ždralović</td><td data-label="Usluga">Njega lica</td><td data-label="Frizer">Adna</td>
+              <td data-label="Status"><span class="status s-bad"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg>Otkazana</span></td><td class="num" data-label="Iznos">45,00 KM</td>
+              <td class="actions-cell"><div class="row-actions"><button class="btn btn-ghost" aria-label="Uredi rezervaciju: Emina Ždralović, 10. 11. u 15:00"><svg class="i" aria-hidden="true"><use href="#i-edit"/></svg></button><button class="btn btn-ghost" disabled aria-label="Otkaži rezervaciju: Emina Ždralović (već otkazana)"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg></button></div></td></tr>
+            <tr data-time="2026-11-12T11:15" data-client="Džana Mehmedović" data-price="60" data-status="Potvrđena">
+              <td data-label="Termin"><time datetime="2026-11-12T11:15">12. 11. 2026. 11:15</time></td><td data-label="Klijent">Džana Mehmedović</td><td data-label="Usluga">Balayage</td><td data-label="Frizer">Nejra</td>
+              <td data-label="Status"><span class="status s-info"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>Potvrđena</span></td><td class="num" data-label="Iznos">60,00 KM</td>
+              <td class="actions-cell"><div class="row-actions"><button class="btn btn-ghost" aria-label="Uredi rezervaciju: Džana Mehmedović, 12. 11. u 11:15"><svg class="i" aria-hidden="true"><use href="#i-edit"/></svg></button><button class="btn btn-ghost del" data-name="Džana Mehmedović" aria-label="Otkaži rezervaciju: Džana Mehmedović, 12. 11. u 11:15"><svg class="i" aria-hidden="true"><use href="#i-trash"/></svg></button></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" id="emptyRow" hidden style="padding:1.5rem">Nema rezervacija za odabrane filtere. Promijenite filtere ili ih poništite.</p>
+      <nav class="pager" aria-label="Paginacija" data-sc="2.4.8 / 4.1.2">
+        <span class="muted">Stranica 1 od 3</span>
+        <ul><li><a href="#main" aria-label="Prethodna stranica" aria-disabled="true">‹</a></li>
+          <li><a href="#main" aria-current="page" aria-label="Stranica 1, trenutna">1</a></li>
+          <li><a href="#main" aria-label="Stranica 2">2</a></li><li><a href="#main" aria-label="Stranica 3">3</a></li>
+          <li><a href="#main" aria-label="Sljedeća stranica">›</a></li></ul>
+      </nav>
+    </section>
+
+    <!-- Obavezna stanja: prazno i greška sa retry (isti šabloni na svim modulima) -->
+    <section aria-labelledby="stTitle">
+      <h2 id="stTitle" style="margin-bottom:.75rem">Obrasci stanja</h2>
+      <div class="states">
+        <div class="card state" data-sc="3.3.1 / 1.4.1">
+          <span class="icon" aria-hidden="true"><svg class="i" style="width:1.3rem;height:1.3rem"><use href="#i-inbox"/></svg></span>
+          <h3>Još nema rezervacija</h3>
+          <p class="muted">Kada klijent zakaže termin, pojavit će se ovdje. Možete i sami dodati rezervaciju.</p>
+          <button class="btn btn-primary" type="button">Nova rezervacija</button>
+        </div>
+        <div class="card state error" role="alert" data-sc="3.3.1 / 3.3.3 / 4.1.3">
+          <span class="icon" aria-hidden="true"><svg class="i" style="width:1.3rem;height:1.3rem"><use href="#i-alert"/></svg></span>
+          <h3>Rezervacije nisu učitane</h3>
+          <p class="muted">Veza sa serverom je prekinuta. Podaci na ekranu nisu promijenjeni. Provjerite mrežu i pokušajte ponovo.</p>
+          <button class="btn" type="button" id="retryBtn">Pokušaj ponovo</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Spec za agenta -->
+    <section class="card spec" aria-labelledby="specTitle" id="help">
+      <h2 id="specTitle">Specifikacija tokena (izračunati omjeri kontrasta)</h2>
+      <p class="muted">Paleta je postojeća. Jedina korekcija: <code>--input</code> / okvir kontrola mora biti ≥ 3:1 (SC 1.4.11). Postojeći <code>--input: 214.3 31.8% 91.4%</code> je ≈ 1.2:1 i ne prolazi; ovdje je <code>#767B86</code> (light) i <code>#6B7280</code> (dark). Svaki par dodati u <code>scripts/check_ui_contrast.py</code>.</p>
+      <div class="table-wrap" tabindex="0" role="region" aria-label="Tabela tokena, može se pomjerati vodoravno">
+      <table>
+        <caption class="sr-only">Semantički tokeni i kontrast</caption>
+        <thead><tr><th scope="col">Token</th><th scope="col">Light</th><th scope="col">Dark</th><th scope="col">Par / omjer (light → dark)</th></tr></thead>
+        <tbody>
+          <tr><td><code>text / surface</code></td><td><span class="swatch" style="background:#020817"></span>#020817 / #FFFFFF</td><td><span class="swatch" style="background:#F8FAFC"></span>#F8FAFC / #1D1D20</td><td>20.01:1 → 16.07:1</td></tr>
+          <tr><td><code>text-muted</code></td><td>#67676F</td><td>#94A3B8</td><td>5.6:1 (bijela), 5.36:1 (bg) → 6.56:1</td></tr>
+          <tr><td><code>primary / on-primary</code></td><td>#632238 / #FFF</td><td>#E0BB7B / #1A1A1A</td><td>11.56:1 → 9.58:1</td></tr>
+          <tr><td><code>accent-text</code> (gold-text)</td><td>#8A641E</td><td>#D4A843</td><td>5.35:1 na bijeloj → 7.59:1 na surface</td></tr>
+          <tr><td><code>nav-active</code></td><td>#632238 na #F5E6CC</td><td>#E5B3C5 na #3A1B27</td><td>9.4:1 → 8.48:1</td></tr>
+          <tr><td><code>control-border</code></td><td>#767B86</td><td>#6B7280</td><td>4.24:1 → 3.48:1 (min 3:1)</td></tr>
+          <tr><td><code>focus ring</code></td><td>#632238</td><td>#E0BB7B</td><td>11.56:1 → 9.26:1 (3px + offset 2px)</td></tr>
+          <tr><td><code>danger / on-danger</code></td><td>#D81313 / #FFF</td><td>#F87171 / #1A1A1A</td><td>5.22:1 → 6.29:1 (tekst na dugmetu)</td></tr>
+          <tr><td>Status ok · warn · bad · info · neutral</td><td>6.49 · 7.49 · 6.8 · 7.15 · 8.23</td><td>9.03 · 8.85 · 7.71 · 7.8 · 7.64</td><td>tekst + ikona + okvir (ne samo boja)</td></tr>
+        </tbody>
+      </table></div>
+      <h3>Ugovor šablona (što agent mora zadržati)</h3>
+      <ul style="margin:0;padding-left:1.2rem;display:grid;gap:.3rem">
+        <li><strong>Shell:</strong> skip link prvi u tabu, <code>header/nav/main</code> landmarke, <code>aria-current="page"</code>, jedan <code>h1</code>, fokus na <code>h1</code> nakon navigacije, „Pomoć“ na istom mjestu na svim ekranima.</li>
+        <li><strong>Akcije u redu:</strong> ikona-dugme ima jedinstveno ime („Otkaži rezervaciju: ime, datum“), cilj ≥ 44 px, onemogućeno stanje i dalje čitljivo (isprekidan okvir, kontrast ≥ 4.5:1).</li>
+        <li><strong>Destruktivne akcije:</strong> uvijek ConfirmDialog (naslov, posljedica, „Odustani“ prvo fokusirano), nikad <code>window.confirm</code>; fokus se vraća na okidač.</li>
+        <li><strong>Filteri i sortiranje:</strong> promjena se najavljuje kroz <code>role="status"</code>; <code>aria-sort</code> na <code>th</code>, dugme unutar zaglavlja.</li>
+        <li><strong>Reflow:</strong> ispod 640 px tabela postaje kartice (<code>data-label</code>), nijedan podatak ne nestaje; sidebar se pretvara u disclosure/drawer.</li>
+        <li><strong>Stanja:</strong> učitavanje, prazno, greška (sa „Pokušaj ponovo“ i objašnjenjem), uspjeh (toast). Greške ne izmišljaju podatke.</li>
+        <li><strong>Pokret:</strong> samo promjena boje pozadine na hover; sve poštuje <code>prefers-reduced-motion</code>.</li>
+      </ul>
+      <p><button class="btn" id="scBtn" aria-pressed="false">Prikaži oznake WCAG</button></p>
+    </section>
+  </main>
+</div>
+
+<dialog id="confirm" aria-labelledby="cTitle" aria-describedby="cDesc" data-sc="2.1.2 / 3.3.4 / 4.1.2">
+  <h2 id="cTitle">Otkazati rezervaciju?</h2>
+  <p id="cDesc" class="muted" style="margin-top:.5rem">Rezervacija klijenta <strong id="cName"></strong> bit će otkazana, a klijent će dobiti obavijest. Ovu radnju možete provjeriti u historiji termina.</p>
+  <div class="actions">
+    <button class="btn" id="cNo" autofocus>Odustani</button>
+    <button class="btn btn-danger" id="cYes">Otkaži rezervaciju</button>
+  </div>
+</dialog>
+<div class="toasts" id="toasts" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+(function(){
+  var root=document.documentElement, $=function(s,c){return (c||document).querySelector(s)}, $$=function(s,c){return [].slice.call((c||document).querySelectorAll(s))};
+  function toast(m){var t=document.createElement('div');t.className='toast';t.textContent=m;$('#toasts').appendChild(t);setTimeout(function(){t.remove()},6000)}
+
+  // Tema (u referentnom primjeru; u repou prvo potvrditi gdje se .dark klasa uopšte primjenjuje)
+  var dark=matchMedia('(prefers-color-scheme: dark)').matches;
+  function setTheme(d){root.dataset.theme=d?'dark':'light';var b=$('#themeBtn');b.setAttribute('aria-pressed',d);b.querySelector('span').textContent=d?'Svijetla tema':'Tamna tema'}
+  setTheme(dark);$('#themeBtn').addEventListener('click',function(){dark=!dark;setTheme(dark)});
+
+  // Mobilni meni (disclosure)
+  var sb=$('#sidebar'),mb=$('#menuBtn'),mq=matchMedia('(max-width:900px)');
+  function sync(){if(mq.matches){sb.hidden=mb.getAttribute('aria-expanded')!=='true'}else{sb.hidden=false}}
+  mb.addEventListener('click',function(){mb.setAttribute('aria-expanded',mb.getAttribute('aria-expanded')!=='true');sync()});
+  mq.addEventListener('change',sync);sync();
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&mq.matches&&mb.getAttribute('aria-expanded')==='true'&&!$('#confirm').open){mb.setAttribute('aria-expanded','false');sync();mb.focus()}});
+
+  // Filteri + brojač (4.1.3)
+  var rows=$$('#tbl tbody tr');
+  function apply(){
+    var q=$('#q').value.trim().toLowerCase(),s=$('#st').value,n=0;
+    rows.forEach(function(r){var ok=(!q||r.dataset.client.toLowerCase().indexOf(q)>-1)&&(!s||r.dataset.status===s);r.hidden=!ok;if(ok)n++});
+    $('#count').textContent='Prikazano '+n+' od '+rows.length+' rezervacija';
+    $('#emptyRow').hidden=n!==0;$('#tbl').hidden=n===0;
+  }
+  $('#q').addEventListener('input',apply);$('#st').addEventListener('change',apply);
+  $('#filterForm').addEventListener('reset',function(){setTimeout(apply,0)});
+  $('#filterForm').addEventListener('submit',function(e){e.preventDefault()});
+
+  // Sortiranje: aria-sort + najava
+  $$('.sort').forEach(function(b){b.addEventListener('click',function(){
+    var th=b.closest('th'),dir=th.getAttribute('aria-sort')==='ascending'?'descending':'ascending',k=b.dataset.key;
+    $$('#tbl th[aria-sort]').forEach(function(x){x.setAttribute('aria-sort','none')});th.setAttribute('aria-sort',dir);
+    var tb=$('#tbl tbody');rows.sort(function(a,c){var x=a.dataset[k],y=c.dataset[k];if(k==='price'){x=+x;y=+y}return (x>y?1:x<y?-1:0)*(dir==='ascending'?1:-1)}).forEach(function(r){tb.appendChild(r)});
+    toast('Sortirano po: '+b.textContent.trim()+(dir==='ascending'?' (rastuće)':' (opadajuće)'));
+  })});
+
+  // ConfirmDialog (native <dialog>: fokus trap, Esc, povrat fokusa na okidač)
+  var dlg=$('#confirm'),last=null,target=null;
+  $$('.del').forEach(function(b){b.addEventListener('click',function(){last=b;target=b.closest('tr');$('#cName').textContent=b.dataset.name;dlg.showModal();$('#cNo').focus()})});
+  $('#cNo').addEventListener('click',function(){dlg.close()});
+  dlg.addEventListener('close',function(){if(last&&document.contains(last))last.focus()});
+  $('#cYes').addEventListener('click',function(){
+    var st=$('.status',target);st.className='status s-bad';st.innerHTML='<svg class="i" aria-hidden="true"><use href="#i-x"/></svg>Otkazana';target.dataset.status='Otkazana';
+    var nb=$('.del',target);nb.disabled=true;var nm=nb.dataset.name;nb.setAttribute('aria-label','Otkaži rezervaciju: '+nm+' (već otkazana)');
+    var ed=$('.btn',target);dlg.close();ed.focus();toast('Rezervacija otkazana: '+nm);apply();
+  });
+
+  $('#newBtn').addEventListener('click',function(){toast('Otvara se forma za novu rezervaciju (u repou: Drawer/Dialog sa fokus trapom).')});
+  $('#retryBtn').addEventListener('click',function(){toast('Ponovno učitavanje…')});
+
+  // WCAG oznake
+  $('#scBtn').addEventListener('click',function(){var on=document.body.classList.toggle('show-sc');this.setAttribute('aria-pressed',on);this.textContent=on?'Sakrij oznake WCAG':'Prikaži oznake WCAG'});
+  // Fokus na h1 nakon "navigacije"
+  $$('.nav a').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();$('#pageTitle').focus()})});
+})();
+</script>
+</body>
+</html>
