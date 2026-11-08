@@ -177,7 +177,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     if (user?.gender) return;
     Alert.alert(
       t('common.error'),
-      'Spol je obavezan za rezervacije. Molimo dopunite profil.',
+      t('reservation.genderRequiredMessage'),
       [{ text: t('common.ok'), onPress: () => navigation.getParent()?.navigate('ProfileTab') }],
     );
   }, [navigation, t, user?.gender]);
@@ -513,7 +513,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
   const handleSubmit = async () => {
     if (submitting || selectedServiceIds.length === 0 || !selectedDate || !selectedSlot) return;
     if (user?.mustChangePassword) {
-      Alert.alert(t('common.error'), 'Prvo morate promijeniti inicijalnu lozinku.', [
+      Alert.alert(t('common.error'), t('reservation.initialPasswordRequiredMessage'), [
         { text: t('common.ok'), onPress: () => router.replace('/') },
       ]);
       return;
@@ -521,7 +521,7 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
     if (!user?.email || !user?.phone || !user?.isEmailVerified) {
       Alert.alert(
         t('common.error'),
-        'Za rezervaciju unesite email i telefon, te verifikujte email.',
+        t('reservation.contactVerificationRequiredMessage'),
         [{ text: t('common.ok'), onPress: () => router.replace('/') }],
       );
       return;

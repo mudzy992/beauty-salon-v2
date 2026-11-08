@@ -647,6 +647,9 @@ jobs:
       - name: Test mobile reservation loading accessibility
         working-directory: mobile
         run: npm run test:reservation-loading-accessibility
+      - name: Test mobile reservation prerequisite copy
+        working-directory: mobile
+        run: npm run test:reservation-prerequisite-copy
       - name: Test mobile reservation service-search accessibility
         working-directory: mobile
         run: npm run test:reservation-service-search-accessibility
