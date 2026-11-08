@@ -5,6 +5,7 @@ import {
   CalendarCheck,
   CheckCheck,
   CheckCircle2,
+  CircleDashed,
   Clock,
   Eye,
   PlayCircle,
@@ -85,6 +86,11 @@ export const reservationStatusMap: Record<ReservationStatus, StatusDescriptor> =
 
 type StatusBadgeProps = {
   status: StatusDescriptor
+  /**
+   * Prevedena oznaka. Ako se izostavi, koristi se `t(status.labelKey)`.
+   * Služi za dinamičke statuse gdje nepoznata vrijednost mora imati fallback.
+   */
+  label?: string
   className?: string
 }
 
@@ -93,7 +99,7 @@ type StatusBadgeProps = {
  * tekst. Kontrasti tonova su u `check_ui_contrast.py` (ok 6.50:1, warn 7.50:1,
  * bad 6.80:1, info 7.13:1, neutral 8.23:1 — light).
  */
-export const StatusBadge = ({ status, className }: StatusBadgeProps) => {
+export const StatusBadge = ({ status, label, className }: StatusBadgeProps) => {
   const { t } = useTranslation()
   const Icon = status.icon
 
@@ -107,10 +113,22 @@ export const StatusBadge = ({ status, className }: StatusBadgeProps) => {
       )}
     >
       <Icon aria-hidden className="h-3.5 w-3.5 shrink-0" />
-      {t(status.labelKey)}
+      {label ?? t(status.labelKey)}
     </span>
   )
 }
+
+/**
+ * Rezolucija statusa s fallback-om: API može vratiti status koji nije u mapi
+ * (npr. novi korak FSM-a), pa se koristi neutralni ton i generička ikona
+ * umjesto pada ili prazne značke.
+ */
+export const resolveReservationStatus = (status: string): StatusDescriptor =>
+  reservationStatusMap[status as ReservationStatus] ?? {
+    labelKey: 'common.status',
+    tone: 'neutral',
+    icon: CircleDashed,
+  }
 
 export const ReservationStatusBadge = ({
   status,

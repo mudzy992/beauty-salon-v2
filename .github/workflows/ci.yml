@@ -572,6 +572,15 @@ jobs:
       - name: Test dashboard templates accessibility (data table, status, pagination, filters)
         working-directory: frontend
         run: npm run test:admin-templates-a11y
+      - name: Test dashboard stat parity (finance and ops formulas unchanged)
+        working-directory: frontend
+        run: npm run test:dashboard-stat-parity
+      - name: Test dashboard loading, empty and error states
+        working-directory: frontend
+        run: npm run test:dashboard-states
+      - name: Test dashboard structural accessibility (headings, lists, tables, status)
+        working-directory: frontend
+        run: npm run test:dashboard-a11y
       - name: Build (includes TypeScript project check)
         working-directory: frontend
         run: npm run build

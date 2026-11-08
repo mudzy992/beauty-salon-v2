@@ -42,7 +42,9 @@ test('sort control has a textual name and the direction is not conveyed by color
 test('status badge never relies on color alone', () => {
   // WCAG 1.4.1 — uz ton idu ikona i tekst.
   assert.match(statusBadge, /<Icon aria-hidden className="h-3\.5 w-3\.5 shrink-0" \/>/)
-  assert.match(statusBadge, /\{t\(status\.labelKey\)\}/)
+  // Tekst je uvijek prisutan: `label` je opciono prepisivanje (dinamički status
+  // s fallback-om), a default i dalje ide preko t().
+  assert.match(statusBadge, /\{label \?\? t\(status\.labelKey\)\}/)
 
   const tones = ['ok', 'warn', 'bad', 'info', 'neutral']
   for (const tone of tones) {
@@ -51,7 +53,14 @@ test('status badge never relies on color alone', () => {
 })
 
 test('reservation status map reuses existing reservation i18n keys in both locales', () => {
-  const keys = [...statusBadge.matchAll(/labelKey: '([^']+)'/g)].map(([, key]) => key)
+  // Asertacija je ograničena na `reservationStatusMap`: `resolveReservationStatus`
+  // namjerno ima fallback izvan tog namespacea (nepoznat status s API-ja), pa se
+  // provjerava zasebno ispod.
+  const mapSource = statusBadge.slice(
+    statusBadge.indexOf('export const reservationStatusMap'),
+    statusBadge.indexOf('export const resolveReservationStatus'),
+  )
+  const keys = [...mapSource.matchAll(/labelKey: '([^']+)'/g)].map(([, key]) => key)
   assert.equal(keys.length, 11, `expected 11 reservation statuses, found ${keys.length}`)
 
   for (const key of keys) {
@@ -59,6 +68,13 @@ test('reservation status map reuses existing reservation i18n keys in both local
     assert.ok(typeof resolveKey(bs, key) === 'string' && resolveKey(bs, key).length > 0, `missing BS: ${key}`)
     assert.ok(typeof resolveKey(en, key) === 'string' && resolveKey(en, key).length > 0, `missing EN: ${key}`)
   }
+
+  // Fallback za nepoznati status također mora biti preveden u oba jezika.
+  const fallback = statusBadge.slice(statusBadge.indexOf('export const resolveReservationStatus'))
+  const fallbackKey = fallback.match(/labelKey: '([^']+)'/)?.[1]
+  assert.ok(fallbackKey, 'resolveReservationStatus mora imati fallback labelKey')
+  assert.ok(typeof resolveKey(bs, fallbackKey) === 'string', `missing BS: ${fallbackKey}`)
+  assert.ok(typeof resolveKey(en, fallbackKey) === 'string', `missing EN: ${fallbackKey}`)
 })
 
 test('pagination is a named landmark with named controls and a polite range', () => {

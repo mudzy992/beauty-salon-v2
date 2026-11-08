@@ -7,13 +7,23 @@ const locales = ['bs', 'en'].map((language) =>
     readFileSync(new URL('../../i18n/locales/' + language + '.json', import.meta.url), 'utf8'),
   ),
 )
+// Outbox dijagnostika je podijeljena na panel + tabela + dijalog + podaci
+// (faza 1). Garancije testa ostaju iste, pa se četiri fajla čitaju kao jedan
+// izvor: endpoint i audit flag, potvrda, i gate na DEAD_LETTER.
+const outboxSources = [
+  './outbox-diagnostics.tsx',
+  './outbox-events-table.tsx',
+  './outbox-replay-dialog.tsx',
+  './use-outbox.ts',
+]
+const read = (path) => readFileSync(new URL(path, import.meta.url), 'utf8')
 const sources = [
   '../../pages/Dashboard.tsx',
   './finance-stats.tsx',
   './ops-stats.tsx',
   './recent-reservations.tsx',
-  './outbox-diagnostics.tsx',
-].map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'))
+  outboxSources.map(read).join('\n'),
+].map((entry, index) => (index === 4 ? entry : read(entry)))
 const keys = new Set(
   sources.flatMap((source) => [...source.matchAll(/\bt\('([^']+)'/g)].map(([, key]) => key)),
 )

@@ -142,3 +142,99 @@ proračun kontrasta), ne audit renderovanog UI-ja. Ručna provjera: M1–M12 u
 
 ➖ `@axe-core/playwright` i `eslint-plugin-jsx-a11y` su **instalirani** (Q4 odobren), ali
 još **nisu** povezani ni u jedan `test:*` skript ni u CI — to je planirano uz fazu 13.
+
+---
+
+## 2026-11-08 — ETAPA B, faza 1 (Dashboard pilot)
+
+### Commit 1 — `a11y/ui(dashboard): page header + stat grid + semantic tokens`
+
+- **Šta:** `PageHeader` na `/admin`; `StatGrid` (`<ul>`/`<li>`) kao novi template;
+  `StatCard` proširen `tone` propom; `finance-stats` i `ops-stats` migrirani na
+  `StatGrid` + semantičke tokene; loading grana dobila `role="status"` +
+  `aria-live="polite"` + `sr-only` tekst uz `aria-hidden` skelet.
+- **Zašto:** 1.3.1, 1.4.1, 2.4.6, 4.1.3.
+- **Korekcija kontrasta:** `text-orange-600` na „Recenzije na čekanju" bio je
+  **3.56:1** (ispod 4.5:1) i **van brand palete** → `tone: 'warn'` (`--warn-fg`,
+  **7.49:1** light / **8.85:1** dark) + `AlertCircle` ikona + tekstualna oznaka
+  `dashboard.pendingReviewsAttention`. Naglasak više nije samo boja (1.4.1).
+- **Neto prihod:** predznak je bio samo boja (zelena/crvena). Sada `trend.direction`
+  (strelica) **i** `trend.label` (`dashboard.netPositive` / `dashboard.netNegative`).
+  Formula `net = (services + tips) - expenses` je **netaknuta** — zakucana testom.
+- **Paritet:** `formatLocalizedAmount` / `formatLocalizedNumber` i dalje jedini put
+  do prikaza; nijedan broj nije promijenjen.
+
+### Commit 2 — `a11y/ui(dashboard): data table, split outbox`
+
+- **Šta:** `recent-reservations` migriran na `DataTable` (`<caption>`, `scope="col"`,
+  `data-label`, `<time datetime>`) + `StatusBadge` s dinamičkom oznakom; link klijenta
+  uvijek podvučen (1.4.1). `outbox-diagnostics.tsx` (**343 → 128 ln**) podijeljen na
+  `use-outbox.ts` (116) + `outbox-events-table.tsx` (118) + `outbox-replay-dialog.tsx`
+  (102) + panel. Mrtav `statusClassMap` obrisan iz `types.ts` (nula referenci).
+- **Zašto:** 1.3.1, 1.4.1, 2.4.6, 4.1.2; cilj veličine fajla ~100–150 ln.
+- **4.1.2:** replay dugme ima jedinstveno ime po retku
+  (`dashboard.outbox.replayForEvent`, `{{eventId}}`), ne isto „Ponovi" u svakom redu.
+- **Paritet outboxa:** endpoint, `confirmAtLeastOnce: true`, `AbortController`,
+  `refreshKey` i role gate (`SYSTEM_ADMIN`/`OWNER` u `Dashboard.tsx`) su preneseni
+  1:1 — upoređeno s `git show HEAD:…` prije commit-a.
+
+### ⚠️ Nalaz: D9 iz plana je pogrešan (nije implementiran)
+
+Plan [`04_phase-1-dashboard.md`](04_phase-1-dashboard.md) tvrdi (linija 74) da
+dodavanje error stanja „nije novi feature nego isto stanje koje danas prikazuje
+**prazan ekran**". **Provjereno i netačno.**
+
+`use-dashboard-data.ts` ima `.catch(() => …)` fallback na **svih 8** `api.get(...)`
+poziva (`{ data: { total: 0 } }`, `{ data: [] }`, `{ data: null }`) i
+`.finally(() => setLoading(false))`. Zato `Promise.all` **nikad ne odbija**,
+`setStats` se uvijek izvrši, a `Dashboard.tsx` nema error granu.
+
+Posljedica: pri **potpunom** padu backenda dashboard prikazuje **nule koje izgledaju
+kao stvarni podaci** — gore od praznog ekrana, jer je tiho. Ispravka zahtijeva
+izmijenu `use-dashboard-data.ts`, koji je zakucan `dashboard-count-contract.test.mjs`,
+i mijenja vidljivo ponašanje. Zato D9 **nije implementiran** — po napomeni samog plana
+(„označiti i pitati prije implementacije") i po ograničenju „funkcionalnost identična".
+
+### Izmjene postojećih testova (garancija zadržana)
+
+- **`dashboard-i18n.test.mjs`** — `sources[4]` je sada **spoj** četiri outbox fajla
+  umjesto jednog. Sve četiri asertcije (`/api/reservations/ops/outbox`,
+  `confirmAtLeastOnce: true`, `replayAcknowledged`, `event.status === 'DEAD_LETTER'`)
+  ostaju **nepromijenjene**; garancija „gate + auditan at-least-once replay" je ista,
+  samo je raspoređena na nove module. **4/4 PASS.**
+- **`templates-a11y.test.mjs`** — dvije asertcije repointovane:
+  (1) `{t(status.labelKey)}` → `{label ?? t(status.labelKey)}` jer je `label` opciono
+  prepisivanje za dinamičke statuse s fallback-om; tekst je i dalje uvijek prisutan.
+  (2) brojanje `labelKey` ograničeno na `reservationStatusMap` (i dalje **tačno 11**),
+  a fallback ključ `resolveReservationStatus` se provjerava **zasebno** u oba jezika.
+  Garancija nije oslabljena, pokrivenost je veća. **9/9 PASS.**
+
+### Novi testovi
+
+| Skripta | Asertcija | Rezultat |
+|---|---|---|
+| `test:dashboard-stat-parity` | formule, izvori brojača, bez `slate`/hex u cijelom dashboardu | **6/6** |
+| `test:dashboard-states` | loading/empty/error najavljeni; outbox hook postavlja `failed` | **7/7** |
+| `test:dashboard-a11y` | jedan `<h1>`, `<ul>`/`<li>`, `<caption>`+`scope`, `<time datetime>`, jedinstvena imena akcija | **9/9** |
+
+Sva tri su dodana u `frontend/package.json` i kao zasebni koraci u `.github/workflows/ci.yml`.
+
+### Izmjereno nakon faze 1
+
+| Provjera | Rezultat |
+|---|---|
+| `npm run build` | **PASS** — **272.2 KiB gzip** (budžet 300; nepromijenjeno od faze 0) |
+| `test:*` skripte | **147/147 PASS** (bilo 144; +3 nova dashboard testa) |
+| `check_i18n.py --strict` | **PASS** — 2615/2615 (bilo 2611; +`dashboard.netPositive`, `netNegative`, `pendingReviewsAttention`, `outbox.replayForEvent`) |
+| `check_ui_contrast.py --strict` | **PASS** — 80/80 parova |
+| `check_repo_hygiene.py` | **PASS** |
+| `check_doc_links.py` | **PASS** |
+
+### Otvoreno (nije verifikovano u renderu)
+
+🟡 **Nije provjereno u browseru:** stvarni prikaz `StatGrid` rasporeda na 2/4/5 kolona,
+card-mod `DataTable` ispod 640px, vizuelni izgled `tone` tonova, `PageHeader` poravnanje
+s akcijama. Ovo su source-level dokazi (testovi + proračun kontrasta), ne audit
+renderovanog UI-ja.
+
+❌ **D9 (error stanje + retry)** — namjerno **nije** implementirano; čeka odluku vlasnika.
