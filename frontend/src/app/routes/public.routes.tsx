@@ -1,21 +1,23 @@
+import { lazy } from 'react'
 import { RouteObject } from 'react-router-dom'
 
 import PublicLayout from '../../layouts/PublicLayout'
-import Profile from '../../pages/Profile'
-import PublicHome from '../../pages/public/PublicHome'
-import PublicServices from '../../pages/public/PublicServices'
-import PublicServiceDetail from '../../pages/public/PublicServiceDetail'
-import PublicBlogList from '../../pages/public/PublicBlogList'
-import PublicBlogPost from '../../pages/public/PublicBlogPost'
-import PublicGallery from '../../pages/public/PublicGallery'
-import PublicContact from '../../pages/public/PublicContact'
-import PublicReserve from '../../pages/public/PublicReserve'
-import PublicReservationView from '../../pages/public/PublicReservationView'
-import MyReservations from '../../pages/public/MyReservations'
-import MyReservationDetail from '../../pages/public/MyReservationDetail'
 import { PublicFeatureGate } from '../../features/shell/public/public-feature-gate'
-import PublicSatisfiedClients from '../../pages/public/PublicSatisfiedClients'
-import CampaignUnsubscribe from '../../pages/public/CampaignUnsubscribe'
+
+const Profile = lazy(() => import('../../pages/Profile'))
+const PublicHome = lazy(() => import('../../pages/public/PublicHome'))
+const PublicServices = lazy(() => import('../../pages/public/PublicServices'))
+const PublicServiceDetail = lazy(() => import('../../pages/public/PublicServiceDetail'))
+const PublicBlogList = lazy(() => import('../../pages/public/PublicBlogList'))
+const PublicBlogPost = lazy(() => import('../../pages/public/PublicBlogPost'))
+const PublicGallery = lazy(() => import('../../pages/public/PublicGallery'))
+const PublicContact = lazy(() => import('../../pages/public/PublicContact'))
+const PublicReserve = lazy(() => import('../../pages/public/PublicReserve'))
+const PublicReservationView = lazy(() => import('../../pages/public/PublicReservationView'))
+const MyReservations = lazy(() => import('../../pages/public/MyReservations'))
+const MyReservationDetail = lazy(() => import('../../pages/public/MyReservationDetail'))
+const PublicSatisfiedClients = lazy(() => import('../../pages/public/PublicSatisfiedClients'))
+const CampaignUnsubscribe = lazy(() => import('../../pages/public/CampaignUnsubscribe'))
 
 export const publicRoutes: RouteObject[] = [
   {
@@ -39,4 +41,3 @@ export const publicRoutes: RouteObject[] = [
     ],
   },
 ]
-

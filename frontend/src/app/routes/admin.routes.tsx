@@ -1,30 +1,32 @@
+import { lazy } from 'react'
 import { Navigate, RouteObject } from 'react-router-dom'
 
 import ProtectedRoute from '../../components/ProtectedRoute'
 import DashboardLayout from '../../layouts/DashboardLayout'
-import Dashboard from '../../pages/Dashboard'
-import Users from '../../pages/Users'
-import Salon from '../../pages/Salon'
-import Services from '../../pages/Services'
-import Stylists from '../../pages/Stylists'
-import Reservations from '../../pages/Reservations'
-import DailyLog from '../../pages/DailyLog'
-import Finance from '../../pages/Finance'
-import Blog from '../../pages/Blog'
-import Gallery from '../../pages/Gallery'
-import Reviews from '../../pages/Reviews'
-import Settings from '../../pages/Settings'
-import SettingsOperations from '../../pages/SettingsOperations'
-import SettingsAppearance from '../../pages/SettingsAppearance'
-import SettingsSeo from '../../pages/SettingsSeo'
-import Notifications from '../../pages/Notifications'
-import EmailSettings from '../../pages/EmailSettings'
-import ClientAnalytics from '../../pages/ClientAnalytics'
-import StylistAnalytics from '../../pages/StylistAnalytics'
-import Analytics from '../../pages/Analytics'
-import Loyalty from '../../pages/Loyalty'
-import ServiceWorkGallery from '../../pages/ServiceWorkGallery'
-import AppReleases from '../../pages/AppReleases'
+
+const Dashboard = lazy(() => import('../../pages/Dashboard'))
+const Users = lazy(() => import('../../pages/Users'))
+const Salon = lazy(() => import('../../pages/Salon'))
+const Services = lazy(() => import('../../pages/Services'))
+const Stylists = lazy(() => import('../../pages/Stylists'))
+const Reservations = lazy(() => import('../../pages/Reservations'))
+const DailyLog = lazy(() => import('../../pages/DailyLog'))
+const Finance = lazy(() => import('../../pages/Finance'))
+const Blog = lazy(() => import('../../pages/Blog'))
+const Gallery = lazy(() => import('../../pages/Gallery'))
+const Reviews = lazy(() => import('../../pages/Reviews'))
+const Settings = lazy(() => import('../../pages/Settings'))
+const SettingsOperations = lazy(() => import('../../pages/SettingsOperations'))
+const SettingsAppearance = lazy(() => import('../../pages/SettingsAppearance'))
+const SettingsSeo = lazy(() => import('../../pages/SettingsSeo'))
+const Notifications = lazy(() => import('../../pages/Notifications'))
+const EmailSettings = lazy(() => import('../../pages/EmailSettings'))
+const ClientAnalytics = lazy(() => import('../../pages/ClientAnalytics'))
+const StylistAnalytics = lazy(() => import('../../pages/StylistAnalytics'))
+const Analytics = lazy(() => import('../../pages/Analytics'))
+const Loyalty = lazy(() => import('../../pages/Loyalty'))
+const ServiceWorkGallery = lazy(() => import('../../pages/ServiceWorkGallery'))
+const AppReleases = lazy(() => import('../../pages/AppReleases'))
 
 export const adminRoutes: RouteObject[] = [
   {
@@ -62,4 +64,3 @@ export const adminRoutes: RouteObject[] = [
     ],
   },
 ]
-

@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.config.ts",
-    "prebuild": "node --test src/features/reservations/reservation-list-api-contract.test.mjs",
-    "build": "tsc -b && vite build --config vite.config.ts",
+    "prebuild": "node --test src/features/reservations/reservation-list-api-contract.test.mjs src/app/route-code-splitting.test.mjs",
+    "build": "tsc -b && vite build --config vite.config.ts && node scripts/check-bundle-budget.mjs",
     "test:socket-recovery": "node --test src/context/socket-recovery.test.mjs",
     "test:brand-colors": "node --test src/utils/brand-colors.test.mjs",
     "test:uploaded-brand-logo-security": "node --test src/components/brand/uploaded-brand-logo-security.test.mjs",

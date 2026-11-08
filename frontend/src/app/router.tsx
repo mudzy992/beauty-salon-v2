@@ -1,29 +1,73 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, useRoutes } from 'react-router-dom'
 
 import PublicOnlyRoute from '../components/PublicOnlyRoute'
 import ProtectedRoute from '../components/ProtectedRoute'
-import Login from '../pages/Login'
-import Register from '../pages/Register'
-import ResetPassword from '../pages/ResetPassword'
-import ForceChangePassword from '../pages/ForceChangePassword'
-import OnboardingGender from '../pages/onboarding/OnboardingGender'
-import OnboardingEmail from '../pages/onboarding/OnboardingEmail'
-import ReservationsCalendar from '../pages/ReservationsCalendar'
-import NotFound from '../pages/NotFound'
+import { RouteLoadingFallback } from './route-loading-fallback'
 import { adminRoutes } from './routes/admin.routes'
 import { publicRoutes } from './routes/public.routes'
 import StylistRoute from '../components/StylistRoute'
 import StylistLayout from '../layouts/StylistLayout'
-import { WorkbookListPage } from '../features/stylist-workbook/pages/workbook-list-page'
-import { WorkbookNewEntryPage } from '../features/stylist-workbook/pages/workbook-new-entry-page'
-import { WorkbookDetailPage } from '../features/stylist-workbook/pages/workbook-detail-page'
-import { WorkbookReschedulePreviewPage } from '../features/stylist-workbook/pages/workbook-reschedule-preview-page'
-import { StylistInboxPage } from '../features/stylist-portal/pages/stylist-inbox-page'
-import { StylistSchedulePage } from '../features/stylist-portal/pages/stylist-schedule-page'
-import { StylistDirectBookingPage } from '../features/stylist-portal/pages/stylist-direct-booking-page'
-import { StylistReservationDetailPage } from '../features/stylist-portal/pages/stylist-reservation-detail-page'
-import { StylistStatsPage } from '../features/stylist-portal/pages/stylist-stats-page'
-import { StylistDebtsPage } from '../features/stylist-portal/pages/stylist-debts-page'
+
+const Login = lazy(() => import('../pages/Login'))
+const Register = lazy(() => import('../pages/Register'))
+const ResetPassword = lazy(() => import('../pages/ResetPassword'))
+const ForceChangePassword = lazy(() => import('../pages/ForceChangePassword'))
+const OnboardingGender = lazy(() => import('../pages/onboarding/OnboardingGender'))
+const OnboardingEmail = lazy(() => import('../pages/onboarding/OnboardingEmail'))
+const ReservationsCalendar = lazy(() => import('../pages/ReservationsCalendar'))
+const NotFound = lazy(() => import('../pages/NotFound'))
+
+const WorkbookListPage = lazy(() =>
+  import('../features/stylist-workbook/pages/workbook-list-page').then((module) => ({
+    default: module.WorkbookListPage,
+  })),
+)
+const WorkbookNewEntryPage = lazy(() =>
+  import('../features/stylist-workbook/pages/workbook-new-entry-page').then((module) => ({
+    default: module.WorkbookNewEntryPage,
+  })),
+)
+const WorkbookDetailPage = lazy(() =>
+  import('../features/stylist-workbook/pages/workbook-detail-page').then((module) => ({
+    default: module.WorkbookDetailPage,
+  })),
+)
+const WorkbookReschedulePreviewPage = lazy(() =>
+  import('../features/stylist-workbook/pages/workbook-reschedule-preview-page').then((module) => ({
+    default: module.WorkbookReschedulePreviewPage,
+  })),
+)
+const StylistInboxPage = lazy(() =>
+  import('../features/stylist-portal/pages/stylist-inbox-page').then((module) => ({
+    default: module.StylistInboxPage,
+  })),
+)
+const StylistSchedulePage = lazy(() =>
+  import('../features/stylist-portal/pages/stylist-schedule-page').then((module) => ({
+    default: module.StylistSchedulePage,
+  })),
+)
+const StylistDirectBookingPage = lazy(() =>
+  import('../features/stylist-portal/pages/stylist-direct-booking-page').then((module) => ({
+    default: module.StylistDirectBookingPage,
+  })),
+)
+const StylistReservationDetailPage = lazy(() =>
+  import('../features/stylist-portal/pages/stylist-reservation-detail-page').then((module) => ({
+    default: module.StylistReservationDetailPage,
+  })),
+)
+const StylistStatsPage = lazy(() =>
+  import('../features/stylist-portal/pages/stylist-stats-page').then((module) => ({
+    default: module.StylistStatsPage,
+  })),
+)
+const StylistDebtsPage = lazy(() =>
+  import('../features/stylist-portal/pages/stylist-debts-page').then((module) => ({
+    default: module.StylistDebtsPage,
+  })),
+)
 
 export const AppRouter = () => {
   const element = useRoutes([
@@ -142,6 +186,5 @@ export const AppRouter = () => {
     { path: '*', element: <NotFound /> },
   ])
 
-  return element
+  return <Suspense fallback={<RouteLoadingFallback />}>{element}</Suspense>
 }
-
