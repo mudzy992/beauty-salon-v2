@@ -686,6 +686,9 @@ jobs:
       - name: Test My Reservations loading accessibility
         working-directory: mobile
         run: npm run test:my-reservations-loading-accessibility
+      - name: Test My Reservations section heading accessibility
+        working-directory: mobile
+        run: npm run test:my-reservations-section-headings-accessibility
       - name: Test reservation benefit read recovery
         working-directory: mobile
         run: npm run test:reservation-benefit-recovery

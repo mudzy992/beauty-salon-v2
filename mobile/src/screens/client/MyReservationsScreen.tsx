@@ -629,7 +629,10 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
           ) : null}
           {(!loadError || visibleReservations.length > 0) ? activeReservation ? (
             <View style={styles.featuredWrap}>
-              <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+              <Text
+                style={[styles.sectionTitle, { color: colors.textSecondary }]}
+                accessibilityRole="header"
+              >
                 {t('myReservations.activeTitle')}
               </Text>
               {renderReservationCard(activeReservation, true)}
@@ -672,7 +675,10 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
         ) : null
       }
       renderSectionHeader={({ section: { title } }) => (
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>
+        <Text
+          style={[styles.sectionTitle, { color: colors.textSecondary }]}
+          accessibilityRole="header"
+        >
           {title}
         </Text>
       )}
