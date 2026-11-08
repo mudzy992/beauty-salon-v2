@@ -13,6 +13,7 @@ CSS_PATH = ROOT / "frontend/src/styles/globals.css"
 MOBILE_PATH = ROOT / "mobile/src/theme/colors.ts"
 TEXT_THRESHOLD = 4.5
 UI_THRESHOLD = 3.0
+AAA_TEXT_THRESHOLD = 7.0
 
 
 def rgb_from_hsl(raw: str) -> tuple[float, float, float] | None:
@@ -51,10 +52,44 @@ def css_block(source: str, selector: str) -> str | None:
     return match.group(1) if match else None
 
 
-def parse_css_vars(block: str) -> dict[str, tuple[float, float, float]]:
-    result: dict[str, tuple[float, float, float]] = {}
-    for name, value in re.findall(r"--([a-z0-9-]+)\s*:\s*([^;]+);", block):
+def raw_css_vars(block: str) -> dict[str, str]:
+    """Raw `--token: value` declarations of one CSS block, unresolved."""
+    return {
+        name: value.strip()
+        for name, value in re.findall(r"--([a-z0-9-]+)\s*:\s*([^;]+);", block)
+    }
+
+
+def parse_css_vars(
+    block: str,
+    fallback: dict[str, str] | None = None,
+) -> dict[str, tuple[float, float, float]]:
+    """Parse `--token: <hsl | #hex | var(--other)>` declarations into RGB triples.
+
+    `fallback` carries raw declarations from an inherited block (e.g. `:root` for `.dark`)
+    so that `var(--x)` references defined outside the current block still resolve.
+    """
+    raw = raw_css_vars(block)
+    scope = {**(fallback or {}), **raw}
+
+    def resolve(name: str, seen: set[str]) -> tuple[float, float, float] | None:
+        if name in seen or name not in scope:
+            return None
+        seen.add(name)
+        value = scope[name]
         rgb = rgb_from_hsl(value)
+        if rgb is None:
+            rgb = rgb_from_hex(value)
+        if rgb is not None:
+            return rgb
+        reference = re.fullmatch(r"var\(\s*--([a-z0-9-]+)\s*(?:,[^()]*)?\)", value)
+        if reference is not None:
+            return resolve(reference.group(1), seen)
+        return None
+
+    result: dict[str, tuple[float, float, float]] = {}
+    for name in raw:
+        rgb = resolve(name, set())
         if rgb is not None:
             result[name] = rgb
     return result
@@ -133,12 +168,21 @@ def main() -> int:
         return 2
 
     checks: list[tuple[str, tuple[float, float, float], tuple[float, float, float], float]] = []
+    root_block = css_block(css, ":root")
+    root_raw = raw_css_vars(root_block) if root_block is not None else {}
+    root_tokens: dict[str, tuple[float, float, float]] = {}
     for mode, selector in (("web light", ":root"), ("web dark", ".dark")):
         block = css_block(css, selector)
         if block is None:
             print(f"FAIL: CSS selector block not found: {selector}", file=sys.stderr)
             return 2
-        tokens = parse_css_vars(block)
+        # `.dark` nasljeđuje deklaracije iz `:root` (npr. brand varijable), pa se slojevi spajaju.
+        inherited = None if selector == ":root" else root_raw
+        tokens = parse_css_vars(block, inherited)
+        if selector == ":root":
+            root_tokens = tokens
+        else:
+            tokens = {**root_tokens, **tokens}
         pairs = (
             ("primary / background", "primary", "background", TEXT_THRESHOLD),
             ("primary-foreground / primary", "primary-foreground", "primary", TEXT_THRESHOLD),
@@ -148,6 +192,25 @@ def main() -> int:
             ("accent-foreground / accent", "accent-foreground", "accent", TEXT_THRESHOLD),
             ("destructive-foreground / destructive", "destructive-foreground", "destructive", TEXT_THRESHOLD),
             ("ring / background (UI indicator)", "ring", "background", UI_THRESHOLD),
+            # Semantički sloj za dashboard (faza 0 redizajna).
+            ("text / surface", "text", "surface", TEXT_THRESHOLD),
+            ("text / surface-sunken", "text", "surface-sunken", TEXT_THRESHOLD),
+            ("text-muted / surface", "text-muted", "surface", TEXT_THRESHOLD),
+            ("text-muted / surface-muted", "text-muted", "surface-muted", TEXT_THRESHOLD),
+            ("text-muted-strong / surface (AAA)", "text-muted-strong", "surface", AAA_TEXT_THRESHOLD),
+            ("control-border / surface (UI indicator)", "control-border", "surface", UI_THRESHOLD),
+            ("control-border / surface-sunken (UI indicator)", "control-border", "surface-sunken", UI_THRESHOLD),
+            ("on-primary / primary", "on-primary", "primary", TEXT_THRESHOLD),
+            ("brand-primary-text / surface (brand text)", "brand-primary-text", "surface", TEXT_THRESHOLD),
+            ("brand-primary-text / nav-active (active nav)", "brand-primary-text", "nav-active-bg", TEXT_THRESHOLD),
+            ("brand-accent-text / surface (accent text)", "brand-accent-text", "surface", TEXT_THRESHOLD),
+            ("focus-ring / surface (focus indicator)", "focus-ring", "surface", UI_THRESHOLD),
+            ("on-danger / danger", "on-danger", "danger", TEXT_THRESHOLD),
+            ("ok-fg / ok-bg (status)", "ok-fg", "ok-bg", TEXT_THRESHOLD),
+            ("warn-fg / warn-bg (status)", "warn-fg", "warn-bg", TEXT_THRESHOLD),
+            ("bad-fg / bad-bg (status)", "bad-fg", "bad-bg", TEXT_THRESHOLD),
+            ("info-fg / info-bg (status)", "info-fg", "info-bg", TEXT_THRESHOLD),
+            ("neutral-fg / neutral-bg (status)", "neutral-fg", "neutral-bg", TEXT_THRESHOLD),
         )
         for label, foreground, background, threshold in pairs:
             if not append_pair(

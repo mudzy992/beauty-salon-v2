@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    --brand-primary: #632238;
+    --brand-accent: #D4A843;
     --brand-accent-text-light: #8A641E;
     --brand-accent-text-dark: #D4A843;
     --brand-accent-text: var(--brand-accent-text-light);
@@ -32,6 +34,32 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 38 62% 34%;
     --radius: 0.5rem;
+
+    /* Semantički sloj za dashboard (faza 0). Tokeni iznad su netaknuti — javni sajt ih i dalje koristi. */
+    --surface: 0 0% 100%;
+    --surface-muted: 240 10% 96.1%;
+    --surface-sunken: 210 40% 98%;
+    --text: 222.9 84% 4.9%; /* 20.01:1 / surface */
+    --text-muted: 240 3.7% 42%; /* 5.61:1 / surface */
+    --text-muted-strong: 240 4% 34.7%; /* AAA 7.28:1 / surface */
+    --line: 214.3 31.8% 91.4%; /* dekorativna linija, nije okvir kontrole */
+    --control-border: 221.2 6.3% 49.4%; /* 1.4.11: 4.24:1 / surface */
+    --on-primary: 0 0% 100%; /* 11.56:1 / brand primary */
+    --nav-active-bg: 38 67.2% 88%; /* brand champagne */
+    --focus-ring: var(--brand-primary-ring); /* 11.56:1 / surface */
+    --danger: 0 83.8% 46.1%; /* 5.22:1 sa on-danger */
+    --on-danger: 0 0% 100%;
+    --ok-fg: 142.8 64.2% 24.1%; /* 6.49:1 / ok-bg */
+    --ok-bg: 140.6 84.2% 92.5%;
+    --warn-fg: 30.5 100% 23.9%; /* 7.49:1 / warn-bg */
+    --warn-bg: 48 96.5% 88.8%;
+    --bad-fg: 0 70% 35.3%; /* 6.80:1 / bad-bg */
+    --bad-bg: 0 93.3% 94.1%;
+    --info-fg: 225.9 70.7% 40.2%; /* 7.15:1 / info-bg */
+    --info-bg: 214.3 94.6% 92.7%;
+    --neutral-fg: 240 5.3% 26.1%; /* 8.23:1 / neutral-bg */
+    --neutral-bg: 240 5.9% 90%;
+    --header-height: 3.75rem;
   }
 
   .dark {
@@ -58,6 +86,32 @@
     --border: 240 4% 20%;
     --input: 240 4% 20%;
     --ring: 38 62% 68%;
+
+    /* Semantički sloj za dashboard (faza 0) — dark varijante. */
+    --surface: 240 4.9% 12%;
+    --surface-muted: 240 4.3% 18%;
+    --surface-sunken: 240 5.9% 10%;
+    --text: 210 40% 98%; /* 16.07:1 / surface */
+    --text-muted: 215 20.2% 65.1%; /* 6.56:1 / surface */
+    --text-muted-strong: 214.6 21% 75.7%; /* AAA 9.19:1 / surface */
+    --line: 240 3.9% 20%; /* dekorativna linija */
+    --control-border: 220 8.9% 46.1%; /* 1.4.11: 3.48:1 / surface */
+    --on-primary: 0 0% 10.2%; /* 9.58:1 / dark primary */
+    --nav-active-bg: 336.8 36.5% 16.7%;
+    --focus-ring: var(--brand-primary-ring); /* 9.28:1 / surface */
+    --danger: 0 90.6% 70.8%; /* 6.29:1 sa on-danger */
+    --on-danger: 0 0% 10.2%;
+    --ok-fg: 141.7 76.6% 73.1%; /* 9.03:1 / ok-bg */
+    --ok-bg: 147 52.6% 14.9%;
+    --warn-fg: 45.9 96.7% 64.5%; /* 8.85:1 / warn-bg */
+    --warn-bg: 42.2 73% 14.5%;
+    --bad-fg: 0 93.5% 81.8%; /* 7.71:1 / bad-bg */
+    --bad-bg: 0 51% 19.2%;
+    --info-fg: 211.7 96.4% 78.4%; /* 7.80:1 / info-bg */
+    --info-bg: 219.7 61.9% 20.6%;
+    --neutral-fg: 240 4.9% 83.9%; /* 7.64:1 / neutral-bg */
+    --neutral-bg: 240 4.9% 23.9%;
+    color-scheme: dark;
   }
 
   .app-logo {
@@ -138,6 +192,71 @@
     .uploaded-brand-logo .uploaded-brand-logo__word {
       transition: none;
     }
+  }
+
+  /* WCAG 2.4.11 — sticky header/trake ne smiju prekriti fokusirani element. */
+  html {
+    scroll-padding-top: calc(var(--header-height) + 1rem);
+    scroll-padding-bottom: 5rem;
+  }
+
+  /* WCAG 2.4.7 / 2.4.13 — jedinstven, vidljiv fokus prsten kroz cijeli dashboard. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 3px solid var(--focus-ring, var(--brand-primary-ring, #632238));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* WCAG 2.4.1 — skip link je vizuelno skriven dok ne dobije fokus. */
+  .skip-link {
+    position: absolute;
+    left: 0.75rem;
+    top: -4rem;
+    z-index: 100;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    background: var(--brand-primary, #632238);
+    color: #ffffff;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .skip-link:focus {
+    top: 0.75rem;
+  }
+}
+
+/* WCAG 2.3.3 / prefers-reduced-motion — globalno, ne samo za logo. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* WCAG 1.4.1 — u forced-colors stanju granice ne smiju zavisiti od pozadine.
+   Ograničeno na .admin-shell (admin + stylist layout) da javni sajt ostane netaknut. */
+@media (forced-colors: active) {
+  .skip-link {
+    border: 1px solid CanvasText;
+  }
+
+  .admin-shell input,
+  .admin-shell select,
+  .admin-shell textarea,
+  .admin-shell button,
+  .admin-shell [data-admin-card],
+  .admin-shell [data-admin-badge] {
+    border: 1px solid CanvasText;
+  }
+
+  .admin-shell [aria-current='page'] {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
   }
 }
 
