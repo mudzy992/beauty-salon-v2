@@ -937,6 +937,7 @@
   },
   "loyaltyAdmin": {
     "title": "Program lojalnosti",
+    "caption": "Tabela loyalty računa: korisnik, e-mail, bodovi, nivo, status, broj transakcija i dostupne radnje.",
     "description": "Postavke programa lojalnosti i upravljanje korisničkim bodovnim računima.",
     "accountActivated": "Račun je aktiviran.",
     "accountDeactivated": "Račun je deaktiviran.",

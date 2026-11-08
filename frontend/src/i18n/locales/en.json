@@ -940,6 +940,7 @@
   },
   "loyaltyAdmin": {
     "title": "Loyalty program",
+    "caption": "Loyalty accounts table: user, email, points, tier, status, transaction count, and available actions.",
     "description": "Configure the loyalty programme and manage customers’ points accounts.",
     "accountActivated": "Account activated.",
     "accountDeactivated": "Account deactivated.",

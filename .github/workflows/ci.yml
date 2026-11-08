@@ -494,6 +494,9 @@ jobs:
       - name: Test localized admin loyalty page
         working-directory: frontend
         run: npm run test:admin-loyalty-i18n
+      - name: Test loyalty table and dialog accessibility
+        working-directory: frontend
+        run: npm run test:loyalty-a11y
       - name: Test localized admin reviews page
         working-directory: frontend
         run: npm run test:admin-reviews-i18n

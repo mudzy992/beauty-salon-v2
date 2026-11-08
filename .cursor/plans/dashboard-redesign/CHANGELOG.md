@@ -1234,3 +1234,117 @@ povećanjem jer bi to promijenilo vizualni dizajn filtera.
 | `check_doc_links.py` | **PASS** — 670 / 202 |
 | `finance.types.ts`, `api/*`, `hooks/*` | **bez diff-a** |
 | `MATRIX.md` | **netaknut** |
+
+---
+
+## 2026-11-08 — FAZA 5: Lojalnost (`Loyalty.tsx` + `loyalty-program-settings.tsx`)
+
+Modul: **478 linija** (`Loyalty.tsx` 296 + `loyalty-program-settings.tsx` 182), 1 test.
+Inventar iz plana §1 se pokazao **tačnim**.
+
+### Recon: dvije planirane stavke opovrgnute, dvije potvrđene
+
+| Stavka | Plan tvrdi | Nalaz iz izvora |
+|---|---|---|
+| **D1** | `PageHeader` + `FilterBar` + `DataTable` + `StatGrid` | **djelimično tačno** — nijedan šablon se ne koristi |
+| **D2** | Adjust/redeem → `ConfirmDialog` (3.3.4) | **❌ OPVRGNUTO** |
+| **D3** | Stat kartice → `StatGrid` | **❌ OPVRGNUTO** — kartica nema |
+| **D4** | `th scope`, `caption` | **✅ potvrđeno** |
+| **D5** | Tokeni umjesto `slate-*` (1.4.3) | **nije prekršaj** — sve vrijednosti prolaze |
+| **D6** | Card prikaz ispod 640px | **✅ potvrđeno** |
+
+**D2 opovrgnut.** `handleRedeemConfirm` (ln 104) zahtijeva `redeemPoints > 0` **i** neprazan
+`redeemIdempotencyKey`; `handleAdjustConfirm` (ln 122) zahtijeva `adjustDelta !== 0` **i**
+ključ. Markup ima dva `<Dialog>` (ln 213, 255) s `DialogTitle`, poljima i `DialogFooter`
+dugmadima. Tok je dakle: dugme → dijalog → unos bodova/razloga → eksplicitni confirm. To
+**jeste** „confirmed before finalizing" iz 3.3.4, a idempotency ključ čuva od dvostrukog
+slanja. `ConfirmDialog` povrh toga bio bi treći suvišni korak, ne popravka.
+
+**D3 opovrgnut.** Grep po `stat|Stat|total|grid` u `Loyalty.tsx` ne nalazi ništa; `Card` se
+koristi **jednom** (ln 151) kao omotač tabele. Struktura je `<h1>` + opis →
+`<LoyaltyProgramSettings />` → `<Card>` s `<h2>` i tabelom. Nema stat kartica za migraciju.
+
+**D5 nije prekršaj.** Izmjerene vrijednosti: `slate-900` 17.85, `slate-600` 7.58,
+`slate-500` 4.76 — sve prolaze 4.5:1. `border-slate-200` se pojavljuje 2× i **oba su
+dekorativna**: na `<tr>` zaglavlja tabele (ln 168) i na `<div>` kontejneru skrolive liste
+(`loyalty-program-settings.tsx:141`). **Nijedna granica form kontrole** → nema 1.4.11
+prekršaja u ovom modulu.
+
+### Stvarni nalaz koji plan NIJE naveo: 4 neasocirana labela
+
+`<Label>` na ln 221, 234, 263, 274 — **nijedan nije imao `htmlFor`**, a uz svaki ide
+`<Input>`/`<Textarea>` bez `id`. Čitač ekrana nije mogao povezati naziv s poljem (1.3.1/4.1.2).
+Ista klasa defekta kao u fazi 2 (drawer-i) i fazi 3 (daily-log).
+
+Dodato: `redeem-points`, `redeem-note`, `adjust-delta`, `adjust-note` (par `htmlFor`/`id`).
+
+### Implementirano
+
+| # | Izmjena | WCAG |
+|---|---|---|
+| 1 | 4× `<Label htmlFor>` + `id` na kontrolama | 1.3.1, 4.1.2 |
+| 2 | 7× `<th scope="col">` + `<caption className="sr-only">` | 1.3.1 |
+| 3 | `data-table` klasa + 7× `<td data-label={t(…)}>` | 1.4.10 |
+| 4 | `PageHeader` umjesto ručnog `<h1>` + opisa (neto −94 B) | 2.4.6, konzistentnost |
+
+**Namjerno NIJE rađeno:** migracija na `DataTable` šablon. Tabela ima `Switch` za aktivaciju
+računa i dva akcijska dugmeta po redu, a modul dira bodove koje koriste Rezervacije i Dnevna
+knjiga — isti rizik kao u fazi 4, gdje je migracija tabele odgođena. Umjesto toga je dodata
+`data-table` klasa, što daje card-mode bez diranja strukture podataka.
+
+Novi i18n ključ: `loyaltyAdmin.caption` (BS + EN).
+
+### Novi test: `test:loyalty-a11y` (5 testova)
+
+Modul je imao **1** test, pa je plan §6 tražio sigurnosnu mrežu prije refaktora.
+`frontend/src/features/loyalty/loyalty-a11y.test.mjs` zaključava: tačno 7 `<th scope="col">`,
+1 lokalizovan `<caption>`, 7 dinamičkih `data-label` **u tačnom redoslijedu** (inače card-mode
+prikazuje pogrešne nazive), `data-table` klasu + da `index.css` i dalje cilja
+`table.data-table tbody td::before`, i 4 asocirana labela.
+
+**Verifikacija mutacijom — svih 5 palo na predviđenom testu:**
+
+| mutacija | rezultat |
+|---|---|
+| `scope="col"` → `scope="row"` (1 od 7) | `not ok 1` |
+| uklonjen `<caption>` | `not ok 2` |
+| `data-label` user → email (redoslijed) | `not ok 3` |
+| uklonjena `data-table` klasa | `not ok 4` |
+| uklonjen `htmlFor="redeem-points"` | `not ok 5` |
+
+Registrovano u `frontend/package.json` (**159** skripti) i `.github/workflows/ci.yml`
+(korak „Test loyalty table and dialog accessibility", ln 497-499).
+
+### Dvije greške uhvaćene vlastitom provjerom
+
+**1. Moj test je imao istu zamku koju sam dokumentovao u fazi 4.** Asertacija
+`/<th(?![ >]*scope=)/` je padala s „1 !== 0" jer obrazac **hvata `<thead>`** — `<thead`
+također počinje s `<th`. Ispravljeno na `/<th\b[^>]*>/` (word-boundary iza `th`), uz
+eksplicitan komentar u testu.
+
+**2. `json.dumps(..., indent=2)` je reformatovao cijele locale fajlove.** Diff je pokazivao
+**81/74** (bs) i **74/72** (en) izmjena, a stvarno novog sadržaja je bila **1 linija**
+(`grep -c "^+.*caption"` → 1): compact objekti poput `"app": { "title": …, "admin": … }`
+rašireni su u višelinijske. Fajlovi vraćeni (`git checkout`) i ključ umetnut hirurški.
+Prvi pokušaj umetka je imao **pogrešno uvlačenje** (0 razmaka) jer sam `indent` računao od
+pozicije navodnika umjesto od početka linije — ispravljeno preko `s.rindex('\n', 0, j) + 1`.
+Konačni diff: **1 umetanje / 0 brisanja** po fajlu, 4 razmaka uvlačenja.
+
+### Verifikacija
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` skripte | **153/153 PASS**, 0 fail (baseline 152) |
+| `test:admin-loyalty-i18n` | **PASS** |
+| `test:loyalty-a11y` | **5/5 PASS**, mutacijski verificirano |
+| `npm run build` | **PASS**, **272.7 KiB gzip** (budžet 300) |
+| `check_i18n.py --strict` | **PASS** — 2623/2623 (baseline 2622) |
+| `check_ui_contrast.py` | **PASS** — 80/80 |
+| `check_repo_hygiene.py` | **PASS** — 1661 paths |
+| `check_doc_links.py` | **PASS** — 670 / 202 |
+| `git diff --check` | čist |
+| API sloj (`/api/loyalty/*`) | **bez diff-a** |
+| `MATRIX.md` | **netaknut** |
+
+**Nije render-verificirano:** vizualni card-mode prikaz tabele ispod 640 px i izgled
+`PageHeader`-a (potreban browser).

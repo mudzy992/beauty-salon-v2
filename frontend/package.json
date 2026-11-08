@@ -136,6 +136,7 @@
     "test:daily-log-form-a11y": "node --test src/features/daily-log/daily-log-form-a11y.test.mjs",
     "test:daily-log-amount-parity": "node --test src/features/daily-log/daily-log-amount-parity.test.mjs",
     "test:admin-loyalty-i18n": "node --test src/features/loyalty/admin-loyalty-i18n.test.mjs",
+    "test:loyalty-a11y": "node --test src/features/loyalty/loyalty-a11y.test.mjs",
     "test:admin-reviews-i18n": "node --test src/features/reviews/admin-reviews-i18n.test.mjs",
     "test:admin-notifications-i18n": "node --test src/features/notifications/notifications-i18n.test.mjs",
     "test:force-change-password-i18n": "node --test src/features/onboarding/force-change-password-i18n.test.mjs",

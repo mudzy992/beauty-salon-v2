@@ -23,7 +23,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 2 | Rezervacije (lista + kalendar) | `[x]` 4 commita (`9a154c6`, `a9d21a8`, `13d976c`, `1d2bfef`) | prošla |
 | 3 | Dnevna knjiga | `[x]` 3 commita (`fdaa029`, `5bf5518`, `7eb3d61`) | prošla |
 | 4 | Finansije | `[x]` 4 commita (`d801dbb`, `2ba25dd`, `f1f7658`, `55c577d`) | prošla |
-| 5 | Lojalnost | `[ ]` | |
+| 5 | Lojalnost | `[x]` 1 commit | prošla |
 | 6 | Analitika (+ M1 ako odobren) | `[ ]` | |
 | 7 | Korisnici | `[ ]` | |
 | 8 | Salon / Usluge / Frizeri | `[ ]` | |
@@ -49,6 +49,15 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
   poslovnu logiku (statusi, prelazi, dozvole).
 - **Javni sajt nije diran** — nijedan od 16 izmijenjenih finance fajlova nije importovan
   izvan `features/finance`, `features/shell`, `features/debtors` ili `pages/Debtors`.
+
+> **Faza 5 — napomene.** Planirane stavke **D2** (ConfirmDialog za adjust/redeem) i **D3**
+> (Stat kartice → StatGrid) su **opovrgnute** iz izvora: dijalozi već imaju eksplicitni
+> confirm korak + idempotency ključ (3.3.4 zadovoljen), a stat kartica u modulu nema.
+> **D5** nije prekršaj — sve `slate-*` vrijednosti prolaze kontrast, a oba `border-slate-200`
+> su dekorativna (nije 1.4.11). Stvarni nalaz koji plan nije naveo: **4 `<Label>` bez
+> `htmlFor`**. Migracija na `DataTable` **nije** rađena (rizik za paritet podataka); umjesto
+> toga `data-table` klasa + `data-label`. Novi test `test:loyalty-a11y` (5 testova,
+> mutacijski verificirano).
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 

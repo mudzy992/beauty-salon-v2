@@ -9,6 +9,7 @@ import { useAppToast } from '../lib/toast/useAppToast'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
+import { PageHeader } from '../features/shell/admin/ui/page-header'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
@@ -139,12 +140,10 @@ export default function Loyalty() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">{t('loyaltyAdmin.title')}</h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          {t('loyaltyAdmin.description')}
-        </p>
-      </div>
+      <PageHeader
+        title={t('loyaltyAdmin.title')}
+        description={t('loyaltyAdmin.description')}
+      />
 
       <LoyaltyProgramSettings />
 
@@ -163,30 +162,31 @@ export default function Loyalty() {
             </p>
           ) : (
             <div className="app-table-wrap">
-              <table className="app-table w-full border-collapse">
+              <table className="app-table data-table w-full border-collapse">
+                <caption className="sr-only">{t('loyaltyAdmin.caption')}</caption>
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                    <th className="p-3 font-medium">{t('loyaltyAdmin.user')}</th>
-                    <th className="p-3 font-medium">{t('loyaltyAdmin.email')}</th>
-                    <th className="p-3 text-right font-medium">{t('loyaltyAdmin.points')}</th>
-                    <th className="p-3 font-medium">{t('loyaltyAdmin.tier')}</th>
-                    <th className="p-3 font-medium">{t('loyaltyAdmin.status')}</th>
-                    <th className="p-3 font-medium">{t('loyaltyAdmin.transactions')}</th>
-                    <th className="p-3 font-medium">{t('loyaltyAdmin.actions')}</th>
+                    <th scope="col" className="p-3 font-medium">{t('loyaltyAdmin.user')}</th>
+                    <th scope="col" className="p-3 font-medium">{t('loyaltyAdmin.email')}</th>
+                    <th scope="col" className="p-3 text-right font-medium">{t('loyaltyAdmin.points')}</th>
+                    <th scope="col" className="p-3 font-medium">{t('loyaltyAdmin.tier')}</th>
+                    <th scope="col" className="p-3 font-medium">{t('loyaltyAdmin.status')}</th>
+                    <th scope="col" className="p-3 font-medium">{t('loyaltyAdmin.transactions')}</th>
+                    <th scope="col" className="p-3 font-medium">{t('loyaltyAdmin.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {accounts.map((a) => (
                     <tr key={a.id} className="border-b border-slate-100 dark:border-slate-800/80">
-                      <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{userName(a.user)}</td>
-                      <td className="p-3">{a.user.email}</td>
-                      <td className="p-3 text-right">{formatLocalizedNumber(a.points, i18n.language)}</td>
-                      <td className="p-3">{a.tier ?? '-'}</td>
-                      <td className="p-3">
+                      <td data-label={t('loyaltyAdmin.user')} className="p-3 font-medium text-slate-900 dark:text-slate-50">{userName(a.user)}</td>
+                      <td data-label={t('loyaltyAdmin.email')} className="p-3">{a.user.email}</td>
+                      <td data-label={t('loyaltyAdmin.points')} className="p-3 text-right">{formatLocalizedNumber(a.points, i18n.language)}</td>
+                      <td data-label={t('loyaltyAdmin.tier')} className="p-3">{a.tier ?? '-'}</td>
+                      <td data-label={t('loyaltyAdmin.status')} className="p-3">
                         <Badge variant={a.isActive ? 'success' : 'secondary'}>{t(a.isActive ? 'loyaltyAdmin.active' : 'loyaltyAdmin.inactive')}</Badge>
                       </td>
-                      <td className="p-3">{formatLocalizedNumber(a._count.transactions, i18n.language)}</td>
-                      <td className="p-3">
+                      <td data-label={t('loyaltyAdmin.transactions')} className="p-3">{formatLocalizedNumber(a._count.transactions, i18n.language)}</td>
+                      <td data-label={t('loyaltyAdmin.actions')} className="p-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <Switch
                             checked={a.isActive}
@@ -218,8 +218,9 @@ export default function Loyalty() {
           <div className="space-y-4">
             <p className="text-sm text-slate-600 dark:text-slate-300">{redeemTitle}</p>
             <div className="space-y-2">
-              <Label>{t('loyaltyAdmin.pointsToRedeem')}</Label>
+              <Label htmlFor="redeem-points">{t('loyaltyAdmin.pointsToRedeem')}</Label>
               <Input
+                id="redeem-points"
                 type="number"
                 min={1}
                 max={redeemTarget?.points ?? undefined}
@@ -231,8 +232,9 @@ export default function Loyalty() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{t('loyaltyAdmin.optionalNote')}</Label>
+              <Label htmlFor="redeem-note">{t('loyaltyAdmin.optionalNote')}</Label>
               <Textarea
+                id="redeem-note"
                 value={redeemReason}
                 onChange={(e) => {
                   setRedeemReason(e.target.value)
@@ -260,8 +262,9 @@ export default function Loyalty() {
           <div className="space-y-4">
             <p className="text-sm text-slate-600 dark:text-slate-300">{adjustTitle}</p>
             <div className="space-y-2">
-              <Label>{t('loyaltyAdmin.pointsChange')}</Label>
+              <Label htmlFor="adjust-delta">{t('loyaltyAdmin.pointsChange')}</Label>
               <Input
+                id="adjust-delta"
                 type="number"
                 value={Number.isFinite(adjustDelta) ? String(adjustDelta) : '0'}
                 onChange={(e) => {
@@ -271,8 +274,9 @@ export default function Loyalty() {
               />
             </div>
             <div className="space-y-2">
-              <Label>{t('loyaltyAdmin.recommendedNote')}</Label>
+              <Label htmlFor="adjust-note">{t('loyaltyAdmin.recommendedNote')}</Label>
               <Textarea
+                id="adjust-note"
                 value={adjustNote}
                 onChange={(e) => {
                   setAdjustNote(e.target.value)
