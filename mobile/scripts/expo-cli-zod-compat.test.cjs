@@ -2,56 +2,69 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const { test } = require('node:test');
 
-function expoCliSchemaPath(fileName) {
-  const expoRoot = path.resolve(path.dirname(require.resolve('expo')), '..');
-  const cliEntry = require.resolve('@expo/cli', { paths: [expoRoot] });
-  const cliRoot = path.resolve(path.dirname(cliEntry), '../..');
-  return path.join(cliRoot, 'build', 'src', 'start', 'server', fileName);
+function expoPackageRoot() {
+  return path.resolve(path.dirname(require.resolve('expo')), '..');
 }
 
-test('Expo SDK57 CLI plugin schemas accept Zod 4-compatible data', () => {
-  const { version } = require('zod/package.json');
-  assert.match(version, /^4\./, `expected patched Zod 4, received ${version}`);
+function expoCliModule(fileName) {
+  const cliEntry = require.resolve('@expo/cli', { paths: [expoPackageRoot()] });
+  const cliRoot = path.resolve(path.dirname(cliEntry), '../..');
+  return require(path.join(cliRoot, 'build', 'src', 'start', 'server', fileName));
+}
 
-  const { DevToolsPluginOutputSchema, PluginSchema } = require(
-    expoCliSchemaPath('DevToolsPlugin.schema.js'),
+test('Expo SDK57 CLI JSON schemas validate and MCP schema accepts Zod 4', () => {
+  const { z } = require('zod');
+  const { validate, ValidationError } = require(
+    require.resolve('@expo/schema-utils', { paths: [expoPackageRoot()] }),
   );
-  const { createMCPDevToolsExtensionSchema } = require(
-    expoCliSchemaPath('createMCPDevToolsExtensionSchema.js'),
+  const { DevToolsPluginOutputSchema, PluginSchema } = expoCliModule(
+    'devtools/DevToolsPlugin.schema.js',
   );
+  const { createMCPDevToolsExtensionSchema } = expoCliModule(
+    'mcp/createMCPDevToolsExtensionSchema.js',
+  );
+  const isValid = (schema, value) => {
+    try {
+      validate(schema, value);
+      return true;
+    } catch (error) {
+      if (error instanceof ValidationError) return false;
+      throw error;
+    }
+  };
 
+  assert.equal(PluginSchema.type, 'object');
   assert.equal(
-    PluginSchema.safeParse({ packageName: 'smoke-plugin', packageRoot: '/tmp/plugin' })
-      .success,
+    isValid(PluginSchema, { packageName: 'smoke-plugin', packageRoot: '/tmp/plugin' }),
     true,
   );
+  assert.equal(isValid(PluginSchema, { packageName: '', packageRoot: '/tmp/plugin' }), false);
   assert.equal(
-    PluginSchema.safeParse({ packageName: '', packageRoot: '/tmp/plugin' }).success,
-    false,
-  );
-  assert.equal(
-    DevToolsPluginOutputSchema.safeParse([{ type: 'text', text: 'ok', level: 'info' }])
-      .success,
+    isValid(DevToolsPluginOutputSchema, [{ type: 'text', text: 'ok', level: 'info' }]),
     true,
   );
+  assert.equal(isValid(DevToolsPluginOutputSchema, [{ type: 'text' }]), false);
 
-  const mcpSchema = createMCPDevToolsExtensionSchema({
-    packageName: 'smoke-plugin',
-    cliExtensions: {
-      description: 'Smoke test',
-      entryPoint: 'index.js',
-      commands: [
-        {
-          name: 'hello',
-          title: 'Hello',
-          environments: ['cli'],
-          parameters: [{ name: 'value', type: 'text' }],
-        },
-      ],
+  const mcpSchema = createMCPDevToolsExtensionSchema(
+    {
+      packageName: 'smoke-plugin',
+      cliExtensions: {
+        description: 'Smoke test',
+        entryPoint: 'index.js',
+        commands: [
+          {
+            name: 'hello',
+            title: 'Hello',
+            environments: ['cli'],
+            parameters: [{ name: 'value', type: 'text' }],
+          },
+        ],
+      },
     },
-  });
+    z,
+  );
 
   assert.equal(mcpSchema.safeParse({ command: 'hello', value: 'world' }).success, true);
   assert.equal(mcpSchema.safeParse({ command: 'missing' }).success, false);
   assert.equal(mcpSchema.safeParse({ command: 'hello', unexpected: true }).success, false);
-});
+})
