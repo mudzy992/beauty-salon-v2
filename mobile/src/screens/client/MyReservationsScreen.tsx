@@ -701,13 +701,19 @@ export function MyReservationsScreen({ navigation, route }: ReservationsScreenPr
       animationType="slide"
       transparent
     >
-      <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+      <View
+        style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+        accessibilityViewIsModal
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalContentWrap}
         >
           <Card style={[styles.modalCard, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>
+            <Text
+              style={[styles.modalTitle, { color: colors.text }]}
+              accessibilityRole="header"
+            >
               {t('myReservations.cancelReservation')}
             </Text>
             <Text style={[styles.modalMessage, { color: colors.textSecondary }]}>
