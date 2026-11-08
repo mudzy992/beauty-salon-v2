@@ -75,8 +75,12 @@ export function DataTable<T>({
         <thead>
           <tr>
             {columns.map((column) => {
-              const isSorted = sort?.key === column.sortKey
-              const direction = isSorted ? sort!.direction : null
+              // `sort` je opciono. Prijašnje `sort?.key === column.sortKey` dalo bi
+              // `undefined === undefined` → true za kolonu bez `sortKey`, pa bi
+              // `sort!.direction` palo s TypeError. Zato se prvo provjeri da `sort`
+              // postoji, i `sort!` se više ne koristi nigdje.
+              const direction =
+                sort && column.sortKey && sort.key === column.sortKey ? sort.direction : null
               return (
                 <th
                   key={column.key}

@@ -156,7 +156,8 @@
     "test:admin-templates-a11y": "node --test src/features/shell/admin/ui/templates-a11y.test.mjs",
     "test:dashboard-stat-parity": "node --test src/features/dashboard/dashboard-stat-parity.test.mjs",
     "test:dashboard-states": "node --test src/features/dashboard/dashboard-states.test.mjs",
-    "test:dashboard-a11y": "node --test src/features/dashboard/dashboard-a11y.test.mjs"
+    "test:dashboard-a11y": "node --test src/features/dashboard/dashboard-a11y.test.mjs",
+    "test:admin-render-smoke": "node --test src/features/shell/admin/ui/render-smoke.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

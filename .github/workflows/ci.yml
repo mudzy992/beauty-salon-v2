@@ -581,6 +581,9 @@ jobs:
       - name: Test dashboard structural accessibility (headings, lists, tables, status)
         working-directory: frontend
         run: npm run test:dashboard-a11y
+      - name: Render admin templates and dashboard (catches runtime crashes static tests miss)
+        working-directory: frontend
+        run: npm run test:admin-render-smoke
       - name: Build (includes TypeScript project check)
         working-directory: frontend
         run: npm run build

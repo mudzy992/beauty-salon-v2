@@ -238,3 +238,76 @@ s akcijama. Ovo su source-level dokazi (testovi + proračun kontrasta), ne audit
 renderovanog UI-ja.
 
 ❌ **D9 (error stanje + retry)** — namjerno **nije** implementirano; čeka odluku vlasnika.
+
+---
+
+## 2026-11-08 — REGRESIJA iz faze 1: runtime pad `DataTable` (ispravljeno)
+
+### Šta se desilo
+
+Vlasnik je prijavio production pad:
+
+```
+TypeError: Cannot read properties of undefined (reading 'direction')
+    at Dashboard-CRomWNhV.js:51:6467
+    at [Array.map] (<anonymous>)
+```
+
+Uzrok u `data-table.tsx`:
+
+```tsx
+const isSorted = sort?.key === column.sortKey
+const direction = isSorted ? sort!.direction : null
+```
+
+`sort` je opciono. Za kolonu **bez** `sortKey` i poziv **bez** `sort` dobije se
+`undefined === undefined` → `isSorted === true` → `sort!.direction` → **TypeError**.
+Dashboard tabele (`recent-reservations`, `outbox-events-table`) upravo tako zovu
+`DataTable`, pa je svaka od njih padala pri renderu.
+
+### Zašto testovi nisu uhvatili
+
+**Ovo je procesni propust, ne samo greška u kodu.** Svi postojeći a11y testovi
+(`templates-a11y`, `dashboard-a11y`, `shell-a11y`) čitaju **tekst izvora** regex-om.
+Nijedan nikad ne renderuje komponentu, pa runtime pad ne mogu detektovati. Faza 1 je
+prošla s **147/147 zelenih** i 4/4 gateova, a dashboard je bio neupotrebljiv.
+
+### Ispravka
+
+1. **Kod:** `direction` se sada računa bez non-null asertije:
+   ```tsx
+   const direction =
+     sort && column.sortKey && sort.key === column.sortKey ? sort.direction : null
+   ```
+   `sort!` je uklonjen iz fajla.
+
+2. **Proces — novi `test:admin-render-smoke` (32 scenarija).** Pravi render, ne regex:
+   esbuild bundle-uje komponente, `react-dom/server` ih renderuje. Pokriva `DataTable`
+   (bez `sort`, sa `sort` asc/desc, `sort` na drugoj koloni, loading/error/empty),
+   `StatCard` (svi tonovi, s/bez trenda), `StatGrid`, `PageHeader`, `FilterBar`,
+   `TablePagination` (prva/srednja/total 0), `FormSection`, `StatusBadge` (svi statusi
+   + nepoznat fallback), data states, i **dashboard feature komponente**
+   (`DashboardFinanceStats`, `DashboardOpsStats`, `DashboardRecentReservations`).
+
+   **Dokaz da test radi:** pokrenut **prije** popravke pao je na **6/32** s tačno
+   production porukom `Cannot read properties of undefined (reading 'direction')`,
+   uključujući `DashboardRecentReservations`. Nakon popravke **32/32**.
+
+   Registrisan u `frontend/package.json` **i** `.github/workflows/ci.yml` (korak
+   „Render admin templates and dashboard"), tako da ubuduće **nijedna** faza ne može
+   proći s komponentom koja pada pri renderu.
+
+### Izmjereno nakon ispravke
+
+| Provjera | Rezultat |
+|---|---|
+| `npm run build` | **PASS** — 272.2 KiB gzip |
+| `test:*` skripte | **148/148 PASS** (bilo 147; +`test:admin-render-smoke`) |
+| `test:admin-render-smoke` | **32/32** (prije popravke 26/32) |
+| `check_i18n` / `check_ui_contrast` / `check_repo_hygiene` / `check_doc_links` | **PASS** / **80/80** / **PASS** / **670-202** |
+
+### Pouka za ostale faze
+
+Statički (regex) testovi dokazuju **prisustvo markupa**, ne **ispravnost izvršavanja**.
+Od faze 2 nadalje svaki modul koji uvodi nove komponente mora imati barem jedan
+render scenario u `render-smoke.test.mjs` — to je sada kapija, ne preporuka.
