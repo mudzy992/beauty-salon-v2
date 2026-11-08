@@ -198,6 +198,7 @@ export const bs = {
     serviceSelectionAccessibilityHint: 'Odaberite ili uklonite ovu uslugu iz rezervacije.',
     serviceSearchLabel: 'Pretraga usluga',
     serviceSearchHint: 'Unesite naziv ili opis da suzite listu usluga.',
+    noServiceSearchResults: 'Nema usluga koje odgovaraju pretrazi.',
     selectDate: 'Odaberite datum',
     selectTime: 'Odaberite termin',
     timeSlotAccessibilityLabel: 'Termin u {{time}}',

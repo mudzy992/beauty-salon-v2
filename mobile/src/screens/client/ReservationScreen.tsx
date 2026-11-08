@@ -709,6 +709,18 @@ export function ReservationScreen({ route, navigation }: ServicesScreenProps<'Re
             keyExtractor={(item) => item.id}
             contentContainerStyle={[styles.listContent, { paddingBottom: spacing.lg + tabBarBottom }]}
             contentInsetAdjustmentBehavior="automatic"
+            ListEmptyComponent={
+              !serviceCatalog.loading && !serviceCatalog.error && services.length > 0 ? (
+                <EmptyState
+                  icon="search-outline"
+                  title={
+                    searchQuery.trim()
+                      ? t('reservation.noServiceSearchResults')
+                      : t('services.noServices')
+                  }
+                />
+              ) : null
+            }
             renderItem={({ item }) => {
               const heroUri = item.heroImage ? getUploadUrl(item.heroImage) : null;
               const isSelected = selectedServiceIds.includes(item.id);
