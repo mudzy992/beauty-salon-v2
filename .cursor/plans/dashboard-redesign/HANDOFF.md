@@ -1,7 +1,14 @@
 # HANDOFF — Dashboard redesign
 
-**Stanje:** **FAZA 0 (Temelj) ZAVRŠENA** — 4 commita, sve verifikovano. **Čeka review prije faze 1.**
+**Stanje:** **FAZA 1 (Dashboard pilot) ZAVRŠENA** — 2 commita, sve verifikovano. **Čeka review prije faze 2.**
 **Grana:** `arena/d2af28f4-beauty-salon-v2` · **Bazni commit:** `9df498a`
+
+> ⚠️ **D9 (error stanje + retry) NIJE implementiran.** Plan je tvrdio da dashboard danas
+> prikazuje prazan ekran — **netačno**. Svih 8 `api.get()` u `use-dashboard-data.ts` ima
+> `.catch()` fallback, pa `Promise.all` nikad ne odbija i dashboard **tiho prikazuje nule
+> koje izgledaju stvarno**. Ispravka mijenja vidljivo ponašanje i dira fajl zakucan
+> `dashboard-count-contract.test.mjs`. **Čeka odluku vlasnika** — detalji u
+> [`CHANGELOG.md`](CHANGELOG.md), sekcija faze 1.
 
 ---
 
@@ -42,28 +49,34 @@ Sve što napišem o WCAG-u biće označeno 🟡 „zadovoljeno u kodu, nije veri
 
 ## 4. Next steps (konkretno)
 
-1. Vlasnik odgovara na Q1–Q7 i daje „plan odobren“.
-2. **Faza 0 — Temelj**, redoslijed commit-ova iz [`03_phase-0-foundation.md` §9](03_phase-0-foundation.md):
-   1. tokeni + `check_ui_contrast.py` proširenje
-   2. shell (skip link, landmark-i, `aria-current`, naslovi, focus-on-navigate)
-   3. primitivi (admin-scoped varijante button/input/badge/dropdown + OTP `autocomplete`)
-   4. šabloni (PageHeader, FilterBar, DataTable, StatCard, FormSection, data states, ConfirmDialog)
-3. **STOP** → izvještaj po `B3` formatu → pregled.
-4. **Faza 1 — Dashboard (pilot)** → **STOP** → pregled.
-5. Dalje modul po modul, samo kad prethodni ispuni DoD.
+1. ~~Vlasnik odgovara na Q1–Q7 i daje „plan odobren“.~~ ✅ 2026-11-08
+2. ~~**Faza 0 — Temelj**~~ ✅ 4 commita (`f14c786` → `71520ce`)
+3. ~~**Faza 1 — Dashboard (pilot)**~~ ✅ 2 commita (`3aa3014`, `7056e17`)
+4. **ODLUKA ZA D9** — implementirati error stanje + retry (mijenja vidljivo ponašanje i
+   dira `use-dashboard-data.ts`) ili ostaviti kako jeste. Bez odgovora se ne dira.
+5. **Faza 2 — Rezervacije (lista + kalendar)** → plan u
+   [`05_phase-2-reservations.md`](05_phase-2-reservations.md). Najveći modul dosad:
+   9 fajlova / 2440 ln / 8 testova, uključujući `ReservationScheduler.tsx` (1196 ln) s
+   `react-big-calendar` i nedostatkom tastaturske alternative (2.5.7).
+6. Dalje modul po modul, samo kad prethodni ispuni DoD.
 
 ## 5. Test status
 
+Zadnji puni green run: **nakon faze 1** (`7056e17`).
+
 | Šta | Rezultat | Kada |
 |---|---|---|
-| `frontend` build (`tsc -b` + vite + bundle budget) | **PASS** | 2026-11-08, ETAPA A |
-| 142 `test:*` skripte | **142/142 PASS** (412 asertacija) | 2026-11-08, ETAPA A |
-| `check_i18n.py --strict` | **PASS** (2575/2575) | 2026-11-08 |
-| `check_ui_contrast.py --strict` | **PASS** (44/44) | 2026-11-08 |
-| `check_repo_hygiene.py` | **PASS** | 2026-11-08 |
-| `check_doc_links.py` | **PASS** (622/180) | 2026-11-08 |
-| Backend testovi / migracije | **nije pokretano** — out of scope za ETAPU A | — |
+| `frontend` build (`tsc -b` + vite + bundle budget) | **PASS** — 272.2 KiB gzip (budžet 300) | faza 1 |
+| `test:*` skripte | **147/147 PASS** (baseline 142; +5 u fazama 0–1) | faza 1 |
+| `check_i18n.py --strict` | **PASS** (2615/2615; baseline 2575) | faza 1 |
+| `check_ui_contrast.py --strict` | **PASS** (80/80; baseline 44) | faza 1 |
+| `check_repo_hygiene.py` | **PASS** (1648 pathova) | faza 1 |
+| `check_doc_links.py` | **PASS** (669/202) | faza 1 |
+| Backend testovi / migracije | **nije pokretano** — out of scope | — |
 | Rendered / axe / screen-reader | **nije pokretano** — nema alata u okruženju | — |
+
+Novi testovi iz faze 1: `test:dashboard-stat-parity` (6/6), `test:dashboard-states` (7/7),
+`test:dashboard-a11y` (9/9) — sva tri u `package.json` **i** `.github/workflows/ci.yml`.
 
 ## 6. Bilješke za sljedećeg agenta
 
