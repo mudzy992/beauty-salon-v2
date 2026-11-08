@@ -554,6 +554,9 @@ jobs:
       - name: Test one-time admin-created credentials
         working-directory: frontend
         run: npm run test:temporary-user-credentials
+      - name: Test users table and row action accessibility
+        working-directory: frontend
+        run: npm run test:users-a11y
       - name: Test localized stylist analytics page
         working-directory: frontend
         run: npm run test:stylist-analytics-i18n

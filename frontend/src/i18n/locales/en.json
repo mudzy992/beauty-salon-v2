@@ -1004,6 +1004,7 @@
     }
   },
   "users": {
+    "caption": "Users table: avatar, username, email, full name, phone, roles, status, and available actions.",
     "newUser": "New user",
     "editUser": "Edit user",
     "editUserTitle": "Edit user: {{username}}",
@@ -1042,11 +1043,12 @@
     "stylistRoleBadge": "(stylist profile)",
     "openStylists": "Open stylist profiles",
     "aria": {
+      "resetLink": "Send password reset link to {{username}}",
       "removeRole": "Remove {{role}} role",
       "addRole": "Add role",
-      "analytics": "Client analytics",
-      "edit": "Edit user",
-      "deactivate": "Deactivate user"
+      "analytics": "Client analytics for {{username}}",
+      "edit": "Edit user {{username}}",
+      "deactivate": "Deactivate user {{username}}"
     },
     "confirmDeactivate": "Deactivate user “{{username}}”?",
     "confirmRemoveRole": "Remove the {{role}} role?",

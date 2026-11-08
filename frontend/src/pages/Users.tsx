@@ -757,14 +757,14 @@ export default function Users() {
 
   const renderUserRow = (u: UserRow) => (
     <tr key={u.id} className="border-b border-slate-100 dark:border-slate-800/80">
-      <td className="p-3">
+      <td data-label={t('users.table.avatar')} className="p-3">
         <Avatar className="h-9 w-9">
           <AvatarImage src={u.avatar ? getUploadUrl(u.avatar) : undefined} alt={getUserDisplayName(u)} />
           <AvatarFallback>{initials(u.firstName, u.lastName, u.username)}</AvatarFallback>
         </Avatar>
       </td>
-      <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{u.username}</td>
-      <td className="p-3">
+      <td data-label={t('users.username')} className="p-3 font-medium text-slate-900 dark:text-slate-50">{u.username}</td>
+      <td data-label={t('users.email')} className="p-3">
         <div className="flex items-center gap-2">
           <span className="truncate">{u.email ?? '-'}</span>
           {u.email ? (
@@ -779,10 +779,10 @@ export default function Users() {
           ) : null}
         </div>
       </td>
-      <td className="p-3">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</td>
-      <td className="p-3">{u.phone ?? '-'}</td>
-      <td className="p-3">{renderRoles(u)}</td>
-      <td className="p-3">
+      <td data-label={t('users.table.fullName')} className="p-3">{[u.firstName, u.lastName].filter(Boolean).join(' ') || '-'}</td>
+      <td data-label={t('users.phone')} className="p-3">{u.phone ?? '-'}</td>
+      <td data-label={t('users.roles')} className="p-3">{renderRoles(u)}</td>
+      <td data-label={t('common.status')} className="p-3">
         <div className="flex flex-col items-end gap-1">
           <Badge variant={u.isActive ? 'success' : 'danger'} className="text-[10px]">
             {u.isActive ? t('common.active') : t('common.inactive')}
@@ -794,7 +794,7 @@ export default function Users() {
           ) : null}
         </div>
       </td>
-      <td className="p-3 text-right">
+      <td data-label={t('common.actions')} className="p-3 text-right">
         <div className="flex justify-end gap-1">
           {u.mustChangePassword ? (
             <Button
@@ -808,7 +808,7 @@ export default function Users() {
                   ? t('users.credentials.resetLinkAction')
                   : t('users.credentials.resetLinkNeedsVerifiedEmail')
               }
-              aria-label={t('users.credentials.resetLinkAction')}
+              aria-label={t('users.aria.resetLink', { username: u.username })}
               onClick={() => void handleIssueInitialPasswordResetLink(u)}
             >
               {resetLinkSendingId === u.id ? (
@@ -823,7 +823,7 @@ export default function Users() {
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            aria-label={t('users.aria.analytics')}
+            aria-label={t('users.aria.analytics', { username: u.username })}
             onClick={() => navigate(`/admin/client-analytics?userId=${u.id}`)}
           >
             <Eye className="h-4 w-4 text-teal-600" aria-hidden="true" />
@@ -833,7 +833,7 @@ export default function Users() {
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            aria-label={t('users.aria.edit')}
+            aria-label={t('users.aria.edit', { username: u.username })}
             onClick={() => openEdit(u)}
           >
             <Pencil className="h-4 w-4 text-blue-600" aria-hidden="true" />
@@ -844,7 +844,7 @@ export default function Users() {
               size="icon"
               variant="ghost"
               className="h-8 w-8"
-              aria-label={t('users.aria.deactivate')}
+              aria-label={t('users.aria.deactivate', { username: u.username })}
               onClick={() => void handleDeactivate(u.id, u.username)}
             >
               <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
@@ -1514,17 +1514,18 @@ function UsersList({
       <div className="grid grid-cols-1 gap-3 lg:hidden">{items.map((u) => renderCard(u))}</div>
 
       <div className="hidden app-table-wrap lg:block">
-        <table className="app-table w-full border-collapse">
+        <table className="app-table data-table w-full border-collapse">
+          <caption className="sr-only">{t('users.caption')}</caption>
           <thead>
             <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-              <th className="p-3 font-medium w-[56px]">{t('users.table.avatar')}</th>
-              <th className="p-3 font-medium">{t('users.username')}</th>
-              <th className="p-3 font-medium">{t('users.email')}</th>
-              <th className="p-3 font-medium">{t('users.table.fullName')}</th>
-              <th className="p-3 font-medium">{t('users.phone')}</th>
-              <th className="p-3 font-medium">{t('users.roles')}</th>
-              <th className="p-3 font-medium">{t('common.status')}</th>
-              <th className="p-3 font-medium text-right">{t('common.actions')}</th>
+              <th scope="col" className="p-3 font-medium w-[56px]">{t('users.table.avatar')}</th>
+              <th scope="col" className="p-3 font-medium">{t('users.username')}</th>
+              <th scope="col" className="p-3 font-medium">{t('users.email')}</th>
+              <th scope="col" className="p-3 font-medium">{t('users.table.fullName')}</th>
+              <th scope="col" className="p-3 font-medium">{t('users.phone')}</th>
+              <th scope="col" className="p-3 font-medium">{t('users.roles')}</th>
+              <th scope="col" className="p-3 font-medium">{t('common.status')}</th>
+              <th scope="col" className="p-3 font-medium text-right">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>{items.map((u) => renderRow(u) as any)}</tbody>

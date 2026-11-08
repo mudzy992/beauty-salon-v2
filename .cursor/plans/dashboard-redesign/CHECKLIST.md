@@ -25,7 +25,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 4 | Finansije | `[x]` 4 commita (`d801dbb`, `2ba25dd`, `f1f7658`, `55c577d`) | prošla |
 | 5 | Lojalnost | `[x]` 1 commit | prošla |
 | 6 | Analitika (+ M1 ako odobren) | `[x]` 1 commit · **M1 nije odobren, preskočen** | prošla |
-| 7 | Korisnici | `[ ]` | |
+| 7 | Korisnici | `[x]` 1 commit | prošla |
 | 8 | Salon / Usluge / Frizeri | `[ ]` | |
 | 9 | Sadržaj (Blog, Galerija, Recenzije) | `[ ]` | |
 | 10 | Postavke (+ M2 ako odobren) | `[ ]` | |
@@ -65,6 +65,15 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > `text-slate-200` (1.23:1) **nisu prekršaji** — oba su na `<Star aria-hidden="true">` uz
 > brojčani ekvivalent. Stvarni nalaz koji plan nije naveo: **1.4.11 progress bar**
 > `bg-emerald-500` 2.32:1. Novi test `test:analytics-a11y` (6 testova, mutacijski verificirano).
+
+> **Faza 7 — napomene.** Tri planirane stavke **opovrgnute**: **D4** (`text-slate-400` je na
+> `<Search aria-hidden="true">`, dekorativna ikona), **D5** (role badge renderuje
+> `getRoleLabel` — tekst postoji, nije samo boja), **D3** djelimično (`role="alert"` postoji,
+> pa 3.3.1 nije prekršaj). **D2** (3× `window.confirm`) **nije WCAG prekršaj** — nativni
+> dijalog je pristupačan i jeste korak potvrde iz 3.3.4; modul već koristi `ConfirmDialog`
+> (ln 1471), pa je to konzistentnost, ne usklađenost. Stvarni prekršaji: **2.4.4/4.1.2**
+> generička imena akcija po redu i **1.3.1/1.4.10** tabela bez semantike. Novi test
+> `test:users-a11y` (5 testova) uključuje **dva regresiona čuvara za opovrgnute stavke**.
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 

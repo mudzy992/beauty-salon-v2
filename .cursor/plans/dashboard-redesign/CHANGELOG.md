@@ -1459,3 +1459,112 @@ na tačan string; build sada **273.2 KiB**.
 
 **Nije render-verificirano:** vizualni izgled grafa unutar `<figure>`, `<details>` otvaranje,
 card-mode ispod 640 px. Kontrast je izračunat iz hex vrijednosti.
+
+---
+
+## 2026-11-08 — FAZA 7: Korisnici (`pages/Users.tsx`)
+
+Modul: **1535 linija**, 1 produkcijski fajl, 1 test. Najveći fajl u repou.
+
+### Recon: tri planirane stavke opovrgnute
+
+**D4 (`text-slate-400`, 1.4.3) — opovrgnuto.** `Users.tsx:952` je
+`<Search className="… text-slate-400" aria-hidden="true" />` — **dekorativna ikona** unutar
+polja za pretragu, ne tekst. Ima tekstualni ekvivalent (placeholder + labela). Ista zamka kao
+`Trash2` u fazi 4 i `Star` u fazi 6.
+
+**D5 (role badge-evi, 1.4.1) — opovrgnuto.** `Badge` na ln 709-711 renderuje
+`{getRoleLabel(roleName)}` — **tekst postoji**, boja je samo pojačanje. 1.4.1 zadovoljen.
+
+**D3 (3.3.1–3.3.3) — djelimično opovrgnuto.** `fieldset`/`legend`/`aria-invalid`/
+`aria-describedby` = 0, ali `role="alert"` = **1** — greške se najavljuju. Isti obrazac kao
+daily-log (faza 3) i finance (faza 4), gdje 3.3.1 nije bio prekršaj.
+
+**D2 (3× `window.confirm`) — nije WCAG prekršaj.** `window.confirm` (ln 432, 516, 629) jeste
+pristupačan (nativni dijalog, čitljiv čitaču ekrana, dostupan tastaturom) i **jeste** korak
+potvrde koji 3.3.4 traži. Nije 2.1.2 (nema keyboard trap). Modul već koristi `ConfirmDialog`
+(ln 1471), pa je ovo **konzistentnost**, ne usklađenost — namjerno nije mijenjano pod
+izgovorom a11y popravke.
+
+### Stvarni prekršaji
+
+**2.4.4 / 4.1.2 — generička pristupna imena akcija.** Akcijska dugmad po redu imala su
+`aria-label={t('users.aria.edit')}`, `.deactivate`, `.analytics`, `.resetLinkAction` — bez
+identifikatora korisnika. Čitač ekrana je u svakom redu tabele čuo **isto** ime („Uredi
+korisnika" × N), pa korisnik nije mogao razlikovati na koga se akcija odnosi.
+
+Popravka: `{{username}}` interpolacija u sva 4 ključa + novi `users.aria.resetLink`.
+Uzorak je već postojao u `users.aria.removeRole` (`{{role}}`), pa je dosljedan.
+
+**1.3.1 — tabela bez semantike.** 1 tabela, 8 `<th>`, **0 `scope`**, **0 `<caption>`**.
+
+**1.4.10 — bez card-mode.** Tabela nije imala `data-table` klasu ni `data-label` na `<td>`.
+
+### Implementirano
+
+| # | Izmjena | WCAG |
+|---|---|---|
+| 1 | 4× `aria-label` s `{ username: u.username }` | 2.4.4, 4.1.2 |
+| 2 | 8× `<th scope="col">` + `<caption className="sr-only">` | 1.3.1 |
+| 3 | `data-table` klasa + 8× `<td data-label={t(…)}` | 1.4.10 |
+
+**D1 nije rađen:** `<h1>` već postoji (ln 930). Migracija na `PageHeader`/`FilterBar`/
+`DataTable`/`TablePagination` je strukturna, a testovi čitaju ovaj fajl po putanji — odgođeno
+na fazu 13 uz Playwright/axe, kao i u fazama 4-6.
+
+Novi i18n ključevi: `users.caption` + `users.aria.resetLink`; ažurirani
+`users.aria.{analytics,edit,deactivate}`.
+
+### Novi test: `test:users-a11y` (5 testova)
+
+`frontend/src/features/users/users-a11y.test.mjs` zaključava: 4 jedinstvena aria-labela s
+`username` **i** da generičke varijante ne postoje, 8 `<th>` sa `scope` + 1 `<caption>`,
+`data-table` + 8 dinamičkih `data-label` + card-mode CSS. Uz to **dva regresiona čuvara za
+opovrgnute stavke** — da `Search` ostane `aria-hidden` (D4) i da role badge i dalje renderuje
+`getRoleLabel` (D5), kako ih neko kasnije ne bi "popravio" u nepostojeći defekt.
+
+**Verifikacija mutacijom — svih 6 palo na predviđenom testu:**
+
+| mutacija | rezultat |
+|---|---|
+| `username` uklonjen iz `aria.edit` | `not ok 1` |
+| `username` uklonjen iz `aria.deactivate` | `not ok 1` |
+| `scope="col"` uklonjen (1 od 8) | `not ok 2` |
+| `<caption>` uklonjen | `not ok 2` |
+| `data-table` klasa uklonjena | `not ok 3` |
+| `data-label` uklonjen | `not ok 3` |
+
+Registrovano u `frontend/package.json` (**161** skripti) i `.github/workflows/ci.yml`
+(korak „Test users table and row action accessibility", ln 557-559).
+
+### Dvije greške uhvaćene vlastitom provjerom
+
+**1. i18n umetanje na pogrešno mjesto.** `s.index('"users"')` je našao **prvo** pojavljivanje
+stringa (u `nav`), pa je `users.caption` završio u **`pageTitles`**. Uz to je logika za
+dodavanje zareza prije novog ključa proizvela **nevalidan JSON** (`line 1047 column 58`).
+Rješenje: `find_block()` traži ključ po **tačnom uvlačenju** (`\n  "users": {`), a novi ključ
+se umeće **odmah nakon otvarajuće zagrade** tako da zarez ide na našu liniju i ništa drugo se
+ne dira. Provjera `pageTitles.caption === False` dodana u samu skriptu.
+
+**2. Regex mog testa.** Asertcija za aria-label završavala je s `\)\)`, a stvarni JSX je
+`aria-label={t(...)}` — treba `\)\}`. Implementacija je bila ispravna; pao je test.
+
+### Verifikacija
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` skripte | **155/155 PASS**, 0 fail (baseline 154) |
+| `test:users-a11y` | **5/5 PASS**, mutacijski verificirano |
+| `test:temporary-user-credentials` | **PASS** |
+| `npm run build` | **PASS**, **273.3 KiB gzip** (budžet 300) |
+| `check_i18n.py --strict` | **PASS** |
+| `check_ui_contrast.py` | **PASS** — 80/80 |
+| `check_repo_hygiene.py` | **PASS** — 1663 paths |
+| `check_doc_links.py` | **PASS** — 670 / 202 |
+| `git diff --check` | čist |
+| locale fajlovi | **8/3** po fajlu — bez reformata |
+| API sloj, role guard, `client-debts` | **bez diff-a** |
+| `MATRIX.md` | **netaknut** |
+
+**Nije render-verificirano:** vizualni card-mode ispod 640 px i ponašanje `window.confirm`
+dijalogova (namjerno netaknuti).

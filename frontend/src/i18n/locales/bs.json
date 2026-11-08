@@ -1001,6 +1001,7 @@
     }
   },
   "users": {
+    "caption": "Tabela korisnika: avatar, korisničko ime, e-mail, ime i prezime, telefon, uloge, status i dostupne radnje.",
     "newUser": "Novi korisnik",
     "editUser": "Uredi korisnika",
     "editUserTitle": "Uredi korisnika: {{username}}",
@@ -1039,11 +1040,12 @@
     "stylistRoleBadge": "(profil stiliste)",
     "openStylists": "Otvori profile stilista",
     "aria": {
+      "resetLink": "Pošalji link za reset lozinke korisniku {{username}}",
       "removeRole": "Ukloni ulogu {{role}}",
       "addRole": "Dodaj ulogu",
-      "analytics": "Analitika klijenta",
-      "edit": "Uredi korisnika",
-      "deactivate": "Deaktiviraj korisnika"
+      "analytics": "Analitika klijenta {{username}}",
+      "edit": "Uredi korisnika {{username}}",
+      "deactivate": "Deaktiviraj korisnika {{username}}"
     },
     "confirmDeactivate": "Deaktivirati korisnika „{{username}}“?",
     "confirmRemoveRole": "Ukloniti ulogu {{role}}?",
