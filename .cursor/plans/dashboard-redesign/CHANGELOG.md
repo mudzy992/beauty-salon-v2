@@ -762,3 +762,137 @@ labavi obrazac. Isti obrazac greške se već pojavio s `node_modules/react-big-c
 
 Ovo su poboljšanja, ne usklađenost. Ostavljeno svjesno; ako se ikad radi, treba ići uz
 Playwright/axe (faza 13), ne naslijepo.
+
+---
+
+## 2026-11-08 — D9 (error stanja dashboarda) + `test:daily-log-amount-parity`
+
+Odrađeno **prije** ulaska u fazu 4, po eksplicitnoj instrukciji vlasnika.
+
+### D9 — dashboard više ne prikazuje nule kad backend padne
+
+**Stanje prije (izvor, ne plan):** `use-dashboard-data.ts` ima **8** `api.get(…)` poziva i
+**svaki** ima svoj `.catch(() => ({ data: … }))`. `Promise.all` zato **nikad ne odbacuje**,
+`.finally(() => setLoading(false))` uvijek postavi `loading = false`, i `stats` bude popunjen
+nulama. `Dashboard.tsx:18` ima samo `if (loading || !stats)` → skeleton; **error grane nema**.
+Neto: potpuni pad backenda renderuje **nule koje izgledaju kao stvarni podaci**.
+
+Plan (`04_phase-1-dashboard.md:74`) je tvrdio da pad daje „bijeli ekran". **To je netačno** —
+`.catch()` na svakom pozivu sprječava reject. Popravka je zato drukčija od planirane.
+
+**Odluka (hibrid, ne čista A/B/C):** padovi su **po endpointu, ne sve-ili-ništa**. Čista
+opcija „prikaži error umjesto podataka" uništila bi 7 ispravnih brojeva zbog pada jednog
+izvora. Zato:
+
+- **djelimični pad** → `role="alert"` banner + ispravni podaci + retry
+- **potpuni pad (svih 8)** → error stanje + retry, umjesto nula
+
+**Izmjene:**
+
+- `use-dashboard-data.ts`: `DASHBOARD_SOURCES` (8 ključeva) + `DASHBOARD_SOURCE_COUNT`;
+  `const failed: string[] = []` unutar `loadData`; **svih 8** `.catch()` sada radi
+  `failed.push(DASHBOARD_SOURCES.x)` pa vraća isti fallback kao prije; `setFailedSources(failed)`
+  u `.then()`; return proširen s `failedSources`, `loadError` (= `failedSources.length >= 8`) i
+  `reload: loadData`. **Fallback vrijednosti nisu dirane**, pa se ponašanje pri djelimičnom padu
+  nije promijenilo.
+- `pages/Dashboard.tsx`: `loadError` grana (`role="alert"` + `dashboard.loadError` + retry)
+  **nakon** loading skeletona (jer `stats` nije null ni pri potpunom padu), i banner
+  (`role="alert"` + `dashboard.partialLoadError` + retry) iznad `<DashboardFinanceStats>`.
+- i18n: `dashboard.loadError` + `dashboard.partialLoadError` u oba lokala → **2619/2619**.
+  `common.retry` već postoji (bs „Pokušaj ponovo" / en „Try again").
+
+**Ugovor nije slomljen:** `dashboard-count-contract.test.mjs` zaključava putanje, `params`,
+`summaryCount(…)` pozive i `doesNotMatch` obrasce, ali **ne zaključava `.catch()` rukovaoce** —
+provjereno čitanjem fajla prije izmjene. **2/2 PASS** nakon izmjene.
+
+**Verifikacija izvršavanjem, ne regexom:** dodana 3 scenarija + 3 asertivna testa u
+`render-smoke.test.mjs`. Hook i `useAuth` su stubovani esbuild pluginom, stanje hooka se čita s
+`globalThis.__dashboardState`. Rezultat **42/42** (bilo 36), uz:
+
+```
+ok 2 - D9: Dashboard prikazuje error stanje kad padnu svi izvori
+ok 3 - D9: djelimični pad daje banner ali zadržava ispravne brojeve
+ok 4 - D9: bez ijednog pada nema banner-a ni error stanja
+ok 37/38/39 - renderuje bez pada: (tri nova scenarija)
+```
+
+Grane su se **stvarno renderovale** — nije samo kompajliralo.
+
+**Dva pada usput (oba u harnessu, ne u produkciji):**
+
+1. `Could not resolve "../../../pages/Dashboard"` — `resolveDir` je `features/shell/admin/ui`,
+   pa `../../..` daje `features`, ne `src`. Postojeći importi koriste 3 nivoa jer ciljaju unutar
+   `features/`; `pages/` je jedan više → `../../../../pages/Dashboard`.
+2. `ReferenceError: localStorage is not defined` pa `TypeError: Cannot read properties of
+   undefined (reading 'VITE_API_URL')` — `Dashboard.tsx` transitivno vuče auth store i
+   `api/client.ts`, koji pri inicijalizaciji modula čitaju `localStorage` i `import.meta.env`.
+   Riješeno `localStorage` shimom **prije** `require`-a bundle-a i
+   `define: { 'import.meta.env': … }` u esbuild konfiguraciji.
+
+### `test:daily-log-amount-parity` — novčana matematika usklađena između frontend i backend
+
+Plan (`06_phase-3-daily-log.md:67`) samo **imenuje** test, bez specifikacije. Značenje je
+izvedeno iz izvora.
+
+**Nalaz:** iznosi se računaju **na oba kraja**. Backend ima `daily-log/daily-log.amounts.ts`
+(`getServiceAmount(actualPrice, tipAmount)`) i `daily-log/daily-log.pricing.ts`
+(`computeTipAndShortfall`, `computeDebtPaymentTip`); frontend ima `features/daily-log/amounts.ts`
+i `form-helpers.ts`. Ako se formule razdvoje, KIF i dnevnik prikazuju različite brojeve za isti
+unos, a to se ne vidi dok neko ne uporedi papir i ekran.
+
+**Konvencija (dokumentirana u backend modulu):** `actualPrice` = ukupno naplaćeno za usluge
+(napojnica uključena); `serviceAmount` (KIF `amount`) = `actualPrice − tipAmount`.
+
+**Paritetni invariant:** server računa `paidForServices = totalPaid − settledDebtsSum`
+(`daily-log.service.ts:219`) i snima `actualPrice: paidForServices` (ln 238), dok frontend
+rekonstruiše `getTotalAmount = actualPrice + settledDebtsSum`. Dakle **ukupni iznos koji UI
+prikaže nakon snimanja jednak je onome što je operater upisao**.
+
+**Usput ispravljena vlastita sumnja:** frontend šalje `actualPrice: paidRaw` (ukupno, s
+dugovima), pa sam posumnjao da se dugovi broje dvaput. **Sumnja je pogrešna** — server ignoriše
+taj `actualPrice` i računa vlastiti iz `paidAmount`. Bez čitanja `daily-log.service.ts:185-238`
+to bi bilo prijavljeno kao defekt.
+
+**Test (`daily-log-amount-parity.test.mjs`, 8 testova):** **izvršava stvarne module s oba kraja**
+preko esbuild bundle-a (`feAmounts`, `beAmounts`, `bePricing`, `feFormHelpers`) — ništa nije
+reimplementirano. `backend/node_modules` ne postoji, ali `daily-log.amounts.ts` ima **0 importa**,
+pa se bundle-uje direktno; `@nestjs/common` (samo `BadRequestException` u pricing modulu) je
+stubovan pluginom. Pokriveno: slaganje `getServiceAmount` na dosežnom domenu, paritet
+upisano/prikazano, dekompozicija `total === services + tips + debts`, `tip <= actualPrice`,
+slaganje formule napojnice forma↔server, clamp negativnih/NaN, dokumentirano razilaženje izvan
+dosežnog domena, i zaključavanje konvencije u oba izvora.
+
+**Dosežni domen je izveden iz serverovih validacija** (`totalPaid >= 0` ln 187,
+`totalPaid >= settledDebtsSum` ln 212, `unitPrice >= 0` u `resolveServiceItems`), pa je
+`tip = max(0, paidForServices − unitsSum) <= paidForServices` zagarantovan — zato invariant
+vrijedi bez izuzetaka.
+
+**Mutacijska provjera:** očekivani ukupni iznos namjerno pomaknut za +1 → **tačno test 2 pada**
+(`not ok 2`), ostalih 7 ostaje zeleno. Test stvarno izvršava aritmetiku, ne prolazi празno.
+Dodatno, test 7 tvrdi da se frontend i backend **razilaze** za `NaN` tip (backend 0, frontend
+100) — to ne može proći ako je isti modul učitan dvaput.
+
+### Registracija i verifikacija
+
+- `frontend/package.json`: `test:daily-log-amount-parity` (ukupno **156** skripti)
+- `.github/workflows/ci.yml`: korak „Test daily-log amount parity" (ln 485-487), s
+  `working-directory: frontend` između `name` i `run`
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` skripte | **150/150 PASS**, 0 fail |
+| `test:daily-log-amount-parity` | **8/8 PASS** |
+| `test:admin-render-smoke` | **42/42 PASS** (bilo 36) |
+| `test:dashboard-count-contract` | **2/2 PASS** (ugovor netaknut) |
+| `npm run build` | **PASS**, **272.5 KiB gzip** (budžet 300) |
+| `check_i18n.py --strict` | **PASS** — 2619/2619 |
+| `check_ui_contrast.py` | **PASS** — 80/80 |
+| `check_repo_hygiene.py` | **PASS** — 1658 paths |
+| `check_doc_links.py` | **PASS** — 670 linkova / 202 fajla |
+| `features/daily-log/amounts.ts` | **bez diff-a** |
+| `MATRIX.md` | **netaknut** (prezentacijske izmjene) |
+
+**Ispravka izvještavanja:** ranije je rečeno „`test:*` 149/149". Skripta `test:all` **ne
+postoji** — `package.json` ima pojedinačne `test:*` skripte bez agregatnog runnera. Pokretanje
+`npm run test:all` dalo je prazan log uz exit 1. Brojka se odnosi na **broj skripti**, a sve se
+moraju pokrenuti pojedinačno.

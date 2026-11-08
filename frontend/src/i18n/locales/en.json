@@ -632,6 +632,8 @@
     }
   },
   "dashboard": {
+    "loadError": "Dashboard data is unavailable.",
+    "partialLoadError": "Some data failed to load ({{count}} of {{total}} sources). The numbers shown may be incomplete.",
     "welcome": "Welcome",
     "stats": "Business overview this month",
     "users": "Users",

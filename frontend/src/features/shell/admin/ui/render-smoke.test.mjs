@@ -42,6 +42,7 @@ import { EmptyState, ErrorState, TableSkeleton } from './data-state'
 import { DashboardFinanceStats } from '../../../dashboard/finance-stats'
 import { DashboardOpsStats } from '../../../dashboard/ops-stats'
 import { DashboardRecentReservations } from '../../../dashboard/recent-reservations'
+import Dashboard from '../../../../pages/Dashboard'
 
 const plainColumns = [
   { key: 'date', headerKey: 'common.date', render: (r) => r.date },
@@ -270,6 +271,35 @@ export const scenarios = {
     ),
   'DashboardRecentReservations prazno': () =>
     renderToStaticMarkup(<DashboardRecentReservations reservations={[]} />),
+
+  // ---- D9: error grane koje su dodane u Dashboard.tsx ----
+  'Dashboard potpuni pad izvora prikazuje error stanje s retry': () => {
+    globalThis.__dashboardState = {
+      stats: { usersCount: 0, stylistsCount: 0, servicesCount: 0, reservationsThisMonth: 0, pendingReservations: 0, completedReservations: 0, servicesRevenueThisMonth: 0, tipsThisMonth: 0, expensesThisMonth: 0, pendingReviews: 0, blogPostsCount: 0 },
+      loading: false,
+      failedSources: ['usersCount', 'stylists', 'services', 'reservationSummary', 'incomeBook', 'expenseBook', 'reviews', 'blogPosts'],
+      loadError: true,
+    }
+    return renderToStaticMarkup(<Dashboard />)
+  },
+  'Dashboard djelimični pad prikazuje banner a zadržava podatke': () => {
+    globalThis.__dashboardState = {
+      stats: { usersCount: 12, stylistsCount: 3, servicesCount: 8, reservationsThisMonth: 40, pendingReservations: 5, completedReservations: 30, servicesRevenueThisMonth: 1000, tipsThisMonth: 120, expensesThisMonth: 400, pendingReviews: 2, blogPostsCount: 7 },
+      loading: false,
+      failedSources: ['incomeBook'],
+      loadError: false,
+    }
+    return renderToStaticMarkup(<Dashboard />)
+  },
+  'Dashboard bez ijednog pada ne prikazuje banner': () => {
+    globalThis.__dashboardState = {
+      stats: { usersCount: 12, stylistsCount: 3, servicesCount: 8, reservationsThisMonth: 40, pendingReservations: 5, completedReservations: 30, servicesRevenueThisMonth: 1000, tipsThisMonth: 120, expensesThisMonth: 400, pendingReviews: 2, blogPostsCount: 7 },
+      loading: false,
+      failedSources: [],
+      loadError: false,
+    }
+    return renderToStaticMarkup(<Dashboard />)
+  },
 }
 `
 
@@ -291,6 +321,35 @@ export const useNavigate = () => () => {}
 export const useLocation = () => ({ pathname: '/', search: '', hash: '' })
 `
 
+/**
+ * D9 stubovi: Dashboard.tsx vuče useAuth i useDashboardData. Stanje hooka se
+ * čita s globalThis tako da svaki scenario može postaviti svoj slučaj bez
+ * importovanja stub modula (ENTRY je u drugom direktoriju).
+ */
+const AUTH_STUB = `
+export const useAuth = () => ({
+  user: { username: 'admin', roles: [] },
+  login: () => {},
+  logout: () => {},
+})
+export const AuthProvider = ({ children }) => children
+`
+
+const DASHBOARD_HOOK_STUB = `
+export const DASHBOARD_SOURCE_COUNT = 8
+export const useDashboardData = () => {
+  const st = globalThis.__dashboardState || {}
+  return {
+    stats: st.stats || null,
+    recentReservations: st.recentReservations || [],
+    loading: !!st.loading,
+    failedSources: st.failedSources || [],
+    loadError: !!st.loadError,
+    reload: () => {},
+  }
+}
+`
+
 const stubPlugin = {
   name: 'render-smoke-stubs',
   setup(build) {
@@ -308,6 +367,22 @@ const stubPlugin = {
     }))
     build.onLoad({ filter: /.*/, namespace: 'stub-router' }, () => ({
       contents: ROUTER_STUB,
+      loader: 'js',
+    }))
+    build.onResolve({ filter: /context\/AuthContext$/ }, () => ({
+      path: 'auth-stub',
+      namespace: 'stub-auth',
+    }))
+    build.onResolve({ filter: /dashboard\/use-dashboard-data$/ }, () => ({
+      path: 'dashboard-hook-stub',
+      namespace: 'stub-dashboard-hook',
+    }))
+    build.onLoad({ filter: /.*/, namespace: 'stub-auth' }, () => ({
+      contents: AUTH_STUB,
+      loader: 'js',
+    }))
+    build.onLoad({ filter: /.*/, namespace: 'stub-dashboard-hook' }, () => ({
+      contents: DASHBOARD_HOOK_STUB,
       loader: 'js',
     }))
   },
@@ -333,6 +408,11 @@ const loadScenarios = async () => {
     write: false,
     target: 'node18',
     external: ['react', 'react-dom', 'react/jsx-runtime', 'react-dom/server'],
+    // `api/client.ts` (dohvacen transitivno preko Dashboard -> outbox-diagnostics)
+    // cita `import.meta.env.VITE_API_URL` pri inicijalizaciji modula. U CJS izlazu
+    // esbuild to pretvori u `import_meta.env` koji je undefined u Node-u, pa bez
+    // define-a bundle padne pri ucitavanju, prije ijednog scenarija.
+    define: { 'import.meta.env': JSON.stringify({ VITE_API_URL: 'http://render-smoke.test' }) },
     plugins: [stubPlugin],
     logLevel: 'silent',
   })
@@ -340,6 +420,19 @@ const loadScenarios = async () => {
   mkdirSync(cacheDir, { recursive: true })
   const outFile = join(cacheDir, `bundle-${process.pid}.cjs`)
   writeFileSync(outFile, result.outputFiles[0].text, 'utf8')
+  // Dashboard.tsx transitivno vuče auth store (zustand) koji pri inicijalizaciji
+  // modula čita `localStorage.getItem(TOKEN_KEY)`. Node nema localStorage, pa ga
+  // simuliramo PRIJE require-a — inače bundle padne pri učitavanju, ne pri renderu.
+  if (typeof globalThis.localStorage === 'undefined') {
+    globalThis.localStorage = {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {},
+      clear: () => {},
+      key: () => null,
+      length: 0,
+    }
+  }
   return createRequire(import.meta.url)(outFile).scenarios
 }
 
@@ -356,6 +449,33 @@ test('render smoke covers the templates and dashboard feature components', () =>
   ]) {
     assert.ok(names.includes(critical), `nedostaje scenario: ${critical}`)
   }
+})
+
+// D9: greške učitavanja se moraju VIDJETI, ne renderovati kao nule.
+// i18n stub vraća ključ (ili ključ:opcije), pa asertujemo ključeve.
+test('D9: Dashboard prikazuje error stanje kad padnu svi izvori', () => {
+  const html = scenarios['Dashboard potpuni pad izvora prikazuje error stanje s retry']()
+  assert.match(html, /role="alert"/)
+  assert.match(html, /dashboard\.loadError/)
+  assert.match(html, /common\.retry/)
+  // nule ne smiju proći kao podaci — statistike se ne renderuju
+  assert.doesNotMatch(html, /dashboard\.users/)
+})
+
+test('D9: djelimični pad daje banner ali zadržava ispravne brojeve', () => {
+  const html = scenarios['Dashboard djelimični pad prikazuje banner a zadržava podatke']()
+  assert.match(html, /dashboard\.partialLoadError/)
+  assert.match(html, /common\.retry/)
+  // ispravni podaci ostaju vidljivi
+  assert.match(html, /dashboard\.users/)
+  assert.doesNotMatch(html, /dashboard\.loadError/)
+})
+
+test('D9: bez ijednog pada nema banner-a ni error stanja', () => {
+  const html = scenarios['Dashboard bez ijednog pada ne prikazuje banner']()
+  assert.doesNotMatch(html, /dashboard\.partialLoadError/)
+  assert.doesNotMatch(html, /dashboard\.loadError/)
+  assert.match(html, /dashboard\.users/)
 })
 
 for (const name of names) {

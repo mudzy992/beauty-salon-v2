@@ -21,20 +21,46 @@ const catalogCount = (data: unknown) => {
   return 0
 }
 
+export const DASHBOARD_SOURCES = {
+  usersCount: 'usersCount',
+  stylists: 'stylists',
+  services: 'services',
+  reservationSummary: 'reservationSummary',
+  incomeBook: 'incomeBook',
+  expenseBook: 'expenseBook',
+  reviews: 'reviews',
+  blogPosts: 'blogPosts',
+} as const
+
+export const DASHBOARD_SOURCE_COUNT = Object.keys(DASHBOARD_SOURCES).length
+
 export const useDashboardData = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [recentReservations, setRecentReservations] = useState<RecentReservation[]>([])
   const [loading, setLoading] = useState(true)
+  // D9: svih 8 poziva pada NEZAVISNO (svaki ima svoj .catch). Bez ovog stanja
+  // potpuni pad backenda renderuje nule koje izgledaju kao stvarni podaci.
+  const [failedSources, setFailedSources] = useState<string[]>([])
 
   const loadData = useCallback(() => {
     setLoading(true)
+    const failed: string[] = []
     const { year, month, firstDay, lastDay } = currentMonthBounds()
     Promise.all([
       api
         .get<{ total?: number }>('/api/users/dashboard-count')
-        .catch(() => ({ data: { total: 0 } })),
-      api.get('/api/stylists', { params: { page: 0, pageSize: 1 } }).catch(() => ({ data: [] })),
-      api.get('/api/services', { params: { page: 0, pageSize: 1 } }).catch(() => ({ data: [] })),
+        .catch(() => {
+          failed.push(DASHBOARD_SOURCES.usersCount)
+          return { data: { total: 0 } }
+        }),
+      api.get('/api/stylists', { params: { page: 0, pageSize: 1 } }).catch(() => {
+        failed.push(DASHBOARD_SOURCES.stylists)
+        return { data: [] }
+      }),
+      api.get('/api/services', { params: { page: 0, pageSize: 1 } }).catch(() => {
+        failed.push(DASHBOARD_SOURCES.services)
+        return { data: [] }
+      }),
       api
         .get<{
           reservationsThisMonth?: number
@@ -44,15 +70,30 @@ export const useDashboardData = () => {
         }>('/api/reservations/dashboard-summary', {
           params: { fromDate: firstDay, toDate: lastDay },
         })
-        .catch(() => ({ data: null })),
-      api.get(`/api/income-books/month/${year}/${month}`).catch(() => ({ data: null })),
+        .catch(() => {
+          failed.push(DASHBOARD_SOURCES.reservationSummary)
+          return { data: null }
+        }),
+      api.get(`/api/income-books/month/${year}/${month}`).catch(() => {
+        failed.push(DASHBOARD_SOURCES.incomeBook)
+        return { data: null }
+      }),
       api
         .get<{ expenses?: { totalAmount: string | number }[] }>(
           `/api/expense-books/month/${year}/${month}`,
         )
-        .catch(() => ({ data: null })),
-      api.get('/api/reviews/admin', { params: { approved: 'false' } }).catch(() => ({ data: [] })),
-      api.get('/api/blog/admin').catch(() => ({ data: [] })),
+        .catch(() => {
+          failed.push(DASHBOARD_SOURCES.expenseBook)
+          return { data: null }
+        }),
+      api.get('/api/reviews/admin', { params: { approved: 'false' } }).catch(() => {
+        failed.push(DASHBOARD_SOURCES.reviews)
+        return { data: [] }
+      }),
+      api.get('/api/blog/admin').catch(() => {
+        failed.push(DASHBOARD_SOURCES.blogPosts)
+        return { data: [] }
+      }),
     ])
       .then(
         ([
@@ -65,6 +106,7 @@ export const useDashboardData = () => {
           reviewsRes,
           blogRes,
         ]) => {
+          setFailedSources(failed)
           const reservationSummary = reservationSummaryRes.data
           const summaryCount = (value: unknown) =>
             typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
@@ -116,5 +158,14 @@ export const useDashboardData = () => {
   useSocketEvent('reservation:cancelled', useCallback(() => loadData(), [loadData]))
   useSocketEvent('reservation:stylist_response', useCallback(() => loadData(), [loadData]))
 
-  return { stats, recentReservations, loading }
+  return {
+    stats,
+    recentReservations,
+    loading,
+    failedSources,
+    // D9: tek kad padnu SVI izvori nule su bezvrijedne; djelimični pad
+    // zadrzava ispravne brojeve i samo ih oznaci bannerom.
+    loadError: failedSources.length >= DASHBOARD_SOURCE_COUNT,
+    reload: loadData,
+  }
 }
