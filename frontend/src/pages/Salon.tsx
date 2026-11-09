@@ -13,6 +13,7 @@ import {
   getSalonDateOnly,
 } from '../../../shared/business-date.mjs'
 
+import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
 import { Card } from '../components/ui/card'
@@ -88,6 +89,11 @@ export default function Salon() {
 
   const [workingHours, setWorkingHours] = useState<WorkingHours[]>([])
   const [holidays, setHolidays] = useState<Holiday[]>([])
+  const sortedHolidays = useMemo(
+    () => holidays.slice().sort((a, b) => a.date.localeCompare(b.date)),
+    [holidays],
+  )
+
 
   const [holidayOpen, setHolidayOpen] = useState(false)
   const [editHoliday, setEditHoliday] = useState<Holiday | null>(null)
@@ -341,6 +347,124 @@ export default function Salon() {
     )
   }
 
+  const workingHoursColumns: DataTableColumn<WorkingHours>[] = [
+    {
+      key: 'day',
+      headerKey: 'salon.workingHoursTable.day',
+      className: 'p-3 font-medium text-slate-900 dark:text-slate-50',
+      render: (wh) => formatWeekday(wh.dayOfWeek, i18n.language),
+    },
+    {
+      key: 'workday',
+      headerKey: 'salon.workingHoursTable.workday',
+      className: 'p-3',
+      render: (wh) => (
+        <Switch
+          aria-label={t('salon.aria.workingDayToggle', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
+          checked={wh.isWorkingDay}
+          onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)}
+        />
+      ),
+    },
+    {
+      key: 'opens',
+      headerKey: 'salon.workingHoursTable.opens',
+      className: 'p-3',
+      render: (wh) => (
+        <Input
+          type="time"
+          aria-label={t('salon.aria.opensTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
+          className="h-9 w-[140px]"
+          value={wh.openTime}
+          disabled={!wh.isWorkingDay}
+          onChange={(e) => updateWH(wh.dayOfWeek, 'openTime', e.target.value)}
+        />
+      ),
+    },
+    {
+      key: 'closes',
+      headerKey: 'salon.workingHoursTable.closes',
+      className: 'p-3',
+      render: (wh) => (
+        <Input
+          type="time"
+          aria-label={t('salon.aria.closesTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
+          className="h-9 w-[140px]"
+          value={wh.closeTime}
+          disabled={!wh.isWorkingDay}
+          onChange={(e) => updateWH(wh.dayOfWeek, 'closeTime', e.target.value)}
+        />
+      ),
+    },
+  ]
+
+  const holidayColumns: DataTableColumn<Holiday>[] = [
+    {
+      key: 'date',
+      headerKey: 'salon.holidayTable.date',
+      className: 'p-3',
+      render: (h) => formatDateOnlyLocale(h.date.slice(0, 10), locale),
+    },
+    {
+      key: 'name',
+      headerKey: 'salon.holidayTable.name',
+      className: 'p-3 font-medium text-slate-900 dark:text-slate-50',
+      render: (h) => h.name,
+    },
+    {
+      key: 'push',
+      headerKey: 'salon.holidayTable.push',
+      className: 'p-3',
+      render: (h) => (
+        <Badge variant={h.sendPush ? 'success' : 'secondary'}>
+          {h.sendPush ? t('common.yes') : t('common.no')}
+        </Badge>
+      ),
+    },
+    {
+      key: 'sent',
+      headerKey: 'salon.holidayTable.sent',
+      className: 'p-3',
+      render: (h) => (h.pushSentAt ? formatLocalizedDateTime(h.pushSentAt, i18n.language) : '—'),
+    },
+    {
+      key: 'actions',
+      headerKey: 'salon.holidayTable.actions',
+      align: 'right',
+      className: 'p-3',
+      render: (h) => (
+        <div className="flex justify-end gap-1">
+          {h.sendPush ? (
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              aria-label={t('salon.sendNotification')}
+              onClick={() => void handleSendNotification(h.id)}
+            >
+              <Send className="h-4 w-4 text-teal-600" aria-hidden="true" />
+            </Button>
+          ) : null}
+          <Button type="button" size="sm" variant="ghost" onClick={() => openHolidayForm(h)}>
+            {t('common.edit')}
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            aria-label={t('common.delete')}
+            onClick={() => void handleDeleteHoliday(h.id)}
+          >
+            <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
+          </Button>
+        </div>
+      ),
+    },
+  ]
+
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -447,52 +571,14 @@ export default function Salon() {
 
             <TabsContent value="hours" className="mt-4">
               <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
-                <table className="app-table data-table w-full border-collapse">
-                                    <caption className="sr-only">{t('salon.workingHoursCaption')}</caption>
-                                      <caption className="sr-only">{t('salon.holidaysCaption')}</caption>
-                    <thead>
-                    <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                      <th scope="col" className="p-3 font-medium">{t('salon.workingHoursTable.day')}</th>
-                      <th scope="col" className="p-3 font-medium">{t('salon.workingHoursTable.workday')}</th>
-                      <th scope="col" className="p-3 font-medium">{t('salon.workingHoursTable.opens')}</th>
-                      <th scope="col" className="p-3 font-medium">{t('salon.workingHoursTable.closes')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {workingHours.map((wh) => (
-                      <tr key={wh.dayOfWeek} className={!wh.isWorkingDay ? 'opacity-60' : undefined}>
-                        <td data-label={t('salon.workingHoursTable.day')} className="p-3 font-medium text-slate-900 dark:text-slate-50">{formatWeekday(wh.dayOfWeek, i18n.language)}</td>
-                        <td data-label={t('salon.workingHoursTable.workday')} className="p-3">
-                          <Switch
-                            aria-label={t('salon.aria.workingDayToggle', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
-                            checked={wh.isWorkingDay}
-                            onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)}
-                          />
-                        </td>
-                        <td data-label={t('salon.workingHoursTable.opens')} className="p-3">
-                          <Input
-                            type="time"
-                            aria-label={t('salon.aria.opensTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
-                            className="h-9 w-[140px]"
-                            value={wh.openTime}
-                            disabled={!wh.isWorkingDay}
-                            onChange={(e) => updateWH(wh.dayOfWeek, 'openTime', e.target.value)}
-                          />
-                        </td>
-                        <td data-label={t('salon.workingHoursTable.closes')} className="p-3">
-                          <Input
-                            type="time"
-                            aria-label={t('salon.aria.closesTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
-                            className="h-9 w-[140px]"
-                            value={wh.closeTime}
-                            disabled={!wh.isWorkingDay}
-                            onChange={(e) => updateWH(wh.dayOfWeek, 'closeTime', e.target.value)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <DataTable
+                  caption={t('salon.workingHoursCaption')}
+                  columns={workingHoursColumns}
+                  rows={workingHours}
+                  rowKey={(wh) => String(wh.dayOfWeek)}
+                  headRowClassName="text-xs uppercase text-slate-500"
+                  rowClassName={(wh) => (!wh.isWorkingDay ? 'opacity-60' : undefined)}
+                />
               </div>
 
               <div className="mt-4 flex justify-end">
@@ -518,47 +604,13 @@ export default function Salon() {
                 <p className="text-sm text-slate-500">{t('salon.noHolidays')}</p>
               ) : (
                 <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
-                  <table className="app-table data-table w-full border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                        <th scope="col" className="p-3 font-medium">{t('salon.holidayTable.date')}</th>
-                        <th scope="col" className="p-3 font-medium">{t('salon.holidayTable.name')}</th>
-                        <th scope="col" className="p-3 font-medium">{t('salon.holidayTable.push')}</th>
-                        <th scope="col" className="p-3 font-medium">{t('salon.holidayTable.sent')}</th>
-                        <th scope="col" className="p-3 text-right font-medium">{t('salon.holidayTable.actions')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {holidays
-                        .slice()
-                        .sort((a, b) => a.date.localeCompare(b.date))
-                        .map((h) => (
-                          <tr key={h.id} className="border-b border-slate-100 dark:border-slate-800/80">
-                            <td data-label={t('salon.holidayTable.date')} className="p-3">{formatDateOnlyLocale(h.date.slice(0, 10), locale)}</td>
-                            <td data-label={t('salon.holidayTable.name')} className="p-3 font-medium text-slate-900 dark:text-slate-50">{h.name}</td>
-                            <td data-label={t('salon.holidayTable.push')} className="p-3">
-                              <Badge variant={h.sendPush ? 'success' : 'secondary'}>{h.sendPush ? t('common.yes') : t('common.no')}</Badge>
-                            </td>
-                            <td data-label={t('salon.holidayTable.sent')} className="p-3">{h.pushSentAt ? formatLocalizedDateTime(h.pushSentAt, i18n.language) : '—'}</td>
-                            <td data-label={t('salon.holidayTable.actions')} className="p-3 text-right">
-                              <div className="flex justify-end gap-1">
-                                {h.sendPush ? (
-                                  <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('salon.sendNotification')} onClick={() => void handleSendNotification(h.id)}>
-                                    <Send className="h-4 w-4 text-teal-600" aria-hidden="true" />
-                                  </Button>
-                                ) : null}
-                                <Button type="button" size="sm" variant="ghost" onClick={() => openHolidayForm(h)}>
-                                  {t('common.edit')}
-                                </Button>
-                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('common.delete')} onClick={() => void handleDeleteHoliday(h.id)}>
-                                  <Trash2 className="h-4 w-4 text-rose-600" aria-hidden="true" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
+                  <DataTable
+                    caption={t('salon.holidaysCaption')}
+                    columns={holidayColumns}
+                    rows={sortedHolidays}
+                    rowKey={(h) => h.id}
+                    headRowClassName="text-xs uppercase text-slate-500"
+                  />
                 </div>
               )}
             </TabsContent>

@@ -68,15 +68,32 @@ test('markAsRead ima jedinstveno ime po obavijesti (2.4.4)', () => {
 })
 
 test('tabela postavki obavijesti ima semantiku (1.3.1, 1.4.10)', () => {
-  const ths = notifications.match(/<th\b[^>]*>/g) || []
-  assert.equal(ths.length, 3)
-  assert.deepEqual(ths.filter((h) => !/scope="col"/.test(h)), [], '<th> bez scope')
-  assert.match(notifications, /<caption className="sr-only">\{t\('notifications\.preferencesTableCaption'\)\}<\/caption>/)
-  assert.match(notifications, /<table className="app-table data-table w-full border-collapse">/)
-  const tds = notifications.match(/<td\b[^>]*>/g) || []
-  assert.equal(tds.length, 3)
-  assert.equal(tds.filter((t) => /data-label=\{t\(/.test(t)).length, 3, '<td> bez data-label')
+  // 2026-11-09 — tabela je prešla na dijeljenu `DataTable` komponentu, pa `<th>`, `<td>`,
+  // `scope` i `data-label` više nisu u `Notifications.tsx`. Garancije se provjeravaju
+  // JEDNOM na komponenti (za sve potrošače), a ovdje da je modul stvarno koristi.
+  const dataTable = read('../shell/admin/ui/data-table.tsx')
+  assert.match(dataTable, /<caption className="sr-only">\{caption\}<\/caption>/)
+  assert.match(dataTable, /scope="col"/)
+  assert.match(dataTable, /data-label=\{t\(column\.headerKey\)\}/)
+  assert.match(dataTable, /app-table data-table w-full/)
   assert.match(css, /table\.data-table tbody td::before/)
+
+  assert.match(notifications, /<DataTable/, 'Notifications ne koristi DataTable')
+  assert.match(notifications, /caption=\{t\('notifications\.preferencesTableCaption'\)\}/)
+  assert.match(notifications, /rowKey=\{\(type\) => type\}/)
+  // Konzistentnost na dashboardima je obavezna: bez lokalnih stil-varijanti.
+  for (const prop of ['tableClassName', 'headRowClassName', 'rowClassName', 'unsortedIndicator']) {
+    assert.ok(!notifications.includes(prop), `Notifications ne smije prolaziti ${prop}`)
+  }
+  // Redoslijed kolona je bitan: data-label u card-mode-u je t(column.headerKey).
+  const headerKeys = [...notifications.matchAll(/headerKey: '([^']+)'/g)].map((m) => m[1])
+  assert.deepEqual(headerKeys, [
+    'notifications.notificationType',
+    'notifications.push',
+    'notifications.email',
+  ])
+  // Ručno napisana tabela se ne smije vratiti uz dijeljenu komponentu.
+  assert.equal((notifications.match(/<table\b/g) || []).length, 0, 'zaostala <table>')
 })
 
 test('D4 iz plana NIJE prekršaj — pretraga postavki već najavljuje rezultat (4.1.3)', () => {

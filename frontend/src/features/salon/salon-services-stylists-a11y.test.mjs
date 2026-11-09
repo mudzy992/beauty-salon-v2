@@ -63,9 +63,19 @@ test('radno vrijeme: ime kontrole uključuje dan (4.1.2)', () => {
 })
 
 test('svih 5 tabela ima scope i caption (1.3.1)', () => {
+  // 2026-11-09 — Salon.tsx je prešao na dijeljenu `DataTable` komponentu, pa njegova
+  // 2 tabele (4 + 5 = 9 <th>) više nemaju ručni markup. Ukupan broj TABELA je i dalje 5
+  // (2 u Salonu + 1 u Services + 2 u Stylists), ali se dokaz dijeli:
+  //   - ručno pisane tabele: <th scope="col"> i <caption> u izvornom tekstu,
+  //   - DataTable potrošači: `caption={t(...)}` prop, a markup garantuje komponenta.
+  const dataTable = read('../shell/admin/ui/data-table.tsx')
+  assert.match(dataTable, /<caption className="sr-only">\{caption\}<\/caption>/)
+  assert.match(dataTable, /scope="col"/)
+
   const all = { 'Salon.tsx': salon, 'Services.tsx': services, 'Stylists.tsx': stylists }
   let thTotal = 0
   let capTotal = 0
+  let tableTotal = 0
   for (const [name, src] of Object.entries(all)) {
     const ths = headers(src)
     thTotal += ths.length
@@ -74,11 +84,16 @@ test('svih 5 tabela ima scope i caption (1.3.1)', () => {
       [],
       `${name}: <th> bez scope`,
     )
-    const caps = (src.match(/<caption className="sr-only">\{t\('[^']+'\)\}<\/caption>/g) || []).length
-    capTotal += caps
+    capTotal += (src.match(/<caption className="sr-only">\{t\('[^']+'\)\}<\/caption>/g) || []).length
+    const dt = (src.match(/<DataTable\b/g) || []).length
+    const dtCaptions = (src.match(/caption=\{t\('[^']+'\)\}/g) || []).length
+    assert.equal(dtCaptions, dt, `${name}: svaki <DataTable> mora imati caption prop`)
+    capTotal += dtCaptions
+    tableTotal += (src.match(/<table\b/g) || []).length + dt
   }
-  assert.equal(thTotal, 27, 'ukupno 27 <th> u modulu')
-  assert.equal(capTotal, 5, '5 tabela -> 5 <caption>')
+  assert.equal(thTotal, 18, '18 <th> u ručno pisanim tabelama (Services 8 + Stylists 10)')
+  assert.equal(tableTotal, 5, '5 tabela u modulu (2 DataTable + 3 ručne)')
+  assert.equal(capTotal, 5, '5 tabela -> 5 caption-ova (2 preko propa + 3 ručno)')
 })
 
 test('svih 5 tabela opt-in u card mode (1.4.10)', () => {

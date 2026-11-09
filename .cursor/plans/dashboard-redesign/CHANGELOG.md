@@ -3880,3 +3880,72 @@ atribute po ćeliji, pa je tooltip očuvan **omotačem** unutar `render`, bez no
 
 `Notifications`, `Salon` (2 tabele), `Services`, `Users`. Salon je jedini s funkcionalnim
 `rowClassName` (`opacity-60`) i s `text-xs uppercase` zaglavljem.
+
+
+---
+
+## 2026-11-09 — `DataTable` migracija: `Notifications` + `Salon` (2 tabele)
+
+### `Notifications.tsx` — nula propova
+
+3 kolone, bez sortiranja. Klase zaglavlja (`border-b border-slate-200 text-left
+dark:border-slate-800`) i redova (`border-b border-slate-100 dark:border-slate-800/80`) su
+**tačno** defaulti koje je `DataTable` dobio u prethodnom koraku, pa migracija nije trebala
+**nijedan** stil-prop. `admin-notifications-i18n` i `notifications-campaign-consent` prolaze
+bez izmjena.
+
+### `Salon.tsx` — usput nađen stvaran 1.3.1 defekt
+
+`Salon.tsx:450-452` (prije izmjene) imao je **dva `<caption>` u istom `<table>`**:
+
+```
+<table className="app-table data-table w-full border-collapse">
+  <caption className="sr-only">{t('salon.workingHoursCaption')}</caption>
+  <caption className="sr-only">{t('salon.holidaysCaption')}</caption>
+```
+
+Po HTML specifikaciji `<table>` smije imati **najviše jedan** `<caption>`, pa je pristupačno
+ime te tabele bilo nedefinisano. Druga tabela (praznici, `ln 521`) **nije imala svoj
+caption** — njen naziv je bio zalutao u prvoj.
+
+Migracija to ispravlja: radno vrijeme dobija `salon.workingHoursCaption`, praznici
+`salon.holidaysCaption`. Salon je jedini s **funkcionalnim** `rowClassName`
+(`opacity-60` za neradne dane) i s `headRowClassName="text-xs uppercase text-slate-500"`.
+
+### Testovi
+
+- `admin-settings-controls-a11y` (1 test): čitao je doslovan markup (`<th>` ×3, `<caption>`,
+  `<table className="app-table data-table w-full border-collapse">`, `<td>` ×3 s
+  `data-label`). Preuređen po istom principu — garancije na `DataTable`, kod potrošača
+  provjera korištenja + redoslijed kolona + **guard da ne prolazi stil-propove**.
+- `salon-services-stylists-a11y` (1 test): asertovao **27 `<th>` i 5 `<caption>`** kroz
+  Salon+Services+Stylists. Izmjereno stvarno stanje: Salon 0 `<th>` / 2 `DataTable` /
+  2 caption-propa, Services 8 `<th>`, Stylists 10 `<th>`. Test sada razlikuje ručno pisane
+  tabele od `DataTable` potrošača i asertuje `thTotal=18`, `tableTotal=5`, `capTotal=5`
+  (2 preko propa + 3 ručno) — ukupan broj tabela je i dalje 5.
+
+### Greške u ovom koraku
+
+1. **Ponovo hook poslije early return-a** (React #310) — `useMemo` za `sortedHolidays` sam
+   stavio na ln 345, a `if (loading) return` je na ln 294. Ovo je **ista greška koju sam već
+   jednom napravio i zabilježio**; uhvatili su je `test:hooks-order` i `react-hooks/rules-of-hooks`
+   (lint 1 error). Premješteno odmah iza `useState` deklaracije.
+2. **Pogodio sam imena handlera** (`handleSendHolidayPush(h)`, `handleDeleteHoliday(h)`) —
+   stvarno je `handleSendNotification(h.id)` i `handleDeleteHoliday(h.id)`. Provjereno iz
+   `git show HEAD`.
+3. **Em-dash sam upisao kao `\\u2014`** (doslovna 2 backslasha + tekst), pa je `tsc` to
+   prihvatio kao string a ne kao znak. Ispravljeno prepisivanjem cijele linije.
+4. **`rowKey` mora vratiti `string`**, a `wh.dayOfWeek` je `number` → `String(wh.dayOfWeek)`.
+5. **Pokrenuo sam nepostojeće skripte** `test:salon-i18n` i `test:admin-salon-i18n` —
+   `npm run -s` tiho padne, pa to izgleda kao neuspjeh testa. Jedina stvarna je
+   `test:salon-services-stylists-a11y`.
+
+### Provjere
+
+`test:*` **177/177** · `tsc --noEmit` **exit 0** · `test:hooks-order` **2/2** · lint
+**0 errors / 7 warnings** · build **273.9 KiB/300** · `check_i18n --strict` **PASS** ·
+`check_doc_links` **PASS** (670/202) · `git diff --check` **čist**.
+
+### Preostalo
+
+`Services.tsx` (1537 ln) i `Users.tsx` (1536 ln).

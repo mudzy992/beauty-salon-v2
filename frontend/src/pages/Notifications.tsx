@@ -8,6 +8,7 @@ import { useSocketEvent } from '../context/SocketContext'
 import { useAppToast } from '../lib/toast/useAppToast'
 import { Badge } from '../components/ui/badge'
 import { Button } from '../components/ui/button'
+import { DataTable, type DataTableColumn } from '../features/shell/admin/ui/data-table'
 import { Card } from '../components/ui/card'
 import { Switch } from '../components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
@@ -199,6 +200,52 @@ export default function Notifications() {
 
   const getExistingPref = (type: string) => preferences.find((p) => p.type === type)
 
+  const preferenceColumns: DataTableColumn<(typeof NOTIFICATION_TYPES)[number]>[] = [
+    {
+      key: 'type',
+      headerKey: 'notifications.notificationType',
+      className: 'p-3 font-medium text-slate-800 dark:text-slate-100',
+      render: (type) => getNotificationTypeLabel(type),
+    },
+    {
+      key: 'push',
+      headerKey: 'notifications.push',
+      className: 'p-3',
+      render: (type) => {
+        const pref = getExistingPref(type)
+        return (
+          <Switch
+            checked={pref?.pushEnabled ?? true}
+            onCheckedChange={(checked) =>
+              void savePreference(type, checked, pref?.emailEnabled ?? true)
+            }
+            disabled={saving}
+            aria-label={t('notifications.pushPreferenceLabel', { type: getNotificationTypeLabel(type) })}
+          />
+        )
+      },
+    },
+    {
+      key: 'email',
+      headerKey: 'notifications.email',
+      className: 'p-3',
+      render: (type) => {
+        const pref = getExistingPref(type)
+        return (
+          <Switch
+            checked={pref?.emailEnabled ?? true}
+            onCheckedChange={(checked) =>
+              void savePreference(type, pref?.pushEnabled ?? true, checked)
+            }
+            disabled={saving}
+            aria-label={t('notifications.emailPreferenceLabel', { type: getNotificationTypeLabel(type) })}
+          />
+        )
+      },
+    },
+  ]
+
+
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -326,48 +373,12 @@ export default function Notifications() {
             </div>
           ) : (
             <Card className="overflow-hidden">
-              <div className="app-table-wrap">
-                <table className="app-table data-table w-full border-collapse">
-                                        <caption className="sr-only">{t('notifications.preferencesTableCaption')}</caption>
-                      <thead>
-                    <tr className="border-b border-slate-200 text-left dark:border-slate-800">
-                      <th scope="col" className="p-3 font-medium">{t('notifications.notificationType')}</th>
-                      <th scope="col" className="p-3 font-medium">{t('notifications.push')}</th>
-                      <th scope="col" className="p-3 font-medium">{t('notifications.email')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {NOTIFICATION_TYPES.map((type) => {
-                      const pref = getExistingPref(type)
-                      const pushEnabled = pref?.pushEnabled ?? true
-                      const emailEnabled = pref?.emailEnabled ?? true
-                      return (
-                        <tr key={type} className="border-b border-slate-100 dark:border-slate-800/80">
-                          <td data-label={t('notifications.notificationType')} className="p-3 font-medium text-slate-800 dark:text-slate-100">
-                            {getNotificationTypeLabel(type)}
-                          </td>
-                          <td data-label={t('notifications.push')} className="p-3">
-                            <Switch
-                              checked={pushEnabled}
-                              onCheckedChange={(checked) => void savePreference(type, checked, emailEnabled)}
-                              disabled={saving}
-                              aria-label={t('notifications.pushPreferenceLabel', { type: getNotificationTypeLabel(type) })}
-                            />
-                          </td>
-                          <td data-label={t('notifications.email')} className="p-3">
-                            <Switch
-                              checked={emailEnabled}
-                              onCheckedChange={(checked) => void savePreference(type, pushEnabled, checked)}
-                              disabled={saving}
-                              aria-label={t('notifications.emailPreferenceLabel', { type: getNotificationTypeLabel(type) })}
-                            />
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <DataTable
+                caption={t('notifications.preferencesTableCaption')}
+                columns={preferenceColumns}
+                rows={NOTIFICATION_TYPES}
+                rowKey={(type) => type}
+              />
             </Card>
           )}
         </TabsContent>
