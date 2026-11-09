@@ -1019,3 +1019,46 @@ SEC-11 pregled izvornog koda obuhvatio je reservation mutation odgovore. Mutatio
 119. **Vlasnički runtime acceptance izvještaj (2026-11-03):** Vlasnik potvrđuje da je redeploy prošao, admin prijava radi i SMTP prolazi nakon HTTP limiter konfiguracije. Bilježimo kao owner-reported potvrdu deployed admin login-a i SMTP transporta; agent nije vidio deployed verziju, credentials/environment, readiness log ili primljene poruke, pa ovo nije nezavisna provjera. Redis login incident i SMTP transport su riješeni prema prijavi vlasnika.
 
 120. **SEC-08 close i fizička provjera vlasnika; date picker upozorenje otklonjeno u source-u (2026-11-03):** Vlasnik izričito prijavljuje da je SEC-08 završen; status se mijenja u owner-reported complete. Konkretni browser payloadi, email predlošci/klijenti nisu navedeni i agent nije nezavisno ponovio te provjere. Vlasnik također prijavljuje da je testirao Android preko Expo Go i instaliranog testnog builda (model/verzija OS-a nisu navedeni): prijavu, profil, stilista, dnevnik rada i puni rezervacijski tok do realizacije i upisa u knjigu; lokalizacija, datumi, dijakritika, duži tekstovi, veći font i TalkBack/VoiceOver su prijavljeni kao uredni. Jedini prijavljeni problem bio je deprecated `DateTimePicker.onChange` warning. Source `1282cda` prebacuje se na `onValueChange`/`onDismiss`; lokalno date-time/accessibility testovi prolaze 6/6, hygiene/diff checks prolaze, a CI `41667773650` je prošao sva četiri posla uključujući mobile TypeScript/Expo export. Vlasnik je zatim potvrdio da je retest prošao: datum i vrijeme se biraju, picker se pravilno zatvara i warning se više ne pojavljuje; nije navedeno da je retest bio u Expo Go ili instaliranom testnom buildu. Ovo je owner-reported acceptance, ne nezavisna provjera agenta. Prijavljeni fizički testovi za navedeni Android opseg su završeni prema vlasniku; širi MOB-AUD-08/A11Y/I18N i repo-wide audit ostaju otvoreni.
+
+---
+
+## 2026-11-09 — Faza 13 (a11y redizajn): nalaz koji NIJE popravljan (D10)
+
+### Nekonzistentno formatiranje iznosa: 15 mjesta zaobilazi `formatLocalizedAmount`
+
+`i18n/locale-utils.mjs:12` definira `formatLocalizedAmount(value, language)` =
+`formatLocalizedNumber(..., {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' KM'`,
+i vraća `'—'` za neispravnu vrijednost. Ali **15** mjesta u admin/stylist kodu koristi
+lokalni `toFixed(2)` + ručno `' KM'`:
+
+`pages/Reservations.tsx:273,275,280` · `features/daily-log/pricing-panel.tsx:140` ·
+`features/finance/expense/expense-book-detail.tsx:174,190` ·
+`features/finance/income/income-book-detail.tsx:197,201,211,212` ·
+`features/reservations/components/ReservationScheduler.tsx:727,735,1097`
+
+Posljedice (sve tri su stvarne):
+
+| | `toFixed(2)` + `' KM'` | `formatLocalizedAmount` |
+|---|---|---|
+| decimalni separator | uvijek `.` | ovisno o jeziku (bs → `,`) |
+| razdvajanje hiljada | nema | ima |
+| `undefined`/`NaN` | `"NaN KM"` | `'—'` |
+
+Dakle u BS lokalizaciji isti ekran može prikazati i `1250.00 KM` i `1.250,00 KM`.
+
+**Zašto nije popravljeno:** faza 13 D10 izričito traži da se usput nađeni bugovi
+**zabilježe, ne tiho popravljaju**. Izmjena 15 mjesta mijenja prikaz brojeva u finansijskim
+ekranima i može slomiti testove koji asertiraju doslovne stringove — to traži zaseban,
+namjeran commit s vlasničkom potvrdom, ne usputnu izmjenu unutar a11y faze.
+
+**Nije WCAG prekršaj** (1.3.1/3.1.x ne propisuju format broja) — radi se o konzistentnosti
+i i18n ispravnosti.
+
+### `window.confirm` ×14 — procjena: NIJE prekršaj, migracija nije rađena
+
+Plan (`16_phase-13-finalization.md` §7) traži `test:no-window-confirm`. Provjera iz izvora:
+svih 14 poziva koristi preveden string (`t(...)`), a native `confirm` je fokusiran,
+tastaturno dostupan i najavljen — dakle **nije** 2.1.1/2.1.2 prekršaj, a kao potvrda prije
+destruktivne akcije **doprinosi** 3.3.4. Uvođenje blokirajućeg testa bilo bi čist churn bez
+a11y vrijednosti, pa test **nije** uveden. Ako se želi vizuelna konzistentnost
+(`ConfirmDialog`), to je dizajnerska odluka, ne pristupačnost.

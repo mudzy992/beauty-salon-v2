@@ -471,6 +471,19 @@ Upit samo čita podatke. Svaki rezultat blokira primjenu dok vlasnik/DBA ne odre
 
 Početni report `scripts/check_ui_contrast.py` našao je 9/23 selected source-token parova ispod praga (primjeri i omjeri sačuvani u HANDOFF koraku 39). Source mitigation sada mijenja web light/dark semantičke tokene, mobile light/dark text/button/status tokene, koristi odvojene accessible `gold-text` i focus/UI `gold-ring` tokene za runtime brand overrides, te izvodi light/dark text i ring HEX varijante iz `theme_primary`/`theme_accent`. Mobile badge/status foreground-background parovi dobili su eksplicitne kontrastne boje; status ostaje tekstualno označen. Prošireni read-only report sada provjerava 44 odabrana source-token para; lokalno svih 44 prolazi `--strict`. Frontend Node test pokriva kratke/invalidne HEX vrijednosti, ekstremne/saturirane boje i light/dark/ring derivacije. CI je konfigurisan da provjeru pokreće kao strict gate; push-triggered CI run `40238220144` za commit `eff0e6f` prošao je sva četiri joba, uključujući repo strict report, frontend dynamic-color test/build/image build i mobile typecheck. To je synthetic CI dokaz, ne rendered/browser/device acceptance. Dodatni slice `c4af937` sada u zajedničkom mobilnom `DateTimeField` izlaže pristupačnu oznaku, formatiranu izabranu vrijednost i lokalizovanu uputu za datum ili vrijeme; dva ciljana testa ugovora izvornog koda i CI `41637128566` prošli su. To još nije test stvarnog čitača ekrana. Naredni slice `1baed87` postavlja vidljivu labelu kao podrazumijevani accessibility label za zajednički `Input`, koristi grešku kao hint i označava dinamičku poruku kao `alert` sa `polite` live region vrijednošću; dva ciljana testa i CI `41638557354` prolaze. Nije izvršeno testiranje TalkBack/VoiceOver najava, pa ovo poboljšanje izvornog koda ne zatvara A11Y-01. Slice `a1485b0` dodatno izlaže ulogu i vidljivi naslov zajedničkog mobilnog `Button` dugmeta te njegova `disabled`/`busy` stanja; dva ciljana testa i CI `41639986989` prošli su. Nema fizičkog uređaja ni čitača ekrana, pa se ne tvrdi da je ponašanje nativno potvrđeno.
 
+**Dopuna 2026-11-09 — dashboard redizajn (faze 0–13) NE zatvara A11Y-01.** Rad na
+`.cursor/plans/dashboard-redesign/` dodao je source-contract dokaze za admin/stylist/onboarding
+(`169` `test:*` skripti, `check_ui_contrast.py --strict` = 80/80 parova, source sweep
+`test:text-contrast-allowlist` nad 178 fajlova) i zatvorio konkretne prekršaje iz izvora:
+2.1.1/4.1.2 (izbor usluge u `ReservationScheduler` bio dostupan samo mišem), 1.4.3 ×4
+(`amber-600` 3.19:1 i `emerald-600` 3.77:1 na `bg-white`), 4.1.3 (`role="status"` ×84 /
+`role="alert"` ×63), 3.3.1/3.3.2 (zahtjev za lozinku vidljiv prije unosa), 3.3.8
+(`one-time-code` + paste bez blokiranja, bez captche). **Ništa od toga nije rendered dokaz.**
+`@axe-core/playwright` + `@playwright/test` su instalirani (Q4 odobren), `npx playwright test
+--list` nabroji 11 testova i tipovi prolaze, ali se **browser binarni fajl ne može preuzeti**
+u sandboxu (`Failed to download Chrome for Testing 158.0.8127.18`), pa `test:a11y-routes`
+**nije** izvršen i **nije** dodat u CI kao blokirajući korak. A11Y-01 ostaje otvoren.
+
 Ovo nije rendered-page audit ni potpuna component-pair provjera: ne potvrđuje computed browser boje/opacity/gradients, sve hover/disabled kombinacije, text sizing, custom CSS backgrounde, accessibility tree, axe/Playwright, keyboard, touch target, VoiceOver/TalkBack, niti manual booking/profile journey. Generic mobile badge i dalje koristi tekstualnu status oznaku; zahtjev za poseban status icon i accessibility/reader signoff nije potvrđen. `A11Y-01` zato ostaje otvoren do rendered/browser/device/manual acceptance.
 
 **Preostalo:** browser computed-style + axe/Playwright pregled reprezentativnih public booking, profile/settings i finance tokova; provjera dark/light/hover/disabled i dinamičkih boja na stvarnim komponentama; status icon/label odluka; keyboard i screen-reader/manual signoff.

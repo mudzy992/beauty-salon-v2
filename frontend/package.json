@@ -171,6 +171,7 @@
     "test:onboarding-a11y": "node --test src/features/auth/onboarding-a11y.test.mjs",
     "test:reservation-scheduler-combobox": "node --test src/features/reservations/reservation-scheduler-combobox-a11y.test.mjs",
     "test:text-contrast-allowlist": "node --test src/app/text-contrast-allowlist-a11y.test.mjs",
+    "test:a11y-routes": "node scripts/run-a11y-routes.mjs",
     "test:route-guards-i18n": "node --test src/components/route-guards-i18n.test.mjs",
     "test:navigation-drawer-accessibility": "node --test src/features/shell/navigation-drawer-accessibility.test.mjs",
     "test:shell-a11y": "node --test src/features/shell/shell-a11y.test.mjs",

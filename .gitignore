@@ -29,3 +29,6 @@ __pycache__/
 id_rsa
 id_ed25519
 id_ecdsa
+/playwright-report/
+/frontend/test-results/
+/frontend/playwright-report/

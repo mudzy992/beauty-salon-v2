@@ -31,7 +31,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 10 | Postavke (+ M2 ako odobren) | `[x]` 3 commita (`ba59834`, `44b0eed`, `56cee86` **M2**) — DoD „`EmailSettings.tsx` < 120 ln" odgođen na fazu 13 | prošla |
 | 11 | Stylist portal | `[~]` 4 commita — 7 stavki plana opovrgnuto/bespredmetno/već zadovoljeno; stvarni nalazi: 4.1.3, 3.3.1, 1.4.3 ×33, 4.1.2. **DoD verificiran** (mobilna 0 diff, API netaknut) | u toku |
 | 12 | Onboarding / ForceChangePassword | `[x]` 1 commit — D1/D2/D7 opovrgnuti, D3/D4 zadovoljeni, D9 nije prekršaj; stvarno: **3.3.1/3.3.2** (zahtjev za lozinku) | prošla |
-| 13 | Zaključak (globalni prolaz, sweep, docs) | `[ ]` u toku — 3/4: **2.1.1+4.1.2** combobox · **1.4.3 ×4** · **D2** dead-code (−1 fajl, −1 zavisnost, −32 ključa) | prošla |
+| 13 | Zaključak (globalni prolaz, sweep, docs) | `[x]` 4 commita — **2.1.1+4.1.2** combobox · **1.4.3 ×4** · **D2** dead-code · **D7/D8/D9** docs; Q4 axe instaliran ali **neizvršen** | prošla |
 
 > **`019e58a`** (`fix(dashboard): D9 error stanja + test:daily-log-amount-parity`) nije
 > uračunat ni u jednu fazu iznad jer je preduslov koji je dotakao **dvije** faze: D9 u
@@ -120,6 +120,17 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > postoji (`:1116` uklanja već izabranu uslugu). Ispravljeno po `daily-log` obrascu.
 > **`window.confirm` ×14 NIJE prekršaj** (svih 14 koristi `t(...)`, a to je potvrda = 3.3.4),
 > pa `test:no-window-confirm` iz plana §7 **nije** uveden — bio bi čist churn.
+
+> **Faza 13 — ZATVORENA, ali bez rendered dokaza.** Q4 (`@axe-core/playwright` +
+> `@playwright/test`) je **instaliran** i `npx playwright test --list` nabroji 11 testova uz
+> čiste tipove, ali browser binarni fajl se **ne može preuzeti** u sandboxu, pa
+> `test:a11y-routes` **nije izvršen** i **nije** CI gate — sve što ovisi o renderu ostaje 🟡.
+> Konačna matrica: **51 red** = 26 ✅ · 1 ✅/❌ · 12 🟡 · 4 ❌ · 7 ➖ · 1 ➖/⚠️ (brojeve je
+> izbrojala skripta; prva verzija rezimea tvrdila je 28/14/3/11 i bila je **pogrešna**).
+> **Nije urađeno namjerno:** `test:no-window-confirm` (native `confirm` nije prekršaj, a
+> doprinosi 3.3.4) i razbijanje `EmailSettings.tsx` (testovi ga čitaju po putanji).
+> **Novi nalaz u `HANDOFF.md` (D10, bez tihog popravljanja):** 15 mjesta koristi
+> `toFixed(2) + ' KM'` umjesto `formatLocalizedAmount` → miješani format i `"NaN KM"`.
 
 > **Faza 13, D3 — napomene.** Plan je tražio „grep sirovih boja → allowlist", ali sirova
 > klasa **nije** prekršaj ako kontrast prolazi (883 svjetle upotrebe), pa je to zamijenjeno

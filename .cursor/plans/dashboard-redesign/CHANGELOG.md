@@ -2642,3 +2642,93 @@ ne `json.dumps` round-trip: `git diff --numstat` = **1/17** po fajlu, a ne hilja
 | `check_i18n --strict` | PASS (bs/en paritet očuvan) |
 | `check_repo_hygiene` | PASS, 1683 trackovane putanje (HEAD 1684 → −1) |
 | `git diff` HEAD↔index | **jedina** razlika = `frontend/src/components/ui/tooltip.tsx` |
+
+---
+
+## 2026-11-09 — Faza 13 (commit 4): Q4 axe/Playwright + D7/D8/D9 dokumentacija
+
+### Q4 — axe + Playwright: instalirano, ali **neizvršeno**
+
+Q4 je odobrio `@axe-core/playwright` + `@playwright/test`.
+
+> **Ispravka moje tvrdnje:** u prvoj verziji ovog unosa napisao sam da su zavisnosti
+> **instalirane u fazi 13**. To je netačno — `git log` pokazuje da su u `frontend/package.json`
+> **još od commita `7eb3d61` (faza 3)**, dakle instalacija iz Q4 je odavno urađena. Moj
+> `npm install --save-dev @axe-core/playwright@^4.10.0 @playwright/test@^1.49.0` bio je
+> praktično **no-op** (već prisutne iste verzije `4.14.0` / `1.65.0`, pa `package.json` i
+> `package-lock.json` nisu promijenjeni). Ono što je **novo** u fazi 13 su `playwright.config.ts`,
+> `e2e/a11y-routes.spec.ts`, omotač `scripts/run-a11y-routes.mjs` — i saznanje da se browser
+> binarni fajl ovdje ne može preuzeti.
+
+Stanje:
+
+| Korak | Rezultat |
+|---|---|
+| Zavisnosti u `package.json` | prisutne od `7eb3d61` (faza 3): `@axe-core/playwright@^4.14.0`, `@playwright/test@^1.65.0` |
+| `npm ls` | čist |
+| `npx playwright install chromium` | **❌ PADA** — `Failed to download Chrome for Testing 158.0.8127.18 (playwright chromium v1254) … Download failure, code=1` (sandbox dozvoljava github/npm/pypi, ne Playwright CDN) |
+| `npx tsc --noEmit --strict` nad specom | **prolazi** |
+| `npx playwright test --list` | **nabraja 11 testova** → config i spec se učitavaju |
+
+Zato `test:a11y-routes` **nije** dodat u CI kao blokirajući korak: ne bi bilo pošteno
+tvrditi da prolazi nešto što nikad nije pokrenuto. U `playwright.config.ts` i specu je
+🔴 napomena s tačnom greškom i komandom za pokretanje.
+
+**Omotač `scripts/run-a11y-routes.mjs`** preskače test kad browser ne postoji (glasno
+`⚠️ SKIPPED` + uputstvo, exit 0) kako ne bi rušio `test:*` petlju niti davao lažno crveno u
+CI. Prva verzija omotača **nije radila**: `chromium.executablePath()` vraća *očekivanu*
+putanju i kad browser nije instaliran (ne baca), pa je omotač pokrenuo testove koji su pali s
+`Executable doesn't exist at …/chrome-headless_shell`. Ispravljeno provjerom
+`existsSync(candidate)`. `frontend/test-results/` i `frontend/playwright-report/` dodati u
+`.gitignore` (postojeći `/test-results/` je usidren na koren repa pa nije hvatao poddirektorij).
+
+**Putanje u specu su verificirane iz izvora**, i to je uhvatilo grešku: prva verzija je
+imala `/rezervacije`, a ruta je **`rezervacija`** (jednina, `public.routes.tsx:34`) — dalo bi
+404. Sada svih 9 putanji (`/`, `/usluge`, `/galerija`, `/kontakt`, `/rezervacija`,
+`/zadovoljni-klijenti`, `/blog`, `/login`, `/register`) postoji u `router.tsx` /
+`public.routes.tsx` (skripta: 9/9, 0 nepostojećih).
+
+### D8 — konačna WCAG matrica
+
+Dodan odjeljak **„KONAČNI STATUSI — ETAPA B"** u
+[`MATRIX.md`](../../docs/matrices/dashboard-a11y/MATRIX.md); ETAPA A tabele su zadržane
+kao baseline. **51 red**: 26 ✅ · 1 ✅/❌ · 12 🟡 · 4 ❌ · 7 ➖ · 1 ➖/⚠️.
+
+> Brojeve je **izbrojala skripta**, ne ja. Prva verzija rezimea je tvrdila 28/14/3/11 —
+> **pogrešno**; stvarno je 26/12/4/7. Ispravljeno prije commita.
+
+Mjerenja iz izvora (ETAPA A → sada): `aria-current` 0 → **6** · `th scope="col"` 17/129 →
+**115/152** · `<caption>` 3 → **21** · `focus-visible` 40 → **162** · `scroll-padding` 0 →
+**2** · `prefers-reduced-motion` 1 (samo logo) → **3** (globalno na `*`) ·
+`role="status"` **84** / `role="alert"` **63** · `check_ui_contrast.py --strict` 9/23 padalo
+→ **80/80**.
+
+### D7 — FINDINGS i HANDOFF
+
+- **`docs/audit/FINDINGS.md`**: dopuna uz A11Y-01 koja **izričito ne zatvara** finding —
+  dashboard rad je source-contract, rendered dokaza nema.
+- **`docs/audit/HANDOFF.md`** (D10, bez tihog popravljanja): **15 mjesta** zaobilazi
+  `formatLocalizedAmount` i koristi `toFixed(2) + ' KM'` → u BS lokalizaciji isti ekran može
+  prikazati i `1250.00 KM` i `1.250,00 KM`, a `undefined` daje `"NaN KM"` umjesto `'—'`.
+  Nije WCAG prekršaj; traži zaseban namjeran commit.
+
+### 2.5.7 — provjera umjesto pretpostavke
+
+Plan traži „ima li tastaturnu alternativu; ako nema, zabilježiti". Iz izvora:
+- `before-after-spotlight.tsx` — **0** `onPointerDown`/`onMouseDown`/`draggable` → **➖**,
+  izbor ide preko `<button>` (`:104`, `:247`); nije drag slider.
+- `ReservationScheduler.tsx` — `onEventDrop`/`onEventResize` (`:673`/`:682`) **ostaju**, ali
+  postoji **agenda** prikaz (`:409`, `:565`) i `type="time"` polja u detaljima (`:807`/`:817`,
+  `:1197`/`:1206`) kao put bez povlačenja. **Nije provjereno** da li je `onSelectEvent`
+  dostupan tastaturom → **🟡**, ne ✅.
+
+### 1.2.x — nije primjenjivo
+
+0 pogodaka za `<video>`/`<audio>` u `pages/`, `features/`, `components/`, `layouts/` → **➖**.
+
+### Dvije stavke iz plana §7 koje **nisu** urađene
+
+1. `test:no-window-confirm` — svih 14 poziva koristi `t(...)`, native `confirm` je fokusiran
+   i tastaturno dostupan, a kao potvrda **doprinosi** 3.3.4. Blokirajući test = čist churn.
+2. Razbijanje `EmailSettings.tsx` (1377 ln) — testovi ga čitaju po putanji; dijeljenje bi ih
+   slomilo uz nula a11y vrijednosti.

@@ -139,3 +139,122 @@
 screen reader (NVDA/VoiceOver), forced colors, target size mjerenje, axe-core.
 Ručna checklista: [`CHECKLIST.md` §Ručna provjera](../../../plans/dashboard-redesign/CHECKLIST.md).
 Axe harness čeka odobrenje **Q4**.
+
+---
+
+# KONAČNI STATUSI — ETAPA B (faze 0–13, 2026-11-09)
+
+Gornje tabele su **ETAPA A baseline** (zadržane kao historija). Ovo je stanje nakon svih
+13 faza. Pravila za status su ista kao u legendi: ✅ samo uz test/skriptu/proračun.
+
+> **R1 i dalje važi:** rendered/browser/screen-reader provjere **nema**. `@axe-core/playwright`
+> i `@playwright/test` su instalirani (Q4), `npx playwright test --list` nabroji **11 testova**
+> i tipovi prolaze, ali browser binarni fajl se ne može preuzeti u sandboxu
+> (`Failed to download Chrome for Testing 158.0.8127.18`), pa `test:a11y-routes` **nije
+> izvršen** i nije CI gate. Sve ✅ ispod su **source-contract** dokazi.
+
+## Mjerenja (izvor, 2026-11-09)
+
+| Mjera | ETAPA A | Sada |
+|---|---:|---:|
+| `test:*` skripti | 142 | **169** |
+| `aria-current` | 0 | **6** |
+| `th scope="col"` / ukupno `<th>` | 17 / 129 | **115 / 152** |
+| `<caption>` | 3 | **21** |
+| `focus-visible` | 40 | **162** |
+| `role="status"` / `role="alert"` | — | **84 / 63** |
+| `scroll-padding` | 0 | **2** (`globals.css`) |
+| `prefers-reduced-motion` pravila | 1 (samo logo) | **3** (globalno, `*`) |
+| `check_ui_contrast.py --strict` | 9/23 padalo | **80/80 prolazi** |
+| bundle (gzip) | — | **273.8 KiB** (budžet 300) |
+
+## Statusi po kriteriju
+
+| SC | Status | Dokaz / šta NIJE dokazano |
+|---|---|---|
+| 1.1.1 | ✅ | `test:*-a11y` (ikone `aria-hidden`, grafikoni imaju tekstualni sažetak) |
+| 1.2.1–1.2.5 | ➖ | 0 pogodaka za `<video>`/`<audio>` u `pages/`, `features/`, `components/`, `layouts/` |
+| 1.3.1 | ✅ | jedan `<h1>` po stranici, `caption` ×21, `th scope` 115/152, landmark-i; testovi po modulu |
+| 1.3.2–1.3.4 | 🟡 | DOM redoslijed i orijentacija samo u kodu |
+| 1.3.5 | ✅ | grep + `test:i18n-language` |
+| 1.4.1 | ✅ | semantički tokeni (`test:semantic-tokens`, `test:settings-semantic-tokens`) |
+| 1.4.3 | ✅ | `check_ui_contrast.py --strict` 80/80 + `test:text-contrast-allowlist` (178 fajlova, 27 obrazloženih, 4 ispravljena) |
+| 1.4.4 / 1.4.12 | 🟡 | `rem` skala postoji; zoom 200/400% i text spacing **nisu** mjereni |
+| 1.4.5 | 🟡 | SVG logo, bez teksta kao slike (nije render-provjereno) |
+| 1.4.10 | 🟡 | card prikaz i `overflow-x` + `tabindex="0"` postoje; reflow 320px **nije** mjeren |
+| 1.4.11 | ✅ | `--control-border` 4.24:1 (proračun); dekorativne ikone `aria-hidden` |
+| 1.4.13 | ➖ | tooltip komponenta **obrisana** (faza 13, D2) → nema tooltipova |
+| 1.4.6 (AAA) | ✅/❌ | glavni tekst 20.01:1 ✅; `--text-muted` 5.61:1 ispod 7:1 (Q5: admin override) |
+| 1.4.8 / 1.4.9 (AAA) | ➖ | odbijeno (Q5) |
+| 2.1.1 | 🟡 | combobox u `ReservationScheduler` popravljen (`test:reservation-scheduler-combobox`, 12/12 mutacija); tastatura u renderu **nije** provjerena |
+| 2.1.2 | ✅ | Radix fokus trap; `window.confirm` ×14 je native i **nema** trap (vidi niže) |
+| 2.1.4 | ➖ | nema single-key shortcuta |
+| 2.2.1 | ➖/⚠️ | UI nema auto-logout; backend timeout nije provjeren |
+| 2.2.2 | ➖ | 60s poll za badge nije „moving content“; bez animiranog sadržaja |
+| 2.3.1 | 🟡 | nema bljeskajućeg sadržaja u kodu |
+| 2.3.3 (AAA) | ✅ | `globals.css:241` globalni `prefers-reduced-motion` na `*` (pokriva i Radix i Sonner) |
+| 2.4.1 | ✅ | skip-link postoji (`test:shell-a11y`); pozicija u tab redu 🟡 |
+| 2.4.2 | ✅ | `seo/dashboard-titles.ts` + `test:analytics-hub-redirect` / `test:settings-hub-redirect` |
+| 2.4.3 | 🟡 | `tabIndex={-1}` na naslovu postoji; stvarni pomak fokusa 🟡 |
+| 2.4.4 | ✅ | `aria-current` ×6, jedinstvena imena akcija (testovi po modulu) |
+| 2.4.5 | ✅ | sidebar + pretraga + hub tabovi (M1/M2) |
+| 2.4.6 | ✅ | `PageHeader` `h1`, vidljive labele; `test:stylist-form-controls-a11y` (≥27 kontrola, 0 bez imena) |
+| 2.4.7 | ✅ | `--focus-ring` 11.56:1, `focus-visible` ×162 |
+| 2.4.11 | ✅ | `scroll-padding-top/bottom` u `globals.css`; sticky konteksti 🟡 |
+| 2.4.12 (AAA) | ➖ | odbijeno (Q5) |
+| 2.4.13 (AAA) | ✅ | 3px prsten, `outline-offset: 2px`, 11.56:1 |
+| 2.5.1 / 2.5.2 / 2.5.4 | 🟡 | aktivacija na `click`, nema gesta — u kodu |
+| 2.5.3 | 🟡 | vidljivi tekst je dio imena (nije AT-provjereno) |
+| 2.5.5 (AAA) 44px | ✅ | `minHeight/minWidth.target` = 2.75rem u tokenima |
+| 2.5.7 | 🟡 | kalendar: `onEventDrop`/`onEventResize` (`:673`/`:682`) ostaju, ali postoji **agenda** prikaz (`:409`, `:565`) i `type="time"` polja u detaljima (`:807`/`:817`, `:1197`/`:1206`) kao put bez povlačenja. **Nije provjereno** da li je `onSelectEvent` dostupan tastaturom. `before-after-spotlight`: **0** drag/pointer handlera → ➖ |
+| 2.5.8 24px | 🟡 | `h-8 w-8` (32px) / `h-7 w-7` (28px) prolaze minimum; nije izmjereno u renderu |
+| 3.1.1 | ✅ | `test:i18n-language` |
+| 3.1.2 | ❌ | dinamički API sadržaj bez `lang` (jezik nije poznat) |
+| 3.2.1 / 3.2.2 | 🟡 | nema akcije na fokus/input u kodu |
+| 3.2.3 | ✅ | jedinstven shell; `test:shell-a11y` (1 `<nav`, `aria-current`) |
+| 3.2.4 | ✅ | `StatusBadge`/`Button`/semantički tokeni kroz module |
+| 3.2.6 | ❌ | nema help elementa u shellu — **nije dodato** (bio bi novi feature) |
+| 3.3.1 | ✅ | `role="alert"` ×63; `test:stylist-status-messages-a11y`, `test:onboarding-a11y` |
+| 3.3.2 | ✅ | `aria-describedby` + vidljiv zahtjev (faza 12); `test:onboarding-a11y` (7/7 mutacija) |
+| 3.3.3 | ❌ | nema sažetka grešaka s linkovima na polja |
+| 3.3.4 | ✅ | `window.confirm` ×14 **zadržan namjerno** — native potvrda zadovoljava kriterij |
+| 3.3.7 | ❌ | redundant entry nije sistematski provjeren |
+| 3.3.8 | ✅ | `autocomplete={i === 0 ? 'one-time-code' : 'off'}`, paste bez blokiranja, 0 captcha; `test:onboarding-a11y` |
+| 3.3.9 (AAA) | ➖ | djelimično odbijeno (backend timeout van obima) |
+| 4.1.2 | ✅ | Radix primitivi, `aria-sort`, `aria-current`, `role="listbox"`/`"option"`; `test:reservation-scheduler-combobox` |
+| 4.1.3 | ✅ | `role="status"` ×84, `role="alert"` ×63; sonner ima `aria-live="polite"` (`dist/index.mjs:1145`) |
+
+## Rezime (ETAPA B)
+
+Brojano **skriptom** po redovima donje tabele (neki redovi pokrivaju više SC-ova, npr.
+`1.3.2–1.3.4` i `2.5.1 / 2.5.2 / 2.5.4`), ne napamet:
+
+| Status | Broj redova |
+|---|---:|
+| ✅ verifikovano (source-contract) | **26** |
+| ✅/❌ mješovito (`1.4.6` — glavni tekst ✅, sporedni ❌) | **1** |
+| 🟡 u kodu, nije verifikovano u renderu | **12** |
+| ❌ nije zadovoljeno (`3.1.2`, `3.2.6`, `3.3.3`, `3.3.7`) | **4** |
+| ➖ nije primjenjivo / odbijeno AAA | **7** |
+| ➖/⚠️ (`2.2.1` — UI ➖, backend timeout neprovjeren) | **1** |
+| **ukupno** | **51** |
+
+## Dvije planirane stavke koje **nisu** urađene — i zašto
+
+1. **`test:no-window-confirm`** (plan §7) — svih 14 poziva koristi `t(...)`, native `confirm`
+   je fokusiran i tastaturno dostupan, a kao potvrda **doprinosi** 3.3.4. Blokirajući test
+   bio bi čist churn bez a11y vrijednosti.
+2. **Razbijanje `EmailSettings.tsx` (1377 ln) na < 120 ln** — testovi ga čitaju po putanji;
+   dijeljenje bi ih slomilo uz nula a11y vrijednosti. Ostaje kao zaseban, namjeran refactor.
+
+## Šta ostaje 🟡 i kako se zatvara
+
+Jedna komanda (na mašini s pristupom Playwright CDN-u):
+
+```bash
+cd frontend && npx playwright install --with-deps chromium && npm run test:a11y-routes
+```
+
+Tada `e2e/a11y-routes.spec.ts` (11 testova: axe nad 9 javnih ruta + skip-link + `<title>`)
+daje rendered dokaz za 1.4.10, 2.4.1, 2.4.2 i axe-sweep. Za `/admin/**` treba podignut
+backend i `storageState` s tokenom — mjesto je označeno u specu.
