@@ -44,12 +44,15 @@ test('fokus ring koristi --focus-ring token, ne hardcoded hex (2.4.13)', () => {
 })
 
 test('aktivno stanje navigacije koristi brand tokene', () => {
-  const shell = read('./settings-shell.tsx')
-  assert.match(shell, /border-brand-rose-ring bg-nav-active/)
-  assert.match(shell, /bg-brand-rose text-on-primary/)
-  assert.match(shell, /isActive \? 'text-brand-rose-text'/)
-  // nav mora imati ime i NavLink daje aria-current
-  assert.match(shell, /<nav aria-label=\{t\('adminSettings\.navigationLabel'\)\}/)
+  // M2: navigacija je izdvojena iz settings-shell.tsx u settings-tab-nav.tsx
+  const nav = read('./settings-tab-nav.tsx')
+  assert.match(nav, /border-brand-rose-ring bg-nav-active/)
+  assert.match(nav, /bg-brand-rose text-on-primary/)
+  assert.match(nav, /isActive \? 'text-brand-rose-text' : 'text-slate-800'/)
+  // nav mora imati ime; aria-current se postavlja eksplicitno jer <Link> ne
+  // zna za ?tab= (NavLink gleda samo pathname)
+  assert.match(nav, /<nav\s+aria-label=\{t\('adminSettings\.navigationLabel'\)\}/)
+  assert.match(nav, /aria-current=\{isActive \? 'page' : undefined\}/)
 })
 
 test('D3: suffix postavke koristi --text-muted, ne slate-400 (1.4.3)', () => {

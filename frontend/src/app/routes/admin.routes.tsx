@@ -2,6 +2,7 @@ import { lazy } from 'react'
 import { Navigate, RouteObject } from 'react-router-dom'
 
 import ProtectedRoute from '../../components/ProtectedRoute'
+import { TabRedirect } from '../../features/shell/admin/tab-redirect'
 import DashboardLayout from '../../layouts/DashboardLayout'
 
 const Dashboard = lazy(() => import('../../pages/Dashboard'))
@@ -15,18 +16,12 @@ const Finance = lazy(() => import('../../pages/Finance'))
 const Blog = lazy(() => import('../../pages/Blog'))
 const Gallery = lazy(() => import('../../pages/Gallery'))
 const Reviews = lazy(() => import('../../pages/Reviews'))
-const Settings = lazy(() => import('../../pages/Settings'))
-const SettingsOperations = lazy(() => import('../../pages/SettingsOperations'))
-const SettingsAppearance = lazy(() => import('../../pages/SettingsAppearance'))
-const SettingsSeo = lazy(() => import('../../pages/SettingsSeo'))
-const Notifications = lazy(() => import('../../pages/Notifications'))
-const EmailSettings = lazy(() => import('../../pages/EmailSettings'))
+const SettingsHub = lazy(() => import('../../pages/SettingsHub'))
 const ClientAnalytics = lazy(() => import('../../pages/ClientAnalytics'))
 const StylistAnalytics = lazy(() => import('../../pages/StylistAnalytics'))
 const Analytics = lazy(() => import('../../pages/Analytics'))
 const Loyalty = lazy(() => import('../../pages/Loyalty'))
 const ServiceWorkGallery = lazy(() => import('../../pages/ServiceWorkGallery'))
-const AppReleases = lazy(() => import('../../pages/AppReleases'))
 
 export const adminRoutes: RouteObject[] = [
   {
@@ -50,13 +45,13 @@ export const adminRoutes: RouteObject[] = [
       { path: 'blog', element: <Blog /> },
       { path: 'gallery', element: <Gallery /> },
       { path: 'reviews', element: <Reviews /> },
-      { path: 'settings', element: <Settings /> },
-      { path: 'settings/operations', element: <SettingsOperations /> },
-      { path: 'settings/appearance', element: <SettingsAppearance /> },
-      { path: 'settings/seo', element: <SettingsSeo /> },
-      { path: 'app-releases', element: <AppReleases /> },
-      { path: 'notifications', element: <Notifications /> },
-      { path: 'email-settings', element: <EmailSettings /> },
+      { path: 'settings', element: <SettingsHub /> },
+      { path: 'settings/operations', element: <TabRedirect to="/admin/settings" tab="operations" /> },
+      { path: 'settings/appearance', element: <TabRedirect to="/admin/settings" tab="appearance" /> },
+      { path: 'settings/seo', element: <TabRedirect to="/admin/settings" tab="seo" /> },
+      { path: 'app-releases', element: <TabRedirect to="/admin/settings" tab="releases" /> },
+      { path: 'notifications', element: <TabRedirect to="/admin/settings" tab="notifications" /> },
+      { path: 'email-settings', element: <TabRedirect to="/admin/settings" tab="email" /> },
       { path: 'client-analytics', element: <ClientAnalytics /> },
       { path: 'stylist-analytics', element: <StylistAnalytics /> },
       { path: 'analytics', element: <Analytics /> },

@@ -3,7 +3,18 @@ export type AdminNavItem = {
   labelKey: string
   /** Match active for nested paths (e.g. /admin/finance?tab=) */
   matchPrefix?: string
+  /**
+   * M2: stavka cilja tab hub-a (`/admin/settings?tab=…`). Više stavki dijeli
+   * isti `path`, pa se aktivno stanje ne može riješiti samo po pathname-u.
+   */
+  tab?: string
+  /** Zadani tab svoje rute — aktivna i kad `?tab=` nedostaje. */
+  tabDefault?: boolean
 }
+
+/** Href stavke, uklj. `?tab=` ako ga ima. */
+export const adminNavItemHref = (item: AdminNavItem): string =>
+  item.tab ? `${item.path}?tab=${item.tab}` : item.path
 
 export type AdminNavGroup = {
   labelKey: string
@@ -55,10 +66,10 @@ export const adminNavGroups: AdminNavGroup[] = [
   {
     labelKey: 'nav.sectionSystem',
     items: [
-      { path: '/admin/settings', labelKey: 'nav.settings' },
-      { path: '/admin/app-releases', labelKey: 'nav.appReleases' },
-      { path: '/admin/notifications', labelKey: 'nav.notifications' },
-      { path: '/admin/email-settings', labelKey: 'nav.emailSettings' },
+      { path: '/admin/settings', labelKey: 'nav.settings', tab: 'site', tabDefault: true },
+      { path: '/admin/settings', labelKey: 'nav.appReleases', tab: 'releases' },
+      { path: '/admin/settings', labelKey: 'nav.notifications', tab: 'notifications' },
+      { path: '/admin/settings', labelKey: 'nav.emailSettings', tab: 'email' },
     ],
   },
 ]
@@ -69,7 +80,13 @@ export const flatAdminNavItems = (): AdminNavItem[] =>
 export const isAdminNavItemActive = (
   pathname: string,
   item: AdminNavItem,
+  searchTab?: string | null,
 ): boolean => {
+  if (item.tab) {
+    if (pathname !== item.path) return false
+    if (item.tabDefault) return !searchTab || searchTab === item.tab
+    return searchTab === item.tab
+  }
   if (item.path === '/admin') return pathname === '/admin'
   return pathname === item.path || pathname.startsWith(`${item.path}/`)
 }

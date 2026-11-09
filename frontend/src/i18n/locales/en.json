@@ -186,12 +186,18 @@
   "adminSettings": {
     "navigationLabel": "Settings categories",
     "nav": {
+      "email": "Email",
+      "notifications": "Notifications",
+      "releases": "Mobile release",
       "site": "Site",
       "operations": "Operations",
       "appearance": "Appearance",
       "seo": "SEO"
     },
     "navDescriptions": {
+      "email": "SMTP, templates, and campaigns",
+      "notifications": "Push, email, and notification preferences",
+      "releases": "Android versions and APK files",
       "site": "Public website and mobile app content.",
       "operations": "Reservation deadlines and reminders.",
       "appearance": "Logo, name and colors.",

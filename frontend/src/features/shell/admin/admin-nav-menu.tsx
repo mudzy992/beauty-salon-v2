@@ -2,10 +2,17 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { Badge } from '../../../components/ui/badge'
-import { adminNavGroups, isAdminNavItemActive, type AdminNavItem } from './admin-nav'
+import {
+  adminNavGroups,
+  adminNavItemHref,
+  isAdminNavItemActive,
+  type AdminNavItem,
+} from './admin-nav'
 
 type Props = {
   pathname: string
+  /** `location.search` — potreban jer M2 tabovi dijele isti `pathname`. */
+  search?: string
   pendingBlogComments: number
   onNavigate?: () => void
   compact?: boolean
@@ -27,11 +34,13 @@ const linkClass = (compact: boolean, active: boolean) => {
 
 export const AdminNav = ({
   pathname,
+  search,
   pendingBlogComments,
   onNavigate,
   compact = false,
 }: Props) => {
   const { t } = useTranslation()
+  const searchTab = new URLSearchParams(search ?? '').get('tab')
 
   return (
     <nav
@@ -55,8 +64,8 @@ export const AdminNav = ({
               const showPending = isBlog && pendingBlogComments > 0
               return (
                 <AdminNavLink
-                  key={item.path}
-                  active={isAdminNavItemActive(pathname, item)}
+                  key={adminNavItemHref(item)}
+                  active={isAdminNavItemActive(pathname, item, searchTab)}
                   compact={compact}
                   item={item}
                   onNavigate={onNavigate}
@@ -88,7 +97,7 @@ const AdminNavLink = ({
 
   return (
     <Link
-      to={item.path}
+      to={adminNavItemHref(item)}
       onClick={onNavigate}
       className={linkClass(compact, active)}
       // WCAG 4.1.2 — trenutna stranica je označena programski, ne samo stilom.

@@ -569,6 +569,9 @@ jobs:
       - name: Test admin settings control accessibility
         working-directory: frontend
         run: npm run test:admin-settings-controls-a11y
+      - name: Test settings hub tab routing and redirects
+        working-directory: frontend
+        run: npm run test:settings-hub-redirect
       - name: Test localized stylist analytics page
         working-directory: frontend
         run: npm run test:stylist-analytics-i18n

@@ -183,12 +183,18 @@
   "adminSettings": {
     "navigationLabel": "Kategorije postavki",
     "nav": {
+      "email": "E-mail",
+      "notifications": "Notifikacije",
+      "releases": "Mobilni release",
       "site": "Sajt",
       "operations": "Operacije",
       "appearance": "Izgled",
       "seo": "SEO"
     },
     "navDescriptions": {
+      "email": "SMTP, šabloni i kampanje",
+      "notifications": "Push, e-mail i postavke obavijesti",
+      "releases": "Android verzije i APK fajlovi",
       "site": "Sadržaj javnog sajta i mobilne aplikacije.",
       "operations": "Rokovi rezervacija i podsjetnici.",
       "appearance": "Logo, naziv i boje.",

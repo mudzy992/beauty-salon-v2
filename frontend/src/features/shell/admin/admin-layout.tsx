@@ -12,7 +12,7 @@ import { useSettings } from '../../../context/SettingsContext'
 import api from '../../../api/client'
 import { getUploadUrl } from '../../../utils/uploadUrl'
 import { useFocusOnNavigate } from '../../../hooks/use-focus-on-navigate'
-import { flatAdminNavItems } from './admin-nav'
+import { flatAdminNavItems, isAdminNavItemActive } from './admin-nav'
 import { AdminNav } from './admin-nav-menu'
 import { AdminBrand, AdminUserMenu } from './admin-chrome'
 import { SkipLink } from './ui/skip-link'
@@ -40,16 +40,19 @@ export const AdminLayout = () => {
   }
 
   const currentLabel = useMemo(() => {
+    const searchTab = new URLSearchParams(location.search).get('tab')
     const match = flatAdminNavItems().find(
       (x) =>
-        location.pathname === x.path ||
-        (x.path !== '/admin' && location.pathname.startsWith(`${x.path}/`)),
+        x.tab
+          ? isAdminNavItemActive(location.pathname, x, searchTab)
+          : location.pathname === x.path ||
+            (x.path !== '/admin' && location.pathname.startsWith(`${x.path}/`)),
     )
     if (match) return t(match.labelKey)
     if (location.pathname.startsWith('/admin/client-analytics')) return t('nav.clientAnalytics')
     if (location.pathname.startsWith('/admin/stylist-analytics')) return t('nav.stylistAnalytics')
     return location.pathname
-  }, [location.pathname, t])
+  }, [location.pathname, location.search, t])
 
   const adminInitials = (user?.username?.trim()?.[0] ?? 'A').toUpperCase()
   const adminAvatarSrc = user?.avatar ? getUploadUrl(user.avatar) : ''
@@ -111,6 +114,7 @@ export const AdminLayout = () => {
                   <div className="mt-4 min-h-0 flex-1 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mr-2 pr-2">
                     <AdminNav
                       pathname={location.pathname}
+                      search={location.search}
                       pendingBlogComments={pendingBlogComments}
                       onNavigate={() => setSidebarOpen(false)}
                       compact
@@ -167,7 +171,7 @@ export const AdminLayout = () => {
       <div className="mx-auto grid max-w-[1600px] grid-cols-1 gap-4 px-4 py-4 lg:grid-cols-[220px_1fr]">
         <aside className="hidden lg:block">
           <div className="rounded-lg border border-line bg-surface p-2">
-            <AdminNav pathname={location.pathname} pendingBlogComments={pendingBlogComments} />
+            <AdminNav pathname={location.pathname} search={location.search} pendingBlogComments={pendingBlogComments} />
           </div>
         </aside>
         {/* WCAG 2.4.1/2.4.3 — skip link cilja ovaj landmark; tabIndex=-1 ga čini fokusabilnim. */}
