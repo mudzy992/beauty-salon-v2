@@ -106,6 +106,14 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > ekvivalenta (detaljni panel ga je imao), pa su ćelije ocjena za čitač ekrana bile prazne.
 > Novi test `test:admin-content-a11y` (10 testova); **14/14 mutacija palo**.
 
+> **🔴 REGRESIJA iz faze 6 — React #310 na `/admin/analytics` (ispravljeno).** U `87eeabc`
+> sam dodao `const chartSummary = useMemo(…)` **ispod** postojećih `if (loading) return` /
+> `if (!data) return`, pa je broj hookova rastao između rendera i React je bacao #310
+> („Rendered more hooks than during the previous render"). Rušilo se pri svakom učitavanju.
+> Prošlo je jer svi testovi čitaju **izvor**, `tsc` ne provjerava pravila hookova, a ESLint
+> (`react-hooks/rules-of-hooks`) **nije konfigurisan**. Novi čuvar `test:hooks-order`
+> pokriva **cijeli `src/`** (54 komponente, 0 prekršaja nakon ispravke, 3/3 mutacije padaju).
+
 > **Faza 11 — napomene (u toku).** Plan je ovdje bio **najmanje tačan** do sada: od 10
 > stavki **5 je opovrgnuto** (D1 već urađen u fazi 0; D3 dijalozi već imaju `DialogTitle` +
 > `DialogDescription`; D4 klijent/usluga se traže jednom; D6 search ikone su `aria-hidden`;

@@ -124,6 +124,37 @@ export default function Analytics() {
     load()
   }, [load])
 
+  // 1.1.1: graf mora imati tekstualnu alternativu s kljucnim brojevima.
+  //
+  // 🔴 Oba hooka MORAJU biti iznad `if (loading)` / `if (!data)` early return-a.
+  // Kad su bili ispod njih, prvi render (loading=true) je imao jedan hook manje od
+  // drugog, pa je React bacao #310 „Rendered more hooks than during the previous
+  // render" i analitika se rusila pri svakom ucitavanju (regresija iz `87eeabc`).
+  const chartData = useMemo(
+    () =>
+      (data?.monthlyFinance ?? []).map((m) => ({
+        ...m,
+        label: new Intl.DateTimeFormat(getIntlLocale(i18n.language), {
+          month: 'short',
+          year: 'numeric',
+          timeZone: 'UTC',
+        }).format(new Date(Date.UTC(m.year, m.month - 1, 1))),
+        net: m.income - m.expenses,
+      })),
+    [data, i18n.language],
+  )
+
+  const chartSummary = useMemo(() => {
+    const sum = (key: 'income' | 'expenses' | 'tips') =>
+      chartData.reduce((acc, row) => acc + Number(row[key] ?? 0), 0)
+    return {
+      months: chartData.length,
+      revenue: formatLocalizedAmount(sum('income'), i18n.language),
+      expenses: formatLocalizedAmount(sum('expenses'), i18n.language),
+      tips: formatLocalizedAmount(sum('tips'), i18n.language),
+    }
+  }, [chartData, i18n.language])
+
   if (loading) {
     return (
       <div className="flex justify-center p-10 text-slate-500">
@@ -139,28 +170,6 @@ export default function Analytics() {
       </div>
     )
   }
-
-  const chartData = data.monthlyFinance.map((m) => ({
-    ...m,
-    label: new Intl.DateTimeFormat(getIntlLocale(i18n.language), {
-      month: 'short',
-      year: 'numeric',
-      timeZone: 'UTC',
-    }).format(new Date(Date.UTC(m.year, m.month - 1, 1))),
-    net: m.income - m.expenses,
-  }))
-
-  // 1.1.1: graf mora imati tekstualnu alternativu s kljucnim brojevima.
-  const chartSummary = useMemo(() => {
-    const sum = (key: 'income' | 'expenses' | 'tips') =>
-      chartData.reduce((acc, row) => acc + Number(row[key] ?? 0), 0)
-    return {
-      months: chartData.length,
-      revenue: formatLocalizedAmount(sum('income'), i18n.language),
-      expenses: formatLocalizedAmount(sum('expenses'), i18n.language),
-      tips: formatLocalizedAmount(sum('tips'), i18n.language),
-    }
-  }, [chartData, i18n.language])
 
   const periodLabel =
     data.fromDate && data.toDate

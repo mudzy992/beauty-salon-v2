@@ -128,6 +128,9 @@ korak tek u M1 (dug iz faze 3).
   **redoslijed je bitan** (specifičnije prije opštijeg, jer se koristi `.find()`).
 - **`NavLink` / `isAdminNavItemActive` gledaju samo `pathname`** — na hub-ruti bi sve stavke
   bile aktivne, pa `aria-current` treba postaviti **eksplicitno**.
+- **🔴 Hookovi nikad nakon early return-a.** `87eeabc` je tako srušio `/admin/analytics`
+  (React #310). Čuvar: `test:hooks-order` (cijeli `src/`). `tsc` ovo **ne** hvata, a
+  `eslint-plugin-react-hooks` nije uvezan — pa je test jedina zaštita.
 - **🔴 Nikad `git checkout -- .`** dok postoji nekcommitan rad — mutacijska skripta je tako
   obrisala cijeli M1. Restaurirati **samo** mutirani fajl iz sačuvane kopije u memoriji.
 - **🔴 Čuvar koji ne može pasti nije čuvar.** Nakon pisanja asertije **namjerno pokvari

@@ -2215,3 +2215,78 @@ Postojeći ugovor `workbook-new-entry-drawer-accessibility.test.mjs:9` asertovao
 | `npm run build` | 274.1 KiB gzip |
 | `check_i18n.py --strict` / `check_ui_contrast.py --strict` | PASS / 80/80 |
 | `check_repo_hygiene.py` / `check_doc_links.py` | 1678 / 669 |
+
+---
+
+## 2026-11-08 — 🔴 REGRESIJA: React #310 na `/admin/analytics` (ispravljeno)
+
+**Prijavio vlasnik:** analitika baca u konzolu
+`Minified React error #310` i ruši se pri učitavanju.
+
+### Šta je #310 (potvrđeno iz izvora, ne iz sjećanja)
+
+`scripts/error-codes/codes.json` iz React repoa (599 kodova):
+
+> **310** → „Rendered **more** hooks than during the previous render."
+> (300 → „Rendered fewer hooks than expected…")
+
+Dakle komponenta je u nekom renderu pozvala **više** hookova nego u prethodnom — klasičan
+znak hooka pozvanog **nakon** uslovnog `return`.
+
+### Uzrok
+
+`git blame` na `pages/Analytics.tsx`:
+
+| Linija | Commit | Sadržaj |
+|---|---|---|
+| 127 / 135 | `7eb3d61` | `if (loading) return …` / `if (!data) return …` (postojali otprije) |
+| **154** | **`87eeabc` (faza 6, moj)** | **`const chartSummary = useMemo(…)` — dodan ISPOD tih return-a** |
+
+Prvi render (`loading=true`) pozove 9 hookova; kada podaci stignu, pozove se i `useMemo` →
+**10 hookova** → React #310. Rušilo se pri **svakom** učitavanju analitike.
+
+**Ovo je moja regresija iz faze 6** (1.1.1 tekstualna alternativa za graf), ne posljedica M1.
+
+### Zašto je prošla kroz sve provjere
+
+Svi a11y testovi u ovom repou čitaju **izvor**, a ne renderuju komponente; `npm run build`
+(`tsc`) ne provjerava pravila hookova, a ESLint (`react-hooks/rules-of-hooks`) **nije
+konfigurisan** u ovom projektu. Nijedan postojeći čuvar nije mogao ovo vidjeti.
+
+### Ispravka
+
+`chartData` je sada `useMemo` s `data?.monthlyFinance ?? []` (računa se i dok je `data`
+`null`), a `chartSummary` ostaje `useMemo` nad njim — **oba iznad** `if (loading)` /
+`if (!data)`. Redoslijed hookova je time identičan u svakom renderu.
+
+### Sistematska provjera (ne samo analitika)
+
+Skenirano **54 komponente** u `src/`: nakon ispravke **0** hookova nakon early return-a.
+Prije ispravke — **tačno 1** (`Analytics.tsx`). Prvi, naivni detektor dao je 34 pogotka jer je
+hvatao i `return` iz pomoćnih funkcija unutar modula; sužen je na tijelo komponente
+(indent 2) + `return` unutar `if`-bloka (indent 4).
+
+### Novi čuvar
+
+**`test:hooks-order`** (2 testa) pokriva **cijeli `src/`**: nijedan hook ne smije biti pozvan
+nakon early return-a, i asertuje konkretan redoslijed u `Analytics.tsx`. Broji i skenirane
+komponente (`>= 50`) da ne „prođe" na praznom skupu.
+
+**3/3 mutacije padaju**, uključujući generalizaciju (novi `useMemo` ubačen iza early return-a
+u `StylistAnalytics.tsx`). Registrovan u `package.json` (172) i `ci.yml`.
+
+### Preporuka (nije urađeno — treba odluku)
+
+`eslint-plugin-react-hooks` s pravilom `rules-of-hooks` bi ovu klasu grešaka hvatao pri
+svakom `npm run lint`. ESLint trenutno **nije konfigurisan** u frontend-u (zabilježeno još u
+fazi 0); uvezivanje je odgođeno na fazu 13.
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` | **166/166** |
+| `npm run build` | 274.1 KiB gzip |
+| `check_i18n.py --strict` / `check_ui_contrast.py --strict` | PASS / 80/80 |
+| `check_repo_hygiene.py` / `check_doc_links.py` | 1679 / 669 |
+
+> ⚠️ **Nije verificirano u browseru** — ispravka je dokazana statički (redoslijed hookova) i
+> buildom. Vlasnik treba potvrditi da se `/admin/analytics` sada učitava bez greške u konzoli.

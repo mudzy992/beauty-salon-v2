@@ -587,6 +587,9 @@ jobs:
       - name: Test stylist portal dark theme contrast
         working-directory: frontend
         run: npm run test:stylist-dark-contrast-a11y
+      - name: Test hooks are not called after early returns
+        working-directory: frontend
+        run: npm run test:hooks-order
       # Dug iz faze 3: skripta je postojala u package.json ali nikad nije dobila CI korak.
       - name: Test reservation list API contract
         working-directory: frontend
