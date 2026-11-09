@@ -1170,6 +1170,13 @@
     }
   },
   "salon": {
+    "holidaysCaption": "Holidays table: date, name, push notification flag, sent time, and actions.",
+    "workingHoursCaption": "Salon working hours by day: day, working day, opening and closing time.",
+    "aria": {
+      "opensTime": "Opening time for {{day}}",
+      "closesTime": "Closing time for {{day}}",
+      "workingDayToggle": "Working day for {{day}}"
+    },
     "settings": "Basic settings",
     "workingHours": "Working hours",
     "holidays": "Holidays",
@@ -1242,6 +1249,7 @@
     }
   },
   "services": {
+    "tableCaption": "Services table: name, description, duration, price, gender, loyalty, status, and actions.",
     "newCategory": "New category",
     "newSubcategory": "New subcategory",
     "newService": "New service",
@@ -1332,6 +1340,10 @@
       "actions": "Actions"
     },
     "aria": {
+      "categoryActiveToggle": "Category active",
+      "subcategoryActiveToggle": "Subcategory active",
+      "serviceActiveToggle": "Service active",
+      "loyaltyToggle": "Loyalty enabled for service",
       "addSubcategory": "Add subcategory",
       "editCategory": "Edit category",
       "deleteCategory": "Delete category",
@@ -1359,6 +1371,8 @@
     }
   },
   "stylists": {
+    "workingHoursCaption": "Stylist working hours by day: day, working day, start and end time.",
+    "tableCaption": "Stylists table: user, email, specialization, hire date, status, and actions.",
     "newStylist": "New stylist",
     "editStylist": "Edit stylist",
     "specialization": "Specialisation",
@@ -1381,6 +1395,10 @@
       "total": "Total: {{count}}"
     },
     "aria": {
+      "startTime": "Start of working hours for {{day}}",
+      "endTime": "End of working hours for {{day}}",
+      "activeToggle": "Stylist profile active",
+      "workingDayToggle": "Working day for {{day}}",
       "analytics": "Stylist analytics",
       "edit": "Edit stylist profile",
       "removeCompetency": "Remove competency"

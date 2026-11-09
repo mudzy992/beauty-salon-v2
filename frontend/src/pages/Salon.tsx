@@ -447,34 +447,42 @@ export default function Salon() {
 
             <TabsContent value="hours" className="mt-4">
               <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
-                <table className="app-table w-full border-collapse">
-                  <thead>
+                <table className="app-table data-table w-full border-collapse">
+                                    <caption className="sr-only">{t('salon.workingHoursCaption')}</caption>
+                                      <caption className="sr-only">{t('salon.holidaysCaption')}</caption>
+                    <thead>
                     <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                      <th className="p-3 font-medium">{t('salon.workingHoursTable.day')}</th>
-                      <th className="p-3 font-medium">{t('salon.workingHoursTable.workday')}</th>
-                      <th className="p-3 font-medium">{t('salon.workingHoursTable.opens')}</th>
-                      <th className="p-3 font-medium">{t('salon.workingHoursTable.closes')}</th>
+                      <th scope="col" className="p-3 font-medium">{t('salon.workingHoursTable.day')}</th>
+                      <th scope="col" className="p-3 font-medium">{t('salon.workingHoursTable.workday')}</th>
+                      <th scope="col" className="p-3 font-medium">{t('salon.workingHoursTable.opens')}</th>
+                      <th scope="col" className="p-3 font-medium">{t('salon.workingHoursTable.closes')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {workingHours.map((wh) => (
                       <tr key={wh.dayOfWeek} className={!wh.isWorkingDay ? 'opacity-60' : undefined}>
-                        <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{formatWeekday(wh.dayOfWeek, i18n.language)}</td>
-                        <td className="p-3">
-                          <Switch checked={wh.isWorkingDay} onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)} />
+                        <td data-label={t('salon.workingHoursTable.day')} className="p-3 font-medium text-slate-900 dark:text-slate-50">{formatWeekday(wh.dayOfWeek, i18n.language)}</td>
+                        <td data-label={t('salon.workingHoursTable.workday')} className="p-3">
+                          <Switch
+                            aria-label={t('salon.aria.workingDayToggle', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
+                            checked={wh.isWorkingDay}
+                            onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)}
+                          />
                         </td>
-                        <td className="p-3">
+                        <td data-label={t('salon.workingHoursTable.opens')} className="p-3">
                           <Input
                             type="time"
+                            aria-label={t('salon.aria.opensTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
                             className="h-9 w-[140px]"
                             value={wh.openTime}
                             disabled={!wh.isWorkingDay}
                             onChange={(e) => updateWH(wh.dayOfWeek, 'openTime', e.target.value)}
                           />
                         </td>
-                        <td className="p-3">
+                        <td data-label={t('salon.workingHoursTable.closes')} className="p-3">
                           <Input
                             type="time"
+                            aria-label={t('salon.aria.closesTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
                             className="h-9 w-[140px]"
                             value={wh.closeTime}
                             disabled={!wh.isWorkingDay}
@@ -510,14 +518,14 @@ export default function Salon() {
                 <p className="text-sm text-slate-500">{t('salon.noHolidays')}</p>
               ) : (
                 <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
-                  <table className="app-table w-full border-collapse">
+                  <table className="app-table data-table w-full border-collapse">
                     <thead>
                       <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                        <th className="p-3 font-medium">{t('salon.holidayTable.date')}</th>
-                        <th className="p-3 font-medium">{t('salon.holidayTable.name')}</th>
-                        <th className="p-3 font-medium">{t('salon.holidayTable.push')}</th>
-                        <th className="p-3 font-medium">{t('salon.holidayTable.sent')}</th>
-                        <th className="p-3 text-right font-medium">{t('salon.holidayTable.actions')}</th>
+                        <th scope="col" className="p-3 font-medium">{t('salon.holidayTable.date')}</th>
+                        <th scope="col" className="p-3 font-medium">{t('salon.holidayTable.name')}</th>
+                        <th scope="col" className="p-3 font-medium">{t('salon.holidayTable.push')}</th>
+                        <th scope="col" className="p-3 font-medium">{t('salon.holidayTable.sent')}</th>
+                        <th scope="col" className="p-3 text-right font-medium">{t('salon.holidayTable.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -526,13 +534,13 @@ export default function Salon() {
                         .sort((a, b) => a.date.localeCompare(b.date))
                         .map((h) => (
                           <tr key={h.id} className="border-b border-slate-100 dark:border-slate-800/80">
-                            <td className="p-3">{formatDateOnlyLocale(h.date.slice(0, 10), locale)}</td>
-                            <td className="p-3 font-medium text-slate-900 dark:text-slate-50">{h.name}</td>
-                            <td className="p-3">
+                            <td data-label={t('salon.holidayTable.date')} className="p-3">{formatDateOnlyLocale(h.date.slice(0, 10), locale)}</td>
+                            <td data-label={t('salon.holidayTable.name')} className="p-3 font-medium text-slate-900 dark:text-slate-50">{h.name}</td>
+                            <td data-label={t('salon.holidayTable.push')} className="p-3">
                               <Badge variant={h.sendPush ? 'success' : 'secondary'}>{h.sendPush ? t('common.yes') : t('common.no')}</Badge>
                             </td>
-                            <td className="p-3">{h.pushSentAt ? formatLocalizedDateTime(h.pushSentAt, i18n.language) : '—'}</td>
-                            <td className="p-3 text-right">
+                            <td data-label={t('salon.holidayTable.sent')} className="p-3">{h.pushSentAt ? formatLocalizedDateTime(h.pushSentAt, i18n.language) : '—'}</td>
+                            <td data-label={t('salon.holidayTable.actions')} className="p-3 text-right">
                               <div className="flex justify-end gap-1">
                                 {h.sendPush ? (
                                   <Button type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('salon.sendNotification')} onClick={() => void handleSendNotification(h.id)}>
@@ -584,7 +592,11 @@ export default function Salon() {
                 <p className="text-sm font-medium text-slate-900 dark:text-slate-50">{t('salon.holidayForm.sendPush')}</p>
                 <p className="text-xs text-slate-500">{t('salon.holidayForm.sendPushHint')}</p>
               </div>
-              <Switch checked={holForm.sendPush} onCheckedChange={(checked) => setHolForm((p) => ({ ...p, sendPush: checked }))} />
+              <Switch
+                aria-label={t('salon.holidayForm.sendPush')}
+                checked={holForm.sendPush}
+                onCheckedChange={(checked) => setHolForm((p) => ({ ...p, sendPush: checked }))}
+              />
             </div>
           </div>
 

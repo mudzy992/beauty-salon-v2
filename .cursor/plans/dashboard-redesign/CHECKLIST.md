@@ -26,7 +26,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 5 | Lojalnost | `[x]` 1 commit | prošla |
 | 6 | Analitika (+ M1 ako odobren) | `[x]` 1 commit · **M1 nije odobren, preskočen** | prošla |
 | 7 | Korisnici | `[x]` 1 commit | prošla |
-| 8 | Salon / Usluge / Frizeri | `[ ]` | |
+| 8 | Salon / Usluge / Frizeri | `[x]` 1 commit | prošla |
 | 9 | Sadržaj (Blog, Galerija, Recenzije) | `[ ]` | |
 | 10 | Postavke (+ M2 ako odobren) | `[ ]` | |
 | 11 | Stylist portal | `[ ]` | |
@@ -74,6 +74,20 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > (ln 1471), pa je to konzistentnost, ne usklađenost. Stvarni prekršaji: **2.4.4/4.1.2**
 > generička imena akcija po redu i **1.3.1/1.4.10** tabela bez semantike. Novi test
 > `test:users-a11y` (5 testova) uključuje **dva regresiona čuvara za opovrgnute stavke**.
+
+> **Faza 8 — napomene.** Četiri planirane stavke **opovrgnute** iz izvora: **D1** (`Salon.tsx`
+> ima 2 `<h1>` u izvoru, ali su u **međusobno isključivim granama** — jedan u ranom return-u
+> `if (noSalonExists || !salon)`, drugi u konačnom, pa se renderuje tačno jedan), **D2**
+> (3× `window.confirm` — nativni dijalog je pristupačan i jeste korak potvrde iz 3.3.4),
+> **D6** (upload već ima native `<input type="file">` + dugme koje ga okida, pa 2.5.7 nije
+> prekršaj), a **D9** i **1.4.11** (nijedan od 4 fajla nema rizičnu klasu; oba kandidata su
+> dekorativni kontejneri). Stvarni prekršaji: **4.1.2** — 8 `<Switch>` bez ijednog imena
+> (Radix `Switch` = `<button role="switch">`, a susjedni `<Label>` nema `htmlFor`), **1.3.1**
+> i **1.4.10** — 5 tabela / 27 `<th>` / 0 `scope` / 0 `<caption>` / 0 `data-label`.
+> Nalaz koji plan nije naveo: **4 `<Input type="time">` bez imena** u tabelama radnog vremena
+> (Salon 2, Stylists 2) — 14 renderovanih kontrola (7 redova × 2) koje bi u card-mode imale
+> generičko ime. Novi test `test:salon-services-stylists-a11y` (7 testova) uključuje
+> **dva regresona čuvara za opovrgnute D1/D6**; **7/7 mutacija palo**.
 
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 

@@ -609,31 +609,32 @@ export default function Services() {
 
                           {sub.services?.length ? (
                             <div className="app-table-wrap rounded-md border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
-                              <table className="app-table w-full border-collapse">
+                              <table className="app-table data-table w-full border-collapse">
+                                <caption className="sr-only">{t('services.tableCaption')}</caption>
                                 <thead>
                                   <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                                    <th className="p-3 font-medium">
+                                    <th scope="col" className="p-3 font-medium">
                                       {t('services.table.service')}
                                     </th>
-                                    <th className="hidden p-3 font-medium md:table-cell">
+                                    <th scope="col" className="hidden p-3 font-medium md:table-cell">
                                       {t('services.table.description')}
                                     </th>
-                                    <th className="p-3 text-right font-medium">
+                                    <th scope="col" className="p-3 text-right font-medium">
                                       {t('services.table.duration')}
                                     </th>
-                                    <th className="p-3 text-right font-medium">
+                                    <th scope="col" className="p-3 text-right font-medium">
                                       {t('services.table.price')}
                                     </th>
-                                    <th className="p-3 font-medium">
+                                    <th scope="col" className="p-3 font-medium">
                                       {t('services.table.gender')}
                                     </th>
-                                    <th className="p-3 font-medium">
+                                    <th scope="col" className="p-3 font-medium">
                                       {t('services.table.loyalty')}
                                     </th>
-                                    <th className="p-3 font-medium">
+                                    <th scope="col" className="p-3 font-medium">
                                       {t('services.table.status')}
                                     </th>
-                                    <th className="p-3 text-right font-medium">
+                                    <th scope="col" className="p-3 text-right font-medium">
                                       {t('services.table.actions')}
                                     </th>
                                   </tr>
@@ -644,18 +645,18 @@ export default function Services() {
                                       key={s.id}
                                       className="border-b border-slate-100 dark:border-slate-800/80"
                                     >
-                                      <td className="p-3 font-medium">
+                                      <td data-label={t('services.table.service')} className="p-3 font-medium">
                                         {s.name}
                                       </td>
-                                      <td className="hidden max-w-[260px] truncate p-3 text-slate-600 dark:text-slate-300 md:table-cell">
+                                      <td data-label={t('services.table.description')} className="hidden max-w-[260px] truncate p-3 text-slate-600 dark:text-slate-300 md:table-cell">
                                         {s.shortDescription ?? '-'}
                                       </td>
-                                      <td className="p-3 text-right tabular-nums">
+                                      <td data-label={t('services.table.duration')} className="p-3 text-right tabular-nums">
                                         {t('services.durationValue', {
                                           count: s.durationMinutes,
                                         })}
                                       </td>
-                                      <td className="p-3 text-right tabular-nums">
+                                      <td data-label={t('services.table.price')} className="p-3 text-right tabular-nums">
                                         {formatLocalizedNumber(
                                           s.price,
                                           i18n.language,
@@ -665,7 +666,7 @@ export default function Services() {
                                           },
                                         )}
                                       </td>
-                                      <td className="p-3">
+                                      <td data-label={t('services.table.gender')} className="p-3">
                                         <Badge
                                           variant={
                                             s.gender === 'MALE'
@@ -679,7 +680,7 @@ export default function Services() {
                                             : t('users.gender.female')}
                                         </Badge>
                                       </td>
-                                      <td className="p-3">
+                                      <td data-label={t('services.table.loyalty')} className="p-3">
                                         {s.loyaltyEnabled ? (
                                           <Badge
                                             variant="brand"
@@ -702,7 +703,7 @@ export default function Services() {
                                           </Badge>
                                         )}
                                       </td>
-                                      <td className="p-3">
+                                      <td data-label={t('services.table.status')} className="p-3">
                                         <Badge
                                           variant={
                                             s.isActive ? 'success' : 'secondary'
@@ -716,7 +717,7 @@ export default function Services() {
                                               )}
                                         </Badge>
                                       </td>
-                                      <td className="p-3 text-right">
+                                      <td data-label={t('services.table.actions')} className="p-3 text-right">
                                         <div className="flex justify-end gap-1">
                                           <Button
                                             asChild
@@ -840,6 +841,7 @@ export default function Services() {
                     {t('services.status.categoryActive')}
                   </Label>
                   <Switch
+                    aria-label={t('services.aria.categoryActiveToggle')}
                     checked={catForm.isActive}
                     onCheckedChange={(checked) =>
                       setCatForm({ ...catForm, isActive: checked })
@@ -893,6 +895,7 @@ export default function Services() {
                     {t('services.status.categoryActive')}
                   </Label>
                   <Switch
+                    aria-label={t('services.aria.subcategoryActiveToggle')}
                     checked={subForm.isActive}
                     onCheckedChange={(checked) =>
                       setSubForm({ ...subForm, isActive: checked })
@@ -1037,6 +1040,7 @@ export default function Services() {
                     {t('services.status.serviceActive')}
                   </Label>
                   <Switch
+                    aria-label={t('services.aria.serviceActiveToggle')}
                     checked={svcForm.isActive}
                     onCheckedChange={(checked) =>
                       setSvcForm({ ...svcForm, isActive: checked })
@@ -1046,6 +1050,7 @@ export default function Services() {
                 <div className="flex items-center justify-between gap-3">
                   <Label className="mb-0">{t('services.loyalty')}</Label>
                   <Switch
+                    aria-label={t('services.aria.loyaltyToggle')}
                     checked={svcForm.loyaltyEnabled}
                     onCheckedChange={(checked) =>
                       setSvcForm({ ...svcForm, loyaltyEnabled: checked })

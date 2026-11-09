@@ -221,15 +221,17 @@ export default function Stylists() {
           </div>
         ) : (
           <div className="app-table-wrap">
-            <table className="app-table w-full border-collapse">
-              <thead>
+            <table className="app-table data-table w-full border-collapse">
+                            <caption className="sr-only">{t('stylists.tableCaption')}</caption>
+                                <caption className="sr-only">{t('stylists.workingHoursCaption')}</caption>
+                  <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                  <th className="p-3 font-medium">{t('stylists.table.user')}</th>
-                  <th className="p-3 font-medium">{t('stylists.table.email')}</th>
-                  <th className="p-3 font-medium">{t('stylists.table.specialization')}</th>
-                  <th className="p-3 font-medium">{t('stylists.table.hireDate')}</th>
-                  <th className="p-3 font-medium">{t('stylists.table.status')}</th>
-                  <th className="p-3 text-right font-medium">{t('stylists.table.actions')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('stylists.table.user')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('stylists.table.email')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('stylists.table.specialization')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('stylists.table.hireDate')}</th>
+                  <th scope="col" className="p-3 font-medium">{t('stylists.table.status')}</th>
+                  <th scope="col" className="p-3 text-right font-medium">{t('stylists.table.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -246,11 +248,11 @@ export default function Stylists() {
                       className="cursor-pointer border-b border-slate-100 hover:bg-slate-50 dark:border-slate-800/80 dark:hover:bg-slate-900/40"
                       onClick={() => void openEditForm(s)}
                     >
-                      <td className="p-3 font-medium text-slate-900 dark:text-slate-50">
+                      <td data-label={t('stylists.table.user')} className="p-3 font-medium text-slate-900 dark:text-slate-50">
                         {s.user ? `${s.user.firstName ?? ''} ${s.user.lastName ?? ''} (${s.user.username})`.trim() : s.userId}
                       </td>
-                      <td className="p-3">{s.user?.email ?? '-'}</td>
-                      <td className="p-3">
+                      <td data-label={t('stylists.table.email')} className="p-3">{s.user?.email ?? '-'}</td>
+                      <td data-label={t('stylists.table.specialization')} className="p-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <span>{s.specialization ?? '-'}</span>
                           {String(s.status ?? '').toUpperCase() === 'PENDING' ? (
@@ -260,13 +262,13 @@ export default function Stylists() {
                           ) : null}
                         </div>
                       </td>
-                      <td className="p-3">{s.hireDate ? formatDateOnlyLocale(s.hireDate.slice(0, 10), locale) : '—'}</td>
-                      <td className="p-3">
+                      <td data-label={t('stylists.table.hireDate')} className="p-3">{s.hireDate ? formatDateOnlyLocale(s.hireDate.slice(0, 10), locale) : '—'}</td>
+                      <td data-label={t('stylists.table.status')} className="p-3">
                         <Badge variant={s.isActive ? 'success' : 'danger'} className="text-[10px]">
                           {s.isActive ? t('stylists.status.active') : t('stylists.status.inactive')}
                         </Badge>
                       </td>
-                      <td className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td data-label={t('stylists.table.actions')} className="p-3 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end gap-1">
                           <Button asChild type="button" size="icon" variant="ghost" className="h-8 w-8" aria-label={t('stylists.aria.analytics')}>
                             <RouterLink to={`/admin/stylist-analytics?stylistId=${s.id}`}>
@@ -356,7 +358,7 @@ export default function Stylists() {
                   </div>
                   <div className="flex items-center justify-between gap-3 md:pt-7">
                     <Label className="mb-0">{t('common.active')}</Label>
-                    <Switch checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} />
+                    <Switch aria-label={t('stylists.aria.activeToggle')} checked={form.isActive} onCheckedChange={(checked) => setForm({ ...form, isActive: checked })} />
                   </div>
                 </div>
               </div>
@@ -364,34 +366,40 @@ export default function Stylists() {
 
             <TabsContent value="hours" className="mt-4">
               <div className="app-table-wrap rounded-md border border-slate-200 dark:border-slate-800">
-                <table className="app-table w-full border-collapse">
+                <table className="app-table data-table w-full border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                      <th className="p-3 font-medium">{t('stylists.day')}</th>
-                      <th className="p-3 font-medium">{t('stylists.workingDay')}</th>
-                      <th className="p-3 font-medium">{t('stylists.start')}</th>
-                      <th className="p-3 font-medium">{t('stylists.end')}</th>
+                      <th scope="col" className="p-3 font-medium">{t('stylists.day')}</th>
+                      <th scope="col" className="p-3 font-medium">{t('stylists.workingDay')}</th>
+                      <th scope="col" className="p-3 font-medium">{t('stylists.start')}</th>
+                      <th scope="col" className="p-3 font-medium">{t('stylists.end')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {workingHours.map((wh) => (
                       <tr key={wh.dayOfWeek} className={!wh.isWorkingDay ? 'opacity-60' : undefined}>
-                        <td className="p-3 font-medium">{formatWeekday(wh.dayOfWeek, i18n.language)}</td>
-                        <td className="p-3">
-                          <Switch checked={wh.isWorkingDay} onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)} />
+                        <td data-label={t('stylists.day')} className="p-3 font-medium">{formatWeekday(wh.dayOfWeek, i18n.language)}</td>
+                        <td data-label={t('stylists.workingDay')} className="p-3">
+                          <Switch
+                            aria-label={t('stylists.aria.workingDayToggle', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
+                            checked={wh.isWorkingDay}
+                            onCheckedChange={(checked) => updateWH(wh.dayOfWeek, 'isWorkingDay', checked)}
+                          />
                         </td>
-                        <td className="p-3">
+                        <td data-label={t('stylists.start')} className="p-3">
                           <Input
                             type="time"
+                            aria-label={t('stylists.aria.startTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
                             className="h-9 w-[140px]"
                             value={wh.startTime}
                             onChange={(e) => updateWH(wh.dayOfWeek, 'startTime', e.target.value)}
                             disabled={!wh.isWorkingDay}
                           />
                         </td>
-                        <td className="p-3">
+                        <td data-label={t('stylists.end')} className="p-3">
                           <Input
                             type="time"
+                            aria-label={t('stylists.aria.endTime', { day: formatWeekday(wh.dayOfWeek, i18n.language) })}
                             className="h-9 w-[140px]"
                             value={wh.endTime}
                             onChange={(e) => updateWH(wh.dayOfWeek, 'endTime', e.target.value)}

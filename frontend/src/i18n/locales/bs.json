@@ -1167,6 +1167,13 @@
     }
   },
   "salon": {
+    "holidaysCaption": "Tabela praznika: datum, naziv, slanje push obavijesti, vrijeme slanja i akcije.",
+    "workingHoursCaption": "Tabela radnog vremena salona po danima: dan, radni dan, vrijeme otvaranja i zatvaranja.",
+    "aria": {
+      "opensTime": "Vrijeme otvaranja za {{day}}",
+      "closesTime": "Vrijeme zatvaranja za {{day}}",
+      "workingDayToggle": "Radni dan za {{day}}"
+    },
     "settings": "Osnovne Postavke",
     "workingHours": "Radno Vrijeme",
     "holidays": "Praznici",
@@ -1239,6 +1246,7 @@
     }
   },
   "services": {
+    "tableCaption": "Tabela usluga: naziv, opis, trajanje, cijena, spol, loyalty, status i akcije.",
     "newCategory": "Nova Kategorija",
     "newSubcategory": "Nova Potkategorija",
     "newService": "Novi Servis",
@@ -1329,6 +1337,10 @@
       "actions": "Akcije"
     },
     "aria": {
+      "categoryActiveToggle": "Kategorija aktivna",
+      "subcategoryActiveToggle": "Potkategorija aktivna",
+      "serviceActiveToggle": "Usluga aktivna",
+      "loyaltyToggle": "Loyalty omogućen za uslugu",
       "addSubcategory": "Dodaj potkategoriju",
       "editCategory": "Uredi kategoriju",
       "deleteCategory": "Obriši kategoriju",
@@ -1356,6 +1368,8 @@
     }
   },
   "stylists": {
+    "workingHoursCaption": "Tabela radnog vremena frizera po danima: dan, radni dan, početak i kraj.",
+    "tableCaption": "Tabela frizera: korisnik, e-mail, specijalizacija, datum zaposlenja, status i akcije.",
     "newStylist": "Novi Stilista",
     "editStylist": "Uredi Stilistu",
     "specialization": "Specijalizacija",
@@ -1378,6 +1392,10 @@
       "total": "Ukupno: {{count}}"
     },
     "aria": {
+      "startTime": "Početak radnog vremena za {{day}}",
+      "endTime": "Kraj radnog vremena za {{day}}",
+      "activeToggle": "Profil stiliste aktivan",
+      "workingDayToggle": "Radni dan za {{day}}",
       "analytics": "Analitika stiliste",
       "edit": "Uredi profil stiliste",
       "removeCompetency": "Ukloni kompetenciju"

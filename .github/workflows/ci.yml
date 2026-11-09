@@ -557,6 +557,9 @@ jobs:
       - name: Test users table and row action accessibility
         working-directory: frontend
         run: npm run test:users-a11y
+      - name: Test salon services and stylists accessibility
+        working-directory: frontend
+        run: npm run test:salon-services-stylists-a11y
       - name: Test localized stylist analytics page
         working-directory: frontend
         run: npm run test:stylist-analytics-i18n

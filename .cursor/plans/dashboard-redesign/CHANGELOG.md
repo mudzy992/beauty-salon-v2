@@ -1568,3 +1568,137 @@ ne dira. Provjera `pageTitles.caption === False` dodana u samu skriptu.
 
 **Nije render-verificirano:** vizualni card-mode ispod 640 px i ponašanje `window.confirm`
 dijalogova (namjerno netaknuti).
+
+---
+
+## 2026-11-08 — FAZA 8: Salon / Usluge / Frizeri (`Salon.tsx`, `Services.tsx`, `Stylists.tsx`, `ServiceWorkGallery.tsx`)
+
+Modul **2839 linija** u 4 fajla, do ove faze **0 testova** — prvi test za modul je
+`test:salon-services-stylists-a11y`. Direktoriji `features/{salon,services,stylists}/` nisu
+postojali; test je kolociran u `features/salon/`.
+
+### Recon: četiri planirane stavke opovrgnute
+
+| Stavka | Tvrdnja plana | Šta izvor stvarno kaže |
+|---|---|---|
+| **D1** | `Salon.tsx` ima 2 `<h1>` → 1.3.1 | `grep` **ima 2**, ali su u **međusobno isključivim granama**: jedan na ln 305 unutar ranog return-a `if (noSalonExists \|\| !salon)` (ln 301-302), drugi na ln 348 u konačnom `return`. **Renderuje se tačno jedan.** |
+| **D2** | `window.confirm` → 3.3.4 | 3× (`Salon.tsx:264`, `Services.tsx:356`, `:367`). Nativni dijalog **je** pristupačan i **jeste** korak potvrde. Konzistentnost s `ConfirmDialog`-om, ne usklađenost. |
+| **D6** | Upload je drag-only → 2.5.7 | `Services.tsx:936` native `<input type="file" accept="image/*" className="hidden">` + `:951` `onClick={() => svcFileRef.current?.click()}`. Single-pointer alternativa **postoji**. |
+| **D9 / 1.4.11** | Kontrast + granice | Kontrast sweep po 4 fajla: **nijedna rizična klasa** (sve sirove palete prolaze). 1.4.11 kandidati `Salon.tsx:582` i `Stylists.tsx:442` su **dekorativni kontejneri** (`<div>` oko `Switch`-a; `<label>` kartica oko checkboxa koji nema border). |
+
+### Stvarni prekršaji
+
+**4.1.2 — 8 `<Switch>` bez ijednog pristupačnog imena.** `components/ui/switch.tsx` je Radix
+omotač (`SwitchPrimitives.Root` sa `{...props}`) → renderuje `<button role="switch">`.
+Susjedni `<Label className="mb-0">` **nema `htmlFor`**, pa veza ne postoji ni u DOM-u:
+
+| Fajl | Linija | Kontekst |
+|---|---|---|
+| `Salon.tsx` | 464 | radni dan, tabela radnog vremena (**7 redova**) |
+| `Salon.tsx` | 587 | `sendPush` u dijalogu praznika |
+| `Services.tsx` | 842, 895, 1039, 1048 | kategorija / potkategorija / usluga aktivna, loyalty |
+| `Stylists.tsx` | 359 | `isActive` profila |
+| `Stylists.tsx` | 381 | radni dan, tabela radnog vremena (**7 redova**) |
+
+**1.3.1 / 1.4.10 — 5 tabela bez semantike:** 27 `<th>`, **0 `scope`**, **0 `<caption>`**,
+**0 `data-label`**, **0 `data-table`** (dakle nijedna nije opt-in u card-mode).
+
+| Fajl | Tabla | `<th>` |
+|---|---|---|
+| `Salon.tsx` | radno vrijeme, praznici | 9 |
+| `Services.tsx` | usluge | 8 |
+| `Stylists.tsx` | frizeri, radno vrijeme | 10 |
+| `ServiceWorkGallery.tsx` | — | 0 |
+
+### Nalaz koji plan NIJE naveo: 4 time inputa bez imena
+
+`<Input type="time">` u tabelama radnog vremena — **`Salon.tsx` 2** (`openTime`/`closeTime`),
+**`Stylists.tsx` 2** (`startTime`/`endTime`). Renderuju se po jednom po danu →
+**7 redova × 2 = 14 kontrola**. U tabličnom modu `scope="col"` daje kontekst, ali u card-mode
+(ispod 640 px, gdje `display` postaje `block` i tabela gubi semantiku) čitač ne bi znao **ni
+dan ni svrhu**. Dodano `aria-label` s interpolacijom dana.
+
+### Dizajn odluka: interpolacija po danu
+
+Switch-evi i time inputi u **tabeli radnog vremena** imaju 7 redova → `{{day}}` interpolacija
+je **nužna** (inače 7 identičnih imena). Switch-evi u **dijalozima** (`Services` 4, `Stylists`
+`isActive`) uređuju **jedan** entitet → bez interpolacije, naslov dijaloga ga identifikuje.
+Za `Stylists` profil identifikator je `selectedStylist`, a `form` **nema polje `name`**
+(`{bio, specialization, isActive, hireDate}`, ln 76) — ime se čita iz `StylistProfile.user?.username`.
+`formatWeekday(dayOfWeek, i18n.language)` je već importovan u oba fajla (`Salon.tsx:8`,
+`Stylists.tsx:13`).
+
+### Implementirano
+
+- **4.1.2:** 8 `<Switch>` → `aria-label={t(...)}`. Za `Salon.tsx:587` **reuse postojećeg**
+  `salon.holidayForm.sendPush` („Pošalji push obavijest") umjesto novog ključa.
+- **4.1.2 (novi nalaz):** 4 `<Input type="time">` → `aria-label` s interpolacijom dana.
+- **1.3.1:** `scope="col"` na **27/27 `<th>`**; `<caption className="sr-only">` na **5/5** tabela.
+- **1.4.10:** `data-table` klasa na **5/5** tabela + `data-label={t(...)}` na **27 `<td>`**
+  (28. je `colSpan` empty-state). Svi lokalizovani, **0 hardkodovanih literala**.
+- **i18n:** **16 novih leaf ključeva** (`bs` + `en`, numstat **18/18** po fajlu — 16 ključeva
+  + 2 linije za novi `salon.aria` blok). Hirurški umetak stringom, **bez re-serializacije**.
+
+### Novi test: `test:salon-services-stylists-a11y` (7 testova)
+
+Registrovan u `frontend/package.json` (162 skripti) **i** `.github/workflows/ci.yml` (korak
+„Test salon services and stylists accessibility", ln 560-562).
+
+| # | Test | Šta čuva |
+|---|---|---|
+| 1 | svaki `Switch` ima pristupačno ime | 4.1.2 — broji **tačno 8** |
+| 2 | time inputi imaju pristupačno ime | 4.1.2 — po fajlu i po ključu |
+| 3 | ime uključuje dan | sprječava 7 identičnih imena |
+| 4 | 5 tabela ima `scope` + `caption` | 1.3.1 — broji **tačno 27 `<th>` i 5 `<caption>`** |
+| 5 | 5 tabela opt-in u card mode | 1.4.10 + `<td>` bez `data-label` + 0 literala |
+| 6 | **D1 regresioni čuvar** | ranom return-u mora ostati — da se ne "popravi" nepostojeći prekršaj |
+| 7 | **D6 regresioni čuvar** | native file input + `svcFileRef` + **ne smije** se pojaviti `onDrop=` |
+
+**Mutacijska provjera — 7/7 palo na predviđenom testu:**
+
+| Mutacija | Pao test |
+|---|---|
+| `aria-label` → `data-x` na Salon `Switch` | 1 |
+| `aria-label` → `data-x` na `opensTime` | 2 |
+| uklonjen `scope="col"` (Services) | 4 |
+| uklonjen `<caption>` (Stylists) | 4 |
+| uklonjen `data-table` (Services) | 5 |
+| uklonjen `data-label` (Stylists) | 5 |
+| `svcFileRef.current?.click()` → `void 0` | 7 |
+
+### Tri greške uhvaćene vlastitom provjerom
+
+1. **`s.find('\n    "aria": {', brace)` bez gornje granice** pogodio je `aria` **kasnijeg**
+   namespace-a → `opensTime`/`closesTime` završili na **vrhu `salon` bloka** kao
+   `salon.opensTime`. JSON je bio validan i kapija je prošla, pa greška **nije pala ni na
+   jednoj automatskoj provjeri** — otkrivena tek ispisom `sorted(d['salon']['aria'])`.
+   Rješenje: `find_block(s, key, indent, lo, hi)` s granicama namespace-a.
+2. **Hardkodovani brojevi linija za `<td>`** — ubacivanje `<caption>` linije **pomjerilo je
+   sve indekse za 1**, pa je asertija `lines[646]` uhvatila `>` umjesto `<td>`. Rješenje:
+   tražiti linije **dinamički nakon** svih izmjena.
+3. **Raw-string `\'` u Pythonu** upisao je **doslovne** backslash-navodnike u JSX
+   (`t(\'stylists.aria…\')`) — sintaksna greška koja je prošla jer build te faze još nije
+   bio pokrenut. Uz to je `workingDayToggle` bio **pogrešan ključ** za time inpute.
+   Ispravljeno na `startTime`/`endTime` uz provjeru `s.count("\\'") == 0`.
+
+### Verifikacija
+
+| Provjera | Rezultat |
+|---|---|
+| 156 `test:*` skripti | **156/156 PASS** |
+| `test:salon-services-stylists-a11y` | **7/7 PASS**, mutacijski verificirano 7/7 |
+| `npm run build` | **PASS**, **273.9 KiB gzip** (budžet 300) |
+| `check_i18n.py --strict` | **PASS** — 2650/2650 leaf ključeva |
+| `check_ui_contrast.py` | **PASS** — 80/80 |
+| `check_repo_hygiene.py` | **PASS** — 1664 paths |
+| `check_doc_links.py` | **PASS** — 670 / 202 |
+| `git diff --check` | čist |
+| locale fajlovi | **18/0** po fajlu — bez reformata |
+| `MATRIX.md` | **netaknut** (sve izmjene prezentacijske) |
+| Javni sajt | **nije diran** — nijedan fajl nije importovan izvan admin-a |
+
+**Nije render-verificirano:** vizualni card-mode ispod 640 px (5 tabela) i ponašanje
+`window.confirm` dijalogova (namjerno netaknuti).
+
+**Odgođeno na fazu 13:** razbijanje `Services.tsx` (1533 ln) i migracija 5 tabela na
+`DataTable` (rizik za paritet podataka).
