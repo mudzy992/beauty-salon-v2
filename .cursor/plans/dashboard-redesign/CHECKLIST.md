@@ -31,7 +31,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 10 | Postavke (+ M2 ako odobren) | `[x]` 3 commita (`ba59834`, `44b0eed`, `56cee86` **M2**) — DoD „`EmailSettings.tsx` < 120 ln" odgođen na fazu 13 | prošla |
 | 11 | Stylist portal | `[~]` 4 commita — 7 stavki plana opovrgnuto/bespredmetno/već zadovoljeno; stvarni nalazi: 4.1.3, 3.3.1, 1.4.3 ×33, 4.1.2. **DoD verificiran** (mobilna 0 diff, API netaknut) | u toku |
 | 12 | Onboarding / ForceChangePassword | `[x]` 1 commit — D1/D2/D7 opovrgnuti, D3/D4 zadovoljeni, D9 nije prekršaj; stvarno: **3.3.1/3.3.2** (zahtjev za lozinku) | prošla |
-| 13 | Zaključak (globalni prolaz, sweep, docs) | `[ ]` u toku — 2/3: **2.1.1+4.1.2** ReservationScheduler (12/12 mut.) · **1.4.3 ×4** D3 sweep (6/6 mut.) | prošla |
+| 13 | Zaključak (globalni prolaz, sweep, docs) | `[ ]` u toku — 3/4: **2.1.1+4.1.2** combobox · **1.4.3 ×4** · **D2** dead-code (−1 fajl, −1 zavisnost, −32 ključa) | prošla |
 
 > **`019e58a`** (`fix(dashboard): D9 error stanja + test:daily-log-amount-parity`) nije
 > uračunat ni u jednu fazu iznad jer je preduslov koji je dotakao **dvije** faze: D9 u
@@ -128,6 +128,13 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > zvjezdice, tekst na tamnoj pozadini). Novi test `test:text-contrast-allowlist` mjeri
 > **bijelu** površinu — test iz faze 11 mjerio je tamnu, koja se ne prikazuje, pa ova
 > četiri prekršaja **nije** mogao uhvatiti.
+
+> **Faza 13, D2 — napomene.** `ui/tooltip.tsx` zaista ima **0** importova (moj prvi grep je
+> našao 1 pogodak, ali to je **recharts** `<Tooltip>`, ne shadcn) → obrisan, a s njim i
+> `@radix-ui/react-tooltip`. Od 42 „nekorištena" i18n ključa **samo 16** je sigurno mrtvo:
+> 18 su plurale, 8 se gradi dinamički. **Ključna zamka:** `emailSettings.campaigns.addTitle`
+> /`addText`/`addButton`/`addSpacer` su **živi** (`email-visual-editor.tsx:122` gradi ključ
+> iz `type`), pa bi ih naivni detektor obrisao i slomio email editor.
 
 > **Faza 12 — napomene.** Plan je i ovdje bio većinom netačan: **D1** (`<h1>` „nedostaje")
 > opovrgnut jer `OnboardingShell:140` bezuvjetno renderuje `<h1>{title}</h1>` — **isti

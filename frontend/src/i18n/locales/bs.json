@@ -27,8 +27,7 @@
     "sectionFinance": "Finansije",
     "sectionContent": "Sadržaj",
     "sectionPeople": "Ljudi",
-    "sectionSystem": "Sistem",
-    "sectionSettings": "Postavke"
+    "sectionSystem": "Sistem"
   },
   "pageTitles": {
     "serviceWorkGallery": "Galerija radova usluge",
@@ -48,16 +47,11 @@
     "profile": "Profil"
   },
   "table": {
-    "sortAscending": "Sortiraj uzlazno",
-    "sortDescending": "Sortiraj silazno",
     "sortBy": "Sortiraj po koloni {{column}}",
-    "sortedAscending": "Sortirano uzlazno",
-    "sortedDescending": "Sortirano silazno",
     "pageOf": "Stranica {{current}} od {{total}}",
     "showingRange": "Prikazano {{from}}–{{to}} od {{total}}",
     "showingAll": "Prikazano {{count}} zapisa",
     "noResults": "Nema rezultata za zadate filtere.",
-    "actionsFor": "Akcije za {{item}}",
     "loading": "Učitavanje podataka…",
     "previous": "Prethodna stranica",
     "next": "Sljedeća stranica",
@@ -73,7 +67,6 @@
     "skipToContent": "Preskoči na sadržaj",
     "help": "Pomoć",
     "mainNavigation": "Glavna navigacija",
-    "sectionNavigation": "Navigacija sekcija",
     "userMenu": "Korisnički meni",
     "profile": "Profil",
     "profileForUser": "Profil: {{username}}",
@@ -857,7 +850,6 @@
       "htmlPreviewSource": "Izvor HTML pregleda",
       "audienceHeading": "Publika kampanje",
       "onlyActiveUsers": "Samo aktivni korisnici",
-      "onlyVerifiedUsers": "Samo korisnici s verifikovanim emailom",
       "createInAppNotification": "Kreiraj in-app obavijest",
       "calculateAudience": "Izračunaj publiku",
       "sendCampaign": "Pošalji kampanju",
@@ -872,7 +864,6 @@
       "saved": "Predlošci kampanja su sačuvani.",
       "saveFailed": "Greška pri čuvanju predložaka kampanja.",
       "sent": "Kampanja je poslana.",
-      "sendDetails": "Isporučeno: {{delivered}}, preskočeno: {{skipped}}.",
       "sendFailed": "Slanje kampanje nije uspjelo.",
       "verifiedConsentOnly": "U publiku ulaze samo korisnici s potvrđenom email adresom i aktivnom marketinškom saglasnošću.",
       "audienceLimitReached": "Maksimalno 100 primalaca po kampanji. Suzi publiku prije slanja.",
@@ -1285,7 +1276,6 @@
     "noSubcategories": "Nema potkategorija.",
     "confirmDeleteCategory": "Obrisati kategoriju i sve potkategorije/usluge?",
     "confirmDeleteSubcategory": "Obrisati potkategoriju i sve usluge?",
-    "confirmDeleteService": "Obrisati uslugu?",
     "deletion": {
       "title": "Upravljanje uslugom i povezanim zapisima",
       "description": "Odaberite brisanje ili spajanje usluge “{{service}}”. Pregled prikazuje broj povezanih zapisa i finansijski iznos prije potvrde.",
@@ -1383,8 +1373,6 @@
   "stylists": {
     "workingHoursCaption": "Tabela radnog vremena frizera po danima: dan, radni dan, početak i kraj.",
     "tableCaption": "Tabela frizera: korisnik, e-mail, specijalizacija, datum zaposlenja, status i akcije.",
-    "newStylist": "Novi Stilista",
-    "editStylist": "Uredi Stilistu",
     "specialization": "Specijalizacija",
     "bio": "Bio",
     "hireDate": "Datum zaposlenja",
@@ -2073,7 +2061,6 @@
     "actualPrice": "Cijena",
     "tip": "Napojnica",
     "manual": "Ručno",
-    "fromReservation": "Iz rezervacije",
     "complete": "Kompletiraj",
     "totalRevenue": "Ukupni prihod",
     "totalTips": "Ukupne napojnice",
@@ -2171,8 +2158,6 @@
     "categories": "Kategorije Rashoda",
     "templates": "Šabloni",
     "newExpense": "Novi Rashod",
-    "closeBook": "Zatvori Knjigu",
-    "openCurrentMonth": "Otvori tekući mjesec",
     "template": "Šablon",
     "fields": "Polja",
     "addField": "Dodaj polje",
@@ -2853,7 +2838,6 @@
       "automaticConsentDescription": "Automatski prikazujemo samo parove za koje obje fotografije imaju važeću saglasnost.",
       "noConsentedPairs": "Trenutno nema parova s aktivnom saglasnošću za obje fotografije.",
       "openImage": "Otvori sliku",
-      "closeImage": "Zatvori sliku",
       "openOriginal": "Otvori original u novom prozoru",
       "close": "Zatvori"
     },

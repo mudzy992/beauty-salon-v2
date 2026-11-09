@@ -2591,3 +2591,54 @@ dodata neiskorištena paleta — to slabi čuvar, ne krši invariant. Isprva sam
 | `check_i18n --strict` / `check_ui_contrast --strict` | PASS / 80 |
 | hygiene / `diff --check` | 1683 / čist |
 | diff | hirurški: 1/1 · 1/1 · 2/2 linija |
+
+---
+
+## 2026-11-09 — Faza 13 (commit 3): D2 dead-code sweep
+
+### `ui/tooltip.tsx` + `@radix-ui/react-tooltip`
+
+Plan tvrdi „0 upotreba, potvrđeno grep-om" — i **tačan je**, ali moj prvi grep je dao
+**1** pogodak (`Analytics.tsx:337 <Tooltip formatter=…/>`). To je **recharts** `<Tooltip>`,
+ne shadcn. Prava provjera je broj **importova** `ui/tooltip` = **0** → fajl obrisan.
+`@radix-ui/react-tooltip` je koristio samo taj fajl, pa je uklonjena i zavisnost
+(`npm uninstall`; `package.json` i `package-lock.json` = 0 pogodaka).
+
+Bundle: **274.1 → 273.8 KiB** gzip.
+
+### Nekorišteni i18n ključevi — dvije greške u mom detektoru prije brisanja
+
+Naivni detektor je dao **42** „nekorištena" ključa. Nakon provjere:
+
+| Korak | Rezultat |
+|---|---|
+| Naivno (leaf se ne pojavljuje u izvoru) | 42 |
+| − plurale (`_one`/`_few`/`_other`) čija baza postoji | −18 |
+| − ključevi u dinamičkim namespace-ovima | −4 (`jobStatuses.PARTIAL`, `recipientStatuses.SKIPPED`, `public.reserve.loginRequired`, `changeService`) |
+| − **dinamički sastavljeni** ključevi | −4 (`addTitle`/`addText`/`addButton`/`addSpacer`) |
+| **Sigurno mrtvo** | **16** |
+
+**🔴 Zamka koja bi slomila email editor:** `emailSettings.campaigns.addTitle` itd. izgledaju
+mrtvo jer se string `addTitle` nigdje ne pojavljuje — ali `email-visual-editor.tsx:122` gradi
+ključ dinamički: `t(\`emailSettings.campaigns.add${type[0].toUpperCase()}${type.slice(1)}\`)`,
+a `EmailContentBlockType = 'title' | 'text' | 'button' | 'spacer' | 'highlight' | 'divider'`
+(:12). Brisanje bi uklonilo **žive** ključeve. Moj prvi filter je provjeravao samo **pretke**
+namespace-a, ne prefiks leafa.
+
+Obrisan 16 ključeva × 2 jezika (`nav.sectionSettings`, 5× `table.*`,
+`shell.sectionNavigation`, 2× `emailSettings.campaigns.*`, `services.confirmDeleteService`,
+`stylists.newStylist`/`editStylist`, `dailyLog.fromReservation`, `finance.closeBook`/
+`openCurrentMonth`, `public.gallery.closeImage`).
+
+Uklanjanje je **hirurško** (po linijama, uz praćenje ugnježdenja + popravak visećih zareza),
+ne `json.dumps` round-trip: `git diff --numstat` = **1/17** po fajlu, a ne hiljade linija.
+
+### Provjere
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` | **169/169** |
+| `npx tsc --noEmit` / `npm run build` | čist / **273.8 KiB** (bilo 274.1) |
+| `check_i18n --strict` | PASS (bs/en paritet očuvan) |
+| `check_repo_hygiene` | PASS, 1683 trackovane putanje (HEAD 1684 → −1) |
+| `git diff` HEAD↔index | **jedina** razlika = `frontend/src/components/ui/tooltip.tsx` |

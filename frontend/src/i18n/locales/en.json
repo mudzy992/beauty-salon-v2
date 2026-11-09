@@ -30,8 +30,7 @@
     "sectionFinance": "Finance",
     "sectionContent": "Content",
     "sectionPeople": "People",
-    "sectionSystem": "System",
-    "sectionSettings": "Settings"
+    "sectionSystem": "System"
   },
   "pageTitles": {
     "serviceWorkGallery": "Service work gallery",
@@ -51,16 +50,11 @@
     "profile": "Profile"
   },
   "table": {
-    "sortAscending": "Sort ascending",
-    "sortDescending": "Sort descending",
     "sortBy": "Sort by {{column}}",
-    "sortedAscending": "Sorted ascending",
-    "sortedDescending": "Sorted descending",
     "pageOf": "Page {{current}} of {{total}}",
     "showingRange": "Showing {{from}}–{{to}} of {{total}}",
     "showingAll": "Showing {{count}} records",
     "noResults": "No results for the current filters.",
-    "actionsFor": "Actions for {{item}}",
     "loading": "Loading data…",
     "previous": "Previous page",
     "next": "Next page",
@@ -76,7 +70,6 @@
     "skipToContent": "Skip to content",
     "help": "Help",
     "mainNavigation": "Main navigation",
-    "sectionNavigation": "Section navigation",
     "userMenu": "User menu",
     "profile": "Profile",
     "profileForUser": "Profile: {{username}}",
@@ -860,7 +853,6 @@
       "htmlPreviewSource": "HTML preview source",
       "audienceHeading": "Campaign audience",
       "onlyActiveUsers": "Active users only",
-      "onlyVerifiedUsers": "Email-verified users only",
       "createInAppNotification": "Create in-app notification",
       "calculateAudience": "Calculate audience",
       "sendCampaign": "Send campaign",
@@ -875,7 +867,6 @@
       "saved": "Campaign templates saved.",
       "saveFailed": "Could not save campaign templates.",
       "sent": "Campaign sent.",
-      "sendDetails": "Delivered: {{delivered}}, skipped: {{skipped}}.",
       "sendFailed": "Campaign could not be sent.",
       "verifiedConsentOnly": "Only users with a verified email address and active marketing consent are included.",
       "audienceLimitReached": "A campaign can have at most 100 recipients. Narrow the audience before sending.",
@@ -1288,7 +1279,6 @@
     "noSubcategories": "No subcategories.",
     "confirmDeleteCategory": "Delete this category and all its subcategories and services?",
     "confirmDeleteSubcategory": "Delete this subcategory and all its services?",
-    "confirmDeleteService": "Delete this service?",
     "deletion": {
       "title": "Manage service and linked records",
       "description": "Choose whether to delete or merge “{{service}}”. The preview lists affected records and financial amounts before confirmation.",
@@ -1386,8 +1376,6 @@
   "stylists": {
     "workingHoursCaption": "Stylist working hours by day: day, working day, start and end time.",
     "tableCaption": "Stylists table: user, email, specialization, hire date, status, and actions.",
-    "newStylist": "New stylist",
-    "editStylist": "Edit stylist",
     "specialization": "Specialisation",
     "bio": "Bio",
     "hireDate": "Hire date",
@@ -2076,7 +2064,6 @@
     "actualPrice": "Price",
     "tip": "Tip",
     "manual": "Manual",
-    "fromReservation": "From reservation",
     "complete": "Complete",
     "totalRevenue": "Total revenue",
     "totalTips": "Total tips",
@@ -2174,8 +2161,6 @@
     "categories": "Expense Categories",
     "templates": "Templates",
     "newExpense": "New Expense",
-    "closeBook": "Close Book",
-    "openCurrentMonth": "Open current month",
     "template": "Template",
     "fields": "Fields",
     "addField": "Add field",
@@ -2856,7 +2841,6 @@
       "automaticConsentDescription": "We automatically display only pairs where both photos have current consent.",
       "noConsentedPairs": "There are currently no pairs with active consent for both photos.",
       "openImage": "Open image",
-      "closeImage": "Close image",
       "openOriginal": "Open original in a new window",
       "close": "Close"
     },
