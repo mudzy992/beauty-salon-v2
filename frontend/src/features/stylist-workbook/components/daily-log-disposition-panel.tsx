@@ -178,7 +178,11 @@ export const DailyLogDispositionPanel = ({ entry, onDone }: Props) => {
                 placeholder={t('stylistWorkbook.disposition.reasonPlaceholder')}
               />
             </div>
-            {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+            {error ? (
+              <p role="alert" className="text-sm text-bad-foreground">
+                {error}
+              </p>
+            ) : null}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={submitting}>

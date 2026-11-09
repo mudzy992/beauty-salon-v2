@@ -29,7 +29,7 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 | 8 | Salon / Usluge / Frizeri | `[x]` 1 commit | prošla |
 | 9 | Sadržaj (Blog, Galerija, Recenzije) | `[x]` 1 commit | prošla |
 | 10 | Postavke (+ M2 ako odobren) | `[x]` 3 commita (`ba59834`, `44b0eed`, `56cee86` **M2**) — DoD „`EmailSettings.tsx` < 120 ln" odgođen na fazu 13 | prošla |
-| 11 | Stylist portal | `[ ]` | |
+| 11 | Stylist portal | `[~]` 2 commita (`d15bcd1`, + statusne poruke) — D1/D3/D4/D6/D7 opovrgnuti, D5 djelimično, D10 već zadovoljen | u toku |
 | 12 | Onboarding / ForceChangePassword | `[ ]` | |
 | 13 | Zaključak (globalni prolaz, sweep, docs) | `[ ]` | |
 
@@ -105,6 +105,16 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > naveo: **1.1.1 `Stars`** — 5 `aria-hidden` ikona, a u **tabeli** nije bilo brojčanog
 > ekvivalenta (detaljni panel ga je imao), pa su ćelije ocjena za čitač ekrana bile prazne.
 > Novi test `test:admin-content-a11y` (10 testova); **14/14 mutacija palo**.
+
+> **Faza 11 — napomene (u toku).** Plan je ovdje bio **najmanje tačan** do sada: od 10
+> stavki **5 je opovrgnuto** (D1 već urađen u fazi 0; D3 dijalozi već imaju `DialogTitle` +
+> `DialogDescription`; D4 klijent/usluga se traže jednom; D6 search ikone su `aria-hidden`;
+> D7 `AccessibleCalendar` **ne postoji**, a schedule ni ne koristi kalendar), **D10 je već
+> zadovoljen** (`size="sm"` = `h-9` = 36 px ≥ 24 px), a **D5 je stvaran samo na 1 od 4
+> mjesta i to kao 4.1.3**, ne 1.4.3. Stvarni nalazi koje plan nije naveo: **4.1.3** upload
+> status i dva errora bez `role="alert"`, te **1.4.3** `text-rose-600` (3.80:1 u tamnoj temi).
+> Sweep od 12 `type="file"` inputa (5 s `display:none`) **nije** dao 2.1.1 prekršaj — za
+> svih 5 postoji fokusabilno dugme koje ih aktivira.
 
 > **Faza 10 — napomene.** A11y dio završen u 2 commita; **M2 (D11) urađen** u `56cee86`
 > (`/admin/settings?tab=site|operations|appearance|seo|email|notifications|releases`,

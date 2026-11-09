@@ -578,6 +578,9 @@ jobs:
       - name: Test stylist workbook loading status accessibility
         working-directory: frontend
         run: npm run test:workbook-loading-status-a11y
+      - name: Test stylist portal status messages accessibility
+        working-directory: frontend
+        run: npm run test:stylist-status-messages-a11y
       # Dug iz faze 3: skripta je postojala u package.json ali nikad nije dobila CI korak.
       - name: Test reservation list API contract
         working-directory: frontend

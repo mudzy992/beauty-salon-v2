@@ -371,7 +371,9 @@ export const WorkbookNewEntryForm = ({
           {!selectedClient ? (
             <p className="mt-1 text-xs text-slate-500">{t('stylistWorkbook.newEntry.selectClientForServices')}</p>
           ) : !selectedClient.gender ? (
-            <p className="mt-1 text-xs text-rose-600">{t('stylistWorkbook.newEntry.clientGenderRequired')}</p>
+            <p role="alert" className="mt-1 text-xs text-bad-foreground">
+              {t('stylistWorkbook.newEntry.clientGenderRequired')}
+            </p>
           ) : null}
           <div ref={serviceDropdownRef} className="relative mt-2">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-muted" aria-hidden="true" />

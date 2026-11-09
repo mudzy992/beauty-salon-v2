@@ -2060,3 +2060,50 @@ Registrovan u `package.json` (168) i `ci.yml`.
 | `check_ui_contrast.py --strict` | 80/80 |
 | `check_repo_hygiene.py` | 1675 |
 | `check_doc_links.py` | 669/202 |
+
+---
+
+## 2026-11-08 — Faza 11 (commit 2): statusne poruke (4.1.3 / 3.3.1) i `text-rose-600` (1.4.3)
+
+### Plan vs. izvor (nastavak)
+
+| Stavka plana | Presuda | Dokaz |
+|---|---|---|
+| **D3** dijalozi → `ConfirmDialog` / `ResponsiveDialog` (2.1.2, 3.3.4) | **opovrgnuto** | svih 12 dijalogâ već ima `<DialogTitle>` **i** `<DialogDescription>`; Radix daje focus trap + `Esc` (2.1.2). Migracija bi bila konzistentnost, ne ispravka |
+| **D7** schedule → `AccessibleCalendar` (2.5.7) | **opovrgnuto** | `stylist-schedule-page.tsx` **ne koristi kalendar** — renderuje sekcije po danima (`buildSections`). `AccessibleCalendar` uopšte **ne postoji** u kodu; `react-big-calendar` je samo u adminu (`ReservationScheduler.tsx`) |
+| **D8** upload → native input + `role="progressbar"` | **djelomično** | input **jeste** native (`type="file"`, `accept="image/*"`). `className="hidden"` ga čini nefokusabilnim, **ali** omotavajući `<label>` sadrži fokusabilno `<Button>` koje tastaturom (Enter/Space → click → label) otvara picker — **2.1.1 nije prekršen**. Stvarni prekršaj je bio drugi (dolje) |
+| **D10** mete ≥24 px (2.5.8) | **već zadovoljeno** | svih 17 dugmadi je `size="sm"` = `h-9 px-3` (`button.tsx:33`) = **36 px** ≥ 24 px |
+
+### Stvarni nalazi (plan ih nije naveo)
+
+| # | Mjesto | WCAG | Šta |
+|---|---|---|---|
+| 1 | `workbook-detail-page.tsx:403` | **4.1.3** | Upload status (`uploadInProgress`) se dinamički pojavljivao/nestajao **bez** `role="status"` — AT to nije vidio |
+| 2 | `daily-log-disposition-panel.tsx:181` | **4.1.3 / 3.3.1** | Error u disposition dijalogu bez `role="alert"` |
+| 3 | `workbook-new-entry-page.tsx:374` | **4.1.3 / 3.3.1** | „Potreban je spol klijenta" bez `role="alert"` |
+| 4 | 4× `text-rose-600` | **1.4.3** | Nema dark varijantu: **3.80:1** na tamnoj površini (4.70:1 na svjetloj, 4.49:1 na `surface-muted`) |
+
+**Sistematski sweep file inputa (cijeli `src/`):** 12 `<input type="file">`, od toga **5** s
+`display:none` (`workbook-detail` ×2, `Profile`, `Register`, `Services`). Za **svih 5**
+postoji fokusabilno dugme koje ih aktivira (`<label>` omotač ili `ref.click()`), pa
+**2.1.1 nije prekršen** ni na jednom mjestu — nalaz je provjeren, ne pretpostavljen.
+
+### Izmjene
+
+- upload status → `role="status" aria-live="polite"` + `text-content-muted`
+- disposition error i „spol klijenta" → `role="alert"` + `text-bad-foreground`
+- `text-rose-600` → `text-bad-foreground` (4 mjesta; **0** preostalo u stylist portalu)
+
+### Dokaz
+
+Novi test **`test:stylist-status-messages-a11y`** (4 testa) — uključujući test koji
+**izvršava** izračun kontrasta čitajući stvarne HSL vrijednosti `--bad-fg` iz `globals.css`
+za obje teme (svjetlo ≥ 4.5, tamno ≥ 4.5) i potvrđuje da `rose-600` na tamnoj pada ispod 4.5.
+**7/7 mutacija pada.** Registrovan u `package.json` (169) i `ci.yml`.
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` | **163/163** |
+| `npm run build` | 274.1 KiB gzip |
+| `check_i18n.py --strict` / `check_ui_contrast.py --strict` | PASS / 80/80 |
+| `check_repo_hygiene.py` / `check_doc_links.py` | 1676 / 669 |

@@ -401,7 +401,7 @@ export const WorkbookDetailPage = () => {
                 </Button>
               </label>
               {uploading ? (
-                <div className="text-xs text-slate-500 flex items-center gap-2">
+                <div role="status" aria-live="polite" className="text-xs text-content-muted flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                   {t('stylistWorkbook.detail.uploadInProgress')}
                 </div>

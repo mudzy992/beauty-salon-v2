@@ -235,7 +235,7 @@ export const StylistDirectBookingPage = () => {
             </p>
           ) : null}
           {clientSearchError ? (
-            <div role="alert" className="flex items-center justify-between gap-3 text-sm text-rose-600">
+            <div role="alert" className="flex items-center justify-between gap-3 text-sm text-bad-foreground">
               <span>{t('stylistPortal.directBooking.clientSearchFailed')}</span>
               <Button type="button" variant="outline" size="sm" onClick={() => void searchClients(clientSearch.trim())}>
                 {t('common.retry')}
@@ -283,7 +283,7 @@ export const StylistDirectBookingPage = () => {
             {t('stylistPortal.directBooking.services')}
           </legend>
           {servicesLoadError ? (
-            <div role="alert" className="flex items-center justify-between gap-3 text-sm text-rose-600">
+            <div role="alert" className="flex items-center justify-between gap-3 text-sm text-bad-foreground">
               <span>{t('stylistPortal.directBooking.serviceLoadFailed')}</span>
               <Button type="button" variant="outline" size="sm" onClick={() => void loadServices()}>
                 {t('common.retry')}
