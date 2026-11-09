@@ -563,6 +563,9 @@ jobs:
       - name: Test admin content page accessibility
         working-directory: frontend
         run: npm run test:admin-content-a11y
+      - name: Test settings semantic tokens
+        working-directory: frontend
+        run: npm run test:settings-semantic-tokens
       - name: Test localized stylist analytics page
         working-directory: frontend
         run: npm run test:stylist-analytics-i18n

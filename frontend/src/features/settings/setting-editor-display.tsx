@@ -51,7 +51,7 @@ export function SettingEditorDisplay({
         {hasValue && def.type !== 'image' && def.type !== 'color' ? (
           <p className="mt-2 max-w-3xl whitespace-pre-wrap break-words text-sm leading-5 text-slate-600 dark:text-slate-300">
             {value}
-            {def.suffix ? <span className="ml-1 text-slate-400">{def.suffix}</span> : null}
+            {def.suffix ? <span className="ml-1 text-content-muted">{def.suffix}</span> : null}
           </p>
         ) : null}
       </div>

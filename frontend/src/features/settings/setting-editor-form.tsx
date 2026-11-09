@@ -126,7 +126,7 @@ export function SettingEditorForm({
   return (
     <Card className="rounded-xl border-slate-200 bg-slate-50/60 p-4 shadow-none sm:p-5">
       <div className="mb-4 flex items-start gap-3">
-        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-[#80553e] shadow-sm">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface text-brand-rose-text shadow-sm">
           {def.type === 'image' ? <Upload className="h-4 w-4" aria-hidden="true" /> : <Pencil className="h-4 w-4" aria-hidden="true" />}
         </span>
         <div className="min-w-0">
@@ -150,7 +150,7 @@ export function SettingEditorForm({
         ) : def.type === 'select' ? (
           <select
             id={inputId}
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-[#9b735f]"
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-focus-ring"
             value={value}
             onChange={(event) => updateValue(event.target.value)}
             aria-invalid={Boolean(validationError)}

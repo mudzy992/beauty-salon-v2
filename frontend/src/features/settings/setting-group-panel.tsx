@@ -44,7 +44,7 @@ export function SettingGroupPanel({
         aria-controls={contentId}
         aria-label={`${t(expanded ? 'adminSettings.sections.collapse' : 'adminSettings.sections.expand')}: ${group.label}`}
         onClick={() => setExpanded((current) => !current)}
-        className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#9b735f] sm:px-5"
+        className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus-ring sm:px-5"
       >
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-50">
           <GroupIcon className={cn('h-5 w-5', GROUP_ICON_TEXT[group.color] ?? 'text-slate-600')} aria-hidden="true" />

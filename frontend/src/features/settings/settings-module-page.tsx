@@ -66,7 +66,7 @@ export function SettingsModulePage({
                 type="button"
                 onClick={() => setQuery('')}
                 aria-label={t('adminSettings.search.clear')}
-                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#9b735f]"
+                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -100,7 +100,7 @@ export function SettingsModulePage({
         </div>
       ) : visibleGroups.length === 0 ? (
         <div id="settings-groups-list" role="status" className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f3e8df] text-[#80553e]">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-nav-active text-brand-rose-text">
             <Search className="h-5 w-5" aria-hidden="true" />
           </span>
           <h2 className="mt-4 text-lg font-semibold text-slate-900">{t('adminSettings.search.noResultsTitle')}</h2>
