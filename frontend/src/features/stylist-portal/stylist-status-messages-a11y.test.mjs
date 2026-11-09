@@ -7,8 +7,11 @@
  *     pojavljivao i nestajao **bez** `role="status"` → 4.1.3.
  *  2. `daily-log-disposition-panel.tsx` — error u dijalogu bez `role="alert"` → 4.1.3 / 3.3.1.
  *  3. `workbook-new-entry-page.tsx` — „potreban je spol klijenta" bez `role="alert"` → isto.
- *  4. `text-rose-600` nema dark varijantu: **3.80:1** na tamnoj površini → 1.4.3.
- *     (`--bad-fg` je 6.80:1 svjetlo / 7.71:1 tamno.)
+ *  4. `text-rose-600` → `text-bad-foreground`. 🔴 **Nije** ispravka prekršaja: na svjetloj
+ *     površini `rose-600` = 4.70:1 (**PASS**), a tamna tema se u ovoj aplikaciji **ne može
+ *     aktivirati** (`darkMode: ['class']`, a `.dark` klasu niko ne postavlja — nema je u
+ *     `index.html`, nema `classList`/`ThemeProvider` u `src/`). Zamjena je **konzistentnost**
+ *     (`--bad-fg` = 6.80:1 svjetlo / 7.71:1 tamno) i rezerva ako se tema ikad uvede.
  *
  * Bez browsera: izvorni ugovor + izmjereni kontrast.
  */
@@ -59,7 +62,7 @@ test('3.3.1 / 4.1.3: error poruke u obrascima imaju role="alert"', () => {
   }
 })
 
-test('1.4.3: nema text-rose-600 (3.80:1 u tamnoj temi) — koristi se bad-foreground', () => {
+test('konzistentnost: nema text-rose-600 — koristi se bad-foreground', () => {
   const offenders = []
   let bad = 0
   for (const f of SRC) {
@@ -72,7 +75,7 @@ test('1.4.3: nema text-rose-600 (3.80:1 u tamnoj temi) — koristi se bad-foregr
   assert.ok(bad >= 4, `ocekivano >=4 text-bad-foreground, nadeno ${bad}`)
 })
 
-test('izmjereni kontrast: bad-foreground zadovoljava 4.5:1 u obje teme, rose-600 ne', () => {
+test('izmjereni kontrast: bad-foreground zadovoljava 4.5:1 u obje teme (rezerva za tamnu)', () => {
   // HSL -> RGB (Tailwind/hsl vrijednosti iz globals.css)
   const hslToRgb = (h, s, l) => {
     s /= 100; l /= 100

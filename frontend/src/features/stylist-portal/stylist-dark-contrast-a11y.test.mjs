@@ -1,13 +1,18 @@
 /**
- * Faza 11 — WCAG 1.4.3 (Contrast Minimum) u **tamnoj** temi, stylist portal
+ * Faza 11 — čuvar **konzistentnosti** tekstualnih boja u stylist portalu
  *
- * Nalaz iz izvora: `text-slate-500` se koristio na **32 mjesta** bez `dark:` varijante.
- * Na svjetloj površini je 4.76:1 (PASS), ali na tamnoj (`slate-900`) je **3.75:1** —
- * ispod 4.5:1, dakle prekršaj koji se vidi samo u tamnoj temi.
- * Zamijenjeno semantičkim `text-content-muted` (`--text-muted`: 5.61:1 svjetlo / 6.56:1 tamno).
+ * 🔴 ISPRAVKA premise (2026-11-09): ovaj test je prvobitno predstavljen kao dokaz
+ * **1.4.3 prekršaja u tamnoj temi**. To je bila **pogrešna kvalifikacija** — tamna tema se
+ * u ovoj aplikaciji **ne može aktivirati**: `tailwind.config.js` ima `darkMode: ['class']`,
+ * a `.dark` klasu **niko ne postavlja** (`index.html:2` je `<html lang="bs">`, nema
+ * `classList`/`ThemeProvider`/`setTheme`/`useTheme` u `src/`). Na svjetloj površini
+ * `text-slate-500` = 4.76:1 → **PASS**, dakle 1.4.3 **nije prekršen u praksi**.
  *
- * Test radi **isti sweep** koji je nalaz i otkrio: za svaku tekstualnu paleta-klasu bez
- * `dark:` varijante izračuna kontrast na tamnoj površini iz ugrađene Tailwind palete.
+ * Test ipak ostaje, iz dva razloga:
+ *  1. **Konzistentnost** — semantički tokeni (`text-content-muted`, `text-bad-foreground`)
+ *     umjesto sirovih paleta-klasa; tokeni su i kontrastniji (5.61:1 vs 4.76:1).
+ *  2. **Rezerva** — ako se tamna tema ikad uvede, ovaj sweep odmah postaje stvarni
+ *     1.4.3 čuvar (svaka paleta-klasa bez `dark:` varijante koja pada ispod 4.5:1).
  *
  * Bez browsera: izvorni ugovor + izmjereni kontrast (kao i `check_ui_contrast.py`).
  */
@@ -78,7 +83,7 @@ const sweep = () => {
   return rows
 }
 
-test('1.4.3: nijedna tekstualna paleta-klasa bez dark: varijante ne pada ispod 4.5:1 na tamnoj', () => {
+test('konzistentnost/rezerva: nijedna paleta-klasa bez dark: varijante ne pada ispod 4.5:1 na tamnoj', () => {
   const rows = sweep()
   assert.ok(rows.length >= 100, `ocekivano >=100 paleta-klasa, nadeno ${rows.length}`)
 

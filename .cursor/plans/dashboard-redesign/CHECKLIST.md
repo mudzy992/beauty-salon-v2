@@ -126,9 +126,12 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > **D2 je bespredmetan** — u stylist portalu nema nijedne `<table>` ni stat kartica.
 > **Sweep imena kontrola (4.1.2):** 27 `<Input>`/`<Textarea>`, **1** bez imena
 > (`workbook-reschedule-preview-page:212` orphan `<Label>` + `<Input>` bez `id`) — ispravljeno.
-> **1.4.3 u tamnoj temi:** `text-slate-500` na **32 mjesta** bez `dark:` varijante = 3.75:1
-> na tamnoj površini (4.76:1 na svjetloj) — prekršaj vidljiv **samo** u tamnoj temi;
-> zamijenjeno s `text-content-muted`. Nakon toga 0 prekršaja među 122 paleta-klase.
+> **🔴 ISPRAVKA — „1.4.3 u tamnoj temi" je bila pogrešna kvalifikacija.** `text-slate-500`
+> ×32 sam zamijenio s `text-content-muted` tvrdeći da je to 1.4.3 prekršaj u tamnoj temi.
+> **Tamna tema se u ovoj aplikaciji ne može aktivirati**: `darkMode: ['class']`, a `.dark`
+> klasu **niko ne postavlja** (nema je u `index.html`, nema `classList`/`ThemeProvider`/
+> `setTheme` u `src/`). Na svjetloj je `slate-500` = 4.76:1 → **PASS**. Zamjena ostaje
+> valjana kao **konzistentnost** (5.61:1, semantički token), ne kao ispravka prekršaja.
 > **Odgođeno na fazu 13:** `FormSection`/`<fieldset>` (mijenja vizuelni izgled, treba nove
 > i18n ključeve za `<legend>`) i D10 reflow — bez browsera se ne mogu verificirati.
 

@@ -2360,3 +2360,51 @@ Novi korak **„Lint frontend (rules-of-hooks)"** u `frontend` jobu (172 koraka)
 | `npm run build` | 274.1 KiB gzip |
 | `check_i18n.py --strict` / `check_ui_contrast.py --strict` | PASS / 80/80 |
 | `check_repo_hygiene.py` / `check_doc_links.py` | 1680 / 669 |
+
+---
+
+## 2026-11-09 — 🔴 ISPRAVKA moje kvalifikacije iz faze 11: tamna tema se ne može aktivirati
+
+U fazi 11 (commit 4) sam `text-slate-500` ×32 nazvao **„1.4.3 prekršaj koji je vidljiv samo u
+tamnoj temi"**. Provjera iz izvora pokazuje da je ta **kvalifikacija pogrešna**.
+
+### Dokaz
+
+| Šta | Gdje | Rezultat |
+|---|---|---|
+| `darkMode: ['class']` | `tailwind.config.js:4` | tamna tema traži `.dark` klasu na pretku |
+| `.dark { … }` CSS | `styles/globals.css:68` | pravila **postoje** |
+| `class="dark"` u `<html>` | `index.html:2` | **nema** — `<html lang="bs">` |
+| Inline skripta u `index.html` | — | **nema** |
+| `classList` + `dark` u cijelom `src/` | grep | **0 pogodaka** |
+| `ThemeProvider` / `setTheme` / `useTheme` / `colorScheme` | grep | **0 pogodaka** |
+| `SettingsContext` | `context/SettingsContext.tsx:66-70` | postavlja samo CSS varijable za **brand boje**, ne temu |
+
+**Zaključak: tamna tema se u ovoj aplikaciji ne može aktivirati.** Svi `dark:` Tailwind
+varianti i sva `.dark` CSS pravila su **mrtvi kod**.
+
+### Šta to znači za nalaz iz faze 11
+
+- `text-slate-500` na svjetloj površini = **4.76:1 → PASS**. Kako se tamna tema ne prikazuje,
+  **1.4.3 nije prekršen u praksi.** Moja tvrdnja „stvarni prekršaj" bila je **preuveličana** —
+  upravo obrazac na koji je vlasnik upozorio.
+- **Zamjena ipak ostaje valjana**, ali iz drugih razloga: `text-content-muted` je semantički
+  token (5.61:1, **bolji** kontrast od 4.76:1) i radi ispravno ako se tamna tema ikad uvede.
+  Dakle: poboljšanje konzistentnosti i rezerve, **ne** ispravka prekršaja.
+- Isto važa za `text-rose-600` → `text-bad-foreground` iz commita 2: na svjetloj je 4.70:1
+  (PASS); zamjena je konzistentnost, ne ispravka.
+
+### Šta ostaje tačno
+
+Stvarni prekršaji iz faze 11 **nisu** dovedeni u pitanje — oni ne ovise o temi:
+**4.1.3** (loader bez `role="status"`, upload status, dva errora bez `role="alert"`) i
+**4.1.2/1.3.1** (orphan `<Label>` u reschedule preview).
+
+### Posljedica za test
+
+`test:stylist-dark-contrast-a11y` **ostaje**, ali mu je premisa u komentaru ispravljena: on
+nije dokaz prekršaja nego **čuvar konzistentnosti** (semantički tokeni umjesto sirovih
+paleta-klasa) i rezerva za slučaj da se tamna tema uvede. Pragovi i sweep su nepromijenjeni.
+
+> **Pouka:** prije tvrdnje „prekršaj u tamnoj temi" provjeriti **da li tamna tema postoji**.
+> `grep dark: <broj>` nije dokaz da se tema koristi — treba naći ko postavlja `.dark` klasu.
