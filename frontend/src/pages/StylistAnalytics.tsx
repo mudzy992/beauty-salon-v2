@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Link as RouterLink, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -34,6 +34,9 @@ const StatCard = ({ title, value }: { title: string; value: string }) => (
 
 export default function StylistAnalytics() {
   const { t, i18n } = useTranslation()
+  const tablesId = useId()
+  const topServicesLabelId = `${tablesId}-top-services`
+  const recentEntriesLabelId = `${tablesId}-recent-entries`
   const locale = getIntlLocale(i18n.language)
   const formatDate = (value: string | null | undefined) => {
     if (!value) return '—'
@@ -157,14 +160,14 @@ export default function StylistAnalytics() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card className="p-5">
-          <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistAnalytics.topServices')}</h2>
+          <h2 id={topServicesLabelId} className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistAnalytics.topServices')}</h2>
           <div className="app-table-wrap">
-            <table className="app-table w-full border-collapse">
+            <table aria-labelledby={topServicesLabelId} className="app-table w-full border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                  <th className="py-2 pr-3 font-medium">{t('stylistAnalytics.service')}</th>
-                  <th className="py-2 pr-3 text-right font-medium">{t('stylistAnalytics.count')}</th>
-                  <th className="py-2 text-right font-medium">{t('stylistAnalytics.revenue')}</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">{t('stylistAnalytics.service')}</th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium">{t('stylistAnalytics.count')}</th>
+                  <th scope="col" className="py-2 text-right font-medium">{t('stylistAnalytics.revenue')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -189,15 +192,15 @@ export default function StylistAnalytics() {
         </Card>
 
         <Card className="p-5">
-          <h2 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistAnalytics.recentEntries')}</h2>
+          <h2 id={recentEntriesLabelId} className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-50">{t('stylistAnalytics.recentEntries')}</h2>
           <div className="app-table-wrap">
-            <table className="app-table w-full border-collapse">
+            <table aria-labelledby={recentEntriesLabelId} className="app-table w-full border-collapse">
               <thead>
                 <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500 dark:border-slate-800">
-                  <th className="py-2 pr-3 font-medium">{t('common.date')}</th>
-                  <th className="py-2 pr-3 font-medium">{t('stylistAnalytics.service')}</th>
-                  <th className="py-2 pr-3 font-medium">{t('stylistAnalytics.client')}</th>
-                  <th className="py-2 text-right font-medium">{t('stylistAnalytics.amount')}</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">{t('common.date')}</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">{t('stylistAnalytics.service')}</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">{t('stylistAnalytics.client')}</th>
+                  <th scope="col" className="py-2 text-right font-medium">{t('stylistAnalytics.amount')}</th>
                 </tr>
               </thead>
               <tbody>

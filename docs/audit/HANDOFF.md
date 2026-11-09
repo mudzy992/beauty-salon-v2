@@ -1400,9 +1400,14 @@ cijelog journeya. Zoom 200/400%, text spacing, touch target na stvarnom uređaju
 
 - **D10:** `formatLocalizedAmount` zaobiđen na **15** mjesta (`toFixed(2) + ' KM'`) →
   miješani format i `"NaN KM"`. Bez odluke o formatu ne popravljati tiho.
-- `EmailSettings.tsx` (1377 ln) na < 120 ln — testovi ga čitaju po putanji.
+- ~~`EmailSettings.tsx` (1377 ln) na < 120 ln~~ — **ODLUKA VLASNIKA 2026-11-09: PRESKOČITI, ostaje 1381 ln.** Razlozi (dokazani, ne procjena):
+  - `settings-hub-redirect.test.mjs` ima test koji se zove **„moduli ostaju u svojim fajlovima jer ih testovi čita po putanji"** — politika je namjerna.
+  - `admin-settings-controls-a11y.test.mjs:28` asertuje **tačno 29 `<Label>`** u tom fajlu.
+  - `email-visual-editor.test.mjs` asertuje **tačno 2 `<EmailVisualEditor`** i 3 regex-a.
+  - 3 i18n testa skeniraju `t('…')` u tom fajlu (npr. `literalTranslationKeys` nad `EmailSettings.tsx` + `email-visual-editor.tsx`).
+  Bez ažuriranja 5-6 testova nije izvodljivo. Performansijski razlog za veličinu je već riješen — `SettingsHub.tsx:26` ga učitava preko `lazy()`.
 - ~~`fieldset`/`FormSection` u `workbook-new-entry-page`~~ — **RIJEŠENO 2026-11-09**, ali **ne** preko `FormSection`: ta komponenta renderuje `<fieldset>` s vidljivim okvirom i `<legend>`, što je unutar postojećih `Card` kutija bila vidljiva regresija (upravo zamjerka zbog koje je stavka odgođena). Umjesto toga `role="group"` + `aria-labelledby` na postojećem `Card`-u: za plaćanje naziv u `<span className="sr-only">`, a za loyalty `aria-labelledby` pokazuje na **postojeći vidljivi naslov** — nula novih vidljivih elemenata, jedan novi i18n ključ. `test:workbook-form-groups-a11y` (8, 10/10 mutacija).
-- Migracija tabela na `DataTable`.
+- Migracija tabela na `DataTable` — **izmjereno 2026-11-09: cilja nema smisla raditi masovno.** Od 17 fajlova s `<table>`, njih **14 već ima `<caption>` i `scope="col"`** (3 već koriste `DataTable`: `outbox-events-table`, `recent-reservations`, `Analytics`). Jedina stvarna rupa bila je `pages/StylistAnalytics.tsx` — **popravljeno bez migracije** (7 `scope="col"` + `aria-labelledby` na postojeće `<h2>`, nula vidljivih promjena; `test:stylist-analytics-tables-a11y`, 8/8 mutacija). Migracija bi promijenila izgled (`DataTable` renderuje `table.data-table` s `sr-only` caption-om i vlastitim razredima) uz zanemariv a11y dobitak.
 
 ## 4. Preporučeni redoslijed
 

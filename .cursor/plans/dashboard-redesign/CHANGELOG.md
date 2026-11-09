@@ -3640,3 +3640,105 @@ lint **0 errors / 7 warnings** · `check_i18n --strict` **PASS** · `check_ui_co
 ### Matrica
 
 1.3.1 ostaje **✅** (bio je ✅ i prije); upisana je dopuna s dokazom. Brojači se ne mijenjaju.
+
+
+---
+
+## 2026-11-09 — `DataTable` migracija: izmjereno pa odlučeno + 1.3.1 u `StylistAnalytics`
+
+Vlasnik je odabrao migraciju tabela na `DataTable` kao sljedeću stavku. Prije nego sam išta
+mijenjao, izmjerio sam šta bi se time stvarno dobilo.
+
+### Mjerenje: cilj uglavnom ne vrijedi
+
+17 fajlova u `src/` ima `<table>`. Stanje po fajlu (`<table>` / `<th>` / `scope="col"` / `<caption>`):
+
+| Fajl | table | scope | caption |
+|---|---:|---:|---:|
+| `features/blog/blog-posts-table.tsx` | 1 | 6 | 1 |
+| `features/daily-log/entry-table.tsx` | 1 | 12 | 1 |
+| `features/finance/expense/expense-invoice-preview.tsx` | 1 | 2 | 1 |
+| `features/finance/expense/expense-table.tsx` | 1 | 4 | 1 |
+| `features/finance/income/income-entries-table.tsx` | 1 | 5 | 1 |
+| `pages/Analytics.tsx` | 3 | 5 | 1 |
+| `pages/ClientAnalytics.tsx` | 3 | 17 | 3 |
+| `pages/Loyalty.tsx` | 1 | 7 | 1 |
+| `pages/Notifications.tsx` | 1 | 3 | 1 |
+| `pages/Reservations.tsx` | 1 | 8 | 1 |
+| `pages/Reviews.tsx` | 1 | 9 | 1 |
+| `pages/Salon.tsx` | 2 | 9 | 2 |
+| `pages/Services.tsx` | 1 | 8 | 1 |
+| **`pages/StylistAnalytics.tsx`** | **2** | **0** | **0** |
+| `pages/Stylists.tsx` | 2 | 10 | 2 |
+| `pages/Users.tsx` | 1 | 8 | 1 |
+
+**14 od 17 već ima `<caption>` i `scope="col"`.** Tri već koriste `DataTable`
+(`outbox-events-table.tsx`, `recent-reservations.tsx`, `Analytics.tsx`).
+
+Masovna migracija bi dakle bila **vidljiva** promjena (`DataTable` renderuje
+`table.data-table` s `<caption className="sr-only">` i vlastitim razredima, umjesto
+`app-table` + `border-collapse`) uz **zanemariv** a11y dobitak. Zato je nisam radio.
+
+### Jedina stvarna rupa: `pages/StylistAnalytics.tsx` — popravljeno
+
+Bio je to **jedini** fajl s `<table>` u cijelom `src/` bez ijednog `scope="col"` i bez
+ijednog `<caption>`, iako je **vidljivi `<h2>`** stajao odmah iznad svake tabele
+(`stylistAnalytics.topServices`, `stylistAnalytics.recentEntries`). Dakle: informacija je
+postojala vizuelno, ali nije bila programski odrediva → **1.3.1**.
+
+Popravka, **nula vidljivih promjena**:
+
+- `scope="col"` na svih 7 `<th>`
+- `aria-labelledby` na obje tabele, usmjeren na **postojeće vidljive `<h2>`** (id iz `useId()`)
+
+`DataTable` namjerno **nije** upotrijebljen — ove tabele već imaju vidljive naslove koje je
+dovoljno povezati, a migracija bi promijenila izgled.
+
+### Dvije greške u mom mjerenju, obje ispravljene
+
+1. **`grep -c '<th'` je vratio 9, stvarno je 7.** Razlog: obrazac pogađa i `<thead>`.
+   Ispravno brojanje je `grep -o '<th[^>]*>' | sort | uniq -c` → 4 + 1 + 2 = **7**.
+   Zbog pogrešnog broja prvi pokušaj edita nije prošao asertaciju — i to je dobro: skripta
+   je pala **prije** `write_text`, pa je fajl ostao netaknut (provjereno: `scope="col"` = 0).
+2. **`npx tsc --noEmit 2>&1 | head -5; echo "tsc exit=$?"` ispisao je `exit=0` iako je `tsc`
+   imao 5 grešaka** — izlazni kod je došao od `head`. Greške (`TS2304: Cannot find name
+   'topServicesLabelId'` — zaboravio sam deklarisati id varijable) vidljive su bile u tekstu,
+   ali broj nije. Ovo je ista zamka kao ranije; pravilo ostaje: bez cevovoda, ili
+   `set -o pipefail`.
+
+### Odluka vlasnika: `EmailSettings.tsx` ostaje 1381 ln
+
+Cilj „< 120 ln" se **preskače**. Razlozi su dokazani, ne procijenjeni:
+
+- `settings-hub-redirect.test.mjs` sadrži test koji se zove **„moduli ostaju u svojim
+  fajlovima jer ih testovi čita po putanji"** — politika je namjerna i automatizovana.
+- `admin-settings-controls-a11y.test.mjs:28` asertuje **tačno 29 `<Label>`** u tom fajlu.
+- `email-visual-editor.test.mjs` asertuje **tačno 2 `<EmailVisualEditor`** + 3 regex-a
+  (`blocks={existingTemplate.blocks ?? []}` itd.).
+- 3 i18n testa skeniraju `t('…')` u tom fajlu (`literalTranslationKeys` nad
+  `EmailSettings.tsx` + `email-visual-editor.tsx`).
+
+Bez ažuriranja 5-6 testova nije izvodljivo, a to bi bilo suprotno standing instrukciji
+„ne razbijati fajlove koje testovi čitaju po putanji". Performansijski razlog za veličinu je
+već riješen: `SettingsHub.tsx:26` ga učitava preko `lazy()`.
+
+### Test: `test:stylist-analytics-tables-a11y` (5 testova, 8/8 mutacija)
+
+Registrovan u `frontend/package.json` **i** u `.github/workflows/ci.yml` (posao `frontend`,
+koraka sada 183). Pokriva: svih 7 `<th>` ima `scope`; obje tabele imaju ime preko postojećeg
+`<h2>`; id-ovi su iz `useId()`; nijedan `aria-labelledby` ne pokazuje na nepostojeći id; te
+**guard da `DataTable`/`<caption>` nisu uvedeni** (jer bi to bila vidljiva promjena).
+
+Mutacije 8/8, uključujući „svi `<th>` bez scope" i „uveden DataTable".
+
+### Provjere (sve pokrenute)
+
+`test:*` **177/177** (bilo 176) · `tsc --noEmit` **exit 0** (bez cevovoda) · build
+**273.9 KiB/300** · lint **0 errors / 7 warnings** · `check_i18n --strict` **PASS** ·
+`check_ui_contrast --strict` **PASS** (80 parova) · `check_repo_hygiene` **PASS** (1701) ·
+`check_doc_links` **PASS** (670/202) · `git diff --check` **čist** · CI: **373** `npm run` →
+**0** nepostojećih, **392** `run` blokova → **0** `bash -n` grešaka.
+
+### Ograničenje
+
+Source-contract: ne dokazuje da čitač ekrana stvarno najavi naziv tabele.

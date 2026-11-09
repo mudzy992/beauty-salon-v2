@@ -341,6 +341,23 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 - [ ] **Ograničenje:** provjera je iz izvora; ne pokriva putanje koje grep ne vidi
       (navigacija naprijed-nazad, keš, back dugme).
 
+### Napomene uz `DataTable` migraciju i `EmailSettings` (2026-11-09)
+
+- [x] **`EmailSettings.tsx` ostaje 1381 ln — odluka vlasnika.** Sukob s politikom koju
+      repo **sam testira** (`settings-hub-redirect.test.mjs`: „moduli ostaju u svojim
+      fajlovima jer ih testovi čita po putanji"). Uz to `admin-settings-controls-a11y`
+      asertuje tačno 29 `<Label>`, a `email-visual-editor` tačno 2 `<EmailVisualEditor`.
+      Performansijski razlog je već riješen (`SettingsHub.tsx:26` → `lazy()`).
+- [x] **Migracija tabela na `DataTable` — masovni cilj se ne radi.** Izmjereno: 14 od 17
+      fajlova s `<table>` već ima `<caption>` + `scope="col"`; 3 već koriste `DataTable`.
+- [x] **Jedina stvarna rupa popravljena:** `pages/StylistAnalytics.tsx` — 7 `<th>` bez
+      `scope`, 2 tabele bez imena, uz vidljive `<h2>` odmah iznad. Dodato `scope="col"` +
+      `aria-labelledby` na postojeće naslove. **Nula vidljivih promjena**, `DataTable` nije
+      upotrijebljen jer bi promijenio izgled. `test:stylist-analytics-tables-a11y`
+      (5 testova, 8/8 mutacija).
+- [ ] **Napomena o mjerenju:** `grep -c '<th'` vraća 9 za taj fajl jer pogodi i `<thead>`.
+      Stvarno je 7 `<th>`. Za brojanje tagova koristiti `grep -o '<th[^>]*>'`.
+
 ## Ručna (rendered) provjera — **nije automatizovana u ovom okruženju**
 
 Ovo je lista za čovjeka. Agent je **ne može** izvršiti (nema preglednika, axe-a ni čitača ekrana)
