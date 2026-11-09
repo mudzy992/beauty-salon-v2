@@ -506,10 +506,15 @@ uhvatio tek render. Sweep je proširen parovima „tekst i pozadina na istom ele
 ikoni s `aria-label` (1.4.11 Non-text Contrast). **Pouka za ovaj finding: source-level
 sweep kontrasta nije zamjena za rendered provjeru, čak ni kada je pokrivenost 178 fajlova.**
 
+**Re-run nakon ispravki: POTVRĐEN (2026-11-09).** Vlasnik je ponovo pokrenuo
+`npm run test:a11y-routes` i **svih 11 testova prolazi** (prije: 3/11). Time su sve četiri
+ispravke dokazane rendered provjerom, ne samo source-contract ugovorom
+(`test:public-a11y-axe-findings`, 4 testa, 9/9 mutacija pada). *Potvrda je vlasnikova
+opservacija na njegovoj mašini; agent nema browser binarni fajl i nije je mogao nezavisno
+ponoviti u sandboxu.*
+
 **Šta time NIJE dokazano (A11Y-01 ostaje otvoren):**
-1. **Re-run nakon ispravki nije izvršen** — sve četiri ispravke su sada zakucane
-   source-contract testom (`test:public-a11y-axe-findings`, 4 testa, 9/9 mutacija pada),
-   ali rendered potvrda da axe sada prolazi još ne postoji.
+1. ~~**Re-run nakon ispravki nije izvršen**~~ — **riješeno, vidi iznad.**
 2. **Backend nije bio podignut** — log je pun `ECONNREFUSED 127.0.0.1:10001`
    (`/api/settings/public`, `/api/services`, `/api/salon`), pa su stranice renderovane u
    **praznom/fallback stanju**. Kontrast, `alt` i label-in-name nalazi važe za to stanje;

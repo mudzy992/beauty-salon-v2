@@ -153,6 +153,11 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > **27 ✅ · 1 ✅/❌ · 11 🟡 · 4 ❌ · 7 ➖ · 1 ➖/⚠️ = 51** (2.5.3 prešao 🟡 → ✅).
 > Prebrojano **skriptom** po redovima, ne napamet.
 >
+> **Ispravljene dvije moje pogrešne bilješke o brojevima** (izmjereno 2026-11-09):
+> i18n ima **2650** leaf ključeva po jeziku (`check_i18n.py --strict`, a ne 2634 kako sam
+> bilježio; locale fajlovi nisu dirani od `3624e72`), a `focus-visible` ima **163**
+> pojavljivanja na **46** linija (bilježio sam 162).
+>
 > **Najvažnija lekcija faze 13:** moj D3 sweep kontrasta računao je prema **bijeloj**
 > pozadini, pa `text-slate-500` na `bg-slate-200` (3.86:1) **nije mogao** uhvatiti. Sweep
 > je proširen parovima „tekst i pozadina na istom elementu" (49 parova, granica 40), što je
@@ -166,9 +171,14 @@ Legenda: `[ ]` nije počelo · `[~]` u toku · `[x]` završeno · `[!]` blokiran
 > zabilježene u `00_overview.md` §7b. `features/blog/` i `mobile/` = **0 diff** (provjereno
 > `git diff --stat`).
 >
-> **A11Y-01 ostaje otvoren:** re-run nakon ispravki nije izvršen, backend nije bio podignut
-> (stranice u praznom stanju, `ECONNREFUSED 127.0.0.1:10001`), a `/admin/**` — najveći dio
-> redizajna — uopšte nije pokriven.
+> **✅ Re-run potvrđen (2026-11-09, kasnije istog dana): svih 11 testova prolazi** (prije
+> ispravki 3/11). Sve četiri ispravke su sada dokazane **rendered** provjerom, ne samo
+> source-contract ugovorom. *(Vlasnikova opservacija na njegovoj mašini; agent nema browser
+> i nije je mogao nezavisno ponoviti u sandboxu.)*
+>
+> **A11Y-01 ostaje otvoren** zbog onoga što axe **nije** vidio: backend nije bio podignut
+> (stranice u praznom stanju, `ECONNREFUSED 127.0.0.1:10001`), a **`/admin/**` — najveći dio
+> redizajna — uopšte nije pokriven**. To je sada glavna preostala rupa.
 
 > **Faza 13, D3 — napomene.** Plan je tražio „grep sirovih boja → allowlist", ali sirova
 > klasa **nije** prekršaj ako kontrast prolazi (883 svjetle upotrebe), pa je to zamijenjeno

@@ -1065,14 +1065,17 @@ a11y vrijednosti, pa test **nije** uveden. Ako se želi vizuelna konzistentnost
 
 ---
 
-## 2026-11-09 — Faza 13, nakon prvog axe runa: **najvažniji otvoreni korak je re-run**
+## 2026-11-09 — Faza 13, nakon prvog axe runa: re-run **potvrđen**, ostaje `/admin/**`
 
 Prvi rendered dokaz postoji (vlasnikova mašina: 11 testova, **3 prošla / 8 palo**, 24.6 s).
 Četiri nalaza su ispravljena u izvoru i zakucana testom `test:public-a11y-axe-findings`
 (4 testa, 9/9 mutacija pada), ali:
 
-1. **Re-run `npm run test:a11y-routes` nakon ispravki NIJE izvršen.** Do tada ne tvrditi da
-   axe prolazi — imamo samo dokaz da je *padao* i izvor za koji vjerujemo da to popravlja.
+1. ~~**Re-run `npm run test:a11y-routes` nakon ispravki NIJE izvršen.**~~
+   **RIJEŠENO 2026-11-09 — vlasnik potvrdio: svih 11 testova prolazi.** Time su sve četiri
+   ispravke potvrđene rendered dokazom, ne samo source-contract ugovorom. *(Potvrda je
+   vlasnikova opservacija na njegovoj mašini; agent nema browser i nije je mogao nezavisno
+   ponoviti u sandboxu.)*
 2. **Backend mora biti podignut.** U prvom runu nije bio (`ECONNREFUSED 127.0.0.1:10001`),
    pa su stranice bile u praznom/fallback stanju. Kontrast, `alt` i label-in-name nalazi
    važe za to stanje; stanje s podacima nije testirano.
@@ -1088,5 +1091,101 @@ npm run build && npm run test:a11y-routes   # očekivano: 11/11
 # 2) tek onda pokriti /admin/** u e2e/a11y-routes.spec.ts (mjesto je označeno u specu)
 ```
 
+**Šta je od gornjeg još otvoreno:** točke 2 i 3. Backend i dalje mora biti podignut za
+stanje *s podacima*, a **`/admin/**` nije pokriven uopšte** — to je sada najveća preostala
+rupa, jer je najveći dio redizajna.
+
 **D10 (`formatLocalizedAmount` zaobiđen na 15 mjesta) ostaje neotvoren namjerno** — vidi
 prethodni odjeljak; ne popravljati tiho bez odluke o formatu.
+
+---
+
+# KONAČAN IZVJEŠTAJ — a11y dashboard redizajn, faze 0–13 (ETAPA B), 2026-11-09
+
+## 1. Stanje na kraju
+
+| Provjera | Rezultat |
+|---|---|
+| `test:*` skripti (frontend) | **171/171**, 0 padova |
+| `npm run build` | PASS — **273.8 KiB** gzip (budžet 300) |
+| `npm run lint` | 0 errors / 16 warnings |
+| `check_ui_contrast.py --strict` | **80/80** |
+| `check_i18n.py --strict` | PASS — **2650** leaf ključeva po jeziku, 0 razlika BS↔EN |
+| `check_repo_hygiene.py` | PASS — 1686 putanja |
+| `check_doc_links.py` | PASS — 670 linkova / 202 fajla |
+| **`npm run test:a11y-routes` (rendered, axe)** | **11/11** (prije ispravki 3/11) |
+| `mobile/` · `features/blog/` | **0 diff** |
+
+WCAG 2.2 matrica: **51 red** = 27 ✅ · 1 ✅/❌ · 11 🟡 · 4 ❌ · 7 ➖ · 1 ➖/⚠️ (skript-izbrojano).
+
+Mjerenja ETAPA A → sada: `test:*` 142→**171** · `aria-current` 0→**6** · `th scope="col"`
+17/129→**115/152** · `<caption>` 3→**21** · `focus-visible` 40→**163** pojavljivanja (46 linija)
+· `role="status"` **84** / `role="alert"` **63** · `<SkipLink>` 1→**3** ·
+`check_ui_contrast --strict` 9/23 padalo→**80/80**.
+
+## 2. Šta je dokazano rendered provjerom (a ne samo u izvoru)
+
+Prvi axe run je pao 8/11 i našao četiri stvari koje **nijedan** source-contract test nije
+vidio. Sve su ispravljene i re-run prolazi:
+
+| WCAG | Nalaz | Ispravka |
+|---|---|---|
+| 2.5.3 | `aria-label="Prebaci jezik na Engleski"` uz vidljivi „BS" (6 ruta) | ime sadrži vidljivi tekst |
+| 1.1.1 **critical** | `<img>` bez `alt` na `/register` | default `alt=""` u `AvatarImage` |
+| 1.4.3 | `slate-500` na `bg-slate-200` = 3.86:1 (`/kontakt` ×2) | `slate-600` = 6.15:1 |
+| 2.4.1 | prvi Tab na logo — javni layout nije imao skip-link | `<SkipLink />` + `tabIndex={-1}` |
+
+**Najvažnija metodološka pouka:** source sweep kontrasta računao je prema **bijeloj**
+pozadini, pa `text-slate-500` (4.76:1 na bijeloj) nije mogao otkriti isti tekst na
+`bg-slate-200` (3.86:1). **Source-level sweep nije zamjena za rendered provjeru**, čak ni uz
+pokrivenost od 178 fajlova.
+
+## 3. Šta NIJE dokazano — i to je preostali posao
+
+### 3.1 Najveća rupa: `/admin/**` uopšte nije pokriven
+
+axe je prošao **samo javne rute**. Admin/stylist dashboard — najveći dio redizajna — nije
+testiran u renderu jer zahtijeva podignut backend + `storageState` s tokenom (mjesto je
+označeno u `frontend/e2e/a11y-routes.spec.ts`).
+
+### 3.2 Backend nije bio podignut ni u javnom runu
+
+Log je bio pun `ECONNREFUSED 127.0.0.1:10001`, pa su stranice renderovane u **praznom /
+fallback stanju**. Nalazi važe za to stanje; stanje **s podacima** (stvarne cijene, galerija
+s medijima, duge liste) nije testirano.
+
+### 3.3 Četiri kriterija su ❌
+
+| SC | Zašto | Šta treba |
+|---|---|---|
+| 3.1.2 | dinamički API sadržaj bez `lang` (jezik nije poznat) | backend mora vraćati jezik, ili `lang` po elementu |
+| 3.2.6 | nema help elementa u shellu — **nije dodato** jer bi bio novi feature | odluka vlasnika |
+| 3.3.3 | nema sažetka grešaka s linkovima na polja | forma-error summary komponenta |
+| 3.3.7 | redundant entry nije sistematski provjeren | audit formulara (email/lozinka potvrda) |
+
+### 3.4 Jedanaest kriterija je 🟡 (u kodu, nije verifikovano u renderu)
+
+`1.3.2–1.3.4` · `1.4.4`/`1.4.12` · `1.4.5` · `1.4.10` · `2.1.1` · `2.3.1` · `2.4.3` ·
+`2.5.1`/`2.5.2`/`2.5.4` · `2.5.7` · `2.5.8` · `3.2.1`/`3.2.2`
+
+### 3.5 Nikad nije rađeno
+
+Čitač ekrana (VoiceOver / TalkBack / NVDA) — **nula** testova. Tastaturni walkthrough
+cijelog journeya. Zoom 200/400%, text spacing, touch target na stvarnom uređaju.
+
+### 3.6 Namjerno odgođeno (nije prekršaj, ali je dug)
+
+- **D10:** `formatLocalizedAmount` zaobiđen na **15** mjesta (`toFixed(2) + ' KM'`) →
+  miješani format i `"NaN KM"`. Bez odluke o formatu ne popravljati tiho.
+- `EmailSettings.tsx` (1377 ln) na < 120 ln — testovi ga čitaju po putanji.
+- `fieldset`/`FormSection` u `workbook-new-entry-page`.
+- Migracija tabela na `DataTable`.
+- `jsx-a11y` pravila s `warn` na `error`.
+
+## 4. Preporučeni redoslijed
+
+1. **Podignuti backend** i ponoviti `npm run test:a11y-routes` — jeftino, a pokriva stanje s podacima.
+2. **Pokriti `/admin/**`** u specu (`storageState` s tokenom) — najveći dobitak.
+3. **3.3.3 error summary** — jedini ❌ koji je čist frontend posao bez novog feature-a.
+4. **Čitač ekrana** — makar jedan ručni walkthrough rezervacije; do sada nijedan AT test ne postoji.
+5. 3.1.2 / 3.2.6 / 3.3.7 — svaki treba odluku vlasnika ili backend izmjenu.

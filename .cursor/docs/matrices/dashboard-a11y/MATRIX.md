@@ -158,17 +158,24 @@ Gornje tabele su **ETAPA A baseline** (zadržane kao historija). Ovo je stanje n
 > `ECONNREFUSED 127.0.0.1:10001`), pa su stranice renderovane u **praznom/fallback stanju** —
 > nalazi važe za to stanje, a `/admin/**` i dalje nije pokriven.
 >
-> ✅ ispod su source-contract dokazi; **re-run axe nakon ispravki još nije izvršen**.
+> ✅ ispod su source-contract dokazi. **Re-run nakon ispravki je izvršen 2026-11-09:
+> svih 11 testova prolazi** (vlasnikova potvrda; prije ispravki bilo je 3/11). Četiri nalaza
+> su time dokazana rendered provjerom. I dalje **nije** pokriveno: `/admin/**` (treba
+> podignut backend + `storageState`) i stanje stranica *s podacima*.
 
-## Mjerenja (izvor, 2026-11-09)
+## Mjerenja (izvor, 2026-11-09 — ponovo izmjereno nakon axe ispravki)
+
+`focus-visible` je ovdje **163 pojavljivanja** (`grep -o`) na **46 linija** (`grep -rn`);
+ranija vrijednost 162 bila je za jedno off. i18n: **2650** leaf ključeva po jeziku
+(`check_i18n.py --strict`), 0 razlika BS↔EN.
 
 | Mjera | ETAPA A | Sada |
 |---|---:|---:|
-| `test:*` skripti | 142 | **169** |
+| `test:*` skripti | 142 | **171** |
 | `aria-current` | 0 | **6** |
 | `th scope="col"` / ukupno `<th>` | 17 / 129 | **115 / 152** |
 | `<caption>` | 3 | **21** |
-| `focus-visible` | 40 | **162** |
+| `focus-visible` | 40 | **163** pojavljivanja / **46** linija |
 | `role="status"` / `role="alert"` | — | **84 / 63** |
 | `scroll-padding` | 0 | **2** (`globals.css`) |
 | `prefers-reduced-motion` pravila | 1 (samo logo) | **3** (globalno, `*`) |

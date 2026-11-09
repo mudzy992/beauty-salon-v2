@@ -57,12 +57,12 @@ Svi postojeći (142 skripte) + svi novi iz faza 0–12. Plus:
 
 ## 8. Definition of Done
 
-- [ ] Svi testovi zeleni; `npm run build` prolazi; 4 reporske provjere zelene
-- [ ] WCAG matrica popunjena za sve module, svaki status obrazložen
-- [ ] `FINDINGS.md` A11Y-01 ažuriran **realno** (šta je zatvoreno source-contract dokazom, šta čeka rendered/browser/screen-reader)
-- [ ] Mrtav kod obrisan ili obrazloženo zadržan
-- [ ] Javni sajt i mobilna aplikacija bez diff-a
-- [ ] Konačan izvještaj predat
+- [x] Svi testovi zeleni (**171/171** `test:*`); `npm run build` prolazi (**273.8 KiB** gzip, budžet 300); 4 reporske provjere zelene (`check_ui_contrast --strict` 80/80, `check_i18n --strict`, `check_repo_hygiene` 1686, `check_doc_links` 670/202)
+- [x] WCAG matrica popunjena (**51 red**, skript-izbrojano: 27 ✅ · 1 ✅/❌ · 11 🟡 · 4 ❌ · 7 ➖ · 1 ➖/⚠️); odjeljak „KONAČNI STATUSI — ETAPA B“
+- [x] `FINDINGS.md` A11Y-01 ažuriran **realno**: dvije dopune 2026-11-09 — prva bilježi da axe tada nije izvršen, druga da **je** izvršen (3/11 → ispravke → **11/11**) i šta time i dalje NIJE dokazano. Finding ostaje **otvoren**
+- [x] Mrtav kod obrisan: `components/ui/tooltip.tsx` + `@radix-ui/react-tooltip` (0 importova) i 16 mrtvih i18n ključeva ×2 jezika. Obrazloženo zadržano: `EmailSettings.tsx` (testovi ga čitaju po putanji) i `window.confirm` ×14 (nije prekršaj, doprinosi 3.3.4)
+- [~] Mobilna aplikacija **0 diff**. Javni sajt **ima diff namjerno** — axe je dokazao stvarne WCAG prekršaje upravo na njemu, pa je „bez diff-a“ u sukobu s realnošću; odobreno odlukama **Q8** (1.4.3 na `/kontakt`) i **Q9** (2.4.1 skip-link), zabilježenim u `00_overview.md` §7b. `features/blog/` ostaje **0 diff**. Vidljivo je promijenjena samo jedna boja (`text-slate-500` → `text-slate-600` na `/kontakt`); ostalo je nevidljivo
+- [x] Konačan izvještaj predat (rezime faza 0–13, mjerenja ETAPA A → sada, otvorene stavke)
 
 ## 9. Obim
 
